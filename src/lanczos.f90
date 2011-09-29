@@ -109,7 +109,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   endif
   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
-       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
+        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
   
   ha%in_iat_absorber=in_iat_absorber
   ha%Labsorber  = in%L_absorber
@@ -132,6 +132,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%epot_sum=epot_sum
   ha%eexctX=0.0_gp
   ha%eproj_sum=eproj_sum
+  ha%eexctX=0.0_gp
   ha%nspin=nspin
   ha%GPU=>GPU !!
   ha%Gabs_coeffs=>Gabs_coeffs
@@ -334,6 +335,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%epot_sum=epot_sum
   ha%eexctX=0.0_gp
   ha%eproj_sum=eproj_sum
+  ha%eexctX=0.0_gp
   ha%nspin=nspin
   ha%GPU=>GPU !!
   ha%Gabs_coeffs=>in%Gabs_coeffs
@@ -630,6 +632,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%epot_sum=epot_sum
   ha%eexctX=0.0_gp
   ha%eproj_sum=eproj_sum
+  ha%eexctX=0.0_gp
   ha%nspin=nspin
   ha%GPU=>GPU !!
   ha%Gabs_coeffs=>Gabs_coeffs

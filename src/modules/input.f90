@@ -84,7 +84,7 @@ contains
              read(1, fmt = '(a)', iostat = ierror) lines(i)
              !eliminate leading blanks from the line
              lines(i)=adjustl(lines(i))
-             if (ierror /= 0) exit parse_file
+             if (ierror > 0) exit parse_file
              i = i + 1
           end do parse_file
           close(1)

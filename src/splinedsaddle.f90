@@ -30,11 +30,12 @@ program splined_saddle
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   character(len=50), dimension(:), allocatable :: arr_posinp
+  character(len=60) :: radical
   !character(len=60) :: filename
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer :: iconfig,nconfig
+  integer :: iconfig,nconfig,istat
   real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
   !include 'mpif.h' !non-BigDFT
 
@@ -43,6 +44,15 @@ program splined_saddle
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+   call memocc_set_memory_limit(memorylimit)
+
+   ! Read a possible radical format argument.
+   call get_command_argument(1, value = radical, status = istat)
+   if (istat > 0) then
+      write(radical, "(A)") "input"
+   end if
+
 
 !
 !    call system("echo $HOSTNAME")
@@ -80,7 +90,7 @@ program splined_saddle
 
      ! Read all input files.
      !standard names
-     call standard_inputfile_names(inputs)
+     call standard_inputfile_names(inputs,radical)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      !-----------------------------------------------------------
      !-----------------------------------------------------------
