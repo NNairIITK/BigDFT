@@ -130,6 +130,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
+  ha%eexctX=0.0_gp
   ha%eproj_sum=eproj_sum
   ha%nspin=nspin
   ha%GPU=>GPU !!
@@ -331,6 +332,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
+  ha%eexctX=0.0_gp
   ha%eproj_sum=eproj_sum
   ha%nspin=nspin
   ha%GPU=>GPU !!
@@ -626,6 +628,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
+  ha%eexctX=0.0_gp
   ha%eproj_sum=eproj_sum
   ha%nspin=nspin
   ha%GPU=>GPU !!

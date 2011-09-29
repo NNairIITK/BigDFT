@@ -135,6 +135,7 @@ contains
     call memocc(i_stat,EP_norma2_initialized_state,'EP_norma2_initialized_state' , subname)
 
 !added for nullification of the pointers in the lanczos_base module
+  nullify(Qvect,dumQvect)
 
   END SUBROUTINE EP_inizializza
   
