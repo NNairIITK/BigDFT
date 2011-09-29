@@ -583,7 +583,7 @@ contains
     real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: density,rhopot
     !local variables
     integer :: i1,i2,i3,ifx,ify,ifz,i
-    real(kind=8) :: x1,x2,x3,length,denval,pi,a2,derf,factor,r,r2
+    real(kind=8) :: x1,x2,x3,length,denval,pi,a2,derf_tt,factor,r,r2
     real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt
 
     if (trim(geocode) == 'P') then
@@ -700,7 +700,8 @@ contains
                 if (r == 0.d0) then
                    potential(i1,i2,i3) = 2.d0/(sqrt(pi)*a_gauss)
                 else
-                   potential(i1,i2,i3) = derf(r/a_gauss)/r
+                   call derf_ab(derf_tt,r/a_gauss)
+                   potential(i1,i2,i3) = derf_tt/r
                 end if
              end do
           end do

@@ -273,6 +273,7 @@ subroutine default_input_variables(inputs)
   ! Default values.
   inputs%output_wf_format = WF_FORMAT_NONE
   inputs%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
+  inputs%dir_output="data"
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)
@@ -289,6 +290,7 @@ subroutine default_input_variables(inputs)
   call tddft_input_variables_default(inputs)
   !Default for Self-Interaction Correction variables
   call sic_input_variables_default(inputs)
+
 
 END SUBROUTINE default_input_variables
 

@@ -1403,7 +1403,7 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
     call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
     allocate(x_bigdft(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating x_bigdft.'
     call dmemocc(n,n+ndeb1,x_bigdft,'x_bigdft')
-    do ip=1,np-1
+    do ip=1,np-1 
         x_bigdft(1:n)=x(1:n,ip)
         call cpu_time(time1)
         call call_bigdft(nproc,iproc,atoms,x_bigdft,ll_inputs,pnow%ex(ip),f(1,ip),fnoise,rst,infocode)
