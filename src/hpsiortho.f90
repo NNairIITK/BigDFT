@@ -72,15 +72,17 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   if (exctX) ipotmethod=1
 
   !the PZ-SIC correction does not makes sense for virtual orbitals procedure
-  !if alphaSIC is zero no SIC correctino
+  !if alphaSIC is zero no SIC correction
   if (SIC%approach == 'PZ' .and. .not. present(orbsocc) .and. SIC%alpha /= 0.0_gp ) ipotmethod=2
   if (SIC%approach == 'NK' .and. SIC%alpha /= 0.0_gp) ipotmethod=3
 
   !the poisson kernel should be present and associated in the case of SIC
-  if ((ipotmethod /= 0) .and. .not. associated(pkernel)) then
-     if (iproc ==0) write(*,*)&
-          'ERROR(LocalHamiltonianApplication): Poisson Kernel must be associated in SIC case'
-     stop
+  if ((ipotmethod /= 0) .and. present(pkernel)) then
+     if (.not. associated(pkernel)) then
+        if (iproc ==0) write(*,*)&
+        'ERROR(LocalHamiltonianApplication): Poisson Kernel must be associated in SIC case'
+        stop
+     end if
   end if
 
   !associate the poisson kernel pointer in case of SIC
@@ -284,7 +286,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,orbs,lr,GPU,hpsi,ekin_sum,epo
   integer, intent(in) :: nproc
   type(orbitals_data),  intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr 
-  type(GPU_pointers), intent(in) :: GPU
+  type(GPU_pointers), intent(inout) :: GPU
   real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
   !local variables

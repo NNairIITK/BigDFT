@@ -1732,6 +1732,7 @@ contains
     ! Free the libXC stuff if necessary.
     call xc_end()
 
+
     !deallocate the mixing
     if (in%itrpmax > 1) then
        call ab6_mixing_deallocate(mix)
@@ -1745,6 +1746,7 @@ contains
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
     if (iproc == 0) &
          write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
+
 
   END SUBROUTINE deallocate_before_exiting
 
