@@ -20,6 +20,7 @@ module timeData
   real(kind=8), dimension(ncat+1) :: timesum
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
   character(len=10), dimension(ncat) :: pcnames !names of the partial counters, to be assigned
+  character(len=128) :: filename_time
 end module timeData
 
 
@@ -83,13 +84,16 @@ subroutine timing(iproc,category,action)
   if (action.eq.'IN') then  ! INIT
      !!no need of using system clock for the total time (presumably more than a millisecond)
      !call cpu_time(total0)
+     filename_time=repeat(' ',128)
      ittime=itime
      do i=1,ncat
         itsum(i)=0
         timesum(i)=0.d0
         pctimes(i)=0.d0
      enddo
-     parallel=trim(category).eq.'parallel'
+     !in this case iproc stands for nproc
+     parallel=iproc > 1!trim(category).eq.'parallel'
+     filename_time=trim(category)
      init=.false.
      ncounters=0
 
@@ -156,6 +160,7 @@ subroutine timing(iproc,category,action)
            else
               nproc=1
            end if
+           open(unit=60,file=trim(filename_time),status='unknown',position='append')
            write(60,*)
            write(60,*) 'PARTIAL COUNTER   mean TIME(sec)       PERCENT'
            total_pc=0.d0
@@ -169,6 +174,7 @@ subroutine timing(iproc,category,action)
            write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
                 'Total CPU time=',total,'Total categorized percent ',total_pc
            write(60,*)
+           close(unit=60)
         end if
      end if
 
@@ -286,7 +292,7 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
      else
         nproc=1
      end if
-     !open(unit=60,file='time.prc',status='unknown')
+     open(unit=60,file=trim(filename_time),status='unknown',position='append')
      write(60,*)
      write(60,*) 'CATEGORY          mean TIME(sec)       PERCENT'
      total_pc=0.d0
@@ -304,6 +310,7 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
      write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
           'Total CPU time for category: '//message//'=',totaltime,'Total categorized percent ',total_pc
      write(60,*)
+     close(unit=60)
   endif
 
 END SUBROUTINE sum_results

@@ -45,20 +45,20 @@ program PS_Check
 
   !initialize memory counting and timings
   !call memocc(0,iproc,'count','start')
-  call timing(iproc,'parallel      ','IN')
+  call timing(nproc,'time.prc','IN')
 
   !the first proc read the data and then send them to the others
   if (iproc==0) then
      !Use arguments
-     call getarg(1,chain)
+     call get_command_argument(1,value=chain)
      read(unit=chain,fmt=*) nxyz(1)
-     call getarg(2,chain)
+     call get_command_argument(2,value=chain)
      read(unit=chain,fmt=*) nxyz(2)
-     call getarg(3,chain)
+     call get_command_argument(3,value=chain)
      read(unit=chain,fmt=*) nxyz(3)
-     call getarg(4,chain)
+     call get_command_argument(4,value=chain)
      read(unit=chain,fmt=*) nxyz(4)
-     call getarg(5,chain)
+     call get_command_argument(5,value=chain)
      read(unit=chain,fmt=*) geocode
   end if
 

@@ -62,15 +62,13 @@ subroutine standard_inputfile_names(inputs, radical)
   use module_types
   implicit none
   type(input_variables), intent(inout) :: inputs
-  character(len = *), intent(in), optional :: radical
+  character(len = *), intent(in) :: radical
 
   character(len = 128) :: rad
 
   write(rad, "(A)") ""
-  if (present(radical)) then 
-     write(rad, "(A)") trim(radical)
+  write(rad, "(A)") trim(radical)
      if (trim(radical) == "") write(rad, "(A)") "input"
-  end if
 
   inputs%file_dft=trim(rad) // '.dft'
   inputs%file_geopt=trim(rad) // '.geopt'
@@ -240,6 +238,8 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 12 .or.  &                    !read in gaussian basis
        in%gaussian_help                             !mulliken and local density of states
   
+  !here you can check whether the etsf format is compiled
+
   if (shouldwrite) then
      ! Create a directory to put the files in.
      dirname=repeat(' ',len(dirname))

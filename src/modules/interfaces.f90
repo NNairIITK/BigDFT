@@ -118,7 +118,7 @@ module module_interfaces
        use module_types
        implicit none
        type(input_variables), intent(out) :: inputs
-       character(len = *), intent(in), optional :: radical
+       character(len = *), intent(in) :: radical
      END SUBROUTINE standard_inputfile_names
 
      subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
