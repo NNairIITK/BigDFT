@@ -662,9 +662,13 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
        Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
        orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)
 
-  call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-       nlpspd,proj,Glr,ngatherarr,pot,&
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
+  call LocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+       Glr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
+
+  call NonLocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+       nlpspd,proj,Glr,psi,hpsi,eproj_sum)
+
+  call SynchronizeHamiltonianApplication(nproc,orbse,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
   !deallocate potential
   call free_full_potential(nproc,pot,subname)
