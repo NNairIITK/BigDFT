@@ -20,7 +20,7 @@ program BigDFT
    !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
    character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
-   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode,istat
+   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
    integer :: ncount_bigdft
    real(gp) :: etot,sumx,sumy,sumz,fnoise
    logical :: exist_list
@@ -148,7 +148,6 @@ program BigDFT
       endif
 
       call deallocate_atoms(atoms,subname) 
-
       call free_restart_objects(rst,subname)
 
       i_all=-product(shape(rxyz))*kind(rxyz)

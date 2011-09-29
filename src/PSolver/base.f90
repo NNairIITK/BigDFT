@@ -47,7 +47,7 @@ module module_base
           mo_sp1,mo_sp2,mo_sp3,mo_sp4,mo_sp5,mo_sp6,mo_sp7,&
           mo_i1,mo_i2,mo_i3,mo_i4,mo_i5,mo_i6,mo_i7,&
           mo_l1,mo_l2,mo_l3,mo_l4,mo_l5,mo_l6,mo_l7,&
-          mo_c1, &
+          mo_c1, mo_cmpdp1,&
           memocc_internal  !central routine to be used for deallocation
   end interface
 
@@ -597,6 +597,20 @@ module module_base
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     END SUBROUTINE mo_c1
+
+    subroutine mo_cmpdp1(istat,array,aname,rname)
+      implicit none
+      character(len=*), intent(in) :: aname,rname
+      integer, intent(in) :: istat
+      complex(kind=8), dimension(:), intent(in) :: array
+      !local variables
+      integer :: ndim
+      if (ndebug /=0) then
+         ndim=product(shape(array))-ndebug
+         call cmpdp_padding(1,ndim,array)
+      end if
+      call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
+    end subroutine mo_cmpdp1
 
 end module module_base
 

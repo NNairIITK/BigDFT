@@ -942,7 +942,7 @@ MODULE NEB_routines
 
          IF ( file_exists(exit_file) ) THEN
 
-            CALL SYSTEM ("rm -f EXIT")
+           ! CALL SYSTEM ("rm -f EXIT")
 
             WRITE(*,*) " WARNING :  soft exit required"
             WRITE(*,*) " STOPPING ...                 "
@@ -1200,16 +1200,16 @@ MODULE NEB_routines
 
       IF ( flag ) THEN
 
-         CALL SYSTEM( "./NEB_driver.sh all " // trim(job_name) // &
-             & " " // trim(scratch_dir) // " " // trim(first_config))
+         !CALL SYSTEM( "./NEB_driver.sh all " // trim(job_name) // &
+         !    & " " // trim(scratch_dir) // " " // trim(first_config))
 
         N_in  = 1
         N_fin = num_of_images
 
       ELSE
          
-         CALL SYSTEM( "./NEB_driver.sh free_only " // trim(job_name) // &
-              & " " // trim(scratch_dir) // " " // trim(first_config))
+         !CALL SYSTEM( "./NEB_driver.sh free_only " // trim(job_name) // &
+         !     & " " // trim(scratch_dir) // " " // trim(first_config))
 
         N_in  = 2
         N_fin = ( num_of_images - 1 )

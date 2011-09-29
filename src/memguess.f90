@@ -377,6 +377,7 @@ program memguess
 
      call deallocate_orbs(orbstst,subname)
 
+
      i_all=-product(shape(orbstst%eval))*kind(orbstst%eval)
      deallocate(orbstst%eval,stat=i_stat)
      call memocc(i_stat,i_all,'orbstst%eval',subname)
@@ -492,7 +493,7 @@ program memguess
 
   ! De-allocations
   call deallocate_orbs(orbs,subname)
-  call free_input_variables(in)
+  call free_input_variables(in)  
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

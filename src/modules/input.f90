@@ -831,6 +831,7 @@ contains
     integer :: i, j, ierror, ierr
 
     write(var, "(A)") default
+
     call find(name, i, j)
     if (i > 0) then
        read(inout_lines(i)(j + 2:), fmt = *, iostat = ierror) var
@@ -869,7 +870,7 @@ contains
     integer, intent(out) :: var
 
     integer :: i, j, ierror, ierr
-
+    
     var = default
     call find(name, i, j)
     if (i > 0) then
