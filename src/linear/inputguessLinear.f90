@@ -3724,7 +3724,7 @@ type(matrixDescriptors):: mad
     
       
       ! Initial step size for the optimization
-      alpha=1.d-2
+      alpha=1.d-1
     
       ! Flag which checks convergence.
       converged=.false.
@@ -3896,7 +3896,7 @@ type(matrixDescriptors):: mad
               ! Adapt step size for the steepest descent minimization.
                   tt=fnrmOvrlpArr(iorb)/sqrt(fnrmArr(iorb)*fnrmOldArr(iorb))
                   if(tt>.9d0) then
-                      alpha(iorb)=alpha(iorb)*1.05d0
+                      alpha(iorb)=alpha(iorb)*1.1d0
                   else
                       alpha(iorb)=alpha(iorb)*.5d0
                   end if
