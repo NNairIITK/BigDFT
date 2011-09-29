@@ -1016,7 +1016,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                             factx * rhopottmp(ix_bB,iy_bB,iz_bB ,1)
                     enddo
                  enddo
-                 rhopottmp(:,iy_bB,iz_bB,1)=auxint(1:n1i)
+                 rhopottmp(1:n1i,iy_bB,iz_bB,1)=auxint(1:n1i)
               enddo
            enddo
 
@@ -1047,7 +1047,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                             facty * rhopottmp(ix_bB,iy_bB,iz_bB,1)
                     enddo
                  enddo
-                 rhopottmp(ix_bB ,:,iz_bB,1)=auxint(1:n2i)
+                 rhopottmp(ix_bB ,1:n2i,iz_bB,1)=auxint(1:n2i)
               enddo
            enddo
 
@@ -1077,7 +1077,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                             factz * rhopottmp(ix_bB,iy_bB,iz_bB,1)
                     enddo
                  enddo
-                 rhotarget(ix_bB ,iy_bB, : ,1)= rhotarget(ix_bB ,iy_bB, : ,1)+auxint(1:n3i)
+                 rhotarget(ix_bB ,iy_bB, 1:n3i ,1)= rhotarget(ix_bB ,iy_bB, : ,1)+auxint(1:n3i)
               enddo
            enddo
         enddo !End of loop over ireplica

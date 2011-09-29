@@ -1779,9 +1779,8 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
            read(11,*) atoms%paw_nofgaussians(paw_tot_l+ipawl  )
            read(11,*) atoms%paw_nofchannels(paw_tot_l+ipawl  )
            paw_nofchannels = atoms%paw_nofchannels(paw_tot_l+ipawl  )
+           paw_nofgaussians = atoms%paw_nofgaussians(paw_tot_l+ipawl  )
            read(11,'(a100)')  string  !!  follow  paw_nofchannels PAW_Gimag factors
-           
-           !!print *, string , " reading  " , filename
            
            do ig=1, paw_nofgaussians
               read(11,*)  atoms%paw_Gimag(paw_tot_q + ig )
