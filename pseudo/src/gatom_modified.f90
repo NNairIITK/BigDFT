@@ -866,8 +866,10 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
            LDWORK=Ngrid
            CALL  DSYGV(ITYPE, "N", "U", Nsol_used, genH, Nsol, genS, Nsol , dumgrid2 , dumgrid3, &
                 LDWORK, INFO)
+           write(6,*) " first  eigenvalues "
            write(38,*) " first  eigenvalues "
-           do i=1,Npaw
+           do i=1,2*Npaw
+              write(6,*) dumgrid2( i)
               write(38,*) dumgrid2( i)
            end do
         endif

@@ -827,7 +827,7 @@ def AsciiMatrixReader(filename):
 
 lstart = string.atoi(sys.argv[1])
 lend   = string.atoi(sys.argv[2])
-
+ngauss =  string.atoi(sys.argv[3])
 ltot=0
 l_ltot=[]
 
@@ -913,14 +913,18 @@ for lpartial in range(lstart, lend+1):
         SS[i,i]=1.0+SS[i,i]
 
 
-    ngauss=100
+    # ngauss=100
     refinement=2
     results=[]
     for i in range(Npaw):
         result = fit( ngauss,  refinement, rgrid , ptildes[i], Labs )
         results.append(result)
 
-        fres=open("fitresult_"+str(i),"w")
+        if(not is_initial) :
+            fres=open("fitresult_l_"+str(lpartial)+"_channel_"+str(i),"w")
+        else:
+            fres=open("fitresult_l_"+str(lpartial)+"_initial","w")
+
         xx,yy,cc = result["xdy"]
         for x,y,c in zip(xx,yy,cc):
             fres.write("%20.15e %20.15e %20.15e  %20.15e\n"%(x,y,c, c-y))
