@@ -18,7 +18,7 @@ program oneatom
   logical :: endloop
   integer :: n1i,n2i,n3i,iproc,nproc,i_stat,i_all,nelec
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
-  integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter
+  integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter,istat
   real(gp) :: hxh,hyh,hzh
   real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
@@ -38,13 +38,23 @@ program oneatom
   real(wp), dimension(:), pointer :: hpsi,psit,psi,proj,pot
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
+  character(len=60) :: radical
 
   !for the moment no need to have parallelism
   iproc=0
   nproc=1
 
+  call memocc_set_memory_limit(memorylimit)
+
+  ! Read a possible radical format argument.
+  call get_command_argument(1, value = radical, status = istat)
+  if (istat > 0) then
+     write(radical, "(A)") "input"
+  end if
+
+
   !initalise the variables for the calculation
-  call standard_inputfile_names(in)
+  call standard_inputfile_names(in,radical)
   call read_input_variables(iproc,'posinp',in, atoms, rxyz)
 
   if (iproc == 0) then

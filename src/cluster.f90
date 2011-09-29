@@ -1415,6 +1415,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!$                pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
         end if
 
+        ! Write virtual wavefunctions in ETSF format
+        if (in%output_wf_format == 3 .and. abs(in%norbv) > 0) then
+           call  writemywaves(iproc,trim(in%dir_output) // "virtuals" // trim(wfformat), &
+             & orbsv,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psivirt)
+        end if
+
         !start the Casida's treatment 
         if (in%tddft_approach=='TDA') then
 

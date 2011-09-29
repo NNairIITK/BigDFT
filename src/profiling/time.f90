@@ -238,6 +238,7 @@ END SUBROUTINE timing
 
 
 subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
+  use timeData, only: filename_time
   implicit none
   include 'mpif.h'
   character(len=*), intent(in) :: message

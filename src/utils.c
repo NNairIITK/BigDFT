@@ -78,7 +78,9 @@ void FC_FUNC(rename, RENAME)(const char *oldfile, int *lgoldfile, const char *ne
   char *oldpath;
   char *newpath;
 
-  path = strndup(f, (size_t)*lgF);
-  *status = unlink(path);
-  free(path);
+  oldpath = strndup(oldfile, (size_t)*lgoldfile);
+  newpath = strndup(newfile, (size_t)*lgnewfile);
+  *status = rename(oldpath,newpath);
+  free(oldpath);
+  free(newpath);
 }

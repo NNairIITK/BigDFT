@@ -68,7 +68,8 @@
     !! The status can only be downgraded. A stop signal is produced if status is increased
     subroutine memocc_set_state(istatus)
       integer, intent(in) :: istatus
-
+      !local variable
+      integer :: istat_del
       if (istatus > malloc_level) stop 'malloc_level can be only downgraded'
 
       malloc_level = istatus
@@ -76,16 +77,18 @@
       if (istatus == 2) return !the default situation
 
       if (istatus == 1) then 
-         !clean the file situation
-         close(unit=mallocFile)
+         !clean the file situation (delete the previously existing file)
+         close(unit=mallocFile)                        
+         call delete('malloc.prc',len('malloc.prc'),istat_del)
          open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
       end if
 
       if (istatus == 0) then
          !the file should be deleted
          close(unit=mallocFile)
-         open(unit=mallocFile,file='malloc.prc',status='replace')
-         close(unit=mallocFile)
+         !open(unit=mallocFile,file='malloc.prc',status='replace')
+         !close(unit=mallocFile)
+         call delete('malloc.prc',len('malloc.prc'),istat_del)
       end if
     end subroutine memocc_set_state
 
@@ -166,7 +169,7 @@
 
       ! Local variables
       logical :: lmpinit
-      integer :: ierr
+      integer :: ierr,istat_del
 
       include 'mpif.h'
 
@@ -214,10 +217,12 @@
             !here we can add a routine which open the malloc.prc file in case of some 
             !memory allocation problem, and which eliminates it for a successful run
             if (malloc_level == 1 .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
+               !open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
                !remove file should be put here
-               open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
-               write(unit=mallocFile,fmt='()',advance='no')
-               close(unit=mallocFile)
+               call delete('malloc.prc',len('malloc.prc'),istat_del)
+
+               !write(unit=mallocFile,fmt='()',advance='no')
+               !close(unit=mallocFile)
             else
                call memory_malloc_check(memalloc,memdealloc)
             end if

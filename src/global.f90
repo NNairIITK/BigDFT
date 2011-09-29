@@ -278,7 +278,7 @@ program MINHOP
      tt=dnrm2(3*atoms%nat,ff,1)
      write(fn4,'(i4.4)') nconjgr
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
-     call write_atomic_file('poslocm_'//fn4,e_pos-eref,pos,atoms,trim(comment))
+     call write_atomic_file('poslocm_'//fn4,e_pos-eref,pos,atoms,trim(comment),forces=ff)
   endif
   nconjgr=nconjgr+1
 
@@ -401,7 +401,7 @@ program MINHOP
         !call wtlmin(nconjgr,atoms%nat,e_wpos-eref,tt,wpos,atoms%iatype,atoms%atomnames,atoms%natpol)
         write(fn4,'(i4.4)') nconjgr
         write(comment,'(a,1pe10.3)')'fnrm= ',tt
-  call write_atomic_file('poslocm_'//fn4,e_wpos-eref,wpos,atoms,trim(comment))
+        call write_atomic_file('poslocm_'//fn4,e_wpos-eref,wpos,atoms,trim(comment),forces=ff)
      endif
   nconjgr=nconjgr+1
   re_wpos=round(e_wpos-eref,accur)
@@ -694,7 +694,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
 
        if (iproc == 0) then
           write(fn,'(i4.4)') istep
-          call write_atomic_file('posmd_'//fn,e_rxyz,rxyz,atoms,'')
+          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn,e_rxyz,rxyz,atoms,'',forces=ff)
        end if
 
        en0000=e_rxyz-e_pos
@@ -848,7 +848,9 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
 
        write(fn4,'(i4.4)') it
        write(comment,'(a,1pe10.3)')'res= ',res
-       if (iproc == 0) call write_atomic_file('possoft_'//fn4,etot,wpos,atoms,trim(comment))
+       if (iproc == 0) &
+            call write_atomic_file(trim(inputs_md%dir_output)//'possoft_'//fn4,&
+            etot,wpos,atoms,trim(comment),forces=fxyz)
 
        if(iproc==0)write(*,'(a,i3,5(f12.5),f10.3)')'# soften it, curv, fd2,dE,res,eps_vxyz:',&
             it, curv, fd2,etot-etot0,res,eps_vxyz
@@ -882,7 +884,8 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
           vxyz(i)=wpos(i)-rxyz(i)
        end do
        write(comment,'(a,1pe10.3)')'curv= ',curv
-       if (iproc == 0) call write_atomic_file('posvxyz',0.d0,vxyz,atoms,trim(comment))
+       if (iproc == 0) &
+            call write_atomic_file(trim(inputs_md%dir_output)//'posvxyz',0.d0,vxyz,atoms,trim(comment),forces=fxyz)
        call elim_moment(atoms%nat,vxyz)
        call elim_torque(atoms%nat,rxyz,vxyz)
 

@@ -228,8 +228,8 @@ module module_interfaces
           end subroutine getline
        end interface
      END SUBROUTINE read_ascii_positions
-
-     subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
+     
+     subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
        use module_base
        use module_types
        implicit none
@@ -237,6 +237,7 @@ module module_interfaces
        type(atoms_data), intent(in) :: atoms
        real(gp), intent(in) :: energy
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+       real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
      END SUBROUTINE write_atomic_file
 
      subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
@@ -1320,12 +1321,12 @@ module module_interfaces
        type(gaussian_basis), intent(out) :: G  
      END SUBROUTINE gaussian_hermite_basis
 
-    subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+    subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,output_wf_format)
       use module_base
       use module_types
       implicit none
       logical, intent(in) :: occorbs
-      integer, intent(in) :: iproc,nspin,nvirt,nplot
+      integer, intent(in) :: iproc,nspin,nvirt,nplot,output_wf_format
       real(gp), intent(in) :: hx,hy,hz
       type(atoms_data), intent(in) :: at
       type(locreg_descriptors), intent(in) :: lr
