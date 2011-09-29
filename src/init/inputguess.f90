@@ -441,7 +441,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
      !this part can be transferred on the atomic orbitals section
      do iat=1,at%nat
         read(unit=22,fmt=*,iostat=i_stat) mx,my,mz
-        if (i_stat /= 0) then
+        if (i_stat > 0) then
            write(unit=*,fmt='(a,i0,a,i0,a)') &
                 'The file "moments" has the line ',iat,&
                 ' which have not 3 numbers for the atom ',iat,'.'
@@ -1104,7 +1104,7 @@ subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,
   real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
   real(gp), dimension(ng+1), intent(out) :: expo
   real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
-  real(gp), dimension(nmax_occ) :: gaenes_aux
+  real(gp), dimension(nmax_occ),intent (out) :: gaenes_aux
 
 
   !local variables
@@ -1124,6 +1124,7 @@ subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,
   real(gp), dimension(:,:,:,:), allocatable :: rmt
 
   !filename = 'psppar.'//trim(atomname)
+  call to_zero(nmax_occ,gaenes_aux(1))
 
   lpx=0
   lpx_determination: do i=1,4

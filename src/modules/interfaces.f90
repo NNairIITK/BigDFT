@@ -118,7 +118,7 @@ module module_interfaces
        use module_types
        implicit none
        type(input_variables), intent(out) :: inputs
-       character(len = *), intent(in), optional :: radical
+       character(len = *), intent(in) :: radical
      END SUBROUTINE standard_inputfile_names
 
      subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
@@ -228,8 +228,8 @@ module module_interfaces
           end subroutine getline
        end interface
      END SUBROUTINE read_ascii_positions
-
-     subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
+     
+     subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
        use module_base
        use module_types
        implicit none
@@ -237,6 +237,7 @@ module module_interfaces
        type(atoms_data), intent(in) :: atoms
        real(gp), intent(in) :: energy
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+       real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
      END SUBROUTINE write_atomic_file
 
      subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
@@ -518,32 +519,30 @@ module module_interfaces
        type(rho_descriptors),intent(inout) :: rho_d
       end subroutine rho_segkey
 
-
-     subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
-       use module_base
-       use module_types
-       implicit none
-       integer, intent(in) :: iproc,nproc
-       real(gp), intent(in) :: hx,hy,hz
-       type(atoms_data), intent(in) :: at
-       type(orbitals_data), intent(in) :: orbs
-       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-       type(locreg_descriptors), intent(in) :: lr 
-       type(SIC_data), intent(in) :: SIC
-       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-       real(gp), dimension(3,at%nat), intent(in) :: rxyz
-       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-       real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
-       real(wp), dimension(:), pointer :: pot
-       real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
-       real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
-       type(GPU_pointers), intent(inout) :: GPU
-       real(dp), dimension(:), pointer, optional :: pkernel
-       type(orbitals_data), intent(in), optional :: orbsocc
-       real(wp), dimension(:), pointer, optional :: psirocc
-     END SUBROUTINE HamiltonianApplication
+      subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
+           lr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
+        use module_base
+        use module_types
+        use module_xc
+        implicit none
+        integer, intent(in) :: iproc,nproc
+        real(gp), intent(in) :: hx,hy,hz
+        type(atoms_data), intent(in) :: at
+        type(orbitals_data), intent(in) :: orbs
+        type(locreg_descriptors), intent(in) :: lr 
+        type(SIC_data), intent(in) :: SIC
+        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+        real(gp), dimension(3,at%nat), intent(in) :: rxyz
+        real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+        real(wp), dimension(:), pointer :: pot
+        real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
+        real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
+        real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+        type(GPU_pointers), intent(inout) :: GPU
+        real(dp), dimension(:), pointer, optional :: pkernel
+        type(orbitals_data), intent(in), optional :: orbsocc
+        real(wp), dimension(:), pointer, optional :: psirocc
+      END SUBROUTINE LocalHamiltonianApplication
 
      subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspin,orthpar)
        use module_base
@@ -1322,12 +1321,12 @@ module module_interfaces
        type(gaussian_basis), intent(out) :: G  
      END SUBROUTINE gaussian_hermite_basis
 
-    subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+    subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,output_wf_format)
       use module_base
       use module_types
       implicit none
       logical, intent(in) :: occorbs
-      integer, intent(in) :: iproc,nspin,nvirt,nplot
+      integer, intent(in) :: iproc,nspin,nvirt,nplot,output_wf_format
       real(gp), intent(in) :: hx,hy,hz
       type(atoms_data), intent(in) :: at
       type(locreg_descriptors), intent(in) :: lr

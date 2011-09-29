@@ -532,7 +532,7 @@ subroutine gaussian_pswf_basis_for_paw(iproc,nspin,at,rxyz,G,  &
   integer, intent(in) :: iproc,nspin
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
-  type(gaussian_basis_c), intent(out) :: G
+  type(gaussian_basis_c), intent(inout) :: G
 
   integer, pointer :: iorbtolr(:)
   integer, pointer :: iorbto_l(:)

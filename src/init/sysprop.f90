@@ -633,7 +633,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
      norb=nelec
      if (mod(norb+in%mpol,2) /=0) then
-        write(*,*)'ERROR: the input polarization should have the same parity of the number of electrons'
+        write(*,*)'ERROR: the mpol polarization should have the same parity of the number of electrons'
         stop
      end if
      norbu=min((norb+in%mpol)/2,norb)

@@ -84,7 +84,7 @@ contains
              read(1, fmt = '(a)', iostat = ierror) lines(i)
              !eliminate leading blanks from the line
              lines(i)=adjustl(lines(i))
-             if (ierror /= 0) exit parse_file
+             if (ierror > 0) exit parse_file
              i = i + 1
           end do parse_file
           close(1)
@@ -94,6 +94,7 @@ contains
        if (lmpinit) call MPI_BCAST(nlines,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (1) '
        nlines_total=nlines
+
        !broadcast all the lines
        if (lmpinit) call MPI_BCAST(lines,nmax_lines*nlines,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (2) '

@@ -321,11 +321,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call print_dft_parameters(in,atoms)
   end if
   if (iproc == 0) call xc_dump()
-  if (nproc > 1) then
-     call timing(iproc,'parallel     ','IN')
-  else
-     call timing(iproc,'             ','IN')
-  end if
+  !time initialization
+  call timing(nproc,trim(in%dir_output)//'time.prc','IN')
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -965,9 +962,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 Glr%d%n1i*Glr%d%n2i*n3d*nrhodim,i3rho_add,&
                 orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
 
-           call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-                nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,&
-                in%SIC,GPU,pkernel=pkernelseq)
+!!$           call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+!!$                nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,&
+!!$                in%SIC,GPU,pkernel=pkernelseq)
+
+           call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
+
+           call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                nlpspd,proj,Glr,psi,hpsi,eproj_sum)
+
+           call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
            !deallocate potential
            call free_full_potential(nproc,potential,subname)
@@ -1408,6 +1413,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!$                orbs,orbsv,in%nvirt,Glr,comms,commsv,&
 !!$                hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
 !!$                pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
+        end if
+
+        ! Write virtual wavefunctions in ETSF format
+        if (in%output_wf_format == 3 .and. abs(in%norbv) > 0) then
+           call  writemywaves(iproc,trim(in%dir_output) // "virtuals" // trim(wfformat), &
+             & orbsv,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psivirt)
         end if
 
         !start the Casida's treatment 

@@ -377,6 +377,8 @@ module module_types
      real(kind=8) :: psi_c_r_i,psi_f_r_i,psi_c_b_i,psi_f_b_i,psi_c_d_i,psi_f_d_i
      real(kind=8) :: keyg_c,keyg_f,keyv_c,keyv_f
      real(kind=8) :: context,queue
+     real(gp), dimension(:), pointer :: ekin, epot !< values of the kinetic and potential energies to be passed to local_hamiltonian
+     real(wp), dimension(:), pointer :: hpsi_ASYNC !<pointer to the wavefunction allocated in the case of asyncronous local_hamiltonian
   end type GPU_pointers
 
 
@@ -1126,7 +1128,7 @@ END SUBROUTINE deallocate_orbs
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    type(pawproj_data_type), intent(out) :: pawproj_data
+    type(pawproj_data_type), intent(inout) :: pawproj_data
     !local variables
     integer :: i_all,i_stat
     if(associated(pawproj_data%paw_proj)) then
@@ -1195,7 +1197,7 @@ END SUBROUTINE deallocate_orbs
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    type(pcproj_data_type), intent(out) :: pcproj_data
+    type(pcproj_data_type), intent(inout) :: pcproj_data
     !local variables
     integer :: i_all,i_stat
     if(associated(pcproj_data%pc_proj)) then

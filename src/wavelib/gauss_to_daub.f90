@@ -509,13 +509,12 @@ subroutine gauss_c_to_daub_k(hgrid,kval,ncplx,gau_bf,ncs_s,factor , &
   use module_base
   implicit none
   logical, intent(in) :: periodic
-  integer, intent(in) :: n_gau,nmax,nwork,ncs_s
+  integer, intent(in) :: n_gau,nmax,nwork,ncs_s,ncplx
   real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a,gau_bf
   real(wp), dimension(0:nwork,2,ncs_s, ncplx), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
   real(wp), dimension(  ncs_s,ncplx,0:nmax,2), intent(out) :: c
   real(gp)  hcutoff
-  integer   ncplx
 
   !local variables
   integer :: rightx,leftx,right_t,i0,i,k,length,j,ics, icplx

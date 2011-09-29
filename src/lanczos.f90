@@ -17,7 +17,6 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   use module_types
   use lanczos_interface
   use lanczos_base
-  ! per togliere il bug 
   use module_interfaces ,except_this_one => xabs_lanczos
 
   implicit none
@@ -102,7 +101,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
   else     
-     print * ," You are asking for a spactra for atom " , in_iat_absorber
+     print * ," You are asking for a spectra for atom " , in_iat_absorber
      print *, " but at%paw_NofL( at%iatype(   in_iat_absorber ) )=0 " 
      print *, " this mean that the pseudopotential file is not pawpatched. "
      print *, " You'll have to generated the patch with pseudo"
@@ -110,7 +109,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   endif
   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
-       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
+        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
   
   ha%in_iat_absorber=in_iat_absorber
   ha%Labsorber  = in%L_absorber
@@ -131,7 +130,9 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
+  ha%eexctX=0.0_gp
   ha%eproj_sum=eproj_sum
+  ha%eexctX=0.0_gp
   ha%nspin=nspin
   ha%GPU=>GPU !!
   ha%Gabs_coeffs=>Gabs_coeffs
@@ -209,7 +210,7 @@ END SUBROUTINE xabs_lanczos
 !!
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-     ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD   )! aggiunger a interface
+     ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD   )
 
   use module_base
   use module_types
@@ -332,7 +333,9 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
+  ha%eexctX=0.0_gp
   ha%eproj_sum=eproj_sum
+  ha%eexctX=0.0_gp
   ha%nspin=nspin
   ha%GPU=>GPU !!
   ha%Gabs_coeffs=>in%Gabs_coeffs
@@ -392,7 +395,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   LB_iproc=iproc
   
   call LB_allocate_for_chebychev( )
-  call EP_allocate_for_eigenprob(6) ! invece di nsteps, giusto qualche vettore per fare i calcoli
+  call EP_allocate_for_eigenprob(6) 
   call EP_make_dummy_vectors(4)
 
 
@@ -627,7 +630,9 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
+  ha%eexctX=0.0_gp
   ha%eproj_sum=eproj_sum
+  ha%eexctX=0.0_gp
   ha%nspin=nspin
   ha%GPU=>GPU !!
   ha%Gabs_coeffs=>Gabs_coeffs
@@ -679,7 +684,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
              EP_scalare,EP_add_from_vect_with_fact   , EP_multbyfact  ,EP_precondition, Ene, gamma, 1.0D-2, useold )
         
         print *, ene, res
-        open(unit=22,file="cgspectra.dat", access='append')
+        open(unit=22,file="cgspectra.dat", position="append")
         write(22,*) ene, res
         close(unit=22)
         

@@ -72,3 +72,15 @@ void FC_FUNC(delete, DELETE)(const char *f, int *lgF, int *status)
   *status = unlink(path);
   free(path);
 }
+
+void FC_FUNC(rename, RENAME)(const char *oldfile, int *lgoldfile, const char *newfile, int *lgnewfile, int *status)
+{
+  char *oldpath;
+  char *newpath;
+
+  oldpath = strndup(oldfile, (size_t)*lgoldfile);
+  newpath = strndup(newfile, (size_t)*lgnewfile);
+  *status = rename(oldpath,newpath);
+  free(oldpath);
+  free(newpath);
+}

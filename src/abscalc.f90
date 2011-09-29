@@ -30,10 +30,11 @@ program abscalc_main
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   character(len=50), dimension(:), allocatable :: arr_posinp
+  character(len=60) :: filename, radical
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer :: iconfig,nconfig
+  integer :: iconfig,nconfig,istat
   logical :: exists
 
 
@@ -42,6 +43,12 @@ program abscalc_main
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+   ! Read a possible radical format argument.
+   call get_command_argument(1, value = radical, status = istat)
+   if (istat > 0) then
+      write(radical, "(A)") "input"
+   end if
 
   ! Find out which input files will be used
   inquire(file="list_posinp",exist=exist_list)
@@ -72,7 +79,7 @@ program abscalc_main
 
      ! Read all input files.
      !standard names
-     call standard_inputfile_names(inputs)
+     call standard_inputfile_names(inputs,radical)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 
      !Initialize memory counting
@@ -82,13 +89,13 @@ program abscalc_main
      !inquire for the needed file 
      !if not present, set default (no absorption calculation)
           
-     inquire(file="input.abscalc",exist=exists)
+     inquire(file=trim(radical)//".abscalc",exist=exists)
      if (.not. exists) then
         if (iproc == 0) write(*,*) 'ERROR: need file input.abscalc for x-ray absorber treatment.'
         if(nproc/=0)   call MPI_FINALIZE(ierr)
         stop
      end if
-     call abscalc_input_variables(iproc,'input.abscalc',inputs)
+     call abscalc_input_variables(iproc,trim(radical)//".abscalc",inputs)
      if( inputs%iat_absorber <1 .or. inputs%iat_absorber > atoms%nat) then
         if (iproc == 0) write(*,*)'ERROR: inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms '
         if(nproc/=0)   call MPI_FINALIZE(ierr)
@@ -341,7 +348,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
 
-  real(kind=8), dimension(:,:,:,:), allocatable, target :: rhopot, rhopotTOTO, rhoxanesTOTO
+  real(kind=8), dimension(:,:,:,:), allocatable, target :: rhopot, rhopotTOTO
   real(kind=8), dimension(:,:,:,:), pointer ::  rhopottmp, rhopotExtra, rhoXanes, rhotarget
   integer :: b2Bcounter, b2BN
   character(len=100) :: filename
@@ -456,11 +463,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
           in%inputPsiId
      call print_dft_parameters(in,atoms)
   end if
-  if (nproc > 1) then
-     call timing(iproc,'parallel     ','IN')
-  else
-     call timing(iproc,'             ','IN')
-  end if
+  !time initialization
+  call timing(nproc,trim(in%dir_output)//'time.prc','IN')
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -882,7 +886,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            else
               STOP " reimplement allocation of rhoXanesTOTO" 
               write(filename,'(A)') 'b2B_rho'
-              rhotarget=>rhoXanesTOTO
+!              rhotarget=>rhoXanesTOTO
            endif
 
 
@@ -1483,7 +1487,7 @@ subroutine applyPCprojectors(orbs,at,&
 
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => applyPCprojectors
 
   type(orbitals_data), intent(inout) :: orbs
   type(atoms_data) :: at
@@ -1679,7 +1683,7 @@ subroutine applyPAWprojectors(orbs,at,&
 
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => applyPAWprojectors
 
   type(orbitals_data), intent(inout) :: orbs
   type(atoms_data) :: at
