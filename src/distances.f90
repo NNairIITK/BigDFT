@@ -360,7 +360,7 @@ contains
        deallocate(atoms%atomnames)
        deallocate(atoms%amu)
        deallocate(rxyz)
-       if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
+       if (atoms%symObj >= 0) call symmetry_free(atoms%symObj)
 
 
     end if

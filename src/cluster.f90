@@ -440,7 +440,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !calculate the irreductible zone, if necessary.
   if (atoms%symObj >= 0) then
-     call ab6_symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
+     call symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
      if (nsym > 1) then
         ! Current third dimension is set to 1 always
         ! since nspin == nsppol always in BigDFT
@@ -448,7 +448,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,irrzon,'irrzon',subname)
         allocate(phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
         call memocc(i_stat,phnons,'phnons',subname)
-        call ab6_symmetry_get_irreductible_zone(atoms%symObj, irrzon, phnons, &
+        call symmetry_get_irreductible_zone(atoms%symObj, irrzon, phnons, &
              & n1i, n2i, n3i, in%nspin, in%nspin, i_stat)
      end if
   end if
