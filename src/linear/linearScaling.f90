@@ -293,7 +293,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
       ! Mix the density.
       !if(lin%nItInguess>0 .or. itSCC>1) then
-      if(itSCC>1) then
+      !if(itSCC>1) then
+      if(itSCC>0) then
           if(trim(lin%mixingMethod)=='dens') then
               if(lin%mixHist==0) then
                   !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
@@ -326,7 +327,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
       ! Mix the potential
       !if(lin%nItInguess>0 .or. itSCC>1) then
-      if(itSCC>1) then
+      !if(itSCC>1) then
+      if(itSCC>0) then
           if(trim(lin%mixingMethod)=='pot') then
               if(lin%mixHist==0) then
                   call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
