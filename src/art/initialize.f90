@@ -54,9 +54,10 @@ subroutine initialize()
   !open(unit=FREFCONFIG,file=REFCONFIG,status='old',action='read',iostat=ierror)
   !read(FREFCONFIG, '(A10,i5)' ) dummy, refcounter
   !read(FREFCONFIG,*) dummy, ref_energy !! M-A Malouin
-  !read(FREFCONFIG,*) boundary,boxref(1), boxref(2), boxref(3)
+  !read(FREFCONFIG,*) boxref(1), boxref(2), boxref(3)
   !do i = 1,natoms
-  !	read(FREFCONFIG,*) (typat(i),x(i),y(i),z(i),constr(i))
+  !   read(FREFCONFIG,*) typat(i), x(i), y(i), z(i)
+  !end do 
   !close(FREFCONFIG)
   
   ! Read the counter in order to continue the run where it stopped
@@ -125,7 +126,6 @@ subroutine initialize()
      call min_converge( success )     ! Converge the configuration to a local minimum
 
      posref = pos                     ! New reference configuration.
-     mincounter = mincounter + 1
      ref_energy = total_energy
  
      if ( iproc == 0 ) then
@@ -143,6 +143,7 @@ subroutine initialize()
         end if
         close(FLOG)
      end if
+     mincounter = mincounter + 1
                                       ! if dual_search we dont do this check at the
                                       ! beginning. It is not well defined.
      if ( LANCZOS_MIN .and. success .and. ( .not. dual_search ) ) call check_min( 'M' ) 

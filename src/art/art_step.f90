@@ -58,7 +58,7 @@ END SUBROUTINE deallocate_activation
 
 
 !> ART apply_diis
-subroutine apply_diis( diter, saddle_energy )
+subroutine apply_diis( diter, saddle_energy, ret )
 
   use defs
   use diis_defs
@@ -68,8 +68,9 @@ subroutine apply_diis( diter, saddle_energy )
   implicit none
 
   !Arguments
-  integer, intent(inout)    :: diter
-  real(kind=8), intent(out) :: saddle_energy 
+  integer,      intent(inout) :: diter
+  real(kind=8), intent(out)   :: saddle_energy 
+  integer,      intent(inout) :: ret
 
   !Local variables
   integer :: ierror, i, j
@@ -105,6 +106,18 @@ subroutine apply_diis( diter, saddle_energy )
 
        saddle_energy = total_energy
        end_activation = .true.
+       pas = pas - 1                  ! the real number of steps in the event 
+
+       if ( ftot < EXITTHRESH ) then
+          ret = 20000 + pas
+       else if  (delta_e < delta_thr .and. delr < delr_thr) then
+          ret = 80000 + pas 
+       else if ( diter > maxdiis) then
+          ret = 70000 + pas
+       else if ( pas > maxpas ) then 
+          ret = 50000 + pas 
+       end if 
+
        exit
     end if
 
@@ -191,6 +204,7 @@ subroutine apply_diis( diter, saddle_energy )
 
                ! If not ITERATIVE, we can not continue with this event. 
                end_activation = .true. 
+               ret = 70000 + pas - 1
                if ( iproc == 0 ) write(*,*) 'BART: DIIS Failed, no memory'
 
             else if ( diter > 1 ) then
@@ -198,11 +212,12 @@ subroutine apply_diis( diter, saddle_energy )
                ! If we have accepted at least one DIIS step, we check the
                ! projection vector up to four times if the resulting lowest 
                ! eigenvalue is positive at each iteration.
-
-               if ( clean_wf ) then 
-                  a1 = 0.0d0
-                  call clean_wavefunction ( a1 )
-               end if
+                                          ! clean_wf
+               if ( clean_wf ) then
+                  pas = pas - 1           ! only for the report 
+                  call clean_wavefunction ( 0.0d0, .False. )
+                  pas = pas + 1
+               end if 
 
                new_projection = .false.   ! Let's start with the last projection.  
 
@@ -279,6 +294,36 @@ subroutine apply_diis( diter, saddle_energy )
     end do do_rejected
 
     saddle_energy = total_energy
+                                                  ! clean_wf
+    if ( clean_wf .and. ftot < EXITTHRESH ) then
+
+       call clean_wavefunction ( 0.0d0, .False. ) 
+                                                  ! The total force has changed.
+       if ( ftot >= EXITTHRESH .and. cw_try_again )  then
+                                                  ! We make Lanczos.
+          cw_try_again = .False.                  ! But, this is done only once per event.
+          switchDIIS = .False.
+          previous_forces = 0.0d0                 ! Clean DIIS memory.
+          previous_pos    = 0.0d0
+          previous_norm   = 0.0d0
+                                                  ! We need a projection vector
+          new_projection = .false.                ! Let's start with the last projection.  
+          Do_lanc_wf: do i = 1, 4
+             call lanczos( NVECTOR_LANCZOS_C, new_projection, a1 )
+             if ( eigenvalue < 0.0d0 ) exit Do_lanc_wf
+          end do Do_lanc_wf                         
+                                                  ! Orientation of the projection vector                               
+          fpar = dot_product( force, projection )               
+          if ( fpar > 0.0d0 ) projection = -1.0d0 * projection  
+          return
+       else
+          ret = 40000 + pas
+          saddle_energy = total_energy
+          end_activation = .true.
+          return 
+       end if 
+    end if
+
     pas = pas + 1
     diter = diter + 1
 
@@ -356,7 +401,7 @@ END SUBROUTINE get_solution
 !> ART apply_lanczos
 !! It is the loop over the hyperplanes. Once we decide to switch to DIIS we set up
 !! the first two vectors of the memory.
-subroutine  apply_lanczos ( liter, saddle_energy )
+subroutine  apply_lanczos ( liter, saddle_energy, ret )
 
   use defs
   use lanczos_defs
@@ -367,6 +412,7 @@ subroutine  apply_lanczos ( liter, saddle_energy )
   !Arguments
   integer,      intent(inout) :: liter  ! # lanczos steps
   real(kind=8), intent(out)   :: saddle_energy 
+  integer,      intent(inout) :: ret
 
   !Local variables
   logical      :: get_proj
@@ -396,26 +442,33 @@ subroutine  apply_lanczos ( liter, saddle_energy )
   a1 = 0.0d0
 
   While_lanczos: do
-       
+ 
       ! Test of While_lanczos loop 
-      if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (liter > 280) .or. (eigenvalue > 0.0) ) then
+      if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (liter > 280) .or. & 
+           (eigenvalue > 0.0)  .or. (delta_e < delta_thr .and. delr < delr_thr) ) then
 
          saddle_energy = total_energy 
          end_activation = .true.  
-         exit
+         pas = pas - 1                ! the real number of steps in the event 
 
-      end if
+         if ( ftot < EXITTHRESH ) then
+            ret = 20000 + pas
+         else if  (delta_e < delta_thr .and. delr < delr_thr) then
+            ret = 80000 + pas 
+         else if (eigenvalue > 0.0) then
+            ret = 60000 + pas
+         else if ( pas > maxpas .or. liter > 280 ) then 
+            ret = 50000 + pas 
+         end if 
+
+         exit
+      end if 
 
       if ( USE_DIIS ) then 
                                       ! Criteria for calling DIIS:
          if ( (ftot < DIIS_FORCE_THRESHOLD .and. (.not. ITERATIVE) ) .or. &
               (ftot < DIIS_FORCE_THRESHOLD .and. liter > 2 .and. ITERATIVE) .or. &
               (nsteps_after_eigen_min >= INFLECTION .and. ITERATIVE) ) then
-
-            if ( clean_wf ) then
-                switchDIIS = .True. ! only for the next subroutine
-                call clean_wavefunction ( a1 ) 
-            end if
 
             ! If  previous_forces(1,:) is .ne. 0.0d0 is a restart
             ! from a lanczos_step in the next IF statement. 
@@ -436,8 +489,23 @@ subroutine  apply_lanczos ( liter, saddle_energy )
             
             ! if after this last lanczos step the criteria to end the activation are fulfilled
             ! we end here.          
-            if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (eigenvalue > 0.0) ) then
+            if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (liter > 280) .or. & 
+                 (eigenvalue > 0.0)  .or. (delta_e < delta_thr .and. delr < delr_thr) ) then
+
+               saddle_energy = total_energy 
                end_activation = .true.  
+               pas = pas - 1                ! the real number of steps in the event 
+
+               if ( ftot < EXITTHRESH ) then
+                  ret = 20000 + pas
+               else if  (delta_e < delta_thr .and. delr < delr_thr) then
+                  ret = 80000 + pas 
+               else if (eigenvalue > 0.0) then
+                  ret = 60000 + pas
+               else if ( pas > maxpas .or. liter > 280 ) then 
+                  ret = 50000 + pas 
+               end if 
+
                exit
             else 
                ! We set the second trial vector 
@@ -460,6 +528,25 @@ subroutine  apply_lanczos ( liter, saddle_energy )
       end if
 
       call lanczos_step ( saddle_energy, a1, liter, get_proj ) 
+                                      ! clean_wf
+      if_clean_wf: if ( clean_wf ) then                                     
+          if ( eigenvalue == eigen_min .and. ftot > EXITTHRESH) then
+             call clean_wavefunction ( a1, .True. )
+          else if ( ftot < EXITTHRESH ) then
+
+             call clean_wavefunction ( a1, .True. )
+             if ( ftot >= EXITTHRESH .and. cw_try_again ) then
+                                           ! we continue in lanczos,
+                cw_try_again = .False.     ! but, this is done only once per event.  
+             else
+                ret = 40000 + pas
+                saddle_energy = total_energy
+                end_activation = .true.
+                exit
+             end if
+          end if 
+      end if if_clean_wf
+
       pas = pas + 1
       liter = liter + 1
         
@@ -566,6 +653,7 @@ subroutine lanczos_step ( current_energy, a1, liter, get_proj )
   delta_e = current_energy - ref_energy
                                       ! Magnitude of the displacement (utils.f90).
   call displacement( posref, pos, delr, npart )
+  if ( SAVE_CONF_INT ) call save_intermediate( 'L' )
 
   ! we get eigen direction for the minimum of this hyperplane.
   if ( get_proj ) then
@@ -582,16 +670,14 @@ subroutine lanczos_step ( current_energy, a1, liter, get_proj )
   ! write(*,*) 'BART: eigenvalue : ', eigenvalue
   ! write(*,"(' ','BART: eigenvals: ',4f12.6)") (eigenvals(i),i=1,4)
   !end if
+                                      ! Write 
+  call write_step ( 'L', liter, a1, current_energy )
                                       ! We look for an inflection in the
                                       ! eigenvalue.
   eigen_min = min( eigen_min, eigenvalue )
-  if ( eigenvalue == eigen_min ) nsteps_after_eigen_min = 0 
-  if ( eigenvalue > eigen_min  ) nsteps_after_eigen_min = nsteps_after_eigen_min + 1 
-                                      ! Write 
-  call write_step ( 'L', liter, a1, current_energy )
-
-  if ( SAVE_CONF_INT ) call save_intermediate( 'L' )
-                                      ! For restart ( restart.f90 )
+  if ( eigenvalue == eigen_min ) nsteps_after_eigen_min = 0
+  if ( eigenvalue > eigen_min  ) nsteps_after_eigen_min = nsteps_after_eigen_min + 1
+                                      ! For restart ( restart.f90 
   if ( write_restart_file ) then
      state_restart = 2 
      total_energy = current_energy
@@ -600,6 +686,7 @@ subroutine lanczos_step ( current_energy, a1, liter, get_proj )
         & previous_pos,previous_norm,eigen_min,eigenvalue,nsteps_after_eigen_min )
      end if
   end if
+
 END SUBROUTINE lanczos_step
 
 

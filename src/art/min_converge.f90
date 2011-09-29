@@ -42,57 +42,56 @@ subroutine min_converge ( success )
    end if
 
    if (energy_type == "BIG" ) then
-                                 ! Relaxation subroutine in bigdft_forces.f90                     
-     boxl = box * scala          ! We compute at constant volume.
-                                 ! Report.
-     call mingeo( pos, force, boxl, evalf_number, total_energy, success )
+                                  ! Relaxation subroutine in bigdft_forces.f90                     
+      boxl = box * scala          ! We compute at constant volume.
+                                  ! Report.
+      call mingeo( pos, force, boxl, evalf_number, total_energy, success )
 
-     if ( clean_wf ) then 
-        call check_force_clean_wf ( pos, boxl, evalf_number, total_energy, success )
-     end if 
-
+      if ( clean_wf ) then 
+         call check_force_clean_wf ( pos, boxl, evalf_number, total_energy, success )
+      end if 
  
-     elseif (energy_type == "BSW") then
-        pos_temp = 0.0d0
-        invbox = 1.0d0/box
-        is_at_quantum = .false. !vectorial operation
+   else if (energy_type == "BSW") then
+      pos_temp = 0.0d0
+      invbox = 1.0d0/box
+      is_at_quantum = .false. !vectorial operation
 
-        !now passivate the quantum box, this will take a few steps. should make
-        !a separate sub-routine
+      !now passivate the quantum box, this will take a few steps. should make
+      !a separate sub-routine
 
-        !we should also make sure that the set we send to bigDFT forces did not
-        !change in size since the last time
+      !we should also make sure that the set we send to bigDFT forces did not
+      !change in size since the last time
    
 
-        call neighbours(natoms,pos,box,boundary,maxnei,numnei, nei)
-        nat = 0
-        do i = 1,nbr_quantum
-           is_at_quantum(i) = .true.
-           nat = nat + 1
-           pos_temp(i) = pos(i)
-           pos_temp(i+natoms) = pos(i+natoms)
-           pos_temp(i+natoms+natoms) = pos(i+natoms+natoms)
-        enddo
+      call neighbours(natoms,pos,box,boundary,maxnei,numnei, nei)
+      nat = 0
+      do i = 1,nbr_quantum
+         is_at_quantum(i) = .true.
+         nat = nat + 1
+         pos_temp(i) = pos(i)
+         pos_temp(i+natoms) = pos(i+natoms)
+         pos_temp(i+natoms+natoms) = pos(i+natoms+natoms)
+      enddo
 
-        do i = 1,nbr_quantum
-           if (passivate) then 
-              do j = 1,numnei(i)
-                 k = nei(i,j)
-	         if ( .not. is_at_quantum(k)) then 
-	            xij = pos(k)-pos(i) - box(1) * nint((pos(k)-pos(i))*invbox(1))
-                    yij = pos(k+natoms)-pos(i+natoms)
-                    zij = pos(k+2*natoms)-pos(i+2*natoms) - box(3) * nint((pos(k+2*natoms)-pos(i+2*natoms))*invbox(3))
-                    rij2 = xij*xij + yij*yij + zij*zij
-                    if (rij2 .lt. 2.5d0*2.5d0) then
-                       nat = nat + 1
-                       pos_temp(nat) = pos(i) + 0.5d0*xij
-                       pos_temp(nat+natoms) = pos(i+natoms) + 0.5d0*yij
-                       pos_temp(nat+natoms+natoms) = pos(i+2*natoms) + 0.5d0*zij !we passivate with hydrogene at this distance
-	            endif
-                 endif	
-              enddo
-           endif
-        enddo
+      do i = 1,nbr_quantum
+         if (passivate) then 
+            do j = 1,numnei(i)
+               k = nei(i,j)
+               if ( .not. is_at_quantum(k)) then 
+                  xij = pos(k)-pos(i) - box(1) * nint((pos(k)-pos(i))*invbox(1))
+                  yij = pos(k+natoms)-pos(i+natoms)
+                  zij = pos(k+2*natoms)-pos(i+2*natoms) - box(3) * nint((pos(k+2*natoms)-pos(i+2*natoms))*invbox(3))
+                  rij2 = xij*xij + yij*yij + zij*zij
+                  if (rij2 .lt. 2.5d0*2.5d0) then
+                     nat = nat + 1
+                     pos_temp(nat) = pos(i) + 0.5d0*xij
+                     pos_temp(nat+natoms) = pos(i+natoms) + 0.5d0*yij
+                     pos_temp(nat+natoms+natoms) = pos(i+2*natoms) + 0.5d0*zij !we passivate with hydrogene at this distance
+                  endif
+               endif
+            enddo
+         endif
+      enddo
 
         call  min_converge_fire(success)
    elseif (energy_type == "SWP") then
@@ -171,7 +170,7 @@ subroutine check_min( stage )
              write(FLOG,'(1X,A8,(1p,e17.10,0p),A12,1pe8.1,A3)') ' Em= ', min_energy, ' ( gnrm = ', my_gnrm, ' )'
              write(FLOG,'(A39)') '   Iter     Ep-Em (eV)   Eigenvalue  a1' 
          end if 
-         write(FLOG,'(I6,3X,F10.3,4X,F12.6,X,F6.4)') i, min_energy-proj_energy, eigenvalue, a1
+         write(FLOG,'(I6,3X,(1p,e10.2,0p),4X,F12.6,X,F6.4)') i, proj_energy-min_energy, eigenvalue, a1
          close(FLOG) 
          write(*,*) 'BART: Iter ', i, ' : ', lanc_energy, proj_energy,  eigenvalue, a1  
       end if

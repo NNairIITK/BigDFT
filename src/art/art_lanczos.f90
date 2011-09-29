@@ -1,4 +1,5 @@
 !> @file
+!! Contains routines for the lanczos procedure
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group
@@ -10,7 +11,7 @@
 !! -EM 2010, see ~/AUTHORS
 !! -Laurent Karim Beland, UdeM 2011: Gramm-Schmidt orthogonalization
 
-!> ART Module lanczos_defs
+!> Module lanczos_defs ( ART )
 !! to use lanczos inside art
 module lanczos_defs
 

@@ -48,8 +48,6 @@ subroutine saddle_converge( ret, saddle_energy )
   real(kind=8), dimension(VECSIZE) :: perp_force   ! Perpendicular force...
   real(kind=8), dimension(VECSIZE) :: perp_force_b ! ...& for evaluation.  
 ! __________________
-  boxl = box * scala                  ! We compute at constant volume.
-
                                       ! Write header in log.file.
   if ( iproc == 0 ) then
    open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
@@ -61,6 +59,9 @@ subroutine saddle_converge( ret, saddle_energy )
   end if
                                       ! initialization
   saddle_energy = 0.0d0
+  boxl = box * scala                  ! We compute at constant volume.
+  cw_try_again = .True.               ! For clean_wf
+
   if ( .not. restart ) pas = 0
                                       ! If restarts in harmonic well.
   if ( restart .and. ( state_restart == 1 ) ) then 
@@ -79,6 +80,11 @@ subroutine saddle_converge( ret, saddle_energy )
      end if
   else
      kter_init = 0                    ! init value of kter loop.
+                                      ! clean_wf
+     if ( clean_wf ) then
+        call displacement( posref, pos, delr, npart )
+        call clean_wavefunction ( 0.0d0, .False. ) 
+     end if 
   end if
 ! _________
 !                HARMONIC WELL 
@@ -175,6 +181,8 @@ subroutine saddle_converge( ret, saddle_energy )
             total_energy = current_energy
             if ( iproc == 0 ) call save_state( state_restart, kter+1, initial_direction )
         end if
+                                      ! clean_wf
+        if (eigenvalue<EIGEN_THRESH .and. clean_wf) call clean_wavefunction(a1,.True.)
         pas = pas + 1
                                       ! Is the configuration out of the harmonic basin?
         if ( eigenvalue < EIGEN_THRESH ) exit Do_kter 
@@ -201,11 +209,6 @@ subroutine saddle_converge( ret, saddle_energy )
       
      liter = 1                   ! init value of lanczos loop.
      diter = 1                   ! init value of diis loop. 
-
-     if ( clean_wf ) then 
-        switchDIIS= .True.       ! Only for the next subroutine
-        call clean_wavefunction ( a1 )
-     end if 
 
      switchDIIS= .False.
 ! _________
@@ -294,9 +297,9 @@ subroutine saddle_converge( ret, saddle_energy )
   While_activation: do
  
     if ( .not. switchDIIS ) then 
-       call apply_lanczos ( liter, saddle_energy )
+       call apply_lanczos( liter, saddle_energy, ret )
     else 
-       call apply_diis( diter, saddle_energy )
+       call apply_diis( diter, saddle_energy, ret )
        if ( diter > 1 ) liter = 1 
        diter = 1
     end if
@@ -390,7 +393,7 @@ subroutine end_report ( success, ret, saddle_energy )
   !Arguments
   logical, intent(out)   :: success
   integer, intent(inout) :: ret
-  real(kind=8), intent(inout) :: saddle_energy 
+  real(kind=8), intent(in) :: saddle_energy 
 
   !Local variables
   integer :: i
@@ -404,111 +407,88 @@ subroutine end_report ( success, ret, saddle_energy )
   character(len=20) :: fname
 ! __________________
 
-  ! We reject saddle points found in the very close vicinity of the reference
-  ! configuration  
- 
-  if ( ret < 90000 .and. delta_e < delta_thr .and. delr < delr_thr ) ret = 80000 + pas
- 
-  if ( ret < 80000 ) then 
-     If_diis: if ( USE_DIIS .and. ftot < EXITTHRESH ) then
+  selectcase( ret ) 
 
-        if ( clean_wf ) then
-             switchDIIS = .False.    ! Only for the next subroutine
-             a1 = 0.0d0
-             call clean_wavefunction ( a1 ) 
-             saddle_energy = total_energy
-        end if
+    case( 20000 : 29999 )                ! ftot < EXITTHRESH  
 
-        fpar  = 0.0d0
-        fperp = 0.0d0
+        If_diis: if ( USE_DIIS ) then
+           fpar  = 0.0d0
+           fperp = 0.0d0
 
-        If_check: if ( DIIS_CHECK_EIGENVEC .or. clean_wf ) then
-                                         ! Lanczos several times.
-           new_projection = .false.
-           !if ( iproc == 0 ) write(*,*) "BART: INIT LANCZOS"  !debug
-           Do_lanc: do i = 1, 4
-              call lanczos( NVECTOR_LANCZOS_C, new_projection, a1 )
+           If_check: if ( DIIS_CHECK_EIGENVEC ) then
+                                            ! Lanczos several times.
               new_projection = .false.
-                                         ! Exit of loop.  
-              if ( eigenvalue < 0.0d0 ) exit Do_lanc
-           end do Do_lanc
-           !if ( iproc == 0 ) write(*,*) "BART: END  LANCZOS"  !debug
-
-           if ( eigenvalue >= 0.0d0 ) then
-              ret = 60000 + pas 
-           else                            ! Else of eigenvalue.
-                                           ! New fpar and fperp. 
-              call force_projection( fpar, perp_force, fperp,&
-                                    & ftot, force, projection )
-              ret = 10000 + pas
-           end if
-
-        else                               ! Else of If_check 
-           eigenvalue = 0.0d0
-           ret = 10000 + pas 
-        end if If_check
-                                           ! the total force has changed
-        if ( clean_wf .and.  ftot  > (EXITTHRESH + 0.1 )) ret = 60000 + pas 
-
-     else if ( ftot < EXITTHRESH ) then
-                                           ! Else of If_diis
-        if ( eigenvalue > 0.0d0 ) then
-           ret = 60000 + pas
-        else 
-           ret = 20000 + pas
-        end if
-
-                                           ! This is only for clean_wf
-        if ( clean_wf ) then 
-
-           switchDIIS = .True.             ! Only for the next subroutine 
-           call clean_wavefunction ( a1 ) 
-                                           ! the total force has changed
-           saddle_energy = total_energy
- 
-           if ( ftot  > (EXITTHRESH + 0.1 )) then 
-              ret = 60000 + pas 
-           else 
-              ! we need to check the eigenvector 
-              new_projection = .false.
-              Do_lanc_c: do i = 1, 4
+              Do_lanc: do i = 1, 4
                  call lanczos( NVECTOR_LANCZOS_C, new_projection, a1 )
                  new_projection = .false.
                                             ! Exit of loop.  
-                 if ( eigenvalue < 0.0d0 ) exit Do_lanc_c
-              end do Do_lanc_c
+                 if ( eigenvalue < 0.0d0 ) exit Do_lanc
+              end do Do_lanc
 
               if ( eigenvalue >= 0.0d0 ) then
                  ret = 60000 + pas 
-              else                          ! Else of eigenvalue.
-                                            ! New fpar and fperp. 
+              else                            ! Else of eigenvalue.
+                                              ! New fpar and fperp. 
                  call force_projection( fpar, perp_force, fperp,&
                                        & ftot, force, projection )
                  ret = 10000 + pas
               end if
+
+           else                               ! Else of If_check 
+              eigenvalue = 0.0d0
+              ret = 10000 + pas 
+           end if If_check
+
+        else                                  ! Pure Lanczos 
+                                              ! Else of If_diis
+           if ( eigenvalue > 0.0d0 ) then
+              ret = 60000 + pas
+           else 
+              ret = 20000 + pas
            end if
+        end if If_diis
 
+    case( 40000 : 49999 )                ! clean_wf
+                                         ! We accept the event is the new total
+                                         ! force changes only in max 0.1 eV
+        if ((ftot -0.1d0) < EXITTHRESH) then
+                                          ! we check always the eigenvalue
+            new_projection = .false.
+            Do_lanc_c: do i = 1, 4
+               call lanczos( NVECTOR_LANCZOS_C, new_projection, a1 )
+               new_projection = .false.
+                                          ! Exit of loop.  
+               if ( eigenvalue < 0.0d0 ) exit Do_lanc_c
+            end do Do_lanc_c
+
+            if ( eigenvalue >= 0.0d0 ) then
+               ret = 60000 + pas 
+            else                          ! Else of eigenvalue.
+                                          ! New fpar and fperp. 
+               call force_projection( fpar, perp_force, fperp,&
+                                     & ftot, force, projection )
+               ret = 30000 + pas
+            end if
         end if
+ 
+  end select
 
-     else                                ! Else of If_diis
-        ! We lost the event in DIIS or the eigenvector
-        ret = 70000 + pas 
-     end if If_diis
+  selectcase ( ret )
 
-  end if
+    case( 10000 : 39999 )
 
-  if ( ret < 59999 )  then 
-     converg = 'CONVERGED' 
-     success = .true.
-                                      ! We write the configuration in a sad.... file
-     call convert_to_chain( mincounter, 4, scounter )
-     fname = SADDLE // scounter
-     if (iproc == 0 ) call store( fname ) 
-     conf_saddle = fname
-  else
-     converg = 'FAILED'
-     success = .false.
-  end if 
+        converg = 'CONVERGED' 
+        success = .true.
+                                         ! We write the configuration in a sad.... file
+        call convert_to_chain( mincounter, 4, scounter )
+        fname = SADDLE // scounter
+        if (iproc == 0 ) call store( fname ) 
+        conf_saddle = fname
+
+    case default  
+         converg = 'FAILED'
+         success = .false.
+  end select
 
   delta_e = saddle_energy - ref_energy
                                    ! Final report of saddle point 
@@ -545,7 +525,7 @@ END SUBROUTINE end_report
 !> ART clean_wavefunction 
 !! We only clean the wave function. No calculation of the eigenvector.
 !! This is not going to be saved in the restart file.
-subroutine clean_wavefunction( a1 )
+subroutine clean_wavefunction( a1, call_fp )
 
   use defs
   use saddles
@@ -554,7 +534,8 @@ subroutine clean_wavefunction( a1 )
   implicit None
 
   !Arguments
-  real(kind=8),     intent(in) :: a1
+  real(kind=8), intent(in) :: a1
+  logical,      intent(in) :: call_fp
 
   !Local variables
   real(kind=8) :: ftot2
@@ -574,7 +555,7 @@ subroutine clean_wavefunction( a1 )
 
   delta_e = total_energy - ref_energy
 
-  if ( .not. switchDIIS ) then 
+  if ( .not. call_fp ) then 
      m_perp = 0
      try = 0
      fpar = 0.0d0

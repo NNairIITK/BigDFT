@@ -137,7 +137,8 @@ module defs
 
   logical      :: calc_proj                 ! if it is true; it calculates the projection only
                                             ! at every two steps but after 4 steps above of an
-                                            ! inflection in the eigenvalue
+                                            ! inflection in the eigenvalue, and if the last 
+                                            ! a1  >0.9d0
   
   real(kind=8) :: delta_thr                 ! default = 0.0 
   real(kind=8) :: delr_thr                  ! default = 0.0

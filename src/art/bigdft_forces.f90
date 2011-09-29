@@ -306,7 +306,7 @@ subroutine mingeo( posa, forca, boxl, evalf_number, total_energy, success )
   end if
 
   success = .True.                    ! success will be .False. if:
-                                      !ncount_bigdft > in%ncount_cluster_x
+                                      !ncount_bigdft > in%ncount_cluster_x-1
 
   in%gnrm_cv = gnrm_l                 ! For relaxation, we use always the default value in input.dft
 
@@ -328,7 +328,7 @@ subroutine mingeo( posa, forca, boxl, evalf_number, total_energy, success )
   call MPI_Barrier(MPI_COMM_WORLD,ierror)
   call geopt( nproc, me, xcart, at, fcart, total_energy, rst, in, ncount_bigdft )
   evalf_number = evalf_number + ncount_bigdft 
-  if (ncount_bigdft > in%ncount_cluster_x) success = .False.
+  if (ncount_bigdft > in%ncount_cluster_x-1) success = .False.
 
   total_energy = total_energy * ht2ev
                                       ! box in ang
@@ -672,7 +672,14 @@ implicit none
      call MPI_Barrier(MPI_COMM_WORLD,ierror)
      call geopt( nproc, me, xcart, at, fcart, total_energy, rst, in, ncount_bigdft )
      evalf_number = evalf_number + ncount_bigdft 
-     if (ncount_bigdft > in%ncount_cluster_x) success = .False.
+     if (ncount_bigdft > in%ncount_cluster_x-1) success = .False.
+
+     ! and we clean again here
+     in%inputPsiId = 0 
+     call MPI_Barrier(MPI_COMM_WORLD,ierror)
+     call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
+     evalf_number = evalf_number + 1
+     in%inputPsiId = 1
 
      total_energy = total_energy * ht2ev
                                          ! box in ang

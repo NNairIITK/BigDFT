@@ -46,6 +46,7 @@ module saddles
   !____DEV              
   real(kind=8) :: coord_length
   integer      :: coord_number
+  logical      :: cw_try_again ! for clean_wf 
 
 END MODULE saddles
 
@@ -118,7 +119,7 @@ subroutine find_saddle( success, saddle_energy )
            call list_of_atoms( )
        case( 'local_coord' )
            call coord_based_move( )
-     end selecT
+     end select
 
   end if
                                       ! Now, activate per se.
