@@ -344,6 +344,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     parmin_neb%ifile=ifile
     n=3*atoms%nat
     nr=0
+    pnow%time_ll=0.0d0
     do i=1,3*atoms%nat
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1

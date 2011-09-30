@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -73,7 +74,7 @@ void FC_FUNC(delete, DELETE)(const char *f, int *lgF, int *status)
   free(path);
 }
 
-void FC_FUNC(rename, RENAME)(const char *oldfile, int *lgoldfile, const char *newfile, int *lgnewfile, int *status)
+void FC_FUNC(movefile, MOVEFILE)(const char *oldfile, int *lgoldfile, const char *newfile, int *lgnewfile, int *status)
 {
   char *oldpath;
   char *newpath;

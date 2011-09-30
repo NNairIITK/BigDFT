@@ -1500,6 +1500,7 @@ subroutine winter(at,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, &
      earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
   use module_base
   use module_types
+  use module_interfaces
   use ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
@@ -1552,6 +1553,7 @@ END SUBROUTINE wtioput
 subroutine wtpos(at,npminx,nlminx,nlmin,npmin,pos,earr,elocmin)
   use module_base
   use module_types
+  use module_interfaces
   use ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)

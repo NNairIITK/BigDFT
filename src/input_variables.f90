@@ -1002,6 +1002,10 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   in%nkpt=1
   in%nkptv=0
   in%ngroups_kptv=1
+  nullify(in%kpt)
+  nullify(in%wkpt)
+  nullify(in%kptv)
+  nullify(in%nkptsv_group)
 
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
