@@ -44,7 +44,7 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='allocate_data_OCL'
-  integer :: n1b, n2b, n3b
+  integer :: n1b, n2b, n3b,i_stat
   integer, dimension(3) :: periodic
 
   if (geocode /= 'F') then
@@ -157,6 +157,7 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='free_gpu_OCL'
+  integer :: i_stat,i_all
 
   i_all=-product(shape(GPU%ekin))*kind(GPU%ekin)
   deallocate(GPU%ekin,stat=i_stat)

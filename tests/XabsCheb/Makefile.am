@@ -16,10 +16,10 @@ EXTRA_DIST = \
 	posinpGenPot.xyz \
 	inputb2B.abscalc \
 	inputCG.abscalc \
-	XabsCheb.out.ref	 \
-	XabsLanc.out  \
-	Xabsb2B.out \
-	XabsCG.out
+	XabsCheb.out.ref \
+	XabsLanc.out.ref  \
+	Xabsb2B.out.ref \
+	XabsCG.out.ref
 
 PPFILES = \
 	psppar.Fe
