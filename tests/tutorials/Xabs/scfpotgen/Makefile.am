@@ -2,7 +2,7 @@
 
 SUBDIRS = 
 
-EXE_FILES = atom.dat 	input.dat 	psppar psppar.P  pawpatchfit.py
+EXE_FILES = input.dft posinp.xyz  psppar.O psppar.Si  psppar.P
 
 
 
@@ -13,10 +13,11 @@ EXE_FILES = atom.dat 	input.dat 	psppar psppar.P  pawpatchfit.py
 #dependencies
 
 $(EXE_FILES): 
-	cp  $(srcdir)/atom.dat .
-	cp  $(srcdir)/input.dat .
-	cp  $(srcdir)/psppar .
-	cp  $(srcdir)/psppar.P .
-	cp  $(top_srcdir)/pseudo/src/pawpatchfit.py .
+	cp  $(srcdir)/input.dft   .
+	cp  $(srcdir)/posinp.xyz   .
+	cp  $(srcdir)/psppar.O   .
+	cp  $(srcdir)/psppar.Si   .
+	cp  $(srcdir)/psppar.P   .
 
-exercise: $(EXE_FILES)
+
+exercise:  $(EXE_FILES)
