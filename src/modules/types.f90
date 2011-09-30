@@ -1128,7 +1128,7 @@ END SUBROUTINE deallocate_orbs
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    type(pawproj_data_type), intent(out) :: pawproj_data
+    type(pawproj_data_type), intent(inout) :: pawproj_data
     !local variables
     integer :: i_all,i_stat
     if(associated(pawproj_data%paw_proj)) then
@@ -1197,7 +1197,7 @@ END SUBROUTINE deallocate_orbs
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    type(pcproj_data_type), intent(out) :: pcproj_data
+    type(pcproj_data_type), intent(inout) :: pcproj_data
     !local variables
     integer :: i_all,i_stat
     if(associated(pcproj_data%pc_proj)) then

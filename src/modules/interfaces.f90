@@ -118,7 +118,7 @@ module module_interfaces
        use module_types
        implicit none
        type(input_variables), intent(out) :: inputs
-       character(len = *), intent(in), optional :: radical
+       character(len = *), intent(in) :: radical
      END SUBROUTINE standard_inputfile_names
 
      subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
@@ -228,8 +228,8 @@ module module_interfaces
           end subroutine getline
        end interface
      END SUBROUTINE read_ascii_positions
-
-     subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
+     
+     subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
        use module_base
        use module_types
        implicit none
@@ -237,6 +237,7 @@ module module_interfaces
        type(atoms_data), intent(in) :: atoms
        real(gp), intent(in) :: energy
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+       real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
      END SUBROUTINE write_atomic_file
 
      subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)

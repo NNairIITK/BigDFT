@@ -441,7 +441,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
      !this part can be transferred on the atomic orbitals section
      do iat=1,at%nat
         read(unit=22,fmt=*,iostat=i_stat) mx,my,mz
-        if (i_stat /= 0) then
+        if (i_stat > 0) then
            write(unit=*,fmt='(a,i0,a,i0,a)') &
                 'The file "moments" has the line ',iat,&
                 ' which have not 3 numbers for the atom ',iat,'.'

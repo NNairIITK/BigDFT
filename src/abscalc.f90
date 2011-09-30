@@ -89,13 +89,13 @@ program abscalc_main
      !inquire for the needed file 
      !if not present, set default (no absorption calculation)
           
-     inquire(file="input.abscalc",exist=exists)
+     inquire(file=trim(radical)//".abscalc",exist=exists)
      if (.not. exists) then
         if (iproc == 0) write(*,*) 'ERROR: need file input.abscalc for x-ray absorber treatment.'
         if(nproc/=0)   call MPI_FINALIZE(ierr)
         stop
      end if
-     call abscalc_input_variables(iproc,'input.abscalc',inputs)
+     call abscalc_input_variables(iproc,trim(radical)//".abscalc",inputs)
      if( inputs%iat_absorber <1 .or. inputs%iat_absorber > atoms%nat) then
         if (iproc == 0) write(*,*)'ERROR: inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms '
         if(nproc/=0)   call MPI_FINALIZE(ierr)
@@ -463,11 +463,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
           in%inputPsiId
      call print_dft_parameters(in,atoms)
   end if
-  if (nproc > 1) then
-     call timing(iproc,'parallel     ','IN')
-  else
-     call timing(iproc,'             ','IN')
-  end if
+  !time initialization
+  call timing(nproc,trim(in%dir_output)//'time.prc','IN')
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 

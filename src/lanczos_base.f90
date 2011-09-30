@@ -38,9 +38,10 @@ module lanczos_base
 contains
 
   subroutine LB_allocate_for_chebychev( )
-   if(associated(LB_alpha_cheb )) then
-      call  LB_de_allocate_for_cheb ( )
-   endif
+   !not associated at initialisation
+   !if(associated(LB_alpha_cheb )) then
+   !   call  LB_de_allocate_for_cheb ( )
+   !endif
 
    if(LB_norbp.gt.0) then
       allocate(LB_alpha_cheb( LB_norbp  ,   0: 3*LB_nsteps+ndebug ) , stat=i_stat)
@@ -76,9 +77,9 @@ contains
 
 
   subroutine LB_allocate_for_lanczos( )
-   if(associated(LB_alpha )) then
-      call  LB_de_allocate_for_lanczos( )
-   endif
+   !if(associated(LB_alpha )) then
+   !   call  LB_de_allocate_for_lanczos( )
+   !endif
 
    allocate(LB_alpha(0: LB_nsteps+ndebug ) , stat=i_stat)
    call memocc(i_stat,LB_alpha,'LB_alpha',subname)
