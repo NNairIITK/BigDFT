@@ -1,4 +1,5 @@
 !> @file
+!!   Information to interface BigDFT with ART
 !! @author
 !!    Damien Caliste (DC) 2009
 !!    Copyright (C) 2001 Normand Mousseau
@@ -12,7 +13,7 @@
 !! -Laurent Karim Beland, UdeM, 2011. For working with QM/MM !!
 
 !> ART Module bigdft_forces
-!! Module which contains information for bigdft run inside art
+!! Module which contains information for Bigdft run inside art
 module bigdft_forces
 
   use module_base!, only : gp,wp,dp,bohr2ang
@@ -157,7 +158,7 @@ subroutine bigdft_init( nat, me_, my_gnrm,passivate,total_nb_atoms )
      call initialize_atomic_file(me_,at,rxyz)
   endif
                                       !standard names
-  call standard_inputfile_names(in)
+  call standard_inputfile_names(in,'input')
                                       ! Read inputs.
   call read_input_parameters(me_, in, at, rxyz)
 
