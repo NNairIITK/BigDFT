@@ -2090,7 +2090,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
     subroutine inputguessConfinement(iproc, nproc, at, &
-         comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
+         comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
          nlpspd, proj, pkernel, pkernelseq, &
          nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
          tag, lphi, ehart, eexcu, vexcu)
@@ -2111,7 +2111,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-      real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
+      real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot, rhopotold
       real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
       real(wp), dimension(:), pointer :: rhocore
       real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel

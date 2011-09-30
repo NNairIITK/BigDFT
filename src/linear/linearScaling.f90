@@ -156,6 +156,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call memocc(istat, psi, 'psi', subname)
   allocate(psit(orbs%npsidim), stat=istat)
   call memocc(istat, psit, 'psit', subname)
+  allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
+  call memocc(istat, rhopotold, 'rhopotold', subname)
 
 
   call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
@@ -164,7 +166,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call mpi_barrier(mpi_comm_world, ierr)
   t1ig=mpi_wtime()
   call inputguessConfinement(iproc, nproc, at, &
-       comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
+       comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
        tag, lphi, ehart, eexcu, vexcu)
@@ -181,8 +183,6 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !!deallocate(ovrlp)
 
 
-  allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
-  call memocc(istat, rhopotold, 'rhopotold', subname)
   !!! if we mix the density, copy the current charge density.
   !!if(trim(lin%mixingmethod)=='dens') then
   !!    call dcopy(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotold(1), 1)
@@ -220,6 +220,19 @@ real(8),dimension(:,:),allocatable:: ovrlp
       time=time/dble(nproc)
       if(iproc==0) write(*,'(x,a,es12.4)') 'time for sumrho:',time
 
+      if(trim(lin%mixingMethod)=='dens') then
+          if(lin%mixHist==0) then
+              !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+              call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+          else 
+              ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+              ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+              mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+              mixdiis%is=mixdiis%is+1
+              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 1, pnrm)
+          end if
+      end if
+
       ! if we mix the density, copy the current charge density.
       !allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
       !call memocc(istat, rhopotold, 'rhopotold', subname)
@@ -231,6 +244,23 @@ real(8),dimension(:,:),allocatable:: ovrlp
       call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
           rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
           coeff, ehart, eexcu, vexcu)
+
+      if(trim(lin%mixingMethod)=='pot') then
+          if(lin%mixHist==0) then
+              call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+          else 
+              ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+              ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+              mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+              mixdiis%is=mixdiis%is+1
+              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 2, pnrm)
+          end if
+      end if
+
+      ! Copy the current potential
+      if(trim(lin%mixingMethod)=='pot') then
+           call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
+      end if
   end if
 
   !!! If we mix the potential, copy the potential.
@@ -272,11 +302,6 @@ real(8),dimension(:,:),allocatable:: ovrlp
           infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
           i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj)
 
-
-      ! Copy the current potential
-      if(trim(lin%mixingMethod)=='pot') then
-           call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
-      end if
 
 
       ! Potential from electronic charge density
@@ -341,6 +366,12 @@ real(8),dimension(:,:),allocatable:: ovrlp
               end if
           end if
       end if
+
+      ! Copy the current potential
+      if(trim(lin%mixingMethod)=='pot') then
+           call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
+      end if
+
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
       call allocateCommunicationsBuffersPotential(lin%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)

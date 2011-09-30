@@ -156,7 +156,7 @@ END SUBROUTINE initInputguessConfinement
 
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
-     comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
+     comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
      nlpspd, proj, pkernel, pkernelseq, &
      nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf,  &
      tag, lphi, ehart, eexcu, vexcu)
@@ -183,7 +183,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
+  real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot, rhopotold
   real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
   real(wp), dimension(:), pointer :: rhocore
   real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
@@ -398,6 +398,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        nscatterarr, input%nspin, GPU, at%symObj, irrzon, phnons, rhodsc)
   if(iproc==0) write(*,'(a)') 'done.'
 
+  if(trim(lin%mixingmethod)=='dens') then
+      call dcopy(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotold(1), 1)
+  end if
+
+
   iall=-product(shape(lchi2))*kind(lchi2)
   deallocate(lchi2, stat=istat)
   call memocc(istat, iall, 'lchi2',subname)
@@ -460,6 +465,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
      deallocate(potxc,stat=istat)
      call memocc(istat,iall,'potxc',subname)
 
+  end if
+
+  if(trim(lin%mixingmethod)=='pot') then
+      call dcopy(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotold(1), 1)
   end if
 
 
