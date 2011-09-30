@@ -188,6 +188,12 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !!    call dcopy(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotold(1), 1)
   !!end if
 
+  ! Initialize the DIIS mixing of the potential if required.
+  if(lin%mixHist>0) then
+      ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+      call initializeMixrhopotDIIS(lin%mixHist, ndimpot, mixdiis)
+  end if
+
   !if(lin%nItInguess>0 .and. .false.) then
   if(lin%nItInguess>0 .and. .true.) then
       ! Post communications for gathering the potential.
@@ -284,10 +290,6 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
 
 
-  ! Initialize the DIIS mixing of the potential if required.
-  if(lin%mixHist>0) then
-      call initializeMixrhopotDIIS(lin%mixHist, ndimpot, mixdiis)
-  end if
 
   if(nproc==1) allocate(psit(size(psi)))
   nitSCC=lin%nitSCC
