@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=31   ! define timimg categories
+  integer, parameter :: ncat=33   ! define timimg categories
 
   integer :: istart, ittime, ncounters, ncaton!, nskip
   logical :: parallel,init
@@ -46,6 +46,8 @@ subroutine timing(iproc,category,action)
        'CrtDescriptors'    ,  &  !< Calculation of descriptor arrays
        'CrtLocPot     '    ,  &  !< Calculation of local potential
        'CrtProjectors '    ,  &  !< Calculation of projectors
+       'CrtPcProjects '    ,  &  !< Calculation of preconditioning projectors
+       'CrtPawProjects'    ,  &  !< Calculation of abscalc-pawprojectors
        'ApplyLocPotKin'    ,  &  !< Application of PSP, kinetic energy
        'ApplyProj     '    ,  &  !< Application of nonlocal PSP
        'Precondition  '    ,  &  !< Precondtioning
@@ -217,8 +219,11 @@ subroutine timing(iproc,category,action)
         end if
         init=.false.
      else
-        print *,action,ii,ncaton,trim(category)
-        stop 'TIMING ACTION UNDEFINED'
+        !some other category was initalized before, taking that one
+        return
+        !print *,action,ii,ncaton,trim(category)
+        !stop 'TIMING ACTION UNDEFINED'
+        
      endif
 
   endif
@@ -281,7 +286,7 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
      else
         nproc=1
      end if
-     open(unit=60,file='time.prc',status='unknown')
+     !open(unit=60,file='time.prc',status='unknown')
      write(60,*)
      write(60,*) 'CATEGORY          mean TIME(sec)       PERCENT'
      total_pc=0.d0

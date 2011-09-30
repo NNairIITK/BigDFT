@@ -20,7 +20,13 @@ TDDFT.out: $(top_builddir)/src/bigdft $(PPFILES)
 	  for i in $(EXTRA_DIST) ; do \
 	    ln -fs $(srcdir)/$$i ; \
 	  done ; \
-        fi
+    fi
+	@if ! test -f input.perf ; then \
+	  rm -f input.perf ; \
+	  if test -n "$(run_ocl)" ; then \
+	    echo "ACCEL OCLGPU" > input.perf ; \
+	  fi ; \
+	fi
 	$(run_parallel) $(top_builddir)/src/bigdft > $@
 	@if ! test x"$(srcdir)" = x"." ; then \
 	  for i in $(EXTRA_DIST) ; do \

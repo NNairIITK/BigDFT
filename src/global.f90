@@ -114,15 +114,18 @@ program MINHOP
   call read_atomic_file('poscur',iproc,atoms,pos)
   !Read input parameters for geometry optimization 
   call default_input_variables(inputs_opt)
-  call dft_input_variables(iproc,'input.dft',inputs_opt)
+  call dft_input_variables_new(iproc,'input.dft',inputs_opt)
   call geopt_input_variables('input.geopt',inputs_opt)
   call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
 
   !read input parameters for molecular dynamics
   call default_input_variables(inputs_md)
-  call dft_input_variables(iproc,'mdinput.dft',inputs_md)
+  call dft_input_variables_new(iproc,'mdinput.dft',inputs_md)
   call geopt_input_variables('mdinput.geopt',inputs_md)
   call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
+
+  ! Read associated pseudo files. Based on the inputs_opt set
+  call init_atomic_values(iproc, atoms, inputs_opt%ixc)
 
 
   do iat=1,atoms%nat
@@ -499,7 +502,7 @@ program MINHOP
       e_hop=1.d100                                                                                            
       ediff=ediff*alpha1                               
 ! write intermediate results
-      write(*,*) 'WINTER'
+      if (iproc == 0) write(*,*) 'WINTER'
       if (iproc == 0) call winter(atoms,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, & 
            earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
       goto 1000

@@ -83,30 +83,40 @@ module module_types
      real(gp):: iguessTol
   end type orthon_data
 
+  type, public :: SIC_data
+     character(len=4) :: approach !< approach for the Self-Interaction-Correction (PZ, NK)
+     integer :: ixc !< base for the SIC correction
+     real(gp) :: alpha !<downscaling coefficient
+     real(gp) :: fref !< reference occupation (for alphaNK case)
+  end type SIC_data
+
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
-     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft,file_mix
+     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
+          & file_mix,file_sic,file_occnum, dir_output
      !miscellaneous variables
-     logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
+     logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
      integer :: output_grid, dispersion,last_run,output_wf_format,output_grid_format
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel,alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
-     integer :: nvacancy,verbosity
+     integer :: verbosity
      real(gp) :: elecfield
      logical :: disableSym
 
      ! For absorption calculations
      integer :: iabscalc_type   ! 0 non calc, 1 cheb ,  2 lanc
-     integer :: iat_absorber, L_absorber
+     integer :: iat_absorber, L_absorber, N_absorber, rpower_absorber, Linit_absorber, NPaw_absorber
      real(gp), pointer:: Gabs_coeffs(:)
-     logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
+     real(gp) :: abscalc_bottomshift
+     logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff,abscalc_S_do_cg, abscalc_Sinv_do_cg
      integer ::  potshortcut
      integer ::  nsteps
      character(len=100) :: extraOrbital
-
+     character(len=1000) :: xabs_res_prefix
+   
      ! Frequencies calculations (finite difference)
      real(gp) :: freq_alpha
      integer :: freq_order
@@ -128,8 +138,10 @@ module module_types
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
      real(gp) :: dtinit,dtmax !for FIRE
-     ! tddft vaiables from *.tddft
+     ! tddft variables from *.tddft
      character(len=10) :: tddft_approach
+     !variables for SIC
+     type(SIC_data) :: SIC !<parameters for the SIC methods
 
      !> variable for material acceleration
      !! values 0: traditional CPU calculation
@@ -227,15 +239,21 @@ module module_types
      character(len=1) :: geocode
      character(len=5) :: format
      character(len=20) :: units
-     integer :: nat                                !< nat          Number of atoms
-     integer :: ntypes                             !< ntypes       Number of type of atoms
+     integer :: nat                                        !< nat            Number of atoms
+     integer :: ntypes                                     !< ntypes         Number of type of atoms
      integer :: natsc
-     character(len=20), dimension(:), pointer :: atomnames
-     real(gp) :: alat1,alat2,alat3
-     integer, dimension(:), pointer :: iatype      !< iatype(nat)  Type of the atoms
-     integer, dimension(:), pointer :: iasctype,natpol,nelpsp,npspcode,nzatom
-     integer, dimension(:), pointer :: ifrztyp     !< ifrztyp(nat) Frozen atoms
-     real(gp), dimension(:), pointer :: amu        !< amu(ntypes)  Atomic Mass Unit for each type of atoms
+     character(len=20), dimension(:), pointer :: atomnames !< atomnames(ntypes) Name of type of atoms
+     real(gp) :: alat1,alat2,alat3                         !< dimension of the periodic supercell
+     integer, dimension(:), pointer :: iatype              !< iatype(nat)    Type of the atoms
+     integer, dimension(:), pointer :: iasctype
+     integer, dimension(:), pointer :: natpol
+     integer, dimension(:), pointer :: nelpsp
+     integer, dimension(:), pointer :: npspcode
+     integer, dimension(:), pointer :: ixcpsp
+     integer, dimension(:), pointer :: nzatom
+     real(gp), dimension(:,:), pointer :: radii_cf         !< user defined radii_cf, overridden in sysprop.f90
+     integer, dimension(:), pointer :: ifrztyp             !< ifrztyp(nat) Frozen atoms
+     real(gp), dimension(:), pointer :: amu                !< amu(ntypes)  Atomic Mass Unit for each type of atoms
      real(gp), dimension(:,:), pointer :: aocc
      real(gp), dimension(:,:,:), pointer :: psppar !< pseudopotential parameters (HGH SR section)
      logical :: donlcc                             !< activate non-linear core correction treatment
@@ -243,7 +261,14 @@ module module_types
      real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
      real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
      integer :: symObj                               !< The symmetry object from ABINIT
+
+     !! for abscalc with pawpatch
+     integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
+     integer, dimension(:), pointer ::  paw_nofgaussians
+     real(gp), dimension(:), pointer :: paw_Greal, paw_Gimag, paw_Gcoeffs
+     real(gp), dimension(:), pointer :: paw_H_matrices, paw_S_matrices, paw_Sm1_matrices
      integer :: iat_absorber 
+
   end type atoms_data
 
 
@@ -261,13 +286,52 @@ module module_types
      real(gp), dimension(:,:), pointer :: rxyz
   end type gaussian_basis
 
+!>   Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
+  type, public :: gaussian_basis_c
+     integer :: nat,ncoeff,nshltot,nexpo
+     integer, dimension(:), pointer :: nshell,ndoc,nam
+     complex(gp), dimension(:), pointer :: expof,psiat
+     real(gp), dimension(:,:), pointer :: rxyz
+  end type gaussian_basis_c
+
+!>   contains all array necessary to apply preconditioning projectors 
+  type, public :: pcproj_data_type
+     type(nonlocal_psp_descriptors) :: pc_nlpspd
+     real(gp), pointer :: pc_proj(:)
+     integer , pointer , dimension(:):: ilr_to_mproj, iproj_to_l
+     real(gp) , pointer ::  iproj_to_ene(:)
+     real(gp) , pointer ::  iproj_to_factor(:)
+     integer, pointer :: iorbtolr(:)
+     integer :: mprojtot
+     type(gaussian_basis)  :: G          
+     real(gp), pointer :: gaenes(:)
+     real(gp) :: ecut_pc
+     logical :: DistProjApply
+  end type pcproj_data_type
+
+!>   contains all array necessary to apply preconditioning projectors 
+  type, public :: PAWproj_data_type
+     type(nonlocal_psp_descriptors) :: paw_nlpspd
+
+     integer , pointer , dimension(:):: iproj_to_paw_nchannels
+     integer , pointer , dimension(:):: ilr_to_mproj, iproj_to_l
+     integer , pointer , dimension(:):: iprojto_imatrixbeg
+
+     integer :: mprojtot
+     real(gp), pointer :: paw_proj(:)
+     type(gaussian_basis_c)  :: G          
+     integer, pointer :: iorbtolr(:)
+     logical :: DistProjApply
+  end type PAWproj_data_type
+
 
 !> All the parameters which are important for describing the orbitals
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
-     real(gp) :: efermi
-     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
+     real(gp) :: efermi,HLgap
+     integer, dimension(:), pointer :: iokpt,ikptproc
+     integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -313,6 +377,8 @@ module module_types
      real(kind=8) :: psi_c_r_i,psi_f_r_i,psi_c_b_i,psi_f_b_i,psi_c_d_i,psi_f_d_i
      real(kind=8) :: keyg_c,keyg_f,keyv_c,keyv_f
      real(kind=8) :: context,queue
+     real(gp), dimension(:), pointer :: ekin, epot !< values of the kinetic and potential energies to be passed to local_hamiltonian
+     real(wp), dimension(:), pointer :: hpsi_ASYNC !<pointer to the wavefunction allocated in the case of asyncronous local_hamiltonian
   end type GPU_pointers
 
 
@@ -364,15 +430,16 @@ module module_types
 !> Contains the arguments needed for the application of the hamiltonian
   type, public :: lanczos_args
      !arguments for the hamiltonian
-     integer :: iproc,nproc,ndimpot,nspin
+     integer :: iproc,nproc,ndimpot,nspin, in_iat_absorber, Labsorber
      real(gp) :: hx,hy,hz
-     real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum
+     real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
      type(atoms_data), pointer :: at
      type(orbitals_data) :: orbs
      type(communications_arrays) :: comms
      type(nonlocal_psp_descriptors), pointer :: nlpspd
      type(locreg_descriptors), pointer :: lr 
      type(gaussian_basis), pointer :: Gabsorber    
+     type(SIC_data), pointer :: SIC
      integer, dimension(:,:), pointer :: ngatherarr 
      real(gp), dimension(:,:),  pointer :: rxyz,radii_cf
      real(wp), dimension(:), pointer :: proj
@@ -381,6 +448,8 @@ module module_types
      real(wp), dimension(:), pointer :: Gabs_coeffs
      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp) :: hpsi
      type(GPU_pointers), pointer :: GPU
+     type(pcproj_data_type), pointer :: PPD
+     type(pawproj_data_type), pointer :: PAWD
   end type lanczos_args
 
 
@@ -389,13 +458,70 @@ module module_types
      logical :: switchSD
      integer :: idiistol,mids,ids,idsx
      real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
-     real(wp), dimension(:), pointer :: psidst
+     real(tp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
-     real(wp), dimension(:,:,:,:,:,:), pointer :: ads
+     real(tp), dimension(:,:,:,:,:,:), pointer :: ads
   end type diis_objects
 
 
 contains
+
+
+
+!>   De-Allocate paw data contained in atom_data object
+
+  subroutine deallocate_atomdatapaw(atoms,subname)
+    use module_base
+    implicit none
+    character(len=*), intent(in) :: subname
+    type(atoms_data), intent(inout) :: atoms
+    !local variables
+    integer :: i_all,i_stat
+
+    i_all=-product(shape(  atoms%paw_l ))*kind(atoms%paw_l )
+    deallocate(atoms%paw_l,stat=i_stat)
+    call memocc(i_stat,i_all,'atoms%paw_l',subname)
+
+
+    i_all=-product(shape(  atoms%paw_NofL ))*kind(atoms%paw_NofL )
+    deallocate(atoms%paw_NofL,stat=i_stat)
+    call memocc(i_stat,i_all,'atoms%paw_NofL',subname)
+
+    i_all=-product(shape(  atoms%paw_nofchannels ))*kind(atoms%paw_nofchannels )
+    deallocate(atoms%paw_nofchannels,stat=i_stat)
+    call memocc(i_stat,i_all,'atoms%paw_nofchannels',subname)
+
+    i_all=-product(shape(  atoms%paw_nofgaussians ))*kind(atoms%paw_nofgaussians )
+    deallocate(atoms%paw_nofgaussians,stat=i_stat)
+    call memocc(i_stat,i_all,'atoms%paw_nofgaussians',subname)
+
+    i_all=-product(shape(  atoms%paw_Greal ))*kind(atoms%paw_Greal )
+    deallocate(atoms%paw_Greal,stat=i_stat)
+    call memocc(i_stat,i_all,'atoms%paw_Greal',subname)
+
+    i_all=-product(shape(  atoms%paw_Gimag ))*kind(atoms%paw_Gimag )
+    deallocate(atoms%paw_Gimag,stat=i_stat)
+    call memocc(i_stat,i_all,'atoms%paw_Gimag',subname)
+
+    i_all=-product(shape(  atoms%paw_Gcoeffs ))*kind(atoms%paw_Gcoeffs )
+    deallocate(atoms%paw_Gcoeffs,stat=i_stat)
+    call memocc(i_stat,i_all,'atoms%paw_Gcoeffs',subname)
+
+    i_all=-product(shape(  atoms%paw_H_matrices ))*kind(atoms%paw_H_matrices )
+    deallocate(atoms%paw_H_matrices,stat=i_stat)
+    call memocc(i_stat,i_all,'atoms%paw_H_matrices',subname)
+
+    i_all=-product(shape(  atoms%paw_S_matrices ))*kind(atoms%paw_S_matrices )
+    deallocate(atoms%paw_S_matrices,stat=i_stat)
+    call memocc(i_stat,i_all,'atoms%paw_S_matrices',subname)
+
+    i_all=-product(shape(  atoms%paw_Sm1_matrices ))*kind(atoms%paw_Sm1_matrices )
+    deallocate(atoms%paw_Sm1_matrices,stat=i_stat)
+    call memocc(i_stat,i_all,'atoms%paw_Sm1_matrices',subname)
+
+
+  END SUBROUTINE deallocate_atomdatapaw
+
 
 
 !> Allocate diis objects
@@ -428,7 +554,7 @@ contains
     call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
     allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)
     call memocc(i_stat,diis%ads,'ads',subname)
-    call razero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads)
+    call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
 
     !initialize scalar variables
     !diis initialisation variables
@@ -470,28 +596,28 @@ contains
   END SUBROUTINE deallocate_diis_objects
 
 
-!> Allocate communications_arrays
-  subroutine allocate_comms(nproc,orbs,comms,subname)
-    use module_base
-    implicit none
-    character(len=*), intent(in) :: subname
-    integer, intent(in) :: nproc
-    type(orbitals_data), intent(in) :: orbs
-    type(communications_arrays), intent(out) :: comms
-    !local variables
-    integer :: i_stat
-
-    allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
-    allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ncntd,'ncntd',subname)
-    allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ncntt,'ncntt',subname)
-    allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ndspld,'ndspld',subname)
-    allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
-  END SUBROUTINE allocate_comms
+!!$!> Allocate communications_arrays
+!!$  subroutine allocate_comms(nproc,orbs,comms,subname)
+!!$    use module_base
+!!$    implicit none
+!!$    character(len=*), intent(in) :: subname
+!!$    integer, intent(in) :: nproc
+!!$    type(orbitals_data), intent(in) :: orbs
+!!$    type(communications_arrays), intent(out) :: comms
+!!$    !local variables
+!!$    integer :: i_stat
+!!$
+!!$    allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
+!!$    allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ncntd,'ncntd',subname)
+!!$    allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ncntt,'ncntt',subname)
+!!$    allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ndspld,'ndspld',subname)
+!!$    allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
+!!$  END SUBROUTINE allocate_comms
 
 
 !> De-Allocate communications_arrays
@@ -499,7 +625,7 @@ contains
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    type(communications_arrays), intent(out) :: comms
+    type(communications_arrays), intent(inout) :: comms
     !local variables
     integer :: i_all,i_stat
 
@@ -658,7 +784,9 @@ END SUBROUTINE deallocate_orbs
     if (associated(rst%gbd%rxyz)) then
        nullify(rst%gbd%rxyz)
        call deallocate_gwf(rst%gbd,subname)
+    end if
 
+    if (associated(rst%gaucoeffs)) then
        i_all=-product(shape(rst%gaucoeffs))*kind(rst%gaucoeffs)
        deallocate(rst%gaucoeffs,stat=i_stat)
        call memocc(i_stat,i_all,'gaucoeffs',subname)
@@ -767,6 +895,48 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,i_all,'xp',subname)
 
   END SUBROUTINE deallocate_gwf
+
+
+
+
+!>   De-Allocate gaussian_basis type
+
+  subroutine deallocate_gwf_c(G,subname)
+    use module_base
+    implicit none
+    type(gaussian_basis_c) :: G
+    character(len=*), intent(in) :: subname
+    !local variables
+    integer :: i_all,i_stat
+
+    !normally positions should be deallocated outside
+    
+    i_all=-product(shape(G%ndoc))*kind(G%ndoc)
+    deallocate(G%ndoc,stat=i_stat)
+    call memocc(i_stat,i_all,'G%ndoc',subname)
+    i_all=-product(shape(G%nam))*kind(G%nam)
+    deallocate(G%nam,stat=i_stat)
+    call memocc(i_stat,i_all,'nam',subname)
+    i_all=-product(shape(G%nshell))*kind(G%nshell)
+    deallocate(G%nshell,stat=i_stat)
+    call memocc(i_stat,i_all,'G%nshell',subname)
+    i_all=-product(shape(G%psiat))*kind(G%psiat)
+    deallocate(G%psiat,stat=i_stat)
+    call memocc(i_stat,i_all,'G%psiat',subname)
+
+    i_all=-product(shape(G%expof))*kind(G%expof)
+    deallocate(G%expof,stat=i_stat)
+    call memocc(i_stat,i_all,'G%expof',subname)
+
+    i_all=-product(shape(G%rxyz))*kind(G%rxyz)
+    deallocate(G%rxyz,stat=i_stat)
+    call memocc(i_stat,i_all,'G%rxyz',subname)
+
+  END SUBROUTINE 
+
+
+
+
 
 
 !> De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
@@ -951,5 +1121,146 @@ END SUBROUTINE deallocate_orbs
     output_grid_validate = (id >= 0 .and. id < size(output_grid_names)) .and. &
          & (fid >= 0 .and. fid < size(output_grid_format_names))
   end function output_grid_validate
+
+
+!!
+  subroutine deallocate_pawproj_data(pawproj_data,subname)
+    use module_base
+    implicit none
+    character(len=*), intent(in) :: subname
+    type(pawproj_data_type), intent(out) :: pawproj_data
+    !local variables
+    integer :: i_all,i_stat
+    if(associated(pawproj_data%paw_proj)) then
+
+       i_all=-product(shape(  pawproj_data% paw_proj ))*kind( pawproj_data% paw_proj  )
+       deallocate(pawproj_data%  paw_proj  ,stat=i_stat)
+       call memocc(i_stat,i_all,'paw_proj',subname)
+       
+       i_all=-product(shape( pawproj_data%ilr_to_mproj   ))*kind(pawproj_data% ilr_to_mproj   )
+       deallocate( pawproj_data% ilr_to_mproj  ,stat=i_stat)
+       call memocc(i_stat,i_all,'ilr_to_mproj',subname)
+   
+  
+       
+       i_all=-product(shape( pawproj_data% iproj_to_l  ))*kind( pawproj_data% iproj_to_l  )
+       deallocate(pawproj_data%  iproj_to_l  ,stat=i_stat)
+       call memocc(i_stat,i_all,'iproj_to_l',subname)
+
+
+       i_all=-product(shape( pawproj_data% iproj_to_paw_nchannels  ))*kind( pawproj_data% iproj_to_paw_nchannels  )
+       deallocate(pawproj_data%  iproj_to_paw_nchannels  ,stat=i_stat)
+       call memocc(i_stat,i_all,'iproj_to_paw_nchannels',subname)
+       
+       i_all=-product(shape( pawproj_data% iprojto_imatrixbeg  ))*kind( pawproj_data% iprojto_imatrixbeg  )
+       deallocate(pawproj_data%  iprojto_imatrixbeg  ,stat=i_stat)
+       call memocc(i_stat,i_all,'iorbto_imatrixbeg',subname)
+       
+
+       i_all=-product(shape( pawproj_data% iorbtolr   ))*kind( pawproj_data% iorbtolr  )
+       deallocate(pawproj_data%  iorbtolr  ,stat=i_stat)
+       call memocc(i_stat,i_all,'iorbtolr',subname)
+       
+
+
+
+       i_all=-product(shape(pawproj_data%paw_nlpspd%nboxp_c))*kind(pawproj_data%paw_nlpspd%nboxp_c)
+       deallocate(pawproj_data%paw_nlpspd%nboxp_c,stat=i_stat)
+       call memocc(i_stat,i_all,'nboxp_c',subname)
+       i_all=-product(shape(pawproj_data%paw_nlpspd%nboxp_f))*kind(pawproj_data%paw_nlpspd%nboxp_f)
+       deallocate(pawproj_data%paw_nlpspd%nboxp_f,stat=i_stat)
+       call memocc(i_stat,i_all,'nboxp_f',subname)
+       i_all=-product(shape(pawproj_data%paw_nlpspd%keyg_p))*kind(pawproj_data%paw_nlpspd%keyg_p)
+       deallocate(pawproj_data%paw_nlpspd%keyg_p,stat=i_stat)
+       call memocc(i_stat,i_all,'keyg_p',subname)
+       i_all=-product(shape(pawproj_data%paw_nlpspd%keyv_p))*kind(pawproj_data%paw_nlpspd%keyv_p)
+       deallocate(pawproj_data%paw_nlpspd%keyv_p,stat=i_stat)
+       call memocc(i_stat,i_all,'keyv_p',subname)
+       i_all=-product(shape(pawproj_data%paw_nlpspd%nvctr_p))*kind(pawproj_data%paw_nlpspd%nvctr_p)
+       deallocate(pawproj_data%paw_nlpspd%nvctr_p,stat=i_stat)
+       call memocc(i_stat,i_all,'nvctr_p',subname)
+       i_all=-product(shape(pawproj_data%paw_nlpspd%nseg_p))*kind(pawproj_data%paw_nlpspd%nseg_p)
+       deallocate(pawproj_data%paw_nlpspd%nseg_p,stat=i_stat)
+       call memocc(i_stat,i_all,'nseg_p',subname)
+
+       if(pawproj_data%DistProjApply) then
+          call deallocate_gwf_c(pawproj_data%G,subname)
+       endif
+
+
+    end if
+  END SUBROUTINE deallocate_pawproj_data
+
+
+  !> deallocate_pcproj_data
+  subroutine deallocate_pcproj_data(pcproj_data,subname)
+    use module_base
+    implicit none
+    character(len=*), intent(in) :: subname
+    type(pcproj_data_type), intent(out) :: pcproj_data
+    !local variables
+    integer :: i_all,i_stat
+    if(associated(pcproj_data%pc_proj)) then
+
+       i_all=-product(shape(  pcproj_data% pc_proj ))*kind( pcproj_data% pc_proj  )
+       deallocate(pcproj_data%  pc_proj  ,stat=i_stat)
+       call memocc(i_stat,i_all,'pc_proj',subname)
+       
+       i_all=-product(shape( pcproj_data%ilr_to_mproj   ))*kind(pcproj_data% ilr_to_mproj   )
+       deallocate( pcproj_data% ilr_to_mproj  ,stat=i_stat)
+       call memocc(i_stat,i_all,'ilr_to_mproj',subname)
+       
+       i_all=-product(shape( pcproj_data% iproj_to_ene  ))*kind( pcproj_data% iproj_to_ene  )
+       deallocate(  pcproj_data% iproj_to_ene ,stat=i_stat)
+       call memocc(i_stat,i_all,'iproj_to_ene',subname)
+
+       i_all=-product(shape( pcproj_data% iproj_to_factor  ))*kind( pcproj_data% iproj_to_factor  )
+       deallocate(  pcproj_data% iproj_to_factor ,stat=i_stat)
+       call memocc(i_stat,i_all,'iproj_to_factor',subname)
+       
+       i_all=-product(shape( pcproj_data% iproj_to_l  ))*kind( pcproj_data% iproj_to_l  )
+       deallocate(pcproj_data%  iproj_to_l  ,stat=i_stat)
+       call memocc(i_stat,i_all,'iproj_to_l',subname)
+       
+       i_all=-product(shape( pcproj_data% iorbtolr   ))*kind( pcproj_data% iorbtolr  )
+       deallocate(pcproj_data%  iorbtolr  ,stat=i_stat)
+       call memocc(i_stat,i_all,'iorbtolr',subname)
+       
+       i_all=-product(shape( pcproj_data% gaenes   ))*kind( pcproj_data% gaenes  )
+       deallocate(pcproj_data%  gaenes  ,stat=i_stat)
+       call memocc(i_stat,i_all,'gaenes',subname)
+       
+
+
+
+       i_all=-product(shape(pcproj_data%pc_nlpspd%nboxp_c))*kind(pcproj_data%pc_nlpspd%nboxp_c)
+       deallocate(pcproj_data%pc_nlpspd%nboxp_c,stat=i_stat)
+       call memocc(i_stat,i_all,'nboxp_c',subname)
+       i_all=-product(shape(pcproj_data%pc_nlpspd%nboxp_f))*kind(pcproj_data%pc_nlpspd%nboxp_f)
+       deallocate(pcproj_data%pc_nlpspd%nboxp_f,stat=i_stat)
+       call memocc(i_stat,i_all,'nboxp_f',subname)
+       i_all=-product(shape(pcproj_data%pc_nlpspd%keyg_p))*kind(pcproj_data%pc_nlpspd%keyg_p)
+       deallocate(pcproj_data%pc_nlpspd%keyg_p,stat=i_stat)
+       call memocc(i_stat,i_all,'keyg_p',subname)
+       i_all=-product(shape(pcproj_data%pc_nlpspd%keyv_p))*kind(pcproj_data%pc_nlpspd%keyv_p)
+       deallocate(pcproj_data%pc_nlpspd%keyv_p,stat=i_stat)
+       call memocc(i_stat,i_all,'keyv_p',subname)
+       i_all=-product(shape(pcproj_data%pc_nlpspd%nvctr_p))*kind(pcproj_data%pc_nlpspd%nvctr_p)
+       deallocate(pcproj_data%pc_nlpspd%nvctr_p,stat=i_stat)
+       call memocc(i_stat,i_all,'nvctr_p',subname)
+       i_all=-product(shape(pcproj_data%pc_nlpspd%nseg_p))*kind(pcproj_data%pc_nlpspd%nseg_p)
+       deallocate(pcproj_data%pc_nlpspd%nseg_p,stat=i_stat)
+       call memocc(i_stat,i_all,'nseg_p',subname)
+
+
+       if(pcproj_data%DistProjApply) then
+          call deallocate_gwf(pcproj_data%G,subname)
+       endif
+
+
+    end if
+  END SUBROUTINE deallocate_pcproj_data
+
+
 
 end module module_types

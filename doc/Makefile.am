@@ -38,7 +38,7 @@ else
 devdocs =
 endif
 
-doc_DATA = $(pdfs) $(devdocs)
+doc_DATA = tests.xml $(pdfs) $(devdocs)
 
 Doxygen/html: Doxygen.stamp web.stamp
 
@@ -63,6 +63,42 @@ halFFT.pdf: halFFT.tex
 manual.pdf: Manual/manual.tex Manual/grid100.pdf Manual/grid200.pdf Manual/grid300.pdf Manual/grid400.pdf Manual/sym_16.pdf
 	TEXINPUTS=$(top_srcdir)/doc/Manual:$${TEXINPUTS} pdflatex $(top_srcdir)/doc/Manual/manual.tex
 	TEXINPUTS=$(top_srcdir)/doc/Manual:$${TEXINPUTS} pdflatex $(top_srcdir)/doc/Manual/manual.tex
+
+tests.xml:
+	@echo "<?xml version=\"1.0\" encoding=\"iso-8859-15\"?>" > tests.xml ; \
+	echo "<bigdft-tests>" >> tests.xml ; \
+	for dir in $(top_srcdir)/tests/* ; do \
+	  if test -d $$dir -a \
+                  $$(basename $$dir) != "styles" -a \
+                  $$(basename $$dir) != "images" -a \
+                  $$(basename $$dir) != "tutorials" ; then \
+	    echo "<dir name=\"$$(basename $$dir)\">" ; \
+	    if test ! -f $$dir/README ; then \
+	      echo "not documented yet." ; \
+	    else \
+	      head -n1 $$dir/README ; \
+	    fi ; \
+	    for subdir in $$dir/* ; do \
+	      if test -d $$subdir ; then \
+	        echo "<test name=\"$$(basename $$subdir)\">" ; \
+	        if test ! -f $$subdir/README ; then \
+		  echo "not documented yet." ; \
+		else \
+		  head -n1 $$subdir/README ; \
+		fi ; \
+		for file in `find $$subdir -name input\*` ; do \
+		  echo "  <input name=\"$$(basename $$file)\" />" ; \
+		done ; \
+		for file in `find $$subdir -name posinp\*` ; do \
+		  echo "  <posinp name=\"$$(basename $$file)\" />" ; \
+		done ; \
+		echo "</test>" ; \
+	      fi ; \
+	    done ; \
+	    echo "</dir>" ; \
+	  fi ; \
+	done >> tests.xml ; \
+	echo "</bigdft-tests>" >> tests.xml
 
 clean:
 	rm -rf *.aux *.log cluster.pdf halFFT.pdf manual.pdf *.toc Doxygen *.stamp

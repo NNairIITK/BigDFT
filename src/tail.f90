@@ -9,12 +9,13 @@
 
 
 !>  Calculate the finite size corrections over wavefunctions
-!!  Conceived only for isolated Boundary Conditions
+!!  Conceived only for isolated Boundary Conditions, no SIC correction
 subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      Glr,nlpspd,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
      proj,psi,output_grid,ekin_sum,epot_sum,eproj_sum)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => CalculateTailCorrection
   implicit none
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs

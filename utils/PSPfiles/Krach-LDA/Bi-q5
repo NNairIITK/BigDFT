@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Bi
+   83   5  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.60500000    1     6.67943714                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.67885795    3     1.37763378     0.19895396    -0.11491910                   rs ns hs11 hs12 hs13
+                                       -0.51369691     0.29671983                              hs22 hs23
+                                                      -0.47102813                                   hs33
+     0.79867267    2     0.65557809     0.17026993                                  rp np hp11 hp12
+                                       -0.40293219                                             hp22
+                         0.30531353     0.00977575                                        kp11 kp12
+                                       -0.02313366                                             kp22
+     0.93468255    1     0.37847579                                                 rd nd hd11
+                         0.02921737                                                       kd11

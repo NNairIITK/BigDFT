@@ -67,7 +67,7 @@
   Fortran90 flags:           -fbounds-check -O2 -Wall
   Fortran77 compiler:        gfortran
   Fortran77 flags:           -g -O2
-  Linker flags:               -L$(top_builddir)/libXC/src -L$(top_builddir)/libABINIT/src
+  Linker flags:              -L$(top_builddir)/libXC/src -L$(top_builddir)/libABINIT/src
   Linked libraries:          -labinit -lxc    -llapack -lblas
 
   Build:
@@ -86,7 +86,7 @@
   | Include dir.:
   | Linker flags:
   | Linked libraries:
-  | MPI2 support:           yes
+  | MPI2 support:            yes
   With optimised conv.:      yes
   With Cuda GPU conv.:       no
   | NVidia Cuda Compiler:
@@ -94,13 +94,13 @@
   With OpenCL support:       no
   With dgemmsy support:      no
   With libXC:                yes
-  | internal built:         yes
-  | include dir.:           -I$(top_builddir)/libXC/src
+  | internal built:          yes
+  | include dir.:            -I$(top_builddir)/libXC/src
   With libABINIT:            yes
-  | internal built:         yes
-  | include dir.:           -I$(top_builddir)/libABINIT/src
+  | internal built:          yes
+  | include dir.:            -I$(top_builddir)/libABINIT/src
   With libS_GPU:             no
-  | internal built:         no
+  | internal built:          no
   | include dir.:
   With ETSF_IO:              no
   | include dir.:           
@@ -124,7 +124,7 @@
   pass to configure is <code>--with-ext-linalg</code>.</p>
 
 <pre>
-  ../configure --with-ext-linalg="-lmkl ia32 -lmkl lapack"
+  ../configure --with-ext-linalg="-lmkl_ia32 -lmkl_lapack"
   --with-ext-linalg-path="-L/opt/intel/mkl72/lib/32"
   --prefix=/home/caliste/usr FC=ifort
 </pre>
@@ -144,10 +144,11 @@
   option.</p>
 
 <p>One can also pass all the options for the MPI link proceeding using
-  the options <code>--with-mpi-include</code>, <code>--with-mpi-ldflags</code and <code>--with-mpi-libs</code>.</p>
+  the options <code>--with-mpi-include</code>, <code>--with-mpi-ldflags</code>
+  and <code>--with-mpi-libs</code>.</p>
 
-                                                                              <h3>OpenCL compilation</h3>
-                                                                              <a name="confOCL"></a>
+<h3>OpenCL compilation</h3>
+<a name="confOCL"></a>
 <p>Here is a example using the Intel
   Fortran compiler and OpenCL installed in <code>/applications/cuda-3.2</code>:</p>
 
@@ -194,45 +195,15 @@
 <p>BigDFT is provided with several test cases (that can also be
   studied as examples). They are located in the <code>tests</code>
   directory. To run the tests, after compilation, issue <code>make
-    check</code> in this directory. The following tests are available:</p>
-<ul>
-  <li><code class="emph">CUDA/</code>: tests the convolutions with CUDA.</li>
-  <li><code class="emph">ETSF_IO/</code>: tests writing and reading wavefunctions with NetCDF file format.</li>
-  <li><code class="emph">fft/</code>: low level test functionality.</li>
-  <li><code class="emph">H2-freq/</code>: computes the vibration
-    properties of the water molecule using finite differences.</li>
-  <li><code class="emph">MINHOP/</code>: tests global research using minima hopping</li>
-  <li><code class="emph">NEB/</code>: runs NEB calculations.</li>
-  <li><code class="emph">OpenCL/</code>: tests the convolutions with OpenCL.</li>
-  <li><code class="emph">PSolver/</code>: tests the Poisson solver implementation.</li>
-  <li><code class="emph">XabsCheb/</code>: tests XANES calculations.</li>
-  <li><code>DFT/</code><ul>
-      <li><code class="emph">C/</code>: tests non-local pseudo-potential for isolated system</li>
-      <li><code class="emph">Ca2/</code>: tests adaptive mesh (by checking symmetry)</li>
-      <li><code class="emph">Davidson-SiH4/</code>: tests Kohn-Sham eigenvalue calculations</li>
-      <li><code class="emph">FeHyb/</code>: tests the hybrid functional.</li>
-      <li><code class="emph">GPU/</code>: tests GPU code (CUDA)</li>
-      <li><code class="emph">Graphene/</code>: tests surface with k-points for a graphene sheet.</li>
-      <li><code class="emph">H/</code>: tests the hydrogen in a periodic box.</li>
-      <li><code class="emph">H2O-CP2K/</code>: tests import wavefunctions from a gaussian basis set</li>
-      <li><code class="emph">H2O-slab/</code>: tests the calculation of dipolar surfaces.</li>
-      <li><code class="emph">H2-spin/</code>: uses the spin in the calculation
-        of hydrogen atom.</li>
-      <li><code class="emph">Li+/</code>: calculates an isolated charged system.</li>
-      <li><code class="emph">Mn2/</code>: tests non-collinear spin</li>
-      <li><code class="emph">NaCl/</code>: tests non-local pseudo-potential and adaptive mesh</li>
-      <li><code class="emph">NH3/</code>: shows the DIIS geometry relaxation
-        to obtain saddle points.</li>
-      <li><code class="emph">O2-Spin/</code>:</li>
-      <li><code class="emph">OCL/</code>: tests GPU code (OpenCL)</li>
-      <li><code class="emph">SiBulk/</code>: tests bulk silicon in periodic
-        boundary conditions.</li>
-      <li><code class="emph">SiH4/</code>: tests the geometry relaxation for
-        the silane molecule. Use the ASCII file format instead of the XYZ one.</li>
-      <li><code class="emph">TiMix/</code>: tests the diagonalisation and mixing scheme using a Pulay algorithm on density.</li>
-    </ul>
-  </li>
-</ul>
+  check</code> in this directory.</p>
+
+<p>To run tests with MPI support, use the environment variable 'run_parallel' as:</p>
+<pre>export run_parallel='mpirun -np 2'</pre>
+<p>To run tests with OCL support, use the environment variable 'run_ocl' as:</p>
+<pre>export run_ocl='on'</pre>
+
+<p> The following tests are available:</p>
+<!-- %%TESTS%% list autogenerated in doc/tests.xml at build time -->
 
 <h2>The executables</h2>
 <a name="runs"></a>

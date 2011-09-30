@@ -375,7 +375,7 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(in) :: x_f2
   real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(in) :: x_f3
   real(gp), intent(out) :: ekinout
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: y_f
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
@@ -704,8 +704,8 @@ END SUBROUTINE convolut_kinetic_hyb_T
   use module_base
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14
-    integer, intent(in) :: mod_arr1(lowfil:n1+lupfil)
     integer, intent(in) :: n1,n2,n3
+    integer, intent(in) :: mod_arr1(lowfil:n1+lupfil)
     real(wp), dimension(lowfil:lupfil,3), intent(in) :: a
     integer ::ndat
     real(wp),intent(in):: x(0:n1,(n2+1)*(n3+1))
@@ -779,8 +779,8 @@ END SUBROUTINE convolut_kinetic_hyb_T
   use module_base
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14
-    integer, intent(in) :: mod_arr2(lowfil:n1+lupfil)
     integer, intent(in) :: n1,n2,n3
+    integer, intent(in) :: mod_arr2(lowfil:n1+lupfil)
     real(wp), dimension(lowfil:lupfil,3), intent(in) :: a
     real(wp),intent(in):: x(0:n1,0:n2,0:n3)
     real(wp),intent(inout)::y(0:n1,0:n2,0:n3)
@@ -845,8 +845,8 @@ END SUBROUTINE convolut_kinetic_hyb_T
   use module_base
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14
-    integer, intent(in) :: mod_arr3(lowfil:n1+lupfil)
     integer, intent(in) :: n1,n2,n3
+    integer, intent(in) :: mod_arr3(lowfil:n1+lupfil)
     real(wp), dimension(lowfil:lupfil,3), intent(in) :: a
     integer ::ndat
     real(wp),intent(in):: x((n1+1)*(n2+1),0:n1)
@@ -1227,8 +1227,8 @@ END SUBROUTINE convolut_kinetic_hyb_c
   use module_base
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14
-    integer, intent(in) :: mod_arr2(lowfil:n1+lupfil)
     integer, intent(in) :: n1,n2,n3
+    integer, intent(in) :: mod_arr2(lowfil:n1+lupfil)
     real(wp), dimension(lowfil:lupfil,3), intent(in) :: a
     real(wp),intent(in):: x(0:n1,0:n2,0:n3)
     real(wp),intent(inout)::y(0:n1,0:n2,0:n3)
@@ -1291,8 +1291,8 @@ END SUBROUTINE convolut_kinetic_hyb_c
   use module_base
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14   
-    integer, intent(in) :: mod_arr1(lowfil:n1+lupfil)
     integer, intent(in) :: n1,n2,n3
+    integer, intent(in) :: mod_arr1(lowfil:n1+lupfil)
     real(wp), dimension(lowfil:lupfil,3), intent(in) :: a
     integer ::ndat
     real(gp), intent(in) :: cprecr
@@ -1366,8 +1366,8 @@ END SUBROUTINE convolut_kinetic_hyb_c
   use module_base
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14
-    integer, intent(in) :: mod_arr3(lowfil:n1+lupfil)
     integer, intent(in) :: n1,n2,n3
+    integer, intent(in) :: mod_arr3(lowfil:n1+lupfil)
     real(wp), dimension(lowfil:lupfil,3), intent(in) :: a
     integer ::ndat
     real(wp),intent(in):: x((n1+1)*(n2+1),0:n1)

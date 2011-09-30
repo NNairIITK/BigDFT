@@ -30,11 +30,12 @@ program splined_saddle
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   character(len=50), dimension(:), allocatable :: arr_posinp
+  character(len=60) :: radical
   !character(len=60) :: filename
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer :: iconfig,nconfig
+  integer :: iconfig,nconfig,istat
   real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
   !include 'mpif.h' !non-BigDFT
 
@@ -43,6 +44,15 @@ program splined_saddle
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+   call memocc_set_memory_limit(memorylimit)
+
+   ! Read a possible radical format argument.
+   call get_command_argument(1, value = radical, status = istat)
+   if (istat > 0) then
+      write(radical, "(A)") "input"
+   end if
+
 
 !
 !    call system("echo $HOSTNAME")
@@ -80,12 +90,12 @@ program splined_saddle
 
      ! Read all input files.
      !standard names
-     call standard_inputfile_names(inputs)
+     call standard_inputfile_names(inputs,radical)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      !-----------------------------------------------------------
      !-----------------------------------------------------------
      if (iproc == 0) then
-        call print_general_parameters(inputs,atoms)
+        call print_general_parameters(nproc,inputs,atoms)
      end if
 
      !initialize memory counting
@@ -349,8 +359,8 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     !-----------------------------------------------------------
     call default_input_variables(ll_inputs)
     if(trim(pnow%hybrid)=='yes') then
-        call dft_input_variables(iproc,'ll_input.dft',ll_inputs)
         call perf_input_variables(iproc,'ll_input.perf',ll_inputs)
+        call dft_input_variables_new(iproc,'ll_input.dft',ll_inputs)
     else
         ll_inputs=inputs
     endif
@@ -1893,7 +1903,8 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     alpha=min(alphamax,alpha*1.1d0)
     x(1:nr)=x(1:nr)+alpha*work(iw3:iw3-1+nr)
 end subroutine bfgs_splsad
-!*****************************************************************************************
+
+
 subroutine dfp_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     !use minimization, only:parameterminimization
     use minimization_sp, only:parameterminimization_sp

@@ -9,7 +9,7 @@
 
 
 !>   Generate the input guess via the inguess_generator
-subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
+subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
      orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
   use module_base
   use module_types
@@ -19,7 +19,6 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   integer, intent(inout) :: nvirt
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: Glr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), intent(out) :: eks
   integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
@@ -81,12 +80,6 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
      end do
   end if
 
-  !allocate communications arrays for virtual orbitals
-  !warning: here the aim is just to calculate npsidim, should be fixed
-  !call allocate_comms(nproc,orbsv,commsv,subname)
-!!$  call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-!!$  call deallocate_comms(commsv,subname)
-
   !!!orbitals descriptor for inguess orbitals
   nspinorfororbse=orbs%nspinor
 
@@ -95,7 +88,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   !also for non-collinear case
   !nspin*noncoll is always <= 2
   call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
+       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,basedist=orbs%norb_par(0:,1:))
   do ikpt = 1, orbse%nkpts
      ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
      do ispin=1,nspin
@@ -109,8 +102,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   if (iproc == 0 .and. nproc > 1) then
      jpst=0
      do jproc=0,nproc-1
-        norbme=orbse%norb_par(jproc)
-        norbyou=orbse%norb_par(min(jproc+1,nproc-1))
+        norbme=orbse%norb_par(jproc,0)
+        norbyou=orbse%norb_par(min(jproc+1,nproc-1),0)
         if (norbme /= norbyou .or. jproc == nproc-1) then
            !this is a screen output that must be modified
            write(*,'(3(a,i0),a)')&
@@ -285,7 +278,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
   character(len=*), parameter :: subname= 'AtomicOrbitals'
   integer, parameter :: nterm_max=3,noccmax=2,lmax=4,nmax=6,nelecmax=32!actually is 24
   logical :: orbpol_nc,occeq
-  integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp
+  integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc
   integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
   integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng
   real(gp) :: ek,mx,my,mz,ma,mb,mc,md
@@ -390,9 +383,12 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                 at%aocc(1,iat),at%iasctype(iat))
         end if
 
+        !positions for the nlcc arrays
+        call nlcc_start_position(ity,at,ngv,ngc,islcc)
+
         call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
              real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
-             at%npspcode(ity),&
+             at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
              ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
              psiat(1,1,ityx),.false.)
         ntypesx=ntypesx+1
@@ -883,15 +879,16 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 END SUBROUTINE calc_coeff_inguess
 
 
-subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
+subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
      nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb)
   use module_base
   implicit none
   logical, intent(in) :: enlargerprb
-  integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom
+  integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom,ngv,ngc
   real(gp), intent(in) :: zion
   integer, dimension(lmax+1), intent(in) :: nl
   real(gp), dimension(0:4,0:6), intent(in) :: psppar
+  real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
   real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
   real(gp), dimension(ng+1), intent(out) :: expo
   real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
@@ -1046,7 +1043,7 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
 
   call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
   call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
-       zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
+       zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
        aeval,ng,psi,res,chrg)
 
   !post-treatment of the inguess data
@@ -1087,16 +1084,238 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
 END SUBROUTINE iguess_generator
 
 
+
+!!****f* BigDFT/iguess_generator_modified
+!! FUNCTION
+!!   
+!!
+!! SOURCE
+!!
+subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
+     nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb, gaenes_aux)
+  use module_base
+  implicit none
+  logical, intent(in) :: enlargerprb
+  integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom,ngv,ngc
+  real(gp), intent(in) :: zion
+  integer, dimension(lmax+1), intent(in) :: nl
+  real(gp), dimension(0:4,0:6), intent(in) :: psppar
+  real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
+  real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
+  real(gp), dimension(ng+1), intent(out) :: expo
+  real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
+  real(gp), dimension(nmax_occ),intent (out) :: gaenes_aux
+
+
+  !local variables
+  character(len=*), parameter :: subname='iguess_generator'
+  integer, parameter :: n_int=100
+  real(gp), parameter :: fact=4.0_gp
+  character(len=2) :: symbol
+  integer :: lpx,nsccode,mxpl,mxchg
+  integer :: l,i,j,iocc,i_all,i_stat
+  real(gp) :: alpz,alpl,amu,rprb,rij,a,a0,a0in,tt,ehomo,rcov
+  real(kind=8), dimension(6,4) :: neleconf
+  real(gp), dimension(4) :: gpot
+  real(gp), dimension(noccmax,lmax+1) :: aeval,chrg,res
+  real(gp), dimension(:), allocatable :: xp,alps
+  real(gp), dimension(:,:), allocatable :: vh,hsep,ofdcoef
+  real(gp), dimension(:,:,:), allocatable :: psi
+  real(gp), dimension(:,:,:,:), allocatable :: rmt
+
+  !filename = 'psppar.'//trim(atomname)
+  call to_zero(nmax_occ,gaenes_aux(1))
+
+  lpx=0
+  lpx_determination: do i=1,4
+     if (psppar(i,0) == 0.0_gp) then
+     exit lpx_determination
+     else
+        lpx=i-1
+     end if
+  end do lpx_determination
+
+  allocate(alps(lpx+1+ndebug),stat=i_stat)
+  call memocc(i_stat,alps,'alps',subname)
+  allocate(hsep(6,lpx+1+ndebug),stat=i_stat)
+  call memocc(i_stat,hsep,'hsep',subname)
+
+  !assignation of radii and coefficients of the local part
+  alpz=psppar(0,0)
+  alpl=psppar(0,0)
+  alps(1:lpx+1)=psppar(1:lpx+1,0)
+  gpot(1:4)=psppar(0,1:4)
+
+  !assignation of the coefficents for the nondiagonal terms
+  if (npspcode == 2) then !GTH case
+     do l=1,lpx+1
+        hsep(1,l)=psppar(l,1)
+        hsep(2,l)=0.0_gp
+        hsep(3,l)=psppar(l,2)
+        hsep(4,l)=0.0_gp
+        hsep(5,l)=0.0_gp
+        hsep(6,l)=psppar(l,3)
+     end do
+  else if (npspcode == 3) then !HGH case
+     allocate(ofdcoef(3,4+ndebug),stat=i_stat)
+     call memocc(i_stat,ofdcoef,'ofdcoef',subname)
+
+     ofdcoef(1,1)=-0.5_gp*sqrt(3._gp/5._gp) !h2
+     ofdcoef(2,1)=0.5_gp*sqrt(5._gp/21._gp) !h4
+     ofdcoef(3,1)=-0.5_gp*sqrt(100.0_gp/63._gp) !h5
+
+     ofdcoef(1,2)=-0.5_gp*sqrt(5._gp/7._gp) !h2
+     ofdcoef(2,2)=1._gp/6._gp*sqrt(35._gp/11._gp) !h4
+     ofdcoef(3,2)=-7._gp/3._gp*sqrt(1._gp/11._gp) !h5
+
+     ofdcoef(1,3)=-0.5_gp*sqrt(7._gp/9._gp) !h2
+     ofdcoef(2,3)=0.5_gp*sqrt(63._gp/143._gp) !h4
+     ofdcoef(3,3)=-9._gp*sqrt(1._gp/143._gp) !h5
+
+     ofdcoef(1,4)=0.0_gp !h2
+     ofdcoef(2,4)=0.0_gp !h4
+     ofdcoef(3,4)=0.0_gp !h5
+
+     !define the values of hsep starting from the pseudopotential file
+     do l=1,lpx+1
+        hsep(1,l)=psppar(l,1)
+        hsep(2,l)=psppar(l,2)*ofdcoef(1,l)
+        hsep(3,l)=psppar(l,2)
+        hsep(4,l)=psppar(l,3)*ofdcoef(2,l)
+        hsep(5,l)=psppar(l,3)*ofdcoef(3,l)
+        hsep(6,l)=psppar(l,3)
+     end do
+     i_all=-product(shape(ofdcoef))*kind(ofdcoef)
+     deallocate(ofdcoef,stat=i_stat)
+     call memocc(i_stat,i_all,'ofdcoef',subname)
+  else if (npspcode == 10) then !HGH-K case
+     do l=1,lpx+1
+        hsep(1,l)=psppar(l,1) !h11
+        hsep(2,l)=psppar(l,4) !h12
+        hsep(3,l)=psppar(l,2) !h22
+        hsep(4,l)=psppar(l,5) !h13
+        hsep(5,l)=psppar(l,6) !h23
+        hsep(6,l)=psppar(l,3) !h33
+     end do
+  end if
+
+  !!Just for extracting the covalent radius and rprb
+  call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+
+  if (enlargerprb) then
+     !experimental
+     rprb=100.0_gp
+  end if
+
+!  occup(:,:)=0.0_gp
+!   do l=0,lmax-1
+!     iocc=0
+!     do i=1,6
+!        if (elecorbs(i,l+1) > 0.0_gp) then
+!           iocc=iocc+1
+!           !print *,'elecorbs',i,l,elecorbs(i,l+1),noccmax
+!            if (iocc > noccmax) stop 'iguess_generator: noccmax too small'
+!           occup(iocc,l+1)=elecorbs(i,l+1)
+!        endif
+!     end do
+!     nl(l+1)=iocc
+!  end do
+
+  !allocate arrays for the gatom routine
+  allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
+  call memocc(i_stat,vh,'vh',subname)
+  allocate(psi(0:ng,noccmax,lmax+ndebug),stat=i_stat)
+  call memocc(i_stat,psi,'psi',subname)
+  allocate(xp(0:ng+ndebug),stat=i_stat)
+  call memocc(i_stat,xp,'xp',subname)
+  allocate(rmt(n_int,0:ng,0:ng,lmax+ndebug),stat=i_stat)
+  call memocc(i_stat,rmt,'rmt',subname)
+
+  !can be switched on for debugging
+  !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
+  !     'Input Guess Generation for atom',trim(atomname),&
+  !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
+
+  rij=3._gp
+  ! exponents of gaussians
+  a0in=alpz
+  a0=a0in/rij
+  !       tt=sqrt(sqrt(2._gp))
+  tt=2._gp**.3_gp
+  do i=0,ng
+     a=a0*tt**i
+     xp(i)=.5_gp/a**2
+  end do
+
+  ! initial guess
+  do l=0,lmax-1
+     do iocc=1,noccmax
+        do i=0,ng
+           psi(i,iocc,l+1)=0.0_gp
+        end do
+     end do
+  end do
+
+  call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
+  call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
+       zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
+       aeval,ng,psi,res,chrg)
+
+  !post-treatment of the inguess data
+  do i=1,ng+1
+     expo(i)=sqrt(0.5_gp/xp(i-1))
+  end do
+
+  i=0
+  do l=1,4
+     do iocc=1,nl(l)
+        i=i+1
+        !occupat(i)=occup(iocc,l)
+        do j=1,ng+1
+           psiat(j,i)=psi(j-1,iocc,l)
+        end do
+        gaenes_aux(i) = aeval(iocc,l)
+     end do
+  end do
+
+  i_all=-product(shape(vh))*kind(vh)
+  deallocate(vh,stat=i_stat)
+  call memocc(i_stat,i_all,'vh',subname)
+  i_all=-product(shape(psi))*kind(psi)
+  deallocate(psi,stat=i_stat)
+  call memocc(i_stat,i_all,'psi',subname)
+  i_all=-product(shape(xp))*kind(xp)
+  deallocate(xp,stat=i_stat)
+  call memocc(i_stat,i_all,'xp',subname)
+  i_all=-product(shape(rmt))*kind(rmt)
+  deallocate(rmt,stat=i_stat)
+  call memocc(i_stat,i_all,'rmt',subname)
+  i_all=-product(shape(hsep))*kind(hsep)
+  deallocate(hsep,stat=i_stat)
+  call memocc(i_stat,i_all,'hsep',subname)
+  i_all=-product(shape(alps))*kind(alps)
+  deallocate(alps,stat=i_stat)
+  call memocc(i_stat,i_all,'alps',subname)
+
+END SUBROUTINE iguess_generator_modified
+!!***
+
+
+
 !>  Calculates the solution of the radial Schroedinger equation for a given
 !!  pseudoptential.
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
-                 zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
+                 zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg)
   use module_base, only: gp
-  implicit real(gp) (a-h,o-z)
-  logical :: noproj
+  !implicit real(gp) (a-h,o-z)
+  implicit none
   integer, parameter :: n_int=100
-  dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
+  !Arguments
+  integer, intent(in) :: lmax,lpx,noccmax,ngv,ngc,nintp,ng
+  real(gp), intent(in) :: rcov,rprb,zion,alpz,alpl
+  real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
+  real(gp) :: psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
        gpot(4),hsep(6,lpx+1),rmt(n_int,0:ng,0:ng,lmax+1),&
        pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpx+1),&
@@ -1105,7 +1324,17 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
-  if (nintp.ne.n_int) stop 'n_int/=nintp'
+  !Local variables
+  logical :: noproj
+  integer :: i,l,k,j,it,iocc,ilcc,ig,lcx,info
+  real(gp) :: sxp,rmix,rk,r,ttt,gml,gml1,gml2,gml3,tt,texp,sd,terf,evsum,evsumold
+  real(gp) :: emuxc,dr,d,fact,const
+  !Functions
+  real(gp) :: ddot,gamma_restricted,spherical_gaussian_value
+
+  if (nintp.ne.n_int) then
+     stop 'n_int/=nintp'
+  end if
 
   do l=0,lmax
      if (occup(1,l+1).gt.0._gp) lcx=l
@@ -1207,6 +1436,18 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
      dr=fact*rprb/real(n_int,gp)
      do k=1,n_int
         r=(real(k,gp)-.5_gp)*dr
+        !terms for nlcc, if present
+        ilcc=0
+        do ig=1,(ngv*(ngv+1))/2
+           ilcc=ilcc+1
+           xcgrd(k)=xcgrd(k)-&
+                spherical_gaussian_value(r*r,nlccpar(0,ilcc),nlccpar(1,ilcc),0)
+        end do
+        do ig=1,(ngc*(ngc+1))/2
+           ilcc=ilcc+1
+           xcgrd(k)=xcgrd(k)+&
+                spherical_gaussian_value(r*r,nlccpar(0,ilcc),nlccpar(1,ilcc),0)
+        end do
 ! divide by 4 pi
         tt=xcgrd(k)*0.07957747154594768_gp
 ! multiply with r^2 to speed up calculation of matrix elements
@@ -2036,61 +2277,10 @@ subroutine write_fraction_string(l,occ,string,nstring)
 END SUBROUTINE write_fraction_string
 
 
-!>  Here the fraction is indicated by the ':' or '/'
-subroutine read_fraction_string(string,occ,ierror)
-  use module_base
-  implicit none
-  !Arguments
-  character(len=*), intent(in) :: string
-  real(gp), intent(out) :: occ
-  integer, intent(out) :: ierror
-  !Local variables
-  integer :: num,den,pfr
-
-  !see whether there is a fraction in the string
-  pfr = index(string,':')
-  if (pfr == 0) pfr = index(string,'/')
-  if (pfr == 0) then
-     read(string,*,iostat=ierror) occ
-  else
-     read(string(1:pfr-1),*,iostat=ierror) num
-     read(string(pfr+1:),*,iostat=ierror) den
-     if (ierror == 0) occ=real(num,gp)/real(den,gp)
-  end if
-  !Value by defaut
-  if (ierror /= 0) occ = huge(1_gp)
-END SUBROUTINE read_fraction_string
-
-
-!>  Here the fraction is indicated by the :
-subroutine read_fraction_string_old(l,string,occ)
-  use module_base
-  implicit none
-  integer, intent(in) :: l
-  character(len=*), intent(in) :: string
-  real(gp), intent(out) :: occ
-  !local variables
-  integer :: num,den,pfr
-
-  !see whether there is a fraction in the string
-  if (l>3) then
-     pfr=3
-  else
-     pfr=2
-  end if
-  if (string(pfr:pfr) == ':') then
-     read(string(1:pfr-1),*)num
-     read(string(pfr+1:2*pfr-1),*)den
-     occ=real(num,gp)/real(den,gp)
-  else
-     read(string,*)occ
-  end if
-END SUBROUTINE read_fraction_string_old
-
-
 !>   Read the electronic configuration, with the semicore orbitals
 subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   use module_base
+  use module_input
   implicit none
   character(len=100), intent(inout) :: string
   integer, intent(in) :: nelecmax,noccmax,lmax,nspinor,nspin
