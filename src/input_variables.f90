@@ -3669,6 +3669,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   end if
 END SUBROUTINE processor_id_per_node
 
+
 !> initialize_atomic_file
 !! @author
 !! Written by Laurent K Beland 2011 UdeM

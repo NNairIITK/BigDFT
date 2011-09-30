@@ -77,61 +77,6 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
-scripts_sources = NEB_driver.sh
-else
-binaries_sources = 
-scripts_sources = 
-endif
-
-if USE_CUDA_GPU
-sub_dirs_cuda=CUDA
-GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
-libs_cuda=CUDA/libGPU.a
-GPU_BLAS=
-else
-sub_dirs_cuda=
-GPU_INTERFACE = convolutions/interface_cuda_fake.f90
-libs_cuda=
-GPU_BLAS = modules/cublas_fake.f90
-endif
-
-if USE_OCL
-sub_dirs_ocl=OpenCL
-OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
-libs_ocl=OpenCL/libOCL.a -lstdc++
-else
-sub_dirs_ocl=
-OCL_INTERFACE = convolutions/interface_ocl_fake.f90
-libs_ocl=
-endif
-
-if USE_DGEMMSY
-sub_dirs_dgemmsy=dgemmsy
-DGEMMSY_INTERFACE = dgemmsy/interface_dgemmsy.f90
-libs_dgemmsy=dgemmsy/libdgemmsy.a
-else
-sub_dirs_dgemmsy=
-DGEMMSY_INTERFACE = dgemmsy/interface_dgemmsy_fake.f90
-libs_dgemmsy=
-endif
-
-libs_opt=$(libs_cuda)\
- $(libs_ocl)\
- $(libs_dgemmsy)
-
-if HAVE_LIBCONFIG
-sub_dirs_libconfig=convolutions-c
-else
-sub_dirs_libconfig=
-endif
-
-if HAVE_ETSF_IO
-etsf_files = wavelib/plotting-etsf.f90 \
-	wavelib/i-o-etsf.f90
-else
-etsf_files = wavelib/etsf_fake.f90
-endif
-
 if HAVE_FC_FLUSH
 flush_files =
 else
