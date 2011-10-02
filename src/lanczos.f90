@@ -160,7 +160,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
         open(unit=22,file="alphabeta")
         write(22,*) LB_nsteps, EP_norma2_initialized_state
         print *, " alpha and beta from lanczos "
-        WRITE(*,'(I5,1ES23.16)')    LB_nsteps, EP_norma2_initialized_state
+        WRITE(*,'(I5,1000(1ES23.16))')    LB_nsteps, EP_norma2_initialized_state
         do i=0, LB_nsteps-1
            write(22,*) LB_alpha(i), LB_beta(i)
            WRITE(*,'(2ES23.16)')  LB_alpha(i), LB_beta(i)

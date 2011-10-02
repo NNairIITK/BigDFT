@@ -145,11 +145,11 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !       call random_number(psi(i))
 !  end do
   if(OCLconv .and. ASYNCconv) then
-    allocate(GPU%hpsi_ASYNC((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
-    call memocc(i_stat,GPU%hpsi_ASYNC,'GPU%hpsi_ASYNC',subname)
-    hpsi(:)=0.0
-  else
-    GPU%hpsi_ASYNC => hpsi
+     allocate(GPU%hpsi_ASYNC((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
+     call memocc(i_stat,GPU%hpsi_ASYNC,'GPU%hpsi_ASYNC',subname)
+     call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,hpsi(1))
+  else if (OCLconv) then
+     GPU%hpsi_ASYNC => hpsi
   end if
   if (GPUconv) then
      call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
@@ -298,6 +298,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,orbs,lr,GPU,hpsi,ekin_sum,epo
   if(OCLconv .and. ASYNCconv) then
     call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
     call axpy((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,1.0_wp,GPU%hpsi_ASYNC(1),1,hpsi(1),1)
+
     i_all=-product(shape(GPU%hpsi_ASYNC))*kind(GPU%hpsi_ASYNC)
     deallocate(GPU%hpsi_ASYNC,stat=i_stat)
     call memocc(i_stat,i_all,'GPU%hpsi_ASYNC',subname)

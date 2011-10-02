@@ -342,8 +342,9 @@ program memguess
 
 
   if (GPUtest .and. .not. GPUconv) then
-     write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
-     stop
+     GPUconv=.true.
+     !write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
+     !stop
   end if
   if (GPUconv .and. atoms%geocode=='P' .and. GPUtest) then
      !test the hamiltonian in CPU or GPU

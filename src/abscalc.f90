@@ -1869,6 +1869,7 @@ subroutine applyPAWprojectors(orbs,at,&
                           dotbufferbis=0.0_wp
                        endif
                     else
+                       print *,'here',nchannels
                        if( sup_iatom .eq. iatat .and. (-sup_l) .eq. lsign ) then
                           do ichannel=1, nchannels
                              do m=1,2*l-1

@@ -137,10 +137,10 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   !full_locham stategy (always true for the moment)
   GPU%full_locham=.true.
 
-  allocate(GPU%ekin(orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
+  allocate(GPU%ekin(2,orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,GPU%ekin,'ekin',subname)
 
-  allocate(GPU%epot(orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
+  allocate(GPU%epot(2,orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,GPU%epot,'epot',subname)
 
   nullify(GPU%hpsi_ASYNC)
@@ -205,6 +205,8 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
     call ocl_release_mem_object(GPU%psi_c_d_i)
     call ocl_release_mem_object(GPU%psi_f_d_i)
   endif
+
+  if(associated(GPU%hpsi_ASYNC)) nullify(GPU%hpsi_ASYNC)
 
 END SUBROUTINE free_gpu_OCL
 
@@ -427,8 +429,6 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
           GPU%d_i,&
           orbs%nspinor,&
           GPU%epot(1,iorb),GPU%ekin(1,iorb))
-!,&
-!          epot(iorb,2),ekin(iorb,2))
 
      call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,hpsi(1,iorb))
      call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,hpsi(isf,iorb))
@@ -468,6 +468,7 @@ subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
                  - (GPU%epot(1,iorb)+GPU%epot(2,iorb)))
     epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(GPU%epot(1,iorb)+GPU%epot(2,iorb))
   end do
+
 END SUBROUTINE finish_hamiltonian_OCL
 
 subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)

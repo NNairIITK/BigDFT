@@ -12,7 +12,7 @@ Hartwigsen-Goedecker-Hutter psp for Fe,  from PRB58, 3641 (1998)
 PAWPATCH
 2           !!  paw_NofL
  1           !! paw_l 
-4.804018145815480e-01           !!  paw_Greal ==> exp( - paw_Greal*r**2) * cos, sin ( paw_Gimag*r**2) 
+.804018145815480e-01        !!  paw_Greal ==> exp( - paw_Greal*r**2) * cos, sin ( paw_Gimag*r**2) 
  101           !!  paw_nofgaussians 
  7           !! paw_nofchannels  
 !!  follow 101 PAW_Gimag factors
@@ -976,7 +976,7 @@ PAWPATCH
 8.304158706041403e-02
 8.255192342357631e-02
  -2           !! paw_l 
-2.133514517304443e-01           !!  paw_Greal ==> exp( - paw_Greal*r**2) * cos, sin ( paw_Gimag*r**2) 
+2.133514517304443e-01      !!  paw_Greal ==> exp( - paw_Greal*r**2) * cos, sin ( paw_Gimag*r**2) 
  101           !!  paw_nofgaussians 
  1           !! paw_nofchannels  
 !!  follow 101 PAW_Gimag factors
