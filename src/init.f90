@@ -1140,6 +1140,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
+  ! @todo pass GPU to be a local variable of this routine (initialized and freed here)
   use module_base
   use module_interfaces, except_this_one => input_wf_diag
   use module_types

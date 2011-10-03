@@ -163,7 +163,7 @@ subroutine init_atomic_values(iproc, atoms, ixc)
   integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
   logical :: exists, read_radii
   character(len=27) :: filename
-  
+     
   !allocate atoms data variables
   ! store PSP parameters
   ! modified to accept both GTH and HGHs pseudopotential types
@@ -1620,7 +1620,7 @@ subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&
 
 END SUBROUTINE parallel_repartition_per_kpoints
 
-subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
+subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
      paw_tot_q, paw_tot_coefficients, paw_tot_matrices, &
      storeit)
   use module_base
@@ -1647,7 +1647,7 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
         call memocc(i_stat,atoms%paw_NofL,'atoms%paw_NofL',subname)
      end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
-     open(unit=11,file=filename,status='old',iostat=ierror)
+     open(unit=11,file=trim(filename),status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
         write(*,*) ': Failed to open the file (it must be in ABINIT format!): "',&
@@ -1659,7 +1659,7 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
      
      atoms%paw_NofL(ityp)=0
      do while(.true.)
-        read(11,'(a100)',iostat=ierror, END=110)  string
+        read(11,'(a)',iostat=ierror, END=110)  string
         if ( trim(string).eq. 'PAWPATCH') then
            exit
         endif
@@ -1671,14 +1671,12 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
      atoms%paw_NofL(ityp) = npawl
      
      paw_tot_l = paw_tot_l + npawl
-     
      do ipawl=1,npawl
         read(11,*) paw_l
         read(11,*) paw_greal
         read(11,*) paw_nofgaussians
         read(11,*) paw_nofchannels
         read(11,*)  string  !!  follow 300 PAW_Gimag factors
-        
         paw_tot_q = paw_tot_q+paw_nofgaussians
         paw_tot_coefficients = paw_tot_coefficients + paw_nofchannels*paw_nofgaussians*2
         paw_tot_matrices=paw_tot_matrices+paw_nofchannels**2
@@ -1714,6 +1712,7 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
         enddo
      enddo
 110  close(11)
+
   else
      if(ityp.eq.1) then
         allocate(atoms%paw_l  (paw_tot_l+ndebug), stat=i_stat)
@@ -1753,10 +1752,10 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
      
      if( atoms%paw_NofL(ityp).gt.0) then
 
-        open(unit=11,file=filename,status='old',iostat=ierror)
+        open(unit=11,file=trim(filename),status='old')
 
         do while(.true.)
-           read(11,'(a100)',iostat=ierror, END=220)  string
+           read(11,'(a)', END=220)  string
            if ( trim(string).eq. 'PAWPATCH') then
               exit
            endif
@@ -1780,12 +1779,12 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
            read(11,*) atoms%paw_nofchannels(paw_tot_l+ipawl  )
            paw_nofchannels = atoms%paw_nofchannels(paw_tot_l+ipawl  )
            paw_nofgaussians = atoms%paw_nofgaussians(paw_tot_l+ipawl  )
-           read(11,'(a100)')  string  !!  follow  paw_nofchannels PAW_Gimag factors
+           read(11,'(a)')  string  !!  follow  paw_nofchannels PAW_Gimag factors
            
            do ig=1, paw_nofgaussians
               read(11,*)  atoms%paw_Gimag(paw_tot_q + ig )
            enddo
-           read(11,'(a100)')  string  !!  !!  follow for each of the Npaw channels  nofgaussians (cos_factor, sin_factor)  pairs
+           read(11,'(a)')  string  !!  !!  follow for each of the Npaw channels  nofgaussians (cos_factor, sin_factor)  pairs
            !!print *, string, " reading  " , filename
            
            do il=1, paw_nofchannels
@@ -1794,7 +1793,7 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
                       atoms%paw_Gcoeffs( paw_tot_coefficients + 2*(il-1)*paw_nofgaussians+2*ig)
               enddo
            enddo
-           read(11,'(a100)')  string  !! pawpatch matrix
+           read(11,'(a)')  string  !! pawpatch matrix
            !!print *, string, " reading  " , filename
            do il=1, paw_nofchannels
               do ig=1, paw_nofchannels
@@ -1802,7 +1801,7 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
                  atoms%paw_H_matrices(paw_tot_matrices +(il-1)*paw_nofchannels+ig   )=dumpaw
               end do
            enddo
-           read(11,'(a100)')  string  !! S  matrix
+           read(11,'(a)')  string  !! S  matrix
            !!print *, string, " reading >>>>>  " , filename
            do il=1, paw_nofchannels
               do ig=1, paw_nofchannels
@@ -1810,7 +1809,7 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
                  atoms%paw_S_matrices(paw_tot_matrices +(il-1)*paw_nofchannels+ig   )=dumpaw
               end do
            enddo
-           read(11,'(a100)')  string  !! Sm1  matrix
+           read(11,'(a)')  string  !! Sm1  matrix
            !!print *, string, " reading  " , filename
            do il=1, paw_nofchannels
               do ig=1, paw_nofchannels

@@ -322,7 +322,7 @@ program memguess
 
   ! Build and print the communicator scheme.
   call createWavefunctionsDescriptors(0,hx,hy,hz,&
-       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
+       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (in%output_grid > 0))
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
   if (exportwf) then
@@ -342,8 +342,9 @@ program memguess
 
 
   if (GPUtest .and. .not. GPUconv) then
-     write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
-     stop
+     GPUconv=.true.
+     !write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
+     !stop
   end if
   if (GPUconv .and. atoms%geocode=='P' .and. GPUtest) then
      !test the hamiltonian in CPU or GPU
@@ -372,7 +373,7 @@ program memguess
         orbstst%spinsgn(iorb)=1.0_gp
      end do
 
-     call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
+     call compare_cpu_gpu_hamiltonian(0,1,in%iacceleration,atoms,orbstst,nspin,in%ncong,in%ixc,&
           Glr,hx,hy,hz,rxyz,ntimes)
 
      call deallocate_orbs(orbstst,subname)
@@ -756,7 +757,7 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
 END SUBROUTINE calc_vol
 
 
-subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
+subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,ixc,ncong,&
      lr,hx,hy,hz,rxyz,ntimes)
   use module_base
   use module_types
@@ -765,7 +766,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   use module_xc
 
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
+  integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes,iacceleration
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -873,6 +874,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   !allocate the necessary objects on the GPU
   !set initialisation of GPU part 
+  !initialise the acceleration strategy if required
+  call init_material_acceleration(iproc,iacceleration,GPU)
+
   call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,nspin,hx,hy,hz,lr%wfd,orbs,GPU)
 
   write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Density calculation'
@@ -900,7 +904,13 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !for each of the orbitals treated by the processor build the partial densities
   call cpu_time(t0)
   do j=1,ntimes
-     call gpu_locden(lr,nspin,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,orbs,GPU)
+     !switch between GPU/CPU treatment of the density
+     if (GPUconv) then
+        call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
+     else if (OCLconv) then
+        call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
+     end if
+     !gcall gpu_locden(lr,nspin,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,orbs,GPU)
   end do
   call cpu_time(t1)
   GPUtime=real(t1-t0,kind=8)
@@ -1095,6 +1105,10 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   !free the card at the end
   call free_gpu(GPU,orbs%norbp)
+
+  !finalise the material accelearion usage
+  call release_material_acceleration(GPU)
+    
 
   call compare_data_and_gflops(CPUtime,GPUtime,&
        8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,psi,&
