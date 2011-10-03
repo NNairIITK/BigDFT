@@ -322,7 +322,7 @@ program memguess
 
   ! Build and print the communicator scheme.
   call createWavefunctionsDescriptors(0,hx,hy,hz,&
-       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
+       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (in%output_grid > 0))
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
   if (exportwf) then
@@ -901,7 +901,13 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !for each of the orbitals treated by the processor build the partial densities
   call cpu_time(t0)
   do j=1,ntimes
-     call gpu_locden(lr,nspin,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,orbs,GPU)
+     !switch between GPU/CPU treatment of the density
+     if (GPUconv) then
+        call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
+     else if (OCLconv) then
+        call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
+     end if
+     !gcall gpu_locden(lr,nspin,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,orbs,GPU)
   end do
   call cpu_time(t1)
   GPUtime=real(t1-t0,kind=8)
