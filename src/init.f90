@@ -433,7 +433,7 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
 
   !!Just for extracting the covalent radius and rprb
   integer :: nsccode,mxpl,mxchg
-  real(gp) ::amu,rprb,ehomo,rcov
+  real(gp) ::amu,rprb,ehomo,rcov, cutoff
   character(len=2) :: symbol
   real(kind=8), dimension(6,4) :: neleconf
   
@@ -467,14 +467,14 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
   !!Just for extracting the covalent radius 
   call eleconf(at%nzatom( at%iatype(iatat)), at%nelpsp(at%iatype(iatat)) ,  &
        symbol, rcov, rprb, ehomo,neleconf, nsccode, mxpl, mxchg, amu)
-  !!  this 1.5 factor is the same as in file xabsorber.f90, routine GetExcitedOrbitalAsG
-  rcov=rcov*1.5_gp
+
+  cutoff=rcov*1.5_gp
 
   do while( jorb<=PAWD%G%ncoeff         .and. PAWD%iorbtolr(jorb)== iat)      
      Gocc(jorb)=1.0_wp
 
      call gaussians_c_to_wavelets_orb(ncplx,Plr,hx,hy,hz,kx,ky,kz,PAWD%G,&
-          Gocc(1),  PAWD%paw_proj(istart_c), rcov  )
+          Gocc(1),  PAWD%paw_proj(istart_c), cutoff  )
 
      Gocc(jorb)=0.0_wp
 !!$     !! ---------------  use this to plot projectors
