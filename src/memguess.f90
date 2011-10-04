@@ -979,18 +979,26 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   !warm-up
   !call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekinGPU,epotGPU)
 
-  !apply the GPU hamiltonian
+  !apply the GPU hamiltonian and put the results in the hpsi_GPU array
+  allocate(GPU%hpsi_ASYNC((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
+  call memocc(i_stat,GPU%hpsi_ASYNC,'GPU%hpsi_ASYNC',subname)
+  !call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%hpsi_ASYNC(1))
+
   !take timings
   call cpu_time(t0)
   do j=1,ntimes
-     call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekinGPU,epotGPU)
+     if (GPUconv) then
+        call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
+     else if (OCLconv) then
+        call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
+     end if
   end do
   call cpu_time(t1)
 
   print *,'ekinGPU,epotGPU',ekinGPU,epotGPU
 
   GPUtime=real(t1-t0,kind=8)
-  
+
   !receive the data of GPU
   do iorb=1,orbs%norbp
      !!!!! call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
@@ -1001,9 +1009,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   !compare the results between the different actions of the hamiltonian
   !check the differences between the results
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,psi,&
+       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,GPU%hpsi_ASYNC,&
        orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.,Rham)
-
 
   i_all=-product(shape(pot))*kind(pot)
   deallocate(pot,stat=i_stat)
@@ -1074,6 +1081,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
 
   !-------------------now the same for preconditioning
   write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Preconditioner'
+
   !the input function is psi
   call cpu_time(t0)
   do j=1,ntimes
@@ -1089,32 +1097,36 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   !the input function is GPU%hpsi in that case
   call cpu_time(t0)
   do j=1,ntimes
-     call gpu_precond(lr,hx,hy,hz,GPU,orbs%norbp,ncong,&
-          orbs%eval(min(orbs%isorb+1,orbs%norb)),gnrmGPU)
+     !Preconditions all orbitals belonging to iproc
+     !and calculate the partial norm of the residue
+     !switch between CPU and GPU treatment
+     if (GPUconv) then
+        call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+             GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
+     else if (OCLconv) then
+        call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+             GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
+     end if
   end do
   call cpu_time(t1)
   
   GPUtime=real(t1-t0,kind=8)
   print *,'gnrmGPU',gnrmGPU
 
-  do iorb=1,orbs%norbp
-     !!!!! call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-         !! psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
-  end do
-
+  call compare_data_and_gflops(CPUtime,GPUtime,&
+       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,GPU%hpsi_ASYNC,&
+       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.,Rprec)
 
   !free the card at the end
   call free_gpu(GPU,orbs%norbp)
 
   !finalise the material accelearion usage
   call release_material_acceleration(GPU)
-    
-
-  call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,psi,&
-       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.,Rprec)
 
 
+  i_all=-product(shape(GPU%hpsi_ASYNC))*kind(GPU%hpsi_ASYNC)
+  deallocate(GPU%hpsi_ASYNC,stat=i_stat)
+  call memocc(i_stat,i_all,'GPU%hpsi_ASYNC',subname)
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
   call memocc(i_stat,i_all,'psi',subname)
@@ -1140,8 +1152,13 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
   integer :: i
   real(gp) :: CPUGflops,GPUGflops,maxdiff,comp
 
-  CPUGflops=GFlopsfactor*real(ntimes,gp)/(CPUtime*1.d9)
-  GPUGflops=GFlopsfactor*real(ntimes,gp)/(GPUtime*1.d9)
+  !un-initialize valies which might suffer from fpe
+  GPUGflops=-1.0_gp
+  CPUGflops=-1.0_gp
+  ratio=-1.0_gp
+
+  if (CPUtime > 0.0_gp) CPUGflops=GFlopsfactor*real(ntimes,gp)/(CPUtime*1.d9)
+  if (GPUtime > 0.0_gp) GPUGflops=GFlopsfactor*real(ntimes,gp)/(GPUtime*1.d9)
 
   maxdiff=0.0_gp
 
@@ -1152,17 +1169,17 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
      comp=abs(CPUdata(i)-GPUdata(i))
      maxdiff=max(maxdiff,comp)
   end do
-  ratio=CPUtime/GPUtime
+  if (GPUtime > 0.0_gp) ratio=CPUtime/GPUtime
   if (maxdiff <= 1.d-12) then
      write(*,'(1x,a,1x,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
           'GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-          CPUtime/GPUtime,maxdiff,&
+          ratio,maxdiff,&
           CPUtime*1.d3/real(ntimes,kind=8),CPUGflops,&
           GPUtime*1.d3/real(ntimes,kind=8),GPUGflops
   else
      write(*,'(1x,a,1x,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
           'GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-          CPUtime/GPUtime,maxdiff,&
+          ratio,maxdiff,&
           CPUtime*1.d3/real(ntimes,kind=8),CPUGflops,&
           GPUtime*1.d3/real(ntimes,kind=8),GPUGflops,&
           '<<<< WARNING' 
