@@ -1100,7 +1100,8 @@ contains
              write( *,"(10(d20.10,1x))")  alphacollect
           endif
        else
-          write( *,"(A,1x,10(d20.10,1x))")  "new cheb coeffs " ,  LB_alpha_cheb(1:LB_norbp ,2*i+1) , LB_alpha_cheb(1:LB_norbp,2*i+2)
+          print *,  "new cheb coeffs "
+          write( *,"(1x,10(d20.10,1x))")   LB_alpha_cheb(1:LB_norbp ,2*i+1) , LB_alpha_cheb(1:LB_norbp,2*i+2)
        endif
        call EP_copy(precedente,attuale)
        call EP_copy(attuale,tmp1)

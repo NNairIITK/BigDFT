@@ -1554,7 +1554,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
 
   read(iunit,*,iostat=ierror)  in%iat_absorber
   call check()
-  read(iunit,*,iostat=ierror)  in%N_absorber,in%Linit_absorber      ,in%rpower_absorber,  in%L_absorber,  in%NPaw_absorber
+  read(iunit,*,iostat=ierror)  in%N_absorber,in%Linit_absorber      ,in%rpower_absorber,  in%L_absorber
   call check()
 
   allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)

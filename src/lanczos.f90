@@ -593,10 +593,6 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   case default
      STOP "unknown in%Linit_absorber    "
   end select
-  write(filename,'(A,A,A,I1,A,A,I1,A,I1,A,I0)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) ,&
-       "_", in%N_absorber,   "s" ,   "_pow=" ,  in%rpower_absorber,"_Labs=", &
-       in%L_absorber,"_npaw=",in%NPAW_absorber
-  
 
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
