@@ -514,6 +514,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   call timing(iproc,'CrtDescriptors','OF')
   ! Calculate all projectors, or allocate array for on-the-fly calculation
 
+  !de-allocate orbs and recreate it with one orbital only
+
+
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  

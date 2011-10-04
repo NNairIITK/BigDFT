@@ -197,7 +197,7 @@ program memguess
 
 
   !welcome screen
-  call print_logo()
+  !call print_logo()
 
   if (convert) then
      atoms%geocode = "P"
@@ -340,13 +340,7 @@ program memguess
 
   end if
 
-
-  if (GPUtest .and. .not. GPUconv) then
-     GPUconv=.true.
-     !write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
-     !stop
-  end if
-  if (GPUconv .and. atoms%geocode=='P' .and. GPUtest) then
+  if (GPUtest) then
      !test the hamiltonian in CPU or GPU
      !create the orbitals data structure for one orbital
      !test orbitals
@@ -877,28 +871,32 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   !initialise the acceleration strategy if required
   call init_material_acceleration(iproc,iacceleration,GPU)
 
-  call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,nspin,hx,hy,hz,lr%wfd,orbs,GPU)
+  !allocate arrays for the GPU if a card is present
+  if (GPUconv) then
+     call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,nspin,&
+          hx,hy,hz,lr%wfd,orbs,GPU)
+  else if (OCLconv) then
+     !the same with OpenCL, but they cannot exist at same time
+     call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,lr%geocode,&
+          nspin,hx,hy,hz,lr%wfd,orbs,GPU)
+  end if
+  if (iproc == 0) write(*,*)&
+       'GPU data allocated'
 
   write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Density calculation'
 
-  call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,pot,nproc)
+
 
   !for each of the orbitals treated by the processor build the partial densities
   call cpu_time(t0)
   do j=1,ntimes
+     call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,pot,nproc)
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
           nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs,&
           psi,pot)
   end do
   call cpu_time(t1)
   CPUtime=real(t1-t0,kind=8)
-
-
-  !copy the wavefunctions on GPU
-  do iorb=1,orbs%norbp
-     !!!!! call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-     !!!!!     psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
-  end do
 
   !now the GPU part
   !for each of the orbitals treated by the processor build the partial densities
@@ -910,13 +908,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
      else if (OCLconv) then
         call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
      end if
-     !gcall gpu_locden(lr,nspin,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,orbs,GPU)
   end do
   call cpu_time(t1)
   GPUtime=real(t1-t0,kind=8)
-
-  !receive the density on GPU
-  !!!!! call GPU_receive(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,rho,GPU%rhopot,i_stat)
 
   i_all=-product(shape(nscatterarr))*kind(nscatterarr)
   deallocate(nscatterarr,stat=i_stat)
@@ -953,10 +947,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
      end do
   end do
 
-  !copy the potential on GPU
-  !!!!! call GPU_send(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,pot,GPU%rhopot,i_stat)
-
-
   write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Local Hamiltonian calculation'
 
   !warm-up
@@ -967,7 +957,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   call cpu_time(t0)
   do j=1,ntimes
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,0,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
-     !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum) 
   end do
   call cpu_time(t1)
 
@@ -982,7 +971,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   !apply the GPU hamiltonian and put the results in the hpsi_GPU array
   allocate(GPU%hpsi_ASYNC((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
   call memocc(i_stat,GPU%hpsi_ASYNC,'GPU%hpsi_ASYNC',subname)
-  !call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%hpsi_ASYNC(1))
 
   !take timings
   call cpu_time(t0)
@@ -993,18 +981,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
         call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
      end if
   end do
+  if(ASYNCconv) call finish_hamiltonian_OCL(orbs,ekinGPU,epotGPU,GPU)
   call cpu_time(t1)
 
   print *,'ekinGPU,epotGPU',ekinGPU,epotGPU
 
   GPUtime=real(t1-t0,kind=8)
-
-  !receive the data of GPU
-  do iorb=1,orbs%norbp
-     !!!!! call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-      !!!!!!!    psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
-  end do
-  
 
   !compare the results between the different actions of the hamiltonian
   !check the differences between the results
@@ -1117,13 +1099,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
        8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,GPU%hpsi_ASYNC,&
        orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.,Rprec)
 
-  !free the card at the end
-  call free_gpu(GPU,orbs%norbp)
-
-  !finalise the material accelearion usage
-  call release_material_acceleration(GPU)
-
-
   i_all=-product(shape(GPU%hpsi_ASYNC))*kind(GPU%hpsi_ASYNC)
   deallocate(GPU%hpsi_ASYNC,stat=i_stat)
   call memocc(i_stat,i_all,'GPU%hpsi_ASYNC',subname)
@@ -1133,6 +1108,19 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   i_all=-product(shape(hpsi))*kind(hpsi)
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi',subname)
+
+
+  !free the card at the end
+  if (GPUconv) then
+     call free_gpu(GPU,orbs%norbp)
+  else if (OCLconv) then
+     call free_gpu_OCL(GPU,orbs,nspin)
+  end if
+
+  !finalise the material accelearion usage
+  call release_material_acceleration(GPU)
+
+
 
   write(*,'(1x,a,5(1x,f7.3))')'Ratios:',Rden,Rham,Rgemm,Rsyrk,Rprec
   
