@@ -514,6 +514,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   call timing(iproc,'CrtDescriptors','OF')
   ! Calculate all projectors, or allocate array for on-the-fly calculation
 
+  !de-allocate orbs and recreate it with one orbital only
+
+
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
@@ -1020,7 +1023,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                             factx * rhopottmp(ix_bB,iy_bB,iz_bB ,1)
                     enddo
                  enddo
-                 rhopottmp(:,iy_bB,iz_bB,1)=auxint(1:n1i)
+                 rhopottmp(1:n1i,iy_bB,iz_bB,1)=auxint(1:n1i)
               enddo
            enddo
 
@@ -1051,7 +1054,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                             facty * rhopottmp(ix_bB,iy_bB,iz_bB,1)
                     enddo
                  enddo
-                 rhopottmp(ix_bB ,:,iz_bB,1)=auxint(1:n2i)
+                 rhopottmp(ix_bB ,1:n2i,iz_bB,1)=auxint(1:n2i)
               enddo
            enddo
 
@@ -1081,7 +1084,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                             factz * rhopottmp(ix_bB,iy_bB,iz_bB,1)
                     enddo
                  enddo
-                 rhotarget(ix_bB ,iy_bB, : ,1)= rhotarget(ix_bB ,iy_bB, : ,1)+auxint(1:n3i)
+                 rhotarget(ix_bB ,iy_bB, 1:n3i ,1)= rhotarget(ix_bB ,iy_bB, : ,1)+auxint(1:n3i)
               enddo
            enddo
         enddo !End of loop over ireplica
@@ -1869,6 +1872,7 @@ subroutine applyPAWprojectors(orbs,at,&
                           dotbufferbis=0.0_wp
                        endif
                     else
+                       !print *,'here',nchannels
                        if( sup_iatom .eq. iatat .and. (-sup_l) .eq. lsign ) then
                           do ichannel=1, nchannels
                              do m=1,2*l-1

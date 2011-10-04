@@ -82,6 +82,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call free_gpu_OCL(GPU,orbs,in%nspin)    
      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
           in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
+     if (iproc == 0) write(*,*)&
+          'GPU data allocated'
   end if
  
   GPU%full_locham=.true.
@@ -259,7 +261,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,psivirt,hpsivirt,eproj_sum)
 
-     call SynchronizeHamiltonianApplication(nproc,orbs,lr,GPU,hpsivirt,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+     call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hpsivirt,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy

@@ -162,6 +162,8 @@ subroutine bigdft_init( nat, me_, my_gnrm,passivate,total_nb_atoms )
                                       ! Read inputs.
   call read_input_parameters(me_, in, at, rxyz)
 
+  call init_atomic_values(me_, at, in%ixc)
+
                                       ! Transfer "at" data to ART variables.
   gnrm_l = in%gnrm_cv
   if ( my_gnrm == 1.0d0 ) then 

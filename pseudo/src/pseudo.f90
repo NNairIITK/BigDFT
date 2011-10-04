@@ -60,7 +60,7 @@
       character*30 plotfile
       character(80):: errmsg
       character*7 is(2)
-      character fname*35,tname*10,string*125,strcyc*10,form*25
+      character fname*35,tname*10,string*520,strcyc*10,form*25
       character*80 label
       integer namoeb,nsmplx
 !      integer*4:: dateDMY(3)

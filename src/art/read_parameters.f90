@@ -241,11 +241,11 @@ subroutine read_parameters( )
      read(temporary,*) write_restart_file 
   endif
 
-  call getenv('Write_JMOL', temporary)
+  call getenv('Write_xyz', temporary)
   if (temporary .eq. '') then
-     write_jmol = .false.
+     write_xyz = .false.
   else
-     read(temporary,*) write_jmol
+     read(temporary,*) write_xyz
   endif
 
   call getenv('Save_Conf_Int', temporary)

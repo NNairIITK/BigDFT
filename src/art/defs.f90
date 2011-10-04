@@ -63,7 +63,7 @@ module defs
   real(kind=8), dimension(:), allocatable, target  :: pos      ! Working positions of the atoms
   real(kind=8), dimension(:), allocatable, target  :: posref   ! Reference position
 
-  logical      :: write_jmol
+  logical      :: write_xyz
   ! restart   
   logical      :: write_restart_file
   logical      :: restart                   ! State of restart (true or false)

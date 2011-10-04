@@ -144,9 +144,9 @@ subroutine store( fname )
   end do
   close(FCONF)
 
-  ! Added by Fedwa El-Mellouhi July 2002, writes the configuration in jmol format. 
+  ! Added by Fedwa El-Mellouhi July 2002, writes the configuration in .xyz format. 
   ! Modified by E. Machado-charry for v_sim and BigDFT.
-  if ( write_jmol ) then
+  if ( write_xyz ) then
 
      ! If there is a constraint over a given atom, is written in the geometry file.
      do i = 1, NATOMS
