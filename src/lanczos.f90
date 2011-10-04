@@ -12,7 +12,7 @@
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
-     in , PAWD  )! aggiunger a interface
+     in , PAWD , orbs )! aggiunger a interface
   use module_base
   use module_types
   use lanczos_interface
@@ -38,6 +38,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   
   type(input_variables),intent(in), target :: in
   type(pawproj_data_type), target ::PAWD
+  type(orbitals_data), intent(inout), target :: orbs
 
   !local variables
   character(len=*), parameter :: subname='lanczos'
@@ -54,17 +55,16 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   if(iproc==0) print *, " IN ROUTINE LANCZOS "
 
-  !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
-          hx,hy,hz,lr%wfd,ha%orbs,GPU)
+          hx,hy,hz,lr%wfd,orbs,GPU)
   end if
   GPU%full_locham=.true.
   if (OCLconv) then
      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-          in%nspin,hx,hy,hz,lr%wfd,ha%orbs,GPU)
+          in%nspin,hx,hy,hz,lr%wfd,orbs,GPU)
      if (iproc == 0) write(*,*)&
           'GPU data allocated'
   end if
@@ -72,13 +72,13 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
 
-  allocate(ha%orbs%eval(ha%orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,ha%orbs%eval,'ha%orbs%eval',subname)
-  ha%orbs%occup(1:ha%orbs%norb)=1.0_gp
-  ha%orbs%spinsgn(1:ha%orbs%norb)=1.0_gp
-  ha%orbs%eval(1:ha%orbs%norb)=1.0_gp
+  allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+  orbs%occup(1:orbs%norb)=1.0_gp
+  orbs%spinsgn(1:orbs%norb)=1.0_gp
+  orbs%eval(1:orbs%norb)=1.0_gp
   !call allocate_comms(nproc,ha%comms,subname)
-  call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
+  call orbitals_communicators(iproc,nproc,lr,orbs,ha%comms)  
 
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
@@ -109,7 +109,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   endif
   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
-        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
+        orbs%norb,orbs%norbp,ngatherarr,potential,pot)
   
   ha%in_iat_absorber=in_iat_absorber
   ha%Labsorber  = in%L_absorber
@@ -140,7 +140,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   ha%eSIC_DC=0.0_gp
   ha%SIC=>in%SIC
-
+  ha%orbs=>orbs
 
   call EP_inizializza(ha) 
 
@@ -179,18 +179,15 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   call EP_free()
 
   if (GPUconv) then
-     call free_gpu(GPU,ha%orbs%norbp)
+     call free_gpu(GPU,orbs%norbp)
   else if (OCLconv) then
-     call free_gpu_OCL(GPU,ha%orbs,in%nspin)
+     call free_gpu_OCL(GPU,orbs,in%nspin)
   end if
 
-  call deallocate_orbs(ha%orbs,subname)
 
-
-
-  i_all=-product(shape(ha%orbs%eval))*kind(ha%orbs%eval)
-  deallocate(ha%orbs%eval,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%eval',subname)
+  i_all=-product(shape(orbs%eval))*kind(orbs%eval)
+  deallocate(orbs%eval,stat=i_stat)
+  call memocc(i_stat,i_all,'orbs%eval',subname)
 
   i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
   deallocate(Gabs_coeffs,stat=i_stat)
@@ -210,7 +207,7 @@ END SUBROUTINE xabs_lanczos
 !!
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-     ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD   )
+     ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
 
   use module_base
   use module_types
@@ -237,6 +234,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   
   type(input_variables),intent(in), target :: in
   type(pawproj_data_type), target ::PAWD
+  type(orbitals_data), intent(inout), target :: orbs
 
   !Local variables
   character(len=*), parameter :: subname='chebychev'
@@ -262,31 +260,28 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   Pi=acos(-1.0_gp)
 
-  !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
-
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
-          hx,hy,hz,lr%wfd,ha%orbs,GPU)
+          hx,hy,hz,lr%wfd,orbs,GPU)
   end if
 
   GPU%full_locham=.true.
 
   if (OCLconv) then
      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-          in%nspin,hx,hy,hz,lr%wfd,ha%orbs,GPU)
+          in%nspin,hx,hy,hz,lr%wfd,orbs,GPU)
      if (iproc == 0) write(*,*)&
           'GPU data allocated'
   end if
 
 
-  allocate(ha%orbs%eval(ha%orbs%norb *ha%orbs%nkpts  +ndebug),stat=i_stat)
-  call memocc(i_stat,ha%orbs%eval,'ha%orbs%eval',subname)
-  ha%orbs%occup(1:ha%orbs%norb*ha%orbs%nkpts )=1.0_gp
-  ha%orbs%spinsgn(1:ha%orbs%norb*ha%orbs%nkpts )=1.0_gp
-  ha%orbs%eval(1:ha%orbs%norb*ha%orbs%nkpts )=1.0_gp
+  allocate(orbs%eval(orbs%norb *orbs%nkpts  +ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+  orbs%occup(1:orbs%norb*orbs%nkpts )=1.0_gp
+  orbs%spinsgn(1:orbs%norb*orbs%nkpts )=1.0_gp
+  orbs%eval(1:orbs%norb*orbs%nkpts )=1.0_gp
 
-  call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
+  call orbitals_communicators(iproc,nproc,lr,orbs,ha%comms)  
 
   select case(  in%Linit_absorber )
   case(0)
@@ -311,7 +306,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   endif
   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
-       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
+       orbs%norb,orbs%norbp,ngatherarr,potential,pot)
 
   !associate hamapp_arg pointers
   ha%in_iat_absorber=in_iat_absorber
@@ -342,7 +337,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%PAWD=> PAWD
   ha%eSIC_DC=0.0_gp
   ha%SIC=>in%SIC
-  
+  ha%orbs=>orbs
+
   call EP_inizializza(ha)  
  
 !!$  if(.false.) then
@@ -390,7 +386,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   fact_cheb = (2-0.0001)/(eval_max-eval_min)
   
   LB_nsteps = in%nsteps
-  LB_norbp  = ha%orbs%norbp
+  LB_norbp  = orbs%norbp
   LB_nproc=nproc
   LB_iproc=iproc
   
@@ -408,14 +404,14 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      dopaw=.false.
   endif
   if(ha%iproc==0) then
-     print *, "weigths ", ha%orbs%kwgts
+     print *, "weigths ", orbs%kwgts
   endif
 
   call LB_passeggia_Chebychev (LB_nsteps, cheb_shift,  fact_cheb,     get_EP_dim, EP_initialize_start , EP_normalizza,&
        EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
        EP_scalare_multik,EP_add_from_vect_with_fact  , EP_multbyfact, EP_ApplySinv, EP_ApplyS, dopaw, &
-       in%abscalc_S_do_cg,  in%abscalc_Sinv_do_cg, in%xabs_res_prefix, ha%orbs%nkpts , ha%orbs%norb_par, &
-       ha%orbs%kwgts(   ha%orbs%iskpts+1    :    ha%orbs%iskpts + ha%orbs%norb_par(ha%iproc,0))   )
+       in%abscalc_S_do_cg,  in%abscalc_Sinv_do_cg, in%xabs_res_prefix, orbs%nkpts , orbs%norb_par, &
+       orbs%kwgts(   orbs%iskpts+1    :    orbs%iskpts + orbs%norb_par(ha%iproc,0))   )
 
   if(ha%iproc==0) then
      print *, "coefficients from Chebychev "
@@ -441,16 +437,15 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 !!$ this free is already executed by bigdft
 !!$
   if (GPUconv) then
-     call free_gpu(GPU,ha%orbs%norbp)
+     call free_gpu(GPU,orbs%norbp)
   else if (OCLconv) then
-     call free_gpu_OCL(GPU,ha%orbs,in%nspin)
+     call free_gpu_OCL(GPU,orbs,in%nspin)
   end if
 
-  i_all=-product(shape(ha%orbs%eval))*kind(ha%orbs%eval)
-  deallocate(ha%orbs%eval,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%eval',subname)
+  i_all=-product(shape(orbs%eval))*kind(orbs%eval)
+  deallocate(orbs%eval,stat=i_stat)
+  call memocc(i_stat,i_all,'orbs%eval',subname)
 
-  call deallocate_orbs(ha%orbs,subname)
 
 !!$  i_all=-product(shape(Gabsorber%nshell))*kind(Gabsorber%nshell)
 !!$  deallocate(Gabsorber%nshell,stat=i_stat)
@@ -490,13 +485,13 @@ END SUBROUTINE xabs_chebychev
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
-     in , rhoXanes, PAWD , PPD )
+     in , rhoXanes, PAWD , PPD, orbs )
   use module_base
   use module_types
   use lanczos_interface
   use lanczos_base
   ! per togliere il bug 
-  use module_interfaces ,except_this_one => xabs_lanczos
+  use module_interfaces ,except_this_one => xabs_cg
 
   implicit none
 
@@ -522,6 +517,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   integer, intent(in) :: in_iat_absorber
   type(pawproj_data_type), target ::PAWD
   type(input_variables),intent(in), target :: in
+  type(orbitals_data), intent(inout), target :: orbs
 
   !local variables
   character(len=*), parameter :: subname='xabs_cg'
@@ -549,30 +545,29 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   if(iproc==0) print *, " IN ROUTINE xabs_cg "
 
-  !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
-          hx,hy,hz,lr%wfd,ha%orbs,GPU)
+          hx,hy,hz,lr%wfd,orbs,GPU)
   end if
   GPU%full_locham=.true.
   if (OCLconv) then
      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-          in%nspin,hx,hy,hz,lr%wfd,ha%orbs,GPU)
+          in%nspin,hx,hy,hz,lr%wfd,orbs,GPU)
      if (iproc == 0) write(*,*)&
           'GPU data allocated'
   end if
 
 
-  allocate(ha%orbs%eval(ha%orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,ha%orbs%eval,'ha%orbs%eval',subname)
+  allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%eval,'orbs%eval',subname)
 
-  ha%orbs%occup(1:ha%orbs%norb)=1.0_gp
-  ha%orbs%spinsgn(1:ha%orbs%norb)=1.0_gp
-  ha%orbs%eval(1:ha%orbs%norb)=1.0_gp
+  orbs%occup(1:orbs%norb)=1.0_gp
+  orbs%spinsgn(1:orbs%norb)=1.0_gp
+  orbs%eval(1:orbs%norb)=1.0_gp
   !call allocate_comms(nproc,ha%comms,subname)
-  call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
+  call orbitals_communicators(iproc,nproc,lr,orbs,ha%comms)  
 
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
@@ -605,7 +600,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   endif
   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
-       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
+       orbs%norb,orbs%norbp,ngatherarr,potential,pot)
 
   ha%in_iat_absorber=in_iat_absorber
   ha%Labsorber  = in%L_absorber
@@ -637,7 +632,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   ha%eSIC_DC=0.0_gp
   ha%SIC=>in%SIC
-
+  ha%orbs=>orbs
+    
 
   call EP_inizializza(ha) 
 
@@ -697,17 +693,16 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   call EP_free()
 
   if (GPUconv) then
-     call free_gpu(GPU,ha%orbs%norbp)
+     call free_gpu(GPU,orbs%norbp)
   else if (OCLconv) then
-     call free_gpu_OCL(GPU,ha%orbs,in%nspin)
+     call free_gpu_OCL(GPU,orbs,in%nspin)
   end if
 
-  call deallocate_orbs(ha%orbs,subname)
 
 
-  i_all=-product(shape(ha%orbs%eval))*kind(ha%orbs%eval)
-  deallocate(ha%orbs%eval,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%eval',subname)
+  i_all=-product(shape(orbs%eval))*kind(orbs%eval)
+  deallocate(orbs%eval,stat=i_stat)
+  call memocc(i_stat,i_all,'orbs%eval',subname)
 
   i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
   deallocate(Gabs_coeffs,stat=i_stat)
