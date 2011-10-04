@@ -21,8 +21,7 @@ EXTRA_DIST = \
 	Xabsb2B.out.ref \
 	XabsCG.out.ref
 
-PPFILES = \
-	psppar.Fe
+PPFILES = psppar.Fe
 
 CLEANFILES = $(PPFILES) Xabs*.out posout* *.pot *.prc *.cube *.report \
 	coeffs_chebychev cheb_spectra_199 cheb_spectra_399 \
@@ -31,7 +30,7 @@ CLEANFILES = $(PPFILES) Xabs*.out posout* *.pot *.prc *.cube *.report \
 
 #dependencies
 $(PPFILES):
-	@ln -fs $(srcdir)/psppar.Fe_patched_plus_initialwave   psppar.Fe
+	@cp $(srcdir)/psppar.Fe_patched_plus_initialwave psppar.Fe
 
 XabsCheb.out: $(top_builddir)/src/abscalc $(PPFILES)
 	@ln -fs $(srcdir)/inputRef.abscalc input.abscalc
@@ -64,15 +63,19 @@ Xabsb2B.out: $(top_builddir)/src/abscalc $(PPFILES)
 	@rm -f input.abscalc
 	@ln -fs $(srcdir)/inputRef.dft input.dft
 	@ln -fs $(srcdir)/posinpRef.xyz posinp.xyz
-	@ln -fs $(srcdir)/inputb2B.abscalc input.abscalc
-	@ln -fs $(srcdir)/input.kpt input.kpt
+	@ln -fs $(srcdir)/inputb2B.abscalc input.abscalc	
+	@if ! test x"$(srcdir)" = x"." ; then \
+	 ln -fs $(srcdir)/input.kpt input.kpt;\
+	fi
 	$(top_builddir)/src/abscalc > $@
 	rm -f  b2B_xanes.xyz
 	rm -f  b2B_xanes.cube
 	@rm -f input.dft
 	@rm -f posinp.xyz
 	@rm -f input.abscalc
-	@rm -f input.kpt
+	@if ! test x"$(srcdir)" = x"." ; then \
+	 rm -f input.kpt;\
+	fi
 
 XabsCG.out: $(top_builddir)/src/abscalc $(PPFILES)
 	@ln -fs $(srcdir)/inputCG.abscalc input.abscalc
@@ -85,8 +88,8 @@ XabsCG.out: $(top_builddir)/src/abscalc $(PPFILES)
 
 
 #dependencies for make check in parallel
-Xabsb2B.out: XabsLanc.out
-XabsLanc.out: XabsCheb.out
+#Xabsb2B.out: XabsLanc.out
+#XabsLanc.out: XabsCheb.out
 
 
 check: XabsCheb.out  XabsLanc.out Xabsb2B.out

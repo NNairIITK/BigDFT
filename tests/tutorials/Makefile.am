@@ -1,6 +1,6 @@
 # Give here the list of existing tests
 
-SUBDIRS = Xabs/pawpatchgen  Xabs/scfpotgen   Xabs/spectra    
+#SUBDIRS = Xabs/pawpatchgen  Xabs/scfpotgen   Xabs/spectra    
 
 TESTDIRS = CH4 \
 	  CH3- \
