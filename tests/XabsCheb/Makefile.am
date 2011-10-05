@@ -8,7 +8,7 @@ EXTRA_DIST = \
 	posinpRef.xyz \
 	XabsCheb.out.ref \
 	psppar.Fe_patched_plus_initialwave	\
-	input.kpt \
+	inputKpt.kpt \
 	inputRef.abscalc \
 	input.abscalcLanc \
 	input.abscalcLanc \
@@ -64,18 +64,14 @@ Xabsb2B.out: $(top_builddir)/src/abscalc $(PPFILES)
 	@ln -fs $(srcdir)/inputRef.dft input.dft
 	@ln -fs $(srcdir)/posinpRef.xyz posinp.xyz
 	@ln -fs $(srcdir)/inputb2B.abscalc input.abscalc	
-	@if ! test x"$(srcdir)" = x"." ; then \
-	 ln -fs $(srcdir)/input.kpt input.kpt;\
-	fi
+	@ln -fs $(srcdir)/inputKpt.kpt input.kpt
 	$(top_builddir)/src/abscalc > $@
 	rm -f  b2B_xanes.xyz
 	rm -f  b2B_xanes.cube
 	@rm -f input.dft
 	@rm -f posinp.xyz
 	@rm -f input.abscalc
-	@if ! test x"$(srcdir)" = x"." ; then \
-	 rm -f input.kpt;\
-	fi
+	@rm -f input.kpt
 
 XabsCG.out: $(top_builddir)/src/abscalc $(PPFILES)
 	@ln -fs $(srcdir)/inputCG.abscalc input.abscalc
