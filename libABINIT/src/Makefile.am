@@ -128,6 +128,7 @@ libabinit_a_SOURCES = \
 	56_mixing/sqnormm_v.F90 \
 	56_recipspace/interfaces_56_recipspace.F90 \
 	56_recipspace/irrzg.F90 \
+	56_recipspace/m_ab6_kpoints.F90 \
 	56_recipspace/getkgrid.F90 \
 	56_recipspace/smpbz.F90 \
 	56_recipspace/symkpt.F90 \

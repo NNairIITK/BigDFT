@@ -766,10 +766,10 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   ! We modify the symmetry object with respect to the spin.
   if (atoms%symObj >= 0) then
      if (in%nspin == 2) then
-        call ab6_symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
+        call symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
              & atoms%natpol, ierror)
 !!$     else if (in%nspin == 4) then
-!!$        call ab6_symmetry_set_spin(atoms%symObj, atoms%nat, &
+!!$        call symmetry_set_spin(atoms%symObj, atoms%nat, &
 !!$             & atoms%natpol, ierror)
      end if
   end if
