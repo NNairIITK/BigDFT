@@ -24,7 +24,6 @@ program MINHOP
   type(atoms_data) :: atoms
   type(input_variables) :: inputs_opt, inputs_md
   type(restart_objects) :: rst
-  character(len=20), dimension(:), allocatable :: atomnames
   integer, parameter :: npminx=200
   !C parameters for minima hopping
   integer, parameter :: mdmin=2
@@ -33,6 +32,7 @@ program MINHOP
   real(gp):: fnoise
   real(kind=8) :: elocmin(npminx)
   real(kind=8), allocatable, dimension(:,:) ::ff,wpos,vxyz,gg,earr,poshop
+  real(kind=8), allocatable, dimension(:) ::rcov
   real(kind=8),allocatable, dimension(:,:,:):: poslocmin
   real(kind=8), dimension(:,:), pointer :: pos
   integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
@@ -145,6 +145,11 @@ program MINHOP
   call memocc(i_stat,poslocmin,'poslocmin',subname)
   allocate(poshop(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,poshop,'poshop',subname)
+  allocate(rcov(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rcov,'rcov',subname)
+
+      call give_rcov(iproc,atoms,atoms%nat,rcov)
+
 ! read random offset
   open(unit=11,file='rand.inp')
   read(11,*) nrandoff
@@ -364,7 +369,7 @@ program MINHOP
           nproc,iproc,atoms,rst,inputs_md)
 
 !     call fix_fragmentation(iproc,atoms,wpos,nputback)
-     if (atoms%geocode == 'F') call fixfrag_posvel(iproc,atoms%nat,wpos,vxyz,1,occured)
+     if (atoms%geocode == 'F') call fixfrag_posvel(iproc,atoms%nat,rcov,wpos,vxyz,1,occured)
      
 
      av_ekinetic=av_ekinetic+ekinetic
@@ -583,6 +588,8 @@ program MINHOP
  i_all=-product(shape(poshop))*kind(poshop)
   deallocate(poshop,stat=i_stat)
   call memocc(i_stat,i_all,'poshop',subname)
+  deallocate(rcov,stat=i_stat)
+  call memocc(i_stat,i_all,'rcov',subname)
   if (iproc == 0) write(*,'(a,1x,3(1x,1pe10.3))') '# Out:ediff,ekinetic,dt',ediff,ekinetic,dt
   close(2) 
 
@@ -720,7 +727,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
           gg(3,iat) = at3
        end do
      if (istep == istepnext) then 
-           if (atoms%geocode == 'F') call fixfrag_posvel(iproc,atoms%nat,rxyz,vxyz,2,occured)
+           if (atoms%geocode == 'F') call fixfrag_posvel(iproc,atoms%nat,rcov,rxyz,vxyz,2,occured)
        if (occured) then 
           istepnext=istep+4
        else
@@ -1401,7 +1408,6 @@ subroutine wtpos(at,npminx,nlminx,nlmin,npmin,pos,earr,elocmin)
   !local variables
   character(len=5) :: fn
   character(len=17) :: filename
-  character(len=20) :: atomnames
   integer :: k,kk,i
 
        write(*,*) 'nlmin,nlminx,npmin,npminx',nlmin,nlminx,npmin,npminx
@@ -1679,7 +1685,7 @@ END SUBROUTINE fix_fragmentation
 !
 
 
-subroutine fixfrag_posvel(iproc,nat,pos,vel,option,occured)
+subroutine fixfrag_posvel(iproc,nat,rcov,pos,vel,option,occured)
 !This subroutine can perform two tasks.
 !ATTENTION: it will only work on free BC!!!
 !
@@ -1701,6 +1707,7 @@ integer, intent(in) :: iproc,nat
 !type(atoms_data), intent(in) :: at
 real(8),dimension(3,nat), INTENT(INOUT) :: pos
 real(8),dimension(3,nat), INTENT(INOUT) :: vel
+real(8),dimension(nat), INTENT(IN) :: rcov
 integer, INTENT(IN):: option
 integer :: nfrag, nfragold
 logical :: occured,niter
@@ -1718,9 +1725,10 @@ logical, allocatable:: invert(:)
 !           The two fragment are then brought together such that the minimal distance equals 1.5*bondlength
 ! OPTION  : System is considered to be fragmented if the minimal distance between two atoms in the fragment is more than 2.0*bondlength
 !           the velocities are then inverted
-open(unit=43,file="input.bondcut")
-read(43,*) bondlength
-close(43)
+!open(unit=43,file="input.bondcut")
+!read(43,*) bondlength
+!close(43)
+
 if (option == 1) then 
    bfactor=1.5d0
 else if (option == 2) then 
@@ -1751,6 +1759,7 @@ do
 7000 niter=.false.
   do iat=1,nat                !Check if all the other atoms are part of the current cluster
     do jat=1,nat
+    bondlength=rcov(iat)+rcov(jat)
     if(nfrag==fragarr(iat) .AND. jat.ne.iat .AND. fragarr(jat)==0) then
          dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
          if(dist<(bfactor*bondlength)**2) then
@@ -1817,6 +1826,7 @@ if (option==1) then !OPTION=1, FIX FRAGMENTATION
 
 
          vec(:)=pos(:,imin(1))-pos(:,imin(2))
+         bondlength=rcov(imin(1))+rcov(imin(2))
             do iat=1,nat        !Move fragments back towards the main fragment 
                 if(fragarr(iat)==ifrag) then
                 pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.5d0*bondlength)/mindist)
@@ -1967,3 +1977,191 @@ endif
 endif
 end subroutine fixfrag_posvel
 
+
+subroutine give_rcov(iproc,atoms,nat,rcov)
+!    use module_base
+    use module_types
+    type(atoms_data), intent(in) :: atoms
+    real(kind=8), intent(out) :: rcov(nat)
+    integer, intent(in) :: iproc
+
+  do iat=1,nat
+        if (trim(atoms%atomnames(atoms%iatype(iat)))=='H') then
+        rcov(iat)=0.75d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='He') then
+        rcov(iat)=0.75d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Li') then
+        rcov(iat)=3.40d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Be') then
+        rcov(iat)=2.30d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='B') then
+        rcov(iat)=1.55d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='C') then
+        rcov(iat)=1.45d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='N') then
+        rcov(iat)=1.42d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='O') then
+        rcov(iat)=1.38d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='F') then
+        rcov(iat)=1.35d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ne') then
+        rcov(iat)=1.35d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Na') then
+        rcov(iat)=3.40d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mg') then
+        rcov(iat)=2.65d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Al') then
+        rcov(iat)=2.23d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Si') then
+        rcov(iat)=2.09d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='P') then
+        rcov(iat)=2.00d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='S') then
+        rcov(iat)=1.92d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cl') then
+        rcov(iat)=1.87d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ar') then
+        rcov(iat)=1.80d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='K') then
+        rcov(iat)=4.00d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ca') then
+        rcov(iat)=3.00d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sc') then
+        rcov(iat)=2.70d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ti') then
+        rcov(iat)=2.70d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='V') then
+        rcov(iat)=2.60d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cr') then
+        rcov(iat)=2.60d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mn') then
+        rcov(iat)=2.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Fe') then
+        rcov(iat)=2.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Co') then
+        rcov(iat)=2.40d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ni') then
+        rcov(iat)=2.30d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cu') then
+        rcov(iat)=2.30d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Zn') then
+        rcov(iat)=2.30d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ga') then
+        rcov(iat)=2.10d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ge') then
+        rcov(iat)=2.40d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='As') then
+        rcov(iat)=2.30d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Se') then
+        rcov(iat)=2.30d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Br') then
+        rcov(iat)=2.20d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Kr') then
+        rcov(iat)=2.20d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rb') then
+        rcov(iat)=4.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sr') then
+        rcov(iat)=3.30d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Y') then
+        rcov(iat)=3.30d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Zr') then
+        rcov(iat)=3.00d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Nb') then
+        rcov(iat)=2.92d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mo') then
+        rcov(iat)=2.83d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tc') then
+        rcov(iat)=2.75d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ru') then
+        rcov(iat)=2.67d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rh') then
+        rcov(iat)=2.58d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pd') then
+        rcov(iat)=2.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ag') then
+        rcov(iat)=2.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cd') then
+        rcov(iat)=2.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='In') then
+        rcov(iat)=2.30d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sn') then
+        rcov(iat)=2.66d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sb') then
+        rcov(iat)=2.66d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Te') then
+        rcov(iat)=2.53d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='I') then
+        rcov(iat)=2.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Xe') then
+        rcov(iat)=2.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cs') then
+        rcov(iat)=4.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pa') then
+        rcov(iat)=4.00d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='La') then
+        rcov(iat)=3.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ce') then
+        rcov(iat)=3.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pr') then
+        rcov(iat)=3.44d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Nd') then
+        rcov(iat)=3.38d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pm') then
+        rcov(iat)=3.33d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sm') then
+        rcov(iat)=3.27d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Eu') then
+        rcov(iat)=3.21d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Gd') then
+        rcov(iat)=3.15d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Td') then
+        rcov(iat)=3.09d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Dy') then
+        rcov(iat)=3.03d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ho') then
+        rcov(iat)=2.97d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Er') then
+        rcov(iat)=2.92d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tm') then
+        rcov(iat)=2.92d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Yb') then
+        rcov(iat)=2.80d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Lu') then
+        rcov(iat)=2.80d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Hf') then
+        rcov(iat)=2.90d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ta') then
+        rcov(iat)=2.70d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='W') then
+        rcov(iat)=2.60d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Re') then
+        rcov(iat)=2.60d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Os') then
+        rcov(iat)=2.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ir') then
+        rcov(iat)=2.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pt') then
+        rcov(iat)=2.60d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Au') then
+        rcov(iat)=2.70d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Hg') then
+        rcov(iat)=2.80d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tl') then
+        rcov(iat)=2.50d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pb') then
+        rcov(iat)=3.30d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Bi') then
+        rcov(iat)=2.90d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Po') then
+        rcov(iat)=2.80d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='At') then
+        rcov(iat)=2.60d0
+        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rn') then
+        rcov(iat)=2.60d0
+        else
+        write(*,*) 'no covalent radius stored for this atomtype ',  & 
+                     trim(atoms%atomnames(atoms%iatype(iat)))
+        endif
+        if (iproc.eq.0) write(*,*) 'RCOV:',trim(atoms%atomnames(atoms%iatype(iat))),rcov(iat)
+    enddo
+    end subroutine
