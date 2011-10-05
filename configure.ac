@@ -744,9 +744,6 @@ tests/OpenCL/Makefile
 tests/CUDA/Makefile
 tests/ETSF_IO/Makefile
 tests/tutorials/Makefile
-tests/tutorials/Xabs/pawpatchgen/Makefile
-tests/tutorials/Xabs/scfpotgen/Makefile
-tests/tutorials/Xabs/spectra/Makefile
 tests/xc/Makefile
 ])
 

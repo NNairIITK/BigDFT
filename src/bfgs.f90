@@ -350,6 +350,7 @@ subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft
     iw4=mx+nr        !for eigenvalues of inverse og hessian
     if(parmin%iflag==0) then
         parmin%iflag=1
+        parmin%converged=.false.   !! STEFAN Stefan stefan
         parmin%iter=0
         epotold=epot
         alpha=8.d-1
