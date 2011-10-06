@@ -8,7 +8,7 @@
 
 
 !> MINHOP
-!!  Main program fro the minima hopping
+!!  Main program for the minima hopping
 program MINHOP
 
   use module_base
@@ -252,7 +252,7 @@ program MINHOP
   call init_restart_objects(iproc,inputs_opt%iacceleration,atoms,rst,subname)
   call call_bigdft(nproc,iproc,atoms,pos,inputs_md,e_pos,ff,fnoise,rst,infocode)
 
-  write(17,*) 'ENERGY ',e_pos
+  if (iproc==0)write(17,*) 'ENERGY ',e_pos
   energyold=1.d100
   ncount_bigdft=0
 
