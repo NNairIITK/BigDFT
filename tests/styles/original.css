@@ -97,9 +97,15 @@ div.nav
 }
 h2
 {
-  clear:both;
+    margin-top:2em;
   text-align:right;
-  border-bottom:1px black solid;
+  border-bottom:1px #8f8f8f solid;
+  padding-right:1em;
+}
+div.news h2
+{
+    text-align:left;
+    border:0px;
 }
 
 

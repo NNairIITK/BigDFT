@@ -1,7 +1,7 @@
 !> @file
 !! Contains routines for the executable splined_saddle
 !! @author
-!!    Copyright (C) 2007-2010 BigDFT group
+!!    Copyright (C) 2010-2011 BigDFT group (AG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -30,11 +30,12 @@ program splined_saddle
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   character(len=50), dimension(:), allocatable :: arr_posinp
+  character(len=60) :: radical
   !character(len=60) :: filename
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer :: iconfig,nconfig
+  integer :: iconfig,nconfig,istat
   real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
   !include 'mpif.h' !non-BigDFT
 
@@ -43,6 +44,15 @@ program splined_saddle
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+   call memocc_set_memory_limit(memorylimit)
+
+   ! Read a possible radical format argument.
+   call get_command_argument(1, value = radical, status = istat)
+   if (istat > 0) then
+      write(radical, "(A)") "input"
+   end if
+
 
 !
 !    call system("echo $HOSTNAME")
@@ -80,12 +90,12 @@ program splined_saddle
 
      ! Read all input files.
      !standard names
-     call standard_inputfile_names(inputs)
+     call standard_inputfile_names(inputs,radical)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      !-----------------------------------------------------------
      !-----------------------------------------------------------
      if (iproc == 0) then
-        call print_general_parameters(inputs,atoms)
+        call print_general_parameters(nproc,inputs,atoms)
      end if
 
      !initialize memory counting
@@ -284,7 +294,7 @@ module modulesplinedsaddle
         integer::ncount
         real(kind=8)::time_ll
         real(kind=8)::time
-        real(8)::epotci
+        real(kind=8)::epotci
         logical::granot
         character(20)::hybrid
         character(20)::doneb
@@ -334,6 +344,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     parmin_neb%ifile=ifile
     n=3*atoms%nat
     nr=0
+    pnow%time_ll=0.0d0
     do i=1,3*atoms%nat
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
@@ -349,8 +360,8 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     !-----------------------------------------------------------
     call default_input_variables(ll_inputs)
     if(trim(pnow%hybrid)=='yes') then
-        call dft_input_variables(iproc,'ll_input.dft',ll_inputs)
         call perf_input_variables(iproc,'ll_input.perf',ll_inputs)
+        call dft_input_variables_new(iproc,'ll_input.dft',ll_inputs)
     else
         ll_inputs=inputs
     endif
@@ -1383,7 +1394,7 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
     integer, intent(inout) :: ncount_bigdft
     integer::n,np,i,ip,istat,infocode
     real(kind=8)::x(n,0:np),f(n,0:np),fnoise
-    real(kind=8)::tt,t1,t2,springcons,fnrmtot,time1,time2,fnrmarr(99),fspmaxarr(99),DNRM2
+    real(kind=8)::tt,t1,t2,springcons,fnrmtot,time1,time2,fnrmarr(99),fspmaxarr(99)!,DNRM2
     real(kind=8), allocatable::tang(:,:),x_bigdft(:)
     type(parametersplinedsaddle)::pnow
     logical::move_this_coordinate
@@ -1393,7 +1404,7 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
     call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
     allocate(x_bigdft(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating x_bigdft.'
     call dmemocc(n,n+ndeb1,x_bigdft,'x_bigdft')
-    do ip=1,np-1
+    do ip=1,np-1 
         x_bigdft(1:n)=x(1:n,ip)
         call cpu_time(time1)
         call call_bigdft(nproc,iproc,atoms,x_bigdft,ll_inputs,pnow%ex(ip),f(1,ip),fnoise,rst,infocode)
@@ -1752,13 +1763,12 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     use minimization_sp, only:parameterminimization_sp
     implicit none
     integer::iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,iw4,info,i,j,l,mx
-    real(8)::x(nr),f(nr),epot,work(nwork)
-    integer, allocatable::ipiv(:)
-    !real(8), allocatable::eval(:),umat(:)
+    real(kind=8)::x(nr),f(nr),epot,work(nwork)
+    !real(kind=8), allocatable::eval(:),umat(:)
     type(parameterminimization_sp)::parmin
-    real(8)::DDOT,DNRM2,tt1,tt2,de,fnrm,calnorm,fmax,calmaxforcecomponent,beta
-    real(8)::tt3,tt4,tt5,tt6
-    real(8), save::epotold,alpha,alphamax,zeta
+    real(kind=8)::DDOT,tt1,tt2,de,fnrm,calnorm,fmax,calmaxforcecomponent,beta
+    real(kind=8)::tt3,tt4,tt5,tt6
+    real(kind=8), save::epotold,alpha,alphamax,zeta
     logical, save::reset
     integer, save::isatur
     if(nwork/=nr*nr+3*nr+3*nr*nr+3*nr) then
@@ -1894,7 +1904,8 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     alpha=min(alphamax,alpha*1.1d0)
     x(1:nr)=x(1:nr)+alpha*work(iw3:iw3-1+nr)
 end subroutine bfgs_splsad
-!*****************************************************************************************
+
+
 subroutine dfp_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     !use minimization, only:parameterminimization
     use minimization_sp, only:parameterminimization_sp
@@ -2033,6 +2044,8 @@ subroutine dfp_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
         x(i)=x(i)+sign(min(abs(dx),5.d0),dx)
     enddo
 end subroutine dfp_splsad
+
+
 subroutine reportcalvmaxanchorforces(iproc,icall,n,np,x,etmax,fspnrm,fspmax,pnow,atoms,ncount_bigdft)
     use modulesplinedsaddle, only:parametersplinedsaddle
     use module_types

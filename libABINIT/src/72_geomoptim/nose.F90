@@ -82,7 +82,7 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
 
   integer, intent(in) :: natom, itime
   real(dp),intent(in) :: mditemp, dtion, ktemp, noseinert
-  real(dp), intent(out) :: gnose, snose, xi_nose, v2nose
+  real(dp), intent(inout) :: gnose, snose, xi_nose, v2nose
   real(dp),intent(in) :: rprimd(3,3)
   real(dp),intent(in) :: amass(natom), fcart(3, natom)
   real(dp),intent(inout) :: vel(3,natom)

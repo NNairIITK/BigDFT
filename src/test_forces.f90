@@ -1,22 +1,21 @@
-!!****p* BigDFT/test_forces
-!! FUNCTION
-!!    Runs BigDFT and test whether the forces are the 
-!!    derivative of the energy.
-!!    Performs the integration of the calculated forces over
-!!    some random displacement and compare the result with the 
-!!    difference of the energy between the final and the initial 
-!!    position
+!> @file 
+!!   Routines to test atomic forces
+!! @author
+!!   Copyright (C) 2005-2011 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+
+!> Runs BigDFT and test whether the forces are the 
+!! derivative of the energy.
+!! Performs the integration of the calculated forces over
+!! some random displacement and compare the result with the 
+!! difference of the energy between the final and the initial 
+!! position
 !! WARNING
 !!    Date: 10/07; THIS PROGRAM MUST BE COMPLETELY CHANGED
 !!  ***  Date: Feb 2011:  This program was modified and updated by Ali Sadeghi ***
-!! AUTHOR
-!!    Luigi Genovese
-!! COPYRIGHT
-!!    Copyright (C) 2005-2008 CEA
-!! CREATION DATE
-!!    09/2006
-!! SOURCE
-!!
 program test_forces
 
   use module_base
@@ -29,16 +28,15 @@ program test_forces
 
   implicit none
   character(len=*), parameter :: subname='test_forces'
-  integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
-  integer :: ncount_bigdft
-  real(gp) :: etot,sumx,sumy,sumz,fnoise
+  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,istat
+  real(gp) :: etot,fnoise
   logical :: exist_list
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   character(len=50), dimension(:), allocatable :: arr_posinp
-  character(len=60) :: filename
+  character(len=60), parameter :: filename="list_posinp"
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz,drxyz
@@ -48,6 +46,7 @@ program test_forces
   !parameter (dx=1.d-2 , npath=2*16+1)  ! npath = 2*n+1 where n=2,4,6,8,...
   parameter (dx=1.d-2 , npath=5)
   real(gp) :: simpson(1:npath)
+  character(len=60) :: radical
   
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -55,10 +54,19 @@ program test_forces
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+  call memocc_set_memory_limit(memorylimit)
+
+  ! Read a possible radical format argument.
+  call get_command_argument(1, value = radical, status = istat)
+  if (istat > 0) then
+     write(radical, "(A)") "input"
+  end if
+
+
   ! find out which input files will be used
-  inquire(file="list_posinp",exist=exist_list)
+  inquire(file=filename,exist=exist_list)
   if (exist_list) then
-     open(54,file="list_posinp")
+     open(54,file=filename)
      read(54,*) nconfig
      if (nconfig > 0) then 
         !allocation not referenced since memocc count not initialised
@@ -113,10 +121,10 @@ do iconfig=1,nconfig
 
      ! Read all input files.
      !standard names
-     call standard_inputfile_names(inputs)
+     call standard_inputfile_names(inputs,radical)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 !     if (iproc == 0) then
- !       call print_general_parameters(inputs,atoms)
+ !       call print_general_parameters(nproc,inputs,atoms)
  !    end if
 
      !initialize memory counting
@@ -154,7 +162,7 @@ do iconfig=1,nconfig
      end if
 
      if (iproc == 0) then
-        call print_general_parameters(inputs,atoms) ! to know the new positions
+        call print_general_parameters(nproc,inputs,atoms) ! to know the new positions
      end if
                        
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
@@ -219,6 +227,4 @@ do iconfig=1,nconfig
 
   call MPI_FINALIZE(ierr)
 
-
 end program test_forces
-!!***

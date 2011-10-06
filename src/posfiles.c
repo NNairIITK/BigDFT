@@ -11,6 +11,8 @@
 
 #include <config.h>
 
+#define _GNU_SOURCE
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +22,19 @@
 #include <archive.h>
 #include <archive_entry.h>
 static struct archive *_posout_ = NULL, *_posinp_ = NULL;
+#endif
+
+#ifndef HAVE_STRNDUP
+char* strndup(const char *src, size_t len)
+{
+  char *out;
+
+  out = malloc(sizeof(char) * (len + 1));
+  memcpy(out, src, sizeof(char) * len);
+  out[len] = '\0';
+
+  return out;
+}
 #endif
 
 void FC_FUNC(addtocompress, ADDTOCOMPRESS)(const char *archive, int *lgAr,
@@ -129,6 +144,7 @@ void FC_FUNC(extractnextcompress, EXTRACTNEXTCOMPRESS)(const char *archive, int 
   struct archive_entry *entry;
   const void *buff;
   size_t size;
+  ssize_t res;
   off_t offset;
   int fd;
 #endif
@@ -148,8 +164,10 @@ void FC_FUNC(extractnextcompress, EXTRACTNEXTCOMPRESS)(const char *archive, int 
         /* We extract the file. */
         fd = creat(archive_entry_pathname(entry), 0640);
         /* fprintf(stdout, "Create '%s' (%d).\n", archive_entry_pathname(entry), fd); */
-        while (archive_read_data_block(_posinp_, &buff, &size, &offset) == ARCHIVE_OK)
-          write(fd, buff, size);
+        res = 1;
+        while (archive_read_data_block(_posinp_, &buff, &size, &offset) == ARCHIVE_OK &&
+               res > 0)
+          res = write(fd, buff, size);
         close(fd);
         *extract = 1;
         strcpy(ext, archive_entry_pathname(entry) + len + 1);

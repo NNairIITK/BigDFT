@@ -10,7 +10,7 @@
 
 
 !> Program test for the convolution in GPU (OpenCL version)
-program conv_check
+program conv_check_ocl
   use module_base
   implicit none
   integer  :: n1,n2,n3,n1bis,n2bis,n3bis
@@ -2039,4 +2039,4 @@ contains
     !$omp end do
   END SUBROUTINE conv_kin_x
 
-end program conv_check
+end program conv_check_ocl

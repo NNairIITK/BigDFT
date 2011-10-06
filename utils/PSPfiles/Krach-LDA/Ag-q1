@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Ag
+   47   1  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.65000000    1    -2.37606096                                                 rloc nloc c1
+    3                                                                               nnonloc
+     1.01270456    3     0.89793134     0.28982424     0.00726736                   rs ns hs11 hs12 hs13
+                                       -0.74832297    -0.01876424                              hs22 hs23
+                                                       0.02978730                                   hs33
+     1.23584202    2     0.13008068     0.11726324                                  rp np hp11 hp12
+                                       -0.27749548                                             hp22
+                         0.01969167     0.00288247                                        kp11 kp12
+                                       -0.00682116                                             kp22
+     1.01615913    1    -0.03884235                                                 rd nd hd11
+                         0.00945505                                                       kd11

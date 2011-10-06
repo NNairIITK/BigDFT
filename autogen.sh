@@ -9,8 +9,12 @@ echo "Creating config.h.in with 'autoheader'."
 autoheader
 echo "Creating required files for autotools."
 automake --add-missing --copy
+echo "Generating PSP database."
+python config/pspconf.py > src/init/psp.inc
+sed '/!!PSP_TABLE!!/r src/init/psp.inc' src/init/pspconf.in.f90 > src/init/pspconf.f90
+rm -f src/init/psp.inc
 echo "Autotoolize the libXC source tree."
-cd libXC; autoreconf; cd -
+cd libxc-1.1.0; libtoolize; autoreconf; cd -
 echo "Autotoolize the S_GPU source tree."
 cd S_GPU; ./autogen.sh; cd -
 

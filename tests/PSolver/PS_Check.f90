@@ -18,6 +18,7 @@ program PS_Check
 
   use module_base
   use module_interfaces
+  use module_xc
   use Poisson_Solver
 
   implicit none
@@ -44,20 +45,20 @@ program PS_Check
 
   !initialize memory counting and timings
   !call memocc(0,iproc,'count','start')
-  call timing(iproc,'parallel      ','IN')
+  call timing(nproc,'time.prc','IN')
 
   !the first proc read the data and then send them to the others
   if (iproc==0) then
      !Use arguments
-     call getarg(1,chain)
+     call get_command_argument(1,value=chain)
      read(unit=chain,fmt=*) nxyz(1)
-     call getarg(2,chain)
+     call get_command_argument(2,value=chain)
      read(unit=chain,fmt=*) nxyz(2)
-     call getarg(3,chain)
+     call get_command_argument(3,value=chain)
      read(unit=chain,fmt=*) nxyz(3)
-     call getarg(4,chain)
+     call get_command_argument(4,value=chain)
      read(unit=chain,fmt=*) nxyz(4)
-     call getarg(5,chain)
+     call get_command_argument(5,value=chain)
      read(unit=chain,fmt=*) geocode
   end if
 
@@ -100,6 +101,12 @@ program PS_Check
   nullify(rhocore)
 
   do ispden=1,2
+     if (ixc < 0) then
+        call xc_init(ixc, XC_MIXED, ispden)
+     else
+        call xc_init(ixc, XC_ABINIT, ispden)
+     end if
+
      if (iproc == 0) write(unit=*,fmt="(1x,a,i0)")  '===================== nspden:  ',ispden
      !then assign the value of the analytic density and the potential
      !allocate the rhopot also for complex routines
@@ -161,6 +168,8 @@ program PS_Check
      end if
 
      if (ixc == 0) exit
+
+     call xc_end()
   end do
 
   if (ixc == 0) then
@@ -574,7 +583,7 @@ contains
     real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: density,rhopot
     !local variables
     integer :: i1,i2,i3,ifx,ify,ifz,i
-    real(kind=8) :: x1,x2,x3,length,denval,pi,a2,derf,factor,r,r2
+    real(kind=8) :: x1,x2,x3,length,denval,pi,a2,derf_tt,factor,r,r2
     real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt
 
     if (trim(geocode) == 'P') then
@@ -691,7 +700,8 @@ contains
                 if (r == 0.d0) then
                    potential(i1,i2,i3) = 2.d0/(sqrt(pi)*a_gauss)
                 else
-                   potential(i1,i2,i3) = derf(r/a_gauss)/r
+                   call derf_ab(derf_tt,r/a_gauss)
+                   potential(i1,i2,i3) = derf_tt/r
                 end if
              end do
           end do

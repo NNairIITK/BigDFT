@@ -89,6 +89,8 @@
       nullify(mix%f_fftgr)
       nullify(mix%f_atm)
       nullify(mix%f_paw)
+      nullify(mix%dtn_pc)
+      nullify(mix%xred)
     end subroutine nullify_
 
     subroutine ab6_mixing_new(mix, iscf, kind, space, nfft, nspden, &

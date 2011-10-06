@@ -1,0 +1,29 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8x]{inputenc}
+
+%opening
+
+\title { Finite temperature correction} 
+\author {ali.sadeghi@unibas.ch}
+\begin{document}
+\maketitle
+
+
+When the electronic temperature is finite the free energy, but not the energy, of the ground state is stationary.
+So a correction term  
+\[
+ \Delta u = -\sum_i^{N_e} \int \epsilon_i df_i
+   = - \frac{k_B T_e}{2 \sqrt{\pi}} \sum_i^{N_e} \exp \left(-[erf^{-1}(1-2f_i)]^2\right) - N_e \epsilon_F+cte.
+\]
+has to be added to the energy. The forces, however can be shown to remain unchanged.
+Effectively, we can use 
+\[
+\Delta u = - \frac{k_B T_e}{2 \sqrt{\pi}} \sum_i^{N_e} \exp \left(-[erf^{-1}(1-2f_i)]^2\right).
+\]
+To avoid eventual numerical difficulties one might face using the  $err^{-1}$ function,  one can use  
+\[(1-2f_i)=erf(\frac{\epsilon_i-\epsilon_F}{k_B T_e}) \] 
+to express the correction term versus the energy eigen values
+\[ {\Delta u = - \frac{k_B T_e}{2 \sqrt{\pi}} \sum_i^{N_e} \exp [-(\frac{\epsilon_i-\epsilon_F}{k_B T_e})^2]}.
+\]
+
+\end{document}

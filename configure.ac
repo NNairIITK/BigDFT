@@ -9,13 +9,13 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.1],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.8],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
 dnl Use a config.h file to store macro definitions, required for CUDA.
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
@@ -48,6 +48,9 @@ AC_LANG(Fortran)
 AC_FC_SRCEXT(f90)
 
 AC_FC_WRAPPERS()
+AX_FC_FLUSH()
+AX_FC_F2003()
+AX_FC_DEFS()
 
 dnl Set if the module name are capitalized or not with the FC compiler.
 AC_MSG_CHECKING([for module extension for compiler '$fc_type'])
@@ -157,7 +160,7 @@ end
     AC_MSG_WARN([MPI is not working and has been disabled.])
     AC_MSG_WARN([  If you don't want to see this warning,])
     AC_MSG_WARN([  set --disable-mpi in the configure line.])
-    ac_use_mpi="Warning"
+    ac_use_mpi="warn"
     MPI_LIBS=
     MPI_INCLUDE='-I$(top_builddir)/src/modules'
     MPI_LDFLAGS=
@@ -190,7 +193,7 @@ ac_with_memory_limit="no"
 AC_MSG_CHECKING([for memory limit in GB])
 AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit value in GB. It stops EVERYTHING if some process passes such limit (disabled by default).]),
               ac_with_memory_limit=$withval, ac_with_memory_limit="no")
-if test "${ac_with_memory_limit//\.*/}" -ge "0" 2> /dev/null ; then
+if test "${ac_with_memory_limit/.*/}" -ge "0" 2> /dev/null ; then
   MEMORY_LIMIT=$ac_with_memory_limit
 else
   ac_with_memory_limit="undefined"
@@ -277,12 +280,18 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   AC_LANG_PUSH(C)
   LIBS_OLD=$LIBS
   ac_cuda_lib_path="$ac_with_cuda_path/lib"
-  LIBS="-L$ac_cuda_lib_path $LIBS"
+  LIBS="-L$ac_cuda_lib_path $LIBS_OLD"
   AC_CHECK_LIB(cublas, cublasSsymv, withlibcublas=yes, withlibcublas=no, [-lcudart])
+  if test "$withlibcublas" = "no"; then
+    AC_CHECK_LIB(cublas, cublasSsymv_v2, withlibcublas=yes, withlibcublas=no, [-lcudart])
+  fi
   if test "$withlibcublas" = "no"; then
     ac_cuda_lib_path="$ac_with_cuda_path/lib64"
     LIBS="-L$ac_cuda_lib_path $LIBS_OLD"
     AC_CHECK_LIB(cublas, cublasScopy, withlibcublas=yes, withlibcublas=no, [-lcudart])
+    if test "$withlibcublas" = "no"; then
+      AC_CHECK_LIB(cublas, cublasScopy_v2, withlibcublas=yes, withlibcublas=no, [-lcudart])
+    fi
   fi
   if test "$withlibcublas" = "no"; then
     AC_MSG_ERROR(["No 'cublas' library found, link will fail."])
@@ -351,7 +360,7 @@ dnl Use ETSF_IO
 ac_use_etsfio=no
 AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio=no)
 AC_ARG_WITH(etsf-io-path, AS_HELP_STRING([--with-etsf-io-path], [Give the path of the ETSF_IO installation (default = /usr).]),
-            ac_etsfio_dir=$withval, ac_etsfio_dir=)
+            ac_etsfio_dir=$withval, ac_etsfio_dir="/usr")
 AC_ARG_WITH(netcdf-path, AS_HELP_STRING([--with-netcdf-path], [Give the path to NetCDF (required by ETSF_IO) (default = /usr).]),
             ac_netcdf_dir=$withval, ac_netcdf_dir=)
 AC_ARG_WITH(netcdf-libs, AS_HELP_STRING([--with-netcdf-libs], [Give the library to link with NetCDF (required by ETSF_IO) (default = -lnetcdff -lnetcdf).]),
@@ -394,27 +403,49 @@ end]], ac_use_etsfio=yes, ac_use_etsfio=no)
       fi
       AC_SUBST(LIBETSFIO_INCLUDE, $ac_etsfio_incs)
       LIBETSFIO_LIBS="-letsf_io $ac_netcdf_libs"
+   else
+      ac_use_etsfio="warn"
    fi
 fi
 AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
 
 dnl Archive input file support
-ac_archives="no"
+ac_use_archive="yes"
 AC_ARG_WITH([archives],
             AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
-            [ac_archives=yes], [ac_archives=no])
-if test x"$ac_archives" = x"yes" ; then
-   PKG_CHECK_MODULES([LIB_ARCHIVE],
-                     [libarchive >= 2.4],
-                     [ac_archives=yes],
-                     [ac_archives=no])
-   if test x"$ac_archives" = x"yes" ; then
+            [ac_use_archive=$withval], [ac_use_archive=yes])
+AC_ARG_WITH([archives-path],
+            AS_HELP_STRING([--with-archives-path], [give a path to find libarchive.]),
+            [ac_path_archive=$withval])
+if test x"$ac_use_archive" != x"no" ; then
+   if test x"$ac_path_archive" == x"" ; then
+      PKG_CHECK_MODULES([LIB_ARCHIVE],
+                        [libarchive >= 2.4],
+                        [ac_use_archive=yes],
+                        [ac_use_archive=warn])
+   else
+      LDFLAGS_SVG="$LDFLAGS"
+      AC_LANG_PUSH(C)
+      LDFLAGS="-L$ac_path_archive/lib"
+      AC_CHECK_LIB([archive], [archive_read_data_block],
+                   [ac_use_archive=yes], [ac_use_archive=warn])
+      if test x"$ac_use_archive" = x"yes" ; then
+         LIB_ARCHIVE_CFLAGS="-I$ac_path_archive/include"
+         LIB_ARCHIVE_LIBS="-L$ac_path_archive/lib -larchive"
+      fi
+      AC_LANG_POP(C)
+      LDFLAGS="$LDFLAGS_SVG"
+   fi
+   if test x"$ac_use_archive" = x"yes" ; then
       AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
    else
       AC_MSG_WARN([libarchive is not available])
    fi
 fi
-AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_archives" = x"yes")
+AC_LANG_PUSH(C)
+AC_CHECK_FUNCS([strndup])
+AC_LANG_POP(C)
+AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
 AC_SUBST(LIB_ARCHIVE_CFLAGS)
 AC_SUBST(LIB_ARCHIVE_LIBS)
 
@@ -531,25 +562,31 @@ fi
 fi # End of the if library compilation
 
 dnl Test the libXC library
-internallibxc="yes"
-AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), internallibxc=$enval, internallibxc="yes")
+ac_internal_libxc="yes"
+AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_internal_libxc=$enableval, ac_internal_libxc="yes")
 AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path for an external libXC library, lib and module files (default = None).]),
             ac_libxc_dir=$withval, ac_libxc_dir=)
 ac_use_libxc="no"
-ac_build_libxc="no"
-if test "$internallibxc" = "yes" ; then
+ac_build_libxc=$ac_internal_libxc
+if test "$ac_internal_libxc" = "yes" ; then
   ac_build_libxc="yes"
   ac_use_libxc="yes"
-  ac_libxc_dir="$top_builddir"/libXC/src
-  AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libXC/src)
-  AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libXC/src)
-  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libXC/src"
+  ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
+  AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
+  AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
+  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
+  LIBXC_LIBS="-lxc"
 else
   if test -n "$ac_libxc_dir" ; then
     LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
     
     dnl Test the given implementation of libXC.
-    AC_CHECK_LIB(xc, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+    ac_libxc_libname="xc"
+    AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+    if test x"$withlibxc" = x"no" ; then
+      ac_libxc_libname="dft_xc"
+      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+    fi
     AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
     AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
     AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
@@ -557,23 +594,27 @@ else
       ac_use_libxc="yes"
       AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
       AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
+      LIBXC_LIBS="-l"$ac_libxc_libname
     fi
+  else
+    LIBXC_CFLAGS="-I/usr/include"
+    PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
+    AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
   fi
 fi
 AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
 if test x"$ac_use_libxc" = x"yes" ; then
   AC_DEFINE([HAVE_LIBXC], [1], [use libXC in BigDFT.])
-  LIBXC_LIBS="-lxc"
 fi
 
 dnl Test the ABINIT library
-internallibabinit="yes"
-AC_ARG_ENABLE(internal-libabinit, AS_HELP_STRING([--disable-internal-libabinit], [Do not build and link with internal libABINIT library (default = yes).]), internallibabinit=$enval, internallibabinit="yes")
+ac_internal_libabinit="yes"
+AC_ARG_ENABLE(internal-libabinit, AS_HELP_STRING([--disable-internal-libabinit], [Do not build and link with internal libABINIT library (default = yes).]), ac_internal_libabinit=$enableval, ac_internal_libabinit="yes")
 AC_ARG_WITH(libabinit-path, AS_HELP_STRING([--with-libabinit-path], [Give the path for an external libABINIT library, lib and module files (default = None).]),
             ac_libabinit_dir=$withval, ac_libabinit_dir=)
 ac_use_libabinit="no"
-ac_build_libabinit="no"
-if test "$internallibabinit" = "yes" ; then
+ac_build_libabinit=$ac_internal_libabinit
+if test "$ac_internal_libabinit" = "yes" ; then
   ac_build_libabinit="yes"
   ac_use_libabinit="yes"
   AC_SUBST(LIBABINIT_INCLUDE, "-I\$(top_builddir)"/libABINIT/src)
@@ -601,13 +642,14 @@ fi
 
 ac_build_libsgpu="no"
 ac_use_libsgpu="no"
+AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
+ac_build_libsgpu=$ac_internal_sgpu
 if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl Test S_GPU library.
-  internalsgpu="yes"
-  AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), internalsgpu=$enval, internalsgpu="yes")
+  ac_internal_sgpu="yes"
   AC_ARG_WITH(libsgpu-path, AS_HELP_STRING([--with-libsgpu-path], [Give the path for an external S_GPU library, lib and module files (default = None).]),
             ac_libsgpu_dir=$withval, ac_libsgpu_dir=)
-  if test "$internalsgpu" = "yes" ; then
+  if test "$ac_internal_sgpu" = "yes" ; then
     ac_build_libsgpu="yes"
     ac_use_libsgpu="yes"
     AC_SUBST(LIBSGPU_INCLUDE, "-I\$(top_srcdir)"/S_GPU/src)
@@ -626,7 +668,7 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   fi
   if test x"$ac_use_libsgpu" = x"yes" ; then
     AC_DEFINE([HAVE_LIBSGPU], [1], [use S_GPU in BigDFT.])
-    if test "$internalsgpu" = "yes" ; then
+    if test "$ac_internal_sgpu" = "yes" ; then
       LIBSGPU_LIBS="\$(top_builddir)/S_GPU/src/.libs/libs_gpu.a -lstdc++"
     else
       LIBSGPU_LIBS="-ls_gpu -lstdc++"
@@ -636,7 +678,7 @@ fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Agregate all the optional libs.
-LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS"
+LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS $LIB_ARCHIVE_LIBS"
 
 
 dnl Test for the documentation.
@@ -696,16 +738,23 @@ tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
 tests/SPLSAD/Makefile
 tests/TDDFT/Makefile
+tests/OP2P/Makefile
 tests/DFT/Makefile
 tests/OpenCL/Makefile
 tests/CUDA/Makefile
 tests/ETSF_IO/Makefile
 tests/tutorials/Makefile
+tests/xc/Makefile
 ])
 
 # Call libXC ./configure script recursively.
 # Call S_GPU ./configure script recursively.
-AC_CONFIG_SUBDIRS([libXC S_GPU])
+if test x"$ac_build_libxc" != x"skip" ; then
+   AC_CONFIG_SUBDIRS([libxc-1.1.0])
+fi
+if test x"$ac_build_libsgpu" != x"skip" ; then
+   AC_CONFIG_SUBDIRS([S_GPU])
+fi
 
 
 AC_OUTPUT
@@ -758,7 +807,7 @@ Options:
    | include dir.:           $LIBSGPU_INCLUDE
   With ETSF_IO:              $ac_use_etsfio
    | include dir.:           $LIBETSFIO_INCLUDE
-  With libarchive:           $ac_archives
+  With libarchive:           $ac_use_archive
    | C flags:                $LIB_ARCHIVE_CFLAGS
    | linked libraries:       $LIB_ARCHIVE_LIBS
 
@@ -772,10 +821,21 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"Warning" ; then
-  echo "Warnings:
-  MPI:                       disabled by tests
-"
+if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" ; then
+  echo -n "Warnings:"
+  if test x"$ac_use_mpi" = x"warn" ; then
+    echo -n "
+  MPI:                       disabled by tests"
+  fi
+  if test x"$ac_use_archive" = x"warn" ; then
+    echo -n "
+  libarchive:                disabled by tests"
+  fi
+  if test x"$ac_use_etsfio" = x"warn" ; then
+    echo -n "
+  ETSF_IO:                   disabled by tests"
+  fi
+  echo
 fi
 
 dnl Do not touch this line. On the Cray machine in Basel, the preprocessor

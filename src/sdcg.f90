@@ -2,6 +2,7 @@
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   use module_base
   use module_types
+  use module_interfaces
   use minpar
   implicit none
   integer, intent(in) :: nproc,iproc
@@ -80,9 +81,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         tpos=rxyz+beta0*hh
 
         in%inputPsiId=1
-        in%output_grid=0
-        in%output_wf=.false.
-
         call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,fnoise,rst,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,gpf,sumx,sumy,sumz)
@@ -163,7 +161,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         if (iproc==0) then 
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
+           call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,rxyz,at,trim(comment),forces=fxyz)
         endif
 
 
@@ -303,6 +301,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
      fnrm,fnoise,in,forcemax_sw,nitsd,fluct)
   use module_base
   use module_types
+  use module_interfaces
   use minpar
   !use module_interfaces
   implicit none
@@ -383,8 +382,6 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
         itot=itot+1
 
         in%inputPsiId=1
-        in%output_grid=0
-        in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,fnoise,rst,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,ff,sumx,sumy,sumz)
@@ -449,7 +446,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
 !                & write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,sqrt(fnrm),etot,' GEOPT SD '
            write(fn4,'(i4.4)') ncount_bigdft 
            write(comment,'(a,1pe10.3)')'SD:fnrm= ',sqrt(fnrm)
-           call write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
+           call write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,rxyz,at,trim(comment),forces=ff)
 
            !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_bigdft,etot,sqrt(fnrm)
         end if
@@ -567,6 +564,7 @@ END SUBROUTINE steepdes
 subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   use module_base
   use module_types
+  use module_interfaces
   use minpar
   implicit none
   !Arguments
@@ -603,8 +601,6 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   beta=in%betax
   itsd=0
   in%inputPsiId=1
-  in%output_grid=0
-  in%output_wf=.false.
   call call_bigdft(nproc,iproc,at,wpos,in,etotold,ffold,fnoise,rst,infocode)
   call fnrmandforcemax(ffold,fnrm,fmax,at%nat)   
   if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
@@ -621,7 +617,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
      write(fn4,'(i4.4)') ncount_bigdft
      write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
-     call  write_atomic_file('posout_'//fn4,etotold,wpos,at,trim(comment))
+     call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etotold,wpos,at,trim(comment),forces=ffold)
 !     if (parmin%verbosity > 0) &
 !          & write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etotold,' GEOPT VSSD ',beta
   end if
@@ -648,8 +644,6 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   nitsd=1000
   loop_ntsd: do itsd=1,nitsd
      in%inputPsiId=1
-     in%output_grid=0
-     in%output_wf=.false.
      call call_bigdft(nproc,iproc,at,wpos,in,etot,ff,fnoise,rst,infocode)
 !!$     if (iproc == 0) then                                        
 !!$        call transforce(at,ff,sumx,sumy,sumz)                         
@@ -673,7 +667,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
      if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
 !     if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
      call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
-     if (check.gt.5) exit loop_ntsd
+     if (check > 5) exit loop_ntsd
      if (ncount_bigdft >= in%ncount_cluster_x) then 
         if (iproc==0)  write(16,*) 'VSSD exited before the geometry optimization converged because more than ',& 
              in%ncount_cluster_x,' wavefunction optimizations were required'
@@ -702,7 +696,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         if (iproc == 0) then
            write(fn4,'(i4.4)') ncount_bigdft-1
            write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file('posout_'//fn4,etot,wpos,at,trim(comment))
+           call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,wpos,at,trim(comment),forces=ff)
         endif
 
         do iat=1,at%nat
@@ -755,7 +749,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
      end if
      write(fn4,'(i4.4)') ncount_bigdft-1
      write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-     call  write_atomic_file('posout_'//fn4,etot,wpos,at,trim(comment))
+     call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,wpos,at,trim(comment),forces=ff)
   endif
 
 

@@ -24,6 +24,10 @@ binaries_sources =
 scripts_sources = 
 endif
 
+if HAVE_ETSF_IO
+binaries_sources += BigDFT2Wannier
+endif
+
 if USE_CUDA_GPU
 sub_dirs_cuda=CUDA
 GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
@@ -73,6 +77,17 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
+if HAVE_FC_FLUSH
+flush_files =
+else
+flush_files = modules/flush_fake.f90
+endif
+
+if HAVE_FC_GET_COMMAND_ARGUMENT
+getarg_files =
+else
+getarg_files = modules/get_command_argument_fake.f90
+endif
 
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
@@ -98,11 +113,13 @@ EXTRA_DIST = \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
+	init/pspconf.in.f90 \
 	NEB_driver.sh 
 
-AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
+AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
-	@LIBETSFIO_INCLUDE@ @LIB_ARCHIVE_CFLAGS@
+	@LIBETSFIO_INCLUDE@
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -163,6 +180,9 @@ modules_source = modules/base.f90 \
 	modules/defs.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
+	modules/input.f90 \
+	modules/xc.f90 \
+	modules/op2p_module.f90 \
 	$(GPU_BLAS)
 
 modules_objects = $(modules_source:.f90=.o)
@@ -199,16 +219,17 @@ low_level = init/projectors.f90  \
 	init/inputguess.f90 \
 	init/gautowav.f90 \
 	init/eleconf.f90 \
+	init/pspconf.f90 \
 	init/locreg.f90 \
 	init/sysprop.f90 \
 	init/gaussians.f90 \
 	init/wfn_init.f90 \
-	init/xabsorber.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
 	wfn_opt/exctX.f90 \
+	wfn_opt/sic.f90 \
 	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_hyb.f90 \
 	wfn_opt/precond_slab.f90 \
@@ -227,6 +248,7 @@ low_level = init/projectors.f90  \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
 	posfiles.c \
+	utils.c \
 	sdcg.f90 \
 	bfgs.f90 \
 	$(DGEMMSY_INTERFACE)
@@ -235,7 +257,9 @@ libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	BigDFT_API.f90 \
 	$(low_level) \
-	$(high_level)
+	$(high_level) \
+	$(flush_files) \
+	$(getarg_files)
 
 libbigdft_a_LIBADD = profiling/time.o \
 	profiling/memoryestimator.o \
@@ -248,7 +272,6 @@ bigdft_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 splsad_SOURCES = splinedsaddle.f90
@@ -257,7 +280,6 @@ splsad_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
@@ -266,17 +288,24 @@ rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
- 
+
 oneatom_SOURCES = oneatom.f90
 oneatom_LDFLAGS = 
 oneatom_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
+
+
+BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90                                                                                                                                                                                  
+BigDFT2Wannier_LDFLAGS =
+BigDFT2Wannier_LDADD = libbigdft.a \
+        PSolver/libpoissonsolver.a \
+        $(LMPI) \
+        @MPI_LIBS@ \
+        $(libs_opt)
 
 
 MDanalysis_SOURCES = distances.f90 
@@ -285,7 +314,6 @@ MDanalysis_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)  
 
 abscalc_SOURCES = abscalc.f90 
@@ -294,7 +322,6 @@ abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 test_forces_SOURCES = test_forces.f90
@@ -303,7 +330,6 @@ test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 NEB_SOURCES = NEB.f90 \
@@ -311,16 +337,12 @@ NEB_SOURCES = NEB.f90 \
 NEB_LDFLAGS = 
 NEB_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
-	$(mpi_source)
+	MPIfake.f90
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	$(LMPI) \
-	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
@@ -330,7 +352,6 @@ frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 bart_SOURCES = \
@@ -344,14 +365,13 @@ bart_SOURCES = \
 	art/initialize.f90 \
 	art/read_parameters.f90 \
 	art.f90
-bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@
+bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDFLAGS = 
 bart_LDADD = art/libart.a \
 	libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 CLEANFILES = \
@@ -380,14 +400,16 @@ CLEANFILES = \
 	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@ \
 	minimization_sp.@MODULE_EXT@ MINIMIZATION_SP.@MODULE_EXT@ \
 	modulesplinedsaddle.@MODULE_EXT@ MODULESPLINEDSADDLE.@MODULE_EXT@ \
-	randomdata.@MODULE_EXT@ RANDOMDATA.@MODULE_EXT@ 
+	randomdata.@MODULE_EXT@ RANDOMDATA.@MODULE_EXT@ \
+	module_input.@MODULE_EXT@ MODULE_INPUT.@MODULE_EXT@ \
+	position_files.@MODULE_EXT@ POSITION_FILES.@MODULE_EXT@
 
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
+$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o : $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
 
@@ -395,7 +417,7 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 
 BigDFT_API.o : scfloop_API.o
 
-distances.o global.o rism.o oneatom.o : BigDFT_API.o
+distances.o global.o rism.o oneatom.o BigDFT2Wannier.o : BigDFT_API.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
@@ -403,15 +425,13 @@ xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 #BigDFT_API.o: base.o types.o interfaces.o
 
-#$(high_level:.f90=.o) : base.o types.o
+$(high_level:.f90=.o) : $(modules_objects)
 
 test_forces.o: $(mod_bigdft)
 
 $(mod_bigdft) : BigDFT_API.o
 
 $(modules_objects) : $(mpi_include)
-
-modules/defs.o: modules/base.o
 
 #BigDFT.o: \
 #	base.o \

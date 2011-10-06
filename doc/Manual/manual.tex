@@ -52,18 +52,32 @@ source tree. It is advised to create a compilation directory, either inside or o
 
 One can tune the compilation environment using the following options:
 \begin{itemize}
-  \item \texttt{--with-cuda-path}: Give the path to the NVIDIA CUDA tools (default is \texttt{/usr/local/cuda}).
-  \item \texttt{--with-cuda-cflags}: Specify the flags for the NVIDIA CUDA Compiler.
-  \item \texttt{--with-ext-linalg}: Give the name of the libraries replacing BLAS and LAPACK (default = none specified). Use the -l before the name(s).
-  \item \texttt{--with-ext-linalg-path}: Give the path of the other linear algebra libraries (default = \texttt{-L/usr/lib}). Use the -L before the path(es).
-  \item \texttt{FC}: Specify the compiler.
+  \item \texttt{FC}: Specify the compiler (including MPI aware wrappers).
   \item \texttt{FCFLAGS}: Specify the flags, like the
 optimisation flags, to pass to the compiler (default are \texttt{-g
 -O2} for GNU compilers).
+  \item Linear algebra options:
+  \begin{itemize}
+    \item \texttt{--with-ext-linalg}: Give the name of the libraries replacing BLAS and LAPACK (default = none specified). Use the -l before the name(s).
+    \item \texttt{--with-ext-linalg-path}: Give the path of the other linear algebra libraries (default = \texttt{-L/usr/lib}). Use the -L before the path(es).
+  \end{itemize}
+  \item Accelarators:
+  \begin{itemize}
+    \item \texttt{enable-cuda-gpu}: Compile CUDA support for GPU computing.
+    \item \texttt{--with-cuda-path}: Give the path to the NVIDIA CUDA tools (default is \texttt{/usr/local/cuda}).
+    \item \texttt{--with-nvcc-flags}: Specify the flags for the NVIDIA CUDA Compiler.
+    \item \texttt{--enable-opencl}: Compile OpenCL support for GPU computing (compatible with \texttt{--enable-cuda-gpu}).
+    \item \texttt{--with-ocl-path}: Give the path to the OpenCL installation directory (default is \texttt{/usr}).
+  \end{itemize}
+  \item Optional libraries:
+  \begin{itemize}
+    \item \texttt{--with-etsf-io}: Use ETSF file format (binary based on NetCDF) for densities, potentials and wavefunction files.
+    \item \texttt{--with-archives}: Use compression (tar.bz2) for position files during geometry optimisation.
+  \end{itemize}
   \item \texttt{--prefix=DIR}: Specify your installation directory (\texttt{/usr/local} is default).
 \end{itemize}
 
-A example of compilation using the MKL from Intel instead of basic BLAS and LAPACK installation:\\
+An example of compilation using the MKL from Intel instead of basic BLAS and LAPACK installation:\\
 \texttt{../configure --with-ext-linalg="-lmkl\_ia32 -lmkl\_lapack"\\
    --with-ext-linalg-path="-L/opt/intel/mkl72/lib/32"\\
    --prefix=/home/caliste/usr FC=ifort}
@@ -80,11 +94,10 @@ An other example, compiling CUDA parts:\\
                      -lmkl\_intel\_lp64 -lmkl\_lapack -lmkl\_sequential -lmkl\_core"\\
   --enable-cuda-gpu --with-cuda-path=/applications/cuda-2.2}
 
-The other options available can be browsed via the \texttt{-- help} option.
+The other options available can be browsed via the \texttt{--help} option.
 Some of them are listed here (and they can be of course combined with each other, when it does make sense):
 \begin{itemize}
   \item \texttt{--disable-mpi}: Force not to use MPI during build. By default the configure will try to detect if the compiler has some native MPI capabilities. If not MPI will be automatically disabled.
-  \item \texttt{--enable-cuda-gpu}: Compile the CUDA parts to run on NVIDIA GPUs. This options requires to add some other one to find the CUDA environment, see the \texttt{--with} options later.
 \item \texttt{--enable-debug}: Creates a slower version of the executable in which any of the array allocated is filled by \texttt{NaN} after its boundaries. Useful to detect runtime errors during developments
 \item \texttt{--with-memory-limit=<mem>}: Creates a version of the executable which abort the run if one of the processes allocates more memory than \texttt{<mem>} (in Gb). This version is not necessarily slower that traditional copilation.
 \end{itemize}
@@ -103,8 +116,6 @@ Clean the source tree of the 'make' action by \texttt{make clean}.
 To avoid to create the binary executable,
 use \texttt{--disable--build-binary} option.
 
-\chapter{Structure of the BigDFT code}
-\noindent
 The main subroutine of the BigDFT package is the \texttt{call\_bigdft} routine. For a given set of input coordinates 
 and input parameters it returns the total energy and the forces acting on the nuclei. The \texttt{BigDFT.f90} main program 
 calls the \texttt{call\_bigdft} routine and can also do a geometry optimization by calling the \texttt{geopt} routine (which in turn calls 
@@ -112,7 +123,10 @@ again \texttt{call\_bigdft}). For other standard applications other main program
 At present main programs to do a vibrational analysis, saddle point search and global optimization have been developed.
 Users are encouraged to write their own main programs for specific applications. 
 The BigDFT API will be the object of a forthcoming chapter.
+
+\chapter{File formats and conventions in BigDFT}
 \section{The basis set}
+\subsection{One dimensional functions}
 The maximally symmetric Daubechies family of degree 16 is used to represent 
 the Kohn-Sham orbitals. The two fundamental functions of this family, 
 the scaling function $\phi$ and the wavelet $\psi$ are shown in Fig. \ref{sym_16} 
@@ -125,7 +139,7 @@ To form a basis set these functions have to be centered on the nodes of a regula
 \label{sym_16}
 \caption{Daubechies Scaling Function and Wavelet of order 16}
 \end{figure}
-\section{Wavelet basis sets in three dimensions and BigDFT input variables}
+\subsection{Wavelet basis sets in three dimensions}
 A 3-dim wavelet basis is made by products of 1-dim functions.
  {\color{red} 1  scaling function} and {\color{blue} 7 wavelets} 
 can be centered on the nodes (i,j,k) of a regular 3-dim Cartesian grid.
@@ -156,10 +170,10 @@ values of {\bf crmult} and then {\bf frmult}.
 
 \subsection{Visualizing the simulation grid with V\_Sim package}
 The grid can be visualized by calling the \texttt{memguess} program 
-with the keywords {\bf output\_grid}=1 in the input file. Then the output file 'grid.xyz' contains the atomic positions and in addition 
+with the option {\bf y}. Then the output file 'grid.xyz' contains the atomic positions and in addition 
 the grid points which denoted by 'g' if the are in the coarse region and by 'G' if they are in the fine region. 
 Whereas the total number of basis functions is nearly independent of the orientation of the molecule, the size of some 
-work arrays depends on the orientation. When the \texttt{memguess} routine is called with the option {\bf optimise} = \texttt{.TRUE.}, it will rotate 
+work arrays depends on the orientation. When the \texttt{memguess} routine is called with the option {\bf o}, it will rotate 
 a molecule that will be calculated with free boundary conditions in such a way that the simulation cell size and 
 hence the size of the work arrays are as small as 
 possible. The rotated output is written in the file posout\_000.xyz.
@@ -185,13 +199,13 @@ The first one is a particular generalisation of the traditional \texttt{.xyz} fo
 The second one (\texttt{.ascii}) is peculiar of BigDFT and V\_Sim. Both formats work with the two codes.
 \subsection{The \texttt{.xyz} format}
 By default the atomic input coordinates are in the file \texttt{posinp.xyz}.
-If the same operation (e.g. geometry optimization) 
+If the same operation (\textit{e.g.} geometry optimization) 
 has to be done for several structures one can also give a list of input files whose names (without the .xyz extension) 
 have to be contained in a file '\texttt{list\_posinp}'. The first line in the '\texttt{list\_posinp}' file has to be the number of input 
 files and each consecutive line contains then one filename.
 
-All the input and output files for atomic coordinates are in the \texttt{.xyz} format, i.e they can be visualized with any 
-standard visualization package and in particular with V\_sim. The first line contains the number of atoms 
+All the input and output files for atomic coordinates are in the \texttt{.xyz} format, \textit{i.e.} they can be visualized with any 
+standard visualization package and in particular with V\_Sim. The first line contains the number of atoms 
 and then the units, which are specified by 'atomic', 'atomicd0' or 'Bohr' if atomic units are used or by 
 'angstroem' or 'angstroemd0' if the angstr\"om unit is used. 'd0' formats (\texttt{1pe24.17} in Fortran) guarantee that not a single bit is 
 lost during write and read of the numbers.
@@ -235,25 +249,38 @@ Same as above, but also frozen
   Cl  1.2  3.4  5.6   0  -1   f
 \end{verbatim}
 
-%\pagebreak
-\section{The input file 'input.memguess'}
-Before running BigDFT, it is recommended to run the 'memguess' program. If it runs correctly all input files are available 
-(this routine needs a posinp.xyz and does not accept a list\_posinp file). It then allows to estimate the required memory and to 
-find an optimal number of MPI processes for a parallel run. For good load balancing each MPI process should roughly treat the same number of orbitals.
+\subsection{The \texttt{.ascii} format}
+BigDFT can also use another text file format for input (and thus output) atomic positions. Here is its structure:
 
-The 'memguess' program prints out the number of orbitals and how many orbitals are treated by each MPI process. 
-On a parallel machine with a high performance interconnect network one can choose the number of MPI processes {\bf nproc} equal 
-to the number of occupied orbitals, i.e. each MPI process treats one orbital. On machines with slower networks each MPI process should 
-have at least 2 to 4 orbitals. 
 \begin{itemize}
-\item {\bf nproc}: Number of MPI processes;
-\item {\bf optimise}: if = \texttt{.TRUE.} the molecule will be rotated such that the size of the workarrays is minimal;
-\item {\bf output\_grid}: if = 1 the file 'grid.xyz' will be generated, = 0 otherwise;
-\item {\bf GPUtest}: if = \texttt{.TRUE.} perform the test with GPU.
+  \item 1st line is arbitrary
+  \item 2nd line must contain dxx dyx dyy values
+  \item 3rd line must contain dzx dzy dzz values other lines may contain: 
+  \begin{itemize}
+    \item keywords, with the syntax [\#!]keyword: followed by a list of keywords, separated by commas or blank spaces.
+    \item comments beginning with '\#' or '!'
+    \item x y z name [label] for atomic position and optional labels
+  \end{itemize}
 \end{itemize}
 
+dxx dyx dyy dzx dzy dzz values define the box that contains the atoms. The format allows non-orthogonal boxes, but BigDFT supports only orthorombic super-cells, so dyx, dzx and dzy must be zeros. When the keyword angdeg is used, the six values contains the three lengths of basis vectors in dxx dyx and dyy, and the three angles (bc, ac, ab) in dzx dzy and dzz.
 
-\section{The input file 'input.dft'}
+After the three first mandatory lines, all subsequent lines can be comment lines (ignored), \textit{i.e.} empty, containing only blanks, or beginning with ! or with \#. A non comment line must contain 'x y z name', giving the 3 coordinates and the name of the atom. The coordinates of the atoms are given in the orthonormal basis not in the box basis. In case the keyword reduced has been specified, the three coordinates x, y and z are given in the box basis.
+
+The keywords can be positionned anywhere after the first three lines. The following list summurises all available keywords:
+\begin{itemize}
+  \item \texttt{reduced}: All atomic coordinates are given in reduced coordinates with respect to the box definition.
+  \item \texttt{angdeg}: The box definition contains three distances and three angles instead of the classical six projection values.
+  \item \texttt{bohr} or \texttt{bohrd0}: The units for the distance are Bohr.
+  \item \texttt{angstroem} or \texttt{angstroemd0}: The units for the distance are Angströms.
+  \item \texttt{atomic} or \texttt{atomicd0}: The units for the distance are Bohr.
+  \item \texttt{periodic}, \texttt{surface} or \texttt{freeBC}: The periodicity of the system is either 3D, 2D (free direction is y) or 0D.
+\end{itemize}
+
+Additional informations can be provided after the atom names, like for the \texttt{.xyz} format.
+
+%\pagebreak
+\section{The input file '\texttt{input.dft}'}
 This file contains all the parameters required for a single wavefunction calculations:
 \begin{itemize}
 \item {\bf hgridx}, {\bf hgridy}, {\bf hgridz}: The grid spacing of the Cartesian grid, in Bohr. As 
@@ -299,13 +326,11 @@ in cases where one has near degeneracy between the HOMO and LUMO orbitals. $50$~
       In case of convergence problems it can be advantageous 
       to switch off DIIS by setting {\bf idsx} = 0. The memory requirements grow considerably with large values of 
       {\bf idsx}. If memory is the limiting factor one has to choose {\bf idsx} smaller than the value which gives 
-      the fastest convergence. The 'memguess' tool can be used to predict the memory requirements for different choices 
+      the fastest convergence. The '\texttt{memguess}' tool can be used to predict the memory requirements for different choices 
       of  {\bf idsx}.
 \item {\bf dispersion}:  A non-zero values activates an  empirical add-on treatment of dispersion effects.
       The values~1, 2~and 3~specify different switching on functions using the convention of 
       Q. Hill and C.-K. Skylaris.  Proc. R. Soc. A 465  (2009) 669
-\item Putting the keyword \textbf{CUDAGPU} in this line will activate the use of CUDA versions of various subroutines.
-      A 'GPU.config' file is needed in this case. 
 \item {\bf InputPsiId }, {\bf  output\_wf},  {\bf output\_density }: 
       {\bf InputPsiId } specifies how the input guess wavefunction is generated:
       \begin{itemize}
@@ -325,7 +350,7 @@ in cases where one has near degeneracy between the HOMO and LUMO orbitals. $50$~
       \item {\bf InputPsiId } = 2: The input wavefunction is read from the 'wavefunction.*' files which contain all the 
             scaling function and wavelet coefficients. In case some parameters such as {\bf hgridx} 
             or {\bf crmult} have changed, compared to the previous run, the wavefunctions will be 
-            also transformed to the new parameter set.
+            also transformed to the new parameter set. Use also this value to restart from ETSF file format wavefunction-etsf.nc.
       \item {\bf InputPsiId } = 10: The same as 0 but activates the 'Gaussian help': 
             after convergence the wavefunctions are projected onto the localised basis set used for
             the input guess, and Mulliken Charge Population Analysis (MCPA) is performed on this
@@ -333,17 +358,23 @@ in cases where one has near degeneracy between the HOMO and LUMO orbitals. $50$~
        \item {\bf InputPsiId } = 11: Restart with Gaussian approximation contained in the 'restart' data structure.
        \item {\bf InputPsiId } = 12: The input wavefunction is read from the 'wavefunctions.gau'  file, which contains an 
             approximation in a minimal Gaussian basis set of the previously calculated wavefunctions.
-       \item {\bf output\_wf} : If \texttt{.TRUE.} the output wavefunction is written at the end of the wavefunction optimization 
-            into files. If {\bf InputPsiId } was greater than 10 the wavefunction will be written 
+       \item {\bf output\_wf} = 0, Do not write the wavefunctions to disk.
+       \item {\bf output\_wf} = 1, The output wavefunctions are written at the end of the wavefunction optimization 
+            into plain text files. If {\bf InputPsiId } was greater than 10 the wavefunction will be written 
             in the Gaussian approximation into  a single 'wavefunctions.gau' file otherwise into 
             'wavefunction.*' files. Writing a  'wavefunction.*' file for each orbital can take a considerable 
             amount of time and disk space. 
+       \item {\bf output\_wf} = 2, The output wavefunctions are written at the end of the wavefunction optimization 
+            into Fortran binary files. This format is not portable between compilers and machines. 
+       \item {\bf output\_wf} = 3, The output wavefunctions are written at the end of the wavefunction optimization 
+            into ETSF binary files. This format is portable between compilers and machines since based on NetCDF. Parallel IO are taken into account.
        \item {\bf output\_density} = 0, No output density is written.
-       \item {\bf output\_density} = 1, Output electronic density is written in the .pot format of V\_sim into the file 'electronic\_density.pot'.
-       \item {\bf output\_density} = -1, Same as  {\bf output\_density} = 1, but using .cube format in the file 'electronic\_density.cube'.
-       \item {\bf output\_density} = 2, In addition to the electronic charge density the following files are written:
-                                  'ionic\_potential.pot', 'local\_potential.pot', 'Hartree\_potential.pot'.
-       \item {\bf output\_density} = -2, Same as {\bf output\_density} = 2, but all files are written in the .cube format.
+       \item {\bf output\_density} = 1, Output electronic density is written in the .pot format of V\_Sim into the file 'electronic\_density.pot' (Deprecated, use 11 instead).
+       \item {\bf output\_density} = 2, In addition to the electronic density, the potential ('local\_potential.pot') and its components ('ionic\_potential.pot' and 'Hartree\_potential.pot') are also output in plain text '.pot' files (Deprecated, use 12 instead).
+       \item {\bf output\_density} = 11, Same as {\bf output\_density} = 1, but files are writtent in ETSF file format (portable binary format based on NetCDF).
+       \item {\bf output\_density} = 12, Same as {\bf output\_density} = 2, but files are writtent in ETSF file format (portable binary format based on NetCDF).
+       \item {\bf output\_density} = 21, Same as {\bf output\_density} = 1, but files are writtent in '.cube' file format (plain text).
+       \item {\bf output\_density} = 22, Same as {\bf output\_density} = 2, but files are writtent in '.cube' file format (plain text).
       \end{itemize}
 \item {\bf rbuf}, {\bf ncongt}:  Far reaching tails of the wavefunctions decaying into the vacuum are  
       added in a perturbative treatment if the variable {\bf rbuf} is set to a strictly positive value. 
@@ -369,14 +400,14 @@ in cases where one has near degeneracy between the HOMO and LUMO orbitals. $50$~
 \item {\bf verbosity}: Determines the amount of output from little (0)
       to detailed (2). By adding 10 to its value it switch on the
       once-and-for-all strategy for calculating the PSP projectors, which
-      is faster but more memory demanding (considered by memguess).
+      is faster but more memory demanding (considered by \texttt{memguess}).
 \item \textbf{disable sym}: a logical to set to 'T' to disable the
       usage of symmetry operations in the calculations. By default symmetries
       are used to update the density in periodic boundary condition
       calculations, and surface boundary conditions also.
 \end{itemize}
 
-\section{The input file 'input.geopt'}
+\section{The input file '\texttt{input.geopt}'}
 If this file exists, BigDFT will do a geometry optimization and the file contains all the required parameters.
 
 \begin{itemize}
@@ -442,7 +473,7 @@ If this file exists, BigDFT will do a geometry optimization and the file contain
 \end{itemize}
 
 
-\section{The input file 'input.kpt'}
+\section{The input file '\texttt{input.kpt}'}
 This file is used to specify a set of $k$ points. If this file does not exist, only the $\Gamma$ point will be used. The $k$ point generation relies on the ABINIT implementation. This files contains the following information:
 \begin{itemize}
   \item  \textbf{kptopt}: This character string specifies the method used to generate the $k$ point mesh.
@@ -459,7 +490,7 @@ This file is used to specify a set of $k$ points. If this file does not exist, o
 After the regular $k$ point mesh for the self-consistent loop, one can
 define in addition a specific path of $k$ points to be used to compute
 a band diagram. This requires also to define Davidson usage in the
-'input.dft' file. The band structure is define if the following lines
+'\texttt{input.dft}' file. The band structure is define if the following lines
 are present:
 \begin{itemize}
   \item \textbf{bands} keyword: a character string containing
@@ -473,17 +504,59 @@ point values with the coordinates of the vertices in reduced
 coordinates of the Brillouin zone.
 \end{itemize}
 
-
-\section{The input file 'input.perf'}
-This file is used to specify values in order to optimize the performances of BigDFT. If this file
-does not exist, default values are used. Keywords can specify options as:
+\section{The input file '\texttt{input.mix}'}
+If this file is present, the SCF loop is run with a diagonalisation scheme instead of the direct minimisation scheme. This file controls how the density or the potential is mixed between each iteration of diagonalisation. It must contain the following lines:
 \begin{itemize}
-  \item  \textbf{'debug'}: The debug mode is enable mainly for memory profiling.
-  \item  \textbf{'fftcache' ncache\_size}: Specify the cache size for FFT in kBytes.
+  \item \textbf{iscf}: An integer giving the mixing scheme and the mixing target. It follows the ABINIT convention. For values lower than 10, the potential is mixed, while for values greater than 10, the density is mixed.
+  \item \textbf{itrpmax}: Maximum number of diagonalisation iterations.
+  \item \textbf{rpnrm\_cv}: The stop criterion on the residue of potential or density.
+  \item \textbf{norbsempty Tel}: The number of additional bands and the electronic temperature.
+  \item \textbf{alphamix alphadiis}: The multiplying factors for the mixing and for the electronic DIIS.
 \end{itemize}
 
+Each diagonalisation step is done with a direct minimisation scheme at a fixed potential. The parameters of this minimisation are the usual ones in the \texttt{input.dft} file. The overall convergency of the diagonalisation is not very sensitive to the good convergency of the direct minisation steps. Thus a itermax value of 5 in \texttt{input.dft} is often advicable.
+
+\section{The input file '\texttt{input.perf}'}
+This file is used to specify values in order to optimize the performances of BigDFT. If this file
+does not exist, default values are used. On the contrary to other BigDFT input file, this file has optional key / value entries. The keywords are not case sensitive. Keywords can specify options as:
+\begin{itemize}
+  \item  \textbf{'debug' T/F}: The debug mode is enable mainly for memory profiling.
+  \item  \textbf{'fftcache' ncache\_size}: Specify the cache size for FFT in kBytes.
+  \item  \textbf{'accel' NO/CUDAGPU/OCLGPU}: Specify the use of CUDA (resp. OCL) versions of various subroutines. For CUDA, a 'GPU.config' file is needed.
+  \item  \textbf{'blas' T/F}: Use or not the CUBlas acceleration.
+  \item  \textbf{'projrad' real}: Radius of the projector as a function of the maxrad.
+  \item  \textbf{'exctxpar' key}: Exact exchange parallelisation scheme.
+  \item  \textbf{'ig\_diag' T/F}: Input guess: (T:Direct, F:Iterative) diagonalisation of Hamiltonian.
+  \item  \textbf{'ig\_norbp' int}: Input guess: Orbitals per process for iterative diagonalisation.
+  \item  \textbf{'ig\_blocks' int int}: Input guess: Block sizes for orthonormalisation.
+  \item  \textbf{'ig\_tol' real}: Input guess: Tolerance criterion.
+  \item  \textbf{'methortho' key}: Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin).
+  \item  \textbf{'rho\_commun' key}: Density communication scheme.
+\end{itemize}
 
 \chapter{ Running BigDFT executables}
+
+\section{Estimating the memory usage: \texttt{memguess}}
+Before running BigDFT, it is recommended to run the '\texttt{memguess}' program. If it runs correctly all input files are available 
+(this routine needs a posinp.xyz and does not accept a list\_posinp file). It then allows to estimate the required memory and to 
+find an optimal number of MPI processes for a parallel run. For good load balancing each MPI process should roughly treat the same number of orbitals.
+
+The '\texttt{memguess}' program prints out the number of orbitals and how many orbitals are treated by each MPI process. 
+On a parallel machine with a high performance interconnect network one can choose the number of MPI processes {\bf nproc} equal 
+to the number of occupied orbitals, \textit{i.e.} each MPI process treats one orbital. On machines with slower networks each MPI process should 
+have at least 2 to 4 orbitals.
+
+\texttt{memguess <nproc> [option]}
+
+\begin{itemize}
+\item {\bf nproc}: Number of MPI processes;
+\item {\bf o}: The molecule will be rotated such that the size of the workarrays is minimal;
+\item {\bf y}: Generate a file 'grid.xyz' containing the coarse and the fine grid points;
+\item {\bf GPUtest <nrep>}: Case of a CUDAGPU calculation, to test the speed of 3d operators <nrep> is the number of repeats.
+\item {\bf upgrade}: Ugrades input files older than 1.2 into actual format;
+\item {\bf convert <from.[cube,etsf]> <to.[cube,etsf]>}: Converts file "from" to file "to" using the given formats;
+\item {\bf atwf <ng>}: Calculates the atomic wavefunctions of the first atom in the gatom basis and write their expression in the "gatom-wfn.dat" file, <ng> is the number of gaussians used for the gatom calculation.
+\end{itemize}
 
 \section{Single point or geometry optimization: \texttt{bigdft}}
 The MPI version is executed on most machines with the \texttt{mpirun} command followed by the name of the executable which is 
@@ -545,7 +618,7 @@ a system by finite difference. The atomic system is moving for each direction an
 small step in order to calculate the Hessian matrix by a finite difference scheme.
 A checkpoint restart is implemented. The file 'frequencies.res' contains the previous calculations.
 
-\subsection{The 'input.freq' file}
+\subsection{The '\texttt{input.freq}' file}
 There are three parameters:
 \begin{itemize}
 \item \texttt{freq\_alpha} to determine the step for frequency step (i.e. alpha*hx, alpha*hy, alpha*hz);
@@ -661,11 +734,11 @@ components by the Jackson kernel~\cite{weiss}.
 The binary executable for absorption spectra calculation is named \texttt{abscalc}.
  Besides the usual files which  are needed for
 a basic BigDFT calculation,  \texttt{abscalc} needs to find, 
- in the current  work directory, at least the file  '{input.abscalc}'. 
+ in the current  work directory, at least the file  '{\texttt{input.abscalc}}'. 
 This file is specific to absorption calculations and 
 its structure will be explained here.
 The  usual files needed for a basic BigDFT calculation and by \texttt{abscalc} are, 
-we recall it here: '{input.dft}', '{posinp.xyz}', and the pseudopotential files '{psppar.XX}' for
+we recall it here: '{\texttt{input.dft}}', '{posinp.xyz}', and the pseudopotential files '{psppar.XX}' for
 all the elements entering in the structure.
 
 Others files may be needed when one selects the option of importing
@@ -676,7 +749,7 @@ Concerning the '{posinp.xyz}' file we suggest, for a good result,
 to set a large box diameter of about $25$\AA\ or more, and periodic
 boundary conditions.
 
-The structure of the file '{input.abscalc}' is the following:
+The structure of the file '{\texttt{input.abscalc}}' is the following:
 
 \begin{itemize}
 \item The input parameter {\it in\%iabscalc\_type} which can be equal to  $1$
@@ -716,7 +789,7 @@ calculation. In this case the program searches, in the current work directory,
 the file {\it b2B\_xanes.cube}. Such file contains the atomic positions
 and the local potential of a previous SCF run and can be created
 setting the parameter {\it in\%output\_grid} to $-2$ in
-the file {\it input.dft}. The SCF potential is interpolated, using
+the file {\it \texttt{input.dft}}. The SCF potential is interpolated, using
 interpolant wavelets, to get the potential on the target grid.
 The SCF grid of the previous run must have less points than the target
 grid.
@@ -810,17 +883,18 @@ all-electrons ones remains excellent.
  
 In progress
 
+\appendix
   
 \begin{thebibliography}{0}
 \bibitem{Taillefumier}** This reversed PAW procedure, that we describe and document here, looks similar to the one which seems to be  used in Taillefumier et al., Phys. Rev. B 66, 195107 (2002) 
 \bibitem{blume}   M. Blume, in Resonant Anomalous X-Ray Scattering, edited by G. Materlik, J. Sparks and K. Fisher (Elsevier, Amsterdam, 1994), p. 495.
 \bibitem{weiss} A. Weiss, G. Wellein, A. Alvermann and H. Fehske Rev. Mod. Phys. 78, 275 (2006) 
-
-
 \end{thebibliography}
 
-\chapter*{Native ABINIT XC functionals}
 
+\chapter{XC functionals codes}
+
+\section{Native ABINIT XC codes}
 \begin{longtable}{ll}
 0  & NO xc\\
 1  & LDA or LSD, Teter Pade parametrization\\
@@ -859,10 +933,10 @@ In progress
 27 & GGA, HTCH407 of A.D. Boese, and N.C. Handy, J. Chem. Phys 114, 5497 (2001)\\
 \end{longtable}
 
-\chapter*{libXC functional codes}
+\section{libXC functional codes}
 \label{appendix-libXC}
 
-In the input file 'input.dft', you have to specify a code from this table made with a negative sign
+In the input file '\texttt{input.dft}', you have to specify a code from this table made with a negative sign
 concatenated with two integers, one for exchange part and another one for correlation part.
 
 \begin{longtable}{lrl}

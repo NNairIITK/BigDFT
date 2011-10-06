@@ -61,7 +61,7 @@ contains
     call memocc(0,me,'count','start')
 
     !standard names
-    call standard_inputfile_names(in)
+    call standard_inputfile_names(in,'input')
     call read_input_variables(me_, "posinp",in, at, rxyz)
 
     ! Transfer at data to ART variables
