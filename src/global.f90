@@ -121,6 +121,7 @@ program MINHOP
 !!$  call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
 
   !read input parameters for molecular dynamics
+  call read_atomic_file('poscur',iproc,md_atoms,pos)
   call read_input_parameters(iproc,inputs_md,md_atoms,pos)
 !!$  call default_input_variables(inputs_md)
 !!$  call dft_input_variables_new(iproc,'mdinput.dft',inputs_md)
