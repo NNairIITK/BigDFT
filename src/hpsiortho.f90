@@ -462,6 +462,18 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
 
   !band structure energy calculated with occupation numbers
   energybs=ekin+epot+eproj !the potential energy contains also exctX
+
+!!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
+!!$  eTS=0.0_gp
+!!$  do iorb=1,orbs%norbu  ! for closed shell case
+!!$     !  if (iproc == 0)  print '("iorb,occup,eval,fermi:  ",i,e10.2,e27.17,e27.17)',iorb,orbs%occup(iorb),orbs%eval(iorb),orbs%efermi
+!!$     eTS=eTS+exp(-((orbs%eval(iorb)-orbs%efermi)/in%Tel)**2)
+!!$  enddo
+!!$  if eTS=eTS*2._gp   ! for closed shell case
+!!$  eTS=in%Tel/(2._gp*sqrt(3.1415926535897932_gp))* eTS
+!!$  energy=energy-eTS
+!!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
+
   !this is the Kohn-Sham energy
   energyKS=energybs-ehart+exc-evxc-eexctX-eSIC_DC+eion+edisp
 

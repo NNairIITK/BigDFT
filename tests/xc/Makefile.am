@@ -25,10 +25,10 @@ endif
 check_PROGRAMS = test_xc
 
 test_xc_SOURCES = test_xc.f90 
-test_xc_LDADD =  -lbigdft $(libs_dgemmsy) $(libs_cuda) $(libs_ocl)
+test_xc_LDADD = -lbigdft $(libs_dgemmsy) $(libs_cuda) $(libs_ocl) -labinit -lbigdft
 test_xc_LDFLAGS = -L$(top_builddir)/src
 
-AM_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ 
 
 xc.out: test_xc
 	./test_xc > xc.out
