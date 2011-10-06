@@ -34,7 +34,7 @@ program MINHOP
   real(kind=8), allocatable, dimension(:,:) ::ff,wpos,vxyz,gg,earr,poshop
   real(kind=8), allocatable, dimension(:) ::rcov
   real(kind=8),allocatable, dimension(:,:,:):: poslocmin
-  real(kind=8), dimension(:,:), pointer :: pos
+  real(kind=8), dimension(:,:), pointer :: pos,mdpos
   integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
@@ -49,9 +49,6 @@ program MINHOP
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   !call system('echo $HOSTNAME')
 
-  ! Read performance inputs if present
-  call perf_input_variables(iproc,'input.perf',inputs_opt)
-  call perf_input_variables(iproc,'mdinput.perf',inputs_md)
   ! Initialize memory counting
   !call memocc(0,iproc,'count','start')
 
@@ -121,7 +118,7 @@ program MINHOP
 !!$  call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
 
   !read input parameters for molecular dynamics
-  call read_atomic_file('poscur',iproc,md_atoms,pos)
+  call read_atomic_file('poscur',iproc,md_atoms,mdpos)
   call read_input_parameters(iproc,inputs_md,md_atoms,pos)
 !!$  call default_input_variables(inputs_md)
 !!$  call dft_input_variables_new(iproc,'mdinput.dft',inputs_md)
@@ -132,6 +129,10 @@ program MINHOP
   !use only the atoms structure for the run
   call init_atomic_values(iproc,md_atoms,inputs_md%ixc)
   call deallocate_atoms(md_atoms,subname) 
+  i_all=-product(shape(mdpos))*kind(mdpos)
+  deallocate(mdpos,stat=i_stat)
+  call memocc(i_stat,i_all,'mdpos',subname)
+
 
   ! Read associated pseudo files. Based on the inputs_opt set
   call init_atomic_values(iproc, atoms, inputs_opt%ixc)
@@ -603,9 +604,12 @@ program MINHOP
   i_all=-product(shape(poslocmin))*kind(poslocmin)
   deallocate(poslocmin,stat=i_stat)
   call memocc(i_stat,i_all,'poslocmin',subname)
- i_all=-product(shape(poshop))*kind(poshop)
+
+  i_all=-product(shape(poshop))*kind(poshop)
   deallocate(poshop,stat=i_stat)
   call memocc(i_stat,i_all,'poshop',subname)
+
+  i_all=-product(shape(rcov))*kind(rcov)
   deallocate(rcov,stat=i_stat)
   call memocc(i_stat,i_all,'rcov',subname)
   if (iproc == 0) write(*,'(a,1x,3(1x,1pe10.3))') '# Out:ediff,ekinetic,dt',ediff,ekinetic,dt
