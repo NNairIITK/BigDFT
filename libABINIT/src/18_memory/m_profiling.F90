@@ -76,14 +76,14 @@
       
       if (istatus == 2) return !the default situation
 
-      if (istatus == 1) then 
+      if (istatus == 1 .and. memproc==0) then 
          !clean the file situation (delete the previously existing file)
          close(unit=mallocFile)                        
          call delete('malloc.prc',len('malloc.prc'),istat_del)
          open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
       end if
 
-      if (istatus == 0) then
+      if (istatus == 0 .and. memproc==0) then
          !the file should be deleted
          close(unit=mallocFile)
          !open(unit=mallocFile,file='malloc.prc',status='replace')

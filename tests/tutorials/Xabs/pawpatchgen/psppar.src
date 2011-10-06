@@ -1,6 +1,6 @@
 r 20 2.0  2.09     4.19 
    15   5  070301 zatom,zion,pspdat
-10  1  1 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+10  -20  1 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
      0.43000000    1    -6.65421981                                                 rloc nloc c1
     2                                                                               nnonloc
      0.38980284    2     6.84213556    -1.49369090                                  rs ns hs11 hs12
