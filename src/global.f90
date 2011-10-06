@@ -1229,7 +1229,9 @@ subroutine torque(nat,rxyz,vxyz)
      cmy=cmy+rxyz(2,iat)
      cmz=cmz+rxyz(3,iat)
   enddo
-  cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
+  cmx=cmx/real(nat,gp) 
+  cmy=cmy/real(nat,gp) 
+  cmz=cmz/real(nat,gp)
 
   ! torque
   tx=0.d0 ; ty=0.d0 ; tz=0.d0

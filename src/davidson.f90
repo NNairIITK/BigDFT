@@ -615,7 +615,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
        nlpspd,proj,lr,v,hv,eproj_sum)
 
-  call SynchronizeHamiltonianApplication(nproc,orbs,lr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+  call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -900,7 +900,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,g,hg,eproj_sum)
 
-     call SynchronizeHamiltonianApplication(nproc,orbs,lr,GPU,hg,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+     call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hg,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
 
      !transpose  g and hg
@@ -1174,7 +1174,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,v,hv,eproj_sum)
 
-     call SynchronizeHamiltonianApplication(nproc,orbs,lr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+     call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
 
      !transpose  v and hv
