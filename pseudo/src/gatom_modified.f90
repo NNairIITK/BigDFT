@@ -641,6 +641,21 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
         !! completes the missing value. Anyway Npaw will be  used to limit the dimension
         Soverlap(isol,isol)=1.0_gp
      enddo
+
+
+     write(38,*)  ">>  Comparaison Egrid  Egrid_pseudo "
+     write(6 ,*)  ">>  Comparaison betwenn first 5 Egrid and   Egrid_pseudo "
+     do n=1, Nsol
+        if((Etofit(n)+0.1).ge.Egrid(1)) then
+           write(38,*) Etofit(n), Egrid(n -real_start+1)
+           if (n.le.5) write(6 ,*) Etofit(n), Egrid(n -real_start+1)
+        else
+           write(38,*) Etofit(n)
+           if (n.le.5) write(6 ,*) Etofit(n)
+        endif
+     enddo
+     
+
      
      !! now get the dual
      get_duality: if(.true.) then
@@ -754,6 +769,8 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
            PAWpatch(isol,isol)=PAWpatch(isol,isol)+Egrid(isol)  
         enddo
         
+
+
 
         if( .true. ) then
            !!! MEGA-check 

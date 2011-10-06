@@ -408,18 +408,18 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      
      
      real_start=-1
-     write(38,*)  ">>  Comparaison Egrid  Egrid_pseudo "
-     write(6 ,*)  ">>  Comparaison betwenn first 5 Egrid and   Egrid_pseudo "
+     !! write(38,*)  ">>  Comparaison Egrid  Egrid_pseudo "
+     !! write(6 ,*)  ">>  Comparaison betwenn first 5 Egrid and   Egrid_pseudo "
      do n=1, Nsol
         if((Egrid(n)+0.1).ge.Egrid_pseudo(1)) then
            if(real_start==-1) then
                real_start = n
             end if
-            write(38,*) Egrid(n), Egrid_pseudo(n -real_start+1)
-            if (n.le.5) write(6 ,*) Egrid(n), Egrid_pseudo(n -real_start+1)
+            !! write(38,*) Egrid(n), Egrid_pseudo(n -real_start+1)
+            !! if (n.le.5) write(6 ,*) Egrid(n), Egrid_pseudo(n -real_start+1)
         else
-           write(38,*) Egrid(n)
-           if (n.le.5) write(6 ,*) Egrid(n)
+           !! write(38,*) Egrid(n)
+           !! if (n.le.5) write(6 ,*) Egrid(n)
         endif
      enddo
 
