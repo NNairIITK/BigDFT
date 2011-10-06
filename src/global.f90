@@ -660,7 +660,7 @@ contains
     call velnorm(atoms,rxyz,ekinetic,vxyz)
     call razero(3*atoms%nat,gg)
 
-    if(iproc==0) call torque(nat,rxyz,vxyz)
+    if(iproc==0) call torque(atoms%nat,rxyz,vxyz)
 
     if(iproc==0) write(*,*) '# MINHOP start MD'
     !C inner (escape) loop
