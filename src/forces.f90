@@ -16,7 +16,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   type(input_variables), intent(inout) :: inputs
   type(atoms_data), intent(inout) :: atoms
   type(restart_objects), intent(inout) :: rst
-  real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+  real(gp), dimension(3,atoms%nat), intent(inout) :: fxyz
   !local variables
   character(len=*), parameter :: subname='forces_via_finite_differences'
   character(len=4) :: cc
@@ -25,7 +25,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   real(gp), dimension(3) :: fd_step
   integer, dimension(:), allocatable :: kmoves
   real(gp), dimension(:), allocatable :: functional,dfunctional
-  real(gp), dimension(:,:), allocatable :: rxyz_ref
+  real(gp), dimension(:,:), allocatable :: rxyz_ref,fxyz_fake
 
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
@@ -72,25 +72,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   energy_ref=energy
 
   !assign the reference
-  if (iorb_ref==0) then
-     functional_ref=energy
-  else if (iorb_ref == -1) then
-     if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap)) then
-        functional_ref=rst%orbs%HLgap !here we should add the definition which brings to Fukui function
-     else
-        stop ' ERROR (FDforces): gap not defined' 
-     end if
-  else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
-     if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap)) then
-        !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
-        !definition which brings to Chemical Potential
-        functional_ref=-abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap) 
-     else
-        stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated' 
-     end if
-  else
-     functional_ref=rst%orbs%eval(iorb_ref)
-  end if
+  functional_ref=functional_definition(iorb_ref,energy,rst%orbs)
 
   if (order == -1) then
      n_order = 1
@@ -120,6 +102,9 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   call memocc(i_stat,dfunctional,'dfunctional',subname)
   allocate(rxyz_ref(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz_ref,'rxyz_ref',subname)
+  allocate(fxyz_fake(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,fxyz_fake,'fxyz_fake',subname)
+
 
   call razero(3*atoms%nat,dfunctional)
 
@@ -169,21 +154,22 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            end if
            inputs%inputPsiId=1
            !here we should call cluster
-           call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,fnoise,&
+           call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz_fake,fnoise,&
                 rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
                 rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
 
            !assign the quantity which should be differentiated
-           if (iorb_ref==0) then
-              functional(km)=energy
-           else if (iorb_ref==-1) then
-              functional(km)=rst%orbs%HLgap
-           else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
-              !definition which brings Chemical potential
-              functional(km)=-abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap)
-           else
-              functional(km)=rst%orbs%eval(iorb_ref)
-           end if
+           functional(km)=functional_definition(iorb_ref,energy,rst%orbs)
+!!$           if (iorb_ref==0) then
+!!$              functional(km)=energy
+!!$           else if (iorb_ref==-1) then
+!!$              functional(km)=rst%orbs%HLgap
+!!$           else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
+!!$              !definition which brings Chemical potential
+!!$              functional(km)=-abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap)
+!!$           else
+!!$              functional(km)=rst%orbs%eval(iorb_ref)
+!!$           end if
            
         end do
         ! Build the finite-difference quantity if the calculatio has converged properly
@@ -213,7 +199,11 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   end do
 
   !copy the final value of the energy and of the dfunctional
-  call dcopy(3*atoms%nat,dfunctional,1,fxyz,1)
+  if (.not. experimental_modulebase_var_onlyfion) then !normal case
+     call dcopy(3*atoms%nat,dfunctional,1,fxyz,1)
+  else
+     call axpy(3*atoms%nat,2.0_gp*rst%orbs%norb,dfunctional(1),1,fxyz(1,1),1)
+  end if
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz_ref,fxyz,fnoise)
 
@@ -237,7 +227,51 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   i_all=-product(shape(rxyz_ref))*kind(rxyz_ref)
   deallocate(rxyz_ref,stat=i_stat)
   call memocc(i_stat,i_all,'rxyz_ref',subname)
+  i_all=-product(shape(fxyz_fake))*kind(fxyz_fake)
+  deallocate(fxyz_fake,stat=i_stat)
+  call memocc(i_stat,i_all,'fxyz_fake',subname)
 
+contains
+  
+  function functional_definition(iorb_ref,energy,orbs)
+    use module_base
+    use module_types
+    implicit none
+    integer, intent(in) :: iorb_ref
+    real(gp), intent(in) :: energy
+    type(orbitals_data), intent(in) :: orbs
+    real(gp) :: functional_definition
+    !local variables
+    real(gp) :: mu
+
+    !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
+    !definition which brings to Chemical Potential
+    if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap) .and. iorb_ref< -1) then
+       mu=-abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap) 
+    else
+       mu=UNINITIALIZED(1.0_gp)
+    end if
+
+    !assign the reference
+    if (iorb_ref==0) then
+       functional_definition=energy
+    else if (iorb_ref == -1) then
+       if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap)) then
+          functional_definition=rst%orbs%HLgap !here we should add the definition which brings to Fukui function
+       else
+          stop ' ERROR (FDforces): gap not defined' 
+       end if
+    else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
+       if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap)) then
+          functional_definition=mu!-mu*real(2*orbs%norb,gp)+energy
+       else
+          stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated' 
+       end if
+    else
+       functional_definition=rst%orbs%eval(iorb_ref)
+    end if
+    
+  end function functional_definition
 
 end subroutine forces_via_finite_differences
 
@@ -263,7 +297,6 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   !local variables
   integer :: ierr,iat
 
-  !! @todo Symmetrize forces with k points
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,rho,pot,fxyz)
 
@@ -295,11 +328,15 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
 !!$  endif
 
   !add to the forces the ionic and dispersion contribution 
-  do iat=1,atoms%nat
-     fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
-     fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
-     fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
-  enddo
+  if (.not. experimental_modulebase_var_onlyfion) then !normal case
+     do iat=1,atoms%nat
+        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
+        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
+        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
+     enddo
+  else
+     call vcopy(3*atoms%nat,fion(1,1),1,fxyz(1,1),1)
+  end if
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   ! Apply symmetries when needed
@@ -316,7 +353,7 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
   real(wp), dimension(n1i*n2i*n3p*nspin), intent(in) :: potxc
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+  real(gp), dimension(3,atoms%nat), intent(inout) :: fxyz
   !local variables
   real(gp), parameter :: oneo4pi=.079577471545947_wp
   logical :: perx,pery,perz,gox,goy,goz
@@ -828,7 +865,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
      ! loop over all my orbitals for calculating forces
      do iorb=isorb,ieorb
         ! loop over all projectors
-        call razero(3*at%nat,fxyz_orb)
+        call to_zero(3*at%nat,fxyz_orb(1,1))
         do ispinor=1,nspinor,ncplx
            jorb=jorb+1
            do iat=1,at%nat

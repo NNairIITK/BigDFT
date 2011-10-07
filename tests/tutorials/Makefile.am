@@ -1,4 +1,7 @@
 # Give here the list of existing tests
+
+#SUBDIRS = Xabs/pawpatchgen  Xabs/scfpotgen   Xabs/spectra    
+
 TESTDIRS = CH4 \
 	  CH3- \
 	  H2O-slab

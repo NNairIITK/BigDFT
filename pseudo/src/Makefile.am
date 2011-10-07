@@ -36,7 +36,6 @@ atom_LDADD = \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-
 pseudo_SOURCES = pseudo.f90 $(low_level) $(f90_level) $(xc_level) $(cuda_level) $(mpi_source)
 pseudo_LDADD = \
 	$(LMPI) \
@@ -56,7 +55,8 @@ low_level = crtvh.f \
 	gamma.f \
 	radgrid.f \
 	zero.f \
-	zbrent.f
+	zbrent.f\
+	atom.splines.f
 
 f90_level = \
 	ekin_gauss_wvlt.f90 \
@@ -65,7 +65,12 @@ f90_level = \
 	etot.f90 \
 	ppack.f90 \
 	penalty.f90 \
-	errorhandler.f90
+	errorhandler.f90 \
+	gatom_modified.f90 \
+	pawpatch.f90\
+	patchgenerator.f90 \
+	pawpatch.dirac.f90 
+
 
 xc_level = \
 	xcfunction.f90 \

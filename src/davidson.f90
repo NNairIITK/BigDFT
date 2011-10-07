@@ -82,13 +82,16 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call free_gpu_OCL(GPU,orbs,in%nspin)    
      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
           in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
+     if (iproc == 0) write(*,*)&
+          'GPU data allocated'
   end if
  
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
   !should be performed
+  eexctX=0.0_gp
   exctX = xc_exctXfac() /= 0.0_gp
-
+  if (in%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
   !check the size of the rhopot array related to NK SIC
   nrhodim=in%nspin
   i3rho_add=0
@@ -247,9 +250,18 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      !terminate SCF loop if forced to switch more than once from DIIS to SD
      !endloop=endloop .or. ndiis_sd_sw > 2
 
-     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$          nlpspd,proj,lr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$          pkernel,orbs,psirocc) ! optional arguments
+
+     call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+          lr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
           pkernel,orbs,psirocc) ! optional arguments
+
+     call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+          nlpspd,proj,lr,psivirt,hpsivirt,eproj_sum)
+
+     call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hpsivirt,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -345,7 +357,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   call calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
 
   !the plotting should be added here (perhaps build a common routine?)
-  call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+  call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,in%output_wf_format)
   
 END SUBROUTINE direct_minimization
 
@@ -468,7 +480,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
   !should be performed
+  eexctX=0.0_gp
   exctX = xc_exctXfac() /= 0.0_gp
+  if (in%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
 
   !check the size of the rhopot array related to NK SIC
   nrhodim=in%nspin
@@ -580,15 +594,29 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 !!$     !put the wxd term in the psirocc array (leav it like that in case the off-diagonal term is needed
 !!$     call NK_SIC_potential(lr,orbs,in%SIC%ixc,in%SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,&
 !!$          psi,pot(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1:),eSIC_DC,wxdsave=psirocc)
+     !experimental: add confining potential to the hamiltonian
+     !should already be guaranteed by the crmult terms
+     !call add_confining_potential(lr%d%n1i,lr%d%n2i,lr%d%n3i,orbs%nspin,1.e-10_gp,1.e-14_gp,-0.5_gp,&
+     !     pot(1),pot(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1))
   end if
 
 
   !experimental: add parabolic potential to the hamiltonian
   !call add_parabolic_potential(at%geocode,at%nat,lr%d%n1i,lr%d%n2i,lr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
 
-  call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$  call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$       pkernel,orbs,psirocc) ! optional arguments
+
+  call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+       lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
        pkernel,orbs,psirocc) ! optional arguments
+
+  call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+       nlpspd,proj,lr,v,hv,eproj_sum)
+
+  call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
 
@@ -608,7 +636,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   ispsi=1
   do ikptp=1,orbsv%nkptsp
      ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-     nvctrp=commsv%nvctr_par(iproc,ikptp)
+     nvctrp=commsv%nvctr_par(iproc,ikpt)
      if (nvctrp == 0) cycle
 
      nspinor=orbsv%nspinor
@@ -705,7 +733,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      ispsi=1
      do ikptp=1,orbsv%nkptsp
         ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nvctrp=commsv%nvctr_par(iproc,ikpt)
         if (nvctrp == 0) cycle
 
         nspinor=orbsv%nspinor
@@ -772,7 +800,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
         ispsi=1
         do ikptp=1,orbsv%nkptsp
            ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-           nvctrp=commsv%nvctr_par(iproc,ikptp)
+           nvctrp=commsv%nvctr_par(iproc,ikpt)
            if (nvctrp == 0) cycle
            
            nspinor=orbsv%nspinor
@@ -861,9 +889,19 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      allocate(hg(orbsv%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,hg,'hg',subname)
 
-     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
-          pkernel,orbs,psirocc) ! optional argument
+!!$     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$          pkernel,orbs,psirocc) ! optional argument
+
+     call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+          lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+          pkernel,orbs,psirocc) ! optional arguments
+
+     call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+          nlpspd,proj,lr,g,hg,eproj_sum)
+
+     call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hg,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+
 
      !transpose  g and hg
      call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
@@ -878,7 +916,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
         ispsi=1
         do ikptp=1,orbsv%nkptsp
            ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-           nvctrp=commsv%nvctr_par(iproc,ikptp)
+           nvctrp=commsv%nvctr_par(iproc,ikpt)
            if (nvctrp == 0) cycle
            
            nspinor=orbsv%nspinor
@@ -923,7 +961,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
         do ispin=1,nspin
 
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (nvctrp == 0) cycle
            !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
@@ -955,7 +993,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
         ise=0
         do ispin=1,nspin
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (nvctrp == 0) cycle
 
@@ -1125,9 +1163,19 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      ! Hamilton application on v
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
-     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
-          pkernel,orbs,psirocc) !optional arguments
+!!$     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$          pkernel,orbs,psirocc) !optional arguments
+
+     call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+          lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+          pkernel,orbs,psirocc) ! optional arguments
+
+     call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+          nlpspd,proj,lr,v,hv,eproj_sum)
+
+     call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+
 
      !transpose  v and hv
      call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,v,work=psiw)
@@ -1225,7 +1273,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   call calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
 
   !write the results on the screen
-  call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,v)
+  call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,v,in%output_wf_format)
 
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)
@@ -1652,12 +1700,12 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
 END SUBROUTINE psivirt_from_gaussians
 
 
-subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,output_wf_format)
   use module_base
   use module_types
   implicit none
   logical, intent(in) :: occorbs
-  integer, intent(in) :: iproc,nspin,nvirt,nplot
+  integer, intent(in) :: iproc,nspin,nvirt,nplot,output_wf_format
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(locreg_descriptors), intent(in) :: lr
@@ -1861,38 +1909,40 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
           "WARNING: More plots requested than orbitals calculated." 
   end if
 
-  !add a modulo operator to get rid of the particular k-point
-  do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
+  if(output_wf_format == 2) then
+     !add a modulo operator to get rid of the particular k-point
+     do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
 
-     if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot)) then
-        exit 
-        !if(iproc == 0 .and. abs(nplot) > 0) write(*,'(A)')'No plots of occupied orbitals requested.'
-     end if
+        if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot)) then
+           exit 
+           !if(iproc == 0 .and. abs(nplot) > 0) write(*,'(A)')'No plots of occupied orbitals requested.'
+        end if
 
-     ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-     !plot the orbital and the density
-     write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb
-     write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
-     write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
-
-     call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psivirt(ind:),comment)
-     call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psivirt(ind:),comment)
-
-  end do
-
-  do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-     if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(nplot)) then  ! SG 
-        !address
         ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-        write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
-        write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
-        write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
+        !plot the orbital and the density
+        write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb
+        write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
+        write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
 
-        call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-        call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-        
-     endif
-  end do
+        call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psivirt(ind:),comment)
+        call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psivirt(ind:),comment)
+
+     end do
+
+     do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
+        if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(nplot)) then  ! SG 
+           !address
+           ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+           write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
+           write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
+           write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
+
+           call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+           call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+           
+        endif
+     end do
+  end if
   ! END OF PLOTTING
 
 
@@ -1934,7 +1984,36 @@ subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
   end if
 
 end subroutine calculate_HOMO_LUMO_gap
-  
+
+!> Add a potential to the local potential which has the function of confining the 
+!! Solutions to a given value
+subroutine add_confining_potential(n1i,n2i,n3i,nspin,eps,dencutoff,rpow,pot,rho)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1i,n2i,n3i,nspin
+  real(gp) , intent(in) :: rpow,eps,dencutoff
+  real(dp), dimension(n1i,n2i,n3i,nspin), intent(in) :: rho
+  real(wp), dimension(n1i,n2i,n3i,nspin), intent(inout) :: pot
+  !local variables
+  integer :: i1,i2,i3,ispin
+  real(dp) :: density
+
+  do ispin=1,nspin
+     do i3=1,n3i
+        do i2=1,n2i
+           do i1=1,n1i
+              !charge density value (not optimized)
+              if (nspin==2) then
+                 density=rho(i1,i2,i3,1)+rho(i1,i2,i3,2)
+              else
+                 density=rho(i1,i2,i3,1)
+              end if
+              pot(i1,i2,i3,ispin)=pot(i1,i2,i3,ispin)+eps*((density+dencutoff)**rpow)
+           end do
+        end do
+     end do
+  end do
+end subroutine add_confining_potential
 
 subroutine add_parabolic_potential(geocode,nat,n1i,n2i,n3i,hxh,hyh,hzh,rlimit,rxyz,pot)
   use module_base

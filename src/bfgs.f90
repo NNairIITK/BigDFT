@@ -11,6 +11,7 @@
 subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
     use module_base
     use module_types
+    use module_interfaces
     use minpar
     implicit none
     integer, intent(in) :: nproc,iproc
@@ -77,7 +78,7 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
         if (iproc == 0) then
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file('posout_'//fn4,epot,rxyz,at,trim(comment))
+           call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epot,rxyz,at,trim(comment),forces=fxyz)
         endif
         call bfgs_reza(iproc,nr,x,epot,f,nwork,work,in%betax,sqrt(fnrm),fmax, &
             ncount_bigdft,fluct*in%frac_fluct,fluct,at)
@@ -88,7 +89,7 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
            if(iproc==0) then
               write(fn4,'(i4.4)') ncount_bigdft
               write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-              call  write_atomic_file('posout_'//fn4,epot,rxyz,at,trim(comment))
+              call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epot,rxyz,at,trim(comment),forces=fxyz)
            endif
         endif
         !if(ncount_bigdft>in%ncount_cluster_x-1)
@@ -514,6 +515,7 @@ end subroutine bfgs_reza
 subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail) 
   use module_base
   use module_types
+  use module_interfaces
 !  use par_driver
   use minpar
   implicit none
@@ -620,7 +622,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
            if (iproc == 0) then
               write(fn4,'(i4.4)') ncount_bigdft
               write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-              call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
+              call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,rxyz,at,trim(comment),forces=fxyz)
            endif
            parmin%IWRITE=.false.
         endif
@@ -648,7 +650,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
          if (iproc == 0) then
             write(fn4,'(i4.4)') ncount_bigdft
             write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-            call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
+            call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,rxyz,at,trim(comment),forces=fxyz)
          endif
          goto 100
       endif

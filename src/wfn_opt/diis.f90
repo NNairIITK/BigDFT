@@ -455,7 +455,7 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
   !real(wp), dimension(:), pointer :: psit,hpsit
   !local variables
-  integer :: ikptp,nvctrp,ispsi,ispsidst
+  integer :: ikptp,nvctrp,ispsi,ispsidst,ikpt
  
 
   if (diis%idsx > 0) then
@@ -464,7 +464,8 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
      ispsi=1
      ispsidst=1
      do ikptp=1,orbs%nkptsp
-        nvctrp=comms%nvctr_par(iproc,ikptp)
+        ikpt=orbs%iskpts+ikptp
+        nvctrp=comms%nvctr_par(iproc,ikpt)
         if (nvctrp == 0) cycle
         !here we can choose to store the DIIS arrays with single precision
         !psidst=psit
@@ -492,7 +493,8 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
      ispsi=1
      ispsidst=1
      do ikptp=1,orbs%nkptsp
-        nvctrp=comms%nvctr_par(iproc,ikptp)
+        ikpt=orbs%iskpts+ikptp
+        nvctrp=comms%nvctr_par(iproc,ikpt)
         if (nvctrp == 0) cycle
         !experimental, recast in single precision the difference to see the loss
         !do i=1,nvctrp*orbs%nspinor*orbs%norb
@@ -631,7 +633,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   ispsidst=1
   do ikptp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
-     nvctrp=comms%nvctr_par(iproc,ikptp)
+     nvctrp=comms%nvctr_par(iproc,ikpt)
      if (nvctrp == 0) cycle
      ! set up DIIS matrix (upper triangle)
      if (diis%ids > diis%idsx) then
@@ -691,7 +693,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   ispsidst=1
   do ikptp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
-     nvctrp=comms%nvctr_par(iproc,ikptp)
+     nvctrp=comms%nvctr_par(iproc,ikpt)
      if (nvctrp == 0) cycle
      iorb_group_sh=0
      do igroup=1,ngroup

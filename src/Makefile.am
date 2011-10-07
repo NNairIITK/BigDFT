@@ -24,6 +24,10 @@ binaries_sources =
 scripts_sources = 
 endif
 
+if HAVE_ETSF_IO
+binaries_sources += BigDFT2Wannier
+endif
+
 if USE_CUDA_GPU
 sub_dirs_cuda=CUDA
 GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
@@ -79,6 +83,12 @@ else
 flush_files = modules/flush_fake.f90
 endif
 
+if HAVE_FC_GET_COMMAND_ARGUMENT
+getarg_files =
+else
+getarg_files = modules/get_command_argument_fake.f90
+endif
+
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
 else
@@ -103,6 +113,7 @@ EXTRA_DIST = \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
+	init/pspconf.in.f90 \
 	NEB_driver.sh 
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver -I$(srcdir)/wavelib \
@@ -208,11 +219,11 @@ low_level = init/projectors.f90  \
 	init/inputguess.f90 \
 	init/gautowav.f90 \
 	init/eleconf.f90 \
+	init/pspconf.f90 \
 	init/locreg.f90 \
 	init/sysprop.f90 \
 	init/gaussians.f90 \
 	init/wfn_init.f90 \
-	init/xabsorber.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
@@ -237,6 +248,7 @@ low_level = init/projectors.f90  \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
 	posfiles.c \
+	utils.c \
 	sdcg.f90 \
 	bfgs.f90 \
 	$(DGEMMSY_INTERFACE)
@@ -245,7 +257,9 @@ libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	BigDFT_API.f90 \
 	$(low_level) \
-	$(high_level)
+	$(high_level) \
+	$(flush_files) \
+	$(getarg_files)
 
 libbigdft_a_LIBADD = profiling/time.o \
 	profiling/memoryestimator.o \
@@ -284,6 +298,16 @@ oneatom_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_opt)
 
+
+BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90                                                                                                                                                                                  
+BigDFT2Wannier_LDFLAGS =
+BigDFT2Wannier_LDADD = libbigdft.a \
+        PSolver/libpoissonsolver.a \
+        $(LMPI) \
+        @MPI_LIBS@ \
+        $(libs_opt)
+
+
 MDanalysis_SOURCES = distances.f90 
 MDanalysis_LDFLAGS = 
 MDanalysis_LDADD = libbigdft.a \
@@ -316,11 +340,9 @@ NEB_LDADD = libbigdft.a \
 	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
-	$(mpi_source)
+	MPIfake.f90
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	$(LMPI) \
-	@MPI_LIBS@ \
 	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
@@ -343,7 +365,7 @@ bart_SOURCES = \
 	art/initialize.f90 \
 	art/read_parameters.f90 \
 	art.f90
-bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@
+bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDFLAGS = 
 bart_LDADD = art/libart.a \
 	libbigdft.a \
@@ -395,7 +417,7 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 
 BigDFT_API.o : scfloop_API.o
 
-distances.o global.o rism.o oneatom.o : BigDFT_API.o
+distances.o global.o rism.o oneatom.o BigDFT2Wannier.o : BigDFT_API.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 

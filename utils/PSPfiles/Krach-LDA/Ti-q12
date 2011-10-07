@@ -1,0 +1,13 @@
+Goedecker pseudopotential for Ti
+   22  12  070301 zatom,zion,pspdat
+10  1  2 2 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.38000000    2     7.54878947    -0.58837666                                  rloc nloc c1 c2
+    3                                                                               nnonloc
+     0.33423466    2     6.92573970     1.21689330                                  rs ns hs11 hs12
+                                       -3.14200499                                             hs22
+     0.24241582    2     5.07908650     2.65559321                                  rp np hp11 hp12
+                                       -6.28428053                                             hp22
+                         0.12239544    -0.02427591                                        kp11 kp12
+                                        0.05744728                                             kp22
+     0.24294750    1    -9.12589591                                                 rd nd hd11
+                         0.00582242                                                       kd11

@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Ga
+   31   3  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.56000000    0                                                                rloc nloc
+    3                                                                               nnonloc
+     0.61079074    3     2.36932516     0.09644314    -0.13462450                   rs ns hs11 hs12 hs13
+                                       -0.24901512     0.34759896                              hs22 hs23
+                                                      -0.55179624                                   hs33
+     0.70459583    2     0.74630529     0.21683799                                  rp np hp11 hp12
+                                       -0.51313234                                             hp22
+                         0.02960710     0.00036899                                        kp11 kp12
+                                       -0.00087320                                             kp22
+     0.98257967    1     0.07543656                                                 rd nd hd11
+                         0.00148617                                                       kd11

@@ -57,8 +57,9 @@ program frequencies
    real(gp), dimension(:,:), allocatable :: energies
    real(gp), dimension(:,:,:), allocatable :: forces
    real(gp), dimension(3) :: freq_step
+   character(len=60) :: radical
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
-   integer :: k,km,ii,jj,ik,imoves,order,n_order
+   integer :: k,km,ii,jj,ik,imoves,order,n_order,istat
    logical :: exists
 
    ! Start MPI in parallel version
@@ -67,6 +68,14 @@ program frequencies
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+   call memocc_set_memory_limit(memorylimit)
+
+   ! Read a possible radical format argument.
+   call get_command_argument(1, value = radical, status = istat)
+   if (istat > 0) then
+      write(radical, "(A)") "input"
+   end if
+
    ! Welcome screen
    if (iproc == 0) call print_logo()
 
@@ -74,7 +83,7 @@ program frequencies
    !call memocc(0,iproc,'count','start')
 
    !standard names
-   call standard_inputfile_names(inputs)
+   call standard_inputfile_names(inputs,radical)
    call read_input_variables(iproc, "posinp", inputs, atoms, rxyz)
 
    ! Read all input files.
@@ -462,6 +471,7 @@ program frequencies
       inquire(file='frequencies.res', exist=exists)
       if (.not.exists) then
          !There is no restart file.
+         call razero(n_order*(3*nat+1),energies(1,0))
          if (iproc == 0) write(*,freq_form) 'No "frequencies.res" file present.'
          return
       end if

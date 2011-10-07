@@ -19,7 +19,7 @@ subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   integer,intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
   integer, dimension(2,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16), intent(in) :: ib
   real(wp), dimension(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16), intent(in) :: x
-  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(out) :: y
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(inout) :: y
   !local variables
 !!    integer :: ncount0,ncount1,ncount_rate,ncount_max,nflop
 !!    real(kind=8) :: tel
@@ -116,7 +116,7 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
   integer, dimension(2,0:n2,0:n3), intent(in) :: ib
   integer, dimension(2,0:n3,-14:2*n1+16), intent(in) :: ib2
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
-  real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(out) :: y
+  real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(inout) :: y
   !local variables
 !!    real(kind=8) tel,t0,t1
   integer :: i,t,l1,l2,l3
@@ -302,7 +302,7 @@ subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
   integer, intent(in) :: n1,n2,n3
   integer, dimension(2,0:n2,0:n3), intent(in) :: ib
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
-  real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(out) :: y
+  real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(inout) :: y
   !local variables
 !!    integer ncount0,ncount1,ncount2,ncount_rate,ncount_max,nflop
 !!    real(kind=8) tel,t0,t1
@@ -466,7 +466,7 @@ subroutine make_loczero(n1,n2,n3,ib2,y)
   implicit none
   integer, intent(in) :: n1,n2,n3
   integer, dimension(2,0:n3,-14:2*n1+16), intent(in) :: ib2
-  real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(out) :: y
+  real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(inout) :: y
   !Local variables
   integer :: ll1,l10,l11,ll3,l30,l31,i,l1,l3
 

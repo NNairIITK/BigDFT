@@ -8,7 +8,7 @@
 
 
 !> MINHOP
-!!  Main program fro the minima hopping
+!!  Main program for the minima hopping
 program MINHOP
 
   use module_base
@@ -21,7 +21,7 @@ program MINHOP
   logical :: newmin,CPUcheck,occured
   character(len=20) :: unitsp,units,atmn
   character(len=80) :: line
-  type(atoms_data) :: atoms
+  type(atoms_data) :: atoms,md_atoms
   type(input_variables) :: inputs_opt, inputs_md
   type(restart_objects) :: rst
   integer, parameter :: npminx=200
@@ -34,7 +34,7 @@ program MINHOP
   real(kind=8), allocatable, dimension(:,:) ::ff,wpos,vxyz,gg,earr,poshop
   real(kind=8), allocatable, dimension(:) ::rcov
   real(kind=8),allocatable, dimension(:,:,:):: poslocmin
-  real(kind=8), dimension(:,:), pointer :: pos
+  real(kind=8), dimension(:,:), pointer :: pos,mdpos
   integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
@@ -49,9 +49,6 @@ program MINHOP
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   !call system('echo $HOSTNAME')
 
-  ! Read performance inputs if present
-  call perf_input_variables(iproc,'input.perf',inputs_opt)
-  call perf_input_variables(iproc,'mdinput.perf',inputs_md)
   ! Initialize memory counting
   !call memocc(0,iproc,'count','start')
 
@@ -107,18 +104,40 @@ program MINHOP
   endif
   close(12)
 
+  call standard_inputfile_names(inputs_opt,'input')
+  call standard_inputfile_names(inputs_md,'mdinput')
+
   call read_atomic_file('poscur',iproc,atoms,pos)
+
   !Read input parameters for geometry optimization 
-  call default_input_variables(inputs_opt)
-  call dft_input_variables(iproc,'input.dft',inputs_opt)
-  call geopt_input_variables('input.geopt',inputs_opt)
-  call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
+  call read_input_parameters(iproc,inputs_opt,atoms,pos)
+
+!!$  call default_input_variables(inputs_opt)
+!!$  call dft_input_variables_new(iproc,'input.dft',inputs_opt)
+!!$  call geopt_input_variables('input.geopt',inputs_opt)
+!!$  call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
 
   !read input parameters for molecular dynamics
-  call default_input_variables(inputs_md)
-  call dft_input_variables(iproc,'mdinput.dft',inputs_md)
-  call geopt_input_variables('mdinput.geopt',inputs_md)
-  call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
+  call read_atomic_file('poscur',iproc,md_atoms,mdpos)
+  call read_input_parameters(iproc,inputs_md,md_atoms,pos)
+!!$  call default_input_variables(inputs_md)
+!!$  call dft_input_variables_new(iproc,'mdinput.dft',inputs_md)
+!!$  call geopt_input_variables('mdinput.geopt',inputs_md)
+!!$  call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
+
+
+  !use only the atoms structure for the run
+  call init_atomic_values(iproc,md_atoms,inputs_md%ixc)
+  call deallocate_atoms(md_atoms,subname) 
+  i_all=-product(shape(mdpos))*kind(mdpos)
+  deallocate(mdpos,stat=i_stat)
+  call memocc(i_stat,i_all,'mdpos',subname)
+
+
+  ! Read associated pseudo files. Based on the inputs_opt set
+  call init_atomic_values(iproc, atoms, inputs_opt%ixc)
+
+
 
 
   do iat=1,atoms%nat
@@ -249,7 +268,7 @@ program MINHOP
   call init_restart_objects(iproc,inputs_opt%iacceleration,atoms,rst,subname)
   call call_bigdft(nproc,iproc,atoms,pos,inputs_md,e_pos,ff,fnoise,rst,infocode)
 
-  write(17,*) 'ENERGY ',e_pos
+  if (iproc==0)write(17,*) 'ENERGY ',e_pos
   energyold=1.d100
   ncount_bigdft=0
 
@@ -273,7 +292,7 @@ program MINHOP
      tt=dnrm2(3*atoms%nat,ff,1)
      write(fn4,'(i4.4)') nconjgr
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
-     call write_atomic_file('poslocm_'//fn4,e_pos-eref,pos,atoms,trim(comment))
+     call write_atomic_file('poslocm_'//fn4,e_pos-eref,pos,atoms,trim(comment),forces=ff)
   endif
   nconjgr=nconjgr+1
 
@@ -393,7 +412,7 @@ program MINHOP
         !call wtlmin(nconjgr,atoms%nat,e_wpos-eref,tt,wpos,atoms%iatype,atoms%atomnames,atoms%natpol)
         write(fn4,'(i4.4)') nconjgr
         write(comment,'(a,1pe10.3)')'fnrm= ',tt
-  call write_atomic_file('poslocm_'//fn4,e_wpos-eref,wpos,atoms,trim(comment))
+        call write_atomic_file('poslocm_'//fn4,e_wpos-eref,wpos,atoms,trim(comment),forces=ff)
      endif
   nconjgr=nconjgr+1
   re_wpos=round(e_wpos-eref,accur)
@@ -585,9 +604,12 @@ program MINHOP
   i_all=-product(shape(poslocmin))*kind(poslocmin)
   deallocate(poslocmin,stat=i_stat)
   call memocc(i_stat,i_all,'poslocmin',subname)
- i_all=-product(shape(poshop))*kind(poshop)
+
+  i_all=-product(shape(poshop))*kind(poshop)
   deallocate(poshop,stat=i_stat)
   call memocc(i_stat,i_all,'poshop',subname)
+
+  i_all=-product(shape(rcov))*kind(rcov)
   deallocate(rcov,stat=i_stat)
   call memocc(i_stat,i_all,'rcov',subname)
   if (iproc == 0) write(*,'(a,1x,3(1x,1pe10.3))') '# Out:ediff,ekinetic,dt',ediff,ekinetic,dt
@@ -638,7 +660,7 @@ contains
     call velnorm(atoms,rxyz,ekinetic,vxyz)
     call razero(3*atoms%nat,gg)
 
-    if(iproc==0) call torque(nat,rxyz,vxyz)
+    if(iproc==0) call torque(atoms%nat,rxyz,vxyz)
 
     if(iproc==0) write(*,*) '# MINHOP start MD'
     !C inner (escape) loop
@@ -693,7 +715,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
 
        if (iproc == 0) then
           write(fn,'(i4.4)') istep
-          call write_atomic_file('posmd_'//fn,e_rxyz,rxyz,atoms,'')
+          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn,e_rxyz,rxyz,atoms,'',forces=ff)
        end if
 
        en0000=e_rxyz-e_pos
@@ -855,7 +877,9 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
 
        write(fn4,'(i4.4)') it
        write(comment,'(a,1pe10.3)')'res= ',res
-       if (iproc == 0) call write_atomic_file('possoft_'//fn4,etot,wpos,atoms,trim(comment))
+       if (iproc == 0) &
+            call write_atomic_file(trim(inputs_md%dir_output)//'possoft_'//fn4,&
+            etot,wpos,atoms,trim(comment),forces=fxyz)
 
        if(iproc==0)write(*,'(a,i3,5(f12.5),f10.3)')'# soften it, curv, fd2,dE,res,eps_vxyz:',&
             it, curv, fd2,etot-etot0,res,eps_vxyz
@@ -889,7 +913,8 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
           vxyz(i)=wpos(i)-rxyz(i)
        end do
        write(comment,'(a,1pe10.3)')'curv= ',curv
-       if (iproc == 0) call write_atomic_file('posvxyz',0.d0,vxyz,atoms,trim(comment))
+       if (iproc == 0) &
+            call write_atomic_file(trim(inputs_md%dir_output)//'posvxyz',0.d0,vxyz,atoms,trim(comment),forces=fxyz)
        call elim_moment(atoms%nat,vxyz)
        call elim_torque_reza(atoms%nat,rxyz,vxyz)
 
@@ -1213,6 +1238,7 @@ END SUBROUTINE localdist
 
 
 subroutine torque(nat,rxyz,vxyz)
+  use module_base, only: gp
   implicit real*8 (a-h,o-z)
   dimension rxyz(3,nat),vxyz(3,nat)
 
@@ -1223,7 +1249,9 @@ subroutine torque(nat,rxyz,vxyz)
      cmy=cmy+rxyz(2,iat)
      cmz=cmz+rxyz(3,iat)
   enddo
-  cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
+  cmx=cmx/real(nat,gp) 
+  cmy=cmy/real(nat,gp) 
+  cmz=cmz/real(nat,gp)
 
   ! torque
   tx=0.d0 ; ty=0.d0 ; tz=0.d0
@@ -1345,6 +1373,7 @@ subroutine winter(at,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, &
      earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
   use module_base
   use module_types
+  use module_interfaces
   use ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
@@ -1397,6 +1426,7 @@ END SUBROUTINE wtioput
 subroutine wtpos(at,npminx,nlminx,nlmin,npmin,pos,earr,elocmin)
   use module_base
   use module_types
+  use module_interfaces
   use ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
@@ -1747,174 +1777,174 @@ if (option.ne.1 .and. option.ne.2) stop "Wrong option in fixfrag_refvels"
 
 !Calculate number of fragments and fragmentlist of the atoms
 do
-  nfragold=nfrag
-  do iat=1,nat                !Check the first atom that isn't part of a cluster yet
-    if(fragarr(iat)==0) then
-      nfrag=nfrag+1
-      fragarr(iat)=nfrag
-      exit
-    endif
-  enddo
-  if (nfragold==nfrag) exit
+   nfragold=nfrag
+   do iat=1,nat                !Check the first atom that isn't part of a cluster yet
+      if(fragarr(iat)==0) then
+         nfrag=nfrag+1
+         fragarr(iat)=nfrag
+         exit
+      endif
+   enddo
+   if (nfragold==nfrag) exit
 7000 niter=.false.
-  do iat=1,nat                !Check if all the other atoms are part of the current cluster
-    do jat=1,nat
-    bondlength=rcov(iat)+rcov(jat)
-    if(nfrag==fragarr(iat) .AND. jat.ne.iat .AND. fragarr(jat)==0) then
-         dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
-         if(dist<(bfactor*bondlength)**2) then
-         fragarr(jat)=nfrag
-         niter=.true.
+   do iat=1,nat                !Check if all the other atoms are part of the current cluster
+      do jat=1,nat
+         bondlength=rcov(iat)+rcov(jat)
+         if(nfrag==fragarr(iat) .AND. jat.ne.iat .AND. fragarr(jat)==0) then
+            dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
+            if(dist<(bfactor*bondlength)**2) then
+               fragarr(jat)=nfrag
+               niter=.true.
+            endif
          endif
-    endif
-    enddo
-  enddo
-  if(niter) then
-  goto 7000
-  endif
+      enddo
+   enddo
+   if(niter) then
+      goto 7000
+   endif
 enddo
 
 
 !   if(iproc==0) write(*,*) '#nfrag=',nfrag
-   occured=.false.
+occured=.false.
 if(nfrag.ne.1) then          !"if there is fragmentation..."
    occured=.true.
    if(iproc==0) write(*,*) '#FIX: Number of Fragments counted with option', nfrag,option
 
-if (option==1) then !OPTION=1, FIX FRAGMENTATION
-!   if(nfrag.ne.1) then          !"if there is fragmentation..."
-   
-   !Find out which fragment is the main cluster
-   allocate(fragcount(nfrag))
-   fragcount=0
-   do ifrag=1,nfrag
-      do iat=1,nat
-         if(fragarr(iat)==ifrag) then
-         fragcount(ifrag)=fragcount(ifrag)+1
-         endif
+   if (option==1) then !OPTION=1, FIX FRAGMENTATION
+      !   if(nfrag.ne.1) then          !"if there is fragmentation..."
+
+      !Find out which fragment is the main cluster
+      allocate(fragcount(nfrag))
+      fragcount=0
+      do ifrag=1,nfrag
+         do iat=1,nat
+            if(fragarr(iat)==ifrag) then
+               fragcount(ifrag)=fragcount(ifrag)+1
+            endif
+         enddo
       enddo
-   enddo
-   nmax=maxloc(fragcount(:))
-   if(iproc==0) write(*,*) '#FIX: The main Fragment index is', nmax(1)
+      nmax=maxloc(fragcount(:))
+      if(iproc==0) write(*,*) '#FIX: The main Fragment index is', nmax(1)
 
-   !Find the minimum distance between the clusters
-   do ifrag=1,nfrag
-      mindist=1.d100
-      if(ifrag.ne.nmax(1)) then
-           do iat=1,nat
-           if(fragarr(iat)==ifrag) then
-             do jat=1,nat
-               if(fragarr(jat)==nmax(1)) then
-               dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
-                  if(dist<mindist**2) then
-                  mindist=sqrt(dist)
-                  imin(1)=jat  !Atom with minimal distance in main fragment
-                  imin(2)=iat   !Atom with minimal distance in fragment ifrag
-                  endif
-                endif
-              enddo
-             endif
-           enddo
+      !Find the minimum distance between the clusters
+      do ifrag=1,nfrag
+         mindist=1.d100
+         if(ifrag.ne.nmax(1)) then
+            do iat=1,nat
+               if(fragarr(iat)==ifrag) then
+                  do jat=1,nat
+                     if(fragarr(jat)==nmax(1)) then
+                        dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
+                        if(dist<mindist**2) then
+                           mindist=sqrt(dist)
+                           imin(1)=jat  !Atom with minimal distance in main fragment
+                           imin(2)=iat   !Atom with minimal distance in fragment ifrag
+                        endif
+                     endif
+                  enddo
+               endif
+            enddo
 
-        if (iproc == 0) then
-           write(444,*) nat, 'atomic '
-           write(444,*) 'A fragmented configuration ',imin(1),imin(2)
-           do iat=1,nat
-              write(444,'(a5,3(e15.7),l1)') ' Mg  ',pos(1,iat),pos(2,iat),pos(3,iat)
-           enddo
-        endif
+            if (iproc == 0) then
+               write(444,*) nat, 'atomic '
+               write(444,*) 'A fragmented configuration ',imin(1),imin(2)
+               do iat=1,nat
+                  write(444,'(a5,3(e15.7),l1)') ' Mg  ',pos(1,iat),pos(2,iat),pos(3,iat)
+               enddo
+            endif
 
 
-         vec(:)=pos(:,imin(1))-pos(:,imin(2))
-         bondlength=rcov(imin(1))+rcov(imin(2))
+            vec(:)=pos(:,imin(1))-pos(:,imin(2))
+            bondlength=rcov(imin(1))+rcov(imin(2))
             do iat=1,nat        !Move fragments back towards the main fragment 
-                if(fragarr(iat)==ifrag) then
-                pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.5d0*bondlength)/mindist)
-                fragarr(iat)=nmax(1)
-                endif
+               if(fragarr(iat)==ifrag) then
+                  pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.5d0*bondlength)/mindist)
+                  fragarr(iat)=nmax(1)
+               endif
             enddo
 
 
+         endif
+      enddo
+      deallocate(fragcount)
+      if(iproc==0) write(*,*) '#FIX: Fragmentation fixed! Keep on hopping...'
+      if (iproc == 0) then
+         write(444,*) nat, 'atomic '
+         write(444,*) ' fixed configuration '
+         do iat=1,nat
+            write(444,'(a5,3(e15.7),l1)') ' Mg  ',pos(1,iat),pos(2,iat),pos(3,iat)
+         enddo
       endif
-   enddo
-   deallocate(fragcount)
-   if(iproc==0) write(*,*) '#FIX: Fragmentation fixed! Keep on hopping...'
-        if (iproc == 0) then
-           write(444,*) nat, 'atomic '
-           write(444,*) ' fixed configuration '
-           do iat=1,nat
-              write(444,'(a5,3(e15.7),l1)') ' Mg  ',pos(1,iat),pos(2,iat),pos(3,iat)
-           enddo
-        endif
 
-!   endif
+      !   endif
    elseif(option==2) then !OPTION=2, INVERT VELOCITIES
-!   if(nfrag.ne.1) then          !"if there is fragmentation..."
-   if(iproc==0) write(*,*) "#FIX: Preparing to invert velocities, option:",option
-   !Compute center of mass of all fragments and the collectiove velocity of each fragment
-   allocate(cm_frags(3,nfrag),vel_frags(3,nfrag),nat_frags(nfrag))
-   allocate(invert(nfrag))
-   cm_frags(:,:)=0.d0
-   vel_frags(:,:)=0.d0
-   nat_frags(:)=0         !number of atoms per fragment
-   cmass(:)=0.d0
-   velcm(:)=0.d0
-        do iat=1,nat
-           ifrag=fragarr(iat)
-           nat_frags(ifrag)=nat_frags(ifrag)+1
-           cm_frags(:,ifrag)=cm_frags(:,ifrag)+pos(:,iat)
-           vel_frags(:,ifrag)=vel_frags(:,ifrag)+vel(:,iat)
-        enddo
+      !   if(nfrag.ne.1) then          !"if there is fragmentation..."
+      if(iproc==0) write(*,*) "#FIX: Preparing to invert velocities, option:",option
+      !Compute center of mass of all fragments and the collectiove velocity of each fragment
+      allocate(cm_frags(3,nfrag),vel_frags(3,nfrag),nat_frags(nfrag))
+      allocate(invert(nfrag))
+      cm_frags(:,:)=0.d0
+      vel_frags(:,:)=0.d0
+      nat_frags(:)=0         !number of atoms per fragment
+      cmass(:)=0.d0
+      velcm(:)=0.d0
+      do iat=1,nat
+         ifrag=fragarr(iat)
+         nat_frags(ifrag)=nat_frags(ifrag)+1
+         cm_frags(:,ifrag)=cm_frags(:,ifrag)+pos(:,iat)
+         vel_frags(:,ifrag)=vel_frags(:,ifrag)+vel(:,iat)
+      enddo
 
       do ifrag=1,nfrag
-      cm_frags(:,ifrag)=cm_frags(:,ifrag)/real(nat_frags(ifrag),8)
-      vel_frags(:,ifrag)=vel_frags(:,ifrag)/real(nat_frags(ifrag),8)
-      cmass(:)=cmass(:)+cm_frags(:,ifrag)*nat_frags(ifrag)/real(nat,8)
-      velcm(:)=velcm(:)+vel_frags(:,ifrag)*nat_frags(ifrag)/real(nat,8)
+         cm_frags(:,ifrag)=cm_frags(:,ifrag)/real(nat_frags(ifrag),8)
+         vel_frags(:,ifrag)=vel_frags(:,ifrag)/real(nat_frags(ifrag),8)
+         cmass(:)=cmass(:)+cm_frags(:,ifrag)*nat_frags(ifrag)/real(nat,8)
+         velcm(:)=velcm(:)+vel_frags(:,ifrag)*nat_frags(ifrag)/real(nat,8)
       enddo
-        if (iproc==0) write(*,*) '# CM VELOCITY',sqrt(velcm(1)**2+velcm(2)**2+velcm(3)**2)
+      if (iproc==0) write(*,*) '# CM VELOCITY',sqrt(velcm(1)**2+velcm(2)**2+velcm(3)**2)
       if (velcm(1)**2+velcm(2)**2+velcm(3)**2.gt.1.d-24) then
-        if (iproc==0) write(*,*) '# NONZERO CM VELOCITY'
+         if (iproc==0) write(*,*) '# NONZERO CM VELOCITY'
       endif
 
 
-! now cm_frags contains the unit vector pointing from the center of mass of the entire system to the center of mass of the fragment
+      ! now cm_frags contains the unit vector pointing from the center of mass of the entire system to the center of mass of the fragment
       do ifrag=1,nfrag
-        cm_frags(:,ifrag)=cm_frags(:,ifrag)-cmass(:)
-        rnrmi=1.d0/sqrt(cm_frags(1,ifrag)**2+cm_frags(2,ifrag)**2+cm_frags(3,ifrag)**2)
-        cm_frags(1,ifrag)=cm_frags(1,ifrag)*rnrmi
-        cm_frags(2,ifrag)=cm_frags(2,ifrag)*rnrmi
-        cm_frags(3,ifrag)=cm_frags(3,ifrag)*rnrmi
-        angle=cm_frags(1,ifrag)*vel_frags(1,ifrag)+cm_frags(2,ifrag)*vel_frags(2,ifrag)+cm_frags(3,ifrag)*vel_frags(3,ifrag)
-        rnrmi=1.d0/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
-        angle=angle*rnrmi
-        if (angle.gt.0.d0) then
-          invert(ifrag)=.true.
-        else
-          invert(ifrag)=.false.
-        endif
-        if (iproc==0) write(*,*) '# ifrag, angle ',ifrag, angle,invert(ifrag)
+         cm_frags(:,ifrag)=cm_frags(:,ifrag)-cmass(:)
+         rnrmi=1.d0/sqrt(cm_frags(1,ifrag)**2+cm_frags(2,ifrag)**2+cm_frags(3,ifrag)**2)
+         cm_frags(1,ifrag)=cm_frags(1,ifrag)*rnrmi
+         cm_frags(2,ifrag)=cm_frags(2,ifrag)*rnrmi
+         cm_frags(3,ifrag)=cm_frags(3,ifrag)*rnrmi
+         angle=cm_frags(1,ifrag)*vel_frags(1,ifrag)+cm_frags(2,ifrag)*vel_frags(2,ifrag)+cm_frags(3,ifrag)*vel_frags(3,ifrag)
+         rnrmi=1.d0/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
+         angle=angle*rnrmi
+         if (angle.gt.0.d0) then
+            invert(ifrag)=.true.
+         else
+            invert(ifrag)=.false.
+         endif
+         if (iproc==0) write(*,*) '# ifrag, angle ',ifrag, angle,invert(ifrag)
       enddo
-!Decompose each atomic velocity into an component parallel and perpendicular to the cm_frags  vector and inter the 
-!paralle part if it point away from the CM
+      !Decompose each atomic velocity into an component parallel and perpendicular to the cm_frags  vector and inter the 
+      !paralle part if it point away from the CM
 
-!Check kinetic energy before inversion
-       ekin0=0.d0
-       vcm1=0.d0
-       vcm2=0.d0
-       vcm3=0.d0
-       do iat=1,nat
-       ekin0=ekin0+vel(1,iat)**2+vel(2,iat)**2+vel(3,iat)**2
-       vcm1=vcm1+vel(1,iat)
-       vcm2=vcm2+vel(2,iat)
-       vcm3=vcm3+vel(3,iat)
-       enddo
+      !Check kinetic energy before inversion
+      ekin0=0.d0
+      vcm1=0.d0
+      vcm2=0.d0
+      vcm3=0.d0
+      do iat=1,nat
+         ekin0=ekin0+vel(1,iat)**2+vel(2,iat)**2+vel(3,iat)**2
+         vcm1=vcm1+vel(1,iat)
+         vcm2=vcm2+vel(2,iat)
+         vcm3=vcm3+vel(3,iat)
+      enddo
       if (iproc==0) write(*,'(a,e14.7,3(e10.3))') '# EKIN CM before invert',ekin0,vcm1,vcm2,vcm3
       if (iproc==0) call torque(nat,pos,vel)
-!Checkend kinetic energy before inversion
+      !Checkend kinetic energy before inversion
 
-     do iat=1,nat
-! inversions  by fragment group
+      do iat=1,nat
+         ! inversions  by fragment group
          ifrag=fragarr(iat)
          if (invert(ifrag)) then
             scpr=cm_frags(1,ifrag)*vel(1,iat)+cm_frags(2,ifrag)*vel(2,iat)+cm_frags(3,ifrag)*vel(3,iat)
@@ -1922,246 +1952,246 @@ if (option==1) then !OPTION=1, FIX FRAGMENTATION
          endif
       enddo
 
-       call elim_moment(nat,vel)
-       call elim_torque_reza(nat,pos,vel)
+      call elim_moment(nat,vel)
+      call elim_torque_reza(nat,pos,vel)
 
-! scale velocities to regain initial ekin0
-       ekin=0.d0
-       do iat=1,nat
-       ekin=ekin+vel(1,iat)**2+vel(2,iat)**2+vel(3,iat)**2
-       enddo
-       scale=sqrt(ekin0/ekin)
-       do iat=1,nat
-       vel(1,iat)=vel(1,iat)*scale
-       vel(2,iat)=vel(2,iat)*scale
-       vel(3,iat)=vel(3,iat)*scale
-       enddo
+      ! scale velocities to regain initial ekin0
+      ekin=0.d0
+      do iat=1,nat
+         ekin=ekin+vel(1,iat)**2+vel(2,iat)**2+vel(3,iat)**2
+      enddo
+      scale=sqrt(ekin0/ekin)
+      do iat=1,nat
+         vel(1,iat)=vel(1,iat)*scale
+         vel(2,iat)=vel(2,iat)*scale
+         vel(3,iat)=vel(3,iat)*scale
+      enddo
 
-!Check kinetic energy after inversion
-       ekin=0.d0
-       vcm1=0.d0
-       vcm2=0.d0
-       vcm3=0.d0
-       do iat=1,nat
-       ekin=ekin+vel(1,iat)**2+vel(2,iat)**2+vel(3,iat)**2
-       vcm1=vcm1+vel(1,iat)
-       vcm2=vcm2+vel(2,iat)
-       vcm3=vcm3+vel(3,iat)
-       enddo
+      !Check kinetic energy after inversion
+      ekin=0.d0
+      vcm1=0.d0
+      vcm2=0.d0
+      vcm3=0.d0
+      do iat=1,nat
+         ekin=ekin+vel(1,iat)**2+vel(2,iat)**2+vel(3,iat)**2
+         vcm1=vcm1+vel(1,iat)
+         vcm2=vcm2+vel(2,iat)
+         vcm3=vcm3+vel(3,iat)
+      enddo
       if (iproc==0) write(*,'(a,e14.7,3(e10.3))') '# EKIN CM after  invert',ekin,vcm1,vcm2,vcm3
       if (iproc==0) call torque(nat,pos,vel)
-!Checkend kinetic energy after inversion
+      !Checkend kinetic energy after inversion
 
-!Check angle  after inversion
+      !Check angle  after inversion
       vel_frags(:,:)=0.d0
       do iat=1,nat
-           ifrag=fragarr(iat)
-           vel_frags(:,ifrag)=vel_frags(:,ifrag)+vel(:,iat)
+         ifrag=fragarr(iat)
+         vel_frags(:,ifrag)=vel_frags(:,ifrag)+vel(:,iat)
       enddo
       do ifrag=1,nfrag
-      angle=cm_frags(1,ifrag)*vel_frags(1,ifrag)+cm_frags(2,ifrag)*vel_frags(2,ifrag)+cm_frags(3,ifrag)*vel_frags(3,ifrag)
-      rnrmi=1.d0/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
-      angle=angle*rnrmi
-      if (iproc==0) write(*,*) '# ifrag, angle a invert',ifrag, angle
+         angle=cm_frags(1,ifrag)*vel_frags(1,ifrag)+cm_frags(2,ifrag)*vel_frags(2,ifrag)+cm_frags(3,ifrag)*vel_frags(3,ifrag)
+         rnrmi=1.d0/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
+         angle=angle*rnrmi
+         if (iproc==0) write(*,*) '# ifrag, angle a invert',ifrag, angle
       enddo
-!Checkend kinetic energy after inversion
+      !Checkend kinetic energy after inversion
 
 
-   deallocate(cm_frags,vel_frags,nat_frags)
-   deallocate(invert)
-!   endif
-!else
-!   stop "Wrong option within ff-rv"
-   if(iproc==0) write(*,*) "#FIX: Velocity component towards the center of mass inverted! Keep on hopping..."
-endif
+      deallocate(cm_frags,vel_frags,nat_frags)
+      deallocate(invert)
+      !   endif
+      !else
+      !   stop "Wrong option within ff-rv"
+      if(iproc==0) write(*,*) "#FIX: Velocity component towards the center of mass inverted! Keep on hopping..."
+   endif
 endif
 end subroutine fixfrag_posvel
 
 
 subroutine give_rcov(iproc,atoms,nat,rcov)
-!    use module_base
-    use module_types
-    type(atoms_data), intent(in) :: atoms
-    real(kind=8), intent(out) :: rcov(nat)
-    integer, intent(in) :: iproc
+  !    use module_base
+  use module_types
+  type(atoms_data), intent(in) :: atoms
+  real(kind=8), intent(out) :: rcov(nat)
+  integer, intent(in) :: iproc
 
   do iat=1,nat
-        if (trim(atoms%atomnames(atoms%iatype(iat)))=='H') then
+     if (trim(atoms%atomnames(atoms%iatype(iat)))=='H') then
         rcov(iat)=0.75d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='He') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='He') then
         rcov(iat)=0.75d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Li') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Li') then
         rcov(iat)=3.40d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Be') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Be') then
         rcov(iat)=2.30d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='B') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='B' ) then
         rcov(iat)=1.55d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='C') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='C' ) then
         rcov(iat)=1.45d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='N') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='N' ) then
         rcov(iat)=1.42d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='O') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='O' ) then
         rcov(iat)=1.38d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='F') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='F' ) then
         rcov(iat)=1.35d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ne') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ne') then
         rcov(iat)=1.35d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Na') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Na') then
         rcov(iat)=3.40d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mg') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mg') then
         rcov(iat)=2.65d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Al') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Al') then
         rcov(iat)=2.23d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Si') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Si') then
         rcov(iat)=2.09d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='P') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='P' ) then
         rcov(iat)=2.00d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='S') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='S' ) then
         rcov(iat)=1.92d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cl') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cl') then
         rcov(iat)=1.87d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ar') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ar') then
         rcov(iat)=1.80d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='K') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='K' ) then
         rcov(iat)=4.00d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ca') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ca') then
         rcov(iat)=3.00d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sc') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sc') then
         rcov(iat)=2.70d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ti') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ti') then
         rcov(iat)=2.70d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='V') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='V' ) then
         rcov(iat)=2.60d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cr') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cr') then
         rcov(iat)=2.60d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mn') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mn') then
         rcov(iat)=2.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Fe') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Fe') then
         rcov(iat)=2.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Co') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Co') then
         rcov(iat)=2.40d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ni') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ni') then
         rcov(iat)=2.30d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cu') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cu') then
         rcov(iat)=2.30d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Zn') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Zn') then
         rcov(iat)=2.30d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ga') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ga') then
         rcov(iat)=2.10d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ge') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ge') then
         rcov(iat)=2.40d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='As') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='As') then
         rcov(iat)=2.30d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Se') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Se') then
         rcov(iat)=2.30d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Br') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Br') then
         rcov(iat)=2.20d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Kr') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Kr') then
         rcov(iat)=2.20d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rb') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rb') then
         rcov(iat)=4.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sr') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sr') then
         rcov(iat)=3.30d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Y') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Y' ) then
         rcov(iat)=3.30d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Zr') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Zr') then
         rcov(iat)=3.00d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Nb') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Nb') then
         rcov(iat)=2.92d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mo') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Mo') then
         rcov(iat)=2.83d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tc') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tc') then
         rcov(iat)=2.75d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ru') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ru') then
         rcov(iat)=2.67d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rh') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rh') then
         rcov(iat)=2.58d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pd') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pd') then
         rcov(iat)=2.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ag') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ag') then
         rcov(iat)=2.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cd') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cd') then
         rcov(iat)=2.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='In') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='In') then
         rcov(iat)=2.30d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sn') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sn') then
         rcov(iat)=2.66d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sb') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sb') then
         rcov(iat)=2.66d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Te') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Te') then
         rcov(iat)=2.53d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='I') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='I' ) then
         rcov(iat)=2.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Xe') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Xe') then
         rcov(iat)=2.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cs') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Cs') then
         rcov(iat)=4.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pa') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pa') then
         rcov(iat)=4.00d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='La') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='La') then
         rcov(iat)=3.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ce') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ce') then
         rcov(iat)=3.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pr') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pr') then
         rcov(iat)=3.44d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Nd') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Nd') then
         rcov(iat)=3.38d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pm') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pm') then
         rcov(iat)=3.33d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sm') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Sm') then
         rcov(iat)=3.27d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Eu') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Eu') then
         rcov(iat)=3.21d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Gd') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Gd') then
         rcov(iat)=3.15d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Td') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Td') then
         rcov(iat)=3.09d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Dy') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Dy') then
         rcov(iat)=3.03d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ho') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ho') then
         rcov(iat)=2.97d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Er') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Er') then
         rcov(iat)=2.92d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tm') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tm') then
         rcov(iat)=2.92d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Yb') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Yb') then
         rcov(iat)=2.80d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Lu') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Lu') then
         rcov(iat)=2.80d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Hf') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Hf') then
         rcov(iat)=2.90d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ta') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ta') then
         rcov(iat)=2.70d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='W') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='W' ) then
         rcov(iat)=2.60d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Re') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Re') then
         rcov(iat)=2.60d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Os') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Os') then
         rcov(iat)=2.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ir') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Ir') then
         rcov(iat)=2.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pt') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pt') then
         rcov(iat)=2.60d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Au') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Au') then
         rcov(iat)=2.70d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Hg') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Hg') then
         rcov(iat)=2.80d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tl') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Tl') then
         rcov(iat)=2.50d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pb') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Pb') then
         rcov(iat)=3.30d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Bi') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Bi') then
         rcov(iat)=2.90d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Po') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Po') then
         rcov(iat)=2.80d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='At') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='At') then
         rcov(iat)=2.60d0
-        else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rn') then
+     else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rn') then
         rcov(iat)=2.60d0
-        else
+     else
         write(*,*) 'no covalent radius stored for this atomtype ',  & 
-                     trim(atoms%atomnames(atoms%iatype(iat)))
-        endif
-        if (iproc.eq.0) write(*,*) 'RCOV:',trim(atoms%atomnames(atoms%iatype(iat))),rcov(iat)
-    enddo
-    end subroutine
+             trim(atoms%atomnames(atoms%iatype(iat)))
+     endif
+     if (iproc.eq.0) write(*,*) 'RCOV:',trim(atoms%atomnames(atoms%iatype(iat))),rcov(iat)
+  enddo
+end subroutine give_rcov

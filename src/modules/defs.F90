@@ -55,12 +55,16 @@ module module_defs
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine
   logical :: OCLconv=.false.
-  logical :: ASYNCconv=.false.
+  logical :: ASYNCconv=.true.
 
   !> Logical parameter for the projectors application strategy (true for distributed way)
   !! if the projector allocation passes the memorylimit this is switched to true
   !! inside localize_projectors routines
   logical :: DistProjApply=.true.
+
+  !> experimental variables to test the add of new functionalities
+  logical :: experimental_modulebase_var_onlyfion=.false.
+
 
   !> Physical constants.
   real(gp), parameter :: bohr2ang = 0.5291772108_gp                     ! 1 AU in angstroem
@@ -559,7 +563,7 @@ module module_defs
       implicit none
       integer, intent(in) :: incx,n
       real(kind=4), intent(in) :: da
-      real(kind=4), intent(out) :: dx
+      real(kind=4), intent(inout) :: dx
       !call to BLAS routine
       call SSCAL(n,da,dx,incx)
     end subroutine scal_simple
@@ -568,7 +572,7 @@ module module_defs
       implicit none
       integer, intent(in) :: incx,n
       real(kind=8), intent(in) :: da
-      real(kind=8), intent(out) :: dx
+      real(kind=8), intent(inout) :: dx
       !call to BLAS routine
       call DSCAL(n,da,dx,incx)
     end subroutine scal_double
