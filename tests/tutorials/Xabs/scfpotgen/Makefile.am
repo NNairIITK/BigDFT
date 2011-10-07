@@ -4,7 +4,7 @@ SUBDIRS =
 
  
 
-EXE_FILES = input.dft posinp.xyz  psppar.O psppar.Si  psppar.P
+EXE_FILES = input.dft posinp.xyz  psppar.O psppar.Si  psppar.P input.abscalc
 
 
 %: %.src

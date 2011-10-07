@@ -310,15 +310,63 @@ fitresult_l_0_channel_0
 </pre>
 </div>
 
+<p>
 each file contains four columns : the radial position, the original numerical function, the fit to function as a sum of complex gaussian, the error.
-
-
+</p>
+<p>
 Now the last step. Create the patched pseudopotential file ready for the spectra!!.
 This is done postpending <i>  file pseudopaw</i> to <i> psppar.P</i>
+</p>
+
 <div class="exercice">
   <p><b>Exercise</b>: run <code>`cat psppar.P pseudopaw > psppar.P_1s`</code> </p>
 </div>
+
+<p>
+</p>
 <h2>Generating an SCF potential for a small unit cell </h2>
+
+<p>
+ This is done with a BigDft run in directory <i>  Xabs/scfpotgen </i>.
+ The unit cell contains 18 atoms, corresponding to the structure of Quartz, with one Silicon substituted
+by Phosphorus. In <i>  input.dft </i> we have 
+set a charge of 1. The run is fast enough so that, using different parameters,
+ you may eventually generate alternative potentials to be used for the additional spectra calculation.
+ You will do this  if you have enough cpus to run multiple spectra in parallel or it you have enough time.
+To generate an SCF potential, when you are in directory <i> Xabs/scfpotgen</i> </p>
+<div class="exercice">
+  <p><b>Exercise</b>: run <code>`mpirun -n XXXX  ../../../../src/bigdft`</code> </p>
+</div>
+<p>
+the potential is written to the disk in the <i> cube </i> format when 
+in file input.dft    <i> output_grid </i> is set to 2.
+The created potential is  <i> data/local_potential.cube </i>.
+ </p>
+<p>
+There is also the possibility to generate a potential from straightforward sum
+of atomic charges. This is done running <i> abscalc </i> program.
+The  <i> abscalc </i> program reads  <i> input.abscalc </i>  
+whose key <i> pot_shortcut </i> is set to option 1 ( linear superposition of charges )
+Option  <i> pot_shortcut=2</i> means instead that the local potential
+is read from file.
+</p>
+<div class="exercice">
+  <p><b>Optional exercise</b>: run <code>`../../../../src/abscalc`</code> </p>
+</div>
+<p>
+the local potential is then written to local_potentialb2B.cube
+</p>
+
+<h2> Generating the spectra  </h2>
+
+
+
+
+
+
+
+
+posinp_72X27p.xyz.src  posinp_72X8p.xyz.src   posinp.xyz~            posinp.xyz_18.src      posinp.xyz_72p.src     posinp.xyz.src   
 
 
 
