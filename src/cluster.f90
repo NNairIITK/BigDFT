@@ -12,6 +12,7 @@
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => call_bigdft 
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables),intent(inout) :: in
