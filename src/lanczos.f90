@@ -51,7 +51,6 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   real(wp), dimension(:), pointer  :: pot
  
   character(len=800) :: filename
-  character(len=1) wtag
 
   if(iproc==0) print *, " IN ROUTINE LANCZOS "
 
@@ -84,18 +83,6 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
 
 
-  select case(  in%Linit_absorber )
-  case(0)
-     wtag(1:1) = 's'
-  case(1)
-     wtag(1:1) = 'p'
-  case(2)
-     wtag(1:1) = 'd'
-  case(3)
-     wtag(1:1) = 'f'
-  case default
-     STOP "unknown in%Linit_absorber    "
-  end select
 
   
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
@@ -251,7 +238,6 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   real(gp) :: eval_min, eval_max, fact_cheb, cheb_shift
   integer :: accontentati_di
   real(gp) :: Pi
-  character(len=1) wtag
   logical:: dopaw
   real(gp) :: GetBottom
 
@@ -283,18 +269,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   call orbitals_communicators(iproc,nproc,lr,orbs,ha%comms)  
 
-  select case(  in%Linit_absorber )
-  case(0)
-     wtag(1:1) = 's'
-  case(1)
-     wtag(1:1) = 'p'
-  case(2)
-     wtag(1:1) = 'd'
-  case(3)
-     wtag(1:1) = 'f'
-  case default
-     STOP "unknown in%Linit_absorber    "
-  end select
+ 
 
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
   else
@@ -534,8 +509,6 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   character(len=800) :: filename
   logical:: useold
   real(gp) , pointer ::potentialclone(:,:)
-  character(len=1) wtag
-
 
   if( iand( in%potshortcut,16)>0) then
      allocate(potentialclone(max(ndimpot,1),nspin+ndebug),stat=i_stat)
@@ -574,20 +547,6 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
  
 
 
-
-
-  select case(  in%Linit_absorber )
-  case(0)
-     wtag(1:1) = 's'
-  case(1)
-     wtag(1:1) = 'p'
-  case(2)
-     wtag(1:1) = 'd'
-  case(3)
-     wtag(1:1) = 'f'
-  case default
-     STOP "unknown in%Linit_absorber    "
-  end select
 
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
      Gabs_coeffs(:)=in%Gabs_coeffs(:)

@@ -108,7 +108,8 @@ module module_types
 
      ! For absorption calculations
      integer :: iabscalc_type   ! 0 non calc, 1 cheb ,  2 lanc
-     integer :: iat_absorber, L_absorber, N_absorber, rpower_absorber, Linit_absorber
+     !! integer :: iat_absorber, L_absorber, N_absorber, rpower_absorber, Linit_absorber
+     integer :: iat_absorber,  L_absorber
      real(gp), pointer:: Gabs_coeffs(:)
      real(gp) :: abscalc_bottomshift
      logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff,abscalc_S_do_cg, abscalc_Sinv_do_cg

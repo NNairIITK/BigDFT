@@ -832,7 +832,7 @@ contains
 
 
     if(LB_iproc==0) then
-       write(filename,'(a,a,I0)') trim(xabs_res_prefix),  "cheb_spectra_", Nu
+       write(filename,'(a,a,I0)') trim(xabs_res_prefix),  "cheb_spectra_", Nu+1
        write(*, '(a,1x, a)') " writing spectra to " , trim(filename) 
 
        open(unit=22,file=filename)
