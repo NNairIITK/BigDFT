@@ -1555,7 +1555,7 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
   real(gp) :: dipole_el(3) , dipole_cores(3), tmpdip(3),q,qtot
   integer  :: iat,i1,i2,i3,nbx,nby,nbz, nl1,nl2,nl3, ind, ispin
   real(dp), dimension(:,:,:,:), pointer :: ele_rho
-
+  
   if (nproc > 1) then
      !allocate full density in pot_ion array
      allocate(ele_rho(n1i,n2i,n3i,nspin),stat=i_stat)
@@ -1597,39 +1597,48 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
 
   dipole_el   (1:3)=0_gp
   do ispin=1,nspin
-  do i1=0,2*(n1+nbx) - 1
-     do i2=0,2*(n2+nby) - 1
-        do i3=0,2*(n3+nbz) - 1
+     do i1=0,2*(n1+nbx) - 1
+        do i2=0,2*(n2+nby) - 1
+           do i3=0,2*(n3+nbz) - 1
               !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
               !q= ( ele_rho(ind,ispin) ) * hxh*hyh*hzh 
-                q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * hxh*hyh*hzh 
-                qtot=qtot+q
-                dipole_el(1)=dipole_el(1)+ q* at%alat1/real(2*(n1+nbx),dp)*i1 
-                dipole_el(2)=dipole_el(2)+ q* at%alat2/real(2*(n2+nby),dp)*i2
-                dipole_el(3)=dipole_el(3)+ q* at%alat3/real(2*(n3+nbz),dp)*i3
-         end do
+              q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * hxh*hyh*hzh 
+              qtot=qtot+q
+              dipole_el(1)=dipole_el(1)+ q* at%alat1/real(2*(n1+nbx),dp)*i1 
+              dipole_el(2)=dipole_el(2)+ q* at%alat2/real(2*(n2+nby),dp)*i2
+              dipole_el(3)=dipole_el(3)+ q* at%alat3/real(2*(n3+nbz),dp)*i3
+           end do
+        end do
      end do
-   end do
 
   end do
 
-if(iproc==0) then
-!dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-!dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
+  if(iproc==0) then
+     !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
+     !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      write(*,'(a)') " ============= Electric Dipole Moment  ================" 
      tmpdip=dipole_cores+dipole_el
      write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)   ", "   (Px,Py,Pz)= " , tmpdip(1:3)  
      tmpdip=tmpdip/0.393430307_gp  ! au2debye              
      write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "   (Px,Py,Pz)= " , tmpdip(1:3) 
-96 format (a10,Es14.6 ,a,a,3ES13.4)
-!     write(*,'(a)') "  ================= Dipole moment in e.a0    (0.39343 e.a0 = 1 Debye) ================"  ! or [Debye] 
-!     write(*,97) "    Px " ,"     Py ","     Pz ","   |P| " 
-!     write(*,98) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))
-!     write(*,98) "pseudo cores:      ", dipole_cores(1:3) , sqrt(sum(dipole_cores**2))
-!     write(*,98) "Total (cores-el.): ", dipole_cores+dipole_el , sqrt(sum((dipole_cores+dipole_el)**2))
-!97 format (20x,3a15  ,"    ==> ",a15)
-!98 format (a20,3f15.7,"    ==> ",f15.5)
+96   format (a10,Es14.6 ,a,a,3ES13.4)
+     !     write(*,'(a)') "  ================= Dipole moment in e.a0    (0.39343 e.a0 = 1 Debye) ================"  ! or [Debye] 
+     !     write(*,97) "    Px " ,"     Py ","     Pz ","   |P| " 
+     !     write(*,98) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))
+     !     write(*,98) "pseudo cores:      ", dipole_cores(1:3) , sqrt(sum(dipole_cores**2))
+     !     write(*,98) "Total (cores-el.): ", dipole_cores+dipole_el , sqrt(sum((dipole_cores+dipole_el)**2))
+     !97 format (20x,3a15  ,"    ==> ",a15)
+     !98 format (a20,3f15.7,"    ==> ",f15.5)
 
-endif
+  endif
+
+  if (nproc > 1) then
+     i_all=-product(shape(ele_rho))*kind(ele_rho)
+     deallocate(ele_rho,stat=i_stat)
+     call memocc(i_stat,i_all,'ele_rho',subname)
+  else
+     nullify(ele_rho)
+  end if
+
 END SUBROUTINE calc_dipole
 
