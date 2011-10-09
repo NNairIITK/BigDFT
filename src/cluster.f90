@@ -12,6 +12,7 @@
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => call_bigdft
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables),intent(inout) :: in
@@ -1279,6 +1280,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
              iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+
+        ! calculate dipole moment associated to the charge density
+        call calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+
         if (associated(rhocore)) then
            if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
            call plot_density(trim(in%dir_output)//'core_density' // gridformat,&

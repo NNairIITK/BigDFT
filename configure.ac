@@ -721,6 +721,8 @@ src/OpenCL/Makefile
 src/dgemmsy/Makefile
 src/convolutions-c/Makefile
 src/art/Makefile
+src/tools/Makefile
+src/tools/bader/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
 pseudo/Makefile

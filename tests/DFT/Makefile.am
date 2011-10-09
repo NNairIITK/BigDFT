@@ -109,10 +109,10 @@ report:
           Ca2.out*)         prec="4.e-10" ;; \
           GEOPT-BFGS.out*)  prec="1.e-9" ;; \
           GEOPT-LBFGS.out*) prec="1.e-9" ;; \
-          NaCl.out*)        prec="1.e-9" ;; \
+          NaCl.out*)        prec="2.e-9" ;; \
           SiBulk.out*)      prec="2.e-7" ;; \
           AgBulk.out*)      prec="6.e-8" ;; \
-          SiH4.out*)        prec="2.5e-9" ;; \
+          SiH4.out*)        prec="3.5e-9" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

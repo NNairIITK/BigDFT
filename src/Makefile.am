@@ -107,7 +107,7 @@ global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) $(sub_dirs_dgemmsy) art $(sub_dirs_libconfig)
+SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) $(sub_dirs_dgemmsy) art $(sub_dirs_libconfig) tools tools/bader
 
 EXTRA_DIST = \
 	wavelib/intots.inc \

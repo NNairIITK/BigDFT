@@ -4,15 +4,17 @@
 
 TESTDIRS = CH4 \
 	  CH3- \
-	  H2O-slab
+	  H2O-slab \
+	  H2O-bader
 
 EXTRA_DIST = H1A.html CH4-cv.png CH4-grid.png \
-	CH4/input.dft CH4/posinp.xyz CH4/psppar.C CH4/psppar.H \
-	CH3-/input.dft CH3-/posinp.xyz CH3-/psppar.C CH3-/psppar.H CH3-/input.geopt \
 	H1B.html H2O-slab.png H2O-dipolar.png H2O-dipolarE.png \
-        $(TESTDIRS)
+	H3B.html $(TESTDIRS)
 
+H2O-bader.post-in :
+	cp -f input-all.dft input.dft
 
+H2O-bader.dipole.dat.out: H2O-bader.out.out
 
 # Generic part, do not touch.
 INS = $(TESTDIRS:=.in)
@@ -38,6 +40,11 @@ report:
 	$(run_parallel) $(abs_top_builddir)/src/bigdft > $@
 %.geopt.mon.out:
 	$(MAKE) -f ../Makefile $*.out.out && mv geopt.mon $@
+
+#explicit target for the bader tutorial
+%.dipole.dat.out:
+	$(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube &&\
+	mv dipole.dat $@
 
 %.report: %.ref
 	@case $< in \
