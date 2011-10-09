@@ -1497,6 +1497,8 @@ subroutine applyPCprojectors(orbs,at,&
   use module_types
   use module_interfaces, except_this_one => applyPCprojectors
 
+  implicit none
+
   type(orbitals_data), intent(inout) :: orbs
   type(atoms_data) :: at
   real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
@@ -1515,7 +1517,8 @@ subroutine applyPCprojectors(orbs,at,&
        mproj, mdone, ispinor, istart_c_i, mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
        jseg_c, iproj_old, iorb, ncplx, l, i, jorb
   real(gp) eproj_spinor,psppar_aux(0:4, 0:6)
-  
+  integer :: iat , nspinor
+
   !apply the projectors  k-point of the processor
   !starting k-point
   ikpt=orbs%iokpt(1)
@@ -1693,6 +1696,8 @@ subroutine applyPAWprojectors(orbs,at,&
   use module_types
   use module_interfaces, except_this_one => applyPAWprojectors
 
+  implicit none
+  
   type(orbitals_data), intent(inout) :: orbs
   type(atoms_data) :: at
   real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
@@ -1716,7 +1721,7 @@ subroutine applyPAWprojectors(orbs,at,&
   real(dp)  :: dotbuffer(dotbuffersize), dotbufferbis(dotbuffersize)
   integer ibuffer, ichannel, nchannels, imatrix, ilim
   logical lfound_sup
-                   
+  integer :: iat, old_istart_c, iatat , kx,ky, kz,m, nspinor
 
   if (orbs%norbp.gt.0) then
 
