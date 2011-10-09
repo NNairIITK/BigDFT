@@ -11,6 +11,10 @@ EXTRA_DIST = H1A.html CH4-cv.png CH4-grid.png \
 	H1B.html H2O-slab.png H2O-dipolar.png H2O-dipolarE.png \
 	H3B.html $(TESTDIRS)
 
+if USE_MINIMA_HOPPING
+TESTDIRS += Mg7-minhop
+endif
+
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
 
