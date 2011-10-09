@@ -1,6 +1,6 @@
   3   meaning  :  1 tchebychev 2 Lanczos 3: CG
   1    absorber atom number 
-  1     0     1       1     7   N_absorber( n of the initial wf)  Linit_absorber(of the initial wf) rpower_absorber (1 for dipole 2 for quadrupole.. ) L_absorbe
+       1     L_absorbe
   0.0   0.0   1.0              and its componenent
   1                            pot short_cut
   20                         number of Hamiltonian multiplications 
