@@ -104,9 +104,9 @@ if bigdft:
     def line_junk(line):
         "True if the line must not be compared"
         return re_version.search(line) \
-            or " |" in line \
+            or line.startswith(" |") \
             or "CPU time" in line \
-			or "SP-TIMINGS" in line \
+            or "SP-TIMINGS" in line \
             or "Load" in line \
             or "memory" in line \
             or "MB" in line \
