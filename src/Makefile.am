@@ -247,15 +247,18 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
-	posfiles.c \
-	utils.c \
 	sdcg.f90 \
 	bfgs.f90 \
 	$(DGEMMSY_INTERFACE)
 
+# C objects
+c_level = posfiles.c \
+	utils.c
+
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	BigDFT_API.f90 \
+	$(c_level) \
 	$(low_level) \
 	$(high_level) \
 	$(flush_files) \
@@ -409,7 +412,7 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o : $(mpi_include)  $(modules_objects)
+$(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT_API.o BigDFT.o test_forces.o  memguess.o global.o abscalc.o : $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
 

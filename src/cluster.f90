@@ -189,8 +189,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   use module_xc
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
-  use ab6_symmetry
+  use m_ab6_symmetry
   use m_ab6_mixing
+  use m_ab6_kpoints
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -438,7 +439,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !calculate the irreductible zone, if necessary.
   if (atoms%symObj >= 0) then
-     call ab6_symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
+     call symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
      if (nsym > 1) then
         ! Current third dimension is set to 1 always
         ! since nspin == nsppol always in BigDFT
@@ -446,8 +447,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,irrzon,'irrzon',subname)
         allocate(phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
         call memocc(i_stat,phnons,'phnons',subname)
-        call ab6_symmetry_get_irreductible_zone(atoms%symObj, irrzon, phnons, &
-             & n1i, n2i, n3i, in%nspin, in%nspin, i_stat)
+        call kpoints_get_irreductible_zone(irrzon, phnons, &
+             & n1i, n2i, n3i, in%nspin, in%nspin, atoms%symObj, i_stat)
      end if
   end if
   if (.not. allocated(irrzon)) then

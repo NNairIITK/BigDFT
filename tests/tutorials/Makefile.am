@@ -5,10 +5,13 @@
 TESTDIRS = CH4 \
 	  CH3- \
 	  H2O-slab \
+	  N2 \
 	  H2O-bader
 
 EXTRA_DIST = H1A.html CH4-cv.png CH4-grid.png \
 	H1B.html H2O-slab.png H2O-dipolar.png H2O-dipolarE.png \
+	H1X.html N2-wf01.thumb.png N2-wf02.thumb.png \
+	N2-wf03.thumb.png N2-wf04.thumb.png N2-wf05.thumb.png \
 	H3B.html $(TESTDIRS)
 
 if USE_MINIMA_HOPPING
@@ -17,11 +20,9 @@ endif
 
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
-
 H2O-bader.dipole.dat.out: H2O-bader.out.out
 	$(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube &&\
 	mv dipole.dat $@
-
 # Generic part, do not touch.
 INS = $(TESTDIRS:=.in)
 RUNS = $(TESTDIRS:=.run)
@@ -41,9 +42,11 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 %.memguess.out: $(abs_top_builddir)/src/memguess
-	$(abs_top_builddir)/src/memguess 1 > $@
+	name=`basename $@ .out.out | sed "s/^.*_//"` ; \
+	$(abs_top_builddir)/src/memguess 1 $$name > $@
 %.out.out: $(abs_top_builddir)/src/bigdft
-	$(run_parallel) $(abs_top_builddir)/src/bigdft > $@
+	name=`basename $@ .out.out | sed "s/^.*_//"` ; \
+	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
 %.geopt.mon.out:
 	$(MAKE) -f ../Makefile $*.out.out && mv geopt.mon $@
 
