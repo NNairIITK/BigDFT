@@ -62,13 +62,13 @@ subroutine standard_inputfile_names(inputs, radical)
   use module_types
   implicit none
   type(input_variables), intent(inout) :: inputs
-  character(len = *), intent(in), optional :: radical
+  character(len = *), intent(in) :: radical
 
   character(len = 128) :: rad
 
   write(rad, "(A)") ""
-  if (present(radical)) write(rad, "(A)") trim(radical)
-  if (trim(radical) == "") write(rad, "(A)") "input"
+  write(rad, "(A)") trim(radical)
+     if (trim(radical) == "") write(rad, "(A)") "input"
 
   inputs%file_dft=trim(rad) // '.dft'
   inputs%file_geopt=trim(rad) // '.geopt'
@@ -108,6 +108,7 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
+
 
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
@@ -237,6 +238,8 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 12 .or.  &                    !read in gaussian basis
        in%gaussian_help                             !mulliken and local density of states
   
+  !here you can check whether the etsf format is compiled
+
   if (shouldwrite) then
      ! Create a directory to put the files in.
      dirname=repeat(' ',len(dirname))
@@ -270,6 +273,7 @@ subroutine default_input_variables(inputs)
   ! Default values.
   inputs%output_wf_format = WF_FORMAT_NONE
   inputs%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
+  inputs%dir_output="data"
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)
@@ -287,6 +291,7 @@ subroutine default_input_variables(inputs)
   !Default for Self-Interaction Correction variables
   call sic_input_variables_default(inputs)
 
+
 END SUBROUTINE default_input_variables
 
 subroutine dft_input_variables_new(iproc,filename,in)
@@ -301,7 +306,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   logical :: exists
   integer :: ivrbproj,ierror
   real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
-  real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,20.0_gp/)
+  real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
 
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,trim(filename),exists,'DFT Calculation Parameters')  
@@ -476,7 +481,7 @@ subroutine mix_input_variables_new(iproc,filename,in)
        comment="Mixing parameters")
   call input_var(in%itrpmax,'1',ranges=(/0,10000/),&
        comment="Maximum number of diagonalisation iterations")
-  call input_var(in%rpnrm_cv,'1.e-4',ranges=(/1.e-10_gp,10.0_gp/),&
+  call input_var(in%rpnrm_cv,'1.e-4',ranges=(/0.0_gp,10.0_gp/),&
        comment="Stop criterion on the residue of potential or density")
   call input_var(in%norbsempty,'0',ranges=(/0,10000/))
   call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/),&
@@ -997,6 +1002,10 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   in%nkpt=1
   in%nkptv=0
   in%ngroups_kptv=1
+  nullify(in%kpt)
+  nullify(in%wkpt)
+  nullify(in%kptv)
+  nullify(in%nkptsv_group)
 
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
@@ -1020,7 +1029,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
 
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
-          comment='Equivalent length of K-space resolution (Bohr)')
+          comment='Equivalent legth of K-space resolution (Bohr)')
      call kpoints_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
@@ -1068,6 +1077,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
         call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
         norm=norm+in%wkpt(i)
      end do
+
      ! We normalise the weights.
      in%wkpt(:)=in%wkpt/norm
   end if
@@ -1504,6 +1514,11 @@ subroutine abscalc_input_variables_default(in)
   in%c_absorbtion=.false.
   in%potshortcut=0
   in%iat_absorber=0
+  in%abscalc_bottomshift=0
+  in%abscalc_S_do_cg=.false.
+  in%abscalc_Sinv_do_cg=.false.
+
+
 
 END SUBROUTINE abscalc_input_variables_default
 
@@ -1557,16 +1572,32 @@ subroutine abscalc_input_variables(iproc,filename,in)
   if( iand( in%potshortcut,4)>0) then
      read(iunit,'(a100)',iostat=ierror) in%extraOrbital
   end if
-
-
   
-  read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+  read(iunit,*,iostat=ierror) in%abscalc_bottomshift
   if(ierror==0) then
+  else
+     in%abscalc_bottomshift=0
+  endif
 
+ 
+
+  read(iunit, '(a100)' ,iostat=ierror) in%xabs_res_prefix
+  if(ierror==0) then
+  else
+     in%xabs_res_prefix=""
+  endif
+
+
+  read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+  !!, &
+  !!     in%abscalc_S_do_cg ,in%abscalc_Sinv_do_cg
+  if(ierror==0) then
   else
      in%abscalc_alterpot=.false.
      in%abscalc_eqdiff =.false.
   endif
+
+
 
   in%c_absorbtion=.true.
 
@@ -2092,6 +2123,12 @@ subroutine deallocate_atoms(atoms,subname)
   i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
   deallocate(atoms%radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%radii_cf',subname)
+
+  
+  !  Free data for pawpatch
+  call deallocate_atomdatapaw(atoms,subname)
+
+
 END SUBROUTINE deallocate_atoms
 
 
@@ -2743,7 +2780,7 @@ END SUBROUTINE charge_and_spol
 
 
 !> Write an atomic file
-subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
+subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   use module_base
   use module_types
   implicit none
@@ -2751,17 +2788,25 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-
+  real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
+  !local variables
   character(len = 15) :: arFile
 
   if (atoms%format == "xyz") then
-     call wtxyz(filename,energy,rxyz,atoms,comment)
+     open(unit=9,file=trim(filename)//'.xyz')
+     call wtxyz(9,energy,rxyz,atoms,comment)
+     if (present(forces)) call wtxyz_forces(9,forces,atoms)
   else if (atoms%format == "ascii") then
-     call wtascii(filename,energy,rxyz,atoms,comment)
+     open(unit=9,file=trim(filename)//'.ascii')
+     call wtascii(9,energy,rxyz,atoms,comment)
+     if (present(forces)) call wtascii_forces(9,forces,atoms)
   else
      write(*,*) "Error, unknown file format."
      stop
   end if
+
+  close(unit=9)
+
   ! Add to archive
   if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
      write(arFile, "(A)") "posout.tar.bz2"
@@ -2774,11 +2819,12 @@ END SUBROUTINE write_atomic_file
 
 
 !>Write xyz atomic file.
-subroutine wtxyz(filename,energy,rxyz,atoms,comment)
+subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   use module_base
   use module_types
   implicit none
-  character(len=*), intent(in) :: filename,comment
+  integer, intent(in) :: iunit
+  character(len=*), intent(in) :: comment
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
@@ -2790,7 +2836,6 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
-  open(unit=9,file=trim(filename)//'.xyz')
   xmax=0.0_gp
   ymax=0.0_gp
   zmax=0.0_gp
@@ -2808,16 +2853,16 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
      units='atomicd0'
   end if
 
-  write(9,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),energy,comment
+  write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),energy,comment
 
   if (atoms%geocode == 'P') then
-     write(9,'(a,3(1x,1pe24.17))')'periodic',&
+     write(iunit,'(a,3(1x,1pe24.17))')'periodic',&
           atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
   else if (atoms%geocode == 'S') then
-     write(9,'(a,3(1x,1pe24.17))')'surface',&
+     write(iunit,'(a,3(1x,1pe24.17))')'surface',&
           atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
   else
-     write(9,*)'free'
+     write(iunit,*)'free'
   end if
   do iat=1,atoms%nat
      name=trim(atoms%atomnames(atoms%iatype(iat)))
@@ -2826,25 +2871,53 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
      else if (name(2:2)=='_') then
         symbol=name(1:1)
      else
-        symbol=name(1:2)
+        symbol=name(1:min(len(name),5))
      end if
 
      call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))
 
-     write(9,'(a2,4x,3(1x,1pe24.17),2x,a50)')symbol,(rxyz(j,iat)*factor,j=1,3),extra
-
+     write(iunit,'(a5,1x,3(1x,1pe24.17),2x,a50)')symbol,(rxyz(j,iat)*factor,j=1,3),extra
   enddo
-  close(unit=9)
 
 END SUBROUTINE wtxyz
 
-
-!>Write ascii file (atomic position). 
-subroutine wtascii(filename,energy,rxyz,atoms,comment)
+!> Add the forces in the position file for the xyz system
+subroutine wtxyz_forces(iunit,fxyz,at)
   use module_base
   use module_types
   implicit none
-  character(len=*), intent(in) :: filename,comment
+  integer, intent(in) :: iunit
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: fxyz
+  !local variables
+  integer :: iat,j
+  character(len=20) :: symbol
+  character(len=10) :: name
+
+  write(iunit,*)'forces'
+  
+  do iat=1,at%nat
+     name=trim(at%atomnames(at%iatype(iat)))
+     if (name(3:3)=='_') then
+        symbol=name(1:2)
+     else if (name(2:2)=='_') then
+        symbol=name(1:1)
+     else
+        symbol=name(1:min(len(name),5))
+     end if
+
+     write(iunit,'(a5,1x,3(1x,1pe24.17))')symbol,(fxyz(j,iat),j=1,3)
+  end do
+  
+end subroutine wtxyz_forces
+
+!>Write ascii file (atomic position). 
+subroutine wtascii(iunit,energy,rxyz,atoms,comment)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iunit
+  character(len=*), intent(in) :: comment
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
@@ -2855,7 +2928,6 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
-  open(unit=9,file=trim(filename)//'.ascii')
   xmax=0.0_gp
   ymax=0.0_gp
   zmax=0.0_gp
@@ -2871,16 +2943,16 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
      factor=1.0_gp
   end if
 
-  write(9, "(A,A)") "# BigDFT file - ", trim(comment)
-  write(9, "(3e24.17)") atoms%alat1*factor, 0.d0, atoms%alat2*factor
-  write(9, "(3e24.17)") 0.d0,               0.d0, atoms%alat3*factor
+  write(iunit, "(A,A)") "# BigDFT file - ", trim(comment)
+  write(iunit, "(3e24.17)") atoms%alat1*factor, 0.d0, atoms%alat2*factor
+  write(iunit, "(3e24.17)") 0.d0,               0.d0, atoms%alat3*factor
 
-  write(9, "(A,A)") "#keyword: ", trim(atoms%units)
-  if (atoms%geocode == 'P') write(9, "(A)") "#keyword: periodic"
-  if (atoms%geocode == 'S') write(9, "(A)") "#keyword: surface"
-  if (atoms%geocode == 'F') write(9, "(A)") "#keyword: freeBC"
+  write(iunit, "(A,A)") "#keyword: ", trim(atoms%units)
+  if (atoms%geocode == 'P') write(iunit, "(A)") "#keyword: periodic"
+  if (atoms%geocode == 'S') write(iunit, "(A)") "#keyword: surface"
+  if (atoms%geocode == 'F') write(iunit, "(A)") "#keyword: freeBC"
   if (energy /= 0.d0) then
-     write(9, "(A,e24.17,A)") "#metaData: totalEnergy=", energy, "Ht"
+     write(iunit, "(A,e24.17,A)") "#metaData: totalEnergy=", energy, "Ht"
   end if
 
   do iat=1,atoms%nat
@@ -2895,12 +2967,43 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
 
      call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))     
 
-     write(9,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor,j=1,3),symbol,extra
+     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor,j=1,3),symbol,extra
   end do
-  close(unit=9)
+
 
 END SUBROUTINE wtascii
 
+subroutine wtascii_forces(iunit,fxyz,at)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iunit
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: fxyz
+  !local variables
+  integer :: iat,j
+  character(len=1) :: endline
+  
+  if (at%nat ==0) return
+  !write the first position
+  iat=1
+  if (at%nat==iat) then
+     endline=']'
+  else
+     endline=char(92)
+  end if
+
+  write(iunit, "(A,3(1pe25.17,A),a)") "#metaData: forces=[",(fxyz(j,iat), ";",j=1,3),' '//endline
+  !then the rest until the second-last
+  do iat=2,at%nat
+     if (at%nat==iat) then
+        endline=']'
+     else
+        endline=char(92)
+     end if
+     write(iunit, "(A,3(1pe25.17,A),a)") "# ",(fxyz(j,iat), ";",j=1,3),' '//endline
+  end do
+end subroutine wtascii_forces
 
 !>Write the extra info necessary for the output file
 subroutine write_extra_info(extra,natpol,ifrztyp)

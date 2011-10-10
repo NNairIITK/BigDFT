@@ -24,6 +24,10 @@ binaries_sources =
 scripts_sources = 
 endif
 
+if HAVE_ETSF_IO
+binaries_sources += BigDFT2Wannier
+endif
+
 if USE_CUDA_GPU
 sub_dirs_cuda=CUDA
 GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
@@ -103,7 +107,7 @@ global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) $(sub_dirs_dgemmsy) art $(sub_dirs_libconfig)
+SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) $(sub_dirs_dgemmsy) art $(sub_dirs_libconfig) tools tools/bader
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
@@ -220,7 +224,6 @@ low_level = init/projectors.f90  \
 	init/sysprop.f90 \
 	init/gaussians.f90 \
 	init/wfn_init.f90 \
-	init/xabsorber.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
@@ -297,6 +300,16 @@ oneatom_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_opt)
+
+
+BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90                                                                                                                                                                                  
+BigDFT2Wannier_LDFLAGS =
+BigDFT2Wannier_LDADD = libbigdft.a \
+        PSolver/libpoissonsolver.a \
+        $(LMPI) \
+        @MPI_LIBS@ \
+        $(libs_opt)
+
 
 MDanalysis_SOURCES = distances.f90 
 MDanalysis_LDFLAGS = 
@@ -407,7 +420,7 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 
 BigDFT_API.o : scfloop_API.o
 
-distances.o global.o rism.o oneatom.o : BigDFT_API.o
+distances.o global.o rism.o oneatom.o BigDFT2Wannier.o : BigDFT_API.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 

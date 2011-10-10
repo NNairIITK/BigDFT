@@ -118,7 +118,7 @@ program BigDFT
          call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
          close(16)
          filename=trim('final_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION')
+         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
       end if
 
       !if there is a last run to be performed do it now before stopping
@@ -148,7 +148,6 @@ program BigDFT
       endif
 
       call deallocate_atoms(atoms,subname) 
-
       call free_restart_objects(rst,subname)
 
       i_all=-product(shape(rxyz))*kind(rxyz)

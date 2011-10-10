@@ -511,7 +511,10 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      call broadcast_kpt_objects(nproc, orbsu%nkpts, orbsu%norb, &
           & orbsu%eval(1), orbsu%ikptproc)
 
-     if (iproc ==0) then !this case works only for the first k-point
+     !here the value of the IG occupation numbers can be calculated
+
+
+     if (iproc ==0) then 
         call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
      end if
 !!$  !not necessary anymore since psivirt is gaussian

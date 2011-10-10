@@ -12,6 +12,7 @@
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => call_bigdft
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables),intent(inout) :: in
@@ -322,11 +323,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call print_dft_parameters(in,atoms)
   end if
   if (iproc == 0) call xc_dump()
-  if (nproc > 1) then
-     call timing(iproc,'parallel     ','IN')
-  else
-     call timing(iproc,'             ','IN')
-  end if
+  !time initialization
+  call timing(nproc,trim(in%dir_output)//'time.prc','IN')
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -966,9 +964,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 Glr%d%n1i*Glr%d%n2i*n3d*nrhodim,i3rho_add,&
                 orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
 
-           call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-                nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,&
-                in%SIC,GPU,pkernel=pkernelseq)
+!!$           call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+!!$                nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,&
+!!$                in%SIC,GPU,pkernel=pkernelseq)
+
+           call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
+
+           call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                nlpspd,proj,Glr,psi,hpsi,eproj_sum)
+
+           call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
            !deallocate potential
            call free_full_potential(nproc,potential,subname)
@@ -1275,6 +1281,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
              iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+
+        ! calculate dipole moment associated to the charge density
+        call calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+
         if (associated(rhocore)) then
            if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
            call plot_density(trim(in%dir_output)//'core_density' // gridformat,&
@@ -1409,6 +1419,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!$                orbs,orbsv,in%nvirt,Glr,comms,commsv,&
 !!$                hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
 !!$                pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
+        end if
+
+        ! Write virtual wavefunctions in ETSF format
+        if (in%output_wf_format /= WF_FORMAT_NONE  .and. abs(in%norbv) > 0) then
+           call  writemywaves(iproc,trim(in%dir_output) // "virtuals" // trim(wfformat), &
+             & orbsv,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psivirt)
         end if
 
         !start the Casida's treatment 
@@ -1725,6 +1741,7 @@ contains
     ! Free the libXC stuff if necessary.
     call xc_end()
 
+
     !deallocate the mixing
     if (in%itrpmax > 1) then
        call ab6_mixing_deallocate(mix)
@@ -1738,6 +1755,7 @@ contains
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
     if (iproc == 0) &
          write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
+
 
   END SUBROUTINE deallocate_before_exiting
 
