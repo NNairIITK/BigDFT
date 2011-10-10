@@ -301,7 +301,7 @@ END SUBROUTINE call_abscalc
 !!          - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 !!
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
-     psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
+     psi,Glr,orbsAO,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
   use module_interfaces
@@ -315,12 +315,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   type(input_variables), intent(in) :: in
   type(locreg_descriptors), intent(inout) :: Glr
   type(atoms_data), intent(inout) :: atoms
-  type(orbitals_data), intent(inout) :: orbs
+  type(orbitals_data), intent(inout) :: orbsAO
   type(GPU_pointers), intent(inout) :: GPU
   real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
   integer, intent(out) :: infocode
   real(wp), dimension(:), pointer :: psi
   !local variables
+  type(orbitals_data) :: orbs
   character(len=*), parameter :: subname='abscalc'
   character(len=3) :: PSquiet
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax
@@ -348,8 +349,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
 
-  real(kind=8), dimension(:,:,:,:), allocatable, target :: rhopot, rhopotTOTO
-  real(kind=8), dimension(:,:,:,:), pointer ::  rhopottmp, rhopotExtra, rhoXanes, rhotarget
+  real(kind=8), dimension(:,:,:,:), allocatable, target :: rhopot, rhopotTOTO, rhoXanes
+  real(kind=8), dimension(:,:,:,:), pointer ::  rhopottmp, rhopotExtra, rhotarget
   integer :: b2Bcounter, b2BN
   character(len=100) :: filename
   real(kind=8), dimension(:), pointer :: pkernel
@@ -482,13 +483,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-  call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
+  call system_properties(iproc,nproc,in,atoms,orbsAO,radii_cf,nelec)
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
 
   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
-  if ( orbs%nspinor.gt.1) then
+  if ( orbsAO%nspinor.gt.1) then
      !!  hybrid_on is not compatible with kpoints
      Glr%hybrid_on=.false.
   endif
@@ -519,6 +520,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
+
+  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,orbs)
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
   call timing(iproc,'CrtProjectors ','ON')
@@ -724,7 +727,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
 
      call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
-          orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
+          orbsAO,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in)
      
@@ -732,10 +735,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      
      if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
         print *, " ============== TESTING PC_PROJECTORS =========== "
-        allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+        allocate(hpsi(orbsAO%npsidim+ndebug),stat=i_stat)
         hpsi=0.0_wp
         PPD%iproj_to_factor(1:PPD%mprojtot) = 2.0_gp
-        call applyPCprojectors(orbs,atoms,rxyz,hx,hy,hz,Glr,PPD,psi,hpsi, .true.)
+        call applyPCprojectors(orbsAO,atoms,rxyz,hx,hy,hz,Glr,PPD,psi,hpsi, .true.)
         deallocate(hpsi)
      end if
 
@@ -806,7 +809,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,rhodsc,&
-          orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+          orbsAO,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in)
 
@@ -838,8 +841,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   allocate(psi(2+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
 
-  allocate(orbs%eval(2+ndebug),stat=i_stat)
-  call memocc(i_stat, orbs%eval,'eval',subname)
+  allocate(orbsAO%eval(2+ndebug),stat=i_stat)
+  call memocc(i_stat, orbsAO%eval,'eval',subname)
 
 
   if ( in%c_absorbtion ) then
@@ -1244,18 +1247,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-             , in%iat_absorber  , in , PAWD)
+             , in%iat_absorber  , in , PAWD, orbs)
         
      else if (in%iabscalc_type==1) then
         call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-             , in%iat_absorber, in, PAWD)
+             , in%iat_absorber, in, PAWD, orbs)
      else if (in%iabscalc_type==3) then
         call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-             , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD)
+             , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
      else
         if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
      endif
@@ -1335,11 +1338,9 @@ contains
        endif
        
 
-       if(associated(rhoXanes)) then
-          i_all=-product(shape(rhoXanes))*kind(rhoXanes)
-          deallocate(rhoXanes,stat=i_stat)
-          call memocc(i_stat,i_all,'rhoXanes',subname)
-       endif
+       i_all=-product(shape(rhoXanes))*kind(rhoXanes)
+       deallocate(rhoXanes,stat=i_stat)
+       call memocc(i_stat,i_all,'rhoXanes',subname)
 
 
 
@@ -1426,7 +1427,11 @@ contains
 
     call deallocate_comms(comms,subname)
 
+    print *, " dealloco orbs"
     call deallocate_orbs(orbs,subname)
+    print *, " dealloco orbsAO"
+    call deallocate_orbs(orbsAO,subname)
+
     call deallocate_atoms_scf(atoms,subname) 
 
 
@@ -1492,6 +1497,8 @@ subroutine applyPCprojectors(orbs,at,&
   use module_types
   use module_interfaces, except_this_one => applyPCprojectors
 
+  implicit none
+
   type(orbitals_data), intent(inout) :: orbs
   type(atoms_data) :: at
   real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
@@ -1510,7 +1517,8 @@ subroutine applyPCprojectors(orbs,at,&
        mproj, mdone, ispinor, istart_c_i, mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
        jseg_c, iproj_old, iorb, ncplx, l, i, jorb
   real(gp) eproj_spinor,psppar_aux(0:4, 0:6)
-  
+  integer :: iat , nspinor
+
   !apply the projectors  k-point of the processor
   !starting k-point
   ikpt=orbs%iokpt(1)
@@ -1688,6 +1696,8 @@ subroutine applyPAWprojectors(orbs,at,&
   use module_types
   use module_interfaces, except_this_one => applyPAWprojectors
 
+  implicit none
+  
   type(orbitals_data), intent(inout) :: orbs
   type(atoms_data) :: at
   real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
@@ -1711,7 +1721,7 @@ subroutine applyPAWprojectors(orbs,at,&
   real(dp)  :: dotbuffer(dotbuffersize), dotbufferbis(dotbuffersize)
   integer ibuffer, ichannel, nchannels, imatrix, ilim
   logical lfound_sup
-                   
+  integer :: iat, old_istart_c, iatat , kx,ky, kz,m, nspinor
 
   if (orbs%norbp.gt.0) then
 

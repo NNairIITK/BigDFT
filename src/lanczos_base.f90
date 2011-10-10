@@ -832,7 +832,7 @@ contains
 
 
     if(LB_iproc==0) then
-       write(filename,'(a,a,I0)') trim(xabs_res_prefix),  "cheb_spectra_", Nu
+       write(filename,'(a,a,I0)') trim(xabs_res_prefix),  "cheb_spectra_", Nu+1
        write(*, '(a,1x, a)') " writing spectra to " , trim(filename) 
 
        open(unit=22,file=filename)
@@ -1100,7 +1100,8 @@ contains
              write( *,"(10(d20.10,1x))")  alphacollect
           endif
        else
-          write( *,"(A,1x,10(d20.10,1x))")  "new cheb coeffs " ,  LB_alpha_cheb(1:LB_norbp ,2*i+1) , LB_alpha_cheb(1:LB_norbp,2*i+2)
+          write (*,"(A)",advance="no")   "new cheb coeffs "
+          write( *,"(1x,10(d20.10,1x))")   LB_alpha_cheb(1:LB_norbp ,2*i+1) , LB_alpha_cheb(1:LB_norbp,2*i+2)
        endif
        call EP_copy(precedente,attuale)
        call EP_copy(attuale,tmp1)
