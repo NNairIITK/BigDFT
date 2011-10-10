@@ -1,15 +1,16 @@
 # Give here the list of existing tests
 TESTDIRS = CH4 \
 	  CH3- \
-	  H2O-slab
+	  H2O-slab \
+	  N2
 
 EXTRA_DIST = H1A.html CH4-cv.png CH4-grid.png \
 	CH4/input.dft CH4/posinp.xyz CH4/psppar.C CH4/psppar.H \
 	CH3-/input.dft CH3-/posinp.xyz CH3-/psppar.C CH3-/psppar.H CH3-/input.geopt \
 	H1B.html H2O-slab.png H2O-dipolar.png H2O-dipolarE.png \
+	H1X.html N2-wf01.thumb.png N2-wf02.thumb.png \
+	N2-wf03.thumb.png N2-wf04.thumb.png N2-wf05.thumb.png \
         $(TESTDIRS)
-
-
 
 # Generic part, do not touch.
 INS = $(TESTDIRS:=.in)
@@ -30,9 +31,11 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 %.memguess.out: $(abs_top_builddir)/src/memguess
-	$(abs_top_builddir)/src/memguess 1 > $@
+	name=`basename $@ .out.out | sed "s/^.*_//"` ; \
+	$(abs_top_builddir)/src/memguess 1 $$name > $@
 %.out.out: $(abs_top_builddir)/src/bigdft
-	$(run_parallel) $(abs_top_builddir)/src/bigdft > $@
+	name=`basename $@ .out.out | sed "s/^.*_//"` ; \
+	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
 %.geopt.mon.out:
 	$(MAKE) -f ../Makefile $*.out.out && mv geopt.mon $@
 
