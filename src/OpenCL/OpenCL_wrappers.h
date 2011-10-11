@@ -7,7 +7,7 @@
 #include <math.h>
 #include <assert.h>
 //#include <Tool.h>
-#include <time.h>
+//#include <time.h>
 
 /** @file OpenCL_wrappers.h
  *  @brief Contains global declarations and fortran bindings for OpenCL convolutions.

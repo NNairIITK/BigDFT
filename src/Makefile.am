@@ -95,7 +95,7 @@ else
 minima_hopping_sources =
 endif
 global_SOURCES = # Should be global.f90, but see below.
-global_LDFLAGS = 
+global_LDFLAGS = $(c_ldadd)
 global_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -255,6 +255,8 @@ low_level = init/projectors.f90  \
 c_level = posfiles.c \
 	utils.c
 
+c_ldadd = -lrt
+
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	BigDFT_API.f90 \
@@ -270,7 +272,7 @@ libbigdft_a_LIBADD = profiling/time.o \
 	$(modules_objects) 
 
 bigdft_SOURCES = BigDFT.f90 
-bigdft_LDFLAGS = 
+bigdft_LDFLAGS = $(c_ldadd)
 bigdft_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -278,7 +280,7 @@ bigdft_LDADD = libbigdft.a \
 	$(libs_opt)
 
 splsad_SOURCES = splinedsaddle.f90
-splsad_LDFLAGS =
+splsad_LDFLAGS = $(c_ldadd)
 splsad_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -286,7 +288,7 @@ splsad_LDADD = libbigdft.a \
 	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
-rism_LDFLAGS = 
+rism_LDFLAGS = $(c_ldadd) 
 rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -294,7 +296,7 @@ rism_LDADD = libbigdft.a \
 	$(libs_opt)
 
 oneatom_SOURCES = oneatom.f90
-oneatom_LDFLAGS = 
+oneatom_LDFLAGS = $(c_ldadd) 
 oneatom_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -303,7 +305,7 @@ oneatom_LDADD = libbigdft.a \
 
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90                                                                                                                                                                                  
-BigDFT2Wannier_LDFLAGS =
+BigDFT2Wannier_LDFLAGS = $(c_ldadd)
 BigDFT2Wannier_LDADD = libbigdft.a \
         PSolver/libpoissonsolver.a \
         $(LMPI) \
@@ -312,7 +314,7 @@ BigDFT2Wannier_LDADD = libbigdft.a \
 
 
 MDanalysis_SOURCES = distances.f90 
-MDanalysis_LDFLAGS = 
+MDanalysis_LDFLAGS = $(c_ldadd) 
 MDanalysis_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -320,7 +322,7 @@ MDanalysis_LDADD = libbigdft.a \
 	$(libs_opt)  
 
 abscalc_SOURCES = abscalc.f90 
-abscalc_LDFLAGS = 
+abscalc_LDFLAGS = $(c_ldadd) 
 abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -328,7 +330,7 @@ abscalc_LDADD = libbigdft.a \
 	$(libs_opt) 
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDFLAGS = 
+test_forces_LDFLAGS = $(c_ldadd) 
 test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -337,20 +339,21 @@ test_forces_LDADD = libbigdft.a \
 
 NEB_SOURCES = NEB.f90 \
 	$(mpi_source)
-NEB_LDFLAGS = 
+NEB_LDFLAGS = $(c_ldadd) 
 NEB_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
 	MPIfake.f90
+memguess_LDFLAGS = $(c_ldadd)
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
 	$(mpi_source)
-frequencies_LDFLAGS = 
+frequencies_LDFLAGS = $(c_ldadd) 
 frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -369,7 +372,7 @@ bart_SOURCES = \
 	art/read_parameters.f90 \
 	art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-bart_LDFLAGS = 
+bart_LDFLAGS = $(c_ldadd) 
 bart_LDADD = art/libart.a \
 	libbigdft.a \
 	PSolver/libpoissonsolver.a \
