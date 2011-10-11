@@ -246,7 +246,7 @@ subroutine check_for_data_writing_directory(iproc,in)
      if (iproc == 0) then
         call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
         if (i_stat /= 0) then
-           write(*,*) "ERROR: cannot create output directory."
+           write(*,*) "ERROR: cannot create output directory '" // trim(in%dir_output) // "'."
            call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
         end if
      end if
@@ -273,7 +273,6 @@ subroutine default_input_variables(inputs)
   ! Default values.
   inputs%output_wf_format = WF_FORMAT_NONE
   inputs%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
-  inputs%dir_output="data"
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)

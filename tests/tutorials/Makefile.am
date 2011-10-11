@@ -21,8 +21,9 @@ endif
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
 H2O-bader.dipole.dat.out: H2O-bader.out.out
-	$(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube &&\
+	$(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube > bader.out &&\
 	mv dipole.dat $@
+
 # Generic part, do not touch.
 INS = $(TESTDIRS:=.in)
 RUNS = $(TESTDIRS:=.run)

@@ -402,7 +402,6 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   logical :: exists
   character(len=2) :: symbol
   character(len=24) :: message
-  character(len=27) :: filename
   character(len=50) :: format
   integer :: i,j,k,l,iat,nt,ntu,ntd,ityp,ierror,i_stat,ispinsum,mxpl
   integer :: ispol,mxchg,ichg,ichgsum,nsccode,norbe,norbat,nspinor,nspin
@@ -1634,7 +1633,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
 
 !! local variables  
   character(len=*), parameter :: subname='pawpatch_from_file'
-  integer ::   dumi, npawl, ipawl, paw_l, i_stat
+  integer :: npawl, ipawl, paw_l, i_stat
   integer :: paw_nofgaussians, paw_nofchannels, il, ierror, ig
   real(gp) :: paw_greal, paw_gimag, paw_ccoeff, paw_scoeff, dumpaw
   character(len=100) :: string
