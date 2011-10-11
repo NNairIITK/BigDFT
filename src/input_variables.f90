@@ -68,7 +68,7 @@ subroutine standard_inputfile_names(inputs, radical)
 
   write(rad, "(A)") ""
   write(rad, "(A)") trim(radical)
-     if (trim(radical) == "") write(rad, "(A)") "input"
+  if (trim(radical) == "") write(rad, "(A)") "input"
 
   inputs%file_dft=trim(rad) // '.dft'
   inputs%file_geopt=trim(rad) // '.geopt'
