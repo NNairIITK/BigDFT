@@ -13,11 +13,11 @@ EXTRA_DIST = H1A.html CH4-cv.png CH4-grid.png \
 	H1B.html H2O-slab.png H2O-dipolar.png H2O-dipolarE.png \
 	H1X.html N2-wf01.thumb.png N2-wf02.thumb.png \
 	N2-wf03.thumb.png N2-wf04.thumb.png N2-wf05.thumb.png \
-	H3B.html H2B.html $(TESTDIRS)
+	H3B.html H2B.html Mg7-minhop $(TESTDIRS)
 
-if USE_MINIMA_HOPPING
-TESTDIRS += Mg7-minhop
-endif
+#if USE_MINIMA_HOPPING
+#TESTDIRS += Mg7-minhop
+#endif
 
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
@@ -59,6 +59,7 @@ report:
         esac ; \
         case $* in \
           CH3-.out*) prec="5.e-7" ;; \
+          scalability.out*)  prec="1.e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
