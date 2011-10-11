@@ -161,7 +161,7 @@ subroutine init_atomic_values(iproc, atoms, ixc)
   character(len=*), parameter :: subname='init_atomic_values'
   integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat
   integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
-  logical :: exists, read_radii
+  logical :: exists, read_radii,exist_all
   character(len=27) :: filename
      
   !allocate atoms data variables
@@ -193,16 +193,20 @@ subroutine init_atomic_values(iproc, atoms, ixc)
   paw_tot_q=0
   paw_tot_coefficients=0
   paw_tot_matrices=0
-
+  exist_all=.true.
+  !@ todo : eliminate the pawpatch from psppar
   do ityp=1,atoms%ntypes
      filename = 'psppar.'//atoms%atomnames(ityp)
      call psp_from_file(iproc, filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
           & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
           & atoms%radii_cf(ityp, :), read_radii, exists)
 
-     !! first time just for dimension ( storeit = . false.)
-     call pawpatch_from_file( filename, atoms,ityp,&
-          paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .false.)
+     if (exists) then
+        !! first time just for dimension ( storeit = . false.)
+        call pawpatch_from_file( filename, atoms,ityp,&
+             paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .false.)
+     end if
+     exist_all=exist_all .and. exists
 
      if (.not. read_radii) atoms%radii_cf(ityp, :) = UNINITIALIZED(1.0_gp)
      if (.not. exists) then
@@ -224,12 +228,18 @@ subroutine init_atomic_values(iproc, atoms, ixc)
      atoms%donlcc = (atoms%donlcc .or. exists)
   end do
   
-  do ityp=1,atoms%ntypes
-     filename = 'psppar.'//atoms%atomnames(ityp)
-     !! second time allocate and then store
-     call pawpatch_from_file( filename, atoms,ityp,&
-          paw_tot_l,   paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .true.)
-  end do
+  if (exist_all) then
+     do ityp=1,atoms%ntypes
+        filename = 'psppar.'//atoms%atomnames(ityp)
+        !! second time allocate and then store
+        call pawpatch_from_file( filename, atoms,ityp,&
+             paw_tot_l,   paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .true.)
+     end do
+  else
+     nullify(atoms%paw_l,atoms%paw_NofL,atoms%paw_nofchannels)
+     nullify(atoms%paw_nofgaussians,atoms%paw_Greal,atoms%paw_Gimag)
+     nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
+  end if
 
   !process the nlcc parameters if present 
   !(allocation is performed also with zero size)
