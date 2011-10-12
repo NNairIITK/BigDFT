@@ -89,11 +89,11 @@ program memguess
   else
      read(unit=tatonam,fmt=*) nproc
      i_arg = 2
+     output_grid=0
      loop_getargs: do
         call get_command_argument(i_arg, value = tatonam, status = istat)
         !call getarg(i_arg,tatonam)
         if(trim(tatonam)=='' .or. istat > 0) then
-           output_grid=0
            exit loop_getargs
         else if (trim(tatonam)=='y') then
            output_grid=1
@@ -215,7 +215,11 @@ program memguess
 
   !standard names
   call standard_inputfile_names(in, radical)
-  call read_input_variables(0, "posinp", in, atoms, rxyz)
+  if (trim(radical) == "") then
+     call read_input_variables(0, "posinp", in, atoms, rxyz)
+  else
+     call read_input_variables(0, trim(radical), in, atoms, rxyz)
+  end if
   !initialize memory counting
   !call memocc(0,0,'count','start')
 
@@ -322,7 +326,7 @@ program memguess
 
   ! Build and print the communicator scheme.
   call createWavefunctionsDescriptors(0,hx,hy,hz,&
-       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (in%output_grid > 0))
+       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
   if (exportwf) then
@@ -1197,7 +1201,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,psi)
   !local variables
   character(len=*), parameter :: subname='take_psi_form_file'
   logical :: perx,pery,perz,exists
-  integer :: nb1,nb2,nb3,i_stat,i_err,isuffix,iorb_out,i_all
+  integer :: nb1,nb2,nb3,i_stat,isuffix,iorb_out,i_all
   real(gp) :: eval_fake
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(gp), dimension(:,:), allocatable :: rxyz_file

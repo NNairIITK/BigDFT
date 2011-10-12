@@ -115,7 +115,8 @@ if bigdft:
             or "allocation" in line \
             or "~W" in line \
             or "for the array" in line \
-            or "WRITING WAVES" in line \
+            or "WRITE WAVES" in line \
+            or "wavefunction written" in line \
             or "READING WAVES" in line \
             or "average CG stepsize" in line \
             or "GPU data" in line

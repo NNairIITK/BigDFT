@@ -7,13 +7,14 @@ TESTDIRS = CH4 \
 	  H2O-slab \
 	  N2 \
 	  H2O-bader \
-	  scalability
+	  scalability \
+	  dev
 
 EXTRA_DIST = H1A.html CH4-cv.png CH4-grid.png \
 	H1B.html H2O-slab.png H2O-dipolar.png H2O-dipolarE.png \
 	H1X.html N2-wf01.thumb.png N2-wf02.thumb.png \
 	N2-wf03.thumb.png N2-wf04.thumb.png N2-wf05.thumb.png \
-	H3B.html H2B.html Mg7-minhop $(TESTDIRS)
+	H3B.html H2B.html H3X.html Mg7-minhop $(TESTDIRS)
 
 #if USE_MINIMA_HOPPING
 #TESTDIRS += Mg7-minhop
@@ -22,9 +23,19 @@ EXTRA_DIST = H1A.html CH4-cv.png CH4-grid.png \
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
 H2O-bader.dipole.dat.out: H2O-bader.out.out
-	$(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube &&\
+	$(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube > bader.out &&\
 	mv dipole.dat $@
+
+dev.check: dev/toy_model
+
+dev/toy_model: $(srcdir)/dev/toy_model.f90
+	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft -L$(top_builddir)/src/PSolver -lpoissonsolver $(LDFLAGS) $(LIBS)
+toy_model.dat.out: dev-N2.out.out toy_model
+	./toy_model > toy_model.dat.out
+
 # Generic part, do not touch.
+AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver
+
 INS = $(TESTDIRS:=.in)
 RUNS = $(TESTDIRS:=.run)
 CHECKS = $(TESTDIRS:=.check)
