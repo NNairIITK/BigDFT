@@ -509,47 +509,50 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
 
 !!$  if(present(psipsigrid)) then
 !!$     ngrid_box_2=psipsigrid(1,1)
-!!$     dumgrid1(:)=0.0_gp
-!!$     do isol=1,nsol
-!!$        psigrid_naked_2(:,isol)=0.0_gp
-!!$        print *, "solving for isol ", isol , " ngrid_box_2 ", ngrid_box_2
-!!$        call schro(Egrid(isol),rgrid,potgrid,dumgrid1,psigrid_naked_2(1,isol),ngrid_box_2,isol+labs,labs*1.0_gp,zion)
-!!$     enddo
-!!$     H_2(:,:)=0.0D0
-!!$     do i=1,Nsol
-!!$        H_2(i,i)=Egrid(i)
-!!$        do iproj=1,3
-!!$           do igrid=1,Ngrid
-!!$              dumgrid1(igrid)=psigrid_naked_2(igrid,i)*projgrid(igrid,iproj)
-!!$           enddo
-!!$           call integrate(dumgrid1,dumgrid2,rgrid,ngrid_box_2)
-!!$           ppgrid(i,iproj)=dumgrid2(ngrid_box_2)
-!!$        enddo
-!!$     enddo
-!!$
-!!$     do i=1,Nsol
-!!$        do j=1, Nsol
-!!$           if ( labs.le.lpx) then
-!!$              H_2(i,j)=H_2(i,j)+ ppgrid(i,1)*hsep(1,labs+1)*ppgrid(j,1)&
-!!$                   + ppgrid(i,1)*hsep(2,labs+1)*ppgrid(j,2)&
-!!$                   + ppgrid(i,2)*hsep(2,labs+1)*ppgrid(j,1)&
-!!$                   + ppgrid(i,2)*hsep(3,labs+1)*ppgrid(j,2)&
-!!$                   + ppgrid(i,1)*hsep(4,labs+1)*ppgrid(j,3)&
-!!$                   + ppgrid(i,3)*hsep(4,labs+1)*ppgrid(j,1)&
-!!$                   + ppgrid(i,2)*hsep(5,labs+1)*ppgrid(j,3)&
-!!$                   + ppgrid(i,3)*hsep(5,labs+1)*ppgrid(j,2)&
-!!$                   + ppgrid(i,3)*hsep(6,labs+1)*ppgrid(j,3)
-!!$           endif
-!!$           do igrid=1,ngrid_box_2
-!!$              dumgrid1(igrid)=psigrid_naked_2(igrid,i)*psigrid_naked_2(igrid,j)*vxcgrid(igrid)
-!!$           enddo
-!!$           call integrate(dumgrid1,dumgrid2,rgrid,ngrid_box_2)
-!!$           H_2(i,j)=H_2(i,j)+dumgrid2(ngrid_box_2)
-!!$        enddo
-!!$     enddo
-!!$     call DSYEV('V','U', Nsol, H_2, Nsol,Egrid_tmp_2 , WORK, Nsol*Nsol*2, INFO)
-!!$     call  DGEMM('N','N',Ngrid ,Nsol,Nsol,1.0d0,psigrid_naked_2,Ngrid,&
-!!$          H_2 ,Nsol, 0.0D0 , psigrid_not_fitted_2 , Ngrid)
+
+     ngrid_box_2 = Ngrid_box_larger 
+     dumgrid1(:)=0.0_gp
+     do isol=1,nsol
+        psigrid_naked_2(:,isol)=0.0_gp
+        call schro(Egrid(isol),rgrid,potgrid,dumgrid1,psigrid_naked_2(1,isol),ngrid_box_2,isol+labs,labs*1.0_gp,zion)
+     enddo
+     H_2(:,:)=0.0D0
+     do i=1,Nsol
+        H_2(i,i)=Egrid(i)
+        do iproj=1,3
+           do igrid=1,Ngrid
+              dumgrid1(igrid)=psigrid_naked_2(igrid,i)*projgrid(igrid,iproj)
+           enddo
+           call integrate(dumgrid1,dumgrid2,rgrid,ngrid_box_2)
+           ppgrid(i,iproj)=dumgrid2(ngrid_box_2)
+        enddo
+     enddo
+
+     do i=1,Nsol
+        do j=1, Nsol
+           if ( labs.le.lpx) then
+              H_2(i,j)=H_2(i,j)+ ppgrid(i,1)*hsep(1,labs+1)*ppgrid(j,1)&
+                   + ppgrid(i,1)*hsep(2,labs+1)*ppgrid(j,2)&
+                   + ppgrid(i,2)*hsep(2,labs+1)*ppgrid(j,1)&
+                   + ppgrid(i,2)*hsep(3,labs+1)*ppgrid(j,2)&
+                   + ppgrid(i,1)*hsep(4,labs+1)*ppgrid(j,3)&
+                   + ppgrid(i,3)*hsep(4,labs+1)*ppgrid(j,1)&
+                   + ppgrid(i,2)*hsep(5,labs+1)*ppgrid(j,3)&
+                   + ppgrid(i,3)*hsep(5,labs+1)*ppgrid(j,2)&
+                   + ppgrid(i,3)*hsep(6,labs+1)*ppgrid(j,3)
+           endif
+           do igrid=1,ngrid_box_2
+              dumgrid1(igrid)=psigrid_naked_2(igrid,i)*psigrid_naked_2(igrid,j)*vxcgrid(igrid)
+           enddo
+           call integrate(dumgrid1,dumgrid2,rgrid,ngrid_box_2)
+           H_2(i,j)=H_2(i,j)+dumgrid2(ngrid_box_2)
+        enddo
+     enddo
+     call DSYEV('V','U', Nsol, H_2, Nsol,Egrid_tmp_2 , WORK, Nsol*Nsol*2, INFO)
+     call  DGEMM('N','N',Ngrid ,Nsol,Nsol,1.0d0,psigrid_naked_2,Ngrid,&
+          H_2 ,Nsol, 0.0D0 , psigrid_not_fitted_2 , Ngrid)
+
+
 !!$  end if
 
   if(dofit) then
@@ -777,7 +780,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
           else
              Ngrid_box2 = Ngrid_box
           endif
-
+          print *, " Ngrid_box2 est ",  Ngrid_box2
         if( .true. ) then
            !!! MEGA-check 
            !!    we have still in H the hgh hamiltonian
@@ -794,7 +797,12 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
            !! Ptilde is still stored in Tpsigrid_dum
            do isol=1,Npaw
               do jsol=1,Nsol_used
-                 dumgrid2=Tpsigrid_dum(isol, :)*psigrid_not_fitted(:, jsol)
+
+                 if(ivolta==1) then
+                    dumgrid2=Tpsigrid_dum(isol, :)*psigrid_not_fitted_2(:, jsol)
+                 else
+                    dumgrid2=Tpsigrid_dum(isol, :)*psigrid_not_fitted(:, jsol)
+                 end if
                  call integrate(dumgrid2,dumgrid1, rgrid, Ngrid_box2)
                  Soverlap(isol,jsol) = dumgrid1(Ngrid_box2)
               end do
@@ -808,7 +816,11 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
                 dumH ,Nsol, 0.0D0 , genH , Nsol)
 
            do jsol=1,Nsol_used
-              genH(jsol,jsol) = genH(jsol,jsol)  +Egrid_tmp(jsol)   !! + H
+              if(ivolta==1) then
+                 genH(jsol,jsol) = genH(jsol,jsol)  +Egrid_tmp_2(jsol)   !! + H
+              else
+                 genH(jsol,jsol) = genH(jsol,jsol)  +Egrid_tmp(jsol)   !! + H                 
+              endif
            end do
 
 
