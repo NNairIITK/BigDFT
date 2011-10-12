@@ -22,8 +22,8 @@
     <div class="main"><a name="top" id="top"></a>
 
       <div class="floatingmenu">
-        <a href="basics-1.html">&lt;&nbsp;prev. lesson</a>
-        <!--      <a style="float:right;" href="ba.html">Next lesson &gt;</a> -->
+        <a href="H2A.html">&lt;&nbsp;prev. lesson</a>
+        <a style="float:right;" href="H2C.html">Next lesson &gt;</a> 
         <h2>Content of this lesson</h2>
         <ul>
           <li>Introduction</li>
@@ -32,17 +32,17 @@
         </ul>
         <h2>Materials provided</h2>
         <ul>
-          <li><a href="posinp.xyz">posinp.xyz</a></li>
-          <li><a href="input.dft">input.dft</a></li>
-          <li><a href="psppar.B">psppar.B</a></li>
-          <li><a href="run_jobs">run_jobs</a></li>
+          <li><a href="posinp.xyz" target="_blank">posinp.xyz</a></li>
+          <li><a href="input.dft" target="_blank">input.dft</a></li>
+          <li><a href="psppar.B" target="_blank">psppar.B</a></li>
+          <li><a href="run_jobs" target="_blank">run_jobs</a></li>
         </ul>
       </div>
 
       <h1>Scalability of BigDFT with MPI and OpenMP</h1>
 
       <h2>Introduction</h2>
-      <img class="figure" src="B14_2.jpg" alt="visualisation of the Boron 14 cluster" width="180" />
+      <img class="figure" src="Figures/B14_2.jpg" alt="visualisation of the Boron 14 cluster" width="180" />
       <p>There are two levels of parallelization implemented in BigDFT, a massively parallelized DFT code: MPI and OpenMP. 
       Of the two parallelizations, the former works on distributed memory architecture while and the latter corresponds to the shared 
       memory architecture, each has some particular advantages as well as disadvantages. A proper combination of MPI and OpenMP can benefit BigDFT with
@@ -68,12 +68,12 @@
       <p>In this lesson, we aim to some ideas of how to run BigDFT with MPI and/or OpenMP, and how does the scalability 
          of BiGDFT with MPI and OpenMP look like, both in parts and in total. For the purposes, we will run BigDFT jobs for 
          a particular system, a Boron cluster with 14 atoms and 21 orbitals, shown on Figure 1. The tarball for this lesson
-         is available <a href="B14.tar.gz"> here</a>. When you untar the tarball, there several files in the obtained folder</p>
+         is available <a href="B14.tar.gz" target="_blank"> here</a>. When you untar the tarball, there several files in the obtained folder</p>
       <ul>
-         <li><a href="posinp.xyz">posinp.xyz</a>: the geometrical structure of the Boron 14 cluster, in format of an xyz file</li>
-         <li><a href="input.dft">input.dft</a>: the inputs for a DFT run with BigDFT</li>
-         <li><a href="psppar.B">psppar.B</a>: Goedecker's type pseudopotential for Boron, in the format used by BigDFT and abinit</li>
-         <li><a href="run_jobs">run_jobs</a>: the script to submit a BigDFT job with MPI and OpenMP</li>
+         <li><a href="posinp.xyz" target="_blank">posinp.xyz</a>: the geometrical structure of the Boron 14 cluster, in format of an xyz file</li>
+         <li><a href="input.dft" target="_blank">input.dft</a>: the inputs for a DFT run with BigDFT</li>
+         <li><a href="psppar.B" target="_blank">psppar.B</a>: Goedecker's type pseudopotential for Boron, in the format used by BigDFT and abinit</li>
+         <li><a href="run_jobs" target="_blank">run_jobs</a>: the script to submit a BigDFT job with MPI and OpenMP</li>
       </ul>
 <h3>Job submission script</h3>
       <p>While the format of the posinp.xyz and input.dft files has been discussed in previous lessons, we have a 
@@ -157,7 +157,7 @@ grep 'Rho_comput' time.prc |awk '{n++;s+=$2} END {print s}'
 
       <h2>Discussions</h2>
       <p>For a reference, see the below Figure for the speedup of BigDFT on Palu.</p>
-      <img class="figureR" src="Scal_Palu.jpg" width="550" alt="Scalability measured on Palu" />
+      <img class="figureR" src="Figures/Scal_Palu.jpg" width="550" alt="Scalability measured on Palu" />
 <ul>
 <li>For the most time consuming categories, MPI speedup is good</li>
 <li>Communication is the main bottle-neck for MPI, but not for OpenMP. Note that this is because OpenMP works on shared memory architecture while MPI is based on distributed memory architecture.</li>
