@@ -29,7 +29,7 @@ H2O-bader.dipole.dat.out: H2O-bader.out.out
 dev.check: dev/toy_model
 
 dev/toy_model: $(srcdir)/dev/toy_model.f90
-	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft -L$(top_builddir)/src/PSolver -lpoissonsolver $(LDFLAGS) $(LIBS) $(libs_opt)
+	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft  -L$(top_builddir)/src/PSolver -lpoissonsolver $(libs_opt) $(LDFLAGS) $(LIBS)
 toy_model.dat.out: dev-N2.out.out toy_model
 	./toy_model > toy_model.dat.out
 
