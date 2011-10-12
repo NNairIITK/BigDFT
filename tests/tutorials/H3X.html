@@ -352,7 +352,7 @@ psi((i - 1) * (Glr%wfd%nvctr_c + 7 * Glr%wfd%nvctr_f) + 1:
      call daub_to_isf(Glr,wisf, &
           & psi((i - 1) * (Glr%wfd%nvctr_c + 7 * Glr%wfd%nvctr_f) + 1),psir)
      do j = 1, Glr%d%n1i * Glr%d%n2i * Glr%d%n3i, 1
-        epot_sum = epot_sum + psir(j) * potential(j)
+        epot_sum = epot_sum + psir(j) * potential(j) * psir(j)
      end do
   end do
   epot_sum = epot_sum * inputs%hx / 2._gp * inputs%hy / 2._gp * inputs%hz / 2._gp
