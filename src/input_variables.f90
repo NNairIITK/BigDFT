@@ -273,7 +273,6 @@ subroutine default_input_variables(inputs)
   ! Default values.
   inputs%output_wf_format = WF_FORMAT_NONE
   inputs%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
-  inputs%dir_output="data"
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)
@@ -908,7 +907,7 @@ subroutine update_symmetries(in, atoms, rxyz)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(inout) :: atoms
@@ -923,7 +922,7 @@ subroutine update_symmetries(in, atoms, rxyz)
   if (atoms%geocode /= 'F') then
      if (.not. in%disableSym) then
         if (atoms%symObj < 0) then
-           call ab6_symmetry_new(atoms%symObj)
+           call symmetry_new(atoms%symObj)
         end if
         ! New values
         rprimd(:,:) = 0
@@ -931,13 +930,13 @@ subroutine update_symmetries(in, atoms, rxyz)
         rprimd(2,2) = atoms%alat2
         if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
         rprimd(3,3) = atoms%alat3
-        call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
+        call symmetry_set_lattice(atoms%symObj, rprimd, ierr)
         allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
         call memocc(i_stat,xRed,'xRed',subname)
         xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
         xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
         xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
-        call ab6_symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
+        call symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
         i_all=-product(shape(xRed))*kind(xRed)
         deallocate(xRed,stat=i_stat)
         call memocc(i_stat,i_all,'xRed',subname)
@@ -945,20 +944,20 @@ subroutine update_symmetries(in, atoms, rxyz)
            !!for the moment symmetries are not allowed in surfaces BC
            write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
            stop
-           call ab6_symmetry_set_periodicity(atoms%symObj, &
+           call symmetry_set_periodicity(atoms%symObj, &
                 & (/ .true., .false., .true. /), ierr)
         else if (atoms%geocode == 'F') then
-           call ab6_symmetry_set_periodicity(atoms%symObj, &
+           call symmetry_set_periodicity(atoms%symObj, &
                 & (/ .false., .false., .false. /), ierr)
         end if
         if (in%elecfield /= 0) then
-           call ab6_symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield, 0._gp /), ierr)
+           call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield, 0._gp /), ierr)
         end if
      else
         if (atoms%symObj >= 0) then
-           call ab6_symmetry_free(atoms%symObj)
+           call symmetry_free(atoms%symObj)
         end if
-        call ab6_symmetry_new(atoms%symObj)
+        call symmetry_new(atoms%symObj)
         rprimd(1,1) = 0.5d0
         rprimd(2,1) = 1d0
         rprimd(3,1) = 1d0
@@ -968,12 +967,12 @@ subroutine update_symmetries(in, atoms, rxyz)
         rprimd(1,3) = 3d0
         rprimd(2,3) = 0d0
         rprimd(3,3) = 1d0
-        call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
-        call ab6_symmetry_set_structure(atoms%symObj, 3, (/ 1,2,3 /), rprimd / 4.d0, ierr)
+        call symmetry_set_lattice(atoms%symObj, rprimd, ierr)
+        call symmetry_set_structure(atoms%symObj, 3, (/ 1,2,3 /), rprimd / 4.d0, ierr)
      end if
   else
      if (atoms%symObj >= 0) then
-        call ab6_symmetry_free(atoms%symObj)
+        call symmetry_free(atoms%symObj)
      end if
      atoms%symObj = -1
   end if
@@ -983,7 +982,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_kpoints
   use module_input
   implicit none
   character(len=*), intent(in) :: filename
@@ -1030,7 +1029,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
           comment='Equivalent legth of K-space resolution (Bohr)')
-     call ab6_symmetry_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1053,7 +1052,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
         call input_var(shiftk(2,i),'0.')
         call input_var(shiftk(3,i),'0.',comment=' ')
      end do
-     call ab6_symmetry_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1193,7 +1192,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_kpoints
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
@@ -1243,7 +1242,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   if (trim(type) == "auto" .or. trim(type) == "Auto" .or. trim(type) == "AUTO") then
      read(1,*,iostat=ierror) kptrlen
      call check()
-     call ab6_symmetry_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1261,7 +1260,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         read(1,*,iostat=ierror) shiftk(:, i)
         call check()
      end do
-     call ab6_symmetry_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1554,7 +1553,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
 
   read(iunit,*,iostat=ierror)  in%iat_absorber
   call check()
-  read(iunit,*,iostat=ierror)  in%N_absorber,in%Linit_absorber      ,in%rpower_absorber,  in%L_absorber,  in%NPaw_absorber
+  read(iunit,*,iostat=ierror)  in%L_absorber
   call check()
 
   allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
@@ -1953,7 +1952,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
    use module_base
    use module_types
    use module_interfaces, except_this_one => read_atomic_file
-   use ab6_symmetry
+   use m_ab6_symmetry
    use position_files
    implicit none
    character(len=*), intent(in) :: file
@@ -2069,7 +2068,7 @@ END SUBROUTINE read_atomic_file
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   character(len=*), intent(in) :: subname
   type(atoms_data), intent(inout) :: atoms
@@ -2093,7 +2092,7 @@ subroutine deallocate_atoms(atoms,subname)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
   if (atoms%symObj >= 0) then
-     call ab6_symmetry_free(atoms%symObj)
+     call symmetry_free(atoms%symObj)
   end if
   ! Deallocations related to pseudos.
   i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
@@ -3105,7 +3104,7 @@ subroutine print_general_parameters(nproc,input,atoms)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   !Arguments
   integer, intent(in) :: nproc
@@ -3177,8 +3176,8 @@ subroutine print_general_parameters(nproc,input,atoms)
 
   ! The additional data column
   if (atoms%geocode /= 'F' .and. .not. input%disableSym) then
-     call ab6_symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
-     call ab6_symmetry_get_group(atoms%symObj, spaceGroup, &
+     call symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
+     call symmetry_get_group(atoms%symObj, spaceGroup, &
           & spaceGroupId, pointGroupMagn, genAfm, ierr)
      if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
      write(add(1), '(a,i0)')       "N. sym.   = ", nSym

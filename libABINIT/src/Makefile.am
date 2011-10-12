@@ -78,6 +78,7 @@ libabinit_a_SOURCES = \
 	42_geometry/getspinrot.F90 \
 	42_geometry/gridgcart.F90 \
 	42_geometry/holocell.F90 \
+	42_geometry/m_ab6_symmetry.F90 \
 	42_geometry/metric.F90 \
 	42_geometry/mkrdim.F90 \
 	42_geometry/operat.F90 \
@@ -127,11 +128,11 @@ libabinit_a_SOURCES = \
 	56_mixing/sqnormm_v.F90 \
 	56_recipspace/interfaces_56_recipspace.F90 \
 	56_recipspace/irrzg.F90 \
+	56_recipspace/m_ab6_kpoints.F90 \
 	56_recipspace/getkgrid.F90 \
 	56_recipspace/smpbz.F90 \
 	56_recipspace/symkpt.F90 \
 	56_recipspace/testkgrid.F90 \
-	56_recipspace/ab6_symmetry_f90.F90 \
 	56_xc/interfaces_56_xc.F90 \
 	56_xc/drivexc.F90 \
 	56_xc/invcb.F90 \
@@ -174,7 +175,7 @@ CLEANFILES = mpif.h \
 	interfaces_56_xc.@MODULE_EXT@ INTERFACES_56_XC.@MODULE_EXT@ \
 	interfaces_linalg.@MODULE_EXT@ INTERFACES_LINALG.@MODULE_EXT@ \
 	ab6_moldyn.@MODULE_EXT@ AB6_MOLDYN.@MODULE_EXT@ \
-	ab6_symmetry.@MODULE_EXT@ AB6_SYMMETRY.@MODULE_EXT@
+	m_ab6_symmetry.@MODULE_EXT@ M_AB6_SYMMETRY.@MODULE_EXT@
 
 #dependencies
 mpif.h:

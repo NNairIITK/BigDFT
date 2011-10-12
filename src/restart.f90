@@ -303,7 +303,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   if (exists) then
      if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
      call read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
-     wfd,psi)
+          wfd,psi)
   else
      call cpu_time(tr0)
      call system_clock(ncount1,ncount_rate,ncount_max)

@@ -16,7 +16,7 @@ program memguess
   use module_types
   use module_interfaces
   use module_xc
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   implicit none
   character(len=*), parameter :: subname='memguess'
@@ -75,9 +75,9 @@ program memguess
      write(*,'(1x,a)')&
           '"upgrade" upgrades input files older than 1.2 into actual format'
      write(*,'(1x,a)')&
-          '"convert <from.[cube,etsf]> <to.[cube,etsf]>" converts "from" to file "to" using the given formats'
+          '"convert" <from.[cube,etsf]> <to.[cube,etsf]>" converts "from" to file "to" using the given formats'
      write(*,'(1x,a)')&
-          '"exportwf <n>[u,d] <from.[bin,formatted,etsf]> "'//&
+          '"exportwf" <n>[u,d] <from.[bin,formatted,etsf]> "'//&
           ' converts n-th wavefunction of file "from" to cube using BigDFT uncompression'
      write(*,'(1x,a)')&
           '"atwf" <ng> calculates the atomic wavefunctions of the first atom in the gatom basis and write their expression '
@@ -981,7 +981,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
         call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
      end if
   end do
-  if(ASYNCconv) call finish_hamiltonian_OCL(orbs,ekinGPU,epotGPU,GPU)
+  if(ASYNCconv .and. OCLconv) call finish_hamiltonian_OCL(orbs,ekinGPU,epotGPU,GPU)
   call cpu_time(t1)
 
   print *,'ekinGPU,epotGPU',ekinGPU,epotGPU
