@@ -361,8 +361,8 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
         call schro( Egrid(n),rgrid , &
              aepot_cent  ,nonloc,  psigrid(1, n )  , Ngrid_box_larger ,&
              n+LPaw , Lpaw  ,   znuc )                     
-        write(6 ,*)  " n = ", n, " Egrid(n)   Ngrid_box_larger"  , Egrid(n),  "  lpaw " , Lpaw
-        write(38,*)  "schro ae  n = ", n, " Egrid(n)  for CHECK with  Ngrid_box_larger " , Egrid(n),  "  lpaw " , Lpaw
+        write(6 ,*)  " n = ", n, " Egrid(n)  "  , Egrid(n),  "  lpaw " , Lpaw
+        write(38,*)  "schro ae  n = ", n, " Egrid(n)  for CHECK with   " , Egrid(n),  "  lpaw " , Lpaw
      enddo
     
      write(6,*)     "now calculating " , NSol, " function of the AE basis for LPaw=", LPaw 

@@ -867,7 +867,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
               write(38,*) " first  eigenvalues "              
            endif
 
-           do i=1,2*Npaw
+           do i=1,max( 2*Npaw,10) 
               write(6,*) dumgrid2( i)
               write(38,*) dumgrid2( i)
            end do
