@@ -624,7 +624,7 @@ END SUBROUTINE partial_density_free
 subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho,&
      symObj,irrzon,phnons)
   use module_base!, only: gp,dp,wp,ndebug,memocc
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   implicit none
   integer, intent(in) :: iproc,nproc,nrho,symObj,nspin, n1i, n2i, n3i
@@ -643,7 +643,7 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
   integer, pointer :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call ab6_symmetry_get_matrices_p(symObj, nSym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(symObj, nSym, sym, transNon, symAfm, errno)
   if (nSym == 1) return
 
 !!$  ! Array sizes for the real-to-complex FFT: note that n1(there)=n1(here)+1

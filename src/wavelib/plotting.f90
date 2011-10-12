@@ -374,7 +374,7 @@ subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   write(22,'(i5,3(f19.12))') 2*n3+2,0.0_gp,0.0_gp,hzh
   !atomic number and positions
   do iat=1,at%nat
-     write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
+     write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),at%nelpsp(at%iatype(iat)),(rxyz(j,iat),j=1,3)
   end do
 
   !the loop is reverted for a cube file
@@ -1536,3 +1536,109 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
  ! write(14,*)rho
 
 END SUBROUTINE read_cube_field
+
+!> Calculate the dipole of a Field given in the rho array.
+!! The parallel distribution used is the one of the potential
+subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
+   hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nspin,nproc
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(atoms_data), intent(in) :: at
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(dp), dimension(n1i,n2i,n3p,nspin), target, intent(in) :: rho
+  character(len=*), parameter :: subname='calc_dipole'
+  integer :: i_all,i_stat,ierr,ia,ib,isuffix,fformat
+  real(gp) :: dipole_el(3) , dipole_cores(3), tmpdip(3),q,qtot
+  integer  :: iat,i1,i2,i3,nbx,nby,nbz, nl1,nl2,nl3, ind, ispin
+  real(dp), dimension(:,:,:,:), pointer :: ele_rho
+  
+  if (nproc > 1) then
+     !allocate full density in pot_ion array
+     allocate(ele_rho(n1i,n2i,n3i,nspin),stat=i_stat)
+     call memocc(i_stat,ele_rho,'ele_rho',subname)
+
+     call MPI_ALLGATHERV(rho,n1i*n2i*n3p*nspin,&
+          mpidtypd,ele_rho,ngatherarr(0,1),&
+          ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+
+  else
+     ele_rho => rho
+  end if
+
+  if (at%geocode /= 'F') then
+     nl1=1
+     nl3=1
+     nbx = 1
+     nbz = 1
+  else
+     nl1=15
+     nl3=15
+     nbx = 0
+     nbz = 0
+  end if
+  !value of the buffer in the y direction
+  if (at%geocode == 'P') then
+     nl2=1
+     nby = 1
+  else
+     nl2=15
+     nby = 0
+  end if
+
+  qtot=0.d0
+  dipole_cores(1:3)=0_gp
+  do iat=1,at%nat
+     dipole_cores(1:3)=dipole_cores(1:3)+at%nelpsp(at%iatype(iat)) * rxyz(1:3,iat)
+  end do
+
+  dipole_el   (1:3)=0_gp
+  do ispin=1,nspin
+     do i1=0,2*(n1+nbx) - 1
+        do i2=0,2*(n2+nby) - 1
+           do i3=0,2*(n3+nbz) - 1
+              !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+              !q= ( ele_rho(ind,ispin) ) * hxh*hyh*hzh 
+              q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * hxh*hyh*hzh 
+              qtot=qtot+q
+              dipole_el(1)=dipole_el(1)+ q* at%alat1/real(2*(n1+nbx),dp)*i1 
+              dipole_el(2)=dipole_el(2)+ q* at%alat2/real(2*(n2+nby),dp)*i2
+              dipole_el(3)=dipole_el(3)+ q* at%alat3/real(2*(n3+nbz),dp)*i3
+           end do
+        end do
+     end do
+
+  end do
+
+  if(iproc==0) then
+     !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
+     !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
+     write(*,'(a)') " ============= Electric Dipole Moment  ================" 
+     tmpdip=dipole_cores+dipole_el
+     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)   ", "   (Px,Py,Pz)= " , tmpdip(1:3)  
+     tmpdip=tmpdip/0.393430307_gp  ! au2debye              
+     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "   (Px,Py,Pz)= " , tmpdip(1:3) 
+96   format (a10,Es14.6 ,a,a,3ES13.4)
+     !     write(*,'(a)') "  ================= Dipole moment in e.a0    (0.39343 e.a0 = 1 Debye) ================"  ! or [Debye] 
+     !     write(*,97) "    Px " ,"     Py ","     Pz ","   |P| " 
+     !     write(*,98) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))
+     !     write(*,98) "pseudo cores:      ", dipole_cores(1:3) , sqrt(sum(dipole_cores**2))
+     !     write(*,98) "Total (cores-el.): ", dipole_cores+dipole_el , sqrt(sum((dipole_cores+dipole_el)**2))
+     !97 format (20x,3a15  ,"    ==> ",a15)
+     !98 format (a20,3f15.7,"    ==> ",f15.5)
+
+  endif
+
+  if (nproc > 1) then
+     i_all=-product(shape(ele_rho))*kind(ele_rho)
+     deallocate(ele_rho,stat=i_stat)
+     call memocc(i_stat,i_all,'ele_rho',subname)
+  else
+     nullify(ele_rho)
+  end if
+
+END SUBROUTINE calc_dipole
+

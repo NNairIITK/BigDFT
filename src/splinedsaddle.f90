@@ -14,7 +14,7 @@ program splined_saddle
   use module_base
   use module_types
   use module_interfaces
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   !as a general policy, we'll have "implicit none" by assuming the same
   !name convention as "implicit real(kind=8) (a-h,o-z)"
@@ -358,6 +358,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         write(*,*) 'degree of freedom: n,nr ',n,nr
     endif
     !-----------------------------------------------------------
+    call standard_inputfile_names(ll_inputs,'input')
     call default_input_variables(ll_inputs)
     if(trim(pnow%hybrid)=='yes') then
         call perf_input_variables(iproc,'ll_input.perf',ll_inputs)

@@ -394,7 +394,10 @@ subroutine verify_file_presence(filerad,orbs,iformat)
   !reduce the result among the other processors
   call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
  
-  if (allfiles) iformat=1
+  if (allfiles) then
+     iformat=1
+     return
+  end if
 
   !Otherwise  test binary files.
   if (.not. allfiles) then           
@@ -415,10 +418,13 @@ subroutine verify_file_presence(filerad,orbs,iformat)
      call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
   end if
 
-  if (allfiles) iformat=2
+  if (allfiles) then
+     iformat=2
+     return
+  end if
 
   !otherwise, switch to normal input guess
-  if (.not. allfiles) iformat=0
+  iformat=0
 
 end subroutine verify_file_presence
 

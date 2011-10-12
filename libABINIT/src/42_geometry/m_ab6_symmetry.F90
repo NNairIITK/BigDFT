@@ -9,7 +9,7 @@
 !*
 !*
 
-module ab6_symmetry
+module m_ab6_symmetry
 
   use defs_basis
 
@@ -19,7 +19,7 @@ module ab6_symmetry
 
   integer, parameter, public :: AB6_MAX_SYMMETRIES = 384
 
-  type, private :: symmetry
+  type, public :: symmetry_type
      ! The input characteristics
      real(dp) :: tolsym
      real(dp) :: rprimd(3,3), gprimd(3,3), rmet(3,3)
@@ -53,7 +53,7 @@ module ab6_symmetry
      real(dp)         :: genAfm(3)
      integer          :: spaceGroup, pointGroupMagn
      integer, pointer :: indexingAtoms(:,:,:)
-  end type symmetry
+  end type symmetry_type
 
   ! We store here a list of symmetry objects to be able to
   ! call several symmetry operations on different objects.
@@ -63,41 +63,34 @@ module ab6_symmetry
   type, private :: symmetry_list
      integer                       :: id
      type(symmetry_list),  pointer :: next
-     type(symmetry)                :: data
+     type(symmetry_type)           :: data
   end type symmetry_list
   type(symmetry_list), pointer :: my_symmetries
   integer :: n_symmetries = 0
 
   logical, private, parameter :: AB_DBG = .false.
 
-  public :: ab6_symmetry_new
-  public :: ab6_symmetry_free
-  public :: ab6_symmetry_set_tolerance
-  public :: ab6_symmetry_set_lattice
-  public :: ab6_symmetry_set_structure
-  public :: ab6_symmetry_set_collinear_spin
-  public :: ab6_symmetry_set_spin
-  public :: ab6_symmetry_set_spin_orbit
-  public :: ab6_symmetry_set_field
-  public :: ab6_symmetry_set_jellium
-  public :: ab6_symmetry_set_periodicity
+  public :: symmetry_new
+  public :: symmetry_free
+  public :: symmetry_set_tolerance
+  public :: symmetry_set_lattice
+  public :: symmetry_set_structure
+  public :: symmetry_set_collinear_spin
+  public :: symmetry_set_spin
+  public :: symmetry_set_spin_orbit
+  public :: symmetry_set_field
+  public :: symmetry_set_jellium
+  public :: symmetry_set_periodicity
 
-  public :: ab6_symmetry_get_n_atoms
-  public :: ab6_symmetry_get_n_sym
-  public :: ab6_symmetry_get_multiplicity
-  public :: ab6_symmetry_get_bravais
-  public :: ab6_symmetry_get_matrices
-  public :: ab6_symmetry_get_matrices_p
-  public :: ab6_symmetry_get_group
-  public :: ab6_symmetry_get_equivalent_atom
-  public :: ab6_symmetry_get_mp_k_grid
-  public :: ab6_symmetry_get_auto_k_grid
-  public :: ab6_symmetry_get_irreductible_zone
-
-  public :: ab6_symmetry_binding_mp_k_1
-  public :: ab6_symmetry_binding_mp_k_2
-  public :: ab6_symmetry_binding_auto_k_1
-  public :: ab6_symmetry_binding_auto_k_2
+  public :: symmetry_get_from_id
+  public :: symmetry_get_n_atoms
+  public :: symmetry_get_n_sym
+  public :: symmetry_get_multiplicity
+  public :: symmetry_get_bravais
+  public :: symmetry_get_matrices
+  public :: symmetry_get_matrices_p
+  public :: symmetry_get_group
+  public :: symmetry_get_equivalent_atom
 
 contains
 
@@ -192,10 +185,32 @@ contains
     end do
   end subroutine get_item
 
+  subroutine symmetry_get_from_id(sym, id, errno)
+
+    type(symmetry_type), pointer :: sym
+    integer, intent(in) :: id
+    integer, intent(out) :: errno
+
+    type(symmetry_list), pointer :: token
+
+    errno = AB6_NO_ERROR
+    call get_item(token, id)
+    if (associated(token)) then
+       sym => token%data
+       if (sym%nSym < 0) then
+          ! We do the computation of the matrix part.
+          call compute_matrices(sym, errno)
+       end if
+    else
+       errno = AB6_ERROR_OBJ
+       nullify(sym)
+    end if
+  end subroutine symmetry_get_from_id
+
   subroutine new_symmetry(sym)
 
 
-    type(symmetry), intent(out) :: sym
+    type(symmetry_type), intent(out) :: sym
 
     if (AB_DBG) write(0,*) "AB symmetry: create a new symmetry object."
     nullify(sym%xRed)
@@ -219,7 +234,7 @@ contains
   subroutine free_symmetry(sym)
 
 
-    type(symmetry), intent(inout) :: sym
+    type(symmetry_type), intent(inout) :: sym
 
     if (AB_DBG) write(0,*) "AB symmetry: free a symmetry."
 
@@ -236,7 +251,7 @@ contains
 
 
 
-  subroutine ab6_symmetry_new(id)
+  subroutine symmetry_new(id)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -250,9 +265,9 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: call new symmetry."
     call new_item(token)
     id = token%id
-  end subroutine ab6_symmetry_new
+  end subroutine symmetry_new
 
-  subroutine ab6_symmetry_free(id)
+  subroutine symmetry_free(id)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -267,9 +282,9 @@ contains
 
     call get_item(token, id)
     if (associated(token)) call free_item(token)
-  end subroutine ab6_symmetry_free
+  end subroutine symmetry_free
 
-  subroutine ab6_symmetry_set_tolerance(id, tolsym, errno)
+  subroutine symmetry_set_tolerance(id, tolsym, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -296,9 +311,9 @@ contains
     ! We unset all the computed symmetries
     token%data%nBravSym = -1
     token%data%nSym     = -1
-  end subroutine ab6_symmetry_set_tolerance
+  end subroutine symmetry_set_tolerance
 
-  subroutine ab6_symmetry_set_lattice(id, rprimd, errno)
+  subroutine symmetry_set_lattice(id, rprimd, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -332,9 +347,9 @@ contains
     ! We unset all the computed symmetries
     token%data%nBravSym = -1
     token%data%nSym     = -1
-  end subroutine ab6_symmetry_set_lattice
+  end subroutine symmetry_set_lattice
 
-  subroutine ab6_symmetry_set_structure(id, nAtoms, typeAt, xRed, errno)
+  subroutine symmetry_set_structure(id, nAtoms, typeAt, xRed, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -374,9 +389,9 @@ contains
     ! We unset only the symmetries
     token%data%nSym     = -1
     if (associated(token%data%indexingAtoms)) deallocate(token%data%indexingAtoms)
-  end subroutine ab6_symmetry_set_structure
+  end subroutine symmetry_set_structure
 
-  subroutine ab6_symmetry_set_spin(id, nAtoms, spinAt, errno)
+  subroutine symmetry_set_spin(id, nAtoms, spinAt, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -415,9 +430,9 @@ contains
 
     ! We unset only the symmetries
     token%data%nSym     = -1
-  end subroutine ab6_symmetry_set_spin
+  end subroutine symmetry_set_spin
 
-  subroutine ab6_symmetry_set_collinear_spin(id, nAtoms, spinAt, errno)
+  subroutine symmetry_set_collinear_spin(id, nAtoms, spinAt, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -456,9 +471,9 @@ contains
 
     ! We unset only the symmetries
     token%data%nSym     = -1
-  end subroutine ab6_symmetry_set_collinear_spin
+  end subroutine symmetry_set_collinear_spin
 
-  subroutine ab6_symmetry_set_spin_orbit(id, withSpinOrbit, errno)
+  subroutine symmetry_set_spin_orbit(id, withSpinOrbit, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -484,9 +499,9 @@ contains
 
     ! We unset only the symmetries
     token%data%nSym     = -1
-  end subroutine ab6_symmetry_set_spin_orbit
+  end subroutine symmetry_set_spin_orbit
 
-  subroutine ab6_symmetry_set_field(id, field, errno)
+  subroutine symmetry_set_field(id, field, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -514,9 +529,9 @@ contains
     ! We unset all the computed symmetries
     token%data%nBravSym = -1
     token%data%nSym     = -1
-  end subroutine ab6_symmetry_set_field
+  end subroutine symmetry_set_field
 
-  subroutine ab6_symmetry_set_jellium(id, jellium, errno)
+  subroutine symmetry_set_jellium(id, jellium, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -542,9 +557,9 @@ contains
 
     ! We unset only the symmetries
     token%data%nSym     = -1
-  end subroutine ab6_symmetry_set_jellium
+  end subroutine symmetry_set_jellium
 
-  subroutine ab6_symmetry_set_periodicity(id, periodic, errno)
+  subroutine symmetry_set_periodicity(id, periodic, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -571,13 +586,13 @@ contains
     if (.not. periodic(1)) token%data%vacuum(1) = 1
     if (.not. periodic(2)) token%data%vacuum(2) = 1
     if (.not. periodic(3)) token%data%vacuum(3) = 1
-  end subroutine ab6_symmetry_set_periodicity
+  end subroutine symmetry_set_periodicity
 
 
 
 
 
-  subroutine ab6_symmetry_get_n_atoms(id, nAtoms, errno)
+  subroutine symmetry_get_n_atoms(id, nAtoms, errno)
     !scalars
 
 !This section has been created automatically by the script Abilint (TD).
@@ -600,7 +615,7 @@ contains
     end if
 
     nAtoms = token%data%nAtoms
-  end subroutine ab6_symmetry_get_n_atoms
+  end subroutine symmetry_get_n_atoms
 
   subroutine compute_bravais(sym)
 
@@ -610,7 +625,7 @@ contains
   use interfaces_42_geometry
 !End of the abilint section
 
-    type(symmetry), intent(inout) :: sym
+    type(symmetry_type), intent(inout) :: sym
 
     integer :: berryopt
 
@@ -629,7 +644,7 @@ contains
     if (AB_DBG) write(0, "(A,I3)") "  center   :", sym%bravais(2)
   end subroutine compute_bravais
 
-  subroutine ab6_symmetry_get_bravais(id, bravais, holohedry, center, &
+  subroutine symmetry_get_bravais(id, bravais, holohedry, center, &
        & nBravSym, bravSym, errno)
     !scalars
 
@@ -664,7 +679,7 @@ contains
     bravais   = reshape(token%data%bravais(3:11), (/ 3,3 /))
     nBravSym  = token%data%nBravSym
     bravSym(:, :, 1:nBravSym) = token%data%bravSym(:, :, 1:nBravSym)
-  end subroutine ab6_symmetry_get_bravais
+  end subroutine symmetry_get_bravais
 
   subroutine compute_matrices(sym, errno)
 
@@ -674,7 +689,7 @@ contains
   use interfaces_42_geometry
 !End of the abilint section
 
-    type(symmetry), intent(inout) :: sym
+    type(symmetry_type), intent(inout) :: sym
     integer, intent(out) :: errno
 
     integer :: berryopt, jellslab, noncol
@@ -755,7 +770,7 @@ contains
     if (AB_DBG) write(0, "(A,I3)") "  space:", sym%spaceGroup
   end subroutine compute_matrices
 
-  subroutine ab6_symmetry_get_n_sym(id, nSym, errno)
+  subroutine symmetry_get_n_sym(id, nSym, errno)
     !scalars
 
 !This section has been created automatically by the script Abilint (TD).
@@ -783,9 +798,9 @@ contains
     end if
 
     nSym = token%data%nSym
-  end subroutine ab6_symmetry_get_n_sym
+  end subroutine symmetry_get_n_sym
 
-  subroutine ab6_symmetry_get_matrices(id, nSym, sym, transNon, symAfm, errno)
+  subroutine symmetry_get_matrices(id, nSym, sym, transNon, symAfm, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -819,9 +834,9 @@ contains
     sym(:, :, 1:nSym)   = token%data%sym(:, :,:)
     symAfm(1:nSym)      = token%data%symAfm(:)
     transNon(:, 1:nSym) = token%data%transNon(:,:)
-  end subroutine ab6_symmetry_get_matrices
+  end subroutine symmetry_get_matrices
 
-  subroutine ab6_symmetry_get_matrices_p(id, nSym, sym, transNon, symAfm, errno)
+  subroutine symmetry_get_matrices_p(id, nSym, sym, transNon, symAfm, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -855,9 +870,9 @@ contains
     sym      => token%data%sym
     symAfm   => token%data%symAfm
     transNon => token%data%transNon
-  end subroutine ab6_symmetry_get_matrices_p
+  end subroutine symmetry_get_matrices_p
 
-  subroutine ab6_symmetry_get_multiplicity(id, multiplicity, errno)
+  subroutine symmetry_get_multiplicity(id, multiplicity, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -883,9 +898,9 @@ contains
        call compute_matrices(token%data, errno)
     end if
     multiplicity = token%data%multiplicity
-  end subroutine ab6_symmetry_get_multiplicity
+  end subroutine symmetry_get_multiplicity
 
-  subroutine ab6_symmetry_get_group(id, spaceGroup, spaceGroupId, &
+  subroutine symmetry_get_group(id, spaceGroup, spaceGroupId, &
        & pointGroupMagn, genAfm, errno)
 
 
@@ -932,40 +947,7 @@ contains
     pointGroupMagn = token%data%pointGroupMagn
     spaceGroupId   = token%data%spaceGroup
     genAfm         = token%data%genAfm
-  end subroutine ab6_symmetry_get_group
-
-  subroutine ab6_symmetry_get_irreductible_zone(id, irrzon, phnons, &
-       & n1, n2, n3, nsppol, nspden, errno)
-    integer, intent(in)            :: id
-    integer, intent(out)           :: errno
-    integer, intent(in)            :: n1, n2, n3, nsppol, nspden
-    integer, intent(out)           :: irrzon(n1*n2*n3,2,(nspden/nsppol)-3*(nspden/4))
-    real(dp), intent(out)          :: phnons(2,n1*n2*n3,(nspden/nsppol)-3*(nspden/4))
-
-    type(symmetry_list), pointer  :: token
-
-    if (AB_DBG) write(0,*) "AB symmetry: call get irreductible zone."
-
-    errno = AB6_NO_ERROR
-    call get_item(token, id)
-    if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
-       return
-    end if
-
-    if (token%data%withSpin /= nspden) then
-       errno = AB6_ERROR_ARG
-       return
-    end if
-
-    if (token%data%nSym < 0) then
-       ! We do the computation of the matrix part.
-       call compute_matrices(token%data, errno)
-    end if
-
-    call irrzg(irrzon, nspden, nsppol, token%data%nSym, n1, n2, n3, phnons, &
-         & token%data%symAfm, token%data%sym, token%data%transNon)
-  end subroutine ab6_symmetry_get_irreductible_zone
+  end subroutine symmetry_get_group
 
   subroutine compute_equivalent_atoms(sym)
 
@@ -976,7 +958,7 @@ contains
   use interfaces_42_geometry
 !End of the abilint section
 
-    type(symmetry), intent(inout) :: sym
+    type(symmetry_type), intent(inout) :: sym
 
     integer, allocatable :: symrec(:,:,:)
     integer :: isym
@@ -997,7 +979,7 @@ contains
     deallocate(symrec)
   end subroutine compute_equivalent_atoms
 
-  subroutine ab6_symmetry_get_equivalent_atom(id, equiv, iAtom, errno)
+  subroutine symmetry_get_equivalent_atom(id, equiv, iAtom, errno)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -1031,249 +1013,6 @@ contains
     end if
 
     equiv(:, 1:token%data%nSym) = token%data%indexingAtoms(:,:,iAtom)
-  end subroutine ab6_symmetry_get_equivalent_atom
+  end subroutine symmetry_get_equivalent_atom
 
-  subroutine ab6_symmetry_binding_mp_k_1(id, nkpt, ngkpt, &
-       & kptrlatt, kptrlen, nshiftk, shiftk, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-  use interfaces_56_recipspace
-!End of the abilint section
-
-    integer, intent(in)  :: id
-    integer, intent(out) :: errno
-    integer, intent(in) :: ngkpt(3)
-    integer, intent(inout) :: nshiftk
-    real(dp), intent(inout) :: shiftk(3, 8)
-    real(dp), intent(out) :: kptrlen
-    integer, intent(out) :: kptrlatt(3,3)
-    integer, intent(out) :: nkpt
-
-    type(symmetry_list), pointer  :: token
-    real(dp), allocatable :: kpt(:,:), wkpt(:)
-
-    if (AB_DBG) write(0,*) "AB symmetry: call get k grid1."
-
-    errno = AB6_NO_ERROR
-    call get_item(token, id)
-    if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
-       return
-    end if
-
-    if (token%data%nSym < 0) then
-       ! We do the computation of the matrix part.
-       call compute_matrices(token%data, errno)
-    end if
-
-    ! First, compute the number of kpoints
-    kptrlatt(:,:) = 0
-    kptrlatt(1,1) = ngkpt(1)
-    kptrlatt(2,2) = ngkpt(2)
-    kptrlatt(3,3) = ngkpt(3)
-    kptrlen = 20.
-
-    !the array kpt and wkpt have to be allocated
-    allocate(kpt(3, nkpt))
-    allocate(wkpt(nkpt))
-    call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
-         & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk, token%data%nSym, &
-         & token%data%rprimd, shiftk, token%data%symAfm, token%data%sym, &
-         & token%data%vacuum, wkpt)
-    deallocate(kpt,wkpt)
-  end subroutine ab6_symmetry_binding_mp_k_1
-
-  subroutine ab6_symmetry_binding_mp_k_2(id, nkpt, kpt, wkpt, &
-       & kptrlatt, kptrlen, nshiftk, shiftk, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-  use interfaces_56_recipspace
-!End of the abilint section
-
-    integer, intent(in)  :: id
-    integer, intent(out) :: errno
-    integer, intent(inout) :: nshiftk
-    real(dp), intent(inout) :: shiftk(3, 8)
-    integer, intent(in) :: nkpt
-    real(dp), intent(out) :: kpt(3,nkpt), wkpt(nkpt)
-    real(dp), intent(inout) :: kptrlen
-    integer, intent(inout) :: kptrlatt(3,3)
-
-    type(symmetry_list), pointer  :: token
-    integer :: nkpt_
-
-    if (AB_DBG) write(0,*) "AB symmetry: call get k grid2."
-
-    errno = AB6_NO_ERROR
-    call get_item(token, id)
-    if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
-       return
-    end if
-
-    if (token%data%nSym < 0) then
-       ! We do the computation of the matrix part.
-       call compute_matrices(token%data, errno)
-    end if
-
-    ! Then, we call it again to get the actual values for the k points.
-    call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
-         & AB6_MAX_SYMMETRIES, nkpt, nkpt_, nshiftk, token%data%nSym, &
-         & token%data%rprimd, shiftk, token%data%symAfm, token%data%sym, &
-         & token%data%vacuum, wkpt)
-  end subroutine ab6_symmetry_binding_mp_k_2
-
-  subroutine ab6_symmetry_get_mp_k_grid(id, nkpt, kpt, wkpt, &
-       & ngkpt, nshiftk, shiftk, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
-
-    integer, intent(in)  :: id
-    integer, intent(out) :: errno
-    integer, intent(in) :: ngkpt(3)
-    integer, intent(in) :: nshiftk
-    real(dp), intent(in) :: shiftk(3, nshiftk)
-    integer, intent(out) :: nkpt
-    real(dp), pointer :: kpt(:,:), wkpt(:)
-
-    real(dp) :: kptrlen
-    integer :: kptrlatt(3,3)
-    integer :: nshiftk_
-    real(dp) :: shiftk_(3, 8)
-
-    if (AB_DBG) write(0,*) "AB symmetry: call get k grid."
-
-    nshiftk_ = nshiftk
-    shiftk_(:,1:nshiftk_) = shiftk(:,:)
-    call ab6_symmetry_binding_mp_k_1(id, nkpt, ngkpt, kptrlatt, kptrlen, &
-         & nshiftk_, shiftk_, errno)
-    if (errno /= AB6_NO_ERROR) return
-    allocate(kpt(3, nkpt))
-    allocate(wkpt(nkpt))
-    call ab6_symmetry_binding_mp_k_2(id, nkpt, kpt, wkpt, &
-       & kptrlatt, kptrlen, nshiftk_, shiftk_, errno)
-  end subroutine ab6_symmetry_get_mp_k_grid
-
-  subroutine ab6_symmetry_binding_auto_k_1(id, nkpt, kptrlatt, kptrlen, &
-       & nshiftk, shiftk, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-  use interfaces_56_recipspace
-!End of the abilint section
-
-    integer, intent(in)  :: id
-    integer, intent(out) :: errno
-    integer, intent(out) :: nkpt
-    real(dp), intent(inout) :: kptrlen
-    integer, intent(out) :: nshiftk
-    real(dp), intent(out) :: shiftk(3, 8)
-    integer, intent(out) :: kptrlatt(3,3)
-
-    type(symmetry_list), pointer  :: token
-    real(dp), allocatable :: kpt(:,:), wkpt(:)
-
-    if (AB_DBG) write(0,*) "AB symmetry: call get auto k grid1."
-
-    errno = AB6_NO_ERROR
-    call get_item(token, id)
-    if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
-       return
-    end if
-
-    if (token%data%nSym < 0) then
-       ! We do the computation of the matrix part.
-       call compute_matrices(token%data, errno)
-    end if
-
-    !  The parameters of the k lattice are not known, compute
-    !  kptrlatt, nshiftk, shiftk.
-    call testkgrid(token%data%bravais,6,kptrlatt,kptrlen,&
-         & AB6_MAX_SYMMETRIES,nshiftk,token%data%nSym,0,token%data%rprimd,&
-         & shiftk,token%data%symAfm,token%data%sym,token%data%vacuum)
-    if (AB_DBG) write(0,*) "AB symmetry: testkgrid -> kptrlatt=", kptrlatt
-    call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
-         & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk, token%data%nSym, &
-         & token%data%rprimd, shiftk, token%data%symAfm, token%data%sym, &
-         & token%data%vacuum, wkpt)
-    if (AB_DBG) write(0,*) "AB symmetry: getkgrid -> nkpt=", nkpt
-  end subroutine ab6_symmetry_binding_auto_k_1
-
-  subroutine ab6_symmetry_binding_auto_k_2(id, nkpt, kpt, wkpt, kptrlatt, kptrlen, &
-       & nshiftk, shiftk, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-  use interfaces_56_recipspace
-!End of the abilint section
-
-    integer, intent(in)  :: id
-    integer, intent(out) :: errno
-    integer, intent(in) :: nkpt
-    real(dp), intent(out) :: kpt(3,nkpt), wkpt(nkpt)
-    real(dp), intent(inout) :: kptrlen
-    integer, intent(inout) :: nshiftk
-    real(dp), intent(inout) :: shiftk(3, 8)
-    integer, intent(inout) :: kptrlatt(3,3)
-
-    type(symmetry_list), pointer  :: token
-    integer :: nkpt_
-
-    if (AB_DBG) write(0,*) "AB symmetry: call get auto k grid2."
-
-    errno = AB6_NO_ERROR
-    call get_item(token, id)
-    if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
-       return
-    end if
-
-    ! Then, we call it again to get the actual values for the k points.
-    call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
-         & AB6_MAX_SYMMETRIES, nkpt, nkpt_, nshiftk, token%data%nSym, &
-         & token%data%rprimd, shiftk, token%data%symAfm, token%data%sym, &
-         & token%data%vacuum, wkpt)
-  end subroutine ab6_symmetry_binding_auto_k_2
-
-  subroutine ab6_symmetry_get_auto_k_grid(id, nkpt, kpt, wkpt, &
-       & kptrlen, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
-
-    integer, intent(in)  :: id
-    integer, intent(out) :: errno
-    integer, intent(out) :: nkpt
-    real(dp), intent(in) :: kptrlen
-    real(dp), pointer :: kpt(:,:), wkpt(:)
-
-    real(dp) :: kptrlen_
-    integer :: kptrlatt(3,3)
-    integer :: nshiftk
-    real(dp) :: shiftk(3, 8)
-
-    if (AB_DBG) write(0,*) "AB symmetry: call get auto k grid."
-
-    kptrlen_ = kptrlen
-    call ab6_symmetry_binding_auto_k_1(id, nkpt, kptrlatt, kptrlen_, &
-       & nshiftk, shiftk, errno)
-    if (errno /= AB6_NO_ERROR) return
-    allocate(kpt(3, nkpt))
-    allocate(wkpt(nkpt))
-    call ab6_symmetry_binding_auto_k_2(id, nkpt, kpt, wkpt, kptrlatt, kptrlen_, &
-       & nshiftk, shiftk, errno)
-  end subroutine ab6_symmetry_get_auto_k_grid
-
-end module ab6_symmetry
+end module m_ab6_symmetry
