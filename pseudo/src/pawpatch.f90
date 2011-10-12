@@ -155,7 +155,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   !! oversampled grid
   
   boxradius=rcov *pawrcovfact                  !! this should be found in the original grid
-  biggerboxradius = 1.5_8 * rcov   !! this is an approximative goal
+  biggerboxradius = 2.0_8 * rcov   !! this is an approximative goal
   
   Ngrid_box=1
   Ngrid_box_larger=1
@@ -164,10 +164,12 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   
   do j=1,ngrid_fit
      if( abs(rae(j) -boxradius) <  abs(rae(Ngrid_box) -boxradius)) Ngrid_box = j
-     if( abs(rae(j) -boxradius*2) <  abs(rae(Ngrid_box_larger) -boxradius*2)) Ngrid_box_larger = j
+     ! if( abs(rae(j) -boxradius*2) <  abs(rae(Ngrid_box_larger) -boxradius*2)) Ngrid_box_larger = j
      if( abs(rae(j) -biggerboxradius) <  abs(rae(Ngrid_biggerbox) -biggerboxradius)) Ngrid_biggerbox = j
   end do
 
+  Ngrid_box_larger=Ngrid_biggerbox
+  
 
   !!  if(abs(rae(Ngrid_box) -boxradius)>1.0e-8) STOP "the grid from pseudo should pass by rcov but it does not"
   
@@ -212,7 +214,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   
   Ngrid_box= 1+iovrsmpl*( Ngrid_box-1)
   Ngrid_biggerbox=1+iovrsmpl*( Ngrid_biggerbox-1)
-
+  Ngrid_box_larger = Ngrid_biggerbox
 
   boxradius = rgrid(Ngrid_box)
   
@@ -359,7 +361,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
         call schro( Egrid(n),rgrid , &
              aepot_cent  ,nonloc,  psigrid(1, n )  , Ngrid_box_larger ,&
              n+LPaw , Lpaw  ,   znuc )                     
-        write(6 ,*)  "schro ae  n = ", n, " Egrid(n)  for CHECK with  Ngrid_box_larger"  , Egrid(n),  "  lpaw " , Lpaw
+        write(6 ,*)  " n = ", n, " Egrid(n)   Ngrid_box_larger"  , Egrid(n),  "  lpaw " , Lpaw
         write(38,*)  "schro ae  n = ", n, " Egrid(n)  for CHECK with  Ngrid_box_larger " , Egrid(n),  "  lpaw " , Lpaw
      enddo
     
