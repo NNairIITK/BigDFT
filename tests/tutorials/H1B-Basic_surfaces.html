@@ -22,8 +22,8 @@
     <div class="main"><a name="top" id="top"></a>
 
       <div class="floatingmenu">
-        <a href="H1A.html">&lt;&nbsp;prev. lesson</a>
-        <!--      <a style="float:right;" href="ba.html">Next lesson &gt;</a> -->
+        <a href="H1A-Basics.html">&lt;&nbsp;prev. lesson</a>
+        <a style="float:right;" href="H1X-Basic_post_processing.html">Next lesson &gt;</a> 
         <h2>Content of this lesson</h2>
         <ul>
           <li>Defining a surface configuration</li>
@@ -32,10 +32,10 @@
         </ul>
         <h2>Material</h2>
         <ul>
-          <li>H<sub>2</sub>O-slab/<a href="H2O-slab/input.dft">input.dft</a></li>
-          <li>H<sub>2</sub>O-slab/<a href="H2O-slab/posinp.xyz">posinp.xyz</a></li>
-          <li>H<sub>2</sub>O-slab/<a href="H2O-slab/psppar.O">psppar.O</a></li>
-          <li>H<sub>2</sub>O-slab/<a href="H2O-slab/psppar.H">psppar.H</a></li>
+          <li>H<sub>2</sub>O-slab/<a href="H2O-slab/input.dft" target="_blank">input.dft</a></li>
+          <li>H<sub>2</sub>O-slab/<a href="H2O-slab/posinp.xyz" target="_blank">posinp.xyz</a></li>
+          <li>H<sub>2</sub>O-slab/<a href="H2O-slab/psppar.O" target="_blank">psppar.O</a></li>
+          <li>H<sub>2</sub>O-slab/<a href="H2O-slab/psppar.H" target="_blank">psppar.H</a></li>
         </ul>
       </div>
 
@@ -50,10 +50,10 @@
         potential and to add an electric field.</p>
 
       <h2>Defining a surface configuration</h2>
-      <img class="figure" src="H2O-slab.png" alt="visualisation of the water slab" />
+      <img class="figure" src="Figures/H2O-slab.png" alt="visualisation of the water slab" />
       <p>Doing a surface calculation is specified in the position
         file. No other parameters are necessary to be changed. To do it,
-        modify the second line of the XYZ <a href="H2O-slab/posinp.xyz"><code>posinp.xyz</code></a> file to write the keyword
+        modify the second line of the XYZ <a href="H2O-slab/posinp.xyz" target="_blank"><code>posinp.xyz</code></a> file to write the keyword
         <code>surface</code> like in this example:</p>
       <pre>
 3 angstroem
@@ -73,7 +73,7 @@ H  2.2715  0.620919 1.5</pre>
       <div class="exercice">
         <p><b>Exercise</b>: run BigDFT for the given atomic configuration.</p>
         <p>You can get here the other usal files for BigDFT: the input file
-          <a href="H2O-slab/input.dft"><code>input.dft</code></a> and the pseudo-potentials <a href="H2O-slab/psppar.O"><code>psppar.O</code></a> and <a href="H2O-slab/psppar.H"><code>psppar.H</code></a>.</p>
+          <a href="H2O-slab/input.dft" target="_blank"><code>input.dft</code></a> and the pseudo-potentials <a href="H2O-slab/psppar.O" target="_blank"><code>psppar.O</code></a> and <a href="H2O-slab/psppar.H" target="_blank"><code>psppar.H</code></a>.</p>
         <p class="answer">The convergence is still good and calculation
           terminates within 14 iterations. One can notice also the y free
           direction in the screen output when looking at the Poisson solver
@@ -88,7 +88,7 @@ Box Sizes=  6.61404E+00  2.31000E+01  5.66918E+00           19        66        
       </div>
 
       <h2>Plot the potential values</h2>
-      <img class="figureR" src="H2O-dipolar.png" alt="local potential the
+      <img class="figureR" src="Figures/H2O-dipolar.png" alt="local potential the
                                                       along y axis" />
       <p>It is possible to output scalar fields like the different
         potentials (Hartree, ionic and local) after the last electronic
@@ -109,10 +109,10 @@ Box Sizes=  6.61404E+00  2.31000E+01  5.66918E+00           19        66        
       </div>
 
       <h2>Add an electric field</h2>
-      <img class="figureR" src="H2O-dipolarE.png" alt="local potential the along y axis" />
+      <img class="figureR" src="Figures/H2O-dipolarE.png" alt="local potential the along y axis" />
       <p>Thanks to the Green function treatment in the Poisson solver,
         we've seen that's it's possible to exactly treat the dipolar moment in
-        a box, add a charge (<i>cf.</i> <a href="basics-1.html">previous
+        a box, add a charge (<i>cf.</i> <a href="basics-1.html" target="_blank">previous
           tutorial</a>) but it is also possible to add an electric field. To do
         this, set the second value of the fourth line of <code>input.dft</code>:</p>
       <pre>
