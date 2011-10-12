@@ -29,12 +29,36 @@ H2O-bader.dipole.dat.out: H2O-bader.out.out
 dev.check: dev/toy_model
 
 dev/toy_model: $(srcdir)/dev/toy_model.f90
-	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft -L$(top_builddir)/src/PSolver -lpoissonsolver $(LDFLAGS) $(LIBS)
+	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft -L$(top_builddir)/src/PSolver -lpoissonsolver $(LDFLAGS) $(LIBS) $(libs_opt)
 toy_model.dat.out: dev-N2.out.out toy_model
 	./toy_model > toy_model.dat.out
 
+#Flags for optimization libraries
+if USE_DGEMMSY
+libs_dgemmsy = $(top_builddir)/src/dgemmsy/libdgemmsy.a
+else
+libs_dgemmsy =
+endif
+if USE_CUDA_GPU
+libs_cuda=$(top_builddir)/src/CUDA/libGPU.a
+else
+libs_cuda=
+endif
+if USE_OCL
+libs_ocl = $(top_builddir)/src/OpenCL/libOCL.a
+else
+libs_ocl =
+endif
+
+
+libs_opt=$(libs_cuda)\
+ $(libs_ocl)\
+ $(libs_dgemmsy)
+
+
+
 # Generic part, do not touch.
-AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver
+AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 INS = $(TESTDIRS:=.in)
 RUNS = $(TESTDIRS:=.run)
