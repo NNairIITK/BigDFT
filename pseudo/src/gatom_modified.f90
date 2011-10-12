@@ -5,7 +5,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg,&
                  Nsol, Labs, Ngrid,Ngrid_box,Egrid,rgrid,rw,rd,psigrid, Npaw, PAWpatch, &
-                 psipsigrid, rcore, zcore)
+                 psipsigrid, rcore, zcore, Ngrid_box_larger)
   implicit real(8) (a-h,o-z)
   integer, parameter :: gp=kind(1.0d0) 
 
@@ -771,6 +771,12 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
         
 
 
+        do ivolta=1,2
+          if( ivolta==1 )then
+             Ngrid_box2 = Ngrid_box_larger 
+          else
+             Ngrid_box2 = Ngrid_box
+          endif
 
         if( .true. ) then
            !!! MEGA-check 
@@ -789,8 +795,8 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
            do isol=1,Npaw
               do jsol=1,Nsol_used
                  dumgrid2=Tpsigrid_dum(isol, :)*psigrid_not_fitted(:, jsol)
-                 call integrate(dumgrid2,dumgrid1, rgrid, Ngrid_box)
-                 Soverlap(isol,jsol) = dumgrid1(Ngrid_box)
+                 call integrate(dumgrid2,dumgrid1, rgrid, Ngrid_box2)
+                 Soverlap(isol,jsol) = dumgrid1(Ngrid_box2)
               end do
            enddo
            
@@ -809,12 +815,12 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
            Spsitildes=0.0_gp
            do isol=1,Npaw
               do jsol=isol,Npaw
-                 do igrid=1,Ngrid_box
+                 do igrid=1,Ngrid_box2
                     dumgrid1(igrid)=psigrid(igrid,isol)*psigrid(igrid,jsol)
                  enddo
-                 call integrate(dumgrid1,dumgrid2,rgrid,Ngrid_box)
-                 Spsitildes(isol,jsol) = dumgrid2(Ngrid_box)
-                 Spsitildes(jsol,isol) = dumgrid2(Ngrid_box)
+                 call integrate(dumgrid1,dumgrid2,rgrid,Ngrid_box2)
+                 Spsitildes(isol,jsol) = dumgrid2(Ngrid_box2)
+                 Spsitildes(jsol,isol) = dumgrid2(Ngrid_box2)
               end do
               Spsitildes(isol,isol) =Spsitildes(isol,isol) -1.0
            end do
@@ -834,63 +840,27 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
               end do
               genS(isol,isol) =1+ genS(isol,isol)
            end do
-           
-    
-!!$           do isol=1,Npaw
-!!$              do jsol=1,Nsol_used
-!!$                 dumgrid2=psigrid(:, isol)*psigrid_not_fitted(:, jsol)
-!!$                 call integrate(dumgrid2,dumgrid1, rgrid, Ngrid_box)
-!!$                 Soverlap(isol,jsol) = dumgrid1(Ngrid_box)
-!!$              end do
-!!$           enddo
-!!$
-!!$
-!!$           call  DGEMM('N','T',Nsol_used,Npaw,Nsol_used,1.0d0,genH ,Nsol,&
-!!$                Soverlap ,Nsol, 0.0D0 , dumH , Nsol)
-!!$
-!!$           call  DGEMM('N','N',Npaw,Npaw,Nsol_used,1.0d0,Soverlap ,Nsol,&
-!!$                dumH ,Nsol, 0.0D0 , genH , Nsol)
-!!$
-!!$           do i=1,Npaw
-!!$              print *, genH(i,i)
-!!$           end do
-!!$           do i=1,Npaw
-!!$              print *, (genH(i,j),j=1,Npaw)
-!!$           end do
-!!$           
-!!$           stop
 
-!!$
-!!$
-!!$           call  DGEMM('N','T',Nsol_used,Npaw,Nsol_used,1.0d0,genS ,Nsol,&
-!!$                Soverlap ,Nsol, 0.0D0 , dumH , Nsol)
-!!$
-!!$           call  DGEMM('N','N',Npaw,Npaw,Nsol_used,1.0d0,Soverlap ,Nsol,&
-!!$                dumH ,Nsol, 0.0D0 , genS , Nsol)
-!!$
-!!$           do i=1,Npaw
-!!$              print *, genS(i,i)
-!!$           end do
-!!$           do i=1,Npaw
-!!$              print *, (genS(i,j),j=1,Npaw)
-!!$           end do
-!!$           
-!!$
-!!$
-!!$           stop
 
            ITYPE=1
            LDWORK=Ngrid
            CALL  DSYGV(ITYPE, "N", "U", Nsol_used, genH, Nsol, genS, Nsol , dumgrid2 , dumgrid3, &
                 LDWORK, INFO)
-           write(6,*) " first  eigenvalues "
-           write(38,*) " first  eigenvalues "
+
+           if(ivolta==1) then
+              write(6,*) " first  eigenvalues  the larger Box"
+              write(38,*) " first  eigenvalues on the larger Box"
+           else
+              write(6,*) " first  eigenvalues "
+              write(38,*) " first  eigenvalues "              
+           endif
+
            do i=1,2*Npaw
               write(6,*) dumgrid2( i)
               write(38,*) dumgrid2( i)
            end do
         endif
-
+     end do
 
 !!$        if( present(psipsigrid) ) then
 !!$
