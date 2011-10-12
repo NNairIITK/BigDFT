@@ -68,7 +68,7 @@ subroutine standard_inputfile_names(inputs, radical)
 
   write(rad, "(A)") ""
   write(rad, "(A)") trim(radical)
-     if (trim(radical) == "") write(rad, "(A)") "input"
+  if (trim(radical) == "") write(rad, "(A)") "input"
 
   inputs%file_dft=trim(rad) // '.dft'
   inputs%file_geopt=trim(rad) // '.geopt'
@@ -246,7 +246,7 @@ subroutine check_for_data_writing_directory(iproc,in)
      if (iproc == 0) then
         call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
         if (i_stat /= 0) then
-           write(*,*) "ERROR: cannot create output directory."
+           write(*,*) "ERROR: cannot create output directory '" // trim(in%dir_output) // "'."
            call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
         end if
      end if

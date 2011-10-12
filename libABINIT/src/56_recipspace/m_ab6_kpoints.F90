@@ -89,7 +89,7 @@ contains
     integer, intent(out) :: nkpt
 
     type(symmetry_type), pointer  :: sym
-    real(dp), allocatable :: kpt(:,:), wkpt(:)
+    real(dp) :: kpt(3,1), wkpt(1)
 
     if (AB_DBG) write(std_err,*) "AB symmetry: call get k grid1."
 
