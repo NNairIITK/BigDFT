@@ -130,4 +130,4 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -10.000000000000   0.000E+00
  PSolver, free  BC, dimensions:    91   91  101   proc    1 ... done.
- System pseudo energy is   9.2192886199073083      Ht.
+ System pseudo energy is -0.40420041359093062      Ht.

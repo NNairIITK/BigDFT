@@ -359,7 +359,7 @@ psi((i - 1) * (Glr%wfd%nvctr_c + 7 * Glr%wfd%nvctr_f) + 1:
   call mpiallred(epot_sum,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
 </pre>
-        <p class="answer">The value for our toy model should be 9.21929 Ht.</p>
+        <p class="answer">The value for our toy model should be -0.4042004 Ht.</p>
       </div>
 
     <div class="footer">Author (Damien D Caliste A cea D fr)
