@@ -4,17 +4,38 @@
 
 TESTDIRS = CH4 \
 	  CH3- \
-	  H2O-slab
+	  H2O-slab \
+	  N2 \
+	  H2O-bader \
+	  scalability \
+	  dev
 
 EXTRA_DIST = H1A.html CH4-cv.png CH4-grid.png \
-	CH4/input.dft CH4/posinp.xyz CH4/psppar.C CH4/psppar.H \
-	CH3-/input.dft CH3-/posinp.xyz CH3-/psppar.C CH3-/psppar.H CH3-/input.geopt \
 	H1B.html H2O-slab.png H2O-dipolar.png H2O-dipolarE.png \
-        $(TESTDIRS)
+	H1X.html N2-wf01.thumb.png N2-wf02.thumb.png \
+	N2-wf03.thumb.png N2-wf04.thumb.png N2-wf05.thumb.png \
+	H3B.html H2B.html H3X.html Mg7-minhop $(TESTDIRS)
 
+#if USE_MINIMA_HOPPING
+#TESTDIRS += Mg7-minhop
+#endif
 
+H2O-bader.post-in :
+	cp -f input-all.dft input.dft
+H2O-bader.dipole.dat.out: H2O-bader.out.out
+	$(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube > bader.out &&\
+	mv dipole.dat $@
+
+dev.check: dev/toy_model
+
+dev/toy_model: $(srcdir)/dev/toy_model.f90
+	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft -L$(top_builddir)/src/PSolver -lpoissonsolver $(LDFLAGS) $(LIBS)
+toy_model.dat.out: dev-N2.out.out toy_model
+	./toy_model > toy_model.dat.out
 
 # Generic part, do not touch.
+AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver
+
 INS = $(TESTDIRS:=.in)
 RUNS = $(TESTDIRS:=.run)
 CHECKS = $(TESTDIRS:=.check)
@@ -33,11 +54,14 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 %.memguess.out: $(abs_top_builddir)/src/memguess
-	$(abs_top_builddir)/src/memguess 1 > $@
+	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	$(abs_top_builddir)/src/memguess 1 $$name > $@
 %.out.out: $(abs_top_builddir)/src/bigdft
-	$(run_parallel) $(abs_top_builddir)/src/bigdft > $@
+	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
 %.geopt.mon.out:
 	$(MAKE) -f ../Makefile $*.out.out && mv geopt.mon $@
+
 
 %.report: %.ref
 	@case $< in \
@@ -46,6 +70,7 @@ report:
         esac ; \
         case $* in \
           CH3-.out*) prec="5.e-7" ;; \
+          scalability.out*)  prec="1.e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

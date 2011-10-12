@@ -70,7 +70,10 @@
       integer, intent(in) :: istatus
       !local variable
       integer :: istat_del
-      if (istatus > malloc_level) stop 'malloc_level can be only downgraded'
+      if (istatus > malloc_level)then
+         write(7,*) 'WARNING: malloc_level can be only downgraded, ignoring'
+         return
+      end if
 
       malloc_level = istatus
       

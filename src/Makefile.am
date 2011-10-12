@@ -107,7 +107,7 @@ global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) $(sub_dirs_dgemmsy) art $(sub_dirs_libconfig)
+SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) $(sub_dirs_dgemmsy) art $(sub_dirs_libconfig) tools tools/bader
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
@@ -247,15 +247,18 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
-	posfiles.c \
-	utils.c \
 	sdcg.f90 \
 	bfgs.f90 \
 	$(DGEMMSY_INTERFACE)
 
+# C objects
+c_level = posfiles.c \
+	utils.c
+
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	BigDFT_API.f90 \
+	$(c_level) \
 	$(low_level) \
 	$(high_level) \
 	$(flush_files) \
@@ -275,7 +278,7 @@ bigdft_LDADD = libbigdft.a \
 	$(libs_opt)
 
 splsad_SOURCES = splinedsaddle.f90
-splsad_LDFLAGS =
+splsad_LDFLAGS = 
 splsad_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -283,7 +286,7 @@ splsad_LDADD = libbigdft.a \
 	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
-rism_LDFLAGS = 
+rism_LDFLAGS =  
 rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -291,7 +294,7 @@ rism_LDADD = libbigdft.a \
 	$(libs_opt)
 
 oneatom_SOURCES = oneatom.f90
-oneatom_LDFLAGS = 
+oneatom_LDFLAGS =  
 oneatom_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -300,7 +303,7 @@ oneatom_LDADD = libbigdft.a \
 
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90                                                                                                                                                                                  
-BigDFT2Wannier_LDFLAGS =
+BigDFT2Wannier_LDFLAGS = 
 BigDFT2Wannier_LDADD = libbigdft.a \
         PSolver/libpoissonsolver.a \
         $(LMPI) \
@@ -309,7 +312,7 @@ BigDFT2Wannier_LDADD = libbigdft.a \
 
 
 MDanalysis_SOURCES = distances.f90 
-MDanalysis_LDFLAGS = 
+MDanalysis_LDFLAGS =  
 MDanalysis_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -317,7 +320,7 @@ MDanalysis_LDADD = libbigdft.a \
 	$(libs_opt)  
 
 abscalc_SOURCES = abscalc.f90 
-abscalc_LDFLAGS = 
+abscalc_LDFLAGS =  
 abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -325,7 +328,7 @@ abscalc_LDADD = libbigdft.a \
 	$(libs_opt) 
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDFLAGS = 
+test_forces_LDFLAGS =  
 test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -334,20 +337,21 @@ test_forces_LDADD = libbigdft.a \
 
 NEB_SOURCES = NEB.f90 \
 	$(mpi_source)
-NEB_LDFLAGS = 
+NEB_LDFLAGS =  
 NEB_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
 	MPIfake.f90
+memguess_LDFLAGS = 
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
 	$(mpi_source)
-frequencies_LDFLAGS = 
+frequencies_LDFLAGS =  
 frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
@@ -366,7 +370,7 @@ bart_SOURCES = \
 	art/read_parameters.f90 \
 	art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-bart_LDFLAGS = 
+bart_LDFLAGS =  
 bart_LDADD = art/libart.a \
 	libbigdft.a \
 	PSolver/libpoissonsolver.a \
@@ -409,7 +413,7 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o : $(mpi_include)  $(modules_objects)
+$(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT_API.o BigDFT.o test_forces.o  memguess.o global.o abscalc.o : $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
 

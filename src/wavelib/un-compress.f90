@@ -76,6 +76,12 @@ END SUBROUTINE compress
 
 !> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
 !! into fine scaling functions (psifscf)
+!! The number of operations is 
+!! Read IO= nvctr_c +7*nvctr_f
+!!
+!! Write IO = 8*(n1+1)(n2+1)(n3+1) +  nvctr_c +7*nvctr_f
+!!
+!! Calculation = 0 (Only data transfer)            
 subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psig)
