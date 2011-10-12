@@ -22,8 +22,8 @@
     <div class="main"><a name="top" id="top"></a>
 
       <div class="floatingmenu">
-         <a href="basics-1.html">&lt;&nbsp;prev. lesson</a> 
-         <a style="float:right;" href="ba.html">Next lesson &gt;</a> 
+         <a href="H3A.html">&lt;&nbsp;prev. lesson</a> 
+         <a style="float:right;" href="H3C-Wannier.html">Next lesson &gt;</a> 
         <h2>Content of this lesson</h2>
         <ul>
           <li>Plotting charge density </li>
@@ -32,10 +32,10 @@
         </ul>
         <h2>Material</h2>
         <ul>
-          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/input.dft">input.dft</a></li>
-          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/posinp.xyz">posinp.xyz</a></li>
-          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/psppar.O">psppar.O</a></li>
-          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/psppar.H">psppar.H</a></li>
+          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/input-all.dft" target="_blank">input.dft</a></li>
+          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/posinp.xyz" target="_blank">posinp.xyz</a></li>
+          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/psppar.O" target="_blank">psppar.O</a></li>
+          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/psppar.H" target="_blank">psppar.H</a></li>
         </ul>
       </div>
 
@@ -50,37 +50,37 @@
         </p>
 
       <h2>Plotting charge density</h2>
-<a href= http://en.wikipedia.org/wiki/Electric_dipole_moment>
+<a href= http://en.wikipedia.org/wiki/Electric_dipole_moment target="_blank">
  <img class="figure" src="http://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Water-elpot-transparent-3D-balls.png/250px-Water-elpot-transparent-3D-balls.png" width="200px" alt="water molecule" /></a> 
       <p>For a charge analysis you need the electronic charge density to be output 
        after the last wave function convergence.
       To do this, set the third number of the eleventh line of  <code>input.dft</code> to 1:
       <pre>   0    0    1  InputPsiId, output_wf, output_grid</pre>
       <p>  By setting the <code>output_grid</code> to "1" the electronic charge density is requested to be written in the
-<a href=http://paulbourke.net/dataformats/cube/><code>.cube</code></a> format
+<a href=http://paulbourke.net/dataformats/cube/ target="_blank"><code>.cube</code></a> format
        (whereas "2" would mean that different scalar potentials (Hartree, ionic and local) are written as well.
         Whenever a cube file is generated, BigDFT outputs also the corresponding averaged values over xy, xz and yz  planes.
         </p>
 
       <div class="exercice">
-        <p><b>Exercise</b>: run BigDFT for the H<sub>2</sub>O molecule as in <a href="H2O-bader/posinp.xyz"><code>posinp.xyz</code></a>.
+        <p><b>Exercise</b>: run BigDFT for the H<sub>2</sub>O molecule as in <a href="H2O-bader/posinp.xyz" target="_blank"><code>posinp.xyz</code></a>.
           The other files needed for this task are: 
-          the pseudo-potentials <a href="H2O-bader/psppar.O"><code>psppar.O</code></a> and <a href="H2O-slab/psppar.H"><code>psppar.H</code></a>
-         and the input file  <a href="H2O-bader/input.dft"><code>input.dft</code></a>;
+          the pseudo-potentials <a href="H2O-bader/psppar.O" target="_blank"><code>psppar.O</code></a> and <a href="H2O-slab/psppar.H" target="_blank"><code>psppar.H</code></a>
+         and the input file  <a href="H2O-bader/input.dft" target="_blank"><code>input.dft</code></a>;
            Note that a high resolution grid of <code>hgrid=0.2</code> is used here. In the following the reason of this choice will be clearified.
        </p>
 
 
    <p class="answer"> Once the calculation is terminated, make a 3D plot of the electronic charge density 
        <code>data/electronic_density.cube</code> at some isosurfaces, e.g. 0.8 ea<sub>o</sub><sup>-3</sup> 
-    (you can do it with <a href=http://inac.cea.fr/L_Sim/V_Sim/index.en.html><code>v_sim</code></a> ).
+    (you can do it with <a href=http://inac.cea.fr/L_Sim/V_Sim/index.en.html target="_blank"><code>v_sim</code></a> ).
      Draw a few cutting planes with coloured map of density.
          </p>
       </div>
 
 
       <h2>Charge partitioning between atoms</h2>
-<a href= http://theory.cm.utexas.edu/henkelman/research/bader/>
+<a href= http://theory.cm.utexas.edu/henkelman/research/bader/ target="_blank">
  <img class="figure" src="http://theory.cm.utexas.edu/henkelman/research/bader/h2o_3d.png" width="200px" alt="Bader surfaces of water molecule" /></a> 
 <p>        
            If  a spatial basis set like wavelets or plane-waves is used in solving the Schr&ouml;dinger equation, the wavefunction belongs to the whole system but not to individual atoms.
@@ -89,7 +89,7 @@
            the charge density to partition the space in several regions, each one hopefully surrounding a nucleus.
           The boundary of each Bader volume  is defined as the surface through which the charge density gradient has a zero flux.
           To analyze the charge density from BigDFT we use the implementation  by
-           <a href= http://theory.cm.utexas.edu/henkelman/research/bader/> Graeme Henkelman's group</a>
+           <a href= http://theory.cm.utexas.edu/henkelman/research/bader/ target="_blank"> Graeme Henkelman's group</a>
           (with some modifications); On their homepage you can find details of their algorithm as well as their freely available code.
          </p>
          <p>
