@@ -92,7 +92,7 @@ end program wvl
   call deallocate_atoms(atoms, "main") 
   call free_input_variables(inputs)
 </pre>
-      <p>The first routine is used to setup all filenames based on a radical (here "toy"). The second reads all provided input files and stores the input variables into the <code>inputs</code> data structure, the atomic informations into the <code>atoms</code> data structure and the positions into the array <code>rxyz</code>. The corresponding deallocating routines are also mentioned.</p>
+      <p>The first routine is used to setup all filenames based on a command line prefix (here "toy"). For more information on this prefix, see this <a href="H1X-Basic_post_processing.html" target="_blank">tutorial</a>. The second reads all provided input files and stores the input variables into the <code>inputs</code> data structure, the atomic informations into the <code>atoms</code> data structure and the positions into the array <code>rxyz</code>. The corresponding deallocating routines are also mentioned.</p>
       <p>One can notice the <code>iproc</code> argument. Indeed, BigDFT is made for parallel runs and most of the routines will take their proc ID for itH1. In BigDFT, the input files are read only by the master proc and are then broadcasted to all procs. We must thus initialise MPI before anything else:</p>
       <pre>
   integer :: ierr, iproc, nproc
