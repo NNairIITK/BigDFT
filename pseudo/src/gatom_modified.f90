@@ -55,9 +55,6 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
      enddo
   endif
 
-
-
-
   if (nintp.ne.n_int) stop 'n_int><nintp xabs'
   fourpi=16.d0*atan(1.d0)
   dr=fact*rprb/real(n_int,gp)
@@ -514,11 +511,11 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
      dumgrid1(:)=0.0_gp
      do isol=1,nsol
         psigrid_naked_2(:,isol)=0.0_gp
-        call schro(Egrid(isol),rgrid,potgrid,dumgrid1,psigrid_naked_2(1,isol),ngrid_box_2,isol+labs,labs*1.0_gp,zion)
+        call schro(Egrid_tmp_2(isol),rgrid,potgrid,dumgrid1,psigrid_naked_2(1,isol),ngrid_box_2,isol+labs,labs,zion)
      enddo
      H_2(:,:)=0.0D0
      do i=1,Nsol
-        H_2(i,i)=Egrid(i)
+        H_2(i,i)=Egrid_tmp_2(i)
         do iproj=1,3
            do igrid=1,Ngrid
               dumgrid1(igrid)=psigrid_naked_2(igrid,i)*projgrid(igrid,iproj)
@@ -772,15 +769,12 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
            PAWpatch(isol,isol)=PAWpatch(isol,isol)+Egrid(isol)  
         enddo
         
-
-
         do ivolta=1,2
           if( ivolta==1 )then
              Ngrid_box2 = Ngrid_box_larger 
           else
              Ngrid_box2 = Ngrid_box
           endif
-          print *, " Ngrid_box2 est ",  Ngrid_box2
         if( .true. ) then
            !!! MEGA-check 
            !!    we have still in H the hgh hamiltonian
