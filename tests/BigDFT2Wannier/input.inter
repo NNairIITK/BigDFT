@@ -1,0 +1,7 @@
+C6H6                 # name of the .win file
+etsf             # cube or etsf
+  15             # no. of occupied orbitals
+T   30    3      # Pre-check, no. of virtual orbitals for pre-check, no. of virtual orbitals used to write Amn and Mmn matrices
+F    F    F      # allow the writing of .cube files for spherical harmonics, their angular parts and their radial parts
+  94  132  130   # number of points for each axis in the cubic representation used by BigDFT (needed to use Wannier90)
+   1 2 14 

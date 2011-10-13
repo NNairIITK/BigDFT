@@ -340,11 +340,9 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   Lnscatterarr(:,3) = 0
   Lnscatterarr(:,4) = 0
 
-  if (xc_isgga()) then   !is this xc logical ok?
-     call razero(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1)*max(nspin,orbs%nspinor),rho)
-  else
-     call tenminustwenty(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1)*max(nspin,orbs%nspinor),rho,nproc)
-  end if
+  !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
+  !otherwise use libXC routine
+  call xc_init_rho(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1)*max(nspin,orbs%nspinor),rho,nproc)
 
   ind=1
   orbitalsLoop: do ii=1,orbs%norbp

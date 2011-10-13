@@ -1,0 +1,305 @@
+ !==================================!
+ !   Reading input.inter header :   !
+ !==================================!
+ System studied : C6H6
+ file type : etsf
+ Number of occupied orbitals :  15
+ Pre-check before calculating Amnk and Mmnk matrices
+ Total number of unnocupied orbitals :  30
+ !==================================!
+ ! Reading input.inter header done  !
+ !==================================!
+
+
+ |... (file:input.perf.. not present)............................Performance Options 
+ |   debug F                 !Debug option
+ |   fftcache 8192           !Cache size for the FFT
+ |   accel NO                !Acceleration (NO, CUDAGPU, OCLGPU)
+ |   blas F                  !CUBLAS acceleration
+ |   projrad  1.50E+01       !Radius of the projector as a function of the maxrad
+ |   exctxpar BC             !Exact exchange parallelisation scheme
+ |   ig_diag T               !Input guess: (T:Direct, F:Iterative) diag. of Ham.
+ |   ig_norbp 5              !Input guess: Orbitals per process for iterative diag.
+ |   ig_blocks  300 800      !Input guess: Block sizes for orthonormalisation
+ |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
+ |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+ |   rho_commun DBL          !Density communication scheme
+ |   linear OFF              !Linear Input Guess approach
+ |... (file:input.dft).....................................DFT Calculation Parameters
+ |0.40 0.40 0.40   hx,hy,hz: grid spacing in the three directions                    
+ |6.0  8.0           crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fin
+ |1                  ixc: exchange-correlation parameter (LDA=1,PBE=11)              
+ |0  0.000            ncharge: charge of the system, Electric field                  
+ |1  0               nspin=1 non-spin polarization, mpol=total magnetic moment       
+ |1.E-4              gnrm_cv: convergence criterion gradient                         
+ |50 10               itermax,nrepmax: maximum number of wavefunction optimizations a
+ |6  6               ncong, idsx: # CG iterations for the preconditioning equation, l
+ |0                  dispersion correction functional (values 1,2,3), 0=no correction
+ |0 3 0     #     0     InputPsiId, output_wf, output_grid                           
+ |0.0  30             rbuf, ncongt: length of the tail (AU),# tail CG iterations     
+ |30 15 15  #0 0 0               davidson treatment, no. of virtual orbitals, no of p
+ |2                  verbosity of the output 0=low, 2=high                           
+ |T                    disable the symmetry detection                                
+ |... (file:input.kpt.. not present)..............Brillouin Zone Sampling Parameters 
+ |manual         K-point sampling method                                             
+ |1              Number of K-points                                                  
+ |0. 0. 0. 1.                                                                        
+ |... (file:input.mix.. not present)...............................Mixing Parameters 
+ |0              Mixing parameters                                                   
+ |1              Maximum number of diagonalisation iterations                        
+ |1.e-4          Stop criterion on the residue of potential or density               
+ |0 0.0          Number of additional bands aand the electronic temperature          
+ |0.0 2.0        Multiplying factors for the mixing and the elctronic DIIS           
+ |... (file:input.geopt.. not present)...........................Geometry Parameters 
+ |BFGS           Geometry optimisation method                                        
+ |1              Maximum number of force evaluations                                 
+ |1.0 0.0        fract_fluct,forcemax                                                
+ |0.0            random displacement amplitude                                       
+ |4.0            Stepsize for the geometry optimisation                              
+ |... (file:input.tddft.. not present).............................TD-DFT Parameters 
+ |NONE           Tamm-Dancoff approximation                                          
+ |... (file:input.sic.. not present)..................................SIC Parameters 
+ |NONE           SIC method: NONE or PZ                                              
+ |0.0            SIC parameter                                                       
+ --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
+   Atomic system                  Fixed positions           Additional data
+ Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
+ N. types =     2         |                          | Sp. group = free BC     
+ N. atoms =    12         |                          | Virt. orb.=    15 orb.  
+ Types    = 'C', 'H'      |                          | Plot dens.=    15 orb.  
+                          |                          | Spin pol. = no          
+ --- (file: input.geopt) ------------------------------------- Geopt Input Parameters
+       Generic param.              Geo. optim.                MD param.
+       Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
+        algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
+ random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
+
+ Number of MPI processes 8
+ MPI process does not use OpenMP
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      C          4       3            1.58437  0.23268  0.57104         X              
+      H          1       3            1.46342  0.20000  0.00000         X              
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        C   0.34883  -8.51377   1.22843
+     l=0      rl        h1j       h2j       h3j 
+            0.30455   9.52284
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.18024   0.72508
+ Total Number of Electrons       30
+ Processes from 0 to 6 treat 2 orbitals 
+ Processes from 7 to 7 treat 1 orbitals 
+ Total Number of Orbitals        15
+ occup(1:15)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      C  9.39977E+00  1.57796E+01  1.34344E+01       23.499    39.449    33.586
+     2      C  9.40023E+00  1.41132E+01  1.54505E+01       23.501    35.283    38.626
+     3      C  9.39985E+00  1.15343E+01  1.50160E+01       23.500    28.836    37.540
+     4      C  9.40018E+00  1.06204E+01  1.25655E+01       23.500    26.551    31.414
+     5      C  9.39984E+00  1.22867E+01  1.05495E+01       23.500    30.717    26.374
+     6      C  9.40019E+00  1.48658E+01  1.09841E+01       23.500    37.165    27.460
+     7      H  9.39977E+00  1.78160E+01  1.37792E+01       23.499    44.540    34.448
+     8      H  9.39986E+00  1.48319E+01  1.73870E+01       23.500    37.080    43.467
+     9      H  9.39979E+00  1.02181E+01  1.66079E+01       23.499    25.545    41.520
+    10      H  9.39983E+00  8.58402E+00  1.22208E+01       23.500    21.460    30.552
+    11      H  9.39979E+00  1.15682E+01  8.61301E+00       23.499    28.920    21.533
+    12      H  9.39989E+00  1.61819E+01  9.39211E+00       23.500    40.455    23.480
+    Shift of=  9.39992E+00  1.29777E+01  1.32625E+01 H grids=  0.4000  0.4000  0.4000
+   Box Sizes=  1.88000E+01  2.64000E+01  2.60000E+01           47        66        65
+       Extremes for the high resolution grid points:        19<28     18<48     18<47
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=       3396 points=    114004
+   Fine resolution grid: Number of segments=        532 points=      3444
+ Wavefunctions memory occupation for root processor (Bytes): 2209792
+ Wavefunctions memory occupation for root processor (Bytes): 4419584
+ !==================================!
+ !     Reading .nnkp integers :     !
+ !==================================!
+ Values read :
+     n_kpts=   1;    n_proj=  18;  n_nnkpts=   3;    n_excb=   0
+ !==================================!
+ !   Reading .nnkp integers  done   !
+ !==================================!
+
+
+ !==================================!
+ !       Reading .nnkp file :       !
+ !==================================!
+ Both A and M matrices must be calculated
+ 3 lines read, corresponding to real lattice coordinates
+ 3 lines read, corresponding to reciprocal lattice coordinates
+   1  lines read, corresponding to kpoints coordinates
+  36  lines read, corresponding to projections arguments
+   3  lines read, corresponding to nearest neighbours arguments
+ !==================================!
+ !     Reading .nnkp file done      !
+ !==================================!
+
+
+ Wavefunctions memory occupation for root processor (Bytes): 3314688
+ wavefunctions need NO reformatting
+ !==================================!
+ ! Calculating amnk=<virt|sph_har>  !
+ !       in pre-check mode :        !
+ !==================================!
+Virtual band    amnk_guess(nb)=
+   1               0.429177
+   2               0.422046
+   3               0.042877
+   4               0.024674
+   5               0.045115
+   6               0.007417
+   7               0.040118
+   8               0.033100
+   9               0.028215
+  10               0.027842
+  11               0.028154
+  12               0.039466
+  13               0.006743
+  14               0.358466
+  15               0.005518
+  16               0.007519
+  17               0.009320
+  18               0.043129
+  19               0.042181
+  20               0.021691
+  21               0.009688
+  22               0.041138
+  23               0.044058
+  24               0.061093
+  25               0.006718
+  26               0.063994
+  27               0.065678
+  28               0.026489
+  29               0.019808
+  30               0.018798
+
+These are the virtual bands to use to construct the actual Amn and Mmn matrices :
+Band    sqrt(amnk_guess)=
+   1       0.429177
+   2       0.422046
+  14       0.358466
+ !==================================!
+ ! Calculating amnk=<virt|sph_har>  !
+ !     in pre-check mode done       !
+ !==================================!
+
+
+ Wavefunctions memory occupation for root processor (Bytes): 3314688
+ !==================================!
+ !  Calculating amnk=<psi|sph_har>  !
+ !==================================!
+ wavefunctions need NO reformatting
+Band      sqrt(amnk_tot)=
+   1       0.817283
+   2       0.726198
+   3       0.679780
+   4       0.540389
+   5       0.479611
+   6       0.290636
+   7       0.436276
+   8       0.287051
+   9       0.347621
+  10       0.216420
+  11       0.586444
+  12       0.414959
+  13       0.130981
+  14       0.550838
+  15       0.546341
+  16       0.429177
+  17       0.422046
+  18       0.358466
+ !==================================!
+ !  Calculating amnk=<psi|sph_har>  !
+ !               done               !
+ !==================================!
+
+
+ !==================================!
+ !     Writing a .amn file done     !
+ !==================================!
+
+
+ !==================================!
+ !   Calculating mmnk=<psi|psi> :   !
+ !==================================!
+ The values of sqrt(mmnk_tot) check the normalization in each band.
+ They must tend to their lower limit value, which is equal to 1 :
+
+k-point coordinates :   0    1    0
+Band    sqrt(mmnk_tot)=
+   1       0.998311
+   2       0.995845
+   3       0.997103
+   4       0.993643
+   5       0.989797
+   6       0.987907
+   7       0.971348
+   8       0.980218
+   9       0.951658
+  10       0.980184
+  11       0.995488
+  12       0.946063
+  13       0.957417
+  14       0.977333
+  15       0.995710
+  16       0.965402
+  17       0.950068
+  18       0.903926
+
+k-point coordinates :   0    0    1
+Band    sqrt(mmnk_tot)=
+   1       0.998255
+   2       0.997027
+   3       0.995665
+   4       0.989327
+   5       0.993555
+   6       0.987481
+   7       0.970462
+   8       0.979569
+   9       0.978910
+  10       0.950939
+  11       0.995300
+  12       0.955015
+  13       0.945741
+  14       0.995700
+  15       0.976505
+  16       0.948660
+  17       0.964312
+  18       0.901275
+
+k-point coordinates :   1    0    0
+Band    sqrt(mmnk_tot)=
+   1       0.994612
+   2       0.994306
+   3       0.994305
+   4       0.992236
+   5       0.992236
+   6       0.966448
+   7       0.973686
+   8       0.988930
+   9       0.968345
+  10       0.968341
+  11       0.917766
+  12       0.971808
+  13       0.971806
+  14       0.920022
+  15       0.920018
+  16       0.896652
+  17       0.896648
+  18       0.858791
+ !==================================!
+ ! Calculating mmnk=<psi|psi> done  !
+ !==================================!
+
+
+ !==================================!
+ !     Writing a .mmn file done     !
+ !==================================!
+
+
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 190 allocations and 190 deallocations, remaining memory(B): 0
+ memory occupation peak: 108 MB
+ for the array  pwork in the BigDFT2Wannier

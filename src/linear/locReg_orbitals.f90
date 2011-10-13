@@ -144,7 +144,7 @@
 !============================================================================
 !WARNING: assignToLocreg does not take into account the Kpts yet !!
 !============================================================================
-subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,norbsc)
+subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   use module_base
   use module_types
   implicit none
@@ -153,8 +153,6 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
   type(atoms_data),intent(in) :: atoms 
   type(orbitals_data),intent(inout):: orbs
   type(local_zone_descriptors) :: Lzd
-  integer, dimension(atoms%natsc+1,nspin), intent(in) :: norbsc_arr           !> number of semicore orbitals for the semicore atoms 
-  integer,dimension(Lzd%nlr),intent(out) :: norbsc
   ! Local variables
   integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsctot,orbsc,ispin
   integer :: iat,ind,i_all,noncoll,Lnorb,dimtot,ilr,npsidim,ierr
@@ -192,7 +190,6 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
   orbs%inWhichLocreg = 0
   orbs%inWhichLocregP = 0
 
-  norbsc = 0
   ind = 0
   jproc=0
   jat=1

@@ -2568,26 +2568,26 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
   character(len=*),parameter:: subname='prepare_lnlpspd'
 
 
-  allocate(lzd%lnlpspd(lzd%nlr), stat=istat)
-  do ilr=1,lzd%nlr
-      call nullify_nonlocal_psp_descriptors(lzd%lnlpspd(ilr))
+  allocate(Lzd%Lnlpspd(Lzd%nlr), stat=istat)
+  do ilr=1,Lzd%nlr
+      call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(ilr))
   end do
 
-  do ilr=1,lzd%nlr
+  do ilr=1,Lzd%nlr
 
-      nullify(lzd%llr(ilr)%projflg) !to avoid problems when deallocating
-      calc=.false.
-      do iorb=1,orbs%norbp
-          if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) calc=.true.
-      end do
-      if (.not. calc) cycle !calculate only for the locreg on this processor, without repeating for same locreg.
+      nullify(Lzd%Llr(ilr)%projflg) !to avoid problems when deallocating
+!      calc=.false.
+!      do iorb=1,orbs%norbp
+!          if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) calc=.true.
+!      end do
+!      if (.not. calc) cycle !calculate only for the locreg on this processor, without repeating for same locreg.
       ! allocate projflg
-      allocate(lzd%llr(ilr)%projflg(at%nat), stat=istat)
-      call memocc(istat, lzd%Llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
+      allocate(Lzd%Llr(ilr)%projflg(at%nat), stat=istat)
+      call memocc(istat, Lzd%Llr(ilr)%projflg, 'Lzd%Llr(ilr)%projflg', subname)
 
-      call nlpspd_to_locreg(input, iproc, lzd%Glr, lzd%Llr(ilr), rxyz, at, orbs, &
-           radii_cf, input%frmult, input%frmult, input%hx, input%hy, input%hz, lzd%Gnlpspd, &
-           lzd%lnlpspd(ilr), lzd%llr(ilr)%projflg)
+      call nlpspd_to_locreg(input, iproc, Lzd%Glr, Lzd%Llr(ilr), rxyz, at, orbs, &
+           radii_cf, input%frmult, input%frmult, input%hx, input%hy, input%hz, Lzd%Gnlpspd, &
+           Lzd%Lnlpspd(ilr), Lzd%Llr(ilr)%projflg)
 
   end do
 

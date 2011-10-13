@@ -48,7 +48,6 @@ character(len=20),dimension(:),allocatable:: atomNames
 integer :: npsidim
 
 
-
 ! Nullify all pointers
 call nullify_linearParameters(lin)
 
@@ -323,9 +322,6 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   read(99,*) lin%transformToGlobal
   read(99,*) lin%norbsPerProcIG
 
-  ! This is maybe already done
-  allocate(at%rloc(at%ntypes,3), stat=istat)
-  call memocc(istat, at%rloc, 'at%rloc', subname)
 
   ! Now read in the parameters specific for each atom type.
   parametersSpecified=.false.
@@ -364,7 +360,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
       end if
   end do
   close(unit=99)
-  
+
   ! Assign the localization radius to each atom.
   do iat=1,at%nat
       itype=at%iatype(iat)
@@ -1438,8 +1434,37 @@ subroutine allocateBasicArrays(at, lin)
   allocate(lin%locrad(lin%nlr),stat=istat)
   call memocc(istat,lin%locrad,'lin%locrad',subname)
 
+  allocate(at%rloc(at%ntypes,3), stat=istat)
+  call memocc(istat, at%rloc, 'at%rloc', subname)
+
 end subroutine allocateBasicArrays
 
+subroutine allocateBasicArraysInputLin(at, lin)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(atoms_data),intent(in):: at
+  type(linearInputParameters),intent(inout):: lin
+  
+  ! Local variables
+  integer:: istat
+  character(len=*),parameter:: subname='allocateBasicArrays'
+  
+  allocate(lin%norbsPerType(at%ntypes), stat=istat)
+  call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
+  
+  allocate(lin%potentialPrefac(at%ntypes), stat=istat)
+  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
+
+  allocate(lin%locrad(at%nat),stat=istat)
+  call memocc(istat,lin%locrad,'lin%locrad',subname)
+
+  allocate(at%rloc(at%ntypes,3), stat=istat)
+  call memocc(istat, at%rloc, 'at%rloc', subname)
+
+end subroutine allocateBasicArraysInputLin
 
 
 subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr, phi, lphi)
@@ -2643,3 +2668,150 @@ end do
 
 end subroutine dgemm_compressed2
 
+subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radii_cf)
+
+  use module_base
+  use module_types
+
+  implicit none
+
+  integer, intent(in) :: iproc,nproc
+  type(input_variables), intent(in) :: input
+  type(local_zone_descriptors), intent(inout) :: Lzd
+  type(atoms_data), intent(in) :: atoms
+  type(orbitals_data),intent(in) :: orbs
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
+  !Local variables
+  character(len=*), parameter :: subname='check_linear_and_create_Lzd'
+  logical :: linear
+  integer :: iat,ityp,nspin_ig,i_all,i_stat
+  real(gp), dimension(:), allocatable :: locrad
+  logical,dimension(:),allocatable:: calculateBounds
+
+  if (input%nspin == 4) then
+     nspin_ig=1
+  else
+     nspin_ig=input%nspin
+  end if
+
+  linear  = .true.
+  if (input%linear == 'LIG' .or. input%linear == 'FUL') then
+     Lzd%nlr=atoms%nat
+     allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
+     call memocc(i_stat,locrad,'locrad',subname)
+     ! locrad read from last line of  psppar
+     do iat=1,atoms%nat
+        ityp = atoms%iatype(iat)
+        locrad(iat) = atoms%rloc(ityp,1)
+     end do  
+     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,linear) 
+     call timing(iproc,'check_IG      ','OF')
+     if(input%nspin >= 4) linear = .false. 
+  end if
+
+  ! If we are using cubic code : by choice or because locregs are too big
+  if (input%linear =='OFF' .or. .not. linear) then
+     linear = .false.
+     Lzd%nlr = 1
+  end if
+
+  Lzd%linear = .true.
+  if (.not. linear)  Lzd%linear = .false. 
+  
+  if(input%linear /= 'TMO') then
+     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
+     allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
+     Lzd%doHamAppl = .true.                  !for now, always true because we want to calculate the hamiltonians for all locregs
+     if(.not. Lzd%linear) then
+        !copy Glr to Llr(1)
+        call nullify_locreg_descriptors(Lzd%Llr(1))
+        call copy_locreg_descriptors(Lzd%Glr, Lzd%Llr(1), subname)
+        !copy dimensions of wavefunction and projectors
+        Lzd%Lpsidimtot=orbs%npsidim
+        Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
+        ! copy nlpspd to Lnlpspd(1)  NOTE: NOT NEEDED!
+        !allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)
+        !call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(1))
+        !call copy_nonlocal_psp_descriptors(nlpspd, Lzd%Lnlpspd(1), subname)   
+     else 
+        ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
+        call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
+
+        ! determine the localization regions
+        ! calculateBounds indicate whether the arrays with the bounds (for convolutions...) shall also
+        ! be allocated and calculated. In principle this is only necessary if the current process has orbitals
+        ! in this localization region.
+        allocate(calculateBounds(lzd%nlr),stat=i_stat)
+        call memocc(i_stat,calculateBounds,'calculateBounds',subname)
+        calculateBounds=.true.
+        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,calculateBounds)
+!        call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,&
+!             orbs,calculateBounds)  
+        deallocate(calculateBounds,stat=i_stat)
+        call memocc(i_stat,i_all,'calculateBounds',subname)
+
+        ! determine the wavefunction dimension
+        call wavefunction_dimension(Lzd,orbs)
+
+        !determine the Local nlpspd
+        call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf, Lzd)
+     end if
+  end if
+
+!DEBUG
+!!if(iproc==0)then
+!!print *,'###################################################'
+!!print *,'##        General information:                   ##'
+!!print *,'###################################################'
+!!print *,'Lzd%nlr,linear, Lpsidimtot, ndimpotisf, Lnprojel:',Lzd%nlr,Lzd%linear,Lzd%Lpsidimtot, Lzd%ndimpotisf, Lzd%Lnprojel
+!!print *,'###################################################'
+!!print *,'##        Global box information:                ##'
+!!print *,'###################################################'
+!!write(*,'(a24,3i4)')'Global region n1,n2,n3:',Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3
+!!write(*,*)'Global fine grid: nfl',Lzd%Glr%d%nfl1,Lzd%Glr%d%nfl2,Lzd%Glr%d%nfl3
+!!write(*,*)'Global fine grid: nfu',Lzd%Glr%d%nfu1,Lzd%Glr%d%nfu2,Lzd%Glr%d%nfu3
+!!write(*,*)'Global inter. grid: ni',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i
+!!write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Lzd%Glr%d%n1*input%hx,Lzd%Glr%d%n2*input%hy,Lzd%Glr%d%n3*input%hz
+!!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*input%hx*Lzd%Glr%d%n2*input%hy*Lzd%Glr%d%n3*input%hz
+!!print *,'Global wfd statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
+!!print *,'###################################################'
+!!print *,'##        Local boxes information:               ##'
+!!print *,'###################################################'
+!!do i_stat =1, Lzd%nlr
+!!   write(*,*)'=====> Region:',i_stat
+!!   write(*,'(a24,3i4)')'Local region n1,n2,n3:',Lzd%Llr(i_stat)%d%n1,Lzd%Llr(i_stat)%d%n2,Lzd%Llr(i_stat)%d%n3
+!!   write(*,*)'Local fine grid: nfl',Lzd%Llr(i_stat)%d%nfl1,Lzd%Llr(i_stat)%d%nfl2,Lzd%Llr(i_stat)%d%nfl3
+!!   write(*,*)'Local fine grid: nfu',Lzd%Llr(i_stat)%d%nfu1,Lzd%Llr(i_stat)%d%nfu2,Lzd%Llr(i_stat)%d%nfu3
+!!   write(*,*)'Local inter. grid: ni',Lzd%Llr(i_stat)%d%n1i,Lzd%Llr(i_stat)%d%n2i,Lzd%Llr(i_stat)%d%n3i
+!!   write(*,'(a27,f6.2,f6.2,f6.2)')'Local dimension (x,y,z):',Lzd%Llr(i_stat)%d%n1*input%hx,Lzd%Llr(i_stat)%d%n2*input%hy,&
+!!            Lzd%Llr(i_stat)%d%n3*input%hz
+!!   write(*,'(a17,f12.2)')'Local volume: ',Lzd%Llr(i_stat)%d%n1*input%hx*Lzd%Llr(i_stat)%d%n2*input%hy*Lzd%Llr(i_stat)%d%n3*input%hz
+!!   print *,'Local wfd statistics:',Lzd%Llr(i_stat)%wfd%nseg_c,Lzd%Llr(i_stat)%wfd%nseg_f,Lzd%Llr(i_stat)%wfd%nvctr_c,&
+!!            Lzd%Llr(i_stat)%wfd%nvctr_f
+!!end do
+!!print *,'###################################################'
+!!print *,'##        Global PsP information:                 ##'
+!!print *,'###################################################'
+!!write(*,*)'nproj,nprojel',Lzd%Gnlpspd%nproj,Lzd%Gnlpspd%nprojel 
+!!write(*,'(a24,3i4)')'shape(nvectr),shape(nseg_p),shape(keyv_p):',shape(Lzd%Gnlpspd%nvctr_p),&
+!!     shape(Lzd%Gnlpspd%nseg_p),shape(Lzd%Gnlpspd%keyv_p)
+!!print *,'shape(keyg_p):',shape(Lzd%Gnlpspd%keyg_p)
+!!if(Lzd%linear)then
+!!   print *,'###################################################'
+!!   print *,'##        Local PsP information:                 ##'
+!!   print *,'###################################################'
+!!   do i_stat =1, Lzd%nlr
+!!      write(*,*)'=====> Region:',i_stat
+!!      write(*,*)'nproj,nprojel',Lzd%Lnlpspd(i_stat)%nproj,Lzd%Lnlpspd(i_stat)%nprojel
+!!      write(*,'(a24,3i4)')'shape(nvectr),shape(nseg_p),shape(keyv_p):',shape(Lzd%Lnlpspd(i_stat)%nvctr_p),&
+!!           shape(Lzd%Lnlpspd(i_stat)%nseg_p),shape(Lzd%Lnlpspd(i_stat)%keyv_p)
+!!      print *,'shape(keyg_p):',shape(Lzd%Lnlpspd(i_stat)%keyg_p)
+!!   end do
+!!end if
+!!end if
+!!call mpi_finalize(i_stat)
+!!stop
+!END DEBUG
+
+end subroutine check_linear_and_create_Lzd

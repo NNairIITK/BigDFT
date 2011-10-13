@@ -354,7 +354,7 @@ module module_interfaces
      END SUBROUTINE createIonicPotential
 
      subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
-          orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+          orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
           nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input,radii_cf)
        use module_base
@@ -367,7 +367,7 @@ module module_interfaces
        type(atoms_data), intent(inout) :: at
        type(orbitals_data), intent(inout) :: orbs
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-       type(locreg_descriptors), intent(in) :: Glr
+       type(local_zone_descriptors), intent(inout) :: Lzd
        type(communications_arrays), intent(in) :: comms
        type(GPU_pointers), intent(inout) :: GPU
        type(input_variables):: input
@@ -1171,7 +1171,7 @@ module module_interfaces
      subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
-          pkernel,psi,psivirt,nscatterarr,ngatherarr,GPU)
+          pkernel,psi,psivirt,nscatterarr,ngatherarr,GPU,Lzd)
        use module_base
        use module_types
        implicit none
@@ -1192,6 +1192,7 @@ module module_interfaces
        type(orbitals_data), intent(inout) :: orbsv
        type(GPU_pointers), intent(inout) :: GPU
        real(wp), dimension(:), pointer :: psi,psivirt
+       type(local_zone_descriptors),intent(in) :: Lzd
      END SUBROUTINE direct_minimization
 
      subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
@@ -1276,7 +1277,7 @@ module module_interfaces
       real(wp), dimension(:), pointer :: psi_as
     END SUBROUTINE select_active_space
 
-    subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
+    subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,ncong,iscf,&
          ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
       use module_base
       use module_types
@@ -1285,7 +1286,7 @@ module module_interfaces
       real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
       type(orbitals_data), intent(in) :: orbs
       type(communications_arrays), intent(in) :: comms
-      type(locreg_descriptors), intent(in) :: lr
+      type(local_zone_descriptors), intent(in) :: Lzd
       type(GPU_pointers), intent(in) :: GPU
       real(gp), intent(out) :: gnrm,gnrm_zero,energy
       real(wp), dimension(:), pointer :: psi,psit,hpsi
@@ -3387,40 +3388,44 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine copy_wavefunctions_descriptors
 
 
-     subroutine copy_convolutions_bounds(boundsin, boundsout, subname)
+     subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
        use module_base
        use module_types
        implicit none
+       character(len=1),intent(in) :: geocode
        type(convolutions_bounds),intent(in):: boundsin
        type(convolutions_bounds),intent(out):: boundsout
        character(len=*),intent(in):: subname
      end subroutine copy_convolutions_bounds
 
 
-     subroutine copy_kinetic_bounds(kbin, kbout, subname)
+     subroutine copy_kinetic_bounds(geocode,kbin, kbout, subname)
        use module_base
        use module_types
        implicit none
+       character(len=1),intent(in) :: geocode
        type(kinetic_bounds),intent(in):: kbin
        type(kinetic_bounds),intent(out):: kbout
        character(len=*),intent(in):: subname
      end subroutine copy_kinetic_bounds
 
 
-     subroutine copy_shrink_bounds(sbin, sbout, subname)
+     subroutine copy_shrink_bounds(geocode,sbin, sbout, subname)
        use module_base
        use module_types
        implicit none
+       character(len=1),intent(in) :: geocode
        type(shrink_bounds),intent(in):: sbin
        type(shrink_bounds),intent(out):: sbout
        character(len=*),intent(in):: subname
      end subroutine copy_shrink_bounds
 
 
-     subroutine copy_grow_bounds(gbin, gbout, subname)
+     subroutine copy_grow_bounds(geocode,gbin, gbout, subname)
        use module_base
        use module_types
        implicit none
+       character(len=1),intent(in) :: geocode
        type(grow_bounds),intent(in):: gbin
        type(grow_bounds),intent(out):: gbout
        character(len=*),intent(in):: subname

@@ -384,7 +384,7 @@ END SUBROUTINE free_full_potential
 !! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
 !! depending of the functional we want to calculate. The gradient wrt the wavefunction
 !! is put in hpsi accordingly to the functional
-subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
+subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,ncong,iscf,&
      ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
   use module_base
   use module_types
@@ -394,7 +394,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
-  type(locreg_descriptors), intent(in) :: lr
+  type(local_zone_descriptors), intent(in) :: Lzd
   type(GPU_pointers), intent(in) :: GPU
   real(gp), intent(out) :: gnrm,gnrm_zero,energy
   real(wp), dimension(:), pointer :: psi,psit,hpsi
@@ -416,7 +416,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
      call memocc(i_stat,mom_vec,'mom_vec',subname)
 
      call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
-          lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
+          Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
   end if
 
 
@@ -429,8 +429,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
 !rr=sum(hpsi(1:(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp))
 !call mpi_allreduce(rr, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
 !write(*,*) 'BEFORE TRANSPOSITION: iproc, tt', iproc, tt
-
-  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+  call transpose_v2(iproc,nproc,orbs,Lzd,comms,hpsi,work=psi)
 !rr=sum(hpsi(1:sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb))
 !call mpi_allreduce(rr, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
 !write(*,*) 'AFTER TRANSPOSITION: iproc, tt', iproc, tt
@@ -439,17 +438,17 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
      psit => psi
-     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psit)
+     call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psit)
   end if
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
   !takes also into account parallel k-points distribution
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
-  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
+  call orthoconstraint(iproc,nproc,orbs,comms,Lzd%Glr%wfd,psit,hpsi,trH)
 
   !retranspose the hpsi wavefunction
-  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=psi)
 
   !after having calcutated the trace of the hamiltonian, the functional have to be defined
   !new value without the trace, to be added in hpsitopsi
@@ -483,13 +482,16 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
   if (GPUconv) then
-     call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+     call preconditionall_GPU(iproc,nproc,orbs,Lzd%Glr,hx,hy,hz,ncong,&
           hpsi,gnrm,gnrm_zero,GPU)
   else if (OCLconv) then
-     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+     call preconditionall_OCL(iproc,nproc,orbs,Lzd%Glr,hx,hy,hz,ncong,&
           hpsi,gnrm,gnrm_zero,GPU)
-  else
-     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+  else                  
+     call preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+     if(.false.) then
+        call preconditionall(iproc,nproc,orbs,Lzd%Glr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+     end if
   end if
 
   !sum over all the partial residues

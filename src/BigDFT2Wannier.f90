@@ -14,6 +14,8 @@ program BigDFT2Wannier
    type(communications_arrays), target :: comms, commsp,commsv,commsb
    integer :: iproc, nproc, i_stat, nelec, ind, ierr, npsidim, npsidim2
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft
+   integer :: ncount0,ncount1,ncount_rate,ncount_max
+   real :: tcpu0,tcpu1,tel
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
@@ -61,6 +63,8 @@ program BigDFT2Wannier
    else
       call timing(iproc,'             ','IN')
    end if
+   call cpu_time(tcpu0)
+   call system_clock(ncount0,ncount_rate,ncount_max) 
 
 ! Read input.inter file
 ! It defines the name of the system studied and some important integers :
@@ -1305,20 +1309,25 @@ else if ( (filetype == 'cube' .or. filetype == 'CUBE') .and. nproc==1 ) then
 else
    if (iproc==0) write(*,*) 'Cubic code not parallelized'
 end if
-   if(nproc > 1) then
-      call timing(iproc,'parallel      ','RE')
-   else
-      call timing(iproc,'             ','RE')
-   end if
-   
-   !finalize memory counting
-   call memocc(0,0,'count','stop')
 
+if(nproc > 1) then
+  call timing(iproc,'parallel      ','RE')
+else
+  call timing(iproc,'             ','RE')
+end if
 
-  ! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
-  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+call cpu_time(tcpu1)
+call system_clock(ncount1,ncount_rate,ncount_max)
+tel=dble(ncount1-ncount0)/dble(ncount_rate)
+if (iproc == 0) &
+   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
+ 
+!finalize memory counting
+call memocc(0,0,'count','stop')
 
-  call MPI_FINALIZE(ierr)
+! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
+call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+call MPI_FINALIZE(ierr)
 
 end program BigDFT2Wannier
 
@@ -2834,14 +2843,17 @@ subroutine write_amn(seedname, n_bands, n_kpts, n_proj, amnk)
 
    ! Local variables
    integer :: nb, nk, np
+   character(len=8) :: dates
+   character(len=10) :: times
 
+   call date_and_time(date=dates,time=times)
 
    ! Writing the .amn file
    OPEN(12, FILE=trim(seedname)//'.amn', STATUS='unknown')
 !   write(*,*) '!==================================!'
 !   write(*,*) '!       Writing a .amn file :      !'
 !   write(*,*) '!==================================!'
-   write(12,*) 'File Created on'
+   write(12,*) 'File Created on', dates,' at', times
    write(12,'(I4,2(1X,I4))') n_bands, n_kpts, n_proj
    do nk=1, n_kpts
       do np=1, n_proj

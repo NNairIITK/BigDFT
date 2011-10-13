@@ -173,7 +173,7 @@ end program abscalc_main
   !temporary interface
   interface
      subroutine abscalc(nproc,iproc,atoms,rxyz,&
-          psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
+          psi,Lzd,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
        implicit none
@@ -181,7 +181,7 @@ end program abscalc_main
        integer, intent(out) :: infocode
        real(gp), intent(inout) :: hx_old,hy_old,hz_old
        type(input_variables), intent(in) :: in
-       type(locreg_descriptors), intent(inout) :: Glr
+       type(local_zone_descriptors), intent(inout) :: Lzd
        type(atoms_data), intent(inout) :: atoms
        type(orbitals_data), intent(inout) :: orbs
        type(GPU_pointers), intent(inout) :: GPU
@@ -210,7 +210,7 @@ end program abscalc_main
         call memocc(i_stat,i_all,'eval',subname)
         nullify(rst%orbs%eval)
 
-        call deallocate_wfd(rst%Glr%wfd,subname)
+        call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
      end if
 
      if(.not. in%c_absorbtion) then 
@@ -218,7 +218,7 @@ end program abscalc_main
         stop 'ERROR'
      else
         call abscalc(nproc,iproc,atoms,rxyz,&
-             rst%psi,rst%Glr,rst%orbs,&
+             rst%psi,rst%Lzd,rst%orbs,&
              rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
         fxyz(:,:) = 0.d0
      endif
@@ -257,7 +257,7 @@ end program abscalc_main
         call memocc(i_stat,i_all,'eval',subname)
         nullify(rst%orbs%eval)
 
-        call deallocate_wfd(rst%Glr%wfd,subname)
+        call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
         !finalize memory counting (there are still the positions and the forces allocated)
         call memocc(0,0,'count','stop')
 
@@ -291,7 +291,7 @@ END SUBROUTINE call_abscalc
 !!          - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 !!
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
-     psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
+     psi,Lzd,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
   use module_interfaces
@@ -303,7 +303,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
   type(input_variables), intent(in) :: in
-  type(locreg_descriptors), intent(inout) :: Glr
+  type(local_zone_descriptors), intent(inout) :: Lzd
   type(atoms_data), intent(inout) :: atoms
   type(orbitals_data), intent(inout) :: orbs
   type(GPU_pointers), intent(inout) :: GPU
@@ -475,28 +475,34 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
 
-  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Lzd%Glr,shift)
 
   !variables substitution for the PSolver part
   hxh=0.5d0*hx
   hyh=0.5d0*hy
   hzh=0.5d0*hz
-  n1i=Glr%d%n1i
-  n2i=Glr%d%n2i
-  n3i=Glr%d%n3i
+  n1i=Lzd%Glr%d%n1i
+  n2i=Lzd%Glr%d%n2i
+  n3i=Lzd%Glr%d%n3i
 
-  n1=Glr%d%n1
-  n2=Glr%d%n2
-  n3=Glr%d%n3
+  n1=Lzd%Glr%d%n1
+  n2=Lzd%Glr%d%n2
+  n3=Lzd%Glr%d%n3
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call timing(iproc,'CrtDescriptors','ON')
   call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
-       atoms,rxyz,radii_cf,crmult,frmult,Glr)
+       atoms,rxyz,radii_cf,crmult,frmult,Lzd%Glr)
   call timing(iproc,'CrtDescriptors','OF')
+
+  !allocate communications arrays
+  !call allocate_comms(nproc,orbs,comms,subname)
+  call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)
+
+
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
-  call createProjectorsArrays(iproc,Glr,rxyz,atoms,orbs,&
+  call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
@@ -504,15 +510,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation
   if (iproc==0 .and. verbose > 0) then
-     call MemoryEstimator(nproc,idsx,Glr,&
+     call MemoryEstimator(nproc,idsx,Lzd%Glr,&
           atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
           in%nspin,in%itrpmax,in%iscf,peakmem)
   end if
-
-
-  !allocate communications arrays
-  !call allocate_comms(nproc,orbs,comms,subname)
-  call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
   !these arrays should be included in the comms descriptor
   !allocate values of the array for the data scattering in sumrho
@@ -524,7 +525,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
   !create the descriptors for the density and the potential
   !these descriptors should take into account the localisation regions
-  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&
+  call createDensPotDescriptors(iproc,nproc,atoms,Lzd%Glr%d,hxh,hyh,hzh,&
        rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',ixc,in%rho_commun,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
@@ -667,9 +668,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         endif
      endif
 
+     !quick fix for now
+     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
 
      call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
-          orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
+          orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in,radii_cf)
      
@@ -730,9 +733,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      allocate(phnons(2,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,phnons,'phnons',subname)
 
+     !quick fix for now
+     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
+
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,rhodsc,&
-          orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+          orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in, radii_cf)
 
@@ -1186,18 +1192,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
      if (in%iabscalc_type==2) then
         call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,nlpspd,proj,Lzd%Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,in%SIC,GPU &
              , in%iat_absorber  , in )
         
      else if (in%iabscalc_type==1) then
         call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,nlpspd,proj,Lzd%Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,in%SIC,GPU &
              , in%iat_absorber, in)
      else if (in%iabscalc_type==3) then
         call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,nlpspd,proj,Lzd%Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,in%SIC,GPU &
              , in%iat_absorber, in, rhoXanes(1,1,1,1))
      else
@@ -1314,49 +1320,49 @@ contains
     
 
     !De-allocations
-    call deallocate_bounds(atoms%geocode,Glr%hybrid_on,  Glr%bounds,subname)
-    i_all=-product(shape(Glr%projflg))*kind(Glr%projflg)
-    deallocate(Glr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'Glr%projflg',subname)  
+    call deallocate_bounds(atoms%geocode,Lzd%Glr%hybrid_on,  Lzd%Glr%bounds,subname)
+    i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
+    deallocate(Lzd%Glr%projflg,stat=i_stat)
+    call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
 
 !!$    if (atoms%geocode == 'F') then
-!!$       call deallocate_bounds(Glr%bounds,subname)
+!!$       call deallocate_bounds(Lzd%Glr%bounds,subname)
 !!$    end if
 !!$    
-!!$    if (atoms%geocode == 'P' .and. Glr%hybrid_on) then 
+!!$    if (atoms%geocode == 'P' .and. Lzd%Glr%hybrid_on) then 
 !!$       
-!!$       i_all=-product(shape(Glr%bounds%kb%ibxy_f))*kind(Glr%bounds%kb%ibxy_f)
-!!$       deallocate(Glr%bounds%kb%ibxy_f,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'Glr%bounds%kb%ibxy_f',subname)
+!!$       i_all=-product(shape(Lzd%Glr%bounds%kb%ibxy_f))*kind(Lzd%Glr%bounds%kb%ibxy_f)
+!!$       deallocate(Lzd%Glr%bounds%kb%ibxy_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'Lzd%Glr%bounds%kb%ibxy_f',subname)
 !!$       
-!!$       i_all=-product(shape(Glr%bounds%kb%ibxz_f))*kind(Glr%bounds%kb%ibxz_f)
-!!$       deallocate(Glr%bounds%kb%ibxz_f,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'Glr%bounds%kb%ibxz_f',subname)
+!!$       i_all=-product(shape(Lzd%Glr%bounds%kb%ibxz_f))*kind(Lzd%Glr%bounds%kb%ibxz_f)
+!!$       deallocate(Lzd%Glr%bounds%kb%ibxz_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'Lzd%Glr%bounds%kb%ibxz_f',subname)
 !!$       
-!!$       i_all=-product(shape(Glr%bounds%kb%ibyz_f))*kind(Glr%bounds%kb%ibyz_f)
-!!$       deallocate(Glr%bounds%kb%ibyz_f,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'Glr%bounds%kb%ibyz_f',subname)
+!!$       i_all=-product(shape(Lzd%Glr%bounds%kb%ibyz_f))*kind(Lzd%Glr%bounds%kb%ibyz_f)
+!!$       deallocate(Lzd%Glr%bounds%kb%ibyz_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'Lzd%Glr%bounds%kb%ibyz_f',subname)
 !!$       
-!!$       i_all=-product(shape(Glr%bounds%sb%ibxy_ff))*kind(Glr%bounds%sb%ibxy_ff)
-!!$       deallocate(Glr%bounds%sb%ibxy_ff,stat=i_stat)
+!!$       i_all=-product(shape(Lzd%Glr%bounds%sb%ibxy_ff))*kind(Lzd%Glr%bounds%sb%ibxy_ff)
+!!$       deallocate(Lzd%Glr%bounds%sb%ibxy_ff,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'ibxy_ff',subname)
-!!$       i_all=-product(shape(Glr%bounds%sb%ibzzx_f))*kind(Glr%bounds%sb%ibzzx_f)
-!!$       deallocate(Glr%bounds%sb%ibzzx_f,stat=i_stat)
+!!$       i_all=-product(shape(Lzd%Glr%bounds%sb%ibzzx_f))*kind(Lzd%Glr%bounds%sb%ibzzx_f)
+!!$       deallocate(Lzd%Glr%bounds%sb%ibzzx_f,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'ibzzx_f',subname)
-!!$       i_all=-product(shape(Glr%bounds%sb%ibyyzz_f))*kind(Glr%bounds%sb%ibyyzz_f)
-!!$       deallocate(Glr%bounds%sb%ibyyzz_f,stat=i_stat)
+!!$       i_all=-product(shape(Lzd%Glr%bounds%sb%ibyyzz_f))*kind(Lzd%Glr%bounds%sb%ibyyzz_f)
+!!$       deallocate(Lzd%Glr%bounds%sb%ibyyzz_f,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'ibyyzz_f',subname)
 !!$       
-!!$       i_all=-product(shape(Glr%bounds%gb%ibyz_ff))*kind(Glr%bounds%gb%ibyz_ff)
-!!$       deallocate(Glr%bounds%gb%ibyz_ff,stat=i_stat)
+!!$       i_all=-product(shape(Lzd%Glr%bounds%gb%ibyz_ff))*kind(Lzd%Glr%bounds%gb%ibyz_ff)
+!!$       deallocate(Lzd%Glr%bounds%gb%ibyz_ff,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'ibyz_ff',subname)
 !!$       
-!!$       i_all=-product(shape(Glr%bounds%gb%ibzxx_f))*kind(Glr%bounds%gb%ibzxx_f)
-!!$       deallocate(Glr%bounds%gb%ibzxx_f,stat=i_stat)
+!!$       i_all=-product(shape(Lzd%Glr%bounds%gb%ibzxx_f))*kind(Lzd%Glr%bounds%gb%ibzxx_f)
+!!$       deallocate(Lzd%Glr%bounds%gb%ibzxx_f,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'ibzxx_f',subname)
 !!$       
-!!$       i_all=-product(shape(Glr%bounds%gb%ibxxyy_f))*kind(Glr%bounds%gb%ibxxyy_f)
-!!$       deallocate(Glr%bounds%gb%ibxxyy_f,stat=i_stat)
+!!$       i_all=-product(shape(Lzd%Glr%bounds%gb%ibxxyy_f))*kind(Lzd%Glr%bounds%gb%ibxxyy_f)
+!!$       deallocate(Lzd%Glr%bounds%gb%ibxxyy_f,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'ibxxyy_f',subname)
 !!$    endif
 

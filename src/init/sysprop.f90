@@ -403,17 +403,17 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
   call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 
   ! in case of linear scaling, allocate the localization radii
-  if(in%linear /= 'OFF') then
+  if(in%linear == 'LIG') then
      allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
      call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
   end if
 
   ! if linear scaling applied with more then InputGuess, then go read input.lin for radii
-  if (in%linear /= 'OFF' .and. in%linear /= 'LIG') then
-     lin%nlr=atoms%nat
-     call allocateBasicArrays(atoms, lin)
-     call readLinearParameters(iproc, nproc, lin, atoms, atomNames)
-  end if
+!  if (in%linear /= 'OFF' .and. in%linear /= 'LIG') then
+!     lin%nlr=atoms%nat
+!     call allocateBasicArrays(atoms, lin)
+!     call readLinearParameters(iproc, nproc, lin, atoms, atomNames)
+!  end if
 
   ! Update radii_cf and occupation.
   if (iproc == 0) then

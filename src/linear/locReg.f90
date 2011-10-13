@@ -1461,7 +1461,7 @@ END SUBROUTINE parallel_repartition_locreg
 
 !determine a set of localisation regions from the centers and the radii.
 !cut in cubes the global reference system
-subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,orbs)!,outofzone)
+subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,orbs,calculateBounds)!,outofzone)
   use module_base
   use module_types
   implicit none
@@ -1473,6 +1473,7 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
   real(gp), dimension(3,nlr), intent(in) :: cxyz
   type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
   type(orbitals_data),intent(in) :: orbs
+  logical,dimension(nlr),intent(in):: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables
   character(len=*), parameter :: subname='determine_locreg_parallel'
@@ -1701,9 +1702,13 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
      ! Sould check if nfu works properly... also relative to locreg!!
      !if the localisation region is isolated build also the bounds
      if (Llr(ilr)%geocode=='F') then
-        call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
-             Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
-             Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+        ! Check whether the bounds shall be calculated. Do this only if the currect process handles
+        ! orbitals in the current localization region.
+        if(calculateBounds(ilr)) then
+           call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
+               Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
+               Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+        end if
      end if
   end do !on iilr
 

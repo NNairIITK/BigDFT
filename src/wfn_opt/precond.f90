@@ -138,12 +138,10 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
 
   ! Preconditions all orbitals belonging to iproc
   !and calculate the norm of the residue
-
   ! norm of gradient
   gnrm=0.0_dp
   !norm of gradient of unoccupied orbitals
   gnrm_zero=0.0_dp
-
 
   !commented out, never used
 !   evalmax=orbs%eval(orbs%isorb+1)
@@ -157,6 +155,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+
      !if it is the first orbital or the k-point has changed calculate the max
      if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
         !the eval array contains all the values
@@ -197,7 +196,6 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
         end if
 
        if (scpr /= 0.0_wp) then
-
           call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
            !cases with no CG iterations, diagonal preconditioning
            !for Free BC it is incorporated in the standard procedure
@@ -217,14 +215,18 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
               end select
 
            else !normal preconditioner
-
-              call precondition_residue(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
-                   hx,hy,hz,kx,ky,kz,hpsi(1+ist))
-
+              if(.false.)then
+!                 call solvePrecondEquation(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
+!                   hx,hy,hz,kx,ky,kz,hpsi(1+ist), rxyz(1,ilr), orbs,&                         !here should change rxyz to be center of Locreg
+!                   potentialPrefac(ilr), confPotOrder, 1)                         ! should depend on locreg not atom type? 'it' is commented in lower routines, so put 1
+              else
+                 call precondition_residue(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
+                      hx,hy,hz,kx,ky,kz,hpsi(1+ist))
+              end if
            end if
 
-        end if
-        ist = ist + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
+       end if
+       ist = ist + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
 !     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
 !     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
      end do

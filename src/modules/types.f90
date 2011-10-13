@@ -92,11 +92,23 @@ module module_types
      real(gp) :: fref !< reference occupation (for alphaNK case)
   end type SIC_data
 
+!> Contains all parameters related to the linear scaling version.
+  type,public:: linearInputParameters 
+    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
+    integer:: nItInguess, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
+    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho, fixBasis
+    real(8),dimension(:),pointer:: potentialPrefac, locrad
+    integer,dimension(:),pointer:: norbsPerType
+    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions, transformToGlobal
+    character(len=4):: getCoeff, mixingMethod
+  end type linearInputParameters
+
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-          & file_mix,file_sic, dir_output
+          & file_mix,file_sic,file_lin, dir_output
      !miscellaneous variables
      logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
@@ -157,6 +169,9 @@ module module_types
 
      !orthogonalisation data
      type(orthon_data) :: orthpar
+  
+     !linear scaling data
+     type(linearInputParameters) :: lin
 
      !> parallelisation scheme of the exact exchange operator
      !!   BC (Blocking Collective)
@@ -341,6 +356,20 @@ module module_types
      real(kind=8) :: context,queue
   end type GPU_pointers
 
+!!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
+  type,public:: local_zone_descriptors
+    logical :: linear                                           !> if true, use linear part of the code
+    integer :: nlr                                              !> Number of localization regions 
+    integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
+    integer:: ndimpotisf                                        !> total dimension of potential in isf (including exctX)
+    integer :: Lnprojel                                         !> Total number of projector elements
+    real(gp), dimension(:,:),pointer :: rxyz                    !> Centers for the locregs
+    logical,dimension(:),pointer:: doHamAppl                    !> if entry i is true, apply the Hamiltonian to orbitals in locreg i
+    type(locreg_descriptors) :: Glr                             !> Global region descriptors
+    type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
+    type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
+    type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
+  end type
 
 !>  Used to restart a new DFT calculation or to save information 
 !!  for post-treatment
@@ -350,7 +379,7 @@ module module_types
      real(wp), dimension(:), pointer :: psi 
      real(wp), dimension(:,:), pointer :: gaucoeffs
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
-     type(locreg_descriptors) :: Glr
+!     type(locreg_descriptors) :: Glr
      type(local_zone_descriptors) :: Lzd
      type(gaussian_basis) :: gbd
      type(orbitals_data) :: orbs
@@ -502,24 +531,6 @@ module module_types
   end type matrixMinimization
 
 
-!!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
-  type,public:: local_zone_descriptors
-    logical :: linear                                           !> if true, use linear part of the code
-    integer :: nlr                                              !> Number of localization regions 
-    integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
-    integer:: ndimpotisf                                         !> total dimension of potential in isf (including exctX)
-    integer :: Lnprojel                                         !> Total number of projector elements
-    !type(orbitals_data) :: orbs                                 !> Global orbitals descriptors
-    !type(orbitals_data),dimension(:),pointer:: Lorbs            !> Orbitals descriptors for each locreg
-    logical,dimension(:),pointer:: doHamAppl                     !> if entry i is true, apply the Hamiltonian to orbitals in locreg i
-    !type(communications_arrays) :: comms                        !> Global communication descriptors
-    type(locreg_descriptors) :: Glr                             !> Global region descriptors
-    type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
-    type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
-    type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
-  end type
-
-
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
 !! minimizing orbitals, this basis may be larger than only the trace minimizing
@@ -608,6 +619,13 @@ end type largeBasis
      real(tp), dimension(:,:,:,:,:,:), pointer :: ads
   end type diis_objects
 
+!> Contains the information needed for the preconditioner
+  type, public :: precond_data
+    integer :: confPotOrder                                           !> The order of the algebraic expression for Confinement potential
+    integer :: ncong                                                  !> Number of CG iterations for the preconditioning equation
+    logical, dimension(:), pointer :: withConfPot                     !> Use confinement potentials
+    real(8), dimension(:), pointer :: potentialPrefac                 !> Prefactor for the potential: Prefac * f(r) 
+  end type precond_data
 
 contains
 
@@ -825,8 +843,8 @@ END SUBROUTINE deallocate_orbs
 
     nullify(rst%gaucoeffs)
 
-    nullify(rst%Glr%wfd%keyg)
-    nullify(rst%Glr%wfd%keyv)
+    nullify(rst%Lzd%Glr%wfd%keyg)
+    nullify(rst%Lzd%Glr%wfd%keyv)
 
     nullify(rst%gbd%nshell)
     nullify(rst%gbd%ndoc)
@@ -850,7 +868,7 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_all,i_stat
 
-    call deallocate_wfd(rst%Glr%wfd,subname)
+    call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
 
     if (associated(rst%psi)) then
        i_all=-product(shape(rst%psi))*kind(rst%psi)
