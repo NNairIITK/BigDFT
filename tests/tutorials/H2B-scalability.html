@@ -36,6 +36,7 @@
           <li><a href="input.dft" target="_blank">input.dft</a></li>
           <li><a href="psppar.B" target="_blank">psppar.B</a></li>
           <li><a href="run_jobs" target="_blank">run_jobs</a></li>
+          <li><a href="scalability/times.bash" target="_blank">times.bash</a></li>
         </ul>
       </div>
 
@@ -44,40 +45,44 @@
       <h2>Introduction</h2>
       <img class="figure" src="Figures/B14_2.jpg" alt="visualisation of the Boron 14 cluster" width="180" />
       <p>There are two levels of parallelization implemented in BigDFT, a massively parallelized DFT code: MPI and OpenMP. 
-      Of the two parallelizations, the former works on distributed memory architecture while and the latter corresponds to the shared 
-      memory architecture, each has some particular advantages as well as disadvantages. A proper combination of MPI and OpenMP can benefit BigDFT with
-      selected advantages from both MPI and OpenMP.</p>
+      Of the two parallelizations, the former works on distributed memory architectures while the latter corresponds to shared 
+      memory architectures. Each has some particular advantages as well as disadvantages. BigDFT can benefit from selected advantages
+      of both MPI and OpenMP if a proper combination of the two is chosen.</p>
 
       <p>The MPI parallelization in BigDFT relies on the orbital distribution scheme, in which the orbitals of the system under 
-      investigation are distributed over the assigned MPI processes. This scheme reaches the limit when the number of MPI processes 
-      is equal to the number of orbitals of the structure. For a given number of orbitals, we generally have a few possibilities 
+      investigation are distributed over the assigned MPI processes. This scheme reaches its limit when the number of MPI processes 
+      is equal to the number of orbitals in the simulation. For a given number of orbitals, we generally have a few possibilities 
       to equally distribute them over the MPI processes. For example, if the number of orbitals is a prime number, we have only 
       one choice to equally distribute the orbitals over more than one MPI processes: each orbital is assigned to an MPI process. </p>
 
      <p> Within an orbital, where MPI is not implemented, BigDFT uses OpenMP to do the parallelization. 
-      The most time consuming routines in BigDFT are parallelized by OpenMP, and they are indeed speeded up very well. 
+      The most time consuming routines in BigDFT are parallelized by OpenMP, and they are indeed sped up very well. 
       There are however some parts of BigDFT which, because of some reasons, are not parallelized by OpenMP yet, and 
       further treatment for these parts is in progress.</p>
 
      <p>When a part of the code is parallelized by OpenMP, the corresponding work is performed in parallel 
-     by some OpenMP threads. One therefore needs some cores, or cpus, each of them is responsible for one of the threads and
-     each MPI process needs a number of cpus, which is equal to the number of OpenMP threads. 
+     by some OpenMP threads. For each MPI process, we need to assign a number of cores (or cpus), one core per thread, that will be responsible for managing the OpenMP threads. 
      If we plan to use, for example, OpenMP with 6 threads, we have to assign at least 6 cores (cpus) to each MPI processes.</p>
-      <h2>Lesson details</h2>
-      <h3>Material for the lesson</h3>
-      <p>In this lesson, we aim to some ideas of how to run BigDFT with MPI and/or OpenMP, and how does the scalability 
-         of BiGDFT with MPI and OpenMP look like, both in parts and in total. For the purposes, we will run BigDFT jobs for 
-         a particular system, a Boron cluster with 14 atoms and 21 orbitals, shown on Figure 1. The tarball for this lesson
-         is available <a href="B14.tar.gz" target="_blank"> here</a>. When you untar the tarball, there several files in the obtained folder</p>
+
+<h2>Lesson details</h2>
+
+ <h3>Material for the lesson</h3>
+
+      <p>In this lesson, we will explain how to run BigDFT with MPI and/or OpenMP. We will show some examples of how BigDFT scales 
+         with the number of MPI processes and OpenMP threads. We will also provide a small bash script to extract total or partial times. For this purpose, we will run BigDFT jobs for 
+         a particular system, a Boron cluster with 14 atoms and 21 orbitals, shown in the top left figure. The tarball for this lesson
+         is available <a href="B14.tar.gz" target="_blank"> here</a>. When you untar the tarball, there are several files in the obtained folder:</p>
       <ul>
          <li><a href="posinp.xyz" target="_blank">posinp.xyz</a>: the geometrical structure of the Boron 14 cluster, in format of an xyz file</li>
          <li><a href="input.dft" target="_blank">input.dft</a>: the inputs for a DFT run with BigDFT</li>
          <li><a href="psppar.B" target="_blank">psppar.B</a>: Goedecker's type pseudopotential for Boron, in the format used by BigDFT and abinit</li>
          <li><a href="run_jobs" target="_blank">run_jobs</a>: the script to submit a BigDFT job with MPI and OpenMP</li>
       </ul>
-<h3>Job submission script</h3>
-      <p>While the format of the posinp.xyz and input.dft files has been discussed in previous lessons, we have a 
-         look at the script for submitting a BigDFT job (run_job) with MPI and OpenMP. On Palu, a Cray XE6, it looks like</p>
+
+ <h3>Job submission script</h3>
+
+      <p>Since the format of the <code>posinp.xyz</code> and <code>input.dft</code> files has been discussed in previous lessons, we will have a 
+         look only at the script for submitting a BigDFT job (<code>run_job</code>) with MPI and OpenMP. On Palu, a Cray XE6, it looks like:</p>
       <pre>
 #!/bin/sh
 #SBATCH --job-name="handson"
@@ -92,12 +97,12 @@ aprun -n 12 -N 6 -d 2 bigdft | tee Out_mpi12_omp2
 <p>The parameters which are relevant to MPI and OpenMP parallelization are</p>
 <ul>
 <li><b>ntasks</b>: Number of MPI processes requested for the job. Because the Boron 14 has 21 orbitals, if we choose ntasks=1, 
-there is 1 MPI process which work withh all 21 orbitals. On the other hand, if we choose ntasks=21, 
+there is 1 MPI process which work with all 21 orbitals. On the other hand, if we choose ntasks=21, 
 calculations related to each of the 21 orbitals of the cluster is performed on a given MPI process.</li>
 
 <li><b>cpus-per-task</b>: Number of OpenMP threads we plan to use for OpenMP parallelization in the code. </li>
-<li>ntasks-per-node: Number of MPI processes to be run on one node. For example, because a node 
-on palu machine has 24 cores (cpus), if we choose cpus-per-node=6, we can specify ntask-per-node 
+<li><b>ntasks-per-node</b>: Number of MPI processes to be run on one node. For example, because a node 
+on palu machine has 24 cores (cpus), if we choose ntasks-per-node=6, we can specify cpus-per-task 
 up to 4.</li>
 <li><b>export OMP_NUM_THREADS=2</b>: OMP_NUM_THREADS is an environmental variable which have to be set to the 
 number of OpenMP threads requested. In the submission scrip, we set OMP_NUM_THREADS=2, implying that 
@@ -115,11 +120,13 @@ or
 <pre>
 qsub run_job
 </pre>
+
 <h3>Timing data to be analyzed</h3>
-<p>Timing data of a BigDFT job is saved in file time.prc, so when finish running a job, do not 
-forget to rename this file to avoid being overwritten. A quick look into the timing file can 
-reveal the time needed for different categories of operations. Below are the most time consuming 
-categories in a job for the B14 cluster on Palu:</p>
+
+<p>The timing data of a BigDFT job is saved in the file <code>time.prc</code>, so after a job ends, do not 
+forget to rename this file to avoid it being overwritten. A quick look into the timing file can 
+reveal the time needed for different categories of operations performed in the run. Below are the most time consuming 
+categories for the B14 cluster on Palu:</p>
 <pre>
 CATEGORY         mean TIME(sec)    PERCENT    
 ApplyLocPotKin   6.89E+01          16.140
@@ -131,37 +138,52 @@ PSolv_commun     3.39E+01          7.938
 Exchangecorr     8.10E+01          18.967
 Total            4.27E+02          100
 </pre>
-<p>In this lesson, we will analyze 5 most time consuming categories: ApplyLocPotKin 
-(apply local Hamiltonian), Precondition, Rho_comput, Commun (all communication), and XC. </p>
+<p>In this lesson, we will analyze the 5 most time consuming categories: ApplyLocPotKin 
+(apply local Hamiltonian), Precondition, Rho_comput, Commun (all communications), and Exchangecorr. </p>
+
 <h3>Steps to be done</h3>
+
 <ul>
 <li>      Get the tarball provided and untar it.</li>
 <li>      Edit the submission script as needed by the machine used/provided.</li>
-<li>      Run BigDFT jobs on the Boron 14 cluster with different combination of ntasks and cpus-per-tasks. Note that
-          we are going to calculate the speedup of the code with OpenMP threads and MPI processes, let choose two series 
-          of jobs
+<li>      Run BigDFT jobs on the Boron 14 cluster with different combinations of ntasks and cpus-per-tasks. Note that
+          we are going to calculate the speedup of the code with OpenMP threads and MPI processes, so let's choose two series 
+          of jobs:
           <ol>
           <li>ntask=2, cpus-per-task=1,2, ... </li>
           <li>cpus-per-task=2, ntasks=1,2, ...</li>
           </ol>
           The speedup of the code with OpenMP threads (MPI processes) is then defined as the ratio of time required to perform a given category of operations using 1 OpenMP thread (MPI process) with the time needed to perform the same category using more than 1 OpenMP thread (MPI processes).
 </li>
-<li><u>NOTE:</u> Be aware of being overwritten the time.prc file when a new job runs on the same folder which already has a time.prc file from previous job. If you use different folders for different jobs, it would be fine.</li>
-<li>      Collect timing data from the file time.prc. Here is a hint of how to collect data of a given category in the file time.prc
+<li><u>NOTE:</u> Be aware that the code overwrites the <code>time.prc</code> file when a new job runs in a folder which already contains a <code>time.prc</code> file from a previous job. If you use different folders for different jobs, everything will be fine.</li>
+<li>      Collect timing data from the file time.prc. We have prodided a simple bash script to collect all the relevant data in the <code>time.prc</code> file. This script is is called <code>times.bash</code> and is given here: 
 <pre>
-grep 'Rho_comput' time.prc |awk '{n++;s+=$2} END {print s}'
+for i in $*
+do 
+rm tmp tmp2
+grep -B33 'category: WFN_OPT' $i | sed  s/'Total CPU time for category: WFN_OPT'//g | awk '{print $2}' > tmp
+tr -s '\n' ' ' <tmp> tmp2
+echo $i `cat tmp2`
+done 
 </pre>
+It is launched like this:
+<pre>
+> ./times.bash time.prc
+> time.prc mean 0.00E+00 4.12E+00 6.00E+00 6.33E-01 9.64E-01 6.66E-02 0.00E+00 7.53E-01 1.07E+01 3.07E-01 3.86E+00 0.00E+00 0.00E+00 0.00E+00 0.00E+00 0.00E+00 3.74E-01 1.48E+00 1.16E+01 2.24E-02 0.00E+00 0.00E+00 0.00E+00 0.00E+00 0.00E+00 0.00E+00 0.00E+00 0.00E+00 8.59E+01 0.00E+00 0.00E+00 3.61E-04 2.05E-01 2.67E+00 5.48E+00 1.09E+01 1.66E+02
+</pre>
+It basically collects all 33 timing categories inside the wavefunction optimization section of the <code>time.prc</code> file and returns them to screen. Only this section is truly relevant for timing issues because it represents the true bulk of the BigDFT code. The timing values can them be copied inside a file.
 </li>
 <li>      Plot (gnuplot, for example) figures showing the speedup with OpenMP and MPI.</li>
 </ul>
 
       <h2>Discussions</h2>
-      <p>For a reference, see the below Figure for the speedup of BigDFT on Palu.</p>
+
+      <p>The speedup of BigDFT on Palu is provided, as a reference, in the figures on the bottom right of this page.</p>
       <img class="figureR" src="Figures/Scal_Palu.jpg" width="550" alt="Scalability measured on Palu" />
 <ul>
-<li>For the most time consuming categories, MPI speedup is good</li>
-<li>Communication is the main bottle-neck for MPI, but not for OpenMP. Note that this is because OpenMP works on shared memory architecture while MPI is based on distributed memory architecture.</li>
-<li>MPI speedup is slightly better than OMP</li>
+<li>For the most time consuming categories, the MPI speedup is good</li>
+<li>Communication is the main bottle-neck for MPI, but not for OpenMP. Note that this is because OpenMP works on shared memory architectures while MPI is based on distributed memory architectures.</li>
+<li> The MPI speedup is slightly better than the OpenMP speedup</li>
 <li>Computation of XC terms, not yet parallelized with OpenMP, is one of the reasons why OpenMP is less efficient than MPI.</li>
 <li>and more ... </li>
 </ul>
