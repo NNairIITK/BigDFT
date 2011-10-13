@@ -10,15 +10,31 @@ TESTDIRS = CH4 \
 	  scalability \
 	  dev
 
-EXTRA_DIST = H1A.html CH4-cv.png CH4-grid.png \
-	H1B.html H2O-slab.png H2O-dipolar.png H2O-dipolarE.png \
-	H1X.html N2-wf01.thumb.png N2-wf02.thumb.png \
-	N2-wf03.thumb.png N2-wf04.thumb.png N2-wf05.thumb.png \
-	H3B.html H2B.html H3X.html $(TESTDIRS)
-
-if USE_MINIMA_HOPPING
-TESTDIRS += Mg7-minhop
-endif
+EXTRA_DIST = $(TESTDIRS) \
+	B14_2.jpg \
+	CH4-cv.png \
+	CH4-grid.png \
+	H1A.html \
+	H1B.html \
+	H1X.html \
+	H2B.html \
+	H2E1.html \
+	H2E.html \
+	H2O-dipolarE.png \
+	H2O-dipolar.png \
+	H2O-slab.png \
+	H3B.html \
+	H3Xabs-aspsitildejoin.png \
+	H3Xabs.html \
+	H3X.html \
+	Mg7-minhop \
+	minhop.pdf \
+	N2-wf01.thumb.png \
+	N2-wf02.thumb.png \
+	N2-wf03.thumb.png \
+	N2-wf04.thumb.png \
+	N2-wf05.thumb.png \
+	Scal_Palu.jpg
 
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft

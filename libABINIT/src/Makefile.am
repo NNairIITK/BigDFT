@@ -27,7 +27,7 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	12_hide_mpi/xsum_master.F90 \
 	12_hide_mpi/xsum_mpi.F90
 
-noinst_LIBRARIES = libabinit.a
+lib_LIBRARIES = libabinit.a
 
 # Don't use the HAVE_CONFIG_H
 DEFS = -DHAVE_MPI -DHAVE_MPI1 -DHAVE_LIBXC
