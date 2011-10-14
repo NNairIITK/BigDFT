@@ -45,7 +45,7 @@ else
 libs_cuda=
 endif
 if USE_OCL
-libs_ocl = $(top_builddir)/src/OpenCL/libOCL.a
+libs_ocl = $(top_builddir)/src/OpenCL/libOCL.a -lstdc++
 else
 libs_ocl =
 endif
