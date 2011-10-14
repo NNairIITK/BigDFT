@@ -22,7 +22,7 @@
     <div class="main"><a name="top" id="top"></a>
 
       <div class="floatingmenu">
-        <a style="float:right;" href="H1B.html">next lesson&nbsp;&gt;</a>
+        <a style="float:right;" href="H1B-Basic_surfaces.html">next lesson&nbsp;&gt;</a>
         <h2>Content of this lesson</h2>
         <ul>
           <li>Introduction, running the code</li>
@@ -34,15 +34,15 @@
         </ul>
         <h2>Material</h2>
         <ul style="float:left;margin-right:1em;">
-          <li>CH<sub>4</sub>/<a href="CH4/input.dft">input.dft</a></li>
-          <li>CH<sub>4</sub>/<a href="CH4/posinp.xyz">posinp.xyz</a></li>
-          <li>CH<sub>4</sub>/<a href="CH4/psppar.C">psppar.C</a></li>
-          <li>CH<sub>4</sub>/<a href="CH4/psppar.H">psppar.H</a></li>
+          <li>CH<sub>4</sub>/<a href="CH4/input.dft" target="_blank">input.dft</a></li>
+          <li>CH<sub>4</sub>/<a href="CH4/posinp.xyz" target="_blank">posinp.xyz</a></li>
+          <li>CH<sub>4</sub>/<a href="CH4/psppar.C" target="_blank">psppar.C</a></li>
+          <li>CH<sub>4</sub>/<a href="CH4/psppar.H" target="_blank">psppar.H</a></li>
         </ul>
         <ul style="float:left;margin-right:1em;">
-          <li>CH<sub>3</sub><sup>-</sup>/<a href="CH3-/input.dft">input.dft</a></li>
-          <li>CH<sub>3</sub><sup>-</sup>/<a href="CH3-/input.geopt">input.geopt</a></li>
-          <li>CH<sub>3</sub><sup>-</sup>/<a href="CH3-/posinp.xyz">posinp.xyz</a></li>
+          <li>CH<sub>3</sub><sup>-</sup>/<a href="CH3-/input.dft" target="_blank">input.dft</a></li>
+          <li>CH<sub>3</sub><sup>-</sup>/<a href="CH3-/input.geopt" target="_blank">input.geopt</a></li>
+          <li>CH<sub>3</sub><sup>-</sup>/<a href="CH3-/posinp.xyz" target="_blank">posinp.xyz</a></li>
         </ul>
       </div>
 
@@ -62,12 +62,12 @@
 
       <h2>Introduction: running the code</h2>
       <p>This lesson is based on this skeleton
-        <a href="CH4/input.dft"><code>input.dft</code></a> file. To run electronic convergence loop,
+        <a href="CH4/input.dft" target="_blank"><code>input.dft</code></a> file. To run electronic convergence loop,
         BigDFT requires a file named <code>input.dft</code> with all lines mandatory.</p>
       <p>Beside this input file, BigDFT requires the atomic positions
         for the studied system and the pseudo-potential files. For the
-        following tutorial, a <a href="CH4/posinp.xyz">methane</a> molecule will be used. The position file
-        is a simple XYZ file named <a href="CH4/posinp.xyz"><code>posinp.xyz</code></a>:</p>
+        following tutorial, a <a href="CH4/posinp.xyz" target="_blank">methane</a> molecule will be used. The position file
+        is a simple XYZ file named <a href="CH4/posinp.xyz" target="_blank"><code>posinp.xyz</code></a>:</p>
       <pre>
 5  angstroemd0  # a methane molecule
 free
@@ -77,12 +77,12 @@ H       +0.63169789 +0.63169789 -0.63169789
 H       +0.63169789 -0.63169789 +0.63169789
 H       -0.63169789 +0.63169789 +0.63169789</pre>
       <p>The pseudo-potential files are following the ABINIT structure
-        and are of GTH or HGH types (see the <a class="external" href="http://www.abinit.org/downloads/psp-links/pseudopotentials">pseudo-potential file</a> page on the
+        and are of GTH or HGH types (see the <a class="external" href="http://www.abinit.org/downloads/psp-links/pseudopotentials" target="_blank">pseudo-potential file</a> page on the
         ABINIT website for several LDA and GGA files and the <a class="external"
-                                                                href="http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/Goedecker/abinit/">page
+                                                                href="http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/Goedecker/abinit/" target="_blank">page
           of M. Krack</a> on the CP2K server for HGH pseudo for several
         functionals). The following files are required for this tutorial: <a
-                                                                             href="CH4/psppar.C">psppar.C</a> and <a href="CH4/psppar.H">psppar.H</a>.</p>
+                                                                             href="CH4/psppar.C" target="_blank">psppar.C</a> and <a href="CH4/psppar.H" target="_blank">psppar.H</a>.</p>
       <p>Running BigDFT is done using the <code>bigdft</code>
         executable in a standard Unix way, the output being by default the
         standard output, it must redirected to a file or to a pipe, like with the unix command
@@ -113,7 +113,7 @@ user@garulfo:~/CH4/$ mpirun.openmpi -np 4 ./bigdft | tee screenOutput
         which means than one can achieve arbitrary precision by increasing
         some parameters.</p>
       <h3>The main grid parameters</h3>
-      <img class="figure" src="CH4-grid.png" alt="visualisation of the real space mesh" />
+      <img class="figure" src="Figures/CH4-grid.png" alt="visualisation of the real space mesh" />
       <p>The two first lines of <code>input.dft</code> are used to set
         up the basis set. In free boundary conditions, the basis set is characterised
         by a spatial expansion and a grid step, as shown in the side
@@ -152,7 +152,7 @@ hgrid = 0.35bohr / crmult = 5.5
 hgrid = 0.30bohr / crmult = 6.0
 
 hgrid = 0.20bohr / crmult = 7.0</pre>
-        <img class="figureR" src="CH4-cv.png" alt="Convergence rate" />
+        <img class="figureR" src="Figures/CH4-cv.png" alt="Convergence rate" />
         <p class="answer">This precision plot shows the systematicity of
           the wavelet basis set: by improving the basis set, we improve the
           value of the total energy.</p>
@@ -404,7 +404,7 @@ iter,total energy,gnrm     2  -6.24926323942341266E+00  5.87E-02</pre>
         change. One can thus optimize the geometry with BigDFT.</p>
       <p>To run geometry calculations (molecular dynamics, structure
         optimisations...) one should add another input file called <a
-                                                                      href="CH3-/input.geopt"><code>input.geopt</code></a>. The first line
+                                                                      href="CH3-/input.geopt" target="_blank"><code>input.geopt</code></a>. The first line
         of this file contains the method to use. Here, we look for a local
         minimum so we can use the keyword <code>LBFGS</code>. The third line of
         this file contains the stopping criteria. There are two stopping

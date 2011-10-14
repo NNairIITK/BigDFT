@@ -4,6 +4,7 @@ ul
 {
   list-style:url('../images/point.png');
   list-style-position:outside;
+  margin-right:10em;
 }
 span.langInfo
 {
@@ -28,6 +29,7 @@ div.floatingmenu
 div.floatingmenu ul
 {
   color:#D05050;
+  margin-right:0em;
 }
 div.floatingmenu h2
 {
@@ -50,6 +52,7 @@ div.main img.figureR
 p
 {
   text-align:justify;
+  margin-right:10em;
 }
 p.tobechanged
 {
@@ -69,7 +72,7 @@ code
 pre
 {
   margin:0.5em;
-  margin-right:2em;
+  margin-right:14em;
   margin-left:2em;
   border-right:1px black dashed;
   border-left:1px black dashed;
@@ -78,10 +81,15 @@ pre
   padding-right:1em;
   padding-left:1em;
 }
+.override pre
+{
+  margin-right:10em;
+}
 div.exercice
 { 
   border:1px #C0C0C0 solid;
   margin:2em;
+  margin-right:10em;
   padding:0.25em;
   padding-right:1em;
   padding-left:1em;

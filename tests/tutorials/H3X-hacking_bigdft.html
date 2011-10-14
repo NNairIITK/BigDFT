@@ -35,12 +35,12 @@
         </ul>
         <h2>Material</h2>
         <ul style="float:left;margin-right:1em;">
-          <li>dev/<a href="dev/posinp.xyz">posinp.xyz</a></li>
-          <li>dev/<a href="dev/input.dft">input.dft</a></li>
+          <li>dev/<a href="dev/posinp.xyz" target="_blank">posinp.xyz</a></li>
+          <li>dev/<a href="dev/input.dft" target="_blank">input.dft</a></li>
         </ul>
         <ul style="float:left;margin-right:1em;">
-          <li>dev/<a href="dev/toy_model.f90">toy_model.f90</a></li>
-          <li>dev/<a href="dev/Makefile">Makefile</a></li>
+          <li>dev/<a href="dev/toy_model.f90" target="_blank">toy_model.f90</a></li>
+          <li>dev/<a href="dev/Makefile" target="_blank">Makefile</a></li>
         </ul>
       </div>
       
@@ -66,13 +66,13 @@ end program wvl
 </pre>
       <p>To compile our little program, one must give the path to the module files previously named. To link it, one should also provide the two libraries. In addition, BigDFT depends itself on several external libraries (that may be optional):</p>
       <ul>
-        <li><a href="http://www.tddft.org/programs/octopus/wiki/index.php/Libxc">libXC</a>, for the calculation of the exchange-correlation approximation;</li>
-        <li><a href="http://www.abinit.org">ABINIT</a>, for several DFT low level routines (symmetry, k-points, mixing);</li>
+        <li><a href="http://www.tddft.org/programs/octopus/wiki/index.php/Libxc" target="_blank">libXC</a>, for the calculation of the exchange-correlation approximation;</li>
+        <li><a href="http://www.abinit.org" target="_blank">ABINIT</a>, for several DFT low level routines (symmetry, k-points, mixing);</li>
         <li>Lapack and Blas, for linear algebra (or optimised versions like MKL);</li>
-        <li><a href="http://code.google.com/p/libarchive/">libarchive</a>, for on the fly compression and decompression of atomic position files (optional);</li>
-        <li><a href="http://www.etsf.eu/resources/software/libraries_and_tools">ETSF_IO</a>, for NetCDF input/output support following the ETSF file format specification.</li>
+        <li><a href="http://code.google.com/p/libarchive/" target="_blank">libarchive</a>, for on the fly compression and decompression of atomic position files (optional);</li>
+        <li><a href="http://www.etsf.eu/resources/software/libraries_and_tools" target="_blank">ETSF_IO</a>, for NetCDF input/output support following the ETSF file format specification.</li>
       </ul>
-      <p>We provide a <a href="dev/Makefile"><code>Makefile</code></a> to compile the exercices of this tutorial that should be adapted to your own installation of BigDFT. </p>
+      <p>We provide a <a href="dev/Makefile" target="_blank"><code>Makefile</code></a> to compile the exercices of this tutorial that should be adapted to your own installation of BigDFT. </p>
 
       <h2>Initialising input variables and atomic informations</h2>
       <p>Input variables and input atomic coordinates (as much as pseudo-potential information) are stored by user in files, as explained in other tutorials. BigDFT API provides two simple routines to load all of this in memory:</p>
@@ -111,11 +111,11 @@ end program wvl
 
       <div class="exercice">
         <p><b>Exercise</b>: Compile our toy_model program to initialise input variables and make the master proc print <code>inputs%crmult</code>, <code>inputs%frmult</code>, <code>inputs%hx</code>, <code>inputs%hy</code> and <code>inputs%hz</code> values.</p>
-        <p class="answer">One can see that BigDFT can run without input files, but requires a position file. One can provide <a href="dev/posinp.xyz">this N2 molecule</a>. By default the values are 0.45 for hgrid and 5 and 8 respectively for crmult and frmult.</p>
+        <p class="answer">One can see that BigDFT can run without input files, but requires a position file. One can provide <a href="dev/posinp.xyz" target="_blank">this N2 molecule</a>. By default the values are 0.45 for hgrid and 5 and 8 respectively for crmult and frmult.</p>
       </div>
 
       <h2>The wavefunction storage in memory</h2>
-      <img class="figure" src="CH4-grid.png" alt="visualisation of the real space mesh" />
+      <img class="figure" src="Figures/CH4-grid.png" alt="visualisation of the real space mesh" />
       <p>The storage of the wavefunction is explained in the manual of BigDFT and in the main article in JCP. To summarise, the wavefunctions are expanded on a basis set made by Daubechies wavelets. It means that we store coefficients for wavelets centered at different position in space. The places where we have coefficients or not in space around the atoms is governed by three input parameters: hgrid, crmult and frmult. It creates a grid on a regular mesh in real-space as represented on the figure on the left.</p>
       <p>The description of this grid is stored in a structure usualy called <em>wavefunction descriptors</em> (<code>wfd</code>) in the code.</p>
       <p>A wavefunction descriptor is valid if we provide the regular mesh it is based on. It is called <em>localisation region</em> in the code (<code>Glr</code>). The wavefunction descriptor is a member of the localisation region (<code>Glr%wfd</code>). The localisation region is additionaly defined by its boundary conditions (<code>Glr%geocode</code>) and its step numbers in x, y and z directions (<code>Glr%n1</code>, <code>Glr%n2</code> and <code>Glr%n3</code> respectively for the coarse discretisation and <code>Glr%n1i</code>, <code>Glr%n2i</code> and <code>Glr%n3i</code> respectively for the fine discretisation).</p>
@@ -301,7 +301,7 @@ psi((i - 1) * (Glr%wfd%nvctr_c + 7 * Glr%wfd%nvctr_f) + 1:
   if (iproc == 0) write(*,*) "System has", sum(rhor), "electrons."
   deallocate(rhor)
 </pre>
-        <p class="answer">In the provided solution file <a href="dev/toy_model.f90"><code>toy_model.f90</code></a>, we give details on how it is done in BigDFT thanks to the routine <code>sumrho()</code>. It is a bit more tricky that the simple exercice above because of the distribution of <code>rho</code> (the arrays <code>nscatterarr</code> and <code>ngatherarr</code> are used to describe this distribution), the possibility of spin polarised calculations and the possibility of symmetrisation (see the <code>irrzon</code> and <code>phnons</code> arrays which should sound familiar to ABINIT developers).</p>
+        <p class="answer">In the provided solution file <a href="dev/toy_model.f90" target="_blank"><code>toy_model.f90</code></a>, we give details on how it is done in BigDFT thanks to the routine <code>sumrho()</code>. It is a bit more tricky that the simple exercice above because of the distribution of <code>rho</code> (the arrays <code>nscatterarr</code> and <code>ngatherarr</code> are used to describe this distribution), the possibility of spin polarised calculations and the possibility of symmetrisation (see the <code>irrzon</code> and <code>phnons</code> arrays which should sound familiar to ABINIT developers).</p>
       </div>
 
       <p>As stated before, the direct-value representation can be used to express local operators. Let's take the example of the local part arising from pseudo-potential. One can use the BigDFT routine <code>createIonicPotential()</code> to calculate this potential (remember that this potential is distributed among processors):</p>
