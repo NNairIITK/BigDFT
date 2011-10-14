@@ -726,6 +726,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
         !Exit from the loop (the calculation is finished).
         exit Big_loop
      endif
+     close(16)
 
 !Update variables
      fcur=fpred
@@ -754,7 +755,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
      endif
      nstep=nstep+1
 
-     if (iproc==0) write(10,*) epred, vnrm*0.5d0
+     !if (iproc==0) write(10,*) epred, vnrm*0.5d0
    end do Big_loop
 
 
