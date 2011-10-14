@@ -102,7 +102,8 @@ subroutine apply_diis( diter, saddle_energy, ret )
 
     ! Test of While_diis loop 
     if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. &
-       & (diter > maxdiis) .or. (delta_e < delta_thr .and. delr < delr_thr) ) then
+       & (diter > maxdiis) .or.                       &
+       & ( delta_e < delta_thr .and. delr < delr_thr .and. pas > (MAXKTER+5) ) ) then
 
        saddle_energy = total_energy
        end_activation = .true.
@@ -110,7 +111,7 @@ subroutine apply_diis( diter, saddle_energy, ret )
 
        if ( ftot < EXITTHRESH ) then
           ret = 20000 + pas
-       else if  (delta_e < delta_thr .and. delr < delr_thr) then
+       else if  (delta_e < delta_thr .and. delr < delr_thr .and. pas > (MAXKTER+5) ) then
           ret = 80000 + pas 
        else if ( diter > maxdiis) then
           ret = 70000 + pas
@@ -445,7 +446,8 @@ subroutine  apply_lanczos ( liter, saddle_energy, ret )
  
       ! Test of While_lanczos loop 
       if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (liter > 280) .or. & 
-           (eigenvalue > 0.0)  .or. (delta_e < delta_thr .and. delr < delr_thr) ) then
+         & (eigenvalue > 0.0)  .or. &  
+         & ( delta_e < delta_thr .and. delr < delr_thr .and. pas > (MAXKTER+5) ) ) then
 
          saddle_energy = total_energy 
          end_activation = .true.  
@@ -453,7 +455,7 @@ subroutine  apply_lanczos ( liter, saddle_energy, ret )
 
          if ( ftot < EXITTHRESH ) then
             ret = 20000 + pas
-         else if  (delta_e < delta_thr .and. delr < delr_thr) then
+         else if  (delta_e < delta_thr .and. delr < delr_thr .and. pas > (MAXKTER+5) ) then
             ret = 80000 + pas 
          else if (eigenvalue > 0.0) then
             ret = 60000 + pas
@@ -490,7 +492,8 @@ subroutine  apply_lanczos ( liter, saddle_energy, ret )
             ! if after this last lanczos step the criteria to end the activation are fulfilled
             ! we end here.          
             if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (liter > 280) .or. & 
-                 (eigenvalue > 0.0)  .or. (delta_e < delta_thr .and. delr < delr_thr) ) then
+                & (eigenvalue > 0.0) .or. &
+                & ( delta_e < delta_thr .and. delr < delr_thr .and. pas > (MAXKTER+5) )) then 
 
                saddle_energy = total_energy 
                end_activation = .true.  
@@ -498,7 +501,7 @@ subroutine  apply_lanczos ( liter, saddle_energy, ret )
 
                if ( ftot < EXITTHRESH ) then
                   ret = 20000 + pas
-               else if  (delta_e < delta_thr .and. delr < delr_thr) then
+               else if  (delta_e < delta_thr .and. delr < delr_thr .and. pas > (MAXKTER+5) ) then
                   ret = 80000 + pas 
                else if (eigenvalue > 0.0) then
                   ret = 60000 + pas

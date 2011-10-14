@@ -484,7 +484,7 @@ bart-saddle_converge.o: art/saddle_converge.f90 art/defs.o bart-bigdft_forces.o 
 bart-art_step.o: art/art_step.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o  bart-find_saddle.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_step.o `test -f 'art/art_step.f90' || echo '$(srcdir)/'`art/art_step.f90
 
-bart-initialize.o: art/initialize.f90 art/defs.o bart-art_lanczos.o
+bart-initialize.o: art/initialize.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o bart-find_saddle.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-initialize.o `test -f 'art/initialize.f90' || echo '$(srcdir)/'`art/initialize.f90
 
 bart-read_parameters.o: art/read_parameters.f90 art/defs.o bart-art_lanczos.o bart-find_saddle.o

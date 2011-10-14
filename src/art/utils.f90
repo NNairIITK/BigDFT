@@ -351,7 +351,7 @@ END SUBROUTINE convert_to_chain
 
 
 !> ART print_proj
-subroutine print_proj( repetitions, stage, projection, eigenvalue, DEL_LANCZOS )
+subroutine print_proj( repetitions, stage, vector, eigenvalue, stepsize )
 
   use defs
 
@@ -359,8 +359,8 @@ subroutine print_proj( repetitions, stage, projection, eigenvalue, DEL_LANCZOS )
   integer,          intent(in) :: repetitions
   character(len=1), intent(in) :: stage
   real(kind=8),     intent(in) :: eigenvalue
-  real(kind=8),     intent(in), dimension(3*natoms), target :: projection
-  real(kind=8),     intent(in) :: DEL_LANCZOS
+  real(kind=8),     intent(in), dimension(3*natoms) :: vector 
+  real(kind=8),     intent(in) :: stepsize 
 
   !Local variables
 
@@ -373,7 +373,7 @@ subroutine print_proj( repetitions, stage, projection, eigenvalue, DEL_LANCZOS )
 
   allocate(pc(3, NATOMS))
   do i = 1, NATOMS, 1
-     pc(:, i) = (/ projection(i), projection(natoms + i), projection(2 * natoms + i) /) 
+     pc(:, i) = (/ vector(i), vector(natoms + i), vector(2 * natoms + i) /) 
   end do
 
   if ( iproc == 0 ) then
@@ -398,9 +398,9 @@ subroutine print_proj( repetitions, stage, projection, eigenvalue, DEL_LANCZOS )
 
      do i= 1, NATOMS
         write(XYZ,'(1x,A2,3(2x,f16.8),2x,A,2x,I3,3(2x,f12.8))') &
-       &                               Atom(i), x(i)+DEL_LANCZOS*pc(1,i), &
-       &                                        y(i)+DEL_LANCZOS*pc(2,i), &
-       &                                        z(i)+DEL_LANCZOS*pc(3,i), &
+       &                               Atom(i), x(i) + stepsize*pc(1,i), &
+       &                                        y(i) + stepsize*pc(2,i), &
+       &                                        z(i) + stepsize*pc(3,i), &
        &                               '#',i, pc(1,i), pc(2,i),pc(3,i)
      end do
 

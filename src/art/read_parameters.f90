@@ -78,8 +78,12 @@ subroutine read_parameters( )
   else if (temporary .eq. 'REFINE_AND_RELAX') then
      new_event = .false.
      eventtype = 'REFINE_AND_RELAX'
+  else if (temporary .eq. 'GUESS_SADDLE') then
+     new_event = .true.
+     eventtype = 'GUESS_SADDLE'
   else
-     write(*,*) 'Error: event_types permitted are NEW , REFINE_SADDLE and REFINE_AND_RELAX'
+     write(*,*) &
+     &'Error: event_types permitted are NEW, REFINE_SADDLE, REFINE_AND_RELAX and GUESS_SADDLE'
      stop
   end if
 
@@ -453,7 +457,7 @@ subroutine read_parameters( )
   ! Self consistent loop in Lanczos 
   call getenv('Lanczos_SCLoop',temporary)
   if (temporary .eq. '') then
-     LANCZOS_SCL = 3 
+     LANCZOS_SCL = 1 
   else
      read(temporary,*) LANCZOS_SCL
   end if
@@ -618,16 +622,20 @@ subroutine read_parameters( )
   ! And we allocate the vectors
   allocate(typat(natoms))
   allocate(constr(natoms))
-
   allocate(force(vecsize))
   allocate(pos(vecsize))
   allocate(posref(vecsize))
   allocate(initial_direction(vecsize))
   allocate(Atom(vecsize))
-
-  ! Vectors for lanczos
   allocate(old_projection(VECSIZE))
   allocate(projection(VECSIZE))
+
+  force(:) = 0.0d0
+  pos(:) = 0.0d0
+  posref(:) = 0.0d0
+  initial_direction(:) = 0.0d0
+  old_projection(:) = 0.0d0
+  projection(:) = 0.0d0
 
   x => pos(1:NATOMS)
   y => pos(NATOMS+1:2*NATOMS)

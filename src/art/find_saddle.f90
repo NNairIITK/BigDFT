@@ -48,6 +48,9 @@ module saddles
   integer      :: coord_number
   logical      :: cw_try_again ! for clean_wf 
 
+  ! Working positions of the atoms at the presumed direction 
+  real(kind=8), dimension(:), allocatable :: s_pos 
+
 END MODULE saddles
 
 
@@ -74,7 +77,7 @@ subroutine find_saddle( success, saddle_energy )
   implicit none
 
   !Arguments
-  logical, intent(out) :: success
+  logical, intent(out)      :: success
   real(kind=8), intent(out) :: saddle_energy
 
   !Local variables
@@ -108,18 +111,22 @@ subroutine find_saddle( success, saddle_energy )
                                       ! and generate a vector of length 1 indicating
                                       ! the direction of the random displacement.
                                       ! There is not case default.
-     selectcase( type_events )
-       case( 'global' )
-           call global_move( )
-       case( 'local' )
-           call local_move( )
-       case( 'list_local' ) 
-           call list_and_local( )
-       case( 'list' )
-           call list_of_atoms( )
-       case( 'local_coord' )
-           call coord_based_move( )
-     end select
+     if ( eventtype == "GUESS_SADDLE" ) then
+        call guess_direction ( )  
+     else
+        selectcase( type_events )
+          case( 'global' )
+              call global_move( )
+          case( 'local' )
+              call local_move( )
+          case( 'list_local' ) 
+              call list_and_local( )
+          case( 'list' )
+              call list_of_atoms( )
+          case( 'local_coord' )
+              call coord_based_move( )
+        end select
+     end if
 
   end if
                                       ! Now, activate per se.
@@ -905,3 +912,98 @@ subroutine coord_based_move( )
 
 
 END SUBROUTINE coord_based_move 
+
+
+subroutine guess_direction ( )
+
+  use defs
+  use saddles
+
+  !Local variables
+  integer :: i, ierror
+  real(kind=8) :: ran3
+  real(kind=8), dimension(3) :: boxl, invbox
+  real(kind=8), dimension(:), pointer :: xa, ya, za
+  real(kind=8), dimension(:), pointer :: xb, yb, zb
+  real(kind=8), dimension(:), pointer :: dx, dy, dz
+  real(kind=8), dimension(:), allocatable, target :: posa
+  real(kind=8), dimension(:), allocatable, target :: posb
+  real(kind=8)  :: norm
+
+  if ( iproc == 0 ) then
+     open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
+         & action = 'write', position = 'append', iostat = ierror )
+     write(FLOG,*) ' '
+     write(FLOG,'(1X,A45)') ' -following a given initial direction : '
+     close(FLOG)
+  end if
+
+  boxl = box*scala                    ! without periodic boundary conditions box
+                                      ! is zero so we set invbox to 1 
+  do i = 1, 3
+     if ( boxl(i) .lt. 1.d-08 ) then 
+        invbox(i) = 1.0d0
+     else
+        invbox(i) = 1.0d0 / boxl(i)
+     end if
+  end do
+
+  allocate(posa(3*natoms))
+  allocate(posb(3*natoms))
+  allocate(dr(3*natoms))
+  posa = 0.0d0
+  posb = 0.0d0
+  dr   = 0.0d0
+
+  posa(:) = pos(:)
+  posb(:) = s_pos(:)
+                                      ! maybe it is no neccesary.
+  call center( posa, 3*natoms )
+  call center( posb, 3*natoms )
+                                      ! We assign a few pointers. 
+  dx => dr(1:NATOMS)
+  dy => dr(NATOMS+1:2*NATOMS)
+  dz => dr(2*NATOMS+1:3*NATOMS)
+
+  xa => posa(1:NATOMS)
+  ya => posa(NATOMS+1:2*NATOMS)
+  za => posa(2*NATOMS+1:3*NATOMS)
+
+  xb => posb(1:NATOMS)
+  yb => posb(NATOMS+1:2*NATOMS)
+  zb => posb(2*NATOMS+1:3*NATOMS)
+
+  call MPI_Barrier(MPI_COMM_WORLD,ierror)
+  ! a small noise helps if we fail in the attempt
+  if (iproc == 0 ) then
+  do i = 1, NATOMS
+     if ( constr(i) == 0 ) then
+        dx(i) = xb(i) - xa(i) - boxl(1) * nint((xb(i)-xa(i)) * invbox(1)) + 0.01d0*(0.5d0-ran3()) 
+        dy(i) = yb(i) - ya(i) - boxl(2) * nint((yb(i)-ya(i)) * invbox(2)) + 0.01d0*(0.5d0-ran3())
+        dz(i) = zb(i) - za(i) - boxl(3) * nint((zb(i)-za(i)) * invbox(3)) + 0.01d0*(0.5d0-ran3())
+     end if
+  end do
+  end if
+ 
+  norm = dot_product( dr, dr ) 
+  norm = 1.0d0 / sqrt(norm) 
+  dr = dr*norm
+
+  call center( dr, 3*natoms )
+  norm = dot_product( dr, dr )     ! is it really necesary normalize again?
+  norm = 1.0d0 / sqrt(norm) 
+  dr = dr*norm
+  initial_direction = dr     
+
+  call MPI_Barrier(MPI_COMM_WORLD,ierror)
+  call MPI_Bcast(initial_direction,3*natoms,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
+
+  pos = pos + INITSTEPSIZE*initial_direction
+  call MPI_Bcast(pos,3*natoms,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
+
+  deallocate(dr)
+  deallocate(posa)
+  deallocate(posb)
+  if ( iproc == 0 ) write(*,*) 'BART: Number of displaced atoms initially: ', natoms 
+
+END SUBROUTINE guess_direction 

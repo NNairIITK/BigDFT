@@ -33,8 +33,9 @@
 subroutine initialize()
 
   use defs
-  use bigdft_forces, only : init_all_atoms
-  use lanczos_defs, only: LANCZOS_MIN 
+  use bigdft_forces, only : init_all_atoms, in_system
+  use lanczos_defs,  only : LANCZOS_MIN 
+  use saddles,       only : s_pos
   implicit none
 
   !Local variables
@@ -48,6 +49,11 @@ subroutine initialize()
   integer, pointer          :: const_(:)  ! Constraints
   real(kind=8), pointer     :: posa(:)    ! Working positions of the atoms
   real(kind=8),dimension(3) :: boxref_    ! Reference box from posinp file
+
+  character(len=1)          :: boundary_b
+  integer, pointer          :: typ_b(:)    ! Atomic type
+  integer, pointer          :: const_b(:)  ! Constraints
+  real(kind=8), pointer     :: pos_b(:)    ! Working positions of the atoms
   !_______________________
   !! WARNING EDUARDO: cuidado, aqui pierdo el refcounter de REFCONFIG
 
@@ -76,13 +82,18 @@ subroutine initialize()
   end if 
 
   ! Read atomic file
-  call init_all_atoms( nat_test, typa, posa, const_, boxref_, boundary, nproc, iproc )
+  call init_all_atoms( nat_test, typa, posa, const_, boxref_, boundary, nproc, iproc, "posinp" )
 
   ! test nat_test and nat
   if ( nat_test /= NATOMS ) then
      if ( iproc == 0 ) write(*,*) "Different number of atoms"
      call end_art()
   end if
+
+  ! this is for dual_search:
+  allocate ( in_system(NATOMS) )   
+  in_system = 0 
+
   !assign the data from the atomic file
   if ( .not. restart ) then
      typat(:)   = typa(:)
@@ -91,6 +102,36 @@ subroutine initialize()
      boxref(:)  = boxref_(:)
      refcounter = mincounter
      box = boxref
+
+     if ( eventtype == "GUESS_SADDLE" ) then  ! We read the position for the presumed saddle point.
+                    
+        call init_all_atoms( nat_test, typ_b, pos_b, const_b, boxref_, boundary_b, nproc, iproc, "saddle" )
+                                              ! Let's check if it is in the same conditions as posinp.
+        if ( nat_test /= NATOMS ) then
+           if ( iproc == 0 ) write(*,*) "saddle: Different number of atoms"
+           call end_art()
+        end if
+        if ( boundary /= boundary_b ) then
+           if ( iproc == 0 ) write(*,*) "saddle: Different number of atoms"
+           call end_art()
+        end if
+        do i = 1, NATOMS
+           if ( typ_b(i) /= typa(i) ) then
+              if ( iproc == 0 ) write(*,*) "saddle: Different type of atoms"
+              call end_art()
+           end if
+           if ( const_b(i) /= const_(i) ) then
+              if ( iproc == 0 ) write(*,*) "saddle: Different type of constraints"
+              call end_art()
+           end if
+        end do
+                                              ! s_pos in module saddles
+        allocate(s_pos(vecsize))
+        s_pos(:) = 0.0d0
+        s_pos(:) = pos_b(:)
+
+     end if 
+
   else if ( restart .and. dual_search) then
      call neighbours_local( )
   endif

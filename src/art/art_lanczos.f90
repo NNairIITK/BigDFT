@@ -10,6 +10,7 @@
 !! Modified by:
 !! -EM 2010, see ~/AUTHORS
 !! -Laurent Karim Beland, UdeM 2011: Gramm-Schmidt orthogonalization
+!! -ID and EM 2011, see ~/AUTHORS: Gramm-Schmidt, DSTEV->DGEEV
 
 !> Module lanczos_defs ( ART )
 !! to use lanczos inside art
@@ -24,7 +25,7 @@ module lanczos_defs
 
   real(kind=8) :: DEL_LANCZOS
   real(kind=8) :: eigenvalue
-  real(kind=8), dimension(10) :: eigenvals
+  !real(kind=8), dimension(10) :: eigenvals
   real(kind=8) :: lanc_energy
   real(kind=8) :: proj_energy
   real(kind=8) :: collinear_factor 
@@ -35,7 +36,6 @@ module lanczos_defs
 
   ! for new projection vector but starting with a random displacement localized 
   ! only around a given atom. This is only for Type_of_events == local or list_local 
-  
 
 END MODULE lanczos_defs
 
@@ -56,7 +56,7 @@ subroutine lanczos( maxvec, new_projection, produit )
   real(kind=8), intent(out) :: produit 
 
   !Local variables
-  integer      :: i, k, i_err, ivec, ierror, nat
+  integer      :: i, j, k, i_err, ivec, ierror, nat
   real(kind=8) :: a1, a0, b2, b1, c1, norm, ran3
   real(kind=8) :: excited_energy, sum2, invsum
   !real(kind=8) :: dr2
@@ -70,7 +70,21 @@ subroutine lanczos( maxvec, new_projection, produit )
   ! Vectors used to build the matrix for Lanzcos algorithm 
   real(kind=8), dimension(:), pointer :: z0, z1, z2
   real(kind=8), dimension(:), pointer :: dx, dy, dz
+
+  real(kind=8), dimension(maxvec, maxvec)  :: Hmat
+  real(kind=8), dimension(:), pointer      :: work
+  real(kind=8), dimension(maxvec)          :: e_real
+  real(kind=8), dimension(maxvec)          :: e_imag
+  real(kind=8), dimension(1)               :: dummy_vl
+  integer                                  :: lwork
+  integer                                  :: i_min
+  real(kind=8)                             :: e_min
   !_______________________
+  newpos = 0.0d0
+  diag = 0.0d0
+  offdiag = 0.0d0
+  lanc = 0.0d0
+  
   boxl = box * scala
                                       ! We now take the current position as the 
                                       ! reference point and will make  a displacement
@@ -111,8 +125,7 @@ subroutine lanczos( maxvec, new_projection, produit )
      call MPI_Bcast(z0,3*NATOMS,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
      old_projection = 0.0d0
   end if
-                                      ! We normalize the displacement to  
-                                      ! 1 total.
+                                      ! We normalize the displacement
   sum2 = dot_product ( z0, z0 )
   invsum = 1.0d0/sqrt(sum2)
   z0 = z0 * invsum
@@ -122,6 +135,7 @@ subroutine lanczos( maxvec, new_projection, produit )
   call calcforce( NATOMS, newpos, boxl, newforce, excited_energy, evalf_number, .true. )
                                       ! We extract lanczos(1)
   newforce = newforce - ref_force  
+  newforce = newforce*(-1.0d0/DEL_LANCZOS)
                                       ! We get a0
   a0 = dot_product( z0, newforce )
   diag(1) = a0
@@ -140,6 +154,7 @@ subroutine lanczos( maxvec, new_projection, produit )
      newpos = pos + z1 * DEL_LANCZOS 
      call calcforce( NATOMS, newpos, boxl, newforce, excited_energy, evalf_number, .true. )
      newforce = newforce - ref_force
+     newforce = newforce*(-1.0d0/DEL_LANCZOS)
 
      a1 = dot_product( z1, newforce )
      diag(ivec) = a1
@@ -148,42 +163,90 @@ subroutine lanczos( maxvec, new_projection, produit )
      z0 => lanc(:,ivec-1)
      z2 => lanc(:,ivec+1)
      z2 = newforce - a1*z1 - b1*z0
-                                      !Gramm-Schmidt orthogonalization
-     do i = 1, ivec
-        ! write(*,*) i,dot_product(z2,lanc(:,i))
-        z2 = z2 - dot_product( z2, lanc(:,i) )*lanc(:,i)
-     enddo
-
-     b2 = dot_product( z2, z2 )
-     invsum = 1.0d0/sqrt(b2)
-     z2 = z2 * invsum
+     
+     do j = 1, 4                      !Gramm-Schmidt orthogonalization
+          do i = 1, ivec
+             ! write(*,*) i,dot_product(z2,lanc(:,i))
+             z2 = z2 - dot_product( z2, lanc(:,i) )*lanc(:,i)
+          end do
+     
+          b2 = dot_product( z2, z2 )
+          invsum = 1.0d0/sqrt(b2)
+          z2 = z2 * invsum
+     end do
 
      b2 = dot_product( z2, newforce )
      offdiag(ivec) = b2
-
   end do
-                                      ! We now consider the last line of
-                                      ! our matrix
-  ivec = maxvec
-  z1 => lanc(:,maxvec)
+
+  ivec = maxvec                       ! We now consider the last line of
+  z1 => lanc(:,maxvec)                ! our matrix  
 
   newpos = pos + z1 * DEL_LANCZOS  
-
   call calcforce( NATOMS, newpos, boxl, newforce, excited_energy, evalf_number, .true. )
   newforce = newforce - ref_force
+  newforce = newforce*(-1.0d0/DEL_LANCZOS)
 
   a1 = dot_product( z1, newforce )
   diag(maxvec) = a1
 
-  diag = -1.0d0 * diag
-  offdiag = -1.0d0 * offdiag
+  diag = 1.0d0 * diag
+  offdiag = 1.0d0 * offdiag
 
   ! We now have everything we need in order to diagonalise and find the eigenvectors.
   ! We call the routine for diagonalizing a tridiagonal  matrix.
 
   i_err = 0                          ! Initialization of lapack infocode
-  call dstev( 'V', maxvec, diag, offdiag, vector, maxvec, scratcha, i_err )
 
+                                     ! old lapack call
+  !call dstev( 'V', maxvec, diag, offdiag, vector, maxvec, scratcha, i_err )
+  !*******************************************************************
+  ! fill the tridiagonal matrix
+  Hmat = 0.0d0
+  do i = 1, maxvec
+     Hmat(i,i) = diag(i)
+  end do
+  do i= 1, maxvec - 1
+     Hmat(i,i+1) = offdiag(i)
+     Hmat(i+1,i) = offdiag(i)
+  end do
+
+  ! first call to get working dimensions
+  lwork = -1
+  allocate( work(maxvec) )
+  call dgeev( 'N', 'V', maxvec, Hmat, maxvec, e_real, e_imag, dummy_vl, 1, vector, maxvec, work, lwork, i_err)
+  lwork = work(1)
+  deallocate( work )
+  allocate( work(lwork) )
+  ! second call to get eigen values
+  call dgeev( 'N', 'V', maxvec, Hmat, maxvec, e_real, e_imag, dummy_vl, 1, vector, maxvec, work, lwork, i_err)
+  deallocate( work ) 
+  
+  ! look for the smallest eigen value
+  e_min = e_real(1)
+  i_min = 1
+  do i = 1, maxvec
+     if ( e_real(i) < e_min ) then 
+        e_min = e_real(i)
+        i_min = i  
+     end if
+     if ( abs( e_imag(i) ) > 1.0d-8 ) then
+        if ( iproc == 0 ) then
+        open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
+            & action = 'write', position = 'append', iostat = ierror )
+        write( FLOG, * ) 'Error: not supposed to get imaginary value here'
+        close( FLOG )
+        end if
+     end if
+  end do  
+  
+  ! switch eigen vectors (scratch first vector)
+  diag(1) = e_min
+  do i = 1, maxvec
+     vector(i,1) = vector(i,i_min)
+  end do
+  !*******************************************************************
+  ! check error message
   if ( i_err /= 0 ) then             ! If unsuccessful dstev.
      if ( iproc == 0 ) then
         open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
@@ -206,11 +269,7 @@ subroutine lanczos( maxvec, new_projection, produit )
   c1 = dot_product( projection, projection )
   norm = 1.0d0/sqrt(c1)
   projection = projection * norm 
-  
-  eigenvalue = diag(1)/DEL_LANCZOS
-  do i = 1, 4
-     eigenvals(i) = diag(i)/DEL_LANCZOS 
-  end do
+  eigenvalue = diag(1)
   
   a1 = dot_product( old_projection, projection )
 

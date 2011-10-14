@@ -13,7 +13,7 @@ module defs
 
   implicit none
 
-  real(kind=8), parameter :: VERSION_NUMBER  = 1.6    ! Version of the code
+  real(kind=8), parameter :: VERSION_NUMBER  = 1.8    ! Version of the code
   real(kind=8) :: t1                 ! Initial Date (cputime)
 
   real(kind=8) :: my_gnrm            ! We use a higher convergence criterion for the

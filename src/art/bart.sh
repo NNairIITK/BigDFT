@@ -1,8 +1,8 @@
 #!/bin/csh
 #____________________________ ATOMS 
-setenv NATOMS     18                         # Number of atoms in the problem
-setenv type1       C 
-setenv type2       H 
+setenv NATOMS                          18   # Number of atoms in the problem
+setenv type1                            C 
+setenv type2                            H 
 #_____________________________ ART 
 setenv EVENT_TYPE  NEW  # Either 'NEW', 'REFINE_SADDLE' when further converging a saddle point
                         # Or "REFINE_AND_RELAX", to refine at the saddle
@@ -10,7 +10,7 @@ setenv EVENT_TYPE  NEW  # Either 'NEW', 'REFINE_SADDLE' when further converging 
 setenv ENERGY_CALC                    BIG
 setenv Temperature                   -0.5   # Temperature in kcal/mol, if negative always reject the event
 setenv Max_Number_Events             1000   # Maximum number of events
-setenv Type_of_Events               local   # Initial move for events - global or local
+setenv Type_of_Events               local   # Activation: global, local, list_local, list
 setenv Radius_Initial_Deformation     1.2   # Cutoff for local_coord (in angstroems)
 setenv Central_Atom                     2   # Number of the atom around which the initial move takes place
 setenv sym_break_dist               0.001   # Breaks the symmetry of the crystal by randomly displacing
@@ -46,7 +46,6 @@ setenv Save_Conf_Int               .True.   # Save the configuration at every st
 #setenv delr_threshold                 0.7   # convergence stage, then we kill the event
 #_____________________________ DIIS
 setenv Inflection                       6   # Number of Lanczos steps after an inflection in the eigenvalue
-
 setenv Iterative                   .True.   # Iterative use of Lanczos & DIIS
 setenv Use_DIIS                    .True.   # Use DIIS for the final convergence to saddle
 setenv DIIS_Force_Threshold           1.0   # Force threshold for call DIIS

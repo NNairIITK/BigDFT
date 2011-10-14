@@ -54,31 +54,32 @@ contains
 
 !> ART init_all_atoms
 !! Routine to initialize all the positions. uses BigDFT read files
-subroutine init_all_atoms( nat, typa, posa, const_, boxl, boxtype, nproc_, me_ )
+subroutine init_all_atoms( nat, typa, posa, const_, boxl, boxtype, nproc_, me_, file )
 
   implicit none
 
   !Arguments
-  integer,      intent(out) :: nat
-  integer,      pointer     :: typa(:)
-  real(kind=8), pointer     :: posa(:)
-  integer,      pointer     :: const_(:)
+  integer,      intent(out)               :: nat
+  integer,      pointer                   :: typa(:)
+  real(kind=8), pointer                   :: posa(:)
+  integer,      pointer                   :: const_(:)
   real(kind=8), dimension(3), intent(out) :: boxl
-  character(len=1), intent(out) :: boxtype
-  integer,      intent(in)  :: nproc_
-  integer,      intent(in)  :: me_
+  character(len=1), intent(out)           :: boxtype
+  integer,      intent(in)                :: nproc_
+  integer,      intent(in)                :: me_
+  character(len=*), intent(in)            :: file
 
   !Local variables
-  integer  :: i,j
-  character(len=2) :: symbol
-  character(len=10) :: name
-  real(gp), dimension(:,:), pointer :: rxyz
+  integer                                 :: i,j
+  character(len=2)                        :: symbol
+  character(len=10)                       :: name
+  real(gp), dimension(:,:), pointer       :: rxyz
   !_______________________
 
   nproc = nproc_
   me = me_
 
-  call read_atomic_file("posinp",me_,atoms_all,rxyz)
+  call read_atomic_file(file,me_,atoms_all,rxyz)
   nat = atoms_all%nat
   boxtype = atoms_all%geocode
 
@@ -99,10 +100,6 @@ subroutine init_all_atoms( nat, typa, posa, const_, boxl, boxtype, nproc_, me_ )
                                       ! Blocked atoms 
   const_ = 0                          ! Initialization, everyone is free.
   const_(:) = atoms_all%ifrztyp(:)
-
-  ! for dual_search:
-  allocate ( in_system(nat) )   
-  in_system = 0 
 
   if ( iproc == 0 ) then
   do i=1,atoms_all%nat
