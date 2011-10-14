@@ -1427,9 +1427,7 @@ contains
 
     call deallocate_comms(comms,subname)
 
-    print *, " dealloco orbs"
     call deallocate_orbs(orbs,subname)
-    print *, " dealloco orbsAO"
     call deallocate_orbs(orbsAO,subname)
 
     call deallocate_atoms_scf(atoms,subname) 

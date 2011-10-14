@@ -22,7 +22,10 @@
     <div class="main"><a name="top" id="top"></a>
 
       <div class="floatingmenu">
-        <a style="float:right;" href="H2E1.html">Troubleshooting&nbsp;&gt;</a>
+        <a href="H2D.html">&lt;&nbsp;prev. lesson</a>
+        <a style="float:right;" href="H3A.html">Next lesson &gt;</a> <br />
+        <a style="float:right;" href="H2E1-troubleshooting_minima_hopping.html" target="_blank">Troubleshooting&nbsp;&gt;</a>
+
         <h2>Content of this lesson</h2>
         <ul>
           <li>Introduction</li>
@@ -34,17 +37,17 @@
         </ul>
         <h2>Material</h2>
         <ul style="float:left;margin-right:1em;">
-          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/input.dft">input.dft</a></li>          
-          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/input.geopt">input.geopt</a></li>          
-          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/poscur.xyz">poscur.xyz</a></li>
-          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/psppar.Mg">psppar.Mg</a></li>
-          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/ioput">ioput</a></li>
+          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/input.dft" target="_blank">input.dft</a></li>          
+          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/input.geopt" target="_blank">input.geopt</a></li>          
+          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/poscur.xyz" target="_blank">poscur.xyz</a></li>
+          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/psppar.Mg" target="_blank">psppar.Mg</a></li>
+          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/ioput" target="_blank">ioput</a></li>
         </ul>
         <ul style="float:left;margin-right:1em;">
-          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/mdinput.dft">mdinput.dft</a></li>
-         <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/mdinput.geopt">mdinput.geopt</a></li>
-          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/earr.dat">earr.dat</a></li>
-          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/rand.inp">rand.inp</a></li>
+          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/mdinput.dft" target="_blank">mdinput.dft</a></li>
+         <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/mdinput.geopt" target="_blank">mdinput.geopt</a></li>
+          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/earr.dat" target="_blank">earr.dat</a></li>
+          <li>Mg<sub>7</sub>-minhop/<a href="Mg7-minhop/rand.inp" target="_blank">rand.inp</a></li>
         </ul>
       </div>
 
@@ -56,11 +59,11 @@
       <h2>Introduction:</h2>
       <p>The purpose of this lesson is to get familiar with basic
         variables needed to run a Minima Hopping calculation on a cluster.   At the end of the lesson, one will be able to  prepare the inputs required for a efficient production run and understand
-        the important part of the output. This lesson may take 2 hours. If you have already finished the tutorial and facing some problems during the Minima Hopping run see <a href='H2E1.html'>troubleshooting</a> section.
+        the important part of the output. This lesson may take 2 hours. If you have already finished the tutorial and facing some problems during the Minima Hopping run see <a href='H2E1-troubleshooting_minima_hopping.html' target="_blank">troubleshooting</a> section.
        </p>
 
       <p> In this tutorial we assume that the user is already familiar with basic BigDft inputs. We will use 
-Mg<sub>7</sub> cluster as an example system  in this tutorial. The detailed discussion on the method can be found in the tutorial <a href="minhop.pdf">presentation</a>.
+Mg<sub>7</sub> cluster as an example system  in this tutorial. The detailed discussion on the method can be found in the tutorial <a href="minhop.pdf" target="_blank">presentation</a>.
 
       <h2>File Structure Overview</h2>
       <h3>Input files</h3>
@@ -97,7 +100,7 @@ Mg<sub>7</sub> cluster as an example system  in this tutorial. The detailed disc
 <li> Second line is <b>eref</b>: The reference energy. This should be chosen so that the total energy of the system with respect to <code>eref</code> is positive.It is also advised to have the value of this energy 
 of the order of one for better accuracy.</li>
 <li> Third line is <b>accur</b>: the rounding threshold of total energy obtained in the calculation. Minima Hopping will distinguish between two minimum based on this value. This should be chosen properly. 
-Please refer to tutorial <a href="minhop.pdf">presentation</a> for more detail on this topic.</li>
+Please refer to tutorial <a href="minhop.pdf" target="_blank">presentation</a> for more detail on this topic.</li>
 <li> From 4th line on the file contains the sorted energies of local minima and the number of times each minimum is visited. So in this example file the energy of the global minima is
 <code>0.50929999999999997E+00 </code> and it has been visited 5 times during the run.  </li>
 </ul>
@@ -116,11 +119,11 @@ Please refer to tutorial <a href="minhop.pdf">presentation</a> for more detail o
 <h2> Preparing The Inputs For A Production Run </h2>
  We all know that calculations using Density functional theory is quite expensive method. When we couple Minima Hopping with BigDft to search the global minimum on a DFT energy landscape, the calculation 
 becomes even more expensive even for modern super computers. For this reason, a careful selection of input parameters are very important  for the performance of the code. A detailed demonstration of the tuning process
-has been given  in the tutorial  <a href="minhop.pdf"><code>presentation</code></a>.
+has been given  in the tutorial  <a href="minhop.pdf" target="_blank"><code>presentation</code></a>.
 
       <div class="exercice">
-        <p><b>Exercise 1: Tuning input.dft file</b>: Prepare an <code> input.dft </code> file which will give <code>expected accuracy </code> of <code>0.5E-05 </code>. Start with   <a href="Mg7-minhop/input_dft/input.dft"><code>input.dft</code></a>,
-<a href="Mg7-minhop/input_dft/posinp.xyz"><code>posinp.xyz</code></a> and <a href="Mg7-minhop/input_dft/psppar.Mg"><code>psppar.Mg</code></a> files.  Run BigDft for different 
+        <p><b>Exercise 1: Tuning input.dft file</b>: Prepare an <code> input.dft </code> file which will give <code>expected accuracy </code> of <code>0.5E-05 </code>. Start with   <a href="Mg7-minhop/input_dft/input.dft" target="_blank"><code>input.dft</code></a>,
+<a href="Mg7-minhop/input_dft/posinp.xyz" target="_blank"><code>posinp.xyz</code></a> and <a href="Mg7-minhop/input_dft/psppar.Mg" target="_blank"><code>psppar.Mg</code></a> files.  Run BigDft for different 
           values of <code>hgrid</code>, <code>crmult</code> and <code>frmult</code>  stored in first two lines of <code> input.dft </code> file and note the <code>expected accuracy in energy </code> in the output file. </p>
         <pre>
 sandip@phys-carbon-04:~/tutorials/Mg7-minhop/input_dft$ ls
@@ -171,7 +174,7 @@ SDCG     Geometry Optimization method
 The important task is to determine the step size for steepest descent stores in the last line of the file. To do this one should Use <code> VSSD </code> 
 as geometry optimization method and a low initial step-size. One should not use a well relaxed structure for this purpose,
  so if we already have a well relaxed structure we can use a small value for <code>randdis</code> instead of zero.<b> Don't forget to set the value of <code>randdis</code> back to zero before using the file for Minima Hopping run.</b>
-use this <a href="Mg7-minhop/geopt/input.geopt"><code>input.geopt</code></a> file along with the low accuracy set of <a href="Mg7-minhop/geopt/input.dft"><code>input.dft</code></a> file to start a BigDft run.
+use this <a href="Mg7-minhop/geopt/input.geopt" target="_blank"><code>input.geopt</code></a> file along with the low accuracy set of <a href="Mg7-minhop/geopt/input.dft" target="_blank"><code>input.dft</code></a> file to start a BigDft run.
  At the end of the run  a <cosde>stepsize</code> will be suggested at the end of <code>geopt.mon</code> file.
 <pre>
 sandip@phys-carbon-04:~tutorials/Mg7-minhop/geopt$ tail geopt.mon 
@@ -192,14 +195,14 @@ and for <code>mdinput.geopt</code> ,we will use <code>SDCG</code> as geometry op
 
 <div class="exercice">
         <p><b>Exercise 4: Minima-Hopping run for Mg<sub>7</sub></b>: 
-If you have followed last three exercises then you already have prepared  <a href="Mg7-minhop/input.dft"><code>input.dft</code></a> , <a href="Mg7-minhop/input.geopt"><code>input.geopt</code></a> , <a href="Mg7-minhop/psppar.Mg"><code>psppar.Mg</code></a> ,<a href="Mg7-minhop/mdinput.dft"><code>mdinput.dft</code></a> and  <a href="Mg7-minhop/mdinput.geopt"><code>mdinput.geopt</code></a>.
-As discussed in the tutorial <a href="minhop.pdf">presentation</a> ,we can choose 
+If you have followed last three exercises then you already have prepared  <a href="Mg7-minhop/input.dft" target="_blank"><code>input.dft</code></a> , <a href="Mg7-minhop/input.geopt" target="_blank"><code>input.geopt</code></a> , <a href="Mg7-minhop/psppar.Mg" target="_blank"><code>psppar.Mg</code></a> ,<a href="Mg7-minhop/mdinput.dft" target="_blank"><code>mdinput.dft</code></a> and  <a href="Mg7-minhop/mdinput.geopt"><code>mdinput.geopt</code></a>.
+As discussed in the tutorial <a href="minhop.pdf" target="_blank">presentation</a> ,we can choose 
 <pre>
 5.0E-03 5.0E-03 1.0 10 ediff,ekinetic dt nsoften
 </pre>
-as parameters in <a href="Mg7-minhop/ioput"><code>ioput</code></a> file. The other two files, 
-<a href="Mg7-minhop/rand.inp"><code>rand.inp</code></a> and <a href="Mg7-minhop/earr.dat"><code>earr.dat</code></a> should be straight forward to understand if you follow the tutorial <a href="minhop.pdf">presentation</a>.
- The atomic coordinates of the starting configuration can be used from <a href="Mg7-minhop/poscur.xyz"><code>poscur.xyz</code></a> file. 
+as parameters in <a href="Mg7-minhop/ioput" target="_blank"><code>ioput</code></a> file. The other two files, 
+<a href="Mg7-minhop/rand.inp" target="_blank"><code>rand.inp</code></a> and <a href="Mg7-minhop/earr.dat" target="_blank"><code>earr.dat</code></a> should be straight forward to understand if you follow the tutorial <a href="minhop.pdf" target="_blank">presentation</a>.
+ The atomic coordinates of the starting configuration can be used from <a href="Mg7-minhop/poscur.xyz" target="_blank"><code>poscur.xyz</code></a> file. 
 With these files start the minima hopping run for Mg<sub>7</sub> cluster. Running Minima Hopping is done using the <code>global</code>
         executable in a standard Unix way, the output being by default the
         standard output, it must redirected to a file.
