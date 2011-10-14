@@ -155,7 +155,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   !! oversampled grid
   
   boxradius=rcov *pawrcovfact                  !! this should be found in the original grid
-  biggerboxradius = 2.0_8 * rcov   !! this is an approximative goal
+  biggerboxradius = 1.5_8 * rcov   !! this is an approximative goal
   
   Ngrid_box=1
   Ngrid_box_larger=1
