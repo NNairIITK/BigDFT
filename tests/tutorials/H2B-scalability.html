@@ -51,9 +51,9 @@
 
       <p>The MPI parallelization in BigDFT relies on the orbital distribution scheme, in which the orbitals of the system under 
       investigation are distributed over the assigned MPI processes. This scheme reaches its limit when the number of MPI processes 
-      is equal to the number of orbitals in the simulation. For a given number of orbitals, we generally have a few possibilities 
-      to equally distribute them over the MPI processes. For example, if the number of orbitals is a prime number, we have only 
-      one choice to equally distribute the orbitals over more than one MPI processes: each orbital is assigned to an MPI process. </p>
+      is equal to the number of orbitals in the simulation. To equally distribute the orbitals, the number of processors must be a factor
+     (divisor) of the number of orbitals. If this is not the case, the distribution is not optimal, but BigDFT tries to balance the load
+      over the processors. For example, if we have 5 orbitals and 4 processors, the orbitals will have the distribution: 2/1/1/1.</p>
 
      <p> Within an orbital, where MPI is not implemented, BigDFT uses OpenMP to do the parallelization. 
       The most time consuming routines in BigDFT are parallelized by OpenMP, and they are indeed sped up very well. 
