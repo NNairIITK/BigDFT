@@ -17,10 +17,12 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft test_forces memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
+binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
+local_binaries = test_forces
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
+local_binaries =
 scripts_sources = 
 endif
 
@@ -122,6 +124,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver -I$(srcdi
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@
 
 bin_PROGRAMS = $(binaries_sources)
+noinst_PROGRAM = $(local_binaries)
 bin_SCRIPTS = $(scripts_sources)
 
 lib_LIBRARIES = $(lib_bigdft)

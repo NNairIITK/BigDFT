@@ -38,7 +38,8 @@ else
 devdocs =
 endif
 
-doc_DATA = tests.xml $(pdfs) $(devdocs)
+doc_DATA = $(pdfs) $(devdocs)
+noinst_DATA = tests.xml
 
 Doxygen/html: Doxygen.stamp web.stamp
 
