@@ -17,23 +17,23 @@ program BigDFT
    use ab6_symmetry
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
-   !! name convention as "implicit real(kind=8) (a-h,o-z)"
+                     !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
    character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
-   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode,istat
-   integer :: ncount_bigdft
-   real(gp) :: etot,sumx,sumy,sumz,fnoise
-   logical :: exist_list
-   !input variables
+   !Input variables
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
    type(restart_objects) :: rst
    character(len=50), dimension(:), allocatable :: arr_posinp
    character(len=60) :: filename, radical
-   ! atomic coordinates, forces
+   !Atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat
+   real(gp) :: etot,sumx,sumy,sumz,fnoise
+   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode,istat
+   integer :: iconfig,nconfig
+   integer :: ncount_bigdft
+   logical :: exist_list
 
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted

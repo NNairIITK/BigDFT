@@ -7,16 +7,17 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!>   Lanczos diagonalization
+
+!> Lanczos diagonalization
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
    ekin_sum,epot_sum,eproj_sum,nspin,SIC,GPU,in_iat_absorber,&
-   in  )! aggiunger a interface
+   in  ) !< aggiunger a interface
    use module_base
    use module_types
    use lanczos_interface
    use lanczos_base
-   ! per togliere il bug 
+   !< per togliere il bug 
    use module_interfaces ,except_this_one => xabs_lanczos
 
    implicit none
@@ -545,7 +546,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 END SUBROUTINE xabs_chebychev
 
 
-!>   finds the spectra solving  (H-omega)x=b
+!> Finds the spectra solving  (H-omega)x=b
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
    ekin_sum,epot_sum,eproj_sum,nspin,SIC,GPU,in_iat_absorber,&

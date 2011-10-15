@@ -15,27 +15,26 @@ program abscalc_main
   use ab6_symmetry
 !  use minimization, only: parameterminimization 
 
-  !implicit real(kind=8) (a-h,o-z)
-  !as a general policy, I will put "implicit none" by assuming the same
-  !name convention as "implicit real(kind=8) (a-h,o-z)"
-  !such that the implicit statement can be commented at will
-
+  !<implicit real(kind=8) (a-h,o-z)
+  !!as a general policy, I will put "implicit none" by assuming the same
+  !!name convention as "implicit real(kind=8) (a-h,o-z)"
+  !!such that the implicit statement can be commented at will
   implicit none
+
   character(len=*), parameter :: subname='abscalc_main'
-  integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
-  real(gp) :: etot,sumx,sumy,sumz
-  logical :: exist_list
-  !input variables
+  !Input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   character(len=50), dimension(:), allocatable :: arr_posinp
-  character(len=60) :: filename, radical
-  ! atomic coordinates, forces
+  character(len=60) :: radical
+  !Atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer :: iconfig,nconfig
-  logical :: exists
+  real(gp) :: etot,sumx,sumy,sumz
+  integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
+  integer :: iconfig,nconfig,istat
+  logical :: exist_list,exists
 
 
   ! Start MPI in parallel version
