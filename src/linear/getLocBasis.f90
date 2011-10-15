@@ -87,7 +87,7 @@ type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 
 ! Local variables 
-integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount, jlr
+integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount, jlr, ii
 real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold, hphiold, eps, temparr
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, ovrlpold, hamold
 real(8),dimension(:,:,:),allocatable:: matrixElements
@@ -241,9 +241,17 @@ real(8),dimension(:),pointer:: lpot
       !     input%hz, rxyz, ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, ekin_sum, epot_sum, eexctX, &
       !     eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%lb%orbs%inWhichLocregp, withConfinement, .true., &
       !     pkernel=pkernelseq)
+      !call HamiltonianApplication3(iproc, nproc, at, lin%lb%orbs, input%hx, input%hy, input%hz, rxyz, &
+      !     proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
+      !     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq, lin=lin)
+      !! ATTENTION NEW!!
+      ! Modify the value of lzd%lnpsidimtot to take into account the derivatives
+      ii=lin%lzd%lpsidimtot
+      lin%lzd%lpsidimtot=lin%lzd%lpsidimtot_der
       call HamiltonianApplication3(iproc, nproc, at, lin%lb%orbs, input%hx, input%hy, input%hz, rxyz, &
            proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq, lin=lin)
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq)
+      lin%lzd%lpsidimtot=ii
   end if
   iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
   deallocate(lin%lzd%doHamAppl, stat=istat)
@@ -398,6 +406,12 @@ real(8),dimension(:),pointer:: lpot
   !! Copy the Hamiltonian
   !call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
 
+
+  ! Copy the basis functions for the next iterations
+  call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiold(1), 1)
+
+  ! Copy the Hamiltonian matrix for the next iteration
+  call dcopy(lin%orbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
 
   ! Deallocate all local arrays.
   iall=-product(shape(HamSmall))*kind(HamSmall)
@@ -2656,3 +2670,19 @@ subroutine free_lnlpspd(orbs, lzd)
   end do
 
 end subroutine free_lnlpspd
+
+
+
+
+subroutine getCoefficients_new
+implicit none
+use module_base
+use module_types
+
+! Calculate the matrices Q=<phi|phiold>
+call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lin%lphiold, lin%mad, Q)
+
+! Calculate the right hand sides.
+
+
+end subroutine getCoefficients_new

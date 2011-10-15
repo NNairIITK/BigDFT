@@ -113,7 +113,7 @@ integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcs
 real(8),dimension(:),allocatable:: phiTemp
 real(wp),dimension(:),allocatable:: projTemp
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2
-real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce
+real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
 integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot, iiorb, ncount
@@ -296,6 +296,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   ! Flag that indicates that the basis functions shall be improved in the following.
   updatePhi=.true.
   pnrm=1.d100
+  energyold=0.d0
   do itSCC=1,nitSCC
       if(itSCC>1 .and. pnrm<lin%fixBasis) updatePhi=.false.
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
@@ -347,6 +348,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
           coeff, ehart, eexcu, vexcu)
       ! Calculate the total energy.
       energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
+      energyDiff=energy-energyold
+      energyold=energy
 
 
       ! Post communications for gathering the potential
@@ -383,7 +386,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
       end if
 
       ! Write some informations
-      call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, lin%mixingMethod)
+      call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, lin%mixingMethod)
       if(pnrm<lin%convCritMix) exit
   end do
 
@@ -530,7 +533,7 @@ end subroutine mixPotential
 
 
 
-subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, mixingMethod)
+subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, mixingMethod)
 !
 ! Purpose:
 ! ========
@@ -546,11 +549,11 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, itSCC, infoBasisFunctions, infoCoeff
-real(8),intent(in):: pnrm, energy
+real(8),intent(in):: pnrm, energy, energyDiff
 character(len=4),intent(in):: mixingMethod
 
   if(iproc==0) then
-      write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
+      write(*,'(x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
       write(*,'(x,a,i0,a)') 'at iteration ', itSCC, ' of the self consistency cycle:'
       if(infoBasisFunctions<0) then
           write(*,'(3x,a)') '- WARNING: basis functions not converged!'
@@ -565,11 +568,11 @@ character(len=4),intent(in):: mixingMethod
           write(*,'(3x,a)') '- coefficients obtained by diagonalization.'
       end if
       if(mixingMethod=='dens') then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17)') 'it, Delta DENS, energy ', itSCC, pnrm, energy
+          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       else if(mixingMethod=='pot') then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17)') 'it, Delta POT, energy ', itSCC, pnrm, energy
+          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta POT, energy energyDiff', itSCC, pnrm, energy, energyDiff
       end if
-      write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
+      write(*,'(x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
   end if
 
 end subroutine printSummary

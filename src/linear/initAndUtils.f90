@@ -181,6 +181,15 @@ do iorb=1,lin%orbs%norbp
 end do
 lin%lzd%Lpsidimtot = max(npsidim,1)
 
+! The same for the lb type, i.e. with the derivatives.
+npsidim = 0
+do iorb=1,lin%lb%orbs%norbp
+ ilr=lin%lb%orbs%inwhichlocreg(iorb+lin%lb%orbs%isorb)
+ npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
+end do
+lin%lzd%Lpsidimtot_der = max(npsidim,1)
+
+
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
 call memocc(istat, lin%orbs%eval, 'lin%orbs%eval', subname)
@@ -241,7 +250,7 @@ call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%l
 !call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp, &
 !     lin%lb%lzd%orbs%inWhichLocreg, tag)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lzd, lin%lb%comgp, &
-     lin%orbs%inWhichLocreg, tag)
+     lin%lb%orbs%inWhichLocreg, tag)
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
@@ -259,6 +268,13 @@ if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, np
 ! Restart array for the basis functions (only needed if we use the derivative basis functions).
 allocate(lin%lphiRestart(lin%orbs%npsidim), stat=istat)
 call memocc(istat, lin%lphiRestart, 'lin%lphiRestart', subname)
+allocate(lin%lphiold(lin%orbs%npsidim), stat=istat)
+call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
+
+! hamold stores the Hamiltonian matrix of the previous iterations.
+allocate(lin%hamold(lin%orbs%norb,lin%orbs%norb), stat=istat)
+call memocc(istat, lin%hamold, 'lin%hamold', subname)
+
 
 !! Stores the Hamiltonian in the basis of the localized orbitals
 !allocate(lin%hamold(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)

@@ -496,7 +496,7 @@ module module_types
   type,public:: local_zone_descriptors
     logical :: linear                                           !> if true, use linear part of the code
     integer :: nlr                                              !> Number of localization regions 
-    integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
+    integer :: Lpsidimtot, lpsidimtot_der                       !> Total dimension of the wavefunctions in the locregs, the same including the derivatives
     integer:: ndimpotisf                                         !> total dimension of potential in isf (including exctX)
     integer :: Lnprojel                                         !> Total number of projector elements
     !type(orbitals_data) :: orbs                                 !> Global orbitals descriptors
@@ -571,7 +571,8 @@ end type largeBasis
     integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho, fixBasis
-    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart
+    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold
+    real(8),dimension(:,:),pointer:: hamold
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
