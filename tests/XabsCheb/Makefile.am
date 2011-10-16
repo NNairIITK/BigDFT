@@ -31,6 +31,8 @@ CLEANFILES = $(PPFILES) Xabs*.out posout* *.pot *.prc *.cube *.report \
 clean.local : 
 	rm -rf data
 
+distclean : clean clean.local
+	rm -rf Makefile
 
 #dependencies
 $(PPFILES):

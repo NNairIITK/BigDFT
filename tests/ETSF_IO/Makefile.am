@@ -20,6 +20,9 @@ CLEANFILES = write.out read.out *.prc fldiff.*.report geopt.mon default.* input.
 clean.local : 
 	rm -rf data
 
+distclean : clean clean.local
+	rm -rf Makefile
+
 #dependencies
 $(PPFILES):
 	@cp $(top_srcdir)/utils/PSPfiles/HGH-K/$@ .

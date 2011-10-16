@@ -89,6 +89,13 @@ check: $(CHECKS) report
 
 clean: $(CLEANS)
 
+distclean : $(CLEANS)
+	rm -rf Makefile
+
+#distclean-check: clean
+
+#	.PHONY: distclean-check
+
 failed-check: $(FAILEDCHECKS) report
 
 report:
@@ -119,7 +126,8 @@ report:
 %.clean:
 	@dir=`basename $@ .clean` ; \
         if test x"$(srcdir)" = x"." ; then \
-          rm -f $$dir.* $$dir/psppar.* $$dir/*.out $$dir/*.report ; \
+          rm -f $$dir.* $$dir/psppar.* $$dir/*.out $$dir/*.report $$dir/default* ; \
+	  rm -fr $$dir/data ; \
         else \
           rm -rf $$dir.* $$dir ; \
         fi ; \
