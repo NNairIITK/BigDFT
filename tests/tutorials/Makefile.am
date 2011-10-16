@@ -17,7 +17,7 @@ EXTRA_DIST = $(TESTDIRS) \
      Figures/CH4-grid.png \
      H1A-Basics.html \
      H1B-Basic_surfaces.html \
-     H1X-Basic_post_processing.html \
+     H1C-Basic_post_processing.html \
      H2B-scalability.html \
      H2E1-troubleshooting_minima_hopping.html \
      H2E-minima_hopping.html \
