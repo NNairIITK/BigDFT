@@ -373,7 +373,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
   read(99,*) lin%mixHist, lin%nItSCC, lin%alphaMix, lin%convCritMix
-  read(99,*) lin%nItOuterSCC, lin%factorFixBasis
+  read(99,*) lin%nItOuterSCC, lin%factorFixBasis, lin%minimalFixBasis, lin%energyDiffToExitOuterSCC
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess, lin%memoryForCommunOverlapIG
   read(99,*) lin%plotBasisFunctions
@@ -474,18 +474,20 @@ do itype=1,at%ntypes
 end do
 close(unit=99)
 write(*,'(4x,a)') '----------------------------------------------------------------------'
-write(*,'(4x,a)') '| mixing | mixing | iterations in | alpha mix | convergence crit. |  iterations   |  factor for  |'
-write(*,'(4x,a)') '| scheme | method |  in SC cycle  |           |    for mixing     | in outer loop | fixing basis |'
+write(*,'(4x,a)') '| mixing | mixing | iterations in | alpha mix | convergence crit. |  iterations   | &
+& factor for  |  minimal  | energy diff to |'
+write(*,'(4x,a)') '| scheme | method |  in SC cycle  |           |    for mixing     | in outer loop | &
+& fixing basis | fix basis | exit outer SCC |'
 if(lin%mixHist==0) then
     message1=' linear '
 else
     write(hist,'(i2)') lin%mixHist
     message1=' DIIS'//hist//' '
 end if
-write(*,'(4x,a,2x,a,2x,a,a,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a,a,i0,4x,a,3x,es8.2,3x,a)') '|', &
+write(*,'(4x,a,2x,a,2x,a,a,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a,a,i0,4x,a,3x,es8.2,3x,a,2x,es9.3,2x,a,3x,es9.3,3x,a)') '|', &
      lin%mixingMethod, '|', message1, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
      lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItOuterSCC+1)+1.d-10))), &
-     lin%nItOuterSCC, '|', lin%factorFixBasis, '|'
+     lin%nItOuterSCC, '|', lin%factorFixBasis, '|', lin%minimalFixBasis, '|', lin%energyDiffToExitOuterSCC, '|'
 write(*,'(4x,a)') '-------------------------------------------------------------------'
 write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  | transform |'
 write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  | orthoconstraint | to global |'

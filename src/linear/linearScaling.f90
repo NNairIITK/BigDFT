@@ -404,6 +404,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'itout, Delta POT, energy energyDiff', itout, pnrm, energy, energy-energyoldout
           end if
       end if
+      if(abs(energy-energyoldout)<lin%energyDiffToExitOuterSCC) exit
       energyoldout=energy
   end do
 
