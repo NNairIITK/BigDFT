@@ -138,7 +138,7 @@ subroutine saddle_converge( ret, saddle_energy )
           end if
           try = try + 1
          
-          if ( fperp < FTHRESHOLD .or. m_perp > MAXKPERP &
+          if ( fperp < FTHRESHOLD .or. m_perp >= MAXKPERP &
               &  .or. step_rejected > 5 ) exit While_perpk
 
         end do While_perpk
@@ -149,29 +149,29 @@ subroutine saddle_converge( ret, saddle_energy )
 
         if ( SAVE_CONF_INT ) call save_intermediate( 'K' ) 
 
-        if ( kter == KTER_MIN ) then ! We start checking of negative
-                                     ! eigenvalues only after a few steps.
+        ! We start checking of negative eigenvalues only after a few steps.
+
+        if ( kter == KTER_MIN ) then 
                                      ! First time, twice !!
-              do i = 1, 2            
-                 call lanczos( NVECTOR_LANCZOS_A, new_projection, a1 )
-                 new_projection = .false. 
-                 if ( iproc == 0 ) write(*,'(a,3I5,f12.6,f7.2)') &
-                    & 'BART COLLINEAR:', pas, kter, i, eigenvalue, a1
-              end do
+           do i = 1, 1            
+              call lanczos( NVECTOR_LANCZOS_A, new_projection, a1 )
+              new_projection = .false. 
+              if ( iproc == 0 ) write(*,'(a,3I5,f12.6,f7.2)') &
+                 & 'BART COLLINEAR:', pas, kter, i, eigenvalue, a1
+           end do
 
-        else if ( kter > KTER_MIN ) then 
+        else if ( setup_initial .and. kter > KTER_MIN + 1 ) then 
 
-           if ( .not. setup_initial ) then
-                ! we get eigen direction for the minimum of this hyperplane.
-                 call lanczos( NVECTOR_LANCZOS_A, new_projection, a1 )
-                                               ! Lanczos call, we start from the
-                 new_projection = .false.      ! previous direction each time.
-           else
-              call check_min( 'I' ) 
-              call write_step ( 'K', kter, a1, current_energy )
-              call MPI_Barrier( MPI_COMM_WORLD, ierr )
-              call end_art( )
-           end if
+           call check_min( 'I' ) 
+           call write_step ( 'K', kter, a1, current_energy )
+           call MPI_Barrier( MPI_COMM_WORLD, ierr )
+           call end_art( )
+
+        else if ( kter > KTER_MIN  ) then
+           ! we get eigen direction for the minimum of this hyperplane.
+            call lanczos( NVECTOR_LANCZOS_A, new_projection, a1 )
+                                          ! Lanczos call, we start from the
+            new_projection = .false.      ! previous direction each time.
         end if
                                       ! Write 
         call write_step ( 'K', kter, a1, current_energy )
@@ -181,11 +181,11 @@ subroutine saddle_converge( ret, saddle_energy )
             total_energy = current_energy
             if ( iproc == 0 ) call save_state( state_restart, kter+1, initial_direction )
         end if
+        pas = pas + 1
                                       ! clean_wf
         if (eigenvalue<EIGEN_THRESH .and. clean_wf) call clean_wavefunction(a1,.True.)
-        pas = pas + 1
                                       ! Is the configuration out of the harmonic basin?
-        if ( eigenvalue < EIGEN_THRESH ) exit Do_kter 
+        if ( eigenvalue < EIGEN_THRESH .and. (.not. setup_initial) ) exit Do_kter 
                                       ! If not, we move the configuration along 
                                       ! the initial direction.
         pos = pos + BASIN_FACTOR * INCREMENT * initial_direction  

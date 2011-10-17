@@ -649,7 +649,7 @@ subroutine lanczos_step ( current_energy, a1, liter, get_proj )
     try = try + 1 
                                       ! 5 kills MAXIPERP 
     if ( fperp < FTHRESHOLD .or. m_perp > (liter - 5) &         
-       & .or. m_perp > MAXIPERP .or. try > 5 ) exit While_perpi
+       & .or. m_perp >= MAXIPERP .or. try > 5 ) exit While_perpi
     
   end do  While_perpi 
 
