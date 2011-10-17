@@ -124,7 +124,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver -I$(srcdi
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@
 
 bin_PROGRAMS = $(binaries_sources)
-noinst_PROGRAM = $(local_binaries)
+noinst_PROGRAMS = $(local_binaries)
 bin_SCRIPTS = $(scripts_sources)
 
 lib_LIBRARIES = $(lib_bigdft)
