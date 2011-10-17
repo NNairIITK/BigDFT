@@ -978,9 +978,9 @@ subroutine guess_direction ( )
   if (iproc == 0 ) then
   do i = 1, NATOMS
      if ( constr(i) == 0 ) then
-        dx(i) = xb(i) - xa(i) - boxl(1) * nint((xb(i)-xa(i)) * invbox(1)) + 0.01d0*(0.5d0-ran3()) 
-        dy(i) = yb(i) - ya(i) - boxl(2) * nint((yb(i)-ya(i)) * invbox(2)) + 0.01d0*(0.5d0-ran3())
-        dz(i) = zb(i) - za(i) - boxl(3) * nint((zb(i)-za(i)) * invbox(3)) + 0.01d0*(0.5d0-ran3())
+        dx(i) = xb(i) - xa(i) - boxl(1) * nint((xb(i)-xa(i)) * invbox(1))! + 0.01d0*(0.5d0-ran3()) 
+        dy(i) = yb(i) - ya(i) - boxl(2) * nint((yb(i)-ya(i)) * invbox(2))! + 0.01d0*(0.5d0-ran3())
+        dz(i) = zb(i) - za(i) - boxl(3) * nint((zb(i)-za(i)) * invbox(3))! + 0.01d0*(0.5d0-ran3())
      end if
   end do
   end if
