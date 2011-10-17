@@ -35,7 +35,9 @@ EXTRA_DIST = $(TESTDIRS) \
      Figures/N2-wf03.thumb.png \
      Figures/N2-wf04.thumb.png \
      Figures/N2-wf05.thumb.png \
-     Figures/Scal_Palu.jpg
+     Figures/Scal_Palu.jpg \
+     GPU \
+     H2A-GPU.html
 
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
