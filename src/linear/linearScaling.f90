@@ -297,6 +297,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   updatePhi=.true.
   pnrm=1.d100
   energyold=0.d0
+  !lin%getCoeff='new'
   do itSCC=1,nitSCC
       if(itSCC>1 .and. pnrm<lin%fixBasis) updatePhi=.false.
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
@@ -323,6 +324,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
       !if(lin%nItInguess>0 .or. itSCC>1) then
       !if(itSCC>1) then
       if(itSCC>0) then
+      !if(itSCC>0 .and. mod(itScc,2)==0) then
           if(trim(lin%mixingMethod)=='dens') then
               if(lin%mixHist==0) then
                   !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)

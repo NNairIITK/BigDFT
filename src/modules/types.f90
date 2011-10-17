@@ -509,6 +509,12 @@ module module_types
     type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
   end type
 
+  type,public:: matrixDescriptors
+      integer:: nvctr, nseg, nvctrmatmul, nsegmatmul, nseglinemax
+      integer,dimension(:),pointer:: keyv, keyvmatmul, nsegline
+      integer,dimension(:,:),pointer:: keyg, keygmatmul
+      integer,dimension(:,:,:),pointer:: keygline
+  end type matrixDescriptors
 
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
@@ -523,14 +529,9 @@ type,public:: largeBasis
     type(p2pCommsOrthonormality):: comon
     type(overlapParameters):: op
     type(p2pCommsGatherPot):: comgp
+    type(matrixDescriptors):: mad
 end type largeBasis
 
-  type,public:: matrixDescriptors
-      integer:: nvctr, nseg, nvctrmatmul, nsegmatmul, nseglinemax
-      integer,dimension(:),pointer:: keyv, keyvmatmul, nsegline
-      integer,dimension(:,:),pointer:: keyg, keygmatmul
-      integer,dimension(:,:,:),pointer:: keygline
-  end type matrixDescriptors
 
 
   !> Contains the parameters for the parallel input guess for the O(N) version.

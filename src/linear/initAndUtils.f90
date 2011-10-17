@@ -303,9 +303,9 @@ call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing matrix compression... '
 t1=mpi_wtime()
 call initMatrixCompression(iproc, nproc, lin%orbs, lin%op, lin%mad)
-!call initCompressedMatmul(iproc, nproc, lin%lb%orbs%norb, lin%mad)
-!call initCompressedMatmul2(norb, lin%mad%nseg, lin%mad%keyg, lin%mad%nsegmatmul, lin%mad%keygmatmul, lin%mad%keyvmatmul)
-call initCompressedMatmul3(norb, lin%mad)
+call initCompressedMatmul3(lin%orbs%norb, lin%mad)
+call initMatrixCompression(iproc, nproc, lin%lb%orbs, lin%lb%op, lin%lb%mad)
+call initCompressedMatmul3(lin%lb%orbs%norb, lin%lb%mad)
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 !!if(iproc==0) then

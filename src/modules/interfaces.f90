@@ -4965,6 +4965,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine dgemm_compressed_parallel
 
 
+       subroutine getCoefficients_new(iproc, nproc, lin, orbs, hamold, lphi, ovrlp, coeff)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(linearParameters),intent(inout):: lin
+         type(orbitals_data),intent(in):: orbs
+         real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: hamold
+         real(8),dimension(lin%lzd%lpsidimtot),intent(in):: lphi
+         real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(inout):: ovrlp
+         real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff
+       end subroutine getCoefficients_new
+
   end interface
 
 end module module_interfaces

@@ -57,6 +57,7 @@ use module_base
 use module_types
 use module_interfaces, exceptThisOne => getLinearPsi
 use Poisson_Solver
+use deallocatePointers
 implicit none
 
 ! Calling arguments
@@ -155,7 +156,7 @@ real(8),dimension(:),pointer:: lpot
   end if
   if(lin%useDerivativeBasisFunctions) then
       !call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
-      call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, lin%mad, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, lin%lb%mad, ovrlp)
   end if
 
   !ierr=0
@@ -248,10 +249,25 @@ real(8),dimension(:),pointer:: lpot
       ! Modify the value of lzd%lnpsidimtot to take into account the derivatives
       ii=lin%lzd%lpsidimtot
       lin%lzd%lpsidimtot=lin%lzd%lpsidimtot_der
+
+      ! Deallocate old PSP structures and rebuild them for the derivatives.
+      do ilr=1,lin%lzd%nlr
+          call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr), subname)
+          call checkAndDeallocatePointer(lin%lzd%llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
+      end do
+      call prepare_lnlpspd(iproc, at, input, lin%lb%orbs, rxyz, radii_cf, lin%lzd)
+
       call HamiltonianApplication3(iproc, nproc, at, lin%lb%orbs, input%hx, input%hy, input%hz, rxyz, &
            proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq)
       lin%lzd%lpsidimtot=ii
+      
+      ! Deallocate the derivative PSP structures and rebuild them for the standard case (i.e. without derivatives)
+      do ilr=1,lin%lzd%nlr
+          call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr), subname)
+          call checkAndDeallocatePointer(lin%lzd%llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
+      end do
+      call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
   end if
   iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
   deallocate(lin%lzd%doHamAppl, stat=istat)
@@ -286,18 +302,22 @@ real(8),dimension(:),pointer:: lpot
   !!    write(25000+iproc,*) iall, lhphi(iall)
   !!end do
   !call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
-  call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%mad, matrixElements)
+  if(.not. lin%useDerivativeBasisFunctions) then
+      call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%mad, matrixElements)
+  else
+      call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%lb%mad, matrixElements)
+  end if
 
-  !!!if(iproc==0) then
-  !!    ierr=0
-  !!    do iall=1,lin%lb%orbs%norb
-  !!        do istat=1,lin%lb%orbs%norb
-  !!            ierr=ierr+1
-  !!            write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
-  !!        end do
-  !!    end do
-  !!    write(23000+iproc,*) '=============================='
-  !!!end if
+  !if(iproc==0) then
+      ierr=0
+      do iall=1,lin%lb%orbs%norb
+          do istat=1,lin%lb%orbs%norb
+              ierr=ierr+1
+              write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
+          end do
+      end do
+      write(23000+iproc,*) '=============================='
+  !end if
 
   
 
@@ -306,7 +326,7 @@ real(8),dimension(:),pointer:: lpot
   call cpu_time(t1)
   if(trim(lin%getCoeff)=='min') then
       call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
-  else
+  else if(trim(lin%getCoeff)=='diag') then
       ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
       ! are still needed later.
       call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
@@ -337,6 +357,11 @@ real(8),dimension(:),pointer:: lpot
               end if
           end do
       end if
+  else if(trim(lin%getCoeff)=='new') then
+      !stop 'not yet ready'
+      !! THIS IS THE NEW PART ###########################################################################
+      call getCoefficients_new(iproc, nproc, lin, orbs, lin%hamold, lphi, ovrlp, coeff)
+      !! ################################################################################################
   end if
   call cpu_time(t2)
   time=t2-t1
@@ -344,6 +369,7 @@ real(8),dimension(:),pointer:: lpot
   !!do iorb=1,lin%lb%orbs%norb
   !!    write(2000+iproc,'(100es9.2)') (coeff(iorb,jorb), jorb=1,orbs%norb)
   !!end do
+
 
   ! Calculate the band structure energy with matrixElements.
   ebs=0.d0
@@ -2674,15 +2700,94 @@ end subroutine free_lnlpspd
 
 
 
-subroutine getCoefficients_new
-implicit none
+subroutine getCoefficients_new(iproc, nproc, lin, orbs, hamold, lphi, ovrlp, coeff)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => getCoefficients_new
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(inout):: lin
+type(orbitals_data),intent(in):: orbs
+real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: hamold
+real(8),dimension(lin%lzd%lpsidimtot),intent(in):: lphi
+real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(inout):: ovrlp
+real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff
+
+! Local variables
+integer:: iorb, jorb, j, k, l, info, istat, iall, jproc, ierr
+real(8),dimension(:,:),allocatable:: Q, lambda
+real(8):: tt, tt2, tt3, alpha
+integer,dimension(:),allocatable:: sendcounts, displs
+character(len=*),parameter:: subname='getCoefficients_new'
+
+! this is the "step size"
+alpha=1.d-1
+
+allocate(Q(lin%orbs%norb,lin%orbs%norb), stat=istat)
+call memocc(istat, Q, 'Q', subname)
+allocate(lambda(lin%orbs%norb,orbs%norbp), stat=istat)
+call memocc(istat, lambda, 'lambda', subname)
+allocate(sendcounts(0:nproc-1), stat=istat)
+call memocc(istat, sendcounts, 'sendcounts', subname)
+allocate(displs(0:nproc-1), stat=istat)
+call memocc(istat, displs, 'displs', subname)
+
 
 ! Calculate the matrices Q=<phi|phiold>
 call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lin%lphiold, lin%mad, Q)
 
-! Calculate the right hand sides.
+! Calculate the right hand sides for all physical orbitals handled by this process.
+do iorb=1,orbs%norbp
+    do jorb=1,lin%orbs%norb
+        tt=0.d0
+        ! First part. Check indices of Q.
+        do j=1,lin%orbs%norb
+            !tt=tt+coeff(j,iorb)*Q(jorb,j)
+            tt=tt+coeff(j,iorb)*Q(j,jorb)
+        end do
+        ! Second part. Keep the value of tt.
+        tt2=0.d0
+        do j=1,lin%orbs%norb
+            do k=1,lin%orbs%norb
+                tt2=tt2+coeff(j,iorb)*coeff(k,iorb)*hamold(k,j)
+            end do
+        end do
+        ! Check signs of Q.
+        tt3=0.d0
+        do l=1,lin%orbs%norb
+            !tt3=tt3+Q(jorb,l)
+            tt3=tt3+Q(l,jorb)
+        end do
+        lambda(jorb,iorb)=tt-alpha*(tt-tt2*tt3)
+    end do
+end do
 
+! Solve the system of linear equations.
+! Copy the overlap matrix.
+call dposv('l', lin%orbs%norb, orbs%norbp, ovrlp(1,1), lin%orbs%norb, lambda(1,1), lin%orbs%norb, info)
+
+! Communicate the coefficients to all processes.
+displs(0)=0
+do jproc=0,nproc-1
+    sendcounts(jproc)=lin%orbs%norb*orbs%norb_par(jproc)
+    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+end do
+call mpi_allgatherv(lambda, sendcounts(iproc), mpi_double_precision, coeff, sendcounts, displs, &
+     mpi_double_precision, mpi_comm_world, ierr)
+
+iall=-product(shape(Q))*kind(Q)
+deallocate(Q, stat=istat)
+call memocc(istat, iall, 'Q', subname)
+iall=-product(shape(lambda))*kind(lambda)
+deallocate(lambda, stat=istat)
+call memocc(istat, iall, 'lambda', subname)
+iall=-product(shape(sendcounts))*kind(sendcounts)
+deallocate(sendcounts, stat=istat)
+call memocc(istat, iall, 'sendcounts', subname)
+iall=-product(shape(displs))*kind(displs)
+deallocate(displs, stat=istat)
+call memocc(istat, iall, 'displs', subname)
 
 end subroutine getCoefficients_new
