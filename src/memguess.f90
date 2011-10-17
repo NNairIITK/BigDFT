@@ -16,7 +16,7 @@ program memguess
   use module_types
   use module_interfaces
   use module_xc
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   implicit none
   character(len=*), parameter :: subname='memguess'
@@ -89,11 +89,11 @@ program memguess
   else
      read(unit=tatonam,fmt=*) nproc
      i_arg = 2
+     output_grid=0
      loop_getargs: do
         call get_command_argument(i_arg, value = tatonam, status = istat)
         !call getarg(i_arg,tatonam)
         if(trim(tatonam)=='' .or. istat > 0) then
-           output_grid=0
            exit loop_getargs
         else if (trim(tatonam)=='y') then
            output_grid=1
@@ -215,7 +215,11 @@ program memguess
 
   !standard names
   call standard_inputfile_names(in, radical)
-  call read_input_variables(0, "posinp", in, atoms, rxyz)
+  if (trim(radical) == "") then
+     call read_input_variables(0, "posinp", in, atoms, rxyz)
+  else
+     call read_input_variables(0, trim(radical), in, atoms, rxyz)
+  end if
   !initialize memory counting
   !call memocc(0,0,'count','start')
 
@@ -322,7 +326,7 @@ program memguess
 
   ! Build and print the communicator scheme.
   call createWavefunctionsDescriptors(0,hx,hy,hz,&
-       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (in%output_grid > 0))
+       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
   if (exportwf) then
@@ -771,6 +775,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   logical :: rsflag
   integer :: icoeff,i_stat,i_all,i1,i2,i3,ispin,j
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
+  integer(kind=8) :: itsc0,itsc1
   real(kind=4) :: tt,t0,t1
   real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrm_zero,gnrmGPU
   real(gp) :: Rden,Rham,Rgemm,Rsyrk,Rprec,eSIC_DC
@@ -865,12 +870,13 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
      nrhotot=lr%d%n3i
   end if
 
-
   !allocate the necessary objects on the GPU
   !set initialisation of GPU part 
   !initialise the acceleration strategy if required
   call init_material_acceleration(iproc,iacceleration,GPU)
-
+  
+  if (GPUconv .eqv. OCLconv) stop 'ERROR: One (and only one) acceleration should be present with GPUtest'
+  
   !allocate arrays for the GPU if a card is present
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,nspin,&
@@ -885,22 +891,24 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
 
   write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Density calculation'
 
-
-
   !for each of the orbitals treated by the processor build the partial densities
-  call cpu_time(t0)
+  !call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,pot,nproc)
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
           nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs,&
           psi,pot)
   end do
-  call cpu_time(t1)
-  CPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  !call cpu_time(t1)
+  !CPUtime=real(t1-t0,kind=8)
+  CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   !now the GPU part
   !for each of the orbitals treated by the processor build the partial densities
-  call cpu_time(t0)
+  !call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      !switch between GPU/CPU treatment of the density
      if (GPUconv) then
@@ -909,8 +917,10 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
         call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
      end if
   end do
-  call cpu_time(t1)
-  GPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  !call cpu_time(t1)
+  !GPUtime=real(t1-t0,kind=8)
+  GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   i_all=-product(shape(nscatterarr))*kind(nscatterarr)
   deallocate(nscatterarr,stat=i_stat)
@@ -919,8 +929,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   !compare the results between the different actions of the hamiltonian
   !check the differences between the results
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,pot,rho,&
-       lr%d%n1i*lr%d%n2i*lr%d%n3i,ntimes,.false.,Rden)
+       real(lr%d%n1i*lr%d%n2i*lr%d%n3i,kind=8)*192.d0,pot,rho,&
+       lr%d%n1i*lr%d%n2i*lr%d%n3i,ntimes*orbs%norbp,.false.,Rden)
 
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
@@ -954,13 +964,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
 
   !apply the CPU hamiltonian
   !take timings
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,0,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
   end do
-  call cpu_time(t1)
-
-  CPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   print *,'ekin,epot=',ekin_sum,epot_sum
 
@@ -973,7 +982,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   call memocc(i_stat,GPU%hpsi_ASYNC,'GPU%hpsi_ASYNC',subname)
 
   !take timings
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      if (GPUconv) then
         call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
@@ -982,17 +991,18 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
      end if
   end do
   if(ASYNCconv .and. OCLconv) call finish_hamiltonian_OCL(orbs,ekinGPU,epotGPU,GPU)
-  call cpu_time(t1)
+  call nanosec(itsc1)
+  GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   print *,'ekinGPU,epotGPU',ekinGPU,epotGPU
 
-  GPUtime=real(t1-t0,kind=8)
+
 
   !compare the results between the different actions of the hamiltonian
   !check the differences between the results
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,GPU%hpsi_ASYNC,&
-       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.,Rham)
+       real(lr%d%n1i*lr%d%n2i*lr%d%n3i,kind=8)*real(192+46*3+192+2,kind=8),hpsi,GPU%hpsi_ASYNC,&
+       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes*orbs%norbp,.false.,Rham)
 
   i_all=-product(shape(pot))*kind(pot)
   deallocate(pot,stat=i_stat)
@@ -1006,54 +1016,54 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   allocate(overlap(orbs%norbp,orbs%norbp,2+ndebug),stat=i_stat)
   call memocc(i_stat,overlap,'overlap',subname)
 
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      call DGEMM('T','N',orbs%norbp,orbs%norbp,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1.0_wp,&
           psi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),&
           hpsi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),0.0_wp,&
           overlap(1,1,1),orbs%norbp)
   end do
-  call cpu_time(t1)
-  CPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
 
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
-     call GEMM('T','N',orbs%norbp,orbs%norbp,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1.0_wp,&
+     call GEMMSY('T','N',orbs%norbp,orbs%norbp,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1.0_wp,&
           psi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),&
           hpsi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),0.0_wp,&
           overlap(1,1,2),orbs%norbp)
   end do
-  call cpu_time(t1)
-  GPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   !comparison between the results
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,overlap(1,1,1),overlap(1,1,2),&
+       real(orbs%norbp**2,kind=8)*real((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*2,kind=8),overlap(1,1,1),overlap(1,1,2),&
        orbs%norbp**2,ntimes,.false.,Rgemm)
 
 
   nvctrp=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
 
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      call dsyrk('L','T',orbs%norbp,nvctrp,1.0_wp,psi(1,1),nvctrp,0.0_wp,&
           overlap(1,1,1),orbs%norbp)
   end do
-  call cpu_time(t1)
-  CPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
 
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      call syrk('L','T',orbs%norbp,nvctrp,1.0_wp,psi(1,1),nvctrp,0.0_wp,&
           overlap(1,1,2),orbs%norbp)
   end do
-  call cpu_time(t1)
-  GPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,overlap(1,1,1),overlap(1,1,2),&
+       real(orbs%norbp*(orbs%norbp+1),kind=8)*real(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,kind=8),overlap(1,1,1),overlap(1,1,2),&
        orbs%norbp**2,ntimes,.false.,Rsyrk)
 
   i_all=-product(shape(overlap))*kind(overlap)
@@ -1065,19 +1075,19 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Preconditioner'
 
   !the input function is psi
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   end do
-  call cpu_time(t1)
+  call nanosec(itsc1)
 
-  CPUtime=real(t1-t0,kind=8)
+  CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
   print *,'gnrm',gnrm
 
 
   !GPU data are already on the card, must be only copied back
   !the input function is GPU%hpsi in that case
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      !Preconditions all orbitals belonging to iproc
      !and calculate the partial norm of the residue
@@ -1090,14 +1100,14 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
              GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
      end if
   end do
-  call cpu_time(t1)
+  call nanosec(itsc1)
   
-  GPUtime=real(t1-t0,kind=8)
+  GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
   print *,'gnrmGPU',gnrmGPU
 
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,GPU%hpsi_ASYNC,&
-       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.,Rprec)
+       real(lr%d%n1i*lr%d%n2i*lr%d%n3i,kind=8)*real((192+46*3+192+2-1+12)*(ncong+1),kind=8),hpsi,GPU%hpsi_ASYNC,&
+       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes*orbs%norbp,.false.,Rprec)
 
   i_all=-product(shape(GPU%hpsi_ASYNC))*kind(GPU%hpsi_ASYNC)
   deallocate(GPU%hpsi_ASYNC,stat=i_stat)
@@ -1138,8 +1148,9 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
   real(wp), dimension(n), intent(in) :: CPUdata,GPUdata
   !local variables
   integer :: i
-  real(gp) :: CPUGflops,GPUGflops,maxdiff,comp
+  real(gp) :: CPUGflops,GPUGflops,maxdiff,comp,threshold
 
+  threshold=1.d-12
   !un-initialize valies which might suffer from fpe
   GPUGflops=-1.0_gp
   CPUGflops=-1.0_gp
@@ -1158,21 +1169,22 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
      maxdiff=max(maxdiff,comp)
   end do
   if (GPUtime > 0.0_gp) ratio=CPUtime/GPUtime
-  if (maxdiff <= 1.d-12) then
-     write(*,'(1x,a,1x,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-          'GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-          ratio,maxdiff,&
-          CPUtime*1.d3/real(ntimes,kind=8),CPUGflops,&
-          GPUtime*1.d3/real(ntimes,kind=8),GPUGflops
-  else
-     write(*,'(1x,a,1x,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-          'GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-          ratio,maxdiff,&
-          CPUtime*1.d3/real(ntimes,kind=8),CPUGflops,&
-          GPUtime*1.d3/real(ntimes,kind=8),GPUGflops,&
-          '<<<< WARNING' 
-  end if
+  write(*,'(1x,a)')'| CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |'
 
+  write(*,'(1x,2(2(a,f10.2),a),a,f8.3,a,i14,a,1pe12.4,a)',advance='no')&
+                                !'nbelem,REF/TEST ratio,Time,Gflops: REF,TEST',&
+       '|',CPUtime*1.d3/real(ntimes,kind=8),'|',& ! Time CPU (ms)
+       CPUGflops,'|',& !Gflops CPU (ms)
+       '|',GPUtime*1.d3/real(ntimes,kind=8),'|',& ! Time GPU (ms)
+       GPUGflops,'|',&!Gflops GPU (ms)
+       '|',ratio,'|',& ! ratio
+       n,'|',& !No. elements
+       maxdiff,'|' ! maxdiff
+  if (maxdiff <= threshold) then
+     write(*,'(a)')''
+  else
+     write(*,'(a)')'<<<< WARNING' 
+  end if
 
 END SUBROUTINE compare_data_and_gflops
 
@@ -1190,7 +1202,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,psi)
   !local variables
   character(len=*), parameter :: subname='take_psi_form_file'
   logical :: perx,pery,perz,exists
-  integer :: nb1,nb2,nb3,i_stat,i_err,isuffix,iorb_out,i_all
+  integer :: nb1,nb2,nb3,i_stat,isuffix,iorb_out,i_all
   real(gp) :: eval_fake
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(gp), dimension(:,:), allocatable :: rxyz_file

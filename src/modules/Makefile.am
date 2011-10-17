@@ -24,7 +24,7 @@ mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_INTERFACES.@MODULE_EXT@ \
 	MODULE_XC.@MODULE_EXT@ \
-	OP2P_MODULE.@MODULE_EXT@ \
+	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
 	MODULE_INPUT.@MODULE_EXT@
 else
 mod_bigdft = module_base.@MODULE_EXT@ \
@@ -32,7 +32,7 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ \
 	module_xc.@MODULE_EXT@ \
-	op2p_module.@MODULE_EXT@ \
+	overlap_point_to_point.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)

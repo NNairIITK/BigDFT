@@ -21,11 +21,12 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.6-dev.6)
+                           ggggg       i         BBBB                (Ver 1.6-tuto.1)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
+
  |... (file:input.perf.. not present)............................Performance Options 
  |debug F                    Debug option
  |fftcache 8192              Cache size for the FFT
@@ -76,6 +77,8 @@
  |NONE           SIC method: NONE, PZ, NK                                            
  |0.0            SIC downscaling parameter                                           
  |0.0            Reference occupation fref (NK case only)                            
+ |----------------------------------------------------------------------------------
+ |  Data Writing directory:    not needed
  No material acceleration (iproc=0)
 
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
@@ -114,7 +117,7 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       2916 points=    157464
    Fine resolution grid: Number of segments=         69 points=       461
- Wavefunctions memory occupation for root processor (Bytes): 10284224
+ Wavefunctions memory occupation for root processor (Bytes): 1285528
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Fe               1                   13
@@ -130,20 +133,20 @@
  Total number of components =               167280
  Percent of zero components =                   18
  ------------------------------------------------------------------ Memory Estimation
- Number of atoms=    1 Number of orbitals=     8 Sim. Box Dimensions=    53   53   53
+ Number of atoms=    1 Number of orbitals=     1 Sim. Box Dimensions=    53   53   53
  Estimation performed for 1 processors.
  Memory occupation for principal arrays:
                Poisson Solver Kernel (K):     9 MB   902 KB
               Poisson Solver Density (D):     9 MB   626 KB
      Single Wavefunction for one orbital:     1 MB   232 KB
-    All Wavefunctions for each processor:    19 MB   631 KB
-       Wavefunctions + DIIS per proc (W):    19 MB   631 KB
+    All Wavefunctions for each processor:     2 MB   463 KB
+       Wavefunctions + DIIS per proc (W):     2 MB   463 KB
      Nonlocal Pseudopotential Arrays (P):     0 MB   708 KB
     Arrays of full uncompressed grid (U):     9 MB   626 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
        ~11*K         |   W+~2*U+~ 3*D+K+P   |   ~8*D+K+W+P   |   W+~2*U+~ 3*D+K+P 
-       108MB         |        77MB          |      107MB     |            78MB
+       108MB         |        60MB          |       89MB     |            61MB
  The overall memory requirement needed for this calculation is thus: 108 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 51 MB
@@ -166,7 +169,7 @@
  Wavefunctions memory occupation for root processor (Bytes): 12855280
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    7.47E-05
- Calculation of charge density... done. Total electronic charge=      15.999983273238
+ Calculation of charge density... done. Total electronic charge=      15.999983273239
  PSolver, periodic BC, dimensions:   108  108  108   proc    1 ... done.
   going to calculate spectra 
   IN ROUTINE  chebychev  
@@ -176,63 +179,65 @@
  USING PTILDES TO BUILD INITIAL WAVE
   EP_initialize_start    OK 
  Hamiltonian application...  done 
- new cheb coeffs  -9.78219949562099530E-004  6.33015135896701671E-004
+new cheb coeffs     -0.9782199496D-03     0.6330151359D-03
  Hamiltonian application...  done 
- new cheb coeffs  -1.90783486606138121E-004 -2.04484677579897900E-004
+new cheb coeffs     -0.1907834866D-03    -0.2044846776D-03
  Hamiltonian application...  done 
- new cheb coeffs   4.41121305445573179E-004 -4.77015139779565106E-004
+new cheb coeffs      0.4411213054D-03    -0.4770151398D-03
  Hamiltonian application...  done 
- new cheb coeffs   3.48330686391525534E-004 -1.44077420108645730E-004
+new cheb coeffs      0.3483306864D-03    -0.1440774201D-03
  Hamiltonian application...  done 
- new cheb coeffs  -3.49515227995112268E-005  1.18607619814691499E-004
+new cheb coeffs     -0.3495152280D-04     0.1186076198D-03
  Hamiltonian application...  done 
- new cheb coeffs  -8.92853206043270863E-005 -1.86996861634262674E-005
+new cheb coeffs     -0.8928532060D-04    -0.1869968616D-04
  Hamiltonian application...  done 
- new cheb coeffs   1.43300485225066466E-004 -2.24901620578469154E-004
+new cheb coeffs      0.1433004852D-03    -0.2249016206D-03
  Hamiltonian application...  done 
- new cheb coeffs   2.33250663269138890E-004 -1.75813628773289869E-004
+new cheb coeffs      0.2332506633D-03    -0.1758136288D-03
  Hamiltonian application...  done 
- new cheb coeffs   9.06302042362216488E-005 -2.42328794969788337E-005
+new cheb coeffs      0.9063020424D-04    -0.2423287950D-04
  Hamiltonian application...  done 
- new cheb coeffs   1.01890186396990171E-005 -5.32263911856983851E-005
+new cheb coeffs      0.1018901864D-04    -0.5322639119D-04
  Hamiltonian application...  done 
- new cheb coeffs   1.29959287979720061E-004 -2.00338217659212477E-004
+new cheb coeffs      0.1299592880D-03    -0.2003382177D-03
  Hamiltonian application...  done 
- new cheb coeffs   2.28515892872424315E-004 -1.98614152232568734E-004
+new cheb coeffs      0.2285158929D-03    -0.1986141522D-03
  Hamiltonian application...  done 
- new cheb coeffs   1.22734747966064513E-004 -3.31708492574871519E-005
+new cheb coeffs      0.1227347480D-03    -0.3317084926D-04
  Hamiltonian application...  done 
- new cheb coeffs  -3.24842315696047962E-005  5.04631476368558058E-005
+new cheb coeffs     -0.3248423157D-04     0.5046314764D-04
  Hamiltonian application...  done 
- new cheb coeffs  -2.03294353890623967E-005 -3.48376605002096666E-005
+new cheb coeffs     -0.2032943539D-04    -0.3483766050D-04
  Hamiltonian application...  done 
- new cheb coeffs   8.16374442382957442E-005 -9.13691995574638684E-005
+new cheb coeffs      0.8163744424D-04    -0.9136919956D-04
  Hamiltonian application...  done 
- new cheb coeffs   5.40078703468138384E-005  1.97930628098846179E-005
+new cheb coeffs      0.5400787035D-04     0.1979306281D-04
  Hamiltonian application...  done 
- new cheb coeffs  -1.04199476008132348E-004  1.72225318861182275E-004
+new cheb coeffs     -0.1041994760D-03     0.1722253189D-03
  Hamiltonian application...  done 
- new cheb coeffs  -2.06474228595827274E-004  2.06237023043838062E-004
+new cheb coeffs     -0.2064742286D-03     0.2062370230D-03
   done 
  writing spectra to  cheb_spectra_proc_0_orbp_1
- writing spectra to  cheb_spectra_39
+ writing spectra to  cheb_spectra_40
  Hamiltonian application...  done 
- new cheb coeffs  -1.83843844844308818E-004  1.57779173690111808E-004
+new cheb coeffs     -0.1838438448D-03     0.1577791737D-03
  coefficients from Chebychev 
-   40 1.8347331808298765E+02 5.3215820427215208E-03
+   40 1.8347331808298776E+02 5.3215820427215243E-03
  ... 
--3.4837660500209667E-05
- 8.1637444238295744E-05
--9.1369199557463868E-05
- 5.4007870346813838E-05
- 1.9793062809884618E-05
--1.0419947600813235E-04
- 1.7222531886118228E-04
--2.0647422859582727E-04
- 2.0623702304383806E-04
--1.8384384484430882E-04
+-3.4837660500426941E-05
+ 8.1637444238540774E-05
+-9.1369199557746628E-05
+ 5.4007870347127390E-05
+ 1.9793062809559357E-05
+-1.0419947600782574E-04
+ 1.7222531886091925E-04
+-2.0647422859563147E-04
+ 2.0623702304371685E-04
+-1.8384384484425548E-04
  DEALLOCATING
- CPU time/ELAPSED time for root process     0        22.48        22.43
+  dealloco orbs
+  dealloco orbsAO
+ CPU time/ELAPSED time for root process     0        22.52        22.24
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -240,6 +245,6 @@
       y direction     0.00000000E+00
       z direction     0.00000000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1658 allocations and 1658 deallocations, remaining memory(B): 0
+ 1660 allocations and 1660 deallocations, remaining memory(B): 0
  memory occupation peak: 85 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

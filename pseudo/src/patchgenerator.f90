@@ -4,10 +4,10 @@ subroutine paw_generator(izatom,zion, lmx,  lpmx, lmax,  hsep, gpot, &
      ng, noccmax,noccmx, expo,&
      psi, aeval, occup, &
      Nsol, Labs, Ngrid,Ngrid_box, Egrid,  rgrid ,rw,rd,  psigrid, Npaw,&
-     PAWpatch , psipsigrid, rcov, rprb, rcore, zcore )
+     PAWpatch , psipsigrid, rcov, rprb, rcore, zcore , Ngrid_box_larger)
 
   implicit none
-  integer, intent(in) :: izatom, ng,noccmax,noccmx,Nsol, labs, Ngrid,  Ngrid_box
+  integer, intent(in) :: izatom, ng,noccmax,noccmx,Nsol, labs, Ngrid,  Ngrid_box, Ngrid_box_larger
 
   integer, intent(in) :: Npaw
   
@@ -106,7 +106,7 @@ subroutine paw_generator(izatom,zion, lmx,  lpmx, lmax,  hsep, gpot, &
        zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
        aeval,ng,psi,res,chrg,&
        Nsol, Labs, Ngrid,Ngrid_box,Egrid,  rgrid,rw, rd,  psigrid,Npaw,  PAWpatch,&
-       psipsigrid,rcore,zcore)              
+       psipsigrid,rcore,zcore , Ngrid_box_larger   )              
  
   
   do i=1,ng+1

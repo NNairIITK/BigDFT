@@ -880,6 +880,17 @@ module module_interfaces
        real(wp), intent(out) :: gaucoeff !norbe=G%ncoeff
      END SUBROUTINE AtomicOrbitals
 
+     subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
+       type(atoms_data), intent(inout) :: at
+       !integer, dimension(nmax,lmax), intent(in) :: neleconf
+       real(gp), dimension(nmax,lmax), intent(in) :: neleconf
+     END SUBROUTINE atomic_occupation_numbers
+
      subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,&
           ibyyzz_r) !optional
        use module_base
@@ -912,7 +923,7 @@ module module_interfaces
 
      subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, in, PAWD )
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, in, PAWD, orbs )
        use module_base
        use module_types
        implicit none
@@ -932,6 +943,7 @@ module module_interfaces
        type(pawproj_data_type), target ::PAWD
 
        type(input_variables),intent(in) :: in
+       type(orbitals_data), intent(inout), target :: orbs
      END SUBROUTINE xabs_lanczos
      subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
           zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
@@ -1000,10 +1012,44 @@ module module_interfaces
        !local variables
      end subroutine abs_generator_modified
 
-
+     subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
+          radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
+          in , rhoXanes, PAWD , PPD, orbs )
+       use module_base
+       use module_types
+       ! per togliere il bug 
+       
+       implicit none
+       
+       integer  :: iproc,nproc,ndimpot,nspin
+       real(gp)  :: hx,hy,hz
+       type(atoms_data), target :: at
+       type(nonlocal_psp_descriptors), target :: nlpspd
+       type(locreg_descriptors), target :: lr
+       
+       type(pcproj_data_type), target ::PPD
+       
+       integer, dimension(0:nproc-1,2), target :: ngatherarr 
+       real(gp), dimension(3,at%nat), target :: rxyz
+       real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
+       real(wp), dimension(nlpspd%nprojel), target :: proj
+       real(wp), dimension(max(ndimpot,1),nspin), target :: potential
+       real(wp), dimension(max(ndimpot,1),nspin), target :: rhoXanes
+       
+       
+       
+       real(gp) :: ekin_sum,epot_sum,eproj_sum
+       type(GPU_pointers), intent(inout) , target :: GPU
+       integer, intent(in) :: in_iat_absorber
+       type(pawproj_data_type), target ::PAWD
+       type(input_variables),intent(in), target :: in
+       type(orbitals_data), intent(inout), target :: orbs
+     end subroutine xabs_cg
+     
      subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD   )! aggiunger a interface
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD,orbs   )! aggiunger a interface
        use module_base
        use module_types
        implicit none
@@ -1025,6 +1071,8 @@ module module_interfaces
 
        type(input_variables),intent(in) :: in
        type(pawproj_data_type), target ::PAWD
+       type(orbitals_data), intent(inout), target :: orbs
+
      END SUBROUTINE xabs_chebychev
 
      subroutine cg_spectra(iproc,nproc,at,hx,hy,hz,rxyz,&

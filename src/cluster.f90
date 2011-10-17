@@ -12,7 +12,7 @@
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => call_bigdft 
+  use module_interfaces, except_this_one => call_bigdft
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables),intent(inout) :: in
@@ -189,8 +189,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   use module_xc
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
-  use ab6_symmetry
+  use m_ab6_symmetry
   use m_ab6_mixing
+  use m_ab6_kpoints
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -438,7 +439,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !calculate the irreductible zone, if necessary.
   if (atoms%symObj >= 0) then
-     call ab6_symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
+     call symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
      if (nsym > 1) then
         ! Current third dimension is set to 1 always
         ! since nspin == nsppol always in BigDFT
@@ -446,8 +447,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,irrzon,'irrzon',subname)
         allocate(phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
         call memocc(i_stat,phnons,'phnons',subname)
-        call ab6_symmetry_get_irreductible_zone(atoms%symObj, irrzon, phnons, &
-             & n1i, n2i, n3i, in%nspin, in%nspin, i_stat)
+        call kpoints_get_irreductible_zone(irrzon, phnons, &
+             & n1i, n2i, n3i, in%nspin, in%nspin, atoms%symObj, i_stat)
      end if
   end if
   if (.not. allocated(irrzon)) then
@@ -1280,6 +1281,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
              iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+
+        ! calculate dipole moment associated to the charge density
+        call calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+
         if (associated(rhocore)) then
            if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
            call plot_density(trim(in%dir_output)//'core_density' // gridformat,&

@@ -14,13 +14,14 @@ program BigDFT2Wannier
    type(communications_arrays), target :: comms, commsp,commsv,commsb
    integer :: iproc, nproc, i_stat, nelec, ind, ierr, npsidim, npsidim2
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft
+   integer :: ncount0,ncount1,ncount_rate,ncount_max
+   real :: tcpu0,tcpu1,tel
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
    real(wp), allocatable :: psi_etsf(:,:),psi_etsfv(:,:),sph_har_etsf(:),sph_daub(:),psir(:),psir_re(:),psir_im(:)
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:)
-   real(wp), allocatable :: psi_daub(:,:),psi_etsf3(:,:)
-   real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:), mmnk_v(:,:)
+   real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)
    character(len=60) :: radical, filename
    !cube
@@ -69,6 +70,9 @@ program BigDFT2Wannier
    else
       call timing(iproc,'             ','IN')
    end if
+
+   call cpu_time(tcpu0)
+   call system_clock(ncount0,ncount_rate,ncount_max) 
 
 ! Read input.inter file
 ! It defines the name of the system studied and some important integers :
@@ -1330,7 +1334,12 @@ end if
    else
       call timing(iproc,'             ','RE')
    end if
-   
+
+  call cpu_time(tcpu1)
+  call system_clock(ncount1,ncount_rate,ncount_max)
+  tel=dble(ncount1-ncount0)/dble(ncount_rate)
+  if (iproc == 0) &
+    write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0 
    !finalize memory counting
    call memocc(0,0,'count','stop')
 
@@ -2150,6 +2159,11 @@ subroutine angularpart(l, mr, np, nx, ny, nz, ix, iy, iz, &
 
    rr=sqrt(xx*xx+yy*yy+zz*zz)
 
+   if(rr < eps8)then
+     ylm(ix,iy,iz) = 1.d0/ sqrt(4*pi)
+     return
+   end if      
+
    cost = zz / rr
 
    if (xx > eps8) then
@@ -2647,9 +2661,9 @@ subroutine radialpart(rvalue, zona, np, nx, ny, nz, ix, iy, iz, &
 
    rr = sqrt( xx*xx + yy*yy + zz*zz )
 
-   if (rr < eps8) then
-      write(*,*) 'rr too small '
-   end if
+!   if (rr < eps8) then
+!      write(*,*) 'rr too small '
+!   end if
    if (rvalue(np)==1) func_r(ix,iy,iz) = 2.d0 * (zona(np)/0.529177208)**(3.d0/2.d0) * exp(-(zona(np)/0.529177208)*rr)
    if (rvalue(np)==2) func_r(ix,iy,iz) = 1.d0/sqrt(8.d0) * (zona(np)/0.529177208)**(3.d0/2.d0) * & 
       (2.0d0 - (zona(np)/0.529177208)*rr) * exp(-(zona(np)/0.529177208)*rr*0.5d0)

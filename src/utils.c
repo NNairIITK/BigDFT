@@ -1,6 +1,6 @@
 /*
 !> @file
-!!  Routines to access easily to the filesystem (C part).
+!!  Routines to access easily to the filesystem and to other C goodies.
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group 
 !!    This file is distributed under the terms of the
@@ -19,6 +19,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+void FC_FUNC(nanosec,NANOSEC)(long * t){
+  struct timespec time;
+  clock_gettime(CLOCK_REALTIME, &time);
+  *t = time.tv_sec;
+  *t *= 1000000000;
+  *t += time.tv_nsec;
+}
+
 
 void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
                              char *out, int *lgOut,

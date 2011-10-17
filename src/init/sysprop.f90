@@ -161,7 +161,7 @@ subroutine init_atomic_values(iproc, atoms, ixc)
   character(len=*), parameter :: subname='init_atomic_values'
   integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat
   integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
-  logical :: exists, read_radii
+  logical :: exists, read_radii,exist_all
   character(len=27) :: filename
      
   !allocate atoms data variables
@@ -193,16 +193,20 @@ subroutine init_atomic_values(iproc, atoms, ixc)
   paw_tot_q=0
   paw_tot_coefficients=0
   paw_tot_matrices=0
-
+  exist_all=.true.
+  !@ todo : eliminate the pawpatch from psppar
   do ityp=1,atoms%ntypes
      filename = 'psppar.'//atoms%atomnames(ityp)
      call psp_from_file(iproc, filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
           & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
           & atoms%radii_cf(ityp, :), read_radii, exists)
 
-     !! first time just for dimension ( storeit = . false.)
-     call pawpatch_from_file( filename, atoms,ityp,&
-          paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .false.)
+     if (exists) then
+        !! first time just for dimension ( storeit = . false.)
+        call pawpatch_from_file( filename, atoms,ityp,&
+             paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .false.)
+     end if
+     exist_all=exist_all .and. exists
 
      if (.not. read_radii) atoms%radii_cf(ityp, :) = UNINITIALIZED(1.0_gp)
      if (.not. exists) then
@@ -224,12 +228,18 @@ subroutine init_atomic_values(iproc, atoms, ixc)
      atoms%donlcc = (atoms%donlcc .or. exists)
   end do
   
-  do ityp=1,atoms%ntypes
-     filename = 'psppar.'//atoms%atomnames(ityp)
-     !! second time allocate and then store
-     call pawpatch_from_file( filename, atoms,ityp,&
-          paw_tot_l,   paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .true.)
-  end do
+  if (exist_all) then
+     do ityp=1,atoms%ntypes
+        filename = 'psppar.'//atoms%atomnames(ityp)
+        !! second time allocate and then store
+        call pawpatch_from_file( filename, atoms,ityp,&
+             paw_tot_l,   paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .true.)
+     end do
+  else
+     nullify(atoms%paw_l,atoms%paw_NofL,atoms%paw_nofchannels)
+     nullify(atoms%paw_nofgaussians,atoms%paw_Greal,atoms%paw_Gimag)
+     nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
+  end if
 
   !process the nlcc parameters if present 
   !(allocation is performed also with zero size)
@@ -388,7 +398,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   use module_base
   use module_types
   use module_xc
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   character (len=*), intent(in) :: fileocc
   type(input_variables), intent(in) :: in
@@ -402,7 +412,6 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   logical :: exists
   character(len=2) :: symbol
   character(len=24) :: message
-  character(len=27) :: filename
   character(len=50) :: format
   integer :: i,j,k,l,iat,nt,ntu,ntd,ityp,ierror,i_stat,ispinsum,mxpl
   integer :: ispol,mxchg,ichg,ichgsum,nsccode,norbe,norbat,nspinor,nspin
@@ -786,10 +795,10 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   ! We modify the symmetry object with respect to the spin.
   if (atoms%symObj >= 0) then
      if (in%nspin == 2) then
-        call ab6_symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
+        call symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
              & atoms%natpol, ierror)
 !!$     else if (in%nspin == 4) then
-!!$        call ab6_symmetry_set_spin(atoms%symObj, atoms%nat, &
+!!$        call symmetry_set_spin(atoms%symObj, atoms%nat, &
 !!$             & atoms%natpol, ierror)
      end if
   end if
@@ -1634,7 +1643,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
 
 !! local variables  
   character(len=*), parameter :: subname='pawpatch_from_file'
-  integer ::   dumi, npawl, ipawl, paw_l, i_stat
+  integer :: npawl, ipawl, paw_l, i_stat
   integer :: paw_nofgaussians, paw_nofchannels, il, ierror, ig
   real(gp) :: paw_greal, paw_gimag, paw_ccoeff, paw_scoeff, dumpaw
   character(len=100) :: string
@@ -1650,7 +1659,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
      open(unit=11,file=trim(filename),status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        write(*,*) ': Failed to open the file (it must be in ABINIT format!): "',&
+        write(*,*) ': Failed to open the PAWpatch file "',&
              trim(filename),'"'
         stop
      end if
