@@ -23,6 +23,7 @@ EXTRA_DIST = \
 	html/point.png \
 	html/sample.png
 
+CLEANFILES = *.pdf *.aux *.toc *.log *.xml
 
 if BUILD_PDFDOC
 pdfs = cluster.pdf \
