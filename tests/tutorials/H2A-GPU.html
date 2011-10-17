@@ -128,6 +128,45 @@ GPU Convolutions, dimensions:   124 17160
 	</p>  
       </div>
 
+In order to test the behaviour of the complete code operations, a functionality is added in the <code>memguess</code> program.
+This functionality, called <code>GPUtest</code> will run the BigDFT unitary 3D operations (Density construction, Local Hamiltonian and preconditioning) with and without GPU acceleration.
+This is a useful tool to predict the advantages of GPU usage.
+	<div class="exercice">
+        <p><b>Exercise</b>: To activate the <code>GPUtest</code> you should call <code>memguess</code> this way:
+	  <pre>
+	    ../../../src/memguess 1 &lt;name&gt; GPUtest &lt;nrep&gt; &lt;norbs&gt; </pre>
+	 where <code>&lt;name&gt;</code>, <code>&lt;nrep&gt;</code> and <code>&lt;norbs&gt;</code> are optional arguments indicating the run name, the number of repetitions of the calculation and the number of orbitals treated. their default values are <code>none</code>, <code>1</code> and <code>norb</code> (the total number of orbitals in the  system), respectively.
+	<p class="answer">The output will have comparisons of CPU and GPU timings of code 
+	sections which was implemented by OpenCL and CUDA:</p>
+	<span class="override"><pre>
+---------------------------------- CPU-GPU comparison: Density calculation
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |     37.36|      2.63||      2.81|     34.98||  13.294|        512000|  9.7145E-17|
+ ---------------------------------- CPU-GPU comparison: Local Hamiltonian calculation
+ ekin,epot=   56.3306474633124        93.0696865423315     
+ ekinGPU,epotGPU   56.3306474633134        93.0696865423313     
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |    117.52|      2.28||      7.46|     35.98||  15.762|      65536000|  7.4772E-16|
+ ---------------------------------- CPU-GPU comparison: Linear Algebra (Blas)
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |   1789.95|      9.37||   1790.32|      9.37||   1.000|         16384|  0.0000E+00|
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |   1315.30|      6.43||   1314.96|      6.43||   1.000|         16384|  0.0000E+00|
+ ---------------------------------- CPU-GPU comparison: Preconditioner
+ gnrm   284.904515990837     
+ gnrmGPU   284.904515990839     
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |    133.67|      4.10||     20.51|     26.72||   6.519|      65536000|  3.1919E-16|
+ Ratios:  13.294  15.762   1.000   1.000   6.519
+</pre></span>
+	<p class="answer">
+	  Run these features with the systems presented in these page, with and without CUDA (if available).
+	  Experience Amdahl's law: compare the behaviours with the run of the whole code (see below).
+	</p>  
+	</div>
+
+	
+
       <h2>Doing total energy calculations on different platforms</h2>
       
       <p>For both OpenCL and CUDA versions an additional input file <code>input.perf</code>
