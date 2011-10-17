@@ -99,7 +99,7 @@ real(8):: fnoise
 
 
 ! Local variables
-integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot, ist, istr, ilr, tag
+integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot, ist, istr, ilr, tag, itout
 real(8),dimension(:),pointer:: phi, phid
 real(8),dimension(:,:),pointer:: coeff, coeffd
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu
@@ -113,7 +113,7 @@ integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcs
 real(8),dimension(:),allocatable:: phiTemp
 real(wp),dimension(:),allocatable:: projTemp
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2
-real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff
+real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
 integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot, iiorb, ncount
@@ -297,99 +297,114 @@ real(8),dimension(:,:),allocatable:: ovrlp
   updatePhi=.true.
   pnrm=1.d100
   energyold=0.d0
+  energyoldout=0.d0
   !lin%getCoeff='new'
-  do itSCC=1,nitSCC
-      if(itSCC>1 .and. pnrm<lin%fixBasis) updatePhi=.false.
-      ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
-      call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
-          nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
-          infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-          i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj)
+  do itout=1,lin%nItOuterSCC
+      updatePhi=.true.
+      lin%fixBasis=lin%fixBasis*lin%factorFixBasis
+      if(iproc==0) write(*,'(a,es12.4)') 'DELTA DENS for fixing basis functions:',lin%fixBasis
+      do itSCC=1,nitSCC
+          if(itSCC>1 .and. pnrm<lin%fixBasis) updatePhi=.false.
+          !if(pnrm<lin%fixBasis) updatePhi=.false.
+          ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
+          call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
+              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
+              infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
+              i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj)
 
 
 
-      ! Potential from electronic charge density
-      call mpi_barrier(mpi_comm_world, ierr)
-      call cpu_time(t1)
-      call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
-           rhopot, at, nscatterarr)
-      call mpi_barrier(mpi_comm_world, ierr)
-      call cpu_time(t2)
-      time=t2-t1
-      call deallocateCommunicationbufferSumrho(lin%comsr, subname)
-      !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-      if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time
+          ! Potential from electronic charge density
+          call mpi_barrier(mpi_comm_world, ierr)
+          call cpu_time(t1)
+          call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+               rhopot, at, nscatterarr)
+          call mpi_barrier(mpi_comm_world, ierr)
+          call cpu_time(t2)
+          time=t2-t1
+          call deallocateCommunicationbufferSumrho(lin%comsr, subname)
+          !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+          if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time
 
-      ! Mix the density.
-      !if(lin%nItInguess>0 .or. itSCC>1) then
-      !if(itSCC>1) then
-      if(itSCC>0) then
-      !if(itSCC>0 .and. mod(itScc,2)==0) then
+          ! Mix the density.
+          !if(lin%nItInguess>0 .or. itSCC>1) then
+          !if(itSCC>1) then
+          if(itSCC>0) then
+          !if(itSCC>0 .and. mod(itScc,2)==0) then
+              if(trim(lin%mixingMethod)=='dens') then
+                  if(lin%mixHist==0) then
+                      !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+                      call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+                  else 
+                      ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+                      ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+                      mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+                      mixdiis%is=mixdiis%is+1
+                      call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 1, pnrm)
+                  end if
+              end if
+          end if
+
+          ! Copy the current charge density.
           if(trim(lin%mixingMethod)=='dens') then
-              if(lin%mixHist==0) then
-                  !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
-                  call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
-              else 
-                  ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-                  ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
-                  mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-                  mixdiis%is=mixdiis%is+1
-                  call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 1, pnrm)
+              call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
+          end if
+
+          ! Calculate the new potential.
+          call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
+              rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+              coeff, ehart, eexcu, vexcu)
+          ! Calculate the total energy.
+          energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
+          energyDiff=energy-energyold
+          energyold=energy
+
+
+          ! Post communications for gathering the potential
+          ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+
+          ! Mix the potential
+          !if(lin%nItInguess>0 .or. itSCC>1) then
+          !if(itSCC>1) then
+          if(itSCC>0) then
+              if(trim(lin%mixingMethod)=='pot') then
+                  if(lin%mixHist==0) then
+                      call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+                  else 
+                      ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+                      ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+                      mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+                      mixdiis%is=mixdiis%is+1
+                      call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 2, pnrm)
+                  end if
               end if
           end if
-      end if
 
-      ! Copy the current charge density.
-      if(trim(lin%mixingMethod)=='dens') then
-          call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
-      end if
-
-      ! Calculate the new potential.
-      call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
-          rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-          coeff, ehart, eexcu, vexcu)
-      ! Calculate the total energy.
-      energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
-      energyDiff=energy-energyold
-      energyold=energy
-
-
-      ! Post communications for gathering the potential
-      ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-
-      ! Mix the potential
-      !if(lin%nItInguess>0 .or. itSCC>1) then
-      !if(itSCC>1) then
-      if(itSCC>0) then
+          ! Copy the current potential
           if(trim(lin%mixingMethod)=='pot') then
-              if(lin%mixHist==0) then
-                  call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
-              else 
-                  ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-                  ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
-                  mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-                  mixdiis%is=mixdiis%is+1
-                  call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 2, pnrm)
-              end if
+               call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
+          end if
+
+          ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+          call allocateCommunicationsBuffersPotential(lin%comgp, subname)
+          call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+          if(lin%useDerivativeBasisFunctions) then
+              call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+              call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+          end if
+
+          ! Write some informations
+          call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, lin%mixingMethod)
+          if(pnrm<lin%convCritMix) exit
+      end do
+      if(iproc==0) then
+          if(trim(lin%mixingMethod)=='dens') then
+              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'itout, Delta DENS, energy, energyDiff', itout, pnrm, energy, energy-energyoldout
+          else if(trim(lin%mixingMethod)=='pot') then
+              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'itout, Delta POT, energy energyDiff', itout, pnrm, energy, energy-energyoldout
           end if
       end if
-
-      ! Copy the current potential
-      if(trim(lin%mixingMethod)=='pot') then
-           call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
-      end if
-
-      ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-      call allocateCommunicationsBuffersPotential(lin%comgp, subname)
-      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-      if(lin%useDerivativeBasisFunctions) then
-          call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
-          call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
-      end if
-
-      ! Write some informations
-      call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, lin%mixingMethod)
-      if(pnrm<lin%convCritMix) exit
+      energyoldout=energy
   end do
 
   call cancelCommunicationPotential(iproc, nproc, lin%comgp)
