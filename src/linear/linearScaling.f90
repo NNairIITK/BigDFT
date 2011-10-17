@@ -212,7 +212,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
       updatePhi=.false.
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
           nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
-          infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
+          infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
           i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj)
 
       ! Calculate the charge density.

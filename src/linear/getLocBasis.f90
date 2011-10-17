@@ -129,7 +129,7 @@ real(8),dimension(:),pointer:: lpot
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
-  if(lin%useDerivativeBasisFunctions) then
+  if(lin%useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
       call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
       if(iproc==0) write(*,'(x,a)',advance='no') 'calculating derivative basis functions...'
       call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
@@ -308,16 +308,16 @@ real(8),dimension(:),pointer:: lpot
       call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%lb%mad, matrixElements)
   end if
 
-  !if(iproc==0) then
-      ierr=0
-      do iall=1,lin%lb%orbs%norb
-          do istat=1,lin%lb%orbs%norb
-              ierr=ierr+1
-              write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
-          end do
-      end do
-      write(23000+iproc,*) '=============================='
-  !end if
+  !!!if(iproc==0) then
+  !!    ierr=0
+  !!    do iall=1,lin%lb%orbs%norb
+  !!        do istat=1,lin%lb%orbs%norb
+  !!            ierr=ierr+1
+  !!            write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
+  !!        end do
+  !!    end do
+  !!    write(23000+iproc,*) '=============================='
+  !!!end if
 
   
 
