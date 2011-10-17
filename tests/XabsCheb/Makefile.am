@@ -26,7 +26,13 @@ PPFILES = psppar.Fe
 CLEANFILES = $(PPFILES) Xabs*.out posout* *.pot *.prc *.cube *.report \
 	coeffs_chebychev cheb_spectra_199 cheb_spectra_399 \
 	fldiff.report  cheb_spectra_* alpha_beta* \
-	alphabeta* local_potential* potx.dat  input* posi*
+	alphabeta* local_potential* potx.dat  input* posi* default*
+
+clean.local : 
+	rm -rf data
+
+distclean : clean clean.local
+	rm -rf Makefile
 
 #dependencies
 $(PPFILES):

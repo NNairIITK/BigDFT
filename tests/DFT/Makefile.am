@@ -75,6 +75,7 @@ GEOPT-LBFGS.psp: HGH/psppar.Mg
 # Additional rules.
 H2O-slab.post-in:
 	cp -f velocities.in velocities.xyz
+	chmod a+w velocities.xyz
 
 # Generic part, do not touch.
 INS = $(TESTDIRS:=.in)
@@ -87,6 +88,9 @@ in: $(INS)
 check: $(CHECKS) report
 
 clean: $(CLEANS)
+
+distclean : $(CLEANS)
+	rm -rf Makefile
 
 failed-check: $(FAILEDCHECKS) report
 
@@ -112,7 +116,7 @@ report:
           NaCl.out*)        prec="2.e-9" ;; \
           SiBulk.out*)      prec="2.e-7" ;; \
           AgBulk.out*)      prec="6.e-8" ;; \
-          SiH4.out*)        prec="3.5e-9" ;; \
+          SiH4.out*)        prec="5.e-9" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
@@ -123,7 +127,8 @@ $(PSPS):
 %.clean:
 	@dir=`basename $@ .clean` ; \
         if test x"$(srcdir)" = x"." ; then \
-          rm -f $$dir.* $$dir/psppar.* $$dir/*.out $$dir/*.report ; \
+          rm -f $$dir.* $$dir/psppar.* $$dir/*.out $$dir/*.report $$dir/default* ; \
+	  rm -fr $$dir/data ; \
         else \
           rm -rf $$dir.* $$dir ; \
         fi ; \

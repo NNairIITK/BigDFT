@@ -23,7 +23,7 @@
 
       <div class="floatingmenu">
         <a style="float:float;" href="H1B-Basic_surfaces.html">&lt;&nbsp;prev. lesson</a>
-        <a style="float:right;" href="H2A.html">next lesson&nbsp;&gt;</a>
+        <a style="float:right;" href="H2A-GPU.html">Second Group&nbsp;&gt;</a>
 
         <h2>Content of this lesson</h2>
         <ul>
@@ -47,7 +47,7 @@
 
       <h1>Basics of BigDFT: managing different calculations, <br />N<sub>2</sub> molecule as example</h1>
 
-      <p>BigDFT code is organized by <em>optional</em> input files, anyone with <em>compulsory</em> variables.
+      <p>As it is presented in the previous lessons, BigDFT code is organized by <em>optional</em> input files, anyone with <em>compulsory</em> variables.
       Input files can be organised in different sets, each one associated to a particular calculation.
       With this lesson you will have to deal with the different outputs of BigDFT code, such as to learn how to manipulate basic DFT objects.</p>
 
@@ -180,7 +180,7 @@ user@garulfo:$ ./bigdft HF | tee HF.out
 user@garulfo:$
 </pre>
 
-<p>This is because the pseudopotential is assigned by default in the code only for LDA and PBE XC approximations. You can find <a href="N2/psppar.N2" target="_blank">here</a> the pseudopotential which is taken by default in the LDA run. Put it in a <code>psppar.N</code> file, and run the calculation (redirect the output in the file HF.out for example). When possible, care should be taken in choosing a pseudopotential which has been generated with the same XC approximation used. Unfortunately, at present HGH data are only available for semilocal functionals. Data of the calculation can be analysed. Consider the eigenvectors of the LDA and HF runs.</p>
+<p>This is because the pseudopotential is assigned by default in the code only for LDA and PBE XC approximations. You can find <a href="N2/psppar.N2" target="_blank">here</a> the pseudopotential which is taken by default in the LDA run. Put it in a <code>psppar.N</code> file, and run the calculation (redirect the output in the file HF.out for example). When possible, care should be taken in choosing a pseudopotential which has been generated with the same XC approximation used. Unfortunately, at present HGH data are only available for semilocal functionals. For example, the same exercise as follows  could have been done with Hybrid XC functionals, like for example PBE0 (<code>ixc</code>=-406). See the <a href="http://inac.cea.fr/L_Sim/BigDFT/html-manual/node7.html">manual page</a> for a list of the supported XC functionals. Data of the calculation can be analysed. Consider the eigenvectors of the LDA and HF runs.</p>
 
       <div class="exercice">
         <p><b>Exercise</b>: Compare the values of the HOMO and HOMO-1 eigenvalues for the LDA and the HF run.
@@ -199,7 +199,7 @@ The results can be compared to all-electron calculations, done with different ba
 </pre>
         <p class="answer">
 The results depends, of course, on the precision chosen for the calculation, and of the presence of the pseudopotential.
-As it is well-known, the pseudopotential appoximation is however much less severe than the approximation induced by typical XC functionals. We might see that, even in the HF case, the presence of a LDA-based pseudopotential (of rather good quality) does not alter so much the results. Here you can find the values from BigDFT calculation using a very good precision (<code>hgrid=0.3</code>, <code>crmult=7.0</code>)
+As it is well-known, the pseudopotential appoximation is however much less severe than the approximation induced by typical XC functionals. We might see that, even in the HF case, the presence of a LDA-based pseudopotential (of rather good quality) does not alter so much the results. Here you can find the values from BigDFT calculation using a very good precision (<code>hgrid=0.3</code>, <code>crmult=7.0</code>). Note that 1 ha=27.21138386 eV.
 </p> 
 	  <pre>
          LDA           HF     
@@ -212,13 +212,13 @@ How much is the <em>correlation</em> of the N2 molecule in (PSP) LDA?</p>
       </div>
 
       <h2>Visualise wavefunctions</h2>
-<p>The wavefunctions are output by choosing a non zero value for parameter <code>output_wf</code> in the <code>.dft</code> file. Several formats are available, but in each, only the non-null coefficient of the Daubechies wavelet representation are saved. This represent a compressed way of storing the wavefunctions (and roughly correspond to a dump of what is stored in memory during the calculation). To post-process the wavefunctions, one need to get their value on a real space grid.</p>
+<p>The wavefunctions are output by choosing a non zero value for parameter <code>output_wf</code> in the <code>.dft</code> file. Several formats are available, but in each, only the non-null coefficient of the Daubechies wavelet representation are saved. This represent a compressed way of storing the wavefunctions (and roughly correspond to a dump of what is stored in memory during the calculation). In case you want to visualize the wavefunctions, you should translate these data in a real space grid. To post-process the wavefunctions, one need to get their value on a real space grid.</p>
 
 <p>This is done by using <code>memguess</code> with the <em>exportwf</em> argument:</p>
 <pre>
-user@garulfo:~/N2/$ ./memguess 1 LDA exportwf data-LDA/wavefunction-001-NR.0001
+user@garulfo:~/N2/$ ./memguess 1 exportwf data-LDA/wavefunction-001-NR.0001
 </pre>
-<p>It creates four files.</p>
+<p>It creates four files in the <code>data-LDA</code> directory.</p>
 <ul>
 <li><code>wavefunction-[...].xxxx_avg_{x,y,z}</code>: which is the projection of the wavefunction value along a given axis.</li>
 <li><code>wavefunction-[...].xxxx.cube</code>: which is the values of the wavefunction (either real or imaginary part) on a regular real space mesh.</li>
@@ -312,6 +312,7 @@ Spin-polarized calculation
 ERROR: Total input polarisation (found 0) must be equal to norbu-norbd.
 With norb=5 and mpol=3 norbu-norbd=3
 </pre>
+In BigDFT, this input polarization might be added by putting the corresponding value for any atom in the <code>posinp.xyz</code> file:
   <pre>
 1 angstroem
 free
@@ -332,8 +333,8 @@ Then the calculation can run. You can see that the energy is remarkably lower th
 </pre>
 
   <div class="exercice">
-        <p><b>Exercise</b>: Charge the Nitrogen atom (say, remove one electron) and compare the energies of the system in symmetric spin-averaged configuration with respect to the spin-polarized case</p>
-        <p class="answer">The <code>[input].occ</code> file  </p>
+        <p><b>Exercise</b>: Charge the Nitrogen atom (say, remove one electron) and compare the energies of the system in symmetric spin-averaged configuration with respect to the spin-polarized case.</p>
+        <p class="answer">Hint: The <code>[input].occ</code> file might also accept fractional number written as actual fractions, e.g. 2/3 instead as 0.666666</p>
   </div>
 </div>
 
@@ -343,7 +344,7 @@ Then the calculation can run. You can see that the energy is remarkably lower th
       <a href="http://jigsaw.w3.org/css-validator/check/referer" title="Check CSS compliance with W3C norms">CSS2</a>
       |
       <!-- hhmts start -->
-      Last modified: Mon May 30 11:13:37 CEST 2011
+      Last modified: Sun Oct 16 19:03:37 CEST 2011
       <!-- hhmts end -->
     </div>
 

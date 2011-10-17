@@ -121,7 +121,7 @@ This means that the same minimum is visited again and again. This is because of 
  In this <code>earr.dat</code> file we can see the program found several minima which  differ in energy by the value of <code>accur</code> in the third line of the file. In these cases one should check  the corresponding 
 <code>poslow*****.xyz</code> files visually by softwares file V_Sim to confirm if they are really structurally different  or not. If one see that the structures are same or  differs only by rotation angles then it suggest that 
 accuracy which was set for this calculation by <code>accur</code> in the <code> earr.dat</code> file  is not compatible with the actual accuracy in total energy calculation by <b>BigDft</b>. To say more explicitly, The accuracy set by <code>accur</code> parameter by which minima hopping program is distinguishing between two structures are lower in value than the actual accuracy 
-of the Bigdft energy calculation. In the present case the solution is to increase the value of <code>accur</code> or to prepare a <code>input.dft</code> file which is able to produce result 
+of the BigDFT energy calculation. In the present case the solution is to increase the value of <code>accur</code> or to prepare a <code>input.dft</code> file which is able to produce result 
 in higher accuracy than the present <code> expected accuracy in energy </code>. Please follow the <a href='H2E-minima_hopping.html' target="_blank"> tutorial</a> and <a href="minhop.pdf" target="_blank"> presentation</a> to adjust the accuracy of the program correctly. 
   
 </div>
