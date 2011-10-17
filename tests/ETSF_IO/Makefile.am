@@ -17,6 +17,9 @@ PPFILES = psppar.O
 CLEANFILES = write.out read.out *.prc fldiff.*.report geopt.mon default.* input.dft \
 	$(EXTRA_CLEAN) $(PPFILES)
 
+clean.local : 
+	rm -rf data
+
 #dependencies
 $(PPFILES):
 	@cp $(top_srcdir)/utils/PSPfiles/HGH-K/$@ .

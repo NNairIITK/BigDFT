@@ -11,30 +11,18 @@ TESTDIRS = CH4 \
 	  dev
 
 EXTRA_DIST = $(TESTDIRS) \
-	B14_2.jpg \
-	CH4-cv.png \
-	CH4-grid.png \
-	H1A.html \
-	H1B.html \
-	H1X.html \
-	H2B.html \
-	H2E1.html \
-	H2E.html \
-	H2O-dipolarE.png \
-	H2O-dipolar.png \
-	H2O-slab.png \
-	H3B.html \
-	H3Xabs-aspsitildejoin.png \
-	H3Xabs.html \
-	H3X.html \
-	Mg7-minhop \
-	minhop.pdf \
-	N2-wf01.thumb.png \
-	N2-wf02.thumb.png \
-	N2-wf03.thumb.png \
-	N2-wf04.thumb.png \
-	N2-wf05.thumb.png \
-	Scal_Palu.jpg
+     Figures \
+     H1A-Basics.html \
+     H1B-Basic_surfaces.html \
+     H1X-Basic_post_processing.html \
+     H2B-scalability.html \
+     H2E1-troubleshooting_minima_hopping.html \
+     H2E-minima_hopping.html \
+     H3B-charge_analysis.html \
+     H3D-Xabs.html \
+     H3X-hacking_bigdft.html \
+     Mg7-minhop \
+     minhop.pdf
 
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
@@ -45,12 +33,36 @@ H2O-bader.dipole.dat.out: H2O-bader.out.out
 dev.check: dev/toy_model
 
 dev/toy_model: $(srcdir)/dev/toy_model.f90
-	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft -L$(top_builddir)/src/PSolver -lpoissonsolver $(LDFLAGS) $(LIBS)
+	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft  -L$(top_builddir)/src/PSolver -lpoissonsolver $(libs_opt) $(LDFLAGS) $(LIBS)
 toy_model.dat.out: dev-N2.out.out toy_model
 	./toy_model > toy_model.dat.out
 
+#Flags for optimization libraries
+if USE_DGEMMSY
+libs_dgemmsy = $(top_builddir)/src/dgemmsy/libdgemmsy.a
+else
+libs_dgemmsy =
+endif
+if USE_CUDA_GPU
+libs_cuda=$(top_builddir)/src/CUDA/libGPU.a
+else
+libs_cuda=
+endif
+if USE_OCL
+libs_ocl = $(top_builddir)/src/OpenCL/libOCL.a -lstdc++
+else
+libs_ocl =
+endif
+
+
+libs_opt=$(libs_cuda)\
+ $(libs_ocl)\
+ $(libs_dgemmsy)
+
+
+
 # Generic part, do not touch.
-AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver
+AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 INS = $(TESTDIRS:=.in)
 RUNS = $(TESTDIRS:=.run)
@@ -86,6 +98,7 @@ report:
         esac ; \
         case $* in \
           CH3-.out*) prec="5.e-7" ;; \
+          scalability.out*)  prec="1.e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

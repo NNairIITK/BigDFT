@@ -13,7 +13,7 @@ EXTRA_CLEAN = hessian.dat frequencies.xyz frequencies.res
 
 PPFILES = psppar.H
 
-CLEANFILES = H2-freq.out H2-freq.out.2 *.prc fldiff.report fldiff.2.report $(EXTRA_CLEAN) $(PPFILES)
+CLEANFILES = H2-freq.out H2-freq.out.2 *.prc fldiff.report fldiff.2.report $(EXTRA_CLEAN) $(PPFILES) default*
 
 #dependencies
 $(PPFILES):

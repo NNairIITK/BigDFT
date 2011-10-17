@@ -75,6 +75,7 @@ GEOPT-LBFGS.psp: HGH/psppar.Mg
 # Additional rules.
 H2O-slab.post-in:
 	cp -f velocities.in velocities.xyz
+	chmod a+w velocities.xyz
 
 # Generic part, do not touch.
 INS = $(TESTDIRS:=.in)

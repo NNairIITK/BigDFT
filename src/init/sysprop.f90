@@ -1659,7 +1659,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
      open(unit=11,file=trim(filename),status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        write(*,*) ': Failed to open the file (it must be in ABINIT format!): "',&
+        write(*,*) ': Failed to open the PAWpatch file "',&
              trim(filename),'"'
         stop
      end if
