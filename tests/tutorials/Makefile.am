@@ -17,7 +17,7 @@ EXTRA_DIST = $(TESTDIRS) \
      Figures/CH4-grid.png \
      H1A-Basics.html \
      H1B-Basic_surfaces.html \
-     H1X-Basic_post_processing.html \
+     H1C-Basic_post_processing.html \
      H2B-scalability.html \
      H2E1-troubleshooting_minima_hopping.html \
      H2E-minima_hopping.html \
@@ -35,7 +35,9 @@ EXTRA_DIST = $(TESTDIRS) \
      Figures/N2-wf03.thumb.png \
      Figures/N2-wf04.thumb.png \
      Figures/N2-wf05.thumb.png \
-     Figures/Scal_Palu.jpg
+     Figures/Scal_Palu.jpg \
+     GPU \
+     H2A-GPU.html
 
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
@@ -89,6 +91,13 @@ check: $(CHECKS) report
 
 clean: $(CLEANS)
 
+distclean : $(CLEANS)
+	rm -rf Makefile
+
+#distclean-check: clean
+
+#	.PHONY: distclean-check
+
 failed-check: $(FAILEDCHECKS) report
 
 report:
@@ -119,7 +128,8 @@ report:
 %.clean:
 	@dir=`basename $@ .clean` ; \
         if test x"$(srcdir)" = x"." ; then \
-          rm -f $$dir.* $$dir/psppar.* $$dir/*.out $$dir/*.report ; \
+          rm -f $$dir.* $$dir/psppar.* $$dir/*.out $$dir/*.report $$dir/default* ; \
+	  rm -fr $$dir/data ; \
         else \
           rm -rf $$dir.* $$dir ; \
         fi ; \

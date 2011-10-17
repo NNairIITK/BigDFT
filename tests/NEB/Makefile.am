@@ -7,7 +7,7 @@ EXTRA_DIST = \
 	NEB.out.ref
 
 
-CLEANFILES = triH.NEB.* velocities_file NEB.out NEB_driver.sh psppar.H gen_output_file fldiff.report
+CLEANFILES = triH.NEB.* velocities_file NEB.out NEB_driver.sh psppar.H gen_output_file fldiff.report malloc.prc
 
 
 psppar.H:
