@@ -15,16 +15,17 @@ EXTRA_DIST = $(TESTDIRS) \
      H1A-Basics.html \
      H1B-Basic_surfaces.html \
      H1C-Basic_post_processing.html \
+     H2A-GPU.html \
      H2B-scalability.html \
-     H2E1-troubleshooting_minima_hopping.html \
      H2E-minima_hopping.html \
+     H2E1-troubleshooting_minima_hopping.html \
      H3B-charge_analysis.html \
+     H3C-Wannier.html \
      H3D-Xabs.html \
      H3X-hacking_bigdft.html \
      Mg7-minhop \
      minhop.pdf \
-     GPU \
-     H2A-GPU.html
+     GPU
 
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
