@@ -12,32 +12,20 @@ TESTDIRS = CH4 \
 
 EXTRA_DIST = $(TESTDIRS) \
      Figures \
-     Figures/B14_2.jpg \
-     Figures/CH4-cv.png \
-     Figures/CH4-grid.png \
      H1A-Basics.html \
      H1B-Basic_surfaces.html \
      H1C-Basic_post_processing.html \
+     H2A-GPU.html \
      H2B-scalability.html \
-     H2E1-troubleshooting_minima_hopping.html \
      H2E-minima_hopping.html \
-     Figures/H2O-dipolarE.png \
-     Figures/H2O-dipolar.png \
-     Figures/H2O-slab.png \
+     H2E1-troubleshooting_minima_hopping.html \
      H3B-charge_analysis.html \
-     Figures/H3Xabs-aspsitildejoin.png \
+     H3C-Wannier.html \
      H3D-Xabs.html \
-      H3X-hacking_bigdft.html \
+     H3X-hacking_bigdft.html \
      Mg7-minhop \
      minhop.pdf \
-     Figures/N2-wf01.thumb.png \
-     Figures/N2-wf02.thumb.png \
-     Figures/N2-wf03.thumb.png \
-     Figures/N2-wf04.thumb.png \
-     Figures/N2-wf05.thumb.png \
-     Figures/Scal_Palu.jpg \
-     GPU \
-     H2A-GPU.html
+     GPU
 
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
