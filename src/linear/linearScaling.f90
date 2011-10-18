@@ -301,7 +301,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !lin%getCoeff='new'
   do itout=1,lin%nItOuterSCC
       updatePhi=.true.
-      lin%fixBasis=lin%fixBasis*lin%factorFixBasis
+      lin%fixBasis=max(lin%fixBasis*lin%factorFixBasis,lin%minimalFixBasis)
       if(iproc==0) write(*,'(a,es12.4)') 'DELTA DENS for fixing basis functions:',lin%fixBasis
       do itSCC=1,nitSCC
           if(itSCC>1 .and. pnrm<lin%fixBasis) updatePhi=.false.
