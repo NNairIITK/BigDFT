@@ -870,12 +870,13 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
      nrhotot=lr%d%n3i
   end if
 
-
   !allocate the necessary objects on the GPU
   !set initialisation of GPU part 
   !initialise the acceleration strategy if required
   call init_material_acceleration(iproc,iacceleration,GPU)
-
+  
+  if (GPUconv .eqv. OCLconv) stop 'ERROR: One (and only one) acceleration should be present with GPUtest'
+  
   !allocate arrays for the GPU if a card is present
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,nspin,&
@@ -1038,7 +1039,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
 
   !comparison between the results
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       real(orbs%norbp**2*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*2,kind=8),overlap(1,1,1),overlap(1,1,2),&
+       real(orbs%norbp**2,kind=8)*real((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*2,kind=8),overlap(1,1,1),overlap(1,1,2),&
        orbs%norbp**2,ntimes,.false.,Rgemm)
 
 
@@ -1062,7 +1063,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       real(orbs%norbp*(orbs%norbp+1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),kind=8),overlap(1,1,1),overlap(1,1,2),&
+       real(orbs%norbp*(orbs%norbp+1),kind=8)*real(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,kind=8),overlap(1,1,1),overlap(1,1,2),&
        orbs%norbp**2,ntimes,.false.,Rsyrk)
 
   i_all=-product(shape(overlap))*kind(overlap)
