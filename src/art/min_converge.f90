@@ -155,7 +155,7 @@ subroutine check_min( stage )
       repetition = 2
    else 
                                       ! if not, four times.
-      repetition = 4
+      repetition = 3 
    end if
 
    if ( iproc==0 ) write(*,*) "BART: INIT LANCZOS"  !debug

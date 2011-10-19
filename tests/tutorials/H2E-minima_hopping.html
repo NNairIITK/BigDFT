@@ -138,7 +138,7 @@ file to <code>mdinput.dft</code> to use in  our Minima Hopping run.
       </div>
 <div class="exercice">
         <p><b>Exercise 2: Verifying the expected accuracy</b>: After you have found a set of parameters for the <code> input.dft</code> file which gives an <code>expected accuracy </code> of <code>0.5E-05 </code>, let's check 
-the accuracy of the energy due to rotation. Use the <code>rotate</code> executable in the <code> UTIL</code> folder to rotate the input structure arbitrarily and note how  they  affect the FINAL energy of the system.
+the accuracy of the energy due to rotation. Use the <code>rotate_posinp</code> executable in the <code>src/tools</code> folder of the build directory to rotate the input structure arbitrarily and note how  they  affect the FINAL energy of the system.
 <pre>
 sandip@phys-carbon-04:~/tutorials/Mg7-minhop/input_dft$ grep FINAL OUT 
  FINAL iter,total energy,gnrm    18  -5.99066949724724473E+00  9.62E-06
