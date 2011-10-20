@@ -16,6 +16,8 @@ program BigDFT2Wannier
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft
    integer :: ncount0,ncount1,ncount_rate,ncount_max
    real :: tcpu0,tcpu1,tel
+   real(kind=8) :: znorm,xnorm,ortho
+   real(kind=8),parameter :: eps6=1.0d-6, eps8=1.0d-8
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
@@ -42,7 +44,7 @@ program BigDFT2Wannier
    integer :: n_occ, n_virt, n_virt_tot
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check
    real, allocatable, dimension (:,:) :: kpts
-   real, allocatable, dimension (:,:) :: ctr_proj, x_proj, z_proj
+   real(kind=8), allocatable, dimension (:,:) :: ctr_proj, x_proj, y_proj, z_proj
    integer, allocatable, dimension (:) :: l, mr, rvalue
    real, allocatable, dimension (:) :: zona
    integer, allocatable, dimension (:,:) :: k_plus_b
@@ -148,6 +150,8 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    call memocc(i_stat,ctr_proj,'ctr_proj',subname)
    allocate(x_proj(n_proj,3),stat=i_stat)
    call memocc(i_stat,x_proj,'x_proj',subname)
+   allocate(y_proj(n_proj,3),stat=i_stat)
+   call memocc(i_stat,y_proj,'y_proj',subname)
    allocate(z_proj(n_proj,3),stat=i_stat)
    call memocc(i_stat,z_proj,'z_proj',subname)
    allocate(l(n_proj),stat=i_stat)
@@ -175,6 +179,27 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    call read_nnkp(iproc,seedname, calc_only_A, real_latt, recip_latt, n_kpts, n_proj, n_nnkpts, &
                 n_excb, kpts, ctr_proj, x_proj, z_proj, l, mr, rvalue, &
                 zona, k_plus_b, G_vec, excb)
+
+   ! Check that z_proj and x_proj are orthonormal and build y_proj
+   do np = 1, n_proj  
+      znorm = sqrt(z_proj(np,1)**2+z_proj(np,2)**2+z_proj(np,3)**2)
+      xnorm = sqrt(x_proj(np,1)**2+x_proj(np,2)**2+x_proj(np,3)**2)
+      ortho = z_proj(np,1)*x_proj(np,1) + z_proj(np,2)*x_proj(np,2) + z_proj(np,3)*x_proj(np,3)
+      if(abs(znorm - 1.d0) > eps6 .or. abs(znorm - 1.d0) > eps6 .or. abs(ortho) > eps6) then
+        if(iproc == 0) then
+           write(*,'(A)') 'Checkorthonormality of z_proj and x_proj:'
+           write(*,'(A,e9.7)') 'z norm: ',znorm
+           write(*,'(A,e9.7)') 'x norm: ',xnorm
+           write(*,'(A,e9.7)') 'x dot z: ',ortho
+           stop
+        end if
+      end if
+      !Now we need to calculate the y direction
+      y_proj(np,1) = x_proj(np,3)*z_proj(np,2) - x_proj(np,2)*z_proj(np,3)
+      y_proj(np,2) = x_proj(np,1)*z_proj(np,3) - x_proj(np,3)*z_proj(np,1)
+      y_proj(np,3) = x_proj(np,2)*z_proj(np,1) - x_proj(np,1)*z_proj(np,2)
+!print *,'np,norms,ortho,y',np,znorm,xnorm,ortho,y_proj(np,:) 
+   end do
 
    !distribute the projectors on the processes (contained in orbsp: norb,norbp,isorb,...)
    call split_vectors_for_parallel(iproc,nproc,n_proj,orbsp)
@@ -289,7 +314,7 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
                      ind=(k-1)*ny*nx+(j-1)*nx+i
                      xx=(i-1)*input%hx*0.5-r0x
                      call angularpart(l, mr, np, nx, ny, nz, i, j, k, &
-                           xx, yy, zz, n_proj, ylm)
+                           xx, yy, zz, x_proj, y_proj, z_proj, n_proj, ylm)
                      call radialpart(rvalue, zona, np, nx, ny, nz, i, j, k, &
                            xx, yy, zz, n_proj, func_r)
                      ! The 'sqrt(input%hx*0.5*input%hy*0.5*input%hz*0.5)' term is here to normalize spherical harmonics
@@ -313,6 +338,9 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
          i_all = -product(shape(x_proj))*kind(x_proj)
          deallocate(x_proj,stat=i_stat)  
          call memocc(i_stat,i_all,'x_proj',subname)
+         i_all = -product(shape(y_proj))*kind(y_proj)
+         deallocate(y_proj,stat=i_stat)  
+         call memocc(i_stat,i_all,'y_proj',subname)
          i_all = -product(shape(z_proj))*kind(z_proj)
          deallocate(z_proj,stat=i_stat) 
          call memocc(i_stat,i_all,'z_proj',subname)
@@ -514,7 +542,7 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
                   ind=(k-1)*ny*nx+(j-1)*nx+i
                   xx=(i-1)*input%hx*0.5-r0x
                   call angularpart(l, mr, np, nx, ny, nz, i, j, k, &
-                        xx, yy, zz, n_proj, ylm)
+                        xx, yy, zz, x_proj, y_proj, z_proj, n_proj, ylm)
                   call radialpart(rvalue, zona, np, nx, ny, nz, i, j, k, &
                         xx, yy, zz, n_proj, func_r)
                   ! The 'sqrt(input%hx*0.5*input%hy*0.5*input%hz*0.5)' term is here to normalize spherical harmonics
@@ -546,6 +574,9 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
       i_all = -product(shape(x_proj))*kind(x_proj)
       deallocate(x_proj,stat=i_stat) 
       call memocc(i_stat,i_all,'x_proj',subname)
+      i_all = -product(shape(y_proj))*kind(y_proj)
+      deallocate(y_proj,stat=i_stat) 
+      call memocc(i_stat,i_all,'y_proj',subname)
       i_all = -product(shape(z_proj))*kind(z_proj)
       deallocate(z_proj,stat=i_stat) 
       call memocc(i_stat,i_all,'z_proj',subname)
@@ -866,6 +897,7 @@ else if ( (filetype == 'cube' .or. filetype == 'CUBE') .and. nproc==1 ) then
    allocate(kpts(n_kpts,3))
    allocate(ctr_proj(n_proj,3))
    allocate(x_proj(n_proj,3))
+   allocate(y_proj(n_proj,3))
    allocate(z_proj(n_proj,3))
    allocate(l(n_proj))
    allocate(mr(n_proj))
@@ -885,6 +917,25 @@ else if ( (filetype == 'cube' .or. filetype == 'CUBE') .and. nproc==1 ) then
    call read_nnkp(iproc,seedname, calc_only_A, real_latt, recip_latt, n_kpts, n_proj, n_nnkpts, &
                 n_excb, kpts, ctr_proj, x_proj, z_proj, l, mr, rvalue, &
                 zona, k_plus_b, G_vec, excb)
+
+   ! Check that z_proj and x_proj are orthonormal 
+   do np = 1, n_proj
+      znorm = z_proj(np,1)**2+z_proj(np,2)**2+z_proj(np,3)**2
+      xnorm = x_proj(np,1)**2+x_proj(np,2)**2+x_proj(np,3)**2
+      ortho = z_proj(np,1)*x_proj(np,1) + z_proj(np,2)*x_proj(np,2) + z_proj(np,3)*x_proj(np,3)
+      if(abs(znorm - 1.d0) > eps8 .or. abs(znorm - 1.d0) > eps8 .or. abs(ortho) > eps8) then
+        if(iproc == 0) then
+           write(*,'(A)') 'Checkorthonormality of z_proj and x_proj:'
+           write(*,'(A,e3.2)') 'z norm: ',znorm
+           write(*,'(A,e3.2)') 'x norm: ',xnorm
+           write(*,'(A,e3.2)') 'x dot z: ',ortho
+        end if
+      end if
+      !Now we need to calculate the y direction
+      y_proj(np,1) = x_proj(np,3)*z_proj(np,2) - x_proj(np,2)*z_proj(np,3)
+      y_proj(np,2) = x_proj(np,1)*z_proj(np,3) - x_proj(np,3)*z_proj(np,1)
+      y_proj(np,3) = x_proj(np,2)*z_proj(np,1) - x_proj(np,1)*z_proj(np,2)
+   end do
 
    if (pre_check .eqv. .true.) then 
 ! If pre-check mode is chosen, calculation of the the scalar product of all unoccupied wavefunctions calculated by BigDFT and spherical harmonics.
@@ -947,7 +998,7 @@ else if ( (filetype == 'cube' .or. filetype == 'CUBE') .and. nproc==1 ) then
                         end if
                         xx=i*bx(1)-r0x
                         call angularpart(l, mr, np, nx, ny, nz, i, j, k, &
-                           xx, yy, zz, n_proj, ylm)
+                           xx, yy, zz, x_proj, y_proj, z_proj, n_proj, ylm)
                         call radialpart(rvalue, zona, np, nx, ny, nz, i, j, k, &
                            xx, yy, zz, n_proj, func_r)
                         sph_har(i,j,k,np)=func_r(i,j,k)*ylm(i,j,k)
@@ -1057,7 +1108,7 @@ else if ( (filetype == 'cube' .or. filetype == 'CUBE') .and. nproc==1 ) then
                         end if
                         xx=i*bx(1)-r0x
                         call angularpart(l, mr, np, nx, ny, nz, i, j, k, &
-                           xx, yy, zz, n_proj, ylm)
+                           xx, yy, zz, x_proj, y_proj, z_proj, n_proj, ylm)
                         call radialpart(rvalue, zona, np, nx, ny, nz, i, j, k, &
                            xx, yy, zz, n_proj, func_r)
                         sph_har(i,j,k,np)=func_r(i,j,k)*ylm(i,j,k)
@@ -1119,7 +1170,7 @@ else if ( (filetype == 'cube' .or. filetype == 'CUBE') .and. nproc==1 ) then
                         end if
                         xx=i*bx(1)-r0x
                         call angularpart(l, mr, np, nx, ny, nz, i, j, k, &
-                           xx, yy, zz, n_proj, ylm)
+                           xx, yy, zz, x_proj, y_proj, z_proj, n_proj, ylm)
                         call radialpart(rvalue, zona, np, nx, ny, nz, i, j, k, &
                            xx, yy, zz, n_proj, func_r)
                         sph_har(i,j,k,np)=func_r(i,j,k)*ylm(i,j,k)
@@ -1316,6 +1367,7 @@ else if ( (filetype == 'cube' .or. filetype == 'CUBE') .and. nproc==1 ) then
    if(allocated(kpts))                  deallocate(kpts)
    if(allocated(ctr_proj))              deallocate(ctr_proj)
    if(allocated(x_proj))                deallocate(x_proj)
+   if(allocated(y_proj))                deallocate(y_proj)
    if(allocated(z_proj))                deallocate(z_proj)
    if(allocated(l))                     deallocate(l)
    if(allocated(mr))                    deallocate(mr)
@@ -2014,7 +2066,7 @@ subroutine read_nnkp(iproc,seedname, calc_only_A, real_latt, recip_latt, n_kpts,
    real, intent(out) :: real_latt(3,3), recip_latt(3,3)
    integer, intent(in) :: n_kpts, n_proj, n_nnkpts, n_excb,iproc
    real, dimension(n_kpts,3), intent(out) :: kpts
-   real, dimension(n_proj,3), intent(out) :: ctr_proj, x_proj, z_proj
+   real(kind=8), dimension(n_proj,3), intent(out) :: ctr_proj, x_proj, z_proj
    real, dimension(n_proj), intent(out) :: zona
    integer, dimension(n_proj), intent(out) :: l, mr, rvalue
    integer, dimension(n_nnkpts,2), intent(out) :: k_plus_b
@@ -2117,7 +2169,7 @@ end subroutine read_nnkp
 
 !>
 subroutine angularpart(l, mr, np, nx, ny, nz, ix, iy, iz, &
-                    xx, yy, zz, n_proj, ylm)
+                    xx, yy, zz, x_proj, y_proj, z_proj, n_proj, ylm)
 
    ! This routine returns the angular part of the spherical harmonic identified by indices (l,mr)
    ! Calculations are made in spherical coordinates
@@ -2129,13 +2181,14 @@ subroutine angularpart(l, mr, np, nx, ny, nz, ix, iy, iz, &
    integer, intent(in) :: l(n_proj), mr(n_proj)
    real(kind=8), intent(in) :: xx, yy, zz
    real(kind=8), dimension(nx,ny,nz), intent(out) :: ylm
+   real(kind=8), dimension (n_proj,3), intent(in) :: x_proj, y_proj, z_proj
 
    ! local variables
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
    real(kind=8), parameter :: eps8  = 1.0e-8
    real(kind=8), external :: s, pz, px, py, dz2, dxz, dyz, dx2my2, dxy, &
                           fz3, fxz2, fyz2, fzx2my2, fxyz, fxx2m3y2, fy3x2my2
-   real(kind=8) :: rr, cost, phi
+   real(kind=8) :: rr, cost, phi, xdir, ydir, zdir
    real(kind=8) :: bs2, bs3, bs6, bs12
 
    bs2 = 1.d0/sqrt(2.d0)
@@ -2163,15 +2216,23 @@ subroutine angularpart(l, mr, np, nx, ny, nz, ix, iy, iz, &
      ylm(ix,iy,iz) = 1.d0/ sqrt(4*pi)
      return
    end if      
+   
+   !Here, must define theta in a general fashion, taking into account
+   !the z axis: z_proj. To do this, we must project the r vector on z_proj
+   ! NOTE: xx,yy,zz are already expressed wrt the projection center
+   zdir = z_proj(np,1)*xx + z_proj(np,2)*yy + z_proj(np,3)*zz
+   cost = zdir / rr
 
-   cost = zz / rr
+   !Finally calculate the new x and y
+   xdir = x_proj(np,1)*xx + x_proj(np,2)*yy + x_proj(np,3)*zz
+   ydir = y_proj(np,1)*xx + y_proj(np,2)*yy + y_proj(np,3)*zz
 
-   if (xx > eps8) then
-      phi = atan( yy/xx )
-   else if (xx < -eps8 ) then
-      phi = atan( yy/xx ) + pi
+   if (xdir > eps8) then
+      phi = atan( ydir/xdir )
+   else if (xdir < -eps8 ) then
+      phi = atan( ydir/xdir ) + pi
    else
-      phi = sign( pi/2.d0,yy )
+      phi = sign( pi/2.d0,ydir )
    end if
 
    if (l(np)==0) then   ! s orbital
