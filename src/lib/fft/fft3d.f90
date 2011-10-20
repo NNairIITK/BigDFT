@@ -3253,7 +3253,7 @@ END SUBROUTINE fftstp_sg
 !!
 subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,ntrig,trig,after,now,before,i_sign)
 
-   use module_fft_sg
+   !n(c) use module_fft_sg
    implicit real(kind=8) (a-h,o-z)
 
    integer :: after,before,atn,atb

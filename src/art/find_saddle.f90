@@ -57,7 +57,7 @@ subroutine find_saddle(success)
 
   logical, intent(out) :: success
   integer :: ret, npart, ierror, nat
-  real(kind=8) :: boxl
+  !n(c) real(kind=8) :: boxl
   real(kind=8) :: fperp, fpar, del_r, saddle_energy
   character(len=4)  :: scounter
   character(len=20) :: fname
@@ -84,7 +84,7 @@ subroutine find_saddle(success)
      pos = posref  !Vectorial operation
 
      ! We now define the correct box units
-     boxl = box * scala
+     !n(c) boxl = box * scala
 
      ! These two subroutines modify the vector pos and generate a vector of length 1
      ! indicating the direction of the random displacement

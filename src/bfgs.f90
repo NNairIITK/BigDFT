@@ -9,7 +9,7 @@
 
 !> BFGS driver routine
 subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
-    use module_base
+    !n(c) use module_base
     use module_types
     use minpar
     implicit none
@@ -66,8 +66,8 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
         call atomic_copymoving_forward(at,3*at%nat,fxyz,nr,f)
         call atomic_copymoving_forward(at,3*at%nat,rxyz,nr,x)
         call fnrmandforcemax(fxyz,fnrm,fmax,at%nat)
-        if(fmax<3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
-        call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,icheck)
+        if(fmax<3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
+        call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,icheck) !n(m)
         if(iproc==0) write(*,*) 'ICHECK ',icheck
         if(icheck>5) parmin%converged=.true.
         !call calmaxforcecomponentanchors(atoms,np,f(1,1),fnrm,fspmax)
@@ -242,7 +242,7 @@ subroutine pseudohess(nat,rat,nbond,indbond1,indbond2,sprcons,xl0,hess)
     integer :: nat,nbond,indbond1(nbond),indbond2(nbond)
     real(kind=8) :: rat(3,nat),sprcons(nbond),xl0(nbond),hess(3*nat,3*nat)
     integer :: iat,jat,i,j,ibond
-    real(kind=8) :: dx,dy,dz,r2,r,rinv,r3inv !,rinv2,rinv4,rinv8,rinv10,rinv14,rinv16
+    real(kind=8) :: dx,dy,dz,r2,r,rinv! n(c) r3inv !,rinv2,rinv4,rinv8,rinv10,rinv14,rinv16
     real(kind=8) :: dxsq,dysq,dzsq,dxdy,dxdz,dydz,tt1,tt2,tt3
     real(kind=8) :: h11,h22,h33,h12,h13,h23
     do j=1,3*nat
@@ -257,7 +257,7 @@ subroutine pseudohess(nat,rat,nbond,indbond1,indbond2,sprcons,xl0,hess)
         dy=rat(2,iat)-rat(2,jat)
         dz=rat(3,iat)-rat(3,jat)
         r2=dx**2+dy**2+dz**2
-        r=sqrt(r2) ; rinv=1.d0/r ; r3inv=rinv**3
+        r=sqrt(r2) ; rinv=1.d0/r !n(c) ; r3inv=rinv**3
         !rinv2=1.d0/r2
         !rinv4=rinv2*rinv2
         !rinv8=rinv4*rinv4
@@ -349,6 +349,7 @@ subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft
     iw4=mx+nr        !for eigenvalues of inverse og hessian
     if(parmin%iflag==0) then
         parmin%iflag=1
+        parmin%converged=.false.   !! STEFAN Stefan stefan
         parmin%iter=0
         epotold=epot
         alpha=8.d-1
@@ -527,7 +528,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   logical, intent(out) :: fail
   real(gp), dimension(3*at%nat), intent(out) :: fxyz
 
-  real(gp), dimension(3*at%nat):: txyz, sxyz
+  !n(c) real(gp), dimension(3*at%nat):: txyz, sxyz
   real(gp) :: fluct,fnrm, fnoise
   real(gp) :: fmax
 !  logical :: check
@@ -558,8 +559,8 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   fnormmax_sw=in%forcemax!1.e-2_gp      !SD till the max force comp is less than this value
   
   !Dummy variables
-  txyz=0._gp
-  sxyz=0._gp
+  !n(c) txyz=0._gp
+  !n(c) sxyz=0._gp
   
   if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
 
@@ -571,7 +572,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   call fnrmandforcemax(fxyz,fnrm,fmax,at%nat)
   !call fnrmandforcemax(fxyz,fnrm,fmax,at)
   !check if the convergence is reached after SD
-  call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+  call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
 
   if (check.gt.5) then
      if (iproc.eq.0) write(*,*) 'Converged before entering BFGS'
@@ -625,7 +626,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
         endif
         rxyzwrite=rxyz
 
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
    if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) & 
               &write(16,'(I5,1x,I5,2x,a11,1x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
               &ncount_bigdft,ICALL,"GEOPT_LBFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
@@ -637,7 +638,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
               etotprev=etot
               if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
                            'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
-              call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
+              call convcheck(fmax,fluct*in%frac_fluct, in%forcemax,check) !n(m)
               if (ncount_bigdft >= in%ncount_cluster_x) goto 50
               close(16)
               open(unit=16,file='geopt.mon',status='unknown',position='APPEND')

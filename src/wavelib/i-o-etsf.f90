@@ -179,7 +179,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
            end if
         end do
 
-        call reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+        call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
              rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi(1,iorb))
      end do
 

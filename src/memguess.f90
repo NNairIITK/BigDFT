@@ -169,6 +169,7 @@ program memguess
           & nspin, hx, hy, hz, rhocoeff, atoms%nat, rxyz, atoms%iatype, atoms%nzatom)
      atoms%ntypes = size(atoms%nzatom) - ndebug
      write(*,*) "Write new density file..."
+     !n(?) norbsc_arr was not allocated
      call plot_density(trim(fileTo), 0, 1, Glr%d%n1i / 2 - 1, Glr%d%n2i / 2 - 1, &
           & Glr%d%n3i / 2 - 1, Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, Glr%d%n3i, nspin, hx, hy, hz, &
           & atoms, rxyz, norbsc_arr, rhocoeff)
@@ -1027,7 +1028,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   call cpu_time(t0)
   do j=1,ntimes
      call gpu_precond(lr,hx,hy,hz,GPU,orbs%norbp,ncong,&
-          orbs%eval(min(orbs%isorb+1,orbs%norb)),gnrmGPU)
+          gnrmGPU)
   end do
   call cpu_time(t1)
   

@@ -103,14 +103,14 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   real(gp)  ::   Soverlap(0:ng,0:ng)
   real(gp)  ::   Score(0:ng), dumgrid(Ngrid), dumgrid2(Ngrid)
   integer :: i,j,k,n,INFO, LWORK
-  real(gp) :: b1,b2, B, spi, pi
+  real(gp) :: b1,b2, B !n(c) spi, pi
   real(gp) :: W(0:ng), WORK(3*(ng+1)*(ng+1))
   real(gp) ::  sum, totalpow, ggg, gamma_restricted
 
   lwork= 3*(ng+1)*(ng+1)
 
-  spi=1.772453850905516_gp
-  pi=spi*spi
+  !n(c) spi=1.772453850905516_gp
+  !n(c) pi=spi*spi
 
   totalpow=2.0_gp + 2*l  
   do i=0,ng
@@ -161,7 +161,7 @@ subroutine dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
   real(gp), dimension(0:ng), intent(in) :: psi
 
   ! local
-  integer, parameter :: n_int=100
+  !n(c) integer, parameter :: n_int=100
   character(len=200) :: filename
   integer :: i,ig
   real(kind=8) :: r,sum
@@ -197,7 +197,7 @@ function value_at_r(r, ng , expo,psi     )
   real(gp), dimension(0:ng), intent(in) :: psi
 
   ! local
-  integer, parameter :: n_int=100
+  !n(c) integer, parameter :: n_int=100
 
   integer ig
   real(gp) sum
@@ -223,7 +223,7 @@ subroutine dump_gauwf_on_radgrid(prefix, ng, noccmax, lmax, expo, psi)
   real(gp), dimension(0:ng,noccmax,lmax+1), intent(in) :: psi
 
   !Local variables
-  integer, parameter :: n_int=100
+  !n(c) integer, parameter :: n_int=100
   character(len=200) :: filename
   integer :: l,i,k,ig
   real(kind=8) :: r,sum
@@ -589,7 +589,7 @@ function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
   real(gp)  :: Gh,Gl,G0,Nlc,Nla,Nlb
   
   real(gp) :: Ga,Gb,Gc
-  real(gp) :: ya,yb,yc
+  real(gp) :: ya,yb !n(c) yc
   real(gp) :: r, PI
   
   real(gp) :: fact,norm, func(N), funcdum(N), pow
@@ -750,7 +750,7 @@ function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
   
   ya=y(ii-1)
   yb=y(ii)
-  yc=y(ii+1)
+  !n(c) yc=y(ii+1)
   
   ypI=(dh*(Ga*pow(dl,2)*(-12*dh + Gc*pow(dh,3) - 6*dl + &
        Gc*pow(dh,2)*dl) - &
@@ -915,7 +915,7 @@ function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
 
   ya=y(ii-1)
   yb=y(ii)
-  yc=y(ii+1)
+  !n(c) yc=y(ii+1)
 
   ypI=(dh*(Ga*pow(dl,2)*(-12*dh + Gc*pow(dh,3) - 6*dl + &
        Gc*pow(dh,2)*dl) - &
@@ -2303,8 +2303,8 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   integer :: ig, iocc, iexpo
 
   integer ::  abs_initial_L
-  integer, parameter :: Norder=4, dump_functions=0
-  real(gp) , parameter :: sphere_radius=3.0
+  integer, parameter :: dump_functions=0 !n(c) Norder=4
+  !n(c) real(gp) , parameter :: sphere_radius=3.0
   real(gp) , pointer:: psi1s(:) 
   integer :: real_start
   real(gp) :: cradius
@@ -2695,8 +2695,8 @@ function GetBottom( atoms, iproc)
   real(gp) , pointer :: expo(:), psi(:,:,:), aeval(:,:), occup(:,:)
   integer :: psp_modifier
 
-  integer, parameter :: Norder=4, dump_functions=0
-  real(gp) , parameter :: sphere_radius=3.0
+  integer, parameter :: dump_functions=0 !n(c) Norder=4
+  !n(c) real(gp) , parameter :: sphere_radius=3.0
   real(gp) :: cradius
 
   integer ::  Nsol , Ngrid, igrid

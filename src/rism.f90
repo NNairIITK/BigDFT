@@ -75,7 +75,7 @@ program rism
   allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
 
-  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&
+  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&  !n(?) hxh, hyh, hzh (no value assigned)
        rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',0,in%rho_commun,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
@@ -114,7 +114,7 @@ program rism
   call assign_atomic_radii(atoms%nat,iatlr,nlr,radii)
 
   call atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,Glr,ngatherarr,&
-       hxh,hyh,hzh,n3p,i3s+i3xcsh,rho,pot,atchgs)
+       hxh,hyh,hzh,n3p,i3s+i3xcsh,rho,atchgs) !n(m)
 
   i_all=-product(shape(nscatterarr))*kind(nscatterarr)
   deallocate(nscatterarr,stat=i_stat)
@@ -204,8 +204,8 @@ END SUBROUTINE assign_atomic_radii
 !!         J.Chem.Phys. 103(17),7422 (1995) 
 !!   use a basis of error functions centered on the atoms, with atom-defined radii
 !!   and also short-range functions are allowed, as well as dummy atoms
-subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngatherarr,&
-     hxh,hyh,hzh,n3p,i3s,rho,pot,C)
+subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngatherarr,& !n(c) pot (arg:l-1)
+     hxh,hyh,hzh,n3p,i3s,rho,C)
   use module_base
   use module_types
   use module_interfaces
@@ -216,7 +216,7 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
   type(atoms_data), intent(in) :: atoms
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   integer, dimension(atoms%nat), intent(in) :: iatlr
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*n3p), intent(in) :: pot
+  !n(c) real(wp), dimension(lr%d%n1i*lr%d%n2i*n3p), intent(in) :: pot
   real(dp), dimension(lr%d%n1i*lr%d%n2i*n3p), intent(inout) :: rho
   real(gp), dimension(nlr) :: radii
   real(gp), dimension(3,atoms%nat) :: rxyz
@@ -585,10 +585,10 @@ subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,h
   logical :: perx,pery,perz,gox,goy,goz
   integer :: i1,i2,i3,ind,iat,ierr,i,ilr
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3
-  real(gp) :: pi,cutoff,rloc,Rel
+  real(gp) :: cutoff,rloc,Rel !n(c) pi
   real(gp) :: rx,ry,rz,x,y,z,r2,charge,erfor
 
-  pi=4.d0*atan(1.d0)
+  !n(c) pi=4.d0*atan(1.d0)
 
   !conditions for periodicity in the three directions
   perx=(at%geocode /= 'F')

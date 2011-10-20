@@ -30,10 +30,10 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
   real(wp), dimension(orbse%nspinor*G%ncoeff,orbse%norbp), intent(in) :: psigau,hpsigau
   !local variables
   character(len=*), parameter :: subname='Gaussian_DiagHam'
-  real(kind=8), parameter :: eps_mach=1.d-12
+  !n(c) real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
   integer :: i,ndim_hamovr,i_all,i_stat,norbi_max,j
-  integer :: norbtot,natsceff,norbsc,ndh1,ispin,npsidim,nspinor
+  integer :: natsceff,ndh1,ispin,nspinor !n(c) norbtot,norbsc,npsidim
   real(gp) :: tolerance
   integer, dimension(:,:), allocatable :: norbgrp
   real(wp), dimension(:,:), allocatable :: hamovr
@@ -59,7 +59,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
      ndim_hamovr=0
      do ispin=1,nspin
         ndh1=0
-        norbsc=0
+        !n(c) norbsc=0
         do i=1,natsc+1
            ndh1=ndh1+norbsc_arr(i,ispin)**2
         end do
@@ -73,9 +73,9 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
               stop
            end if
         end if
-        norbsc=sum(norbsc_arr(1:natsc,1))
+        !n(c) norbsc=sum(norbsc_arr(1:natsc,1))
      else
-        norbsc=0
+        !n(c) norbsc=0
      end if
 
      natsceff=natsc
@@ -97,7 +97,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
      allocate(norbgrp(1,nspin+ndebug),stat=i_stat)
      call memocc(i_stat,norbgrp,'norbgrp',subname)
 
-     norbsc=0
+     !n(c) norbsc=0
      norbgrp(1,1)=orbs%norbu
      if (nspin == 2) norbgrp(1,2)=orbs%norbd
 
@@ -106,12 +106,12 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
   !assign total orbital number for calculating the overlap matrix and diagonalise the system
 
   if(minimal) then
-     norbtot=orbse%norb !beware that norbe is equal both for spin up and down
-     npsidim=orbse%npsidim
+     !n(c) norbtot=orbse%norb !beware that norbe is equal both for spin up and down
+     !n(c) npsidim=orbse%npsidim
      nspinor=orbse%nspinor
   else
-     norbtot=orbs%norb
-     npsidim=orbs%npsidim
+     !n(c) norbtot=orbs%norb
+     !n(c) npsidim=orbs%npsidim
      nspinor=orbs%nspinor
   end if
 
@@ -276,11 +276,11 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   real(wp), dimension(:), pointer, optional :: psivirt
   !local variables
   character(len=*), parameter :: subname='DiagHam'
-  real(kind=8), parameter :: eps_mach=1.d-12
+  !n(c) real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
   integer :: ikptp,ikpt,nvctrp
   integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx
-  integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
+  integer :: norbtot,natsceff,norbsc,ndh1,ispin,npsidim,nspinor,ispsi,ispsie,ispsiv !n(c) nvctr
   real(gp) :: tolerance
   type(orbitals_data), pointer :: orbsu
   type(communications_arrays), pointer :: commu
@@ -529,7 +529,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      end if
 
      if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
-     nvctr=wfd%nvctr_c+7*wfd%nvctr_f
+     !n(c) nvctr=wfd%nvctr_c+7*wfd%nvctr_f
 
      ispsi=1
      ispsie=1
@@ -719,13 +719,13 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   real(wp), dimension(sum(norbsc_arr)), intent(out) :: eval
   !local variables
   character(len=*), parameter :: subname='solve_eigensystem'
-  character(len=25) :: gapstring
-  character(len=64) :: message
-  integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,ncplx,ncomp
-  integer :: nwrtmsg,norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig
-  real(wp), dimension(2) :: preval
+  !n(c) character(len=25) :: gapstring
+  !n(c) character(len=64) :: message
+  integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,i,ncplx !n(c) iorb, ncomp, ndegen
+  integer :: norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig !n(c) nwrtmsg
+  !n(c) real(wp), dimension(2) :: preval
   real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
-  real(gp) :: HLIGgap
+  !n(c) real(gp) :: HLIGgap
 
 !if(iproc==0) write(30100,*) hamovr(1:ndim_hamovr,1)
 !if(iproc==0) write(30110,*) hamovr(1:ndim_hamovr,2)
@@ -741,13 +741,13 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   !WARNING: here nspin=1 for nspinor=4
   if(nspinor == 1) then
      ncplx=1
-     ncomp=1
+     !n(c) ncomp=1
   elseif(nspinor == 2) then
      ncplx=2
-     ncomp=1
+     !n(c) ncomp=1
   else if (nspinor == 4) then
      ncplx=2
-     ncomp=2
+     !n(c) ncomp=2
   end if
 
   !find the eigenfunctions for each group
@@ -764,10 +764,10 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
 
   !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'Linear Algebra...'
 
-  nwrtmsg=0
-  ndegen=0
+  !n(c) nwrtmsg=0
+  !n(c) ndegen=0
 
-  preval=0.0_wp
+  !n(c) preval=0.0_wp
   iorbst=1
   imatrst=1
   do i=1,natsc+1
@@ -1029,8 +1029,8 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
   integer, dimension(2), intent(in), optional :: nvirte
   real(wp), dimension(*), optional :: psivirt
   !Local variables
-  character(len=*), parameter :: subname='build_eigenvectors'
-  integer, parameter :: iunit=1978
+  !n(c) character(len=*), parameter :: subname='build_eigenvectors'
+  !n(c) integer, parameter :: iunit=1978
   integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj
   integer :: ncplx,ncomp,i,ispsiv
   integer:: j,iproc,ispm
@@ -1170,14 +1170,14 @@ subroutine psitospi(iproc,nproc,norbe,norbep,norbsc, &
   integer :: iorb,jorb,iat,i
   real(kind=8) :: mx,my,mz,mnorm,fac
   real(kind=8), dimension(:,:), allocatable :: mom
-  integer, dimension(2) :: iorbsc,iorbv
+  !n(c) integer, dimension(2) :: iorbsc,iorbv
 
   !initialise the orbital counters
-  iorbsc(1)=0
-  iorbv(1)=norbsc
+  !n(c) iorbsc(1)=0
+  !n(c) iorbv(1)=norbsc
   !used in case of spin-polarisation, ignored otherwise
-  iorbsc(2)=norbe
-  iorbv(2)=norbsc+norbe
+  !n(c) iorbsc(2)=norbe
+  !n(c) iorbv(2)=norbsc+norbe
 
   if (iproc ==0) then
      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'

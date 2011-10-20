@@ -81,7 +81,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   character(len=*), parameter :: subname='parse_cp2k_files'
   character(len=6) :: string,symbol
   character(len=100) :: line
-  integer, parameter :: nterm_max=3
+  !n(c) integer, parameter :: nterm_max=3
   integer :: ngx,nbx,nst,nend,num,mmax,myshift,i,ipar,ipg,jat
   integer :: iorb,jorb,iat,ityp,i_all,i_stat,ibas,ig,iset,jbas,ishell,lmax
   integer :: isat,iexpo,icoeff,iam
@@ -649,7 +649,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=65536
   logical :: perx,pery,perz
   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
-  integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
+  integer :: nterms_max,nterms,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3 !n(c) iscoeff
   real(gp) :: rx,ry,rz,gau_a
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
@@ -686,7 +686,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   ishell=0
   iexpo=1
   icoeff=1
-  iscoeff=1
+  !n(c) iscoeff=1
   iterm=1
   do iat=1,G%nat
      rx=G%rxyz(1,iat)
@@ -1190,7 +1190,7 @@ END SUBROUTINE segments_to_grid
 !> Parse the output of CP2K to read the basis set information
 subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hx,hy,hz,psi)
+     nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,rxyz,hx,hy,hz,psi) !n(c) occup (arg:l-5)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -1202,7 +1202,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   integer, dimension(nat), intent(in) :: iatype
   real(gp), intent(in) :: hx,hy,hz
   real(gp), dimension(3,nat), intent(in) :: rxyz
-  real(gp), dimension(norb), intent(in) :: occup
+  !n(c) real(gp), dimension(norb), intent(in) :: occup
   !real(gp), intent(out) :: eks
   real(wp), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: psi
   !local variables

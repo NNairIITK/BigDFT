@@ -96,13 +96,13 @@ subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   character(len=*), parameter :: subname='plot_wf'
   integer :: nw1,nw2,i_stat,i_all,i,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
   integer :: nxc,nxf,nl1,nl2,nl3,n1i,n2i,n3i
-  real(gp) :: rx, ry, rz
+  !n(c) real(gp) :: rx, ry, rz
   real(wp), dimension(0:3) :: scal
   real(wp), dimension(:), allocatable :: psir,w1,w2,x_c_psifscf,x_f_psig
 
-  rx=rxyz(1,1)
-  ry=rxyz(2,1)
-  rz=rxyz(3,1)
+  !n(c) rx=rxyz(1,1)
+  !n(c) ry=rxyz(2,1)
+  !n(c) rz=rxyz(3,1)
 
   n1=lr%d%n1
   n2=lr%d%n2
@@ -874,7 +874,7 @@ END SUBROUTINE read_density_cube_old
 !!      I already did it in this subroutine, but we can do it as a separate subroutine.
 subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename,message
@@ -1280,7 +1280,7 @@ END SUBROUTINE plot_wf
 !> Read density or potential in cube format
 subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz, iatypes, znucl)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -1293,7 +1293,7 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   integer, intent(out)   ::  nat
   integer, dimension(:), pointer   :: iatypes, znucl
   !local variables
-  character(len=*), parameter :: subname='read_cube'
+  !n(c) character(len=*), parameter :: subname='read_cube'
   character(len=5) :: suffix
   character(len=15) :: message
   integer :: ia
@@ -1451,7 +1451,7 @@ END SUBROUTINE read_cube
 
 !>   Read a cube field which have been plotted previously by write_cube_fields
 subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -1459,7 +1459,7 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   integer, intent(in) :: n1i,n2i,n3i
   real(dp), dimension(n1i*n2i*n3i) :: rho
   !local variables
-  character(len=*), parameter :: subname='read_density_cube'
+  !n(c) character(len=*), parameter :: subname='read_density_cube'
   character(len=3) :: advancestring
   integer :: n1t,n2t,n3t,n1,n2,n3,i1,i2,i3,nat,iat
   integer :: nl1,nl2,nl3,nbx,nby,nbz,icount,ind

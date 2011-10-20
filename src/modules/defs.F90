@@ -44,8 +44,6 @@ module module_defs
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
 
-
-
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine
@@ -309,21 +307,21 @@ module module_defs
 
     end subroutine mpiallred_log
 
-    function uninitialized_int(one)
+    function uninitialized_int(one) 
       implicit none
       integer, intent(in) :: one
       integer :: uninitialized_int
       uninitialized_int=-123456789
     end function uninitialized_int
 
-    function uninitialized_real(one)
+    function uninitialized_real(one) 
       implicit none
       real(kind=4), intent(in) :: one
       real(kind=4) :: uninitialized_real
       uninitialized_real=-123456789.e0
     end function uninitialized_real
 
-    function uninitialized_dbl(one)
+    function uninitialized_dbl(one) 
       implicit none
       real(kind=8), intent(in) :: one
       real(kind=8) :: uninitialized_dbl

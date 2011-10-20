@@ -24,7 +24,7 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
   integer :: iseg,i_stat,i_all,segment_elements,nseg_tot,j,nseggpu,nblocks,nseg_block
   integer :: elems_block,nblocks_max,ncuts
   integer, dimension(:,:), allocatable :: keys
-  integer :: stream_send
+  !n(c) integer :: stream_send
   call readkeysinfo(elems_block,nblocks_max)
   
   nseg_tot=0
@@ -226,12 +226,12 @@ subroutine free_gpu(GPU,norbp)
 END SUBROUTINE free_gpu
 
 
-subroutine local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,&
+subroutine local_hamiltonian_GPU(orbs,lr,hx,hy,hz,& !n(c) iproc (arg:1)
      nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nspin
+  integer, intent(in) :: nspin !n(c) iproc
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
@@ -242,7 +242,7 @@ subroutine local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,&
 
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
-  character(len=*), parameter :: subname='local_hamiltonian_GPU'
+  !n(c) character(len=*), parameter :: subname='local_hamiltonian_GPU'
 
   integer :: i_stat,iorb
 
@@ -298,19 +298,19 @@ subroutine local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,&
 END SUBROUTINE local_hamiltonian_GPU
 
 
-subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
+subroutine preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU) !n(c) iproc (arg:1), nproc (arg:2)
   use module_base
   use module_types
   implicit none
   type(orbitals_data), intent(in) :: orbs
-  integer, intent(in) :: iproc,nproc,ncong
+  integer, intent(in) :: ncong !n(c) iproc, nproc
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='preconditionall_GPU'
-  integer ::  ierr,iorb,i_stat,ncplx,i_all,inds
+  integer ::  iorb,i_stat,ncplx,i_all,inds !n(c) ierr
   real(wp) :: scpr
   type(GPU_pointers), intent(inout) :: GPU
   type(workarr_precond) :: w
@@ -390,13 +390,13 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
 END SUBROUTINE preconditionall_GPU
 
 
-subroutine local_partial_density_GPU(iproc,nproc,orbs,&
+subroutine local_partial_density_GPU(orbs,&  !n(c) iproc (arg:1), nproc (arg:2)
      nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
-  use module_base
+  !n(c) use module_base
   use module_types
-  use module_interfaces
+  !n(c) use module_interfaces
   implicit none
-  integer, intent(in) :: iproc,nproc,nrhotot
+  integer, intent(in) :: nrhotot !n(c) iproc, nproc
   type(orbitals_data), intent(in) :: orbs
   integer, intent(in) :: nspin
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -452,7 +452,7 @@ END SUBROUTINE local_partial_density_GPU
 
 
 subroutine gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: nspin
@@ -472,7 +472,7 @@ subroutine gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
 END SUBROUTINE gpu_locden
 
 subroutine gpu_locden_helper_stream(lr,nspin,hxh,hyh,hzh,orbs,GPU,stream_ptr)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: nspin
@@ -495,7 +495,7 @@ END SUBROUTINE gpu_locden_helper_stream
 
 
 subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -504,7 +504,7 @@ subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
   type(orbitals_data), intent(in) :: orbs
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: i_stat,iorb
+  integer :: iorb ! n(c) i_stat
   real(gp) :: ekin,epot
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
@@ -537,7 +537,7 @@ END SUBROUTINE gpu_locham
 
 
 subroutine gpu_locham_helper_stream(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum,iorb,stream_ptr)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -546,9 +546,9 @@ subroutine gpu_locham_helper_stream(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum
   type(orbitals_data), intent(in) :: orbs
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: i_stat
+  !n(c) integer :: i_stat
   integer, intent(in) ::iorb
-  real(gp) :: ekin,epot
+  !n(c) real(gp) :: ekin,epot
 
   real(gp) :: ocupGPU
   real(kind=8), intent(in) :: stream_ptr 
@@ -573,18 +573,18 @@ subroutine gpu_locham_helper_stream(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum
 END SUBROUTINE gpu_locham_helper_stream
 
 
-subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm)
-  use module_base
+subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,gnrm) !n(c) eval (arg:8)
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: norbp,ncong
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(norbp), intent(in) :: eval
+  !n(c) real(wp), dimension(norbp), intent(in) :: eval
   real(wp), intent(out) :: gnrm
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: i_stat,iorb
+  integer :: iorb !n(c) i_stat
   real(wp) :: gnrm_gpu
 
   gnrm=0.0_wp
@@ -603,17 +603,17 @@ subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm)
 
 END SUBROUTINE gpu_precond
 
-subroutine gpu_intprecond(lr,hx,hy,hz,GPU,norbp,ncong,eval,iorb)
-  use module_base
+subroutine gpu_intprecond(lr,hx,hy,hz,GPU,ncong,iorb) !n(c) norbp (args:6), eval (arg:8)
+  !n(c) use module_base
   use module_types
   implicit none
-  integer, intent(in) :: norbp,ncong,iorb
+  integer, intent(in) :: ncong,iorb !n(c) norbp
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(norbp), intent(in) :: eval
+  !n(c) real(wp), dimension(norbp), intent(in) :: eval
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: i_stat
+  !n(c) integer :: i_stat
 
   !use rhopot as a work array here
   call gpuintprecond(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
@@ -625,23 +625,23 @@ subroutine gpu_intprecond(lr,hx,hy,hz,GPU,norbp,ncong,eval,iorb)
 END SUBROUTINE gpu_intprecond
 
 
-subroutine gpu_precond_helper_stream(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm,currOrb,stream_ptr)
-  use module_base
+subroutine gpu_precond_helper_stream(lr,hx,hy,hz,GPU,ncong,gnrm,currOrb,stream_ptr) !n(c) norbp (arg:6), eval (arg:8)
+  !n(c) use module_base
   use module_types
   implicit none
-  integer, intent(in) :: norbp,ncong
+  integer, intent(in) :: ncong !n(c) norbp
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(norbp), intent(in) :: eval
+  !n(c) real(wp), dimension(norbp), intent(in) :: eval
   real(wp), intent(out) :: gnrm
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: i_stat
+  !n(c) integer :: i_stat
   integer,intent(in) :: currOrb
  ! real(wp) :: gnrm_gpu
   real(kind=8), intent(in) :: stream_ptr 
 
-  real(kind=8) :: callback_pointer,callback_param
+  !n(c) real(kind=8) :: callback_pointer,callback_param
   gnrm=0.0_wp
   
   call sg_precond_adapter(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
@@ -655,7 +655,7 @@ END SUBROUTINE gpu_precond_helper_stream
 
 subroutine gpu_precondprecond_helper_stream(lr,hx,hy,hz,cprecr,scal,ncplx,w,x,b,&
      stream_ptr)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: ncplx
@@ -668,7 +668,7 @@ subroutine gpu_precondprecond_helper_stream(lr,hx,hy,hz,cprecr,scal,ncplx,w,x,b,
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx) ::  b
 
   !local variables
-  integer :: i_stat
+  !n(c) integer :: i_stat
  ! real(wp) :: gnrm_gpu
   real(kind=8), intent(in) :: stream_ptr 
   
@@ -687,7 +687,7 @@ subroutine precond_preconditioner_wrapper(hybrid_on,&
      cprecr,hx,hy,hz,scal,keyg,keyv,modul1,modul2,modul3,&
      af,bf,cf,ef,kern_k1,kern_k2,kern_k3,z1,z3,x_c,psifscf,ww,&
      x,b)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   logical :: hybrid_on

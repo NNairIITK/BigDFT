@@ -30,7 +30,7 @@ real(8) function ran3()
   integer, parameter :: mbig=1000000000
   integer, parameter :: mseed=161803398
   integer, parameter :: mz=0
-  real(8), parameter :: fac=1./mbig
+  real(8), parameter :: fac=1./mbig 
 
   integer :: i,mj, mk, ii, k
 

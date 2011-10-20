@@ -36,7 +36,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   character(len=*), parameter :: subname='local_hamiltonian'
   integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
   real(wp) :: exctXcoeff
-  real(gp) :: ekin,epot,kx,ky,kz,etest,eSICi,eSIC_DCi
+  real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,vsicpsir
 
@@ -78,7 +78,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   epot_sum=0.0_gp
   eSIC_DC=0.0_gp
 
-  etest=0.0_gp
+  !n(c) etest=0.0_gp
 
   do iorb=1,orbs%norbp
      !this section should be replaced with the ispot array, calculated in fill_local_potential (or maybe before)

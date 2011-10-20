@@ -28,7 +28,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
   real(wp), dimension(:,:,:), pointer :: psigau
   !local variables
   character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
-  integer, parameter :: ngx=31
+  !n(c) integer, parameter :: ngx=31
   integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
   integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
   logical, dimension(:,:,:), allocatable :: scorb
@@ -199,7 +199,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
   integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
   real(gp), dimension(at%nat), intent(out) :: locrad
   !local variables
-  character(len=*), parameter :: subname='readAtomicOrbitals'
+  !n(c) character(len=*), parameter :: subname='readAtomicOrbitals'
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   character(len=2) :: symbol
   integer :: ity,i,iatsc,iat,lsc
@@ -1767,14 +1767,14 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,&
   integer :: iorb,jorb,i
   real(kind=8) :: facu,facd
   real(kind=8), dimension(:,:), allocatable :: psi_o
-  integer, dimension(2) :: iorbsc,iorbv
+  !n(c) integer, dimension(2) :: iorbsc,iorbv
 
   !initialise the orbital counters
-  iorbsc(1)=0
-  iorbv(1)=norbsc
+  !n(c) iorbsc(1)=0
+  !n(c) iorbv(1)=norbsc
   !used in case of spin-polarisation, ignored otherwise
-  iorbsc(2)=norbe
-  iorbv(2)=norbsc+norbe
+  !n(c) iorbsc(2)=norbe
+  !n(c) iorbv(2)=norbsc+norbe
 
   if (iproc ==0) then
      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'

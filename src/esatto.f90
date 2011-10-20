@@ -38,7 +38,7 @@ contains
     
     integer two_ja,  two_jb,  two_jc,two_ma,  two_mb,  two_mc
     
-    integer  jca ,jcb ,jcc ,jmma ,jmmb, jmmc,jpma,jpmb,jpmc,jsum,kmin, kmax, k, sign, status
+    integer  jca ,jcb ,jcc ,jmma ,jmmb, jmmc,jpma,jpmb,jpmc,jsum,kmin, kmax, k, sign !(c) , status
     real(gp)  sum_pos , sum_neg , norm, term
     real(gp)  bc1, bc2, bc3, bcn1, bcn2, bcd1, bcd2, bcd3, bcd4
 
@@ -69,7 +69,7 @@ contains
        kmin = max(0, jpmb - jmmc, jmma - jpmc)
        kmax = min (jcc, jmma, jpmb)
        sign = (-1)**(kmin - jpma + jmmb) 
-       status = 0
+       !n(c) status = 0
        sum_pos = 0.0
        sum_neg = 0.0
        
@@ -106,7 +106,7 @@ contains
     
     integer , intent(IN) :: Lout,Lpot,Lin,  Mout,Mpot,Min 
     
-    real(8) , PARAMETER :: PI=3.141592653589793D0,TWOPI=2D0*PI
+    real(8) , PARAMETER :: PI=3.141592653589793D0 !n(c) ,TWOPI=2D0*PI
     
     ThreeYintegral  =  sqrt(((2*Lout+1)*(2*Lpot+1)*(2*Lin+1.0))/( 4*PI ))  *Wig(  2*Lout,2*Lpot,2*Lin,  0,0,0)&
          *Wig(  2*Lout,2*Lpot,2*Lin,  -2*Mout,2*Mpot,2*Min)

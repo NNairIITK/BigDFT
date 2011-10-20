@@ -792,7 +792,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   ! allocate arrays necessary for DIIS convergence acceleration
   call allocate_diis_objects(idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
-       orbs%nkptsp,orbs%nspinor,orbs%norbd,diis,subname)
+       orbs%nkptsp,orbs%nspinor,diis,subname)
 
   !allocate arrays for the GPU if a card is present
   if (GPUconv) then
@@ -992,7 +992,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !control the previous value of idsx_actual
            idsx_actual_before=diis%idsx
 
-           call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in%orthpar)
+           call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in%orthpar) 
 
            if (in%inputPsiId == 0) then
               if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
@@ -1392,12 +1392,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,psivirt,'psivirt',subname)
 
         if (in%norbv < 0) then
-           call direct_minimization(iproc,nproc,n1i,n2i,in,atoms,&
+           call direct_minimization(iproc,nproc,n1i,n2i,in,atoms,& 
                 orbs,orbsv,nvirt,Glr,comms,commsv,&
                 hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
                 pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
         else if (in%norbv > 0) then
-           call davidson(iproc,nproc,n1i,n2i,in,atoms,&
+           call davidson(iproc,nproc,n1i,n2i,in,atoms,& 
                 orbs,orbsv,in%nvirt,Glr,comms,commsv,&
                 hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
                 pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)

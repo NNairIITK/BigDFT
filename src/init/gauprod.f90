@@ -220,7 +220,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
   real(wp), dimension(:), pointer :: Gocc
   !local variables
   character(len=*), parameter :: subname='gaussian_pswf_basis'
-  integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
+  integer, parameter :: noccmax=2,lmax=4,nelecmax=32 !n(c) nmax=6
   logical :: occeq
   integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,ictotpsi,norbe,norbsc,ishltmp
   integer :: ityx,ntypesx,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll,ngv,ngc,islcc

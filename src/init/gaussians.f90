@@ -24,7 +24,7 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   real(wp), dimension((ngx*(ngx+1))/2), intent(out) :: rhoexpo
   real(wp), dimension((ngx*(ngx+1))/2,4), intent(out) :: rhocoeff
   !local variables
-  integer, parameter :: nterm_max=3,nshell_max=10
+  integer, parameter :: nshell_max=10 !n(c) nterm_max=3
   real(gp), parameter :: range=3.0_gp !in atomic units
   integer :: jat,ishell,iexpo,icoeff,isat,ng,l,m,jshell,jexpo,jsat,ig,igrid
   integer :: kshell,kexpo,jg,kg,ngk,ksat,ngj,jcoeff,irexpo,ngrid_points

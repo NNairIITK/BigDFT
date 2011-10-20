@@ -12,14 +12,14 @@
 !! array x is input, array y is output
 !! See also the optimized version (apply_hp_sd_optim)
 subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-     cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e)
+     cprecr,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e) !n(c) hx,hy,hz (arg:11,12,13)
   use module_base
   implicit none
   integer, parameter :: lowfil=-14,lupfil=14
   integer, intent(in) :: n1,n2,n3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: cprecr
-  real(gp), intent(in) :: hx,hy,hz
+  !n(c) real(gp), intent(in) :: hx,hy,hz
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer,intent(in)::modul1(lowfil:n1+lupfil)
@@ -33,16 +33,16 @@ subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 
   real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
   !local variables
-  real(gp), dimension(3) :: hgrid
+  !n(c) real(gp), dimension(3) :: hgrid
   real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)) :: psig_in,psig_out
 
   call uncompress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
        x(1),x(nvctr_c+1),psig_in)
 
-  hgrid(1)=hx
-  hgrid(2)=hy
-  hgrid(3)=hz
+  !n(c) hgrid(1)=hx
+  !n(c) hgrid(2)=hy
+  !n(c) hgrid(3)=hz
   call convolut_kinetic_per_sdc(n1,n2,n3,psig_in,psig_out,cprecr,modul1,modul2,modul3,a,b,c,e)
 
   call compress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
@@ -54,7 +54,7 @@ END SUBROUTINE apply_hp_sd
 
 !>   See also the optimized version (apply_hp_scal_optim)
 subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-     cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e,scal)
+     cprecr,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e,scal) !n(c) hx,hy,hz (arg:11,12,13)
   use module_base
   implicit none
   integer, parameter :: lowfil=-14,lupfil=14
@@ -62,7 +62,7 @@ subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp),intent(in)::scal(0:7)
   real(gp), intent(in) :: cprecr
-  real(gp), intent(in) :: hx,hy,hz
+  !n(c) real(gp), intent(in) :: hx,hy,hz
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer,intent(in) :: modul1(lowfil:n1+lupfil)
@@ -76,16 +76,16 @@ subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 
   real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
   !local variables
-  real(gp), dimension(3) :: hgrid
+  !n(c) real(gp), dimension(3) :: hgrid
   real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)) :: psig_in,psig_out
 
   call uncompress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
        x(1),x(nvctr_c+1),psig_in,scal)
 
-  hgrid(1)=hx
-  hgrid(2)=hy
-  hgrid(3)=hz
+  !n(c) hgrid(1)=hx
+  !n(c) hgrid(2)=hy
+  !n(c) hgrid(3)=hz
   call convolut_kinetic_per_sdc(n1,n2,n3,psig_in,psig_out,cprecr,modul1,modul2,modul3,a,b,c,e)
 
   call compress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
@@ -389,7 +389,7 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   !real(kind=8) :: tel
   real(wp), dimension(lowfil:lupfil,3) :: a,b,c,e
   integer :: ii1,ii2,ii3 ! for hybrid convolutions
-  integer :: ic
+  !n(c) integer :: ic
   integer :: mod_arr1(lowfil:n1+lupfil)
   integer :: mod_arr2(lowfil:n2+lupfil)
   integer :: mod_arr3(lowfil:n3+lupfil)
@@ -397,7 +397,7 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   ekinout=0._gp
 !$omp parallel default(private) shared(mod_arr1,mod_arr2,mod_arr3,n1,n2,n3,hgrid,x_c,x_f,x_f1,x_f2,x_f3) &
 !$omp shared(ekinout,y_c,y_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ibyz,ibxz,ibxy)
-        ic=1
+        !n(c) ic=1
    call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
    call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
    call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
@@ -946,13 +946,13 @@ subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
   !real(kind=8) :: tel
   real(wp), dimension(lowfil:lupfil,3) :: a,b,c,e
   integer ii1,ii2,ii3 ! for hybrid convolutions
-  integer::ic
+  !n(c) integer::ic
   integer :: mod_arr1(lowfil:n1+lupfil)
   integer :: mod_arr2(lowfil:n2+lupfil)
   integer :: mod_arr3(lowfil:n3+lupfil)
 !$omp parallel default(private) shared(mod_arr1,mod_arr2,mod_arr3,n1,n2,n3,hgrid,x_c,x_f,x_f1,x_f2,x_f3) &
 !$omp shared(cprecr,y_c,y_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ibyz,ibxz,ibxy)
-        ic=1    
+        !n(c) ic=1    
 
   call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
   call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
