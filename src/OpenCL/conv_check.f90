@@ -1737,7 +1737,6 @@ program conv_check_ocl
                    nseg,nvctr_cf,keyg,keyv,psi(1),psi(nvctr_cf+1),psi_in,scal)
            end do
            call nanosec(tsc1)
-
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
            call print_time(CPUtime,8*nvctr_cf,1,ntimes)
 
