@@ -43,8 +43,8 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
   allocate(z(2,nd1,nd3,2))
   allocate(zw(ncache+1))
 
-  call cpu_time(t1)
-  call system_clock(count1,count_rate,count_max)      
+  !call cpu_time(t1)
+  !call system_clock(count1,count_rate,count_max)      
 
   call forward_fft
 
@@ -52,9 +52,9 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
 
   call backward_fft
 
-  call cpu_time(t2)
-  call system_clock(count2,count_rate,count_max)      
-  tela=(count2-count1)/real(count_rate)
+  !call cpu_time(t2)
+  !call system_clock(count2,count_rate,count_max)      
+  !tela=(count2-count1)/real(count_rate)
   !write(*,*) 'Time (CPU,ELA)  (sec):' ,t2-t1,tela
 
   !deallocations to be reformulated

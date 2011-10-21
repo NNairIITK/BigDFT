@@ -1506,9 +1506,9 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
            !reverse ordering
            !input: I1,J2,j3,Jp2,(jp3)
            if (nproc.eq.1) then
-              call mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi2,zw(1,1,1))
+              call mpiswitchPS(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi2,zw(1,1,1))
            else
-              call mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw(1,1,1))
+              call mpiswitchPS(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw(1,1,1))
            endif
            !output: J2,Jp2,I1,j3,(jp3)
 
@@ -1538,7 +1538,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
 
            !reverse ordering
            !input: I2,i1,j3,(jp3)
-           call switch(nfft,n2,lot,n1,lzt,zt(1,1,j),zw(1,1,1))
+           call switchPS(nfft,n2,lot,n1,lzt,zt(1,1,j),zw(1,1,1))
            !output: i1,I2,j3,(jp3)
 
            !performing FFT
@@ -1633,7 +1633,7 @@ subroutine realcopy(lot,nfft,n2,nk1,nk2,zin,zout)
 END SUBROUTINE realcopy
 
 
-subroutine switch(nfft,n2,lot,n1,lzt,zt,zw)
+subroutine switchPS(nfft,n2,lot,n1,lzt,zt,zw)
   use module_base
   implicit none
 !Arguments
@@ -1649,10 +1649,10 @@ subroutine switch(nfft,n2,lot,n1,lzt,zt,zw)
      end do
   end do
 
-END SUBROUTINE switch
+END SUBROUTINE switchPS
 
 
-subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
+subroutine mpiswitchPS(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
   use module_base
   implicit none
 !Arguments
@@ -1678,7 +1678,7 @@ subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
      J2st=1
   end do
 
-END SUBROUTINE mpiswitch
+END SUBROUTINE mpiswitchPS
 
 
 !> The conversion from d0 to dp type should be finished

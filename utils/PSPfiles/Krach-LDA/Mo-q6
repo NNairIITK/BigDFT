@@ -1,0 +1,15 @@
+Goedecker pseudopotential for Mo
+   42   6  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.69900000    1     7.99586821                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.67812595    2     1.28960728    -0.38656751                                  rs ns hs11 hs12
+                                        0.99811301                                             hs22
+     0.80077140    2     0.30141226    -0.31338933                                  rp np hp11 hp12
+                                        0.74161451                                             hp22
+                        -0.10412389    -0.06503729                                        kp11 kp12
+                                        0.15390632                                             kp22
+     0.45338393    2    -2.80970771     3.00775463                                  rd nd hd11 hd12
+                                       -6.82094635                                             hd22
+                         0.06897223     0.03333236                                        kd11 kd12
+                                       -0.07559069                                             kd22

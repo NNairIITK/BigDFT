@@ -522,6 +522,8 @@ contains
        deallocate(rho_)
        deallocate(exc_)
        deallocate(vxc_)
+    else
+       write(0,*) "ERROR: XC module not initialised."
     end if
 
   end subroutine xc_getvxc

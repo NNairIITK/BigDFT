@@ -13,8 +13,7 @@ art_source = \
 	defs.f90 \
 	random.f90 \
 	restart.f90 \
-	utils.f90 \
-	write_refconfig.f90
+	utils.f90 
 
 
 AM_FCFLAGS = -I. -I$(srcdir) -I../modules @MPI_INCLUDE@
@@ -30,7 +29,5 @@ libart_a_SOURCES = $(art_source)
 restart.o: defs.o
 
 utils.o: defs.o
-
-write_refconfig.o: defs.o
 
 defs.o : $(mpi_include)

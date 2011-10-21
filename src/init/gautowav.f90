@@ -678,7 +678,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   perz=(lr%geocode /= 'F')
 
   !initialize the wavefunction
-  call razero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
+  call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi(1))
 
   !calculate the number of terms for this orbital
   nterms=0
@@ -768,6 +768,199 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   call memocc(i_stat,i_all,'work',subname)
 
 END SUBROUTINE gaussians_to_wavelets_orb
+
+
+
+
+subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi, cutoff)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ncplx
+  real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
+  type(locreg_descriptors), intent(in) :: lr
+  type(gaussian_basis_c), intent(in) :: G
+  real(wp), dimension(G%ncoeff), intent(in) :: wfn_gau
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(out) :: psi
+  real(gp) cutoff
+
+  !local variables
+  character(len=*), parameter :: subname='gaussians_to_wavelets_orb'
+  integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=65536
+  logical :: perx,pery,perz
+  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
+  integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
+  real(gp) :: rx,ry,rz,gau_a, gau_bf
+  integer, dimension(nterm_max) :: lx,ly,lz
+  real(gp), dimension(nterm_max) :: fac_arr
+  real(wp), allocatable, dimension(:,:,:, :) :: work
+  real(wp), allocatable, dimension(:,  :,:,:,:) :: wx,wy,wz
+  real(wp), allocatable, dimension(:,:,:,:) :: wx_k,wy_k,wz_k
+  real(wp), allocatable, dimension(:,:) :: cossinfacts
+  character(len=11) :: filename
+
+  real(gp) test_wf(500), r
+
+  integer :: ncplxC
+  ncplxC=2
+
+  ! if ( ncplx.ne.1) then
+  !    stop ' ncplx must be 1 in  actual version of  gaussians_c_to_wavelets_orb'
+  ! end if
+
+
+  !calculate nterms_max:
+  !allows only maxsizeKB per one-dimensional array
+  !(for a grid of dimension 100 nterms_max=655)
+  !but with at least ngx*nterm_max ~= 100 elements
+  nterms_max=max(maxsizeKB*1024/(2*ncplxC*max(lr%d%n1,lr%d%n2,lr%d%n3)),100)
+
+  allocate(work(0:nw,2,2, ncplx+ndebug),stat=i_stat)
+  call memocc(i_stat,work,'work',subname)
+
+  allocate(wx( ncplxC, ncplx,0:lr%d%n1,2,nterms_max+ndebug),stat=i_stat)
+  call memocc(i_stat,wx,'wx',subname)
+  allocate(wy( ncplxC, ncplx,0:lr%d%n2,2,nterms_max+ndebug),stat=i_stat)
+  call memocc(i_stat,wy,'wy',subname)
+  allocate(wz(ncplxC, ncplx,0:lr%d%n3,2,nterms_max+ndebug),stat=i_stat)
+  call memocc(i_stat,wz,'wz',subname)
+
+  allocate(   cossinfacts(1:2, 1:nterms_max+ndebug) ,stat=i_stat)
+  call memocc(i_stat,cossinfacts,'cossinfacts',subname)
+
+
+  !conditions for periodicity in the three directions
+  perx=(lr%geocode /= 'F')
+  pery=(lr%geocode == 'P')
+  perz=(lr%geocode /= 'F')
+
+  !initialize the wavefunction
+  call razero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
+
+  !calculate the number of terms for this orbital
+  nterms=0
+  !loop over the atoms
+  ishell=0
+  iexpo=1
+  icoeff=1
+  iscoeff=1
+  iterm=1
+  do iat=1,G%nat
+     
+     rx=G%rxyz(1,iat)
+     ry=G%rxyz(2,iat)
+     rz=G%rxyz(3,iat)
+     !loop over the number of shells of the atom type
+     do isat=1,G%nshell(iat)
+
+        ishell=ishell+1
+        !the degree of contraction of the basis function
+        !is the same as the ng value of the createAtomicOrbitals routine
+        ng=G%ndoc(ishell)
+
+        !angular momentum of the basis set(shifted for compatibility with BigDFT routines
+        l=abs(G%nam(ishell)  )
+        !print *,iproc,iat,ishell,G%nam(ishell),G%nshell(iat)
+        !multiply the values of the gaussian contraction times the orbital coefficient
+    
+
+
+        test_wf=0.0
+
+        do m=1,2*l-1
+           call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
+           !control whether the basis element may be
+           !contribute to some of the orbital of the processor
+
+           if (wfn_gau(icoeff) /= 0.0_wp) then
+              if (nterms + nterm*ng > nterms_max) then
+                 call wfn_from_tensprod_cossin(lr, ncplx,cossinfacts , nterms,wx,wy,wz,psi)
+                 iterm=1
+                 nterms=0
+              end if
+              !assign the arrays
+              !make sure that the coefficients returned by 
+              !gauss_to_daub are zero outside [ml:mr] 
+              do ig=1,ng
+
+                 gau_a= sqrt( 1.0_gp/REAL(2.0_gp*G%expof(iexpo+ig-1))   )
+                 gau_bf = AIMAG ( G%expof(iexpo+ig-1) )
+
+                 do i=1,nterm
+                    
+                    n_gau=lx(i)
+
+                    call gauss_c_to_daub_k(hx,kx,ncplx,gau_bf ,ncplxC,fac_arr(i), &
+                         rx,gau_a,  n_gau,&
+                         lr%d%n1,ml1,mu1,&
+                         wx(1,1,0,1,iterm),work,nw,perx, cutoff) 
+
+                    n_gau=ly(i)
+                    !print *,'y',ml2,mu2,lr%d%n2
+                    call gauss_c_to_daub_k(hy,ky,ncplx,gau_bf,ncplxC,wfn_gau(icoeff), &
+                         ry,gau_a,n_gau,&
+                         lr%d%n2,ml2,mu2,&
+                         wy(1,1,0,1,iterm),work,nw,pery, cutoff) 
+                    n_gau=lz(i) 
+                    !print *,'z',ml3,mu3,lr%d%n3
+                    call gauss_c_to_daub_k(hz,kz,ncplx,gau_bf,ncplxC,  1.0_wp,  &
+                         rz,gau_a,n_gau,&
+                         lr%d%n3,ml3,mu3,&
+                         wz(1,1,0,1,iterm),work,nw,perz, cutoff)
+
+                    cossinfacts(1,iterm)= REAL( G%psiat(iexpo+ig-1))
+                    cossinfacts(2,iterm)= AIMAG(G%psiat(iexpo+ig-1)) 
+
+                    iterm=iterm+1
+                 end do
+              end do
+
+
+              nterms=nterms+nterm*ng
+           end if
+           icoeff=icoeff+1
+        end do
+        iexpo=iexpo+ng
+     end do
+  end do
+
+  call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
+
+  !accumulate wavefuncton
+
+
+  call wfn_from_tensprod_cossin(lr, ncplx,  cossinfacts    ,nterms,wx,wy,wz,psi)
+
+
+
+
+
+!psi=1.d0
+
+  i_all=-product(shape(wx))*kind(wx)
+  deallocate(wx,stat=i_stat)
+  call memocc(i_stat,i_all,'wx',subname)
+  i_all=-product(shape(wy))*kind(wy)
+  deallocate(wy,stat=i_stat)
+  call memocc(i_stat,i_all,'wy',subname)
+
+  i_all=-product(shape(wz))*kind(wz)
+  deallocate(wz,stat=i_stat)
+  call memocc(i_stat,i_all,'wz',subname)
+
+  i_all=-product(shape(cossinfacts))*kind(cossinfacts)
+  deallocate(cossinfacts,stat=i_stat)
+  call memocc(i_stat,i_all,'cossinfacts',subname)
+
+
+  i_all=-product(shape(work))*kind(work)
+  deallocate(work,stat=i_stat)
+  call memocc(i_stat,i_all,'work',subname)
+
+
+
+END SUBROUTINE gaussians_c_to_wavelets_orb
+
 
 
 !> Accumulate 3d wavefunction in complex form from a tensor produc decomposition
@@ -957,6 +1150,359 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   !!$omp end parallel
 
 END SUBROUTINE wfn_from_tensprod
+
+
+function re_re_cmplx_prod(a,b,c)
+  use module_base
+  implicit none
+  real(wp), dimension(2,2), intent(in) :: a,b,c
+  real(wp) :: re_re_cmplx_prod
+  real(wp) :: re_cmplx_prod,im_cmplx_prod
+  
+  re_re_cmplx_prod=re_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
+       -re_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
+       -re_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
+       -re_cmplx_prod( a(1,2),b(1,2),c(1,1))
+END FUNCTION re_re_cmplx_prod
+
+
+function im_re_cmplx_prod(a,b,c)
+  use module_base
+  implicit none
+  real(wp), dimension(2,2), intent(in) :: a,b,c
+  real(wp) :: im_re_cmplx_prod
+  real(wp) :: re_cmplx_prod,im_cmplx_prod
+  
+  im_re_cmplx_prod=-re_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
+                   +re_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
+                   +re_cmplx_prod(a(1,1),b(1,2),c(1,1)) &
+                   +re_cmplx_prod(a(1,1),b(1,1),c(1,2))
+  
+END FUNCTION im_re_cmplx_prod
+
+function re_im_cmplx_prod(a,b,c)
+  use module_base
+  implicit none
+  real(wp), dimension(2,2), intent(in) :: a,b,c
+  real(wp) :: re_im_cmplx_prod
+  real(wp) :: re_cmplx_prod,im_cmplx_prod
+  
+  re_im_cmplx_prod=im_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
+       -im_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
+       -im_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
+       -im_cmplx_prod( a(1,2),b(1,2),c(1,1))
+  
+END FUNCTION re_im_cmplx_prod
+
+function im_im_cmplx_prod(a,b,c)
+  use module_base
+  implicit none
+  real(wp), dimension(2,2), intent(in) :: a,b,c
+  real(wp) :: im_im_cmplx_prod
+  real(wp) :: re_cmplx_prod,im_cmplx_prod
+  
+  im_im_cmplx_prod=-im_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
+                   +im_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
+                   +im_cmplx_prod(a(1,1),b(1,2),c(1,1)) &
+                   +im_cmplx_prod(a(1,1),b(1,1),c(1,2))  
+END FUNCTION im_im_cmplx_prod
+
+
+
+
+
+
+
+!accumulate 3d projector in real form from a tensor produc decomposition
+! using complex gaussians
+subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nterm, ncplx
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(2,ncplx,0:lr%d%n1,2,nterm), intent(in) :: wx
+  real(wp), dimension(2,ncplx,0:lr%d%n2,2,nterm), intent(in) :: wy
+  real(wp), dimension(2,ncplx,0:lr%d%n3,2,nterm), intent(in) :: wz
+  real(wp) :: cossinfacts(2,nterm)
+
+
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: psi
+  !local variables
+  integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
+  real(wp) :: re_cmplx_prod,im_cmplx_prod
+  real(wp) :: re_re_cmplx_prod,re_im_cmplx_prod,im_re_cmplx_prod,im_im_cmplx_prod 
+
+  !!$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
+  !!$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
+  !!$omp shared(nterm,lr%wfd%nvctr_f,lr%wfd%nseg_f)
+  if (ncplx == 1) then
+     nvctr=0
+     do iseg=1,lr%wfd%nseg_c
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_c=i-i0+jj
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+re_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
+           end do
+           nvctr=nvctr+1
+        end do
+     end do
+     if (nvctr /=  lr%wfd%nvctr_c) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        stop
+     end if
+     !!$  end if
+
+     !!$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     ! Other terms: fine projector components
+     nvctr=0
+     do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+re_cmplx_prod(&
+                   wx(1, 1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+2)=psi(ind_f+2)+re_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+3)=psi(ind_f+3)+re_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+4)=psi(ind_f+4)+re_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+5)=psi(ind_f+5)+re_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+6)=psi(ind_f+6)+re_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+7)=psi(ind_f+7)+re_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+           end do
+           nvctr=nvctr+1
+        end do
+     end do
+     if (nvctr /= lr%wfd%nvctr_f) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        stop 
+     end if
+     !!$  end if
+     
+     !now the imaginary part
+     
+     !!$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
+     ! Other terms: coarse projector components
+     ! coarse part
+     do iseg=1,lr%wfd%nseg_c
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_c=i-i0+jj
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+im_cmplx_prod(&
+                   wx(1,1, i,1,iterm),wy(1,1, i2,1,iterm),wz(1,1, i3,1,iterm))*cossinfacts(2,iterm)
+           end do
+        end do
+     end do
+
+     !!$  end if
+
+     !!$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
+     ! Other terms: fine projector components
+     do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,1,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+2)=psi(ind_f+2)+im_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+3)=psi(ind_f+3)+im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+4)=psi(ind_f+4)+im_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+5)=psi(ind_f+5)+im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+6)=psi(ind_f+6)+im_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+7)=psi(ind_f+7)+im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+           end do
+        end do
+     end do
+  else if (ncplx ==2) then
+
+
+
+
+     nvctr=0
+     do iseg=1,lr%wfd%nseg_c
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+
+        do i=i0,i1
+           ind_c=i-i0+jj
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+re_re_cmplx_prod(&
+                   wx(1,1, i,1,iterm),wy(1,1, i2,1,iterm),wz(1,1, i3,1,iterm))*cossinfacts(1,iterm)
+           end do
+           nvctr=nvctr+1
+        end do
+
+        do i=i0,i1
+           ind_c= lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f + i-i0+jj 
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+im_re_cmplx_prod(&
+                   wx(1,1, i,1,iterm),wy(1,1, i2,1,iterm),wz(1,1, i3,1,iterm))*cossinfacts(1,iterm)
+           end do
+        end do
+
+
+
+     end do
+     if (nvctr /=  lr%wfd%nvctr_c) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        stop
+     end if
+     !!$  end if
+
+     !!$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     ! Other terms: fine projector components
+     nvctr=0
+     do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+re_re_cmplx_prod(&
+                   wx(1, 1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+2)=psi(ind_f+2)+re_re_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+3)=psi(ind_f+3)+re_re_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+4)=psi(ind_f+4)+re_re_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+5)=psi(ind_f+5)+re_re_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+6)=psi(ind_f+6)+re_re_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+7)=psi(ind_f+7)+re_re_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+           end do
+           nvctr=nvctr+1
+        end do
+
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f +  lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+im_re_cmplx_prod(&
+                   wx(1, 1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+2)=psi(ind_f+2)+im_re_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+3)=psi(ind_f+3)+im_re_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+4)=psi(ind_f+4)+im_re_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+5)=psi(ind_f+5)+im_re_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+6)=psi(ind_f+6)+im_re_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+              psi(ind_f+7)=psi(ind_f+7)+im_re_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(1,iterm)
+           end do
+        end do
+
+
+     end do
+     if (nvctr /= lr%wfd%nvctr_f) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        stop 
+     end if
+     !!$  end if
+     
+     !now the imaginary part
+     
+     !!$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
+     ! Other terms: coarse projector components
+     ! coarse part
+     do iseg=1,lr%wfd%nseg_c
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+
+        do i=i0,i1
+           ind_c=i-i0+jj
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+re_im_cmplx_prod(&
+                   wx(1,1, i,1,iterm),wy(1,1, i2,1,iterm),wz(1,1, i3,1,iterm))*cossinfacts(2,iterm)
+           end do
+        end do
+
+        do i=i0,i1
+           ind_c=lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f + i-i0+jj
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+im_im_cmplx_prod(&
+                   wx(1,1, i,1,iterm),wy(1,1, i2,1,iterm),wz(1,1, i3,1,iterm))*cossinfacts(2,iterm)
+           end do
+        end do
+
+
+
+
+     end do
+
+     !!$  end if
+
+     !!$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
+     ! Other terms: fine projector components
+     do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+re_im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,1,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+2)=psi(ind_f+2)+re_im_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+3)=psi(ind_f+3)+re_im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+4)=psi(ind_f+4)+re_im_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+5)=psi(ind_f+5)+re_im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+6)=psi(ind_f+6)+re_im_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+7)=psi(ind_f+7)+re_im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+           end do
+        end do
+
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f +lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+im_im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,1,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+2)=psi(ind_f+2)+im_im_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+3)=psi(ind_f+3)+im_im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+4)=psi(ind_f+4)+im_im_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+5)=psi(ind_f+5)+im_im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+6)=psi(ind_f+6)+im_im_cmplx_prod(&
+                   wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+              psi(ind_f+7)=psi(ind_f+7)+im_im_cmplx_prod(&
+                   wx(1,1,i,2,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,2,iterm))*cossinfacts(2,iterm)
+           end do
+        end do
+
+     end do
+
+  end if
+
+  !!$omp end parallel
+
+END SUBROUTINE wfn_from_tensprod_cossin
+
+
 
 
 subroutine segments_to_grid(keyv,keyg,grid,i0,i1,i2,i3,jj)

@@ -741,6 +741,7 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
   istart_c=1
   !start of the routine for projectors application
   do m=1,2*l-1
+
      call wpdot_wrap(ncplx,  &
           nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
           mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c),scpr)

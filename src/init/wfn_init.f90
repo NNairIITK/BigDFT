@@ -429,7 +429,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   do ikptp=1,orbsu%nkptsp
      ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
      
-     nvctrp=commu%nvctr_par(iproc,ikptp)
+     nvctrp=commu%nvctr_par(iproc,ikpt )
      if (nvctrp == 0) cycle
      
      !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
@@ -511,7 +511,10 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      call broadcast_kpt_objects(nproc, orbsu%nkpts, orbsu%norb, &
           & orbsu%eval(1), orbsu%ikptproc)
 
-     if (iproc ==0) then !this case works only for the first k-point
+     !here the value of the IG occupation numbers can be calculated
+
+
+     if (iproc ==0) then 
         call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
      end if
 !!$  !not necessary anymore since psivirt is gaussian
@@ -541,7 +544,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      do ikptp=1,orbsu%nkptsp
         ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
 
-        nvctrp=commu%nvctr_par(iproc,ikptp)
+        nvctrp=commu%nvctr_par(iproc,ikpt )
         if (nvctrp == 0) cycle
 
         if (.not. present(orbsv)) then
@@ -616,7 +619,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
         psi => psit
      end if
   end if
-
   !this untranspose also the wavefunctions 
   call untranspose_v(iproc,nproc,orbs,wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
@@ -1865,11 +1867,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
         ! Orthonormalize the orbitals.
         blocksize=-1 ; blocksizeSmall=-1
         if(.not. simul .or. iproc<nprocSubu) then
-           call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), &
+           call orthonormalizePsi(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), &
                 norbpArr(0), norbtotpArr(0), psiGuessP(1,1,ispin), &
                 overlapPsiGuessP(1,1,ispin), newComm, orthpar, simul, orbs, 0, nspinor, blocksize, blocksizeSmall)
         else
-           call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), &
+           call orthonormalizePsi(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), &
                 norbpArr(nprocSubu), norbtotpArr(nprocSubu), &
                 psiGuessP(1,1,ispin), overlapPsiGuessP(1,1,ispin), newComm, orthpar, &
                 simul, orbs, nprocSubu, nspinor, blocksize, blocksizeSmall)
@@ -2007,11 +2009,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
            end do
            ! Orthonormalize the orbitals
            if(.not. simul .or. iproc<nprocSubu) then
-              call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), norbpArr(0), &
+              call orthonormalizePsi(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), norbpArr(0), &
                    norbtotpArr(0), psiGuessP(1,1,ispin), &
                    overlapPsiGuessP(1,1,ispin), newComm, orthpar, simul, orbs, 0, nspinor, blocksize, blocksizeSmall)
            else
-              call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), norbpArr(nprocSubu),&
+              call orthonormalizePsi(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), norbpArr(nprocSubu),&
                    norbtotpArr(nprocSubu), &
                    psiGuessP(1,1,ispin), overlapPsiGuessP(1,1,ispin), newComm,orthpar, simul, orbs, nprocSubu, &
                    nspinor, blocksize, blocksizeSmall)
@@ -2175,7 +2177,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
         ! ikpt is the index of the k point.
         ikpt=orbs%iskpts+ikptp
         ! nvctrp is the length of the vectors.
-        nvctrp=comms%nvctr_par(iproc,ikptp)
+        nvctrp=comms%nvctr_par(iproc,ikpt)
 
         ! If simul is false and ispin==2, we are treating the down orbitals. Therefore we have to skip
         ! the up orbitals. We have to do this skipping for each k-point since in memory the spin up and 
@@ -2433,7 +2435,7 @@ semicoreIf: if(natsc>0) then
         ! ikpt is the number of the k-point.
         ikpt=orbs%iskpts+ikptp
         ! nvctrp is the number of components for this k-point which are handled by this process.
-        nvctrp=comms%nvctr_par(iproc,ikptp)
+        nvctrp=comms%nvctr_par(iproc,ikpt)
         ! Make a loop over the spins.
         do jspin=1,nspin
            imatrst=1
@@ -2833,7 +2835,7 @@ END SUBROUTINE inputguessParallel
 !!  Input/Output arguments:
 !!    @param psi                    on input: the vectors to be orthonormalized
 !!                                  on output: the orthonomalized vectors
-subroutine orthonormalize(iproc, nproc, norbtot, norb, norbp, norbpArr,&
+subroutine orthonormalizePsi(iproc, nproc, norbtot, norb, norbp, norbpArr,&
      norbtotpArr, psi, overlapPsi, newComm, orthpar, simul, &
      orbs, nprocSt, nspinor, blocksize, blocksizeSmall)
   use module_base
@@ -2855,7 +2857,7 @@ subroutine orthonormalize(iproc, nproc, norbtot, norb, norbp, norbpArr,&
        blocksizeSmall, norbtotp, ierr, i_stat, i_all, getBlocksize
   real(kind=8),dimension(:),allocatable:: psiW, overlapPsiW, psiWTrans, overlapPsiWTrans
   integer,dimension(:),allocatable:: sendcounts, recvcounts, sdispls, rdispls
-  character(len=*),parameter:: subname='orthonormalize'
+  character(len=*),parameter:: subname='orthonormalizePsi'
 
 
 
@@ -3088,7 +3090,7 @@ subroutine orthonormalize(iproc, nproc, norbtot, norb, norbp, norbpArr,&
 
 
 
-END SUBROUTINE orthonormalize
+END SUBROUTINE orthonormalizePsi
 
 
 !>  This subroutine orthogonalizes a given bunch of vectors (psi) to another bunch of equal size (psi). These other vectors

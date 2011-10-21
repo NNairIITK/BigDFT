@@ -23,6 +23,7 @@ EXTRA_DIST = \
 	html/point.png \
 	html/sample.png
 
+CLEANFILES = *.pdf *.aux *.toc *.log *.xml
 
 if BUILD_PDFDOC
 pdfs = cluster.pdf \
@@ -38,7 +39,8 @@ else
 devdocs =
 endif
 
-doc_DATA = tests.xml $(pdfs) $(devdocs)
+doc_DATA = $(pdfs) $(devdocs)
+noinst_DATA = tests.xml
 
 Doxygen/html: Doxygen.stamp web.stamp
 

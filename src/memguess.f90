@@ -16,15 +16,15 @@ program memguess
   use module_types
   use module_interfaces
   use module_xc
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   implicit none
   character(len=*), parameter :: subname='memguess'
-  character(len=20) :: tatonam
+  character(len=20) :: tatonam, radical
   character(len=40) :: comment
-  character(len=128) :: fileFrom, fileTo
-  logical :: optimise,GPUtest,atwf,convert=.false.
-  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
+  character(len=128) :: fileFrom, fileTo,filename_wfn
+  logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
+  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
   real(gp) :: peakmem,hx,hy,hz
@@ -39,7 +39,7 @@ program memguess
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
-  real(wp), dimension(:), allocatable :: rhoexpo
+  real(wp), dimension(:), allocatable :: rhoexpo,psi
   real(wp), dimension(:,:), pointer :: rhocoeff
   real(kind=8), dimension(:,:), allocatable :: radii_cf
   logical, dimension(:,:,:), allocatable :: scorb
@@ -50,12 +50,14 @@ program memguess
 
   ! Get arguments
 
-  call getarg(1,tatonam)
+  !call getarg(1,tatonam)
+  call get_command_argument(1, value = tatonam, status = istat)
 
+  write(radical, "(A)") ""
   optimise=.false.
   GPUtest=.false.
   atwf=.false.
-  if(trim(tatonam)=='') then
+  if(trim(tatonam)=='' .or. istat>0) then
      write(*,'(1x,a)')&
           'Usage: ./memguess <nproc> [option]'
      write(*,'(1x,a)')&
@@ -71,9 +73,12 @@ program memguess
      write(*,'(1x,a)')&
           '         <nrep> is the number of repeats'
      write(*,'(1x,a)')&
-          '"ugrade" ugrades input files older than 1.2 into actual format'
+          '"upgrade" upgrades input files older than 1.2 into actual format'
      write(*,'(1x,a)')&
-          '"convert <from.[cube,etsf]> <to.[cube,etsf]>" converts file "from" to file "to" using the given formats'
+          '"convert" <from.[cube,etsf]> <to.[cube,etsf]>" converts "from" to file "to" using the given formats'
+     write(*,'(1x,a)')&
+          '"exportwf" <n>[u,d] <from.[bin,formatted,etsf]> "'//&
+          ' converts n-th wavefunction of file "from" to cube using BigDFT uncompression'
      write(*,'(1x,a)')&
           '"atwf" <ng> calculates the atomic wavefunctions of the first atom in the gatom basis and write their expression '
      write(*,'(1x,a)')&
@@ -83,57 +88,89 @@ program memguess
      stop
   else
      read(unit=tatonam,fmt=*) nproc
-     call getarg(2,tatonam)
-     if(trim(tatonam)=='') then
-        output_grid=0
-     else if (trim(tatonam)=='y') then
-        output_grid=1
-        write(*,'(1x,a)')&
-             'The system grid will be displayed in the "grid.xyz" file'
-     else if (trim(tatonam)=='o') then
-        optimise=.true.
-        output_grid=1
-        write(*,'(1x,a)')&
-             'The optimised system grid will be displayed in the "grid.xyz" file'
-     else if (trim(tatonam)=='GPUtest') then
-        GPUtest=.true.
-        write(*,'(1x,a)')&
-             'Perform the test with GPU, if present.'
-        call getarg(3,tatonam)
-        ntimes=1
-        norbgpu=0
-        read(tatonam,*,iostat=ierror)ntimes
-        if (ierror==0) then
+     i_arg = 2
+     output_grid=0
+     loop_getargs: do
+        call get_command_argument(i_arg, value = tatonam, status = istat)
+        !call getarg(i_arg,tatonam)
+        if(trim(tatonam)=='' .or. istat > 0) then
+           exit loop_getargs
+        else if (trim(tatonam)=='y') then
+           output_grid=1
+           write(*,'(1x,a)') 'The system grid will be displayed in the "grid.xyz" file'
+           exit loop_getargs
+        else if (trim(tatonam)=='o') then
+           optimise=.true.
+           output_grid=1
+           write(*,'(1x,a)')&
+                'The optimised system grid will be displayed in the "grid.xyz" file'
+           exit loop_getargs
+        else if (trim(tatonam)=='GPUtest') then
+           GPUtest=.true.
+           write(*,'(1x,a)')&
+                'Perform the test with GPU, if present.'
+           i_arg = i_arg + 1
+           call get_command_argument(i_arg, value = tatonam, status = istat)
+           !call getarg(i_arg,tatonam)
+           ntimes=1
+           norbgpu=0
+           read(tatonam,*,iostat=ierror)ntimes
+           if (ierror==0) then
+              write(*,'(1x,a,i0,a)')&
+                   'Repeat each calculation ',ntimes,' times.'
+              i_arg = i_arg + 1
+              call get_command_argument(i_arg, value = tatonam)
+              !call getarg(i_arg,tatonam)
+              read(tatonam,*,iostat=ierror)norbgpu
+           end if
+           exit loop_getargs
+        else if (trim(tatonam)=='convert') then
+           convert=.true.
+           i_arg = i_arg + 1
+           call get_command_argument(i_arg, value = fileFrom)
+           !call getarg(i_arg,fileFrom)
+           i_arg = i_arg + 1
+           call get_command_argument(i_arg, value = fileTo)
+           !call getarg(i_arg,fileTo)
+           write(*,'(1x,5a)')&
+                'convert "', trim(fileFrom),'" file to "', trim(fileTo),'"'
+           exit loop_getargs
+        else if (trim(tatonam)=='exportwf') then
+           exportwf=.true.
+           i_arg = i_arg + 1
+           call get_command_argument(i_arg, value = filename_wfn)
+           !call getarg(i_arg,filename_wfn)
+           write(*,'(1x,3a)')&
+                'export wavefunction file: "', trim(filename_wfn),'" in .cube format'
+           exit loop_getargs
+        else if (trim(tatonam)=='atwf') then
+           atwf=.true.
+           write(*,'(1x,a)')&
+                'Perform the calculation of atomic wavefunction of the first atom'
+           i_arg = i_arg + 1
+           call get_command_argument(i_arg, value = tatonam)
+           !call getarg(i_arg,tatonam)
+           read(tatonam,*,iostat=ierror)ng
            write(*,'(1x,a,i0,a)')&
-                'Repeat each calculation ',ntimes,' times.'
-           call getarg(4,tatonam)
-           read(tatonam,*,iostat=ierror)norbgpu
+                'Use gaussian basis of',ng,' elements.'
+           exit loop_getargs
+        else 
+           ! Use value as radical for input files.
+           if (trim(radical) /= "") then
+              write(*,'(1x,a)')&
+                   'Usage: ./memguess <nproc> [y]'
+              write(*,'(1x,a)')&
+                   'Indicate the number of processes after the executable'
+              write(*,'(1x,a)')&
+                   'ERROR: The only second argument which is accepted is "y", "o","convert", "GPUtest" or "atwf" ' 
+              write(*,'(1x,a)')&
+                   '       (type "memguess" without arguments to have an help)'
+              stop
+           end if
+           write(radical, "(A)") trim(tatonam)
         end if
-     else if (trim(tatonam)=='convert') then
-        convert=.true.
-        call getarg(3,fileFrom)
-        call getarg(4,fileTo)
-        write(*,'(1x,5a)')&
-             'convert "', trim(fileFrom),'" file to "', trim(fileTo),'"'
-     else if (trim(tatonam)=='atwf') then
-        atwf=.true.
-        write(*,'(1x,a)')&
-             'Perform the calculation of atomic wavefunction of the first atom'
-        call getarg(3,tatonam)
-        read(tatonam,*,iostat=ierror)ng
-        write(*,'(1x,a,i0,a)')&
-             'Use gaussian basis of',ng,' elements.'
-     else
-        write(*,'(1x,a)')&
-             'Usage: ./memguess <nproc> [y]'
-        write(*,'(1x,a)')&
-             'Indicate the number of processes after the executable'
-        write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o","convert", "GPUtest" or "atwf" ' 
-        write(*,'(1x,a)')&
-             '       (type "memguess" without arguments to have an help)'
-        stop
-     end if
+        i_arg = i_arg + 1
+     end do loop_getargs
   end if
 
 !!!  open(unit=1,file='input.memguess',status='old')
@@ -160,7 +197,7 @@ program memguess
 
 
   !welcome screen
-  call print_logo()
+  !call print_logo()
 
   if (convert) then
      atoms%geocode = "P"
@@ -178,8 +215,12 @@ program memguess
   end if
 
   !standard names
-  call standard_inputfile_names(in)
-  call read_input_variables(0, "posinp", in, atoms, rxyz)
+  call standard_inputfile_names(in, radical)
+  if (trim(radical) == "") then
+     call read_input_variables(0, "posinp", in, atoms, rxyz)
+  else
+     call read_input_variables(0, trim(radical), in, atoms, rxyz)
+  end if
   !initialize memory counting
   !call memocc(0,0,'count','start')
 
@@ -195,7 +236,6 @@ program memguess
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
-
 
   ! store PSP parameters
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
@@ -290,11 +330,22 @@ program memguess
        atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
-  if (GPUtest .and. .not. GPUconv) then
-     write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
-     stop
+  if (exportwf) then
+
+       allocate(psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+       call memocc(i_stat,psi,'psi',subname)
+
+       call take_psi_from_file(filename_wfn,in%hx,in%hy,in%hz,Glr,atoms,rxyz,psi)
+
+       call plot_wf(filename_wfn,1,atoms,Glr,in%hx,in%hy,in%hz,rxyz,psi,' ')
+  
+       i_all=-product(shape(psi))*kind(psi)
+       deallocate(psi,stat=i_stat)
+       call memocc(i_stat,i_all,'psi',subname)
+
   end if
-  if (GPUconv .and. atoms%geocode=='P' .and. GPUtest) then
+
+  if (GPUtest) then
      !test the hamiltonian in CPU or GPU
      !create the orbitals data structure for one orbital
      !test orbitals
@@ -321,10 +372,11 @@ program memguess
         orbstst%spinsgn(iorb)=1.0_gp
      end do
 
-     call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
+     call compare_cpu_gpu_hamiltonian(0,1,in%iacceleration,atoms,orbstst,nspin,in%ncong,in%ixc,&
           Glr,hx,hy,hz,rxyz,ntimes)
 
      call deallocate_orbs(orbstst,subname)
+
 
      i_all=-product(shape(orbstst%eval))*kind(orbstst%eval)
      deallocate(orbstst%eval,stat=i_stat)
@@ -441,7 +493,7 @@ program memguess
 
   ! De-allocations
   call deallocate_orbs(orbs,subname)
-  call free_input_variables(in)
+  call free_input_variables(in)  
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
@@ -704,7 +756,7 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
 END SUBROUTINE calc_vol
 
 
-subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
+subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,ixc,ncong,&
      lr,hx,hy,hz,rxyz,ntimes)
   use module_base
   use module_types
@@ -713,7 +765,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   use module_xc
 
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
+  integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes,iacceleration
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -724,6 +776,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   logical :: rsflag
   integer :: icoeff,i_stat,i_all,i1,i2,i3,ispin,j
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
+  integer(kind=8) :: itsc0,itsc1
   real(kind=4) :: tt,t0,t1
   real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrm_zero,gnrmGPU
   real(gp) :: Rden,Rham,Rgemm,Rsyrk,Rprec,eSIC_DC
@@ -818,43 +871,57 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
      nrhotot=lr%d%n3i
   end if
 
-
   !allocate the necessary objects on the GPU
   !set initialisation of GPU part 
-  call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,nspin,hx,hy,hz,lr%wfd,orbs,GPU)
+  !initialise the acceleration strategy if required
+  call init_material_acceleration(iproc,iacceleration,GPU)
+  
+  if (GPUconv .eqv. OCLconv) stop 'ERROR: One (and only one) acceleration should be present with GPUtest'
+  
+  !allocate arrays for the GPU if a card is present
+  if (GPUconv) then
+     call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,nspin,&
+          hx,hy,hz,lr%wfd,orbs,GPU)
+  else if (OCLconv) then
+     !the same with OpenCL, but they cannot exist at same time
+     call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,lr%geocode,&
+          nspin,hx,hy,hz,lr%wfd,orbs,GPU)
+  end if
+  if (iproc == 0) write(*,*)&
+       'GPU data allocated'
 
   write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Density calculation'
 
-  call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,pot,nproc)
-
   !for each of the orbitals treated by the processor build the partial densities
-  call cpu_time(t0)
+  !call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
+     call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,pot,nproc)
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
           nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs,&
           psi,pot)
   end do
-  call cpu_time(t1)
-  CPUtime=real(t1-t0,kind=8)
-
-
-  !copy the wavefunctions on GPU
-  do iorb=1,orbs%norbp
-     !!!!! call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-     !!!!!     psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
-  end do
+  call nanosec(itsc1)
+  !call cpu_time(t1)
+  !CPUtime=real(t1-t0,kind=8)
+  CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   !now the GPU part
   !for each of the orbitals treated by the processor build the partial densities
-  call cpu_time(t0)
+  !call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
-     call gpu_locden(lr,nspin,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,orbs,GPU)
+     !switch between GPU/CPU treatment of the density
+     if (GPUconv) then
+        call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
+     else if (OCLconv) then
+        call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
+     end if
   end do
-  call cpu_time(t1)
-  GPUtime=real(t1-t0,kind=8)
-
-  !receive the density on GPU
-  !!!!! call GPU_receive(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,rho,GPU%rhopot,i_stat)
+  call nanosec(itsc1)
+  !call cpu_time(t1)
+  !GPUtime=real(t1-t0,kind=8)
+  GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   i_all=-product(shape(nscatterarr))*kind(nscatterarr)
   deallocate(nscatterarr,stat=i_stat)
@@ -863,8 +930,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !compare the results between the different actions of the hamiltonian
   !check the differences between the results
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,pot,rho,&
-       lr%d%n1i*lr%d%n2i*lr%d%n3i,ntimes,.false.,Rden)
+       real(lr%d%n1i*lr%d%n2i*lr%d%n3i,kind=8)*192.d0,pot,rho,&
+       lr%d%n1i*lr%d%n2i*lr%d%n3i,ntimes*orbs%norbp,.false.,Rden)
 
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
@@ -891,10 +958,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
      end do
   end do
 
-  !copy the potential on GPU
-  !!!!! call GPU_send(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,pot,GPU%rhopot,i_stat)
-
-
   write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Local Hamiltonian calculation'
 
   !warm-up
@@ -902,14 +965,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   !apply the CPU hamiltonian
   !take timings
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,0,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
-     !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum) 
   end do
-  call cpu_time(t1)
-
-  CPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   print *,'ekin,epot=',ekin_sum,epot_sum
 
@@ -917,31 +978,32 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !warm-up
   !call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekinGPU,epotGPU)
 
-  !apply the GPU hamiltonian
+  !apply the GPU hamiltonian and put the results in the hpsi_GPU array
+  allocate(GPU%hpsi_ASYNC((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
+  call memocc(i_stat,GPU%hpsi_ASYNC,'GPU%hpsi_ASYNC',subname)
+
   !take timings
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
-     call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekinGPU,epotGPU)
+     if (GPUconv) then
+        call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
+     else if (OCLconv) then
+        call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
+     end if
   end do
-  call cpu_time(t1)
+  if(ASYNCconv .and. OCLconv) call finish_hamiltonian_OCL(orbs,ekinGPU,epotGPU,GPU)
+  call nanosec(itsc1)
+  GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   print *,'ekinGPU,epotGPU',ekinGPU,epotGPU
 
-  GPUtime=real(t1-t0,kind=8)
-  
-  !receive the data of GPU
-  do iorb=1,orbs%norbp
-     !!!!! call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-      !!!!!!!    psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
-  end do
-  
+
 
   !compare the results between the different actions of the hamiltonian
   !check the differences between the results
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,psi,&
-       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.,Rham)
-
+       real(lr%d%n1i*lr%d%n2i*lr%d%n3i,kind=8)*real(192+46*3+192+2,kind=8),hpsi,GPU%hpsi_ASYNC,&
+       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes*orbs%norbp,.false.,Rham)
 
   i_all=-product(shape(pot))*kind(pot)
   deallocate(pot,stat=i_stat)
@@ -955,54 +1017,54 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   allocate(overlap(orbs%norbp,orbs%norbp,2+ndebug),stat=i_stat)
   call memocc(i_stat,overlap,'overlap',subname)
 
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      call DGEMM('T','N',orbs%norbp,orbs%norbp,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1.0_wp,&
           psi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),&
           hpsi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),0.0_wp,&
           overlap(1,1,1),orbs%norbp)
   end do
-  call cpu_time(t1)
-  CPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
 
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
-     call GEMM('T','N',orbs%norbp,orbs%norbp,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1.0_wp,&
+     call GEMMSY('T','N',orbs%norbp,orbs%norbp,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1.0_wp,&
           psi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),&
           hpsi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),0.0_wp,&
           overlap(1,1,2),orbs%norbp)
   end do
-  call cpu_time(t1)
-  GPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   !comparison between the results
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,overlap(1,1,1),overlap(1,1,2),&
+       real(orbs%norbp**2,kind=8)*real((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*2,kind=8),overlap(1,1,1),overlap(1,1,2),&
        orbs%norbp**2,ntimes,.false.,Rgemm)
 
 
   nvctrp=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
 
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      call dsyrk('L','T',orbs%norbp,nvctrp,1.0_wp,psi(1,1),nvctrp,0.0_wp,&
           overlap(1,1,1),orbs%norbp)
   end do
-  call cpu_time(t1)
-  CPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
 
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      call syrk('L','T',orbs%norbp,nvctrp,1.0_wp,psi(1,1),nvctrp,0.0_wp,&
           overlap(1,1,2),orbs%norbp)
   end do
-  call cpu_time(t1)
-  GPUtime=real(t1-t0,kind=8)
+  call nanosec(itsc1)
+  GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,overlap(1,1,1),overlap(1,1,2),&
+       real(orbs%norbp*(orbs%norbp+1),kind=8)*real(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,kind=8),overlap(1,1,1),overlap(1,1,2),&
        orbs%norbp**2,ntimes,.false.,Rsyrk)
 
   i_all=-product(shape(overlap))*kind(overlap)
@@ -1012,49 +1074,64 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   !-------------------now the same for preconditioning
   write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Preconditioner'
+
   !the input function is psi
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
      call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   end do
-  call cpu_time(t1)
+  call nanosec(itsc1)
 
-  CPUtime=real(t1-t0,kind=8)
+  CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
   print *,'gnrm',gnrm
 
 
   !GPU data are already on the card, must be only copied back
   !the input function is GPU%hpsi in that case
-  call cpu_time(t0)
+  call nanosec(itsc0)
   do j=1,ntimes
-     call gpu_precond(lr,hx,hy,hz,GPU,orbs%norbp,ncong,&
-          gnrmGPU)
+     !Preconditions all orbitals belonging to iproc
+     !and calculate the partial norm of the residue
+     !switch between CPU and GPU treatment
+     if (GPUconv) then
+        call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+             GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
+     else if (OCLconv) then
+        call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+             GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
+     end if
   end do
-  call cpu_time(t1)
+  call nanosec(itsc1)
   
-  GPUtime=real(t1-t0,kind=8)
+  GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
   print *,'gnrmGPU',gnrmGPU
 
-  do iorb=1,orbs%norbp
-     !!!!! call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-         !! psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
-  end do
-
-
-  !free the card at the end
-  call free_gpu(GPU,orbs%norbp)
-
   call compare_data_and_gflops(CPUtime,GPUtime,&
-       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,psi,&
-       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.,Rprec)
+       real(lr%d%n1i*lr%d%n2i*lr%d%n3i,kind=8)*real((192+46*3+192+2-1+12)*(ncong+1),kind=8),hpsi,GPU%hpsi_ASYNC,&
+       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes*orbs%norbp,.false.,Rprec)
 
-
+  i_all=-product(shape(GPU%hpsi_ASYNC))*kind(GPU%hpsi_ASYNC)
+  deallocate(GPU%hpsi_ASYNC,stat=i_stat)
+  call memocc(i_stat,i_all,'GPU%hpsi_ASYNC',subname)
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
   call memocc(i_stat,i_all,'psi',subname)
   i_all=-product(shape(hpsi))*kind(hpsi)
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi',subname)
+
+
+  !free the card at the end
+  if (GPUconv) then
+     call free_gpu(GPU,orbs%norbp)
+  else if (OCLconv) then
+     call free_gpu_OCL(GPU,orbs,nspin)
+  end if
+
+  !finalise the material accelearion usage
+  call release_material_acceleration(GPU)
+
+
 
   write(*,'(1x,a,5(1x,f7.3))')'Ratios:',Rden,Rham,Rgemm,Rsyrk,Rprec
   
@@ -1072,10 +1149,16 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
   real(wp), dimension(n), intent(in) :: CPUdata,GPUdata
   !local variables
   integer :: i
-  real(gp) :: CPUGflops,GPUGflops,maxdiff,comp
+  real(gp) :: CPUGflops,GPUGflops,maxdiff,comp,threshold
 
-  CPUGflops=GFlopsfactor*real(ntimes,gp)/(CPUtime*1.d9)
-  GPUGflops=GFlopsfactor*real(ntimes,gp)/(GPUtime*1.d9)
+  threshold=1.d-12
+  !un-initialize valies which might suffer from fpe
+  GPUGflops=-1.0_gp
+  CPUGflops=-1.0_gp
+  ratio=-1.0_gp
+
+  if (CPUtime > 0.0_gp) CPUGflops=GFlopsfactor*real(ntimes,gp)/(CPUtime*1.d9)
+  if (GPUtime > 0.0_gp) GPUGflops=GFlopsfactor*real(ntimes,gp)/(GPUtime*1.d9)
 
   maxdiff=0.0_gp
 
@@ -1086,21 +1169,86 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
      comp=abs(CPUdata(i)-GPUdata(i))
      maxdiff=max(maxdiff,comp)
   end do
-  ratio=CPUtime/GPUtime
-  if (maxdiff <= 1.d-12) then
-     write(*,'(1x,a,1x,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-          'GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-          CPUtime/GPUtime,maxdiff,&
-          CPUtime*1.d3/real(ntimes,kind=8),CPUGflops,&
-          GPUtime*1.d3/real(ntimes,kind=8),GPUGflops
+  if (GPUtime > 0.0_gp) ratio=CPUtime/GPUtime
+  write(*,'(1x,a)')'| CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |'
+
+  write(*,'(1x,2(2(a,f10.2),a),a,f8.3,a,i14,a,1pe12.4,a)',advance='no')&
+                                !'nbelem,REF/TEST ratio,Time,Gflops: REF,TEST',&
+       '|',CPUtime*1.d3/real(ntimes,kind=8),'|',& ! Time CPU (ms)
+       CPUGflops,'|',& !Gflops CPU (ms)
+       '|',GPUtime*1.d3/real(ntimes,kind=8),'|',& ! Time GPU (ms)
+       GPUGflops,'|',&!Gflops GPU (ms)
+       '|',ratio,'|',& ! ratio
+       n,'|',& !No. elements
+       maxdiff,'|' ! maxdiff
+  if (maxdiff <= threshold) then
+     write(*,'(a)')''
   else
-     write(*,'(1x,a,1x,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-          'GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-          CPUtime/GPUtime,maxdiff,&
-          CPUtime*1.d3/real(ntimes,kind=8),CPUGflops,&
-          GPUtime*1.d3/real(ntimes,kind=8),GPUGflops,&
-          '<<<< WARNING' 
+     write(*,'(a)')'<<<< WARNING' 
   end if
 
-
 END SUBROUTINE compare_data_and_gflops
+
+!> Extract the compressed wavefunction from the given file 
+subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,psi)
+  use module_base
+  use module_types
+  implicit none
+  real(gp), intent(in) :: hx,hy,hz
+  character(len=*), intent(in) :: filename
+  type(locreg_descriptors), intent(in) :: lr
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(out) :: psi
+  !local variables
+  character(len=*), parameter :: subname='take_psi_form_file'
+  logical :: perx,pery,perz,exists
+  integer :: nb1,nb2,nb3,i_stat,isuffix,iorb_out,i_all
+  real(gp) :: eval_fake
+  real(wp), dimension(:,:,:), allocatable :: psifscf
+  real(gp), dimension(:,:), allocatable :: rxyz_file
+
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
+  !buffers realted to periodicity
+  !WARNING: the boundary conditions are not assumed to change between new and old
+  call ext_buffers_coarse(perx,nb1)
+  call ext_buffers_coarse(pery,nb2)
+  call ext_buffers_coarse(perz,nb3)
+
+  allocate(psifscf(-nb1:2*lr%d%n1+1+nb1,-nb2:2*lr%d%n2+1+nb2,-nb3:2*lr%d%n3+1+nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,psifscf,'psifscf',subname)
+
+  allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz_file,'rxyz_file',subname)
+     
+  isuffix = index(filename, ".bin", back = .true.)
+  exists=(isuffix > 0) !the file is written in binary format
+  if (exists) then
+     write(*,*) "Reading wavefunctions in BigDFT binary file format."
+     open(unit=99,file=trim(filename),status='unknown',form="unformatted")
+  else
+     write(*,*) "Reading wavefunctions in plain text file format."
+     open(unit=99,file=trim(filename),status='unknown')
+  end if
+
+  !find the value of iorb_out
+  read(filename(index(filename, ".", back = .true.)+1:len(filename)),*)iorb_out
+
+  !@ todo geocode should be passed in the localisation regions descriptors
+  call readonewave(99, .not. exists,iorb_out,0,lr%d%n1,lr%d%n2,lr%d%n3, &
+       hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,&
+       psi,eval_fake,psifscf)
+
+  i_all=-product(shape(psifscf))*kind(psifscf)
+  deallocate(psifscf,stat=i_stat)
+  call memocc(i_stat,i_all,'psifscf',subname)
+
+  i_all=-product(shape(rxyz_file))*kind(rxyz_file)
+  deallocate(rxyz_file,stat=i_stat)
+  call memocc(i_stat,i_all,'rxyz_file',subname)
+
+end subroutine take_psi_from_file

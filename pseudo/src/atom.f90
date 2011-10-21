@@ -2381,9 +2381,11 @@
 !      extremum
 !
        nextr = nextr + 1
-       rextr(nextr) = (arp*r(i-1)-arpm*r(i)) / (arp-arpm)
-       aextr(nextr) = (ar(i)+ar(i-1))/2  &
-       - (arp**2+arpm**2) * (r(i)-r(i-1)) / (4*(arp-arpm))
+       if((arp-arpm) /=0.0_8) then
+          rextr(nextr) = (arp*r(i-1)-arpm*r(i)) / (arp-arpm)
+          aextr(nextr) = (ar(i)+ar(i-1))/2  &
+               - (arp**2+arpm**2) * (r(i)-r(i-1)) / (4*(arp-arpm))
+       endif
        bextr(nextr) = br(i)
  20    continue
 !
@@ -2601,6 +2603,30 @@
 !
 !   printout
 !
+
+
+
+
+      if(iorb==ncore+nval) then
+         write(plotfile, '(a,i0,a)') 'ae.pot.conf.',nconf ,'.plt'
+         open(unit=37,file=trim(plotfile),status='unknown')
+         write(37,'(20e20.10)') r(1), 0.0D0
+         do j=2,nr
+            if (ispp=='r') then
+               toplot = 0.5D0*(vid(j)+viu(j))
+            elseif(ispp=='s')then
+               toplot = 0.5D0*(vid(j)+viu(j))
+            else
+               toplot = vid(j)
+            endif
+            toplot = toplot + viod(1,j)/r(j)
+            write(37,'(2e20.10)') r(j), toplot
+         end do
+         close(37)
+      endif
+      
+
+
       vshift=-15d0
       il(1) = 's'
       il(2) = 'p'
@@ -2807,15 +2833,17 @@
 
           open(unit=33,file='ae.core.dens.plt')
           write(33,'(a)')'# plot file for all electron charges'
-          write(33,'(a,3e15.6,a)') '#',zcore,dcrc/zcore,ddcrc/zcore,  &
+          if( zcore/=0.0_8) then
+             write(33,'(a,3e15.6,a)') '#',zcore,dcrc/zcore,ddcrc/zcore,  &
                        ' 0th, 2nd and 4th moment of core charge'
+          endif
           write(33,'(40x,a)')  &
                       '# radial charge distributions rho(r)*4pi*r**2'
           write(33,'(4(a,14x),a))')'#',' r ','core','valence','total'
           do i=1,npoint
               tt=cdu(i)+cdd(i)
               write(33,'(4e20.12)')r(i),cdc(i),tt-cdc(i),tt
-          end do
+           end do
           close(unit=33)
 
 

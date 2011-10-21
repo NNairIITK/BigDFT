@@ -820,7 +820,7 @@ program conv_check_ocl
              call nanosec(tsc1)
 
              CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-             call print_time(CPUtime,n1bis*n2bis*n3bis,3*32,ntimes)
+             call print_time(CPUtime,n1bis*n2bis*n3bis,3*45,ntimes)
 
              write(*,'(a,i6,i6,i6)')'GPU Kinetic 3D, dimensions:',n1bis,n2bis,n3bis
 
@@ -853,11 +853,11 @@ program conv_check_ocl
              call ocl_release_mem_object(psi_f_GPU)
 
              GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-             call print_time(GPUtime,n1bis*n2bis*n3bis,3*32,ntimes)
+             call print_time(GPUtime,n1bis*n2bis*n3bis,3*45,ntimes)
 
              call compare_3D_results(n1bis, n2bis, n3bis, psi_k_out_a, psi_cuda_k_out_a, maxdiff, 1d-9)
       
-             call compare_time(CPUtime,GPUtime,n1bis*n2bis*n3bis,3*32,ntimes,maxdiff,3.d-9)
+             call compare_time(CPUtime,GPUtime,n1bis*n2bis*n3bis,3*45,ntimes,maxdiff,3.d-9)
 
            endif
 
@@ -1060,7 +1060,7 @@ program conv_check_ocl
            call nanosec(tsc1)
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(CPUtime,n1bis*n2bis*n3bis,4*3*32,ntimes)
+           call print_time(CPUtime,n1bis*n2bis*n3bis,4*3*45,ntimes)
 
            write(*,'(a,i6,i6,i6)')'GPU Kinetic k 3D, dimensions:',n1bis,n2bis,n3bis
 
@@ -1087,11 +1087,11 @@ program conv_check_ocl
            call ocl_release_mem_object(v_GPU)
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(GPUtime,n1bis*n2bis*n3bis,4*3*32,ntimes)
+           call print_time(GPUtime,n1bis*n2bis*n3bis,4*3*45,ntimes)
 
            call compare_3D_results(n1bis*2, n2bis, n3bis, psi_k_out, psi_cuda_k_out, maxdiff, 1.d-9)
       
-           call compare_time(CPUtime,GPUtime,n1bis*n2bis*n3bis,4*3*32,ntimes,maxdiff,1.d-9)
+           call compare_time(CPUtime,GPUtime,n1bis*n2bis*n3bis,4*3*45,ntimes,maxdiff,1.d-9)
 
            i_all=-product(shape(psi_k_in))
            deallocate(psi_k_in,stat=i_stat)
@@ -1135,7 +1135,7 @@ program conv_check_ocl
            call memocc(i_stat,i_all,'modarr',subname)
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(CPUtime,n1*n2*n3,32,ntimes)
+           call print_time(CPUtime,n1*n2*n3,45,ntimes)
 
            write(*,'(a,i6,i6)')'GPU Kinetic, dimensions:',n1,n2*n3
 
@@ -1160,11 +1160,11 @@ program conv_check_ocl
            call ocl_release_mem_object(v_GPU)
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(GPUtime,n1*n2*n3,32,ntimes)
+           call print_time(GPUtime,n1*n2*n3,45,ntimes)
 
            call compare_2D_results_t(n2*n3,n1,psi_out,psi_cuda, maxdiff, 1d-9)
            
-           call compare_time(CPUtime,GPUtime,n1*n2*n3,32,ntimes,maxdiff,1.d-9)
+           call compare_time(CPUtime,GPUtime,n1*n2*n3,45,ntimes,maxdiff,1.d-9)
 
            !**************************************************wavelet transformations
         if (modulo(n1,2) == 0) then
@@ -1851,10 +1851,13 @@ contains
     implicit none
     real(gp),intent(in)::time
     integer,intent(in)::nbelem,nop,ntimes
+    logical, parameter :: debug=.false.
 
-    write(*,'(a,f9.4,1pe12.5)')'Finished. Time(ms), GFlops',&
+    if (debug) then
+       write(*,'(a,f9.4,f10.2)')'Finished. Time(ms), GFlops',&
       time*1.d3/real(ntimes,kind=8),&
       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(time*1.d9)
+    end if
 
   END SUBROUTINE print_time
 
@@ -1863,13 +1866,17 @@ contains
     real(gp),intent(in)::REFtime,TESTtime,maxdiff,threshold
     integer,intent(in)::nbelem,nop,ntimes
 
-    write(*,'(a,i10,f11.5,1pe13.5,2(0pf12.4,0pf12.4))',advance='no')&
-      'nbelem,REF/TEST ratio,Time,Gflops: REF,TEST',&
-       nbelem,REFtime/TESTtime,maxdiff,&
-       REFtime*1.d3/real(ntimes,kind=8),&
-       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(REFtime*1.d9),&
-       TESTtime*1.d3/real(ntimes,kind=8),&
-       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(TESTtime*1.d9)
+    write(*,'(1x,a)')'| CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |'
+
+    write(*,'(1x,2(2(a,f10.2),a),a,f8.3,a,i14,a,1pe12.4,a)',advance='no')&
+         !'nbelem,REF/TEST ratio,Time,Gflops: REF,TEST',&
+         '|',REFtime*1.d3/real(ntimes,kind=8),'|',& ! Time CPU (ms)
+       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(REFtime*1.d9),'|',& !Gflops CPU (ms)
+       '|',TESTtime*1.d3/real(ntimes,kind=8),'|',& ! Time GPU (ms)
+       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(TESTtime*1.d9),'|',&!Gflops GPU (ms)
+       '|',REFtime/TESTtime,'|',& ! ratio
+       nbelem,'|',& !No. elements
+       maxdiff,'|' ! maxdiff
     if (maxdiff <= threshold) then
       write(*,'(a)')''
     else

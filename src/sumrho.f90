@@ -624,7 +624,7 @@ END SUBROUTINE partial_density_free
 subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nspin,nrho,rho,& !n(c) nscatterarr (arg:6)
      symObj,irrzon,phnons)
   use module_base!, only: gp,dp,wp,ndebug,memocc
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   implicit none
   integer, intent(in) :: iproc,nproc,nrho,symObj,nspin, n1i, n2i, n3i
@@ -643,7 +643,7 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nspin,nrho,rho,& !n(c) nsc
   integer, pointer :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call ab6_symmetry_get_matrices_p(symObj, nSym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(symObj, nSym, sym, transNon, symAfm, errno)
   if (nSym == 1) return
 
 !!$  ! Array sizes for the real-to-complex FFT: note that n1(there)=n1(here)+1
@@ -673,6 +673,7 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nspin,nrho,rho,& !n(c) nsc
      !    Note : it should be possible to reuse rhog in the antiferromagnetic case
      !    this would avoid one FFT
      ! fft the input array x:
+     rhog=0.0_gp !put to avoid fpe in the FFT
      do i3=0,n3i-1
         do i2=0,n2i-1
            do i1=0,n1i-1

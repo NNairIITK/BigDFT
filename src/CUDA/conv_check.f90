@@ -147,9 +147,10 @@ program conv_check_cuda
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-                CPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+           call print_time(CPUtime,n1*ndat,32,ntimes)
+!!$           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+!!$                CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
 
            allocate(psi_cuda(n1,ndat,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_cuda,'psi_cuda',subname)
@@ -185,9 +186,10 @@ program conv_check_cuda
            call nanosec_cuda(tsc1)
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-                GPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+           call print_time(GPUtime,n1*ndat,32,ntimes)
+!!$           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+!!$                GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
            call sg_recv_mem_instantaneously(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
@@ -216,25 +218,25 @@ program conv_check_cuda
                  end if
               end do
            end do
-
-           if (maxdiff <= 3.d-7) then
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
-           else
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
-                   '<<<< WARNING' 
-           end if
+           call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
+!!$           if (maxdiff <= 3.d-7) then
+!!$              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+!!$                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                   CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+!!$                   GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+!!$           else
+!!$              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+!!$                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                   CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+!!$                   GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+!!$                   '<<<< WARNING' 
+!!$           end if
 
            !**************************************************kinetic term
 
@@ -272,9 +274,10 @@ program conv_check_cuda
            deallocate(modarr,stat=i_stat)
            call memocc(i_stat,i_all,'modarr',subname)
 
-           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-                CPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+           call print_time(CPUtime,n1*ndat,45,ntimes)
+!!$           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+!!$                CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
 
 
            print *,'ekin',ekin
@@ -305,9 +308,10 @@ program conv_check_cuda
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-                GPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+           call print_time(GPUtime,n1*ndat,45,ntimes)
+!!$           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+!!$                GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
            !call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
            call sg_recv_mem_instantaneously(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
@@ -336,25 +340,25 @@ program conv_check_cuda
                  end if
               end do
            end do
-
-           if (maxdiff <= 3.d-4) then
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
-           else
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
-                   '<<<< WARNING' 
-           end if
+           call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-4)
+!!$           if (maxdiff <= 3.d-4) then
+!!$              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+!!$                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                   CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+!!$                   GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+!!$           else
+!!$              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+!!$                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                   CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+!!$                   GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+!!$                   '<<<< WARNING' 
+!!$           end if
            
 
            !**************************************************wavelet transformations
@@ -372,9 +376,10 @@ program conv_check_cuda
 
               CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-              write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+              call print_time(CPUtime,n1*ndat,32,ntimes)
+!!$              write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+!!$                   CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
 
 !!!              call GPU_allocate(n1*ndat,psi_GPU,i_stat)
 !!!              call GPU_allocate(n1*ndat,work_GPU,i_stat)
@@ -396,9 +401,10 @@ program conv_check_cuda
               call nanosec_cuda(tsc1)
               GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-              write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+              call print_time(GPUtime,n1*ndat,32,ntimes)
+!!$              write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+!!$                   GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
               call sg_recv_mem_instantaneously(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
@@ -422,25 +428,25 @@ program conv_check_cuda
                     end if
                  end do
               end do
-
-              if (maxdiff <= 3.d-7) then
-                 write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-                      'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                      n1,ndat,CPUtime/GPUtime,maxdiff,&
-                      CPUtime*1.d3/real(ntimes,kind=8),&
-                      real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                      GPUtime*1.d3/real(ntimes,kind=8),&
-                      real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
-              else
-                 write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-                      'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                      n1,ndat,CPUtime/GPUtime,maxdiff,&
-                      CPUtime*1.d3/real(ntimes,kind=8),&
-                      real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                      GPUtime*1.d3/real(ntimes,kind=8),&
-                      real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
-                      '<<<< WARNING' 
-              end if
+              call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
+!!$              if (maxdiff <= 3.d-7) then
+!!$                 write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+!!$                      'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                      n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                      CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                      real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+!!$                      GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                      real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+!!$              else
+!!$                 write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+!!$                      'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                      n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                      CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                      real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+!!$                      GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                      real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+!!$                      '<<<< WARNING' 
+!!$              end if
 
               write(*,'(a,i6,i6)')'CPU Synthesis, dimensions:',n1,ndat
 
@@ -454,9 +460,10 @@ program conv_check_cuda
 
               CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-              write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+              call print_time(CPUtime,n1*ndat,32,ntimes)
+!!$              write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+!!$                   CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
 
 !!!              do i=1,ndat
 !!!                 do i1=1,n1
@@ -481,9 +488,10 @@ program conv_check_cuda
               call nanosec_cuda(tsc1)
               GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-              write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+              call print_time(GPUtime,n1*ndat,32,ntimes)
+!!$              write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+!!$                   GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
               call sg_recv_mem_instantaneously(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
@@ -507,25 +515,25 @@ program conv_check_cuda
                     end if
                  end do
               end do
-
-              if (maxdiff <= 3.d-7) then
-                 write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-                      'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                      n1,ndat,CPUtime/GPUtime,maxdiff,&
-                      CPUtime*1.d3/real(ntimes,kind=8),&
-                      real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                      GPUtime*1.d3/real(ntimes,kind=8),&
-                      real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
-              else
-                 write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-                      'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                      n1,ndat,CPUtime/GPUtime,maxdiff,&
-                      CPUtime*1.d3/real(ntimes,kind=8),&
-                      real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                      GPUtime*1.d3/real(ntimes,kind=8),&
-                      real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
-                      '<<<< WARNING' 
-              end if
+              call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
+!!$              if (maxdiff <= 3.d-7) then
+!!$                 write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+!!$                      'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                      n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                      CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                      real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+!!$                      GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                      real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+!!$              else
+!!$                 write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+!!$                      'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                      n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                      CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                      real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+!!$                      GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                      real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+!!$                      '<<<< WARNING' 
+!!$              end if
            end if
 
            i_all=-product(shape(psi_out))
@@ -600,10 +608,10 @@ program conv_check_cuda
            call nanosec_cuda(tsc1)
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-
-           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
-                CPUtime*1.d3/real(ntimes,kind=8),&
-                real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9)
+           call print_time(CPUtime,8*nvctr_cf,1,ntimes)
+!!$           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+!!$                CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9)
 
 
            !now the CUDA part
@@ -627,9 +635,10 @@ program conv_check_cuda
            call nanosec_cuda(tsc1)
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
-                GPUtime*1.d3/real(ntimes,kind=8),&
-                real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+           call print_time(GPUtime,8*nvctr_cf,1,ntimes)
+!!$           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+!!$                GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
 
            call sg_recv_mem_instantaneously(psi_cuda,work_GPU,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
 
@@ -657,24 +666,25 @@ program conv_check_cuda
                  end do
               end do
            end do
-           if (maxdiff <= 1.d-12) then
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
-           else
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9),&
-                   '<<<< WARNING' 
-           end if
+           call compare_time(CPUtime,GPUtime,n1*ndat,1,ntimes,maxdiff,1.d-12)
+!!$           if (maxdiff <= 1.d-12) then
+!!$              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+!!$                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                   CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+!!$                   GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+!!$           else
+!!$              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+!!$                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                   CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+!!$                   GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9),&
+!!$                   '<<<< WARNING' 
+!!$           end if
 
            i_all=-product(shape(psi_cuda))
            deallocate(psi_cuda,stat=i_stat)
@@ -695,9 +705,10 @@ program conv_check_cuda
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
-                CPUtime*1.d3/real(ntimes,kind=8),&
-                real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9)
+           call print_time(CPUtime,8*nvctr_cf,1,ntimes)
+!!$           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+!!$                CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9)
 
 
            !now the CUDA part
@@ -721,9 +732,10 @@ program conv_check_cuda
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
-                GPUtime*1.d3/real(ntimes,kind=8),&
-                real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+           call print_time(GPUtime,8*nvctr_cf,1,ntimes)
+!!$           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+!!$                GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
 
            call sg_recv_mem_instantaneously(psi_cuda,psi_GPU,8*nvctr_cf,8,i_stat)
 
@@ -745,24 +757,25 @@ program conv_check_cuda
                  !n(c) i_max=i
               end if
            end do
-           if (maxdiff <= 1.d-12) then
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
-           else
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9),&
-                   '<<<< WARNING' 
-           end if
+           call compare_time(CPUtime,GPUtime,n1*ndat,1,ntimes,maxdiff,1.d-12)
+!!$           if (maxdiff <= 1.d-12) then
+!!$              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+!!$                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                   CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+!!$                   GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+!!$           else
+!!$              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+!!$                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+!!$                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+!!$                   CPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+!!$                   GPUtime*1.d3/real(ntimes,kind=8),&
+!!$                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9),&
+!!$                   '<<<< WARNING' 
+!!$           end if
 
            i_all=-product(shape(psi))
            deallocate(psi,stat=i_stat)
@@ -791,6 +804,44 @@ program conv_check_cuda
   end if
 
 contains
+
+  subroutine print_time(time,nbelem,nop,ntimes)
+    implicit none
+    real(gp),intent(in)::time
+    integer,intent(in)::nbelem,nop,ntimes
+    logical, parameter :: debug=.false.
+
+    if (debug) then
+       write(*,'(a,f9.4,f10.2)')'Finished. Time(ms), GFlops',&
+      time*1.d3/real(ntimes,kind=8),&
+      real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(time*1.d9)
+    end if
+
+  END SUBROUTINE print_time
+
+  subroutine compare_time(REFtime,TESTtime,nbelem,nop,ntimes,maxdiff,threshold)
+    implicit none
+    real(gp),intent(in)::REFtime,TESTtime,maxdiff,threshold
+    integer,intent(in)::nbelem,nop,ntimes
+
+    write(*,'(1x,a)')'| CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |'
+
+    write(*,'(1x,2(2(a,f10.2),a),a,f8.3,a,i14,a,1pe12.4,a)',advance='no')&
+                                !'nbelem,REF/TEST ratio,Time,Gflops: REF,TEST',&
+         '|',REFtime*1.d3/real(ntimes,kind=8),'|',& ! Time CPU (ms)
+         real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(REFtime*1.d9),'|',& !Gflops CPU (ms)
+         '|',TESTtime*1.d3/real(ntimes,kind=8),'|',& ! Time GPU (ms)
+         real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(TESTtime*1.d9),'|',&!Gflops GPU (ms)
+         '|',REFtime/TESTtime,'|',& ! ratio
+         nbelem,'|',& !No. elements
+         maxdiff,'|' ! maxdiff
+    if (maxdiff <= threshold) then
+       write(*,'(a)')''
+    else
+       write(*,'(a)')'<<<< WARNING' 
+    end if
+  END SUBROUTINE compare_time
+
 
   subroutine conv_kin_x(x,y,ndat,ekin)
     implicit none

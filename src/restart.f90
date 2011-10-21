@@ -303,7 +303,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   if (exists) then
      if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
      call read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
-     wfd,psi)
+          wfd,psi)
   else
      call cpu_time(tr0)
      call system_clock(ncount1,ncount_rate,ncount_max)
@@ -366,10 +366,11 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   end if
 END SUBROUTINE readmywaves
 
-subroutine verify_file_presence(orbs,iformat)
+subroutine verify_file_presence(filerad,orbs,iformat)
   use module_base
   use module_types
   implicit none
+  character(len=*), intent(in) :: filerad
   type(orbitals_data), intent(in) :: orbs
   integer, intent(out) :: iformat
   !local variables
@@ -382,7 +383,7 @@ subroutine verify_file_presence(orbs,iformat)
   !first try with plain files
   loop_plain: do iorb=1,orbs%norbp
      do ispinor=1,orbs%nspinor
-        call filename_of_iorb(.false.,"wavefunction",orbs,iorb,ispinor,filename,iorb_out)
+        call filename_of_iorb(.false.,trim(filerad),orbs,iorb,ispinor,filename,iorb_out)
         inquire(file=filename,exist=onefile)
         allfiles=allfiles .and. onefile
         if (.not. allfiles) then
@@ -393,14 +394,17 @@ subroutine verify_file_presence(orbs,iformat)
   !reduce the result among the other processors
   call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
  
-  if (allfiles) iformat=1
+  if (allfiles) then
+     iformat=1
+     return
+  end if
 
   !Otherwise  test binary files.
   if (.not. allfiles) then           
      allfiles = .true.
      loop_binary: do iorb=1,orbs%norbp
         do ispinor=1,orbs%nspinor
-           call filename_of_iorb(.true.,"wavefunction",orbs,iorb,ispinor,filename,iorb_out)
+           call filename_of_iorb(.true.,trim(filerad) // ".bin",orbs,iorb,ispinor,filename,iorb_out)
 
            inquire(file=filename,exist=onefile)
            allfiles=allfiles .and. onefile
@@ -414,7 +418,13 @@ subroutine verify_file_presence(orbs,iformat)
      call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
   end if
 
-  if (allfiles) iformat=2
+  if (allfiles) then
+     iformat=2
+     return
+  end if
+
+  !otherwise, switch to normal input guess
+  iformat=0
 
 end subroutine verify_file_presence
 
@@ -527,7 +537,7 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
-  if (iproc == 0) write(*,"(1x,A,A)") "Write wavefunctions to file: ", trim(filename)
+  if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
   isuffix = index(filename, ".etsf", back = .true.)
   if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
   if (isuffix > 0) then

@@ -334,7 +334,7 @@ END SUBROUTINE deallocate_work_arrays_locham
 !!  does the job for all supported BC. Saves the results on the work arrays
 !!  which are reused in the isf_to_daub_kinetic routine
 subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
-  !n(c) use module_base
+  use module_base
   use module_types
   implicit none
   integer, intent(in) :: nspinor
@@ -358,6 +358,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   select case(lr%geocode)
   case('F')
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspinor,psir(1,1))
      !call timing(iproc,'CrtDescriptors','ON') !temporary
      do idx=1,nspinor  
         call uncompress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
@@ -443,7 +444,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   type(workarr_locham), intent(inout) :: w
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
   real(gp), intent(out) :: ekin
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(out) :: hpsi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
   !Local variables
   logical :: usekpts
   integer :: idx,i,i_f,iseg_f
@@ -739,8 +740,8 @@ subroutine initialize_work_arrays_sumrho(lr,w)
   
 
   if (lr%geocode == 'F') then
-     call razero(w%nxc,w%x_c)
-     call razero(w%nxf,w%x_f)
+     call to_zero(w%nxc,w%x_c(1))
+     call to_zero(w%nxf,w%x_f(1))
   end if
 
 
