@@ -116,8 +116,8 @@ subroutine convolut_magic_n_per(n1,n2,n3,x,y,ww)
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y
   !local variables
-  character(len=*), parameter :: subname='convolut_magic_n_per'
-  integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
+  !n(c) character(len=*), parameter :: subname='convolut_magic_n_per'
+  !n(c) integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
   integer :: ndat
   real(wp), dimension(0:n1,0:n2,0:n3):: ww ! work array
   
@@ -143,8 +143,8 @@ subroutine convolut_magic_n_per_self(n1,n2,n3,x,y)
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
   !local variables
-  character(len=*), parameter :: subname='convolut_magic_n_per'
-  integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
+  !n(c) character(len=*), parameter :: subname='convolut_magic_n_per'
+  !n(c) integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
   integer :: ndat
 
   !  (i1,i2*i3) -> (i2*i3,I1)
@@ -170,8 +170,8 @@ subroutine convolut_magic_t_per_self(n1,n2,n3,x,y)
   real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: x
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y
   !local variables
-  character(len=*), parameter :: subname='convolut_magic_t_per'
-  integer, parameter :: lowfil=-7,lupfil=8
+  !n(c) character(len=*), parameter :: subname='convolut_magic_t_per'
+  !n(c) integer, parameter :: lowfil=-7,lupfil=8
   integer :: ndat
   
   !  (I1,I2*I3) -> (I2*I3,i1)
@@ -198,7 +198,7 @@ subroutine convolut_magic_t_per(n1,n2,n3,x,y)
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y
   !local variables
   character(len=*), parameter :: subname='convolut_magic_t_per'
-  integer, parameter :: lowfil=-7,lupfil=8
+  !n(c) integer, parameter :: lowfil=-7,lupfil=8
   integer :: ndat,i_stat,i_all
   real(wp), dimension(:,:,:), allocatable :: ww
 

@@ -545,11 +545,11 @@ contains
 
 
 !> Allocate diis objects
-  subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,norbd,diis,subname)
+  subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subname) !n(m)
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    integer, intent(in) :: idsx,npsidim,nkptsp,nspinor,norbd
+    integer, intent(in) :: idsx,npsidim,nkptsp,nspinor !n(m)
     real(gp), intent(in) :: alphadiis
     type(diis_objects), intent(inout) :: diis
     !local variables

@@ -468,7 +468,7 @@ subroutine mix_input_variables_new(iproc,filename,in)
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   !local variables
-  character(len=*), parameter :: subname='mix_input_variables'
+  !n(c) character(len=*), parameter :: subname='mix_input_variables'
   logical :: exists
 
   !Mix parameters, needed for the SCF poart with Davidson
@@ -506,7 +506,7 @@ subroutine mix_input_variables(filename,in)
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   !local variables
-  character(len=*), parameter :: subname='mix_input_variables'
+  !n(c) character(len=*), parameter :: subname='mix_input_variables'
   integer :: ierror,iline
   logical :: exists
 
@@ -804,7 +804,7 @@ subroutine sic_input_variables_new(iproc,filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
-  character(len=*), parameter :: subname='sic_input_variables'
+  !n(c) character(len=*), parameter :: subname='sic_input_variables'
 
   !Self-Interaction Correction input parameters
   call input_set_file(iproc,trim(filename),exists,'SIC Parameters')  
@@ -840,7 +840,7 @@ subroutine tddft_input_variables_new(iproc,filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
-  character(len=*), parameter :: subname='tddft_input_variables'
+  !n(c) character(len=*), parameter :: subname='tddft_input_variables'
 
   !TD-DFT parameters
   call input_set_file(iproc,trim(filename),exists,'TD-DFT Parameters')  
@@ -861,7 +861,7 @@ subroutine tddft_input_variables(filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
-  character(len=*), parameter :: subname='tddft_input_variables'
+  !n(c) character(len=*), parameter :: subname='tddft_input_variables'
   integer :: iline, ierror
 
   inquire(file=trim(filename),exist=exists)
@@ -1391,7 +1391,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: inputs
   !local variables
-  character(len=*), parameter :: subname='perf_input_variables'
+  !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
   integer :: iline,ierror,ierr,blocks(2)
 
@@ -1646,7 +1646,7 @@ subroutine frequencies_input_variables_new(iproc,filename,in)
   integer, intent(in) :: iproc
   !Local variables
   logical :: exists
-  integer, parameter :: iunit=111
+  !n(c) integer, parameter :: iunit=111
 
   !Frequencies parameters
   call input_set_file(iproc,trim(filename),exists,'Frequencies Parameters')  
@@ -1960,7 +1960,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
    type(atoms_data), intent(inout) :: atoms
    real(gp), dimension(:,:), pointer :: rxyz
    !Local variables
-   character(len=*), parameter :: subname='read_atomic_file'
+   !n(c) character(len=*), parameter :: subname='read_atomic_file'
    integer :: l, extract
    logical :: file_exists, archive
    character(len = 128) :: filename

@@ -14,16 +14,16 @@ program conv_check_ocl
   use module_base
   implicit none
   integer  :: n1,n2,n3,n1bis,n2bis,n3bis
-  real(gp) :: hx,hy,hz,r2,sigma2,x,maxdiff,arg
+  real(gp) :: hx,r2,sigma2,x,maxdiff,arg !n(c) hy,hz
   real(wp), dimension(:,:,:), allocatable :: psi_in,psi_out,psi_out_s
   real(wp), dimension(:,:,:,:,:), allocatable :: psi_k_in, psi_k_out
   real(wp), dimension(:,:,:,:), allocatable :: psi_k_in_a, psi_k_out_a, pot_a
   real(wp), dimension(:,:,:), allocatable :: psi_in_s,psi_out_t,psi_in_t,psi_gemm,psi_gemmsy,psi_cuda_gemm
   !local variables
   character(len=*), parameter :: subname='conv_check'
-  integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndim,itimes
+  integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,itimes !n(c) ndim
   integer :: l,ierror,i1s,i1e
-  integer :: n1s,n1e,ndats,ndate,nvctr_cf,nseg,iseg
+  integer :: nvctr_cf,nseg,iseg !n(c) n1s,n1e,ndats,ndate
   real(wp) :: tt,scale
   real(gp) :: CPUtime,GPUtime,ekin
   real(gp), dimension(8) :: scal
@@ -40,8 +40,8 @@ program conv_check_ocl
   real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU !pointer to the GPU  memory addresses (with norb=1)
   real(kind=8) :: psi_c_GPU, psi_f_GPU, keyg_GPU, keyv_GPU
   real(kind=8) :: context,queue
-  integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
-  integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
+  !n(c) integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
+  !n(c) integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
   integer, parameter :: lowfilK=-14,lupfilK=14 ! kinetic term
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
   integer(kind=8) :: tsc0, tsc1
@@ -68,8 +68,8 @@ program conv_check_ocl
   call init_event_list
 
   hx=0.1e0_gp
-  hy=0.1e0_gp
-  hz=0.1e0_gp
+  !n(c) hy=0.1e0_gp
+  !n(c) hz=0.1e0_gp
 
   scale=real(-.5_gp/hx**2,wp)
 

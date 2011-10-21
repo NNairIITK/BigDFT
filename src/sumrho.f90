@@ -33,7 +33,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   real(dp), dimension(*), intent(in) :: phnons
   !Local variables
   character(len=*), parameter :: subname='sumrho'
-  logical :: rsflag
+  !n(c) logical :: rsflag
   integer :: nrhotot,n3d,itmred
   integer :: nspinn
   integer :: i1,i2,i3,i3off,i3s,i,ispin,jproc,i_all,i_stat,ierr,j3,j3p,j
@@ -99,7 +99,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
 
   !switch between GPU/CPU treatment of the density
   if (GPUconv) then
-     call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
+     call local_partial_density_GPU(orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else if (OCLconv) then
      call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else
@@ -133,7 +133,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   ! Symmetrise density, TODO...
   !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
   if (symObj >= 0) then
-     call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nscatterarr,nspin,&
+     call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin,& !n(m)
           lr%d%n1i*lr%d%n2i*lr%d%n3i,&
           rho_p,symObj,irrzon,phnons)
   end if
@@ -312,7 +312,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,orbs%nspinor)), intent(inout) :: rho_p
   !local variables
   character(len=*), parameter :: subname='local_partial_density'
-  integer :: iorb,i_stat,i_all,ii,i1,i2,i3
+  integer :: iorb,i_stat,i_all !n(c) i1,i2,i3,ii 
   integer :: oidx,sidx,nspinn,npsir,ncomplex
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
@@ -621,14 +621,14 @@ END SUBROUTINE partial_density_free
 !! FUNCTION
 !! SOURCE
 !!
-subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho,&
+subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nspin,nrho,rho,& !n(c) nscatterarr (arg:6)
      symObj,irrzon,phnons)
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use m_ab6_symmetry
 
   implicit none
   integer, intent(in) :: iproc,nproc,nrho,symObj,nspin, n1i, n2i, n3i
-  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  !n(c) integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(dp), dimension(n1i,n2i,n3i,nspin), intent(inout) :: rho
   integer, dimension(n1i*n2i*n3i,2,1), intent(in) :: irrzon 
   real(dp), dimension(2,n1i*n2i*n3i,1), intent(in) :: phnons 
@@ -876,11 +876,11 @@ subroutine uncompress_rho(iproc,nproc,sprho_comp,dprho_comp,&
   real(4), dimension(rhodsc%sp_size,nspin),intent(in) :: sprho_comp
   real(gp),dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspin),intent(out) :: rho_uncomp
   !local variables
-  integer :: irho,jrho,ispin,iseg,ibegin,iend,j3p,imax
+  integer :: irho,jrho,ispin,iseg,ibegin,iend,j3p !n(c) imax
   logical :: overlap
 
   ! starting and endding point of rho array of interest
-  imax=lr%d%n1i*lr%d%n2i*lr%d%n3i
+  !n(c) imax=lr%d%n1i*lr%d%n2i*lr%d%n3i
   j3p=modulo(i3s,lr%d%n3i)+1
   ibegin=(j3p-1)*lr%d%n1i*lr%d%n2i+1
   j3p=modulo(i3s+n3d-1,lr%d%n3i)+1
@@ -1028,7 +1028,7 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
   logical,intent(in) :: iprint
   type(rho_descriptors),intent(inout) :: rhodsc
   !local variable
-  integer :: i1,i2,i3,nseg,iseg,ispin,jrho,irho,i_stat,i_all,iat
+  integer :: i1,i2,i3,iseg,irho,i_stat,iat !n(c) ispin, i_all,jrho, nseg
   integer :: reg_c,reg_l
   integer(4),dimension(n1i*n2i*n3i) :: reg
   integer,dimension(n1i*n2i*n3i,2) :: dpkey,spkey
@@ -1037,10 +1037,10 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
   integer :: nbx,nby,nbz,nl1,nl2,nl3,nat
   real(gp) :: dpmult,dsq,spadd
   integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax
-  integer,dimension(at%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax,imin,imax,&
+  integer,dimension(at%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax,& !n(c) imin,imax,&
       i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,dsq_cr,dsq_fr
   integer :: csegstot,fsegstot,corx,cory,corz
-  integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
+  !n(c) integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
 
   rhodsc%geocode=at%geocode
   nat=at%nat

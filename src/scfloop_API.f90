@@ -187,7 +187,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(out) :: vxyz
   !local variables
-  character(len=*), parameter :: subname='read_velocities'
+  !n(c) character(len=*), parameter :: subname='read_velocities'
   character(len=2) :: symbol
   character(len=20) :: tatonam,units
   character(len=50) :: extra

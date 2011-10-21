@@ -16,7 +16,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   use module_base
   implicit none
   integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer :: i1,i2,i3,m1,m2,m3,i_stat,i_all
+  integer :: i1,i2,i3,i_stat,i_all !n(c) m1,m2,m3
 
   integer,intent(in):: ibyz_c(2,0:n2,0:n3),ibxy_c(2,0:n1,0:n2)
   integer,intent(in):: ibyz_f(2,0:n2,0:n3),ibxy_f(2,0:n1,0:n2)
@@ -46,9 +46,9 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   allocate(logrid_big((2*n1+31)*(2*n2+31)*(2*n3+31)+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_big,'logrid_big',subname)
 
-  m1=nfu1-nfl1
-  m2=nfu2-nfl2
-  m3=nfu3-nfl3
+  !n(c) m1=nfu1-nfl1
+  !n(c) m2=nfu2-nfl2
+  !n(c) m3=nfu3-nfl3
 
   !   (0:n3,-14:2*n1+16,-14:2*n2+16) from grow
   !   (-14:2*n2+16,-14:2*n3+16,0:n1) from shrink

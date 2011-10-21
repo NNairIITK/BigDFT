@@ -21,37 +21,37 @@
 program conv_check_fft
   use module_base
   implicit none
-  integer  :: n1,n2,n3,n1bis,n2bis,n3bis
-  real(gp) :: hx,hy,hz,r2,sigma2,x,y,z,maxdiff,epot,arg
-  real(wp), dimension(:,:,:,:), allocatable :: pot,psir,psi_in,psi_out,psi_out_s
-  real(wp), dimension(:,:,:,:,:), allocatable :: psi_k_in, psi_k_out
-  real(wp), dimension(:,:,:,:), allocatable :: psi_k_in_a, psi_k_out_a, pot_a
-  real(wp), dimension(:,:,:,:), allocatable :: psi_in_s,psi_out_t,psi_in_t,psi_gemm,psi_gemmsy,psi_cuda_gemm
+  integer  :: n1,n2,n3 !n(c) n1bis,n2bis,n3bis
+  real(gp) :: hx,r2,sigma2,x,y,z,maxdiff,arg !n(c) epot,hy,hz
+  real(wp), dimension(:,:,:,:), allocatable :: psi_in,psi_out !n(c) pot,psir,psi_out_s
+  !n(c) real(wp), dimension(:,:,:,:,:), allocatable :: psi_k_in, psi_k_out
+  !n(c) real(wp), dimension(:,:,:,:), allocatable :: psi_k_in_a, psi_k_out_a,pot_a
+  !n(c) real(wp), dimension(:,:,:,:), allocatable :: psi_in_s,psi_out_t,psi_in_t,psi_gemm,psi_gemmsy,psi_cuda_gemm
   !local variables
   character(len=*), parameter :: subname='conv_check_fft'
-  character(len=50) :: chain
-  integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,i1_max,i_max,it0,it1,ndim,itimes
-  integer :: count_rate,count_max,l,ierror,i1s,i1e
+  !n(c) character(len=50) :: chain
+  integer :: i,i_stat,j,i1,i2,i3,ntimes !n(c) i_all,i1_max,i_max,it0,it1,ndim,itimes
+  integer :: l,ierror !n(c) i1s,i1e,count_rate,count_max
   real(wp) :: tt,scale
-  real(gp) :: v,p,CPUtime,GPUtime,comp,ekin
-  real(gp), dimension(3) :: hgridh
-  real(gp), dimension(8) :: scal
-  integer, dimension(:), allocatable :: keyv,modarr
-  integer, dimension(:,:), allocatable :: keyg
-  real(kind=8), dimension(:), allocatable :: psi, psi_d !temporary in view of wp 
-  real(kind=4), dimension(:), allocatable :: psi_l !temporary in view of wp 
-  real(kind=8), dimension(:,:,:,:), allocatable :: psi_cuda,v_cuda,psi_cuda_s,v_cuda_s,psi_cuda_t,v_cuda_t,v_cuda_str !temporary in view of wp 
+  real(gp) :: CPUtime,GPUtime,ekin !n(c) v,p,comp
+  !n(c) real(gp), dimension(3) :: hgridh
+  !n(c) real(gp), dimension(8) :: scal
+  integer, dimension(:), allocatable :: modarr !n(c) keyv
+  !n(c) integer, dimension(:,:), allocatable :: keyg
+  real(kind=8), dimension(:), allocatable :: psi !temporary in view of wp !n(c) psi_d
+  !n(c) real(kind=4), dimension(:), allocatable :: psi_l !temporary in view of wp 
+  real(kind=8), dimension(:,:,:,:), allocatable :: psi_cuda,v_cuda,v_cuda_str !temporary in view of wp !n(c) psi_cuda_s,psi_cuda_t,v_cuda_s,v_cuda_t
   real(kind=8), dimension(:,:,:,:), allocatable :: psi_cuda_str 
-  real(kind=8), dimension(:,:,:,:,:), allocatable :: psi_cuda_k_in,psi_cuda_k_out,psi_cuda_k_in_bis 
-  real(kind=8), dimension(:,:,:,:), allocatable :: psi_cuda_k_in_a,psi_cuda_k_out_a 
+  !n(c) real(kind=8), dimension(:,:,:,:,:), allocatable :: psi_cuda_k_in,psi_cuda_k_out,psi_cuda_k_in_bis 
+  !n(c) real(kind=8), dimension(:,:,:,:), allocatable :: psi_cuda_k_in_a,psi_cuda_k_out_a 
   real(kind=4), dimension(:,:,:,:), allocatable :: psi_cuda_l,v_cuda_l !temporary in view of wp 
   real(kind=8) :: ekinGPUd
-  real(kind=4) :: t0,t1,epotGPU,ekinGPU
-  real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,keys_GPU !pointer to the GPU  memory addresses (with norb=1)
-  real(kind=8) :: psi_c_GPU, psi_f_GPU, keyg_GPU, keyv_GPU
+  !n(c) real(kind=4) :: t0,t1,epotGPU,ekinGPU
+  real(kind=8) :: psi_GPU,work_GPU,work2_GPU !pointer to the GPU  memory addresses (with norb=1) !n(c) keys_GPU,v_GPU
+  !n(c) real(kind=8) :: psi_c_GPU, psi_f_GPU,keyg_GPU, keyv_GPU
   real(kind=8) :: context,queue
-  integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
-  integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
+  !n(c) integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
+  !n(c) integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
   integer, parameter :: lowfilK=-14,lupfilK=14 ! kinetic term
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
   integer(kind=8) :: tsc0, tsc1
@@ -79,8 +79,8 @@ program conv_check_fft
   call init_event_list
 
   hx=0.1e0_gp
-  hy=0.1e0_gp
-  hz=0.1e0_gp
+  !n(c) hy=0.1e0_gp
+  !n(c) hz=0.1e0_gp
 
   scale=real(-.5_gp/hx**2,wp)
 
