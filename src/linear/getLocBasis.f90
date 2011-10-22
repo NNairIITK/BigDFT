@@ -57,7 +57,7 @@ use module_base
 use module_types
 use module_interfaces, exceptThisOne => getLinearPsi
 use Poisson_Solver
-use deallocatePointers
+!use deallocatePointers
 implicit none
 
 ! Calling arguments
@@ -253,7 +253,15 @@ real(8),dimension(:),pointer:: lpot
       ! Deallocate old PSP structures and rebuild them for the derivatives.
       do ilr=1,lin%lzd%nlr
           call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr), subname)
-          call checkAndDeallocatePointer(lin%lzd%llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
+          if(associated(lin%lzd%llr(ilr)%projflg)) then
+              if(size(lin%lzd%llr(ilr)%projflg)>0) then
+                  iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
+                  deallocate(lin%lzd%llr(ilr)%projflg, stat=istat)
+                  call memocc(istat, iall, 'lin%lzd%llr(ilr)%projflg', subname)
+              else
+                  nullify(lin%lzd%llr(ilr)%projflg)
+              end if
+          end if
       end do
       call prepare_lnlpspd(iproc, at, input, lin%lb%orbs, rxyz, radii_cf, lin%lzd)
 
@@ -265,7 +273,15 @@ real(8),dimension(:),pointer:: lpot
       ! Deallocate the derivative PSP structures and rebuild them for the standard case (i.e. without derivatives)
       do ilr=1,lin%lzd%nlr
           call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr), subname)
-          call checkAndDeallocatePointer(lin%lzd%llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
+          if(associated(lin%lzd%llr(ilr)%projflg)) then
+              if(size(lin%lzd%llr(ilr)%projflg)>0) then
+                  iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
+                  deallocate(lin%lzd%llr(ilr)%projflg, stat=istat)
+                  call memocc(istat, iall, 'lin%lzd%llr(ilr)%projflg', subname)
+              else
+                  nullify(lin%lzd%llr(ilr)%projflg)
+              end if
+          end if
       end do
       call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
   end if
