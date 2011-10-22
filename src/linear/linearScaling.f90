@@ -106,14 +106,14 @@ real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld
 type(linearParameters):: lind
-logical:: updatePhi
+logical:: updatePhi, reduceConvergenceTolerance
 real(8),dimension(:),pointer:: lphi, lphir, phibuffr
 
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(8),dimension(:),allocatable:: phiTemp
 real(wp),dimension(:),allocatable:: projTemp
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2
-real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout
+real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
 integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot, iiorb, ncount
@@ -299,12 +299,15 @@ real(8),dimension(:,:),allocatable:: ovrlp
   energyold=0.d0
   energyoldout=0.d0
   !lin%getCoeff='new'
+  reduceConvergenceTolerance=.false.
   do itout=1,lin%nItOuterSCC
       updatePhi=.true.
-      lin%fixBasis=max(lin%fixBasis*lin%factorFixBasis,lin%minimalFixBasis)
-      if(iproc==0) write(*,'(a,es12.4)') 'DELTA DENS for fixing basis functions:',lin%fixBasis
-      do itSCC=1,nitSCC
-          if(itSCC>1 .and. pnrm<lin%fixBasis) updatePhi=.false.
+      if(reduceConvergenceTolerance) lin%fixBasis=max(lin%fixBasis*lin%factorFixBasis,lin%minimalFixBasis)
+      selfConsistent=max(lin%convCritMix,5.d-3*lin%fixBasis)
+      if(iproc==0) write(*,'(a,es12.4,3x,es12.4)') 'DELTA DENS for fixing basis functions, reaching self consistency:',lin%fixBasis, selfConsistent
+      !do itSCC=1,nitSCC
+      do itSCC=1,nitSCC+10
+          if(itSCC>1 .and. pnrm<lin%fixBasis .or. itSCC==nitSCC) updatePhi=.false.
           !if(pnrm<lin%fixBasis) updatePhi=.false.
           ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
           call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
@@ -395,7 +398,13 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
           ! Write some informations
           call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, lin%mixingMethod)
-          if(pnrm<lin%convCritMix) exit
+          !if(pnrm<lin%convCritMix) exit
+          if(pnrm<selfConsistent) then
+              reduceConvergenceTolerance=.true.
+              exit
+          else
+              reduceConvergenceTolerance=.false.
+          end if
       end do
       if(iproc==0) then
           if(trim(lin%mixingMethod)=='dens') then
