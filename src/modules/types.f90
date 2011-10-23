@@ -572,7 +572,7 @@ end type largeBasis
     integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItOuterSCC
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho, fixBasis
-    real(8):: FactorFixBasis, energyDiffToExitOuterSCC, minimalFixBasis
+    real(8):: FactorFixBasis, convCritMixOut, minimalFixBasis
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold
     real(8),dimension(:,:),pointer:: hamold
     type(orbitals_data):: orbs, gorbs

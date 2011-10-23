@@ -104,7 +104,7 @@ real(8),dimension(:),pointer:: phi, phid
 real(8),dimension(:,:),pointer:: coeff, coeffd
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu
 character(len=*),parameter:: subname='linearScaling'
-real(8),dimension(:),allocatable:: rhopotOld
+real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
 type(linearParameters):: lind
 logical:: updatePhi, reduceConvergenceTolerance
 real(8),dimension(:),pointer:: lphi, lphir, phibuffr
@@ -112,7 +112,7 @@ real(8),dimension(:),pointer:: lphi, lphir, phibuffr
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(8),dimension(:),allocatable:: phiTemp
 real(wp),dimension(:),allocatable:: projTemp
-real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2
+real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
@@ -158,6 +158,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call memocc(istat, psit, 'psit', subname)
   allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold, 'rhopotold', subname)
+  allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
+  call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
+  rhopotold_out=0.d0
 
 
   call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
@@ -345,6 +348,15 @@ real(8),dimension(:,:),allocatable:: ovrlp
                       mixdiis%is=mixdiis%is+1
                       call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 1, pnrm)
                   end if
+                  if(pnrm<selfConsistent .or. itSCC==nitSCC) then
+                      pnrm_out=0.d0
+                      do i=1,Glr%d%n1i*Glr%d%n2i*n3p
+                          pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2
+                      end do
+                      call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
+                      pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+                      call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld_out(1), 1)
+                  end if
               end if
           end if
 
@@ -380,6 +392,15 @@ real(8),dimension(:,:),allocatable:: ovrlp
                       mixdiis%is=mixdiis%is+1
                       call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 2, pnrm)
                   end if
+                  if(pnrm<selfConsistent .or. itSCC==nitSCC) then
+                      pnrm_out=0.d0
+                      do i=1,Glr%d%n1i*Glr%d%n2i*n3p
+                          pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2
+                      end do
+                      call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
+                      pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+                      call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld_out(1), 1)
+                  end if
               end if
           end if
 
@@ -408,12 +429,12 @@ real(8),dimension(:,:),allocatable:: ovrlp
       end do
       if(iproc==0) then
           if(trim(lin%mixingMethod)=='dens') then
-              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'itout, Delta DENS, energy, energyDiff', itout, pnrm, energy, energy-energyoldout
+              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'itout, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, energy-energyoldout
           else if(trim(lin%mixingMethod)=='pot') then
-              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'itout, Delta POT, energy energyDiff', itout, pnrm, energy, energy-energyoldout
+              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'itout, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energy-energyoldout
           end if
       end if
-      if(abs(energy-energyoldout)<lin%energyDiffToExitOuterSCC) exit
+      if(abs(pnrm_out)<lin%convCritMixOut) exit
       energyoldout=energy
   end do
 
@@ -427,6 +448,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
   deallocate(rhopotOld, stat=istat)
   call memocc(istat, iall, 'rhopotOld', subname)
+  iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
+  deallocate(rhopotold_out, stat=istat)
+  call memocc(istat, iall, 'rhopotold_out', subname)
 
   if(lin%mixHist>0) then
       call deallocateMixrhopotDIIS(mixdiis)
