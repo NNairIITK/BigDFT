@@ -160,7 +160,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call memocc(istat, rhopotold, 'rhopotold', subname)
   allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
-  rhopotold_out=0.d0
+  rhopotold_out=1.d100
 
 
   call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
