@@ -348,7 +348,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
                       mixdiis%is=mixdiis%is+1
                       call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 1, pnrm)
                   end if
-                  if(pnrm<selfConsistent .or. itSCC==nitSCC) then
+                  if(pnrm<selfConsistent .or. itSCC==nitSCC+10) then
                       pnrm_out=0.d0
                       do i=1,Glr%d%n1i*Glr%d%n2i*n3p
                           pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2
@@ -392,7 +392,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
                       mixdiis%is=mixdiis%is+1
                       call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 2, pnrm)
                   end if
-                  if(pnrm<selfConsistent .or. itSCC==nitSCC) then
+                  if(pnrm<selfConsistent .or. itSCC==nitSCC+10) then
                       pnrm_out=0.d0
                       do i=1,Glr%d%n1i*Glr%d%n2i*n3p
                           pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2
