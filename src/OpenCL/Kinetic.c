@@ -270,6 +270,7 @@ void FC_FUNC_(kinetic1d_d,KINETIC1D_D)(bigdft_command_queue *command_queue, cl_u
   c_initialize_generic((*command_queue)->kernels.c_initialize_kernel_d, (*command_queue)->command_queue, &ng, x, worky, c);
   double scale = - 0.5 / ( *h * *h );
   kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue), n, ndat, &scale, x, workx, worky, y);
+  *ekin = 0.0;
 }
 
 void clean_kinetic_kernels(struct bigdft_kernels * kernels){

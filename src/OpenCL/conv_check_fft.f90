@@ -180,7 +180,7 @@ program conv_check_fft
    call fft_1d_ctoc(-1,n2*n3,n1,v_cuda_str,i3)
    call nanosec(tsc1);
 
-   CPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
 
   write(*,'(a,i6,i6)')'GPU FFT, dimensions:',n1,n2*n3
@@ -229,7 +229,7 @@ program conv_check_fft
    call FFT(n1,n2,n3,n1,n2,n3,v_cuda_str,-1,i3)
    call nanosec(tsc1);
 
-   CPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
      log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
 
@@ -267,7 +267,7 @@ program conv_check_fft
    call FFT(n1,n2,n3,n1,n2,n3,v_cuda_str,1,i3)
    call nanosec(tsc1);
 
-   CPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
      log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
 
