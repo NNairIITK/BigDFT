@@ -186,7 +186,7 @@ run_message:
         refs="$$dir/*.ref" ; \
 	for r in $$refs ; do \
 	  rep=`basename $$r .ref`".report" ; \
-	  if grep -qs "failed" $$dir/$$rep ; then \
+	  if ! grep -qs "succeeded\|passed" $$dir/$$rep ; then \
 	    target=` basename $$r .ref` ; \
 	    $(MAKE) $*".in" && rm -f $*".in" ; \
 	    rm -f $$dir/$$target".out" $$dir/$$target".report" ; \
