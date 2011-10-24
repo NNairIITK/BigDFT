@@ -10,7 +10,7 @@
 
 !> Write a field in the ISF basis in the ETSF format
 subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,x)
-  use module_base
+  !n(c) use module_base
   use module_types
 
   implicit none
@@ -33,7 +33,7 @@ END SUBROUTINE write_etsf_density
 !> Read a field in the ISF basis in the ETSF format
 subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -67,7 +67,7 @@ END SUBROUTINE read_etsf
 !> Read wavefunctions using ETSF format
 subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
@@ -92,7 +92,7 @@ END SUBROUTINE read_waves_etsf
 !> Write wavefunctions in ETSF format
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
   use module_types
-  use module_base
+  !n(c) use module_base
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3,nat
   real(gp), intent(in) :: hx,hy,hz

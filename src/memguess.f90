@@ -206,6 +206,7 @@ program memguess
           & nspin, hx, hy, hz, rhocoeff, atoms%nat, rxyz, atoms%iatype, atoms%nzatom)
      atoms%ntypes = size(atoms%nzatom) - ndebug
      write(*,*) "Write new density file..."
+     !n(?) norbsc_arr was not allocated
      call plot_density(trim(fileTo), 0, 1, Glr%d%n1i / 2 - 1, Glr%d%n2i / 2 - 1, &
           & Glr%d%n3i / 2 - 1, Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, Glr%d%n3i, nspin, hx, hy, hz, &
           & atoms, rxyz, norbsc_arr, rhocoeff)

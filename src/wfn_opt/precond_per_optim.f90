@@ -62,7 +62,7 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   end if
 
   call apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-       cprecr,hx,hy,hz,x,d,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef,scal) ! d:=Ax
+       cprecr,x,d,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef,scal) ! d:=Ax
 
 !!  x=d
 !!  return
@@ -70,13 +70,13 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   r=b-d ! r=b-Ax
   d=r
   !rmr_new=dot_product(r,r)
-  rmr_new=dot(nvctr_c+7*nvctr_f,r(1),1,r(1),1)
+  rmr_new=dot(nvctr_c+7*nvctr_f,r(1),1,r(1),1) !n(?) r not allocated
 
   do icong=1,ncong 
      !write(*,*)icong,rmr_new
 
      call apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-          cprecr,hx,hy,hz,d,b,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef,scal) ! b:=Ad
+          cprecr,d,b,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef,scal) ! b:=Ad
 
      alpha=rmr_new/dot(nvctr_c+7*nvctr_f,d(1),1,b(1),1)
 

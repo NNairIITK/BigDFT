@@ -57,7 +57,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   call fnrmandforcemax(fxyz,tmp,fmax,at%nat)
 
   !control whether the convergence criterion is reached after SD
-  call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+  call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
   if (check.gt.5) then
      if (iproc.eq.0) write(16,*) 'Converged before entering CG',iproc
      call close_and_deallocate
@@ -149,7 +149,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
            !calculate the max of the forces
            call fnrmandforcemax(fxyz,tmp,fmax,at%nat)
-           call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
+           call convcheck(fmax,fluct*in%frac_fluct, in%forcemax,check) !n(m) 
            if(check.gt.5) then
               if (iproc.eq.0) write(16,*) 'Converged in switch back SD',iproc
               call close_and_deallocate
@@ -167,7 +167,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         !if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_bigdft,etot,sqrt(fnrm)
 
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
 
 !!$        call atomic_dot(at,gpf,gpf,unten)
 !!$        call atomic_dot(at,gpf,fxyz,oben1)
@@ -203,7 +203,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
                 'FORCES norm(Ha/Bohr): maxval=',    fmax,'fnrm=',    fnrm   , 'fluct=',fluct
         end if
 
-        call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+        call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
 
         if(check.gt.5) exit loop_cg
 
@@ -242,7 +242,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            !calculate the max of the forces
            call fnrmandforcemax(fxyz,tmp,fmax,at%nat)
 
-           call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+           call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
            if(check.gt.5) then
               if (iproc == 0) write(16,*) 'Converged in back up SD',iproc
               call close_and_deallocate
@@ -412,7 +412,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
         endif
 
         call fnrmandforcemax(ff,fnrm,fmax,at%nat)
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
 
 
         !first and second derivatives of the energy and of the norm of the forces
@@ -580,10 +580,10 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   real(gp) ::fnoise
   character(len=*), parameter :: subname='vstepsd'  
   integer :: iat,i_all,i_stat,infocode, nitsd,itsd
-  real(gp) :: anoise,fluct,fnrm,fnrmold,beta,betaxx,betalast,betalastold
+  real(gp) :: fluct,fnrm,fnrmold,beta,betaxx,betalast !n(c) anoise,betalastold 
   real(gp) :: etotold,fmax,scpr,curv,tt,etotprev
   real(gp), dimension(:,:), allocatable :: posold,ffold
-  logical :: reset!,check
+  !n(c) logical :: reset!,check
   integer :: check
   character(len=4) :: fn4
   character(len=40) :: comment
@@ -595,7 +595,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   allocate(ffold(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,ffold,'ffold',subname)
 
-  anoise=1.e-4_gp
+  !n(c) anoise=1.e-4_gp
   fluct=0._gp
 
   beta=in%betax
@@ -603,7 +603,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   in%inputPsiId=1
   call call_bigdft(nproc,iproc,at,wpos,in,etotold,ffold,fnoise,rst,infocode)
   call fnrmandforcemax(ffold,fnrm,fmax,at%nat)   
-  if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+  if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
   if (iproc == 0) then
      if (parmin%verbosity > 0)   write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
      &ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"beta=",beta
@@ -638,8 +638,8 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   !call atomic_dot(at,ffold,ffold,fnrmold)
   !call atomic_axpy(at,wpos,beta,ffold,wpos)
   betaxx=1.d100
-  reset=.true.
-  betalastold=in%betax
+  !n(c) reset=.true.
+  !n(c) betalastold=in%betax
 
   nitsd=1000
   loop_ntsd: do itsd=1,nitsd
@@ -664,9 +664,9 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
      betalast=.5d0/curv
      if (betalast.gt.0.d0) betaxx=min(betaxx,1.5d0*betalast)
      call fnrmandforcemax(ff,fnrm,fmax,at%nat)   
-     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+     if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
 !     if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
-     call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
+     call convcheck(fmax,fluct*in%frac_fluct, in%forcemax,check) !n(m)
      if (check > 5) exit loop_ntsd
      if (ncount_bigdft >= in%ncount_cluster_x) then 
         if (iproc==0)  write(16,*) 'VSSD exited before the geometry optimization converged because more than ',& 
@@ -676,7 +676,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
 
      if (etot > etotold) then
-        reset=.true.
+        !n(c) reset=.true.
         beta=in%betax
         if (iproc == 0) write(16,*) 'new positions rejected, reduced beta',beta
         do iat=1,at%nat
@@ -686,7 +686,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         enddo
         !call atomic_axpy(at,posold,beta,ffold,wpos)
      else
-        reset=.false.
+        !n(c) reset=.false.
         if (betalast.gt.0.d0) then
            beta=max(min(beta*1.5d0,betalast),in%betax)
         else
@@ -713,7 +713,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         !call atomic_axpy(at,wpos,beta,ff,wpos)
         etotold=etot
         fnrmold=fnrm
-        betalastold=betalast
+        !n(c) betalastold=betalast
      endif
   
      if (iproc == 0.and.parmin%verbosity > 0) & 

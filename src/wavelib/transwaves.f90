@@ -196,7 +196,7 @@ END SUBROUTINE untranspose_v
 
 
 subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: nproc,nvctr
@@ -283,7 +283,7 @@ END SUBROUTINE switch_waves_v
 
 
 subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: nproc,nvctr

@@ -10,7 +10,7 @@
 
 !>  Naive subroutine which performs a direct minimization of the energy 
 !!  for a given hamiltonian
-subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
+subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,& 
           orbs,orbsv,nvirt,lr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
           pkernel,psi,psivirt,nscatterarr,ngatherarr,GPU)
@@ -19,7 +19,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   use module_interfaces, except_this_one => direct_minimization
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,nproc,n1i,n2i,nvirt
+  integer, intent(in) :: iproc,nproc,nvirt,n1i,n2i
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -39,10 +39,10 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !local variables
   character(len=*), parameter :: subname='direct_minimization'
   logical :: msg,exctX,occorbs,endloop !extended output
-  integer :: occnorb, occnorbu, occnorbd,nrhodim,i3rho_add
+  integer :: nrhodim,i3rho_add !n(c) occnorb, occnorbu, occnorbd
   integer :: i_stat,i_all,iter,ikpt,idsx_actual_before,ndiis_sd_sw
   real(gp) :: gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC
-  real(gp) :: energy,energy_old,energybs,evsum
+  real(gp) :: energy,energybs,evsum !n(c) energy_old
   type(diis_objects) :: diis
   real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt,pot
 
@@ -61,15 +61,15 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
         end if
      end do
   end if
-  if (occorbs) then
-     occnorb = 0
-     occnorbu = 0
-     occnorbd = 0
-  else
-     occnorb = orbs%norb
-     occnorbu = orbs%norbu
-     occnorbd = orbs%norbd
-  end if
+  !n(c) if (occorbs) then
+  !n(c)   occnorb = 0
+  !n(c)   occnorbu = 0
+  !n(c)   occnorbd = 0
+  !n(c) else
+  !n(c)   occnorb = orbs%norb
+  !n(c)   occnorbu = orbs%norbu
+  !n(c)   occnorbd = orbs%norbd
+  !n(c) end if
 
   !in the GPU case, the wavefunction should be copied to the card 
   !at each HamiltonianApplication
@@ -214,7 +214,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
   call allocate_diis_objects(in%idsx,in%alphadiis,sum(commsv%ncntt(0:nproc-1)),&
-       orbsv%nkptsp,orbsv%nspinor,orbsv%norbd,diis,subname)  
+       orbsv%nkptsp,orbsv%nspinor,diis,subname)  
   !print *,'check',in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp
 
   energy=1.d10
@@ -264,7 +264,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hpsivirt,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
      energybs=ekin_sum+epot_sum+eproj_sum
-     energy_old=energy
+     !n(c) energy_old=energy
      energy=energybs-eexctX
 
      !check for convergence or whether max. numb. of iterations exceeded
@@ -432,7 +432,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   character(len=*), parameter :: subname='davidson',print_precise='1pe22.14',print_rough='1pe12.4 '
   character(len=8) :: prteigu,prteigd !format for eigenvalues printing
   logical :: msg,exctX,occorbs !extended output
-  integer :: occnorb, occnorbu, occnorbd,nrhodim,i3rho_add
+  integer :: nrhodim,i3rho_add !n(c) occnorb, occnorbu, occnorbd
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor
   integer :: ise,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,gnrm_fake
@@ -454,15 +454,15 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
         end if
      end do
   end if
-  if (occorbs) then
-     occnorb = 0
-     occnorbu = 0
-     occnorbd = 0
-  else
-     occnorb = orbs%norb
-     occnorbu = orbs%norbu
-     occnorbd = orbs%norbd
-  end if
+  !n(c) if (occorbs) then
+  !n(c)   occnorb = 0
+  !n(c)   occnorbu = 0
+  !n(c)   occnorbd = 0
+  !n(c) else
+  !n(c)   occnorb = orbs%norb
+  !n(c)   occnorbu = orbs%norbu
+  !n(c)   occnorbd = orbs%norbd
+  !n(c) end if
 
   !in the GPU case, the wavefunction should be copied to the card 
   !at each HamiltonianApplication
@@ -1291,7 +1291,7 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   real(wp), dimension(nspinor*nvctrp*norb), intent(in) :: v,g,hv,hg
   real(wp), dimension(ncplx,2*norb,2*norb,2), intent(out) :: hamovr
   !local variables
-  character(len=*), parameter :: subname='Davidson_subspace_hamovr'
+  !n(c) character(len=*), parameter :: subname='Davidson_subspace_hamovr'
   integer :: iorb,jorb,icplx,ncomp
 
   if (nspinor == 4) then
@@ -1411,7 +1411,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   real(wp), dimension(nspinor*nvctrp*norb), intent(inout) :: v
   real(wp), dimension(nspinor*nvctrp*norb), intent(inout) :: work
   !local variables
-  character(len=*), parameter :: subname='update_psivirt'
+  !n(c) character(len=*), parameter :: subname='update_psivirt'
   integer :: ncomp
 
   if (nspinor == 4) then

@@ -80,7 +80,7 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
 
   ! Work arrays.
   call memspace_work_arrays_sumrho(lr, mworkrho)
-  call memspace_work_arrays_locham(lr, nspinor, mworkham)
+  call memspace_work_arrays_locham(lr, mworkham) !n(m)
   ! pot_ion, rhopot, potxc
   nden=3.d0
   ! In Hamiltonian application: pot + psir + work arrays

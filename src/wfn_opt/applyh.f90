@@ -36,7 +36,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   character(len=*), parameter :: subname='local_hamiltonian'
   integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
   real(wp) :: exctXcoeff
-  real(gp) :: ekin,epot,kx,ky,kz,etest,eSICi,eSIC_DCi
+  real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,vsicpsir
 
@@ -78,7 +78,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   epot_sum=0.0_gp
   eSIC_DC=0.0_gp
 
-  etest=0.0_gp
+  !n(c) etest=0.0_gp
 
   do iorb=1,orbs%norbp
      !this section should be replaced with the ispot array, calculated in fill_local_potential (or maybe before)
@@ -660,7 +660,7 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(in) :: psi
-  integer, intent(inout) :: istart_c
+  integer, intent(inout) :: istart_c !< address of the starting point of the projector in proj array
   real(gp), intent(inout) :: eproj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   !local variables
