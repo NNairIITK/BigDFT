@@ -24,15 +24,16 @@ void generate_radix_macro(std::stringstream &program, unsigned int radix_size){
   program<<"#define radix"<<radix_size<<"m(il,jl,N,A,B,in,out,sign,div)\
   { \
   double2 tmp,val,w;\
-  int a,b,p,r;\
+  int a,b,p,r,id,idd;\
   b = jl / ("<<radix_size<<"*A);\
   r = jl % ("<<radix_size<<"*A);\
   a = r % A;\
   tmp = in[A*b+a][il];\
-  val = in[(N/"<<radix_size<<")+A*b+a][il];";
+  val = in[(N/"<<radix_size<<")+A*b+a][il];\
+  idd = id = r*B;";
   if(use_constant_memory)
-    program<<"  w.x = cosar[r*(N/("<<radix_size<<"*A))];\
-  w.y = sinar[r*(N/("<<radix_size<<"*A))];";
+    program<<"  w.x = cosar[idd];\
+  w.y = sinar[idd];";
   else
     program<<"  w = as_double2(read_imageui(cosat,smplr,(int2)(r*(N/("<<radix_size<<"*A)),0)));";
   
@@ -41,10 +42,12 @@ void generate_radix_macro(std::stringstream &program, unsigned int radix_size){
   tmp.x += sign val.y * w.y;\
   tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
-  val = in[(N/"<<radix_size<<")*"<<i<<"+A*b+a][il];";
+  val = in[(N/"<<radix_size<<")*"<<i<<"+A*b+a][il];\
+  idd += id;\
+  idd>=N ? idd-=N : idd;";
     if(use_constant_memory)
-      program<<"  w.x = cosar[r*("<<i<<"*N/("<<radix_size<<"*A))%N];\
-  w.y = sinar[r*("<<i<<"*N/("<<radix_size<<"*A))%N];";
+      program<<"  w.x = cosar[idd];\
+  w.y = sinar[idd];";
     else
       program<<"  w = as_double2(read_imageui(cosat,smplr,(int2)(r*("<<i<<"*N/("<<radix_size<<"*A))%N,0)));";
   }
