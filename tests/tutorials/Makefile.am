@@ -29,7 +29,7 @@ EXTRA_DIST = $(TESTDIRS) \
      minhop.pdf \
      bart.pdf \
      GPU \
-     C2H6 Li6 Mg5
+     C2H6 Li6 Mg5 Wannier Xabs
 
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
