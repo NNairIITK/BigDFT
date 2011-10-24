@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="iso-8859-15"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <title>Tutorial: Troubleshooting Minima-Hopping </title>
+    <meta name="copyright" content="&#169; 2004-2011 CEA" />
+    <link rel="author" type="text/html" href="http://www.cea.fr" hreflang="fr" lang="fr" />
+    <link rel="stylesheet" type="text/css" href="../styles/original.css" />
+  </head>
+
+  <body>
+
+    <div class="header">
+      <div class="visuLogo">
+        <img src="../images/logo_header.png" alt="" width="102" height="80" />
+      </div>
+      <!-- %%VERSION%% -->
+    </div>
+
+    <!-- %%MENU%% -->
+
+    <div class="main"><a name="top" id="top"></a>
+
+      <div class="floatingmenu">
+        <h2>Troubleshooting Minima-Hopping</h2>
+        <ul>
+          <li>Introduction</li>
+	  <li>Minima Hopping is not finding new minima </li>
+          <li>The minima obtained are actually same structures </li>
+          <!--	<li>HOMO / LUMO gap and visualisation of orbitals</li> -->
+         
+        </ul>
+        <h2>Material</h2>
+        <ul style="float:left;margin-right:1em;">
+          <li>Minima Hopping Tutorial<a href="H2E-minima_hopping.html" target="_blank"> Hands-on</a></li>          
+          <li>Minima Hopping Tutorial<a href="minhop.pdf" target="_blank"> Lecture</a></li>          
+        </ul>
+      </div>
+<h1> Troubleshooting Minima-Hopping</h1>
+<h2>Introduction</h2>
+<p> In this section we would like to discuss how to troubleshoot a few commonly faced problems during a Minima Hopping run. As <b>Minima Hopping</b> relies on  <b>BigDFT</b> for energy and force calculation and also for the geometry optimizations, very often it is found that the Minima Hopping is not performing well because of problems like  poor convergence in wavefunction optimization or  geometry optimizations in <b>BigDFT</b>.
+ In those cases one should try to solve the problem by adjusting BigDFT input parameters or input geometry configuration in <code>poscur.xyz</code>. Users are advised to refer <b>BigDFT</b> manual for more detail. In this section we will discuss only the problems which arise only from <b>Minima Hopping</b> code.
+</p>
+<h3>Problem 1: Minima Hopping is not finding new Minima </h3>
+<p>
+ This is the most common problem one is expected to face at the start of a new Minima Hopping run. Depending on the system under study and the computing resources, One may have to wait several hours after starting the calculation to 
+analyze any information about the status of the run. To know how to make an input set for efficient run follow the <a href=H2E-minima_hopping.html target="_blank">tutorial</a> carefully. 
+</p>
+<p> To troubleshoot this problem we will check the <code>global.mon</code> file and <code>screen output</code>. To understand the <code>global.mon</code> file please see the tutorial <a href=minhop.pdf target="_blank">presentation</a>. 
+Now we will discuss different possible scenarios.
+</p>
+<div class="exercice">
+<h3>Scenario 1:</h3>
+<p> <code>global.mon</code> file looks like the following. </p>
+<pre>
+maia:~/test >tail global.mon 
+         0.  1.58431372956184E+01  4.459E-03  4.139E-03
+         1.  1.58894746509521E+01  4.459E-03  3.762E-03  0.00  0.00  1.00  T R     1
+         2.  1.58608541045569E+01  4.905E-03  3.420E-03  0.00  0.00  1.00  T R     1
+         3.  1.58555734322905E+01  5.396E-03  3.109E-03  0.00  0.00  1.00  T R     1
+         4.  1.58500896035491E+01  5.935E-03  2.827E-03  0.00  0.00  1.00  T R     1
+         5.  1.58519955699513E+01  6.529E-03  2.570E-03  0.00  0.00  1.00  T R     1
+</pre>
+This means that the program visited new minima but all of them were rejected because they were too high in energy with respect to the starting configuration. The acceptance of a new minimum which is higher in energy than the present one is 
+controlled by the 
+ <code> ediff</code> parameter, which is written in the third column. One can see the program is automatically increasing the <code>ediff</code>. The
+Fourth column is <code> ekinetic</code>: The kinetic energy of the MD simulation. The present situation arises mainly due to a <b> High <code>ekinetic</code> </b> input value in <code> ioput</code> file. 
+One can see that the program is automatically reducing the <code>ekinetic</code> value and if the value of <code>ekinetic </code> is not too high, the program can adjust it by itself. But in case the input value was too high, 
+you should try starting a new run with lower <code> ekinetic </code> value.
+</div>
+
+<div class="exercice">
+<h3>Scenario 2:</h3>
+<p> <code>global.mon</code> file looks like the following. </p>
+<pre>
+maia:~/test >tail global.mon 
+        30.  7.22850844672024E+00  2.727E-02  4.139E-03  0.20  0.10  0.70   S
+        31.  7.22850845241805E+00  2.727E-02  4.552E-03  0.23  0.10  0.68   S
+        32.  7.22850834576138E+00  2.727E-02  5.008E-03  0.25  0.09  0.66   S
+        33.  7.22850839261770E+00  2.727E-02  5.508E-03  0.27  0.09  0.64   S
+
+</pre>
+This means that the same minimum is visited again and again. This is because of a low <code>ekinetic</code> value. The program will try to increase the kinetic energy automatically but in some case one may have to increase the value of
+<code>ekinetic</code> in the <code>ioput</code> file manually.
+</div>
+<h3> Problem 2: Minima Hopping Found many minima but most of them are very close in energy and the corresponding <code>poslow*****.xyz</code> files are similar looking:</h3> 
+<p>  In such cases the <code>earr.dat </code> file looks like the following.
+<pre>
+   40        50 # of minima already found, # of minima to be found in consecutive run
+-0.74000000000000000E+03    eref
+ 0.50000000000000001E-03    accur
+ 0.82085000000000008E+01  2.0000000000E+00
+ 0.82100000000000009E+01  1.0000000000E+00
+ 0.82110000000000003E+01  3.0000000000E+00
+ 0.82115000000000009E+01  2.0000000000E+00
+ 0.82119999999999997E+01  2.0000000000E+00
+ 0.82125000000000004E+01  1.0000000000E+00
+ 0.82130000000000010E+01  1.0000000000E+00
+ 0.82134999999999998E+01  1.0000000000E+00
+ 0.82140000000000004E+01  1.0000000000E+00
+ 0.82145000000000010E+01  3.0000000000E+00
+ 0.82149999999999999E+01  1.0000000000E+00
+ 0.82155000000000005E+01  1.0000000000E+00
+ 0.82159999999999993E+01  2.0000000000E+00
+ 0.82164999999999999E+01  1.0000000000E+00
+ 0.82170000000000005E+01  1.0000000000E+00
+ 0.82174999999999994E+01  2.0000000000E+00
+ 0.82180000000000000E+01  1.0000000000E+00
+ 0.82185000000000006E+01  1.0000000000E+00
+ 0.82189999999999994E+01  1.0000000000E+00
+ 0.82195000000000000E+01  5.0000000000E+00
+ 0.82200000000000006E+01  2.0000000000E+00
+ 0.82204999999999995E+01  2.0000000000E+00
+ 0.82210000000000001E+01  3.0000000000E+00
+ 0.82215000000000007E+01  1.0000000000E+00
+ 0.82219999999999995E+01  2.0000000000E+00
+ 0.82225000000000001E+01  2.0000000000E+00
+ 0.82240000000000002E+01  1.0000000000E+00
+
+</pre>
+ In this <code>earr.dat</code> file we can see the program found several minima which  differ in energy by the value of <code>accur</code> in the third line of the file. In these cases one should check  the corresponding 
+<code>poslow*****.xyz</code> files visually by softwares file V_Sim to confirm if they are really structurally different  or not. If one see that the structures are same or  differs only by rotation angles then it suggest that 
+accuracy which was set for this calculation by <code>accur</code> in the <code> earr.dat</code> file  is not compatible with the actual accuracy in total energy calculation by <b>BigDFT</b>. To say more explicitly, The accuracy set by <code>accur</code> parameter by which minima hopping program is distinguishing between two structures are lower in value than the actual accuracy 
+of the BigDFT energy calculation. In the present case the solution is to increase the value of <code>accur</code> or to prepare a <code>input.dft</code> file which is able to produce result 
+in higher accuracy than the present <code> expected accuracy in energy </code>. Please follow the <a href='H2E-minima_hopping.html' target="_blank"> tutorial</a> and <a href="minhop.pdf" target="_blank"> presentation</a> to adjust the accuracy of the program correctly. 
+  
+</div>
+
+
+    <div class="footer">Author (Sandip De)
+      |
+      <a href="http://validator.w3.org/check/referer" title="Check HTML compliance with W3C norms">XHTML1.0</a> - 
+      <a href="http://jigsaw.w3.org/css-validator/check/referer" title="Check CSS compliance with W3C norms">CSS2</a>
+      |
+      <!-- hhmts start -->
+      Last modified: Mon Oct 3 2011
+      <!-- hhmts end -->
+    </div>
+
+  </body>
+</html>

@@ -39,11 +39,11 @@ program example_op2p
 
   !decide the number of groups to run with (maximum 10 groups)
   call random_integer(10,ngroups)
-  !ngroups=1 !for the moment only one group
+  ngroups=2 !for the moment only one group
   !decide the total number of elements for each group (maximum 1000 elements)       
   call random_integer(1000,norb)
   !the number of orbitals should be bigger than the number of groups
-  norb=max(norb,ngroups)
+  norb=200!max(norb,ngroups)
   !allocate the corresponding arrays
   allocate(orbs_attributes(norb,3+ndebug),stat=i_stat)
   call memocc(i_stat,orbs_attributes,'orbs_attributes',subname)
@@ -85,12 +85,12 @@ program example_op2p
   !initialize objects
   do iorb=1,norb
      call random_number(tt) !the seed is equal for each mpi process
-     psi(iorb)=1.d0!real(tt,kind=8)
+     !psi(iorb)=1.d0!real(tt,kind=8)
      results(iorb)=0.0d0
      expected_results(iorb)=0.0d0
   end do
 
-!!$  !calculate expected results (could be done with the same fake_operation)
+!!$  !calculate expected results (could be done with the same fake_operation )
 !!$  do iorb=1,norb
 !!$     expected_results(iorb)=0.0d0
 !!$     do jorb=1,norb
@@ -152,7 +152,7 @@ program example_op2p
   !print *,'a',norb_par,orbs_attributes
 
   !here any processor will initialise the global communications arrays needed for executing the op2p
-  call initialize_OP2P_descriptors(.false.,iproc,nproc,norb,orbs_attributes,norb_par,OP2P)
+  call initialize_OP2P_descriptors(.true.,iproc,nproc,norb,orbs_attributes,norb_par,OP2P)
 
   !this simulates the concurrent call of the op2p routine by all the processors
   !print *,'starting',iproc
@@ -164,7 +164,7 @@ program example_op2p
   !print *,'iproc,icount2',iproc,icount
   call free_OP2P_descriptors(OP2P,subname)
   !print *,'barrier',ierr
-  if (iproc==0) flush(unit=6)
+  !if (iproc==0) flush(unit=6)
   maxerr=0.0d0
 
   do iorb=1,norb_par(iproc)

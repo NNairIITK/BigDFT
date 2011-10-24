@@ -49,7 +49,7 @@
             mo_sp1,mo_sp2,mo_sp3,mo_sp4,mo_sp5,mo_sp6,mo_sp7,&
             mo_i1,mo_i2,mo_i3,mo_i4,mo_i5,mo_i6,mo_i7,&
             mo_l1,mo_l2,mo_l3,mo_l4,mo_l5,mo_l6,mo_l7,&
-            mo_c1, &
+            mo_c1, mo_cmpdp1, &
             memocc_internal  !central routine to be used for deallocation
     end interface
 
@@ -68,24 +68,30 @@
     !! The status can only be downgraded. A stop signal is produced if status is increased
     subroutine memocc_set_state(istatus)
       integer, intent(in) :: istatus
-
-      if (istatus > malloc_level) stop 'malloc_level can be only downgraded'
+      !local variable
+      integer :: istat_del
+      if (istatus > malloc_level)then
+         write(7,*) 'WARNING: malloc_level can be only downgraded, ignoring'
+         return
+      end if
 
       malloc_level = istatus
       
       if (istatus == 2) return !the default situation
 
-      if (istatus == 1) then 
-         !clean the file situation
-         close(unit=mallocFile)
+      if (istatus == 1 .and. memproc==0) then 
+         !clean the file situation (delete the previously existing file)
+         close(unit=mallocFile)                        
+         call delete('malloc.prc',len('malloc.prc'),istat_del)
          open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
       end if
 
-      if (istatus == 0) then
+      if (istatus == 0 .and. memproc==0) then
          !the file should be deleted
          close(unit=mallocFile)
-         open(unit=mallocFile,file='malloc.prc',status='replace')
-         close(unit=mallocFile)
+         !open(unit=mallocFile,file='malloc.prc',status='replace')
+         !close(unit=mallocFile)
+         call delete('malloc.prc',len('malloc.prc'),istat_del)
       end if
     end subroutine memocc_set_state
 
@@ -166,7 +172,7 @@
 
       ! Local variables
       logical :: lmpinit
-      integer :: ierr
+      integer :: ierr,istat_del
 
       include 'mpif.h'
 
@@ -214,10 +220,12 @@
             !here we can add a routine which open the malloc.prc file in case of some 
             !memory allocation problem, and which eliminates it for a successful run
             if (malloc_level == 1 .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
+               !open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
                !remove file should be put here
-               open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
-               write(unit=mallocFile,fmt='()',advance='no')
-               close(unit=mallocFile)
+               call delete('malloc.prc',len('malloc.prc'),istat_del)
+
+               !write(unit=mallocFile,fmt='()',advance='no')
+               !close(unit=mallocFile)
             else
                call memory_malloc_check(memalloc,memdealloc)
             end if
@@ -907,4 +915,24 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_c1
+
+
+
+
+    subroutine mo_cmpdp1(istat,array,aname,rname)
+      implicit none
+      character(len=*), intent(in) :: aname,rname
+      integer, intent(in) :: istat
+      complex(kind=8), dimension(:), intent(in) :: array
+      !local variables
+      integer :: ndim
+      if (ndebug /=0) then
+         ndim=product(shape(array))-ndebug
+         call cmpdp_padding(1,ndim,array)
+      end if
+      call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
+    end subroutine mo_cmpdp1
+
+
+
 end module m_profiling

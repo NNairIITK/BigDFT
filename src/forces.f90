@@ -3554,7 +3554,7 @@ END SUBROUTINE clean_forces
 
 subroutine symmetrise_forces(iproc, fxyz, at)
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_symmetry
   use module_types
 
   implicit none

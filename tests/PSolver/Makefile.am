@@ -26,6 +26,7 @@ EXERCISE = Exercise/plot.gnuplot \
 	Exercise/emepot.pdf \
 	Exercise/rhoFpotF.pdf
 
+EXTRA_DIST = PS_Check.out.ref
 
 check_PROGRAMS = PS_Check PS_Program PS_Exercise
 

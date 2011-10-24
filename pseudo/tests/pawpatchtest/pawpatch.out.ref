@@ -1,0 +1,250 @@
+ *********************************************
+ ***              pseudo_2.5               ***
+ ***              fitting of               ***
+ ***   goedecker type pseudopotentials     ***
+ ***   last changes:     december 2010     ***
+ *********************************************
+
+ Reading the file input.dat
+ __________________________
+
+           0 fit cycles
+ plot wfs after each iteration
+ will calculate pawpatches for conf No            0
+ will calculate paw patches for the           3  first Ls 
+ will consider           4  paw channels  
+ will consider  ae.pot.conf.0.pltfile for reading the initial potential 
+  N of st. wf. is            1
+  L of st. wf. is            0
+  initial wf radial part is  multiplied by r**           1
+  fitting disactivated because paw option is active
+ Do one pseudopotential calculation.
+ No fitting.
+ input.dat does not contain input for wavelets. No fitting of softness possible.
+
+ Reading data from atom.00.ae
+ ____________________________
+
+
+
+ pseudo states =           22
+ znuc          =    14.000000000000000     
+ zpseudo       =    4.0000000000000000     
+ r_covalent    =    2.0899999999999999     
+ r_confining   =    4.1900000000000004     
+ ispp          = r
+ gridpoints    =          952
+
+ Initializing libXC with iXC =    -20; nspol =    1
+
+  nl    s      occ        eigenvalue     charge(rcov)    
+ 3s   0.5    2.0000   -0.3773975578    0.5299467176
+ 4s   0.5    0.0000    0.0657589821    0.0691770525
+ 5s   0.5    0.0000    0.2218089222    0.0447687497
+ 6s   0.5    0.0000    0.3531967966    0.0383013083
+ 3p  -0.5    0.6667   -0.1281209036    0.3325326049
+ 3p   0.5    1.3333   -0.1268613507    0.3298362109
+ 4p  -0.5    0.0000    0.1262582881    0.0769673926
+ 4p   0.5    0.0000    0.1265986808    0.0769009781
+ 5p  -0.5    0.0000    0.2637345829    0.0588399599
+ 5p   0.5    0.0000    0.2640181095    0.0588575138
+ 6p  -0.5    0.0000    0.3891683166    0.0517662035
+ 6p   0.5    0.0000    0.3894383099    0.0518106885
+ 3d  -0.5    0.0000    0.1129475770    0.0510204907
+ 3d   0.5    0.0000    0.1129573813    0.0509860236
+ 4d  -0.5    0.0000    0.2300338262    0.0627427749
+ 4d   0.5    0.0000    0.2300458928    0.0627067138
+ 5d  -0.5    0.0000    0.3436440351    0.0681498263
+ 5d   0.5    0.0000    0.3436578664    0.0681169853
+ 4f  -0.5    0.0000    0.2221947900    0.0005598502
+ 4f   0.5    0.0000    0.2221955819    0.0005597790
+ 5f  -0.5    0.0000    0.3333291347    0.0016619539
+ 5f   0.5    0.0000    0.3333301677    0.0016617334
+ noccmax            4
+
+ All electron and pseudo-wfn quantum numbers
+         n(AE)   l   inl(PS)   
+           3     0     1
+           4     0     2
+           5     0     3
+           6     0     4
+           3     1     1
+           3     1     1
+           4     1     2
+           4     1     2
+           5     1     3
+           5     1     3
+           6     1     4
+           6     1     4
+           3     2     1
+           3     2     1
+           4     2     2
+           4     2     2
+           5     2     3
+           5     2     3
+           4     3     1
+           4     3     1
+           5     3     2
+           5     3     2
+
+ Reading actual weights from file weights.par
+ ____________________________________________
+
+ Weight for psi(r=0)=0 is         0.0000000000E+00
+ for Ekin(gauss-wavelet)          1.0000000000E+05
+ for small radii (norm prj)       1.0000000000E+00
+ for large hij  (instable)        1.0000000000E+00
+ and for excitation energies      1.0000000000E+03
+
+ Reading data from psppar
+ ________________________
+
+                 NOTE
+
+ The localization radii for the wavelet basis
+ are smaller than 3 times rcov
+ psppar       rcov=   2.0899999999999999     
+ input.dat  crmult=  0.34999999999999998     
+ input.dat  frmult=  0.50000000000000000     
+ If the curve dEkin.orb.dat  gets bumpy,
+ try raising these two radii
+ HGH matrix format
+
+     2.090     4.190     0.00rcov, rprb, rcore,zcore (NLCC)
+                             relativistic calculation
+        -20                  XC-functional
+
+ local part
+  14.   4.00  0.440 -7.336E+00  0.000E+00  0.000E+00  0.000E+00 znuc,zion, rloc, gpot() 
+ nonlocal part in internal format
+   1                                                       lpx, (Projectors for l=0..lpx)
+ l=           0
+  0.423  5.907E+00 -1.262E+00  3.258E+00  0.000E+00  0.000E+00  0.000E+00  r_l(),hsep(), so=+0.5
+ l=           1
+  0.484  2.727E+00 -3.050E-03  7.218E-03  0.000E+00  0.000E+00  0.000E+00  r_l(),hsep(), so=+0.5
+         2.727E+00  6.101E-03 -1.444E-02  0.000E+00  0.000E+00  0.000E+00        hsep(), so=-0.5
+
+ Gaussian basis
+ ______________
+
+ amin,amax 2.2000E-01 1.7335E+01
+ gaussian 6.8156E+00 4.4966E+00 2.9667E+00 ....  3.8228E-03 2.5221E-03
+ gaussians:          20
+ r-grid:  5.5000E-04 5.8948E-04 6.3180E-04 ....  5.8641E+01 6.2850E+01
+ gridpoints:         169
+
+
+ WARNING: The nr of separable terms nnonloc
+ differs. The value from psppar is ignored.
+psppar:  2, FITPAR:  1
+             
+ ---PAWPATCH  parameters--- 
+  nconfpaw                0
+  npawl                   3
+  nchannelspaw            4
+  pawstatom    ae.pot.conf.0.plt
+  pawstN                  1
+  pawstL                  0
+  pawstP                  1
+  pawrcovfact     1.0000000000000000     
+             
+ WARNING : pawpatch works in the nspin=1 case, now moving to this case modifying occup and hsep  
+ WARNING : relativistic calculation but pawpatch will use non relativistic solution 
+ WARNING : A future correction of this problem would be using the Koelling-Hammon solution 
+ WARNING : to the scalar  dirac equation J. Phys. C: Solid State Phys., Vol. 10. 1977 
+ initial wave L=           0  N=            1  E=   -65.090368270874023     
+ CALCULATING PAWpatch corrections for l from 0 to            2
+ ------------------------------------------------------ 
+ ===============================================================
+ ========== now CALCULATING PAWpatch correction  for l  =             0
+ ===============================================================
+ now calculating          100  function of the AE basis for LPaw=           0
+ doing the fit 
+  routine gatom_modified  ,  comparaison between  first 5 energies real and  pseudo-not_fitted 
+           1  -65.090368270874023     
+           2  -5.0357285737991333     
+           3  0.79907512428604699       0.70347348986163460     
+           4   6.5443869131341899        1.9414288422254724     
+           5   15.088765312571448        6.5201455666839179     
+DUALITY : CONDITION NUMBER FROM DPOSVX  0.3190E+00
+ >>  Comparaison betwenn first 5 Egrid and   Egrid_pseudo 
+  -65.090368270874023     
+  -5.0357285737991333     
+  0.79907512428604699       0.79907513157469168     
+   6.5443869131341899        6.5443812483512964     
+   15.088765312571448        15.087966713066480     
+ routine pawpatch  , PROJECT  initial wf*r**pawstP on pseudos 
+ From initial wave  subtract psigrid_bigger(           1 ) with coeff   0.11204882175843618     
+ From initial wave  subtract psigrid_bigger(           2 ) with coeff  -3.48945498867959669E-002
+ Initial Projected wf at igrid=100,500,2000
+ -5.07962221259821758E-007
+ -9.04259647898036840E-007
+ -8.49516495995213538E-006
+ now writing the dual functions and PAWpatch for            4  duals 
+ PawPatch Matrix
+  6.50679295938472180E-003 -4.09645279490711139E-002 -1.88451478088868772E-002  5.63941488246104319E-003
+ -4.09645279490711139E-002 -5.50796836494393816E-002  0.56905705999992540       0.95287896603132138     
+ -1.88451478088869050E-002  0.56905705999992529        2.3016491883176968        3.3601982582515606     
+  5.63941488246104319E-003  0.95287896603132116        3.3601982582515606        5.5974991444505733     
+ now writing the dual functions and PAWpatch for            1  duals for initial wave 
+ ===============================================================
+ ========== now CALCULATING PAWpatch correction  for l  =             1
+ ===============================================================
+ now calculating          100  function of the AE basis for LPaw=           1
+ doing the fit 
+  routine gatom_modified  ,  comparaison between  first 5 energies real and  pseudo-not_fitted 
+           1  -3.4722284562885761     
+           2   1.2617894560692782        1.1343427271249638     
+           3   6.6207052286500829        3.8834280768590328     
+           4   14.564848067806807        9.5997204583838194     
+           5   24.940285427577088        18.443609579767301     
+DUALITY : CONDITION NUMBER FROM DPOSVX  0.4467E+00
+ >>  Comparaison betwenn first 5 Egrid and   Egrid_pseudo 
+  -3.4722284562885761     
+   1.2617894560692782        1.2617894602325830     
+   6.6207052286500829        6.6207052326179108     
+   14.564848067806807        14.564848069628786     
+   24.940285427577088        24.940285427946208     
+ routine pawpatch  , PROJECT  initial wf*r**pawstP on pseudos 
+ From initial wave  subtract psigrid_bigger(           1 ) with coeff   2.95976126300784249E-003
+ Initial Projected wf at igrid=100,500,2000
+ -5.61267189902763146E-012
+ -1.88619769253837276E-011
+ -1.77685927735097425E-009
+ now writing the dual functions and PAWpatch for            4  duals 
+ PawPatch Matrix
+ -4.32148835877690374E-002 -0.10007557697445325      -2.34214078329076231E-002  1.71602950364660549E-002
+ -0.10007557697445320       0.20743525294105236       0.94713827772530668        1.0079092774658018     
+ -2.34214078329076231E-002  0.94713827772530668        2.6218511998919922        2.9955056024432625     
+  1.71602950364660410E-002   1.0079092774658018        2.9955056024432616        4.4082851922029818     
+ now writing the dual functions and PAWpatch for            1  duals for initial wave 
+ ===============================================================
+ ========== now CALCULATING PAWpatch correction  for l  =             2
+ ===============================================================
+ now calculating          100  function of the AE basis for LPaw=           2
+ doing the fit 
+  routine gatom_modified  ,  comparaison between  first 5 energies real and  pseudo-not_fitted 
+           1   1.6291759127684384        1.6617553680663086     
+           2   5.9655763712050902        6.3373832914037376     
+           3   12.792663021331631        13.753175556009639     
+           4   22.026983893656105        23.636722073801739     
+           5   33.637923128735054        35.885728245132441     
+DUALITY : CONDITION NUMBER FROM DPOSVX  0.7805E+00
+ >>  Comparaison betwenn first 5 Egrid and   Egrid_pseudo 
+   1.6291759127684384        1.6291759148372200     
+   5.9655763712050902        5.9655763719725181     
+   12.792663021331631        12.792663021174503     
+   22.026983893656105        22.026983893412218     
+   33.637923128735054        33.637923128484125     
+ routine pawpatch  , PROJECT  initial wf*r**pawstP on pseudos 
+ Initial Projected wf at igrid=100,500,2000
+  2.15007842577506624E-017
+  1.32458743858840462E-016
+  1.21109820104313370E-013
+ now writing the dual functions and PAWpatch for            4  duals 
+ PawPatch Matrix
+  1.62044233327724996E-002 -2.89499898608028168E-002  1.38063357208337342E-002 -2.67710272742183002E-003
+ -2.89499898608028168E-002  4.60328239115108673E-002  1.02688090304342075E-002 -3.35728842363666041E-002
+  1.38063357208337307E-002  1.02688090304342023E-002 -0.15806261863970050       0.24194782152697172     
+ -2.67710272742182655E-003 -3.35728842363666596E-002  0.24194782152697239      -0.51401972348495661     
+ now writing the dual functions and PAWpatch for            1  duals for initial wave 

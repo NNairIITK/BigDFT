@@ -51,8 +51,8 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   type(etsf_io_low_error) :: error
   logical :: lstat
 
-  call cpu_time(tr0)
-  call system_clock(ncount1,ncount_rate,ncount_max)
+!  call cpu_time(tr0)
+!  call system_clock(ncount1,ncount_rate,ncount_max)
 
   ! We open the ETSF file
   call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
@@ -207,10 +207,10 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   call etsf_io_low_close(ncid, lstat, error)
   if (.not. lstat) call etsf_error(error)
 
-  call cpu_time(tr1)
-  call system_clock(ncount2,ncount_rate,ncount_max)
-  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+!  call cpu_time(tr1)
+!  call system_clock(ncount2,ncount_rate,ncount_max)
+!  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+!  write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 
 contains
 

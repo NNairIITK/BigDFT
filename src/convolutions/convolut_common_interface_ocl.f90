@@ -44,7 +44,7 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='allocate_data_OCL'
-  integer :: n1b, n2b, n3b
+  integer :: n1b, n2b, n3b,i_stat
   integer, dimension(3) :: periodic
 
   if (geocode /= 'F') then
@@ -137,6 +137,14 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   !full_locham stategy (always true for the moment)
   GPU%full_locham=.true.
 
+  allocate(GPU%ekin(2,orbs%norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,GPU%ekin,'ekin',subname)
+
+  allocate(GPU%epot(2,orbs%norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,GPU%epot,'epot',subname)
+
+  nullify(GPU%hpsi_ASYNC)
+
 END SUBROUTINE allocate_data_OCL
 
 
@@ -149,6 +157,16 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='free_gpu_OCL'
+  integer :: i_stat,i_all
+
+  i_all=-product(shape(GPU%ekin))*kind(GPU%ekin)
+  deallocate(GPU%ekin,stat=i_stat)
+  call memocc(i_stat,i_all,'ekin',subname)
+
+  i_all=-product(shape(GPU%epot))*kind(GPU%epot)
+  deallocate(GPU%epot,stat=i_stat)
+  call memocc(i_stat,i_all,'epot',subname)
+
 
   call ocl_release_mem_object(GPU%d)
   call ocl_release_mem_object(GPU%work1)
@@ -187,6 +205,8 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
     call ocl_release_mem_object(GPU%psi_c_d_i)
     call ocl_release_mem_object(GPU%psi_f_d_i)
   endif
+
+  if(associated(GPU%hpsi_ASYNC)) nullify(GPU%hpsi_ASYNC)
 
 END SUBROUTINE free_gpu_OCL
 
@@ -300,7 +320,7 @@ END SUBROUTINE isf_to_daub_OCL
 
 
 subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
-     nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU,ekin,epot)
+     nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   use module_base
   use module_types
   implicit none
@@ -313,8 +333,6 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
   real(gp), intent(out) :: ekin_sum,epot_sum
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
-  real(gp), dimension(2,orbs%norbp), intent(out) :: ekin
-  real(gp), dimension(2,orbs%norbp), intent(out) :: epot
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_OCL'
   integer :: iorb,isf
@@ -410,9 +428,7 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
           GPU%d,&
           GPU%d_i,&
           orbs%nspinor,&
-          epot(1,iorb),ekin(1,iorb))
-!,&
-!          epot(iorb,2),ekin(iorb,2))
+          GPU%epot(1,iorb),GPU%ekin(1,iorb))
 
      call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,hpsi(1,iorb))
      call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,hpsi(isf,iorb))
@@ -425,24 +441,22 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
   if (.not. ASYNCconv) then
      call ocl_finish(GPU%queue)
      do iorb=1,orbs%norbp
-       ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((ekin(1,iorb)+ekin(2,iorb))&
-                  - (epot(1,iorb)+epot(2,iorb)))
-       epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(epot(1,iorb)+epot(2,iorb))
+       ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((GPU%ekin(1,iorb)+GPU%ekin(2,iorb))&
+                  - (GPU%epot(1,iorb)+GPU%epot(2,iorb)))
+       epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(GPU%epot(1,iorb)+GPU%epot(2,iorb))
      end do
   endif
   
 END SUBROUTINE local_hamiltonian_OCL
 
 
-subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
+subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
   use module_base
   use module_types
   implicit none
   type(orbitals_data), intent(in) :: orbs
   real(gp), intent(out) :: ekin_sum,epot_sum
   type(GPU_pointers), intent(inout) :: GPU
-  real(gp), dimension(2,orbs%norbp), intent(in) :: ekin
-  real(gp), dimension(2,orbs%norbp), intent(in) :: epot
 
   integer :: iorb
 
@@ -450,10 +464,11 @@ subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
   ekin_sum=0
   epot_sum=0
   do iorb=1,orbs%norbp
-    ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((ekin(1,iorb)+ekin(2,iorb))&
-                 - (epot(1,iorb)+epot(2,iorb)))
-    epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(epot(1,iorb)+epot(2,iorb))
+    ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((GPU%ekin(1,iorb)+GPU%ekin(2,iorb))&
+                 - (GPU%epot(1,iorb)+GPU%epot(2,iorb)))
+    epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(GPU%epot(1,iorb)+GPU%epot(2,iorb))
   end do
+
 END SUBROUTINE finish_hamiltonian_OCL
 
 subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
