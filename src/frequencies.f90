@@ -20,7 +20,7 @@ program frequencies
    use module_base
    use module_types
    use module_interfaces
-   use ab6_symmetry
+   use m_ab6_symmetry
 
    implicit none
 
@@ -57,8 +57,9 @@ program frequencies
    real(gp), dimension(:,:), allocatable :: energies
    real(gp), dimension(:,:,:), allocatable :: forces
    real(gp), dimension(3) :: freq_step
+   character(len=60) :: radical
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
-   integer :: k,km,ii,jj,ik,imoves,order,n_order
+   integer :: k,km,ii,jj,ik,imoves,order,n_order,istat
    logical :: exists
 
    ! Start MPI in parallel version
@@ -67,6 +68,14 @@ program frequencies
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+   call memocc_set_memory_limit(memorylimit)
+
+   ! Read a possible radical format argument.
+   call get_command_argument(1, value = radical, status = istat)
+   if (istat > 0) then
+      write(radical, "(A)") "input"
+   end if
+
    ! Welcome screen
    if (iproc == 0) call print_logo()
 
@@ -74,7 +83,7 @@ program frequencies
    !call memocc(0,iproc,'count','start')
 
    !standard names
-   call standard_inputfile_names(inputs)
+   call standard_inputfile_names(inputs,radical)
    call read_input_variables(iproc, "posinp", inputs, atoms, rxyz)
 
    ! Read all input files.
@@ -140,7 +149,7 @@ program frequencies
    !Message
    if (iproc == 0) then
       write(*,'(1x,a,i0,a,i0,a)') '=F=> There are ', imoves, ' moves already calculated over ', &
-         &   n_order*3*atoms%nat,' frequencies.'
+      n_order*3*atoms%nat,' frequencies.'
       write(*,*)
    end if
 
@@ -151,7 +160,7 @@ program frequencies
    else
       call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
       call frequencies_write_restart(iproc,0,0,0,rxyz,etot,fxyz,&
-         &   n_order=n_order,freq_step=freq_step,amu=atoms%amu)
+      n_order=n_order,freq_step=freq_step,amu=atoms%amu)
       moves(:,0) = .true.
       call restart_inputs(inputs)
    end if
@@ -162,7 +171,7 @@ program frequencies
       write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
       do iat=1,atoms%nat
          write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-            &   iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(i+3*(iat-1)),i=1,3)
+         iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(i+3*(iat-1)),i=1,3)
       end do
    end if
 
@@ -214,7 +223,7 @@ program frequencies
             rpos=rxyz
             if (iproc == 0) then
                write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") &
-                  &   '=F Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
+               '=F Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
             end if
             if (atoms%geocode == 'P') then
                rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
@@ -314,7 +323,7 @@ program frequencies
             ity=atoms%iatype(iat)
             do j=1,3
                write(15,'(1x,a,1x,100(1pe20.10))') &
-                  &   atoms%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
+               atoms%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
             end do
          end do
          !Blank line
@@ -342,13 +351,13 @@ program frequencies
       total_energy=energies(1,0)+vibrational_energy
       write(*,'(1x,a,81("="))') '=F '
       write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a)') &
-         &   '=F: Zero-point energy   =', zpenergy*Ha_cmm1, 'cm-1',zpenergy,'Hartree'
+      '=F: Zero-point energy   =', zpenergy*Ha_cmm1, 'cm-1',zpenergy,'Hartree'
       write(*,'(1x,a,1pe22.10,a,0pf5.1,a)') &
-         &   '=F: Vibrational entropy =', vibrational_entropy,' at ',Temperature,'K'
+      '=F: Vibrational entropy =', vibrational_entropy,' at ',Temperature,'K'
       write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a,0pf5.1,a)') &
-         &   '=F: Vibrational  energy =', vibrational_energy*Ha_cmm1, 'cm-1',vibrational_energy,'Hartree at ',Temperature,'K'
+      '=F: Vibrational  energy =', vibrational_energy*Ha_cmm1, 'cm-1',vibrational_energy,'Hartree at ',Temperature,'K'
       write(*,'(1x,a,1pe22.10,1x,a,0pf5.1,a)') &
-         &   '=F: Total energy        =', total_energy,'Hartree at ',Temperature,'K'
+      '=F: Total energy        =', total_energy,'Hartree at ',Temperature,'K'
    end if
 
    !Deallocations
@@ -489,8 +498,8 @@ program frequencies
          return
       else
          if (steps(1) /= freq_step(1) .or. &
-            &   steps(2) /= freq_step(2) .or. &
-            &   steps(3) /= freq_step(3)) then
+         steps(2) /= freq_step(2) .or. &
+         steps(3) /= freq_step(3)) then
          if (iproc == 0) write(*,freq_form) 'The step to calculate frequencies is not the same: stop.'
          stop
       end if
@@ -552,7 +561,7 @@ subroutine frequencies_write_restart(iproc,km,i,iat,rxyz,etot,fxyz,n_order,freq_
    integer, parameter :: iunit = 15
 
    if (km == 0 .and. &
-      &   .not.(present(n_order).and.present(freq_step).and.present(amu))) then
+   .not.(present(n_order).and.present(freq_step).and.present(amu))) then
    if (iproc == 0) write(*,*) "Bug for use of frequencies_write_restart"
    stop
 end if
@@ -579,3 +588,49 @@ end if
 
 
 END PROGRAM frequencies
+
+
+!> Integrate forces (not used)
+subroutine integrate_forces(iproc,n_moves,nat) !n(c) energies,forces (arg:2,3)
+
+   use module_base
+
+   implicit none
+   !Arguments
+   integer, intent(in) :: iproc,n_moves,nat
+   !n(c) real(gp), intent(in) :: energies(n_moves)
+   !n(c) real(gp), intent(in) :: forces(3*nat,n_moves)
+   !Local variables
+   character(len=*), parameter :: subname = "integrate_forces"
+   real(gp), dimension(:), allocatable :: weight
+   !n(c) real(gp) :: path
+   integer :: i,i_stat,i_all
+
+   !Allocation
+   allocate(weight(n_moves+ndebug),stat=i_stat)
+   call memocc(i_stat,weight,'weight',subname)
+
+   !Prepare the array of the correct weights of the iteration steps
+   if (mod(n_moves,2).ne.1) then
+      if (iproc == 0) write(*,*) 'the number of iteration steps has to be odd'
+      stop
+   end if
+   weight(1)=1.d0/3.d0
+   weight(2)=4.d0/3.d0
+   do i=3,n_moves-2,2
+      weight(i)=2.d0/3.d0
+      weight(i+1)=4.d0/3.d0
+   enddo
+   weight(n_moves)=1.d0/3.d0
+
+   !Start integration
+   !n(c) path = 0_gp
+   do i=1,n_moves
+   end do
+
+   !De-allocation
+   i_all=-product(shape(weight))*kind(weight)
+   deallocate(weight,stat=i_stat)
+   call memocc(i_stat,i_all,'weight',subname)
+
+END SUBROUTINE integrate_forces

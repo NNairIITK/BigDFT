@@ -14,26 +14,26 @@ program BigDFT
    use module_base
    use module_types
    use module_interfaces
-   use ab6_symmetry
+   use m_ab6_symmetry
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
-                     !! name convention as "implicit real(kind=8) (a-h,o-z)"
+   !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
    character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
-   !Input variables
+   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
+   integer :: ncount_bigdft
+   real(gp) :: etot,sumx,sumy,sumz,fnoise
+   logical :: exist_list
+   !input variables
    type(atoms_data) :: atoms
    type(input_variables) :: inputs
    type(restart_objects) :: rst
    character(len=50), dimension(:), allocatable :: arr_posinp
    character(len=60) :: filename, radical
-   !Atomic coordinates, forces
+   ! atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   real(gp) :: etot,sumx,sumy,sumz,fnoise
-   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode,istat
-   integer :: iconfig,nconfig
-   integer :: ncount_bigdft
-   logical :: exist_list
+   integer :: iconfig,nconfig,istat
 
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -118,7 +118,7 @@ program BigDFT
          call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
          close(16)
          filename=trim('final_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION')
+         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
       end if
 
       !if there is a last run to be performed do it now before stopping
@@ -148,7 +148,6 @@ program BigDFT
       endif
 
       call deallocate_atoms(atoms,subname) 
-
       call free_restart_objects(rst,subname)
 
       i_all=-product(shape(rxyz))*kind(rxyz)

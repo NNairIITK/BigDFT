@@ -2822,7 +2822,7 @@ int main(void) {
   copy(BUFFER_DEPTH,BUFFER_WIDTH,a,c);
   check_trans(copy,a,b,c,"c");
   check_trans(copy_v2,a,b,c,"cv2");
-  check_trans(copy_v2,a,b,c,"cv16");
+  check_trans(copy_v16,a,b,c,"cv16");
 
   nanosec(&t1);
   memcpy(b,a,BUFFER_DEPTH*BUFFER_WIDTH*sizeof(double));

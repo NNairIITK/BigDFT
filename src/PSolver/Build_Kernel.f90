@@ -199,7 +199,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   !Better if higher (1024 points are enough 10^{-14}: 2*itype_scf*n_points)
   integer, parameter :: n_points = 2**6
   !Maximum number of points for FFT (should be same number in fft3d routine)
-  integer, parameter :: nfft_max=24000
+  !n(c) integer, parameter :: nfft_max=24000
   
   real(dp), dimension(:), allocatable :: kernel_scf
   real(dp), dimension(:), allocatable :: x_scf ,y_scf
@@ -210,7 +210,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   integer, dimension(:), allocatable :: after,now,before
   
   real(dp) :: pi,dx,mu1,ponx,pony
-  real(dp) :: a,b,c,d,feR,feI,foR,foI,fR,cp,sp,pion,x,value,diff
+  real(dp) :: a,b,c,d,feR,foR,foI,fR,cp,sp,pion,x,value !n(c) ,diff, feI
   integer :: n_scf,ncache,imu,ierr,ntrig
   integer :: n_range,n_cell,num_of_mus,shift,istart,iend,ireim,jreim,j2st,j2nd,nact2
   integer :: i,i1,i2,i3,i_stat,i_all
@@ -357,7 +357,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   !that can be performed in a row remaining inside the cache
   num_of_mus=ncache/(2*n3)
 
-  diff=0._dp
+  !n(c) diff=0._dp
   !order of the polynomial to be used for integration (must be a power of two)
   ipolyord=8 !this part should be incorporated inside the numerical integration
   !here we have to choice the piece of the x-y grid to cover
@@ -469,7 +469,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
            c=halfft_cache(1,jnd1,inzee)
            d=halfft_cache(2,jnd1,inzee)
            feR=.5_dp*(a+c)
-           feI=.5_dp*(b-d)
+           !n(c) feI=.5_dp*(b-d)
            foR=.5_dp*(a-c)
            foI=.5_dp*(b+d) 
            fR=feR+cp*foI-sp*foR
@@ -581,7 +581,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   !local variables
   character(len=*), parameter :: subname='calculates_green_opt'
   integer :: izero,ivalue,i,iend,ikern,n_iter,nrec,i_all,i_stat
-  real(dp) :: f,x,filter,gleft,gright,gltmp,grtmp,fl,fr,x0,x1,ratio,mu0
+  real(dp) :: f,x,filter,gleft,gright,gltmp,grtmp,fl,fr,ratio,mu0 !n(c) x0, x1
   real(dp), dimension(:), allocatable :: green,green1
 
   !We calculate the number of iterations to go from mu0 to mu0_ref
@@ -649,7 +649,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
      gltmp=0._dp
      grtmp=0._dp
      ivalue=izero
-     x0=xval(izero)
+     !n(c) x0=xval(izero)
      loop_integration: do
         if (izero==n_scf)  exit loop_integration
         do i=1,intorder+1
@@ -661,7 +661,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
            grtmp=grtmp+filter*fr
            ivalue=ivalue+1
            if (xval(izero)>=real(ikern,dp) .or. izero==n_scf) then
-              x1=xval(izero)
+              !n(c) x1=xval(izero)
               exit loop_integration
            end if
            izero=izero+1
@@ -716,7 +716,7 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
   real(dp), dimension(intorder+1), intent(in) :: c
   real(dp), dimension(n), intent(out) :: green
   !local variables
-  character(len=*), parameter :: subname='calculates_green_opt_muzero'
+  !n(c) character(len=*), parameter :: subname='calculates_green_opt_muzero'
   integer :: izero,ivalue,i,iend,ikern
   real(dp) :: x,y,filter,gl0,gl1,gr0,gr1,c0,c1
  
@@ -853,9 +853,9 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  real(dp), dimension(:), allocatable :: fwork
  real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
  real(dp) :: ur_gauss,dr_gauss,acc_gauss,pgauss,a_range
- real(dp) :: factor,factor2,dx
+ real(dp) :: factor,factor2 !n(c) ,dx
  real(dp) :: a1,a2,a3
- integer :: n_scf,nker1,nker2,nker3
+ integer :: n_scf,nker2,nker3 !n(c) nker1
  integer :: i_gauss,n_range,n_cell
  integer :: i1,i2,i3,i_stat,i_all
  integer :: i03
@@ -868,7 +868,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  !remember that actually nfft2 is associated to n03 and viceversa
  
  !Auxiliary dimensions only for building the FFT part
- nker1=nfft1
+ !n(c) nker1=nfft1
  nker2=nfft2
  nker3=nfft3/2+1
 
@@ -892,7 +892,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 !!$ call scaling_function(itype_scf,n_scf,n_range,x_scf,y_scf)
  n_range=2*itype_scf
  !Step grid for the integration
- dx = real(n_range,dp)/real(n_scf,dp)
+ !n(c) dx = real(n_range,dp)/real(n_scf,dp)
  !Extend the range (no more calculations because fill in by 0._dp)
  n_cell = max(n01,n02,n03)
  n_range = max(n_cell,n_range)
@@ -921,6 +921,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  allocate(fwork(0:n_range+ndebug),stat=i_stat)
  call memocc(i_stat,fwork,'fwork',subname)
  allocate(fftwork(2,max(nfft1,nfft2,nfft3)*2+ndebug),stat=i_stat)
+ fftwork(1,1)=0.0d0
  call memocc(i_stat,fftwork,'fftwork',subname)
 
  do i3=1,n3k/nproc
@@ -1022,7 +1023,7 @@ END SUBROUTINE Free_Kernel
 
 subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,fwork,fftwork,kffts)
   use module_base
-  use module_fft_sg
+  !n(c) use module_fft_sg
   implicit none
   integer, intent(in) :: itype_scf,n1,n2,n3,nk1,nk2,nk3,n_range
   real(dp), intent(in) :: pgauss,hx,hy,hz
@@ -1505,9 +1506,9 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
            !reverse ordering
            !input: I1,J2,j3,Jp2,(jp3)
            if (nproc.eq.1) then
-              call mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi2,zw(1,1,1))
+              call mpiswitchPS(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi2,zw(1,1,1))
            else
-              call mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw(1,1,1))
+              call mpiswitchPS(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw(1,1,1))
            endif
            !output: J2,Jp2,I1,j3,(jp3)
 
@@ -1537,7 +1538,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
 
            !reverse ordering
            !input: I2,i1,j3,(jp3)
-           call switch(nfft,n2,lot,n1,lzt,zt(1,1,j),zw(1,1,1))
+           call switchPS(nfft,n2,lot,n1,lzt,zt(1,1,j),zw(1,1,1))
            !output: i1,I2,j3,(jp3)
 
            !performing FFT
@@ -1632,7 +1633,7 @@ subroutine realcopy(lot,nfft,n2,nk1,nk2,zin,zout)
 END SUBROUTINE realcopy
 
 
-subroutine switch(nfft,n2,lot,n1,lzt,zt,zw)
+subroutine switchPS(nfft,n2,lot,n1,lzt,zt,zw)
   use module_base
   implicit none
 !Arguments
@@ -1648,10 +1649,10 @@ subroutine switch(nfft,n2,lot,n1,lzt,zt,zw)
      end do
   end do
 
-END SUBROUTINE switch
+END SUBROUTINE switchPS
 
 
-subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
+subroutine mpiswitchPS(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
   use module_base
   implicit none
 !Arguments
@@ -1677,7 +1678,7 @@ subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
      J2st=1
   end do
 
-END SUBROUTINE mpiswitch
+END SUBROUTINE mpiswitchPS
 
 
 !> The conversion from d0 to dp type should be finished

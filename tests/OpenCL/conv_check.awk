@@ -1,17 +1,18 @@
 BEGIN {
-    max_discrepancy = 3.e-10
+    max_discrepancy = 2.6e-10
     print max_discrepancy
     discrepancy = 0.0
     end = "\033[m"
-    maxline = 155
+    maxline = 126
+    FS = "|"
     }
-/nbelem/ {
-    if ($6 > discrepancy) {
-        discrepancy = $6
+NF > 6 && $2 !~ /CPU/ {
+    if ($10 > discrepancy) {
+        discrepancy = $10
     }
     if (discrepancy > max_discrepancy) {
         start = "\033[0;31m"
-        print $0;
+#        print $0;
         printf("%sMax discrepancy : %7.1e (failed    < %7.1e)%s\n",start,discrepancy,max_discrepancy,end)
         exit 1
     }

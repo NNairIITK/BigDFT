@@ -28,7 +28,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
   real(wp), dimension(:,:,:), pointer :: psigau
   !local variables
   character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
-  integer, parameter :: ngx=31
+  !n(c) integer, parameter :: ngx=31
   integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
   integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
   logical, dimension(:,:,:), allocatable :: scorb
@@ -193,7 +193,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
   integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
   real(gp), dimension(at%nat), intent(out) :: locrad
   !local variables
-  character(len=*), parameter :: subname='readAtomicOrbitals'
+  !n(c) character(len=*), parameter :: subname='readAtomicOrbitals'
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   character(len=2) :: symbol
   integer :: ity,i,iatsc,iat,lsc
@@ -441,7 +441,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
      !this part can be transferred on the atomic orbitals section
      do iat=1,at%nat
         read(unit=22,fmt=*,iostat=i_stat) mx,my,mz
-        if (i_stat /= 0) then
+        if (i_stat > 0) then
            write(unit=*,fmt='(a,i0,a,i0,a)') &
                 'The file "moments" has the line ',iat,&
                 ' which have not 3 numbers for the atom ',iat,'.'
@@ -1082,6 +1082,224 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
   call memocc(i_stat,i_all,'alps',subname)
 
 END SUBROUTINE iguess_generator
+
+
+
+!!****f* BigDFT/iguess_generator_modified
+!! FUNCTION
+!!   
+!!
+!! SOURCE
+!!
+subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
+     nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb, gaenes_aux)
+  use module_base
+  implicit none
+  logical, intent(in) :: enlargerprb
+  integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom,ngv,ngc
+  real(gp), intent(in) :: zion
+  integer, dimension(lmax+1), intent(in) :: nl
+  real(gp), dimension(0:4,0:6), intent(in) :: psppar
+  real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
+  real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
+  real(gp), dimension(ng+1), intent(out) :: expo
+  real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
+  real(gp), dimension(nmax_occ),intent (out) :: gaenes_aux
+
+
+  !local variables
+  character(len=*), parameter :: subname='iguess_generator'
+  integer, parameter :: n_int=100
+  real(gp), parameter :: fact=4.0_gp
+  character(len=2) :: symbol
+  integer :: lpx,nsccode,mxpl,mxchg
+  integer :: l,i,j,iocc,i_all,i_stat
+  real(gp) :: alpz,alpl,amu,rprb,rij,a,a0,a0in,tt,ehomo,rcov
+  real(kind=8), dimension(6,4) :: neleconf
+  real(gp), dimension(4) :: gpot
+  real(gp), dimension(noccmax,lmax+1) :: aeval,chrg,res
+  real(gp), dimension(:), allocatable :: xp,alps
+  real(gp), dimension(:,:), allocatable :: vh,hsep,ofdcoef
+  real(gp), dimension(:,:,:), allocatable :: psi
+  real(gp), dimension(:,:,:,:), allocatable :: rmt
+
+  !filename = 'psppar.'//trim(atomname)
+  call to_zero(nmax_occ,gaenes_aux(1))
+
+  lpx=0
+  lpx_determination: do i=1,4
+     if (psppar(i,0) == 0.0_gp) then
+     exit lpx_determination
+     else
+        lpx=i-1
+     end if
+  end do lpx_determination
+
+  allocate(alps(lpx+1+ndebug),stat=i_stat)
+  call memocc(i_stat,alps,'alps',subname)
+  allocate(hsep(6,lpx+1+ndebug),stat=i_stat)
+  call memocc(i_stat,hsep,'hsep',subname)
+
+  !assignation of radii and coefficients of the local part
+  alpz=psppar(0,0)
+  alpl=psppar(0,0)
+  alps(1:lpx+1)=psppar(1:lpx+1,0)
+  gpot(1:4)=psppar(0,1:4)
+
+  !assignation of the coefficents for the nondiagonal terms
+  if (npspcode == 2) then !GTH case
+     do l=1,lpx+1
+        hsep(1,l)=psppar(l,1)
+        hsep(2,l)=0.0_gp
+        hsep(3,l)=psppar(l,2)
+        hsep(4,l)=0.0_gp
+        hsep(5,l)=0.0_gp
+        hsep(6,l)=psppar(l,3)
+     end do
+  else if (npspcode == 3) then !HGH case
+     allocate(ofdcoef(3,4+ndebug),stat=i_stat)
+     call memocc(i_stat,ofdcoef,'ofdcoef',subname)
+
+     ofdcoef(1,1)=-0.5_gp*sqrt(3._gp/5._gp) !h2
+     ofdcoef(2,1)=0.5_gp*sqrt(5._gp/21._gp) !h4
+     ofdcoef(3,1)=-0.5_gp*sqrt(100.0_gp/63._gp) !h5
+
+     ofdcoef(1,2)=-0.5_gp*sqrt(5._gp/7._gp) !h2
+     ofdcoef(2,2)=1._gp/6._gp*sqrt(35._gp/11._gp) !h4
+     ofdcoef(3,2)=-7._gp/3._gp*sqrt(1._gp/11._gp) !h5
+
+     ofdcoef(1,3)=-0.5_gp*sqrt(7._gp/9._gp) !h2
+     ofdcoef(2,3)=0.5_gp*sqrt(63._gp/143._gp) !h4
+     ofdcoef(3,3)=-9._gp*sqrt(1._gp/143._gp) !h5
+
+     ofdcoef(1,4)=0.0_gp !h2
+     ofdcoef(2,4)=0.0_gp !h4
+     ofdcoef(3,4)=0.0_gp !h5
+
+     !define the values of hsep starting from the pseudopotential file
+     do l=1,lpx+1
+        hsep(1,l)=psppar(l,1)
+        hsep(2,l)=psppar(l,2)*ofdcoef(1,l)
+        hsep(3,l)=psppar(l,2)
+        hsep(4,l)=psppar(l,3)*ofdcoef(2,l)
+        hsep(5,l)=psppar(l,3)*ofdcoef(3,l)
+        hsep(6,l)=psppar(l,3)
+     end do
+     i_all=-product(shape(ofdcoef))*kind(ofdcoef)
+     deallocate(ofdcoef,stat=i_stat)
+     call memocc(i_stat,i_all,'ofdcoef',subname)
+  else if (npspcode == 10) then !HGH-K case
+     do l=1,lpx+1
+        hsep(1,l)=psppar(l,1) !h11
+        hsep(2,l)=psppar(l,4) !h12
+        hsep(3,l)=psppar(l,2) !h22
+        hsep(4,l)=psppar(l,5) !h13
+        hsep(5,l)=psppar(l,6) !h23
+        hsep(6,l)=psppar(l,3) !h33
+     end do
+  end if
+
+  !!Just for extracting the covalent radius and rprb
+  call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+
+  if (enlargerprb) then
+     !experimental
+     rprb=100.0_gp
+  end if
+
+!  occup(:,:)=0.0_gp
+!   do l=0,lmax-1
+!     iocc=0
+!     do i=1,6
+!        if (elecorbs(i,l+1) > 0.0_gp) then
+!           iocc=iocc+1
+!           !print *,'elecorbs',i,l,elecorbs(i,l+1),noccmax
+!            if (iocc > noccmax) stop 'iguess_generator: noccmax too small'
+!           occup(iocc,l+1)=elecorbs(i,l+1)
+!        endif
+!     end do
+!     nl(l+1)=iocc
+!  end do
+
+  !allocate arrays for the gatom routine
+  allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
+  call memocc(i_stat,vh,'vh',subname)
+  allocate(psi(0:ng,noccmax,lmax+ndebug),stat=i_stat)
+  call memocc(i_stat,psi,'psi',subname)
+  allocate(xp(0:ng+ndebug),stat=i_stat)
+  call memocc(i_stat,xp,'xp',subname)
+  allocate(rmt(n_int,0:ng,0:ng,lmax+ndebug),stat=i_stat)
+  call memocc(i_stat,rmt,'rmt',subname)
+
+  !can be switched on for debugging
+  !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
+  !     'Input Guess Generation for atom',trim(atomname),&
+  !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
+
+  rij=3._gp
+  ! exponents of gaussians
+  a0in=alpz
+  a0=a0in/rij
+  !       tt=sqrt(sqrt(2._gp))
+  tt=2._gp**.3_gp
+  do i=0,ng
+     a=a0*tt**i
+     xp(i)=.5_gp/a**2
+  end do
+
+  ! initial guess
+  do l=0,lmax-1
+     do iocc=1,noccmax
+        do i=0,ng
+           psi(i,iocc,l+1)=0.0_gp
+        end do
+     end do
+  end do
+
+  call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
+  call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
+       zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
+       aeval,ng,psi,res,chrg)
+
+  !post-treatment of the inguess data
+  do i=1,ng+1
+     expo(i)=sqrt(0.5_gp/xp(i-1))
+  end do
+
+  i=0
+  do l=1,4
+     do iocc=1,nl(l)
+        i=i+1
+        !occupat(i)=occup(iocc,l)
+        do j=1,ng+1
+           psiat(j,i)=psi(j-1,iocc,l)
+        end do
+        gaenes_aux(i) = aeval(iocc,l)
+     end do
+  end do
+
+  i_all=-product(shape(vh))*kind(vh)
+  deallocate(vh,stat=i_stat)
+  call memocc(i_stat,i_all,'vh',subname)
+  i_all=-product(shape(psi))*kind(psi)
+  deallocate(psi,stat=i_stat)
+  call memocc(i_stat,i_all,'psi',subname)
+  i_all=-product(shape(xp))*kind(xp)
+  deallocate(xp,stat=i_stat)
+  call memocc(i_stat,i_all,'xp',subname)
+  i_all=-product(shape(rmt))*kind(rmt)
+  deallocate(rmt,stat=i_stat)
+  call memocc(i_stat,i_all,'rmt',subname)
+  i_all=-product(shape(hsep))*kind(hsep)
+  deallocate(hsep,stat=i_stat)
+  call memocc(i_stat,i_all,'hsep',subname)
+  i_all=-product(shape(alps))*kind(alps)
+  deallocate(alps,stat=i_stat)
+  call memocc(i_stat,i_all,'alps',subname)
+
+END SUBROUTINE iguess_generator_modified
+!!***
+
 
 
 !>  Calculates the solution of the radial Schroedinger equation for a given
@@ -1761,14 +1979,14 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,&
   integer :: iorb,jorb,i
   real(kind=8) :: facu,facd
   real(kind=8), dimension(:,:), allocatable :: psi_o
-  integer, dimension(2) :: iorbsc,iorbv
+  !n(c) integer, dimension(2) :: iorbsc,iorbv
 
   !initialise the orbital counters
-  iorbsc(1)=0
-  iorbv(1)=norbsc
+  !n(c) iorbsc(1)=0
+  !n(c) iorbv(1)=norbsc
   !used in case of spin-polarisation, ignored otherwise
-  iorbsc(2)=norbe
-  iorbv(2)=norbsc+norbe
+  !n(c) iorbsc(2)=norbe
+  !n(c) iorbv(2)=norbsc+norbe
 
   if (iproc ==0) then
      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'

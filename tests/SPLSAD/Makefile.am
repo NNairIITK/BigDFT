@@ -8,7 +8,11 @@ EXTRA_CLEAN =
 
 PPFILES =
 
-CLEANFILES = SPLSAD.out *.prc fort* vogt* nogt* anchorpoints???.xyz path???.xyz fldiff.report $(EXTRA_CLEAN) $(PPFILES)
+CLEANFILES = SPLSAD.out *.prc fort* vogt* nogt* anchorpoints???.xyz \
+	path???.xyz fldiff.report $(EXTRA_CLEAN) $(PPFILES) default.* saddle.xyz geopt.mon 
+
+clean.local : 
+	rm -rf data
 
 
 #Check also the restart system (frequencies.res file)

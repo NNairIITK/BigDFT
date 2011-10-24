@@ -250,7 +250,7 @@
 !!    !takes also into account parallel k-points distribution
 !!    !here the orthogonality with respect to other occupied functions should be 
 !!    !passed as an optional argument
-!!    call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
+!!    call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
 !!  
 !!    !retranspose the hpsi wavefunction
 !!    call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
@@ -287,7 +287,7 @@
 !!    !and calculate the partial norm of the residue
 !!    !switch between CPU and GPU treatment
 !!    if (GPUconv) then
-!!       call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+!!       call preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,&
 !!            hpsi,gnrm,gnrm_zero,GPU)
 !!    else if (OCLconv) then
 !!       call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&

@@ -22,7 +22,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   !Local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
   real(kind=8), parameter :: eps_mach=1.d-12
-  integer :: iseg,nvctrp_old,j,ind1,iorb,i_all,i_stat,oidx,sidx
+  integer :: iseg,j,ind1,iorb,i_all,i_stat,oidx,sidx !n(c) nvctrp_old
   real(kind=8) :: tt
 
   wfd_old%nvctr_c = wfd%nvctr_c
@@ -47,7 +47,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
 
   !add the number of distributed point for the compressed wavefunction
   tt=dble(wfd_old%nvctr_c+7*wfd_old%nvctr_f)/dble(nproc)
-  nvctrp_old=int((1.d0-eps_mach*tt) + tt)
+  !n(c) nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
   allocate(psi_old((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor+ndebug),&
        stat=i_stat)
@@ -253,7 +253,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
 
 !write(100+iproc,*) 'norm psigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold,1)
 
-        call reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old, &
+        call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old, & !n(m)
              n1_old,n2_old,n3_old,rxyz_old,psigold,hx,hy,hz,&
              n1,n2,n3,rxyz,psifscf,psi(1,iorb))
 
@@ -303,7 +303,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   if (exists) then
      if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
      call read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
-     wfd,psi)
+          wfd,psi)
   else
      call cpu_time(tr0)
      call system_clock(ncount1,ncount_rate,ncount_max)
@@ -394,7 +394,10 @@ subroutine verify_file_presence(filerad,orbs,iformat)
   !reduce the result among the other processors
   call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
  
-  if (allfiles) iformat=1
+  if (allfiles) then
+     iformat=1
+     return
+  end if
 
   !Otherwise  test binary files.
   if (.not. allfiles) then           
@@ -415,10 +418,13 @@ subroutine verify_file_presence(filerad,orbs,iformat)
      call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
   end if
 
-  if (allfiles) iformat=2
+  if (allfiles) then
+     iformat=2
+     return
+  end if
 
   !otherwise, switch to normal input guess
-  if (.not. allfiles) iformat=0
+  iformat=0
 
 end subroutine verify_file_presence
 
