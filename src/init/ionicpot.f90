@@ -473,7 +473,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
-  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
+  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp !n(c) nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz,offset
@@ -590,7 +590,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   if (.not. htoobig) then
      call timing(iproc,'CrtLocPot     ','OF')
      !here the value of the datacode must be kept fixed
-     nspin=1
+     !n(c) nspin=1
 
      call H_potential(geocode,'D',iproc,nproc,&
           n1i,n2i,n3i,hxh,hyh,hzh,&

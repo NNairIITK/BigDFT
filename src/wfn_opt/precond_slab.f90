@@ -218,7 +218,7 @@ subroutine apply_hp_slab_sd(n1,n2,n3, &
   real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
   integer, parameter :: lowfil=-14,lupfil=14
 
-  real(gp) hgrid(3)   
+  !n(c) real(gp) hgrid(3)   
   real(wp),dimension((2*n1+2)*(2*n2+16)*(2*n3+2))::ww,psifscf
 
   integer,intent(in)::modul1(lowfil:n1+lupfil)
@@ -233,9 +233,9 @@ subroutine apply_hp_slab_sd(n1,n2,n3, &
        nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)),   &
        x(1),x(nvctr_c+min(1,nvctr_f)),psifscf)
 
-  hgrid(1)=hx
-  hgrid(2)=hy
-  hgrid(3)=hz
+  !n(c) hgrid(1)=hx
+  !n(c) hgrid(2)=hy
+  !n(c) hgrid(3)=hz
   ! psifscf: input, ww: output
   !     call convolut_kinetic_slab_c(2*n1+1,2*n2+15,2*n3+1,hgridh,psifscf,ww,cprecr)
   call convolut_kinetic_slab_sdc(n1,n2,n3,psifscf,ww,cprecr,modul1,modul3,a,b,c,e)
@@ -265,7 +265,7 @@ subroutine apply_hp_slab_sd_scal(n1,n2,n3, &
   real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
   integer, parameter :: lowfil=-14,lupfil=14
 
-  real(gp) hgrid(3)   
+  !n(c) real(gp) hgrid(3)   
   real(wp),dimension((2*n1+2)*(2*n2+16)*(2*n3+2))::ww,psifscf
 
   integer,intent(in)::modul1(lowfil:n1+lupfil)
@@ -280,9 +280,9 @@ subroutine apply_hp_slab_sd_scal(n1,n2,n3, &
        nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)),&
        x(1),x(nvctr_c+min(1,nvctr_f)),psifscf,scal)
 
-  hgrid(1)=hx
-  hgrid(2)=hy
-  hgrid(3)=hz
+  !n(c) hgrid(1)=hx
+  !n(c) hgrid(2)=hy
+  !n(c) hgrid(3)=hz
   ! psifscf: input, ww: output
   !     call convolut_kinetic_slab_c(2*n1+1,2*n2+15,2*n3+1,hgridh,psifscf,ww,cprecr)
   call convolut_kinetic_slab_sdc(n1,n2,n3,psifscf,ww,cprecr,modul1,modul3,a,b,c,e)

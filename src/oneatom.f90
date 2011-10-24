@@ -20,8 +20,8 @@ program oneatom
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
   integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter,istat
   real(gp) :: hxh,hyh,hzh
-  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,alpha
-  real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
+  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC !n(c) gnrm_zero,alpha
+  real(gp) :: energy,energy_min,energybs,evsum,scprsum !n(c) energy_old
   type(atoms_data) :: atoms
   type(input_variables) :: in
   type(orbitals_data) :: orbs
@@ -137,11 +137,11 @@ program oneatom
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
   call allocate_diis_objects(in%idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
-       orbs%nkptsp,orbs%nspinor,orbs%norbd,diis,subname)  
+       orbs%nkptsp,orbs%nspinor,diis,subname)  
 
   !write the local potential in pot_ion array
   call createPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-       in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,0.0_dp)
+       n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,0.0_dp) !n(m)
 
   !pot_ion=0.0d0
 
@@ -181,10 +181,10 @@ program oneatom
 
   orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
-  alpha=2.d0
+  !n(c) alpha=2.d0
   energy=1.d10
   gnrm=1.d10
-  gnrm_zero=0.0_gp
+  !n(c) gnrm_zero=0.0_gp
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
@@ -225,7 +225,7 @@ program oneatom
 
 
      energybs=ekin_sum+epot_sum+eproj_sum
-     energy_old=energy
+     !n(c) energy_old=energy
      energy=energybs-eexctX-eSIC_DC
 
      !check for convergence or whether max. numb. of iterations exceeded
@@ -248,7 +248,7 @@ program oneatom
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
 
-     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%nspin,in%orthpar)
+     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%nspin,in%orthpar) 
 
      write(itername,'(i4.4)')iter
      call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'           ')
@@ -346,8 +346,8 @@ end program oneatom
 !>
 !!
 !!
-subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
-     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+subroutine createPotential(geocode,iproc,nproc,at,rxyz,& !n(c) elecfield (arg:9)
+     hxh,hyh,hzh,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base
   use module_types
   !  use module_interfaces, except_this_one => createIonicPotential
@@ -357,7 +357,7 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: elecfield
+  !n(c) real(gp), intent(in) :: elecfield
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion

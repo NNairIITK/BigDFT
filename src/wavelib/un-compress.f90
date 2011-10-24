@@ -149,13 +149,13 @@ subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 END SUBROUTINE uncompress
 
 
-subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-     mseg_c,mvctr_c,keyg_c,keyv_c,  & 
-     mseg_f,mvctr_f,keyg_f,keyv_f,  & 
+subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & !n(c) mvctr_c, mvctr_f (arg:11,15)
+     mseg_c,keyg_c,keyv_c,  &
+     mseg_f,keyg_f,keyv_f,  & 
      psig_c,psig_f)
   use module_base
   implicit none
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,mseg_c,mvctr_c,mseg_f,mvctr_f
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,mseg_c,mseg_f !n(c) mvctr_c,mvctr_f 
   integer, dimension(mseg_c), intent(in) :: keyv_c
   integer, dimension(mseg_f), intent(in) :: keyv_f
   integer, dimension(2,mseg_c), intent(in) :: keyg_c
@@ -164,13 +164,13 @@ subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: psig_f
   !local variables
   real(wp)::x
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,l
+  integer :: iseg,j0,j1,ii,i1,i2,i3,i0,i,l !n(c) jj
 
   psig_c=0._wp
   psig_f=0._wp
   ! coarse part
   do iseg=1,mseg_c
-     jj=keyv_c(iseg)
+     !n(c) jj=keyv_c(iseg)
      j0=keyg_c(1,iseg)
      j1=keyg_c(2,iseg)
      ii=j0-1
@@ -187,7 +187,7 @@ subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
 
   ! fine part
   do iseg=1,mseg_f
-     jj=keyv_f(iseg)
+     !n(c) jj=keyv_f(iseg)
      j0=keyg_f(1,iseg)
      j1=keyg_f(2,iseg)
      ii=j0-1

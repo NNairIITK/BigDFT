@@ -44,7 +44,7 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
      quiet) !optional arguments
   use module_base, only: ndebug
   implicit none
-  include 'mpif.h'
+ ! include 'mpif.h'
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
   real(kind=8), intent(in) :: hx,hy,hz

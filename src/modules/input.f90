@@ -342,7 +342,7 @@ contains
         if (ierror == 0) var=real(num,gp)/real(den,gp)
      end if
      !Value by defaut
-     if (ierror /= 0) var = huge(1_gp)
+     if (ierror /= 0) var = huge(1_gp) 
   END SUBROUTINE read_fraction_string
 
 
@@ -471,7 +471,7 @@ contains
        else if (present(exclusive)) then
           found=.false.
           found_loop: do ilist=1,size(exclusive)
-             if (var == exclusive(ilist)) then
+             if (var == exclusive(ilist)) then 
                 found=.true.
                 exit found_loop
              end if
@@ -573,7 +573,7 @@ contains
        else if (present(exclusive)) then
           found=.false.
           found_loop: do ilist=1,size(exclusive)
-             if (var == exclusive(ilist)) then
+             if (var == exclusive(ilist)) then 
                 found=.true.
                 exit found_loop
              end if

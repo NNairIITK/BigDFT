@@ -412,7 +412,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='PSolver'
   logical :: wrtmsg
-  integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
+  !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
   integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh,i,j
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,ind2nd
@@ -1043,7 +1043,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
   integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc
   integer, intent(out) :: n3d,n3p,n3pi,i3xcsh,i3s
   !local variables
-  integer, parameter :: nordgr=4
+  !n(c) integer, parameter :: nordgr=4
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
   integer :: istart,iend,nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr
 

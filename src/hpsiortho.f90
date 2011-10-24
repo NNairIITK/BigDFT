@@ -152,7 +152,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      GPU%hpsi_ASYNC => hpsi
   end if
   if (GPUconv) then
-     call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
+     call local_hamiltonian_GPU(orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   else if (OCLconv) then
      call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekin_sum,epot_sum,GPU)
   else
@@ -505,7 +505,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   !takes also into account parallel k-points distribution
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
-  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
+  call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
 
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
@@ -542,7 +542,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
   if (GPUconv) then
-     call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+     call preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,&
           hpsi,gnrm,gnrm_zero,GPU)
   else if (OCLconv) then
      call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
@@ -628,7 +628,7 @@ end subroutine calculate_energy_and_gradient
 
 !>   Operations after h|psi> 
 !!   (transposition, orthonormalisation, inverse transposition)
-subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspin,orthpar)
+subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspin,orthpar) 
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
@@ -641,7 +641,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspi
   type(diis_objects), intent(inout) :: diis
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   !local variables
-  character(len=*), parameter :: subname='hpsitopsi'
+  !n(c) character(len=*), parameter :: subname='hpsitopsi'
 
   !adjust the save variables for DIIS/SD switch
   if (iter == 1) then

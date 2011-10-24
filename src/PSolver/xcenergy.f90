@@ -10,16 +10,16 @@
 
 !> Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-     n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore)
-  use module_base
+     n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
+  !n(c) use module_base
   use module_types
   implicit none
-  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp
+  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
   real(dp), dimension(n1i*n2i*n3d), intent(inout) :: rhocore
   !local variables
-  character(len=*), parameter :: subname='calc_rhocore'
+  !n(c) character(len=*), parameter :: subname='calc_rhocore'
   real(gp), parameter :: oneo4pi=.079577471545947_wp
   logical :: gox,goy,goz,perx,pery,perz
   integer :: ig,ngv,ngc,isx,isy,isz,iex,iey,iez
@@ -259,7 +259,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='XC_potential'
   logical :: wrtmsg
-  integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
+  !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
   integer :: i_all,i_stat,ierr,i,j
   integer :: i1,i2,i3,istart,iend,i3start,jend,jproc

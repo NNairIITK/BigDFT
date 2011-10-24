@@ -146,22 +146,22 @@ END SUBROUTINE check_closed_shell
 
 !>   Orthogonality constraint routine, for all the orbitals
 !!   Uses wavefunctions in their transposed form
-subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
+subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum) !n(c) wfd (arg:5)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
-  type(wavefunctions_descriptors), intent(in) :: wfd
+  !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: psi
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: hpsi
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,iorb,ise
+  integer :: i_stat,i_all,ierr,iorb !n(c) ise
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
-  real(dp) :: occ,tt
+  real(dp) :: occ !n(c) tt
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: alag
 
@@ -237,7 +237,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
-        if (ispin==1) ise=0
+        !n(c) if (ispin==1) ise=0
         call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
@@ -280,7 +280,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
               enddo
            end if
         end if
-        ise=norb
+        !n(c) ise=norb
 
         if(nspinor==1 .and. nvctrp /= 0) then
            call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&
@@ -295,7 +295,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   end do
 
   if (nproc > 1) then
-     tt=scprsum
+     !n(c) tt=scprsum
      call mpiallred(scprsum,1,MPI_SUM,MPI_COMM_WORLD,ierr)
      !call MPI_ALLREDUCE(tt,scprsum,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
@@ -1783,7 +1783,7 @@ integer,dimension(nspin):: norbTot
 
 ! Local variables
 integer:: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb
-character(len=*),parameter:: subname='cholesky'
+!n(c) character(len=*),parameter:: subname='cholesky'
   
  
 ! Set the starting index to 1.

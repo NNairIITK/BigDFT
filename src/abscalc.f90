@@ -371,7 +371,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   character(len=5) :: gridformat
 
   !for xabsorber
-  integer :: lpot_a, ix, iy, iz , ixnl, iynl, iznl
+  integer :: ix, iy, iz , ixnl, iynl, iznl !n(c) lpot_a
   real(gp) :: rpot_a,spot_a,hpot_a,espo,harmo,r,rx,ry,rz,minr  
   real(gp), pointer :: radpot(:,:)
   integer :: radpotcount, igrid
@@ -403,8 +403,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   real(gp) :: potmodified_maxr, potmodified_shift
 
   type(atoms_data) :: atoms_clone
-  integer :: nsp, nspinor, noncoll
-  integer, parameter :: nelecmax=32,nmax=6,lmax=4
+  integer :: nsp, nspinor !n(c) noncoll
+  integer, parameter :: nelecmax=32,lmax=4 !n(c) nmax=6
   integer, parameter :: noccmax=2
   
   !! to apply pc_projector
@@ -680,15 +680,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      case(1)
         nsp=1
         nspinor=1
-        noncoll=1
+        !n(c) noncoll=1
      case(2)
         nsp=2
         nspinor=1
-        noncoll=1
+        !n(c) noncoll=1
      case(4)
         nsp=1
         nspinor=4
-        noncoll=2
+        !n(c) noncoll=2
      case default
         write(*,*)' ERROR: nspin not valid:',nspin
         stop
@@ -1155,7 +1155,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         ! Attention :  modification of the  potential for the  
         ! exactly resolvable case 
 
-        lpot_a=1
+        !n(c) lpot_a=1
         rpot_a = 7.5d0
         spot_a = 0.8d0
         hpot_a = 3.0d0

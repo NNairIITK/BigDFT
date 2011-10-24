@@ -591,19 +591,19 @@ END PROGRAM frequencies
 
 
 !> Integrate forces (not used)
-subroutine integrate_forces(iproc,energies,forces,n_moves,nat)
+subroutine integrate_forces(iproc,n_moves,nat) !n(c) energies,forces (arg:2,3)
 
    use module_base
 
    implicit none
    !Arguments
    integer, intent(in) :: iproc,n_moves,nat
-   real(gp), intent(in) :: energies(n_moves)
-   real(gp), intent(in) :: forces(3*nat,n_moves)
+   !n(c) real(gp), intent(in) :: energies(n_moves)
+   !n(c) real(gp), intent(in) :: forces(3*nat,n_moves)
    !Local variables
    character(len=*), parameter :: subname = "integrate_forces"
    real(gp), dimension(:), allocatable :: weight
-   real(gp) :: path
+   !n(c) real(gp) :: path
    integer :: i,i_stat,i_all
 
    !Allocation
@@ -624,7 +624,7 @@ subroutine integrate_forces(iproc,energies,forces,n_moves,nat)
    weight(n_moves)=1.d0/3.d0
 
    !Start integration
-   path = 0_gp
+   !n(c) path = 0_gp
    do i=1,n_moves
    end do
 
