@@ -1506,6 +1506,23 @@ module module_interfaces
       real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,2*orbs%nspin), intent(in), optional :: potandrho 
       real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin), intent(out), optional :: wxdsave 
     end subroutine NK_SIC_potential
+
+    subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+         wfd,psi,orblist)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,n1,n2,n3
+      real(gp), intent(in) :: hx,hy,hz
+      type(wavefunctions_descriptors), intent(in) :: wfd
+      type(orbitals_data), intent(inout) :: orbs
+      type(atoms_data), intent(in) :: at
+      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      integer, dimension(orbs%norb), optional :: orblist
+      real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
+      character(len=*), intent(in) :: filename
+     end subroutine readmywaves
     
   end interface
 

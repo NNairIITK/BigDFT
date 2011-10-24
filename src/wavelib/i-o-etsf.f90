@@ -14,7 +14,7 @@
 !!   coefficients_of_wavefunctions is used to store the psi values for
 !!   each wavelet.
 subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
-     wfd,psi)
+     wfd,psi,orblist)
   use module_base
   use module_types
 
@@ -32,6 +32,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
   character(len = *), intent(in) :: filename
+  integer, dimension(orbs%norb) :: orblist
   ! Local variables
   character(len = *), parameter :: subname = "read_waves_etsf"
   integer, pointer :: nvctr_old(:)
@@ -43,7 +44,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   real(gp) :: hx_old, hy_old, hz_old
   real(gp) :: displ,tel
   real(wp) :: fv(7)
-  logical :: perx, pery, perz
+  logical :: perx, pery, perz, check
   integer, dimension(:,:), allocatable :: gcoord
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
@@ -77,7 +78,8 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
 
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
-        call orbsToETSF(start, count, iorb, orbsd)
+        ! start(4) corresponds to the orbital index
+        call orbsToETSF(start, count, iorb, orbsd, orblist)
 
         iFine = wfd%nvctr_c + 1
         iCoeff = 1
@@ -149,7 +151,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
 
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
         ! We read the coefficients.
-        call orbsToETSF(start, count, iorb, orbsd)
+        call orbsToETSF(start, count, iorb, orbsd, orblist)
 
         ! We transfer the coefficients in psigold.
         iCoeff = 1
@@ -369,16 +371,19 @@ contains
     displ=sqrt(tx+ty+tz)
   END SUBROUTINE calc_displ
 
-  subroutine orbsToETSF(start, count, iorb, orbs)
+  subroutine orbsToETSF(start, count, iorb, orbs,orblist)
     integer, intent(inout) :: start(6), count(6)
     integer, intent(in) :: iorb
     type(orbitals_data), intent(in) :: orbs
+    integer,dimension(orbs%norb) :: orblist
+    integer :: ind
 
     ! Read one spinor.
     start(3) = modulo(iorb - 1, orbs%nspinor) + 1
     count(3) = 1
     ! Read one orbital.
-    start(4) = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
+    ind = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
+    start(4) = orblist(ind)
     count(4) = 1
     ! Read one kpoint.
     start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
