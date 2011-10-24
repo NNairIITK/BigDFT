@@ -1,9 +1,14 @@
 News
 ----
 
-2011 Version 1.6
+2011/12 Version 1.6
  - Add Hartree, Hartree-Fock functionals
  - Add SIC (self-interaction correction) Perdew-Zunger and Non-Koopman correction (PRB82, 115121, 2010)
+ - Add Wannier90 interface
+ - Activation Relaxation Technique (ART)
+ - Splined saddle search method
+ - Bader analysis
+ - Add non-linear core correction with HGH pseudopotentials
 2011/04/22 Version 1.5.3
  - Correct some bugs mainly with when we combine MPI, OpenMP and OpenCL
 2011/03/25 Version 1.5.2

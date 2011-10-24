@@ -17,6 +17,8 @@ EXTRA_DIST = $(TESTDIRS) \
      H1C-Basic_post_processing.html \
      H2A-GPU.html \
      H2B-scalability.html \
+     H2C-bart.html \
+     H2D-spline-saddle-method.html \
      H2E-minima_hopping.html \
      H2E1-troubleshooting_minima_hopping.html \
      H3B-charge_analysis.html \
@@ -25,7 +27,9 @@ EXTRA_DIST = $(TESTDIRS) \
      H3X-hacking_bigdft.html \
      Mg7-minhop \
      minhop.pdf \
-     GPU
+     bart.pdf \
+     GPU \
+     C2H6 Li6 Mg5 Wannier Xabs
 
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
