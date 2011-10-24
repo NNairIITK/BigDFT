@@ -227,10 +227,16 @@ void generate_radix_no_shared(std::stringstream &program, unsigned int radix_siz
     }
   }
 }
-void generate_cosin_tables(std::stringstream &program, cl_uint fft_size, fft_code* output){
-  program<<"\
+
+void generate_header(std::stringstream &program) {
+  program<<"#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-";
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n";
+}
+
+void generate_cosin_tables(std::stringstream &program, cl_uint fft_size, fft_code* output){
   std::vector<double> sines, cosines;
   for(int i=0; i<fft_size; i++){
     sines.push_back(sin(TWOPI*i/(double)fft_size));
@@ -260,7 +266,7 @@ void generate_cosin_tables(std::stringstream &program, cl_uint fft_size, fft_cod
   }
 }
 
-void generate_buffer_size(std::stringstream &program, cl_uint fft_size){
+void generate_buffer_size(std::stringstream &program, cl_uint fft_size, struct bigdft_device_infos * infos){
   unsigned int buffer_length;
   unsigned int buffer_width;
   unsigned int buffer_limit;
@@ -272,6 +278,7 @@ void generate_buffer_size(std::stringstream &program, cl_uint fft_size){
     shared_size_used=1024;
   buffer_length = (fft_size / 16) * 16 + (fft_size % 16 ? 16 : 0);
   buffer_limit = (shared_size_used/buffer_length);
+  buffer_limit = (shared_size_used/buffer_length) & (~3) <= infos->MAX_WORK_GROUP_SIZE/buffer_length ? (shared_size_used/buffer_length) & (~3) : infos->MAX_WORK_GROUP_SIZE/buffer_length ;
   buffer_width = 1;
   while( buffer_limit /= 2 )
     buffer_width *= 2;
@@ -391,7 +398,7 @@ void generate_radixes(cl_uint fft_size, std::list<unsigned int> &available_radix
   uniq_radixes.unique();
 }
 
-extern "C" fft_code * generate_fft_program(cl_uint fft_size){
+extern "C" fft_code * generate_fft_program(cl_uint fft_size, struct bigdft_device_infos * infos){
   unsigned int available_rad[] = {2,3,5,7,11,13,17,19,23,29,31};
   std::list<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
   std::list<unsigned int> radixes;
@@ -402,12 +409,13 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size){
 
   generate_radixes(fft_size, available_radixes, radixes, uniq_radixes);
 
+  generate_header(program);
   generate_cosin_tables(program, fft_size, output);
 
   for( it = uniq_radixes.begin(); it != uniq_radixes.end(); it++ )
     generate_radix_macro(program,*it);
 
-  generate_buffer_size(program,fft_size);
+  generate_buffer_size(program,fft_size,infos);
 
   generate_kernel(program,fft_size,radixes,false);
   generate_kernel(program,fft_size,radixes,true);
@@ -417,7 +425,7 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size){
   return output;
 }
 
-extern "C" fft_code * generate_fft_program_no_shared(cl_uint fft_size){
+extern "C" fft_code * generate_fft_program_no_shared(cl_uint fft_size, struct bigdft_device_infos * infos){
   unsigned int available_rad[] = {15,16};
   std::list<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
   std::list<unsigned int> radixes;
@@ -428,6 +436,7 @@ extern "C" fft_code * generate_fft_program_no_shared(cl_uint fft_size){
 
   generate_radixes(fft_size, available_radixes, radixes, uniq_radixes);
 
+  generate_header(program);
   generate_cosin_tables(program, fft_size, output);
 
   generate_kernel_no_shared(program,fft_size,radixes,false);

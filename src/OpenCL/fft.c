@@ -3,7 +3,7 @@
 
 cl_uint use_constant_memory=1;
 
-inline void fft_generated_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out,cl_mem *cosi){
+inline void fft_generated_generic(cl_kernel kernel, bigdft_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out,cl_mem *cosi){
     cl_int ciErrNum;
     cl_uint shared_size_used=0;
     if(*n <= 64)
@@ -11,7 +11,7 @@ inline void fft_generated_generic(cl_kernel kernel, cl_command_queue command_que
     else if(*n <= 256)
        shared_size_used=1024;
     int FFT_LENGTH=(*n / 16) * 16 + (*n % 16 ? 16 : 0);
-    int LINE_LIMIT=(shared_size_used/FFT_LENGTH) & (~3);
+    int LINE_LIMIT=(shared_size_used/FFT_LENGTH) & (~3) <= command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ? (shared_size_used/FFT_LENGTH) & (~3) : command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ;
     int LINE_NUMBER = 1;
     while( LINE_LIMIT /= 2 )
       LINE_NUMBER *= 2;
@@ -29,8 +29,9 @@ inline void fft_generated_generic(cl_kernel kernel, cl_command_queue command_que
       ciErrNum = clSetKernelArg(kernel, i++,sizeof(*cosi), (void*)cosi);
     }
     size_t localWorkSize[] = { block_size_i,block_size_j };
+//    printf("%lu %lu\n",block_size_i,block_size_j);
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    ciErrNum = clEnqueueNDRangeKernel(command_queue->command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
 }
 
@@ -64,20 +65,20 @@ cl_mem cossind2;
 
 void FC_FUNC_(fft1d_d,FFT1D_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     if(fft_size[0] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind0);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_d, *command_queue, n, ndat, psi, out, &cossind0);
     else if(fft_size[1] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind1);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_d, *command_queue, n, ndat, psi, out, &cossind1);
     else if(fft_size[2] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind2);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_d, *command_queue, n, ndat, psi, out, &cossind2);
 }
 
 void FC_FUNC_(fft1d_r_d,FFT1D_R_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     if(fft_size[0] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind0);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_d, *command_queue, n, ndat, psi, out, &cossind0);
     else if(fft_size[1] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind1);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_d, *command_queue, n, ndat, psi, out, &cossind1);
     else if(fft_size[2] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_r_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind2);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_r_d, *command_queue, n, ndat, psi, out, &cossind2);
 }
 
 void FC_FUNC_(fft3d_d,FFT1D_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp){
@@ -86,13 +87,13 @@ void FC_FUNC_(fft3d_d,FFT1D_D)(bigdft_command_queue *command_queue, cl_uint *dim
     cl_uint n3 = dimensions[2];
     cl_uint ndat = n1 * n2;
     assert(fft_size[2]==n3);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_d, (*command_queue)->command_queue, &n3, &ndat, psi, out, &cossind2);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_d, *command_queue, &n3, &ndat, psi, out, &cossind2);
     ndat = n1 * n3;
     assert(fft_size[1]==n2);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_d, (*command_queue)->command_queue, &n2, &ndat, out, tmp, &cossind1);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_d, *command_queue, &n2, &ndat, out, tmp, &cossind1);
     ndat = n2 * n3;
     assert(fft_size[0]==n1);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_d, (*command_queue)->command_queue, &n1, &ndat, tmp, out, &cossind0);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_d, *command_queue, &n1, &ndat, tmp, out, &cossind0);
 }
 
 void FC_FUNC_(fft3d_r_d,FFT1D_R_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp){
@@ -101,13 +102,13 @@ void FC_FUNC_(fft3d_r_d,FFT1D_R_D)(bigdft_command_queue *command_queue, cl_uint 
     cl_uint n3 = dimensions[2];
     cl_uint ndat = n1 * n2;
     assert(fft_size[2]==n3);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_r_d, (*command_queue)->command_queue, &n3, &ndat, psi, out, &cossind2);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_r_d, *command_queue, &n3, &ndat, psi, out, &cossind2);
     ndat = n1 * n3;
     assert(fft_size[1]==n2);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_d, (*command_queue)->command_queue, &n2, &ndat, out, tmp, &cossind1);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_d, *command_queue, &n2, &ndat, out, tmp, &cossind1);
     ndat = n2 * n3;
     assert(fft_size[0]==n1);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_d, (*command_queue)->command_queue, &n1, &ndat, tmp, out, &cossind0);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_d, *command_queue, &n1, &ndat, tmp, out, &cossind0);
 }
 
 cl_program fftProgramd0;
@@ -147,11 +148,13 @@ void create_fft_kernels(struct bigdft_kernels * kernels){
 
 
 void build_fft_programs(cl_context * context){
+    struct bigdft_device_infos infos;
+    get_context_devices_infos(context, &infos);
     cl_int ciErrNum = CL_SUCCESS;
     cl_image_format format = { CL_RGBA, CL_UNSIGNED_INT32 };
     fft_code * c;
     if(fft_size[0]!=0){
-      c = generate_fft_program(fft_size[0]);
+      c = generate_fft_program(fft_size[0],&infos);
 //      printf("%s\n",c->code);
       fftProgramd0 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd0!");
@@ -174,7 +177,7 @@ void build_fft_programs(cl_context * context){
       free(c);
     }
     if(fft_size[1]!=0){
-      c = generate_fft_program(fft_size[1]);
+      c = generate_fft_program(fft_size[1], &infos);
 //      printf("%s\n",c->code);
       fftProgramd1 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd1!");
@@ -197,7 +200,7 @@ void build_fft_programs(cl_context * context){
       free(c);
     }
     if(fft_size[2]!=0){
-      c = generate_fft_program(fft_size[2]);
+      c = generate_fft_program(fft_size[2], &infos);
 //      printf("%s\n",c->code);
       fftProgramd2 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd1!");
