@@ -825,6 +825,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,h
   !local variables
   integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx
   real(gp) :: eproj_spinor
+  real(wp), dimension(4,7,3,4) :: cproj !scalar products with the projectors (always assumed to be complex and spinorial)
 
   !parameter for the descriptors of the projectors
   ityp=at%iatype(iat)
@@ -840,9 +841,34 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,h
   !features of the k-point ikpt
   call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
 
+  !calculate the scalar product with all the projectors of the atom
+
+  !index for performing the calculation with all the projectors
   istart_c_i=istart_c
-  do ispinor=1,orbs%nspinor,ncplx
-     eproj_spinor=0.0_gp
+  !loop over all the channels (from s to f)
+  do l=1,4
+     !loop over all the projectors of the channel
+     do i=1,3
+        !loop over all the components of the projector
+        if (at%psppar(l,i,ityp) /= 0.0_gp) then
+           do m=1,2*l-1
+              !loop over all the components of the wavefunction
+              do ispinor=1,orbs%nspinor,ncplx
+                 call wpdot_wrap(ncplx,  &
+                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
+                      psi(1,ispinor), &
+                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
+                      proj(istart_c_i),&
+                      cproj(ispinor,m,i,l)
+              end do
+              istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
+           end do
+        end if
+     end do
+  end do
+
+  !apply the matrix of the coefficients on the 
+              
      if (ispinor >= 2) istart_c=istart_c_i
      !GTH and HGH pseudopotentials
      do l=1,4
