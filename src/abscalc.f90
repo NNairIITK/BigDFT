@@ -126,6 +126,8 @@ program abscalc_main
      !De-allocations
      call deallocate_atoms(atoms,subname) 
 
+     call deallocate_local_zone_descriptors(rst%Lzd, subname)
+
      call free_restart_objects(rst,subname)
 
      i_all=-product(shape(rxyz))*kind(rxyz)
@@ -668,9 +670,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         endif
      endif
 
-     !quick fix for now
-     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
-
      call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
           orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
@@ -733,8 +732,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      allocate(phnons(2,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,phnons,'phnons',subname)
 
-     !quick fix for now
-     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,rhodsc,&
@@ -1216,7 +1213,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   call deallocate_before_exiting
-
+  call deallocate_local_zone_descriptors(lzd, subname)
 
 contains
 

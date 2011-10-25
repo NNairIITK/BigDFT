@@ -417,8 +417,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
        radii_cf,cpmult,fpmult,hx,hy,hz,Lzd%Gnlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
-  ! See if linear scaling should be activated and build the correct Lzd
-  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
+  ! See if linear scaling should be activated and build the correct Lzd 
+  ! There is a copy of this inside the LCAO input guess because the norbs changes
+  ! and so the inwhichlocreg also ==> different distribution for the locregs
+  if (in%inputPsiId /= 0 .and. in%inputPsiId /= 10) then
+     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
+  end if
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation
@@ -704,6 +708,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      if (nvirt > norbv) then
         nvirt = norbv
      end if
+
+     !Check if we must use linear scaling for total SCF
+     !change the Lzd structure accordingly, also orbs%inwhichlocreg
+     call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf) 
 
   case(INPUT_PSI_LINEAR)
      
@@ -1043,6 +1051,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 proj, Lzd, ngatherarr, potential, psi, hpsi, &                                                                                                                                                              
                 ekin_sum, epot_sum, eexctX, eproj_sum, in%nspin, GPU, withConfinement, .true., &
                 pkernel=pkernelseq)
+
            i_all = -product(shape(orbs%ispot))*kind(orbs%ispot)
            deallocate(orbs%ispot,stat=i_stat)
            call memocc(i_stat,i_all,'orbs%ispot',subname)
@@ -1792,6 +1801,8 @@ contains
 
     call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds,subname)
 
+!    call deallocate_local_zone_descriptors(Lzd, subname)
+    call deallocate_Lzd_except_Glr(Lzd, subname)
     i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
     deallocate(Lzd%Glr%projflg,stat=i_stat)
     call memocc(i_stat,i_all,'Glr%projflg',subname)
@@ -1813,7 +1824,7 @@ contains
     deallocate(radii_cf,stat=i_stat)
     call memocc(i_stat,i_all,'radii_cf',subname)
 
-    call deallocate_proj_descr(Lzd%Gnlpspd,subname)
+!    call deallocate_proj_descr(Lzd%Gnlpspd,subname)
 
     !free the rhodsc pointers if they were allocated
     call deallocate_rho_descriptors(rhodsc,subname)
@@ -1940,7 +1951,8 @@ contains
     deallocate(radii_cf,stat=i_stat)
     call memocc(i_stat,i_all,'radii_cf',subname)
 
-    call deallocate_proj_descr(Lzd%Gnlpspd,subname)
+    call deallocate_Lzd_except_Glr(Lzd,subname)
+!    call deallocate_proj_descr(Lzd%Gnlpspd,subname)
 
     i_all=-product(shape(proj))*kind(proj)
     deallocate(proj,stat=i_stat)

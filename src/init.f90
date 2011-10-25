@@ -440,34 +440,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!experimental part for building the localisation regions
 ! ###################################################################
 
-!  linear  = .true.
-!  if (input%linear == 'LIG' .or. input%linear == 'FUL') then
-!     Lzd%nlr=at%nat
-!     call timing(iproc,'check_IG      ','ON')
-!     ! locrad read from last line of  psppar
-!     do iat=1,at%nat
-!        ityp = at%iatype(iat)
-!        locrad(iat) = at%rloc(ityp,1)
-!     end do  
-!     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,linear)
-!     call timing(iproc,'check_IG      ','OF')
-!     if(nspin >= 4) linear = .false. 
-!  end if
-!  if (input%linear =='OFF' .or. .not. linear) then
-!     linear = .false.
-!     Lzd%nlr = 1
-!     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
-!     Lzd%Llr(1) = Lzd%Glr
-!     Lzd%Glr = Glr
-!     Lzd%Gnlpspd = nlpspd
-!     Lzd%Lpsidimtot=orbse%npsidim
-!     Lzd%Lnprojel = nlpspd%nprojel
-!  end if
-!  Lzd%linear = linear 
-!  allocate(Lzd%doHamAppl(Lzd%nlr), stat=i_stat)
-!  call memocc(i_stat, Lzd%doHamAppl, 'Lzd%doHamAppl', subname)
-!  Lzd%doHamAppl=.true.
-
+  call check_linear_and_create_Lzd(iproc,nproc,input,Lzd,at,orbse,rxyz,radii_cf)
 
   if (Lzd%linear) then
 
@@ -479,34 +452,14 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !        end do
      end if
         
-!     Lzd%Glr = Glr
-!     Lzd%Gnlpspd = nlpspd
-     
-     !allocate the array of localisation regions (memocc does not work)
-!     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
-!     allocate(norbsc(Lzd%nlr+ndebug),stat=i_stat)
-!     call memocc(i_stat,norbsc,'norbsc',subname)
-   
-! DEBUG
-      ! Write some physical information on the Glr
-!     if(iproc == 0) then
-!        write(*,'(a24,3i4)')'Global region n1,n2,n3:',Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3
-!        write(*,*)'Global fine grid: nfl',Lzd%Glr%d%nfl1,Lzd%Glr%d%nfl2,Lzd%Glr%d%nfl3
-!        write(*,*)'Global fine grid: nfu',Lzd%Glr%d%nfu1,Lzd%Glr%d%nfu2,Lzd%Glr%d%nfu3
-!        write(*,*)'Global inter. grid: ni',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i
-!        write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Lzd%Glr%d%n1*input%hx,Lzd%Glr%d%n2*input%hy,Lzd%Glr%d%n3*input%hz
-!        write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*input%hx*Lzd%Glr%d%n2*input%hy*Lzd%Glr%d%n3*input%hz
-!        print *,'Global statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
-!     end if
-! END DEBUG
 
      call timing(iproc,'constrc_locreg','ON')
 
    ! Assign orbitals to locreg (done because each orbitals corresponds to an atomic function)
-     call assignToLocreg(iproc,nproc,orbse%nspinor,nspin_ig,at,orbse,Lzd)
+   !  call assignToLocreg(iproc,nproc,orbse%nspinor,nspin_ig,at,orbse,Lzd)
   
    ! determine the wavefunction dimension
-     call wavefunction_dimension(Lzd,orbse)
+   !  call wavefunction_dimension(Lzd,orbse)
 
    ! determine the localization regions
      ! calculateBounds indicate whether the arrays with the bounds (for convolutions...) shall also

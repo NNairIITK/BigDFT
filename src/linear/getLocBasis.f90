@@ -2576,11 +2576,11 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
   do ilr=1,Lzd%nlr
 
       nullify(Lzd%Llr(ilr)%projflg) !to avoid problems when deallocating
-!      calc=.false.
-!      do iorb=1,orbs%norbp
-!          if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) calc=.true.
-!      end do
-!      if (.not. calc) cycle !calculate only for the locreg on this processor, without repeating for same locreg.
+      calc=.false.
+      do iorb=1,orbs%norbp
+          if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) calc=.true.
+      end do
+      if (.not. calc) cycle !calculate only for the locreg on this processor, without repeating for same locreg.
       ! allocate projflg
       allocate(Lzd%Llr(ilr)%projflg(at%nat), stat=istat)
       call memocc(istat, Lzd%Llr(ilr)%projflg, 'Lzd%Llr(ilr)%projflg', subname)

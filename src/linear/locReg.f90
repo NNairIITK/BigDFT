@@ -1502,6 +1502,28 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
 
   !determine the limits of the different localisation regions
   do ilr=1,nlr
+     !nullify all pointers
+     nullify(Llr(ilr)%projflg)
+     nullify(Llr(ilr)%wfd%keyg)
+     nullify(Llr(ilr)%wfd%keyv)
+     nullify(Llr(ilr)%bounds%ibyyzz_r)
+     nullify(Llr(ilr)%bounds%kb%ibyz_c)
+     nullify(Llr(ilr)%bounds%kb%ibxz_c)
+     nullify(Llr(ilr)%bounds%kb%ibxy_c)
+     nullify(Llr(ilr)%bounds%kb%ibyz_f)
+     nullify(Llr(ilr)%bounds%kb%ibxz_f)
+     nullify(Llr(ilr)%bounds%kb%ibxy_f)
+     nullify(Llr(ilr)%bounds%sb%ibzzx_c)
+     nullify(Llr(ilr)%bounds%sb%ibyyzz_c)
+     nullify(Llr(ilr)%bounds%sb%ibxy_ff)
+     nullify(Llr(ilr)%bounds%sb%ibzzx_f)
+     nullify(Llr(ilr)%bounds%sb%ibyyzz_f)
+     nullify(Llr(ilr)%bounds%gb%ibzxx_c)
+     nullify(Llr(ilr)%bounds%gb%ibxxyy_c)
+     nullify(Llr(ilr)%bounds%gb%ibyz_ff)
+     nullify(Llr(ilr)%bounds%gb%ibzxx_f)
+     nullify(Llr(ilr)%bounds%gb%ibxxyy_f)
+
      calc=.false.
      do iorb=1,orbs%norbp
         if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) calc=.true.

@@ -854,6 +854,7 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,ndimrhopot,nspin,o
   call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
 
   if(Lzd%nlr > 1) then
+     print *,'Using linear scaling'
      allocate(ilrtable(orbs%norbp,2),stat=i_stat)
      call memocc(i_stat,ilrtable,'ilrtable',subname)
      !call to_zero(orbs%norbp*2,ilrtable(1,1))

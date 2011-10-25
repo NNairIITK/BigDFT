@@ -3488,6 +3488,16 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       character(len=*),intent(in):: subname
     end subroutine deallocate_local_zone_descriptors
 
+    subroutine deallocate_Lzd_except_Glr(lzd, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(local_zone_descriptors),intent(inout):: lzd
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_Lzd_except_Glr
+
+
     subroutine deallocate_orbitals_data(orbs, subname)
       use module_base
       use module_types
