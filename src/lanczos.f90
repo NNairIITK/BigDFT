@@ -7,8 +7,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!>   Lanczos diagonalization
 
+!> Lanczos diagonalization
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
@@ -184,14 +184,9 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
 END SUBROUTINE xabs_lanczos
-!!***
 
 
-!!****f* BigDFT/chebychev
-!! FUNCTION
-!!   Chebychev polynomials to calculate the density of states
-!! SOURCE
-!!
+!> Chebychev polynomials to calculate the density of states
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
@@ -241,7 +236,6 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   logical:: dopaw
   real(gp) :: GetBottom
 
-
   if (iproc==0) print *, " IN ROUTINE  chebychev  "
 
   Pi=acos(-1.0_gp)
@@ -268,8 +262,6 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   orbs%eval(1:orbs%norb*orbs%nkpts )=1.0_gp
 
   call orbitals_communicators(iproc,nproc,lr,orbs,ha%comms)  
-
- 
 
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
   else
@@ -451,12 +443,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 END SUBROUTINE xabs_chebychev
 
 
-!!***
-!!****f* BigDFT/cg_spectra
-!! FUNCTION
-!!   finds the spectra solving  (H-omega)x=b
-!! SOURCE
-!!
+!> Finds the spectra solving  (H-omega)x=b
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
@@ -518,8 +505,6 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   if(iproc==0) print *, " IN ROUTINE xabs_cg "
 
-
-
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
           hx,hy,hz,lr%wfd,orbs,GPU)
@@ -531,7 +516,6 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      if (iproc == 0) write(*,*)&
           'GPU data allocated'
   end if
-
 
   allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%eval,'orbs%eval',subname)
@@ -545,9 +529,6 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
-
-
-
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
   else
@@ -619,9 +600,6 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
            enddo
         endif
 
-
-          
-
         gamma = 0.03_gp
 
         if(i==0) then
@@ -641,9 +619,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
         
      enddo
 
-
      call LB_de_allocate_for_lanczos( )
-
 
   endif
   
@@ -656,8 +632,6 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   else if (OCLconv) then
      call free_gpu_OCL(GPU,orbs,in%nspin)
   end if
-
-
 
   i_all=-product(shape(orbs%eval))*kind(orbs%eval)
   deallocate(orbs%eval,stat=i_stat)
@@ -674,14 +648,11 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      call memocc(i_stat,i_all,'potentialclone',subname)
   endif
 
-
-
-
   call free_full_potential(nproc,pot,subname)
   nullify(ha%potential)
 
 END subroutine xabs_cg
-!!***
+
 
 subroutine dirac_hara (rho, E , V)
   use module_base
@@ -704,13 +675,7 @@ subroutine dirac_hara (rho, E , V)
      rs=1000.0_gp
   endif
 
-
-
   Vcorr=V
-
-
-
-
 
   EV=E-Vcorr
   if(EV<=0) then
@@ -736,12 +701,9 @@ subroutine dirac_hara (rho, E , V)
   end do
   V=Vcorr
   return
-end subroutine dirac_hara
+END SUBROUTINE dirac_hara
 
-!!****f* BigDFT/GetBottom
-!! FUNCTION
-!! SOURCE
-!!
+
 function GetBottom( atoms, iproc, nspin)
    
   use module_base
@@ -814,4 +776,3 @@ function GetBottom( atoms, iproc, nspin)
   call memocc(i_stat,i_all,'expo',subname)
 
 end function GetBottom
-!!***

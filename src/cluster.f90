@@ -213,7 +213,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=3) :: PSquiet
   character(len=5) :: gridformat, wfformat,wfformat_read, final_out
   character(len=500) :: errmess
-  logical :: endloop,endlooprp,allfiles,onefile,refill_proj
+  logical :: endloop,endlooprp,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
   integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden,input_wf_format
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
