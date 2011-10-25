@@ -4,7 +4,7 @@ SUBDIRS =
 
 EXTRA_DIST = xc.out.ref
 
-CLEANFILES = xc.out xc.tmp.* fldiff.report
+CLEANFILES = xc.out xc.tmp.* xc.report
 
 if USE_DGEMMSY
 libs_dgemmsy = $(top_builddir)/src/dgemmsy/libdgemmsy.a
