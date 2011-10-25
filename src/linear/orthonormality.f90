@@ -41,6 +41,7 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
   timeexpand=0.d0
   timecompress=0.d0
   converged=.false.
+  write(*,*) 'iproc, comon%nsend', iproc, comon%nsend
   do it=1,nItOrtho
       t1=mpi_wtime()
 
@@ -633,7 +634,7 @@ end subroutine getOverlapMatrix2
 
 
 
-subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, op, comon, tag)
+subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locregShape, op, comon, tag)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => initCommsOrtho
@@ -645,6 +646,7 @@ type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 type(input_variables),intent(in):: input
+character(len=1),intent(in):: locregShape
 type(overlapParameters),intent(out):: op
 type(p2pCommsOrthonormality),intent(out):: comon
 integer,intent(inout):: tag
@@ -662,7 +664,11 @@ allocate(op%noverlaps(orbs%norb), stat=istat)
 call memocc(istat, op%noverlaps, 'op%noverlaps',subname)
 
 ! Count how many overlaping regions each orbital / process has.
-call countOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
+if(locregShape=='c') then
+    call countOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
+else if(locregShape=='s') then
+    call countOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
+end if
 !write(*,'(a,3i8)') 'iproc, op%noverlaps, comon%noverlaps', iproc, op%noverlaps, comon%noverlaps
 
 allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
@@ -675,7 +681,11 @@ allocate(op%indexInSendBuf(orbs%norbp,orbs%norb), stat=istat)
 call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
 ! Determine the overlapping orbitals.
-call determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
+if(locregShape=='c') then
+    call determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
+else if(locregShape=='s') then
+    call determineOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
+end if
 
 op%noverlapsmaxp=maxval(op%noverlaps(orbs%isorb+1:orbs%isorb+orbs%norbp))
 allocate(op%olr(op%noverlapsmaxp,orbs%norbp), stat=istat)
@@ -686,7 +696,12 @@ do i2=1,orbs%norbp
 end do
 
 ! Set the orbital descriptors for the overlap regions.
-call determineOverlapDescriptors(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, op)
+if(locregShape=='c') then
+    call determineOverlapDescriptors(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, op)
+else if(locregShape=='s') then
+    call determineOverlapDescriptorsSphere(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, input%hx, input%hy, input%hz, op)
+end if
+
 
 comon%noverlapsmax=maxval(comon%noverlaps)
 allocate(comon%comarr(10,comon%noverlapsmax,0:nproc-1), stat=istat)
@@ -951,6 +966,72 @@ end subroutine countOverlaps
 
 
 
+! Count for each orbital and each process the number of overlapping orbitals.
+subroutine countOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbs
+type(local_zone_descriptors),intent(in):: lzd
+integer,dimension(orbs%norb),intent(in):: onWhichAtom
+type(overlapParameters),intent(out):: op
+type(p2pCommsOrthonormality),intent(out):: comon
+
+! Local variables
+integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
+integer:: js1, je1, js2, je2, js3, je3, iiorb
+logical:: ovrlpx, ovrlpy, ovrlpz
+real(8):: dx, dy, dz, rr
+
+iiorb=0
+do jproc=0,nproc-1
+    ioverlapMPI=0 ! counts the overlaps for the given MPI process.
+    ilrold=-1
+    do iorb=1,orbs%norb_par(jproc)
+        ioverlaporb=0 ! counts the overlaps for the given orbital.
+        iiorb=iiorb+1 ! counts the total orbitals
+        ilr=onWhichAtom(iiorb)
+        call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+        do jorb=1,orbs%norb
+            jlr=onWhichAtom(jorb)
+            call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+            ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+            ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+            ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+            !if(iproc==0) write(*,'(a,6i5,5x,6i5,5x,3l)') 'is1, ie1, is2, ie2, is3, ie3   js1, je1, js2, je2, js3, je3  ovrlpx, ovrlpy, ovrlpz', &
+            !  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ovrlpx, ovrlpy, ovrlpz
+            !if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+            dx=(lzd%llr(ilr)%locregCenter(1)-lzd%llr(jlr)%locregCenter(1))**2
+            dy=(lzd%llr(ilr)%locregCenter(2)-lzd%llr(jlr)%locregCenter(2))**2
+            dz=(lzd%llr(ilr)%locregCenter(3)-lzd%llr(jlr)%locregCenter(3))**2
+            rr=(lzd%llr(ilr)%locrad+lzd%llr(jlr)%locrad)**2
+            if(dx+dy+dz<=rr) then
+                ioverlaporb=ioverlaporb+1
+                if(ilr/=ilrold) then
+                    ! if ilr==ilrold, we are in the same localization region, so the MPI prosess
+                    ! would get the same orbitals again. Therefore the counter is not increased
+                    ! in that case.
+                    ioverlapMPI=ioverlapMPI+1
+                end if
+            end if
+        end do 
+        op%noverlaps(iiorb)=ioverlaporb
+        !!if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
+        ilrold=ilr
+    end do
+    comon%noverlaps(jproc)=ioverlapMpi
+    !if(iproc==0) write(*,'(a,2i8)') 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
+end do
+
+end subroutine countOverlapsSphere
+
+
+
+
+
 subroutine determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
 use module_base
 use module_types
@@ -1011,6 +1092,73 @@ logical:: ovrlpx, ovrlpy, ovrlpz
 end subroutine determineOverlaps
 
 
+subroutine determineOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbs
+type(local_zone_descriptors),intent(in):: lzd
+integer,dimension(orbs%norb),intent(in):: onWhichAtom
+type(overlapParameters),intent(out):: op
+type(p2pCommsOrthonormality),intent(out):: comon
+
+! Local variables
+integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
+integer:: js1, je1, js2, je2, js3, je3, iiorb
+logical:: ovrlpx, ovrlpy, ovrlpz
+real(8):: dx, dy, dz, rr
+
+  ! Initialize to some value which will never be used.
+  op%overlaps=-1
+  comon%overlaps=-1
+
+  iiorb=0
+  do jproc=0,nproc-1
+      ioverlapMPI=0 ! counts the overlaps for the given MPI process.
+      ilrold=-1
+      do iorb=1,orbs%norb_par(jproc)
+          ioverlaporb=0 ! counts the overlaps for the given orbital.
+          iiorb=iiorb+1 ! counts the total orbitals
+          ilr=onWhichAtom(iiorb)
+          call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+          do jorb=1,orbs%norb
+              jlr=onWhichAtom(jorb)
+              call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+              ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+              ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+              ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+              !if(iproc==0) write(*,'(a,6i5,5x,6i5,5x,3l)') 'is1, ie1, is2, ie2, is3, ie3   js1, je1, js2, je2, js3, je3  ovrlpx, ovrlpy, ovrlpz', &
+              !  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ovrlpx, ovrlpy, ovrlpz
+              dx=(lzd%llr(ilr)%locregCenter(1)-lzd%llr(jlr)%locregCenter(1))**2
+              dy=(lzd%llr(ilr)%locregCenter(2)-lzd%llr(jlr)%locregCenter(2))**2
+              dz=(lzd%llr(ilr)%locregCenter(3)-lzd%llr(jlr)%locregCenter(3))**2
+              rr=(lzd%llr(ilr)%locrad+lzd%llr(jlr)%locrad)**2
+              if(dx+dy+dz<=rr) then
+              !if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+                  ioverlaporb=ioverlaporb+1
+                  op%overlaps(ioverlaporb,iiorb)=jorb
+                  if(ilr/=ilrold) then
+                      ! if ilr==ilrold, we are in th same localization region, so the MPI prosess
+                      ! would get the same orbitals again. Therefore the counter is not increased
+                      ! in that case.
+                      ioverlapMPI=ioverlapMPI+1
+                      comon%overlaps(ioverlapMPI,jproc)=jorb
+                  end if
+              end if
+          end do 
+          !if(iproc==0) write(*,'(a,i3,5x,100i5)') 'iiorb, op%overlaps', iiorb, op%overlaps(:,iiorb) 
+          ilrold=ilr
+      end do
+      !if(iproc==0) write(*,'(a,i3,5x,100i5)') 'jproc, comon%overlaps', jproc, comon%overlaps(:,jproc) 
+  end do
+
+end subroutine determineOverlapsSphere
+
+
+
 
 subroutine determineOverlapDescriptors(iproc, nproc, orbs, lzd, Glr, onWhichAtom, op)
 use module_base
@@ -1045,6 +1193,46 @@ do iorb=1,orbs%norbp
 end do
 
 end subroutine determineOverlapDescriptors
+
+
+
+
+subroutine determineOverlapDescriptorsSphere(iproc, nproc, orbs, lzd, Glr, onWhichAtom, hx, hy, hz, op)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbs
+type(local_zone_descriptors),intent(in):: lzd
+type(locreg_descriptors),intent(in):: Glr
+integer,dimension(orbs%norb),intent(in):: onWhichAtom
+real(8):: hx, hy, hz
+type(overlapParameters),intent(inout):: op
+
+! Local variables
+integer:: iorb, jorb, jjorb, ilr, jlr, iiorb
+
+
+do iorb=1,orbs%norbp
+    iiorb=orbs%isorb_par(iproc)+iorb
+    ilr=onWhichAtom(iiorb)
+!if(iproc==0) write(*,'(a,2i10)') 'iorb, op%noverlaps(iorb)', iorb, op%noverlaps(iorb)
+    do jorb=1,op%noverlaps(iiorb)
+        jjorb=op%overlaps(jorb,iiorb)
+        jlr=onWhichAtom(jjorb)
+!write(*,*) 'calling get_overlap_region_periodic'
+        !call get_overlap_region_periodic(ilr, jlr, Glr, 1, lzd%llr, lzd%nlr, op%olr(jorb,iorb))
+        !call get_overlap_region_periodic2(ilr, jlr, Glr, 1, lzd%llr, lzd%nlr, op%olr(jorb,iorb))
+        call get_overlap_region_periodic2Sphere(ilr, jlr, Glr, hx, hy, hz, 1, lzd%llr, lzd%nlr, op%olr(jorb,iorb))
+        !write(*,'(a,13i8)') 'iproc, iorb, jorb, iiorb, jjorb, ilr, jlr, nvctr_c, nvctr_f, ncount, n1, n2, n3', iproc, iorb, jorb, iiorb, jjorb, ilr, jlr, &
+        !    op%olr(jorb,iorb)%wfd%nvctr_c, op%olr(jorb,iorb)%wfd%nvctr_f, op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f, op%olr(jorb,iorb)%d%n1, op%olr(jorb,iorb)%d%n2, op%olr(jorb,iorb)%d%n3
+    end do
+end do
+
+end subroutine determineOverlapDescriptorsSphere
+
 
 
 

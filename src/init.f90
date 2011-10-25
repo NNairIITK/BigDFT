@@ -523,7 +523,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      call timing(iproc,'constrc_locreg','OF')
 
    !determine the Lnlpspd
-   call prepare_lnlpspd(iproc, at, input, orbse, rxyz, radii_cf, lzd)
+   call prepare_lnlpspd(iproc, at, input, orbse, rxyz, radii_cf, 'c', lzd)
      !!call timing(iproc,'create_nlpspd ','ON')
      !!allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)
      !!do ilr=1,Lzd%nlr

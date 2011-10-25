@@ -2241,7 +2241,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine get_overlap_region_periodic
 
     subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
-       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,Lnlpspd,projflg)
+       radii_cf,cpmult,fpmult,hx,hy,hz,locregShape,nlpspd,Lnlpspd,projflg)
      use module_base
      use module_types
      implicit none 
@@ -2252,6 +2252,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      type(atoms_data),intent(in) :: atoms       
      type(orbitals_data),intent(in) :: orbs      
      real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz  
+     character(len=1),intent(in):: locregShape
      type(nonlocal_psp_descriptors),intent(in) :: nlpspd  
      type(nonlocal_psp_descriptors),intent(out) :: Lnlpspd   
      integer,dimension(atoms%nat),intent(out) :: projflg
@@ -2514,7 +2515,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine allocateLinArrays
 
 
-     subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr, phi, lphi)
+     subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr)
        use module_base
        use module_types
        implicit none
@@ -2523,7 +2524,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(linearParameters),intent(inout):: lin
        type(input_variables),intent(in):: input
        type(locreg_descriptors),intent(in):: Glr
-       real(8),dimension(:),pointer:: phi, lphi
      end subroutine initLocregs
 
 
@@ -2714,7 +2714,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters),intent(inout):: op
      end subroutine determineOverlapDescriptors
      
-     subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, op, comon, tag)
+     subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locregShape, op, comon, tag)
        use module_base
        use module_types
        implicit none
@@ -2723,6 +2723,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
        type(input_variables),intent(in):: input
+       character(len=1),intent(in):: locregShape
        type(overlapParameters),intent(out):: op
        type(p2pCommsOrthonormality),intent(out):: comon
        integer,intent(inout):: tag
@@ -3195,7 +3196,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine getDerivativeBasisFunctions2
 
 
-     subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, tag, lphi)
+     subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, locregShape, &
+                tag, lphi)
        use module_base
        use module_types
        implicit none
@@ -3205,6 +3207,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(input_variables),intent(in):: input
        real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
        real(8),dimension(orbsig%npsidim),intent(in):: lchi
+       character(len=1),intent(in):: locregShape
        integer,intent(inout):: tag
        real(8),dimension(orbs%npsidim),intent(out):: lphi
      end subroutine buildLinearCombinations
@@ -3752,7 +3755,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(matrixLocalizationRegion),intent(out):: mlr
     end subroutine nullify_matrixLocalizationRegion
 
-    subroutine initLocregs2(iproc, nat, rxyz, lzd, orbs, input, Glr, locrad)
+    subroutine initLocregs2(iproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape)
       use module_base
       use module_types
       implicit none
@@ -3763,6 +3766,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(input_variables),intent(in):: input
       type(locreg_descriptors),intent(in):: Glr
       real(8),dimension(lzd%nlr),intent(in):: locrad
+      character(len=1),intent(in):: locregShape
     end subroutine initLocregs2
 
     subroutine deallocate_linearParameters(lin, subname)
@@ -4610,7 +4614,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(p2pCommsGatherPot),intent(inout), optional:: comgp
      end subroutine full_local_potential2
 
-     subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
+     subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, lzd)
        use module_base
        use module_types
        implicit none
@@ -4620,6 +4624,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data),intent(in):: orbs
        real(8),dimension(3,at%nat),intent(in):: rxyz
        real(8),dimension(at%ntypes,3),intent(in):: radii_cf
+       character(len=1),intent(in):: locregShape
        type(local_zone_descriptors),intent(inout):: lzd
      end subroutine prepare_lnlpspd
 
@@ -4930,7 +4935,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
        subroutine getHamiltonianMatrix6(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, onWhichMPITemp, &
-                  input, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, memoryForCommunOverlapIG, tagout, ham)
+                  input, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, memoryForCommunOverlapIG, locregShape, &
+                  tagout, ham)
          use module_base
          use module_types
          implicit none
@@ -4945,6 +4951,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          logical,dimension(lzdig%nlr),intent(in):: skip
          type(matrixDescriptors),intent(in):: mad
          integer,intent(in):: memoryForCommunOverlapIG
+         character(len=1),intent(in):: locregShape
          integer,intent(inout):: tagout
          real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
        end subroutine getHamiltonianMatrix6

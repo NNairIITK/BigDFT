@@ -263,7 +263,7 @@ real(8),dimension(:),pointer:: lpot
               end if
           end if
       end do
-      call prepare_lnlpspd(iproc, at, input, lin%lb%orbs, rxyz, radii_cf, lin%lzd)
+      call prepare_lnlpspd(iproc, at, input, lin%lb%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
 
       call HamiltonianApplication3(iproc, nproc, at, lin%lb%orbs, input%hx, input%hy, input%hz, rxyz, &
            proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
@@ -283,7 +283,7 @@ real(8),dimension(:),pointer:: lpot
               end if
           end if
       end do
-      call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
+      call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
   end if
   iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
   deallocate(lin%lzd%doHamAppl, stat=istat)
@@ -2629,7 +2629,7 @@ end subroutine gatherPotential
 
 
 
-subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
+subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, lzd)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => prepare_lnlpspd
@@ -2642,6 +2642,7 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
   type(orbitals_data),intent(in):: orbs
   real(8),dimension(3,at%nat),intent(in):: rxyz
   real(8),dimension(at%ntypes,3),intent(in):: radii_cf
+  character(len=1),intent(in):: locregShape
   type(local_zone_descriptors),intent(inout):: lzd
   
   ! Local variables
@@ -2668,7 +2669,7 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
       call memocc(istat, lzd%Llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
 
       call nlpspd_to_locreg(input, iproc, lzd%Glr, lzd%Llr(ilr), rxyz, at, orbs, &
-           radii_cf, input%frmult, input%frmult, input%hx, input%hy, input%hz, lzd%Gnlpspd, &
+           radii_cf, input%frmult, input%frmult, input%hx, input%hy, input%hz, locregShape, lzd%Gnlpspd, &
            lzd%lnlpspd(ilr), lzd%llr(ilr)%projflg)
 
   end do

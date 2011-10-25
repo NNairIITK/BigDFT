@@ -8,7 +8,7 @@
 !! SOURCE:
 !!
 subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
-       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,Lnlpspd,projflg)
+       radii_cf,cpmult,fpmult,hx,hy,hz,locregShape,nlpspd,Lnlpspd,projflg)
 
   use module_base
   use module_types
@@ -25,6 +25,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
   type(atoms_data),intent(in) :: atoms        ! atom descriptors
   type(orbitals_data),intent(in) :: orbs      ! orbital descriptors
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz  ! grid descriptions
+  character(len=1),intent(in):: locregShape
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd  ! global descriptors for the projectors
   type(nonlocal_psp_descriptors),intent(out) :: Lnlpspd  ! local descriptors for the projectors 
   !########################################
@@ -96,7 +97,12 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
 &                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,3),cpmult,hx,hy,hz,logrid)
 
-     call number_of_projector_elements_in_locreg(iatom,1,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_c,mvctr_c)
+     if(locregShape=='c') then
+         call number_of_projector_elements_in_locreg(iatom,1,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_c,mvctr_c)
+     else if(locregShape=='s') then
+         call number_of_projector_elements_in_locregSphere(iatom,1,atoms,Glr,Llr,logrid,nlpspd, &
+         hx, hy, hz, llr%locrad, llr%locregCenter, mproj,mseg_c,mvctr_c)
+     end if
 
      Lnlpspd%nseg_p(2*iat-1) = mseg_c
      Lnlpspd%nvctr_p(2*iat-1) = mvctr_c 
@@ -114,7 +120,12 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
 &                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,2),fpmult,hx,hy,hz,logrid)
 
-     call number_of_projector_elements_in_locreg(iatom,2,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_f,mvctr_f)
+     if(locregShape=='c') then
+         call number_of_projector_elements_in_locreg(iatom,2,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_f,mvctr_f)
+      else 
+         call number_of_projector_elements_in_locregSphere(iatom,2,atoms,Glr,Llr,logrid,nlpspd, &
+              hx, hy, hz, llr%locrad, llr%locregCenter, mproj,mseg_f,mvctr_f)
+     end if
 
      Lnlpspd%nseg_p(2*iat) = mseg_f
      Lnlpspd%nvctr_p(2*iat) = mvctr_f
@@ -156,10 +167,18 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 
 !    Coarse part 
      if (Lnlpspd%nseg_p(2*iat-1) > 0) then
-        call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-            Gseg,Gvctr,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
-            Lnlpspd%nseg_p(2*iat-1),Lnlpspd%nvctr_p(2*iat-1),&
-            Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
+        if(locregShape=='c') then
+            call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+                Gseg,Gvctr,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
+                Lnlpspd%nseg_p(2*iat-1),Lnlpspd%nvctr_p(2*iat-1),&
+                Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
+        else if(locregShape=='s') then
+            call segkeys_locSphere(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+                Gseg,Gvctr,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
+                hx, hy, hz, llr%locrad, llr%locregCenter, &
+                Lnlpspd%nseg_p(2*iat-1),Lnlpspd%nvctr_p(2*iat-1),&
+                Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
+        end if
      end if
 
      iseg = iseg + Lnlpspd%nseg_p(2*iat-1)      
@@ -170,11 +189,18 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
         Gvctr = nlpspd%nvctr_p(2*iatom)-nlpspd%nvctr_p(2*iatom-1)!number of elements for global region
 
 !    Fine part 
-        call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-             Gseg,Gvctr,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
-             Lnlpspd%nseg_p(2*iat),Lnlpspd%nvctr_p(2*iat),&
-             Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
-
+        if(locregShape=='c') then
+            call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+                 Gseg,Gvctr,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
+                 Lnlpspd%nseg_p(2*iat),Lnlpspd%nvctr_p(2*iat),&
+                 Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
+        else if(locregShape=='s') then
+            call segkeys_locSphere(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+                 Gseg,Gvctr,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
+                 hx, hy, hz, llr%locrad, llr%locregCenter, &
+                 Lnlpspd%nseg_p(2*iat),Lnlpspd%nvctr_p(2*iat),&
+                 Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
+        end if
         iseg = iseg + Lnlpspd%nseg_p(2*iat)
      end if 
   end do
@@ -521,6 +547,199 @@ subroutine number_of_projector_elements_in_locreg(iatom,igrid,atoms,Glr,Llr,logr
 
 END SUBROUTINE number_of_projector_elements_in_locreg
 !%***
+
+
+
+
+subroutine number_of_projector_elements_in_locregSphere(iatom,igrid,atoms,Glr,Llr,logrid,nlpspd,&
+           hx, hy, hz, locrad, locregCenter, mproj,mseg,mvctr)
+
+  use module_base
+  use module_types
+ 
+ implicit none
+
+  !#######################################
+  ! Subroutine Scalar Arguments
+  !#######################################
+  integer,intent(in) :: iatom  ! current atom
+  integer,intent(in) :: igrid  ! treat coarse (1) or fine (2) grid
+  type(atoms_data),intent(in) :: atoms        ! atoms descriptor
+  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+  type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
+  type(nonlocal_psp_descriptors),intent(in) :: nlpspd  ! global descriptors for the projectors
+  real(8),intent(in):: hx, hy, hz, locrad
+  real(8),dimension(3),intent(in):: locregCenter
+  integer,intent(in) :: mproj  ! number of projectors
+  integer,intent(out):: mseg   ! number of segments
+  integer,intent(out):: mvctr  ! number of elements
+  !#######################################
+  ! Subroutine Array Arguments
+  !#######################################
+  logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid
+  !#######################################
+  ! Local Variables
+  !#######################################
+  integer :: i1,i2,i3  ! integers for loops
+  integer :: nl1,nl2,nl3,nu1,nu2,nu3   ! rename the bounds of projectors coarse grid
+  integer :: nend,nsrt,mvctri,nsrti,nendi
+  integer,dimension(1:2,1:3) :: bound  ! rename the bounds of locreg
+  logical :: plogrid   ! logical to check start of new segment
+  real(8):: cut, dx, dy, dz
+
+
+! Set boundaries of projectors (coarse)
+   if(igrid == 1) then
+      nl1 = nlpspd%nboxp_c(1,1,iatom)
+      nl2 = nlpspd%nboxp_c(1,2,iatom)
+      nl3 = nlpspd%nboxp_c(1,3,iatom)
+
+      nu1 = nlpspd%nboxp_c(2,1,iatom)
+      nu2 = nlpspd%nboxp_c(2,2,iatom)
+      nu3 = nlpspd%nboxp_c(2,3,iatom)
+
+   end if
+
+! Set boundaries of projectors (fine)
+   if(igrid == 2) then
+      nl1 = nlpspd%nboxp_f(1,1,iatom)
+      nl2 = nlpspd%nboxp_f(1,2,iatom)
+      nl3 = nlpspd%nboxp_f(1,3,iatom)
+
+      nu1 = nlpspd%nboxp_f(2,1,iatom)
+      nu2 = nlpspd%nboxp_f(2,2,iatom)
+      nu3 = nlpspd%nboxp_f(2,3,iatom)
+   end if
+
+! bounds of the localization region
+  !lower bound
+  bound(1,1) = Llr%ns1 - Glr%ns1
+  bound(1,2) = Llr%ns2 - Glr%ns2
+  bound(1,3) = Llr%ns3 - Glr%ns3
+
+  !upper bound  (WILL NOT WORK FOR PERIODICITY)
+  bound(2,1) = Llr%ns1 + Llr%d%n1 - Glr%ns1
+  bound(2,2) = Llr%ns2 + Llr%d%n2 - Glr%ns2
+  bound(2,3) = Llr%ns3 + Llr%d%n3 - Glr%ns3 
+
+  if (igrid == 1) then
+!Initialize counters
+     mvctr=0
+     nsrt=0
+     nend=0
+     mvctri=0
+     nsrti=0
+     nendi=0
+
+! Do coarse grid
+     cut=locrad**2
+     do i3=nl3,nu3
+        dz=(i3*hz-locregCenter(3))**2
+        !if(i3 > bound(2,3) .or. i3 < bound(1,3)) cycle
+        do i2=nl2,nu2
+           dy=(i2*hy-locregCenter(2))**2
+           !if(i2 > bound(2,2) .or. i2 < bound(1,2)) cycle
+           plogrid=.false.
+           do i1=nl1,nu1
+              dx=(i1*hy-locregCenter(1))**2
+              if(dx+dy+dz>cut) cycle
+              !if(i1 > bound(2,1) .or. i1 < bound(1,1))cycle
+
+              if(logrid(i1,i2,i3)) then
+                 mvctri=mvctri+1
+                 if (.not. plogrid) then
+                    nsrti=nsrti+1
+                 endif
+              else
+                 if(plogrid) then
+                    nendi=nendi+1
+                 endif
+              endif
+              plogrid=logrid(i1,i2,i3)
+           enddo
+           if (i2 .le. bound(2,2) .and. i2 .ge. bound(1,2) .and. &
+&              i3 .le. bound(2,3) .and. i3 .ge. bound(1,3) .and. &
+               plogrid .eqv. .true.) then
+              nendi=nendi+1
+           endif
+        enddo
+     enddo
+
+     mvctr=mvctr+mvctri
+     nsrt=nsrt+nsrti
+     nend=nend+nendi
+
+     if (nend /= nsrt) then
+        write(*,*)' ERROR in number_of_projector_elements_in_locregSphere : nend <> nsrt',nend,nsrt
+        stop
+     endif
+     mseg=nend
+  end if
+
+  if(igrid == 2) then
+
+     !Initialize counters
+     mvctr=0
+     nsrt=0
+     nend=0
+     mvctri=0
+     nsrti=0
+     nendi=0
+
+! Do fine grid
+     cut=locrad**2
+     do i3=nl3,nu3
+        !if(i3 > bound(2,3) .or. i3 < bound(1,3)) cycle
+        dz=(i3*hz-locregCenter(3))**2
+        do i2=nl2,nu2
+           !if(i2 > bound(2,2) .or. i2 < bound(1,2)) cycle
+           dy=(i2*hy-locregCenter(2))**2
+           plogrid=.false.
+           do i1=nl1,nu1
+              !if(i1 > bound(2,1) .or. i1 < bound(1,1))cycle
+              dx=(i1*hx-locregCenter(1))**2
+              if(dx+dy+dz>cut) cycle
+
+              if(logrid(i1,i2,i3)) then
+                 mvctri=mvctri+1
+                 if (.not. plogrid) then
+                    nsrti=nsrti+1
+                 endif
+              else
+                 if(plogrid) then
+                    nendi=nendi+1
+                 endif
+              endif
+              plogrid=logrid(i1,i2,i3)
+           enddo
+           if (i2 .le. bound(2,2) .and. i2 .ge. bound(1,2) .and. &
+&              i3 .le. bound(2,3) .and. i3 .ge. bound(1,3) .and. &
+               plogrid .eqv. .true.) then
+              nendi=nendi+1
+           endif
+        enddo
+     enddo
+
+     mvctr=mvctr+mvctri
+     nsrt=nsrt+nsrti
+     nend=nend+nendi
+
+     if (nend /= nsrt) then
+        write(*,*)' ERROR in number_of_projector_elements_in_locreg (fine) : nend <> nsrt',nend,nsrt
+        stop
+     endif
+     mseg=nend
+  end if
+
+END SUBROUTINE number_of_projector_elements_in_locregSphere
+
+
+
+
+
+
+
+
 
 
 !#############################################################################################################################################
@@ -1420,4 +1639,92 @@ subroutine ApplyProjectorsLinear(iproc,hx,hy,hz,atoms,Lzd,orbs,rxyz,psi,hpsi,epr
 
 end subroutine ApplyProjectorsLinear
 
+
+
+subroutine segkeys_locSphere(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
+     hx, hy, hz, locrad, locregCenter, nseg_loc,nvctr_loc,keyg_loc,keyv_loc)!,keymask)
+  implicit none
+  integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
+  integer, dimension(nseg), intent(in) :: keyv
+  integer, dimension(2,nseg), intent(in) :: keyg
+  real(8),intent(in):: hx, hy, hz, locrad
+  real(8),dimension(3),intent(in):: locregCenter
+  integer, dimension(nseg_loc), intent(out) :: keyv_loc
+  integer, dimension(2,nseg_loc), intent(out) :: keyg_loc!,keymask
+  !local variables
+  logical :: go,lseg
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
+  integer :: ngridp
+  real(8):: cut, dx, dy, dz
+
+  !dimensions of the localisation region (O:nIl)
+  n1l=i1ec-i1sc
+  n2l=i2ec-i2sc
+  n3l=i3ec-i3sc
+
+  !control variable
+  nvctr_check=0
+  !start and end points
+  nsrt=0
+  nend=0
+
+  cut=locrad**2
+  do iseg=1,nseg
+     jj=keyv(iseg)
+     j0=keyg(1,iseg)
+     j1=keyg(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     !go=(i3sc <= i3 .and. i3 <= i3ec) .and. (i2sc <= i2 .and. i2 <= i2ec)
+     lseg=.false.
+     do i=i0,i1
+        !index of the compressed function
+        ind=i-i0+jj
+        i1l=i-i1sc
+        i2l=i2-i2sc
+        i3l=i3-i3sc
+        ngridp=i3l*((n1l+1)*(n2l+1)) + i2l*(n1l+1) + i1l+1
+
+        dz=((i3*hz)-locregCenter(3))**2
+        dy=((i2*hy)-locregCenter(2))**2
+        dx=((i*hx)-locregCenter(1))**2
+        if(dx+dy+dz<cut) then
+        !if (go .and. (i1sc <= i .and. i <= i1ec)) then
+           nvctr_check=nvctr_check+1
+           if (.not. lseg) then
+              nsrt=nsrt+1
+              !keymask(1,nsrt)=ind
+              keyg_loc(1,nsrt)=ngridp
+              keyv_loc(nsrt)=nvctr_check
+           end if
+           lseg=.true.
+        else
+           if (lseg) then
+              nend=nend+1
+              !keymask(2,nend)=ind-1
+              keyg_loc(2,nend)=ngridp-1
+              lseg=.false.
+           end if
+        end if
+     end do
+     if (lseg) then
+        nend=nend+1
+        !keymask(2,nend)=ind
+        keyg_loc(2,nend)=ngridp
+     end if
+  end do
+
+  !check
+  if (nvctr_check /= nvctr_loc .or. nend /= nsrt .or. nend /= nseg_loc) then
+     write(*,'(1x,a,5(i6))')&
+          'ERROR: problem in segkeys_locSphere',&
+          nvctr_check,nvctr_loc,nend,nsrt,nseg_loc
+     stop
+  end if
+
+END SUBROUTINE segkeys_locSphere
 

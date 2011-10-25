@@ -1629,6 +1629,8 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
 
         ! Define the length of the two segments
         length = min(lmax,Gmax)-max(lmin,Gmin)
+        if(Gmax<lmax) write(*,'(a,2i7)') 'strange: Gmax<lmax, Gmax, lmax', Gmax, lmax
+        if(Gmin>lmin) write(*,'(a,2i7)') 'strange: Gmin>lmin, Gmin, lmin', Gmin, lmin
 
         !Find the common elements and write them to the new global wavefunction
         ! WARNING: index goes from 0 to length because it is the offset of the element

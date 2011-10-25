@@ -171,7 +171,12 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 ! Initialize the localization regions.
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing localization regions... '
 t1=mpi_wtime()
-call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
+call initLocregs(iproc, at%nat, rxyz, lin, input, Glr)
+allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
+call memocc(istat, phi, 'phi', subname)
+allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
+call memocc(istat, lphi, 'lphi', subname)
+
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 npsidim = 0
@@ -257,8 +262,8 @@ if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 ! Initialize the parameters for the communication for the orthonormalization.
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing communications orthonormalization... '
 t1=mpi_wtime()
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg, input, lin%locregShape, lin%op, lin%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, input, lin%locregShape, lin%lb%op, lin%lb%comon, tag)
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
@@ -365,7 +370,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
   read(99,*) lin%startWithSD, lin%startDIIS
   read(99,*) lin%nItPrecond
-  read(99,*) lin%getCoeff
+  read(99,*) lin%getCoeff, lin%locregShape
   read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
   read(99,*) lin%nproc_pdsyev, lin%nproc_pdgemm
   read(99,*) lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho
@@ -555,7 +560,7 @@ write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a,a,i0,4x,a)') '|',repeat('
     '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm,'|',&
     repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm, '|',&
     repeat(' ', 8-ceiling(log10(dble(abs(lin%memoryForCommunOverlapIG)+1)+1.d-10))),lin%memoryForCommunOverlapIG, '|'
-
+write(*,'(x,a)') 'lin%locregShape:',lin%locregShape
 
 
 written=.false.
@@ -864,6 +869,13 @@ integer:: norbTarget, nprocIG, ierr
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if
+
+  if(lin%locregShape/='c' .and. lin%locregShape/='s') then
+      if(iproc==0) write(*,*) "ERROR: lin%locregShape must be 's' or 'c'!"
+      call mpi_barrier(mpi_comm_world, ierr)
+      stop
+  end if
+
 
 
 end subroutine checkLinearParameters
@@ -1506,7 +1518,7 @@ end subroutine allocateBasicArrays
 
 
 
-subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr, phi, lphi)
+subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => initLocregs
@@ -1518,7 +1530,6 @@ real(8),dimension(3,nat),intent(in):: rxyz
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
 type(locreg_descriptors),intent(in):: Glr
-real(8),dimension(:),pointer:: phi, lphi
 
 ! Local variables
 integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
@@ -1552,11 +1563,23 @@ end do
              exit
          end if
      end do
+     lin%lzd%llr(ilr)%locrad=lin%locrad(ilr)
+     lin%lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
  end do
 
- call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, &
-      Glr, lin%lzd%Llr, calculateBounds)
+ if(lin%locregShape=='c') then
+     call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, &
+          Glr, lin%lzd%Llr, calculateBounds)
+ else if(lin%locregShape=='s') then
+     call determine_locregSphere(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, &
+          Glr, lin%lzd%Llr, calculateBounds)
+ end if
  !call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr, calculateBounds)
+
+ if(iproc==0) write(*,'(a,2i9)') 'glr%wfd%nvctr_c, glr%wfd%nvctr_f', glr%wfd%nvctr_c, glr%wfd%nvctr_f
+ do ilr=1,lin%lzd%nlr
+     if(iproc==0) write(*,'(a,i4,2i9)') 'ilr, nvctrc_c, nvctr_f', ilr, lin%lzd%Llr(ilr)%wfd%nvctr_c, lin%lzd%Llr(ilr)%wfd%nvctr_f
+ end do
 
  iall=-product(shape(calculateBounds))*kind(calculateBounds)
  deallocate(calculateBounds, stat=istat)
@@ -1594,11 +1617,11 @@ end if
 lin%lzd%linear=.true.
 
 
-allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
-call memocc(istat, phi, 'phi', subname)
-
-allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
-call memocc(istat, lphi, 'lphi', subname)
+!!allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
+!!call memocc(istat, phi, 'phi', subname)
+!!
+!!allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
+!!call memocc(istat, lphi, 'lphi', subname)
 
 !allocate(lin%lphiold(lin%lb%orbs%npsidim), stat=istat)
 !call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
@@ -1610,10 +1633,14 @@ end subroutine initLocregs
 
 
 
+
+
+
+
 !> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
 !! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
 !subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
-subroutine initLocregs2(iproc, nat, rxyz, lzd, orbs, input, Glr, locrad)
+subroutine initLocregs2(iproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => initLocregs2
@@ -1627,6 +1654,7 @@ type(orbitals_data),intent(inout):: orbs
 type(input_variables),intent(in):: input
 type(locreg_descriptors),intent(in):: Glr
 real(8),dimension(lzd%nlr),intent(in):: locrad
+character(len=1),intent(in):: locregShape
 !real(8),dimension(:),pointer:: phi, lphi
 
 ! Local variables
@@ -1643,19 +1671,6 @@ end do
 !! ATTENTION: WHAT ABOUT OUTOFZONE??
 
 
-!! Write some physical information on the Glr
-!if(iproc==0) then
-!    write(*,'(x,a)') '>>>>> Global localization region:'
-!    write(*,'(3x,a,3i6)')'Global region n1,n2,n3: ',Glr%d%n1,Glr%d%n2,Glr%d%n3
-!    write(*,'(3x,a,3i6)')'Global region n1i,n2i,n3i: ',Glr%d%n1i,Glr%d%n2i,Glr%d%n3i
-!    write(*,'(3x,a,3i6)')'Global region nfl1,nfl2,nfl3: ',Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3
-!    write(*,'(3x,a,3i6)')'Global region nfu1,nfu2,nfu3: ',Glr%d%nfu1,Glr%d%nfu2,Glr%d%nfu3
-!    write(*,'(3x,a,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Glr%d%n1*input%hx,Glr%d%n2*input%hy,Glr%d%n3*input%hz
-!    write(*,'(3x,a,f10.2)')'Global volume: ',Glr%d%n1*input%hx*Glr%d%n2*input%hy*Glr%d%n3*input%hz
-!    write(*,'(3x,a,4i10)')'Global statistics: nseg_c, nseg_f, nvctr_c, nvctr_f',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
-!    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
-!end if
-
  allocate(calculateBounds(lzd%nlr), stat=istat)
  call memocc(istat, calculateBounds, 'calculateBounds', subname)
  calculateBounds=.false.
@@ -1670,7 +1685,13 @@ end do
      end do
  end do
 
- call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr, calculateBounds)
+ if(locregShape=='c') then
+     call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr, calculateBounds)
+ else if(locregShape=='s') then
+     call determine_locregSphere(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, &
+          Glr, lzd%Llr, calculateBounds)
+ end if
+
 
  iall=-product(shape(calculateBounds))*kind(calculateBounds)
  deallocate(calculateBounds, stat=istat)

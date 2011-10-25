@@ -297,6 +297,8 @@ module module_types
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
+     real(8),dimension(3):: locregCenter !< center of the locreg (used for O(N) versions)
+     real(8):: locrad !< cutoff radius of the localization region (used for O(N) versions)
   end type locreg_descriptors
 
 
@@ -589,6 +591,7 @@ end type largeBasis
     type(overlapParameters):: op
     type(linearInputGuess):: lig
     type(matrixDescriptors):: mad
+    character(len=1):: locregShape
   end type linearParameters
 
 !> Contains the arguments needed for the diis procedure

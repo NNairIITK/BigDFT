@@ -160,10 +160,10 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call memocc(istat, rhopotold, 'rhopotold', subname)
   allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
-  rhopotold_out=1.d100
+  !rhopotold_out=1.d100
 
 
-  call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
+  call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
 
   potshortcut=0 ! What is this?
   call mpi_barrier(mpi_comm_world, ierr)
@@ -240,6 +240,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
               mixdiis%is=mixdiis%is+1
               call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 1, pnrm)
           end if
+          rhopotold_out=rhopot
       end if
 
       ! if we mix the density, copy the current charge density.
@@ -264,6 +265,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
               mixdiis%is=mixdiis%is+1
               call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 2, pnrm)
           end if
+          rhopotold_out=rhopot
       end if
 
       ! Copy the current potential
@@ -355,12 +357,18 @@ real(8),dimension(:,:),allocatable:: ovrlp
                       end do
                       call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
                       pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+                      !!!! EXPERIMENTAL !!
+                      !!do i=1,Glr%d%n1i*Glr%d%n2i*n3p
+                      !!    rhopot(i)=.5d0*rhopotOld_out(i)+.5d0*rhopot(i)
+                      !!end do
+                      !!!! END EXPERIMENTAL !!
                       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld_out(1), 1)
                   end if
               end if
           end if
 
           ! Copy the current charge density.
+          !!if(trim(lin%mixingMethod)=='dens' .and. .not.(pnrm<selfConsistent .or. itSCC==nitSCC+10)) then
           if(trim(lin%mixingMethod)=='dens') then
               call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
           end if
