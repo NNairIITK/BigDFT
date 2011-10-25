@@ -299,8 +299,6 @@ contains
     
   end subroutine compare_cplx_calculations
 
-
-
   subroutine compare_with_reference(iproc,nproc,geocode,distcode,n01,n02,n03,&
        ixc,nspden,hx,hy,hz,offset,ehref,excref,vxcref,&
        density,potential,pot_ion,xc_pot,pkernel)
@@ -404,9 +402,9 @@ contains
     end if
 
      call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-          rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc)
+          rhopot,eexcu,vexcu,nspden,rhocore,test_xc)
      call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
-          rhopot(1,1,1,1),pkernel,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
+          rhopot,pkernel,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
      !compare the values of the analytic results (no dependence on spin)
      call compare(iproc,nproc,n01,n02,n3p,1,potential(istpot),rhopot(1,1,1,1),&
           'ANACOMPLET '//message)

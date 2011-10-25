@@ -806,6 +806,62 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
   end if
 END SUBROUTINE applyprojector
 
+!> Applies the projector associated on a given atom on a corresponding orbital
+!! uses a generic representation of the projector to generalize the form of the projector  
+subroutine apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,eproj)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iat,iorb
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(in) :: psi
+  integer, intent(inout) :: istart_c !< address of the starting point of the projector in proj array
+  real(gp), intent(inout) :: eproj
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
+  !local variables
+  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx
+  real(gp) :: eproj_spinor
+
+  !parameter for the descriptors of the projectors
+  ityp=at%iatype(iat)
+  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+  mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
+
+  mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+  mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
+  jseg_c=nlpspd%nseg_p(2*iat-2)+1
+ 
+  !complex functions or not
+  !this should be decided as a function of the orbital
+  !features of the k-point ikpt
+  call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
+
+  istart_c_i=istart_c
+  do ispinor=1,orbs%nspinor,ncplx
+     eproj_spinor=0.0_gp
+     if (ispinor >= 2) istart_c=istart_c_i
+     !GTH and HGH pseudopotentials
+     do l=1,4
+        do i=1,3
+           if (at%psppar(l,i,ityp) /= 0.0_gp) then
+              call applyprojector(ncplx,l,i,at%psppar(0,0,ityp),at%npspcode(ityp),&
+                   wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
+                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                   nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
+                   psi(1,ispinor),hpsi(1,ispinor),eproj_spinor)
+              istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
+           end if
+        enddo
+     enddo
+     eproj=eproj+&
+          orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_spinor
+  end do
+END SUBROUTINE apply_atproj_iorb_new
+
 
 subroutine applyprojector_old(l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
