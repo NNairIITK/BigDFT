@@ -58,7 +58,7 @@ libpoissonsolver_a_SOURCES = \
 	../lib/fft/fft3d.f90 \
 	../profiling/time.f90 
 
-libpoissonsolver_a_LIBADD = ../modules/libmodules.a
+#libpoissonsolver_a_LIBADD = ../modules/libmodules.a
 
 
 CLEANFILES = malloc.prc time.prc \

@@ -825,20 +825,16 @@ Installation paths:
 "
 
 if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" ; then
-  echo -n "Warnings:"
+  echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
-    echo -n "
-  MPI:                       disabled by tests"
+    echo "  MPI:                       disabled by tests"
   fi
   if test x"$ac_use_archive" = x"warn" ; then
-    echo -n "
-  libarchive:                disabled by tests"
+    echo "  libarchive:                disabled by tests"
   fi
   if test x"$ac_use_etsfio" = x"warn" ; then
-    echo -n "
-  ETSF_IO:                   disabled by tests"
+    echo "  ETSF_IO:                   disabled by tests"
   fi
-  echo
 fi
 
 dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
