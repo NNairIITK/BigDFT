@@ -9,6 +9,7 @@ News
  - Splined saddle search method
  - Bader analysis
  - Add non-linear core correction with HGH pseudopotentials
+
 2011/04/22 Version 1.5.3
  - Correct some bugs mainly with when we combine MPI, OpenMP and OpenCL
 2011/03/25 Version 1.5.2
