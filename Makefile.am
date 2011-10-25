@@ -47,3 +47,6 @@ SUBDIRS = $(libXC_dir) \
 
 check:
 	@python $(top_srcdir)/tests/report.py
+
+report:
+	@python $(top_srcdir)/tests/report.py
