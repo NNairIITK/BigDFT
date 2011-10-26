@@ -48,8 +48,9 @@ libbasec_a_SOURCES = OpenCL_wrappers.c \
                      Reduction_Generator.cpp \
                      Preconditioner.c \
                      Density.c \
-                     fft.c \
+                     dsfft.c \
                      fft_generator_noshared.cpp \
+                     fft_noshared.c \
                      fft_generator_helper.cpp \
                      dsfft_generator.cpp \
                      Benchmark.c \
