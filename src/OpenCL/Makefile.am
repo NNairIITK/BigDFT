@@ -49,7 +49,9 @@ libbasec_a_SOURCES = OpenCL_wrappers.c \
                      Preconditioner.c \
                      Density.c \
                      fft.c \
-                     fft_generator.cpp \
+                     fft_generator_noshared.cpp \
+                     fft_generator_helper.cpp \
+                     dsfft_generator.cpp \
                      Benchmark.c \
                      Benchmark_Generator.cpp
 libOCL_a_SOURCES = $(libbasec_a_SOURCES)
