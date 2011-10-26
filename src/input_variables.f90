@@ -468,7 +468,7 @@ subroutine mix_input_variables_new(iproc,filename,in)
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   !local variables
-  character(len=*), parameter :: subname='mix_input_variables'
+  !n(c) character(len=*), parameter :: subname='mix_input_variables'
   logical :: exists
 
   !Mix parameters, needed for the SCF poart with Davidson
@@ -506,7 +506,7 @@ subroutine mix_input_variables(filename,in)
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   !local variables
-  character(len=*), parameter :: subname='mix_input_variables'
+  !n(c) character(len=*), parameter :: subname='mix_input_variables'
   integer :: ierror,iline
   logical :: exists
 
@@ -600,7 +600,7 @@ subroutine geopt_input_variables_new(iproc,filename,in)
 !     return
 !  end if
 
-  call input_var(in%geopt_approach,"BFGS",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD','DIIS '/),&
+  call input_var(in%geopt_approach,"BFGS",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD','DIIS ','FIRE '/),&
        comment="Geometry optimisation method")
   call input_var(in%ncount_cluster_x,'1',ranges=(/0,2000/),&
        comment="Maximum number of force evaluations")
@@ -804,7 +804,7 @@ subroutine sic_input_variables_new(iproc,filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
-  character(len=*), parameter :: subname='sic_input_variables'
+  !n(c) character(len=*), parameter :: subname='sic_input_variables'
 
   !Self-Interaction Correction input parameters
   call input_set_file(iproc,trim(filename),exists,'SIC Parameters')  
@@ -840,7 +840,7 @@ subroutine tddft_input_variables_new(iproc,filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
-  character(len=*), parameter :: subname='tddft_input_variables'
+  !n(c) character(len=*), parameter :: subname='tddft_input_variables'
 
   !TD-DFT parameters
   call input_set_file(iproc,trim(filename),exists,'TD-DFT Parameters')  
@@ -861,7 +861,7 @@ subroutine tddft_input_variables(filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
-  character(len=*), parameter :: subname='tddft_input_variables'
+  !n(c) character(len=*), parameter :: subname='tddft_input_variables'
   integer :: iline, ierror
 
   inquire(file=trim(filename),exist=exists)
@@ -1391,7 +1391,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: inputs
   !local variables
-  character(len=*), parameter :: subname='perf_input_variables'
+  !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
   integer :: iline,ierror,ierr,blocks(2)
 
@@ -1646,7 +1646,7 @@ subroutine frequencies_input_variables_new(iproc,filename,in)
   integer, intent(in) :: iproc
   !Local variables
   logical :: exists
-  integer, parameter :: iunit=111
+  !n(c) integer, parameter :: iunit=111
 
   !Frequencies parameters
   call input_set_file(iproc,trim(filename),exists,'Frequencies Parameters')  
@@ -1960,7 +1960,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
    type(atoms_data), intent(inout) :: atoms
    real(gp), dimension(:,:), pointer :: rxyz
    !Local variables
-   character(len=*), parameter :: subname='read_atomic_file'
+   !n(c) character(len=*), parameter :: subname='read_atomic_file'
    integer :: l, extract
    logical :: file_exists, archive
    character(len = 128) :: filename
@@ -3671,3 +3671,99 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
 END SUBROUTINE processor_id_per_node
+
+
+!> initialize_atomic_file
+!! @author
+!! Written by Laurent K Beland 2011 UdeM
+!! this routine does the same operations as
+!! read_atomic_file but uses inputs from memory
+!! as input positions instead of inputs from file
+!! Useful for QM/MM implementation of BigDFT-ART
+subroutine initialize_atomic_file(iproc,atoms,rxyz)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => read_atomic_file
+  use m_ab6_symmetry
+  implicit none
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
+  !local variables
+  character(len=*), parameter :: subname='initialize_atomic_file'
+  integer :: i_stat, l
+  integer :: iat,i
+
+  allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
+
+  if (atoms%geocode=='S') then 
+        atoms%alat2=0.0_gp
+  else if (atoms%geocode=='F') then !otherwise free bc    
+        atoms%alat1=0.0_gp
+        atoms%alat2=0.0_gp
+        atoms%alat3=0.0_gp
+  else
+        atoms%alat1=0.0_gp
+        atoms%alat2=0.0_gp
+        atoms%alat3=0.0_gp
+  end if
+
+  !reduced coordinates are possible only with periodic units
+  if (atoms%units == 'reduced' .and. atoms%geocode == 'F') then
+     if (iproc==0) write(*,'(1x,a)')&
+          'ERROR: Reduced coordinates are not allowed with isolated BC'
+  end if
+
+   !convert the values of the cell sizes in bohr
+  if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
+     ! if Angstroem convert to Bohr
+     atoms%alat1=atoms%alat1/bohr2ang
+     atoms%alat2=atoms%alat2/bohr2ang
+     atoms%alat3=atoms%alat3/bohr2ang
+  else if (atoms%units == 'reduced') then
+     !assume that for reduced coordinates cell size is in bohr
+     atoms%alat1=real(atoms%alat1,gp)
+     atoms%alat2=real(atoms%alat2,gp)
+     atoms%alat3=real(atoms%alat3,gp)
+  else
+     write(*,*) 'length units in input file unrecognized'
+     write(*,*) 'recognized units are angstroem or atomic = bohr'
+     stop 
+  endif
+  
+  do iat=1,atoms%nat
+     !xyz input file, allow extra information
+     
+     if (atoms%units == 'reduced') then !add treatment for reduced coordinates
+        rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
+        if (atoms%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
+        rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
+     else if (atoms%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'S') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     end if
+ 
+     if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
+        ! if Angstroem convert to Bohr
+        do i=1,3 
+           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
+        enddo
+     else if (atoms%units == 'reduced') then 
+        rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
+        if (atoms%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
+        rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
+     endif
+  enddo
+
+  !control atom positions
+  call check_atoms_positions(iproc,atoms,rxyz)
+
+  ! We delay the calculation of the symmetries.
+  atoms%symObj = -1
+
+END SUBROUTINE initialize_atomic_file

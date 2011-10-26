@@ -23,7 +23,7 @@
 
       <div class="floatingmenu">
         <a href="H2D.html">&lt;&nbsp;prev. lesson</a>
-        <a style="float:right;" href="H3A.html">Next lesson &gt;</a> <br />
+        <a style="float:right;" href="H3X-hacking_bigdft.html">Third Group &gt;</a> <br />
         <a style="float:right;" href="H2E1-troubleshooting_minima_hopping.html" target="_blank">Troubleshooting&nbsp;&gt;</a>
 
         <h2>Content of this lesson</h2>
@@ -62,19 +62,19 @@
         the important part of the output. This lesson may take 2 hours. If you have already finished the tutorial and facing some problems during the Minima Hopping run see <a href='H2E1-troubleshooting_minima_hopping.html' target="_blank">troubleshooting</a> section.
        </p>
 
-      <p> In this tutorial we assume that the user is already familiar with basic BigDft inputs. We will use 
+      <p> In this tutorial we assume that the user is already familiar with basic BigDFT inputs. We will use 
 Mg<sub>7</sub> cluster as an example system  in this tutorial. The detailed discussion on the method can be found in the tutorial <a href="minhop.pdf" target="_blank">presentation</a>.
 
       <h2>File Structure Overview</h2>
       <h3>Input files</h3>
 <p>
 <ul>
-     <li> <code>input.dft</code> : same as the input file in case of BigDft </li>
+     <li> <code>input.dft</code> : same as the input file in case of BigDFT </li>
      <li> <code>mdinput.dft</code> : same format as <code>input.dft</code> but but contains lower accuracy parameters. </li>
-     <li> <code>input.geopt</code> : same as the input file in case of BigDft. Geometry optimization method to be used: <code>BFGS</code> .</li> 
-     <li> <code>mdinput.geopt</code> : same as the input file in case of BigDft. Geometry optimization method to be used: <code>SDCG</code> .</li>
+     <li> <code>input.geopt</code> : same as the input file in case of BigDFT. Geometry optimization method to be used: <code>BFGS</code> .</li> 
+     <li> <code>mdinput.geopt</code> : same as the input file in case of BigDFT. Geometry optimization method to be used: <code>SDCG</code> .</li>
      <li> <code>poscur.xyz</code> : Input coordinates for the starting configuration.
-     <li> <code>psppar.XX</code> : the pseudo-potential file. See BigDft manual for explanations.
+     <li> <code>psppar.XX</code> : the pseudo-potential file. See BigDFT manual for explanations.
      <li> <code>rand.inp</code> : contains a single integer value which is used as seed to generate random numbers for MD part. </li>
 </ul>
 </p>
@@ -110,25 +110,25 @@ Please refer to tutorial <a href="minhop.pdf" target="_blank">presentation</a> f
 7.32050000000000149E-03  3.70012497212908811E-02  7.10681330130121025E-01   10 ediff ekinetic dt  nsoften </pre> </li>
 </ul></p>
 <h3>Output files</h3>
-<p>Other than screen output and BigDft output files, there are two output files of Minima Hopping code.
+<p>Other than screen output and BigDFT output files, there are two output files of Minima Hopping code.
 <ul>
 <li> <code>poslow******.xyz</code> : The coordinates of the local minima found in the system. <code>poslow000001.xyz</code> is the global minimum.<code>poslow000002.xyz</code>  is 1st local minimum. </li>
 <li> <code>global.mon</code> : A log file of all the minima visited.
 </ul>
 </p>
 <h2> Preparing The Inputs For A Production Run </h2>
- We all know that calculations using Density functional theory is quite expensive method. When we couple Minima Hopping with BigDft to search the global minimum on a DFT energy landscape, the calculation 
+ We all know that calculations using Density functional theory is quite expensive method. When we couple Minima Hopping with BigDFT to search the global minimum on a DFT energy landscape, the calculation 
 becomes even more expensive even for modern super computers. For this reason, a careful selection of input parameters are very important  for the performance of the code. A detailed demonstration of the tuning process
 has been given  in the tutorial  <a href="minhop.pdf" target="_blank"><code>presentation</code></a>.
 
       <div class="exercice">
         <p><b>Exercise 1: Tuning input.dft file</b>: Prepare an <code> input.dft </code> file which will give <code>expected accuracy </code> of <code>0.5E-05 </code>. Start with   <a href="Mg7-minhop/input_dft/input.dft" target="_blank"><code>input.dft</code></a>,
-<a href="Mg7-minhop/input_dft/posinp.xyz" target="_blank"><code>posinp.xyz</code></a> and <a href="Mg7-minhop/input_dft/psppar.Mg" target="_blank"><code>psppar.Mg</code></a> files.  Run BigDft for different 
+<a href="Mg7-minhop/input_dft/posinp.xyz" target="_blank"><code>posinp.xyz</code></a> and <a href="Mg7-minhop/input_dft/psppar.Mg" target="_blank"><code>psppar.Mg</code></a> files.  Run BigDFT for different 
           values of <code>hgrid</code>, <code>crmult</code> and <code>frmult</code>  stored in first two lines of <code> input.dft </code> file and note the <code>expected accuracy in energy </code> in the output file. </p>
         <pre>
 sandip@phys-carbon-04:~/tutorials/Mg7-minhop/input_dft$ ls
 input.dft  posinp.xyz  psppar.Mg
-sandip@phys-carbon-04:~/tutorials/Mg7-minhop/input_dft$ mpirun -np 7 ~/BigDft > OUT &
+sandip@phys-carbon-04:~/tutorials/Mg7-minhop/input_dft$ mpirun -np 7 ~/BigDFT > OUT &
 sandip@phys-carbon-04:~/tutorials/Mg7-minhop/input_dft$ grep expected OUT 
 <b> expected accuracy in energy  4.96E-06</b>
  expected accuracy in energy per orbital  7.09E-07
@@ -138,7 +138,7 @@ file to <code>mdinput.dft</code> to use in  our Minima Hopping run.
       </div>
 <div class="exercice">
         <p><b>Exercise 2: Verifying the expected accuracy</b>: After you have found a set of parameters for the <code> input.dft</code> file which gives an <code>expected accuracy </code> of <code>0.5E-05 </code>, let's check 
-the accuracy of the energy due to rotation. Use the <code>rotate</code> executable in the <code> UTIL</code> folder to rotate the input structure arbitrarily and note how  they  affect the FINAL energy of the system.
+the accuracy of the energy due to rotation. Use the <code>rotate_posinp</code> executable in the <code>src/tools</code> folder of the build directory to rotate the input structure arbitrarily and note how  they  affect the FINAL energy of the system.
 <pre>
 sandip@phys-carbon-04:~/tutorials/Mg7-minhop/input_dft$ grep FINAL OUT 
  FINAL iter,total energy,gnrm    18  -5.99066949724724473E+00  9.62E-06
@@ -154,7 +154,7 @@ reading atomic positions from file posinp.xyz
  around x axis / in yz-plane:
 10
  writing atomic positions to file rotate_posinp.xyz
-sandip@phys-carbon-04:~/tutorials/Mg7-minhop/input_dft$ mpirun -np 7 ~/BigDft > OUT1 &
+sandip@phys-carbon-04:~/tutorials/Mg7-minhop/input_dft$ mpirun -np 7 ~/BigDFT > OUT1 &
 sandip@phys-carbon-04:~/tutorials/Mg7-minhop/input_dft$ grep FINAL OUT1 
  FINAL iter,total energy,gnrm    16  -5.990668764306198470E+00  7.14E-06
 </pre>   
@@ -174,7 +174,7 @@ SDCG     Geometry Optimization method
 The important task is to determine the step size for steepest descent stores in the last line of the file. To do this one should Use <code> VSSD </code> 
 as geometry optimization method and a low initial step-size. One should not use a well relaxed structure for this purpose,
  so if we already have a well relaxed structure we can use a small value for <code>randdis</code> instead of zero.<b> Don't forget to set the value of <code>randdis</code> back to zero before using the file for Minima Hopping run.</b>
-use this <a href="Mg7-minhop/geopt/input.geopt" target="_blank"><code>input.geopt</code></a> file along with the low accuracy set of <a href="Mg7-minhop/geopt/input.dft" target="_blank"><code>input.dft</code></a> file to start a BigDft run.
+use this <a href="Mg7-minhop/geopt/input.geopt" target="_blank"><code>input.geopt</code></a> file along with the low accuracy set of <a href="Mg7-minhop/geopt/input.dft" target="_blank"><code>input.dft</code></a> file to start a BigDFT run.
  At the end of the run  a <cosde>stepsize</code> will be suggested at the end of <code>geopt.mon</code> file.
 <pre>
 sandip@phys-carbon-04:~tutorials/Mg7-minhop/geopt$ tail geopt.mon 

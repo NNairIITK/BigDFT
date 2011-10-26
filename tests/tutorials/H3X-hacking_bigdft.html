@@ -22,8 +22,8 @@
     <div class="main"><a name="top" id="top"></a>
 
       <div class="floatingmenu">
-        <!-- %%PREV_TUTO%% -->
-        <!-- %%NEXT_TUTO%% -->
+         <a href="H2A-GPU.html">&lt;&nbsp;Second Group</a>
+        <a style="float:right;" href="H3B-charge_analysis.html">Next lesson &gt;</a> 
         <h2>Content of this lesson</h2>
         <ul>
           <li>Compiling and linking with <code>libbigdft.a</code></li>
@@ -342,7 +342,7 @@ these orbitals.</p>
       <p>The local potential from pseudo is calculated by using the Poisson solver on fictius charges that would create the radial potential V<sub>loc</sub>(r) as described in a pseudo. So, one has to create the kernel array <code>pkernel</code> used by the Poisson solver (see <code>createKernel()</code> call). Since the potential is distributed among processors, one need to calculate the descriptors for this distribution (namely the size of each slab among z for each processor, as stored in <code>n3p</code>). This is done by <code>createDensPotDescriptors()</code>. Finally, for the convenience of this tutorial, we would prefer to have a global array for the potential so we call <code>full_local_potential()</code> to obtain the desired potential on all the fine mesh stored in <code>potential</code>.</p>
 
       <div class="exercice">
-        <p><b>Exercise</b>: Calculate the energy coming from the local part of the pseudo (namely the integral on volume of products V.&psi; (check that the obtained value does not depend on the number of processors!).</p>
+        <p><b>Exercise</b>: Calculate the energy coming from the local part of the pseudo (namely the integral on volume of products &lt;&psi;|V|&psi;&gt; (check that the obtained value does not depend on the number of processors!).</p>
         <p class="answer">We use the direct-value representation for each orbital, do the product point by point and all reduce among processors.</p>
         <pre>
   real(dp) :: epot_sum
