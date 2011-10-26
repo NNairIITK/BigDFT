@@ -1564,7 +1564,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   deallocate(passmat,stat=i_stat)
   call memocc(i_stat,i_all,'passmat',subname)
 
-  if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
+  if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
      
      !clean the array of the IG eigenvalues
      call to_zero(orbse%norb*orbse%nkpts,orbse%eval(1))

@@ -213,9 +213,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=3) :: PSquiet
   character(len=5) :: gridformat, wfformat,wfformat_read, final_out
   character(len=500) :: errmess
-  logical :: endloop,endlooprp,allfiles,onefile,refill_proj
+  logical :: endloop,endlooprp,allfiles,onefile,refill_proj,potential_from_disk=.false.
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
-  integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden,input_wf_format
+  integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden,input_wf_format,ipot_from_disk=0
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
   integer :: nelec,ndegree_ip,j,i,npoints,nrhodim,i3rho_add,irhotot_add,irho_add
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ispin
@@ -286,7 +286,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      case (OUTPUT_GRID_FORMAT_ETSF)
         write(gridformat, "(A)") ".etsf"
      case (OUTPUT_GRID_FORMAT_CUBE)
-        write(gridformat, "(A)") ".bin"
+        write(gridformat, "(A)") ".cube"
   end select
   write(wfformat, "(A)") ""
   select case (in%output_wf_format)
@@ -728,9 +728,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !reduce the value for all the eigenvectors
      call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-     if (in%itrpmax /= 1) then
+     if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
         !recalculate orbitals occupation numbers
         call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
+        !read potential depending of the mixing scheme
+        !considered as optional in the mixing case
+        inquire(file=trim(in%dir_output)//'local_potential.cube',exist=potential_from_disk)
+        if (potential_from_disk)  then
+           call read_potential_from_disk(iproc,nproc,trim(in%dir_output)//'local_potential.cube',&
+                atoms%geocode,ngatherarr,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,in%nspin,hxh,hyh,hzh,rhopot)
+           ipot_from_disk=1
+        end if
      end if
 
   case(INPUT_PSI_MEMORY_GAUSS)
@@ -839,7 +847,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      npoints = n1i*n2i*n3d
      if (n3d==0) npoints=1
   end if
-  if (in%itrpmax >1) then
+  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
      call ab6_mixing_new(mix, modulo(in%iscf, 10), potden, &
           & AB6_MIXING_REAL_SPACE, npoints, in%nspin, 0, &
           & ierr, errmess, useprec = .false.)
@@ -883,10 +891,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            !stop the partial timing counter if necessary
            if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
-           !logical flac for the self-consistent potential
-           scpot=(in%itrpmax /= 1 .and. iter==1 .and. icycle==1) .or. & !mixing to be done
-                (in%itrpmax == 1) .or. & !direct minimisation
-                (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix) !startmix condition (hard-coded, always true by default)
+           !logical flag for the self-consistent potential
+           scpot=(in%iscf /= SCF_KIND_DIRECT_MINIMIZATION .and. iter==1 .and. icycle==1 .and. ipot_from_disk/=1) .or. & !mixing to be done
+                (in%iscf == SCF_KIND_DIRECT_MINIMIZATION) .or. & !direct minimisation
+                (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)  !startmix condition (hard-coded, always true by default)
+
+           if (ipot_from_disk ==1) ipot_from_disk=0 !the scpot condition affects the mixing only once
 
            !calculate the self-consistent potential
            if (scpot) then
@@ -894,7 +904,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rhopot,&
                    nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
               !here the density can be mixed
-              if (in%itrpmax>1) then
+              if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
                  if (mix%kind == AB6_MIXING_DENSITY) then
                     call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
                          & rhopot,itrp,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hx*hy*hz,rpnrm,nscatterarr)
@@ -907,7 +917,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
 
               !before creating the potential, save the density in the second part 
-              !if the case of NK SIC, so that the potential can be created afterwards
+              !in the case of NK SIC, so that the potential can be created afterwards
               !copy the density contiguously since the GGA is calculated inside the NK routines
               if (in%SIC%approach=='NK') then
                  irhotot_add=Glr%d%n1i*Glr%d%n2i*i3xcsh+1
@@ -946,7 +956,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
 
               !here the potential can be mixed
-              if (mix%kind == AB6_MIXING_POTENTIAL .and. in%itrpmax>1) then
+              if (mix%kind == AB6_MIXING_POTENTIAL .and. in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
                  call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
                       & rhopot,itrp,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hx*hy*hz,rpnrm,nscatterarr)
                  if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
@@ -1123,7 +1133,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   i_all=-product(shape(hpsi))*kind(hpsi)
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi',subname)
-  if (in%itrpmax > 1) then
+  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
      call ab6_mixing_deallocate(mix)
   end if
 
@@ -1226,10 +1236,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call plot_density(trim(in%dir_output)//'ionic_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
           1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
+  end if
+  if (((in%output_grid == OUTPUT_GRID_DENSPOT) .or.&
+       (in%output_wf_format /= WF_FORMAT_NONE .and. in%iscf /= SCF_KIND_DIRECT_MINIMIZATION)) &
+       .and. DoLastRunThings) then
      if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
      call plot_density(trim(in%dir_output)//'local_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
-          1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot)
+          in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot)
   end if
 
   i_all=-product(shape(pot_ion))*kind(pot_ion)
@@ -1274,8 +1288,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rho,&
           nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
 
-     !plot the density on the density.pot file
-     if ((in%output_grid >= OUTPUT_GRID_DENSITY) .and. DoLastRunThings) then
+     !plot the density on the cube file
+     !to be done either for post-processing or if a restart is to be done with mixing enabled
+     if (((in%output_grid >= OUTPUT_GRID_DENSITY)) .and. DoLastRunThings) then
         if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
 
         call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
@@ -1743,7 +1758,7 @@ contains
 
 
     !deallocate the mixing
-    if (in%itrpmax > 1) then
+    if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
        call ab6_mixing_deallocate(mix)
     end if
 
