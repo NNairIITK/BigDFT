@@ -45,20 +45,20 @@ program PS_Check
 
   !initialize memory counting and timings
   !call memocc(0,iproc,'count','start')
-  call timing(iproc,'parallel      ','IN')
+  call timing(nproc,'time.prc','IN')
 
   !the first proc read the data and then send them to the others
   if (iproc==0) then
      !Use arguments
-     call getarg(1,chain)
+     call get_command_argument(1,value=chain)
      read(unit=chain,fmt=*) nxyz(1)
-     call getarg(2,chain)
+     call get_command_argument(2,value=chain)
      read(unit=chain,fmt=*) nxyz(2)
-     call getarg(3,chain)
+     call get_command_argument(3,value=chain)
      read(unit=chain,fmt=*) nxyz(3)
-     call getarg(4,chain)
+     call get_command_argument(4,value=chain)
      read(unit=chain,fmt=*) nxyz(4)
-     call getarg(5,chain)
+     call get_command_argument(5,value=chain)
      read(unit=chain,fmt=*) geocode
   end if
 
@@ -299,8 +299,6 @@ contains
     
   end subroutine compare_cplx_calculations
 
-
-
   subroutine compare_with_reference(iproc,nproc,geocode,distcode,n01,n02,n03,&
        ixc,nspden,hx,hy,hz,offset,ehref,excref,vxcref,&
        density,potential,pot_ion,xc_pot,pkernel)
@@ -404,9 +402,9 @@ contains
     end if
 
      call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-          rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc)
+          rhopot,eexcu,vexcu,nspden,rhocore,test_xc)
      call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
-          rhopot(1,1,1,1),pkernel,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
+          rhopot,pkernel,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
      !compare the values of the analytic results (no dependence on spin)
      call compare(iproc,nproc,n01,n02,n3p,1,potential(istpot),rhopot(1,1,1,1),&
           'ANACOMPLET '//message)
@@ -583,7 +581,7 @@ contains
     real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: density,rhopot
     !local variables
     integer :: i1,i2,i3,ifx,ify,ifz,i
-    real(kind=8) :: x1,x2,x3,length,denval,pi,a2,derf,factor,r,r2
+    real(kind=8) :: x1,x2,x3,length,denval,pi,a2,derf_tt,factor,r,r2
     real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt
 
     if (trim(geocode) == 'P') then
@@ -700,7 +698,8 @@ contains
                 if (r == 0.d0) then
                    potential(i1,i2,i3) = 2.d0/(sqrt(pi)*a_gauss)
                 else
-                   potential(i1,i2,i3) = derf(r/a_gauss)/r
+                   call derf_ab(derf_tt,r/a_gauss)
+                   potential(i1,i2,i3) = derf_tt/r
                 end if
              end do
           end do

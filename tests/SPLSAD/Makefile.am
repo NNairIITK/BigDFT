@@ -8,7 +8,11 @@ EXTRA_CLEAN =
 
 PPFILES =
 
-CLEANFILES = SPLSAD.out *.prc fort* vogt* nogt* anchorpoints???.xyz path???.xyz fldiff.report $(EXTRA_CLEAN) $(PPFILES)
+CLEANFILES = SPLSAD.out *.prc fort* vogt* nogt* anchorpoints???.xyz \
+	path???.xyz fldiff.report $(EXTRA_CLEAN) $(PPFILES) default.* saddle.xyz geopt.mon 
+
+clean.local : 
+	rm -rf data
 
 
 #Check also the restart system (frequencies.res file)
@@ -19,6 +23,12 @@ SPLSAD.out: $(top_builddir)/src/splsad
 	    ln -fs $(srcdir)/$$i ; \
 	  done ; \
         fi
+	@if ! test -f input.perf ; then \
+	  rm -f input.perf ; \
+	  if test -n "$(run_ocl)" ; then \
+	    echo "ACCEL OCLGPU" > input.perf ; \
+	  fi ; \
+	fi
 	$(run_parallel) $(top_builddir)/src/splsad > $@
 	@if ! test x"$(srcdir)" = x"." ; then \
 	  for i in $(EXTRA_DIST) ; do \

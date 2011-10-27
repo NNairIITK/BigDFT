@@ -9,31 +9,51 @@
 
 
 !>   Calculate the action of the local hamiltonian on the orbitals
+!! @param ipotmethod Indicates the method which has to be chosen for applying the potential to the wavefunctions in the 
+!!                   real space form:
+!!                   0 is the traditional potential application
+!!                   1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
+!!                   2 is the application of the Perdew-Zunger SIC
+!!                   3 is the application of the Non-Koopman's correction SIC
 subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
-     nspin,pot,psi,hpsi,ekin_sum,epot_sum)
+     ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => local_hamiltonian
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,nspin
-  real(gp), intent(in) :: hx,hy,hz
+  integer, intent(in) :: iproc,ipotmethod,ixc
+  real(gp), intent(in) :: hx,hy,hz,alphaSIC
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
-  real(wp), dimension(*) :: pot
+  real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
-  real(gp), intent(out) :: ekin_sum,epot_sum
+  real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+  real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
   real(wp) :: exctXcoeff
-  real(gp) :: ekin,epot,kx,ky,kz,etest
+  real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
-  real(wp), dimension(:,:), allocatable :: psir
+  real(wp), dimension(:,:), allocatable :: psir,vsicpsir
 
+  !some checks
   exctXcoeff=xc_exctXfac()
+
+  if (exctXcoeff /= 0.0_gp .neqv. ipotmethod ==1) then
+     if (iproc==0) write(*,*)&
+          'ERROR (local_hamiltonian): potential method not compatible with exact exchange'
+     stop
+  end if
+
+  if (.not.(associated(pkernel) .and. alphaSIC /=0.0_gp) .and. ipotmethod == 2) then
+     if (iproc==0) write(*,*)&
+          'ERROR (local_hamiltonian): potential method not compatible with SIC'
+     stop
+  end if
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
@@ -48,13 +68,22 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
 
   call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
 
+  if (ipotmethod == 2 .or. ipotmethod == 3) then! wavefunction after application of the self-interaction potential
+     allocate(vsicpsir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,vsicpsir,'vsicpsir',subname)
+  end if
+
+
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
+  eSIC_DC=0.0_gp
 
-  etest=0.0_gp
+  !n(c) etest=0.0_gp
 
   do iorb=1,orbs%norbp
-     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
+     !this section should be replaced with the ispot array, calculated in fill_local_potential (or maybe before)
+
+     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. orbs%nspin == 1 .or. orbs%nspin == 4 ) then
         nsoffset=1
      else
         nsoffset=lr%d%n1i*lr%d%n2i*lr%d%n3i+1
@@ -69,50 +98,78 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
      !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
 
+     !Perdew-Zunger SIC scheme
+     eSIC_DCi=0.0_gp
+     if (ipotmethod == 2) then
+        call PZ_SIC_potential(iorb,lr,orbs,ixc,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
+     else if (ipotmethod == 3) then !NonKoopmans' correction scheme
+        call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir(1,1),1,vsicpsir(1,1),1)
+        call psir_to_vpsi(npot,orbs%nspinor,lr,&
+             pot(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+(iorb-1)*lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor+1),vsicpsir,eSICi)
+     end if
+
      !apply the potential to the psir wavefunction and calculate potential energy
-     select case(lr%geocode)
-     case('F')
+     call psir_to_vpsi(npot,orbs%nspinor,lr,pot(nsoffset),psir,epot)
 
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot,&
-             lr%bounds%ibyyzz_r) !optional
-          
-     case('P') 
-        !here the hybrid BC act the same way
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot)
+!!$     select case(lr%geocode)
+!!$     case('F')
+!!$
+!!$        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+!!$             pot(nsoffset),epot,&
+!!$             lr%bounds%ibyyzz_r) !optional
+!!$          
+!!$     case('P') 
+!!$        !here the hybrid BC act the same way
+!!$        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
+!!$             pot(nsoffset),epot)
+!!$
+!!$     case('S')
+!!$
+!!$        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
+!!$             pot(nsoffset),epot)
+!!$     end select
 
-     case('S')
+     if (ipotmethod==1) then
+        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(orbs%nspin+iorb-1)
+        !add to the psir function the part of the potential coming from the exact exchange
+        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
+     else if (ipotmethod == 2) then
+        !subtract the sic potential from the vpsi function
+        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,-alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
+        !add the SIC caorrection to the potential energy
+        epot=epot-alphaSIC*eSICi
+        !accumulate the Double-Counted SIC energy
+        eSIC_DC=eSIC_DC+alphaSIC*eSIC_DCi
+     else if (ipotmethod == 3) then
+        !add the sic potential from the vpsi function
+        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
+        epot=epot+alphaSIC*eSICi
+        !accumulate the Double-Counted SIC energy
+        eSIC_DC=eSIC_DC+alphaSIC*orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eSICi
+     end if
 
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot)
-     end select
-
+     !apply the kinetic term, sum with the potential and transform back to Daubechies basis
      !k-point values, if present
      kx=orbs%kpts(1,orbs%iokpt(iorb))
      ky=orbs%kpts(2,orbs%iokpt(iorb))
      kz=orbs%kpts(3,orbs%iokpt(iorb))
-
-     if (exctXcoeff /= 0.0_gp) then
-        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
-        !add to the psir function the part of the potential coming from the exact exchange
-        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
-     end if
-
-     !apply the kinetic term, sum with the potential and transform back to Daubechies basis
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
           psir,hpsi(1,oidx),ekin)
+
      !print *,iorb, ekin, epot,orbs%kwgts(orbs%iokpt(iorb))
      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
-
   enddo
 
   !deallocations of work arrays
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
-
+  if (ipotmethod == 2 .or. ipotmethod ==3) then
+     i_all=-product(shape(vsicpsir))*kind(vsicpsir)
+     deallocate(vsicpsir,stat=i_stat)
+     call memocc(i_stat,i_all,'vsicpsir',subname)
+  end if
   call deallocate_work_arrays_locham(lr,wrk_lh)
 
 END SUBROUTINE local_hamiltonian
@@ -175,6 +232,7 @@ END SUBROUTINE transpose_for_kpoints
 !>   routine for applying the local potentials
 !!   supports the non-collinear case, the buffer for tails and different Boundary Conditions
 !!   Optimal also for the complex wavefuntion case
+!!   might generalize the buffers for two different localization regions, provided that the potential lies in a bigger region
 subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,&
      ibyyzz_r) !optional
   use module_base
@@ -602,7 +660,7 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(in) :: psi
-  integer, intent(inout) :: istart_c
+  integer, intent(inout) :: istart_c !< address of the starting point of the projector in proj array
   real(gp), intent(inout) :: eproj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   !local variables
@@ -643,6 +701,53 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   end do
 END SUBROUTINE apply_atproj_iorb
 
+subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
+  use module_base
+  implicit none
+  integer, intent(in) :: npspcode
+  real(gp), dimension(0:4,0:6), intent(in) :: psppar
+  real(gp), dimension(3,3,4), intent(out) :: hij
+  !local variables
+  integer :: l,i,m,j
+  real(gp), dimension(2,2,3) :: offdiagarr
+
+  !enter the coefficients for the off-diagonal terms (HGH case, npspcode=3)
+  offdiagarr(1,1,1)=-0.5_gp*sqrt(3._gp/5._gp)
+  offdiagarr(2,1,1)=-0.5_gp*sqrt(100._gp/63._gp)
+  offdiagarr(1,2,1)=0.5_gp*sqrt(5._gp/21._gp)
+  offdiagarr(2,2,1)=0.0_gp !never used
+  offdiagarr(1,1,2)=-0.5_gp*sqrt(5._gp/7._gp)  
+  offdiagarr(2,1,2)=-7._gp/3._gp*sqrt(1._gp/11._gp)
+  offdiagarr(1,2,2)=1._gp/6._gp*sqrt(35._gp/11._gp)
+  offdiagarr(2,2,2)=0.0_gp !never used
+  offdiagarr(1,1,3)=-0.5_gp*sqrt(7._gp/9._gp)
+  offdiagarr(2,1,3)=-9._gp*sqrt(1._gp/143._gp)
+  offdiagarr(1,2,3)=0.5_gp*sqrt(63._gp/143._gp)
+  offdiagarr(2,2,3)=0.0_gp !never used
+
+  call to_zero(3*3*4,hij(1,1,1))
+  
+  do l=1,4
+     !term for all npspcodes
+     loop_diag: do i=1,3
+        hij(i,i,l)=psppar(l,i) !diagonal term
+        if ((npspcode == 3 .and. l/=4 .and. i/=3) .or. &
+             (npspcode == 10 .and. i/=3)) then !HGH(-K) case, offdiagonal terms
+           loop_offdiag: do j=i+1,3
+              if (psppar(l,j) == 0.0_gp) exit loop_offdiag
+              !offdiagonal HGH term
+              if (npspcode == 3) then !traditional HGH convention
+                 hij(i,j,l)=offdiagarr(i,j-i,l)*psppar(l,j)
+              else !HGH-K convention
+                 hij(i,j,l)=psppar(l,i+j+1)
+              end if
+              hij(j,i,l)=hij(i,j,l) !symmetrization
+           end do loop_offdiag
+        end if
+     end do loop_diag
+  end do
+  
+end subroutine build_hgh_hij_matrix
 
 subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
@@ -683,6 +788,7 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
   istart_c=1
   !start of the routine for projectors application
   do m=1,2*l-1
+
      call wpdot_wrap(ncplx,  &
           nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
           mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c),scpr)
@@ -746,6 +852,159 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      end do loop_j
   end if
 END SUBROUTINE applyprojector
+
+!> Applies the projector associated on a given atom on a corresponding orbital
+!! uses a generic representation of the projector to generalize the form of the projector  
+subroutine apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,eproj)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iat,iorb
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(in) :: psi
+  integer, intent(inout) :: istart_c !< address of the starting point of the projector in proj array
+  real(gp), intent(inout) :: eproj
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
+  !local variables
+  character(len=*), parameter :: subname='apply_atproj_iorb'
+  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx,m,j,icplx,i_stat,i_all
+  integer(kind=8) :: itsc0,itsc1
+  real(gp) :: eproj_i
+  real(wp), dimension(4,7,3,4) :: cproj,dproj !scalar products with the projectors (always assumed to be complex and spinorial)
+  real(gp), dimension(3,3,4) :: hij_hgh 
+!!$  real(wp), dimension(:,:), allocatable :: wproj !work array for the application of the projectors
+
+  !parameter for the descriptors of the projectors
+  ityp=at%iatype(iat)
+  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+  mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
+
+  mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+  mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
+  jseg_c=nlpspd%nseg_p(2*iat-2)+1
+ 
+  !complex functions or not
+  !this should be decided as a function of the orbital
+  !features of the k-point ikpt
+  call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
+
+  !build the matrix of the pseudopotential
+  call build_hgh_hij_matrix(at%npspcode(ityp),at%psppar(0,0,ityp),hij_hgh)
+
+!!$  allocate(wproj(mbvctr_c+7*mbvctr_f,ncplx+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,wproj,'wproj',subname)
+
+
+  !calculate the scalar product with all the projectors of the atom
+  call to_zero(4*7*3*4,cproj(1,1,1,1))
+  !index for performing the calculation with all the projectors
+  istart_c_i=istart_c
+  !loop over all the channels (from s to f)
+  do l=1,4
+     !loop over all the projectors of the channel
+     do i=1,3
+        !loop over all the components of the projector
+        if (at%psppar(l,i,ityp) /= 0.0_gp) then
+           do m=1,2*l-1
+              !loop over all the components of the wavefunction
+              do ispinor=1,orbs%nspinor,ncplx
+                 call wpdot_wrap(ncplx,  &
+                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
+                      psi(1,ispinor), &
+                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
+                      proj(istart_c_i),&
+                      cproj(ispinor,m,i,l))
+              end do
+              istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
+           end do
+        end if
+     end do
+  end do
+
+  !apply the matrix of the coefficients on the cproj array
+  call to_zero(4*7*3*4,dproj(1,1,1,1))
+  do l=1,4 !diagonal in l
+     do i=1,3
+        do j=1,3
+           do m=1,2*l-1 !diagonal in m
+              do ispinor=1,orbs%nspinor !real matrix
+                 dproj(ispinor,m,i,l)=dproj(ispinor,m,i,l)+&
+                     hij_hgh(i,j,l)*cproj(ispinor,m,j,l)
+              end do
+           end do
+        end do
+     end do
+  end do
+  istart_c_i=istart_c
+  !build a single array via daxpy for the projectors
+  !apply the non-local operator on the wavefunction
+  !for the moment use the traditional waxpy instead of daxpy, for test purposes
+  eproj_i=0.0_gp
+!!$  call nanosec(itsc0) 
+  do l=1,4
+     !loop over all the projectors of the channel
+     do i=1,3
+        !loop over all the components of the projector
+        if (at%psppar(l,i,ityp) /= 0.0_gp) then
+           do m=1,2*l-1
+              !loop over all the components of the wavefunction
+              do ispinor=1,orbs%nspinor,ncplx
+                 
+                 do icplx=1,ncplx
+                    eproj_i=eproj_i+dproj(ispinor+icplx-1,m,i,l)*cproj(ispinor+icplx-1,m,i,l)
+                 end do
+
+                 call waxpy_wrap(ncplx,dproj(ispinor,m,i,l),&
+                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
+                      proj(istart_c),&
+                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
+                      hpsi(1,ispinor))
+              end do
+              istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+           end do
+        end if
+     end do
+  end do
+!!$  call nanosec(itsc1)
+!!$  print *,'normal time',real(itsc1-itsc0,gp)*1.e-9_gp
+  eproj=eproj+&
+       orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_i
+!!$  istart_c=istart_c_i
+!!$  call nanosec(itsc0) 
+!!$  do l=1,4
+!!$     !loop over all the projectors of the channel
+!!$     do i=1,3
+!!$        !loop over all the components of the projector
+!!$        if (at%psppar(l,i,ityp) /= 0.0_gp) then
+!!$           do m=1,2*l-1
+!!$              !loop over all the components of the wavefunction
+!!$              do ispinor=1,orbs%nspinor,ncplx
+!!$                 
+!!$                 do icplx=1,ncplx
+!!$                    eproj_i=eproj_i+dproj(ispinor+icplx-1,m,i,l)*cproj(ispinor+icplx-1,m,i,l)
+!!$                 end do
+!!$
+!!$                 call axpy((mbvctr_c+7*mbvctr_f)*ncplx,1.0_gp,proj(istart_c),1,wproj(1,1),1)
+!!$
+!!$              end do
+!!$              istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+!!$           end do
+!!$        end if
+!!$     end do
+!!$  end do
+!!$  call nanosec(itsc1)
+!!$  print *,'daxpy time',real(itsc1-itsc0,gp)*1.e-9_gp
+!!$
+!!$  i_all=-product(shape(wproj))*kind(wproj)
+!!$  deallocate(wproj,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'wproj',subname)
+
+
+END SUBROUTINE apply_atproj_iorb_new
 
 
 subroutine applyprojector_old(l,i,psppar,npspcode,&

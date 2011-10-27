@@ -9,6 +9,13 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 !!
+
+!>    Calculate the Hartree potential by solving Poisson equation 
+!!    @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
+!!    from a given @f$\rho@f$, 
+!!    for different boundary conditions an for different data distributions.
+!!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
+!!    
 !!  @param geocode Indicates the boundary conditions (BC) of the problem:
 !!          - 'F' free BC, isolated systems.
 !!                The program calculates the solution as if the given density is
@@ -65,13 +72,6 @@
 !!
 !! @todo
 !!    Wire boundary condition is missing
-
-
-!>    Calculate the Hartree potential by solving Poisson equation 
-!!    @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
-!!    from a given @f$\rho@f$, 
-!!    for different boundary conditions an for different data distributions.
-!!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
 subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,offset,sumpion,&
      quiet) !optional argument
@@ -412,7 +412,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='PSolver'
   logical :: wrtmsg
-  integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
+  !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
   integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh,i,j
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,ind2nd
@@ -979,7 +979,7 @@ END SUBROUTINE PSolverNC
 !!    related to the Poisson Solver
 !!
 !! SYNOPSIS
-!!    geocode  Indicates the boundary conditions (BC) of the problem:
+!!    @param geocode  Indicates the boundary conditions (BC) of the problem:
 !!            'F' free BC, isolated systems.
 !!                The program calculates the solution as if the given density is
 !!                "alone" in R^3 space.
@@ -991,7 +991,7 @@ END SUBROUTINE PSolverNC
 !!                The density is supposed to be periodic in all the three directions,
 !!                then all the dimensions must be compatible with the FFT.
 !!                No need for setting up the kernel.
-!!    datacode Indicates the distribution of the data of the input/output array:
+!!    @param datacode Indicates the distribution of the data of the input/output array:
 !!            'G' global data. Each process has the whole array of the density 
 !!                which will be overwritten with the whole array of the potential
 !!            'D' distributed data. Each process has only the needed part of the density
@@ -1043,7 +1043,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
   integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc
   integer, intent(out) :: n3d,n3p,n3pi,i3xcsh,i3s
   !local variables
-  integer, parameter :: nordgr=4
+  !n(c) integer, parameter :: nordgr=4
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
   integer :: istart,iend,nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr
 
@@ -1096,18 +1096,13 @@ END SUBROUTINE PS_dim4allocation
 !! SYNOPSIS
 !!    geocode   choice of the boundary conditions
 !!
-!!    ixc       XC id
-!!
-!!    m2        dimension to be parallelised
-!!   
-!!    nxc       size of the parallelised XC potential
-!!
-!!    ncxl,ncxr left and right buffers for calculating the WB correction after call drivexc
-!!    nwbl,nwbr left and right buffers for calculating the gradient to pass to drivexc
-!!    
-!!    i3s       starting addres of the distributed dimension
-!!
-!!    i3xcsh    shift to be applied to i3s for having the striting address of the potential
+!!    @param ixc       XC id
+!!    @param m2        dimension to be parallelised
+!!    @param nxc       size of the parallelised XC potential
+!!    @param ncxl,ncxr left and right buffers for calculating the WB correction after call drivexc
+!!    @param nwbl,nwbr left and right buffers for calculating the gradient to pass to drivexc    
+!!    @param i3s       starting addres of the distributed dimension
+!!    @param i3xcsh    shift to be applied to i3s for having the striting address of the potential
 !!
 !! @warning
 !!    It is imperative that iend <=m2

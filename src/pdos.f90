@@ -99,7 +99,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,shift,lr,orbs,orbsv,ps
   call mulliken_charge_population(iproc,nproc,in%nspin,orbs,Gocc,G,allpsigau,dualcoeffs)
 
   !also partial density of states can be analysed here
-  call gaussian_pdos(iproc,nproc,orbs,Gocc,G,allpsigau,dualcoeffs)
+  call gaussian_pdos(iproc,nproc,orbs,G,allpsigau,dualcoeffs) !n(m)
 
   call deallocate_gwf(G,subname)
   nullify(G%rxyz)
@@ -186,7 +186,7 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
 
   if (iproc == 0) then
      write(*,'(1x,a)')repeat('-',48)//' Mulliken Charge Population Analysis'
-     write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  | Gross Chg'
+     write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  |  Net Chg'
   end if
 
 !  do iorb=1,orbs%norbp  
@@ -255,18 +255,18 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
 END SUBROUTINE mulliken_charge_population
 
 
-subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
+subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
   type(gaussian_basis), intent(in) :: G
-  real(gp), dimension(G%ncoeff), intent(in) :: Gocc
+  !n(c) real(gp), dimension(G%ncoeff), intent(in) :: Gocc
   real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeff,duals
   !local variables
   character(len=*), parameter :: subname='gaussian_pdos'
-  integer :: icoeff,i_all,i_stat,ierr,iorb,ispin
+  integer :: icoeff,i_all,i_stat,ierr,iorb !n(c) ispin
   integer :: jproc,nspin
   real(wp) :: rsum,tnorm
   integer, dimension(:), allocatable :: norb_displ
@@ -282,10 +282,10 @@ subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
      do iorb=1,orbs%norbp
         !useful only for finding the spins
         if (orbs%spinsgn(orbs%isorb+iorb) == 1.0_gp) then
-           ispin=1
+           !n(c) ispin=1
         else
            nspin=2
-           ispin=2
+           !n(c) ispin=2
         end if
         pdos(icoeff,orbs%isorb+iorb)=coeff(icoeff,iorb)*duals(icoeff,iorb)
      end do
@@ -298,11 +298,11 @@ subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
 
         norb_displ(0)=0
         do jproc=1,nproc-1
-           norb_displ(jproc)=norb_displ(jproc-1)+orbs%norb_par(jproc-1)
+           norb_displ(jproc)=norb_displ(jproc-1)+orbs%norb_par(jproc-1,0)
         end do
         
-        call MPI_GATHERV(pdos(1,min(orbs%isorb+1,orbs%norb)),(G%ncoeff+1)*orbs%norb_par(iproc),mpidtypw,&
-             pdos(1,1),(G%ncoeff+1)*orbs%norb_par,(G%ncoeff+1)*norb_displ,mpidtypw,&
+        call MPI_GATHERV(pdos(1,min(orbs%isorb+1,orbs%norb)),(G%ncoeff+1)*orbs%norb_par(iproc,0),mpidtypw,&
+             pdos(1,1),(G%ncoeff+1)*orbs%norb_par(:,0),(G%ncoeff+1)*norb_displ,mpidtypw,&
              0,MPI_COMM_WORLD,ierr)
 
         i_all=-product(shape(norb_displ))*kind(norb_displ)

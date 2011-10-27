@@ -18,8 +18,9 @@ endif
 EXTRA_PROGRAMS = conv_check convolution_sse convolution_sse_t
 noinst_LIBRARIES = libbasef.a libbasec.a
 
-libbasef_a_SOURCES = ../modules/defs.F90 ../modules/base.f90 \
-                     ../modules/cublas_fake.f90 $(mpi_source)
+libbasef_a_SOURCES = $(mpi_source)
+libbasef_a_LIBADD = ../modules/defs.o ../modules/base.o \
+                     ../modules/cublas_fake.o
 libbasec_a_SOURCES = MagicFilter_sse.c
 
 if USE_MPI
@@ -38,7 +39,7 @@ endif
 CLEANFILES = module_base.@MODULE_EXT@ module_defs.@MODULE_EXT@ \
 			 fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I../modules @LIBABINIT_INCLUDE@ @MPI_INCLUDE@ -I. -I$(srcdir) 
 AM_CFLAGS = -Wall -Werror -O2 -msse3 -mtune=core2 -ftree-vectorize -ftree-vectorizer-verbose=9 -ffast-math
 AM_LDFLAGS = -lrt -lpapi
 #-funroll-loops -mtune=core2 -ftree-vectorize -floop-interchange -floop-strip-mine -floop-block
@@ -51,11 +52,8 @@ convolution_sse_t_LDFLAGS = -lrt -lpapi
 
 
 conv_check_SOURCES = conv_check.f90 
-conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a ../PSolver/libpoissonsolver.a $(libs_dgemmsy)
-conv_check_LDFLAGS = -lpthread -lstdc++ -lrt 
-
-
-#-lpapi
+conv_check_LDADD = ../libbigdft.a ../PSolver/libpoissonsolver.a $(libs_dgemmsy) libbasec.a libbasef.a
+conv_check_LDFLAGS = -lpthread -lstdc++ -lrt -lpapi
 
 check_conv: conv_check
 	echo 1 128 128 204900 204900 10 > fort.1

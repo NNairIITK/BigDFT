@@ -1,0 +1,7 @@
+this is the Goedecker-Teter-Hutter pseudopotential for Oxygen 
+8   6   960531                      zatom,zion,pspdat
+2   -20  0   0  2001  0.            pspcod,pspxc,lmax,lloc,mmax,r2well  -- notice iXC -20 and 1 are equivalent
+0.2477535 -16.4822284 2.3701353 0 0 rloc, c1, c2, c3, c4
+.2222028 18.1996387 0               rs, h1s, h2s
+0 0                                 rp, h1p
+

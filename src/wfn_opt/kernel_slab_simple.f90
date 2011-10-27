@@ -22,7 +22,7 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
   real(wp),intent(inout) :: x(0:n1,0:n2,0:n3)! input and output
   real(wp) :: zx(2,0:(n1+1)/2,0:n2,0:n3)! work array
   integer :: i1,i2,i3,isign,inzee
-  integer :: nd1,nd2,nd3
+  integer :: nd1,nd3 !n(c) nd2
 
   !*******************************************************************************************
   ! for 2-dimensional FFT:
@@ -33,7 +33,7 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
   integer :: count1,count2,count_rate,count_max
 
   nd1=n1+2
-  nd2=n2+2
+  !n(c) nd2=n2+2
   nd3=n3+2
 
   ! fourier transform the x
@@ -43,8 +43,8 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
   allocate(z(2,nd1,nd3,2))
   allocate(zw(ncache+1))
 
-  call cpu_time(t1)
-  call system_clock(count1,count_rate,count_max)      
+  !call cpu_time(t1)
+  !call system_clock(count1,count_rate,count_max)      
 
   call forward_fft
 
@@ -52,9 +52,9 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
 
   call backward_fft
 
-  call cpu_time(t2)
-  call system_clock(count2,count_rate,count_max)      
-  tela=(count2-count1)/real(count_rate)
+  !call cpu_time(t2)
+  !call system_clock(count2,count_rate,count_max)      
+  !tela=(count2-count1)/real(count_rate)
   !write(*,*) 'Time (CPU,ELA)  (sec):' ,t2-t1,tela
 
   !deallocations to be reformulated

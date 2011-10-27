@@ -27,7 +27,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   logical :: perx,pery,perz,halffty,cplx
   !Maximum number of points for FFT (should be same number in fft3d routine)
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
-  integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat,n1dim,n2dim,n3dim,ntrig,kk,jj
+  integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat,n1dim,n2dim,n3dim,ntrig
   real(kind=8) :: twopion
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
@@ -663,9 +663,9 @@ END SUBROUTINE G_switch_upcorn
 !!                      Distributed solution of the poisson equation (inout)
 !!   @param  zw         FFT work array
 !!   @param  n3         (twice the) dimension of the last FFTtransform.
-!!   @param   md1,md3   Dimensions of the undistributed part of the real grid
-!!   @param   nfft      number of planes
-!!   @param   scal      Needed to achieve unitarity and correct dimensions
+!!   @param  md1,md3   Dimensions of the undistributed part of the real grid
+!!   @param  nfft      number of planes
+!!   @param  scal      Needed to achieve unitarity and correct dimensions
 !!
 !! @warning
 !!     Assuming that high frequencies are in the corners 
@@ -877,7 +877,7 @@ subroutine P_multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset)
   real(kind=8), dimension(2,lot,n2), intent(inout) :: zw
   !real(kind=8), dimension(0:n1/2), intent(in) :: fourisf
   !Local variables
-  real(kind=8), parameter :: pi=3.14159265358979323846d0
+  !n(c) real(kind=8), parameter :: pi=3.14159265358979323846d0
   integer :: i1,j1,i2,j2
 
   !Body

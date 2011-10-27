@@ -101,7 +101,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
 
      !count array for orbitals => components
      do jproc=0,nproc-1
-        ncommarr(jproc,1)=n3parr(jproc)*orbs%norb_par(iproc)
+        ncommarr(jproc,1)=n3parr(jproc)*orbs%norb_par(iproc,0)
      end do
      !displacement array for orbitals => components
      ncommarr(0,2)=0
@@ -110,7 +110,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
      end do
      !count array for components => orbitals
      do jproc=0,nproc-1
-        ncommarr(jproc,3)=n3parr(iproc)*orbs%norb_par(jproc)
+        ncommarr(jproc,3)=n3parr(iproc)*orbs%norb_par(jproc,0)
      end do
      !displacement array for components => orbitals
      ncommarr(0,4)=0
@@ -271,7 +271,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   !the exact exchange energy is half the Hartree energy (which already has another half)
   eexctX=-exctXfac*eexctX
 
-  if (iproc == 0) write(*,'(a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
+  if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
 
   !assign the potential for each function
   if (nproc > 1) then
@@ -385,7 +385,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
 
      !count occay for orbitals => components
      do jproc=0,nproc-1
-        ncommocc(jproc,1)=n3parr(jproc)*orbsocc%norb_par(iproc)
+        ncommocc(jproc,1)=n3parr(jproc)*orbsocc%norb_par(iproc,0)
      end do
      !displacement array for orbitals => components
      ncommocc(0,2)=0
@@ -394,7 +394,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
      end do
      !count occay for components => orbitals
      do jproc=0,nproc-1
-        ncommocc(jproc,3)=n3parr(iproc)*orbsocc%norb_par(jproc)
+        ncommocc(jproc,3)=n3parr(iproc)*orbsocc%norb_par(jproc,0)
      end do
      !displacement array for components => orbitals
      ncommocc(0,4)=0
@@ -507,7 +507,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
 
      !count array for orbitals => components
      do jproc=0,nproc-1
-        ncommvirt(jproc,1)=n3parr(jproc)*orbsvirt%norb_par(iproc)
+        ncommvirt(jproc,1)=n3parr(jproc)*orbsvirt%norb_par(iproc,0)
      end do
      !displacement array for orbitals => components
      ncommvirt(0,2)=0
@@ -516,7 +516,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      end do
      !count array for components => orbitals
      do jproc=0,nproc-1
-        ncommvirt(jproc,3)=n3parr(iproc)*orbsvirt%norb_par(jproc)
+        ncommvirt(jproc,3)=n3parr(iproc)*orbsvirt%norb_par(jproc,0)
      end do
      !displacement array for components => orbitals
      ncommvirt(0,4)=0
@@ -768,7 +768,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
      do jproc=0,nproc-1
         iorbgr(1,jproc,1)=isorb
         iorbgr(2,jproc,1)=1
-        norbp=max(min(isorb+orbs%norb_par(jproc),orbs%norbu)-isorb,0)
+        norbp=max(min(isorb+orbs%norb_par(jproc,0),orbs%norbu)-isorb,0)
         if (norbp == 0) then
            iorbgr(1,jproc,1)=0
            iorbgr(1,jproc,2)=0
@@ -776,13 +776,13 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
         nvctr_par(jproc,1)=norbp*lr%d%n1i*lr%d%n2i*lr%d%n3i
         iorbgr(1,jproc,2)=isorb
         iorbgr(2,jproc,2)=norbp+1
-        norbp=max(isorb+orbs%norb_par(jproc)-max(orbs%norbu,isorb),0)
+        norbp=max(isorb+orbs%norb_par(jproc,0)-max(orbs%norbu,isorb),0)
         if (norbp == 0) then
            iorbgr(1,jproc,2)=0
            iorbgr(2,jproc,2)=1
         end if
         nvctr_par(jproc,2)=norbp*lr%d%n1i*lr%d%n2i*lr%d%n3i
-        isorb=isorb+orbs%norb_par(jproc)
+        isorb=isorb+orbs%norb_par(jproc,0)
      end do
 !!$     if (iproc ==0) then
 !!$        print '(a,10(1x,i8))','iproc,nvctr_parA',iproc,nvctr_par(:,1)/(lr%d%n1i*lr%d%n2i*lr%d%n3i)
@@ -794,8 +794,8 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
      do jproc=0,nproc-1
         iorbgr(1,jproc,1)=isorb
         iorbgr(2,jproc,1)=1
-        nvctr_par(jproc,1)=orbs%norb_par(jproc)*lr%d%n1i*lr%d%n2i*lr%d%n3i
-        isorb=isorb+orbs%norb_par(jproc)
+        nvctr_par(jproc,1)=orbs%norb_par(jproc,0)*lr%d%n1i*lr%d%n2i*lr%d%n3i
+        isorb=isorb+orbs%norb_par(jproc,0)
      end do
   end if
 
@@ -1046,17 +1046,17 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   
   call deallocate_work_arrays_sumrho(w)
   
-  allocate(psiw(lr%d%n1i*lr%d%n2i*lr%d%n3i,maxval(orbs%norb_par),2,ngroupp+ndebug),stat=i_stat)
+  allocate(psiw(lr%d%n1i*lr%d%n2i*lr%d%n3i,maxval(orbs%norb_par(:,0)),2,ngroupp+ndebug),stat=i_stat)
   call memocc(i_stat,psiw,'psiw',subname)
-  allocate(dpsiw(lr%d%n1i*lr%d%n2i*lr%d%n3i,maxval(orbs%norb_par),3,ngroupp+ndebug),stat=i_stat)
+  allocate(dpsiw(lr%d%n1i*lr%d%n2i*lr%d%n3i,maxval(orbs%norb_par(:,0)),3,ngroupp+ndebug),stat=i_stat)
   call memocc(i_stat,dpsiw,'dpsiw',subname)
   !partial densities and potentials
   allocate(rp_ij(lr%d%n1i*lr%d%n2i*lr%d%n3i+ndebug),stat=i_stat)
   call memocc(i_stat,rp_ij,'rp_ij',subname)
   
   !this is the array of the actions of the X potential on psi
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par)*2*ngroupp,psiw)
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par)*3*ngroupp,dpsiw)
+  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*2*ngroupp,psiw)
+  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*3*ngroupp,dpsiw)
   
   call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir)
 
@@ -1104,7 +1104,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
      do igroup=1,ngroupp
         if (jproc /= 0 .and. jprocsr(3,jproc,igroup) /= -1) then
            !put to zero the sending element
-           call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par),dpsiw(1,1,3,igroup))
+           call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1),dpsiw(1,1,3,igroup))
         end if
      end do
      
@@ -1303,7 +1303,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   !the exact exchange energy is half the Hartree energy (which already has another half)
   eexctX=-exctXfac*eexctX
   
-  if (iproc == 0) write(*,'(a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
+  if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
   !close(100+iproc)
   i_all=-product(shape(nvctr_par))*kind(nvctr_par)
   deallocate(nvctr_par,stat=i_stat)

@@ -7,7 +7,7 @@
 #include <math.h>
 #include <assert.h>
 //#include <Tool.h>
-#include <time.h>
+//#include <time.h>
 
 /** @file OpenCL_wrappers.h
  *  @brief Contains global declarations and fortran bindings for OpenCL convolutions.
@@ -98,6 +98,7 @@ struct bigdft_device_infos {
   size_t MAX_WORK_GROUP_SIZE;
   cl_ulong LOCAL_MEM_SIZE;
   cl_uint MAX_COMPUTE_UNITS;
+  char NAME[1024];
 };
 
 struct _bigdft_command_queue {

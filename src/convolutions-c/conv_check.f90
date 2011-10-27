@@ -13,6 +13,7 @@ program conv_check
   use module_base
   implicit none
   integer  :: n1,n2,n3,n1bis,n2bis,n3bis
+  integer :: iproc,nproc,ierr
   real(gp) :: hx,hy,hz,r2,sigma2,x,y,z,maxdiff,epot,arg
   real(wp), dimension(:,:,:), allocatable :: pot,psir,psi_in,psi_out,psi_out_s
   real(wp), dimension(:,:,:,:), allocatable :: psi_3d_in,psi_3d_out
@@ -245,6 +246,10 @@ program conv_check
      fil(-i)=fil(i)
   enddo
 
+  call MPI_INIT(ierr)
+  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
   ekin=0.0_wp
   
   !call set_gpu_double() !after this call, all memory operations are in double precision, call set_gpu_simple() in order to have simple memory operations
@@ -264,14 +269,15 @@ program conv_check
            call memocc(i_stat,psi_out,'psi_out',subname)
            allocate(psi_cuda(ndat,n1,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-           allocate(psi_3d_in(n1,n2,n3,1+ndebug),stat=i_stat)
+           allocate(psi_3d_in(n1,n2,n3,ntimes+ndebug),stat=i_stat)
            call memocc(i_stat,psi_3d_in,'psi_3d_in',subname)
-           allocate(psi_3d_out(n1,n2,n3,1+ndebug),stat=i_stat)
+           allocate(psi_3d_out(n1,n2,n3,ntimes+ndebug),stat=i_stat)
            call memocc(i_stat,psi_3d_out,'psi_3d_out',subname)
-           allocate(psi_3d_cuda(n1,n2,n3,1+ndebug),stat=i_stat)
+           allocate(psi_3d_cuda(n1,n2,n3,ntimes+ndebug),stat=i_stat)
            call memocc(i_stat,psi_3d_cuda,'psi_3d_cuda',subname)
-           allocate(psi_3d_tmp(n1,n2,n3,1+ndebug),stat=i_stat)
+           allocate(psi_3d_tmp(n1,n2,n3,ntimes+ndebug),stat=i_stat)
            call memocc(i_stat,psi_3d_tmp,'psi_3d_tmp',subname)
+
 
            !initialise array
            sigma2=0.25d0*((n1*hx)**2)
@@ -287,23 +293,29 @@ program conv_check
               end do
            end do
 
-           call convrot_n_per_3d_simple(n1,n2,n3,psi_3d_in,psi_3d_out,psi_3d_tmp)
+           do itimes=1,ntimes
+!           call convrot_n_per_3d_simple(n1,n2,n3,psi_3d_in(1,1,1,itimes),psi_3d_out(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
 !           psi_3d_in(:,:,:,:)=0.0e0_wp
            do i3=1,n3
              do i2=1,n2
                do i1=1,n1
                  call random_number(tt)
-                 psi_3d_in(i1,i2,i3,1)=tt
+                 psi_3d_in(i1,i2,i3,itimes)=tt
                end do
              end do
+           end do
            end do
             
            call start_counters(events,event_number,ierror)
 
-           write(*,'(a,i7,i7,i7)')'CPU 3D Simple Convolutions, dimensions:',n1,n2,n3
+           if (iproc == 0) then
+             write(*,'(a,i7,i7,i7)')'CPU 3D Simple Convolutions, dimensions:',n1,n2,n3
+           end if
+
            call nanosec(tsc0);
-           do i=1,ntimes
-              call convrot_n_per_3d_simple(n1,n2,n3,psi_3d_in,psi_3d_out,psi_3d_tmp)
+           do itimes=1,ntimes
+              call convrot_n_per_3d_simple(n1,n2,n3,psi_3d_in(1,1,1,itimes),&
+                   psi_3d_out(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
            end do
            call nanosec(tsc1);
 
@@ -313,12 +325,15 @@ program conv_check
 
            call print_time(CPUtime,n1*n2*n3,32*3,ntimes)
 
-           write(*,'(a,i7,i7,i7)')'CPU 3D Simple Transposed Convolutions, dimensions:',n1,n2,n3
+           if (iproc == 0) then
+             write(*,'(a,i7,i7,i7)')'CPU 3D Simple Transposed Convolutions, dimensions:',n1,n2,n3
+           end if
 
            call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
-           do i=1,ntimes
-              call convrot_n_per_3d_simple_transpose(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+           do itimes=1,ntimes
+              call convrot_n_per_3d_simple_transpose(n1,n2,n3,psi_3d_in(1,1,1,itimes),&
+                   psi_3d_cuda(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
            end do
            call nanosec(tsc1);
            !call system_clock(it1,count_rate,count_max)
@@ -334,12 +349,14 @@ program conv_check
            call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
 
 
-           write(*,'(a,i7,i7,i7)')'CPU 3D Convolutions, dimensions:',n1,n2,n3
+           if (iproc == 0) then
+             write(*,'(a,i7,i7,i7)')'CPU 3D Convolutions, dimensions:',n1,n2,n3
+           end if
 
            call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
-           do i=1,ntimes
-              call convrot_n_per_3d(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+           do itimes=1,ntimes
+              call convrot_n_per_3d(n1,n2,n3,psi_3d_in(1,1,1,itimes),psi_3d_cuda(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
            end do
            call nanosec(tsc1);
            !call system_clock(it1,count_rate,count_max)
@@ -354,12 +371,15 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
 
-           write(*,'(a,i7,i7,i7)')'CPU 3D Transposed Convolutions, dimensions:',n1,n2,n3
+           if (iproc == 0) then
+             write(*,'(a,i7,i7,i7)')'CPU 3D Transposed Convolutions, dimensions:',n1,n2,n3
+           end if
 
            call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
-           do i=1,ntimes
-              call convrot_n_per_3d_transpose(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+           do itimes=1,ntimes
+              call convrot_n_per_3d_transpose(n1,n2,n3,psi_3d_in(1,1,1,itimes),&
+                   psi_3d_cuda(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
            end do
            call nanosec(tsc1);
 
@@ -373,12 +393,14 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
 
-           write(*,'(a,i7,i7,i7)')'CPU 3D Transposed sse Convolutions, dimensions:',n1,n2,n3
+           if (iproc == 0) then
+             write(*,'(a,i7,i7,i7)')'CPU 3D Transposed sse Convolutions, dimensions:',n1,n2,n3
+           end if
 
            call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
-           do i=1,ntimes
-              call convrot_n_per_3d_sse(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+           do itimes=1,ntimes
+              call convrot_n_per_3d_sse(n1,n2,n3,psi_3d_in(1,1,1,itimes),psi_3d_cuda(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
            end do
            call nanosec(tsc1);
            !call system_clock(it1,count_rate,count_max)
@@ -393,12 +415,14 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
 
-           write(*,'(a,i7,i7,i7)')'CPU 3D Transposed sse Convolutions T, dimensions:',n1,n2,n3
+           if (iproc == 0) then
+             write(*,'(a,i7,i7,i7)')'CPU 3D Transposed sse Convolutions T, dimensions:',n1,n2,n3
+           end if
 
            call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
-           do i=1,ntimes
-              call convrot_t_per_3d_sse(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+           do itimes=1,ntimes
+              call convrot_t_per_3d_sse(n1,n2,n3,psi_3d_in(1,1,1,itimes),psi_3d_cuda(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
            end do
            call nanosec(tsc1);
            !call system_clock(it1,count_rate,count_max)
@@ -414,7 +438,9 @@ program conv_check
 
 
  
-           write(*,'(a,i7,i7)')'CPU Convolutions, dimensions:',n1,ndat
+           if (iproc == 0) then
+             write(*,'(a,i7,i7)')'CPU Convolutions, dimensions:',n1,ndat
+           end if
 
            !take timings
            !call system_clock(it0,count_rate,count_max)
@@ -432,7 +458,9 @@ program conv_check
            !the input and output arrays must be reverted in this implementation
            !take timings
 
-           write(*,'(a,i7,i7)')'CPU naive Convolutions, dimensions:',n1,ndat
+           if (iproc == 0) then
+             write(*,'(a,i7,i7)')'CPU naive Convolutions, dimensions:',n1,ndat
+           end if
 
            call nanosec(tsc0);
            do i=1,ntimes
@@ -448,7 +476,9 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
           
-           write(*,'(a,i7,i7)')'CPU sse Convolutions, dimensions:',n1,ndat
+           if (iproc == 0) then
+             write(*,'(a,i7,i7)')'CPU sse Convolutions, dimensions:',n1,ndat
+           end if
 
            call nanosec(tsc0);
            do i=1,ntimes
@@ -464,7 +494,9 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
           
-           write(*,'(a,i7,i7)')'CPU Convolutions T, dimensions:',n1,ndat
+           if (iproc == 0) then
+             write(*,'(a,i7,i7)')'CPU Convolutions T, dimensions:',n1,ndat
+           end if
 
            !take timings
            !call system_clock(it0,count_rate,count_max)
@@ -481,7 +513,9 @@ program conv_check
 
            !take timings
 
-           write(*,'(a,i7,i7)')'CPU naive Convolutions T, dimensions:',n1,ndat
+           if (iproc == 0) then
+             write(*,'(a,i7,i7)')'CPU naive Convolutions T, dimensions:',n1,ndat
+           end if
 
            call nanosec(tsc0);
            do i=1,ntimes
@@ -498,7 +532,9 @@ program conv_check
            call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
 
 
-           write(*,'(a,i7,i7)')'CPU sse Convolutions T, dimensions:',n1,ndat
+           if (iproc == 0) then
+             write(*,'(a,i7,i7)')'CPU sse Convolutions T, dimensions:',n1,ndat
+           end if
 
            call nanosec(tsc0);
            do i=1,ntimes
@@ -522,6 +558,10 @@ program conv_check
      print *,'wrong ndim',ndim
   end if
 
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
+  call MPI_FINALIZE(ierr)
+
 contains
 
   subroutine start_counters(events,event_number,ierror)
@@ -530,7 +570,8 @@ contains
     integer, dimension(event_number), intent(in) :: events
     integer, intent(inout) :: ierror
 
-!    call PAPIF_start_counters(events,event_number,ierror)
+    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+    call PAPIF_start_counters(events,event_number,ierror)
 
   end subroutine start_counters
 
@@ -542,22 +583,26 @@ contains
     character(*), dimension(event_number), intent(in) :: event_name
     integer :: i
 
-!    call PAPIF_stop_counters(counters,event_number,ierror)
-!    do i=1,event_number
-!      print *,event_name(i),':',counters(i)
-!    enddo
+    call PAPIF_stop_counters(counters,event_number,ierror)
+    if (iproc == 0) then
+      do i=1,event_number
+        print *,event_name(i),':',counters(i)
+      enddo
+    end if
 
+    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   end subroutine read_print_stop_counters
 
   subroutine print_time(time,nbelem,nop,ntimes)
     implicit none
     real(gp),intent(in)::time
     integer,intent(in)::nbelem,nop,ntimes
-
-    write(*,'(a,f9.4,1pe12.5)')'Finished. Time(ms), GFlops',&
-      time*1.d3/real(ntimes,kind=8),&
-      real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(time*1.d9)
-
+  
+    if (iproc == 0) then
+      write(*,'(a,f9.4,1pe12.5)')'Finished. Time(ms), GFlops',&
+        time*1.d3/real(ntimes,kind=8),&
+        real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(time*1.d9)
+    end if
   END SUBROUTINE print_time
 
   subroutine compare_time(REFtime,TESTtime,nbelem,nop,ntimes,maxdiff,threshold)
@@ -565,17 +610,19 @@ contains
     real(gp),intent(in)::REFtime,TESTtime,maxdiff,threshold
     integer,intent(in)::nbelem,nop,ntimes
 
-    write(*,'(a,i10,f9.5,1pe12.5,2(0pf12.4,0pf12.4))',advance='no')&
-      'nbelem,REF/TEST ratio,Time,Gflops: REF,TEST',&
-       nbelem,REFtime/TESTtime,maxdiff,&
-       REFtime*1.d3/real(ntimes,kind=8),&
-       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(REFtime*1.d9),&
-       TESTtime*1.d3/real(ntimes,kind=8),&
-       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(TESTtime*1.d9)
-    if (maxdiff <= threshold) then
-      write(*,'(a)')''
-    else
-      write(*,'(a)')'<<<< WARNING' 
+    if (iproc == 0) then
+      write(*,'(a,i10,f9.5,1pe12.5,2(0pf12.4,0pf12.4))',advance='no')&
+        'nbelem,REF/TEST ratio,Time,Gflops: REF,TEST',&
+         nbelem,REFtime/TESTtime,maxdiff,&
+         REFtime*1.d3/real(ntimes,kind=8),&
+         real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(REFtime*1.d9),&
+         TESTtime*1.d3/real(ntimes,kind=8),&
+         real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(TESTtime*1.d9)
+      if (maxdiff <= threshold) then
+        write(*,'(a)')''
+      else
+        write(*,'(a)')'<<<< WARNING' 
+      end if
     end if
   END SUBROUTINE compare_time
 
@@ -588,20 +635,22 @@ contains
     real(gp)::comp
     integer::i1,i2,i3
 
-    maxdiff=0.d0
-    do i3=1,dim3
-      do i2=1,dim2
-        do i1=1,dim1
-          comp=abs(psi_ref(i1,i2,i3)-psi(i1,i2,i3))
-          if(comp > printdiff) then
-            write(*,*)i3,i2,i1,psi_ref(i1,i2,i3),psi(i1,i2,i3)
-          endif
-          if (comp > maxdiff) then
-            maxdiff=comp
-          end if
+    if (iproc == 0) then
+      maxdiff=0.d0
+      do i3=1,dim3
+        do i2=1,dim2
+          do i1=1,dim1
+            comp=abs(psi_ref(i1,i2,i3)-psi(i1,i2,i3))
+            if(comp > printdiff) then
+              write(*,*)i3,i2,i1,psi_ref(i1,i2,i3),psi(i1,i2,i3)
+            endif
+            if (comp > maxdiff) then
+              maxdiff=comp
+            end if
+          end do
         end do
       end do
-    end do
+    end if
   END SUBROUTINE compare_3D_results
 
   subroutine compare_2D_results(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
@@ -613,18 +662,20 @@ contains
     real(gp)::comp
     integer::i1,i2
 
-    maxdiff=0.d0
-    do i2=1,dim2
-      do i1=1,dim1
-        comp=abs(psi_ref(i1,i2)-psi(i1,i2))
-        if(comp > printdiff) then
-          write(*,*)i2,i1,psi_ref(i1,i2),psi(i1,i2)
-        endif
-        if (comp > maxdiff) then
-          maxdiff=comp
-        end if
+    if (iproc == 0) then
+      maxdiff=0.d0
+      do i2=1,dim2
+        do i1=1,dim1
+          comp=abs(psi_ref(i1,i2)-psi(i1,i2))
+          if(comp > printdiff) then
+            write(*,*)i2,i1,psi_ref(i1,i2),psi(i1,i2)
+          endif
+          if (comp > maxdiff) then
+            maxdiff=comp
+          end if
+        end do
       end do
-    end do
+    end if
   END SUBROUTINE compare_2D_results
 
   subroutine compare_2D_results_t(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
@@ -636,18 +687,20 @@ contains
     real(gp)::comp
     integer::i1,i2
 
-    maxdiff=0.d0
-    do i2=1,dim2
-      do i1=1,dim1
-        comp=abs(psi_ref(i1,i2)-psi(i2,i1))
-        if(comp > printdiff) then
-          write(*,*)i2,i1,psi_ref(i1,i2),psi(i2,i1)
-        endif
-        if (comp > maxdiff) then
-          maxdiff=comp
-        end if
+    if (iproc == 0) then
+      maxdiff=0.d0
+      do i2=1,dim2
+        do i1=1,dim1
+          comp=abs(psi_ref(i1,i2)-psi(i2,i1))
+          if(comp > printdiff) then
+            write(*,*)i2,i1,psi_ref(i1,i2),psi(i2,i1)
+          endif
+          if (comp > maxdiff) then
+            maxdiff=comp
+          end if
+        end do
       end do
-    end do
+    end if
   END SUBROUTINE compare_2D_results_t
 
   subroutine compare_1D_results(dim1, psi_ref, psi, maxdiff, printdiff)
@@ -659,16 +712,18 @@ contains
     real(gp)::comp
     integer::i1
 
-    maxdiff=0.d0
-    do i1=1,dim1
-      comp=abs(psi_ref(i1)-psi(i1))
-      if(comp > printdiff) then
-        write(*,*)i1,psi_ref(i1),psi(i1)
-      endif
-      if (comp > maxdiff) then
-        maxdiff=comp
-      end if
-    end do
+    if (iproc == 0) then
+      maxdiff=0.d0
+      do i1=1,dim1
+        comp=abs(psi_ref(i1)-psi(i1))
+        if(comp > printdiff) then
+          write(*,*)i1,psi_ref(i1),psi(i1)
+        endif
+        if (comp > maxdiff) then
+          maxdiff=comp
+        end if
+      end do
+    end if
   END SUBROUTINE compare_1D_results
 
 

@@ -117,7 +117,7 @@ subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,
   real(gp), dimension(:,:), allocatable :: Hlrlr,Hwork,H,ovrlp
 
   if (atoms%geocode /= 'F') then
-     write(*,*)'ERROR: the atomic charges can be calculated only in isolcated BC!'
+     write(*,*)'ERROR: the atomic charges can be calculated only in isolated BC!'
      stop
   end if
 
@@ -459,7 +459,7 @@ subroutine assign_atomic_radii_york(at,radii)
   type(atoms_data), intent(in) :: at
   real(gp), dimension(at%nat), intent(out) :: radii
   !local variables
-  real(gp), parameter :: xi=1.1839527_gp
+  !n(c) real(gp), parameter :: xi=1.1839527_gp
   integer :: iat,ityp
   real(gp) :: lambda,lambdafrac,cutoff
 
@@ -519,7 +519,7 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
   type(gaussian_basis), intent(out) :: G  
   !local variables
   character(len=*), parameter :: subname='gaussian_psp_basis'
-  real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
+  !n(c) real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
   integer :: iat,nshell,iexpo,l,ishell,i_stat
 
   G%nat=nat
@@ -712,7 +712,9 @@ subroutine kinetic_overlap_h(A,B,ovrlp)
         ishell=ishell+1
         ngA=A%ndoc(ishell)
         lA=A%nam(ishell)
-        if (lA /= 1 ) stop 'only s case is allowed for Hermite polynomials, A' 
+        if (lA /= 1 ) then
+           stop 'only s case is allowed for Hermite polynomials, A' 
+        end if
         do mA=1,2*lA-1
            iovrlp=iovrlp+1
 
@@ -729,7 +731,9 @@ subroutine kinetic_overlap_h(A,B,ovrlp)
                  jshell=jshell+1
                  ngB=B%ndoc(jshell)
                  lB=B%nam(jshell)
-                 if (lA /= 1 ) stop 'only s case is allowed for Hermite polynomials, B' 
+                 if (lA /= 1 ) then
+                    stop 'only s case is allowed for Hermite polynomials, B' 
+                 end if
                  do mB=1,2*lB-1
                     jovrlp=jovrlp+1
                     if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff .or. &
@@ -859,7 +863,9 @@ subroutine calc_coeff_hermite_r2(l,ih,nterm_max,nterm,lx,ly,lz,fac_arr)
   integer, dimension(norder_max) :: lr
   integer, dimension(norder_max) :: nfac_arr
 
-  if (l /=1) stop 'error coeff_hermite'
+  if (l /=1) then
+     stop 'error coeff_hermite'
+  end if
 
   !take the coefficients for the herimt polynomials
   select case (ih)
@@ -988,7 +994,7 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   integer, parameter :: nterm_max=48,maxsizeKB=2048,nw=65536
   logical :: perx,pery,perz
   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
-  integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
+  integer :: nterms_max,nterms,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3 !n(c) iscoeff
   real(gp) :: rx,ry,rz,gau_a
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
@@ -1025,7 +1031,7 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   ishell=0
   iexpo=1
   icoeff=1
-  iscoeff=1
+  !n(c) iscoeff=1
   iterm=1
   do iat=1,G%nat
      rx=G%rxyz(1,iat)
@@ -1039,7 +1045,9 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
         ng=G%ndoc(ishell)
         !angular momentum of the basis set(shifted for compatibility with BigDFT routines
         l=G%nam(ishell)
-        if (l/=1) stop 'error l gautowav_h'
+        if (l/=1) then
+           stop 'error l gaussians_to_wavelets_orb_h'
+        end if
         !print *,iproc,iat,ishell,G%nam(ishell),G%nshell(iat)
         !multiply the values of the gaussian contraction times the orbital coefficient
 
@@ -1138,7 +1146,9 @@ subroutine gaussian_overlap_h(A,B,ovrlp)
         ishell=ishell+1
         ngA=A%ndoc(ishell)
         lA=A%nam(ishell)
-        if (lA /= 1) stop 'only s terms supported, gauovrlp'
+        if (lA /= 1) then
+           stop 'only s terms supported, gauovrlp'
+        end if
         do mA=1,2*lA-1
            iovrlp=iovrlp+1
 

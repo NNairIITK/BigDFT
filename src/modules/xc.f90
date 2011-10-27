@@ -40,7 +40,7 @@ module module_xc
   type(xc_info) :: xc
 
   logical :: abinit_init = .false.
-  character(len=500) :: ABINIT_XC_NAMES(28)
+  character(len=500) :: ABINIT_XC_NAMES(0:28)
 
   private
   public :: xc_init, &
@@ -110,7 +110,7 @@ contains
           xcObj%family(1) = XC_FAMILY_GGA
        else if (xcObj%id(1) >= 31 .and. xcObj%id(1) < 35) then
           xcObj%family(1) = XC_FAMILY_LDA
-       else if (xcObj%id(1) == 0) then
+       else if (xcObj%id(1) == 0 .or. xcObj%id(1)==100) then
           xcObj%family(1) = 0
        else
           write(*,*) "Error: unsupported functional, change ixc."
@@ -171,7 +171,7 @@ contains
        end if
     else if (xcObj%kind == XC_ABINIT) then
        call obj_init_abinit_xc_names_()
-       write(name, "(A)") ABINIT_XC_NAMES(xcObj%id(1))
+       write(name, "(A)") ABINIT_XC_NAMES(min(xcObj%id(1),28))
     end if
   end subroutine obj_get_name_
 
@@ -265,6 +265,12 @@ contains
           xc_exctXfac = 0.25d0 
        end if
     end if
+
+    !hartree-fock value
+    if (xc%id(1) == 100 .and. xc%id(2) == 0) then
+       xc_exctXfac = 1.d0 
+    end if
+
   end function xc_exctXfac
 
   subroutine xc_init_rho(n, rho, nproc)
@@ -321,9 +327,9 @@ contains
     integer :: ipte, nb
     real(dp) :: rhotmp(nspden, n_blocks), exctmp(n_blocks), vxctmp(nspden, n_blocks)
     real(dp) :: sigma(2*min(nspden,2)-1, n_blocks), vsigma(2*min(nspden,2)-1, n_blocks)
-    real(dp) :: v2rho2(3, n_blocks), v2rhosigma(6, n_blocks), v2sigma2(6, n_blocks)
+    real(dp) :: v2rho2(3, n_blocks), v2rhosigma(6, n_blocks), v2sigma2(6, n_blocks)  
     real(dp), allocatable :: rho_(:,:), exc_(:), vxc_(:,:)
-    character(len=*), parameter :: subname='xc_getvxc'
+    !n(c) character(len=*), parameter :: subname='xc_getvxc'
 
     if (xc%kind == XC_ABINIT) then
        ! ABINIT case, call drivexc
@@ -473,7 +479,7 @@ contains
        end do
     else if (xc%kind == XC_LIBXC) then
        ! Pure LibXC case.
-       ! WARNING: LDA implementation only, first derivative.
+       ! WARNING: LDA implementation only, first derivative, no fxc
 
        allocate(rho_(nspden, npts))
        allocate(exc_(npts))
@@ -516,6 +522,8 @@ contains
        deallocate(rho_)
        deallocate(exc_)
        deallocate(vxc_)
+    else
+       write(0,*) "ERROR: XC module not initialised."
     end if
 
   end subroutine xc_getvxc
@@ -523,6 +531,7 @@ contains
   subroutine obj_init_abinit_xc_names_()
     if (abinit_init) return
 
+    write(ABINIT_XC_NAMES( 0), "(A)") "XC: NO Semilocal XC (Hartree only)"
     write(ABINIT_XC_NAMES( 1), "(A)") "XC: Teter 93"
     write(ABINIT_XC_NAMES( 2), "(A)") "XC: Slater exchange, Perdew & Zunger"
     write(ABINIT_XC_NAMES( 3), "(A)") "XC: Teter 91"
@@ -542,6 +551,8 @@ contains
     write(ABINIT_XC_NAMES(23), "(A)") "X-: Wu & Cohen"
     write(ABINIT_XC_NAMES(26), "(A)") "XC: HCTH/147"
     write(ABINIT_XC_NAMES(27), "(A)") "XC: HCTH/407"
+    !Hatree-fock (always the last - ixc=100)
+    write(ABINIT_XC_NAMES(28), "(A)") "Hartree-Fock Exchange only"
 
     abinit_init = .true.
   end subroutine obj_init_abinit_xc_names_

@@ -11,6 +11,7 @@ PSPS = psppar.H \
        HGH/psppar.Si \
        HGH/psppar.Fe \
        HGH/psppar.Mg \
+       HGH/psppar.Ag \
        HGH-K/psppar.H \
        HGH-K/psppar.Si \
        HGH-K/psppar.N \
@@ -27,6 +28,7 @@ TESTDIRS = C \
 	  Ca2 \
 	  H2O-CP2K \
 	  SiBulk \
+	  AgBulk \
 	  H2O-slab \
 	  Davidson-SiH4 \
 	  TiMix \
@@ -59,6 +61,7 @@ Ca2.psp: psppar.Ca
 Mn2.psp: psppar.Mn
 H2O-CP2K.psp: HGH/psppar.H HGH/psppar.O
 SiBulk.psp: HGH/psppar.Si
+AgBulk.psp: HGH/psppar.Ag
 H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
 Davidson-SiH4.psp: psppar.H psppar.Si
 Graphene.psp: psppar.C
@@ -72,10 +75,7 @@ GEOPT-LBFGS.psp: HGH/psppar.Mg
 # Additional rules.
 H2O-slab.post-in:
 	cp -f velocities.in velocities.xyz
-
-
-
-
+	chmod a+w velocities.xyz
 
 # Generic part, do not touch.
 INS = $(TESTDIRS:=.in)
@@ -88,6 +88,9 @@ in: $(INS)
 check: $(CHECKS) report
 
 clean: $(CLEANS)
+
+distclean : $(CLEANS)
+	rm -rf Makefile
 
 failed-check: $(FAILEDCHECKS) report
 
@@ -107,13 +110,14 @@ report:
           *) mode="";; \
         esac ; \
         case $* in \
-          Ca2.out*) prec="4.e-10" ;; \
-          NaCl.out*) prec="2.e-8" ;; \
-          SiBulk.out*) prec="2.e-7" ;; \
-          GEOPT-BFGS.out*) prec="4.e-9" ;; \
-          GEOPT-LBFGS.out*) prec="4.e-9" ;; \
-          SiH4.out*) prec="2.3e-9" ;; \
-          *) prec="1.1e-10" ;; \
+          Ca2.out*)         prec="4.e-10" ;; \
+          GEOPT-BFGS.out*)  prec="1.e-9" ;; \
+          GEOPT-LBFGS.out*) prec="1.e-9" ;; \
+          NaCl.out*)        prec="2.e-9" ;; \
+          SiBulk.out*)      prec="2.e-7" ;; \
+          AgBulk.out*)      prec="6.e-8" ;; \
+          SiH4.out*)        prec="5.e-9" ;; \
+          *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
@@ -123,7 +127,8 @@ $(PSPS):
 %.clean:
 	@dir=`basename $@ .clean` ; \
         if test x"$(srcdir)" = x"." ; then \
-          rm -f $$dir.* $$dir/psppar.* $$dir/*.out $$dir/*.report ; \
+          rm -f $$dir.* $$dir/psppar.* $$dir/*.out $$dir/*.report $$dir/default* ; \
+	  rm -fr $$dir/data ; \
         else \
           rm -rf $$dir.* $$dir ; \
         fi ; \

@@ -43,7 +43,7 @@ program example_op2p
   !decide the total number of elements for each group (maximum 1000 elements)       
   call random_integer(1000,norb)
   !the number of orbitals should be bigger than the number of groups
-  norb=max(norb,ngroups)
+  norb=200!max(norb,ngroups)
   !allocate the corresponding arrays
   allocate(orbs_attributes(norb,3+ndebug),stat=i_stat)
   call memocc(i_stat,orbs_attributes,'orbs_attributes',subname)
@@ -85,12 +85,12 @@ program example_op2p
   !initialize objects
   do iorb=1,norb
      call random_number(tt) !the seed is equal for each mpi process
-     psi(iorb)=1.d0!real(tt,kind=8)
+     !psi(iorb)=1.d0!real(tt,kind=8)
      results(iorb)=0.0d0
      expected_results(iorb)=0.0d0
   end do
 
-!!$  !calculate expected results (could be done with the same fake_operation)
+!!$  !calculate expected results (could be done with the same fake_operation )
 !!$  do iorb=1,norb
 !!$     expected_results(iorb)=0.0d0
 !!$     do jorb=1,norb
@@ -145,6 +145,10 @@ program example_op2p
   !last process
   norb_par(nproc-1)=norb_res
 
+!!$norb_par(0)=102
+!!$if (iproc==0) isorb=0
+!!$if(iproc ==1) isorb=102
+!!$norb_par(1)=98
   !print *,'a',norb_par,orbs_attributes
 
   !here any processor will initialise the global communications arrays needed for executing the op2p
@@ -154,15 +158,13 @@ program example_op2p
   !print *,'starting',iproc
   !adjust isorb followng the maximum
   if (norb_par(iproc)==0) isorb=norb-1
-  call OP2P_communication(iproc,nproc,OP2P,psi(isorb+1),results(isorb+1),fake_operation,send_mpi,receive_mpi,&
-       wait_mpi_profile)
-
+  call OP2P_communication(iproc,nproc,OP2P,psi(isorb+1),results(isorb+1),fake_operation)!,send_mpi_profile,receive_mpi_profile,&
+  !wait_mpi_profile)
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   !print *,'iproc,icount2',iproc,icount
-
   call free_OP2P_descriptors(OP2P,subname)
   !print *,'barrier',ierr
-  call flush(6)
+  !if (iproc==0) flush(unit=6)
   maxerr=0.0d0
 
   do iorb=1,norb_par(iproc)

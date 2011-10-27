@@ -7,6 +7,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
+!> Initialize work arrays for local hamiltonian
 subroutine initialize_work_arrays_locham(lr,nspinor,w)
   use module_base
   use module_types
@@ -171,11 +173,11 @@ END SUBROUTINE initialize_work_arrays_locham
 !>
 !!
 !!
-subroutine memspace_work_arrays_locham(lr,nspinor,memwork)
-  use module_base
+subroutine memspace_work_arrays_locham(lr,memwork) !n(c) nspinor (arg:2)
+  !n(c) use module_base
   use module_types
   implicit none
-  integer, intent(in) :: nspinor
+  !n(c) integer, intent(in) :: nspinor
   type(locreg_descriptors), intent(in) :: lr
   integer(kind=8), intent(out) :: memwork
   !local variables
@@ -327,12 +329,10 @@ subroutine deallocate_work_arrays_locham(lr,w)
 END SUBROUTINE deallocate_work_arrays_locham
 
 
-
-!>   Transforms a wavefunction written in Daubechies basis into a 
-!!   real space wavefunction in interpolating scaling functions on a finer grid
-!!   does the job for all supported BC. Saves the results on the work arrays
-!!   which are reused in the isf_to_daub_kinetic routine
-!!
+!>  Transforms a wavefunction written in Daubechies basis into a 
+!!  real space wavefunction in interpolating scaling functions on a finer grid
+!!  does the job for all supported BC. Saves the results on the work arrays
+!!  which are reused in the isf_to_daub_kinetic routine
 subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   use module_base
   use module_types
@@ -343,7 +343,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(in) :: psi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(out) :: psir
   !local variables
-  integer :: idx,i,i_f,iseg_f,iproc,ierr
+  integer :: idx,i,i_f,iseg_f
   real(wp), dimension(0:3) :: scal
 
   do i=0,3
@@ -358,6 +358,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   select case(lr%geocode)
   case('F')
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspinor,psir(1,1))
      !call timing(iproc,'CrtDescriptors','ON') !temporary
      do idx=1,nspinor  
         call uncompress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
@@ -434,7 +435,7 @@ END SUBROUTINE daub_to_isf_locham
 
 
 subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: nspinor
@@ -443,10 +444,10 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   type(workarr_locham), intent(inout) :: w
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
   real(gp), intent(out) :: ekin
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(out) :: hpsi
-  !local variables
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
+  !Local variables
   logical :: usekpts
-  integer :: idx,i,i_f,iseg_f,iproc,ierr
+  integer :: idx,i,i_f,iseg_f
   real(gp) :: ekino
   real(wp), dimension(0:3) :: scal
   real(gp), dimension(3) :: hgridh
@@ -670,14 +671,14 @@ subroutine initialize_work_arrays_sumrho(lr,w)
   type(workarr_sumrho), intent(out) :: w
   !local variables
   character(len=*), parameter :: subname='initialize_work_arrays_sumrho'
-  integer :: n1,n2,n3,n1i,n2i,n3i,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i_stat
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i_stat !n(c) n1i,n2i,n3i
   
   n1=lr%d%n1
   n2=lr%d%n2
   n3=lr%d%n3
-  n1i=lr%d%n1i
-  n2i=lr%d%n2i
-  n3i=lr%d%n3i
+  !n(c) n1i=lr%d%n1i
+  !n(c) n2i=lr%d%n2i
+  !n(c) n3i=lr%d%n3i
   nfl1=lr%d%nfl1
   nfl2=lr%d%nfl2
   nfl3=lr%d%nfl3
@@ -739,15 +740,15 @@ subroutine initialize_work_arrays_sumrho(lr,w)
   
 
   if (lr%geocode == 'F') then
-     call razero(w%nxc,w%x_c)
-     call razero(w%nxf,w%x_f)
+     call to_zero(w%nxc,w%x_c(1))
+     call to_zero(w%nxf,w%x_f(1))
   end if
 
 
 END SUBROUTINE initialize_work_arrays_sumrho
 
 subroutine memspace_work_arrays_sumrho(lr,memwork)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: lr
@@ -846,7 +847,7 @@ subroutine daub_to_isf(lr,w,psi,psir)
   implicit none
   type(locreg_descriptors), intent(in) :: lr
   type(workarr_sumrho), intent(inout) :: w
-  real(wp), dimension(lr%wfd%nvctr_c+lr%wfd%nvctr_f), intent(in) :: psi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i), intent(out) :: psir
   !local variables
   integer :: i,i_f,iseg_f
@@ -861,6 +862,8 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
   select case(lr%geocode)
   case('F')
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir(1))
+
      call uncompress_forstandard_short(lr%d%n1,lr%d%n2,lr%d%n3,&
           lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
           lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),  & 
@@ -922,7 +925,7 @@ END SUBROUTINE daub_to_isf
 !!   does the job for all supported BC
 !!   Warning: the psir is destroyed for some BCs (slab and periodic)
 subroutine isf_to_daub(lr,w,psir,psi)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: lr

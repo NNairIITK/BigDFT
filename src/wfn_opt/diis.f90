@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Extract the energy (the quantity which has to be minimised by the wavefunction)
 !! and calculate the corresponding gradient.
 !! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
@@ -249,7 +250,7 @@
 !!    !takes also into account parallel k-points distribution
 !!    !here the orthogonality with respect to other occupied functions should be 
 !!    !passed as an optional argument
-!!    call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
+!!    call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
 !!  
 !!    !retranspose the hpsi wavefunction
 !!    call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
@@ -286,7 +287,7 @@
 !!    !and calculate the partial norm of the residue
 !!    !switch between CPU and GPU treatment
 !!    if (GPUconv) then
-!!       call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+!!       call preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,&
 !!            hpsi,gnrm,gnrm_zero,GPU)
 !!    else if (OCLconv) then
 !!       call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
@@ -454,8 +455,8 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
   !real(wp), dimension(:), pointer :: psit,hpsit
   !local variables
-  integer :: ikptp,nvctrp,ispsi,ispsidst,jj,i
-  real(kind=4) :: tt
+  integer :: ikptp,nvctrp,ispsi,ispsidst,ikpt
+ 
 
   if (diis%idsx > 0) then
      !do not transpose the hpsi wavefunction into the diis array
@@ -463,7 +464,8 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
      ispsi=1
      ispsidst=1
      do ikptp=1,orbs%nkptsp
-        nvctrp=comms%nvctr_par(iproc,ikptp)
+        ikpt=orbs%iskpts+ikptp
+        nvctrp=comms%nvctr_par(iproc,ikpt)
         if (nvctrp == 0) cycle
         !here we can choose to store the DIIS arrays with single precision
         !psidst=psit
@@ -491,7 +493,8 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
      ispsi=1
      ispsidst=1
      do ikptp=1,orbs%nkptsp
-        nvctrp=comms%nvctr_par(iproc,ikptp)
+        ikpt=orbs%iskpts+ikptp
+        nvctrp=comms%nvctr_par(iproc,ikpt)
         if (nvctrp == 0) cycle
         !experimental, recast in single precision the difference to see the loss
         !do i=1,nvctrp*orbs%nspinor*orbs%norb
@@ -582,7 +585,7 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
 END SUBROUTINE diis_or_sd
 
 
-!> calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
+!> Calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 !! using  the previous iteration points psidst and the associated error 
 !! vectors (preconditioned gradients) hpsidst
 subroutine diisstp(iproc,nproc,orbs,comms,diis)
@@ -597,7 +600,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
   character(len=2) :: mesupdw
-  integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr,ipsi_spin_sh,iorb_group_sh
+  integer :: i,j,ist,jst,mi,info,jj,mj,i_all,i_stat,ierr,ipsi_spin_sh,iorb_group_sh
   integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp,icplx,ncplx,norbi,ngroup,igroup,iacc_add
   complex(tp) :: zdres,zdotc
   real(tp), dimension(2) :: psicoeff
@@ -630,7 +633,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   ispsidst=1
   do ikptp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
-     nvctrp=comms%nvctr_par(iproc,ikptp)
+     nvctrp=comms%nvctr_par(iproc,ikpt)
      if (nvctrp == 0) cycle
      ! set up DIIS matrix (upper triangle)
      if (diis%ids > diis%idsx) then
@@ -690,7 +693,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   ispsidst=1
   do ikptp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
-     nvctrp=comms%nvctr_par(iproc,ikptp)
+     nvctrp=comms%nvctr_par(iproc,ikpt)
      if (nvctrp == 0) cycle
      iorb_group_sh=0
      do igroup=1,ngroup
