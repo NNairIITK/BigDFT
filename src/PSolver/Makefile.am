@@ -64,7 +64,8 @@ libpoissonsolver_a_SOURCES = \
 CLEANFILES = malloc.prc time.prc \
 	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@ \
 	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ \
-	module_base.@MODULE_EXT@ timedata.@MODULE_EXT@
+	module_base.@MODULE_EXT@ timedata.@MODULE_EXT@ \
+	timedata.@MODULE_EXT@ TIMEDATA.@MODULE_EXT@
 
 #dependencies
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
