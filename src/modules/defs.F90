@@ -1140,7 +1140,9 @@ module module_defs
 #ifndef HAVE_FC_FLUSH
     function flush(unit)
       integer, intent(in) :: unit
+      integer :: flush
 
+      flush = unit
       return
     end function flush
 #endif
