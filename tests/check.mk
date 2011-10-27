@@ -8,6 +8,17 @@
 #  make X.recheck: force the creation of the report in directory X.
 #  make X.clean: clean the given directroy X.
 
+if USE_MPI
+  mpirun_message=mpirun
+else
+  mpirun_message=
+endif
+if USE_OCL
+oclrun_message = oclrun
+else
+oclrun_message =
+endif
+
 AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 INS = $(TESTDIRS:=.in)
@@ -117,12 +128,6 @@ run_message:
 	done
 	touch $*".check"
 
-if USE_MPI
-  mpirun_message=mpirun
-else
-  mpirun_message=
-endif
-
 # Avoid copying in dist the builddir files.
 distdir: $(DISTFILES)
 	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
@@ -154,3 +159,35 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
+
+# Doc messages.
+all:
+	@if test $(MAKELEVEL) = 0 ; then $(MAKE) foot_message ; fi
+
+head_message:
+	@echo "========================================================="
+	@echo " This is a directory for tests. Beside the 'make check'"
+	@echo " one can use the following commands:"
+	@echo "  make in:           generate all input dirs."
+	@echo "  make failed-check: run check again on all directories"
+	@echo "                     with missing report or failed report."
+	@echo "  make X.in:         generate input dir for directory X."
+	@echo "  make X.check:      generate a report for directory X"
+	@echo "                     (if not already existing)."
+	@echo "  make X.recheck:    force the creation of the report in"
+	@echo "                     directory X."
+	@echo "  make X.clean:      clean the given directroy X."
+
+mpirun: head_message
+	@echo ""
+	@echo " Use the environment variable run_parallel"
+	@echo "     ex: export run_parallel='mpirun -np 2'  "
+
+oclrun: head_message $(mpirun_message)
+	@echo ""
+	@echo " Use the environment variable run_ocl"
+	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
+
+foot_message: $(mpirun_message) $(oclrun_message) head_message
+	@echo "========================================================="
+
