@@ -12,9 +12,7 @@ TESTDIRS = C \
 	  H2O-slab \
 	  Davidson-SiH4 \
 	  TiMix \
-	  O2-Spin \
-	  GEOPT-BFGS \
-	  GEOPT-LBFGS 
+	  O2-Spin
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -55,8 +53,6 @@ FeHyb.psp: HGH/psppar.Fe
 GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
-GEOPT-BFGS.psp: HGH/psppar.Mg
-GEOPT-LBFGS.psp: HGH/psppar.Mg
 
 # Additional rules.
 H2O-slab.post-in:
@@ -71,8 +67,6 @@ H2O-slab.post-in:
         esac ; \
         case $* in \
           Ca2.out*)         prec="4.e-10" ;; \
-          GEOPT-BFGS.out*)  prec="1.e-9" ;; \
-          GEOPT-LBFGS.out*) prec="1.e-9" ;; \
           NaCl.out*)        prec="2.e-9" ;; \
           SiBulk.out*)      prec="2.e-7" ;; \
           AgBulk.out*)      prec="6.e-8" ;; \

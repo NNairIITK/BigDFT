@@ -1,5 +1,8 @@
 # Give here the list of existing tests
-TESTDIRS = H2-freq \
+TESTDIRS = \
+	   GEOPT-BFGS \
+	   GEOPT-LBFGS \
+           H2-freq \
 	   NEB \
 	   SPLSAD
 
@@ -17,6 +20,8 @@ H2-freq.psp: psppar.H
 NEB.psp: psppar.H
 SPLSAD.psp: HGH/psppar.N
 MINHOP.psp: psppar.Si psppar.H
+GEOPT-BFGS.psp: HGH/psppar.Mg
+GEOPT-LBFGS.psp: HGH/psppar.Mg
 
 # Additional dependencies
 H2-freq2.freq.out: H2-freq.freq.out
@@ -36,6 +41,8 @@ MINHOP.post-clean:
           *) mode="";; \
         esac ; \
         case $* in \
+          GEOPT-BFGS.out*)  prec="1.e-9" ;; \
+          GEOPT-LBFGS.out*) prec="1.e-9" ;; \
           H2-freq*)         prec="1.e-8" ;; \
 	  NEB*)             prec="5e-5" ;; \
 	  SPLSAD*)          prec="2e-8" ;; \
