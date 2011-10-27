@@ -725,12 +725,8 @@ tests/libs/CUDA/Makefile
 tests/libs/ETSF_IO/Makefile
 tests/DFT/Makefile
 tests/overDFT/Makefile
-tests/overDFT/H2-freq/Makefile
-tests/overDFT/MINHOP/Makefile
-tests/overDFT/NEB/Makefile
 tests/overDFT/NEB/input
 tests/overDFT/NEB/NEB_include.sh
-tests/overDFT/SPLSAD/Makefile
 tests/tutorials/Makefile
 tests/XabsCheb/Makefile
 tests/TDDFT/Makefile

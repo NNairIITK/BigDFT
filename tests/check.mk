@@ -21,6 +21,27 @@ endif
 
 AM_FCFLAGS = -I$(top_builddir)/src -I$(top_builddir)/src/PSolver -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
+PSPS = psppar.H \
+       psppar.C \
+       psppar.Li \
+       psppar.Ca \
+       psppar.Mn \
+       psppar.Si \
+       HGH/psppar.H \
+       HGH/psppar.Na \
+       HGH/psppar.Cl \
+       HGH/psppar.O \
+       HGH/psppar.Si \
+       HGH/psppar.Fe \
+       HGH/psppar.Mg \
+       HGH/psppar.Ag \
+       HGH/psppar.N \
+       HGH-K/psppar.H \
+       HGH-K/psppar.Si \
+       HGH-K/psppar.N \
+       HGH-K/psppar.O \
+       HGH-K/psppar.Ti
+
 INS = $(TESTDIRS:=.in)
 RUNS = $(TESTDIRS:=.run)
 CHECKS = $(TESTDIRS:=.check)
@@ -51,6 +72,17 @@ report:
 	$(MAKE) -f ../Makefile $*.out.out && mv geopt.mon $@
 %.dipole.dat.out: %.out.out
 	$(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube > bader.out && mv dipole.dat $@
+%.freq.out: $(abs_top_builddir)/src/frequencies
+	$(run_parallel) $(abs_top_builddir)/src/frequencies > $@
+%.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
+	rm -f triH.NEB.it*
+	$(abs_top_builddir)/src/NEB < input | tee $@
+	rm -rf triH.NEB.0*
+	rm -f gen_output_file velocities_file
+%.splsad.out: $(abs_top_builddir)/src/splsad
+	$(run_parallel) $(abs_top_builddir)/src/splsad > $@
+%.minhop.out: $(abs_top_builddir)/src/global
+	$(run_parallel) $(abs_top_builddir)/src/global > $@
 
 $(PSPS):
 	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@ 
@@ -60,6 +92,7 @@ $(PSPS):
         if test x"$(srcdir)" = x"." ; then \
           rm -f $$dir.* $$dir/psppar.* $$dir/*.out $$dir/*.report $$dir/default* ; \
 	  rm -fr $$dir/data ; \
+	  cd $$dir && $(MAKE) -f ../Makefile $$dir".post-clean"; \
         else \
           rm -rf $$dir.* $$dir ; \
         fi ; \
@@ -67,6 +100,10 @@ $(PSPS):
 
 %.post-in: ;
 %.psp: ;
+%.post-clean: ;
+
+NEB_driver.sh:
+	ln -fs $(abs_top_srcdir)/src/$@
 
 in_message:
 	@if test -n "$(run_ocl)" ; then \

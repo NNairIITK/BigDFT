@@ -1,23 +1,3 @@
-PSPS = psppar.H \
-       psppar.C \
-       psppar.Li \
-       psppar.Ca \
-       psppar.Mn \
-       psppar.Si \
-       HGH/psppar.H \
-       HGH/psppar.Na \
-       HGH/psppar.Cl \
-       HGH/psppar.O \
-       HGH/psppar.Si \
-       HGH/psppar.Fe \
-       HGH/psppar.Mg \
-       HGH/psppar.Ag \
-       HGH-K/psppar.H \
-       HGH-K/psppar.Si \
-       HGH-K/psppar.N \
-       HGH-K/psppar.O \
-       HGH-K/psppar.Ti
-
 # Give here the list of existing tests
 TESTDIRS = C \
 	  Li+ \
