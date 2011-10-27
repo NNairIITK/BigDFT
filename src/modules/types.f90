@@ -575,7 +575,7 @@ end type largeBasis
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItOuterSCC
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho, fixBasis
     real(8):: FactorFixBasis, convCritMixOut, minimalFixBasis
-    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold
+    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lxi, transmat
     real(8),dimension(:,:),pointer:: hamold
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
