@@ -61,6 +61,9 @@ case "$fc_type" in
   "mipspro")
      capitalize_module=yes
      capitalize_module_ext="mod" ;;
+  "open64")
+     capitalize_module=yes
+     capitalize_module_ext="mod" ;;
   *)
      capitalize_module=no
      capitalize_module_ext="mod" ;;
