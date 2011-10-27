@@ -6,7 +6,10 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! Modified by Laurent Karim Beland, UdeM, 2011.
+!! Modified by:
+!! -EM 2010, see ~/AUTHORS
+!! -Laurent Karim Beland, UdeM, 2011. For working with QM/MM !!
+!! -EM 2011, see ~/AUTHORS
 !!
 !> ART initialize
 !!   Initialization of art method
@@ -14,28 +17,12 @@
 !!   The initial configuration is a "reference configuration", it will be the reference 
 !!   configuration until a new event is accepted. 
 !! 
-!!   The reference configuration should contain the following information:
-!! 
-!!     first line:         refcounter 1232      
-!!     second line:        total_energy: -867.33454
-!!     third line:         8.34543 8.21345 8.67789
-!!     next NATOMS lines:  0  0.0437844 0.96894 0.847555
-!!     
-!!     The first number is the configuration number associated with the reference 
-!!     configuration. 
-!! 
-!!     The second line gives the total energy so that it can be compared with a 
-!!     direct calculation.
-!!     
-!!     The third line indicates the full box size along the x, y and z directions.
-!! 
-!!     The NATOMS lines are the atomic species and coordinates in Angstroems
 subroutine initialize()
 
   use defs
-  use bigdft_forces, only : init_all_atoms, in_system
+  use bigdft_forces, only : init_all_atoms, in_system, new_wf
   use lanczos_defs,  only : LANCZOS_MIN 
-  use saddles,       only : s_pos
+  use saddles,       only : g_pos, GUESSFILE
   implicit none
 
   !Local variables
@@ -44,29 +31,21 @@ subroutine initialize()
   character(len=4)  :: scounter
   logical           :: flag, success
 
-  integer                   :: nat_test
-  integer, pointer          :: typa(:)    ! Atomic type
-  integer, pointer          :: const_(:)  ! Constraints
-  real(kind=8), pointer     :: posa(:)    ! Working positions of the atoms
-  real(kind=8),dimension(3) :: boxref_    ! Reference box from posinp file
+  integer                    :: nat_test
+  integer, pointer           :: typ_a(:)    ! Atomic type
+  integer, pointer           :: const_a(:)  ! Constraints
+  real(kind=8), pointer      :: pos_a(:)    ! Working positions of the atoms
+  real(kind=8),dimension(3)  :: boxref_    ! Reference box from posinp file
 
-  character(len=1)          :: boundary_b
-  integer, pointer          :: typ_b(:)    ! Atomic type
-  integer, pointer          :: const_b(:)  ! Constraints
-  real(kind=8), pointer     :: pos_b(:)    ! Working positions of the atoms
+  character(len=1)           :: boundary_b
+  integer, pointer           :: typ_b(:)    ! Atomic type
+  integer, pointer           :: const_b(:)  ! Constraints
+  real(kind=8), pointer      :: pos_b(:)    ! Working positions of the atoms
+
+  real(kind=8), dimension(3) :: boxl
   !_______________________
-  !! WARNING EDUARDO: cuidado, aqui pierdo el refcounter de REFCONFIG
-
-  !open(unit=FREFCONFIG,file=REFCONFIG,status='old',action='read',iostat=ierror)
-  !read(FREFCONFIG, '(A10,i5)' ) dummy, refcounter
-  !read(FREFCONFIG,*) dummy, ref_energy !! M-A Malouin
-  !read(FREFCONFIG,*) boxref(1), boxref(2), boxref(3)
-  !do i = 1,natoms
-  !   read(FREFCONFIG,*) typat(i), x(i), y(i), z(i)
-  !end do 
-  !close(FREFCONFIG)
   
-  ! Read the counter in order to continue the run where it stopped
+  ! Read the counter in order to continue the run where it stopped or for refine
   ! Format:
   ! Counter:     1000
 
@@ -81,88 +60,99 @@ subroutine initialize()
      end if
   end if 
 
-  ! Read atomic file
-  call init_all_atoms( nat_test, typa, posa, const_, boxref_, boundary, nproc, iproc, "posinp" )
+                                      ! we read the initial/reference configuration
+  if ( new_event .or. restart ) then   
+                                      ! Read initial atomic file
+                                      ! is it neccesary for restart ??
+     call init_all_atoms( nat_test, typ_a, pos_a, const_a, boxref_, boundary, nproc, iproc, "posinp" )
+  else if ( eventtype == 'REFINE_AND_RELAX' .or. eventtype == 'REFINE_SADDLE' ) then
+                                      ! Read reference atomic file
+     call init_all_atoms( nat_test, typ_a, pos_a, const_a, boxref_, boundary, nproc, iproc, trim(REFCONFIG) )
+  end if
 
-  ! test nat_test and nat
+                                      ! test nat_test and nat (obsolete)
   if ( nat_test /= NATOMS ) then
      if ( iproc == 0 ) write(*,*) "Different number of atoms"
      call end_art()
   end if
 
-  ! this is for dual_search:
+                                      ! this is for dual_search: dev
   allocate ( in_system(NATOMS) )   
   in_system = 0 
 
-  !assign the data from the atomic file
+                                      !assign the data from the atomic file
   if ( .not. restart ) then
-     typat(:)   = typa(:)
-     pos(:)     = posa(:)
-     constr(:)  = const_(:)
+     typat(:)   = typ_a(:)
+     pos(:)     = pos_a(:)
+     constr(:)  = const_a(:)
      boxref(:)  = boxref_(:)
      refcounter = mincounter
      box = boxref
 
-     if ( eventtype == "GUESS_SADDLE" ) then  ! We read the position for the presumed saddle point.
+     deallocate(typ_a)
+     deallocate(pos_a)
+     deallocate(const_a)
+                                      ! We read the position for the presumed saddle point.
+     if ( eventtype == "GUESS_DIRECTION" ) then 
                     
-        call init_all_atoms( nat_test, typ_b, pos_b, const_b, boxref_, boundary_b, nproc, iproc, "saddle" )
-                                              ! Let's check if it is in the same conditions as posinp.
+        call init_all_atoms( nat_test, typ_b, pos_b, const_b, boxref_, boundary_b, nproc, iproc, trim(GUESSFILE) )
+                                      ! Let's check if it is in the same conditions as posinp.
         if ( nat_test /= NATOMS ) then
-           if ( iproc == 0 ) write(*,*) "saddle: Different number of atoms"
+           if ( iproc == 0 ) write(*,*) "GUESS: Different number of atoms"
            call end_art()
         end if
         if ( boundary /= boundary_b ) then
-           if ( iproc == 0 ) write(*,*) "saddle: Different number of atoms"
+           if ( iproc == 0 ) write(*,*) "GUESS: Different type of boundary conditions"
            call end_art()
         end if
         do i = 1, NATOMS
-           if ( typ_b(i) /= typa(i) ) then
-              if ( iproc == 0 ) write(*,*) "saddle: Different type of atoms"
+           if ( typ_b(i) /= typat(i) ) then
+              if ( iproc == 0 ) write(*,*) "GUESS: Different type of atoms"
               call end_art()
            end if
-           if ( const_b(i) /= const_(i) ) then
-              if ( iproc == 0 ) write(*,*) "saddle: Different type of constraints"
+           if ( const_b(i) /= constr(i) ) then
+              if ( iproc == 0 ) write(*,*) "GUESS: Different type of constraints"
               call end_art()
            end if
         end do
-                                              ! s_pos in module saddles
-        allocate(s_pos(vecsize))
-        s_pos(:) = 0.0d0
-        s_pos(:) = pos_b(:)
+                                      ! g_pos in module saddles
+        allocate(g_pos(vecsize))
+        g_pos(:) = 0.0d0
+        g_pos(:) = pos_b(:)
+
+       deallocate(typ_b)
+       deallocate(pos_b)
+       deallocate(const_b)
 
      end if 
 
-  else if ( restart .and. dual_search) then
+  else if ( restart .and. dual_search) then  !dev
      call neighbours_local( )
   endif
-
-  deallocate(posa)
-  deallocate(typa)
-  deallocate(const_)
-
-  !atomic positions are now all read
+                                      !atomic type copy in atom (obsolete)
 
   do i = 1, NATOMS
      Atom(i) = type_name(typat(i))
   end do
-  !Atom(:) = type_name(typat(:))
 
+                                      ! write
   if ( iproc == 0 ) then 
    open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
    write(FLOG,'(1X,A34,I17)') ' - Mincounter                   : ', mincounter
    close(FLOG)
   end if
 
-  ! We rescale the coordinates 
+                                      ! We rescale the coordinates. For what ?? 
   scalaref = 1.0d0
   scala = scalaref
 
-  call initialize_potential()         ! Initialize Potential 
+  call initialize_potential()         ! Initialize Potential (CORE) 
 
+                                      ! for output files
   if ( iproc == 0 ) call convert_to_chain( refcounter, 4, scounter )
   fname = FINAL // scounter
   conf_initial = fname
-                                      ! If this is a new event, 
+                                      ! If this is a new event we relax 
   If_ne: if ( new_event .and. (.not. restart) ) then 
      call min_converge( success )     ! Converge the configuration to a local minimum
 
@@ -189,8 +179,57 @@ subroutine initialize()
                                       ! beginning. It is not well defined.
      if ( LANCZOS_MIN .and. success .and. ( .not. dual_search ) ) call check_min( 'M' ) 
   else if ( (.not. new_event) .and. (.not. restart) ) then
+
+                                      ! once we have the total energy we copy as reference values
      posref = pos
      ref_energy = total_energy
+
+     if ( iproc == 0 ) then
+        call store( fname )           ! Store the reference configuration into fname.
+
+        open( unit = FLOG, file = LOGFILE, status = 'unknown',&
+        & action = 'write', position = 'append', iostat = ierror )
+        write(*,*) 'BART: Ref. Configuration stored in file ',fname
+        write(FLOG,'(1X,A34,A17)') ' - Configuration stored in file : ', trim(fname)
+        close(FLOG)
+     end if
+     mincounter = mincounter + 1
+                                      ! now we read the positions of the configuration we want to refine it
+     call init_all_atoms( nat_test, typ_b, pos_b, const_b, boxref_, boundary_b, nproc, iproc, "posinp" )
+                                      ! Let's check if it is in the same conditions as the reference.
+     if ( nat_test /= NATOMS ) then
+        if ( iproc == 0 ) write(*,*) "posinp: Different number of atoms"
+        call end_art()
+     end if
+     if ( boundary /= boundary_b ) then
+        if ( iproc == 0 ) write(*,*) "posinp: Different number of atoms"
+        call end_art()
+     end if
+     do i = 1, NATOMS
+        if ( typ_b(i) /= typat(i) ) then
+           if ( iproc == 0 ) write(*,*) "posinp: Different type of atoms"
+           call end_art()
+        end if
+        if ( const_b(i) /= constr(i) ) then
+           if ( iproc == 0 ) write(*,*) "posinp: Different type of constraints"
+           call end_art()
+        end if
+     end do
+
+                                      ! our real starting point
+     pos(:)  = pos_b(:)
+     box(:)  = boxref_(:)
+
+     deallocate(typ_b)
+     deallocate(pos_b)
+     deallocate(const_b)
+                                      ! we need the total energy for this configuration
+     boxl = box * scala               ! we compute at constant volume.
+
+     new_wf = .True.                  ! we clean the previous wf 
+     call calcforce( NATOMS, pos, boxl, force, total_energy, evalf_number, .false. )
+     new_wf = .False.
+
   end if If_ne
 
 END SUBROUTINE initialize

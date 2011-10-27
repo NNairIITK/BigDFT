@@ -197,6 +197,18 @@ module module_interfaces
        real(gp), dimension(:,:), pointer :: rxyz
      END SUBROUTINE read_atomic_file
 
+     !! @author
+     !! Written by Laurent K Beland 2011 UdeM
+     !! For QM/MM implementation of BigDFT-ART
+     subroutine initialize_atomic_file(iproc,at,rxyz)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc
+       type(atoms_data), intent(inout) :: at
+       real(gp), dimension(:,:), pointer :: rxyz
+     END SUBROUTINE initialize_atomic_file
+
      subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
        !n(c) use module_base
        use module_types

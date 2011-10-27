@@ -3683,7 +3683,7 @@ END SUBROUTINE processor_id_per_node
 subroutine initialize_atomic_file(iproc,atoms,rxyz)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => read_atomic_file
+  use module_interfaces, except_this_one => initialize_atomic_file
   use m_ab6_symmetry
   implicit none
   integer, intent(in) :: iproc

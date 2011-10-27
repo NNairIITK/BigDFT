@@ -19,7 +19,7 @@ module lanczos_defs
   implicit none
   save
 
-  integer      :: NVECTOR_LANCZOS_A
+  integer      :: NVECTOR_LANCZOS_H
   integer      :: NVECTOR_LANCZOS_C
   integer      :: LANCZOS_SCL
 
