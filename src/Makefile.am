@@ -79,12 +79,6 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
-if HAVE_FC_FLUSH
-flush_files =
-else
-flush_files = modules/flush_fake.f90
-endif
-
 if HAVE_FC_GET_COMMAND_ARGUMENT
 getarg_files =
 else
@@ -264,7 +258,6 @@ libbigdft_a_SOURCES = \
 	$(c_level) \
 	$(low_level) \
 	$(high_level) \
-	$(flush_files) \
 	$(getarg_files)
 
 libbigdft_a_LIBADD = profiling/time.o \

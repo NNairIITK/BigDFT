@@ -44,10 +44,6 @@ module module_defs
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
 
-#ifndef HAVE_FC_FLUSH
-  integer :: flush
-#endif
-
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine
@@ -1140,5 +1136,13 @@ module module_defs
          call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
       end if
     end function fdot_denpot
+
+#ifndef HAVE_FC_FLUSH
+    function flush(unit)
+      integer, intent(in) :: unit
+
+      return
+    end function flush
+#endif
 
 end module module_defs
