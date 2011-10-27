@@ -41,7 +41,7 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
   timeexpand=0.d0
   timecompress=0.d0
   converged=.false.
-  write(*,*) 'iproc, comon%nsend', iproc, comon%nsend
+  !write(*,*) 'iproc, comon%nsend', iproc, comon%nsend
   do it=1,nItOrtho
       t1=mpi_wtime()
 

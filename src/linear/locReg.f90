@@ -385,8 +385,6 @@ END SUBROUTINE determine_wfd_periodicity
 
 
 
-!determine a set of localisation regions from the centers and the radii.
-!cut in cubes the global reference system
 subroutine determine_locregSphere(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)!,outofzone)
   use module_base
   use module_types
@@ -411,9 +409,6 @@ subroutine determine_locregSphere(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calcula
   integer :: ierr 
   integer,dimension(3) :: outofzone
   real(gp) :: rx,ry,rz,cutoff  
-  !!if (iproc == 0) then
-  !!   write(*,*)'Inside determine_locreg_periodic:'
-  !!end if
 
 
   !initialize out of zone and logicals
@@ -734,8 +729,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
    !call num_segkeys_periodic(Glr%d%n1,Glr%d%n2,Glr%d%n3,isdir(1),iedir(1),isdir(2),&
    !       iedir(2),isdir(3),iedir(3),Glr%wfd%nseg_c,Glr%wfd%nvctr_c,&
    !       Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),nseg_c,nvctr_c,Llr(ilr)%outofzone(:))
-   write(*,'(a,3i8)') 'glr%ns1, glr%ns2, glr%ns3',glr%ns1, glr%ns2, glr%ns3
-   call num_segkeys_periodicSphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+   call num_segkeys_sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
         llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
@@ -750,7 +744,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
    !       iedir(2),isdir(3),iedir(3),Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
    !       Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
    !       Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),nseg_f,nvctr_f,Llr(ilr)%outofzone(:))
-   call num_segkeys_periodicSphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+   call num_segkeys_sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
         llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
@@ -776,7 +770,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
    !     Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
    !     Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c,&
    !     Llr(ilr)%wfd%keyg(1,1),Llr(ilr)%wfd%keyv(1),Llr(ilr)%outofzone(:))
-   call segkeys_periodicSphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+   call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
         llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
@@ -794,7 +788,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
    !     Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f,&
    !     Llr(ilr)%wfd%keyg(1,Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
    !     Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),Llr(ilr)%outofzone(:))
-   call segkeys_periodicSphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+   call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
         llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
@@ -898,7 +892,7 @@ END SUBROUTINE num_segkeys_periodic
 
 
 
-subroutine num_segkeys_periodicSphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, hx, hy, hz, locrad, locregCenter, &
+subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, hx, hy, hz, locrad, locregCenter, &
            nsegglob, keygglob, keyvglob, nseg, nvctr)
   implicit none
   integer, intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nsegglob
@@ -971,147 +965,9 @@ subroutine num_segkeys_periodicSphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1
   endif
 
 
-END SUBROUTINE num_segkeys_periodicSphere
+END SUBROUTINE num_segkeys_sphere
 
 
-
-subroutine num_segkeys_periodicSphere_forOverlap(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, hx, hy, hz, locrad, locregCenter, &
-           nsegglob, keygglob, keyvglob, nseg, nvctr)
-  implicit none
-  integer, intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nsegglob
-  real(8),intent(in):: hx, hy, hz, locrad
-  real(8),dimension(3),intent(in):: locregCenter
-  integer,dimension(2,nsegglob),intent(in):: keygglob
-  integer,dimension(nsegglob),intent(in):: keyvglob
-  integer,intent(out):: nseg, nvctr
-  !local variables
-  logical :: segment
-  integer :: i, i1, i2, i3, nstart, nend, i2old, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3
-  real(8):: cut, dx,dy, dz
-
-
-  nvctr=0
-  nstart=0
-  nend=0
-  segment=.false.
-
-  cut=locrad**2
-  i2old=-1
-  do iseg=1,nsegglob
-      jj=keyvglob(iseg)
-      j0=keygglob(1,iseg)
-      j1=keygglob(2,iseg)
-      ii=j0-1
-      i3=ii/((n1+1)*(n2+1))
-      ii=ii-i3*(n1+1)*(n2+1)
-      i2=ii/(n1+1)
-      i0=ii-i2*(n1+1)
-      i1=i0+j1-j0
-
-      ii2=i2+nl2glob
-      ii3=i3+nl3glob
-
-      do i=i0,i1
-          ii1=i+nl1glob
-          dz=((ii3*hz)-locregCenter(3))**2
-          dy=((ii2*hy)-locregCenter(2))**2
-          dx=((ii1*hx)-locregCenter(1))**2
-          if(dx+dy+dz<=cut) then
-              nvctr=nvctr+1
-              if(.not.segment) then
-                  nstart=nstart+1
-                  segment=.true.
-              end if
-          else
-              if(segment) then
-                  nend=nend+1
-                  segment=.false.
-              end if
-          end if
-      end do
-      !if(segment .and. i2/=i2old) then
-      if(segment) then
-          ! Always start a new segment if we come to a new line in y direction.
-          nend=nend+1
-          segment=.false.
-      end if
-      i2old=i2
-  end do
-
-
-  nseg=nstart
-
-  !check
-  if (nend /= nstart) then
-     write(*,*) 'nend , nstart',nend,nstart
-     stop 'nend <> nstart'
-  endif
-
-
-END SUBROUTINE num_segkeys_periodicSphere_forOverlap
-
-
-
-
-subroutine num_segkeys_overlapSphere(nl1, nu1, nl2, nu2, nl3, nu3, hx, hy, hz, locrad1, locrad2, &
-           locregCenter1, locregCenter2, nseg, nvctr)
-  implicit none
-  integer, intent(in) :: nl1, nu1, nl2, nu2, nl3, nu3
-  real(8),intent(in):: hx, hy, hz, locrad1, locrad2
-  real(8),dimension(3),intent(in):: locregCenter1, locregCenter2
-  integer,intent(out):: nseg, nvctr
-  !local variables
-  logical :: segment
-  integer :: i1, i2, i3, nstart, nend
-  real(8):: cut1, cut2, dx1, dx2, dy1, dy2, dz1, dz2
-
-
-  nvctr=0
-  nstart=0
-  nend=0
-  segment=.false.
-
-  cut1=locrad1**2
-  cut2=locrad2**2
-  do i3=nl3,nu3
-      dz1=((i3*hz)-locregCenter1(3))**2
-      dz2=((i3*hz)-locregCenter2(3))**2
-      do i2=nl2,nu2
-          dy1=((i2*hy)-locregCenter1(2))**2
-          dy2=((i2*hy)-locregCenter2(2))**2
-          do i1=nl1,nu1
-              dx1=((i1*hx)-locregCenter1(1))**2
-              dx2=((i1*hx)-locregCenter2(1))**2
-              if(dx1+dy1+dz1<=cut1 .and. dx2+dy2+dz2<=cut2) then
-                  nvctr=nvctr+1
-                  if(.not.segment) then
-                      nstart=nstart+1
-                      segment=.true.
-                  end if
-              else
-                  if(segment) then
-                      nend=nend+1
-                      segment=.false.
-                  end if
-              end if
-          end do
-          if(segment) then
-              nend=nend+1
-              segment=.false.
-          end if
-      end do
-  end do
-
-  nseg=nstart
-
-  !check
-  if (nend /= nstart) then
-     write(*,*) 'nend , nstart',nend,nstart
-     stop 'nend <> nstart'
-  endif
-
-
-END SUBROUTINE num_segkeys_overlapSphere
 
 
 
@@ -1213,7 +1069,7 @@ END SUBROUTINE segkeys_periodic
 
 
 
-subroutine segkeys_periodicSphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, locrad, locregCenter, &
+subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, locrad, locregCenter, &
            nsegglob, keygglob, keyvglob, keyg, keyv)
   implicit none
   integer,intent(in):: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob
@@ -1309,172 +1165,8 @@ subroutine segkeys_periodicSphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu
   endif
 
 
-END SUBROUTINE segkeys_periodicSphere
+END SUBROUTINE segkeys_Sphere
 
-
-subroutine segkeys_periodicSphere_forOverlap(n1, n2, n3, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, locrad, locregCenter, &
-           nsegglob, keygglob, keyvglob, keyg, keyv)
-  implicit none
-  integer,intent(in):: n1, n2, n3, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob
-  real(8):: hx, hy, hz, locrad
-  real(8),dimension(3):: locregCenter
-  integer,dimension(2,nsegglob),intent(in):: keygglob
-  integer,dimension(nsegglob),intent(in):: keyvglob
-  integer,dimension(2,nseg),intent(out):: keyg
-  integer,dimension(nseg),intent(out):: keyv
-  !local variables
-  integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, i2old, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
-  integer:: i1l, i2l, i3l
-  real(8):: cut, dx, dy, dz
-  logical:: segment
-
-  !dimensions of the localisation region (O:nIl)
-  ! must be smaller or equal to simulation box dimensions
-  !n1l=i1ec-i1sc
-  !n2l=i2ec-i2sc
-  !n3l=i3ec-i3sc
-  n1l=nu1-nl1
-  n2l=nu2-nl2
-  n3l=nu3-nl3
-
-  nvctr=0
-  nstart=0
-  nend=0
-  segment=.false.
-
-  cut=locrad**2
-  i2old=-1
-  do iseg=1,nsegglob
-      jj=keyvglob(iseg)
-      j0=keygglob(1,iseg)
-      j1=keygglob(2,iseg)
-      ii=j0-1
-      i3=ii/((n1+1)*(n2+1))
-      ii=ii-i3*(n1+1)*(n2+1)
-      i2=ii/(n1+1)
-      i0=ii-i2*(n1+1)
-      i1=i0+j1-j0
-
-
-      do i=i0,i1
-          dz=((i3*hz)-locregCenter(3))**2
-          dy=((i2*hy)-locregCenter(2))**2
-          dx=((i*hx)-locregCenter(1))**2
-          !igridpoint=i3*((n1+1)*(n2+1)) + i2*(n1+1) + i+1
-          i1l=i-nl1
-          i2l=i2-nl2
-          i3l=i3-nl3
-          igridpoint=i3l*((n1l+1)*(n2l+1)) + i2l*(n1l+1) + i1l+1
-          !write(*,'(a,i0,a,i10,4x,3i5,a,3i4,a)') 'iseg=',iseg,': igridpoint, i1l, i2l, i3l (n1l, n2l, n3l)', igridpoint, i1l, i2l, i3l,' (',n1l,n2l,n3l,')'
-          if(dx+dy+dz<=cut) then
-              nvctr=nvctr+1
-              if(.not.segment) then
-                  nstart=nstart+1
-                  keyg(1,nstart)=igridpoint
-                  keyv(nstart)=nvctr
-                  segment=.true.
-              end if
-          else
-              if(segment) then
-                  nend=nend+1
-                  keyg(2,nend)=igridpoint-1
-                  !write(*,'(a,i0,a,2i8)') 'nend=',nend,': keyg(1,nend), keyg(2,nend)', keyg(1,nend), keyg(2,nend)
-                  segment=.false.
-              end if
-          end if
-      end do
-      !if(segment .and. i2/=i2old) then
-      if(segment) then
-          ! Always start a new segment if we come to a new line in y direction.
-          nend=nend+1
-          keyg(2,nend)=igridpoint
-          !write(*,'(a,i0,a,2i8)') 'nend=',nend,': keyg(1,nend), keyg(2,nend)', keyg(1,nend), keyg(2,nend)
-          segment=.false.
-      end if
-      i2old=i2
-  end do
-
-
-  if (nend /= nstart) then
-     write(*,*) 'nend , nstart',nend,nstart
-     stop 'nend <> nstart'
-  endif
-  if (nseg /= nstart) then
-     write(*,*) 'nseg , nstart',nseg,nstart
-     stop 'nseg <> nstart'
-  endif
-
-
-END SUBROUTINE segkeys_periodicSphere_forOverlap
-
-
-subroutine segkeys_overlapSphere(n1, n2, n3, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, &
-           locrad1, locrad2, locregCenter1, locregCenter2, keyg, keyv)
-  implicit none
-  integer,intent(in):: n1, n2, n3, nl1, nu1, nl2, nu2, nl3, nu3, nseg
-  real(8):: hx, hy, hz, locrad1, locrad2
-  real(8),dimension(3):: locregCenter1, locregCenter2
-  integer,dimension(2,nseg),intent(out):: keyg
-  integer,dimension(nseg),intent(out):: keyv
-  !local variables
-  integer :: i1, i2, i3, nstart, nend, nvctr, igridpoint
-  real(8):: cut1, cut2, dx1, dx2, dy1, dy2, dz1, dz2
-  logical:: segment
-
-
-  nvctr=0
-  nstart=0
-  nend=0
-  segment=.false.
-
-
-  cut1=locrad1**2
-  cut2=locrad2**2
-  do i3=nl3,nu3
-      dz1=((i3*hz)-locregCenter1(3))**2
-      dz2=((i3*hz)-locregCenter2(3))**2
-      do i2=nl2,nu2
-          dy1=((i2*hy)-locregCenter1(2))**2
-          dy2=((i2*hy)-locregCenter2(2))**2
-          do i1=nl1,nu1
-              igridpoint=i3*((n1+1)*(n2+1)) + i2*(n1+1) + i1+1
-              dx1=((i1*hx)-locregCenter1(1))**2
-              dx2=((i1*hx)-locregCenter2(1))**2
-              if(dx1+dy1+dz1<=cut1 .and. dx2+dy2+dz2<=cut2) then
-                  nvctr=nvctr+1
-                  if(.not.segment) then
-                      nstart=nstart+1
-                      keyg(1,nstart)=igridpoint
-                      keyv(nstart)=nvctr
-                      segment=.true.
-                  end if
-              else
-                  if(segment) then
-                      nend=nend+1
-                      keyg(2,nend)=igridpoint-1
-                      segment=.false.
-                  end if
-              end if
-          end do
-          if(segment) then
-              nend=nend+1
-              keyg(2,nend)=igridpoint
-              segment=.false.
-          end if
-      end do
-  end do
-
-  if (nend /= nstart) then
-     write(*,*) 'nend , nstart',nend,nstart
-     stop 'nend <> nstart'
-  endif
-  if (nseg /= nstart) then
-     write(*,*) 'nseg , nstart',nseg,nstart
-     stop 'nseg <> nstart'
-  endif
-
-
-END SUBROUTINE segkeys_overlapSphere
 
 
 
@@ -2331,7 +2023,7 @@ subroutine get_overlap_region_periodic2Sphere(alr,blr,Glr,hx,hy,hz,isovrlp,Llr,n
         !!     olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
         !!     hx, hy, hz, llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
         !!     olr(index)%wfd%nseg_c, olr(index)%wfd%nvctr_c)
-        call num_segkeys_periodicSphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
+        call num_segkeys_sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
              llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
              olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
              olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
@@ -2352,7 +2044,7 @@ subroutine get_overlap_region_periodic2Sphere(alr,blr,Glr,hx,hy,hz,isovrlp,Llr,n
         !!     olr(index)%d%nfl3, olr(index)%d%nfu3, &
         !!     hx, hy, hz, llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
         !!     olr(index)%wfd%nseg_f, olr(index)%wfd%nvctr_f)
-        call num_segkeys_periodicSphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
+        call num_segkeys_sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
              llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
              olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
              olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
@@ -2378,7 +2070,7 @@ subroutine get_overlap_region_periodic2Sphere(alr,blr,Glr,hx,hy,hz,isovrlp,Llr,n
         !!     olr(index)%wfd%nseg_c, hx, hy, hz, &
         !!     llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
         !!     olr(index)%wfd%keyg(1,1), olr(index)%wfd%keyv(1))
-        call segkeys_periodicSphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
+        call segkeys_Sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
              llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
              olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
              olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
@@ -2405,7 +2097,7 @@ subroutine get_overlap_region_periodic2Sphere(alr,blr,Glr,hx,hy,hz,isovrlp,Llr,n
         !!     llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
         !!     olr(index)%wfd%keyg(1,olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)), &
         !!     olr(index)%wfd%keyv(olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)))
-        call segkeys_periodicSphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
+        call segkeys_Sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
              llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
              olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
              olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &

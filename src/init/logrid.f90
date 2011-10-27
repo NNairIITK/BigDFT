@@ -349,7 +349,6 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid_c,logrid_f
   !local variables
   integer :: iseg,j0,j1,ii,i1,i2,i3,i0,nvctr_check,i
-  write(*,*) 'n1, n2, n3', n1, n2, n3
 
   !coarse part
   logrid_c(:,:,:)=.false.
@@ -364,7 +363,6 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
      i2=ii/(n1+1)
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
-     !write(*,'(a,3x,a,3i4,a,4i9)') 'COARSE: (n1,n2,n3),j0,j1,i0,i1','(',n1,n2,n3,')',j0,j1,i0,i1
      do i=i0,i1
         nvctr_check=nvctr_check+1
         logrid_c(i,i2,i3)=.true.
@@ -390,7 +388,6 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
      i2=ii/(n1+1)
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
-     !write(*,'(a,3x,a,3i4,a,i9,5x,4i9)') '(n1,n2,n3),iseg,  j0,j1,i0,i1','(',n1,n2,n3,')',iseg,j0,j1,i0,i1
      do i=i0,i1
         nvctr_check=nvctr_check+1
         logrid_f(i,i2,i3)=.true.

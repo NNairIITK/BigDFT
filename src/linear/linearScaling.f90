@@ -110,7 +110,7 @@ logical:: updatePhi, reduceConvergenceTolerance
 real(8),dimension(:),pointer:: lphi, lphir, phibuffr
 
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-real(8),dimension(:),allocatable:: phiTemp
+real(8),dimension(:),allocatable:: phiTemp, lphiold
 real(wp),dimension(:),allocatable:: projTemp
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
@@ -161,6 +161,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
   allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
   !rhopotold_out=1.d100
+
+  !allocate(lphiold(size(lphi)), stat=istat)
+  !call memocc(istat, lphiold, 'lphiold', subname)
 
 
   call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
@@ -294,6 +297,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
   end if
 
 
+  !! For mixing phi together with mixing the density -- experimental
+  !lphiold=lphi
 
 
   if(nproc==1) allocate(psit(size(psi)))
@@ -343,6 +348,12 @@ real(8),dimension(:,:),allocatable:: ovrlp
                   if(lin%mixHist==0) then
                       !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
                       call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+
+                      !! Mix phi - EXPERIMENTAL
+                      !tt=1.d0-lin%alphaMix
+                      !do i=1,size(lphi)
+                      !    lphi(i)=tt*lphiold(i)+lin%alphaMix*lphi(i)
+                      !end do
                   else 
                       ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
                       ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
@@ -459,6 +470,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
+  !iall=-product(shape(lphiold))*kind(lphiold)
+  !deallocate(lphiold, stat=istat)
+  !call memocc(istat, iall, 'lphiold', subname)
 
   if(lin%mixHist>0) then
       call deallocateMixrhopotDIIS(mixdiis)
@@ -528,6 +542,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi, lphi, coeff)
+
+
 
 
   call mpi_barrier(mpi_comm_world, ierr)
