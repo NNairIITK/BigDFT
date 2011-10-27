@@ -49,8 +49,12 @@ AC_FC_SRCEXT(f90)
 
 AC_FC_WRAPPERS()
 AX_FC_FLUSH()
-AX_FC_F2003()
+dnl Ugly work around.
+if test x"$ax_fc_flush" != x"yes" ; then
+   sed -i "s/^.*flush.*$//g" src/cluster.f90
+fi
 AX_FC_DEFS()
+AX_FC_F2003()
 
 dnl Set if the module name are capitalized or not with the FC compiler. 
 AX_FC_MOD()
