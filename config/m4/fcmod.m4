@@ -27,21 +27,25 @@ end module modtest
       ax_fc_mod_ext="mod"
       ax_fc_mod_capitalize="no"
       ax_fc_mod_name="module"
+      rm -f modtest.mod
     fi
     if test -s modtest.MOD ; then
       ax_fc_mod_ext="MOD"
       ax_fc_mod_capitalize="no"
       ax_fc_mod_name="module"
+      rm -f modtest.MOD
     fi
     if test -s MODTEST.MOD ; then
       ax_fc_mod_ext="MOD"
       ax_fc_mod_capitalize="yes"
       ax_fc_mod_name="MODULE"
+      rm -f MODTEST.MOD
     fi
     if test -s MODTEST.mod ; then
       ax_fc_mod_ext="mod"
       ax_fc_mod_capitalize="yes"
       ax_fc_mod_name="MODULE"
+      rm -f MODTEST.mod
     fi
     if test $ax_fc_mod_name = "unknown" ; then
        AC_MSG_ERROR(Unknown module naming scheme for Fortran compiler.)
