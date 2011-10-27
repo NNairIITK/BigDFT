@@ -52,29 +52,10 @@ AX_FC_FLUSH()
 AX_FC_F2003()
 AX_FC_DEFS()
 
-dnl Set if the module name are capitalized or not with the FC compiler.
-AC_MSG_CHECKING([for module extension for compiler '$fc_type'])
-case "$fc_type" in
-  "pathscale")
-     capitalize_module=yes
-     capitalize_module_ext="mod" ;;
-  "mipspro")
-     capitalize_module=yes
-     capitalize_module_ext="mod" ;;
-  "open64")
-     capitalize_module=yes
-     capitalize_module_ext="mod" ;;
-  *)
-     capitalize_module=no
-     capitalize_module_ext="mod" ;;
-esac
-AC_MSG_RESULT([$capitalize_module_ext])
-
-dnl We custom the module naming scheme depending on the compiler
-dnl and the platform.
-dnl Not done yet
-AM_CONDITIONAL(CAPITALIZE, test "$capitalize_module" = "yes")
-AC_SUBST(MODULE_EXT, $capitalize_module_ext)
+dnl Set if the module name are capitalized or not with the FC compiler. 
+AX_FC_MOD()
+AM_CONDITIONAL(CAPITALIZE, test "$ax_fc_mod_capitalize" = "yes")
+AC_SUBST(MODULE_EXT, $ax_fc_mod_ext)
 
 dnl Set the FCFLAGS and FFLAGS variable
 if test -z "$FFLAGS" ; then
@@ -590,9 +571,9 @@ else
       ac_libxc_libname="dft_xc"
       AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
     fi
-    AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
-    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
-    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
+    AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$ax_fc_mod_ext, funcs="yes", funcs="no")
+    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$ax_fc_mod_ext, lib="yes", lib="no")
+    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$ax_fc_mod_ext, types="yes", types="no")
     if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
       ac_use_libxc="yes"
       AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
@@ -628,9 +609,9 @@ else
     
     dnl Test the given implementation of libabinit.
     AC_CHECK_LIB(abinit, symbrav, withlibabinit=yes, withlibabinit=no)
-    AC_CHECK_FILE($ac_libabinit_dir/include/ab6_moldyn.$capitalize_module_ext, moldyn="yes", moldyn="no")
-    AC_CHECK_FILE($ac_libabinit_dir/include/ab6_symmetry.$capitalize_module_ext, sym="yes", sym="no")
-    AC_CHECK_FILE($ac_libabinit_dir/include/libxc_functionals.$capitalize_module_ext, libxc="yes", libxc="no")
+    AC_CHECK_FILE($ac_libabinit_dir/include/ab6_moldyn.$ax_fc_mod_ext, moldyn="yes", moldyn="no")
+    AC_CHECK_FILE($ac_libabinit_dir/include/ab6_symmetry.$ax_fc_mod_ext, sym="yes", sym="no")
+    AC_CHECK_FILE($ac_libabinit_dir/include/libxc_functionals.$ax_fc_mod_ext, libxc="yes", libxc="no")
     if test "$withlibabinit" = "yes" -a "$moldyn" = "yes" -a "$sym" = "yes" -a "$libxc" = "yes"; then
       ac_use_libabinit="yes"
       AC_SUBST(LIBABINIT_INCLUDE, "-I"$ac_libabinit_dir/include)
