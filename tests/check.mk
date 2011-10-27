@@ -26,6 +26,7 @@ PSPS = psppar.H \
        psppar.Li \
        psppar.Ca \
        psppar.Mn \
+       psppar.N \
        psppar.Si \
        HGH/psppar.H \
        HGH/psppar.Na \
@@ -40,7 +41,8 @@ PSPS = psppar.H \
        HGH-K/psppar.Si \
        HGH-K/psppar.N \
        HGH-K/psppar.O \
-       HGH-K/psppar.Ti
+       HGH-K/psppar.Ti \
+       Xabs/psppar.Fe
 
 INS = $(TESTDIRS:=.in)
 RUNS = $(TESTDIRS:=.run)
@@ -83,6 +85,9 @@ report:
 	$(run_parallel) $(abs_top_builddir)/src/splsad > $@
 %.minhop.out: $(abs_top_builddir)/src/global
 	$(run_parallel) $(abs_top_builddir)/src/global > $@
+%.xabs.out: $(abs_top_builddir)/src/abscalc
+	name=`basename $@ .xabs.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	$(abs_top_builddir)/src/abscalc $$name > $@
 
 $(PSPS):
 	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@ 
@@ -158,7 +163,6 @@ run_message:
 	  rep=`basename $$r .ref`".report" ; \
 	  if ! grep -qs "succeeded\|passed" $$dir/$$rep ; then \
 	    target=` basename $$r .ref` ; \
-	    $(MAKE) $*".in" && rm -f $*".in" ; \
 	    rm -f $$dir/$$target".out" $$dir/$$target".report" ; \
 	    cd $$dir && $(MAKE) -f ../Makefile $$target".out" $$target".report" && cd - ; \
 	  fi \

@@ -4,7 +4,10 @@ TESTDIRS = \
 	   GEOPT-LBFGS \
            H2-freq \
 	   NEB \
-	   SPLSAD
+	   SPLSAD \
+	   XabsCheb \
+	   XabsLanc \
+	   Xabsb2B
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
@@ -22,9 +25,20 @@ SPLSAD.psp: HGH/psppar.N
 MINHOP.psp: psppar.Si psppar.H
 GEOPT-BFGS.psp: HGH/psppar.Mg
 GEOPT-LBFGS.psp: HGH/psppar.Mg
+XabsCheb.psp: Xabs/psppar.Fe
+XabsLanc.psp: Xabs/psppar.Fe
+Xabsb2B.psp: Xabs/psppar.Fe
 
 # Additional dependencies
 H2-freq2.freq.out: H2-freq.freq.out
+Xabsb2B.xabs.out: Xabsdel_inputGenPot.xabs.out
+
+# Additional run rules.
+Xabsdel_inputGenPot.xabs.out: $(abs_top_builddir)/src/abscalc
+	name=`basename $@ .xabs.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	$(abs_top_builddir)/src/abscalc $$name > $@
+	mv -f local_potentialb2B.cube b2B_xanes.cube
+	cp inputGenPot.xyz b2B_xanes.xyz
 
 # Additional clean targets.
 SPLSAD.post-clean:
@@ -32,11 +46,17 @@ SPLSAD.post-clean:
 MINHOP.post-clean:
 	rm -f *pos* *out *mon global.out latest.pos.force.*.dat MINHOP.out \
               *.prc fort.* default* CPUlimit test
+XabsCheb.post-clean:
+	rm -f cheb_spectra_* electronic_density.cube
+XabsLanc.post-clean:
+	rm -f alphabeta* electronic_density.cube
+Xabsb2B.post-clean:
+	rm -f cheb_spectra_* b2B_xanes.* electronic_density.cube local_potentialb2B*
 
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
-          *.memguess.ref | *.out.ref | *.freq.ref | *.splsad.ref | *.minhop.ref ) mode="--mode=bigdft";; \
+          *.memguess.ref | *.out.ref | *.freq.ref | *.splsad.ref | *.minhop.ref | *.xabs.ref ) mode="--mode=bigdft";; \
           *.NEB.ref) mode="--mode=neb";; \
           *) mode="";; \
         esac ; \

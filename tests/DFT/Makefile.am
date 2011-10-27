@@ -12,7 +12,8 @@ TESTDIRS = C \
 	  H2O-slab \
 	  Davidson-SiH4 \
 	  TiMix \
-	  O2-Spin
+	  O2-Spin \
+	  TDDFT
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -53,6 +54,7 @@ FeHyb.psp: HGH/psppar.Fe
 GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
+TDDFT.psp: psppar.N
 
 # Additional rules.
 H2O-slab.post-in:
@@ -71,6 +73,7 @@ H2O-slab.post-in:
           SiBulk.out*)      prec="2.e-7" ;; \
           AgBulk.out*)      prec="6.e-8" ;; \
           SiH4.out*)        prec="5.e-9" ;; \
+	  TDDFT.out*)       prec="2.e-9" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

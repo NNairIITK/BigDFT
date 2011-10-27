@@ -4,8 +4,6 @@ SUBDIRS = \
 	  libs \
 	  DFT \
 	  overDFT \
-	  XabsCheb \
-	  TDDFT \
 	  tutorials
 
 if USE_OCL

@@ -728,8 +728,6 @@ tests/overDFT/Makefile
 tests/overDFT/NEB/input
 tests/overDFT/NEB/NEB_include.sh
 tests/tutorials/Makefile
-tests/XabsCheb/Makefile
-tests/TDDFT/Makefile
 ])
 
 # Call libXC ./configure script recursively.
