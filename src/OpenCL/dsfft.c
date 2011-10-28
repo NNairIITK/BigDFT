@@ -70,6 +70,9 @@ inline void fft_k_generated_generic(cl_kernel kernel, bigdft_command_queue comma
 
 
 void FC_FUNC_(customize_fft,CUSTOMIZE_FFT)(cl_uint *dimensions) {
+  assert(dimensions[0]<=256);
+  assert(dimensions[1]<=256);
+  assert(dimensions[2]<=256);
   fft_size[0] = dimensions[0];
   fft_size[1] = dimensions[1];
   fft_size[2] = dimensions[2];
@@ -196,7 +199,8 @@ void build_fft_programs(cl_context * context){
     fft_code * c;
     if(fft_size[0]!=0){
       c = generate_fft_program(fft_size[0],&infos);
-//      printf("%s\n",c->code);
+      printf("%s\n",c->code);
+      exit(0);
       fftProgramd0 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd0!");
       ciErrNum = clBuildProgram(fftProgramd0, 0, NULL, "-cl-mad-enable", NULL, NULL);
