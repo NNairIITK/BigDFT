@@ -39,10 +39,16 @@ Xabsb2B.xabs.out: Xabsdel_inputGenPot.xabs.out
 
 # Additional NEB in.
 NEB.post-in:
-	sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh
-	ln -fs $(abs_top_srcdir)/src/NEB_driver.sh
+	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
+	if ! test -l NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
 NEB.post-clean:
 	rm -f NEB_include.sh NEB_driver.sh
+
+# Additional H2O-slab in.
+H2O-slab.post-in:
+	cp -f velocities.in velocities.xyz
+	chmod a+w velocities.xyz
+
 
 # Additional run rules.
 Xabsdel_inputGenPot.xabs.post-out:
