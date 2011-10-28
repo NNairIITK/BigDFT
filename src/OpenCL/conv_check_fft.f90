@@ -109,9 +109,6 @@ program conv_check_fft
    call memocc(i_stat,rhopot,'rhopot',subname)
    allocate(rhopot2(2*n1*n2*n3+ndebug),stat=i_stat)
    call memocc(i_stat,rhopot2,'rhopot2',subname)
-   allocate(pkernel2(2*n1*n2*n3+ndebug),stat=i_stat)
-   call memocc(i_stat,pkernel2,'pkernel2',subname)
-
 
    !initialise array
    sigma2=0.25d0*((n1*hx)**2)
@@ -278,6 +275,9 @@ program conv_check_fft
    !calculate the kernel in parallel for each processor
    call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,quiet='yes')
    
+   allocate(pkernel2(size(pkernel)+ndebug),stat=i_stat)
+   call memocc(i_stat,pkernel2,'pkernel2',subname)
+   
 
    call nanosec(tsc0);
    call H_potential('P','D',0,1,n1,n2,n3,0.2d0,0.2d0,0.2d0,&
@@ -292,6 +292,7 @@ program conv_check_fft
 
    !transpose the kernel before copying
    
+
 
    call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, 2*n1*n2*n3*8, work_GPU)
@@ -554,5 +555,45 @@ contains
   end subroutine compare_1D_results
  
 end program conv_check_fft
+
+subroutine transpose_kernel_forGPU(geocode,n01,n02,n03,pkernel,pkernel2)
+  use module_base
+  use Poisson_Solver
+  implicit none
+  integer, intent(in) :: n01,n02,n03
+  character(len=*), intent(in) :: geocode
+  real(dp), dimension(*), intent(in) :: pkernel
+  real(dp), dimension(*), intent(out) :: pkernel2
+  !local variables
+  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,nproc,i1,i2,i3,ind,indt
+  
+  !only makes sense in serial for the moment
+  nproc=1
+  !calculate the dimensions wrt the geocode
+  if (geocode == 'P') then
+     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'S') then
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'F') then
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else
+     stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
+  end if
+
+  allocate(kernel(nd1,nd2,nd3+ndebug),stat=i_stat)
+  call memocc(i_stat,kernel,'kernel',subname)
+
+
+  do i3=1,nd3
+     do i2=1,nd2
+        do i1=1,nd1
+           ind=i1+(i2-1)*nd1+(i3-1)*nd1*nd2
+           indt=i1+(i3-1)*nd1+(i2-1)*nd1*nd3
+           pkernel2(indt)=pkernel(ind)
+        end do
+     end do
+  end do
+
+end subroutine transpose_kernel_forGPU
 
 !!***
