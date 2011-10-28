@@ -115,6 +115,11 @@ $(PSPS):
 	rm -f $$dir.* ; \
         if test x"$(srcdir)" = x"." ; then \
 	  cd $$dir ; \
+	  for i in psppar.* ; do \
+	    if test -L $i ; then \
+	      rm -f $i ; \
+	    fi ; \
+	  done ; \
           rm -f *.out *.mon *.report default* *.prc; \
 	  rm -fr data data-*; \
 	  rm -f anchorpoints* fort.* nogt.* path*.xyz vogt.* ; \
