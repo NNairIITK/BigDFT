@@ -19,7 +19,7 @@ endif
 if BUILD_BINARIES
 binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
 local_binaries = test_forces
-scripts_sources = NEB_driver.sh
+scripts_sources = NEB_driver.sh bigdft-tool
 else
 binaries_sources = 
 local_binaries =

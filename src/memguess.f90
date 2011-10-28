@@ -24,6 +24,7 @@ program memguess
   character(len=40) :: comment
   character(len=128) :: fileFrom, fileTo,filename_wfn
   logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
+  logical :: disable_deprecation = .false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
@@ -154,7 +155,10 @@ program memguess
            write(*,'(1x,a,i0,a)')&
                 'Use gaussian basis of',ng,' elements.'
            exit loop_getargs
-        else 
+        else if (trim(tatonam) == 'dd') then
+           ! dd: disable deprecation message
+           disable_deprecation = .true.
+        else
            ! Use value as radical for input files.
            if (trim(radical) /= "") then
               write(*,'(1x,a)')&
@@ -193,8 +197,9 @@ program memguess
 !!!  read(1,*) GPUtest
 !!!  if (GPUtest) write(*,*) 'Perform the test with GPU'
 !!!!!! END of By Ali
-
-
+  if (.not. disable_deprecation) then
+     call deprecation_message()
+  end if
 
   !welcome screen
   !call print_logo()
@@ -497,6 +502,10 @@ program memguess
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
+
+  if (.not. disable_deprecation) then
+     call deprecation_message()
+  end if
 
 end program memguess
 
@@ -1252,3 +1261,16 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,psi)
   call memocc(i_stat,i_all,'rxyz_file',subname)
 
 end subroutine take_psi_from_file
+
+subroutine deprecation_message()
+  write(*, "(15x,A)") "+--------------------------------------------+"
+  write(*, "(15x,A)") "|                                            |"
+  write(*, "(15x,A)") "| /!\ memguess is deprecated since 1.6.0 /!\ |"
+  write(*, "(15x,A)") "|                                            |"
+  write(*, "(15x,A)") "|     Use bigdft-tool  instead,  located     |"
+  write(*, "(15x,A)") "|     in the  build directory or in  the     |"
+  write(*, "(15x,A)") "|     bin directory of the install path.     |"
+  write(*, "(15x,A)") "|       $ bigdft-tool -h for help            |"
+  write(*, "(15x,A)") "|                                            |"
+  write(*, "(15x,A)") "+--------------------------------------------+"
+end subroutine deprecation_message

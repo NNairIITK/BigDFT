@@ -695,6 +695,7 @@ AC_CONFIG_FILES([
 Makefile
 libABINIT/src/Makefile
 config/Doxyfile
+src/bigdft-tool
 src/Makefile
 src/modules/Makefile
 src/modules/configure.inc
