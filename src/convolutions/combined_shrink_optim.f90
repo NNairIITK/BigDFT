@@ -141,8 +141,8 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
 
   !$omp parallel do default(private) shared(x,y,ib,fil2) &
   !$omp & shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-  do j2=-14+2*nfl2,2*nfu2+16
-     do j3=-14+2*nfl3,2*nfu3+16
+  do j3=-14+2*nfl3,2*nfu3+16
+     do j2=-14+2*nfl2,2*nfu2+16
         if (ib(2,j2,j3)-ib(1,j2,j3).ge.4) then 
            do i=ib(1,j2,j3),ib(2,j2,j3)-4,4
               c1i0=0.0_wp

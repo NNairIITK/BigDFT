@@ -50,27 +50,38 @@ program abscalc_main
       write(radical, "(A)") "input"
    end if
 
-  ! Find out which input files will be used
-  inquire(file="list_posinp",exist=exist_list)
-  if (exist_list) then
-     open(unit=54,file="list_posinp")
-     read(54,*) nconfig
-     if (nconfig > 0) then 
-        allocate(arr_posinp(1:nconfig),stat=i_stat)
-        do iconfig=1,nconfig
-           read(54,*) arr_posinp(iconfig)
-        enddo
-     else
-        nconfig=1
-        allocate(arr_posinp(1:1),stat=i_stat)
-        arr_posinp(1)='posinp'
-     endif
-     close(unit=54)
-  else
-     nconfig=1
-     allocate(arr_posinp(1:1),stat=i_stat)
-     arr_posinp(1)='posinp'
-  end if
+   ! find out which input files will be used
+   inquire(file="list_posinp",exist=exist_list)
+   if (exist_list) then
+      open(54,file="list_posinp")
+      read(54,*) nconfig
+      if (nconfig > 0) then 
+         !allocation not referenced since memocc count not initialised
+         allocate(arr_posinp(1:nconfig))
+
+         do iconfig=1,nconfig
+            read(54,*) arr_posinp(iconfig)
+         enddo
+      else
+         !normal case
+         nconfig=1
+         allocate(arr_posinp(1:1))
+         if (istat > 0) then
+            arr_posinp(1)='posinp'
+         else
+            arr_posinp(1)=trim(radical)
+         end if
+      endif
+      close(54)
+   else
+      nconfig=1
+      allocate(arr_posinp(1:1))
+         if (istat > 0) then
+            arr_posinp(1)='posinp'
+         else
+            arr_posinp(1)=trim(radical)
+         end if
+   end if
 
   do iconfig=1,nconfig
 

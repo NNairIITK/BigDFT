@@ -132,11 +132,14 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
 
   ! Symmetrise density, TODO...
   !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
+  !probably previous line is not suitable due to the fact that a extra communication would be needed
   if (symObj >= 0) then
      call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin,& !n(m)
           lr%d%n1i*lr%d%n2i*lr%d%n3i,&
           rho_p,symObj,irrzon,phnons)
   end if
+
+!starting point for the communication routine of the density
 
   !write(*,*) 'iproc,TIMING:SR1',iproc,real(ncount1-ncount0)/real(ncount_rate)
   !the density must be communicated to meet the shape of the poisson solver
@@ -284,6 +287,9 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   deallocate(tmred,stat=i_stat)
   call memocc(i_stat,i_all,'tmred',subname)
   call timing(iproc,'Rho_comput    ','OF')
+
+!end of the communication routine
+
 
 END SUBROUTINE sumrho
 !!***
