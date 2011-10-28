@@ -115,10 +115,10 @@ $(PSPS):
 	rm -f $$dir.* ; \
         if test x"$(srcdir)" = x"." ; then \
 	  cd $$dir ; \
-          rm -f psppar.* *.out *.mon *.report default* *.prc; \
+          rm -f *.out *.mon *.report default* *.prc; \
 	  rm -fr data data-*; \
 	  rm -f anchorpoints* fort.* nogt.* path*.xyz vogt.* ; \
-	  rm -f *pos* latest.pos.force.*.dat fort.* CPUlimit test ; \
+	  rm -f latest.pos.force.*.dat fort.* CPUlimit test ; \
 	  rm -f cheb_spectra_* alphabeta* b2B_xanes.* local_potentialb2B* ; \
 	  $(MAKE) -f ../Makefile $$dir".post-clean"; \
         else \
