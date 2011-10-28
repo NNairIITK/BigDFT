@@ -84,9 +84,9 @@ run_job()
     # $2 the datadir
     # $3 the replica id
     if test -z "$run_parallel" ; then
-	(@abs_top_builddir@/src/bigdft > log; echo "job done" >> log)&
+	(%%abs_top_builddir%%/src/bigdft > log; echo "job done" >> log)&
     else
-	$run_parallel @abs_top_builddir@/src/bigdft > log
+	$run_parallel %%abs_top_builddir%%/src/bigdft > log
 	echo "job done" >> log
     fi
 }

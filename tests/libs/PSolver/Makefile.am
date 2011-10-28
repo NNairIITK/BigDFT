@@ -30,31 +30,31 @@ EXTRA_DIST = PS_Check.out.ref
 
 check_PROGRAMS = PS_Check PS_Program PS_Exercise
 
-AM_FCFLAGS = -I../../src/modules -I../../src/PSolver @MPI_INCLUDE@ -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/src/modules -I$(top_builddir)/src/PSolver @MPI_INCLUDE@ -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 
 if USE_MPI
 mpi_source =
 LMPI = @MPI_LDFLAGS@ 
 else
-mpi_source = ../../src/MPIfake.f90
+mpi_source = $(top_srcdir)/src/MPIfake.f90
 LMPI = 
 endif
 
 if USE_CUDA_GPU
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas ../../src/CUDA/libGPU.a 
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas $(top_builddir)/src/CUDA/libGPU.a 
 else
 libs_cuda=
 endif
 
 if USE_OCL
-libs_ocl=../../src/OpenCL/libOCL.a -lstdc++
+libs_ocl=$(top_builddir)/src/OpenCL/libOCL.a -lstdc++
 else
 libs_ocl=
 endif
 
 if USE_DGEMMSY
-libs_dgemmsy=../../src/dgemmsy/libdgemmsy.a
+libs_dgemmsy=$(top_builddir)/src/dgemmsy/libdgemmsy.a
 else
 libs_dgemmsy=
 endif
@@ -66,31 +66,32 @@ libs_opt=$(libs_cuda)\
 
 PS_Check_SOURCES = PS_Check.f90 $(mpi_source)
 PS_Check_LDFLAGS =
-PS_Check_LDADD = ../../src/PSolver/libpoissonsolver.a \
-				 ../../src/libbigdft.a \
-				 $(LMPI) \
-				 @MPI_LIBS@ \
-				 $(libs_opt)
+PS_Check_LDADD = $(top_builddir)/src/PSolver/libpoissonsolver.a \
+		 $(top_builddir)/src/libbigdft.a \
+		 $(LMPI) \
+		 @MPI_LIBS@ \
+		 $(libs_opt)
 
 
 PS_Program_SOURCES = PS_Program.f90 $(mpi_source)
 PS_Program_LDFLAGS = 
-PS_Program_LDADD = ../../src/PSolver/libpoissonsolver.a \
-				   ../../src/libbigdft.a \
-				   $(LMPI) \
-				   @MPI_LIBS@ \
-				   $(libs_opt)
+PS_Program_LDADD = $(top_builddir)/src/PSolver/libpoissonsolver.a \
+		   $(top_builddir)/src/libbigdft.a \
+		   $(LMPI) \
+		   @MPI_LIBS@ \
+		   $(libs_opt)
 
 PS_Exercise_SOURCES = PS_Exercise.f90 $(mpi_source)
-PS_Exercise_LDADD =	../../src/PSolver/libpoissonsolver.a \
-				    ../../src/libbigdft.a \
-					$(LMPI) \
-					@MPI_LIBS@ \
-					$(libs_opt)
+PS_Exercise_LDADD = $(top_builddir)/src/PSolver/libpoissonsolver.a \
+		    $(top_builddir)/src/libbigdft.a \
+		    $(LMPI) \
+		    @MPI_LIBS@ \
+		    $(libs_opt)
 
 CLEANFILES = malloc.prc time.prc PS_Check.out fldiff.report \
 	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@ \
-	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ module_base.@MODULE_EXT@
+	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ \
+	module_base.@MODULE_EXT@
 
 PS_Check.out: PS_Check PS_Program PS_Exercise
 	$(run_parallel) ./PS_Check 57 48 63  0 F  > PS_Check.out
@@ -108,4 +109,4 @@ PS_Check.out: PS_Check PS_Program PS_Exercise
 
 check: PS_Check.out
 	python $(top_srcdir)/tests/fldiff.py --mode=psolver --discrepancy=2.e-8 \
-		PS_Check.out $(top_srcdir)/tests/PSolver/PS_Check.out.ref | tee fldiff.report
+		PS_Check.out $(srcdir)/PS_Check.out.ref | tee fldiff.report

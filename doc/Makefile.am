@@ -23,7 +23,7 @@ EXTRA_DIST = \
 	html/point.png \
 	html/sample.png
 
-CLEANFILES = *.pdf *.aux *.toc *.log *.xml
+CLEANFILES = *.aux *.toc *.log *.xml
 
 if BUILD_PDFDOC
 pdfs = cluster.pdf \
@@ -102,6 +102,6 @@ tests.xml:
 	done >> tests.xml ; \
 	echo "</bigdft-tests>" >> tests.xml
 
-clean:
+clean-local:
 	rm -rf *.aux *.log cluster.pdf halFFT.pdf manual.pdf *.toc Doxygen *.stamp
 
