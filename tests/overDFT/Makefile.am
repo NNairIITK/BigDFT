@@ -33,25 +33,14 @@ Xabsb2B.psp: Xabs/psppar.Fe
 H2-freq2.freq.out: H2-freq.freq.out
 Xabsb2B.xabs.out: Xabsdel_inputGenPot.xabs.out
 
+# Additional NEB in.
+NEB.post-in:
+	sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh
+
 # Additional run rules.
-Xabsdel_inputGenPot.xabs.out: $(abs_top_builddir)/src/abscalc
-	name=`basename $@ .xabs.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-	$(abs_top_builddir)/src/abscalc $$name > $@
+Xabsdel_inputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp inputGenPot.xyz b2B_xanes.xyz
-
-# Additional clean targets.
-SPLSAD.post-clean:
-	rm -f anchorpoints* datatime.prc fort.* nogt.* path*.xyz vogt.*
-MINHOP.post-clean:
-	rm -f *pos* *out *mon global.out latest.pos.force.*.dat MINHOP.out \
-              *.prc fort.* default* CPUlimit test
-XabsCheb.post-clean:
-	rm -f cheb_spectra_* electronic_density.cube
-XabsLanc.post-clean:
-	rm -f alphabeta* electronic_density.cube
-Xabsb2B.post-clean:
-	rm -f cheb_spectra_* b2B_xanes.* electronic_density.cube local_potentialb2B*
 
 # Define the precision for specific directories.
 %.report: %.ref
@@ -70,12 +59,5 @@ Xabsb2B.post-clean:
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
-
-# Specific clean traget for NEB.
-NEB.clean:
-	@dir=`basename $@ .clean` ; \
-	rm -f $$dir.* $$dir/triH.NEB.* $$dir/NEB.NEB.out $$dir/psppar.H $$dir/*.report $$dir/NEB_driver.sh $$dir/malloc.prc ; \
-	rm -fr $$dir/data ; \
-        echo "Clean in "$$dir
 
 include $(srcdir)/../check.mk

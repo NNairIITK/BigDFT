@@ -67,45 +67,69 @@ report:
 %.memguess.out: $(abs_top_builddir)/src/memguess
 	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	$(abs_top_builddir)/src/memguess 1 $$name > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
 	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out:
 	$(MAKE) -f ../Makefile $*.out.out && mv geopt.mon $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 %.dipole.dat.out: %.out.out
 	$(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube > bader.out && mv dipole.dat $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 %.freq.out: $(abs_top_builddir)/src/frequencies
 	$(run_parallel) $(abs_top_builddir)/src/frequencies > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
 	rm -f triH.NEB.it*
 	$(abs_top_builddir)/src/NEB < input | tee $@
 	rm -rf triH.NEB.0*
 	rm -f gen_output_file velocities_file
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 %.splsad.out: $(abs_top_builddir)/src/splsad
 	$(run_parallel) $(abs_top_builddir)/src/splsad > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 %.minhop.out: $(abs_top_builddir)/src/global
 	$(run_parallel) $(abs_top_builddir)/src/global > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 %.xabs.out: $(abs_top_builddir)/src/abscalc
 	name=`basename $@ .xabs.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	$(abs_top_builddir)/src/abscalc $$name > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 
 $(PSPS):
 	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@ 
 
 %.clean:
 	@dir=`basename $@ .clean` ; \
+	rm -f $$dir.* ; \
         if test x"$(srcdir)" = x"." ; then \
-          rm -f $$dir.* $$dir/psppar.* $$dir/*.out $$dir/*.report $$dir/default* ; \
-	  rm -fr $$dir/data ; \
-	  cd $$dir && $(MAKE) -f ../Makefile $$dir".post-clean"; \
+	  cd $$dir ; \
+          rm -f psppar.* *.out *.mon *.report default* *.prc; \
+	  rm -fr data data-*; \
+	  rm -f anchorpoints* fort.* nogt.* path*.xyz vogt.* ; \
+	  rm -f *pos* latest.pos.force.*.dat fort.* CPUlimit test ; \
+	  rm -f cheb_spectra_* alphabeta* b2B_xanes.* local_potentialb2B* ; \
+	  $(MAKE) -f ../Makefile $$dir".post-clean"; \
         else \
-          rm -rf $$dir.* $$dir ; \
+          rm -rf $$dir ; \
         fi ; \
         echo "Clean in "$$dir
 
 %.post-in: ;
 %.psp: ;
 %.post-clean: ;
+%.post-out: ;
 
 NEB_driver.sh:
 	ln -fs $(abs_top_srcdir)/src/$@

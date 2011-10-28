@@ -725,8 +725,6 @@ tests/libs/CUDA/Makefile
 tests/libs/ETSF_IO/Makefile
 tests/DFT/Makefile
 tests/overDFT/Makefile
-tests/overDFT/NEB/input
-tests/overDFT/NEB/NEB_include.sh
 tests/tutorials/Makefile
 ])
 
