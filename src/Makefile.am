@@ -1,5 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
+all: all-recursive
+	chmod ug+x bigdft-tool
+
 if BUILD_LIB_PSOLVER
 sub_dirs_ps = PSolver
 else
@@ -463,3 +466,4 @@ bart-utils.o: art/utils.f90 art/defs.o
 
 bart-write_refconfig.o: art/write_refconfig.f90 art/defs.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-write_refconfig.o `test -f 'art/write_refconfig.f90' || echo '$(srcdir)/'`art/write_refconfig.f90
+

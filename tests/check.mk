@@ -64,9 +64,8 @@ failed-check: $(FAILEDCHECKS) report
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
-%.memguess.out: $(abs_top_builddir)/src/memguess
-	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-	$(abs_top_builddir)/src/memguess 1 $$name > $@
+%.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
+	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
