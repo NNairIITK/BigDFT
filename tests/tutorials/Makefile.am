@@ -49,6 +49,8 @@ EXTRA_DIST = $(TESTDIRS) \
      GPU \
      C2H6 Li6 Mg5 Wannier Xabs
 
+H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
+
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
 
