@@ -125,11 +125,11 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
 }\n";
 }
 
-static void generate_kernel_mult(std::stringstream &program, cl_uint fft_size, std::list<unsigned int> &radixes, bool reverse){
+static void generate_kernel_k(std::stringstream &program, cl_uint fft_size, std::list<unsigned int> &radixes, bool reverse){
   if( reverse )
-    program<<"__kernel void fft_multKernel_"<<fft_size<<"_r_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out, __global const double *k";
+    program<<"__kernel void fftKernel_k_"<<fft_size<<"_r_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out, __global const double *k";
   else
-    program<<"__kernel void fft_multKernel_"<<fft_size<<"_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out, __global const double *k";
+    program<<"__kernel void fftKernel_k_"<<fft_size<<"_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out, __global const double *k";
   if(!use_constant_memory)
     program<<", __read_only image2d_t cosat";
   program<<"){\n\
@@ -191,7 +191,7 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size, struct bigdft_devic
 
   generate_kernel(program,fft_size,radixes,false);
   generate_kernel(program,fft_size,radixes,true);
-  generate_kernel_mult(program,fft_size,radixes,false);
+  generate_kernel_k(program,fft_size,radixes,false);
  
   output->code = (char *)malloc((program.str().size()+1)*sizeof(char));
   strcpy(output->code, program.str().c_str());

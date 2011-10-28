@@ -92,6 +92,9 @@ struct bigdft_kernels {
   cl_kernel fft_kernel_d0_r_d;
   cl_kernel fft_kernel_d1_r_d;
   cl_kernel fft_kernel_d2_r_d;
+  cl_kernel fft_kernel_k_d0_d;
+  cl_kernel fft_kernel_k_d1_d;
+  cl_kernel fft_kernel_k_d2_d;
 };
 
 struct bigdft_device_infos {
@@ -1101,5 +1104,6 @@ void FC_FUNC_(magic_filter_3d_generic,MAGIC_FILTER_3D_GENERIC)(bigdft_command_qu
 void FC_FUNC_(fft1d_d,FFT1D_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
 void FC_FUNC_(fft1d_r_d,FFT1D_R_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
 void FC_FUNC_(fft3d_d,FFT3D_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp);
+void FC_FUNC_(fft3d_k_d,FFT3D_K_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp,cl_mem *k);
 void FC_FUNC_(fft3d_r_d,FFT3D_R_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp);
 #endif

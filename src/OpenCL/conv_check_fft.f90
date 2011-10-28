@@ -57,8 +57,8 @@ program conv_check_fft
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
   integer(kind=8) :: tsc0, tsc1
   !objects for the 3D Poisson solver
-  real(kind=8), dimension(:), allocatable :: rhopot,rhopot2,pkernel2
-  real(kind=8), dimension(:), pointer :: pkernel
+  real(kind=8), dimension(:), allocatable :: rhopot,rhopot2
+  real(kind=8), dimension(:), pointer :: pkernel,pkernel2
  
 !!!  !Use arguments
 !!!  call getarg(1,chain)
@@ -129,7 +129,10 @@ program conv_check_fft
    !initialize rhopots
    call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot(1),1)
    call to_zero(2*n1*n2*n3,rhopot2(1))
-   call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot2(1),1)
+   call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot2(1),2)
+
+   !call to_zero(2*n1*n2*n3,rhopot2(1))
+   !call to_zero(n1*n2*n3,rhopot(1))
 
    !the input and output arrays must be reverted in this implementation
    do i=1,n2*n3
@@ -154,7 +157,7 @@ program conv_check_fft
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
 
-  write(*,'(a,i6,i6)')'GPU FFT, dimensions:',n1,n2*n3
+   write(*,'(a,i6,i6)')'GPU FFT, dimensions:',n1,n2*n3
 
    call ocl_create_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, 2*n1*n2*n3*8, work_GPU)
@@ -242,7 +245,6 @@ program conv_check_fft
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
      log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
 
-
    write(*,'(a,i6,i6,i6)')'GPU 3D Reverse FFT, dimensions:',n1,n2,n3
 
    call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
@@ -273,15 +275,14 @@ program conv_check_fft
    !Poisson Solver
     write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver, dimensions:',n1,n2,n3
    !calculate the kernel in parallel for each processor
-   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,quiet='yes')
-   
-   allocate(pkernel2(size(pkernel)+ndebug),stat=i_stat)
-   call memocc(i_stat,pkernel2,'pkernel2',subname)
-   
+   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,quiet='yes') 
+
+   !call to_zero(size(pkernel),pkernel(1))
+   !pkernel(1:size(pkernel))=1.0_dp
 
    call nanosec(tsc0);
    call H_potential('P','D',0,1,n1,n2,n3,0.2d0,0.2d0,0.2d0,&
-        rhopot,pkernel,rhopot,ehartree,0.0d0,.false.) !optional argument
+        rhopot,pkernel,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
    call nanosec(tsc1);
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
@@ -291,9 +292,8 @@ program conv_check_fft
    write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver, dimensions:',n1,n2,n3
 
    !transpose the kernel before copying
-   
-
-
+   call transpose_kernel_forGPU('P',n1,n2,n3,pkernel,pkernel2)
+   !pkernel2(1:size(pkernel2))=1.0_dp
    call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, 2*n1*n2*n3*8, work_GPU)
    call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, work2_GPU)
@@ -317,9 +317,9 @@ program conv_check_fft
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
-
-   call compare_3D_cplx_results(n1, n2, n3, rhopot(1), psi_cuda, maxdiff, 3.d-7)
-   call compare_time(CPUtime,GPUtime,n1*n2*n3,5 * (log(real(n1,kind=8))+&
+   call vcopy(n1*n2*n3,psi_cuda(1,1,1,1),2,rhopot2(1),1)
+   call compare_3D_results(n1, n2, n3, rhopot(1), rhopot2(1), maxdiff, 3.d-7)
+   call compare_time(CPUtime,GPUtime,n1*n2*n3,2*5 * (log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
 
 
@@ -553,47 +553,57 @@ contains
       end if
     end do
   end subroutine compare_1D_results
+
+  subroutine transpose_kernel_forGPU(geocode,n01,n02,n03,pkernel,pkernel2)
+    use module_base
+    use Poisson_Solver
+    implicit none
+    integer, intent(in) :: n01,n02,n03
+    character(len=*), intent(in) :: geocode
+    real(dp), dimension(*), intent(in) :: pkernel
+    real(dp), dimension(:), pointer :: pkernel2
+    !local variables
+    character(len=*), parameter :: subname='transpose_kernel_forGPU'
+    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,nproc,i1,i2,i3,ind,indt
+    integer :: j1,j2,j3,i_stat
+
+    !only makes sense in serial for the moment
+    nproc=1
+    !calculate the dimensions wrt the geocode
+    if (geocode == 'P') then
+       call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+    else if (geocode == 'S') then
+       call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+    else if (geocode == 'F') then
+       call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+    else
+       stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
+    end if
+
+    allocate(pkernel2(n1*n2*n3+ndebug),stat=i_stat)
+    call memocc(i_stat,pkernel2,'pkernel2',subname)
+
+
+    do i3=1,n3
+       j3=i3+(i3/(n3/2+2))*(n3+2-2*i3)!injective dimension
+       do i2=1,n2
+          j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)!injective dimension
+          do i1=1,n1
+             j1=i1+(i1/(n1/2+2))*(n1+2-2*i1)!injective dimension
+             !injective index
+             ind=j1+(j2-1)*nd1+(j3-1)*nd1*nd2
+             !unfolded index
+             indt=i1+(i3-1)*n1+(i2-1)*n1*n3             
+             pkernel2(indt)=pkernel(ind)
+          end do
+       end do
+    end do
+    !offset to zero
+    pkernel2(1)=0.0_dp
+
+  end subroutine transpose_kernel_forGPU
  
 end program conv_check_fft
 
-subroutine transpose_kernel_forGPU(geocode,n01,n02,n03,pkernel,pkernel2)
-  use module_base
-  use Poisson_Solver
-  implicit none
-  integer, intent(in) :: n01,n02,n03
-  character(len=*), intent(in) :: geocode
-  real(dp), dimension(*), intent(in) :: pkernel
-  real(dp), dimension(*), intent(out) :: pkernel2
-  !local variables
-  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,nproc,i1,i2,i3,ind,indt
-  
-  !only makes sense in serial for the moment
-  nproc=1
-  !calculate the dimensions wrt the geocode
-  if (geocode == 'P') then
-     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-  else if (geocode == 'S') then
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-  else if (geocode == 'F') then
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-  else
-     stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
-  end if
-
-  allocate(kernel(nd1,nd2,nd3+ndebug),stat=i_stat)
-  call memocc(i_stat,kernel,'kernel',subname)
-
-
-  do i3=1,nd3
-     do i2=1,nd2
-        do i1=1,nd1
-           ind=i1+(i2-1)*nd1+(i3-1)*nd1*nd2
-           indt=i1+(i3-1)*nd1+(i2-1)*nd1*nd3
-           pkernel2(indt)=pkernel(ind)
-        end do
-     end do
-  end do
-
-end subroutine transpose_kernel_forGPU
 
 !!***
