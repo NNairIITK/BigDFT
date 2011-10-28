@@ -3,13 +3,11 @@ TESTDIRS = C \
 	  Li+ \
 	  H2-spin \
 	  SiH4 \
-	  NH3 \
 	  NaCl \
 	  Ca2 \
 	  H2O-CP2K \
 	  SiBulk \
 	  AgBulk \
-	  H2O-slab \
 	  Davidson-SiH4 \
 	  TiMix \
 	  O2-Spin \
@@ -54,10 +52,6 @@ OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 TDDFT.psp: psppar.N
 
-# Additional rules.
-H2O-slab.post-in:
-	cp -f velocities.in velocities.xyz
-	chmod a+w velocities.xyz
 
 # Define the precision for specific directories.
 %.report: %.ref

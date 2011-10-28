@@ -106,7 +106,7 @@ subroutine init_potential_SW()
 
 ! SW_parameters(:,1) =  2.095037426D0
 ! we change sigma so that cell size is 5.4 and not 5.43 to emulate LDA
-  SW_parameters(:,1) = 2.095037426d0*5.4d0/5.43d0
+  SW_parameters(:,1) = 2.095037426d0*5.465d0/5.43d0
 
   SW_parameters(:,2) =   7.049556277D0
   SW_parameters(:,3) = 1.8d0 
@@ -156,7 +156,8 @@ subroutine reset_SW_potential()
 
 !  SW_parameters(:,1) =  2.095037426D0
 !  we change sigma so that cell size is 5.4 and not 5.43 to emulate LDA
-   SW_parameters(:,1) = 2.095037426d0*5.4d0/5.43d0
+!  5.465 for GGA
+   SW_parameters(:,1) = 2.095037426d0*5.465d0/5.43d0
    SW_parameters(:,2) =   7.049556277D0
    SW_parameters(:,3) = 1.8d0
    SW_parameters(:,4) =  0.60222455844D0

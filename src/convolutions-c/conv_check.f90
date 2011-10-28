@@ -314,7 +314,8 @@ program conv_check
 
            call nanosec(tsc0);
            do itimes=1,ntimes
-              call convrot_n_per_3d_simple(n1,n2,n3,psi_3d_in(1,1,1,itimes),psi_3d_out(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
+              call convrot_n_per_3d_simple(n1,n2,n3,psi_3d_in(1,1,1,itimes),&
+                   psi_3d_out(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
            end do
            call nanosec(tsc1);
 
@@ -331,7 +332,8 @@ program conv_check
            call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
            do itimes=1,ntimes
-              call convrot_n_per_3d_simple_transpose(n1,n2,n3,psi_3d_in(1,1,1,itimes),psi_3d_cuda(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
+              call convrot_n_per_3d_simple_transpose(n1,n2,n3,psi_3d_in(1,1,1,itimes),&
+                   psi_3d_cuda(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
            end do
            call nanosec(tsc1);
            !call system_clock(it1,count_rate,count_max)
@@ -376,7 +378,8 @@ program conv_check
            call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
            do itimes=1,ntimes
-              call convrot_n_per_3d_transpose(n1,n2,n3,psi_3d_in(1,1,1,itimes),psi_3d_cuda(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
+              call convrot_n_per_3d_transpose(n1,n2,n3,psi_3d_in(1,1,1,itimes),&
+                   psi_3d_cuda(1,1,1,itimes),psi_3d_tmp(1,1,1,itimes))
            end do
            call nanosec(tsc1);
 

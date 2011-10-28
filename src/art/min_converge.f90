@@ -82,7 +82,7 @@ subroutine min_converge ( success )
                   yij = pos(k+natoms)-pos(i+natoms)
                   zij = pos(k+2*natoms)-pos(i+2*natoms) - box(3) * nint((pos(k+2*natoms)-pos(i+2*natoms))*invbox(3))
                   rij2 = xij*xij + yij*yij + zij*zij
-                  if (rij2 .lt. 2.5d0*2.5d0) then
+                  if (rij2 .lt. 2.7d0*2.7d0) then
                      nat = nat + 1
                      pos_temp(nat) = pos(i) + 0.5d0*xij
                      pos_temp(nat+natoms) = pos(i+natoms) + 0.5d0*yij
@@ -160,7 +160,7 @@ subroutine check_min( stage )
 
    if ( iproc==0 ) write(*,*) "BART: INIT LANCZOS"  !debug
    do i = 1, repetition
-      call lanczos( NVECTOR_LANCZOS_A, new_projection , a1 )
+      call lanczos( NVECTOR_LANCZOS_H, new_projection , a1 )
                                       ! Report
       if ( iproc == 0 ) then 
          open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
@@ -170,7 +170,7 @@ subroutine check_min( stage )
              write(FLOG,'(1X,A8,(1p,e17.10,0p),A12,1pe8.1,A3)') ' Em= ', min_energy, ' ( gnrm = ', my_gnrm, ' )'
              write(FLOG,'(A39)') '   Iter     Ep-Em (eV)   Eigenvalue  a1' 
          end if 
-         write(FLOG,'(I6,3X,(1p,e10.2,0p),4X,F12.6,X,F6.4)') i, proj_energy-min_energy, eigenvalue, a1
+         write(FLOG,'(I6,3X,(1p,e10.2,0p),4X,F12.6,X,F7.4)') i, proj_energy-min_energy, eigenvalue, a1
          close(FLOG) 
          write(*,*) 'BART: Iter ', i, ' : ', lanc_energy, proj_energy,  eigenvalue, a1  
       end if
@@ -262,6 +262,14 @@ subroutine min_converge_sd(minimized)
         step = 0.6 * step
      endif
      if(ftot2 < FTHRESH2) exit
+     call displacement( posref, pos, delr, npart )
+                                      ! Write 
+
+     if (modulo(iter,5) == 0 ) then
+        call write_step ( 'M', iter, 0.0d0, current_energy )
+        if ( SAVE_CONF_INT ) call save_intermediate( 'M' )
+
+     endif
 
   end do
 

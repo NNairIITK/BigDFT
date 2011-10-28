@@ -764,7 +764,6 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
 
 END SUBROUTINE calc_vol
 
-
 subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,ixc,ncong,&
      lr,hx,hy,hz,rxyz,ntimes)
   use module_base
@@ -1005,8 +1004,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
   print *,'ekinGPU,epotGPU',ekinGPU,epotGPU
-
-
 
   !compare the results between the different actions of the hamiltonian
   !check the differences between the results

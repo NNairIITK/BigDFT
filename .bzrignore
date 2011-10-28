@@ -121,4 +121,5 @@ utils/PSPfiles/Krach-LDA/CVS
 utils/PSPfiles/Krach-PBE/CVS
 src/init/pspconf.f90
 doc/*.pdf
+MYTHINGS
 doc/tests.xml

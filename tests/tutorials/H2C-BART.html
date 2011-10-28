@@ -24,7 +24,7 @@
       <div class="floatingmenu">
 
         <a href="H2B-scalability.html">&lt;&nbsp;prev. lesson</a>
-        <a style="float:right;" href="H2D.html">Next lesson &gt;</a> <br />
+        <a style="float:right;" href="H2D-splined_saddle.html">Next lesson &gt;</a> <br />
 
 
         <h2>Content of this lesson</h2>
@@ -90,7 +90,8 @@
       <h4><i>Optional</i></h4>
         <ul>
          <li> <code> <a href="C2H6/OPTIONAL/list_atoms.dat" target="_blank"> list_atoms.dat </a> </code> : Label of atoms for type of events <b>list</b> and <b>list_local</b>.
-         <li> <code> <a href="C2H6/OPTIONAL/saddle.xyz" target="_blank"> saddle.xyz </a> </code> : Coordinates of the system needed for establishing  an initial  direction for the activation.
+         <li> <code> <a href="C2H6/OPTIONAL/initdir.xyz" target="_blank"> <i>initdir</i>.xyz </a> </code> : Coordinates of the system for imposing an initial direction in the activation. The name can be specified using  the input variable INITDIR (without extension).       
+         <li><code><i>restart.dat</i></code> : For restart. The name can be specified using the input variable RESTART.
       </ul>
       </p>
 
@@ -181,11 +182,11 @@
 
 <pre>
 
-EVENT_TYPE  GUESS_SADDLE
+EVENT_TYPE  GUESS_DIRECTION
 
 </pre>
 
-and add the  <a href="C2H6/OPTIONAL/saddle.xyz" target="_blank"> C2H6/OPTIONAL/saddle.xyz </a> file to your work directory.</p> 
+and add the  <a href="C2H6/OPTIONAL/initdir.xyz" target="_blank"> C2H6/OPTIONAL/initdir.xyz </a> file to your work directory.</p> 
 
 <h2> <a name="tune">Fine tune of the parameters</a> </h2>
 
