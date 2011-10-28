@@ -64,10 +64,29 @@ else
 mpi_source = ../MPIfake.f90
 endif
 
+if USE_CUDA_GPU
+libs_cuda= -lcudart -lcublas ../CUDA/libGPU.a 
+else
+libs_cuda=
+endif
+
+libs_ocl=libOCL.a -lstdc++
+
+if USE_DGEMMSY
+libs_dgemmsy=../dgemmsy/libdgemmsy.a
+else
+libs_dgemmsy=
+endif
+
+libs_opt=$(libs_cuda)\
+ $(libs_ocl)\
+ $(libs_dgemmsy)
+
+
 CLEANFILES = module_base.@MODULE_EXT@ module_defs.@MODULE_EXT@ \
 			 fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I../modules -I../PSolver @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
 
@@ -75,7 +94,7 @@ conv_check_SOURCES = conv_check.f90
 conv_check_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libbasef.a
 conv_check_LDFLAGS = -lrt -lstdc++
 conv_check_fft_SOURCES = conv_check_fft.f90 
-conv_check_fft_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libbasef.a
+conv_check_fft_LDADD = ../PSolver/libpoissonsolver.a ../libbigdft.a $(libs_opt) 
 conv_check_fft_LDFLAGS = -lrt -lstdc++
 stream_check_SOURCES = StreamCheck.c
 stream_check_LDADD = libOCL.a libStream.a

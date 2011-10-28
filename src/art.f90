@@ -221,7 +221,7 @@ program art90
                                       ! one system 
      if ( LANCZOS_MIN .and. success ) call check_min( 'M' ) 
 
-     if ( eventtype == "REFINE_AND_RELAX" .or. eventtype == "GUESS_SADDLE" ) call end_art() 
+     if ( eventtype == "REFINE_AND_RELAX" .or. eventtype == "GUESS_DIRECTION" ) call end_art() 
 
      mincounter = mincounter + 1
 

@@ -718,15 +718,12 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
          !Too many iterations
          exit Big_loop
      end if
-     close(16)
-     open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
 
      if(check.gt.5) then
         if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
         !Exit from the loop (the calculation is finished).
         exit Big_loop
      endif
-     close(16)
 
 !Update variables
      fcur=fpred
