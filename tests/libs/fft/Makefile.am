@@ -35,6 +35,6 @@ fft_cache.dat: fft_cache
 
 check: fft_check.out fft_cache.dat
 	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-8 \
-		fft_check.out $(top_srcdir)/tests/fft/fft_check.out.ref | tee fldiff.report
-	python $(top_srcdir)/tests/fft/fft_cache.py
+		fft_check.out $(srcdir)/fft_check.out.ref | tee fldiff.report
+	python $(srcdir)/fft_cache.py
 
