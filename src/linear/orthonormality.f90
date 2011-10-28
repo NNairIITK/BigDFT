@@ -680,6 +680,9 @@ call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
 allocate(op%indexInSendBuf(orbs%norbp,orbs%norb), stat=istat)
 call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
+!! EXPERIMENTAL
+!call determine_overlap_from_descriptors(iproc, nproc, orbs, lzd, op, comon)
+
 ! Determine the overlapping orbitals.
 if(locregShape=='c') then
     call determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
@@ -957,7 +960,7 @@ do jproc=0,nproc-1
         !!if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
         ilrold=ilr
     end do
-    comon%noverlaps(jproc)=ioverlapMpi
+    comon%noverlaps(jproc)=ioverlapMPI
     !if(iproc==0) write(*,'(a,2i8)') 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
 end do
 
