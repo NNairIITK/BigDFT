@@ -278,6 +278,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
      wfd,psi,orblist)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => readmywaves
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
@@ -292,7 +293,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   !Local variables
   character(len=*), parameter :: subname='readmywaves'
   logical :: perx,pery,perz,exists
-  integer :: ncount1,ncount_rate,ncount_max,iorb,iiorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor,isuffix
+  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor,isuffix
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
@@ -303,7 +304,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
 
   !inquire(file=trim(filename)//".etsf",exist=exists)
   if (exists) then
-     !construct the orblist or us the one in argument
+     !construct the orblist or use the one in argument
      do nb1 = 1, orbs%norb
      orblist2(nb1) = nb1
      if(present(orblist)) orblist2(nb1) = orblist(nb1) 
@@ -339,9 +340,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
         if (iproc ==0) write(*,*) "Reading wavefunctions in plain text file format."
      end if
 
-     do iiorb=1,orbs%norbp!*orbs%nspinor
-        iorb = iiorb                                         ! switching if a particular list of orbitals is needed
-        if(present(orblist)) iorb = orblist(iiorb+orbs%isorb)
+     do iorb=1,orbs%norbp!*orbs%nspinor
 
 !!$        write(f4,'(i4.4)') iorb+orbs%isorb*orbs%nspinor
 !!$        if (exists) then
@@ -356,7 +355,11 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
 !!$                psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
 
         do ispinor=1,orbs%nspinor
-           call open_filename_of_iorb(99,exists,filename,orbs,iorb,ispinor,iorb_out)           
+           if(present(orblist)) then
+              call open_filename_of_iorb(99,exists,filename,orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
+           else
+              call open_filename_of_iorb(99,exists,filename,orbs,iorb,ispinor,iorb_out)
+           end if           
            call readonewave(99, .not.exists,iorb_out,iproc,n1,n2,n3, &
                 & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
                 psi(1,ispinor,iorb),orbs%eval(orbs%isorb+iorb),psifscf)
@@ -440,7 +443,7 @@ end subroutine verify_file_presence
 
 !> Associate to the absolute value of orbital a filename which depends of the k-point and 
 !! of the spin sign
-subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
+subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
   use module_base
   use module_types
   implicit none
@@ -450,6 +453,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   type(orbitals_data), intent(in) :: orbs
   character(len=*) :: filename_out
   integer, intent(out) :: iorb_out
+  integer, intent(in), optional :: iiorb
   !local variables
   character(len=1) :: spintype,realimag
   character(len=3) :: f3
@@ -484,9 +488,10 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   end if
   !no spin polarization if nspin=1
   if (orbs%nspin==1) spintype='N'
-
+print *,'checking',present(iiorb)
   !calculate the actual orbital value
   iorb_out=iorb+orbs%isorb-(ikpt-1)*orbs%norb
+  if(present(iiorb)) iorb_out = iiorb
   !purge the value from the spin sign
   if (spins==-1.0_gp) iorb_out=iorb_out-orbs%norbu
 
@@ -507,19 +512,25 @@ end subroutine filename_of_iorb
 
 !> Associate to the absolute value of orbital a filename which depends of the k-point and 
 !! of the spin sign
-subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out)
+subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iiorb)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => open_filename_of_iorb
   implicit none
   character(len=*), intent(in) :: filename
   logical, intent(in) :: lbin
   integer, intent(in) :: iorb,ispinor,unitfile
   type(orbitals_data), intent(in) :: orbs
   integer, intent(out) :: iorb_out
+  integer, intent(in), optional :: iiorb
   !local variables
   character(len=50) :: filename_out
 
-  call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
+  if(present(iiorb)) then   
+     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb) 
+  else
+     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
+  end if
 
   if (lbin) then
      open(unit=unitfile,file=trim(filename_out),status='unknown',form="unformatted")
@@ -533,6 +544,7 @@ end subroutine open_filename_of_iorb
 subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
   use module_base
+  use module_interfaces, except_this_one => writeonewave
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz

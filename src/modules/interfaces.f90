@@ -1522,6 +1522,31 @@ module module_interfaces
       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
       character(len=*), intent(in) :: filename
      end subroutine readmywaves
+
+     subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iiorb)
+      use module_base
+      use module_types
+      implicit none
+      character(len=*), intent(in) :: filename
+      logical, intent(in) :: lbin
+      integer, intent(in) :: iorb,ispinor,unitfile
+      type(orbitals_data), intent(in) :: orbs
+      integer, intent(out) :: iorb_out
+      integer,optional :: iiorb   
+     end subroutine open_filename_of_iorb
+
+     subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
+      use module_base
+      use module_types
+      implicit none
+      character(len=*), intent(in) :: filename
+      logical, intent(in) :: lbin
+      integer, intent(in) :: iorb,ispinor
+      type(orbitals_data), intent(in) :: orbs
+      character(len=*) :: filename_out
+      integer, intent(out) :: iorb_out
+      integer,optional :: iiorb
+     end subroutine filename_of_iorb
     
   end interface
 
