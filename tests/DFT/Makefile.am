@@ -39,7 +39,6 @@ C.psp: psppar.C
 Li+.psp: psppar.Li
 H2-spin.psp: HGH/psppar.H
 SiH4.psp: HGH-K/psppar.H HGH-K/psppar.Si
-NH3.psp: HGH-K/psppar.N HGH-K/psppar.H
 TiMix.psp: HGH-K/psppar.Ti HGH/psppar.Na
 NaCl.psp: HGH/psppar.Na HGH/psppar.Cl
 Ca2.psp: psppar.Ca
@@ -47,7 +46,6 @@ Mn2.psp: psppar.Mn
 H2O-CP2K.psp: HGH/psppar.H HGH/psppar.O
 SiBulk.psp: HGH/psppar.Si
 AgBulk.psp: HGH/psppar.Ag
-H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
 Davidson-SiH4.psp: psppar.H psppar.Si
 Graphene.psp: psppar.C
 FeHyb.psp: HGH/psppar.Fe

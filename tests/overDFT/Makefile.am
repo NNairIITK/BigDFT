@@ -2,6 +2,8 @@
 TESTDIRS = \
 	   GEOPT-BFGS \
 	   GEOPT-LBFGS \
+	   NH3 \
+	   H2O-slab \
            H2-freq \
 	   NEB \
 	   SPLSAD \
@@ -28,6 +30,8 @@ GEOPT-LBFGS.psp: HGH/psppar.Mg
 XabsCheb.psp: Xabs/psppar.Fe
 XabsLanc.psp: Xabs/psppar.Fe
 Xabsb2B.psp: Xabs/psppar.Fe
+NH3.psp: HGH-K/psppar.N HGH-K/psppar.H
+H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
 
 # Additional dependencies
 H2-freq2.freq.out: H2-freq.freq.out
