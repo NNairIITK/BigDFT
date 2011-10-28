@@ -57,8 +57,7 @@
         variables needed to run a wavelet computation in isolated
         boundary conditions. At the end of the lesson, one can run a
         wavelet run, check the amount of needed memory and understand
-        the important part of the output. This lesson may take XX
-        minutes.</p>
+        the important part of the output.</p>
 
       <h2>Introduction: running the code</h2>
       <p>This lesson is based on this skeleton
@@ -96,33 +95,35 @@ user@garulfo:~/CH4/$ ./bigdft | tee screenOutput
         <code>input.dft</code>, the position file must be named
         <code>posinp.xyz</code> and the pseudo-potential files must be
         <code>psppar.XX</code> where XX is the symbol used in the position
-        file.</p>
+        file. This naming convention can be customized by the user, as it is explained in <a href="H1C-Basic_post_processing.html">this</a> lesson.</p>
       <p>If the code has been compiled with MPI capabilities (which is
-        enable by default), running BigDFT on several cores is as easy as run
+        enabled by default), running BigDFT on several cores is as easy as run
         it on a serial job. There is no need to change anything in the input
         files. The following example shows how to run it on a Debian system
         with installed OpenMPI on a 4 core machine:</p>
       <pre>
 user@garulfo:~/CH4/$ ls
 bigdft    psppar.C     psppar.H     input.dft    posinp.xyz
-user@garulfo:~/CH4/$ mpirun.openmpi -np 4 ./bigdft | tee screenOutput
+user@garulfo:~/CH4/$ mpirun -np 4 ./bigdft | tee screenOutput
 ...</pre>
 
       <h2>The wavelet basis set, a convergence study</h2>
       <p>The wavelet is a systematic basis set (as plane waves are),
-        which means than one can achieve arbitrary precision by increasing
+        which means than one can increase arbitrarily the accuracy of the results by varying
         some parameters.</p>
       <h3>The main grid parameters</h3>
       <img class="figure" src="Figures/CH4-grid.png" alt="visualisation of the real space mesh" />
+      <h4>hgrid</h4>
       <p>The two first lines of <code>input.dft</code> are used to set
         up the basis set. In free boundary conditions, the basis set is characterised
         by a spatial expansion and a grid step, as shown in the side
         figure.</p>
       <p>There are <emph>three float values</emph> on the first line describing the
         <emph>grid steps</emph> in the three space directions (<i>i.e.</i> x, y and z). These
-        values are in bohr unit and typically range from 0.2 to 0.6. The
-        harder the pseudo-potential is used, the lower value should be set
+        values are in bohr unit and typically range from 0.3 to 0.65. The
+        harder the pseudo-potential, the lower value should be set
         up. These values are called <code>hgrid</code>.</p>
+      <h4>crmult, frmult</h4>
       <p>The second line contains two float values that are two
         multiplying factors. They multiply quantities that are chemical
         species dependant. The first factor is the most important since it
@@ -168,10 +169,10 @@ hgrid = 0.20bohr / crmult = 7.0  -->  -8.033319Ht</pre>
       </div>
 
       <p>To go further, one can vary <code>hgrid</code> and
-        <code>crmult</code> independantly. This is shown of the previous
+        <code>crmult</code> independently. This is shown in the previous
         figure with the grey line. The shape of the convergence curve shows that both these
-        parameters should be increased in accordance to obtained the better
-        efficiency. Indeed, there are two kind of errors arising from the
+        parameters should be modified simoultaneously in order to increase accuracy. 
+	Indeed, there are two kind of errors arising from the
         basis set. The first one is due to the fact the basis set can't
         account for quickly varying wavefunctions (value of <code>hgrid</code> should
         be decreased). The second error is the fact that the wavefunctions are
@@ -184,14 +185,14 @@ hgrid = 0.20bohr / crmult = 7.0  -->  -8.033319Ht</pre>
         the coarse grid definition using the the multiplying factor
         <code>crmult</code>. The second multiplying value on this line of the
         input file is used for the fine grid and is called
-        <code>frmult</code>. As <code>crmult</code> it defines a factor for
-        the radii used to define the fine grid region where the grid step is
-        indeed half the one of the coarse grid. It allows to define region
+        <code>frmult</code>. Like <code>crmult</code>, it defines a factor for
+        the radii used to define the fine grid region where the number of degrees of freedom
+        is indeed eight times the one of the coarse grid. It allows to define region
         near the atoms where the wavefunctions are allowed to vary more
         quickly. Typical values for this factor are 8 to 10. It's worth to
         note that even if the value of the multiplier is greater than
         <code>crmult</code> it defines a smaller region due to the fact that
-        the physical quantities that are multiplied are greatly different.</p>
+        the units which are associated to these radii are significantly different.</p>
 
       <p>The physical quantities used by <code>crmult</code> and
         <code>frmult</code> can be changed in the pseudo-potential by adding
@@ -216,7 +217,7 @@ Si          4      10            1.80603  0.43563  0.93364         X
         <li>The SCF loop itself.</li>
         <li>The post SCF calculations including the forces calculation and
           other possible treatment like a finite size effect estimation or a
-          empty state evaluation.</li>
+          virtual states determination.</li>
       </ul>
 
       <h3>The system parameters output</h3>
@@ -263,38 +264,43 @@ user@garulfo:~/CH4/$ ./memguess 2
         <p class="answer">BigDFT distributes the orbitals over the
           available processes (the value W does not decrease anymore after 4
           processes since there are only 4 bands in our example). This means that running a parallel job with more
-          processors than orbitals will result in a bad speedup. The only useful
-          case for this situation is to accelerate the Poisson solver part since
-          the data are then distributed by slices of data along z axis, but this
-          case is hardly necessary since the part of Poisson solver in total time in BigDFT is small.</p>
+          processors than orbitals will result in a bad speedup. The number of cores involved in the 
+	  calculation might be however increased via OMP parallelisation, as it is indicated in 
+	  <a href="H2B-scalability.html">this</a> lesson.</p>
       </div>
 
       <h3>The input guess</h3>
       <p>The initial wavefunctions in BigDFT are calculated using the
-        atomic orbitals for all the electrons of the layer s, p,
-        d... described in the pseudo-potential files.</p>
+        atomic orbitals for all the electrons of the s, p,
+        d shells, obtained from the solution of the PSP self-consistent equation for the isolated atom.</p>
       <pre>
 ------------------------------------------------------- Input Wavefunctions Creation
-Generating 8 Atomic Input Orbitals
-Calculating AIO wavefunctions:
-Generation of input wavefunction data for atom     Si:
-Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
-Generation of input wavefunction data for atom      H:
-Elec. Configuration: s 1.00 , ... done.</pre>
+ Generating 8 Atomic Input Orbitals
+ Processes from 0 to 1 treat 4 inguess orbitals 
+ Calculating AIO wavefunctions: 
+ Generation of input wavefunction data for atom      C: 
+   Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
+ Generation of input wavefunction data for atom      H: 
+   Elec. Configuration: s 1.00 , ... done.
+</pre>
       <p>The corresponding hamiltonian is then diagonalised and the
-        n_band lower eigenfunctions are used to start the SCF loop. BigDFT outputs the
+        n_band (<code>norb</code> in the code notations) lower eigenfunctions are used to start the SCF loop. BigDFT outputs the
         eigenvalues, in the following example, 8 electrons were used in the
         input guess and the resulting first fourth eigenfunctions will be used
         for a four band calculation.</p>
       <pre>
-evale(1)= -4.98848660956292E-01
-evale(2)= -2.96722074331402E-01 <-
-evale(3)= -2.96722074331392E-01 <-
-evale(4)= -2.96709661080897E-01 <- Last eigenvalue for input wavefunctions
-evale(5)=  2.11809378854898E-01 <- First virtual eigenvalue
-evale(6)=  2.11809378854908E-01 <-
-evale(7)=  2.11840178912206E-01 <-
-evale(8)=  2.75381770456322E-01</pre>
+Input Wavefunctions Orthogonalization:
+ Overlap Matrix... Direct diagonalization...
+ evale(1)= -6.49353915254710E-01 <-
+ evale(2)= -3.62562636487377E-01 <-
+ evale(3)= -3.62467583819684E-01 <-
+ evale(4)= -3.62467583819682E-01 <- Last InputGuess eval, H-L IG gap:  20.6959 eV
+ evale(5)=  3.98091665658305E-01 <- First virtual eval
+ evale(6)=  3.98308777292841E-01 <-
+ evale(7)=  3.98308777292842E-01 <-
+ evale(8)=  5.99339322351149E-01 <-
+ Building orthogonal Wavefunctions... done.
+</pre>
 
       <h3>The SCF loop</h3>
       <p>The SCF loop follows a direct minimisation scheme and is made of the following steps:</p>
@@ -305,22 +311,24 @@ evale(8)=  2.75381770456322E-01</pre>
           of the XC potential thanks to the chosen functional.</li>
         <li>Apply the resulting hamiltonian on the current wavefunctions.</li>
         <li>Precondition the result and apply a steepest descent or a DIIS
-          history method (depending on the eighth line of
-          <code>input.dft</code> file, the second value there is the DIIS
+          history method (depending on the 8th line of
+          <code>input.dft</code> file, the second value being the DIIS
           history length, which is usually 5 or 6 and should be put to 0 for SD
           minimisation).</li>
         <li>Orthogonalise the new wavefunctions.</li>
       </ul>
       <p>Then, BigDFT outputs a summary of the parts of the energy:</p>
       <pre>
-ekin_sum,epot_sum,eproj_sum  3.64259022248E+00 -7.36428408477E+00  8.12352945587E-01
-   ehart,   eexcu,    vexcu  1.10861548797E+01 -2.52372174335E+00 -3.25827241726E+00</pre>
+ekin_sum,epot_sum,eproj_sum  6.84560740872E+00 -1.00862806135E+01  5.49669947400E-01
+   ehart,   eexcu,    vexcu  1.57287496892E+01 -3.14375984400E+00 -4.11099591069E+00
+</pre>
       <p>Finally the total energy and the square norm of the residue
         (gnrm) are printed out. The gnrm value is the stopping criterion. It is
         chosen at the sixth line of the <code>input.dft</code> file. A common
-        value is 1e-4 and good value can reach 1e-5 (for more precise forces).</p>
+        value is 1e-4 and good value can reach 1e-5.</p>
       <pre>
-iter,total energy,gnrm     2  -6.24926323942341266E+00  5.87E-02</pre>
+iter,total energy,gnrm     2  -8.01285441883433336E+00  7.72E-02
+</pre>
 
       <div class="exercice">
         <p><b>Exercise</b>: run <code>`grep "total energy" screenOutput`</code> and
@@ -329,9 +337,9 @@ iter,total energy,gnrm     2  -6.24926323942341266E+00  5.87E-02</pre>
           thanks to the good preconditioner) is a very efficient way to obtain
           convergence for systems with a gap, even with a very small one. Usual run
           should reach the 1e-4 stop criterion within 15 to 25
-          iterations. Otherwise, there is an issue with the system, there is no
-          gap, or the input guess is wrong due to degeneracy at Fermi level,
-          specific spin arrangements...</p>
+          iterations. Otherwise, there is an issue with the system, either there is no
+          gap, or the input guess is too symmetric due to the LCAO diagonalization,
+          specific spin polarization...</p>
       </div>
 
       <h3>The post-SCF treatments</h3>
@@ -343,10 +351,10 @@ iter,total energy,gnrm     2  -6.24926323942341266E+00  5.87E-02</pre>
         <code>input.dft</code> file:</p>
       <ul>
         <li>One can run an estimation of finite-size effects. This is
-          explained in the manual.</li>
+          explained in the manual (which is not yet completely updated to recent BigDFT versions).</li>
         <li>One can run a Davidson treatment on the current hamiltonian to
           obtain the energies (and virtual wavefunctions) of the first
-          unoccupied levels. This is the purpose of the next part of this tutorial.</li>
+          unoccupied levels.</li>
       </ul>
 
       <div class="exercice">
@@ -429,7 +437,7 @@ iter,total energy,gnrm     2  -6.24926323942341266E+00  5.87E-02</pre>
       <a href="http://jigsaw.w3.org/css-validator/check/referer" title="Check CSS compliance with W3C norms">CSS2</a>
       |
       <!-- hhmts start -->
-      Last modified: Mon May 30 11:13:37 CEST 2011
+      Last modified: Sun Oct 16 18:23:00 CEST 2011
       <!-- hhmts end -->
     </div>
 

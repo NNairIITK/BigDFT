@@ -17,10 +17,12 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft test_forces memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
+binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
+local_binaries = test_forces
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
+local_binaries =
 scripts_sources = 
 endif
 
@@ -122,6 +124,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver -I$(srcdi
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@
 
 bin_PROGRAMS = $(binaries_sources)
+noinst_PROGRAMS = $(local_binaries)
 bin_SCRIPTS = $(scripts_sources)
 
 lib_LIBRARIES = $(lib_bigdft)
@@ -359,16 +362,20 @@ frequencies_LDADD = libbigdft.a \
 	$(libs_opt) 
 
 bart_SOURCES = \
-	art/bigdft_forces.f90 \
-	art/art_diis.f90 \
-	art/initialize_potential.f90 \
-	art/art_lanczos.f90 \
-	art/find_saddle.f90 \
-	art/min_converge.f90 \
-	art/saddle_converge.f90 \
-	art/initialize.f90 \
-	art/read_parameters.f90 \
-	art.f90
+        art/bigdft_forces.f90 \
+        art/art_step.f90 \
+        art/calcforce.f90\
+        art/calcfo_sw.f90\
+        art/neighbour.f90\
+        art/initialize_potential.f90 \
+        art/art_lanczos.f90 \
+        art/find_saddle.f90 \
+        art/min_converge.f90 \
+        art/saddle_converge.f90 \
+        art/initialize.f90 \
+        art/bayes.f90 \
+        art/read_parameters.f90 \
+        art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDFLAGS =  
 bart_LDADD = art/libart.a \
@@ -378,35 +385,7 @@ bart_LDADD = art/libart.a \
 	@MPI_LIBS@ \
 	$(libs_opt) 
 
-CLEANFILES = \
-	bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \
-	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
-	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
-	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
-	module_defs.@MODULE_EXT@ MODULE_DEFS.@MODULE_EXT@ \
-	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
-	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
-	esatto.@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
-	lanczos_interface.@MODULE_EXT@ LANCZOS_INTERFACE.@MODULE_EXT@ \
-	formats.@MODULE_EXT@ FORMATS.@MODULE_EXT@ \
-	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \
-	neb_routines.@MODULE_EXT@ NEB_ROUTINES.@MODULE_EXT@ \
-	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \
-	geopt_minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
-	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ \
-	scfloop_api.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@ \
-	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
-	bigdft_forces.@MODULE_EXT@ BIGDFT_FORCES.@MODULE_EXT@ \
-	diis_defs.@MODULE_EXT@ DIIS_DEFS.@MODULE_EXT@ \
-	lanczos_defs.@MODULE_EXT@ LANCZOS_DEFS.@MODULE_EXT@ \
-	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
-	minpar.@MODULE_EXT@ MINPAR.@MODULE_EXT@ \
-	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@ \
-	minimization_sp.@MODULE_EXT@ MINIMIZATION_SP.@MODULE_EXT@ \
-	modulesplinedsaddle.@MODULE_EXT@ MODULESPLINEDSADDLE.@MODULE_EXT@ \
-	randomdata.@MODULE_EXT@ RANDOMDATA.@MODULE_EXT@ \
-	module_input.@MODULE_EXT@ MODULE_INPUT.@MODULE_EXT@ \
-	position_files.@MODULE_EXT@ POSITION_FILES.@MODULE_EXT@
+CLEANFILES = *.@MODULE_EXT@
 
 
 check:
@@ -450,6 +429,18 @@ bart-art.o: art.f90 art/defs.o art/random.o bart-art_lanczos.o
 bart-bigdft_forces.o: art/bigdft_forces.f90 BigDFT_API.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-bigdft_forces.o `test -f 'art/bigdft_forces.f90' || echo '$(srcdir)/'`art/bigdft_forces.f90
 
+bart-bayes.o: art/bayes.f90 art/defs.o art/random.o
+	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-bayes.o `test -f 'art/bayes.f90' || echo '$(srcdir)/'`art/bayes.f90
+
+bart-calcforce.o: art/calcforce.f90 art/defs.o bart-bigdft_forces.o
+	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-calcforce.o `test -f 'art/calcforce.f90' || echo '$(srcdir)/'`art/calcforce.f90
+
+bart-calcfo_sw.o: art/calcfo_sw.f90 art/defs.o
+	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-calcfo_sw.o `test -f 'art/calcfo_sw.f90' || echo '$(srcdir)/'`art/calcfo_sw.f90
+
+bart-neighbour.o: art/neighbour.f90 bart-calcfo_sw.o
+	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-neighbour.o `test -f 'art/neighbour.f90' || echo '$(srcdir)/'`art/neighbour.f90
+
 bart-find_saddle.o: art/find_saddle.f90 art/defs.o art/random.o bart-art_lanczos.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-find_saddle.o `test -f 'art/find_saddle.f90' || echo '$(srcdir)/'`art/find_saddle.f90
 
@@ -459,16 +450,16 @@ bart-initialize_potential.o: art/initialize_potential.f90 art/defs.o bart-bigdft
 bart-art_lanczos.o: art/art_lanczos.f90 art/defs.o art/random.o bart-bigdft_forces.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_lanczos.o `test -f 'art/art_lanczos.f90' || echo '$(srcdir)/'`art/art_lanczos.f90
 
-bart-min_converge.o: art/min_converge.f90 art/defs.o bart-bigdft_forces.o
+bart-min_converge.o: art/min_converge.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o bart-bayes.o bart-find_saddle.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-min_converge.o `test -f 'art/min_converge.f90' || echo '$(srcdir)/'`art/min_converge.f90
 
-bart-saddle_converge.o: art/saddle_converge.f90 art/defs.o bart-bigdft_forces.o bart-find_saddle.o art/random.o bart-art_lanczos.o
+bart-saddle_converge.o: art/saddle_converge.f90 art/defs.o bart-bigdft_forces.o bart-find_saddle.o bart-art_lanczos.o  bart-art_step.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-saddle_converge.o `test -f 'art/saddle_converge.f90' || echo '$(srcdir)/'`art/saddle_converge.f90
 
-bart-art_diis.o: art/art_diis.f90 art/defs.o bart-bigdft_forces.o art/random.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_diis.o `test -f 'art/art_diis.f90' || echo '$(srcdir)/'`art/art_diis.f90
+bart-art_step.o: art/art_step.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o  bart-find_saddle.o
+	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_step.o `test -f 'art/art_step.f90' || echo '$(srcdir)/'`art/art_step.f90
 
-bart-initialize.o: art/initialize.f90 art/defs.o bart-art_lanczos.o
+bart-initialize.o: art/initialize.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o bart-find_saddle.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-initialize.o `test -f 'art/initialize.f90' || echo '$(srcdir)/'`art/initialize.f90
 
 bart-read_parameters.o: art/read_parameters.f90 art/defs.o bart-art_lanczos.o bart-find_saddle.o

@@ -23,7 +23,7 @@
 
       <div class="floatingmenu">
         <a style="float:float;" href="H1B-Basic_surfaces.html">&lt;&nbsp;prev. lesson</a>
-        <a style="float:right;" href="H2A.html">next lesson&nbsp;&gt;</a>
+        <a style="float:right;" href="H2A-GPU.html">Second Group&nbsp;&gt;</a>
 
         <h2>Content of this lesson</h2>
         <ul>
@@ -47,7 +47,7 @@
 
       <h1>Basics of BigDFT: managing different calculations, <br />N<sub>2</sub> molecule as example</h1>
 
-      <p>BigDFT code is organized by <em>optional</em> input files, anyone with <em>compulsory</em> variables.
+      <p>As it is presented in the previous lessons, BigDFT code is organized by <em>optional</em> input files, anyone with <em>compulsory</em> variables.
       Input files can be organised in different sets, each one associated to a particular calculation.
       With this lesson you will have to deal with the different outputs of BigDFT code, such as to learn how to manipulate basic DFT objects.</p>
 
@@ -61,14 +61,14 @@ free
 N 0. 0. 0.
 N 0. 0. 1.11499
 </pre>
-     <p>Run the code in a directory which has only this file.
+      <p>Run the code in a directory which has only this file.</p>
       <pre>
 user@garulfo:~/N2/$ ls
 bigdft  posinp.xyz
 user@garulfo:~/N2/$ ./bigdft | tee N2.out
 ...</pre>
-      <p>The screen output should then behave like that:
-	<pre>
+      <p>The screen output should then behave like that:</p>
+      <pre>
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -134,45 +134,45 @@ user@garulfo:~/N2/$ ./bigdft | tee N2.out
         Since they do not exist, their default values are applied to the code.
         Basically, they correspond to Single-Point LDA calculation, without k-points nor spin-polarisation.
 	Since the input files are not present, default files are written in the submission directory:</p>
-<pre>
+      <pre>
 user@garulfo:~/N2/$ ls
 default.dft  default.geopt  default.kpt  default.mix  default.sic  default.tddft  posinp.xyz  time.prc
 </pre>
-<p>All these default files represent the template you should use to define your calculation.
+      <p>All these default files represent the template you should use to define your calculation.
   Also, the default Pseudopotentials are used.</p>
 
-<h2>Using a naming scheme for IO files</h2>
+      <h2>Using a naming scheme for IO files</h2>
 
-<p>All input parameters can be found in files with a naming prefix. By default, this prefix is <code>input</code> (or <code>posinp</code> for atomic input positions). For instance, parameters for geometry optimization will be set up by a file named <code>input.geopt</code>. One can choose the naming prefix by providing an argument to <code>bigdft</code> command line.</p>
+      <p>All input parameters can be found in files with a naming prefix. By default, this prefix is <code>input</code> (or <code>posinp</code> for atomic input positions). For instance, parameters for geometry optimization will be set up by a file named <code>input.geopt</code>. One can choose the naming prefix by providing an argument to <code>bigdft</code> command line.</p>
 
-<p>Imagine for example that you are interested in visualizing the wavefunctions output of the calculation. To do that, you should enter the suitable parameters in the <code>.dft</code> file. Create a new calculation set by using the "LDA" prefix and rename all relevant files with LDA:</p>
-<pre>
+      <p>Imagine for example that you are interested in visualizing the wavefunctions output of the calculation. To do that, you should enter the suitable parameters in the <code>.dft</code> file. Create a new calculation set by using the "LDA" prefix and rename all relevant files with LDA:</p>
+      <pre>
 user@garulfo:~/N2/$ cp default.dft LDA.dft
 user@garulfo:~/N2/$ cp posinp.xyz LDA.xyz
 </pre>
-<p>Modify <code>LDA.dft</code> such as to output the wavefunctions at the end of calculation, by putting the <code>output_wf</code> variable to 1 
+      <p>Modify <code>LDA.dft</code> such as to output the wavefunctions at the end of calculation, by putting the <code>output_wf</code> variable to 1 
 (Which repsesents the formatted output. Also 2 (binary) and 3 (ETSF format) are available)</p>
-<pre>
+      <pre>
  0 1 0          InputPsiId, output_wf, output_grid 
 </pre>
 
-<p>Now you can run this input file, by putting "LDA" as a command line argument of the code:</p>
-<pre>
+      <p>Now you can run this input file, by putting "LDA" as a command line argument of the code:</p>
+      <pre>
 user@garulfo:~/N2/$ ./bigdft LDA | tee LDA.out
 </pre>
-<p>You can now see that the <code>LDA.dft</code> file is read.</p>
+      <p>You can now see that the <code>LDA.dft</code> file is read.</p>
 
-<p>When using a naming scheme, the output files are placed in a directory called <code>data-<i>{naming scheme}</i></code>. In our LDA example, the wavefunctions of the system can thus be found in the <code>data-LDA</code> directory:</p>
-<pre>
+      <p>When using a naming scheme, the output files are placed in a directory called <code>data-<i>{naming scheme}</i></code>. In our LDA example, the wavefunctions of the system can thus be found in the <code>data-LDA</code> directory:</p>
+      <pre>
 user@garulfo:$ ls data-LDA/
 wavefunction-001-NR.0001  wavefunction-001-NR.0002  wavefunction-001-NR.0003
 wavefunction-001-NR.0004  wavefunction-001-NR.0005
 </pre>
-<p>Here <code>001</code> means the first K-point (meaningless in this case), <code>N</code> stands for non spin-polarized, <code>R</code> for real part and the remaining number is the orbital ID. Post-processing of these files will be done later.</p>
+      <p>Here <code>001</code> means the first K-point (meaningless in this case), <code>N</code> stands for non spin-polarized, <code>R</code> for real part and the remaining number is the orbital ID. Post-processing of these files will be done later.</p>
 
-<p>In the same spirit, another calculation can be done with different parameters. 
+      <p>In the same spirit, another calculation can be done with different parameters. 
 Imagine we want to perform a Hartree-Fock calculation. In BigDFT, this can be done by putting the <code>ixc</code> input variable to 100. So, copy the <code>LDA.dft</code> file to <code>HF.dft</code> and modify it accordingly (don't forget to rename also the coordinate file). This time, an error will occur:</p>
-<pre>
+      <pre>
 user@garulfo:$ ./bigdft HF | tee HF.out
 [...]
  ERROR: The pseudopotential parameter file "psppar.N" is lacking,
@@ -180,7 +180,7 @@ user@garulfo:$ ./bigdft HF | tee HF.out
 user@garulfo:$
 </pre>
 
-<p>This is because the pseudopotential is assigned by default in the code only for LDA and PBE XC approximations. You can find <a href="N2/psppar.N2" target="_blank">here</a> the pseudopotential which is taken by default in the LDA run. Put it in a <code>psppar.N</code> file, and run the calculation (redirect the output in the file HF.out for example). When possible, care should be taken in choosing a pseudopotential which has been generated with the same XC approximation used. Unfortunately, at present HGH data are only available for semilocal functionals. Data of the calculation can be analysed. Consider the eigenvectors of the LDA and HF runs.</p>
+<p>This is because the pseudopotential is assigned by default in the code only for LDA and PBE XC approximations. You can find <a href="N2/psppar.N2" target="_blank">here</a> the pseudopotential which is taken by default in the LDA run. Put it in a <code>psppar.N</code> file, and run the calculation (redirect the output in the file HF.out for example). When possible, care should be taken in choosing a pseudopotential which has been generated with the same XC approximation used. Unfortunately, at present HGH data are only available for semilocal functionals. For example, the same exercise as follows  could have been done with Hybrid XC functionals, like for example PBE0 (<code>ixc</code>=-406). See the <a href="http://inac.cea.fr/L_Sim/BigDFT/html-manual/node7.html">manual page</a> for a list of the supported XC functionals. Data of the calculation can be analysed. Consider the eigenvectors of the LDA and HF runs.</p>
 
       <div class="exercice">
         <p><b>Exercise</b>: Compare the values of the HOMO and HOMO-1 eigenvalues for the LDA and the HF run.
@@ -199,7 +199,7 @@ The results can be compared to all-electron calculations, done with different ba
 </pre>
         <p class="answer">
 The results depends, of course, on the precision chosen for the calculation, and of the presence of the pseudopotential.
-As it is well-known, the pseudopotential appoximation is however much less severe than the approximation induced by typical XC functionals. We might see that, even in the HF case, the presence of a LDA-based pseudopotential (of rather good quality) does not alter so much the results. Here you can find the values from BigDFT calculation using a very good precision (<code>hgrid=0.3</code>, <code>crmult=7.0</code>)
+As it is well-known, the pseudopotential appoximation is however much less severe than the approximation induced by typical XC functionals. We might see that, even in the HF case, the presence of a LDA-based pseudopotential (of rather good quality) does not alter so much the results. Here you can find the values from BigDFT calculation using a very good precision (<code>hgrid=0.3</code>, <code>crmult=7.0</code>). Note that 1 ha=27.21138386 eV.
 </p> 
 	  <pre>
          LDA           HF     
@@ -212,13 +212,13 @@ How much is the <em>correlation</em> of the N2 molecule in (PSP) LDA?</p>
       </div>
 
       <h2>Visualise wavefunctions</h2>
-<p>The wavefunctions are output by choosing a non zero value for parameter <code>output_wf</code> in the <code>.dft</code> file. Several formats are available, but in each, only the non-null coefficient of the Daubechies wavelet representation are saved. This represent a compressed way of storing the wavefunctions (and roughly correspond to a dump of what is stored in memory during the calculation). To post-process the wavefunctions, one need to get their value on a real space grid.</p>
+<p>The wavefunctions are output by choosing a non zero value for parameter <code>output_wf</code> in the <code>.dft</code> file. Several formats are available, but in each, only the non-null coefficient of the Daubechies wavelet representation are saved. This represent a compressed way of storing the wavefunctions (and roughly correspond to a dump of what is stored in memory during the calculation). In case you want to visualize the wavefunctions, you should translate these data in a real space grid. To post-process the wavefunctions, one need to get their value on a real space grid.</p>
 
 <p>This is done by using <code>memguess</code> with the <em>exportwf</em> argument:</p>
 <pre>
-user@garulfo:~/N2/$ ./memguess 1 LDA exportwf data-LDA/wavefunction-001-NR.0001
+user@garulfo:~/N2/$ ./memguess 1 exportwf data-LDA/wavefunction-001-NR.0001
 </pre>
-<p>It creates four files.</p>
+<p>It creates four files in the <code>data-LDA</code> directory.</p>
 <ul>
 <li><code>wavefunction-[...].xxxx_avg_{x,y,z}</code>: which is the projection of the wavefunction value along a given axis.</li>
 <li><code>wavefunction-[...].xxxx.cube</code>: which is the values of the wavefunction (either real or imaginary part) on a regular real space mesh.</li>
@@ -249,10 +249,10 @@ user@garulfo:~/N2/$ v_sim -f data-LDA/wavefunction-001-NR.0001.cube data-LDA/wav
 
   <h2>Spin polarized calculations on the isolated Nitrogen atom</h2>
 
-      <h3>Spherical Isolated Atom calculation: adding occupation numbers</h3>
-      <p>A rather common functionality which is desirable is to control at hand the occupation numbers of the Kohn-Sham orbitals.
+  <h3>Spherical Isolated Atom calculation: adding occupation numbers</h3>
+  <p>A rather common functionality which is desirable is to control at hand the occupation numbers of the Kohn-Sham orbitals.
  In BigDFT, this can be done with the <code>[input].occ</code> file, where <code>[input]</code> is the name of the calculation (which is indeed <code>input</code> if the name is not provided). Let us try to see how this can be used.</p>
-      <p>First of all, let us perform a calcualtion of the isolated Nitrogen atom. To do this, modify posinp such that only one atom is considered. Clearly, its actual position does not matter. Run a BigDFT calculation, with the same input file as the LDA case of before. This will run the N atom system in a spin-averaged case. However, you should notice several messages in the screen output: </p>
+      <p>First of all, let us perform a calculation of the isolated Nitrogen atom. To do this, modify posinp such that only one atom is considered. Clearly, its actual position does not matter. Run a BigDFT calculation, with the same input file as the LDA case of before. This will run the N atom system in a spin-averaged case. However, you should notice several messages in the screen output: </p>
 <pre>
 [...]
 WARNING: odd number of electrons, no closed shell system
@@ -268,19 +268,20 @@ WARNING: odd number of electrons, no closed shell system
  Difference:evsum,energybs -2.1271144983362E+00 -2.1012854795290E+00
 [...]
 </pre>
-<h4>Spin-averaged atom: spherical versus non-spherical run</h4>
-<p>
-Since the number of electrons of the Nitrogen atom is odd, the last orbital (the third) is only half occupied. In addition, the configuration is not spherical. Run another run by inserting the follwing information in the <code>[input].occ</code> file:
-</p>
-<pre>
+  <h4>Spin-averaged atom: spherical versus non-spherical run</h4>
+  <p>Since the number of electrons of the Nitrogen atom is odd, the last orbital (the third) is only half occupied. In addition, the configuration is not spherical. Run another run by inserting the follwing information in the <code>[input].occ</code> 
+  file:
+  </p>
+  <pre>
 4
 1 2.
 2 1.
 3 1.
 4 1.
 </pre>
-<p>
+  <p>
 The first line is the number of orbital you put in the system. Then the association orbital-occupation number are written in the other lines. You migh also put only lines which refer to orbitals which have non-default occupation number (2 in this case). See if the energy lowers: it should. Moreover, the warnings of the previous output are now completed by additional information:
+</p>
 <pre>
 [...]
 WARNING: odd number of electrons, no closed shell system
@@ -301,9 +302,9 @@ occup(2:4)= 1.0000
  Difference:evsum,energybs -2.1403156863632E+00 -2.1403156622103E+00
 [...]
 </pre>
-<h3>Perform a spin-polarized calculation: adding a spin</h3>
+  <h3>Perform a spin-polarized calculation: adding a spin</h3>
 <p> Now you can add the (collinear) spin degree of freedom to the system. Since it is a single atom, Hund's rule implies also a given polarization. According to this, this should generate a up-down collinear polarization of 3 electrons. To control that, create an input file in which <code>nspin</code> and <code>mpol</code> </p> become respectively 2 (collinear spin treatment) and 3 (difference between up and down polarization). 
-<h4>Decide the Input Guess polarization</h4>
+  <h4>Decide the Input Guess polarization</h4>
 The code will not work immediately, since it will ask for a Input Guess polarization of the system:
 <pre>
 Total Number of Electrons        5
@@ -311,8 +312,8 @@ Spin-polarized calculation
 ERROR: Total input polarisation (found 0) must be equal to norbu-norbd.
 With norb=5 and mpol=3 norbu-norbd=3
 </pre>
-To polarize the atoms, you should enter their polarization explicitly in the input position file. Since here there is only one atom and the sum of IG polarizations should be identical to the total magnetization <code>mpol</code>, you are forced to put a 3 at the end of the line associated to the N atom:
-<pre>
+In BigDFT, this input polarization might be added by putting the corresponding value for any atom in the <code>posinp.xyz</code> file:
+  <pre>
 1 angstroem
 free
 N 0. 0. 0. 3
@@ -331,11 +332,11 @@ Then the calculation can run. You can see that the energy is remarkably lower th
  e(   4,u)= -3.09068169210905E-01 1.0000
 </pre>
 
-      <div class="exercice">
-        <p><b>Exercise</b>: Charge the Nitrogen atom (say, remove one electron) and compare the energies of the system in symmetric spin-averaged configuration with respect to the spin-polarized case</p>
-        <p class="answer">The <code>[input].occ</code> file  </p>
-      </div>
-
+  <div class="exercice">
+        <p><b>Exercise</b>: Charge the Nitrogen atom (say, remove one electron) and compare the energies of the system in symmetric spin-averaged configuration with respect to the spin-polarized case.</p>
+        <p class="answer">Hint: The <code>[input].occ</code> file might also accept fractional number written as actual fractions, e.g. 2/3 instead as 0.666666</p>
+  </div>
+</div>
 
     <div class="footer">Authors (Luigi D Genovese A cea D fr) (Damien D Caliste A cea D fr)
       |
@@ -343,7 +344,7 @@ Then the calculation can run. You can see that the energy is remarkably lower th
       <a href="http://jigsaw.w3.org/css-validator/check/referer" title="Check CSS compliance with W3C norms">CSS2</a>
       |
       <!-- hhmts start -->
-      Last modified: Mon May 30 11:13:37 CEST 2011
+      Last modified: Sun Oct 16 19:03:37 CEST 2011
       <!-- hhmts end -->
     </div>
 

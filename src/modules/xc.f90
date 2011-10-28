@@ -327,9 +327,9 @@ contains
     integer :: ipte, nb
     real(dp) :: rhotmp(nspden, n_blocks), exctmp(n_blocks), vxctmp(nspden, n_blocks)
     real(dp) :: sigma(2*min(nspden,2)-1, n_blocks), vsigma(2*min(nspden,2)-1, n_blocks)
-    real(dp) :: v2rho2(3, n_blocks), v2rhosigma(6, n_blocks), v2sigma2(6, n_blocks)
+    real(dp) :: v2rho2(3, n_blocks), v2rhosigma(6, n_blocks), v2sigma2(6, n_blocks)  
     real(dp), allocatable :: rho_(:,:), exc_(:), vxc_(:,:)
-    character(len=*), parameter :: subname='xc_getvxc'
+    !n(c) character(len=*), parameter :: subname='xc_getvxc'
 
     if (xc%kind == XC_ABINIT) then
        ! ABINIT case, call drivexc

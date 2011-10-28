@@ -51,6 +51,9 @@ module module_types
   character(len = 4), dimension(0:2), parameter :: output_grid_format_names = &
        & (/ "text", "ETSF", "cube" /)
 
+  !> SCF mixing parameters. (mixing parameters to be added)
+  integer, parameter :: SCF_KIND_DIRECT_MINIMIZATION = 0
+
   !> Occupation parameters.
   integer, parameter :: SMEARING_DIST_ERF   = 1
   integer, parameter :: SMEARING_DIST_FERMI = 2
@@ -545,11 +548,11 @@ contains
 
 
 !> Allocate diis objects
-  subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,norbd,diis,subname)
+  subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subname) !n(m)
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    integer, intent(in) :: idsx,npsidim,nkptsp,nspinor,norbd
+    integer, intent(in) :: idsx,npsidim,nkptsp,nspinor !n(m)
     real(gp), intent(in) :: alphadiis
     type(diis_objects), intent(inout) :: diis
     !local variables

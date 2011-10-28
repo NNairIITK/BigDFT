@@ -125,6 +125,51 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
 }\n";
 }
 
+static void generate_kernel_k(std::stringstream &program, cl_uint fft_size, std::list<unsigned int> &radixes, bool reverse){
+  if( reverse )
+    program<<"__kernel void fftKernel_k_"<<fft_size<<"_r_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out, __global const double *k";
+  else
+    program<<"__kernel void fftKernel_k_"<<fft_size<<"_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out, __global const double *k";
+  if(!use_constant_memory)
+    program<<", __read_only image2d_t cosat";
+  program<<"){\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < "<<fft_size<<" ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n";
+
+  unsigned int A=1,B=fft_size;
+  std::string in="tmp1", out="tmp2", tmp;
+  std::list<unsigned int>::iterator it;
+
+  for( it = radixes.begin(); it != radixes.end(); it++){
+     B/=*it;
+     program<<"  radix"<<*it<<"m(jlt, ilt, "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out;
+     if( reverse ){
+       if(it == --(radixes.end()))
+         program<<",-,*="<<(double)1/(double)fft_size<<");\n";
+       else
+         program<<",-,);\n";
+     } else
+       program<<",+,);\n";
+     program<<"  barrier(CLK_LOCAL_MEM_FENCE);\n";
+     A*=*it;
+     tmp=out; out=in; in=tmp;
+  }
+  program<<"  if(il<"<<fft_size<<")\n\
+    out[jg*"<<fft_size<<"+il] = "<<in<<"[il][jl]*k[jg*"<<fft_size<<"+il];\n\
+}\n";
+}
+
+
 extern "C" fft_code * generate_fft_program(cl_uint fft_size, struct bigdft_device_infos * infos){
   unsigned int available_rad[] = {2,3,5,7,11,13,17,19,23,29,31};
   std::list<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
@@ -146,6 +191,7 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size, struct bigdft_devic
 
   generate_kernel(program,fft_size,radixes,false);
   generate_kernel(program,fft_size,radixes,true);
+  generate_kernel_k(program,fft_size,radixes,false);
  
   output->code = (char *)malloc((program.str().size()+1)*sizeof(char));
   strcpy(output->code, program.str().c_str());

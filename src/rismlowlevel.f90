@@ -459,7 +459,7 @@ subroutine assign_atomic_radii_york(at,radii)
   type(atoms_data), intent(in) :: at
   real(gp), dimension(at%nat), intent(out) :: radii
   !local variables
-  real(gp), parameter :: xi=1.1839527_gp
+  !n(c) real(gp), parameter :: xi=1.1839527_gp
   integer :: iat,ityp
   real(gp) :: lambda,lambdafrac,cutoff
 
@@ -519,7 +519,7 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
   type(gaussian_basis), intent(out) :: G  
   !local variables
   character(len=*), parameter :: subname='gaussian_psp_basis'
-  real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
+  !n(c) real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
   integer :: iat,nshell,iexpo,l,ishell,i_stat
 
   G%nat=nat
@@ -994,7 +994,7 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   integer, parameter :: nterm_max=48,maxsizeKB=2048,nw=65536
   logical :: perx,pery,perz
   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
-  integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
+  integer :: nterms_max,nterms,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3 !n(c) iscoeff
   real(gp) :: rx,ry,rz,gau_a
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
@@ -1031,7 +1031,7 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   ishell=0
   iexpo=1
   icoeff=1
-  iscoeff=1
+  !n(c) iscoeff=1
   iterm=1
   do iat=1,G%nat
      rx=G%rxyz(1,iat)

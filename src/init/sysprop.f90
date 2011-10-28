@@ -21,7 +21,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   type(orbitals_data), intent(inout) :: orbs
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
-  character(len=*), parameter :: subname='system_properties'
+  !n(c) character(len=*), parameter :: subname='system_properties'
   integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty
 

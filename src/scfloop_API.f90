@@ -176,7 +176,6 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
 END SUBROUTINE scfloop_output
 
-
 !>    Read atomic positions
 subroutine read_velocities(iproc,filename,atoms,vxyz)
   use scfloop_API
@@ -188,7 +187,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(out) :: vxyz
   !local variables
-  character(len=*), parameter :: subname='read_velocities'
+  !n(c) character(len=*), parameter :: subname='read_velocities'
   character(len=2) :: symbol
   character(len=20) :: tatonam,units
   character(len=50) :: extra
@@ -277,7 +276,6 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
 
   close(unit=99)
 END SUBROUTINE read_velocities
-
 
 subroutine wtvel(filename,vxyz,atoms,comment)
   use module_base

@@ -237,13 +237,13 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
 
      !fill such descriptors
      !coarse part
-     call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+     call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,& !n(m)
+          Glr%wfd%nseg_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
           Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c,&
           Llr(ilr)%wfd%keyg(1,1),Llr(ilr)%wfd%keyv(1))
      !fine part
-     call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+     call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,& !n(m) 
+          Glr%wfd%nseg_f,&
           Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f,&
@@ -555,13 +555,13 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
   !now fill the local wavefunction descriptors
   !and define the mask array for the wavefunction
   !coarse part
-  call segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
-       wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
+  call segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,& !n(m)
+       wfdg%nseg_c,wfdg%keyg(1,1),wfdg%keyv(1),&
        wfdl%nseg_c,wfdl%nvctr_c,wfdl%keyg(1,1),wfdl%keyv(1))!,keymask(1))
 
   !fine part
-  call segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
-       wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
+  call segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,& !n(m)
+       wfdg%nseg_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
        wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
        wfdl%nseg_f,wfdl%nvctr_f,wfdl%keyg(1,wfdl%nseg_c+min(1,wfdl%nseg_f)),&
        wfdl%keyv(wfdl%nseg_c+min(1,wfdl%nseg_f)))!,&
@@ -636,23 +636,23 @@ subroutine build_keymask(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,ke
 END SUBROUTINE build_keymask
 
 
-subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
+subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,keyg,keyv,& !n(c) nvctr (arg:11)
      nseg_loc,nvctr_loc,keyg_loc,keyv_loc)!,keymask)
   implicit none
-  integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
+  integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nseg_loc,nvctr_loc !n(c) nvctr
   integer, dimension(nseg), intent(in) :: keyv
   integer, dimension(2,nseg), intent(in) :: keyg
   integer, dimension(nseg_loc), intent(out) :: keyv_loc
   integer, dimension(2,nseg_loc), intent(out) :: keyg_loc!,keymask
   !local variables
   logical :: go,lseg
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend,nvctr_check,n1l,n2l,i1l,i2l,i3l !n(c) n3l
   integer :: ngridp
 
   !dimensions of the localisation region (O:nIl)
   n1l=i1ec-i1sc
   n2l=i2ec-i2sc
-  n3l=i3ec-i3sc
+  !n(c) n3l=i3ec-i3sc
 
   !control variable
   nvctr_check=0
@@ -791,10 +791,10 @@ subroutine make_bounds_loc(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   type(convolutions_bounds), intent(out) :: bounds_loc
   !local variables
   character(len=*), parameter :: subname='kb_conversion'
-  integer :: n1l,n2l,n3l,i_stat
+  integer :: n2l,n3l,i_stat !n(c) n1l
   
   !dimensions of the localisation region (O:nIl)
-  n1l=i1ec-i1sc
+  !n(c) n1l=i1ec-i1sc
   n2l=i2ec-i2sc
   n3l=i3ec-i3sc
 

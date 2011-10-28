@@ -24,8 +24,8 @@ subroutine  comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   !local variables
 !!    integer :: ncount0,ncount1,ncount_rate,ncount_max,nflop
 !!    real(kind=8) :: tel
-  integer :: l1,l2,i,t,l1_0,l1_1,ll1
-  real(wp) :: y2i__0,y2i__1,y2i1_0,y2i1_1,y2i,y2i1
+  integer :: l1,l2,i,t !n(c) l1_0, l1_1, ll1
+  real(wp) :: y2i,y2i1 !n(c) y2i__0,y2i__1,y2i1_0,y2i1_1
   include 'v_17.inc'
 
   !    open(unit=20,file='tree.flop')
@@ -83,9 +83,9 @@ subroutine comb_rot_grow_loc_square_1(n1,n2,n3,x,y,ib,ib2,loczero)
   !local variables
 !!    integer ncount0,ncount1,ncount2,ncount_rate,ncount_max,nflop
 !!    real(kind=8) tel,t0,t1
-  integer i,t,l2,l3,l1
-  integer ll1,ll3,l10,l11,l30,l31,ll2,l21
-  real(wp) y2i__11, y2i__12, y2i1_11, y2i1_12, y2i__21, y2i__22, y2i1_21, y2i1_22,y2i,y2i1
+  integer i,t,l2,l3 !n(c) ,l1
+  !n(c) integer ll1,ll3,l10,l11,l30,l31,ll2,l21
+  real(wp) y2i,y2i1 !n(c) y2i__11, y2i__12, y2i1_11, y2i1_12, y2i__21, y2i__22, y2i1_21, y2i1_22
   include 'v_17.inc'
 
   !    open(unit=10,file='zero.square')

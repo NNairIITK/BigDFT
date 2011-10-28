@@ -45,7 +45,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   real(8) rdum
   
   integer Nsolm, Npaw, ng
-  integer Ngrid, Ngrid_box, Ngrid_biggerbox, iovrsmpl
+  integer Ngrid, Ngrid_box, Ngrid_biggerbox, iovrsmpl,  Ngrid_box_larger
   real(8) boxradius, biggerboxradius, a,b, EMAX
   real(8), pointer :: rgrid(:), yp(:), ypp(:), w(:), aepot(:), aepot_p(:), aepot_pp(:), &
        rgrid_ab(:), aepot_cent(:), staepot(:), rw(:),rd(:)
@@ -158,13 +158,18 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   biggerboxradius = 1.5_8 * rcov   !! this is an approximative goal
   
   Ngrid_box=1
+  Ngrid_box_larger=1
   Ngrid_biggerbox=1
+
   
   do j=1,ngrid_fit
      if( abs(rae(j) -boxradius) <  abs(rae(Ngrid_box) -boxradius)) Ngrid_box = j
+     ! if( abs(rae(j) -boxradius*2) <  abs(rae(Ngrid_box_larger) -boxradius*2)) Ngrid_box_larger = j
      if( abs(rae(j) -biggerboxradius) <  abs(rae(Ngrid_biggerbox) -biggerboxradius)) Ngrid_biggerbox = j
   end do
 
+  Ngrid_box_larger=Ngrid_biggerbox
+  
 
   !!  if(abs(rae(Ngrid_box) -boxradius)>1.0e-8) STOP "the grid from pseudo should pass by rcov but it does not"
   
@@ -209,7 +214,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   
   Ngrid_box= 1+iovrsmpl*( Ngrid_box-1)
   Ngrid_biggerbox=1+iovrsmpl*( Ngrid_biggerbox-1)
-
+  Ngrid_box_larger = Ngrid_biggerbox
 
   boxradius = rgrid(Ngrid_box)
   
@@ -347,7 +352,19 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      aepot_cent=aepot*0.5_8 + (Lpaw*(Lpaw+1) )/rgrid/rgrid/2 
 
      psigrid=0.0D0
-     
+ 
+     write(6,*)     "now calculating " , 10, " AE function for the eigenvalues CHECK with  Ngrid_box_larger  for LPaw=", LPaw 
+     write(38,*)  "now calculating " , 10, " AE function for the eigenvalues CHECK with  Ngrid_box_larger  for LPaw=", LPaw 
+
+     do n=1, 10
+        !! call difnrl(aepot_cent ,psigrid(1, n ) , dumpsi_p ,Ngrid_box, a,b, rgrid,rgrid_ab,n+Lpaw ,Lpaw , znuc,Egrid(n) )
+        call schro( Egrid(n),rgrid , &
+             aepot_cent  ,nonloc,  psigrid(1, n )  , Ngrid_box_larger ,&
+             n+LPaw , Lpaw  ,   znuc )                     
+        write(6 ,*)  " n = ", n, " Egrid(n)  "  , Egrid(n),  "  lpaw " , Lpaw
+        write(38,*)  "schro ae  n = ", n, " Egrid(n)  for CHECK with   " , Egrid(n),  "  lpaw " , Lpaw
+     enddo
+    
      write(6,*)     "now calculating " , NSol, " function of the AE basis for LPaw=", LPaw 
      write(38,*)  "now calculating " , NSol, " function of the AE basis for LPaw=", LPaw 
 
@@ -388,7 +405,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
           rloc, r_l, &                         !! rloc=alpz=alpl    r_l=alps
           ng-1 ,noccmax ,noccmx,   expo,  psi,aeval, occup ,  &
           Nsol, Lpaw , Ngrid, Ngrid_box,Egrid_pseudo,  rgrid , rw,rd, psigrid_pseudo ,&
-          Npaw, PAWpatch_matrix,  psipsigrid_pseudo, rcov, rprb, rcore,zcore)
+          Npaw, PAWpatch_matrix,  psipsigrid_pseudo, rcov, rprb, rcore,zcore, Ngrid_box_larger)
      
      if( dump_functions) then
         write(plotfile, '(a,i0,a)') 'ptildes.L=',LPaw,'.plt'

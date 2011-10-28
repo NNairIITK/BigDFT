@@ -168,7 +168,7 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   logical, intent(out) :: fail
   real(gp), dimension(3*at%nat), intent(inout) :: f
   !local variables
-  character(len=*), parameter :: subname='ab6md'
+  !n(c) character(len=*), parameter :: subname='ab6md'
   ! 1 atomic mass unit, in electronic mass
   real(gp), parameter :: amu2emass=1.660538782d-27/9.10938215d-31
   integer :: nxfh, iat, idim, iexit
@@ -270,10 +270,10 @@ subroutine timeleft(tt)
   tt=timelimit-real(tcpu,gp)/3600._gp ! in hours
 END SUBROUTINE timeleft
 
-subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
+subroutine convcheck(fmax,fluctfrac_fluct,forcemax,check) !n(c) fnrm (arg:1)
   use module_base
   implicit none
-  real(gp), intent(in):: fnrm, fmax, fluctfrac_fluct,forcemax
+  real(gp), intent(in):: fmax, fluctfrac_fluct,forcemax !n(c) fnrm
 !  logical, intent(out)::check
   integer, intent(inout)::check
 
@@ -346,11 +346,11 @@ subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
 END SUBROUTINE fnrmandforcemax_old
 
 
-subroutine updatefluctsum(nat,fnoise,fluct)
+subroutine updatefluctsum(fnoise,fluct) !n(c) nat (arg:1)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: nat
+  !n(c) integer, intent(in) :: nat
   real(gp),intent(in):: fnoise
   real(gp),intent(inout):: fluct
 
@@ -569,7 +569,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
      call fnrmandforcemax(f,fnrm,fmax,at%nat)
 
-     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+     if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
 
      if (iproc==0) then 
      write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2))')  & 
@@ -582,7 +582,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         call write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epot,x,at,trim(comment),forces=f)
      endif
 
-     call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+     call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
 
      if(check.gt.5)then
         if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
@@ -643,12 +643,12 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   character(len=4) :: fn4
   character(len=40) :: comment
 
-  character(len=*), parameter :: subname='fire'
+  !n(c) character(len=*), parameter :: subname='fire'
 
 !Fire parameters:
   real(gp):: alpha,P,finc,fdec,falpha,alphastart,dt,dtmax,vnrm
   real(gp):: velcur(3*at%nat), velpred(3*at%nat),poscur(3*at%nat),pospred(3*at%nat),fcur(3*at%nat),fpred(3*at%nat),mass(3*at%nat)
-  real(gp):: ecur,epred,eprev,anoise
+  real(gp):: epred,eprev,anoise !n(c) ecur
   integer:: Nmin,nstep,it
 
   check=0
@@ -673,7 +673,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   poscur=rxyz
   fcur=fxyz
   mass=1.0_gp
-  ecur=etot
+  !n(c) ecur=etot
   epred=etot
 
 
@@ -686,7 +686,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
      call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,fnoise,rst,infocode)
      ncount_bigdft=ncount_bigdft+1
      call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
-   !  call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+   !  call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
 
      do iat=1,3*at%nat
         velpred(iat)=velcur(iat)+0.5_gp*dt*(fpred(iat))/mass(iat)+0.5_gp*dt*fcur(iat)/mass(iat)
@@ -699,7 +699,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
         write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
         call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epred,pospred,at,trim(comment),forces=fpred)
      endif
-     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+     if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
      if (iproc==0.and.parmin%verbosity > 0) & 
          write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
          &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
@@ -713,13 +713,11 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
          eprev=epred
      if (iproc==0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
                              'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
-     call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
+     call convcheck(fmax,fluct*in%frac_fluct, in%forcemax,check) !n(m)
      if (ncount_bigdft >= in%ncount_cluster_x-1) then
          !Too many iterations
          exit Big_loop
      end if
-     close(16)
-     open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
 
      if(check.gt.5) then
         if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
@@ -754,7 +752,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
      endif
      nstep=nstep+1
 
-     if (iproc==0) write(10,*) epred, vnrm*0.5d0
+     !if (iproc==0) write(10,*) epred, vnrm*0.5d0
    end do Big_loop
 
 
