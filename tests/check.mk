@@ -122,6 +122,10 @@ $(PSPS):
 	  done ; \
           rm -f *.out *.mon *.report default* *.prc; \
 	  rm -fr data data-*; \
+	  rm -f velocities.xyz pdos.dat td_spectra.txt ; \
+	  rm -f bfgs_eigenvalues.dat frequencies.res frequencies.xyz hessian.dat ; \
+	  rm -f *.NEB.dat *.NEB.int *.NEB.restart *.NEB.log ; \
+	  rm -f electronic_density.cube ACF.dat AVF.dat BCF.dat ; \
 	  rm -f anchorpoints* fort.* nogt.* path*.xyz vogt.* ; \
 	  rm -f latest.pos.force.*.dat fort.* CPUlimit test ; \
 	  rm -f cheb_spectra_* alphabeta* b2B_xanes.* local_potentialb2B* ; \
@@ -135,9 +139,6 @@ $(PSPS):
 %.psp: ;
 %.post-clean: ;
 %.post-out: ;
-
-NEB_driver.sh:
-	ln -fs $(abs_top_srcdir)/src/$@
 
 in_message:
 	@if test -n "$(run_ocl)" ; then \

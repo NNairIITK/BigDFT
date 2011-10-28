@@ -36,6 +36,9 @@ Xabsb2B.xabs.out: Xabsdel_inputGenPot.xabs.out
 # Additional NEB in.
 NEB.post-in:
 	sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh
+	ln -fs $(abs_top_srcdir)/src/NEB_driver.sh
+NEB.post-clean:
+	rm -f NEB_include.sh NEB_driver.sh
 
 # Additional run rules.
 Xabsdel_inputGenPot.xabs.post-out:
