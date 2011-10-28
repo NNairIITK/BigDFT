@@ -4,7 +4,7 @@ SUBDIRS =
 
 EXTRA_DIST = xc.out.ref
 
-CLEANFILES = xc.out xc.tmp.* fldiff.report
+CLEANFILES = xc.out xc.tmp.* xc.report
 
 if USE_DGEMMSY
 libs_dgemmsy = $(top_builddir)/src/dgemmsy/libdgemmsy.a
@@ -36,5 +36,5 @@ xc.out: test_xc
 check: xc.out xc.out.ref
 	@cut -b -70 xc.out > xc.tmp.out
 	@cut -b -70 $(srcdir)/xc.out.ref > xc.tmp.ref
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=9e-6 xc.tmp.out xc.tmp.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=9e-6 xc.tmp.out xc.tmp.ref | tee xc.report
 	@rm -f xc.tmp.*
