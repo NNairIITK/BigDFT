@@ -235,13 +235,13 @@ real(8),dimension(:,:),allocatable:: ovrlp
       if(trim(lin%mixingMethod)=='dens') then
           if(lin%mixHist==0) then
               !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
-              call mixPotential(iproc, n3p, Glr, input, lin%alphaMix, rhopotOld, rhopot, pnrm)
+              call mixPotential(iproc, n3p, Glr, input, lin%alphaMixWhenFixed, rhopotOld, rhopot, pnrm)
           else 
               ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
               ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
               mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
               mixdiis%is=mixdiis%is+1
-              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 1, pnrm)
+              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMixWhenFixed, 1, pnrm)
           end if
           rhopotold_out=rhopot
       end if
@@ -260,13 +260,13 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
       if(trim(lin%mixingMethod)=='pot') then
           if(lin%mixHist==0) then
-              call mixPotential(iproc, n3p, Glr, input, lin%alphaMix, rhopotOld, rhopot, pnrm)
+              call mixPotential(iproc, n3p, Glr, input, lin%alphaMixWhenFixed, rhopotOld, rhopot, pnrm)
           else 
               ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
               ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
               mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
               mixdiis%is=mixdiis%is+1
-              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 2, pnrm)
+              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMixWhenFixed, 2, pnrm)
           end if
           rhopotold_out=rhopot
       end if
@@ -302,7 +302,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
 
   if(nproc==1) allocate(psit(size(psi)))
-  nitSCC=lin%nitSCC
+  nitSCC=lin%nitSCCWhenOptimizing+lin%nitSCCWhenFixed
   ! Flag that indicates that the basis functions shall be improved in the following.
   updatePhi=.true.
   pnrm=1.d100
@@ -310,16 +310,15 @@ real(8),dimension(:,:),allocatable:: ovrlp
   energyoldout=0.d0
   !lin%getCoeff='new'
   reduceConvergenceTolerance=.false.
-  dampingForMixing=.2d0
-  if(iproc==0) write(*,'(a,es9.2)') 'dampingForMixing',dampingForMixing
+  !if(iproc==0) write(*,'(a,es9.2)') 'dampingForMixing',dampingForMixing
   do itout=1,lin%nItOuterSCC
       updatePhi=.true.
       if(reduceConvergenceTolerance) lin%fixBasis=max(lin%fixBasis*lin%factorFixBasis,lin%minimalFixBasis)
       selfConsistent=max(lin%convCritMix,5.d-3*lin%fixBasis)
       if(iproc==0) write(*,'(a,es12.4,3x,es12.4)') 'DELTA DENS for fixing basis functions, reaching self consistency:',lin%fixBasis, selfConsistent
       !do itSCC=1,nitSCC
-      do itSCC=1,nitSCC+10
-          if(itSCC>1 .and. pnrm<lin%fixBasis .or. itSCC==nitSCC) updatePhi=.false.
+      do itSCC=1,nitSCC
+          if(itSCC>1 .and. pnrm<lin%fixBasis .or. itSCC==lin%nitSCCWhenOptimizing) updatePhi=.false.
           !if(pnrm<lin%fixBasis) updatePhi=.false.
           ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
           call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
@@ -348,9 +347,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
           !if(itSCC>0 .and. mod(itScc,2)==0) then
               if(trim(lin%mixingMethod)=='dens') then
                   if(updatePhi) then
-                      alphaMix=dampingForMixing*lin%alphaMix
+                      alphaMix=lin%alphaMixWhenOptimizing
                   else
-                      alphaMix=lin%alphaMix
+                      alphaMix=lin%alphaMixWhenFixed
                   end if
                   if(lin%mixHist==0) then
                       !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
@@ -368,7 +367,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
                       mixdiis%is=mixdiis%is+1
                       call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, 1, pnrm)
                   end if
-                  if(pnrm<selfConsistent .or. itSCC==nitSCC+10) then
+                  if(pnrm<selfConsistent .or. itSCC==nitSCC) then
                       pnrm_out=0.d0
                       do i=1,Glr%d%n1i*Glr%d%n2i*n3p
                           pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2
@@ -410,9 +409,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
           if(itSCC>0) then
               if(trim(lin%mixingMethod)=='pot') then
                   if(updatePhi) then
-                      alphaMix=dampingForMixing*lin%alphaMix
+                      alphaMix=lin%alphaMixWhenOptimizing
                   else
-                      alphaMix=lin%alphaMix
+                      alphaMix=lin%alphaMixWhenFixed
                   end if
                   if(lin%mixHist==0) then
                       call mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
@@ -423,7 +422,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
                       mixdiis%is=mixdiis%is+1
                       call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, 2, pnrm)
                   end if
-                  if(pnrm<selfConsistent .or. itSCC==nitSCC+10) then
+                  if(pnrm<selfConsistent .or. itSCC==nitSCC) then
                       pnrm_out=0.d0
                       do i=1,Glr%d%n1i*Glr%d%n2i*n3p
                           pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2

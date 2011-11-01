@@ -377,7 +377,8 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   read(99,*) lin%correctionOrthoconstraint
   read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
-  read(99,*) lin%mixHist, lin%nItSCC, lin%alphaMix, lin%convCritMix
+  read(99,*) lin%mixHist, lin%nItSCCWhenOptimizing, lin%nItSCCWhenFixed
+  read(99,*) lin%alphaMixWhenOptimizing, lin%alphaMixWhenFixed, lin%convCritMix
   read(99,*) lin%nItOuterSCC, lin%factorFixBasis, lin%minimalFixBasis, lin%convCritMixOut
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess, lin%memoryForCommunOverlapIG
@@ -461,7 +462,7 @@ character(len=20),dimension(at%ntypes),intent(in):: atomNames
 integer,dimension(at%ntypes),intent(in):: norbsPerType
 
 ! Local variables
-integer:: itype, jproc, len1, len2, space1, space2
+integer:: itype, jproc, len1, len2, space1, space2, optimalLength
 logical:: written
 character(len=8):: message1
 character(len=14):: message2
@@ -479,21 +480,23 @@ do itype=1,at%ntypes
 end do
 close(unit=99)
 write(*,'(4x,a)') '----------------------------------------------------------------------'
-write(*,'(4x,a)') '| mixing | mixing | iterations in | alpha mix | convergence crit. |  iterations   | &
-& factor for  |  minimal  | pot diff to |'
-write(*,'(4x,a)') '| scheme | method |  in SC cycle  |           |    for mixing     | in outer loop | &
-& fixing basis | fix basis | exit outer SCC |'
+write(*,'(4x,a)') '| mixing | mixing | iterations in |   alpha mix   | convergence crit. |  iterations   | &
+& factor for  |  minimal  |  pot diff to   |'
+write(*,'(4x,a)') '| scheme | method |  in SC cycle  | optim / fixed |    for mixing     | in outer loop | &
+&fixing basis | fix basis | exit outer SCC |'
 if(lin%mixHist==0) then
     message1=' linear '
 else
     write(hist,'(i2)') lin%mixHist
     message1=' DIIS'//hist//' '
 end if
-write(*,'(4x,a,2x,a,2x,a,a,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a,a,i0,4x,a,3x,es8.2,3x,a,2x,es9.3,2x,a,3x,es9.3,3x,a)') '|', &
-     lin%mixingMethod, '|', message1, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
-     lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItOuterSCC+1)+1.d-10))), &
-     lin%nItOuterSCC, '|', lin%factorFixBasis, '|', lin%minimalFixBasis, '|', lin%convCritMixOut, '|'
-write(*,'(4x,a)') '-------------------------------------------------------------------'
+write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es8.2,a,es9.3,a,es9.3,a)') '| ', &
+     lin%mixingMethod, '  |', message1, ' | ', repeat(' ', optimalLength(4, lin%nItSCCWhenOptimizing)), &
+     lin%nItSCCWhenOptimizing, '   /', repeat(' ', optimalLength(3, lin%nItSCCWhenFixed)), lin%nItSCCWhenFixed, &
+     '   |', lin%alphaMixWhenOptimizing, ' /', lin%alphaMixWhenOptimizing, ' |    ', lin%convCritMix, ' |', repeat(' ', optimalLength(9, lin%nItOuterSCC)), &
+     lin%nItOuterSCC, '      |   ', lin%factorFixBasis, '   | ', lin%minimalFixBasis, ' |   ', lin%convCritMixOut, '    |'
+write(*,'(4x,a)') '-----------------------------------------------------------------------------------------&
+&-------------------------------------------'
 write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  | transform |'
 write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  | orthoconstraint | to global |'
 if(lin%correctionOrthoconstraint==0) then
@@ -3359,3 +3362,15 @@ subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
 
 
 end subroutine repartitionOrbitals2
+
+
+
+integer function optimalLength(totalLength, value)
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: totalLength, value
+  
+  optimalLength=totalLength-ceiling(log10(dble(value+1)+1.d-10))
+
+end function optimalLength
