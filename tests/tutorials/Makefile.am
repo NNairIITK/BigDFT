@@ -8,12 +8,7 @@ libs_cuda=$(top_builddir)/src/CUDA/libGPU.a
 else
 libs_cuda=
 endif
-if USE_OCL
-libs_ocl = $(top_builddir)/src/OpenCL/libOCL.a -lstdc++
-else
-libs_ocl =
-endif
-libs_opt=$(libs_cuda) $(libs_ocl)
+libs_opt=$(libs_cuda)
 
 TESTDIRS = CH4 \
 	  CH3- \

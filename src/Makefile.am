@@ -46,13 +46,35 @@ GPU_BLAS = modules/cublas_fake.f90
 endif
 
 if USE_OCL
-sub_dirs_ocl=OpenCL
-OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
-libs_ocl=OpenCL/libOCL.a
+sub_dirs_ocl = OpenCL
+OCL_SOURCES = convolutions/convolut_common_interface_ocl.f90 \
+		OpenCL/Stream.h OpenCL/Tool.h OpenCL/bench_lib.h \
+		OpenCL/OpenCL_wrappers.c OpenCL/OpenCL_wrappers.h \
+		OpenCL/MagicFilter.c OpenCL/MagicFilter.h \
+		OpenCL/MagicFilter_Generator.cpp OpenCL/MagicFilter_Generator.h \
+		OpenCL/Kinetic.c OpenCL/Kinetic.h \
+		OpenCL/Kinetic_Generator.cpp OpenCL/Kinetic_Generator.h \
+		OpenCL/Kinetic_k_Generator.cpp OpenCL/Kinetic_k_Generator.h OpenCL/Kinetic_k.h \
+		OpenCL/Wavelet.c OpenCL/Wavelet.h \
+		OpenCL/Wavelet_Generator.cpp OpenCL/Wavelet_Generator.h \
+		OpenCL/Uncompress.c OpenCL/Uncompress.h \
+		OpenCL/Initialize.c OpenCL/Initialize.h \
+		OpenCL/Profiling.c \
+		OpenCL/Hamiltonian.c \
+		OpenCL/Reduction.c OpenCL/Reduction.h \
+		OpenCL/Reduction_Generator.cpp OpenCL/Reduction_Generator.h \
+		OpenCL/Preconditioner.c \
+		OpenCL/Density.c \
+		OpenCL/dsfft.c \
+		OpenCL/fft_generator_noshared.cpp \
+		OpenCL/fft_noshared.c \
+		OpenCL/fft_generator_helper.cpp \
+		OpenCL/dsfft_generator.cpp OpenCL/fft_generator.h \
+		OpenCL/Benchmark.c \
+		OpenCL/Benchmark_Generator.cpp OpenCL/Benchmark_Generator.h
 else
-sub_dirs_ocl=
-OCL_INTERFACE = convolutions/interface_ocl_fake.f90
-libs_ocl=
+sub_dirs_ocl =
+OCL_SOURCES = convolutions/interface_ocl_fake.f90
 endif
 
 if USE_DGEMMSY
@@ -119,7 +141,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	-I$(srcdir)/PSolver -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@
-AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL
 AM_CFLAGS = -Wall -Werror -msse3
 
 bin_PROGRAMS = $(binaries_sources)
@@ -251,7 +273,8 @@ low_level = init/projectors.f90  \
 	wavelib/daubisf.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	$(DGEMMSY_SOURCES)
+	$(DGEMMSY_SOURCES) \
+	$(OCL_SOURCES)
 
 # C objects
 c_level = posfiles.c \

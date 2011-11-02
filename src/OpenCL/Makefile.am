@@ -1,62 +1,4 @@
-EXTRA_DIST = \
-	bench_lib.h \
-	Kinetic.h \
-	Kinetic_Generator.h \
-	Kinetic_k.h \
-	Kinetic_k_Generator.h \
-	bench_lib.h \
-	MagicFilter.h \
-	MagicFilter_Generator.h \
-	Uncompress.h \
-	Wavelet.h \
-	Wavelet_Generator.h \
-	Initialize.h \
-	OpenCL_wrappers.h \
-	Stream.h \
-	Reduction.h \
-	Reduction_Generator.h \
-	Benchmark_Generator.h \
-        Tool.h\
-        fft_generator.h \
-	$(SOURCES_CONV_CHECK)
-
-SOURCES_CONV_CHECK =
-SOURCES_SHARED =
-
-
 EXTRA_PROGRAMS = conv_check conv_check_fft bench_conv bench_conv_quick bench_zgemm stream_check
-
-noinst_LIBRARIES = libbasef.a libbasec.a libOCL.a libStream.a
-
-libbasef_a_SOURCES = $(mpi_source)
-libbasef_a_LIBADD = ../modules/defs.o ../modules/base.o \
-                     ../modules/cublas_fake.o
-
-libbasec_a_SOURCES = OpenCL_wrappers.c \
-                     MagicFilter.c \
-                     MagicFilter_Generator.cpp \
-                     Kinetic.c \
-                     Kinetic_Generator.cpp \
-                     Kinetic_k_Generator.cpp \
-                     Wavelet.c \
-                     Wavelet_Generator.cpp \
-                     Uncompress.c \
-                     Initialize.c \
-                     Profiling.c \
-                     Hamiltonian.c \
-                     Reduction.c \
-                     Reduction_Generator.cpp \
-                     Preconditioner.c \
-                     Density.c \
-                     dsfft.c \
-                     fft_generator_noshared.cpp \
-                     fft_noshared.c \
-                     fft_generator_helper.cpp \
-                     dsfft_generator.cpp \
-                     Benchmark.c \
-                     Benchmark_Generator.cpp
-libOCL_a_SOURCES = $(libbasec_a_SOURCES)
-libStream_a_SOURCES = Stream.c
 
 if USE_MPI
 mpi_source =
@@ -70,37 +12,31 @@ else
 libs_cuda=
 endif
 
-libs_ocl=libOCL.a -lstdc++
+libs_opt=$(libs_cuda)
 
-libs_opt=$(libs_cuda)\
- $(libs_ocl)
+CLEANFILES = $(EXTRA_PROGRAMS)
 
-
-CLEANFILES = module_base.@MODULE_EXT@ module_defs.@MODULE_EXT@ \
-			 fort.1 fort.98 *linkinfo
-
-AM_FCFLAGS = -I../modules -I../PSolver @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I../modules -I../PSolver @MPI_INCLUDE@ -I. -I$(srcdir)
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
 
-conv_check_SOURCES = conv_check.f90 
-conv_check_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libbasef.a
-conv_check_LDFLAGS = -lrt -lstdc++
-conv_check_fft_SOURCES = conv_check_fft.f90 
+conv_check_SOURCES = conv_check.f90 $(mpi_source)
+conv_check_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a
+
+conv_check_fft_SOURCES = conv_check_fft.f90 $(mpi_source)
 conv_check_fft_LDADD = ../PSolver/libpoissonsolver.a ../libbigdft.a $(libs_opt) 
-conv_check_fft_LDFLAGS = -lrt -lstdc++
-stream_check_SOURCES = StreamCheck.c
-stream_check_LDADD = libOCL.a libStream.a
-stream_check_LDFLAGS = -lrt -lstdc++
-bench_conv_SOURCES = bench_conv.c bench_lib.c
-bench_conv_LDADD = libbasec.a
-bench_conv_LDFLAGS = -lrt -lstdc++
-bench_conv_quick_SOURCES = bench_conv_quick.c bench_lib.c
-bench_conv_quick_LDADD = libbasec.a
-bench_conv_quick_LDFLAGS = -lrt -lstdc++
-bench_zgemm_SOURCES = bench_zgemm.c bench_lib.c
-bench_zgemm_LDADD = libbasec.a
-bench_zgemm_LDFLAGS = -lrt -lstdc++
+
+stream_check_SOURCES = Stream.c StreamCheck.c $(mpi_source)
+stream_check_LDADD = ../libbigdft.a ../PSolver/libpoissonsolver.a
+
+bench_conv_SOURCES = bench_conv.c bench_lib.c $(mpi_source)
+bench_conv_LDADD = ../libbigdft.a ../PSolver/libpoissonsolver.a 
+
+bench_conv_quick_SOURCES = bench_conv_quick.c bench_lib.c $(mpi_source)
+bench_conv_quick_LDADD = ../libbigdft.a ../PSolver/libpoissonsolver.a 
+
+bench_zgemm_SOURCES = bench_zgemm.c bench_lib.c $(mpi_source)
+bench_zgemm_LDADD = ../libbigdft.a ../PSolver/libpoissonsolver.a 
 
 stream: stream_check
 	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='$(srcdir)/profile.conf' ./stream_check

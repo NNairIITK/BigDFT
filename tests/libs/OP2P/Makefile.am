@@ -15,12 +15,6 @@ else
 libs_cuda=
 endif
 
-if USE_OCL
-libs_ocl=../../src/OpenCL/libOCL.a -lstdc++
-else
-libs_ocl=
-endif
-
 CLEANFILES = op2p_check.out kpts_check.out\
 	mpi_layer.@MODULE_EXT@ MPI_LAYER.@MODULE_EXT@ \
 	overlap_point_to_point.@MODULE_EXT@ OVERLAP_POINT_TO_POINT.@MODULE_EXT@
@@ -35,7 +29,7 @@ op2p_check_LDADD =  $(top_builddir)/src/libbigdft.a \
 kpts_check_SOURCES = kpts_check.f90
 kpts_check_LDADD =  $(top_builddir)/src/libbigdft.a \
 	$(top_builddir)/src/PSolver/libpoissonsolver.a \
-	$(libs_cuda) $(libs_ocl)
+	$(libs_cuda)
 
 
 

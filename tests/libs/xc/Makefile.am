@@ -11,16 +11,11 @@ libs_cuda=$(top_builddir)/src/CUDA/libGPU.a
 else
 libs_cuda=
 endif
-if USE_OCL
-libs_ocl=$(top_builddir)/src/OpenCL/libOCL.a
-else
-libs_ocl=
-endif
 
 check_PROGRAMS = test_xc
 
 test_xc_SOURCES = test_xc.f90 
-test_xc_LDADD = -lbigdft $(libs_cuda) $(libs_ocl) -labinit -lbigdft
+test_xc_LDADD = -lbigdft $(libs_cuda) -labinit -lbigdft
 test_xc_LDFLAGS = -L$(top_builddir)/src
 
 AM_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ 
