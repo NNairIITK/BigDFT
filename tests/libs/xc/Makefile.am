@@ -31,7 +31,7 @@ test_xc_LDFLAGS = -L$(top_builddir)/src
 AM_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ 
 
 xc.out: test_xc
-	./test_xc > xc.out
+	$(run_parallel) ./test_xc > xc.out
 
 check: xc.out xc.out.ref
 	@cut -b -70 xc.out > xc.tmp.out
