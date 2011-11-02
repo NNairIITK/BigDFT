@@ -14,12 +14,12 @@ program BigDFT
    use module_base
    use module_types
    use module_interfaces
-   use ab6_symmetry
+   use m_ab6_symmetry
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
    !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
-   character(len=*), parameter :: subname='BigDFT' !< Use by memocc routine (timing)
+   character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
    integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
    integer :: ncount_bigdft
    real(gp) :: etot,sumx,sumy,sumz,fnoise
@@ -62,19 +62,26 @@ program BigDFT
             read(54,*) arr_posinp(iconfig)
          enddo
       else
+         !normal case
          nconfig=1
          allocate(arr_posinp(1:1))
-         arr_posinp(1)='posinp'
+         if (istat > 0) then
+            arr_posinp(1)='posinp'
+         else
+            arr_posinp(1)=trim(radical)
+         end if
       endif
       close(54)
    else
       nconfig=1
       allocate(arr_posinp(1:1))
-      arr_posinp(1)='posinp'
+         if (istat > 0) then
+            arr_posinp(1)='posinp'
+         else
+            arr_posinp(1)=trim(radical)
+         end if
    end if
 
-   open(unit=16,file='geopt.mon',status='unknown',position='append')
-   if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
    do iconfig=1,nconfig
       !welcome screen
       if (iproc==0) call print_logo()
@@ -104,12 +111,14 @@ program BigDFT
       call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
 
       if (inputs%ncount_cluster_x > 1) then
+         open(unit=16,file='geopt.mon',status='unknown',position='append')
+         if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
          if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
          ! geometry optimization
          call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
          close(16)
          filename=trim('final_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION')
+         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
       end if
 
       !if there is a last run to be performed do it now before stopping

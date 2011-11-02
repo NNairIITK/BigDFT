@@ -4,6 +4,8 @@ EXTRA_DIST = autogen.sh \
 
 ACLOCAL_AMFLAGS = -I config/m4
 
+DISTCLEANFILES = config.inc
+
 if BUILD_LIBABINIT
 libABINIT_dir = libABINIT/src
 else

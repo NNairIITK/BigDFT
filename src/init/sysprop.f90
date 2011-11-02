@@ -12,15 +12,16 @@
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => system_properties
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(out) :: nelec
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(inout) :: atoms
-  type(orbitals_data), intent(out) :: orbs
+  type(orbitals_data), intent(inout) :: orbs
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
-  character(len=*), parameter :: subname='system_properties'
+  !n(c) character(len=*), parameter :: subname='system_properties'
   integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty
 
@@ -41,8 +42,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   if (iproc == 0 .and. nproc > 1) then
      jpst=0
      do jproc=0,nproc-1
-        norbme=orbs%norb_par(jproc)
-        norbyou=orbs%norb_par(min(jproc+1,nproc-1))
+        norbme=orbs%norb_par(jproc,0)
+        norbyou=orbs%norb_par(min(jproc+1,nproc-1),0)
         if (norbme /= norbyou .or. jproc == nproc-1) then
            !this is a screen output that must be modified
            write(*,'(3(a,i0),a)')&
@@ -159,9 +160,10 @@ subroutine init_atomic_values(iproc, atoms, ixc)
   !local variables
   character(len=*), parameter :: subname='init_atomic_values'
   integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat
-  logical :: exists, read_radii
+  integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
+  logical :: exists, read_radii,exist_all
   character(len=27) :: filename
-  
+     
   !allocate atoms data variables
   ! store PSP parameters
   ! modified to accept both GTH and HGHs pseudopotential types
@@ -187,11 +189,25 @@ subroutine init_atomic_values(iproc, atoms, ixc)
   ! Read values from pseudo files.
   nlcc_dim=0
   atoms%donlcc=.false.
+  paw_tot_l=0
+  paw_tot_q=0
+  paw_tot_coefficients=0
+  paw_tot_matrices=0
+  exist_all=.true.
+  !@ todo : eliminate the pawpatch from psppar
   do ityp=1,atoms%ntypes
      filename = 'psppar.'//atoms%atomnames(ityp)
      call psp_from_file(iproc, filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
           & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
           & atoms%radii_cf(ityp, :), read_radii, exists)
+
+     if (exists) then
+        !! first time just for dimension ( storeit = . false.)
+        call pawpatch_from_file( filename, atoms,ityp,&
+             paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .false.)
+     end if
+     exist_all=exist_all .and. exists
+
      if (.not. read_radii) atoms%radii_cf(ityp, :) = UNINITIALIZED(1.0_gp)
      if (.not. exists) then
         atoms%ixcpsp(ityp) = ixc
@@ -211,6 +227,20 @@ subroutine init_atomic_values(iproc, atoms, ixc)
           & atoms%nlcc_ngc(ityp), nlcc_dim, exists)
      atoms%donlcc = (atoms%donlcc .or. exists)
   end do
+  
+  if (exist_all) then
+     do ityp=1,atoms%ntypes
+        filename = 'psppar.'//atoms%atomnames(ityp)
+        !! second time allocate and then store
+        call pawpatch_from_file( filename, atoms,ityp,&
+             paw_tot_l,   paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .true.)
+     end do
+  else
+     nullify(atoms%paw_l,atoms%paw_NofL,atoms%paw_nofchannels)
+     nullify(atoms%paw_nofgaussians,atoms%paw_Greal,atoms%paw_Gimag)
+     nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
+  end if
+
   !process the nlcc parameters if present 
   !(allocation is performed also with zero size)
   allocate(atoms%nlccpar(0:4,max(nlcc_dim,1)+ndebug),stat=i_stat)
@@ -368,7 +398,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
   use module_base
   use module_types
   use module_xc
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   character (len=*), intent(in) :: fileocc
   type(input_variables), intent(in) :: in
@@ -382,7 +412,6 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
   logical :: exists
   character(len=2) :: symbol
   character(len=24) :: message
-  character(len=27) :: filename
   character(len=50) :: format
   integer :: i,j,k,l,iat,nt,ntu,ntd,ityp,ierror,i_stat,ispinsum,mxpl
   integer :: ispol,mxchg,ichg,ichgsum,nsccode,norbe,norbat,nspinor,nspin
@@ -396,6 +425,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
   character(len=500) :: name_xc1, name_xc2
   type(linearParameters) :: lin
   character(len=20),dimension(atoms%ntypes):: atomNames
+
 
   allocate(atoms%iasctype(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
@@ -486,9 +516,10 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
      !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
      !     and not for the gaussian decaying of the pseudopotential projector
      !     add a proper variable in input.perf
-     radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
      if (maxrad == 0.0_gp) then
         radii_cf(ityp,3)=0.0_gp
+     else
+        radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
      end if
 
      if (iproc==0) write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
@@ -652,7 +683,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
      if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
      norb=nelec
      if (mod(norb+in%mpol,2) /=0) then
-        write(*,*)'ERROR: the input polarization should have the same parity of the number of electrons'
+        write(*,*)'ERROR: the mpol polarization should have the same parity of the number of electrons'
         stop
      end if
      norbu=min((norb+in%mpol)/2,norb)
@@ -709,11 +740,11 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
   norbdempty=0
 
   ! Test if the file 'input.occ exists
-  inquire(file='input.occ',exist=exists)
+  inquire(file=trim(in%file_occnum),exist=exists)
   iunit=0
   if (exists) then
      iunit=25
-     open(unit=iunit,file='input.occ',form='formatted',action='read',status='old')
+     open(unit=iunit,file=trim(in%file_occnum),form='formatted',action='read',status='old')
      if (in%nspin==1) then
         !The first line gives the number of orbitals
         read(unit=iunit,fmt=*,iostat=ierror) nt
@@ -724,7 +755,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
      if (ierror /=0) then
         !if (iproc==0) 
           write(*,'(1x,a)') &
-             'ERROR: reading the number of orbitals in the file "input.occ"'
+             'ERROR: reading the number of orbitals in the file "'//trim(in%file_occnum)//'"'
         stop
      end if
      !Check
@@ -732,7 +763,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
         if (nt<norb) then
            !if (iproc==0) 
                write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "input.occ", the number of orbitals norb=',nt,&
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals norb=',nt,&
                 ' should be greater or equal than (nelec+1)/2=',norb
            stop
         else
@@ -745,7 +776,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
         if (nt<norb) then
            !if (iproc==0) 
                write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "input.occ", the number of orbitals norb=',nt,&
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals norb=',nt,&
                 ' should be greater or equal than nelec=',norb
            stop
         else
@@ -754,7 +785,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
         if (ntu<norbu) then
            !if (iproc==0) 
                 write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "input.occ", the number of orbitals up norbu=',ntu,&
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals up norbu=',ntu,&
                 ' should be greater or equal than min((nelec+mpol)/2,nelec)=',norbu
            stop
         else
@@ -763,7 +794,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
         if (ntd<norbd) then
            !if (iproc==0) 
                   write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "input.occ", the number of orbitals down norbd=',ntd,&
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals down norbd=',ntd,&
                 ' should be greater or equal than min((nelec-mpol/2),0)=',norbd
            stop
         else
@@ -805,10 +836,10 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
   ! We modify the symmetry object with respect to the spin.
   if (atoms%symObj >= 0) then
      if (in%nspin == 2) then
-        call ab6_symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
+        call symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
              & atoms%natpol, ierror)
 !!$     else if (in%nspin == 4) then
-!!$        call ab6_symmetry_set_spin(atoms%symObj, atoms%nat, &
+!!$        call symmetry_set_spin(atoms%symObj, atoms%nat, &
 !!$             & atoms%natpol, ierror)
      end if
   end if
@@ -986,23 +1017,24 @@ END SUBROUTINE atomic_occupation_numbers
 
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
-subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
+subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,basedist)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
   integer, intent(in) :: nspinor
-  type(orbitals_data), intent(out) :: orbs
+  type(orbitals_data), intent(inout) :: orbs
   real(gp), dimension(nkpt), intent(in) :: wkpt
   real(gp), dimension(3,nkpt), intent(in) :: kpt
+  integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,iiorb
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base,iiorb
   integer :: mpiflag
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
-  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
+  allocate(orbs%norb_par(0:nproc-1,0:nkpt+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
   !assign the value of the k-points
@@ -1024,9 +1056,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%nspin = nspin
 
   !initialise the array
-  do jproc=0,nproc-1
-     orbs%norb_par(jproc)=0 !size 0 nproc-1
-  end do
+  call to_zero(nproc*(nkpt+1),orbs%norb_par(0,0))
 
   !create an array which indicate which processor has a GPU associated 
   !from the viewpoint of the BLAS routines (deprecated, not used anymore)
@@ -1085,20 +1115,30 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 !!$  call memocc(i_stat,i_all,'mykpts',subname)
 
   !new system for k-point repartition
-  call kpts_to_procs_via_obj(nproc,orbs%nkpts,norb,norb_par)
+  norb_base=0
+  if (present(basedist)) then
+     !the first k-point takes the number of orbitals
+     do jproc=0,nproc-1
+        norb_base=norb_base+basedist(jproc,1)
+     end do
+     call components_kpt_distribution(nproc,orbs%nkpts,norb_base,norb,basedist,norb_par)
+  else
+     call kpts_to_procs_via_obj(nproc,orbs%nkpts,norb,norb_par)
+  end if
   !assign the values for norb_par and check the distribution
   norb_tot=0
   do jproc=0,nproc-1
      if (jproc==iproc) orbs%isorb=norb_tot
      do ikpt=1,orbs%nkpts
-        orbs%norb_par(jproc)=orbs%norb_par(jproc)+norb_par(jproc,ikpt)
+        orbs%norb_par(jproc,0)=orbs%norb_par(jproc,0)+norb_par(jproc,ikpt)
+        orbs%norb_par(jproc,ikpt)=norb_par(jproc,ikpt)
      end do
-     norb_tot=norb_tot+orbs%norb_par(jproc)
+     norb_tot=norb_tot+orbs%norb_par(jproc,0)
   end do
 
   if(norb_tot /= norb*orbs%nkpts) then
      write(*,*)'ERROR: partition of orbitals incorrect, report bug.'
-     write(*,*)orbs%norb_par(:),norb*orbs%nkpts
+     write(*,*)orbs%norb_par(:,0),norb*orbs%nkpts
      stop
   end if
 
@@ -1115,7 +1155,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
   !assign the values of the orbitals data
   orbs%norb=norb
-  orbs%norbp=orbs%norb_par(iproc)
+  orbs%norbp=orbs%norb_par(iproc,0)
   orbs%norbu=norbu
   orbs%norbd=norbd
 
@@ -1210,8 +1250,9 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
 
   !maximum number of objects which has to go to each processor per k-point
   nobjp_max_kpt=ceiling(modulo(robjp-epsilon(1.0_gp),real(nobj,gp)))
-  !print *,'eccoqui',nobjp_max_kpt,robjp
-  !see the conditions for the integer repartition of k-points
+  !print *,'hereweare',nobjp_max_kpt,robjp,nobj
+
+!see the conditions for the integer repartition of k-points
   if (nobjp_max_kpt == nobj .or. (nobjp_max_kpt==1 .and. robjp < 1.0_gp)) then
      intrep=.true.
      rounding_ratio=0.0_gp
@@ -1377,18 +1418,19 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
      end if
      !assign the number of components which corresponds to the same orbital distribution
      numproc=jeproc-jsproc+1
-     ivctr=0
+     icount=0
 
      !print *,'kpoint',ikpt,jsproc,jeproc,strprc,endprc,ceiling(strprc*real(nvctr,gp)),nvctr
      !start filling the first processor
-     nvctr_par(jsproc,ikpt)=min(ceiling(strprc*real(nvctr,gp)),nvctr)
-     ivctr=min(ceiling(strprc*real(nvctr,gp)),nvctr)
+     ivctr=min(ceiling(strprc*real(nvctr,gp)-epsilon(1.0_gp)),nvctr)
+     nvctr_par(jsproc,ikpt)=ivctr!min(ceiling(strprc*real(nvctr,gp)),nvctr)
      fill_array: do 
         if (ivctr==nvctr) exit fill_array
         icount=icount+1
         kproc=jsproc+modulo(icount,numproc)
         !put the floor of the components to the first processor
-        if (strprc /= 1.0_gp .and. kproc==jsproc .and. nvctr_par(kproc,ikpt)==ceiling(strprc*real(nvctr,gp))) then
+        if (strprc /= 1.0_gp .and. kproc==jsproc .and. &
+             nvctr_par(kproc,ikpt)==ceiling(strprc*real(nvctr,gp)-epsilon(1.0_gp))) then
            !do nothing, skip away
         else
            nvctr_par(kproc,ikpt)=&
@@ -1396,6 +1438,8 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
            ivctr=ivctr+1
         end if
      end do fill_array
+     !print '(a,i3,i3,i6,2(1pe25.17),i7,20i5)','here',ikpt,jsproc,jeproc,strprc,endprc,sum(nvctr_par(:,ikpt)),nvctr_par(:,ikpt)
+     !print '(a,i3,i3,i6,2(1pe25.17),i7,20i5)','there',ikpt,jsproc,jeproc,strprc,endprc,sum(nvctr_par(:,ikpt)),norb_par(:,ikpt)
   end do
 
 END SUBROUTINE components_kpt_distribution
@@ -1659,3 +1703,212 @@ subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&
   end do
 
 END SUBROUTINE parallel_repartition_per_kpoints
+
+subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
+     paw_tot_q, paw_tot_coefficients, paw_tot_matrices, &
+     storeit)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  type(atoms_data), intent(inout) :: atoms
+  integer , intent(IN):: ityp 
+  integer , intent(INOUT):: paw_tot_l, paw_tot_q, paw_tot_coefficients, paw_tot_matrices
+  logical, intent(in) :: storeit
+
+!! local variables  
+  character(len=*), parameter :: subname='pawpatch_from_file'
+  integer :: npawl, ipawl, paw_l, i_stat
+  integer :: paw_nofgaussians, paw_nofchannels, il, ierror, ig
+  real(gp) :: paw_greal, paw_gimag, paw_ccoeff, paw_scoeff, dumpaw
+  character(len=100) :: string
+
+  !parameters for abscalc-paw
+
+  if(.not. storeit) then
+     if(ityp.eq.1) then
+        allocate(atoms%paw_NofL(atoms%ntypes+ndebug), stat=i_stat)
+        call memocc(i_stat,atoms%paw_NofL,'atoms%paw_NofL',subname)
+     end if
+     ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
+     open(unit=11,file=trim(filename),status='old',iostat=ierror)
+     !Check the open statement
+     if (ierror /= 0) then
+        write(*,*) ': Failed to open the PAWpatch file "',&
+             trim(filename),'"'
+        stop
+     end if
+     
+     !! search for paw_patch informations
+     
+     atoms%paw_NofL(ityp)=0
+     do while(.true.)
+        read(11,'(a)',iostat=ierror, END=110)  string
+        if ( trim(string).eq. 'PAWPATCH') then
+           exit
+        endif
+     end do
+     !! explain_paw_psp_terms_in_atom_data()
+     
+     read(11,*) npawl
+     
+     atoms%paw_NofL(ityp) = npawl
+     
+     paw_tot_l = paw_tot_l + npawl
+     do ipawl=1,npawl
+        read(11,*) paw_l
+        read(11,*) paw_greal
+        read(11,*) paw_nofgaussians
+        read(11,*) paw_nofchannels
+        read(11,*)  string  !!  follow 300 PAW_Gimag factors
+        paw_tot_q = paw_tot_q+paw_nofgaussians
+        paw_tot_coefficients = paw_tot_coefficients + paw_nofchannels*paw_nofgaussians*2
+        paw_tot_matrices=paw_tot_matrices+paw_nofchannels**2
+        
+        
+        do ig=1, paw_nofgaussians
+           read(11,*)  paw_gimag
+        enddo
+        read(11,*)  string  !!  !!  follow for each of the 7 channels 300 (cos_factor, sin_factor)  pairs
+        do il=1, paw_nofchannels
+           do ig=1, paw_nofgaussians
+              read(11,*)  paw_ccoeff, paw_scoeff
+           enddo
+        enddo
+        read(11,*)  string  !! pawpatch matrix
+        do il=1, paw_nofchannels
+           do ig=1, paw_nofchannels
+              read(11,*)  dumpaw
+           end do
+        enddo
+        read(11,*)  string  !! S  matrix
+        do il=1, paw_nofchannels
+           do ig=1, paw_nofchannels
+              read(11,*)  dumpaw
+           end do
+        enddo
+        
+        read(11,*)  string  !! Sm1  matrix
+        do il=1, paw_nofchannels
+           do ig=1, paw_nofchannels
+              read(11,*)  dumpaw
+           end do
+        enddo
+     enddo
+110  close(11)
+
+  else
+     if(ityp.eq.1) then
+        allocate(atoms%paw_l  (paw_tot_l+ndebug), stat=i_stat)
+        call memocc(i_stat,atoms%paw_l,'atoms%paw_l',subname)
+        
+        allocate(atoms%paw_nofchannels  (paw_tot_l+ndebug), stat=i_stat)
+        call memocc(i_stat,atoms%paw_nofchannels,'atoms%paw_nofchannels',subname)
+        
+        allocate(atoms%paw_nofgaussians  (paw_tot_l+ndebug), stat=i_stat)
+        call memocc(i_stat,atoms%paw_nofgaussians,'atoms%paw_nofgaussians',subname)
+        
+        allocate(atoms%paw_Greal  (paw_tot_l+ndebug), stat=i_stat)
+        call memocc(i_stat,atoms%paw_Greal,'atoms%paw_Greal',subname)
+        
+        allocate(atoms%paw_Gimag ( paw_tot_q   +  ndebug), stat=i_stat)
+        call memocc(i_stat,atoms%paw_Gimag,'atoms%paw_Gimag',subname)
+        
+        allocate(atoms%paw_Gcoeffs ( paw_tot_coefficients  +  ndebug), stat=i_stat)
+        call memocc(i_stat,atoms%paw_Gcoeffs,'atoms%paw_Gcoeffs',subname)
+        
+        allocate(atoms%paw_H_matrices(paw_tot_matrices+ndebug), stat=i_stat)
+        call memocc(i_stat,atoms%paw_H_matrices,'atoms%paw_H_matrices',subname)
+        
+        allocate(atoms%paw_S_matrices ( paw_tot_matrices  +  ndebug), stat=i_stat)
+        call memocc(i_stat,atoms%paw_S_matrices,'atoms%paw_S_matrices',subname)
+        
+        
+        allocate(atoms%paw_Sm1_matrices ( paw_tot_matrices  +  ndebug), stat=i_stat)
+        call memocc(i_stat,atoms%paw_Sm1_matrices,'atoms%paw_Sm1_matrices',subname)
+        
+        
+        paw_tot_l=0
+        paw_tot_q = 0
+        paw_tot_coefficients = 0
+        paw_tot_matrices= 0
+     endif
+     
+     if( atoms%paw_NofL(ityp).gt.0) then
+
+        open(unit=11,file=trim(filename),status='old')
+
+        do while(.true.)
+           read(11,'(a)', END=220)  string
+           if ( trim(string).eq. 'PAWPATCH') then
+              exit
+           endif
+        end do
+220     continue
+        if(trim(string) .ne. 'PAWPATCH') then
+           print *, "paw section not found re-reading  file ", filename
+           close(11)
+           stop
+        end if
+        
+        read(11,*) npawl
+        atoms%paw_NofL(ityp) = npawl
+        
+        
+        do ipawl=1,npawl
+           !! explain_paw_psp_terms_in_atom_data()
+           read(11,*) atoms%paw_l(paw_tot_l+ipawl  )
+           read(11,*) atoms%paw_greal(paw_tot_l+ipawl  )
+           read(11,*) atoms%paw_nofgaussians(paw_tot_l+ipawl  )
+           read(11,*) atoms%paw_nofchannels(paw_tot_l+ipawl  )
+           paw_nofchannels = atoms%paw_nofchannels(paw_tot_l+ipawl  )
+           paw_nofgaussians = atoms%paw_nofgaussians(paw_tot_l+ipawl  )
+           read(11,'(a)')  string  !!  follow  paw_nofchannels PAW_Gimag factors
+           
+           do ig=1, paw_nofgaussians
+              read(11,*)  atoms%paw_Gimag(paw_tot_q + ig )
+           enddo
+           read(11,'(a)')  string  !!  !!  follow for each of the Npaw channels  nofgaussians (cos_factor, sin_factor)  pairs
+           !!print *, string, " reading  " , filename
+           
+           do il=1, paw_nofchannels
+              do ig=1, paw_nofgaussians
+                 read(11,*)  atoms%paw_Gcoeffs( paw_tot_coefficients + 2*(il-1)*paw_nofgaussians+2*ig-1) , &
+                      atoms%paw_Gcoeffs( paw_tot_coefficients + 2*(il-1)*paw_nofgaussians+2*ig)
+              enddo
+           enddo
+           read(11,'(a)')  string  !! pawpatch matrix
+           !!print *, string, " reading  " , filename
+           do il=1, paw_nofchannels
+              do ig=1, paw_nofchannels
+                 read(11,*)  dumpaw 
+                 atoms%paw_H_matrices(paw_tot_matrices +(il-1)*paw_nofchannels+ig   )=dumpaw
+              end do
+           enddo
+           read(11,'(a)')  string  !! S  matrix
+           !!print *, string, " reading >>>>>  " , filename
+           do il=1, paw_nofchannels
+              do ig=1, paw_nofchannels
+                 read(11,*)  dumpaw
+                 atoms%paw_S_matrices(paw_tot_matrices +(il-1)*paw_nofchannels+ig   )=dumpaw
+              end do
+           enddo
+           read(11,'(a)')  string  !! Sm1  matrix
+           !!print *, string, " reading  " , filename
+           do il=1, paw_nofchannels
+              do ig=1, paw_nofchannels
+                 read(11,*)  dumpaw
+                 atoms%paw_Sm1_matrices(paw_tot_matrices +(il-1)*paw_nofchannels+ig   )=dumpaw
+                 !!print *, dumpaw
+              end do
+           enddo
+           paw_tot_q = paw_tot_q+paw_nofgaussians
+           paw_tot_coefficients = paw_tot_coefficients + paw_nofchannels*paw_nofgaussians*2
+           paw_tot_matrices=paw_tot_matrices+paw_nofchannels**2
+        end do
+        paw_tot_l = paw_tot_l + npawl
+     end if
+     close(11)
+  endif
+end subroutine pawpatch_from_file
+  

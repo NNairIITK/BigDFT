@@ -1,18 +1,19 @@
-!> @file 
+!!****f* BigDFT/sumrho
+!! FUNCTION
 !!    Calculate the electronic density (rho)
-!! @author
-!!   Copyright (C) 2007-2011 BigDFT group 
-!!   This file is distributed under the terms of the
-!!   GNU General Public License, see ~/COPYING file
-!!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
-
-
-!> Calculates the charge density by summing the square of all orbitals
-!! Input: psi
-!! Output: rho
+!! COPYRIGHT
+!!    Copyright (C) 2007-2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
 subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
      nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
+  ! Calculates the charge density by summing the square of all orbitals
+  ! Input: psi
+  ! Output: rho
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
   use module_xc
@@ -32,6 +33,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   real(dp), dimension(*), intent(in) :: phnons
   !Local variables
   character(len=*), parameter :: subname='sumrho'
+  !n(c) logical :: rsflag
   integer :: nrhotot,n3d,itmred
   integer :: nspinn
   integer :: i1,i2,i3,i3off,i3s,i,ispin,jproc,i_all,i_stat,ierr,j3,j3p,j
@@ -44,6 +46,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   !integer :: ncount0,ncount1,ncount2,ncount3,ncountmpi0,ncountmpi1,ncount_max,ncount_rate
   real(gp),dimension(:,:),allocatable :: dprho_comp
   real(4) ,dimension(:,:),allocatable :: sprho_comp
+  logical,save :: firstcall=.true.
 
   call timing(iproc,'Rho_comput    ','ON')
 
@@ -95,7 +98,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
 
   !switch between GPU/CPU treatment of the density
   if (GPUconv) then
-     call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
+     call local_partial_density_GPU(orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else if (OCLconv) then
      call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else
@@ -129,7 +132,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   ! Symmetrise density, TODO...
   !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
   if (symObj >= 0) then
-     call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nscatterarr,nspin,&
+     call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin,& !n(m)
           lr%d%n1i*lr%d%n2i*lr%d%n3i,&
           rho_p,symObj,irrzon,phnons)
   end if
@@ -239,7 +242,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
      enddo
      tmred(nspin+1,itmred)=tmred(nspin+1,itmred)+tmred(ispin,itmred)
   end do
- if (nproc > 1) then
+
+  if (nproc > 1) then
      i_all=-product(shape(rho_p))*kind(rho_p)
      deallocate(rho_p,stat=i_stat)
      call memocc(i_stat,i_all,'rho_p',subname)
@@ -256,7 +260,6 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
 
      !charge=tt
   endif
-
 
   !write the results
   if (iproc == 0 .and. verbose >= 1) then
@@ -281,12 +284,16 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   call memocc(i_stat,i_all,'tmred',subname)
   call timing(iproc,'Rho_comput    ','OF')
 
-
 END SUBROUTINE sumrho
+!!***
 
 
-!> Here starts the routine for building partial density inside the localisation region
-!! This routine should be treated as a building-block for the linear scaling code
+!!****f* BigDFT/local_partial_density
+!! FUNCTION
+!!   Here starts the routine for building partial density inside the localisation region
+!!   This routine should be treated as a building-block for the linear scaling code
+!! SOURCE
+!!
 subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   use module_base
@@ -304,7 +311,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,orbs%nspinor)), intent(inout) :: rho_p
   !local variables
   character(len=*), parameter :: subname='local_partial_density'
-  integer :: iorb,i_stat,i_all
+  integer :: iorb,i_stat,i_all !n(c) i1,i2,i3,ii 
   integer :: oidx,sidx,nspinn,npsir,ncomplex
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
@@ -379,9 +386,13 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE local_partial_density
+!!***
 
 
-!> Do partial density
+!!****f* BigDFT/partial_density
+!! FUNCTION
+!! SOURCE
+!!
 subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p)
   use module_base
@@ -482,9 +493,13 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   end if
 
 END SUBROUTINE partial_density
+!!***
 
 
-!> Do partial density for isolated system
+!!****f* BigDFT/partial_density_free
+!! FUNCTION
+!! SOURCE
+!!
 subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p,&
      ibyyzz_r) 
@@ -597,17 +612,21 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
 !  call system_clock(ncount1,ncount_rate,ncount_max)
 !  write(*,*) 'TIMING:PDF',real(ncount1-ncount0)/real(ncount_rate)
 END SUBROUTINE partial_density_free
+!!***
 
 
-!> Symmetrise density
-subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho,&
+!!****f* BigDFT/symmetrise_density
+!! FUNCTION
+!! SOURCE
+!!
+subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nspin,nrho,rho,& !n(c) nscatterarr (arg:6)
      symObj,irrzon,phnons)
   use module_base!, only: gp,dp,wp,ndebug,memocc
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   implicit none
   integer, intent(in) :: iproc,nproc,nrho,symObj,nspin, n1i, n2i, n3i
-  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  !n(c) integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(dp), dimension(n1i,n2i,n3i,nspin), intent(inout) :: rho
   integer, dimension(n1i*n2i*n3i,2,1), intent(in) :: irrzon 
   real(dp), dimension(2,n1i*n2i*n3i,1), intent(in) :: phnons 
@@ -622,7 +641,7 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
   integer, pointer :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call ab6_symmetry_get_matrices_p(symObj, nSym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(symObj, nSym, sym, transNon, symAfm, errno)
   if (nSym == 1) return
 
 !!$  ! Array sizes for the real-to-complex FFT: note that n1(there)=n1(here)+1
@@ -652,6 +671,7 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
      !    Note : it should be possible to reuse rhog in the antiferromagnetic case
      !    this would avoid one FFT
      ! fft the input array x:
+     rhog=0.0_gp !put to avoid fpe in the FFT
      do i3=0,n3i-1
         do i2=0,n2i-1
            do i1=0,n1i-1
@@ -797,14 +817,14 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
   call memocc(i_stat,i_all,'rhog',subname)
 
 END SUBROUTINE symmetrise_density
+!!***
 
-
-!> INPUT  
-!!    rho_p: the partial rho array of the current proc
-!!    spkey,dpkey: keys for coarse and fine regions
-!! OUTPUT 
-!!    sprho_comp, dprho_comp: compressed arrays of rho in single and double 
-!!    precision
+! INPUT  
+!        rho_p: the partial rho array of the current proc
+!        spkey,dpkey: keys for coarse and fine regions
+! OUTPUT 
+!        sprho_comp, dprho_comp: compressed arrays of rho in single and double 
+!        precision
 subroutine compress_rho(iproc,nprocs,rho_p,lr,nspin,rhodsc,sprho_comp,dprho_comp)
   use module_base
   use module_types
@@ -854,11 +874,11 @@ subroutine uncompress_rho(iproc,nproc,sprho_comp,dprho_comp,&
   real(4), dimension(rhodsc%sp_size,nspin),intent(in) :: sprho_comp
   real(gp),dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspin),intent(out) :: rho_uncomp
   !local variables
-  integer :: irho,jrho,ispin,iseg,ibegin,iend,j3p,imax
+  integer :: irho,jrho,ispin,iseg,ibegin,iend,j3p !n(c) imax
   logical :: overlap
 
   ! starting and endding point of rho array of interest
-  imax=lr%d%n1i*lr%d%n2i*lr%d%n3i
+  !n(c) imax=lr%d%n1i*lr%d%n2i*lr%d%n3i
   j3p=modulo(i3s,lr%d%n3i)+1
   ibegin=(j3p-1)*lr%d%n1i*lr%d%n2i+1
   j3p=modulo(i3s+n3d-1,lr%d%n3i)+1
@@ -1006,22 +1026,25 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
   logical,intent(in) :: iprint
   type(rho_descriptors),intent(inout) :: rhodsc
   !local variable
-  integer :: i1,i2,i3,iseg,irho,i_stat,iat
+  integer :: i1,i2,i3,iseg,irho,i_stat,iat !n(c) ispin, i_all,jrho, nseg
   integer :: reg_c,reg_l
   integer(4),dimension(n1i*n2i*n3i) :: reg
   integer,dimension(n1i*n2i*n3i,2) :: dpkey,spkey
   integer :: n_fsegs,n_csegs
   character(len=*), parameter :: subname='rhokey'
-  integer :: nbx,nby,nbz,nl1,nl2,nl3
-  real(gp) :: dpmult,dsq,dsq_cr,dsq_fr,spadd
+  integer :: nbx,nby,nbz,nl1,nl2,nl3,nat
+  real(gp) :: dpmult,dsq,spadd
   integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax
-  integer :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
-  integer :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,csegstot,fsegstot,corx,cory,corz
-  !integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
+  integer,dimension(at%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax,& !n(c) imin,imax,&
+      i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,dsq_cr,dsq_fr
+  integer :: csegstot,fsegstot,corx,cory,corz
+  !n(c) integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
 
   rhodsc%geocode=at%geocode
+  nat=at%nat
+
   !paprmeter to adjust the single precision and double precision regions
-  spadd=10._gp
+  spadd=10.0_gp
   dpmult=1.0_gp
 
   !call system_clock(ncount0,ncount_rate,ncount_max)
@@ -1050,29 +1073,30 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
   !call system_clock(ncount1,ncount_rate,ncount_max)
   !write(*,*) 'TIMING:RHOKEY1',real(ncount1-ncount0)/real(ncount_rate)
 
-  !$omp parallel default(none)&
-  !$omp private(iat,irho,i1cmin,i1cmax,i2cmin,i2cmax,i3cmin)&
-  !$omp private(i3cmax,i1fmin,i1fmax,i2fmin,i2fmax,i3fmin)&
-  !$omp private(i3fmax,dsq,dsq_cr,dsq_fr,i1,i2,i3)&
-  !$omp shared(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh)&
-  !$omp shared(spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,reg)
-  !$omp do schedule(static,1)
-  do iat=1,at%nat
-    ! determine the bounds around the current atom within which
-    ! search for single precision points done
+  do iat=1,nat
     call get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,&
       hyh,hzh,spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,&
-      i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,&
-      i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax)
-    dsq_cr=(radii_cf(at%iatype(iat),1)*crmult+hxh*spadd)**2
-    do i1=i1cmin,i1cmax
-      do i2=i2cmin,i2cmax
-        do i3=i3cmin,i3cmax
+      i1cmin(iat),i1cmax(iat),i2cmin(iat),i2cmax(iat),i3cmin(iat),i3cmax(iat),&
+      i1fmin(iat),i1fmax(iat),i2fmin(iat),i2fmax(iat),i3fmin(iat),i3fmax(iat))
+    dsq_cr(iat)=(radii_cf(at%iatype(iat),1)*crmult+hxh*spadd)**2
+    dsq_fr(iat)=(radii_cf(at%iatype(iat),2)*frmult*dpmult)**2
+  enddo
+
+  !$omp parallel default(none)&
+  !$omp private(iat,irho,dsq,i1,i2,i3)&
+  !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
+  !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
+  !$omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
+  !$omp do schedule(static,1)
+  do iat=1,nat
+    do i1=i1cmin(iat),i1cmax(iat)
+      do i2=i2cmin(iat),i2cmax(iat)
+        do i3=i3cmin(iat),i3cmax(iat)
           dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
               (rxyz(2,iat)-(i2-cory)*hyh)**2+&
-              (rxyz(3,iat)-(i3-corz)*hzh)**2          
-          if(dsq.lt.dsq_cr) then
-            irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+              (rxyz(3,iat)-(i3-corz)*hzh)**2
+          irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+          if(dsq.lt.dsq_cr(iat)) then
             reg(irho)=1
           endif
         enddo
@@ -1080,34 +1104,29 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
     enddo
   enddo
   !$omp enddo
+  !$omp end parallel
 
-  !$omp do schedule(static,1)
+  !call system_clock(ncount2,ncount_rate,ncount_max)
+  !write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
+
   do iat=1,at%nat
-    ! determine the bounds around the current atom within which
-    ! search for double precision points done
-    call get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,&
-      spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,i1cmin,&
-      i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,i1fmin,i1fmax,i2fmin,&
-      i2fmax,i3fmin,i3fmax)
-    dsq_fr=((radii_cf(at%iatype(iat),2)*frmult*dpmult)**2)
-    do i1=i1fmin,i1fmax
-      do i2=i2fmin,i2fmax
-        do i3=i3fmin,i3fmax
+    do i1=i1fmin(iat),i1fmax(iat)
+      do i2=i2fmin(iat),i2fmax(iat)
+        do i3=i3fmin(iat),i3fmax(iat)
           dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
               (rxyz(2,iat)-(i2-cory)*hyh)**2+&
               (rxyz(3,iat)-(i3-corz)*hzh)**2          
-          if(dsq.lt.dsq_fr) then
-            irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+          irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+          if(dsq.lt.dsq_fr(iat)) then
             reg(irho)=2
           endif
         enddo
       enddo
     enddo
   enddo
-  !$omp enddo
-  !$omp end parallel
-  !call system_clock(ncount2,ncount_rate,ncount_max)
-  !write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
+
+  !call system_clock(ncount3,ncount_rate,ncount_max)
+  !write(*,*) 'TIMING:RHOKEY3',real(ncount3-ncount2)/real(ncount_rate)
 
   do irho=nrhomin,nrhomax
     if (irho.eq.nrhomin) then
@@ -1347,9 +1366,9 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
 end subroutine get_boxbound
 
 subroutine get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,&
-    spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,i1cmin,&
-    i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,i1fmin,i1fmax,i2fmin,&
-    i2fmax,i3fmin,i3fmax)
+    spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,&
+    i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,&
+    i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax)
   use module_base
   use module_types
   implicit none

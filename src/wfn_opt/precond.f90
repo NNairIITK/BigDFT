@@ -412,7 +412,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
   real(gp), intent(in) :: hx,hy,hz,cprecr
   type(locreg_descriptors), intent(in) :: lr
   type(workarr_precond), intent(inout) :: w
-  real(gp), dimension(0:7), intent(inout) :: scal
+  real(gp), dimension(0:7), intent(out) :: scal
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(inout) ::  x
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  b
   !local variables
@@ -764,7 +764,7 @@ subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
   character(len=1), intent(in) :: geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
-  type(workarr_precond), intent(out) :: w
+  type(workarr_precond), intent(inout) :: w
   !local variables
   character(len=*), parameter :: subname='deallocate_work_arrays'
   integer :: i_stat,i_all
@@ -922,7 +922,7 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
            call apply_hp_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
                 lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-                cprecr,hx,hy,hz,x,y,w%psifscf,w%ww,w%modul1,w%modul2,w%modul3,&
+                cprecr,x,y,w%psifscf,w%ww,w%modul1,w%modul2,w%modul3,&
                 w%af,w%bf,w%cf,w%ef,scal) 
         else
            call apply_hp_per_k(lr%d%n1,lr%d%n2,lr%d%n3,&

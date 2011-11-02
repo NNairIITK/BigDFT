@@ -22,8 +22,8 @@ real(wp), dimension(0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(out) :: y
 call comb_grow_c_simple(n1,n2,n3,w1,w2,xc,y)
 
 call comb_rot_grow_1(n1      ,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,xf,w1)
-call comb_rot_grow_2(n1,n2   ,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2)
-call comb_rot_grow_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w2,y)
+call comb_rot_grow_2(n1,n2   ,nfl2,nfu2,nfl3,nfu3,w1,w2)
+call comb_rot_grow_3(n1,n2,n3,nfl3,nfu3,w2,y)
 
 END SUBROUTINE comb_grow_all_hybrid
 
@@ -40,7 +40,7 @@ integer, intent(in) :: n1,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x
 real(wp), dimension(2,2,nfl2:nfu2,nfl3:nfu3,0:2*n1+1), intent(out) :: y
 !local variables
-integer :: l2,l3,i,t,l1
+integer :: l2,l3,i,t !n(c) ,l1
 integer :: ii,ii1
 real(wp) y2i__11,y2i__21,y2i1_11,y2i1_21
 real(wp) y2i__12,y2i__22,y2i1_12,y2i1_22
@@ -117,14 +117,14 @@ END SUBROUTINE comb_rot_grow_1
 !! Applies synthesis wavelet transformation 
 !! then convolves with magic filter
 !! the size of the data is allowed to grow
-subroutine comb_rot_grow_2(n1,n2,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y)
+subroutine comb_rot_grow_2(n1,n2,nfl2,nfu2,nfl3,nfu3,x,y) !n(c) nfl1,nfu1 (arg:3,4)
 use module_base
 implicit none
 integer,intent(in)::n1,n2
-integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+integer, intent(in) :: nfl2,nfu2,nfl3,nfu3 !n(c) nfl1,nfu1
 real(wp), dimension(2,2,nfl2:nfu2,nfl3:nfu3,0:2*n1+1), intent(in) :: x
 real(wp), dimension(2,nfl3:nfu3,0:2*n1+1,0:2*n2+1), intent(out) :: y
-integer l1,l3,i,t,l2
+integer l1,l3,i,t !n(c) ,l2
 integer :: ii,ii1
 real(wp) y2i__1,y2i__2,y2i1_1,y2i1_2
 integer::modul(-14+2*nfl2:2*nfu2+16)
@@ -182,16 +182,16 @@ END SUBROUTINE comb_rot_grow_2
 !! then convolves with magic filter
 !! then adds the result to y.
 !! The size of the data is allowed to grow
-subroutine  comb_rot_grow_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y)
+subroutine  comb_rot_grow_3(n1,n2,n3,nfl3,nfu3,x,y) !n(c) nfl1,nfu1,nfl2,nfu2
 use module_base
 implicit none
-integer,intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
+integer,intent(in) :: nfl3,nfu3,n1,n2,n3 !n(c) nfl1,nfu1,nfl2,nfu2
 real(wp), dimension(2,nfl3:nfu3,0:2*n1+1,0:2*n2+1), intent(in) :: x
 real(wp), dimension(0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(out) :: y
 !local variables
-integer :: l1,l2,i,t,l1_0,l1_1,ll1
+integer :: l1,l2,i,t !n(c) ,ll1,l1_0,l1_1
 integer :: ii,ii1
-real(wp) :: y2i__0,y2i__1,y2i1_0,y2i1_1,y2i,y2i1
+real(wp) :: y2i,y2i1 !n(c) y2i__0,y2i__1,y2i1_0,y2i1_1
 integer::modul(-14+2*nfl3:2*nfu3+16)
 include 'v_17.inc'
 call fill_mod_arr(modul,-14+2*nfl3,2*nfu3+16,2*n3+2)
@@ -281,7 +281,7 @@ integer nt
    call comb_shrink_hyb_c(n1,n2,n3,w1,w2,y,xc)
      
    ! I1,I2,I3 -> I2,I3,i1
-   call comb_rot_shrink_hyb_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,y,w1)
+   call comb_rot_shrink_hyb_1(n1,n2,n3,nfl1,nfu1,y,w1)
    
    ! I2,I3,i1 -> I3,i1,i2
    nt=(2*n3+2)*(nfu1-nfl1+1)
@@ -297,15 +297,15 @@ END SUBROUTINE comb_shrink_hyb
 !> In one dimension,    
 !! Applies the magic filter transposed, then analysis wavelet transformation.
 !! The size of the data is forced to shrink
-subroutine comb_rot_shrink_hyb_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y)
+subroutine comb_rot_shrink_hyb_1(n1,n2,n3,nfl1,nfu1,x,y) !n(c) nfl2,nfu2,nfl3,nfu3 (arg:6,7,8,9)
 use module_base
 implicit none
-integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+integer, intent(in) :: n1,n2,n3,nfl1,nfu1 !n(c) nfl2,nfu2,nfl3,nfu3
 real(wp), dimension(0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(in) :: x
 real(wp), dimension(2,0:2*n2+1,0:2*n3+1,nfl1:nfu1), intent(out) :: y
 !local variables
 integer, parameter :: lowfil2=-14,lupfil2=16
-integer :: nflop,i,j2,j3,l,icur,ll
+integer :: i,j2,j3,l,ll !n(c) nflop, icur
 real(wp) :: ci1,ci2
 integer::modul(lowfil2+2*nfl1:2*nfu1+lupfil2)
 include 'v.inc'
@@ -342,7 +342,7 @@ integer, intent(in) :: ndat,nfl,nfu,n1
 real(wp), dimension(2,0:2*n1+1,ndat), intent(in) :: x
 real(wp), dimension(2,2,ndat,nfl:nfu), intent(out) :: y
 !local variables
-integer :: nflop,j,i,l,icur,ll
+integer :: j,i,l,ll !n(c) nflop, icur
 real(wp) :: ci11,ci12,ci21,ci22
 integer::modul(lowfil2+2*nfl:2*nfu+lupfil2)
 include 'v.inc'
@@ -435,7 +435,7 @@ integer, intent(in) :: ndat,n1
 real(wp), dimension(0:2*n1+1,ndat), intent(in) :: x
 real(wp), dimension(ndat,0:n1), intent(out) :: y
 !local variables
-integer :: j,l,i,icur,ll
+integer :: j,l,i,ll !n(c) icur
 real(wp) :: ci
 integer::modul(lowfil2:2*n1+lupfil2)
 include 'v.inc'

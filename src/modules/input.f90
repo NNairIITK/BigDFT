@@ -78,22 +78,29 @@ contains
        !only the root processor parse the file
        if (iproc==0) then
           open(unit = 1, file = trim(filename), status = 'old')
-          i = 1
+          i=0
           parse_file: do 
+             i=i+1
              lines(i)=repeat(' ',max_length) !initialize lines
              read(1, fmt = '(a)', iostat = ierror) lines(i)
              !eliminate leading blanks from the line
+             !print *,'here',i,lines(i),ierror,trim(lines(i)),'len',len(trim(lines(i)))
              lines(i)=adjustl(lines(i))
              if (ierror /= 0) exit parse_file
-             i = i + 1
           end do parse_file
           close(1)
-          nlines=i-1
+          !check if the last line has 
+          if(len(trim(lines(i))) > 0) then
+             nlines=i
+          else
+             nlines=i-1
+          end if
        end if
        !broadcast the number of lines
        if (lmpinit) call MPI_BCAST(nlines,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (1) '
        nlines_total=nlines
+
        !broadcast all the lines
        if (lmpinit) call MPI_BCAST(lines,nmax_lines*nlines,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (2) '
@@ -335,7 +342,7 @@ contains
         if (ierror == 0) var=real(num,gp)/real(den,gp)
      end if
      !Value by defaut
-     if (ierror /= 0) var = huge(1_gp)
+     if (ierror /= 0) var = huge(1_gp) 
   END SUBROUTINE read_fraction_string
 
 
@@ -427,14 +434,24 @@ contains
           call process_line(default=default)
        end if
        call read_fraction_string(default,var,ierror)
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
        !print *,line_being_processed
        call read_fraction_string(line_being_processed,var,ierror)
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
 
        !check the validity of the variable
        if (present(ranges)) then
@@ -454,7 +471,7 @@ contains
        else if (present(exclusive)) then
           found=.false.
           found_loop: do ilist=1,size(exclusive)
-             if (var == exclusive(ilist)) then
+             if (var == exclusive(ilist)) then 
                 found=.true.
                 exit found_loop
              end if
@@ -518,14 +535,24 @@ contains
           call process_line(default=default)
        end if
        call read_fraction_string(default,double_var,ierror)
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
        var=real(double_var,kind=4)
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
        call read_fraction_string(line_being_processed,double_var,ierror)
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
        var=real(double_var,kind=4)
 
        !check the validity of the variable
@@ -546,7 +573,7 @@ contains
        else if (present(exclusive)) then
           found=.false.
           found_loop: do ilist=1,size(exclusive)
-             if (var == exclusive(ilist)) then
+             if (var == exclusive(ilist)) then 
                 found=.true.
                 exit found_loop
              end if
@@ -609,14 +636,24 @@ contains
           call process_line(default=default)
        end if
        read(default,*,iostat=ierror)var
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
 
        read(line_being_processed,fmt=*,iostat=ierror) var
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
 
        !check the validity of the variable
        if (present(ranges)) then
@@ -698,14 +735,23 @@ contains
           call process_line(default=default)
        end if
        read(default,*,iostat=ierror)var
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
        read(line_being_processed,fmt=*,iostat=ierror) var
-       call check(ierror)
-
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
        if (present(exclusive)) then
           found=.false.
           found_loop: do ilist=1,size(exclusive)
@@ -737,11 +783,12 @@ contains
     end if   
   END SUBROUTINE var_char_compulsory
 
-  subroutine var_logical_compulsory(var,default,comment)
+  subroutine var_logical_compulsory(var,default,comment,input_iostat)
     implicit none
     character(len=*), intent(in) :: default
     logical, intent(out) :: var
     character(len=*), intent(in), optional :: comment
+    integer, intent(out), optional :: input_iostat
     !Local variables
     integer :: ierror
 
@@ -755,14 +802,24 @@ contains
           call process_line(default=default)
        end if
        read(default,*,iostat=ierror)var
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
 
        read(line_being_processed,fmt=*,iostat=ierror) var
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
       
        !increment the line if comment is present, do not touch the input file
        if (present(comment)) then
@@ -781,6 +838,7 @@ contains
     integer :: i, j, ierror, ierr
 
     write(var, "(A)") default
+
     call find(name, i, j)
     if (i > 0) then
        read(inout_lines(i)(j + 2:), fmt = *, iostat = ierror) var
@@ -819,7 +877,7 @@ contains
     integer, intent(out) :: var
 
     integer :: i, j, ierror, ierr
-
+    
     var = default
     call find(name, i, j)
     if (i > 0) then

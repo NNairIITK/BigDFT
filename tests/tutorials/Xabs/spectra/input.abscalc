@@ -1,0 +1,8 @@
+     1   meaning  :  1 tchebychev 2 Lanczos : 3 Cg
+      1   absorber atom number 
+     1        L_absorber  orbital moment of the final electron 
+   0.0     0.0       1.0     and its component
+      2                           pot short_cut
+      2500                         number of Hamiltonian multiplications 
+0.0                              shift to be applied to the bottom limit  in  the renormalisation  for Chebyschev spectra
+Zb_            

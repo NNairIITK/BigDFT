@@ -44,8 +44,6 @@ module module_defs
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
 
-
-
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine
@@ -55,7 +53,7 @@ module module_defs
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine
   logical :: OCLconv=.false.
-  logical :: ASYNCconv=.false.
+  logical :: ASYNCconv=.true.
 
   !> Logical parameter for the projectors application strategy (true for distributed way)
   !! if the projector allocation passes the memorylimit this is switched to true
@@ -313,21 +311,21 @@ module module_defs
 
     end subroutine mpiallred_log
 
-    function uninitialized_int(one)
+    function uninitialized_int(one) 
       implicit none
       integer, intent(in) :: one
       integer :: uninitialized_int
       uninitialized_int=-123456789
     end function uninitialized_int
 
-    function uninitialized_real(one)
+    function uninitialized_real(one) 
       implicit none
       real(kind=4), intent(in) :: one
       real(kind=4) :: uninitialized_real
       uninitialized_real=-123456789.e0
     end function uninitialized_real
 
-    function uninitialized_dbl(one)
+    function uninitialized_dbl(one) 
       implicit none
       real(kind=8), intent(in) :: one
       real(kind=8) :: uninitialized_dbl
@@ -563,7 +561,7 @@ module module_defs
       implicit none
       integer, intent(in) :: incx,n
       real(kind=4), intent(in) :: da
-      real(kind=4), intent(out) :: dx
+      real(kind=4), intent(inout) :: dx
       !call to BLAS routine
       call SSCAL(n,da,dx,incx)
     end subroutine scal_simple
@@ -572,7 +570,7 @@ module module_defs
       implicit none
       integer, intent(in) :: incx,n
       real(kind=8), intent(in) :: da
-      real(kind=8), intent(out) :: dx
+      real(kind=8), intent(inout) :: dx
       !call to BLAS routine
       call DSCAL(n,da,dx,incx)
     end subroutine scal_double

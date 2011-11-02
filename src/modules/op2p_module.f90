@@ -333,7 +333,7 @@ contains
 
 
   subroutine OP2P_communication(iproc,nproc,OP2P,objects_data,results_data,apply_symmetric_operator,&
-       send_op,receive_op,wait_op)
+       send_op,receive_op,wait_op) 
     implicit none
     interface
        subroutine send_op(istep,isendproc,irecvproc,ncount,itag,irequest,sendbuf)
@@ -677,7 +677,7 @@ contains
   end subroutine receive_mpi
 
   !> fake sending of the arrays
-  subroutine send_mpi(istep,isendproc,irecvproc,ncount,itag,irequest,sendbuf)
+  subroutine send_mpi(istep,isendproc,irecvproc,ncount,itag,irequest,sendbuf) 
     implicit none
     integer, intent(in) :: istep,isendproc,irecvproc,ncount,itag,irequest
     real(kind=8), intent(in) :: sendbuf

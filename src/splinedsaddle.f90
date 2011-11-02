@@ -14,7 +14,7 @@ program splined_saddle
   use module_base
   use module_types
   use module_interfaces
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   !as a general policy, we'll have "implicit none" by assuming the same
   !name convention as "implicit real(kind=8) (a-h,o-z)"
@@ -30,11 +30,12 @@ program splined_saddle
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   character(len=50), dimension(:), allocatable :: arr_posinp
+  character(len=60) :: radical
   !character(len=60) :: filename
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer :: iconfig,nconfig
+  integer :: iconfig,nconfig,istat
   real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
   !include 'mpif.h' !non-BigDFT
 
@@ -43,6 +44,15 @@ program splined_saddle
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+   call memocc_set_memory_limit(memorylimit)
+
+   ! Read a possible radical format argument.
+   call get_command_argument(1, value = radical, status = istat)
+   if (istat > 0) then
+      write(radical, "(A)") "input"
+   end if
+
 
 !
 !    call system("echo $HOSTNAME")
@@ -80,7 +90,7 @@ program splined_saddle
 
      ! Read all input files.
      !standard names
-     call standard_inputfile_names(inputs)
+     call standard_inputfile_names(inputs,radical)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      !-----------------------------------------------------------
      !-----------------------------------------------------------
@@ -336,6 +346,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     parmin_neb%ifile=ifile
     n=3*atoms%nat
     nr=0
+    pnow%time_ll=0.0d0
     do i=1,3*atoms%nat
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
@@ -349,10 +360,11 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         write(*,*) 'degree of freedom: n,nr ',n,nr
     endif
     !-----------------------------------------------------------
+    call standard_inputfile_names(ll_inputs,'input')
     call default_input_variables(ll_inputs)
     if(trim(pnow%hybrid)=='yes') then
-        call dft_input_variables(iproc,'ll_input.dft',ll_inputs)
         call perf_input_variables(iproc,'ll_input.perf',ll_inputs)
+        call dft_input_variables_new(iproc,'ll_input.dft',ll_inputs)
     else
         ll_inputs=inputs
     endif
@@ -593,13 +605,13 @@ subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     implicit none
     integer::n,nr,np,i,ip,istat,npv,nproc,iproc,mp,lp,iat,ixyz,iter,ncount_bigdft,infocode
     real(kind=8)::x(n,0:np),fends(n,2),time1,time2 !,f(n,0:np),calnorm
-    real(kind=8)::ed_tt,edd_tt,tarr(100),diff,dt,proj,epot,fnrm,fnoise
+    real(kind=8)::ed_tt,edd_tt,tarr(100),diff,proj,epot,fnrm,fnoise !n(c) dt
     real(kind=8), allocatable::xt(:),ft(:)
     type(atoms_data), intent(inout) :: atoms
     type(input_variables), intent(inout) :: ll_inputs
     type(restart_objects), intent(inout) :: rst
     type(parametersplinedsaddle)::pnow,pold
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     logical::move_this_coordinate
     if(mod(np+pnow%ns2,2)==0) then
         npv=np+pnow%ns2+4
@@ -616,7 +628,7 @@ subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     !call guessinitialtmax_hermite(npv,pnow)
     call guessinitialtmax_cubic(npv,pnow)
     !call calindex(np,pnow%s,8.8165d-01,ip) !CAUTIOUS
-    dt=pnow%s(np)/np
+    !n(c) dt=pnow%s(np)/np
     diff=1.d10
     do ip=1,np-1
         tarr(ip)=pnow%s(ip)
@@ -692,7 +704,7 @@ subroutine pickbestanchors2(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
     type(parametersplinedsaddle)::pnow,pold
     real(kind=8)::ttmin,ttmax,emin,e1,e2,exo(0:100),exn(0:100),area,areatot
     real(kind=8)::s_t(0:100)
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     logical::move_this_coordinate
     if(mod(np+pnow%ns2,2)==0) then
         npv=np+pnow%ns2+4
@@ -1045,7 +1057,7 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
     real(kind=8), allocatable::work(:)
     real(kind=8), allocatable::xa(:,:),fa(:,:)
     type(parameterminimization_sp)::parmin
-    type(parametersplinedsaddle)::pnow,pold
+    type(parametersplinedsaddle)::pnow !n(c) pold
     integer, parameter::ndeb1=0,ndeb2=0
     !logical::move_this_coordinate
     parmin%converged=.false.
@@ -1090,7 +1102,7 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
                 call atomic_copymoving_backward(atoms,nr,xa(1,ip),n,x(1,ip))
             enddo
             !x(1:nr,1:np-1)=xa(1:nr,1:np-1)
-            pold=pnow
+            !n(c) pold=pnow
             if(parmin%iflag<0 .or. parmin%converged) exit
             icall=icall+1
         enddo
@@ -1155,7 +1167,7 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
                 call atomic_copymoving_backward(atoms,nr,xa(1,ip),n,x(1,ip))
             enddo
             !x(1:nr,1:np-1)=xa(1:nr,1:np-1)
-            pold=pnow
+            !n(c) pold=pnow
             icall=icall+1
             if(parmin%iflag<0 .or. (parmin%iflag==0 .and.  parmin%converged)) then
                 parmin%alpha=-1.d0
@@ -1195,7 +1207,7 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
             enddo
             if(parmin%converged) exit
             if(parmin%iflag<=0) exit
-            pold=pnow
+            !n(c) pold=pnow
             icall=icall+1
             if(icall>1000) exit
         enddo
@@ -1255,7 +1267,7 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
             enddo
             if(parmin%converged) exit
             if(parmin%iflag<=0) exit
-            pold=pnow
+            !n(c) pold=pnow
             icall=icall+1
             if(icall>1000) exit
             !if(parmin%iflag<=0) exit
@@ -1395,7 +1407,7 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
     call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
     allocate(x_bigdft(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating x_bigdft.'
     call dmemocc(n,n+ndeb1,x_bigdft,'x_bigdft')
-    do ip=1,np-1
+    do ip=1,np-1 
         x_bigdft(1:n)=x(1:n,ip)
         call cpu_time(time1)
         call call_bigdft(nproc,iproc,atoms,x_bigdft,ll_inputs,pnow%ex(ip),f(1,ip),fnoise,rst,infocode)
@@ -2165,7 +2177,7 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,f
     !type(parameterminimization_sp)::parmin
     real(kind=8)::etmax,tt,fnoise,time1,time2
     real(kind=8), allocatable::dd(:,:,:)
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb2=0 !n(c) ndeb1
     !----------------------------------------
     allocate(dd(n,n,np-1+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating dd.'
     if(istep==0) xold(1:n,0:np)=x(1:n,0:np)
@@ -2340,7 +2352,7 @@ subroutine caltmax2(istep,n,np,x,xold,fends,epot,xt,ft,pnow,pold,nproc,iproc,ato
     real(kind=8)::x(n,0:np),xold(n,0:np),fends(n,2),xt(n),ft(n)
     type(parametersplinedsaddle)::pnow,pold
     real(kind=8)::epot,alpha,oneisideal,vdold,vdtol
-    character(32), parameter::frt =  '(3i5,e24.15,e15.6,e13.5,4e12.4)'
+    !n(c) character(32), parameter::frt =  '(3i5,e24.15,e15.6,e13.5,4e12.4)'
     character(37), parameter::frt2='(a,3i5,es24.15,es15.6,es13.5,4es12.4)'
     integer, save::iii=-1
     real(kind=8)::fnrm,vd,vdd,vdc,vddc,vq,vdq,vddq
@@ -2682,7 +2694,7 @@ subroutine guessinitialtmax_hermite(npv,pnow)
     type(parametersplinedsaddle)::pnow
     real(kind=8)::p1,p2,p3,t1,t2,hi,discriminant,v,vcmax,roots(50)
     real(kind=8), allocatable::svt(:),hvt(:),ext(:),exdt(:),e1vt(:),e2vt(:),cvt(:)
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     npvt=npv  !10*npv
     allocate(svt(0:npvt+ndeb1),hvt(npvt+ndeb1),ext(0:npvt+ndeb1),exdt(0:npvt+ndeb1), &
         e1vt(npvt-1+ndeb1),e2vt(npvt-2+ndeb1),cvt(0:npvt+ndeb1),stat=istat)
@@ -2815,13 +2827,13 @@ subroutine fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     integer::istep,n,np,ip,mp,istat,i,npv,infocode
-    real(kind=8)::x(n,0:np),fends(n,2),xt(n),ft(n),dt
+    real(kind=8)::x(n,0:np),fends(n,2),xt(n),ft(n) !n(c) dt
     type(parametersplinedsaddle)::pnow,pold
     real(kind=8)::t1,tt,fnoise,time1,time2
     real(kind=8), allocatable::tang(:),x_bigdft(:)
     logical::move_this_coordinate
     integer::iat,ixyz
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     allocate(x_bigdft(n+ndeb1))
     call dmemocc(n,n+ndeb1,x_bigdft,'x_bigdft')
     allocate(tang(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
@@ -2830,7 +2842,7 @@ subroutine fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,
     pnow%ex(npv)=pnow%exends(2)
     !test points along path will be distributed uniformly except one which is 
     !close to the pold%tmax will be replaced by pold%tmax
-    dt=pnow%s(np)/npv
+    !n(c) dt=pnow%s(np)/npv
     call estimate_sv(iproc,istep,np,npv,pnow,pold)
 !    pnow%sv(0)=0.d0
 !    pnow%sv(npv)=pnow%s(np)
@@ -3330,7 +3342,7 @@ subroutine guessinitialtmax_cubic(npv,pnow)
     type(parametersplinedsaddle)::pnow
     real(kind=8)::p1,p2,p3,t1,t2,hi,discriminant,vc,vcmax,roots(50)
     real(kind=8), allocatable::svt(:),hvt(:),ext(:),e1vt(:),e2vt(:),cvt(:)
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     npvt=npv  !10*npv
     allocate(svt(0:npvt+ndeb1),hvt(npvt+ndeb1),ext(0:npvt+ndeb1),e1vt(npvt-1+ndeb1),e2vt(npvt-2+ndeb1),cvt(0:npvt+ndeb1),stat=istat)
     if(istat/=0) stop 'ERROR: failure allocating one of svt,hvt,ext,e1vt,e2vt,cvt.'
@@ -3407,7 +3419,7 @@ subroutine guessinitialtmax_quintic(npv,pnow,iproc)
     type(parametersplinedsaddle)::pnow
     real(kind=8)::p1,p2,p3,t1,t2,hi,discriminant,t,dt,vc,vcmax,vddq,roots(50)
     real(kind=8), allocatable::svt(:),hvt(:),ext(:),e1vt(:),e2vt(:),cvt(:)
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     npvt=10*npv
     allocate(svt(0:npvt+ndeb1),hvt(npvt+ndeb1),ext(0:npvt+ndeb1),e1vt(npvt-1+ndeb1),e2vt(npvt-2+ndeb1),cvt(0:npvt+ndeb1),stat=istat)
     if(istat/=0) stop 'ERROR: failure allocating one of svt,hvt,ext,e1vt,e2vt,cvt.'
@@ -3486,7 +3498,7 @@ subroutine factor_inter_quintic(n,h,y,d,a,b)
     real(kind=8)::h(n),y(0:n),d(0:n),a(n),b(n),t1,t2,t3,t4
     real(kind=8), allocatable::c(:),v(:,:)
     integer, allocatable::ipiv(:)
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     allocate(c(2*n+ndeb1),v(2*kl+ku+1,2*n+ndeb1),ipiv(2*n+ndeb1))
     call dmemocc(2*n,2*n+ndeb1,c,'c')
     call dmemocc((2*kl+ku+1)*(2*n),(2*kl+ku+1)*(2*n+ndeb1),v,'v')
@@ -3562,7 +3574,7 @@ subroutine ffdfdd_quintic(n,s,h,y,d,a,b,i,t,v,vd,vdd)
     real(kind=8)::y(0:n),d(0:n),s(0:n),h(n),a,b,t,v,vd,vdd
     real(kind=8)::p5,p4,p3,p2,p1,p0,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10
     real(kind=8)::t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26
-    real(kind=8)::tt,f1,fd1,f2,fd2
+    real(kind=8)::tt !n(c) f1,fd1,f2,fd2
     t0=-y(i) + y(i-1)
     t1=2.d0*s(i) + s(i-1)
     t2=s(i) + 2.d0*s(i-1)
@@ -3602,11 +3614,11 @@ subroutine ffdfdd_quintic(n,s,h,y,d,a,b,i,t,v,vd,vdd)
     vdd=((20.d0*p5*t+12.d0*p4)*t+6.d0*p3)*t+2.d0*p2
 
     tt=s(i-1)
-    f1=((((p5*tt+p4)*tt+p3)*tt+p2)*tt+p1)*tt+p0
-    fd1=(((5.d0*p5*tt+4.d0*p4)*tt+3.d0*p3)*tt+2.d0*p2)*tt+p1
+    !n(c) f1=((((p5*tt+p4)*tt+p3)*tt+p2)*tt+p1)*tt+p0
+    !n(c) fd1=(((5.d0*p5*tt+4.d0*p4)*tt+3.d0*p3)*tt+2.d0*p2)*tt+p1
     tt=s(i)
-    f2=((((p5*tt+p4)*tt+p3)*tt+p2)*tt+p1)*tt+p0
-    fd2=(((5.d0*p5*tt+4.d0*p4)*tt+3.d0*p3)*tt+2.d0*p2)*tt+p1
+    !n(c) f2=((((p5*tt+p4)*tt+p3)*tt+p2)*tt+p1)*tt+p0
+    !n(c) fd2=(((5.d0*p5*tt+4.d0*p4)*tt+3.d0*p3)*tt+2.d0*p2)*tt+p1
     !write(91,'(7e20.10)') abs(y(i-1)-f1),abs(d(i-1)-fd1),abs(y(i)-f2),abs(d(i)-fd2),s(i-1),t,s(i)
 
 end subroutine ffdfdd_quintic
@@ -3748,7 +3760,7 @@ subroutine prepcd3cd4(np,h,mp,ainv,i,j,yi,yj,cd1,cd2)
     real(kind=8), allocatable::ainvd(:,:)
     real(kind=8)::hip,hipp1,yip,yipp1,yipm1
     real(kind=8)::ainvdmpip,ainvdmpipp1,ainvdmpipm1,ainvdmpm1ip,ainvdmpm1ipp1,ainvdmpm1ipm1
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     allocate(ainvd(0:np,0:np+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating ainvd.'
     call dmemocc((np+1)*(np+1),(np+1)*(np+1+ndeb1),ainvd,'ainvd')
     ainvd(0:np,0:np)=0.d0
@@ -3818,7 +3830,7 @@ subroutine prepcd1cd2(np,h,mp,yi,yj,cd1,cd2,ainv)
     integer::np,mp,istat,ip,jp
     real(kind=8)::h(np),yi(0:np),yj(0:np),cd1(np-1),cd2(np-1),ainv(np-1,np-1),t1,t2,t3,t4
     real(kind=8), allocatable::ainvd(:,:)
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     allocate(ainvd(0:np,0:np+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating ainvd.'
     call dmemocc((np+1)*(np+1),(np+1)*(np+1+ndeb1),ainvd,'ainvd')
     ainvd(0:np,0:np)=0.d0
@@ -3890,7 +3902,7 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     real(kind=8), allocatable::tang(:),x_bigdft(:)
     logical::move_this_coordinate
     integer::ixyz,iat
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     allocate(x_bigdft(n+ndeb1))
     call dmemocc(n,n+ndeb1,x_bigdft,'x_bigdft')
     allocate(tang(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
@@ -3988,7 +4000,7 @@ subroutine qdq(np,s,mp,tmax,c,h,i,j,yi,yj,cd1,cd2,dd)
     real(kind=8)::p0,p1,p2,p3,delta,t1,t2,t3,t4,t5,t6,t7
     real(kind=8), allocatable::sd1(:)
     real(kind=8), allocatable::sd2(:)
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     allocate(sd1(np-1+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating sd1.'
     call dmemocc(np-1,np-1+ndeb1,sd1,'sd1')
     allocate(sd2(np-1+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating sd2.'
@@ -4154,10 +4166,10 @@ subroutine finalminimize(parmin)
     implicit none
     type(parameterminimization_sp)::parmin
     integer::istat
-    character(2)::tapp1,tapp2
+    !n(c) character(2)::tapp1,tapp2
     character(4)::tapp3
-    tapp1(1:2)=parmin%approach(1:2)
-    if(len(trim(parmin%approach))==4) tapp2(1:2)=parmin%approach(3:4)
+    !n(c) tapp1(1:2)=parmin%approach(1:2)
+    !n(c) if(len(trim(parmin%approach))==4) tapp2(1:2)=parmin%approach(3:4)
     if(len(trim(parmin%approach))==6) tapp3(1:4)=parmin%approach(3:6)
     if(tapp3=='DIIS') then
         parmin%idsx=10
@@ -4606,7 +4618,7 @@ subroutine writepathway(n,np,x,filename,atoms)
     real(kind=8), allocatable::c(:)
     logical::move_this_coordinate
     integer::ixyz
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0 !n(c) ndeb2=0
     allocate(s(0:np+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating s.'
     call dmemocc(np+1,np+1+ndeb1,s,'s')
     allocate(h(np+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating h.'
@@ -4725,7 +4737,7 @@ end subroutine writeanchorpoints
 subroutine readanchorpoints(n,np,x,filename,atoms)
     use module_types
     implicit none
-    integer::n,np,ip,iat,i
+    integer::n,np,ip,i !n(c) iat
     real(kind=8)::x(n,0:100),xyz(3)
     type(atoms_data), intent(in) :: atoms
     !integer::i
@@ -4740,7 +4752,7 @@ subroutine readanchorpoints(n,np,x,filename,atoms)
         read(1390,*)
         do i=1,n
             if(mod(i,3)==0) then
-                iat=i/3
+                !n(c) iat=i/3
                 read(1390,*) tname,xyz(1),xyz(2),xyz(3) !x(i-2:i,ip)
                 if(atoms%units=='angstroemd0' .or. atoms%units=='angstroem') then
                     x(i-2:i,ip)=xyz(1:3)/0.5291772108_gp !non-BigDFT

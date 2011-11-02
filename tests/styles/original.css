@@ -4,7 +4,7 @@ ul
 {
   list-style:url('../images/point.png');
   list-style-position:outside;
-   margin-right:10em;
+  margin-right:10em;
 }
 span.langInfo
 {
@@ -29,6 +29,7 @@ div.floatingmenu
 div.floatingmenu ul
 {
   color:#D05050;
+  margin-right:0em;
 }
 div.floatingmenu h2
 {
@@ -79,6 +80,10 @@ pre
   padding:0em;
   padding-right:1em;
   padding-left:1em;
+}
+.override pre
+{
+  margin-right:10em;
 }
 div.exercice
 { 

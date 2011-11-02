@@ -47,7 +47,7 @@
 !!      (transpose v and hv)\n
 !!   end do\n
 !!   (retranspose v and psi)\n
-subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
+subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,& 
      orbs,orbsv,nvirt,lr,comms,commsv,&
      hx,hy,hz,rxyz,rhopot,nlpspd,proj,pkernel,psi,v,nscatterarr,ngatherarr,GPU)
   use module_base
@@ -77,7 +77,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   !local variables
   character(len=*), parameter :: subname='davidson'
   logical :: msg,exctX,occorbs !extended output
-  integer :: occnorb, occnorbu, occnorbd,nrhodim,i3rho_add
+  integer :: nrhodim,i3rho_add !n(c) occnorb, occnorbu, occnorbd
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor,imin
   integer :: ise,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,gnrm_fake,emin,diff_max,this_e
@@ -101,15 +101,15 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         end if
      end do
   end if
-  if (occorbs) then
-     occnorb = 0
-     occnorbu = 0
-     occnorbd = 0
-  else
-     occnorb = orbs%norb
-     occnorbu = orbs%norbu
-     occnorbd = orbs%norbd
-  end if
+  !n(c) if (occorbs) then
+     !n(c) occnorb = 0
+     !n(c) occnorbu = 0
+     !n(c) occnorbd = 0
+  !n(c) else
+     !n(c) occnorb = orbs%norb
+     !n(c) occnorbu = orbs%norbu
+     !n(c) occnorbd = orbs%norbd
+  !n(c) end if
 
   !in the GPU case, the wavefunction should be copied to the card 
   !at each HamiltonianApplication
@@ -119,9 +119,9 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
           hx,hy,hz,lr%wfd,orbsv,GPU)
   else if (OCLconv) then
-     call free_gpu_OCL(GPU,orbs,in%nspin)    
+     call free_gpu_OCL(GPU,orbs,in%nspin)   
      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-          in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
+          in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU) 
   end if
  
   GPU%full_locham=.true.
@@ -308,7 +308,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      ! find kpoint starting index
      ikpt=orbsv%iskpts+ikptp
      ! number of coeff for this k point
-     nvctrp=commsv%nvctr_par(iproc,ikptp)
+     nvctrp=commsv%nvctr_par(iproc,ikpt)
      ! cycle if nothing to be done
      if (nvctrp == 0) cycle
      ! otherwise loop on orbitals 
@@ -423,7 +423,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! this kpoint starting index
         ikpt=orbsv%iskpts+ikptp
         ! number of coeff for this kpoint
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nvctrp=commsv%nvctr_par(iproc,ikpt)
         ! cycle if nothing to do
         if (nvctrp == 0) cycle
         ! otherwise, loop on orbitals
@@ -452,7 +452,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! this kpoint starting index
         ikpt=orbsv%iskpts+ikptp
         ! number of coeff for this kpoint
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nvctrp=commsv%nvctr_par(iproc,ikpt)
         ! cycle if nothing to do
         if (nvctrp == 0) cycle
         ! otherwise, loop on orbitals
@@ -585,7 +585,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! loop on spin
         do ispin=1,nspin
            ! get dimensions 
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            ! cycle if nothing to be done
            if (nvctrp == 0) cycle
@@ -660,7 +660,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! loop on spin
         do ispin=1,nspin
            ! get dimensions
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            ! loop if noting to be done
            if (nvctrp == 0) cycle
@@ -756,7 +756,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! index of this kpoint 
         ikpt=orbsv%iskpts+ikptp
         ! number of coeff
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nvctrp=commsv%nvctr_par(iproc,ikpt)
         ! loop on spin
         do ispin=1,nspin
            !
@@ -831,7 +831,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! find kpoint starting index
         ikpt=orbsv%iskpts+ikptp
         ! number of coeff for this k point
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nvctrp=commsv%nvctr_par(iproc,ikpt)
         ! cycle if nothing to be done
         if (nvctrp == 0) cycle
         ! otherwise loop on orbitals 
@@ -1025,7 +1025,7 @@ subroutine Davidson_constrained_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr
   real(wp), dimension(ncplx,2*norb,2*norb,2), intent(out) :: hamovr
 
   !local variables
-  character(len=*), parameter :: subname='Davidson_subspace_hamovr'
+  !n(c) character(len=*), parameter :: subname='Davidson_subspace_hamovr'
   integer :: iorb,jorb,icplx,ncomp
   
   if (nspinor == 4) then

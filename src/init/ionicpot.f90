@@ -39,7 +39,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   real(gp), dimension(:,:), allocatable :: fewald,xred
 
   pi=4.d0*datan(1.d0)
-
+  psoffset=0.0_gp
   if (at%geocode == 'P') then
      !here we insert the calculation of the ewald forces
      allocate(fewald(3,at%nat+ndebug),stat=i_stat)
@@ -292,7 +292,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
      !if (nproc==1) 
      !print *,'iproc,eself',iproc,eself
-     call razero(n1i*n2i*n3pi,pot_ion)
+     call to_zero(n1i*n2i*n3pi,pot_ion(1))
 
      if (n3pi >0 ) then
         !then calculate the hartree energy and forces of the charge distributions
@@ -473,7 +473,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
-  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
+  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp !n(c) nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz,offset
@@ -497,7 +497,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call razero(n1i*n2i*n3pi,pot_ion)
+  call to_zero(n1i*n2i*n3pi,pot_ion(1))
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -590,7 +590,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   if (.not. htoobig) then
      call timing(iproc,'CrtLocPot     ','OF')
      !here the value of the datacode must be kept fixed
-     nspin=1
+     !n(c) nspin=1
 
      call H_potential(geocode,'D',iproc,nproc,&
           n1i,n2i,n3i,hxh,hyh,hzh,&

@@ -96,13 +96,13 @@ subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   character(len=*), parameter :: subname='plot_wf'
   integer :: nw1,nw2,i_stat,i_all,i,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
   integer :: nxc,nxf,nl1,nl2,nl3,n1i,n2i,n3i
-  real(gp) :: rx, ry, rz
+  !n(c) real(gp) :: rx, ry, rz
   real(wp), dimension(0:3) :: scal
   real(wp), dimension(:), allocatable :: psir,w1,w2,x_c_psifscf,x_f_psig
 
-  rx=rxyz(1,1)
-  ry=rxyz(2,1)
-  rz=rxyz(3,1)
+  !n(c) rx=rxyz(1,1)
+  !n(c) ry=rxyz(2,1)
+  !n(c) rz=rxyz(3,1)
 
   n1=lr%d%n1
   n2=lr%d%n2
@@ -374,7 +374,7 @@ subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   write(22,'(i5,3(f19.12))') 2*n3+2,0.0_gp,0.0_gp,hzh
   !atomic number and positions
   do iat=1,at%nat
-     write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
+     write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),at%nelpsp(at%iatype(iat)),(rxyz(j,iat),j=1,3)
   end do
 
   !the loop is reverted for a cube file
@@ -874,7 +874,7 @@ END SUBROUTINE read_density_cube_old
 !!      I already did it in this subroutine, but we can do it as a separate subroutine.
 subroutine write_cube_fields(filename,message,at,factor,rxyz,n1,n2,n3,n1i,n2i,n3i,n1s,n2s,n3s,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename,message
@@ -1284,7 +1284,7 @@ END SUBROUTINE plot_wf
 !> Read density or potential in cube format
 subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz, iatypes, znucl)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -1297,7 +1297,7 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   integer, intent(out)   ::  nat
   integer, dimension(:), pointer   :: iatypes, znucl
   !local variables
-  character(len=*), parameter :: subname='read_cube'
+  !n(c) character(len=*), parameter :: subname='read_cube'
   character(len=5) :: suffix
   character(len=15) :: message
   integer :: ia
@@ -1455,7 +1455,7 @@ END SUBROUTINE read_cube
 
 !>   Read a cube field which have been plotted previously by write_cube_fields
 subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -1463,7 +1463,7 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   integer, intent(in) :: n1i,n2i,n3i
   real(dp), dimension(n1i*n2i*n3i) :: rho
   !local variables
-  character(len=*), parameter :: subname='read_density_cube'
+  !n(c) character(len=*), parameter :: subname='read_density_cube'
   character(len=3) :: advancestring
   integer :: n1t,n2t,n3t,n1,n2,n3,i1,i2,i3,nat,iat
   integer :: nl1,nl2,nl3,nbx,nby,nbz,icount,ind
@@ -1541,166 +1541,108 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
 
 END SUBROUTINE read_cube_field
 
-
-
-
-
-
-subroutine plot_wfSquare_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
+!> Calculate the dipole of a Field given in the rho array.
+!! The parallel distribution used is the one of the potential
+subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
+   hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
   use module_types
   implicit none
-!HU  character(len=10) :: orbname,comment 
-  character(len=10) :: comment
-  character(len=11) :: orbname
+  integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nspin,nproc
+  real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: hx,hy,hz
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
-  !local variables
-  character(len=*), parameter :: subname='plot_wf'
-  integer :: nw1,nw2,i_stat,i_all,i,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
-  integer :: nxc,nxf,nl1,nl2,nl3,n1i,n2i,n3i
-  real(gp) :: rx, ry, rz
-  real(wp), dimension(0:3) :: scal
-  real(wp), dimension(:), allocatable :: psir,w1,w2,x_c_psifscf,x_f_psig
+  real(dp), dimension(n1i,n2i,n3p,nspin), target, intent(in) :: rho
+  character(len=*), parameter :: subname='calc_dipole'
+  integer :: i_all,i_stat,ierr,ia,ib,isuffix,fformat
+  real(gp) :: dipole_el(3) , dipole_cores(3), tmpdip(3),q,qtot
+  integer  :: iat,i1,i2,i3,nbx,nby,nbz, nl1,nl2,nl3, ind, ispin
+  real(dp), dimension(:,:,:,:), pointer :: ele_rho
+  
+  if (nproc > 1) then
+     !allocate full density in pot_ion array
+     allocate(ele_rho(n1i,n2i,n3i,nspin),stat=i_stat)
+     call memocc(i_stat,ele_rho,'ele_rho',subname)
 
-  rx=rxyz(1,1)
-  ry=rxyz(2,1)
-  rz=rxyz(3,1)
+     call MPI_ALLGATHERV(rho,n1i*n2i*n3p*nspin,&
+          mpidtypd,ele_rho,ngatherarr(0,1),&
+          ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
 
-  n1=lr%d%n1
-  n2=lr%d%n2
-  n3=lr%d%n3
-  n1i=lr%d%n1i
-  n2i=lr%d%n2i
-  n3i=lr%d%n3i
-  nfl1=lr%d%nfl1
-  nfl2=lr%d%nfl2
-  nfl3=lr%d%nfl3
-  nfu1=lr%d%nfu1
-  nfu2=lr%d%nfu2
-  nfu3=lr%d%nfu3
-
-  do i=0,3
-     scal(i)=1.d0
-  enddo
-
-  select case(lr%geocode)
-  case('F')
-     !dimension of the work arrays
-     ! shrink convention: nw1>nw2
-     nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
-          (n1+1)*(2*n2+31)*(2*n3+31),&
-          2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
-          2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
-     nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
-          4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
-          (n1+1)*(n2+1)*(2*n3+31),&
-          (2*n1+31)*(n2+1)*(n3+1))
-     nxc=(n1+1)*(n2+1)*(n3+1)!(2*n1+2)*(2*n2+2)*(2*n3+2)
-     nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
-  case('S')
-     !dimension of the work arrays
-     nw1=1
-     nw2=1
-     nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
-     nxf=1
-  case('P')
-     !dimension of the work arrays, fully periodic case
-     nw1=1
-     nw2=1
-     nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
-     nxf=1
-  end select
-  !work arrays
-  allocate(x_c_psifscf(nxc+ndebug),stat=i_stat)
-  call memocc(i_stat,x_c_psifscf,'x_c_psifscf',subname)
-  allocate(x_f_psig(nxf+ndebug),stat=i_stat)
-  call memocc(i_stat,x_f_psig,'x_f_psig',subname)
-  allocate(w1(nw1+ndebug),stat=i_stat)
-  call memocc(i_stat,w1,'w1',subname)
-  allocate(w2(nw2+ndebug),stat=i_stat)
-  call memocc(i_stat,w2,'w2',subname)
-
-  allocate(psir(n1i*n2i*n3i+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
-  !initialisation
-  if (lr%geocode == 'F') then
-     call razero(nxc,x_c_psifscf)
-     call razero(nxf,x_f_psig)
-     call razero(n1i*n2i*n3i,psir)
+  else
+     ele_rho => rho
   end if
-  select case(lr%geocode)
-  case('F')
-     call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),  & 
-          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-          lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1), &
-          scal,psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,x_f_psig)
 
-     call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,&
-          x_c_psifscf,x_f_psig,  & 
-          psir(1),lr%bounds%kb%ibyz_c,lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
-          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f)
-     
-  case('P')
-     call uncompress_per(n1,n2,n3,lr%wfd%nseg_c,&
-          lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
-          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-          lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),&
-          psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,psir(1))
-
-     call convolut_magic_n_per_self(2*n1+1,2*n2+1,2*n3+1,&
-          x_c_psifscf,psir(1))
-     
-  case('S')
-     call uncompress_slab(n1,n2,n3,lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-          lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
-          lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg(1,lr%wfd%nseg_c+1),&
-          lr%wfd%keyv(lr%wfd%nseg_c+1),   &
-          psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,psir(1))
-
-     call convolut_magic_n_slab_self(2*n1+1,2*n2+15,2*n3+1,x_c_psifscf,psir(1))
-  end select
-
-  i_all=-product(shape(x_c_psifscf))*kind(x_c_psifscf)
-  deallocate(x_c_psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c_psifscf',subname)
-  i_all=-product(shape(x_f_psig))*kind(x_f_psig)
-  deallocate(x_f_psig,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f_psig',subname)
-  i_all=-product(shape(w1))*kind(w1)
-  deallocate(w1,stat=i_stat)
-  call memocc(i_stat,i_all,'w1',subname)
-  i_all=-product(shape(w2))*kind(w2)
-  deallocate(w2,stat=i_stat)
-  call memocc(i_stat,i_all,'w2',subname)
-
-  if (lr%geocode /= 'F') then
+  if (at%geocode /= 'F') then
      nl1=1
      nl3=1
+     nbx = 1
+     nbz = 1
   else
-     nl1=14
-     nl3=14
+     nl1=15
+     nl3=15
+     nbx = 0
+     nbz = 0
   end if
   !value of the buffer in the y direction
-  if (lr%geocode == 'P') then
+  if (at%geocode == 'P') then
      nl2=1
+     nby = 1
   else
-     nl2=14
+     nl2=15
+     nby = 0
   end if
 
+  qtot=0.d0
+  dipole_cores(1:3)=0_gp
+  do iat=1,at%nat
+     dipole_cores(1:3)=dipole_cores(1:3)+at%nelpsp(at%iatype(iat)) * rxyz(1:3,iat)
+  end do
 
-  !call plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,psir)
-!HU  call plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
-!HU       nl1,nl2,nl3,orbname,psir,comment)
-  call plot_cube_full(2,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
-       nl1,nl2,nl3,orbname,psir,comment)
+  dipole_el   (1:3)=0_gp
+  do ispin=1,nspin
+     do i1=0,2*(n1+nbx) - 1
+        do i2=0,2*(n2+nby) - 1
+           do i3=0,2*(n3+nbz) - 1
+              !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+              !q= ( ele_rho(ind,ispin) ) * hxh*hyh*hzh 
+              q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * hxh*hyh*hzh 
+              qtot=qtot+q
+              dipole_el(1)=dipole_el(1)+ q* at%alat1/real(2*(n1+nbx),dp)*i1 
+              dipole_el(2)=dipole_el(2)+ q* at%alat2/real(2*(n2+nby),dp)*i2
+              dipole_el(3)=dipole_el(3)+ q* at%alat3/real(2*(n3+nbz),dp)*i3
+           end do
+        end do
+     end do
 
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
+  end do
 
-END SUBROUTINE plot_wfSquare_cube
+  if(iproc==0) then
+     !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
+     !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
+     write(*,'(a)') " ============= Electric Dipole Moment  ================" 
+     tmpdip=dipole_cores+dipole_el
+     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)   ", "   (Px,Py,Pz)= " , tmpdip(1:3)  
+     tmpdip=tmpdip/0.393430307_gp  ! au2debye              
+     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "   (Px,Py,Pz)= " , tmpdip(1:3) 
+96   format (a10,Es14.6 ,a,a,3ES13.4)
+     !     write(*,'(a)') "  ================= Dipole moment in e.a0    (0.39343 e.a0 = 1 Debye) ================"  ! or [Debye] 
+     !     write(*,97) "    Px " ,"     Py ","     Pz ","   |P| " 
+     !     write(*,98) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))
+     !     write(*,98) "pseudo cores:      ", dipole_cores(1:3) , sqrt(sum(dipole_cores**2))
+     !     write(*,98) "Total (cores-el.): ", dipole_cores+dipole_el , sqrt(sum((dipole_cores+dipole_el)**2))
+     !97 format (20x,3a15  ,"    ==> ",a15)
+     !98 format (a20,3f15.7,"    ==> ",f15.5)
+
+  endif
+
+  if (nproc > 1) then
+     i_all=-product(shape(ele_rho))*kind(ele_rho)
+     deallocate(ele_rho,stat=i_stat)
+     call memocc(i_stat,i_all,'ele_rho',subname)
+  else
+     nullify(ele_rho)
+  end if
+
+END SUBROUTINE calc_dipole
+

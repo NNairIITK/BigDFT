@@ -14,7 +14,7 @@
 !!   coefficients_of_wavefunctions is used to store the psi values for
 !!   each wavelet.
 subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
-     wfd,psi)
+     wfd,psi,orblist)
   use module_base
   use module_types
 
@@ -32,6 +32,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
   character(len = *), intent(in) :: filename
+  integer, dimension(orbs%norb) :: orblist
   ! Local variables
   character(len = *), parameter :: subname = "read_waves_etsf"
   integer, pointer :: nvctr_old(:)
@@ -43,7 +44,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   real(gp) :: hx_old, hy_old, hz_old
   real(gp) :: displ,tel
   real(wp) :: fv(7)
-  logical :: perx, pery, perz
+  logical :: perx, pery, perz, check
   integer, dimension(:,:), allocatable :: gcoord
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
@@ -51,8 +52,8 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   type(etsf_io_low_error) :: error
   logical :: lstat
 
-  call cpu_time(tr0)
-  call system_clock(ncount1,ncount_rate,ncount_max)
+!  call cpu_time(tr0)
+!  call system_clock(ncount1,ncount_rate,ncount_max)
 
   ! We open the ETSF file
   call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
@@ -77,7 +78,8 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
 
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
-        call orbsToETSF(start, count, iorb, orbsd)
+        ! start(4) corresponds to the orbital index
+        call orbsToETSF(start, count, iorb, orbsd, orblist)
 
         iFine = wfd%nvctr_c + 1
         iCoeff = 1
@@ -149,7 +151,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
 
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
         ! We read the coefficients.
-        call orbsToETSF(start, count, iorb, orbsd)
+        call orbsToETSF(start, count, iorb, orbsd, orblist)
 
         ! We transfer the coefficients in psigold.
         iCoeff = 1
@@ -179,7 +181,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
            end if
         end do
 
-        call reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+        call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
              rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi(1,iorb))
      end do
 
@@ -207,9 +209,9 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   call etsf_io_low_close(ncid, lstat, error)
   if (.not. lstat) call etsf_error(error)
 
-  call cpu_time(tr1)
-  call system_clock(ncount2,ncount_rate,ncount_max)
-  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+!  call cpu_time(tr1)
+!  call system_clock(ncount2,ncount_rate,ncount_max)
+!  tel=dble(ncount2-ncount1)/dble(ncount_rate)
 !  write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 
 contains
@@ -369,16 +371,19 @@ contains
     displ=sqrt(tx+ty+tz)
   END SUBROUTINE calc_displ
 
-  subroutine orbsToETSF(start, count, iorb, orbs)
+  subroutine orbsToETSF(start, count, iorb, orbs,orblist)
     integer, intent(inout) :: start(6), count(6)
     integer, intent(in) :: iorb
     type(orbitals_data), intent(in) :: orbs
+    integer,dimension(orbs%norb) :: orblist
+    integer :: ind
 
     ! Read one spinor.
     start(3) = modulo(iorb - 1, orbs%nspinor) + 1
     count(3) = 1
     ! Read one orbital.
-    start(4) = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
+    ind = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
+    start(4) = orblist(ind)
     count(4) = 1
     ! Read one kpoint.
     start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
@@ -486,7 +491,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
 
   ! We run over a processor independant number of orbitals
   ! to ensure the synchronisation to disk (see later).
-  do iorb = 1, (orbs%norb / nproc + 1 ) * orbs%nspinor, 1
+  do iorb = 1, (orbs%norb * orbs%nkpts / nproc + 1 ) * orbs%nspinor, 1
      if (iorb <= (orbs%norbp * orbs%nspinor)) then
         ! Write one spinor.
         start(3) = modulo(iorb - 1, orbs%nspinor) + 1

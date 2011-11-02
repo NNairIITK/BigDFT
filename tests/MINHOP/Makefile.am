@@ -21,9 +21,11 @@ PPFILES = \
 	psppar.Si
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat \
-			 posloc* posmd* posout* poslow* posbest* possoft*\
-			 global.out latest.pos.force.*.dat MINHOP.out
-			 *.prc fort.* fldiff.report
+			 *pos* *out *mon \
+			 global.out latest.pos.force.*.dat MINHOP.out \
+			 *.prc fort.* fldiff.report default* CPUlimit test 	
+clean-local:
+	rm -rf data
 
 #dependencies
 $(PPFILES):

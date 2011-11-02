@@ -136,7 +136,7 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   character(len = 40) :: comment
   integer :: i, i_stat, i_all
   real :: fnrm
-  real(dp), allocatable :: xcart(:,:)
+  real(dp), dimension(:,:), allocatable :: xcart,fcart
 
   if (me /= 0) return
 
@@ -144,16 +144,20 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   ! need to transform xred into xcart
   allocate(xcart(3, scfloop_at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,xcart,'xcart',subname)
-  do i = 1, scfloop_at%nat, 1
+  allocate(fcart(3, scfloop_at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,fcart,'fcart',subname)
+
+  do i = 1, scfloop_at%nat
      xcart(:, i) = xred(:, i) * acell(:)
      fnrm = fnrm + fred(1, i) * acell(1) * fred(1, i) * acell(1) + &
           & fred(2, i) * acell(2) * fred(2, i) * acell(2) + &
           & fred(3, i) * acell(3) * fred(3, i) * acell(3)
+     fcart(:, i) = fred(:, i) * acell(:)
   end do
 
   write(fn5,'(i5.5)') itime+itime_shift_for_restart
   write(comment,'(a,1pe10.3)')'AB6MD:fnrm= ', sqrt(fnrm)
-  call write_atomic_file('posmd_'//fn5, epot + ekin, xcart, scfloop_at, trim(comment))
+  call write_atomic_file(trim(scfloop_in%dir_output)//'posmd_'//fn5, epot + ekin, xcart, scfloop_at, trim(comment),forces=fcart)
 
   !write velocities
   write(comment,'(a,i6.6)')'Timestep= ',itime+itime_shift_for_restart
@@ -162,12 +166,15 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   i_all=-product(shape(xcart))*kind(xcart)
   deallocate(xcart,stat=i_stat)
   call memocc(i_stat,i_all,'xcart',subname)
+  i_all=-product(shape(fcart))*kind(fcart)
+  deallocate(fcart,stat=i_stat)
+  call memocc(i_stat,i_all,'fcart',subname)
+
   
   !To avoid warning from compiler
   fnrm=real(rprimd(1,1),kind=4)
 
 END SUBROUTINE scfloop_output
-
 
 !>    Read atomic positions
 subroutine read_velocities(iproc,filename,atoms,vxyz)
@@ -180,7 +187,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(out) :: vxyz
   !local variables
-  character(len=*), parameter :: subname='read_velocities'
+  !n(c) character(len=*), parameter :: subname='read_velocities'
   character(len=2) :: symbol
   character(len=20) :: tatonam,units
   character(len=50) :: extra
@@ -269,7 +276,6 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
 
   close(unit=99)
 END SUBROUTINE read_velocities
-
 
 subroutine wtvel(filename,vxyz,atoms,comment)
   use module_base

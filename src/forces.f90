@@ -352,7 +352,7 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
   real(wp), dimension(n1i*n2i*n3p*nspin), intent(in) :: potxc
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+  real(gp), dimension(3,atoms%nat), intent(inout) :: fxyz
   !local variables
   real(gp), parameter :: oneo4pi=.079577471545947_wp
   logical :: perx,pery,perz,gox,goy,goz
@@ -866,7 +866,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      ! loop over all my orbitals for calculating forces
      do iorb=isorb,ieorb
         ! loop over all projectors
-        call razero(3*at%nat,fxyz_orb)
+        call to_zero(3*at%nat,fxyz_orb(1,1))
         do ispinor=1,nspinor,ncplx
            jorb=jorb+1
            do iat=1,at%nat
@@ -3554,7 +3554,7 @@ END SUBROUTINE clean_forces
 
 subroutine symmetrise_forces(iproc, fxyz, at)
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_symmetry
   use module_types
 
   implicit none
@@ -3573,7 +3573,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call ab6_symmetry_get_matrices_p(at%symObj, nsym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(at%symObj, nsym, sym, transNon, symAfm, errno)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
@@ -3596,7 +3596,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
 
   ! actually conduct symmetrization
   do ia = 1, at%nat
-     call ab6_symmetry_get_equivalent_atom(at%symObj, indsym, ia, errno)
+     call symmetry_get_equivalent_atom(at%symObj, indsym, ia, errno)
      if (errno /= AB6_NO_ERROR) stop
      do mu = 1, 3
         summ = real(0, gp)

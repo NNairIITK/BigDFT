@@ -1,12 +1,12 @@
-/*!
-This version of ART nouveau has been optimized for SIESTA and other cases where
+This version of ART nouveau has been optimized for BigDFT and other cases where
 the force evaluation is extremelly heavy. Because of that it saves the
 configuration at every step during the activation. This version of ART nouveau
 should not be used for empirical potential.
 
-Normand Mousseau
-12 February 2006
+It is based in the old version for SIESTA.
 
+Normand Mousseau
+December 2009
 
 Log of changes
 **************
@@ -69,4 +69,4 @@ This new version includes many corrections made by Kevin Levasseur-Smith and Nor
 
 It also includes DIIS, proposed by Damien Caliste and a number of optimization proposed by Cosmin Marinica.
 
-*/
+
