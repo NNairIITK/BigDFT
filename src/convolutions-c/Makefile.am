@@ -29,13 +29,6 @@ else
 mpi_source = ../MPIfake.f90
 endif
 
-if USE_DGEMMSY
-libs_dgemmsy=../dgemmsy/libdgemmsy.a
-else
-libs_dgemmsy=
-endif
-
-
 CLEANFILES = module_base.@MODULE_EXT@ module_defs.@MODULE_EXT@ \
 			 fort.1 fort.98 *linkinfo
 
@@ -52,7 +45,7 @@ convolution_sse_t_LDFLAGS = -lrt -lpapi
 
 
 conv_check_SOURCES = conv_check.f90 
-conv_check_LDADD = ../libbigdft.a ../PSolver/libpoissonsolver.a $(libs_dgemmsy) libbasec.a libbasef.a
+conv_check_LDADD = ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libbasef.a
 conv_check_LDFLAGS = -lpthread -lstdc++ -lrt -lpapi
 
 check_conv: conv_check

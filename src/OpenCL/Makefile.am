@@ -72,15 +72,8 @@ endif
 
 libs_ocl=libOCL.a -lstdc++
 
-if USE_DGEMMSY
-libs_dgemmsy=../dgemmsy/libdgemmsy.a
-else
-libs_dgemmsy=
-endif
-
 libs_opt=$(libs_cuda)\
- $(libs_ocl)\
- $(libs_dgemmsy)
+ $(libs_ocl)
 
 
 CLEANFILES = module_base.@MODULE_EXT@ module_defs.@MODULE_EXT@ \

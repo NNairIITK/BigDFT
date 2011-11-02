@@ -53,15 +53,8 @@ else
 libs_ocl=
 endif
 
-if USE_DGEMMSY
-libs_dgemmsy=$(top_builddir)/src/dgemmsy/libdgemmsy.a
-else
-libs_dgemmsy=
-endif
-
 libs_opt=$(libs_cuda)\
- $(libs_ocl)\
- $(libs_dgemmsy)
+ $(libs_ocl)
 
 
 PS_Check_SOURCES = PS_Check.f90 $(mpi_source)

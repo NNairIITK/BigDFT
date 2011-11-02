@@ -11,7 +11,7 @@ inline void fft_generated_generic(cl_kernel kernel, bigdft_command_queue command
     else if(*n <= 256)
        shared_size_used=1024;
     int FFT_LENGTH=(*n / 16) * 16 + (*n % 16 ? 16 : 0);
-    int LINE_LIMIT=(shared_size_used/FFT_LENGTH) & (~3) <= command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ? (shared_size_used/FFT_LENGTH) & (~3) : command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ;
+    int LINE_LIMIT=((shared_size_used/FFT_LENGTH) & (~3)) <= command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ? (shared_size_used/FFT_LENGTH) & (~3) : command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ;
     int LINE_NUMBER = 1;
     while( LINE_LIMIT /= 2 )
       LINE_NUMBER *= 2;
@@ -43,7 +43,7 @@ inline void fft_k_generated_generic(cl_kernel kernel, bigdft_command_queue comma
     else if(*n <= 256)
        shared_size_used=1024;
     int FFT_LENGTH=(*n / 16) * 16 + (*n % 16 ? 16 : 0);
-    int LINE_LIMIT=(shared_size_used/FFT_LENGTH) & (~3) <= command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ? (shared_size_used/FFT_LENGTH) & (~3) : command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ;
+    int LINE_LIMIT=((shared_size_used/FFT_LENGTH) & (~3)) <= command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ? (shared_size_used/FFT_LENGTH) & (~3) : command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ;
     int LINE_NUMBER = 1;
     while( LINE_LIMIT /= 2 )
       LINE_NUMBER *= 2;

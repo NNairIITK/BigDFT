@@ -48,7 +48,7 @@ endif
 if USE_OCL
 sub_dirs_ocl=OpenCL
 OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
-libs_ocl=OpenCL/libOCL.a -lstdc++
+libs_ocl=OpenCL/libOCL.a
 else
 sub_dirs_ocl=
 OCL_INTERFACE = convolutions/interface_ocl_fake.f90
@@ -56,18 +56,18 @@ libs_ocl=
 endif
 
 if USE_DGEMMSY
-sub_dirs_dgemmsy=dgemmsy
-DGEMMSY_INTERFACE = dgemmsy/interface_dgemmsy.f90
-libs_dgemmsy=dgemmsy/libdgemmsy.a
+DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy.f90 \
+		  dgemmsy/dgemmsy.c       dgemmsy/dgemmsy.h \
+		  dgemmsy/gemm_block_c.c  dgemmsy/gemm_block_c.h \
+		  dgemmsy/patterns.c      dgemmsy/patterns.h \
+		  dgemmsy/dgemmsy_utils.c dgemmsy/dgemmsy_utils.h \
+		  dgemmsy/visitors.c      dgemmsy/visitors.h
 else
-sub_dirs_dgemmsy=
-DGEMMSY_INTERFACE = dgemmsy/interface_dgemmsy_fake.f90
-libs_dgemmsy=
+DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy_fake.f90
 endif
 
 libs_opt=$(libs_cuda)\
- $(libs_ocl)\
- $(libs_dgemmsy)
+ $(libs_ocl)
 
 if HAVE_LIBCONFIG
 sub_dirs_libconfig=convolutions-c
@@ -106,7 +106,7 @@ global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) $(sub_dirs_dgemmsy) art $(sub_dirs_libconfig) tools tools/bader
+SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) art $(sub_dirs_libconfig) tools tools/bader
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
@@ -115,10 +115,12 @@ EXTRA_DIST = \
 	init/pspconf.in.f90 \
 	NEB_driver.sh 
 
-AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver -I$(srcdir)/wavelib \
+AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
+	-I$(srcdir)/PSolver -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@
-AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@
+AM_CFLAGS = -Wall -Werror -msse3
 
 bin_PROGRAMS = $(binaries_sources)
 noinst_PROGRAMS = $(local_binaries)
@@ -249,7 +251,7 @@ low_level = init/projectors.f90  \
 	wavelib/daubisf.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	$(DGEMMSY_INTERFACE)
+	$(DGEMMSY_SOURCES)
 
 # C objects
 c_level = posfiles.c \

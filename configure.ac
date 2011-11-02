@@ -323,6 +323,8 @@ if test x"$ac_use_ocl" = "xyes" ; then
   else
     OCL_INCLUDE_PATH=$ac_ocl_path"/include"
     AC_SUBST(OCL_INCLUDE_PATH)
+    OCL_INCLUDE="-I"$ac_ocl_path"/include"
+    AC_SUBST(OCL_INCLUDE)
     dnl Now test for the library.
     LIBS_OLD=$LIBS
     LIBS="-L$ac_ocl_path/lib $LIBS"
@@ -331,8 +333,7 @@ if test x"$ac_use_ocl" = "xyes" ; then
       AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
       ac_use_ocl="no"
     else
-dnl      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
-      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt"
+      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lstdc++"
     fi
     LIBS=$LIBS_OLD
   fi
@@ -704,7 +705,6 @@ src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
-src/dgemmsy/Makefile
 src/convolutions-c/Makefile
 src/art/Makefile
 src/tools/Makefile

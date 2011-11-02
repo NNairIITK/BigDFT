@@ -3,11 +3,6 @@
 #SUBDIRS = Xabs/pawpatchgen  Xabs/scfpotgen   Xabs/spectra    
 
 #Flags for optimization libraries
-if USE_DGEMMSY
-libs_dgemmsy = $(top_builddir)/src/dgemmsy/libdgemmsy.a
-else
-libs_dgemmsy =
-endif
 if USE_CUDA_GPU
 libs_cuda=$(top_builddir)/src/CUDA/libGPU.a
 else
@@ -18,7 +13,7 @@ libs_ocl = $(top_builddir)/src/OpenCL/libOCL.a -lstdc++
 else
 libs_ocl =
 endif
-libs_opt=$(libs_cuda) $(libs_ocl) $(libs_dgemmsy)
+libs_opt=$(libs_cuda) $(libs_ocl)
 
 TESTDIRS = CH4 \
 	  CH3- \
