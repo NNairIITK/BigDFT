@@ -17,10 +17,10 @@ PPFILES = psppar.O
 CLEANFILES = write.out read.out *.prc fldiff.*.report geopt.mon default.* input.dft \
 	$(EXTRA_CLEAN) $(PPFILES)
 
-clean.local : 
+clean-local: 
 	rm -rf data
 
-distclean : clean clean.local
+distclean: clean clean-local
 	rm -rf Makefile
 
 #dependencies

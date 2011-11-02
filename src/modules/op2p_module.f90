@@ -650,7 +650,7 @@ contains
     !verify that the messages have been passed
     call MPI_WAITALL(nreq,requests,mpistat,ierr)
     if (ierr /=0)  then
-       write(*,*) 'ERROR WAITALL, iproc,step,ierr:',iproc,istep,ierr,mpistat,MPI_STATUSES_IGNORE
+       write(*,*) 'ERROR WAITALL, iproc,step,ierr:',iproc,istep,ierr,mpistat !,MPI_STATUSES_IGNORE
     end if
   end subroutine wait_mpi
 

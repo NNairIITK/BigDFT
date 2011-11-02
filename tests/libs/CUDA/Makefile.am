@@ -26,9 +26,9 @@ endif
 
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I../../src/modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/src/modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 
-conv_check_SOURCES = ../../src/CUDA/conv_check.f90  ../../src/CUDA/timing.c ../../src/modules/defs.F90 ../../src/modules/base.f90 $(mpi_source)
+conv_check_SOURCES = $(top_builddir)/src/CUDA/conv_check.f90  $(top_builddir)/src/CUDA/timing.c $(top_builddir)/src/modules/defs.F90 $(top_builddir)/src/modules/base.f90 $(mpi_source)
 conv_check_LDFLAGS = -lrt
 conv_check_LDADD = $(top_builddir)/src/libbigdft.a \
 	$(top_builddir)/src/PSolver/libpoissonsolver.a \
