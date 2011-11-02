@@ -89,6 +89,7 @@ CLEANFILES = module_base.@MODULE_EXT@ module_defs.@MODULE_EXT@ \
 AM_FCFLAGS = -I../modules -I../PSolver @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
+AM_CXXFLAGS = -Wall -Werror
 
 conv_check_SOURCES = conv_check.f90 
 conv_check_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libbasef.a

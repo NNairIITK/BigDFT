@@ -10,8 +10,8 @@ inline void fft_generated_generic(cl_kernel kernel, bigdft_command_queue command
        shared_size_used=512;
     else if(*n <= 256)
        shared_size_used=1024;
-    int FFT_LENGTH=(*n / 16) * 16 + (*n % 16 ? 16 : 0);
-    int LINE_LIMIT=(shared_size_used/FFT_LENGTH) & (~3) <= command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ? (shared_size_used/FFT_LENGTH) & (~3) : command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ;
+    int FFT_LENGTH = (*n / 16) * 16 + (*n % 16 ? 16 : 0);
+    int LINE_LIMIT = ( (shared_size_used/FFT_LENGTH) & (~3) ) <= command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ? (shared_size_used/FFT_LENGTH) & (~3) : command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ;
     int LINE_NUMBER = 1;
     while( LINE_LIMIT /= 2 )
       LINE_NUMBER *= 2;
@@ -42,8 +42,8 @@ inline void fft_k_generated_generic(cl_kernel kernel, bigdft_command_queue comma
        shared_size_used=512;
     else if(*n <= 256)
        shared_size_used=1024;
-    int FFT_LENGTH=(*n / 16) * 16 + (*n % 16 ? 16 : 0);
-    int LINE_LIMIT=(shared_size_used/FFT_LENGTH) & (~3) <= command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ? (shared_size_used/FFT_LENGTH) & (~3) : command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ;
+    int FFT_LENGTH = (*n / 16) * 16 + (*n % 16 ? 16 : 0);
+    int LINE_LIMIT = ( (shared_size_used/FFT_LENGTH) & (~3) ) <= command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ? (shared_size_used/FFT_LENGTH) & (~3) : command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ;
     int LINE_NUMBER = 1;
     while( LINE_LIMIT /= 2 )
       LINE_NUMBER *= 2;
@@ -200,7 +200,6 @@ void build_fft_programs(cl_context * context){
     if(fft_size[0]!=0){
       c = generate_fft_program(fft_size[0],&infos);
       printf("%s\n",c->code);
-      exit(0);
       fftProgramd0 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd0!");
       ciErrNum = clBuildProgram(fftProgramd0, 0, NULL, "-cl-mad-enable", NULL, NULL);
@@ -223,7 +222,7 @@ void build_fft_programs(cl_context * context){
     }
     if(fft_size[1]!=0){
       c = generate_fft_program(fft_size[1], &infos);
-//      printf("%s\n",c->code);
+      printf("%s\n",c->code);
       fftProgramd1 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd1!");
       ciErrNum = clBuildProgram(fftProgramd1, 0, NULL, "-cl-mad-enable", NULL, NULL);
@@ -246,7 +245,7 @@ void build_fft_programs(cl_context * context){
     }
     if(fft_size[2]!=0){
       c = generate_fft_program(fft_size[2], &infos);
-//      printf("%s\n",c->code);
+      printf("%s\n",c->code);
       fftProgramd2 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd1!");
       ciErrNum = clBuildProgram(fftProgramd2, 0, NULL, "-cl-mad-enable", NULL, NULL);
