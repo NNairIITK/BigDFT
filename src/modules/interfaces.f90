@@ -457,7 +457,7 @@ module module_interfaces
        integer, intent(in) :: potshortcut
        integer, dimension(*), intent(in) :: irrzon
        real(dp), dimension(*), intent(in) :: phnons
-       real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
+       real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
      END SUBROUTINE input_wf_diag
 
      subroutine reformatmywaves(iproc,orbs,at,&
