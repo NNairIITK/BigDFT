@@ -4,75 +4,49 @@
 cl_uint use_constant_memory=1;
 
 inline void fft_generated_generic(cl_kernel kernel, bigdft_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out,cl_mem *cosi){
-    cl_int ciErrNum;
-    cl_uint shared_size_used=0;
-    if(*n <= 64)
-       shared_size_used=512;
-    else if(*n <= 256)
-       shared_size_used=1024;
-    int FFT_LENGTH = (*n / 16) * 16 + (*n % 16 ? 16 : 0);
-    int LINE_LIMIT = ( (shared_size_used/FFT_LENGTH) & (~3) ) <= command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ? (shared_size_used/FFT_LENGTH) & (~3) : command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ;
-    int LINE_NUMBER = 1;
-    while( LINE_LIMIT /= 2 )
-      LINE_NUMBER *= 2;
-    if( LINE_NUMBER > FFT_LENGTH )
-       LINE_NUMBER = FFT_LENGTH;
-    if( LINE_NUMBER < 1 )
-       LINE_NUMBER=1;
-    size_t block_size_i=FFT_LENGTH, block_size_j=LINE_NUMBER;
-    cl_uint i = 0;
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    if(!use_constant_memory){
-      ciErrNum = clSetKernelArg(kernel, i++,sizeof(*cosi), (void*)cosi);
-    }
-    size_t localWorkSize[] = { block_size_i,block_size_j };
-//    printf("%lu %lu\n",block_size_i,block_size_j);
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel(command_queue->command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-    oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
+  cl_int ciErrNum;
+  size_t block_size_i, block_size_j, elem_per_thread;
+  fft_compute_sizes(&(command_queue->device_infos), *n, &block_size_i, &block_size_j, &elem_per_thread);
+  cl_uint i = 0;
+  ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+  ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
+  ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+  if(!use_constant_memory){
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*cosi), (void*)cosi);
+  }
+  size_t localWorkSize[] = { block_size_i,block_size_j };
+//  printf("%lu %lu\n",block_size_i,block_size_j);
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
+  ciErrNum = clEnqueueNDRangeKernel(command_queue->command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
 }
 
 inline void fft_k_generated_generic(cl_kernel kernel, bigdft_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out,cl_mem *k,cl_mem *cosi){
-    cl_int ciErrNum;
-    cl_uint shared_size_used=0;
-    if(*n <= 64)
-       shared_size_used=512;
-    else if(*n <= 256)
-       shared_size_used=1024;
-    int FFT_LENGTH = (*n / 16) * 16 + (*n % 16 ? 16 : 0);
-    int LINE_LIMIT = ( (shared_size_used/FFT_LENGTH) & (~3) ) <= command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ? (shared_size_used/FFT_LENGTH) & (~3) : command_queue->device_infos.MAX_WORK_GROUP_SIZE/FFT_LENGTH ;
-    int LINE_NUMBER = 1;
-    while( LINE_LIMIT /= 2 )
-      LINE_NUMBER *= 2;
-    if( LINE_NUMBER > FFT_LENGTH )
-       LINE_NUMBER = FFT_LENGTH;
-    if( LINE_NUMBER < 1 )
-       LINE_NUMBER=1;
-    size_t block_size_i=FFT_LENGTH, block_size_j=LINE_NUMBER;
-    cl_uint i = 0;
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*k), (void*)k);
-    if(!use_constant_memory){
-      ciErrNum = clSetKernelArg(kernel, i++,sizeof(*cosi), (void*)cosi);
-    }
-    size_t localWorkSize[] = { block_size_i,block_size_j };
+  cl_int ciErrNum;
+  size_t block_size_i, block_size_j, elem_per_thread;
+  fft_compute_sizes(&(command_queue->device_infos), *n, &block_size_i, &block_size_j, &elem_per_thread);
+  cl_uint i = 0;
+  ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+  ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
+  ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+  ciErrNum = clSetKernelArg(kernel, i++,sizeof(*k), (void*)k);
+  if(!use_constant_memory){
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*cosi), (void*)cosi);
+  }
+  size_t localWorkSize[] = { block_size_i,block_size_j };
 //    printf("%lu %lu\n",block_size_i,block_size_j);
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel(command_queue->command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-    oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
+  ciErrNum = clEnqueueNDRangeKernel(command_queue->command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
 }
 
 
 void FC_FUNC_(customize_fft,CUSTOMIZE_FFT)(cl_uint *dimensions) {
-  assert(dimensions[0]<=256);
-  assert(dimensions[1]<=256);
-  assert(dimensions[2]<=256);
+  assert(dimensions[0]<=1024);
+  assert(dimensions[1]<=1024);
+  assert(dimensions[2]<=1024);
   fft_size[0] = dimensions[0];
   fft_size[1] = dimensions[1];
   fft_size[2] = dimensions[2];
@@ -199,7 +173,7 @@ void build_fft_programs(cl_context * context){
     fft_code * c;
     if(fft_size[0]!=0){
       c = generate_fft_program(fft_size[0],&infos);
-//      printf("%s\n",c->code);
+      //printf("%s\n",c->code);
       fftProgramd0 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd0!");
       ciErrNum = clBuildProgram(fftProgramd0, 0, NULL, "-cl-mad-enable", NULL, NULL);
@@ -222,7 +196,7 @@ void build_fft_programs(cl_context * context){
     }
     if(fft_size[1]!=0){
       c = generate_fft_program(fft_size[1], &infos);
-//      printf("%s\n",c->code);
+      //printf("%s\n",c->code);
       fftProgramd1 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd1!");
       ciErrNum = clBuildProgram(fftProgramd1, 0, NULL, "-cl-mad-enable", NULL, NULL);
@@ -245,7 +219,7 @@ void build_fft_programs(cl_context * context){
     }
     if(fft_size[2]!=0){
       c = generate_fft_program(fft_size[2], &infos);
-//      printf("%s\n",c->code);
+      //printf("%s\n",c->code);
       fftProgramd2 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd1!");
       ciErrNum = clBuildProgram(fftProgramd2, 0, NULL, "-cl-mad-enable", NULL, NULL);
