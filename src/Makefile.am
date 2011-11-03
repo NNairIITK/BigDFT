@@ -87,8 +87,8 @@ CUDA_SOURCES = CUDA/binding_s_gpu.c \
 EXTRA_DIST += CUDA/precond.cu \
 	CUDA/density.cu \
 	CUDA/anasyn.cu \
-	CUDA/locpot.cu locpot.h \
-	CUDA/kinetic.cu kinetic.h \
+	CUDA/locpot.cu CUDA/locpot.h \
+	CUDA/kinetic.cu CUDA/kinetic.h \
 	CUDA/compress.cu
 CUDA_CONV = convolutions/convolut_common_interface_cuda.f90
 CUDA_MODULES =
