@@ -14,7 +14,6 @@ module_DATA     = $(mod_bigdft)
 # Sub-directories.
 # ---------------
 SUBDIRS = modules \
-	$(sub_dirs_ps) \
 	$(sub_dirs_libconfig) \
 	art \
 	$(sub_dirs_cuda) \
@@ -30,15 +29,23 @@ EXTRA_DIST = \
 	convolutions/v.inc \
 	convolutions/v_long.inc \
 	convolutions/v_17.inc \
+	PSolver/lazy_100.inc \
+	PSolver/lazy_14.inc \
+	PSolver/lazy_16.inc \
+	PSolver/lazy_20.inc \
+	PSolver/lazy_24.inc \
+	PSolver/lazy_30.inc \
+	PSolver/lazy_40.inc \
+	PSolver/lazy_50.inc \
+	PSolver/lazy_60.inc \
+	PSolver/lazy_8.inc \
+	PSolver/createKernel.f90 \
+	PSolver/PSolver_Main.f90 \
+	perfdata.inc \
 	NEB_driver.sh 
 
 # Build targets, binaries and libraries.
 # -------------
-if BUILD_LIB_PSOLVER
-sub_dirs_ps = PSolver
-else
-sub_dirs_ps = 
-endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft.a libdft_common.a
 if CAPITALIZE
@@ -46,9 +53,18 @@ mod_bigdft = BIGDFT_API.@MODULE_EXT@
 else
 mod_bigdft = bigdft_api.@MODULE_EXT@ 
 endif
+PS_SOURCES = PSolver/Poisson_Solver.f90 \
+	PSolver/Build_Kernel.f90 \
+	PSolver/xcenergy.f90 \
+	PSolver/3Dgradient.f90 \
+	PSolver/scaling_function.f90 \
+	PSolver/PSolver_Base_new.f90 \
+	PSolver/wofz.f90 \
+	lib/fft/fft3d.f90
 else
 lib_bigdft =
 mod_bigdft =
+PS_SOURCES =
 endif
 if BUILD_BINARIES
 binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
@@ -177,7 +193,7 @@ am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
-AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
+AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ \
 	-I$(srcdir)/PSolver -I$(srcdir)/wavelib -I$(srcdir)/convolutions \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
@@ -253,7 +269,9 @@ high_level = cluster.f90 \
 	tddft.f90
 
 #objects which can be compiled only with module_base
-low_level = init/projectors.f90  \
+low_level = \
+	$(PS_SOURCES) \
+	init/projectors.f90  \
 	init/ionicpot.f90 \
 	init/gridmanipulation.f90 \
 	init/gauprod.f90 \
@@ -312,6 +330,7 @@ libbigdft_a_SOURCES = \
 	$(low_level) \
 	$(high_level)
 libbigdft_a_LIBADD = $(modules_objects) 
+$(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
 
 bigdft_SOURCES = BigDFT.f90
 bigdft_LDADD = @LIBS_DEPENDENCIES@

@@ -449,20 +449,13 @@ AC_LANG_POP(C++)
 dnl AM_CONDITIONAL for the different libraries, set default values.
 dnl the common routines from ABINIT.
 ac_build_lib_ABINIT="yes"
-dnl the pure PSolver library.
-ac_build_lib_PSolver="yes"
-dnl the BigDFT library (without PSolver)
+dnl the BigDFT library.
 ac_build_lib_BigDFT="yes"
 dnl the standalone executable (required linking tests)
 ac_build_bin_cluster="yes"
 
 
 dnl disable different build
-dnl The PSolver library
-AC_ARG_ENABLE(libpoissonsolver, AS_HELP_STRING([--disable-libpoissonsolver], [build the Poisson's solver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
-AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
-AC_MSG_CHECKING([for Poisson's solver internal build])
-AC_MSG_RESULT([$ac_build_lib_PSolver])
 dnl The BigDFT library
 AC_ARG_ENABLE(libbigdft, AS_HELP_STRING([--disable-libbigdft], [build the BigDFT library (default = yes).]), ac_build_lib_BigDFT=$enableval, ac_build_lib_BigDFT="yes")
 AM_CONDITIONAL(BUILD_LIB_BIGDFT, test "$ac_build_lib_BigDFT" = "yes")
@@ -672,7 +665,7 @@ AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS_DEPENDENCIES="\$(top_builddir)/src/PSolver/libpoissonsolver.a \$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS -lrt $MPI_LDFLAGS $MPI_LIBS"
+LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS -lrt $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 
@@ -709,7 +702,6 @@ src/bigdft-tool
 src/Makefile
 src/modules/Makefile
 src/modules/configure.inc
-src/PSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
 src/convolutions-c/Makefile
@@ -764,7 +756,6 @@ Basics:
 
 Build:
   Library ABINIT:            $ac_build_lib_ABINIT
-  Library PSolver:           $ac_build_lib_PSolver
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (cluster...):$ac_build_bin_cluster
   Minima hopping binary:     $ac_build_bin_minima_hopping
