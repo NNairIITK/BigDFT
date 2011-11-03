@@ -27,7 +27,7 @@ static void decompose_radix(unsigned int radix_size, std::list<unsigned int> &su
 
 }
 
-
+/*
 static void generate_radix_no_shared(std::stringstream &program, unsigned int radix_size, unsigned int fft_size, std::string &sign, std::stringstream &div){
   unsigned int A=1,B;
   unsigned int order1[16]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
@@ -46,7 +46,7 @@ static void generate_radix_no_shared(std::stringstream &program, unsigned int ra
       }
     }
     order = order_out; order_out = order_in; order_in = order;
-    for(int i=0; i<radix_size;i+=2){
+    for(unsigned int i=0; i<radix_size;i+=2){
       if(A==1)
         program<<"  tmp1 = tmp2 = psi["<<order[i]<<"*ndat];\n\
   val = psi["<<order[i+1]<<"*ndat];\n";
@@ -89,7 +89,7 @@ static void generate_radix_no_shared(std::stringstream &program, unsigned int ra
       }
     }
   }
-}
+}*/
 
 static void generate_radix_no_shared_generic(std::stringstream &program, unsigned int radix_size, unsigned int fft_size, unsigned int &A, unsigned int &B, std::string &in, std::string &out, bool transpose, unsigned int stride, std::string &sign, std::stringstream &div){
   std::list<unsigned int> sub_radixes;
@@ -103,25 +103,25 @@ static void generate_radix_no_shared_generic(std::stringstream &program, unsigne
 
   decompose_radix(radix_size, sub_radixes);
 
-  for(int i=0; i<radix_size; i++)
+  for(unsigned int i=0; i<radix_size; i++)
     order1[i] = i;
   program<<"{  double2 cossin,val,t;\n\
   double2 tmp["<<radix_size<<"];\n\
   double2 tmp_val["<<sub_radixes.back()<<"];\n";
-  for(int i=0; i < radix_size; i++)
+  for(unsigned int i=0; i < radix_size; i++)
     program<<"  tmp["<<i<<"] = "<<in<<"[("<<i<<"+ig*"<<radix_size<<")*ndat];\n";
   for(it = sub_radixes.begin(); it != sub_radixes.end(); it++, A *= *it ){
     B /= *it;
-    for(int j=0; j<*it; j++){
-      for(int i=0; i<radix_size/(*it); i++){
+    for(unsigned int j=0; j<*it; j++){
+      for(unsigned int i=0; i<radix_size/(*it); i++){
         order_out[j + i * *it] = order_in[j*radix_size/(*it) + i];
       }
     }
     order = order_out; order_out = order_in; order_in = order;
-    for(int i=0; i < radix_size; i += *it){
-      for(int j=0; j < *it; j++){
+    for(unsigned int i=0; i < radix_size; i += *it){
+      for(unsigned int j=0; j < *it; j++){
         program<<"  t = tmp["<<order[i]<<"];\n";
-        for(int k=1; k < *it; k++){
+        for(unsigned int k=1; k < *it; k++){
           index = (k*j*fft_size/(*it))%fft_size;
           program<<"  cossin.x = cosar["<<index<<"];\n";
           program<<"  cossin.y = sinar["<<index<<"];\n";
@@ -139,7 +139,7 @@ static void generate_radix_no_shared_generic(std::stringstream &program, unsigne
         program<<"  tmp_val["<<j<<"].y = "<<sign<<" - t.x * cossin.y;\n";
         program<<"  tmp_val["<<j<<"].y += t.y * cossin.x;\n";
       }
-      for(int j=0; j < *it; j++){
+      for(unsigned int j=0; j < *it; j++){
         if(B==1) program<<"  tmp_val["<<j<<"].x "<<div.str()<<";\n";
         if(B==1) program<<"  tmp_val["<<j<<"].y "<<div.str()<<";\n";
         program<<"  tmp["<<order[i+j]<<"] = tmp_val["<<j<<"];\n";
@@ -148,10 +148,10 @@ static void generate_radix_no_shared_generic(std::stringstream &program, unsigne
   }
   unsigned int *digits = new unsigned int[sub_radixes.size()];
   std::list<unsigned int>::reverse_iterator rit;
-  for(int i=0; i < sub_radixes.size(); i++)
+  for(unsigned int i=0; i < sub_radixes.size(); i++)
     digits[i] = 0;
-  for(int i=0; i < radix_size; i++){
-    int j;
+  for(unsigned int i=0; i < radix_size; i++){
+    unsigned int j;
     order[i] = 0;
     unsigned int radix_remainder = radix_size;
     for(rit = sub_radixes.rbegin(), j=0; rit != sub_radixes.rend(); rit++, j++){
@@ -167,7 +167,7 @@ static void generate_radix_no_shared_generic(std::stringstream &program, unsigne
         digits[j]=0;
     }
   }
-  for(int i=0;i <radix_size; i++){
+  for(unsigned int i=0;i <radix_size; i++){
     if( transpose )
       program<<"  "<<out<<"[jg*"<<fft_size<<"+ig+"<<order[i]*B<<"] = tmp["<<i<<"];\n";
     else

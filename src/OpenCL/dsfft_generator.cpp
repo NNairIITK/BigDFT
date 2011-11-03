@@ -27,7 +27,7 @@ static void generate_radix_macro(std::stringstream &program, unsigned int radix_
   else
     program<<"  w = as_double2(read_imageui(cosat,smplr,(int2)(r*(N/("<<radix_size<<"*A)),0)));";
   
-  for(int i=2; i<radix_size;i++){
+  for(unsigned int i=2; i<radix_size;i++){
     program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.y += sign - val.x * w.y;\
@@ -64,7 +64,7 @@ static void generate_buffer_size(std::stringstream &program, cl_uint fft_size, s
     shared_size_used=1024;
   buffer_length = (fft_size / 16) * 16 + (fft_size % 16 ? 16 : 0);
   buffer_limit = (shared_size_used/buffer_length);
-  buffer_limit = (shared_size_used/buffer_length) & (~3) <= infos->MAX_WORK_GROUP_SIZE/buffer_length ? (shared_size_used/buffer_length) & (~3) : infos->MAX_WORK_GROUP_SIZE/buffer_length ;
+  buffer_limit = ( (shared_size_used/buffer_length) & (~3) ) <= infos->MAX_WORK_GROUP_SIZE/buffer_length ? (shared_size_used/buffer_length) & (~3) : infos->MAX_WORK_GROUP_SIZE/buffer_length ;
   buffer_width = 1;
   while( buffer_limit /= 2 )
     buffer_width *= 2;
