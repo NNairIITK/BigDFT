@@ -9,7 +9,7 @@ typedef struct {
 } fft_code;
 extern cl_uint use_constant_memory;
 
-inline void fft_compute_sizes(struct bigdft_device_infos * infos, cl_uint fft_size, size_t *block_size_i, size_t *block_size_j, size_t *elem_per_thread){
+inline static void fft_compute_sizes(struct bigdft_device_infos * infos, cl_uint fft_size, size_t *block_size_i, size_t *block_size_j, size_t *elem_per_thread){
   assert(fft_size <= infos->LOCAL_MEM_SIZE/16);
   cl_uint shared_size_used;
   *elem_per_thread = 1;

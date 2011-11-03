@@ -549,6 +549,7 @@ fi
 if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
   AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation."])
 fi
+AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
 
 fi # End of the if library compilation
 
