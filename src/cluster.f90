@@ -1066,10 +1066,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 Lzd%Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
 
            call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-                nlpspd,proj,Lzd%Glr,psi,hpsi,eproj_sum)
+                Lzd%Gnlpspd,proj,Lzd%Glr,psi,hpsi,eproj_sum)
 
            call SynchronizeHamiltonianApplication(nproc,orbs,Lzd%Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
-           end if
+
            !deallocate potential
            call free_full_potential(nproc,potential,subname)
 

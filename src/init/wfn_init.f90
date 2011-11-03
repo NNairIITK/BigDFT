@@ -817,7 +817,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   do ikptp=1,orbsu%nkptsp
      ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
      
-     nvctrp=commu%nvctr_par(iproc,ikptp)
+     nvctrp=commu%nvctr_par(iproc,ikpt)
      if (nvctrp == 0) cycle
      
      !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
@@ -886,7 +886,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
       do ikptp=1,orbsu%nkptsp
          ikpt=orbsu%iskpts+ikptp!orbs%ikptsp(ikptp)
          call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
-              ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr(1,1,ikpt),&
+              ndim_hamovr,sum(norbgrp),natsceff,nspin,nspinor,tolerance,norbgrp,hamovr(1,1,ikpt),&
               orbsu%eval((ikpt-1)*orbsu%norb+1)) !changed from orbs
 
         !assign the value for the orbital
@@ -938,7 +938,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
       do ikptp=1,orbsu%nkptsp
          ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
 
-         nvctrp=commu%nvctr_par(iproc,ikptp)
+         nvctrp=commu%nvctr_par(iproc,ikpt)
          if (nvctrp == 0) cycle
     
          if (.not. present(orbsv)) then
@@ -987,14 +987,14 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
      deallocate(psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
   else if (nproc == 1) then
-     !reverse objects for the normal diagonalisation in serial
-     !at this stage hpsi is the eigenvectors and psi is the old wavefunction
-     !this will restore the correct identification
-!     nullify(hpsi)
-!     hpsi => psi
-!     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
-!     nullify(psi)
-!     psi => psit
+!!$     !reverse objects for the normal diagonalisation in serial
+!!$     !at this stage hpsi is the eigenvectors and psi is the old wavefunction
+!!$     !this will restore the correct identification
+!!$     nullify(hpsi)
+!!$     hpsi => psi
+!!$     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
+!!$     nullify(psi)
+!!$     psi => psit
   end if
 
   !orthogonalise the orbitals in the case of semi-core atoms

@@ -1803,7 +1803,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
         call NonLocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
          nlpspd,proj,Lzd%Glr,psi,hpsi,eproj_sum)
 
-        call SynchronizeHamiltonianApplication(nproc,orbse,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+        call SynchronizeHamiltonianApplication(nproc,orbse,Lzd%Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
     end if
     
     ! Create local potential

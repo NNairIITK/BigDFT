@@ -750,10 +750,14 @@ if(associated(orbsout%norb_par)) then
 end if
 iis1=lbound(orbsin%norb_par,1)
 iie1=ubound(orbsin%norb_par,1)
-allocate(orbsout%norb_par(iis1:iie1), stat=istat)
+iis2=lbound(orbsin%norb_par,2)
+iie2=ubound(orbsin%norb_par,2)
+allocate(orbsout%norb_par(iis1:iie1,iis1:iie1), stat=istat)
 call memocc(istat, orbsout%norb_par, 'orbsout%norb_par', subname)
 do i1=iis1,iie1
-    orbsout%norb_par(i1) = orbsin%norb_par(i1)
+   do i2 = iis2,iie2
+    orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
+   end do
 end do
 
 if(associated(orbsout%iokpt)) then

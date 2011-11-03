@@ -1700,11 +1700,11 @@ module module_interfaces
       real(dp), dimension(*), intent(in) :: phnons
     END SUBROUTINE inputOrbitals
     
-    subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
+    subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
       use module_base
       use module_types
       implicit none
-      integer, intent(in) :: iproc,nproc
+      integer, intent(in) :: iproc,nproc,ndim_psi
       type(orbitals_data), intent(in) :: orbs
       type(communications_arrays), intent(in) :: comms
       type(diis_objects), intent(inout) :: diis

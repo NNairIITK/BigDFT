@@ -1909,7 +1909,6 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
      if(iproc==0)write(*,'(1x,A,i3)')&
           "WARNING: More plots requested than orbitals calculated." 
   end if
-  if(output_wf_format .ne. 3) then
   if(output_wf_format == 2) then
      !add a modulo operator to get rid of the particular k-point
      do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals

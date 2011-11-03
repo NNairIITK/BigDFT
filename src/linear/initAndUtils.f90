@@ -496,10 +496,10 @@ write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a)') '|',repeat(' ', &
 written=.false.
 write(*,'(x,a)') '>>>> Partition of the basis functions among the processes.'
 do jproc=1,nproc-1
-    if(lin%orbs%norb_par(jproc)<lin%orbs%norb_par(jproc-1)) then
-        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%orbs%norb_par(jproc-1)+1.d-5)))
+    if(lin%orbs%norb_par(jproc,0)<lin%orbs%norb_par(jproc-1,0)) then
+        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%orbs%norb_par(jproc-1,0)+1.d-5)))
         len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
-             ceiling(log10(dble(lin%orbs%norb_par(jproc)+1.d-5)))
+             ceiling(log10(dble(lin%orbs%norb_par(jproc,0)+1.d-5)))
         if(len1>=len2) then
             space1=1
             space2=1+len1-len2
@@ -508,9 +508,9 @@ do jproc=1,nproc-1
             space2=1
         end if
         write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
-            lin%orbs%norb_par(jproc-1), ' orbitals,', repeat(' ', space1), '|'
+            lin%orbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
         write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
-            lin%orbs%norb_par(jproc),' orbitals.', repeat(' ', space2), '|'
+            lin%orbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
         written=.true.
         exit
     end if
@@ -525,10 +525,10 @@ write(*,'(x,a)') '-----------------------------------------------'
 written=.false.
 write(*,'(x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
 do jproc=1,nproc-1
-    if(lin%lb%orbs%norb_par(jproc)<lin%lb%orbs%norb_par(jproc-1)) then
-        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%lb%orbs%norb_par(jproc-1)+1.d-5)))
+    if(lin%lb%orbs%norb_par(jproc,0)<lin%lb%orbs%norb_par(jproc-1,0)) then
+        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%lb%orbs%norb_par(jproc-1,0)+1.d-5)))
         len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
-             ceiling(log10(dble(lin%lb%orbs%norb_par(jproc)+1.d-5)))
+             ceiling(log10(dble(lin%lb%orbs%norb_par(jproc,0)+1.d-5)))
         if(len1>=len2) then
             space1=1
             space2=1+len1-len2
@@ -537,9 +537,9 @@ do jproc=1,nproc-1
             space2=1
         end if
         write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
-            lin%lb%orbs%norb_par(jproc-1), ' orbitals,', repeat(' ', space1), '|'
+            lin%lb%orbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
         write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
-            lin%lb%orbs%norb_par(jproc),' orbitals.', repeat(' ', space2), '|'
+            lin%lb%orbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
         written=.true.
         exit
     end if
@@ -603,7 +603,7 @@ integer:: jproc, iiOrb, iorb, jorb, jat
   
       ! Switch to the next MPI process if the numbers of orbitals for a given
       ! MPI process is reached.
-      if(jorb==orbs%norb_par(jproc)) then
+      if(jorb==orbs%norb_par(jproc,0)) then
           jproc=jproc+1
           jorb=0
       end if
@@ -1973,7 +1973,7 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
   call memocc(istat, mad%nsegline, 'mad%nsegline', subname)
   mad%nsegline=0
   do jproc=0,nproc-1
-      do iorb=1,orbs%norb_par(jproc)
+      do iorb=1,orbs%norb_par(jproc,0)
           iiorb=orbs%isorb_par(jproc)+iorb
           ijorb=(iiorb-1)*orbs%norb
           do jorb=1,op%noverlaps(iiorb)
@@ -2033,7 +2033,7 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
   mad%keygline=0
   mad%keyg=0
   do jproc=0,nproc-1
-      do iorb=1,orbs%norb_par(jproc)
+      do iorb=1,orbs%norb_par(jproc,0)
           iiorb=orbs%isorb_par(jproc)+iorb
           ijorb=(iiorb-1)*orbs%norb
           do jorb=1,op%noverlaps(iiorb)

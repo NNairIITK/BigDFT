@@ -224,7 +224,7 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
         do iat=1,at%nat
            istart_c=1
            call atom_projector(ikpt,iat,0,istart_c,iproj,&
-                lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+                lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
 
            !apply the projector to all the orbitals belonging to the processor
            ispsi=ispsi_k

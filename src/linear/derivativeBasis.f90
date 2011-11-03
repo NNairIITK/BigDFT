@@ -36,7 +36,7 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
   ! If each orbital has the same number of orbitals, this is never required.
   repartition=.false.
   do jproc=1,nproc-1
-     if(lin%orbs%norb_par(jproc)/=lin%orbs%norb_par(jproc-1)) then 
+     if(lin%orbs%norb_par(jproc,0)/=lin%orbs%norb_par(jproc-1,0)) then 
          repartition=.true.
          exit
      end if
@@ -305,9 +305,9 @@ call memocc(istat, move, 'move', subname)
 kproc=0
 korb=0
 do jproc=0,nproc-1
-    do jorb=1,4*lin%orbs%norb_par(jproc)
+    do jorb=1,4*lin%orbs%norb_par(jproc,0)
         korb=korb+1
-        if(korb>lin%lb%orbs%norb_par(kproc)) then
+        if(korb>lin%lb%orbs%norb_par(kproc,0)) then
             kproc=kproc+1
             korb=1
         end if
@@ -328,7 +328,7 @@ call memocc(istat, lin%lb%comrp%comarr, 'lin%lb%comrp%comarr', subname)
 ! Determine the indices of starting and receive buffer.
 do jproc=0,nproc-1
     istsource=1
-    do jorb=1,4*lin%orbs%norb_par(jproc)
+    do jorb=1,4*lin%orbs%norb_par(jproc,0)
         jjorb=ceiling(dble(jorb)/4.d0)
         jlr=lin%orbs%inWhichLocreg(jjorb+lin%orbs%isorb_par(jproc))
         mpisource=jproc
@@ -378,7 +378,7 @@ nsends=0
 nreceives=0
 comrp%communComplete=.false.
 do jproc=0,nproc-1
-    do jorb=1,4*orbs%norb_par(jproc)
+    do jorb=1,4*orbs%norb_par(jproc,0)
         mpisource=comrp%comarr(1,jorb,jproc)
         istsource=comrp%comarr(2,jorb,jproc)
         ncount=comrp%comarr(3,jorb,jproc)
@@ -458,7 +458,7 @@ nfast=0
 nsameproc=0
 testLoop: do
     do jproc=0,nproc-1
-        do jorb=1,4*orbs%norb_par(jproc)
+        do jorb=1,4*orbs%norb_par(jproc,0)
             if(comrp%communComplete(jorb,jproc)) cycle
             call mpi_test(comrp%comarr(7,jorb,jproc), sendComplete, stat, ierr)
             call mpi_test(comrp%comarr(8,jorb,jproc), receiveComplete, stat, ierr)
@@ -487,7 +487,7 @@ call mpiallred(comrp%communComplete(1,0), nproc*4*maxval(orbs%norb_par), mpi_lan
 ! Wait for the communications that have not completed yet
 nslow=0
 do jproc=0,nproc-1
-    do jorb=1,4*orbs%norb_par(jproc)
+    do jorb=1,4*orbs%norb_par(jproc,0)
         if(comrp%communComplete(jorb,jproc)) then
             mpisource=comrp%comarr(1,jorb,jproc)
             mpidest=comrp%comarr(4,jorb,jproc)

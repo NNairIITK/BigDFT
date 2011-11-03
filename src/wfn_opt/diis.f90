@@ -443,16 +443,16 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
 END SUBROUTINE mix_rhopot
 
 
-subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
+subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psimix
   implicit none
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc,nproc,ndim_psi
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
   type(diis_objects), intent(inout) :: diis
-  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
+  real(wp), dimension(ndim_psi), intent(inout) :: psit,hpsit
   !real(wp), dimension(:), pointer :: psit,hpsit
   !local variables
   integer :: ikptp,nvctrp,ispsi,ispsidst,ikpt

@@ -1218,7 +1218,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   iiorb=0
   orbs%isorb_par=0
   do jproc=0,nproc-1
-      do iorb=1,orbs%norb_par(jproc)
+      do iorb=1,orbs%norb_par(jproc,0)
           iiorb=iiorb+1
           orbs%onWhichMPI(iiorb)=jproc
       end do

@@ -912,12 +912,12 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 !       At last, fill the wavefunction descriptors
 !       Coarse part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+          Glr%wfd%nseg_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
           Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c,&
           Olr(index)%wfd%keyg(1,1),Olr(index)%wfd%keyv(1))
 !       Fine part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+          Glr%wfd%nseg_f,&
           Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f,&
@@ -1202,12 +1202,12 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 !       At last, fill the wavefunction descriptors
 !       Coarse part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+          Glr%wfd%nseg_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
           Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c,&
           Olr(index)%wfd%keyg(1,1),Olr(index)%wfd%keyv(1))
 !       Fine part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+          Glr%wfd%nseg_f,&
           Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f,&

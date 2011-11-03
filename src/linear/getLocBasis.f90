@@ -1984,7 +1984,7 @@ is3=0
 ie3=0
 iiorb=0
 do jproc=0,nproc-1
-    do iorb=1,orbs%norb_par(jproc)
+    do iorb=1,orbs%norb_par(jproc,0)
         
         iiorb=iiorb+1 
         ilr=onWhichAtomAll(iiorb)

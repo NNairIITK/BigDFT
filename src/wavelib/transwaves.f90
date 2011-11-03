@@ -206,7 +206,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
 
 
      call switch_waves_v(nproc,orbs,&
-          Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par,psi,work)
+          Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
 
 
      call timing(iproc,'Un-TransSwitch','OF')

@@ -355,7 +355,7 @@ call memocc(i_stat,displs,'displs',subname)
 
 displs(0)=0
 do jproc=0,nproc-1
-    sendcounts(jproc)=2*4*7*3*4*at%nat*linorbs%norb_par(jproc)*linorbs%nspinor
+    sendcounts(jproc)=2*4*7*3*4*at%nat*linorbs%norb_par(jproc,0)*linorbs%nspinor
     if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
 end do
 call mpi_allgatherv(scalprod, sendcounts(iproc), mpi_double_precision, &

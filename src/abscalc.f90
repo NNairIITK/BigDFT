@@ -518,7 +518,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   !allocate communications arrays
   !call allocate_comms(nproc,orbs,comms,subname)
-  call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)
+  !call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)
 
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
