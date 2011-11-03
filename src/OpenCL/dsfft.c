@@ -320,7 +320,7 @@ void build_fft_programs(cl_context * context){
     fft_code * c;
     if(fft_size[0]!=0){
       c = generate_fft_program(fft_size[0],&infos);
-      printf("%s\n",c->code);
+      //printf("%s\n",c->code);
       fftProgramd0 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd0!");
       ciErrNum = clBuildProgram(fftProgramd0, 0, NULL, "-cl-mad-enable", NULL, NULL);
