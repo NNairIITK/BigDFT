@@ -157,6 +157,11 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size, struct bigdft_devic
   generate_kernel(program,fft_size,radixes,true,false,false,false,false,infos);
   generate_kernel(program,fft_size,radixes,true,false,false,true,false,infos);
   generate_kernel(program,fft_size,radixes,false,true,false,false,false,infos);
+  generate_kernel(program,fft_size,radixes,false,false,false,false,true,infos);
+  generate_kernel(program,fft_size,radixes,false,false,true,false,true,infos);
+  generate_kernel(program,fft_size,radixes,true,false,false,false,true,infos);
+  generate_kernel(program,fft_size,radixes,true,false,false,true,true,infos);
+  generate_kernel(program,fft_size,radixes,false,true,false,false,true,infos);
  
   output->code = (char *)malloc((program.str().size()+1)*sizeof(char));
   strcpy(output->code, program.str().c_str());
