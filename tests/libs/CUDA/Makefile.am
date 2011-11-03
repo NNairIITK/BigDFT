@@ -11,7 +11,7 @@ CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 AM_FCFLAGS = -I$(top_builddir)/src/modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 
 conv_check_SOURCES = $(top_builddir)/src/CUDA/conv_check.f90  $(top_builddir)/src/CUDA/timing.c
-conv_check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+conv_check_LDADD = @LIBS_DEPENDENCIES@
 
 conv_check.out: conv_check
 	echo 1 64 64 2048 2048 2 > fort.1
