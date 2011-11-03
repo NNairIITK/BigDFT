@@ -7,28 +7,28 @@ EXTRA_PROGRAMS = conv_check \
 
 CLEANFILES = $(EXTRA_PROGRAMS)
 
-AM_FCFLAGS = -I../modules -I../PSolver @MPI_INCLUDE@ -I. -I$(srcdir)
+AM_FCFLAGS = -I../modules -I../PSolver @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ -I. -I$(srcdir)
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
 AM_CXXFLAGS = -Wall -Werror
 
 conv_check_SOURCES = conv_check.f90
-conv_check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+conv_check_LDADD = @LIBS_DEPENDENCIES@
 
 conv_check_fft_SOURCES = conv_check_fft.f90
-conv_check_fft_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+conv_check_fft_LDADD = @LIBS_DEPENDENCIES@
 
 stream_check_SOURCES = Stream.c StreamCheck.c
-stream_check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+stream_check_LDADD = @LIBS_DEPENDENCIES@
 
 bench_conv_SOURCES = bench_conv.c bench_lib.c
-bench_conv_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+bench_conv_LDADD = @LIBS_DEPENDENCIES@
 
 bench_conv_quick_SOURCES = bench_conv_quick.c bench_lib.c
-bench_conv_quick_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+bench_conv_quick_LDADD = @LIBS_DEPENDENCIES@
 
 bench_zgemm_SOURCES = bench_zgemm.c bench_lib.c
-bench_zgemm_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+bench_zgemm_LDADD = @LIBS_DEPENDENCIES@
 
 stream: stream_check
 	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='$(srcdir)/profile.conf' ./stream_check

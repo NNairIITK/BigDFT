@@ -171,7 +171,7 @@ else
 minima_hopping_sources =
 endif
 global_SOURCES = # Should be global.f90, but see below.
-global_LDADD = $(binaries_libs)
+global_LDADD = @LIBS_DEPENDENCIES@
 # Hack to avoid global.f90 inclusion into make dist.
 am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
@@ -313,44 +313,38 @@ libbigdft_a_SOURCES = \
 	$(high_level)
 libbigdft_a_LIBADD = $(modules_objects) 
 
-binaries_libs = libbigdft.a @LIBS_DEPENDENCIES@
-
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = $(binaries_libs)
+bigdft_LDADD = @LIBS_DEPENDENCIES@
 
 splsad_SOURCES = splinedsaddle.f90
-splsad_LDADD =  $(binaries_libs)
+splsad_LDADD = @LIBS_DEPENDENCIES@
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
-rism_LDADD =  $(binaries_libs)
+rism_LDADD = @LIBS_DEPENDENCIES@
 
 oneatom_SOURCES = oneatom.f90
-oneatom_LDADD =  $(binaries_libs)
+oneatom_LDADD = @LIBS_DEPENDENCIES@
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
-BigDFT2Wannier_LDADD = $(binaries_libs)
+BigDFT2Wannier_LDADD = @LIBS_DEPENDENCIES@
 
 MDanalysis_SOURCES = distances.f90
-MDanalysis_LDADD = $(binaries_libs)  
+MDanalysis_LDADD = @LIBS_DEPENDENCIES@ 
 
 abscalc_SOURCES = abscalc.f90
-abscalc_LDADD = $(binaries_libs)
+abscalc_LDADD = @LIBS_DEPENDENCIES@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = $(binaries_libs) 
+test_forces_LDADD = @LIBS_DEPENDENCIES@
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = $(binaries_libs)
+NEB_LDADD = @LIBS_DEPENDENCIES@
 
-memguess_SOURCES = memguess.f90 MPIfake.f90 \
-	$(high_level) $(low_level) $(c_level)
-memguess_LDADD = $(modules_objects) @LIBS_DEPENDENCIES@
-memguess$(EXEEXT): $(memguess_OBJECTS) $(memguess_DEPENDENCIES) 
-	@rm -f memguess$(EXEEXT)
-	$(FCLINK) $(memguess_OBJECTS) $(memguess_LDADD) $(LIBS)
+memguess_SOURCES = memguess.f90 MPIfake.f90
+memguess_LDADD = @LIBS_DEPENDENCIES@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = $(binaries_libs)
+frequencies_LDADD = @LIBS_DEPENDENCIES@
 
 bart_SOURCES = \
         art/bigdft_forces.f90 \
@@ -368,7 +362,7 @@ bart_SOURCES = \
         art/read_parameters.f90 \
         art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-bart_LDADD = art/libart.a $(binaries_libs)
+bart_LDADD = art/libart.a @LIBS_DEPENDENCIES@
 
 CLEANFILES = *.@MODULE_EXT@
 

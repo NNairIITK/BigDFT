@@ -16,10 +16,10 @@ CLEANFILES = op2p_check.out kpts_check.out\
 AM_FCFLAGS = -I../../src/modules -I../../src/ @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ 
 
 op2p_check_SOURCES = mpi_layer.f90 example.f90 
-op2p_check_LDADD =  $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+op2p_check_LDADD = @LIBS_DEPENDENCIES@
 
 kpts_check_SOURCES = kpts_check.f90
-kpts_check_LDADD =  $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+kpts_check_LDADD = @LIBS_DEPENDENCIES@
 
 
 
