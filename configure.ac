@@ -299,7 +299,8 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
     fi
   fi
   AC_SUBST(NVCC_FLAGS)
-  LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas"
+  LIBCUDA_LIBS="-lcudart -lcublas"
+  LDFLAGS="$LDFLAGS -L$ac_cuda_lib_path"
 fi
 
 dnl Use the OpenCL support
@@ -337,7 +338,8 @@ if test x"$ac_use_ocl" = "xyes" ; then
       AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
       ac_use_ocl="no"
     else
-      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lstdc++"
+      LDFLAGS="$LDFLAGS -L$ac_ocl_path/lib"
+      LIBOCL_LIBS="-lOpenCL -lm -lstdc++"
     fi
     LIBS=$LIBS_OLD
   fi
@@ -518,7 +520,7 @@ withblas=no
 if test "$blas" = "yes" ; then
   AC_CHECK_LIB(blas, dcopy, withblas=yes, withblas=no)
   if test "$withblas" = "yes"; then
-    LIBS="-lblas $LIBS"
+    LINALG_LIBS="-lblas"
   fi
 fi
 
@@ -534,7 +536,7 @@ withlapack=no
 if test "$lapack" = "yes" ; then
   AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no)
   if test "$withlapack" = "yes"; then
-    LIBS="-llapack $LIBS"
+    LINALG_LIBS="-llapack $LINALG_LIBS"
   fi
 fi
 
@@ -669,7 +671,8 @@ AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS $LIB_ARCHIVE_LIBS -lrt $MPI_LDFLAGS $MPI_LIBS"
+LIBS_DEPENDENCIES="\$(top_builddir)/src/PSolver/libpoissonsolver.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS -lrt $MPI_LDFLAGS $MPI_LIBS"
+AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 
 dnl Test for the documentation.
@@ -756,7 +759,7 @@ Basics:
   Fortran77 compiler:        $F77
   Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
-  Linked libraries:          $LIBS
+  Linked libraries:          $LIBS_DEPENDENCIES $LIBS
 
 Build:
   Library ABINIT:            $ac_build_lib_ABINIT

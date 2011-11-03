@@ -41,7 +41,7 @@ H2O-bader.post-in :
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
 dev/toy_model: $(srcdir)/dev/toy_model.f90
-	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft  -L$(top_builddir)/src/PSolver -lpoissonsolver $(LDFLAGS) $(LIBS)
+	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft $(LDFLAGS) @LIBS_DEPENDENCIES@
 toy_model.dat.out: dev-N2.out.out toy_model
 	./toy_model > toy_model.dat.out
 dev.post-clean:

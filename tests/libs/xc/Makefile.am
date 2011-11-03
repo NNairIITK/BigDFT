@@ -9,8 +9,7 @@ CLEANFILES = xc.out xc.tmp.* xc.report
 check_PROGRAMS = test_xc
 
 test_xc_SOURCES = test_xc.f90 
-test_xc_LDADD = -lbigdft -labinit -lbigdft
-test_xc_LDFLAGS = -L$(top_builddir)/src
+test_xc_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 AM_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ 
 

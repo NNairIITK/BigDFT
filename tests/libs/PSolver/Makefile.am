@@ -33,17 +33,14 @@ check_PROGRAMS = PS_Check PS_Program PS_Exercise
 AM_FCFLAGS = -I$(top_builddir)/src/modules -I$(top_builddir)/src/PSolver @MPI_INCLUDE@ -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = $(top_builddir)/src/PSolver/libpoissonsolver.a \
-		 $(top_builddir)/src/libbigdft.a
+PS_Check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 
 PS_Program_SOURCES = PS_Program.f90
-PS_Program_LDADD = $(top_builddir)/src/PSolver/libpoissonsolver.a \
-		   $(top_builddir)/src/libbigdft.a
+PS_Program_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 PS_Exercise_SOURCES = PS_Exercise.f90
-PS_Exercise_LDADD = $(top_builddir)/src/PSolver/libpoissonsolver.a \
-		    $(top_builddir)/src/libbigdft.a
+PS_Exercise_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 CLEANFILES = malloc.prc time.prc PS_Check.out fldiff.report \
 	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@ \

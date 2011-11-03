@@ -40,7 +40,7 @@ else
 sub_dirs_ps = 
 endif
 if BUILD_LIB_BIGDFT
-lib_bigdft = libbigdft.a
+lib_bigdft = libbigdft.a libdft_common.a
 if CAPITALIZE
 mod_bigdft = BIGDFT_API.@MODULE_EXT@ 
 else
@@ -300,8 +300,10 @@ low_level = init/projectors.f90  \
 
 # C objects
 c_level = posfiles.c \
-	utils.c \
 	$(CUDA_SOURCES)
+
+libdft_common_a_SOURCES = \
+	utils.c
 
 libbigdft_a_SOURCES = \
 	BigDFT_API.f90 \
@@ -311,7 +313,7 @@ libbigdft_a_SOURCES = \
 	$(high_level)
 libbigdft_a_LIBADD = $(modules_objects) 
 
-binaries_libs = libbigdft.a PSolver/libpoissonsolver.a
+binaries_libs = libbigdft.a @LIBS_DEPENDENCIES@
 
 bigdft_SOURCES = BigDFT.f90
 bigdft_LDADD = $(binaries_libs)
@@ -342,7 +344,7 @@ NEB_LDADD = $(binaries_libs)
 
 memguess_SOURCES = memguess.f90 MPIfake.f90 \
 	$(high_level) $(low_level) $(c_level)
-memguess_LDADD = $(modules_objects) PSolver/libpoissonsolver.a
+memguess_LDADD = $(modules_objects) @LIBS_DEPENDENCIES@
 memguess$(EXEEXT): $(memguess_OBJECTS) $(memguess_DEPENDENCIES) 
 	@rm -f memguess$(EXEEXT)
 	$(FCLINK) $(memguess_OBJECTS) $(memguess_LDADD) $(LIBS)
