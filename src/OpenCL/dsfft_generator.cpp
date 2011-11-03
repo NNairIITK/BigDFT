@@ -95,7 +95,7 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
   jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
   jgt = jg - jl + jlt;\n";
   for(unsigned int i=0; i<elem_per_thread; i++){
-    program<<"  tmp1[ilt+"<<i<<"*get_local_size(0)][jlt] = ilt + "<<i<<"*get_local_size(0) < "<<fft_size<<" ? ";
+    program<<"  tmp1[ilt+"<<i<<"*get_local_size(0)][jlt] = ilt + "<<i<<"*get_local_size(0) < "<<((free && !reverse) ? fft_size/2 : fft_size)<<" ? ";
     if( r2c ) program<<"(double2)( ";
     program<<"psi[jgt + ( ilt + "<<i<<"*get_local_size(0) ) * ndat]";
     if( r2c ) program<<", 0.0)";
@@ -124,7 +124,7 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
      tmp=out; out=in; in=tmp;
   }
   for(unsigned int i=0; i<elem_per_thread; i++){
-    program<<"  if(get_local_size(0)*"<<i<<"+il < "<<fft_size<<")\n";
+    program<<"  if(get_local_size(0)*"<<i<<"+il < "<<((free && reverse) ? fft_size/2 : fft_size)<<")\n";
     program<<"    out[jg*"<<fft_size<<"+get_local_size(0)*"<<i<<"+il] = "<<in<<"[get_local_size(0)*"<<i<<"+il][jl]";
     if( c2r ) program<<".x";
     if( k ) program<<"*k[jg*"<<fft_size<<"+get_local_size(0)*"<<i<<"+il]";
