@@ -214,22 +214,26 @@ AM_CONDITIONAL(USE_MINIMA_HOPPING, test "$ac_build_bin_minima_hopping" = "yes")
 
 dnl Use the dgemmsy
 ac_use_dgemmsy="no"
+DGEMMSY_CPPFLAGS=
 AC_ARG_ENABLE(dgemmsy, AS_HELP_STRING([--enable-dgemmsy], [Use dgemmsy (disabled by default).]),
                          ac_use_dgemmsy=$enableval, ac_use_dgemmsy="no")
 if test x"$ac_use_dgemmsy" = "xyes" ; then
   AC_LANG_PUSH(C)
 
+  DGEMMSY_CPPFLAGS="-msse3"
   CPPFLAGS_SVG=$CPPFLAGS
-  CPPFLAGS="$CPPFLAGS -msse3"
+  CPPFLAGS="$CPPFLAGS $DGEMMSY_CPPFLAGS"
   AC_CHECK_HEADER([pmmintrin.h],
                   [ac_use_dgemmsy="yes"],
                   [ac_use_dgemmsy="no"])
   CPPFLAGS=$CPPFLAGS_SVG
   AC_LANG_POP(C)
   if test "$ac_use_dgemmsy" = "no"; then
+    DGEMMSY_CPPFLAGS=
     AC_MSG_WARN(["No SSE header found, dgemmsy disabled."])
   fi
 fi
+AC_SUBST(DGEMMSY_CPPFLAGS)
 AM_CONDITIONAL(USE_DGEMMSY, test "$ac_use_dgemmsy" = "yes")
 
 
@@ -295,7 +299,8 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
     fi
   fi
   AC_SUBST(NVCC_FLAGS)
-  LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas"
+  LIBCUDA_LIBS="-lcudart -lcublas"
+  LDFLAGS="$LDFLAGS -L$ac_cuda_lib_path"
 fi
 
 dnl Use the OpenCL support
@@ -323,6 +328,8 @@ if test x"$ac_use_ocl" = "xyes" ; then
   else
     OCL_INCLUDE_PATH=$ac_ocl_path"/include"
     AC_SUBST(OCL_INCLUDE_PATH)
+    OCL_INCLUDE="-I"$ac_ocl_path"/include"
+    AC_SUBST(OCL_INCLUDE)
     dnl Now test for the library.
     LIBS_OLD=$LIBS
     LIBS="-L$ac_ocl_path/lib $LIBS"
@@ -331,8 +338,8 @@ if test x"$ac_use_ocl" = "xyes" ; then
       AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
       ac_use_ocl="no"
     else
-dnl      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
-      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt"
+      LDFLAGS="$LDFLAGS -L$ac_ocl_path/lib"
+      LIBOCL_LIBS="-lOpenCL -lm -lstdc++"
     fi
     LIBS=$LIBS_OLD
   fi
@@ -513,7 +520,7 @@ withblas=no
 if test "$blas" = "yes" ; then
   AC_CHECK_LIB(blas, dcopy, withblas=yes, withblas=no)
   if test "$withblas" = "yes"; then
-    LIBS="-lblas $LIBS"
+    LINALG_LIBS="-lblas"
   fi
 fi
 
@@ -529,7 +536,7 @@ withlapack=no
 if test "$lapack" = "yes" ; then
   AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no)
   if test "$withlapack" = "yes"; then
-    LIBS="-llapack $LIBS"
+    LINALG_LIBS="-llapack $LINALG_LIBS"
   fi
 fi
 
@@ -624,6 +631,7 @@ if test x"$ac_use_libabinit" = x"yes" ; then
   LIBABINIT_LIBS="-labinit"
 fi
 
+dnl Test S_GPU library.
 ac_build_libsgpu="no"
 ac_use_libsgpu="no"
 AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
@@ -636,7 +644,7 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   if test "$ac_internal_sgpu" = "yes" ; then
     ac_build_libsgpu="yes"
     ac_use_libsgpu="yes"
-    AC_SUBST(LIBSGPU_INCLUDE, "-I\$(top_srcdir)"/S_GPU/src)
+    AC_SUBST(LIBSGPU_INCLUDE, "-DCUBLAS_USE_THUNKING -I\$(top_srcdir)"/S_GPU/src)
   else
     if test -n "$ac_libsgpu_dir" ; then
       LDFLAGS="$LDFLAGS -L$ac_libsgpu_dir/lib"
@@ -646,7 +654,7 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
       AC_CHECK_FILE($ac_libsgpu_dir/include/s_gpu.h, header="yes", header="no")
       if test "$withsgpu" = "yes" -a "$header" = "yes" ; then
         ac_use_libsgpu="yes"
-        AC_SUBST(LIBSGPU_INCLUDE, "-I"$ac_libsgpu_dir/include)
+        AC_SUBST(LIBSGPU_INCLUDE, "-DCUBLAS_USE_THUNKING -I"$ac_libsgpu_dir/include)
       fi
     fi
   fi
@@ -663,7 +671,8 @@ AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS $LIB_ARCHIVE_LIBS -lrt"
+LIBS_DEPENDENCIES="\$(top_builddir)/src/PSolver/libpoissonsolver.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS -lrt $MPI_LDFLAGS $MPI_LIBS"
+AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 
 dnl Test for the documentation.
@@ -699,12 +708,9 @@ src/bigdft-tool
 src/Makefile
 src/modules/Makefile
 src/modules/configure.inc
-src/profiling/Makefile
 src/PSolver/Makefile
-src/convolutions/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
-src/dgemmsy/Makefile
 src/convolutions-c/Makefile
 src/art/Makefile
 src/tools/Makefile
@@ -753,7 +759,7 @@ Basics:
   Fortran77 compiler:        $F77
   Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
-  Linked libraries:          $LIBS
+  Linked libraries:          $LIBS_DEPENDENCIES $LIBS
 
 Build:
   Library ABINIT:            $ac_build_lib_ABINIT

@@ -29,23 +29,7 @@ else
 module_DATA = poisson_solver.@MODULE_EXT@
 endif
 
-
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-
-
-if USE_MPI
-mpi_source =
-LMPI = @MPI_LDFLAGS@ 
-else
-mpi_source = ../MPIfake.f90
-LMPI = 
-endif
-
-if USE_CUDA_GPU
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas ../CUDA/libGPU.a 
-else
-libs_cuda=
-endif
 
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 \

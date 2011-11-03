@@ -284,9 +284,10 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   !
   !   compute H|v> => hv, <v|H|v> => e(:,1) and <v|P|v> => e(:,2)
   !
-  call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
-       pkernel,orbs,psirocc) ! optional arguments
+  stop 'Update HamiltonianApplication call'
+!!$  call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$       pkernel,orbs,psirocc) ! optional arguments
   ! 
   !transpose  v and hv
   !
