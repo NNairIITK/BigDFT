@@ -560,9 +560,10 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      !
      ! apply hamiltonian on gradients
      !
-     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
-          pkernel,orbs,psirocc) 
+     stop 'Luigi should work here.'
+     !call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+     !     nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+     !     pkernel,orbs,psirocc) 
      !
      ! transpose  g and hg and Pg (v, hv and Pv are already transposed)
      !
@@ -810,9 +811,10 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      !
      !   compute H|v> => hv 
      !
-     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
-          pkernel,orbs,psirocc)
+     stop 'Here again'
+     !call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+     !     nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+     !     pkernel,orbs,psirocc)
      if(iproc==0)write(*,'(1x,a)')"done."
      ! 
      !transpose  v and hv
@@ -936,7 +938,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   deallocate(g,stat=i_stat)
   call memocc(i_stat,i_all,'g',subname)
 
-  call free_full_otential(nproc,pot,subname)
+  call free_full_potential(nproc,pot,subname)
 
   i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
   deallocate(ndimovrlp,stat=i_stat)

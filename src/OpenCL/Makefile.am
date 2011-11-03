@@ -10,6 +10,7 @@ CLEANFILES = $(EXTRA_PROGRAMS)
 AM_FCFLAGS = -I../modules -I../PSolver @MPI_INCLUDE@ -I. -I$(srcdir)
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
+AM_CXXFLAGS = -Wall -Werror
 
 conv_check_SOURCES = conv_check.f90
 conv_check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
