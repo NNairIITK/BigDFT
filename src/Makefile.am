@@ -14,6 +14,7 @@ module_DATA     = $(mod_bigdft)
 # Sub-directories.
 # ---------------
 SUBDIRS = modules \
+	PSolver \
 	$(sub_dirs_libconfig) \
 	art \
 	$(sub_dirs_cuda) \
@@ -48,23 +49,18 @@ EXTRA_DIST = \
 # -------------
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft.a libdft_common.a
-if CAPITALIZE
-mod_bigdft = BIGDFT_API.@MODULE_EXT@ 
-else
-mod_bigdft = bigdft_api.@MODULE_EXT@ 
-endif
-PS_SOURCES = PSolver/Poisson_Solver.f90 \
-	PSolver/Build_Kernel.f90 \
+PS_SOURCES = PSolver/Build_Kernel.f90 \
 	PSolver/xcenergy.f90 \
 	PSolver/3Dgradient.f90 \
 	PSolver/scaling_function.f90 \
 	PSolver/PSolver_Base_new.f90 \
 	PSolver/wofz.f90 \
 	lib/fft/fft3d.f90
+PS_MODULES = PSolver/Poisson_Solver.f90
 else
 lib_bigdft =
-mod_bigdft =
 PS_SOURCES =
+PS_MODULES =
 endif
 if BUILD_BINARIES
 binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
@@ -193,7 +189,7 @@ am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
-AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ \
+AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	-I$(srcdir)/PSolver -I$(srcdir)/wavelib -I$(srcdir)/convolutions \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
@@ -242,7 +238,9 @@ modules_source = modules/base.f90 \
 	modules/input.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
-	$(CUDA_MODULES)
+	modules/BigDFT_API.f90 \
+	$(CUDA_MODULES) \
+	$(PS_MODULES)
 modules_objects = $(modules_source:.f90=.o)
 
 #objects which depends from module_types
@@ -269,7 +267,9 @@ high_level = cluster.f90 \
 	tddft.f90
 
 #objects which can be compiled only with module_base
-low_level = init/projectors.f90  \
+low_level = \
+	$(PS_SOURCES) \
+	init/projectors.f90  \
 	init/ionicpot.f90 \
 	init/gridmanipulation.f90 \
 	init/gauprod.f90 \
@@ -312,8 +312,7 @@ low_level = init/projectors.f90  \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \
-	$(getarg_files) \
-	$(PS_SOURCES)
+	$(getarg_files)
 
 # C objects
 c_level = posfiles.c \
@@ -323,7 +322,6 @@ libdft_common_a_SOURCES = \
 	utils.c
 
 libbigdft_a_SOURCES = \
-	BigDFT_API.f90 \
 	$(mpi_source) \
 	$(c_level) \
 	$(low_level) \
@@ -364,21 +362,7 @@ memguess_LDADD = @LIBS_DEPENDENCIES@
 frequencies_SOURCES = frequencies.f90
 frequencies_LDADD = @LIBS_DEPENDENCIES@
 
-bart_SOURCES = \
-        art/bigdft_forces.f90 \
-        art/art_step.f90 \
-        art/calcforce.f90\
-        art/calcfo_sw.f90\
-        art/neighbour.f90\
-        art/initialize_potential.f90 \
-        art/art_lanczos.f90 \
-        art/find_saddle.f90 \
-        art/min_converge.f90 \
-        art/saddle_converge.f90 \
-        art/initialize.f90 \
-        art/bayes.f90 \
-        art/read_parameters.f90 \
-        art.f90
+bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a @LIBS_DEPENDENCIES@
 
@@ -394,82 +378,12 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-$(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT_API.o BigDFT.o test_forces.o  memguess.o global.o abscalc.o : $(mpi_include)  $(modules_objects)
+$(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o: $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 
-BigDFT_API.o : scfloop_API.o
-
-distances.o global.o rism.o oneatom.o BigDFT2Wannier.o : BigDFT_API.o
-
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
-#init.o : base.o interfaces.o
-
-#BigDFT_API.o: base.o types.o interfaces.o
-
-$(high_level:.f90=.o) : $(modules_objects)
-
-test_forces.o: $(mod_bigdft)
-
-$(mod_bigdft) : BigDFT_API.o
-
 $(modules_objects) : $(mpi_include)
-
-#BigDFT.o: \
-#	base.o \
-#	interfaces.o
-
-#memguess.o: base.o types.o
-
-# Dependencies for ART.
-bart-art.o: art.f90 art/defs.o art/random.o bart-art_lanczos.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art.o `test -f 'art.f90' || echo '$(srcdir)/'`art.f90
-
-bart-bigdft_forces.o: art/bigdft_forces.f90 BigDFT_API.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-bigdft_forces.o `test -f 'art/bigdft_forces.f90' || echo '$(srcdir)/'`art/bigdft_forces.f90
-
-bart-bayes.o: art/bayes.f90 art/defs.o art/random.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-bayes.o `test -f 'art/bayes.f90' || echo '$(srcdir)/'`art/bayes.f90
-
-bart-calcforce.o: art/calcforce.f90 art/defs.o bart-bigdft_forces.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-calcforce.o `test -f 'art/calcforce.f90' || echo '$(srcdir)/'`art/calcforce.f90
-
-bart-calcfo_sw.o: art/calcfo_sw.f90 art/defs.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-calcfo_sw.o `test -f 'art/calcfo_sw.f90' || echo '$(srcdir)/'`art/calcfo_sw.f90
-
-bart-neighbour.o: art/neighbour.f90 bart-calcfo_sw.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-neighbour.o `test -f 'art/neighbour.f90' || echo '$(srcdir)/'`art/neighbour.f90
-
-bart-find_saddle.o: art/find_saddle.f90 art/defs.o art/random.o bart-art_lanczos.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-find_saddle.o `test -f 'art/find_saddle.f90' || echo '$(srcdir)/'`art/find_saddle.f90
-
-bart-initialize_potential.o: art/initialize_potential.f90 art/defs.o bart-bigdft_forces.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-initialize_potential.o `test -f 'art/initialize_potential.f90' || echo '$(srcdir)/'`art/initialize_potential.f90
-
-bart-art_lanczos.o: art/art_lanczos.f90 art/defs.o art/random.o bart-bigdft_forces.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_lanczos.o `test -f 'art/art_lanczos.f90' || echo '$(srcdir)/'`art/art_lanczos.f90
-
-bart-min_converge.o: art/min_converge.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o bart-bayes.o bart-find_saddle.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-min_converge.o `test -f 'art/min_converge.f90' || echo '$(srcdir)/'`art/min_converge.f90
-
-bart-saddle_converge.o: art/saddle_converge.f90 art/defs.o bart-bigdft_forces.o bart-find_saddle.o bart-art_lanczos.o  bart-art_step.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-saddle_converge.o `test -f 'art/saddle_converge.f90' || echo '$(srcdir)/'`art/saddle_converge.f90
-
-bart-art_step.o: art/art_step.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o  bart-find_saddle.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_step.o `test -f 'art/art_step.f90' || echo '$(srcdir)/'`art/art_step.f90
-
-bart-initialize.o: art/initialize.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o bart-find_saddle.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-initialize.o `test -f 'art/initialize.f90' || echo '$(srcdir)/'`art/initialize.f90
-
-bart-read_parameters.o: art/read_parameters.f90 art/defs.o bart-art_lanczos.o bart-find_saddle.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-read_parameters.o `test -f 'art/read_parameters.f90' || echo '$(srcdir)/'`art/read_parameters.f90
-
-bart-utils.o: art/utils.f90 art/defs.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-utils.o `test -f 'art/utils.f90' || echo '$(srcdir)/'`art/utils.f90
-
-bart-write_refconfig.o: art/write_refconfig.f90 art/defs.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-write_refconfig.o `test -f 'art/write_refconfig.f90' || echo '$(srcdir)/'`art/write_refconfig.f90
-

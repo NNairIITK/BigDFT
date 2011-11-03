@@ -702,6 +702,7 @@ src/bigdft-tool
 src/Makefile
 src/modules/Makefile
 src/modules/configure.inc
+src/PSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
 src/convolutions-c/Makefile
