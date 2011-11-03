@@ -30,6 +30,11 @@ bench_conv_quick_LDADD = @LIBS_DEPENDENCIES@
 bench_zgemm_SOURCES = bench_zgemm.c bench_lib.c
 bench_zgemm_LDADD = @LIBS_DEPENDENCIES@
 
+$(EXTRA_PROGRAMS): lib.stamp
+
+lib.stamp:
+	cd ..; $(MAKE) libbigdft.a libdft_common.a
+
 stream: stream_check
 	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='$(srcdir)/profile.conf' ./stream_check
 
