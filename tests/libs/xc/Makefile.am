@@ -6,16 +6,10 @@ EXTRA_DIST = xc.out.ref
 
 CLEANFILES = xc.out xc.tmp.* xc.report
 
-if USE_CUDA_GPU
-libs_cuda=$(top_builddir)/src/CUDA/libGPU.a
-else
-libs_cuda=
-endif
-
 check_PROGRAMS = test_xc
 
 test_xc_SOURCES = test_xc.f90 
-test_xc_LDADD = -lbigdft $(libs_cuda) -labinit -lbigdft
+test_xc_LDADD = -lbigdft -labinit -lbigdft
 test_xc_LDFLAGS = -L$(top_builddir)/src
 
 AM_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ 

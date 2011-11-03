@@ -214,22 +214,26 @@ AM_CONDITIONAL(USE_MINIMA_HOPPING, test "$ac_build_bin_minima_hopping" = "yes")
 
 dnl Use the dgemmsy
 ac_use_dgemmsy="no"
+DGEMMSY_CPPFLAGS=
 AC_ARG_ENABLE(dgemmsy, AS_HELP_STRING([--enable-dgemmsy], [Use dgemmsy (disabled by default).]),
                          ac_use_dgemmsy=$enableval, ac_use_dgemmsy="no")
 if test x"$ac_use_dgemmsy" = "xyes" ; then
   AC_LANG_PUSH(C)
 
+  DGEMMSY_CPPFLAGS="-msse3"
   CPPFLAGS_SVG=$CPPFLAGS
-  CPPFLAGS="$CPPFLAGS -msse3"
+  CPPFLAGS="$CPPFLAGS $DGEMMSY_CPPFLAGS"
   AC_CHECK_HEADER([pmmintrin.h],
                   [ac_use_dgemmsy="yes"],
                   [ac_use_dgemmsy="no"])
   CPPFLAGS=$CPPFLAGS_SVG
   AC_LANG_POP(C)
   if test "$ac_use_dgemmsy" = "no"; then
+    DGEMMSY_CPPFLAGS=
     AC_MSG_WARN(["No SSE header found, dgemmsy disabled."])
   fi
 fi
+AC_SUBST(DGEMMSY_CPPFLAGS)
 AM_CONDITIONAL(USE_DGEMMSY, test "$ac_use_dgemmsy" = "yes")
 
 
@@ -625,6 +629,7 @@ if test x"$ac_use_libabinit" = x"yes" ; then
   LIBABINIT_LIBS="-labinit"
 fi
 
+dnl Test S_GPU library.
 ac_build_libsgpu="no"
 ac_use_libsgpu="no"
 AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
@@ -637,7 +642,7 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   if test "$ac_internal_sgpu" = "yes" ; then
     ac_build_libsgpu="yes"
     ac_use_libsgpu="yes"
-    AC_SUBST(LIBSGPU_INCLUDE, "-I\$(top_srcdir)"/S_GPU/src)
+    AC_SUBST(LIBSGPU_INCLUDE, "-DCUBLAS_USE_THUNKING -I\$(top_srcdir)"/S_GPU/src)
   else
     if test -n "$ac_libsgpu_dir" ; then
       LDFLAGS="$LDFLAGS -L$ac_libsgpu_dir/lib"
@@ -647,7 +652,7 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
       AC_CHECK_FILE($ac_libsgpu_dir/include/s_gpu.h, header="yes", header="no")
       if test "$withsgpu" = "yes" -a "$header" = "yes" ; then
         ac_use_libsgpu="yes"
-        AC_SUBST(LIBSGPU_INCLUDE, "-I"$ac_libsgpu_dir/include)
+        AC_SUBST(LIBSGPU_INCLUDE, "-DCUBLAS_USE_THUNKING -I"$ac_libsgpu_dir/include)
       fi
     fi
   fi
@@ -664,7 +669,7 @@ AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS $LIB_ARCHIVE_LIBS -lrt"
+LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS $LIB_ARCHIVE_LIBS -lrt $MPI_LDFLAGS $MPI_LIBS"
 
 
 dnl Test for the documentation.
@@ -700,9 +705,7 @@ src/bigdft-tool
 src/Makefile
 src/modules/Makefile
 src/modules/configure.inc
-src/profiling/Makefile
 src/PSolver/Makefile
-src/convolutions/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
 src/convolutions-c/Makefile

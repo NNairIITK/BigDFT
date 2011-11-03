@@ -6,21 +6,13 @@ else
 check_PROGRAMS = 
 endif
 
-if USE_MPI
-mpi_source =
-else
-mpi_source = $(top_builddir)/src/MPIfake.f90
-endif
-
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
 AM_FCFLAGS = -I$(top_builddir)/src/modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 
-conv_check_SOURCES = $(top_builddir)/src/CUDA/conv_check.f90  $(top_builddir)/src/CUDA/timing.c $(top_builddir)/src/modules/defs.F90 $(top_builddir)/src/modules/base.f90 $(mpi_source)
-conv_check_LDFLAGS = -lrt
+conv_check_SOURCES = $(top_builddir)/src/CUDA/conv_check.f90  $(top_builddir)/src/CUDA/timing.c
 conv_check_LDADD = $(top_builddir)/src/libbigdft.a \
-	$(top_builddir)/src/PSolver/libpoissonsolver.a \
-	$(top_builddir)/src/CUDA/libGPU.a
+	$(top_builddir)/src/PSolver/libpoissonsolver.a
 
 conv_check.out: conv_check
 	echo 1 64 64 2048 2048 2 > fort.1

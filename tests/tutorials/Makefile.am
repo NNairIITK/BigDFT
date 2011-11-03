@@ -2,14 +2,6 @@
 
 #SUBDIRS = Xabs/pawpatchgen  Xabs/scfpotgen   Xabs/spectra    
 
-#Flags for optimization libraries
-if USE_CUDA_GPU
-libs_cuda=$(top_builddir)/src/CUDA/libGPU.a
-else
-libs_cuda=
-endif
-libs_opt=$(libs_cuda)
-
 TESTDIRS = CH4 \
 	  CH3- \
 	  H2O-slab \
@@ -49,7 +41,7 @@ H2O-bader.post-in :
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
 dev/toy_model: $(srcdir)/dev/toy_model.f90
-	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft  -L$(top_builddir)/src/PSolver -lpoissonsolver $(libs_opt) $(LDFLAGS) $(LIBS)
+	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft  -L$(top_builddir)/src/PSolver -lpoissonsolver $(LDFLAGS) $(LIBS)
 toy_model.dat.out: dev-N2.out.out toy_model
 	./toy_model > toy_model.dat.out
 dev.post-clean:
