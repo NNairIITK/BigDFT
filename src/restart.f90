@@ -488,7 +488,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   end if
   !no spin polarization if nspin=1
   if (orbs%nspin==1) spintype='N'
-print *,'checking',present(iiorb)
+
   !calculate the actual orbital value
   iorb_out=iorb+orbs%isorb-(ikpt-1)*orbs%norb
   if(present(iiorb)) iorb_out = iiorb

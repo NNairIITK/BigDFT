@@ -2,6 +2,7 @@ program BigDFT2Wannier
 
    use BigDFT_API
    use Poisson_Solver
+   use module_interfaces
    implicit none
    character :: filetype*4
    !etsf
@@ -13,8 +14,8 @@ program BigDFT2Wannier
    type(workarr_sumrho) :: w
    type(communications_arrays), target :: comms, commsp,commsv,commsb
    integer :: iproc, nproc, i_stat, nelec, ind, ierr, npsidim, npsidim2
-   integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft
-   integer :: ncount0,ncount1,ncount_rate,ncount_max
+   integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3
+   integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3
    real :: tcpu0,tcpu1,tel
    real(kind=8) :: znorm,xnorm,ortho
    real(kind=8),parameter :: eps6=1.0d-6, eps8=1.0d-8
@@ -27,6 +28,7 @@ program BigDFT2Wannier
    real(wp), pointer :: pwork(:)!,sph_daub(:)
    character(len=60) :: radical, filename
    character(len=5) :: wfformat_read
+   logical :: perx, pery,perz
    !cube
    integer :: nx, ny, nz, nb, nb1, nb2, nk, inn
    integer, allocatable, dimension(:) :: Z
@@ -244,13 +246,14 @@ program BigDFT2Wannier
    allocate(amnk_bands_sorted(n_virt),stat=i_stat)
    call memocc(i_stat,amnk_bands_sorted,'amnk_bands_sorted',subname)
 
-   call split_vectors_for_parallel(iproc,nproc,n_virt_tot,orbsv)
-   call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
 
    call timing(iproc,'Precondition  ','OF')
    
    if ((pre_check .eqv. .true.) .and. n_virt_tot > 0) then
 
+      call split_vectors_for_parallel(iproc,nproc,n_virt_tot,orbsv)
+      call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv) 
+ 
 !!      call make_precheck(iproc,nproc,input,Glr,orbsv,commsv,orbsp,commsp,atoms,w,rxyz,n_proj,ctr_proj,&
 !!           x_proj,y_proj,z_proj,l,mr,rvalue,zona,amnk_bands_sorted,sph_daub)
 
@@ -320,15 +323,26 @@ program BigDFT2Wannier
             write(*,'(A12,4x,A15)') 'Virtual band', 'amnk_guess(nb)='
          end if
 
+         !calculate buffer shifts
+         perx=(Glr%geocode /= 'F')
+         pery=(Glr%geocode == 'P')
+         perz=(Glr%geocode /= 'F')
+         call ext_buffers(perx,nbl1,nbr1)
+         call ext_buffers(pery,nbl2,nbr2)
+         call ext_buffers(perz,nbl3,nbr3)
+         if(nbl1 > 0)nbl1 = nbl1 - 1
+         if(nbl2 > 0)nbl2 = nbl2 - 1
+         if(nbl3 > 0)nbl3 = nbl3 - 1   
+
          ! Calculation of the spherical harmonics in parallel.
          ! It is done in the real space and then converted in the Daubechies representation.
          pshft = 0
          do npp=1, orbsp%norbp
             np = npp + orbsp%isorb
             ! Convolution buffer : n1i=2*n1+31 -> explains the '13*input%hx*0.5' term
-            r0x=ctr_proj(np,1)*b1+13*input%hx*0.5
-            r0y=ctr_proj(np,2)*b2+13*input%hy*0.5
-            r0z=ctr_proj(np,3)*b3+13*input%hz*0.5
+            r0x=ctr_proj(np,1)*b1+nbl1*input%hx*0.5
+            r0y=ctr_proj(np,2)*b2+nbl2*input%hy*0.5
+            r0z=ctr_proj(np,3)*b3+nbl3*input%hz*0.5
             do k=1,nz
                zz=(k-1)*input%hz*0.5-r0z
                do j=1,ny
@@ -432,6 +446,7 @@ program BigDFT2Wannier
       i_all = -product(shape(amnk_guess))*kind(amnk_guess)
       deallocate(amnk_guess,stat=i_stat)
       call memocc(i_stat,i_all,'amnk_guess',subname)
+      call deallocate_comms(commsv,subname)
 
       if (iproc==0) then
          write(*,*) '!==================================!'
@@ -566,13 +581,24 @@ program BigDFT2Wannier
       call timing(iproc,'CrtProjectors ','ON')
       allocate(sph_daub(npsidim2), stat=i_stat)
       call memocc(i_stat,sph_daub,'sph_daub',subname)
+      !calculate buffer shifts
+      perx=(Glr%geocode /= 'F')
+      pery=(Glr%geocode == 'P')
+      perz=(Glr%geocode /= 'F')
+      call ext_buffers(perx,nbl1,nbr1)
+      call ext_buffers(pery,nbl2,nbr2)
+      call ext_buffers(perz,nbl3,nbr3)
+      if(nbl1 > 0)nbl1 = nbl1 - 1
+      if(nbl2 > 0)nbl2 = nbl2 - 1
+      if(nbl3 > 0)nbl3 = nbl3 - 1
+
       pshft = 0
       do npp=1, orbsp%norbp
          np=npp+orbsp%isorb
          ! Convolution buffer : n1i=2*n1+31 -> explains the '13*input%hx*0.5' term
-         r0x=ctr_proj(np,1)*b1+13*input%hx*0.5
-         r0y=ctr_proj(np,2)*b2+13*input%hy*0.5
-         r0z=ctr_proj(np,3)*b3+13*input%hz*0.5
+         r0x=ctr_proj(np,1)*b1+nbl1*input%hx*0.5
+         r0y=ctr_proj(np,2)*b2+nbl2*input%hy*0.5
+         r0z=ctr_proj(np,3)*b3+nbl3*input%hz*0.5
          do k=1,nz
             zz=(k-1)*input%hz*0.5-r0z
             do j=1,ny
@@ -733,6 +759,14 @@ program BigDFT2Wannier
    allocate(psi_daub_im(npsidim),stat=i_stat)
    call memocc(i_stat,psi_daub_im,'psi_daub_im',subname)
 
+   !calculate buffer shifts
+   perx=(Glr%geocode /= 'F')
+   pery=(Glr%geocode == 'P')
+   perz=(Glr%geocode /= 'F')
+   call ext_buffers(perx,nbl1,nbr1)
+   call ext_buffers(pery,nbl2,nbr2)
+   call ext_buffers(perz,nbl3,nbr3)
+
    ! Algorithm to compute the scalar product :
    do inn=1,n_kpts*n_nnkpts
       if (iproc==0) then
@@ -752,11 +786,11 @@ program BigDFT2Wannier
       do nb1=1,orbsb%norbp
          call daub_to_isf(Glr,w,psi_etsf(1,nb1),psir)
          do k=1,nz
-            zz=(k-14)*input%hz*0.5
+            zz=(k-nbl3)*input%hz*0.5
             do j=1,ny
-               yy=(j-14)*input%hy*0.5
+               yy=(j-nbl2)*input%hy*0.5
                do i=1,nx
-                  xx=(i-14)*input%hx*0.5
+                  xx=(i-nbl1)*input%hx*0.5
                   ind=(k-1)*ny*nx+(j-1)*nx+i
                   psir_re(ind)= psir(ind) * cos( 2*pi*(xx*G_vec(inn,1)/b1+yy*G_vec(inn,2)/b2+zz*G_vec(inn,3)/b3) )
                   psir_im(ind)=-psir(ind) * sin( 2*pi*(xx*G_vec(inn,1)/b1+yy*G_vec(inn,2)/b2+zz*G_vec(inn,3)/b3) )
@@ -893,7 +927,6 @@ program BigDFT2Wannier
    call deallocate_orbs(orbs,subname)
    call deallocate_comms(comms,subname)
    call deallocate_orbs(orbsv,subname)
-   call deallocate_comms(commsv,subname)
    call deallocate_orbs(orbsp,subname)
    call deallocate_comms(commsp,subname) 
    call deallocate_orbs(orbsb,subname)
@@ -3145,6 +3178,8 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    integer, dimension (n_virt), intent(in) :: virt_list
    character(len=5),intent(in) :: wfformat_read
    ! Local variables
+   logical :: perx,pery,perz
+   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
    integer :: nb, i, j, k, n_bands, ierr,i_stat
    character :: s_c*1, nk_c*3, seedname*10,filename*60
    character(len=*), parameter :: subname='write_unk_bin'
@@ -3216,20 +3251,29 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
       call memocc(i_stat,i_all,'orbsv%eval',subname)
    end if
 
-
+   !calculate buffer shifts
+   perx=(Glr%geocode /= 'F')
+   pery=(Glr%geocode == 'P')
+   perz=(Glr%geocode /= 'F')
+   call ext_buffers(perx,nbl1,nbr1)
+   call ext_buffers(pery,nbl2,nbr2)
+   call ext_buffers(perz,nbl3,nbr3)
+   if(nbr1 > 0) nbr1 = nbr1 + 2
+   if(nbr2 > 0) nbr2 = nbr2 + 2
+   if(nbr3 > 0) nbr3 = nbr3 + 2
 
    ! Writing the UNKnk.s file
    OPEN(12, FILE=seedname, STATUS='unknown')
    write(*,*) '!==================================!'
    write(*,*) '!      Writing a UNKnk.s file      !'
    write(*,*) '!==================================!'
-   write(12,'(I4,4(1X,I4))') nx-31, ny-31, nz-31, nk, n_bands
+   write(12,'(I4,4(1X,I4))') nx-(nbl1+nbr1), ny-(nbl2+nbr2), nz-(nbl3+nbr3), nk, n_bands
    do nb=1, n_bands
       ! Convert from Daubechies to cube
       call daub_to_isf(Glr,w,psi_etsf(1,nb),psir)
-      do k=15, nz-17
-         do j=15, ny-17
-            do i=15, nx-17
+      do k=nbl3+1, nz-nbr3
+         do j=nbl2+1, ny-nbr2
+            do i=nbl1+1, nx-nbr1
                ind=(k-1)*ny*nx+(j-1)*nx+i
                write(12,'(E13.6, 1X, E13.6)') psir(ind), 0.d0
             end do
