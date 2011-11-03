@@ -66,14 +66,20 @@ static void generate_buffer_size(std::stringstream &program, cl_uint fft_size, s
 #define BUFFER_DEPTH LINE_NUMBER+"<<(buffer_width>1?1:0)<<"\n";
 }
 
-static void generate_kernel(std::stringstream &program, cl_uint fft_size, std::list<unsigned int> &radixes, bool reverse, bool k,  struct bigdft_device_infos * infos){
+static void generate_kernel(std::stringstream &program, cl_uint fft_size, std::list<unsigned int> &radixes, bool reverse, bool k, bool r2c, bool c2r, struct bigdft_device_infos * infos){
   size_t block_size_i, block_size_j, elem_per_thread;
   fft_compute_sizes(infos, fft_size, &block_size_i, &block_size_j, &elem_per_thread);
   program<<"__kernel void fftKernel_";
   if( k ) program<<"k_";
   program<<fft_size;
   if( reverse ) program<<"_r";
-  program<<"_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out";
+  if( r2c ) program<<"_r2c";
+  if( c2r ) program<<"_c2r";
+  program<<"_d(uint n, uint ndat,";
+  if( r2c ) program<<" __global const double *psi,";
+  else program<<" __global const double2 *psi,";
+  if( c2r ) program<<" __global double *out";
+  else program<<" __global double2 *out";
   if( k ) program<<", __global const double *k";
   if(!use_constant_memory) program<<", __read_only image2d_t cosat";
   program<<"){\n\
@@ -87,8 +93,12 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
   ptrdiff_t jgt = get_group_id(1);\n\
   jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
   jgt = jg - jl + jlt;\n";
-  for(unsigned int i=0; i<elem_per_thread; i++)
-    program<<"  tmp1[ilt+"<<i<<"*get_local_size(0)][jlt] = ilt + "<<i<<"*get_local_size(0) < "<<fft_size<<" ? psi[jgt + ( ilt + "<<i<<"*get_local_size(0) ) * ndat] : 0.0;\n";
+  for(unsigned int i=0; i<elem_per_thread; i++){
+    program<<"  tmp1[ilt+"<<i<<"*get_local_size(0)][jlt] = ilt + "<<i<<"*get_local_size(0) < "<<fft_size<<" ? ";
+    if( r2c ) program<<"(double2)( psi[jgt + ( ilt + "<<i<<"*get_local_size(0) ) * ndat], 0.0)";
+    else program<<"psi[jgt + ( ilt + "<<i<<"*get_local_size(0) ) * ndat]";
+    program<<" : (double2)(0.0, 0.0);\n";
+  }
   program<<"  barrier(CLK_LOCAL_MEM_FENCE);\n";
 
   unsigned int A=1,B=fft_size;
@@ -98,7 +108,7 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
   for( it = radixes.begin(); it != radixes.end(); it++){
      B/=*it;
      for(unsigned int i=0; i<elem_per_thread; i++){
-       program<<"  radix"<<*it<<"m(jlt, (ilt+"<<i<<"*get_local_size(0)), "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out;
+       program<<"  radix"<<(*it)<<"m(jlt, (ilt+"<<i<<"*get_local_size(0)), "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out;
        if( reverse ){
          if(it == --(radixes.end()))
            program<<",-,*="<<(double)1/(double)fft_size<<");\n";
@@ -112,14 +122,14 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
      tmp=out; out=in; in=tmp;
   }
   for(unsigned int i=0; i<elem_per_thread; i++){
-    program<<"  if(get_local_size(0)*"<<i<<"+il < "<<fft_size<<")\n\
-      out[jg*"<<fft_size<<"+get_local_size(0)*"<<i<<"+il] = "<<in<<"[get_local_size(0)*"<<i<<"+il][jl]";
+    program<<"  if(get_local_size(0)*"<<i<<"+il < "<<fft_size<<")\n";
+    program<<"    out[jg*"<<fft_size<<"+get_local_size(0)*"<<i<<"+il] = "<<in<<"[get_local_size(0)*"<<i<<"+il][jl]";
+    if( c2r ) program<<".x";
     if( k ) program<<"*k[jg*"<<fft_size<<"+get_local_size(0)*"<<i<<"+il]";
     program<<";\n";
   }
   program<<"}\n";
 }
-
 
 extern "C" fft_code * generate_fft_program(cl_uint fft_size, struct bigdft_device_infos * infos){
   unsigned int available_rad[] = {2,3,5,7,11,13,17,19,23,29,31};
@@ -140,9 +150,11 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size, struct bigdft_devic
 
   generate_buffer_size(program,fft_size,infos);
 
-  generate_kernel(program,fft_size,radixes,false,false,infos);
-  generate_kernel(program,fft_size,radixes,true,false,infos);
-  generate_kernel(program,fft_size,radixes,false,true,infos);
+  generate_kernel(program,fft_size,radixes,false,false,false,false,infos);
+  generate_kernel(program,fft_size,radixes,false,false,true,false,infos);
+  generate_kernel(program,fft_size,radixes,true,false,false,false,infos);
+  generate_kernel(program,fft_size,radixes,true,false,false,true,infos);
+  generate_kernel(program,fft_size,radixes,false,true,false,false,infos);
  
   output->code = (char *)malloc((program.str().size()+1)*sizeof(char));
   strcpy(output->code, program.str().c_str());

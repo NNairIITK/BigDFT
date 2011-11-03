@@ -89,13 +89,13 @@ void FC_FUNC_(fft3d_d,FFT1D_D)(bigdft_command_queue *command_queue, cl_uint *dim
     fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_d, *command_queue, &n1, &ndat, tmp, out, &cossind0);
 }
 
-void FC_FUNC_(fft3d_k_d,FFT1D_K_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp,cl_mem *k){
+void FC_FUNC_(fft3d_k_r2c_d,FFT1D_K_R2C_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp,cl_mem *k){
     cl_uint n1 = dimensions[0];
     cl_uint n2 = dimensions[1];
     cl_uint n3 = dimensions[2];
     cl_uint ndat = n1 * n2;
     assert(fft_size[2]==n3);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_d, *command_queue, &n3, &ndat, psi, out, &cossind2);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_r2c_d, *command_queue, &n3, &ndat, psi, out, &cossind2);
     ndat = n1 * n3;
     assert(fft_size[1]==n2);
     fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_d, *command_queue, &n2, &ndat, out, tmp, &cossind1);
@@ -120,6 +120,21 @@ void FC_FUNC_(fft3d_r_d,FFT1D_R_D)(bigdft_command_queue *command_queue, cl_uint 
     fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_d, *command_queue, &n1, &ndat, tmp, out, &cossind0);
 }
 
+void FC_FUNC_(fft3d_r_c2r_d,FFT1D_R_C2R_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp){
+    cl_uint n1 = dimensions[0];
+    cl_uint n2 = dimensions[1];
+    cl_uint n3 = dimensions[2];
+    cl_uint ndat = n1 * n2;
+    assert(fft_size[2]==n3);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_r_d, *command_queue, &n3, &ndat, psi, out, &cossind2);
+    ndat = n1 * n3;
+    assert(fft_size[1]==n2);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_d, *command_queue, &n2, &ndat, out, tmp, &cossind1);
+    ndat = n2 * n3;
+    assert(fft_size[0]==n1);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_c2r_d, *command_queue, &n1, &ndat, tmp, out, &cossind0);
+}
+
 cl_program fftProgramd0;
 cl_program fftProgramd1;
 cl_program fftProgramd2;
@@ -133,9 +148,15 @@ void create_fft_kernels(struct bigdft_kernels * kernels){
     sprintf(kernel_name,"fftKernel_%u_d",fft_size[0]);
     kernels->fft_kernel_d0_d=clCreateKernel(fftProgramd0,kernel_name,&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create fftKernel_d0_d kernel!");
+    sprintf(kernel_name,"fftKernel_%u_r2c_d",fft_size[0]);
+    kernels->fft_kernel_d0_r2c_d=clCreateKernel(fftProgramd0,kernel_name,&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create fftKernel_d0_r2c_d kernel!");
     sprintf(kernel_name,"fftKernel_%u_r_d",fft_size[0]);
     kernels->fft_kernel_d0_r_d=clCreateKernel(fftProgramd0,kernel_name,&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create fftKernel_d0_r_d kernel!");
+    sprintf(kernel_name,"fftKernel_%u_r_c2r_d",fft_size[0]);
+    kernels->fft_kernel_d0_r_c2r_d=clCreateKernel(fftProgramd0,kernel_name,&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create fftKernel_d0_r_c2r_d kernel!");
     sprintf(kernel_name,"fftKernel_k_%u_d",fft_size[0]);
     kernels->fft_kernel_k_d0_d=clCreateKernel(fftProgramd0,kernel_name,&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create fftKernel_k_d0_d kernel!");
@@ -144,9 +165,15 @@ void create_fft_kernels(struct bigdft_kernels * kernels){
     sprintf(kernel_name,"fftKernel_%u_d",fft_size[1]);
     kernels->fft_kernel_d1_d=clCreateKernel(fftProgramd1,kernel_name,&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create fftKernel_d1_d kernel!");
+    sprintf(kernel_name,"fftKernel_%u_r2c_d",fft_size[1]);
+    kernels->fft_kernel_d1_r2c_d=clCreateKernel(fftProgramd1,kernel_name,&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create fftKernel_d1_r2c_d kernel!");
     sprintf(kernel_name,"fftKernel_%u_r_d",fft_size[1]);
     kernels->fft_kernel_d1_r_d=clCreateKernel(fftProgramd1,kernel_name,&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create fftKernel_d1_r_d kernel!");
+    sprintf(kernel_name,"fftKernel_%u_r_c2r_d",fft_size[1]);
+    kernels->fft_kernel_d1_r_c2r_d=clCreateKernel(fftProgramd1,kernel_name,&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create fftKernel_d1_r_c2r_d kernel!");
     sprintf(kernel_name,"fftKernel_k_%u_d",fft_size[1]);
     kernels->fft_kernel_k_d1_d=clCreateKernel(fftProgramd1,kernel_name,&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create fftKernel_k_d1_d kernel!");
@@ -155,9 +182,15 @@ void create_fft_kernels(struct bigdft_kernels * kernels){
     sprintf(kernel_name,"fftKernel_%u_d",fft_size[2]);
     kernels->fft_kernel_d2_d=clCreateKernel(fftProgramd2,kernel_name,&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create fftKernel_d2_d kernel!");
+    sprintf(kernel_name,"fftKernel_%u_r2c_d",fft_size[2]);
+    kernels->fft_kernel_d2_r2c_d=clCreateKernel(fftProgramd2,kernel_name,&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create fftKernel_d2_r2c_d kernel!");
     sprintf(kernel_name,"fftKernel_%u_r_d",fft_size[2]);
     kernels->fft_kernel_d2_r_d=clCreateKernel(fftProgramd2,kernel_name,&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create fftKernel_d2_r_d kernel!");
+    sprintf(kernel_name,"fftKernel_%u_r_c2r_d",fft_size[2]);
+    kernels->fft_kernel_d2_r_c2r_d=clCreateKernel(fftProgramd2,kernel_name,&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create fftKernel_d2_r_c2r_d kernel!");
     sprintf(kernel_name,"fftKernel_k_%u_d",fft_size[2]);
     kernels->fft_kernel_k_d2_d=clCreateKernel(fftProgramd2,kernel_name,&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create fftKernel_k_d2_d kernel!");
