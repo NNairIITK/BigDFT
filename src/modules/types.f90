@@ -53,6 +53,9 @@ module module_types
   character(len = 4), dimension(0:2), parameter :: output_grid_format_names = &
        & (/ "text", "ETSF", "cube" /)
 
+  !> SCF mixing parameters. (mixing parameters to be added)
+  integer, parameter :: SCF_KIND_DIRECT_MINIMIZATION = 0
+
   !> Occupation parameters.
   integer, parameter :: SMEARING_DIST_ERF   = 1
   integer, parameter :: SMEARING_DIST_FERMI = 2

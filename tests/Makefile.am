@@ -1,40 +1,18 @@
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = \
-	  fft \
-	  PSolver \
+	  libs \
 	  DFT \
-	  H2-freq \
-	  NEB \
-	  XabsCheb \
-	  SPLSAD   \
-	  TDDFT \
-	  OP2P \
-	  Linear \
-          BigDFT2Wannier \
+	  overDFT \
 	  tutorials \
-	  xc
-
-#This will run the automatic tests also for minima hopping
-if USE_MINIMA_HOPPING
-SUBDIRS += MINHOP
-endif
-
-if USE_CUDA_GPU
-SUBDIRS += CUDA
-endif
+	  Linear \
+          BigDFT2Wannier 
 
 if USE_OCL
-SUBDIRS += OpenCL
 oclrun_message = oclrun
 else
 oclrun_message =
 endif
-
-if HAVE_ETSF_IO
-SUBDIRS += ETSF_IO
-endif
-
 
 if USE_MPI
 mpirun_message = mpirun
@@ -68,4 +46,7 @@ CLEANFILES =
 all: head_message foot_message
 
 check:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
+
+report: 
+	python $(top_srcdir)/tests/report.py

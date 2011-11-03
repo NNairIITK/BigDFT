@@ -1907,7 +1907,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   ! reput the good wavefunction dimensions: PUT IT inside LDiagHam? 
   call wavefunction_dimension(Lzd,orbs)
 
-  if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
+  if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
 
 
      

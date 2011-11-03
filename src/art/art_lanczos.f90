@@ -19,7 +19,7 @@ module lanczos_defs
   implicit none
   save
 
-  integer      :: NVECTOR_LANCZOS_A
+  integer      :: NVECTOR_LANCZOS_H
   integer      :: NVECTOR_LANCZOS_C
   integer      :: LANCZOS_SCL
 
@@ -79,6 +79,13 @@ subroutine lanczos( maxvec, new_projection, produit )
   integer                                  :: lwork
   integer                                  :: i_min
   real(kind=8)                             :: e_min
+  interface
+     subroutine center( vector, vecsize )
+       integer, intent(in) :: vecsize
+       real(kind=8), dimension(vecsize), intent(inout), target :: vector
+     end subroutine center
+  end interface
+  
   !_______________________
   newpos = 0.0d0
   diag = 0.0d0
