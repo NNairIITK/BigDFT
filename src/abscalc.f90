@@ -176,6 +176,7 @@ end program abscalc_main
  subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables),intent(inout) :: in
