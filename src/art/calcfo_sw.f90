@@ -474,6 +474,26 @@ function diff_square_force_one(P,numnei,nei,this_atom)
   real(8) :: trash_energy
   integer ::  trash_evalf
   real(8), dimension(3*natoms,configs_to_fit) :: force_tempo,tmp_force
+     interface
+     subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
+     
+     
+       !use SWpotential
+       use defs, only : boundary,maxnei,iproc,MPI_COMM_WORLD
+       
+       implicit none
+       
+       integer, intent(in)                               :: nat
+       real(kind=8), intent(in), dimension(3*nat) :: posa
+       real(kind=8), dimension(3), intent(inout)          :: boxl
+       integer, intent(in) :: this_atom
+       real(8), intent(out), dimension(3*nat), target:: tmp_force
+     
+     
+       integer, dimension(nat),intent(in) :: numnei 
+       integer, dimension(nat,maxnei),intent(in) :: nei 
+     end subroutine SWcalczone
+     end interface
 
   trash_evalf = 0
   my_counter = 0

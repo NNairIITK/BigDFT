@@ -23,16 +23,16 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   integer, intent(in) :: iproc,nproc,ndimpot,nspin
   real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data), target :: at
-  type(nonlocal_psp_descriptors), target :: nlpspd
-  type(locreg_descriptors), target :: lr
-  integer, dimension(0:nproc-1,2), target :: ngatherarr 
-  real(gp), dimension(3,at%nat), target :: rxyz
+  type(atoms_data), intent(in), target :: at
+  type(nonlocal_psp_descriptors), intent(in), target :: nlpspd
+  type(locreg_descriptors), intent(in), target :: lr
+  integer, dimension(0:nproc-1,2), intent(in), target :: ngatherarr 
+  real(gp), dimension(3,at%nat), intent(in), target :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
-  real(wp), dimension(nlpspd%nprojel), target :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(in), target :: proj
   real(wp), dimension(max(ndimpot,1),nspin), target :: potential
 
-  real(gp) :: ekin_sum,epot_sum,eproj_sum
+  real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
   type(GPU_pointers), intent(inout) , target :: GPU
   integer, intent(in) :: in_iat_absorber
   

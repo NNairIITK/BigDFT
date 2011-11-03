@@ -376,7 +376,7 @@ module module_interfaces
 
      subroutine applyPAWprojectors(orbs,at,&
           rxyz,hx,hy,hz,Glr,PAWD,psi,hpsi,  paw_matrix, dosuperposition , &
-          sup_iatom, sup_l, sup_arraym, sup_arraychannel)
+          sup_iatom, sup_l, sup_arraym) !, sup_arraychannel)
        
        use module_base
        use module_types
@@ -390,7 +390,7 @@ module module_interfaces
        real(wp), dimension(:), pointer :: psi, hpsi, paw_matrix
        logical dosuperposition
        integer, optional :: sup_iatom, sup_l
-       real(wp) , dimension(:), pointer, optional :: sup_arraym , sup_arraychannel
+       real(wp) , dimension(:), pointer, optional :: sup_arraym !, sup_arraychannel
 
      end subroutine applyPAWprojectors
 
@@ -942,7 +942,7 @@ module module_interfaces
        integer, intent(in) :: in_iat_absorber
        type(pawproj_data_type), target ::PAWD
 
-       type(input_variables),intent(in) :: in
+       type(input_variables),intent(in), target :: in
        type(orbitals_data), intent(inout), target :: orbs
      END SUBROUTINE xabs_lanczos
      subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
@@ -1069,7 +1069,7 @@ module module_interfaces
        integer, intent(in) :: in_iat_absorber
 
 
-       type(input_variables),intent(in) :: in
+       type(input_variables),intent(in), target :: in
        type(pawproj_data_type), target ::PAWD
        type(orbitals_data), intent(inout), target :: orbs
 
@@ -1506,6 +1506,37 @@ module module_interfaces
       real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin), intent(out), optional :: wxdsave 
     end subroutine NK_SIC_potential
     
+     subroutine center( vector, vecsize )
+     
+       !use defs, only : natoms, constr
+       !use bigdft_forces, only : in_system
+       implicit none
+     
+       !Arguments
+       integer, intent(in) :: vecsize
+       real(kind=8), dimension(vecsize), intent(inout), target :: vector
+     end subroutine center
+
+
+     !subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
+     !
+     !
+     !  !use SWpotential
+     !  use defs, only : boundary,maxnei,iproc,MPI_COMM_WORLD
+     !  
+     !  implicit none
+     !  
+     !  integer, intent(in)                               :: nat
+     !  real(kind=8), intent(in), dimension(3*nat) :: posa
+     !  real(kind=8), dimension(3), intent(inout)          :: boxl
+     !  integer, intent(in) :: this_atom
+     !  real(8), intent(out), dimension(3*nat), target:: tmp_force
+     !
+     !
+     !  integer, dimension(nat),intent(in) :: numnei 
+     !  integer, dimension(nat,maxnei),intent(in) :: nei 
+     !end subroutine SWcalczone
+
   end interface
 
 end module module_interfaces
