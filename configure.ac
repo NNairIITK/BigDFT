@@ -494,9 +494,10 @@ if test -n "$ac_linalg" ; then
   call dsysv
 end]], withlinalg=yes, withlinalg=no)
 #  AC_CHECK_LIB($ac_linalg, dsysv, withlinalg=yes, withlinalg=no)
-  if test "$withlinalg" = "no"; then
-    LIBS=$LIBS_OLD
+  if test "$withlinalg" = "yes"; then
+    LINALG_LIBS=$ac_linalg
   fi
+  LIBS=$LIBS_OLD
   AC_MSG_RESULT([$withlinalg])
 fi
 
