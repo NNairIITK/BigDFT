@@ -160,21 +160,21 @@ subroutine timing(iproc,category,action)
            else
               nproc=1
            end if
-           open(unit=60,file=trim(filename_time),status='unknown',position='append')
-           write(60,*)
-           write(60,*) 'PARTIAL COUNTER   mean TIME(sec)       PERCENT'
-           total_pc=0.d0
-           do i=1,ncounters
-              pc=100.d0*timesum(i)/sum(timesum(1:ncounters))
-!!              if (timesum(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
-              write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
-              total_pc=total_pc+pc
-           enddo
-           write(60,'(70("-"))')
-           write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
-                'Total CPU time=',total,'Total categorized percent ',total_pc
-           write(60,*)
-           close(unit=60)
+!!$           open(unit=60,file=trim(filename_time),status='unknown',position='append')
+!!$           write(60,*)
+!!$           write(60,*) 'PARTIAL COUNTER   mean TIME(sec)       PERCENT'
+!!$           total_pc=0.d0
+!!$           do i=1,ncounters
+!!$              pc=100.d0*timesum(i)/sum(timesum(1:ncounters))
+!!$!!              if (timesum(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
+!!$              write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
+!!$              total_pc=total_pc+pc
+!!$           enddo
+!!$           write(60,'(70("-"))')
+!!$           write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
+!!$                'Total CPU time=',total,'Total categorized percent ',total_pc
+!!$           write(60,*)
+!!$           close(unit=60)
         end if
      end if
 
@@ -294,8 +294,10 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
         nproc=1
      end if
      open(unit=60,file=trim(filename_time),status='unknown',position='append')
-     write(60,*)
-     write(60,*) 'CATEGORY          mean TIME(sec)       PERCENT'
+     !write(60,*)'---'
+     !write(60,*) 'CATEGORY          mean TIME(sec)       PERCENT'
+     if (trim(message)=='INIT')write(60,'(a)')'---'
+     write(60,'(a,t14,1pe9.2,a)')trim(message)//': #Tot',totaltime,'  Time (s)     Percent' 
      total_pc=0.d0
      do i=1,ncat
         if (timetot(ncat+1) /= 0.0d0) then
@@ -304,13 +306,18 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
            pc=0.0d0
         end if
 !!        if (timetot(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
-        write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
+        if (timetot(i) /= 0.d0) then
+           !write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
+           write(60,'(2x,a)') trim(cats(i))//':'
+           write(60,'(2x,a,20x,1pe9.2)')'-',timetot(i)/real(nproc,kind=8)
+           write(60,'(2x,a,35x,0pf6.3)')'-',pc
+        end if
         total_pc=total_pc+pc
      enddo
-     write(60,'(70("-"))')
-     write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
-          'Total CPU time for category: '//message//'=',totaltime,'Total categorized percent ',total_pc
-     write(60,*)
+     !write(60,'(70("-"))')
+     !write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
+     !     'Total CPU time for category: '//message//'=',totaltime,'Total categorized percent ',total_pc
+     !write(60,*)
      close(unit=60)
   endif
 
