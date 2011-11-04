@@ -8,11 +8,11 @@ check_PROGRAMS = fft_check fft_cache
 
 fft_check_SOURCES = fft_check.f90 $(top_srcdir)/src/lib/fft/fft3d.f90 $(mpi_source)
 fft_check_LDFLAGS =
-fft_check_LDADD =
+fft_check_LDADD = @LINALG_LIBS@
 
 fft_cache_SOURCES = fft_cache.f90 $(top_srcdir)/src/lib/fft/fft3d.f90 $(mpi_source)
 fft_cache_LDFLAGS =
-fft_cache_LDADD =
+fft_cache_LDADD = @LINALG_LIBS@
 
 CLEANFILES = fft_check.out fft_cache.out fft_cache.dat fft_columns.dat fft_perf.dat \
 	fft_cache fldiff.report \
