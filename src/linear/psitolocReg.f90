@@ -1635,18 +1635,6 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
         length = min(lmax,Gmax)-max(lmin,Gmin)
         actuallength=actuallength+length+1
 
-        !! CHECK THIS
-        !!call get_coordinates(keymask(2,isegloc), glr%d%n1, glr%d%n2, glr%d%n3, lxe, lye, lze)
-        !!call get_coordinates(glr%wfd%keyg(2,isegG), glr%d%n1, glr%d%n2, glr%d%n3, gxe, gye, gze)
-        !!!write(*,'(a,3i8,3x,3i8)') '>>> lxe, lye, lze,  gxe, gye, gze', lxe, lye, lze,  gxe, gye, gze
-        !!if(Gmax<lmax) then
-        !!    write(*,'(a,2i7)') 'strange: Gmax<lmax, Gmax, lmax', Gmax, lmax
-        !!    write(*,'(a,3i8,3x,3i8)') 'llr%ns1, llr%ns2, llr%ns3,  llr%ns1+llr%d%n1, llr%ns2+llr%d%n2, llr%ns3+llr%d%n3', llr%ns1, llr%ns2, llr%ns3,  llr%ns1+llr%d%n1, llr%ns2+llr%d%n2, llr%ns3+llr%d%n3
-        !!    call get_coordinates(keymask(2,isegloc), glr%d%n1, glr%d%n2, glr%d%n3, lxe, lye, lze)
-        !!    call get_coordinates(glr%wfd%keyg(2,isegG), glr%d%n1, glr%d%n2, glr%d%n3, gxe, gye, gze)
-        !!    write(*,'(a,3i8,3x,3i8)') 'lxe, lye, lze,  gxe, gye, gze', lxe, lye, lze,  gxe, gye, gze
-        !!end if
-        !!if(Gmin>lmin) write(*,'(a,4i8)') 'strange: Gmin>lmin,  Gmin, lmin, glr%wfd%keyg(1,isegG), llr%wfd%keyg(1,isegloc)', Gmin, lmin, glr%wfd%keyg(1,isegG), llr%wfd%keyg(1,isegloc)
 
         !Find the common elements and write them to the new global wavefunction
         ! WARNING: index goes from 0 to length because it is the offset of the element
@@ -1670,10 +1658,6 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
      end do
      if(locallength/=actuallength) then
          write(*,'(2(a,i0),a)') 'ERROR: locallength = ',locallength, ' /= ', actuallength, ' = actuallength' 
-        call get_coordinates(keymask(1,isegloc), glr%d%n1, glr%d%n2, glr%d%n3, lxs, lys, lzs)
-        call get_coordinates(keymask(2,isegloc), glr%d%n1, glr%d%n2, glr%d%n3, lxe, lye, lze)
-        write(*,'(a,2(2(3i8,3x),5x))') 'lxs, lys, lzs,  lxe, lye, lze,   glr%ns1, glr%ns2, glr%ns3,  glr%ns1+glr%d%n1, glr%ns2+glr%d%n2, glr%ns3+glr%d%n3', lxs, lys, lzs, lxe, lye, lze, glr%ns1, glr%ns2, glr%ns3, glr%ns1+glr%d%n1, glr%ns2+glr%d%n2, glr%ns3+glr%d%n3
-        write(*,'(a,2(3i8,3x))') 'llr%ns1, llr%ns2, llr%ns3,    llr%ns1+llr%d%n1, llr%ns2+llr%d%n2, llr%ns3+llr%d%n3', llr%ns1, llr%ns2, llr%ns3, llr%ns1+llr%d%n1, llr%ns2+llr%d%n2, llr%ns3+llr%d%n3
      end if
   end do
 

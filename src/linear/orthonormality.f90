@@ -1225,8 +1225,6 @@ do iorb=1,orbs%norbp
     do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
         jlr=onWhichAtom(jjorb)
-        !call get_overlap_region_periodic2Sphere(ilr, jlr, Glr, hx, hy, hz, 1, lzd%llr, lzd%nlr, op%olr(jorb,iorb))
-        write(*,'(a,2i8)') 'calling determine_overlapdescriptors_from_descriptors for iorb, jorb', iorb, jorb
         call determine_overlapdescriptors_from_descriptors(lzd%llr(ilr), lzd%llr(jlr), lzd%glr, op%olr(jorb,iorb))
         !write(*,'(a,13i8)') 'iproc, iorb, jorb, iiorb, jjorb, ilr, jlr, nvctr_c, nvctr_f, ncount, n1, n2, n3', iproc, iorb, jorb, iiorb, jjorb, ilr, jlr, &
         !    op%olr(jorb,iorb)%wfd%nvctr_c, op%olr(jorb,iorb)%wfd%nvctr_f, op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f, op%olr(jorb,iorb)%d%n1, op%olr(jorb,iorb)%d%n2, op%olr(jorb,iorb)%d%n3
@@ -1308,7 +1306,7 @@ do jproc=0,nproc-1
            call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comon%comarr(1,ijorb,jproc))
            comon%comarr(9,ijorb,jproc)=jjorb
            comon%comarr(10,ijorb,jproc)=iiorb
-           if(iproc==0) write(*,'(6(a,i0))') 'process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,', tag=',tag
+           !if(iproc==0) write(*,'(6(a,i0))') 'process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,', tag=',tag
            if(iproc==mpisource) then
                !write(*,'(4(a,i0))') 'adding ',ncount,' elements for orbital ',iiorb,' to nsendBuf, iproc=',iproc,', jproc=',jproc
                comon%nsendBuf=comon%nsendBuf+ncount
@@ -3088,10 +3086,8 @@ do iorb=1,orbs%norbp
         ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iiorb), comon%recvBuf(jst), lphiovrlp(ind))
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), comon%recvBuf(jst), lphiovrlp(ind))
-        write(*,*) '---------------------------------------------------'
         call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, &
              lzd%llr(ilr), op%olr(jorb,iorb), op%indexExpand(jst))
-        write(*,*) '---------------------------------------------------'
         ind=ind+gdim
     end do
     ilrold=ilr
