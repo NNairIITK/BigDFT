@@ -492,7 +492,7 @@ subroutine mix_input_variables_new(iproc,filename,in)
   call input_free(iproc)
 
   !put the startmix if the mixing has to be done
-  if (in%itrpmax >1) in%gnrm_startmix=1.e300_gp
+  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
 
 END SUBROUTINE mix_input_variables_new
 
@@ -3236,7 +3236,7 @@ subroutine print_general_parameters(nproc,input,atoms)
   end if
 
   ! Printing for mixing parameters.
-  if (input%itrpmax>1) then
+  if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
      if (input%iscf < 10) then
         write(potden, "(A)") "potential"
      else
@@ -3249,7 +3249,7 @@ subroutine print_general_parameters(nproc,input,atoms)
           & "    Coeff.=", input%alphamix
      write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
           & "     Scheme=", modulo(input%iscf, 10), "|", &
-          & "Elec. temp.=", input%tel,              "|", &
+          & "Elec. temp.=", input%Tel,              "|", &
           & "      DIIS=", input%alphadiis
      write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
           & "  Max iter.=", input%itrpmax,    "|", &
@@ -3683,7 +3683,7 @@ END SUBROUTINE processor_id_per_node
 subroutine initialize_atomic_file(iproc,atoms,rxyz)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => read_atomic_file
+  use module_interfaces, except_this_one => initialize_atomic_file
   use m_ab6_symmetry
   implicit none
   integer, intent(in) :: iproc

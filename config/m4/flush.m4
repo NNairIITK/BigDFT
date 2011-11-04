@@ -17,6 +17,8 @@ AC_DEFUN([AX_FC_FLUSH],
   cat > flushtest.f90 <<EOF
 program test_flush
 
+  implicit none
+
   write(*,"(A)") "yes"
   flush(6)
 

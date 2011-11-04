@@ -154,7 +154,7 @@ subroutine saddle_converge( ret, saddle_energy )
         if ( kter == KTER_MIN ) then 
                                      ! First time, twice !!
            do i = 1, 1            
-              call lanczos( NVECTOR_LANCZOS_A, new_projection, a1 )
+              call lanczos( NVECTOR_LANCZOS_H, new_projection, a1 )
               new_projection = .false. 
               if ( iproc == 0 ) write(*,'(a,3I5,f12.6,f7.2)') &
                  & 'BART COLLINEAR:', pas, kter, i, eigenvalue, a1
@@ -169,7 +169,7 @@ subroutine saddle_converge( ret, saddle_energy )
 
         else if ( kter > KTER_MIN  ) then
            ! we get eigen direction for the minimum of this hyperplane.
-            call lanczos( NVECTOR_LANCZOS_A, new_projection, a1 )
+            call lanczos( NVECTOR_LANCZOS_H, new_projection, a1 )
                                           ! Lanczos call, we start from the
             new_projection = .false.      ! previous direction each time.
         end if
@@ -260,7 +260,7 @@ subroutine saddle_converge( ret, saddle_energy )
      new_projection = .true. 
 
      do i = 1, 5
-        call lanczos( NVECTOR_LANCZOS_A, new_projection, a1 )
+        call lanczos( NVECTOR_LANCZOS_H, new_projection, a1 )
         new_projection = .false.
         if ( iproc == 0 ) write(*,'(a,2I5,f12.6,f7.2)') &
            & 'BART COLLINEAR:', pas, i, eigenvalue, a1
@@ -268,6 +268,7 @@ subroutine saddle_converge( ret, saddle_energy )
      end do
 
      delta_e = total_energy - ref_energy
+     call displacement( posref, pos, delr, npart )
      fpar = dot_product(force,projection)
      if( fpar > 0.0d0 ) projection = -1.0d0 * projection
      call force_projection( fpar, perp_force, fperp, ftot, force, projection )

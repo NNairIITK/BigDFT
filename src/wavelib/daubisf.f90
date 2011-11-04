@@ -479,6 +479,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
      if (usekpts) stop 'K points not allowed for Free BC locham'
 
      do idx=1,nspinor
+
         !call timing(iproc,'CrtProjectors ','ON') !temporary
         call comb_shrink(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
@@ -500,6 +501,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
         ekin=ekin+ekino
         !call timing(iproc,'Forces        ','OF') !temporary
         !call timing(iproc,'Tail          ','ON') !temporary
+
         call compress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
              lr%wfd%nseg_c,lr%wfd%nvctr_c,&
@@ -508,6 +510,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
              lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
              scal,w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx))
         !call timing(iproc,'Tail          ','OF') !temporary
+
      end do
 
   case('S')

@@ -1137,4 +1137,13 @@ module module_defs
       end if
     end function fdot_denpot
 
+#ifndef HAVE_FC_FLUSH
+    integer function flush(unit)
+      integer, intent(in) :: unit
+
+      flush = unit
+      return
+    end function flush
+#endif
+
 end module module_defs

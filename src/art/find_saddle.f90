@@ -48,8 +48,10 @@ module saddles
   integer      :: coord_number
   logical      :: cw_try_again ! for clean_wf 
 
-  ! Working positions of the atoms at the presumed direction 
-  real(kind=8), dimension(:), allocatable :: s_pos 
+  ! Variables for GUESS_DIRECTION 
+  character(len=20)                       :: GUESSFILE
+  real(kind=8), dimension(:), allocatable :: g_pos    ! Working positions of the atoms at the presumed direction 
+  real(kind=8)                            :: guess_noise
 
 END MODULE saddles
 
@@ -111,7 +113,7 @@ subroutine find_saddle( success, saddle_energy )
                                       ! and generate a vector of length 1 indicating
                                       ! the direction of the random displacement.
                                       ! There is not case default.
-     if ( eventtype == "GUESS_SADDLE" ) then
+     if ( eventtype == "GUESS_DIRECTION" ) then
         call guess_direction ( )  
      else
         selectcase( type_events )
@@ -934,7 +936,8 @@ subroutine guess_direction ( )
      open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
          & action = 'write', position = 'append', iostat = ierror )
      write(FLOG,*) ' '
-     write(FLOG,'(1X,A45)') ' -following a given initial direction : '
+     write(FLOG,'(1X,A47,A20)') ' -following a given initial direction in file: ', GUESSFILE
+     write(FLOG,'(1X,A20,F12.6)') '  Noise amplitude : ', guess_noise 
      close(FLOG)
   end if
 
@@ -956,8 +959,8 @@ subroutine guess_direction ( )
   dr   = 0.0d0
 
   posa(:) = pos(:)
-  posb(:) = s_pos(:)
-                                      ! maybe it is no neccesary.
+  posb(:) = g_pos(:)
+                                      ! maybe this is no neccesary.
   call center( posa, 3*natoms )
   call center( posb, 3*natoms )
                                       ! We assign a few pointers. 
@@ -978,9 +981,9 @@ subroutine guess_direction ( )
   if (iproc == 0 ) then
   do i = 1, NATOMS
      if ( constr(i) == 0 ) then
-        dx(i) = xb(i) - xa(i) - boxl(1) * nint((xb(i)-xa(i)) * invbox(1))! + 0.01d0*(0.5d0-ran3()) 
-        dy(i) = yb(i) - ya(i) - boxl(2) * nint((yb(i)-ya(i)) * invbox(2))! + 0.01d0*(0.5d0-ran3())
-        dz(i) = zb(i) - za(i) - boxl(3) * nint((zb(i)-za(i)) * invbox(3))! + 0.01d0*(0.5d0-ran3())
+        dx(i) = xb(i) - xa(i) - boxl(1) * nint((xb(i)-xa(i)) * invbox(1)) + guess_noise*(0.5d0-ran3()) 
+        dy(i) = yb(i) - ya(i) - boxl(2) * nint((yb(i)-ya(i)) * invbox(2)) + guess_noise*(0.5d0-ran3())
+        dz(i) = zb(i) - za(i) - boxl(3) * nint((zb(i)-za(i)) * invbox(3)) + guess_noise*(0.5d0-ran3())
      end if
   end do
   end if

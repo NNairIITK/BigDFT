@@ -769,6 +769,7 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
      rho,rhoarr)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hxh,hyh,hzh

@@ -1,5 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
+all: all-recursive
+	chmod ug+x bigdft-tool
+
 if BUILD_LIB_PSOLVER
 sub_dirs_ps = PSolver
 else
@@ -19,7 +22,7 @@ endif
 if BUILD_BINARIES
 binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc BigDFT2Wannier
 local_binaries = test_forces
-scripts_sources = NEB_driver.sh
+scripts_sources = NEB_driver.sh bigdft-tool
 else
 binaries_sources = 
 local_binaries =
@@ -73,12 +76,6 @@ etsf_files = wavelib/plotting-etsf.f90 \
 	wavelib/i-o-etsf.f90
 else
 etsf_files = wavelib/etsf_fake.f90
-endif
-
-if HAVE_FC_FLUSH
-flush_files =
-else
-flush_files = modules/flush_fake.f90
 endif
 
 if HAVE_FC_GET_COMMAND_ARGUMENT
@@ -260,7 +257,6 @@ libbigdft_a_SOURCES = \
 	$(c_level) \
 	$(low_level) \
 	$(high_level) \
-	$(flush_files) \
 	$(getarg_files)
 
 libbigdft_a_LIBADD = profiling/time.o \
@@ -466,3 +462,4 @@ bart-utils.o: art/utils.f90 art/defs.o
 
 bart-write_refconfig.o: art/write_refconfig.f90 art/defs.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-write_refconfig.o `test -f 'art/write_refconfig.f90' || echo '$(srcdir)/'`art/write_refconfig.f90
+

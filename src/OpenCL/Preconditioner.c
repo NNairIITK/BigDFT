@@ -11,7 +11,7 @@
 
 #include "OpenCL_wrappers.h"
 
-void apply_hp(bigdft_command_queue *command_queue,
+static void apply_hp(bigdft_command_queue *command_queue,
               cl_uint *dimensions,
               double *h,
               double *c,
@@ -100,7 +100,7 @@ void FC_FUNC_(ocl_preconditioner,OCL_PRECONDITIONER)(bigdft_command_queue *comma
   scale_psi_d_(command_queue, nvctr_c, nvctr_f, h, c, psi_c,  psi_f);
 }
 
-void apply_hp_generic(bigdft_command_queue *command_queue,
+static void apply_hp_generic(bigdft_command_queue *command_queue,
               cl_uint *dimensions,
               cl_uint *periodic,
               double *h,
@@ -192,7 +192,7 @@ void FC_FUNC_(ocl_preconditioner_generic,OCL_PRECONDITIONER_GENERIC)(bigdft_comm
   scale_psi_d_(command_queue, nvctr_c, nvctr_f, h, c, psi_c,  psi_f);
 }
 
-void apply_hp_generic_k(bigdft_command_queue *command_queue,
+static void apply_hp_generic_k(bigdft_command_queue *command_queue,
               cl_uint *dimensions,
               cl_uint *periodic,
               double *h,

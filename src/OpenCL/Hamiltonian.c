@@ -13,14 +13,14 @@
 
 void FC_FUNC_(ocl_fulllocham,OCL_FULLLOCHAM)(bigdft_command_queue *command_queue,
                                           cl_uint *dimensions,
-                                          double *h,
+                                          cl_double *h,
                                           cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
                                           cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                           cl_mem *psi_c, cl_mem *psi_f,
                                           cl_mem *pot, 
                                           cl_mem *psi, cl_mem *out,
                                           cl_mem *work, cl_mem *kinres,
-                                          double *epot,double *ekinpot) {
+                                          cl_double *epot,cl_double *ekinpot) {
   uncompress_d_(command_queue, dimensions,
                                nseg_c, nvctr_c, keyg_c, keyv_c,
                                nseg_f, nvctr_f, keyg_f, keyv_f,
@@ -35,19 +35,20 @@ void FC_FUNC_(ocl_fulllocham,OCL_FULLLOCHAM)(bigdft_command_queue *command_queue
 	      psi_c, psi_f, psi);
 
   *ekinpot = 0.0;
+  *epot = 0.0;
 }
 
 void FC_FUNC_(ocl_fulllocham_generic,OCL_FULLLOCHAM_GENERIC)(bigdft_command_queue *command_queue,
                                           cl_uint *dimensions,
                                           cl_uint *periodic,
-                                          double *h,
+                                          cl_double *h,
                                           cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
                                           cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                           cl_mem *psi_c, cl_mem *psi_f,
                                           cl_mem *pot, 
                                           cl_mem *psi, cl_mem *out,
                                           cl_mem *work, cl_mem *kinres,
-                                          double *epot,double *ekinpot) {
+                                          cl_double *epot,cl_double *ekinpot) {
   uncompress_d_(command_queue, dimensions,
                                nseg_c, nvctr_c, keyg_c, keyv_c,
                                nseg_f, nvctr_f, keyg_f, keyv_f,
@@ -104,8 +105,8 @@ void FC_FUNC_(ocl_daub_to_isf,OCL_DAUB_TO_ISF)(bigdft_command_queue *command_que
 void FC_FUNC_(ocl_fulllocham_generic_k,OCL_FULLLOCHAM_GENERIC_K)(bigdft_command_queue *command_queue,
                                           cl_uint *dimensions,
                                           cl_uint *periodic,
-                                          double *h,
-                                          double *k,
+                                          cl_double *h,
+                                          cl_double *k,
                                           cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
                                           cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                           cl_mem *psi_c_r, cl_mem *psi_f_r,
@@ -116,7 +117,7 @@ void FC_FUNC_(ocl_fulllocham_generic_k,OCL_FULLLOCHAM_GENERIC_K)(bigdft_command_
                                           cl_mem *kinres_r,
                                           cl_mem *kinres_i,
                                           cl_uint *nspinor,
-                                          double *epot,double *ekinpot){
+                                          cl_double *epot,cl_double *ekinpot){
 //                                          double *epot_i,double *ekinpot_i) {
   epot[1] = 0.0;
   ekinpot[1] = 0.0;

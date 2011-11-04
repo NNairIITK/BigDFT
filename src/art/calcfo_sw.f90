@@ -106,7 +106,7 @@ subroutine init_potential_SW()
 
 ! SW_parameters(:,1) =  2.095037426D0
 ! we change sigma so that cell size is 5.4 and not 5.43 to emulate LDA
-  SW_parameters(:,1) = 2.095037426d0*5.4d0/5.43d0
+  SW_parameters(:,1) = 2.095037426d0*5.465d0/5.43d0
 
   SW_parameters(:,2) =   7.049556277D0
   SW_parameters(:,3) = 1.8d0 
@@ -156,7 +156,8 @@ subroutine reset_SW_potential()
 
 !  SW_parameters(:,1) =  2.095037426D0
 !  we change sigma so that cell size is 5.4 and not 5.43 to emulate LDA
-   SW_parameters(:,1) = 2.095037426d0*5.4d0/5.43d0
+!  5.465 for GGA
+   SW_parameters(:,1) = 2.095037426d0*5.465d0/5.43d0
    SW_parameters(:,2) =   7.049556277D0
    SW_parameters(:,3) = 1.8d0
    SW_parameters(:,4) =  0.60222455844D0
@@ -474,6 +475,18 @@ function diff_square_force_one(P,numnei,nei,this_atom)
   real(8) :: trash_energy
   integer ::  trash_evalf
   real(8), dimension(3*natoms,configs_to_fit) :: force_tempo,tmp_force
+  interface
+     subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
+       use defs, only : maxnei
+       integer, intent(in)                               :: nat
+       real(kind=8), intent(in), dimension(3*nat) :: posa
+       real(kind=8), dimension(3), intent(inout)          :: boxl
+       integer, intent(in) :: this_atom
+       real(8), intent(out), dimension(3*nat), target:: tmp_force
+       integer, dimension(nat),intent(in) :: numnei 
+       integer, dimension(nat,maxnei),intent(in) :: nei 
+     end subroutine SWcalczone
+  end interface
 
   trash_evalf = 0
   my_counter = 0
@@ -641,10 +654,9 @@ subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
   real(kind=8), dimension(3), intent(inout)          :: boxl
   integer, intent(in) :: this_atom
   real(8), intent(out), dimension(3*nat), target:: tmp_force
-
-
   integer, dimension(nat),intent(in) :: numnei 
   integer, dimension(nat,maxnei),intent(in) :: nei 
+
   real(8), dimension(3*nat), target :: pos_normalised
   real(8), dimension(3*nat) :: box_vec
   real(8), dimension(3*nat),target :: pos

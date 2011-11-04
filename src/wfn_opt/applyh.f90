@@ -90,13 +90,12 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      end if
 
      oidx=(iorb-1)*orbs%nspinor+1
-
      !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
      !the psir wavefunction is given in the spinorial form
      call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
      !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
      !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
-     !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
+     !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb
 
      !Perdew-Zunger SIC scheme
      eSIC_DCi=0.0_gp
@@ -156,7 +155,6 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
           psir,hpsi(1,oidx),ekin)
 
-     !print *,iorb, ekin, epot,orbs%kwgts(orbs%iokpt(iorb))
      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
   enddo
