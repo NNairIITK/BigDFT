@@ -1518,17 +1518,6 @@ module module_interfaces
       real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin), intent(out), optional :: wxdsave 
     end subroutine NK_SIC_potential
     
-     subroutine center( vector, vecsize )
-     
-       !use defs, only : natoms, constr
-       !use bigdft_forces, only : in_system
-       implicit none
-     
-       !Arguments
-       integer, intent(in) :: vecsize
-       real(kind=8), dimension(vecsize), intent(inout), target :: vector
-     end subroutine center
-
 
      !subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
      !

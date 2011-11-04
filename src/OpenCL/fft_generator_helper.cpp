@@ -27,7 +27,7 @@ void generate_header(std::stringstream &program) {
 
 void generate_cosin_tables(std::stringstream &program, cl_uint fft_size, fft_code* output){
   std::vector<double> sines, cosines;
-  for(int i=0; i<fft_size; i++){
+  for(unsigned int i=0; i<fft_size; i++){
     sines.push_back(sin(TWOPI*i/(double)fft_size));
     cosines.push_back(cos(TWOPI*i/(double)fft_size));
   }
@@ -36,18 +36,18 @@ void generate_cosin_tables(std::stringstream &program, cl_uint fft_size, fft_cod
   if(use_constant_memory){
     output->cossin=NULL;
     program<<"__constant double sinar["<<fft_size<<"] = { "<<sines[0];
-    for(int i=1; i<fft_size; i++){
+    for(unsigned int i=1; i<fft_size; i++){
       program<<" ,\n"<<sines[i];
     }
     program<<"\n};\n";
     program<<"__constant double cosar["<<fft_size<<"] = { "<<cosines[0];
-    for(int i=1; i<fft_size; i++){
+    for(unsigned int i=1; i<fft_size; i++){
       program<<" ,\n"<<cosines[i];
     }
     program<<"\n};\n";
   } else {
     output->cossin = (double *)malloc(fft_size*sizeof(double)*2);
-    for(int i=0; i<fft_size; i++){
+    for(unsigned int i=0; i<fft_size; i++){
       output->cossin[2*i]=cosines[i];
       output->cossin[2*i+1]=sines[i];
     }

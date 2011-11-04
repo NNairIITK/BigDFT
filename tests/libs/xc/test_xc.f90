@@ -16,26 +16,47 @@ program test_xc
        & -406 /)
 !!$  integer, parameter :: n_funcs = 1
 !!$  integer, dimension(n_funcs), parameter :: funcs = (/ -101130 /)
-  integer :: ifunc, ixc_prev
-  real(dp) :: exc(2), dt
+  integer :: ifunc, ixc_prev, ierr, iproc, nproc
+  real(dp) :: exc_(2, n_funcs), dt_(n_funcs)
+  real(dp) :: exc(2, n_funcs), dt(n_funcs)
+  
 
-  ixc_prev = 1
+  call MPI_INIT(ierr)
+  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+  
+  exc_ = 0.d0
+  dt_  = 0.d0
   do ifunc = 1, n_funcs, 1
-     call test(funcs(ifunc), exc, dt)
-     if (ixc_prev * funcs(ifunc) > 0 .or. (ixc_prev < 0 .and. funcs(ifunc) > 0)) &
-          & write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
-     write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F7.5,1x,A)") &
-          & "ixc = ", funcs(ifunc), "nosp = ", exc(1), "|", "scol = ", &
-          & exc(2), "time = ", dt, "s"
+     if (modulo(ifunc, nproc) == iproc) then
+        call test(funcs(ifunc), exc_(:, ifunc), dt_(ifunc))
+     end if
 !!$     if (funcs(ifunc) < 0) then
 !!$        call test(funcs(ifunc), exc, dt, option = XC_LIBXC)
 !!$        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F7.5,1x,A)") &
 !!$             & "ixc = ", funcs(ifunc), "nosp = ", exc(1), "|", "scol = ", &
 !!$             & exc(2), "time = ", dt, "s"
 !!$     end if
-     ixc_prev = funcs(ifunc)
   end do
-  write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
+  call MPI_ALLREDUCE(exc_, exc, 2 * n_funcs, &
+           & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(dt_, dt, n_funcs, &
+           & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+  if (iproc == 0) then
+     ixc_prev = 1
+     do ifunc = 1, n_funcs, 1
+        if (ixc_prev * funcs(ifunc) > 0 .or. (ixc_prev < 0 .and. funcs(ifunc) > 0)) &
+             & write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
+        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F7.5,1x,A)") &
+             & "ixc = ", funcs(ifunc), "nosp = ", exc(1, ifunc), "|", "scol = ", &
+             & exc(2, ifunc), "time = ", dt(ifunc), "s"
+        ixc_prev = funcs(ifunc)
+     end do
+     write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
+  end if
+
+  call MPI_FINALIZE(ierr)
 
 contains
 
