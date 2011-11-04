@@ -434,43 +434,10 @@ subroutine determine_locregSphere(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calcula
      call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, cutoff, llr(ilr)%locregCenter, &
            glr%wfd%nseg_c, glr%wfd%keyg, glr%wfd%keyv, isx, isy, isz, iex, iey, iez)
 
-     ! This is the old version
-     !!isx=floor((rx-cutoff)/hx)
-     !!isy=floor((ry-cutoff)/hy)
-     !!isz=floor((rz-cutoff)/hz)
-
-     !!iex=ceiling((rx+cutoff)/hx)
-     !!iey=ceiling((ry+cutoff)/hy)
-     !!iez=ceiling((rz+cutoff)/hz)
-
      ln1 = iex-isx
      ln2 = iey-isy
      ln3 = iez-isz
 
-     ! First check if localization region fits inside box
-!!!     if (iproc == 0 .and. verbose > 1) then
-!!!        if ((iex - isx >= Glr%d%n1 - 14) .and. (warningx .eqv. .false.)) then
-!!!           write(*,*)'Width of direction x :',(iex - isx)*hx,' of localization region:',ilr
-!!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n1*hx
-!!!           write(*,*)'Increasing the simulation box is recommended. The code will use the '
-!!!           write(*,*)'simulation box width. This is the only warning for x direction.'
-!!!           warningx = .true.
-!!!        end if
-!!!        if ((iey - isy >= Glr%d%n2 - 14) .and. (warningy .eqv. .false.)) then
-!!!           write(*,*)'Width of direction y :',(iey - isy)*hy,' of localization region:',ilr
-!!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n2*hy,'.'
-!!!           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
-!!!           write(*,*)'of the simulation box. This is the only warning for y direction.'
-!!!           warningy = .true.
-!!!        end if
-!!!        if ((iez - isz >= Glr%d%n3 - 14) .and. (warningz .eqv. .false.)) then
-!!!           write(*,*)'Width of direction z :',(iez - isz)*hz,' of localization region:',ilr
-!!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n3*hz,'.'
-!!!           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
-!!!           write(*,*)'of the simulation box. This is the only warning for z direction.'
-!!!           warningz = .true.
-!!!        end if 
-!!!     end if
 
      ! Localization regions should always have free boundary conditions
      Llr(ilr)%geocode='F'
@@ -589,7 +556,6 @@ subroutine determine_locregSphere(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calcula
      Llr(ilr)%nsi2= 2 * Llr(ilr)%ns2 - (Lnbl2 - Gnbl2)
      Llr(ilr)%nsi3= 2 * Llr(ilr)%ns3 - (Lnbl3 - Gnbl3)
 
-     ! I think that these values will be modified later (calling determine_wfdSphere)
      !dimensions of the fine grid inside the localisation region
      Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx ! should we really substract isx (probably because the routines are coded with 0 as origin)?
      Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
@@ -1194,17 +1160,14 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
               if(segment) then
                   nend=nend+1
                   keyg(2,nend)=igridpoint-1
-                  !write(*,'(a,i0,a,2i8)') 'nend=',nend,': keyg(1,nend), keyg(2,nend)', keyg(1,nend), keyg(2,nend)
                   segment=.false.
               end if
           end if
       end do
-      !if(segment .and. i2/=i2old) then
       if(segment) then
-          ! Always start a new segment if we come to a new line in y direction.
+          ! Close the segment
           nend=nend+1
           keyg(2,nend)=igridpoint
-          !write(*,'(a,i0,a,2i8)') 'nend=',nend,': keyg(1,nend), keyg(2,nend)', keyg(1,nend), keyg(2,nend)
           segment=.false.
       end if
       i2old=i2
@@ -2740,11 +2703,9 @@ do jproc=0,nproc-1
             end if
         end do
         op%noverlaps(iiorb)=ioverlaporb
-        !!if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
         ilrold=ilr
     end do
     comon%noverlaps(jproc)=ioverlapMPI
-    !if(iproc==0) write(*,'(a,2i8)') 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
 end do
 
 
@@ -2753,6 +2714,10 @@ call memocc(istat, op%overlaps, 'op%overlaps', subname)
 allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
 call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
 
+
+! Now we know how many overlaps have to be calculated, so determine which orbital overlaps
+! with which one. This is essentially the same loop as above, but we use the array 'overlapMatrix'
+! which indicates the overlaps.
 
 ! Initialize to some value which will never be used.
 op%overlaps=-1
@@ -2780,10 +2745,8 @@ do jproc=0,nproc-1
                 end if
             end if
         end do 
-        !if(iproc==0) write(*,'(a,i3,5x,100i5)') 'iiorb, op%overlaps', iiorb, op%overlaps(:,iiorb) 
         ilrold=ilr
     end do
-    !if(iproc==0) write(*,'(a,i3,5x,100i5)') 'jproc, comon%overlaps', jproc, comon%overlaps(:,jproc) 
 end do
 
 
@@ -2796,22 +2759,23 @@ call memocc(istat, iall, 'overlapMatrix', subname)
 
 
 op%noverlapsmaxp=maxval(op%noverlaps(orbs%isorb+1:orbs%isorb+orbs%norbp))
-allocate(op%olr(op%noverlapsmaxp,orbs%norbp), stat=istat)
-do i2=1,orbs%norbp
-    do i1=1,op%noverlapsmaxp
-        call nullify_locreg_descriptors(op%olr(i1,i2))
-    end do
-end do
+
+!allocate(op%olr(op%noverlapsmaxp,orbs%norbp), stat=istat)
+!do i2=1,orbs%norbp
+!    do i1=1,op%noverlapsmaxp
+!        call nullify_locreg_descriptors(op%olr(i1,i2))
+!    end do
+!end do
 
 
-do iorb=1,orbs%norbp
-    iiorb=orbs%isorb_par(iproc)+iorb
-    ilr=orbs%inWhichLocreg(iiorb)
-    do jorb=1,op%noverlaps(iiorb)
-        jjorb=op%overlaps(jorb,iiorb)
-        jlr=orbs%inWhichLocreg(jjorb)
-    end do
-end do
+!do iorb=1,orbs%norbp
+!    iiorb=orbs%isorb_par(iproc)+iorb
+!    ilr=orbs%inWhichLocreg(iiorb)
+!    do jorb=1,op%noverlaps(iiorb)
+!        jjorb=op%overlaps(jorb,iiorb)
+!        jlr=orbs%inWhichLocreg(jjorb)
+!    end do
+!end do
 
 
 
@@ -2833,7 +2797,9 @@ integer:: n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp
 character(len=*),parameter:: subname='determine_overlapdescriptors_from_descriptors'
 
 
-! Determine the values describing the localization region
+
+! Determine the values describing the localization region.
+! First coarse region.
 call overlapbox_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_j%d%n1, llr_j%d%n2, llr_j%d%n3, &
      glr%d%n1, glr%d%n2, glr%d%n3, &
@@ -2844,16 +2810,7 @@ call overlapbox_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_i%wfd%keyg, llr_i%wfd%keyv, llr_j%wfd%keyg, llr_j%wfd%keyv, &
      olr%d%n1, olr%d%n2, olr%d%n3, olr%ns1, olr%ns2, olr%ns3, olr%wfd%nseg_c)
 
-olr%geocode='F'
-
-
-! Dimensions for interpolating scaling function grid
-olr%d%n1i=2*olr%d%n1+31
-olr%d%n2i=2*olr%d%n2+31
-olr%d%n3i=2*olr%d%n3+31
-
-
-! Now determine the values describing the fine regions.
+! Now the fine region.
 call overlapbox_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_j%d%n1, llr_j%d%n2, llr_j%d%n3, &
      glr%d%n1, glr%d%n2, glr%d%n3, &
@@ -2865,99 +2822,34 @@ call overlapbox_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_j%wfd%keyg(1,llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), llr_j%wfd%keyv(llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), &
      n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, olr%wfd%nseg_f)
 
+     ! Determine the boundary for the fine part.
+     ! ns1_ovrlp etc is in global coordinates, but olr%d%nfl1 etc is in local coordinates, so correct this.
+     olr%d%nfl1=ns1_ovrlp-olr%ns1
+     olr%d%nfu1=olr%d%nfl1+n1_ovrlp
+     olr%d%nfl2=ns2_ovrlp-olr%ns2
+     olr%d%nfu2=olr%d%nfl2+n2_ovrlp
+     olr%d%nfl3=ns2_ovrlp-olr%ns2
+     olr%d%nfu3=olr%d%nfl3+n3_ovrlp
+
+if(llr_i%geocode/=llr_j%geocode) then
+    write(*,*) 'ERROR: llr_i%geocode/=llr_j%geocode'
+    stop
+end if
+olr%geocode=llr_i%geocode
+
+! Dimensions for interpolating scaling function grid
+olr%d%n1i=2*olr%d%n1+31
+olr%d%n2i=2*olr%d%n2+31
+olr%d%n3i=2*olr%d%n3+31
+
+
 
 ! Allocate the descriptor structures
 call allocate_wfd(olr%wfd,subname)
 
 
-     ! ns1_ovrlp etc is in global coordinates, but olr%d%nfl1 etc is in local coordinates, so correct this.
-     ns1_ovrlp=ns1_ovrlp-olr%ns1
-     ns2_ovrlp=ns2_ovrlp-olr%ns2
-     ns3_ovrlp=ns3_ovrlp-olr%ns3
-
-     ! Determine the boundary for the fine part.
-     olr%d%nfl1=ns1_ovrlp
-     olr%d%nfu1=olr%d%nfl1+n1_ovrlp
-     olr%d%nfl2=ns2_ovrlp
-     olr%d%nfu2=olr%d%nfl2+n2_ovrlp
-     olr%d%nfl3=ns3_ovrlp
-     olr%d%nfu3=olr%d%nfl3+n3_ovrlp
-
-     ! some cheks
-     if(olr%ns1<glr%ns1) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', glr%ns1, '= glr%ns1'
-         stop
-     end if
-     if(olr%ns2<glr%ns2) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', glr%ns2, '= glr%ns2'
-         stop
-     end if
-     if(olr%ns3<glr%ns3) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', glr%ns3, '= glr%ns3'
-         stop
-     end if
-     if(olr%ns1+olr%d%n1>glr%ns1+glr%d%n1) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', glr%ns1+glr%d%n1, '= glr%ns1+glr%d%n1'
-         stop
-     end if
-     if(olr%ns2+olr%d%n2>glr%ns2+glr%d%n2) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', glr%ns2+glr%d%n2, '= glr%ns2+glr%d%n2'
-         stop
-     end if
-     if(olr%ns3+olr%d%n3>glr%ns3+glr%d%n3) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', glr%ns3+glr%d%n3, '= glr%ns3+glr%d%n3'
-         stop
-     end if
-
-     if(olr%ns1<llr_i%ns1) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', llr_i%ns1, '= llr_i%ns1'
-         stop
-     end if
-     if(olr%ns2<llr_i%ns2) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', llr_i%ns2, '= llr_i%ns2'
-         stop
-     end if
-     if(olr%ns3<llr_i%ns3) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', llr_i%ns3, '= llr_i%ns3'
-         stop
-     end if
-     if(olr%ns1+olr%d%n1>llr_i%ns1+llr_i%d%n1) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', llr_i%ns1+llr_i%d%n1, '= llr_i%ns1+llr_i%d%n1'
-         stop
-     end if
-     if(olr%ns2+olr%d%n2>llr_i%ns2+llr_i%d%n2) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', llr_i%ns2+llr_i%d%n2, '= llr_i%ns2+llr_i%d%n2'
-         stop
-     end if
-     if(olr%ns3+olr%d%n3>llr_i%ns3+llr_i%d%n3) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', llr_i%ns3+llr_i%d%n3, '= llr_i%ns3+llr_i%d%n3'
-         stop
-     end if
-
-     if(olr%ns1<llr_j%ns1) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', llr_j%ns1, '= llr_j%ns1'
-         stop
-     end if
-     if(olr%ns2<llr_j%ns2) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', llr_j%ns2, '= llr_j%ns2'
-         stop
-     end if
-     if(olr%ns3<llr_j%ns3) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', llr_j%ns3, '= llr_j%ns3'
-         stop
-     end if
-     if(olr%ns1+olr%d%n1>llr_j%ns1+llr_j%d%n1) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', llr_j%ns1+llr_j%d%n1, '= llr_j%ns1+llr_j%d%n1'
-         stop
-     end if
-     if(olr%ns2+olr%d%n2>llr_j%ns2+llr_j%d%n2) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', llr_j%ns2+llr_j%d%n2, '= llr_j%ns2+llr_j%d%n2'
-         stop
-     end if
-     if(olr%ns3+olr%d%n3>llr_j%ns3+llr_j%d%n3) then
-         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', llr_j%ns3+llr_j%d%n3, '= llr_j%ns3+llr_j%d%n3'
-         stop
-     end if
+! some cheks
+call check_overlapregion(glr, llr_i, llr_j, olr)
 
 
 
@@ -2997,6 +2889,92 @@ end subroutine determine_overlapdescriptors_from_descriptors
 
 
 
+
+subroutine check_overlapregion(glr, llr_i, llr_j, olr)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(locreg_descriptors),intent(in):: glr, llr_i, llr_j, olr
+
+  if(olr%ns1<glr%ns1) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', glr%ns1, '= glr%ns1'
+      stop
+  end if
+  if(olr%ns2<glr%ns2) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', glr%ns2, '= glr%ns2'
+      stop
+  end if
+  if(olr%ns3<glr%ns3) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', glr%ns3, '= glr%ns3'
+      stop
+  end if
+  if(olr%ns1+olr%d%n1>glr%ns1+glr%d%n1) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', glr%ns1+glr%d%n1, '= glr%ns1+glr%d%n1'
+      stop
+  end if
+  if(olr%ns2+olr%d%n2>glr%ns2+glr%d%n2) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', glr%ns2+glr%d%n2, '= glr%ns2+glr%d%n2'
+      stop
+  end if
+  if(olr%ns3+olr%d%n3>glr%ns3+glr%d%n3) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', glr%ns3+glr%d%n3, '= glr%ns3+glr%d%n3'
+      stop
+  end if
+  
+  if(olr%ns1<llr_i%ns1) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', llr_i%ns1, '= llr_i%ns1'
+      stop
+  end if
+  if(olr%ns2<llr_i%ns2) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', llr_i%ns2, '= llr_i%ns2'
+      stop
+  end if
+  if(olr%ns3<llr_i%ns3) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', llr_i%ns3, '= llr_i%ns3'
+      stop
+  end if
+  if(olr%ns1+olr%d%n1>llr_i%ns1+llr_i%d%n1) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', llr_i%ns1+llr_i%d%n1, '= llr_i%ns1+llr_i%d%n1'
+      stop
+  end if
+  if(olr%ns2+olr%d%n2>llr_i%ns2+llr_i%d%n2) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', llr_i%ns2+llr_i%d%n2, '= llr_i%ns2+llr_i%d%n2'
+      stop
+  end if
+  if(olr%ns3+olr%d%n3>llr_i%ns3+llr_i%d%n3) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', llr_i%ns3+llr_i%d%n3, '= llr_i%ns3+llr_i%d%n3'
+      stop
+  end if
+  
+  if(olr%ns1<llr_j%ns1) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', llr_j%ns1, '= llr_j%ns1'
+      stop
+  end if
+  if(olr%ns2<llr_j%ns2) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', llr_j%ns2, '= llr_j%ns2'
+      stop
+  end if
+  if(olr%ns3<llr_j%ns3) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', llr_j%ns3, '= llr_j%ns3'
+      stop
+  end if
+  if(olr%ns1+olr%d%n1>llr_j%ns1+llr_j%d%n1) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', llr_j%ns1+llr_j%d%n1, '= llr_j%ns1+llr_j%d%n1'
+      stop
+  end if
+  if(olr%ns2+olr%d%n2>llr_j%ns2+llr_j%d%n2) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', llr_j%ns2+llr_j%d%n2, '= llr_j%ns2+llr_j%d%n2'
+      stop
+  end if
+  if(olr%ns3+olr%d%n3>llr_j%ns3+llr_j%d%n3) then
+      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', llr_j%ns3+llr_j%d%n3, '= llr_j%ns3+llr_j%d%n3'
+      stop
+  end if
+
+
+end subroutine check_overlapregion
 
 
 
@@ -3070,7 +3048,6 @@ kyemax=0
 kzemax=0
 
 
-
 segment_loop: do
 
     ! Starting point in local coordinates
@@ -3093,6 +3070,8 @@ segment_loop: do
     ! which segment counter has to be increased.
     kstartg=max(istartg,jstartg)
     kendg=min(iendg,jendg)
+
+    ! Determine which segment counter should be increased.
     if((iendg<=jendg .and. iseg<nseg_i) .or. jseg==nseg_j) then
         increase='i'
     else if(jseg<nseg_j) then
@@ -3129,7 +3108,8 @@ segment_loop: do
 
 end do segment_loop
 
-
+! n1_k etc is the length of the segment, but kxemax etc is the end position of the segment, 
+! therefore subtract the starting position
 n1_k=kxemax-ns1_k
 n2_k=kyemax-ns2_k
 n3_k=kzemax-ns3_k

@@ -634,6 +634,7 @@ end subroutine getOverlapMatrix2
 
 
 
+
 subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locregShape, op, comon, tag)
 use module_base
 use module_types
@@ -658,109 +659,77 @@ integer::  je3, istat, i1, i2, irecv, isend, mpidest, mpisource
 logical:: ovrlpx, ovrlpy, ovrlpz
 character(len=*),parameter:: subname='initCommsOrtho'
 
-allocate(comon%noverlaps(0:nproc-1), stat=istat)
-call memocc(istat, comon%noverlaps, 'comon%noverlaps',subname)
-allocate(op%noverlaps(orbs%norb), stat=istat)
-call memocc(istat, op%noverlaps, 'op%noverlaps',subname)
+  ! Allocate the arrays that count the number of overlaps per process (comon%noverlaps)
+  ! and per orbital (op%noverlaps)
+  allocate(comon%noverlaps(0:nproc-1), stat=istat)
+  call memocc(istat, comon%noverlaps, 'comon%noverlaps',subname)
+  allocate(op%noverlaps(orbs%norb), stat=istat)
+  call memocc(istat, op%noverlaps, 'op%noverlaps',subname)
+  
+  ! Allocate the arrays holding the starting indices of the data to communicate in the
+  ! send and receive buffers.
+  allocate(op%indexInRecvBuf(orbs%norbp,orbs%norb), stat=istat)
+  call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
+  allocate(op%indexInSendBuf(orbs%norbp,orbs%norb), stat=istat)
+  call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
+  
+  
+  ! Count how many overlaping regions each orbital / process has.
+  if(locregShape=='c') then
+      call countOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
+      allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
+      call memocc(istat, op%overlaps, 'op%overlaps', subname)
+      allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
+      call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
+  else if(locregShape=='s') then
+      call determine_overlap_from_descriptors(iproc, nproc, orbs, lzd, op, comon)
+  end if
+  
+  ! Determine the overlapping orbitals.
+  if(locregShape=='c') then
+      call determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
+  else if(locregShape=='s') then
+      ! already done in determine_overlap_from_descriptors
+  end if
+  
+  ! Allocate the types describing the overlap localization regions.
+  op%noverlapsmaxp=maxval(op%noverlaps(orbs%isorb+1:orbs%isorb+orbs%norbp))
+  allocate(op%olr(op%noverlapsmaxp,orbs%norbp), stat=istat)
+  do i2=1,orbs%norbp
+      do i1=1,op%noverlapsmaxp
+          call nullify_locreg_descriptors(op%olr(i1,i2))
+      end do
+  end do
+  
+  ! Set the orbital descriptors for the overlap regions.
+  if(locregShape=='c') then
+      call determineOverlapDescriptors(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, op)
+  else if(locregShape=='s') then
+      call determineOverlapDescriptorsSphere(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, input%hx, input%hy, input%hz, op)
+  end if
+  
+  
+  ! Initialize the communications.
+  comon%noverlapsmax=maxval(comon%noverlaps)
+  allocate(comon%comarr(10,comon%noverlapsmax,0:nproc-1), stat=istat)
+  call memocc(istat, comon%comarr, 'comon%comarr', subname)
+  allocate(comon%communComplete(comon%noverlapsmax,0:nproc-1), stat=istat)
+  call memocc(istat, comon%communComplete, 'comun%communComplete', subname)
+  call setCommsOrtho(iproc, nproc, orbs, onWhichAtomAll, lzd, op, comon, tag)
+  
+  
+  ! Initialize the index arrays for the transformations from overlap region
+  ! to ordinary localization region.
+  allocate(op%indexExpand(comon%nrecvBuf), stat=istat)
+  call memocc(istat, op%indexExpand, 'op%indexExpand',subname)
+  call indicesForExpansion(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon)
+  
+  ! Initialize the index arrays for the transformations from the ordinary localization region
+  ! to the overlap region.
+  allocate(op%indexExtract(comon%nsendBuf), stat=istat)
+  call memocc(istat, op%indexExtract, 'op%indexExtract',subname)
+  call indicesForExtraction(iproc, nproc, orbs, orbs%npsidim, onWhichAtomAll, lzd, op, comon)
 
-! Count how many overlaping regions each orbital / process has.
-if(locregShape=='c') then
-    call countOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
-else if(locregShape=='s') then
-    call countOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
-end if
-!write(*,'(a,3i8)') 'iproc, op%noverlaps, comon%noverlaps', iproc, op%noverlaps, comon%noverlaps
-
-!allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
-!call memocc(istat, op%overlaps, 'op%overlaps', subname)
-!allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
-!call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
-allocate(op%indexInRecvBuf(orbs%norbp,orbs%norb), stat=istat)
-call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
-allocate(op%indexInSendBuf(orbs%norbp,orbs%norb), stat=istat)
-call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
-
-!! EXPERIMENTAL
-call determine_overlap_from_descriptors(iproc, nproc, orbs, lzd, op, comon)
-
-! Determine the overlapping orbitals.
-if(locregShape=='c') then
-    call determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
-else if(locregShape=='s') then
-    !call determineOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
-end if
-
-op%noverlapsmaxp=maxval(op%noverlaps(orbs%isorb+1:orbs%isorb+orbs%norbp))
-allocate(op%olr(op%noverlapsmaxp,orbs%norbp), stat=istat)
-do i2=1,orbs%norbp
-    do i1=1,op%noverlapsmaxp
-        call nullify_locreg_descriptors(op%olr(i1,i2))
-    end do
-end do
-
-! Set the orbital descriptors for the overlap regions.
-if(locregShape=='c') then
-    call determineOverlapDescriptors(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, op)
-else if(locregShape=='s') then
-    call determineOverlapDescriptorsSphere(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, input%hx, input%hy, input%hz, op)
-end if
-
-
-comon%noverlapsmax=maxval(comon%noverlaps)
-allocate(comon%comarr(10,comon%noverlapsmax,0:nproc-1), stat=istat)
-call memocc(istat, comon%comarr, 'comon%comarr', subname)
-allocate(comon%communComplete(comon%noverlapsmax,0:nproc-1), stat=istat)
-call memocc(istat, comon%communComplete, 'comun%communComplete', subname)
-call setCommsOrtho(iproc, nproc, orbs, onWhichAtomAll, lzd, op, comon, tag)
-
-!do jproc=0,nproc-1
-!    if(iproc==0) write(*,*) 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
-!end do
-
-!write(*,'(a,2i11)') 'iproc, comon%nsendBuf', iproc, comon%nsendBuf
-
-!call postCommsOverlap(iproc, nproc, comon)
-
-! Initialize the index arrays for the transformations from overlap region
-! to ordinary localization region.
-allocate(op%indexExpand(comon%nrecvBuf), stat=istat)
-call memocc(istat, op%indexExpand, 'op%indexExpand',subname)
-call indicesForExpansion(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon)
-
-! Initialize the index arrays for the transformations from the ordinary localization region
-! to the overlap region.
-allocate(op%indexExtract(comon%nsendBuf), stat=istat)
-call memocc(istat, op%indexExtract, 'op%indexExtract',subname)
-call indicesForExtraction(iproc, nproc, orbs, orbs%npsidim, onWhichAtomAll, lzd, op, comon)
-
-
-! Determine comon%nrecv and comon%nsend - maybe to be moved to a subroutine
-! First receives
-irecv=0
-do jproc=0,nproc-1
-    do jorb=1,comon%noverlaps(jproc)
-        mpidest=comon%comarr(4,jorb,jproc)
-        if(iproc==mpidest) then
-            irecv=irecv+1
-        end if
-    end do
-end do
-comon%nrecv=irecv
-
-! Now the sends
-isend=0
-do jproc=0,nproc-1
-    do jorb=1,comon%noverlaps(jproc)
-        mpisource=comon%comarr(1,jorb,jproc)
-        if(iproc==mpisource) then
-            isend=isend+1
-        end if
-    end do
-end do
-comon%nsend=isend
-
-allocate(comon%requests(max(comon%nsend,comon%nrecv),2), stat=istat)
-call memocc(istat, comon%requests, 'comon%requests', subname)
 
 end subroutine initCommsOrtho
 
@@ -1253,7 +1222,7 @@ integer,intent(inout):: tag
 
 ! Local variables
 integer:: jproc, iorb, jorb, iiorb, jjorb, mpisource, mpidest, istsource, istdest, ncount, istat, iall, ijorb
-integer:: ilr, ilrold, jprocold, ildim, ierr
+integer:: ilr, ilrold, jprocold, ildim, ierr, isend, irecv
 integer,dimension(:),allocatable:: istsourceArr, istdestArr
 character(len=*),parameter:: subname='setCommsOrtho'
 logical,dimension(:),allocatable:: receivedOrbital
@@ -1335,6 +1304,35 @@ iall = -product(shape(receivedOrbital))*kind(receivedOrbital)
 deallocate(receivedOrbital, stat=istat)
 call memocc(istat, iall, 'receivedOrbital',subname)
 
+
+! Determine comon%nrecv and comon%nsend - maybe can be integrated in the above loop.
+! First receives
+irecv=0
+do jproc=0,nproc-1
+    do jorb=1,comon%noverlaps(jproc)
+        mpidest=comon%comarr(4,jorb,jproc)
+        if(iproc==mpidest) then
+            irecv=irecv+1
+        end if
+    end do
+end do
+comon%nrecv=irecv
+
+! Now the sends
+isend=0
+do jproc=0,nproc-1
+    do jorb=1,comon%noverlaps(jproc)
+        mpisource=comon%comarr(1,jorb,jproc)
+        if(iproc==mpisource) then
+            isend=isend+1
+        end if
+    end do
+end do
+comon%nsend=isend
+
+! Allocate the requests for the point to point communication.
+allocate(comon%requests(max(comon%nsend,comon%nrecv),2), stat=istat)
+call memocc(istat, comon%requests, 'comon%requests', subname)
 
 end subroutine setCommsOrtho
 
