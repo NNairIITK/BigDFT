@@ -1577,6 +1577,11 @@ end do
      call determine_locregSphere(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, &
           Glr, lin%lzd%Llr, calculateBounds)
  end if
+ do ilr=1,lin%lzd%nlr
+     write(*,'(a,3i6)') 'ilr, glr%d%nfl1, lin%lzd%llr(ilr)%d%nfl1', ilr, glr%d%nfl1, lin%lzd%llr(ilr)%d%nfl1
+     write(*,'(a,i3,2(3x,3i8))') 'ilr, lin%lzd%llr(ilr)%ns1, lin%lzd%llr(ilr)%ns2, lin%lzd%llr(ilr)%ns3, lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3', &
+                ilr, lin%lzd%llr(ilr)%ns1, lin%lzd%llr(ilr)%ns2, lin%lzd%llr(ilr)%ns3, lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3
+ end do
  !call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr, calculateBounds)
 
  !if(iproc==0) write(*,'(a,2i9)') 'glr%wfd%nvctr_c, glr%wfd%nvctr_f', glr%wfd%nvctr_c, glr%wfd%nvctr_f

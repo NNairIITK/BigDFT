@@ -430,13 +430,19 @@ subroutine determine_locregSphere(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calcula
      cutoff=locrad(ilr)
      llr(ilr)%locrad=cutoff
 
-     isx=floor((rx-cutoff)/hx)
-     isy=floor((ry-cutoff)/hy)
-     isz=floor((rz-cutoff)/hz)
+     ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
+     call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, cutoff, llr(ilr)%locregCenter, &
+           glr%wfd%nseg_c, glr%wfd%keyg, glr%wfd%keyv, isx, isy, isz, iex, iey, iez)
+     write(*,*) 'DEBUG: floor((rx-cutoff)/hx)', floor((rx-cutoff)/hx)
 
-     iex=ceiling((rx+cutoff)/hx)
-     iey=ceiling((ry+cutoff)/hy)
-     iez=ceiling((rz+cutoff)/hz)
+     ! This is the old version
+     !!isx=floor((rx-cutoff)/hx)
+     !!isy=floor((ry-cutoff)/hy)
+     !!isz=floor((rz-cutoff)/hz)
+
+     !!iex=ceiling((rx+cutoff)/hx)
+     !!iey=ceiling((ry+cutoff)/hy)
+     !!iez=ceiling((rz+cutoff)/hz)
 
      ln1 = iex-isx
      ln2 = iey-isy
@@ -586,6 +592,7 @@ subroutine determine_locregSphere(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calcula
 
      !dimensions of the fine grid inside the localisation region
      Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx ! should we really substract isx (probably because the routines are coded with 0 as origin)?
+     write(*,'(a,3i8)') 'isx, glr%d%nfl1, Llr(ilr)%d%nfl1', isx, glr%d%nfl1, Llr(ilr)%d%nfl1
      Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
      Llr(ilr)%d%nfl3=max(isz,Glr%d%nfl3)-isz
      
@@ -770,6 +777,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
    !     Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
    !     Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c,&
    !     Llr(ilr)%wfd%keyg(1,1),Llr(ilr)%wfd%keyv(1),Llr(ilr)%outofzone(:))
+   write(*,*) 'calling segkeys_Sphere for coarse part...'
    call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
@@ -788,6 +796,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
    !     Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f,&
    !     Llr(ilr)%wfd%keyg(1,Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
    !     Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),Llr(ilr)%outofzone(:))
+   write(*,*) 'calling segkeys_Sphere for fine part...'
    call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
@@ -971,6 +980,70 @@ END SUBROUTINE num_segkeys_sphere
 
 
 
+subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, hx, hy, hz, locrad, locregCenter, &
+           nsegglob, keygglob, keyvglob, ixmin, iymin, izmin, ixmax, iymax, izmax)
+  implicit none
+  integer, intent(in) :: n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, nsegglob
+  real(8),intent(in):: hx, hy, hz, locrad
+  real(8),dimension(3),intent(in):: locregCenter
+  integer,dimension(2,nsegglob),intent(in):: keygglob
+  integer,dimension(nsegglob),intent(in):: keyvglob
+  integer,intent(out):: ixmin, iymin, izmin, ixmax, iymax, izmax
+  !local variables
+  logical :: segment
+  integer :: i, i1, i2, i3, nstart, nend, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3
+  real(8):: cut, dx,dy, dz
+  !debug
+  integer:: iiimin, isegmin
+  iiimin=0
+  isegmin=0
+
+  ! Initialize the retun values
+  ixmax=0
+  iymax=0
+  izmax=0
+  ixmin=nl1glob+n1glob
+  iymin=nl2glob+n2glob
+  izmin=nl3glob+n3glob
+
+  cut=locrad**2
+  do iseg=1,nsegglob
+      jj=keyvglob(iseg)
+      j0=keygglob(1,iseg)
+      j1=keygglob(2,iseg)
+      ii=j0-1
+      i3=ii/((n1glob+1)*(n2glob+1))
+      ii=ii-i3*(n1glob+1)*(n2glob+1)
+      i2=ii/(n1glob+1)
+      i0=ii-i2*(n1glob+1)
+      i1=i0+j1-j0
+
+      ii2=i2+nl2glob
+      ii3=i3+nl3glob
+
+      do i=i0,i1
+          ii1=i+nl1glob
+          dz=((ii3*hz)-locregCenter(3))**2
+          dy=((ii2*hy)-locregCenter(2))**2
+          dx=((ii1*hx)-locregCenter(1))**2
+          if(dx+dy+dz<=cut) then
+              if(ii1>ixmax) ixmax=ii1
+              if(ii2>iymax) iymax=ii2
+              if(ii3>izmax) izmax=ii3
+              if(ii1<ixmin) ixmin=ii1 ; iiimin=j0-1 ; isegmin=iseg
+              if(ii2<iymin) iymin=ii2
+              if(ii3<izmin) izmin=ii3
+          end if
+      end do
+  end do
+  write(*,*) 'isegmin, iiimin',isegmin, iiimin
+
+
+END SUBROUTINE determine_boxbounds_sphere
+
+
+
+
 
 subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
      nseg_loc,nvctr_loc,keyg_loc,keyv_loc,outofzone)
@@ -1085,6 +1158,21 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   real(8):: cut, dx, dy, dz
   logical:: segment
 
+  ! for debug
+  integer:: ii1max, ii2max, ii3max, igridx, igridy, igridz, isegx, isegy, isegz, ii1min, ii2min, ii3min, isegxmin, isegymin, isegzmin, igridxmin, igridymin, igridzmin
+  ii1max=0
+  ii2max=0
+  ii3max=0
+  ii1min=nl1glob+n1
+  ii2min=nl2glob+n2
+  ii3min=nl3glob+n3
+  igridx=0
+  igridy=0
+  igridz=0
+  isegx=0
+  isegy=0
+  isegz=0
+
   !dimensions of the localisation region (O:nIl)
   ! must be smaller or equal to simulation box dimensions
   !n1l=i1ec-i1sc
@@ -1127,12 +1215,42 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
           igridpoint=i3l*((n1l+1)*(n2l+1)) + i2l*(n1l+1) + i1l+1
           !write(*,'(a,i0,a,i10,4x,3i5,a,3i4,a)') 'iseg=',iseg,': igridpoint, i1l, i2l, i3l (n1l, n2l, n3l)', igridpoint, i1l, i2l, i3l,' (',n1l,n2l,n3l,')'
           if(dx+dy+dz<=cut) then
+              ! debug
+              if(ii1>nu1) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii1=',ii1,'>',nu1,'=nu1'
+              end if
+              if(ii2>nu2) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii2=',ii2,'>',nu2,'=nu2'
+              end if
+              if(ii3>nu3) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii3=',ii3,'>',nu3,'=nu3'
+              end if
               nvctr=nvctr+1
               if(.not.segment) then
                   nstart=nstart+1
                   keyg(1,nstart)=igridpoint
                   keyv(nstart)=nvctr
                   segment=.true.
+              end if
+              !write(*,'(a,3i8,2x,i8)') 'ii1, ii2, ii3, igridpoint', ii1, ii2, ii3, igridpoint
+              if(ii1>ii1max) then
+                  ii1max=ii1 ; igridx=igridpoint ; isegx=nstart
+              end if
+              if(ii2>ii2max) then
+                  ii2max=ii2 ; igridy=igridpoint ; isegy=nstart
+              end if
+              if(ii3>ii3max) then
+                  ii3max=ii3 ; igridz=igridpoint ; isegz=nstart
+              end if
+              if(ii1<ii1min) then
+                  ii1min=ii1 ; igridxmin=igridpoint ; isegxmin=nstart ; write(*,'(a,4i8)') 'new ii1min: ii1, ii1min,  igridpoint, nstart', ii1, ii1min, igridpoint, nstart
+                  write(*,'(a,i8,3x,i8)') 'j0-1, ii3*(n1+1)*(n2+1)+ii2*(n1+1)+ii1',j0-1, ii3*(n1+1)*(n2+1)+ii2*(n1+1)+ii1
+              end if
+              if(ii2<ii2min) then
+                  ii2min=ii2 ; igridymin=igridpoint ; isegymin=nstart
+              end if
+              if(ii3<ii3min) then
+                  ii3min=ii3 ; igridzmin=igridpoint ; isegzmin=nstart
               end if
           else
               if(segment) then
@@ -1153,6 +1271,9 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
       end if
       i2old=i2
   end do
+
+  write(*,'(a,3i8,3x,3i8,3x,3i8)') 'ii1max, ii2max, ii3max,  igridx, igridy, igridz,  isegx, isegy, isegz', ii1max, ii2max, ii3max, igridx, igridy, igridz, isegx, isegy, isegz
+  write(*,'(a,3i8,3x,3i8,3x,3i8)') 'ii1min, ii2min, ii3min,  isegxmin, isegymin, isegzmin,  igridxmin, igridymin, igridzmin', ii1min, ii2min, ii3min, isegxmin, isegymin, isegzmin, igridxmin, igridymin, igridzmin
 
 
   if (nend /= nstart) then
@@ -2651,7 +2772,8 @@ do jproc=0,nproc-1
         ilr=orbs%inWhichLocreg(iiorb)
         call get_start_and_end_indices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
         do jorb=1,orbs%norb
-            ilr=orbs%inWhichLocreg(iorb)
+        write(*,'(a,3i8)') 'jproc, iorb, jorb', jproc, iorb, jorb
+            jlr=orbs%inWhichLocreg(jorb)
             call get_start_and_end_indices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
             ovrlpx = ( is1<=je1 .and. ie1>=js1 )
             ovrlpy = ( is2<=je2 .and. ie2>=js2 )
@@ -2787,25 +2909,25 @@ call overlapbox_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_i%wfd%nseg_c, llr_j%wfd%nseg_c, &
      llr_i%wfd%keyg, llr_i%wfd%keyv, llr_j%wfd%keyg, llr_j%wfd%keyv, &
      olr%d%n1, olr%d%n2, olr%d%n3, olr%ns1, olr%ns2, olr%ns3, olr%wfd%nseg_c)
+write(*,'(a,2(3i6,2x))') '>> coarse part: olr%d%n1, olr%d%n2, olr%d%n3, olr%ns1, olr%ns2, olr%ns3', olr%d%n1, olr%d%n2, olr%d%n3, olr%ns1, olr%ns2, olr%ns3
 
 olr%geocode='F'
 
-! Determine the boundary for the fine part.
-olr%d%nfl1=max(olr%ns1,Glr%d%nfl1)-olr%d%n1
-olr%d%nfu1=min(olr%ns1+olr%d%n1,Glr%d%nfu1)-olr%d%n1
-olr%d%nfl2=max(olr%ns2,Glr%d%nfl2)-olr%d%n2
-olr%d%nfu2=min(olr%ns2+olr%d%n2,Glr%d%nfu2)-olr%d%n2
-olr%d%nfl3=max(olr%ns3,Glr%d%nfl3)-olr%d%n3
-olr%d%nfu3=min(olr%ns3+olr%d%n3,Glr%d%nfu3)-olr%d%n3
+!!! Determine the boundary for the fine part.
+!!olr%d%nfl1=max(olr%ns1,Glr%d%nfl1)-olr%ns1
+!!olr%d%nfu1=min(olr%ns1+olr%d%n1,Glr%d%nfu1)-olr%ns1
+!!olr%d%nfl2=max(olr%ns2,Glr%d%nfl2)-olr%ns2
+!!olr%d%nfu2=min(olr%ns2+olr%d%n2,Glr%d%nfu2)-olr%ns2
+!!olr%d%nfl3=max(olr%ns3,Glr%d%nfl3)-olr%ns3
+!!olr%d%nfu3=min(olr%ns3+olr%d%n3,Glr%d%nfu3)-olr%ns3
 
 ! Dimensions for interpolating scaling function grid
 olr%d%n1i=2*olr%d%n1+31
 olr%d%n2i=2*olr%d%n2+31
 olr%d%n3i=2*olr%d%n3+31
 
-! Allocate the descriptor structures
-call allocate_wfd(olr%wfd,subname)
 
+write(*,*) 'calling overlapbox_from_descriptors for fine region...'
 ! Now determine the values describing the fine regions.
 call overlapbox_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_j%d%n1, llr_j%d%n2, llr_j%d%n3, &
@@ -2818,32 +2940,116 @@ call overlapbox_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_j%wfd%keyg(1,llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), llr_j%wfd%keyv(llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), &
      n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, olr%wfd%nseg_f)
 
+     write(*,'(a,2i8)') 'olr%wfd%nseg_c, olr%wfd%nseg_f', olr%wfd%nseg_c, olr%wfd%nseg_f
+
+! Allocate the descriptor structures
+call allocate_wfd(olr%wfd,subname)
+
+
+     ! ns1_ovrlp etc is in global coordinates, but olr%d%nfl1 etc is in local coordinates, so correct this.
+     ns1_ovrlp=ns1_ovrlp-olr%ns1
+     ns2_ovrlp=ns2_ovrlp-olr%ns2
+     ns3_ovrlp=ns3_ovrlp-olr%ns3
+
+     ! Determine the boundary for the fine part.
+     olr%d%nfl1=ns1_ovrlp
+     olr%d%nfu1=olr%d%nfl1+n1_ovrlp
+     olr%d%nfl2=ns2_ovrlp
+     olr%d%nfu2=olr%d%nfl2+n2_ovrlp
+     olr%d%nfl3=ns3_ovrlp
+     olr%d%nfu3=olr%d%nfl3+n3_ovrlp
+
+     ! some cheks
+     if(olr%ns1<glr%ns1) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', glr%ns1, '= glr%ns1'
+     end if
+     if(olr%ns2<glr%ns2) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', glr%ns2, '= glr%ns2'
+     end if
+     if(olr%ns3<glr%ns3) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', glr%ns3, '= glr%ns3'
+     end if
+     if(olr%ns1+olr%d%n1>glr%ns1+glr%d%n1) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', glr%ns1+glr%d%n1, '= glr%ns1+glr%d%n1'
+     end if
+     if(olr%ns2+olr%d%n2>glr%ns2+glr%d%n2) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', glr%ns2+glr%d%n2, '= glr%ns2+glr%d%n2'
+     end if
+     if(olr%ns3+olr%d%n3>glr%ns3+glr%d%n3) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', glr%ns3+glr%d%n3, '= glr%ns3+glr%d%n3'
+     end if
+
+     if(olr%ns1<llr_i%ns1) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', llr_i%ns1, '= llr_i%ns1'
+     end if
+     if(olr%ns2<llr_i%ns2) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', llr_i%ns2, '= llr_i%ns2'
+     end if
+     if(olr%ns3<llr_i%ns3) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', llr_i%ns3, '= llr_i%ns3'
+     end if
+     if(olr%ns1+olr%d%n1>llr_i%ns1+llr_i%d%n1) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', llr_i%ns1+llr_i%d%n1, '= llr_i%ns1+llr_i%d%n1'
+     end if
+     if(olr%ns2+olr%d%n2>llr_i%ns2+llr_i%d%n2) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', llr_i%ns2+llr_i%d%n2, '= llr_i%ns2+llr_i%d%n2'
+     end if
+     if(olr%ns3+olr%d%n3>llr_i%ns3+llr_i%d%n3) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', llr_i%ns3+llr_i%d%n3, '= llr_i%ns3+llr_i%d%n3'
+     end if
+
+     if(olr%ns1<llr_j%ns1) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', llr_j%ns1, '= llr_j%ns1'
+     end if
+     if(olr%ns2<llr_j%ns2) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', llr_j%ns2, '= llr_j%ns2'
+     end if
+     if(olr%ns3<llr_j%ns3) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', llr_j%ns3, '= llr_j%ns3'
+     end if
+     if(olr%ns1+olr%d%n1>llr_j%ns1+llr_j%d%n1) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', llr_j%ns1+llr_j%d%n1, '= llr_j%ns1+llr_j%d%n1'
+     end if
+     if(olr%ns2+olr%d%n2>llr_j%ns2+llr_j%d%n2) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', llr_j%ns2+llr_j%d%n2, '= llr_j%ns2+llr_j%d%n2'
+     end if
+     if(olr%ns3+olr%d%n3>llr_j%ns3+llr_j%d%n3) then
+         write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', llr_j%ns3+llr_j%d%n3, '= llr_j%ns3+llr_j%d%n3'
+     end if
+
+
+
+
+
+     write(*,'(a,3i8,3x,3i8,3x,3i8)') 'glr%d%nfl1, glr%d%nfl2, glr%d%nfl3,   glr%d%nfu1, glr%d%nfu2, glr%d%nfu3,  olr%ns1, olr%ns2, olr%ns3', glr%d%nfl1, glr%d%nfl2, glr%d%nfl3, glr%d%nfu1, glr%d%nfu2, glr%d%nfu3, olr%ns1, olr%ns2, olr%ns3
      ! some checks
      if(ns1_ovrlp/=olr%d%nfl1) then
          write(*,'(a,2(i0,a))') 'ERROR: ns1_ovrlp=',ns1_ovrlp,' /= ',olr%d%nfl1,'=olr%d%nfl1'
-         stop
+         write(*,'(a,4i8)') 'olr%d%nfl1, olr%d%nfu1, olr%ns1, olr%d%n1', olr%d%nfl1, olr%d%nfu1, olr%ns1, olr%d%n1
+         write(*,'(a,9i8)') 'llr_i%ns1, llr_j%ns1, olr%ns1, glr%d%nfl1, llr_i%d%nfl1, llr_j%d%nfl1, glr%d%nfu1, llr_i%d%nfu1, llr_j%d%nfu1', llr_i%ns1, llr_j%ns1, olr%ns1, glr%d%nfl1, llr_i%d%nfl1, llr_j%d%nfl1, glr%d%nfu1, llr_i%d%nfu1, llr_j%d%nfu1
+         !stop
      end if
      if(ns2_ovrlp/=olr%d%nfl2) then
          write(*,'(a,2(i0,a))') 'ERROR: ns2_ovrlp=',ns2_ovrlp,' /= ',olr%d%nfl2,'=olr%d%nfl2'
-         stop
+         !stop
      end if
      if(ns3_ovrlp/=olr%d%nfl3) then
          write(*,'(a,2(i0,a))') 'ERROR: ns3_ovrlp=',ns3_ovrlp,' /= ',olr%d%nfl3,'=olr%d%nfl3'
-         stop
+         !stop
      end if
-     if(n1_ovrlp/=olr%d%nfl1-olr%d%nfl1) then
-         write(*,'(a,2(i0,a))') 'ERROR: n1_ovrlp=',n1_ovrlp,' /= ',olr%d%nfl1-olr%d%nfl1,'=olr%d%nfl1-olr%d%nfl1'
-         stop
+     if(n1_ovrlp/=olr%d%nfu1-olr%d%nfl1) then
+         write(*,'(a,2(i0,a))') 'ERROR: n1_ovrlp=',n1_ovrlp,' /= ',olr%d%nfu1-olr%d%nfl1,'=olr%d%nfu1-olr%d%nfl1'
+         !stop
      end if
-     if(n2_ovrlp/=olr%d%nfl2-olr%d%nfl2) then
-         write(*,'(a,2(i0,a))') 'ERROR: n2_ovrlp=',n2_ovrlp,' /= ',olr%d%nfl2-olr%d%nfl2,'=olr%d%nfl2-olr%d%nfl2'
-         stop
+     if(n2_ovrlp/=olr%d%nfu2-olr%d%nfl2) then
+         write(*,'(a,2(i0,a))') 'ERROR: n2_ovrlp=',n2_ovrlp,' /= ',olr%d%nfu2-olr%d%nfl2,'=olr%d%nfu2-olr%d%nfl2'
+         !stop
      end if
-     if(n3_ovrlp/=olr%d%nfl3-olr%d%nfl3) then
-         write(*,'(a,2(i0,a))') 'ERROR: n3_ovrlp=',n3_ovrlp,' /= ',olr%d%nfl3-olr%d%nfl3,'=olr%d%nfl3-olr%d%nfl3'
-         stop
+     if(n3_ovrlp/=olr%d%nfu3-olr%d%nfl3) then
+         write(*,'(a,2(i0,a))') 'ERROR: n3_ovrlp=',n3_ovrlp,' /= ',olr%d%nfu3-olr%d%nfl3,'=olr%d%nfu3-olr%d%nfl3'
+         !stop
      end if
-
+!stop
 
 ! Fill the descriptors for the coarse part.
 call overlapdescriptors_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
@@ -2856,7 +3062,8 @@ call overlapdescriptors_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      olr%ns1, olr%ns2, olr%ns3, &
      llr_i%wfd%nseg_c, llr_j%wfd%nseg_c, olr%wfd%nseg_c, &
      llr_i%wfd%keyg, llr_i%wfd%keyv, llr_j%wfd%keyg, llr_j%wfd%keyv, &
-     olr%wfd%keyg, olr%wfd%keyv)
+     olr%wfd%keyg, olr%wfd%keyv, &
+     olr%wfd%nvctr_c)
 
 ! Fill the descriptors for the fine part.
 call overlapdescriptors_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
@@ -2867,9 +3074,11 @@ call overlapdescriptors_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_j%ns1, llr_j%ns2, llr_j%ns3, &
      glr%ns1, glr%ns2, glr%ns3, &
      olr%ns1, olr%ns2, olr%ns3, &
-     llr_i%wfd%nseg_c, llr_j%wfd%nseg_c, olr%wfd%nseg_f, &
-     llr_i%wfd%keyg, llr_i%wfd%keyv, llr_j%wfd%keyg, llr_j%wfd%keyv, &
-     olr%wfd%keyg(1,olr%wfd%nseg_c+min(1,olr%wfd%nseg_f)), olr%wfd%keyv(olr%wfd%nseg_c+min(1,olr%wfd%nseg_f)))
+     llr_i%wfd%nseg_f, llr_j%wfd%nseg_f, olr%wfd%nseg_f, &
+     llr_i%wfd%keyg(1,llr_i%wfd%nseg_c+min(1,llr_i%wfd%nseg_f)), llr_i%wfd%keyv(llr_i%wfd%nseg_c+min(1,llr_i%wfd%nseg_f)), &
+     llr_j%wfd%keyg(1,llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), llr_j%wfd%keyv(llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), &
+     olr%wfd%keyg(1,olr%wfd%nseg_c+min(1,olr%wfd%nseg_f)), olr%wfd%keyv(olr%wfd%nseg_c+min(1,olr%wfd%nseg_f)), &
+     olr%wfd%nvctr_f)
 
 
 
@@ -2930,13 +3139,16 @@ integer,intent(out):: n1_k, n2_k, n3_k, ns1_k, ns2_k, ns3_k, nseg_k
 ! Local variables
 integer:: iseg, jseg, knvctr, istart, jstart, kstart, istartg, jstartg, kstartg
 integer:: iend, jend, kend, iendg, jendg, kendg, transform_index
-integer:: kxs, kys, kzs, kxe, kye, kze
+integer:: kxs, kys, kzs, kxe, kye, kze, kxemax, kyemax, kzemax
+character(len=1):: increase
+! debug
+integer:: ixs, iys, izs, ixe, iye, ize, jxs, jys, jzs, jxe, jye, jze
 
 
 ! Initialize the return values such that they represent a box with no volume
-ns1_k=ns1_g+1
-ns2_k=ns2_g+1
-ns3_k=ns3_g+1
+ns1_k=ns1_g+n1_g+1
+ns2_k=ns2_g+n2_g+1
+ns3_k=ns3_g+n3_g+1
 n1_k=0
 n2_k=0
 n3_k=0
@@ -2945,7 +3157,12 @@ nseg_k=0
 ! Initialize some counter
 iseg=1
 jseg=1
+kxemax=0
+kyemax=0
+kzemax=0
 
+
+!if(nseg_i>=562 .and. nseg_j>=562) write(*,'(a,4i8)') 'DEBUG: keyg_i(1,562), keyg_i(2,562), keyg_j(1,562), keyg_j(2,562)', keyg_i(1,562), keyg_i(2,562), keyg_j(1,562), keyg_j(2,562)
 
 segment_loop: do
 
@@ -2958,24 +3175,34 @@ segment_loop: do
     jstartg=transform_index(jstart, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, ns1_j-ns1_g, ns2_j-ns2_g, ns3_j-ns3_g)
 
     ! Ending point in local coordinates
-    iend=keyg_i(1,iseg)
-    jend=keyg_j(1,jseg)
+    iend=keyg_i(2,iseg)
+    jend=keyg_j(2,jseg)
 
     ! Get the global counterparts
     iendg=transform_index(iend, n1_i, n2_i, n3_i, n1_g, n2_g, n3_g, ns1_i-ns1_g, ns2_i-ns2_g, ns3_i-ns3_g)
-    jendg=transform_index(jend, n1_i, n2_i, n3_i, n1_g, n2_g, n3_g, ns1_j-ns3_g, ns2_j-ns3_g, ns3_j-ns3_g)
+    jendg=transform_index(jend, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, ns1_j-ns1_g, ns2_j-ns2_g, ns3_j-ns3_g)
 
     ! Determine starting and ending point of the common segment in global coordinates and
     ! which segment counter has to be increased.
     kstartg=max(istartg,jstartg)
-    if(iendg<=jendg) then
-        kendg=iendg
-        iseg=iseg+1
-    else
-        kendg=jendg
-        jseg=jseg+1
+    kendg=min(iendg,jendg)
+    if((iendg<=jendg .and. iseg<nseg_i) .or. jseg==nseg_j) then
+        !kendg=iendg
+        !iseg=iseg+1
+        increase='i'
+    else if(jseg<nseg_j) then
+        !kendg=jendg
+        !jseg=jseg+1
+        increase='j'
     end if
-
+    !write(*,'(a,2i7,3x,2i7,3x,2i7)') 'iendg, jendg, iseg, jseg, nseg_i, nseg_j', iendg, jendg, iseg, jseg, nseg_i, nseg_j
+    !write(*,'(a,2i7,a,2i7,a,2i7,a,a,4i7)') 'istartg, iendg | jstartg, jendg (jstart, jend ) | iseg, jseg, nseg_i, nseg_j', istartg, iendg, ' | ', jstartg, jendg, '( ',jstart, jend, ')', ' | ', iseg, jseg, nseg_i, nseg_j
+    !write(*,'(a,2i8)') 'iseg, jseg', iseg, jseg
+    !if(istart<=23186 .and. iend>=23186 .or. jstart<=23186 .and. jend>=23186) write(*,'(a,4i8)') 'Got the value: istart, iend, jstart, jend', istart, iend, jstart, jend
+    !if(istart<=23186 .and. iend>=23186 .or. jstart<=23186 .and. jend>=23186) write(*,'(a,6i8)') 'Got the value: istartg, iendg, jstartg, jendg, kstartg, kendg', istartg, iendg, jstartg, jendg, kstartg, kendg
+    !if(iseg==941 .or. jseg==941) then
+    !    write(*,'(a,4i8)') 'istartg, iendg, jstartg, jendg', istartg, iendg, jstartg, jendg
+    !end if
     ! Check whether this common segment has a non-zero length
     if(kendg-kstartg+1>0) then
         nseg_k=nseg_k+1
@@ -2983,21 +3210,90 @@ segment_loop: do
         ! Get the global coordinates of this segment
         call get_coordinates(kstartg, n1_g, n2_g, n3_g, kxs, kys, kzs)
         call get_coordinates(kendg, n1_g, n2_g, n3_g, kxe, kye, kze)
+        !if(istart<=23186 .and. iend>=23186 .or. jstart<=23186 .and. jend>=23186) write(*,'(a,3i8)') 'HERE: kxe, kye, kze', kxe, kye, kze
+        !if(istartg<=9829 .and. iendg>=9829 .or. jstartg<=9829 .and. jendg>=9829) write(*,'(a,3i8)') 'HERE: kxs, kys, kzs', kxs, kys, kzs
+        !if(istart<=9829 .and. iend>=9829 .or. jstart<=9829 .and. jend>=9829) write(*,'(a,3i8,2x,2i8)') 'HERE: kxs, kys, kzs, kstartg, kendg', kxs, kys, kzs, kstartg, kendg
+
+        ! somce checks
+        call get_coordinates(istartg, n1_g, n2_g, n3_g, ixs, iys, izs)
+        call get_coordinates(iendg, n1_g, n2_g, n3_g, ixe, iye, ize)
+        call get_coordinates(jstartg, n1_g, n2_g, n3_g, jxs, jys, jzs)
+        call get_coordinates(jendg, n1_g, n2_g, n3_g, jxe, jye, jze)
+
+        if(kxs<ixs) then
+            write(*,'(a,2(i0,a))') 'STOP: kxs = ', kxs, ' < ', ixs, ' = ixs'
+            write(*,'(a,3i9,3x,3i9)') 'istartg, jstartg, kstartg,  iendg, jendg, kendg', istartg, jstartg, kstartg, iendg, jendg, kendg
+            write(*,'(a,2(2i8,3x))') 'iseg, nseg_i,  jseg, nseg_j', iseg, nseg_i, jseg, nseg_j
+        end if
+        if(kys<iys) then
+            write(*,'(a,2(i0,a))') 'STOP: kys = ', kys, ' < ', iys, ' = iys'
+        end if
+        if(kzs<izs) then
+            write(*,'(a,2(i0,a))') 'STOP: kzs = ', kzs, ' < ', izs, ' = izs'
+        end if
+        if(kxs<jxs) then
+            write(*,'(a,2(i0,a))') 'STOP: kxs = ', kxs, ' < ', jxs, ' = jxs'
+        end if
+        if(kys<jys) then
+            write(*,'(a,2(i0,a))') 'STOP: kys = ', kys, ' < ', jys, ' = jys'
+        end if
+        if(kzs<jzs) then
+            write(*,'(a,2(i0,a))') 'STOP: kzs = ', kzs, ' < ', jzs, ' = jzs'
+        end if
+
+        if(kxe>ixe) then
+            write(*,'(a,2(i0,a))') 'STOP: kxe = ', kxe, ' > ', ixe, ' = ixe'
+        end if
+        if(kye>iye) then
+            write(*,'(a,2(i0,a))') 'STOP: kye = ', kye, ' > ', iye, ' = iye'
+        end if
+        if(kze>ize) then
+            write(*,'(a,2(i0,a))') 'STOP: kze = ', kze, ' > ', ize, ' = ize'
+        end if
+        if(kxe>jxe) then
+            write(*,'(a,2(i0,a))') 'STOP: kxe = ', kxe, ' > ', jxe, ' = jxe'
+        end if
+        if(kye>jye) then
+            write(*,'(a,2(i0,a))') 'STOP: kye = ', kye, ' > ', jye, ' = jye'
+        end if
+        if(kze>jze) then
+            write(*,'(a,2(i0,a))') 'STOP: kze = ', kze, ' > ', jze, ' = jze'
+        end if
+
+        !write(*,'(a,2i8,3x,3i8,3x,3i8)') 'kstartg, kendg,  kxs, kys, kzs,  kxe, kye, kze', kstartg, kendg, kxs, kys, kzs, kxe, kye, kze
 
         ! Check whether this segment enlarges the overlap box
         if(kxs<ns1_k) ns1_k=kxs
         if(kys<ns2_k) ns2_k=kys
-        if(kzs<ns3_k) ns3_k=kzs
-        if(kxe>ns1_k+n1_k) n1_k=kxe-ns1_k
-        if(kye>ns2_k+n2_k) n2_k=kye-ns2_k
-        if(kze>ns3_k+n3_k) n3_k=kze-ns3_k
+        if(kzs<ns3_k) then
+            ns3_k=kzs !; write(*,'(a,i0,2x,i0,a,x,3(i0,x),a)') 'decreasing ns3_k: kstartg, ns3_k =',kstartg, ns3_k, ' (n1_g, n2_g, n3_g = ', n1_g, n2_g, n3_g,')' 
+        end if
+        !if(kxe>ns1_k+n1_k) n1_k=kxe-ns1_k
+        !if(kye>ns2_k+n2_k) n2_k=kye-ns2_k
+        !if(kze>ns3_k+n3_k) n3_k=kze-ns3_k
+        if(kxe>kxemax) kxemax=kxe !; write(*,'(a,i0,a,x,3(i0,x),a)') 'increasing kxemax: kendg=',kendg,' (n1_g, n2_g, n3_g = ', n1_g, n2_g, n3_g,')' 
+        if(kye>kyemax) kyemax=kye
+        if(kze>kzemax) kzemax=kze !; write(*,'(a,i0,a,x,3(i0,x),a)') 'increasing kzemax: kendg=',kendg,' (n1_g, n2_g, n3_g = ', n1_g, n2_g, n3_g,')' 
 
     end if
 
     ! Check whether all segments of both localization regions have been processed
-    if(iseg>nseg_i .and. jseg>nseg_j) exit segment_loop
+    if(iseg>=nseg_i .and. jseg>=nseg_j) exit segment_loop
+
+    ! Increase the segment index
+    if(increase=='i') then
+        iseg=iseg+1
+    else if(increase=='j') then
+        jseg=jseg+1
+    end if
 
 end do segment_loop
+
+write(*,'(a,3i8,3x,3i8)') '>>> ns1_k, ns2_k, ns3_k, kxemax, kyemax, kzemax',  ns1_k, ns2_k, ns3_k, kxemax, kyemax, kzemax
+
+n1_k=kxemax-ns1_k
+n2_k=kyemax-ns2_k
+n3_k=kzemax-ns3_k
 
 
 
@@ -3010,7 +3306,7 @@ end subroutine overlapbox_from_descriptors
 subroutine overlapdescriptors_from_descriptors(n1_i, n2_i, n3_i, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, n1_k, n2_k, n3_k, &
            ns1_i, ns2_i, ns3_i, ns1_j, ns2_j, ns3_j, ns1_g, ns2_g, ns3_g, ns1_k, ns2_k, ns3_k, &
            nseg_i, nseg_j, nseg_k, &
-           keyg_i, keyv_i, keyg_j, keyv_j, keyg_k, keyv_k)
+           keyg_i, keyv_i, keyg_j, keyv_j, keyg_k, keyv_k, nvctr_k)
 use module_base
 use module_types
 implicit none
@@ -3025,16 +3321,19 @@ integer,dimension(2,nseg_j),intent(in):: keyg_j
 integer,dimension(nseg_j),intent(in):: keyv_j
 integer,dimension(2,nseg_k),intent(out):: keyg_k
 integer,dimension(nseg_k),intent(out):: keyv_k
+integer,intent(out):: nvctr_k
 
 ! Local variables
 integer:: iseg, jseg, kseg, knvctr, istart, jstart, kstart, istartg, jstartg, kstartg
 integer:: iend, jend, kend, iendg, jendg, kendg, transform_index
+character(len=1):: increase
 
 ! Initialize some counters
 iseg=1
 jseg=1
 kseg=0
 knvctr=0
+nvctr_k=0
 
 segment_loop: do
 
@@ -3047,44 +3346,57 @@ segment_loop: do
     jstartg=transform_index(jstart, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, ns1_j-ns1_g, ns2_j-ns2_g, ns3_j-ns3_g)
 
     ! Ending point in local coordinates
-    iend=keyg_i(1,iseg)
-    jend=keyg_j(1,jseg)
+    iend=keyg_i(2,iseg)
+    jend=keyg_j(2,jseg)
 
     ! Get the global counterparts
     iendg=transform_index(iend, n1_i, n2_i, n3_i, n1_g, n2_g, n3_g, ns1_i-ns1_g, ns2_i-ns2_g, ns3_i-ns3_g)
-    jendg=transform_index(jend, n1_i, n2_i, n3_i, n1_g, n2_g, n3_g, ns1_j-ns3_g, ns2_j-ns3_g, ns3_j-ns3_g)
+    jendg=transform_index(jend, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, ns1_j-ns1_g, ns2_j-ns2_g, ns3_j-ns3_g)
 
     ! Determine starting and ending point of the common segment in global coordinates and
     ! which segment counter has to be increased.
     kstartg=max(istartg,jstartg)
-    if(iendg<=jendg) then
-        kendg=iendg
-        iseg=iseg+1
-    else
-        kendg=jendg
-        jseg=jseg+1
+    kendg=min(iendg,jendg)
+    if((iendg<=jendg .and. iseg<nseg_i) .or. jseg==nseg_j) then
+        !kendg=iendg
+        !iseg=iseg+1
+        increase='i'
+    else if(jseg<nseg_j) then
+        !kendg=jendg
+        !jseg=jseg+1
+        increase='j'
     end if
 
     ! Check whether this common segment has a non-zero length
     if(kendg-kstartg+1>0) then
         kseg=kseg+1
-        knvctr=knvctr+kendg-kstartg+1
 
         ! Transform the starting and ending point to the overlap localization region.
-        kstart=transform_index(kendg, n1_g, n2_g, n3_g, n1_k, n2_k, n3_k, ns1_g-ns1_k, ns2_g-ns2_k, ns3_g-ns3_k)
+        kstart=transform_index(kstartg, n1_g, n2_g, n3_g, n1_k, n2_k, n3_k, ns1_g-ns1_k, ns2_g-ns2_k, ns3_g-ns3_k)
         kend=transform_index(kendg, n1_g, n2_g, n3_g, n1_k, n2_k, n3_k, ns1_g-ns1_k, ns2_g-ns2_k, ns3_g-ns3_k)
 
         ! Assign the values to the descriptors
         keyg_k(1,kseg)=kstart
         keyg_k(2,kseg)=kend
-        keyv_k(kseg)=knvctr
+        keyv_k(kseg)=knvctr+1
+        !write(*,'(a,2i7,3x,3(2i8,2x))') 'iseg, jseg,    istart, jstart,  istartg, jstartg,  kstartg, kstart', iseg, jseg, istart, jstart, istartg, jstartg, kstartg, kstart
+
+        knvctr=knvctr+kendg-kstartg+1
     end if
 
     ! Check whether all segments of both localization regions have been processed
-    if(iseg>nseg_i .and. jseg>nseg_j) exit segment_loop
+    if(iseg>=nseg_i .and. jseg>=nseg_j) exit segment_loop
+
+    ! Increase the segment index
+    if(increase=='i') then
+        iseg=iseg+1
+    else if(increase=='j') then
+        jseg=jseg+1
+    end if
 
 end do segment_loop
 
+nvctr_k=knvctr
 
 
 end subroutine overlapdescriptors_from_descriptors
@@ -3121,7 +3433,7 @@ integer:: ii, ix, iy, iz, ixg, iyg, izg, istg
   ixg = ix + nshift1
 
   ! Transform ist to its counterpart in the coordinate system of B
-  istg = izg*(n1b+1)*(n2b+1) + iyg*(n1b+1) + ixg
+  istg = izg*(n1b+1)*(n2b+1) + iyg*(n1b+1) + ixg + 1
   
   ! Assign istg to the value that is passed back.
   transform_index=istg
@@ -3149,6 +3461,7 @@ integer:: ii
 
   ! Get the coordinates ix, iy, iz
   ii = ist - 1
+  !ii = ist
   iz = ii / ((n1+1) * (n2+1))
   ii = ii - iz * ((n1+1) * (n2+1))
   iy = ii / (n1+1)
