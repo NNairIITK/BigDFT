@@ -1517,6 +1517,48 @@ module module_interfaces
       real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,2*orbs%nspin), intent(in), optional :: potandrho 
       real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin), intent(out), optional :: wxdsave 
     end subroutine NK_SIC_potential
+
+    subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+         wfd,psi,orblist)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,n1,n2,n3
+      real(gp), intent(in) :: hx,hy,hz
+      type(wavefunctions_descriptors), intent(in) :: wfd
+      type(orbitals_data), intent(inout) :: orbs
+      type(atoms_data), intent(in) :: at
+      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      integer, dimension(orbs%norb), optional :: orblist
+      real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
+      character(len=*), intent(in) :: filename
+     end subroutine readmywaves
+
+     subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iiorb)
+      use module_base
+      use module_types
+      implicit none
+      character(len=*), intent(in) :: filename
+      logical, intent(in) :: lbin
+      integer, intent(in) :: iorb,ispinor,unitfile
+      type(orbitals_data), intent(in) :: orbs
+      integer, intent(out) :: iorb_out
+      integer,optional :: iiorb   
+     end subroutine open_filename_of_iorb
+
+     subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
+      use module_base
+      use module_types
+      implicit none
+      character(len=*), intent(in) :: filename
+      logical, intent(in) :: lbin
+      integer, intent(in) :: iorb,ispinor
+      type(orbitals_data), intent(in) :: orbs
+      character(len=*) :: filename_out
+      integer, intent(out) :: iorb_out
+      integer,optional :: iiorb
+     end subroutine filename_of_iorb
     
 
      !subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)

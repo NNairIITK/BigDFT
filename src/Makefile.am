@@ -63,16 +63,13 @@ PS_SOURCES =
 PS_MODULES =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
+binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc BigDFT2Wannier
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 else
 binaries_sources = 
 local_binaries =
 scripts_sources = 
-endif
-if HAVE_ETSF_IO
-binaries_sources += BigDFT2Wannier
 endif
 
 
