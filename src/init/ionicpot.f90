@@ -447,7 +447,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      if(all(elecfield(1:3)==0._gp)) then 
            write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
      else 
-           write(*,'(1x,a,1pe22.14)') 'ion-ion and ion-external field interaction energy',eion
+           write(*,'(1x,a,1pe22.14)') 'ion-ion and ion-electric field interaction energy',eion
      endif
      if (nvacancy /= 0) then
         open(unit=22,file='eion_corr.tmp',status='unknown')
@@ -1031,21 +1031,21 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
         end do
 
         if (efwrite .and. iproc == 0) then
-           open(unit=17,file='externalpot_x',status='unknown')
+           open(unit=17,file='elecpotential_x',status='unknown')
            write(17,*) "# x , external electric potential(x,y=0,z=0)"
            do i1=nbl1+1,n1i-nbr1-1
               x=real(i1-nbl1-1,gp)*hxh
               write(17,*)x,-elecfield(1)*x
            end do
            close(17)
-           open(unit=17,file='externalpot_y',status='unknown')
+           open(unit=17,file='elecpotential_y',status='unknown')
            write(17,*) "# y , external electric potential(x=0,y,z=0)"
            do i2=nbl2+1,n2i-nbr2-1
               y=real(i2-nbl2-1,gp)*hyh
               write(17,*)y,-elecfield(2)*y
            end do
            close(17)
-           open(unit=17,file='externalpot_z',status='unknown')
+           open(unit=17,file='elecpotential_z',status='unknown')
            write(17,*) "# z , external electric potential(x=0,y=0,z)"
            do i3=1,n3pi
               z=real(i3+i3s-1-nbl3-1,gp)*hzh

@@ -187,7 +187,7 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
   if (iproc == 0) then
      !write(*,'(1x,a)')repeat('-',48)//' Mulliken Charge Population Analysis'
      !write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  |Gross Chg'
-     write(*,'(1x,a)')repeat('-',59)//' Mulliken Charge Population Analysis'
+     write(*,'(1x,a)')repeat('-',57)//' Mulliken Charge Population Analysis'
      write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |Gross Chg'
   end if
 

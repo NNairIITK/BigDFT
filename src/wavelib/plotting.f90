@@ -1641,12 +1641,12 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
   if(iproc==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     write(*,'(1x,a)')repeat('-',69)//' Electric Dipole Moment'
+     write(*,'(1x,a)')repeat('-',61)//' Electric Dipole Moment'
      tmpdip=dipole_cores+dipole_el
-     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)       ", "   (Px,Py,Pz)= " , tmpdip(1:3)  
+     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)       ", "(Px,Py,Pz)= " , tmpdip(1:3)  
      tmpdip=tmpdip/0.393430307_gp  ! au2debye              
-     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "   (Px,Py,Pz)= " , tmpdip(1:3) 
-96   format (a10,Es14.6 ,a,a,3ES13.4)
+     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "(Px,Py,Pz)= " , tmpdip(1:3) 
+96   format (a8,Es14.6 ,a,a,3ES13.4)
      !     write(*,'(a)') "  ================= Dipole moment in e.a0    (0.39343 e.a0 = 1 Debye) ================"  ! or [Debye] 
      !     write(*,97) "    Px " ,"     Py ","     Pz ","   |P| " 
      !     write(*,98) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))

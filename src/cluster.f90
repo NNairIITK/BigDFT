@@ -1232,8 +1232,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !plot the ionic potential, if required by output_grid
   if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
-     if (iproc == 0) write(*,*) 'writing ionic_potential' // gridformat
-     call plot_density(trim(in%dir_output)//'ionic_potential' // gridformat,iproc,nproc,&
+     if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
+     call plot_density(trim(in%dir_output)//'external_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
           1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
   end if
@@ -1333,6 +1333,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              & in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
      end if
 
+
+!     !plot also the electrostatic potential
+!     if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+!        if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
+!        call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
+!             & iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+!             & in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
+!     end if
+!
      call timing(iproc,'Forces        ','ON')
      !refill projectors for tails, davidson
      refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
