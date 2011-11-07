@@ -13,7 +13,7 @@ program BigDFT2Wannier
    type(input_variables) :: input 
    type(workarr_sumrho) :: w
    type(communications_arrays), target :: comms, commsp,commsv,commsb
-   integer :: iproc, nproc, i_stat, nelec, ind, ierr, npsidim, npsidim2
+   integer :: iproc, nproc, nproctiming, i_stat, nelec, ind, ierr, npsidim, npsidim2
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3
    integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3
    real :: tcpu0,tcpu1,tel
@@ -70,7 +70,13 @@ program BigDFT2Wannier
       write(radical, "(A)") "input"
    end if
 
-   call timing(iproc,'b2w_time.prc','IN')
+   if (input%verbosity > 2) then
+      nproctiming=-nproc !timing in debug mode                                                                                                                                                                  
+   else
+      nproctiming=nproc
+   end if
+
+   call timing(nproctiming,'b2w_time.prc','IN')
 
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max) 
@@ -1453,7 +1459,6 @@ else if ( (filetype == 'cube' .or. filetype == 'CUBE') .and. nproc==1 ) then
 else
    if (iproc==0) write(*,*) 'Cubic code not parallelized'
 end if
-
   call timing(iproc,'             ','RE')
 
   call cpu_time(tcpu1)
