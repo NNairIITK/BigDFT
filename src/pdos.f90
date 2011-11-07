@@ -185,8 +185,10 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
   end if
 
   if (iproc == 0) then
-     write(*,'(1x,a)')repeat('-',48)//' Mulliken Charge Population Analysis'
-     write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  |  Net Chg'
+     !write(*,'(1x,a)')repeat('-',48)//' Mulliken Charge Population Analysis'
+     !write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  |Gross Chg'
+     write(*,'(1x,a)')repeat('-',59)//' Mulliken Charge Population Analysis'
+     write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |Gross Chg'
   end if
 
 !  do iorb=1,orbs%norbp  
@@ -227,8 +229,11 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
            msumiat(1)=msumiat(1)+mchg(icoeff,1)
            msumiat(2)=msumiat(2)+mchg(icoeff,2)
            if (iproc == 0) then
-              write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),2(a,f8.5))')&
-                   iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',&
+              !write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),2(a,f8.5))')&
+              !     iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',&
+              !     mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
+              write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
+                   iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
                    mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
            end if
            sumch=sumch+Gocc(icoeff)
@@ -236,15 +241,19 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
            nchannels=nchannels+1
         end do
      end do
-     if (iproc == 0) write(*,'(15x,a,2("|",1x,f8.5,1x),2(a,f8.5))')&
+     !if (iproc == 0) write(*,'(15x,a,2("|",1x,f8.5,1x),2(a,f8.5))')&
+     !     '  Center Quantities : ',&
+     !     (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)-msumiat(2),' | ',&
+     !     sumch-(msumiat(1)+msumiat(2))
+     if (iproc == 0) write(*,'(15x,a,2("|",1x,f8.5,1x),3(a,f8.5))')&
           '  Center Quantities : ',&
-          (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)-msumiat(2),' | ',&
+          (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)+msumiat(2),'  | ',msumiat(1)-msumiat(2),' | ',&
           sumch-(msumiat(1)+msumiat(2))
      msum=msum+msumiat(1)+msumiat(2)
-     if (iproc == 0) write(*,'(1x,a)')repeat('-',82)
+     if (iproc == 0) write(*,'(1x,a)')repeat('-',93)
   end do
 
-  if (iproc == 0) write(*,'(24x,a,f21.12)')'Total Charge considered on the centers: ',msum
+  if (iproc == 0) write(*,'(13x,a,f21.12)')'    Total Charge considered on the centers: ',msum
   
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
@@ -271,6 +280,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
   real(wp) :: rsum,tnorm
   integer, dimension(:), allocatable :: norb_displ
   real(wp), dimension(:,:), allocatable :: pdos
+  real(wp) , parameter :: au2eV=27.211d0 , au2Kelvin=3.1577d5
   
   !allocate both for spins up and down
   allocate(pdos(G%ncoeff+1,orbs%norb+ndebug),stat=i_stat)
@@ -329,14 +339,18 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
      else
         open(unit=12,file='pdos.dat',status='unknown')
      end if
+     write(12,'(a,a13,5x, a)')  & 
+          '# band', ' energy (eV),  ',G%ncoeff,' partial densities of states ' 
      do iorb=1,orbs%norbu
-        write(12,'(i5,1pe14.5,1000(1pe14.5))')iorb,orbs%eval(iorb),pdos(1:G%ncoeff,iorb)
+        write(12,'(i5,es14.5,5x,1000es14.5)')iorb,orbs%eval(iorb)*au2eV,pdos(1:G%ncoeff,iorb)
      end do
      close(unit=12)
      if (orbs%norbd /= 0) then
         open(unit=12,file='pdos-down.dat',status='unknown')
+        write(12,'(a,a13,5x, a)')  & 
+          '# band', ' energy (eV),  ',G%ncoeff,' partial densities of states ' 
         do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
-           write(12,'(i5,1pe14.5,1000(1pe14.5))')iorb-orbs%norbu,orbs%eval(iorb),pdos(1:G%ncoeff+1,iorb)
+           write(12,'(i5,es14.5,5x,1000es14.5)')iorb-orbs%norbu,orbs%eval(iorb)*au2eV,pdos(1:G%ncoeff+1,iorb)
         end do
      end if
   end if
@@ -424,17 +438,19 @@ END SUBROUTINE shell_name
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-subroutine global_analysis(iproc,nproc,orbs,wf)
+subroutine global_analysis(iproc,nproc,orbs,wf,occopt)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc, nproc
   type(orbitals_data), intent(in) :: orbs
   real(gp), intent(in) :: wf
+  integer , intent(in) :: occopt
 
   integer, parameter :: DOS = 123456
   integer :: ikpt, iorb, index, i
   real(wp) :: minE, maxE, e
+  real(wp) , parameter :: au2eV=27.211d0 , au2Kelvin=3.1577d5
   
   ! We define a Gnuplot file.
   open(unit = DOS, file = "dos.gnuplot", action = "write")
@@ -454,19 +470,21 @@ subroutine global_analysis(iproc,nproc,orbs,wf)
   write(DOS, "(A)") '# set output "dos.png"'
   write(DOS, "(A)")
   write(DOS, "(A)") "# This is the smearing value used in the calculation."
-  write(DOS, "(A,F12.8)") "w = ", wf
+  write(DOS, "(A,F12.8,A)") "w = ", wf*au2eV,"  # eV"
+  !write(DOS, "(A,F12.8,A)") "T = ", wf*au2Kelvin," K"
   write(DOS, "(A)")
   write(DOS, "(A)") "# This is the smearing function used in the calculation."
-  if (occopt == SMEARING_DIST_ERF) then
-     write(DOS, "(A,F6.4,A,F12.6,A)") 'set title "Density of state, erf smearing w = ', &
-          & wf, ', eFermi = ', orbs%efermi , 'eV"'
-     write(DOS, "(A)") "f(eb,E)  = 0.5 * (1 - erf((E - eb) / w))"
-     write(DOS, "(A)") "df(eb,E) = exp(-((E - eb) / w) ** 2) / w / sqrt(pi)"
-  else if (occopt == SMEARING_DIST_FERMI) then
-     write(DOS, "(A,F6.4,A,F12.6,A)") 'set title "Density of state, Fermi-Dirac smearing w = ', &
-          & wf, ', eFermi = ', orbs%efermi , 'eV"'
+  if (occopt == SMEARING_DIST_FERMI) then
+     write(DOS, "(A,F6.4,A,F12.6,A)") 'set title "Density of states, Fermi-Dirac smearing w = ', &
+          & wf*au2eV, 'eV, E_f = ', orbs%efermi*au2eV , 'eV"'
      write(DOS, "(A)") "f(eb,E)  = 1 / (1 + exp((eb-E)/w))"
      write(DOS, "(A)") "df(eb,E) = 1 / (2 + exp((eb-E)/w) + exp((E-eb)/w)) / w"
+   !elseif (occopt == SMEARING_DIST_ERF) then  
+   else  ! to be changed for cold smearing and ... 
+     write(DOS, "(A,F6.4,A,F12.6,A)") 'set title "Density of states, erf smearing w = ', &
+          & wf*au2eV, 'eV,  E_f = ', orbs%efermi*au2eV , 'eV"'
+     write(DOS, "(A)") "f(eb,E)  = 0.5 * (1 - erf((E - eb) / w))"
+     write(DOS, "(A)") "df(eb,E) = exp(-((E - eb) / w) ** 2) / w / sqrt(pi)"
   end if
   write(DOS, "(A)")
   write(DOS, "(A)") "U(E) = " // char(92)
@@ -477,6 +495,7 @@ subroutine global_analysis(iproc,nproc,orbs,wf)
         write(DOS, "(A)", advance = "NO") "   "
         do i = 1, 6
            e = orbs%eval(index+(ikpt-1)*orbs%norb)
+           e = e*au2eV
            minE = min(e, minE)
            maxE = max(e, maxE)
            write(DOS, "(A,F12.8,A)", advance = "NO") "df(", e, ",E)"
@@ -502,6 +521,7 @@ subroutine global_analysis(iproc,nproc,orbs,wf)
            write(DOS, "(A)", advance = "NO") "   "
            do i = 1, 6
               e = orbs%eval(index+(ikpt-1)*orbs%norb)
+              e = e**au2eV
               minE = min(e, minE)
               maxE = max(e, maxE)
               write(DOS, "(A,F12.8,A)", advance = "NO") "df(", e, ",E)"
@@ -518,12 +538,15 @@ subroutine global_analysis(iproc,nproc,orbs,wf)
         end if
      end do
   end if
-  write(DOS, "(A)") "set samples 500"
+  write(DOS, "(A)") "set samples 2500"
   write(DOS, "(A)") "set key bottom left"
   write(DOS, "(A)") 'set xlabel "Energy (eV)"'
-  write(DOS, "(A)") 'set ylabel "Electrons per unit cell per eV"'
-  write(DOS, "(A,F12.6,A,F12.6,A)") "set arrow from ", orbs%efermi , &
-       & ",graph 0.05 to ", orbs%efermi , ",graph 0.95 nohead lt 0"
+  write(DOS, "(A)") 'set ylabel "States per unit cell per eV"'
+  !write(DOS, "(A)") 'set ylabel "Electrons per unit cell per eV"'
+  write(DOS, "(A,F12.6,A,F12.6,A)") "set arrow from ", orbs%efermi*au2eV , &
+       & ",graph 0.05 to ", orbs%efermi*au2eV , ",graph 0.90 nohead lt 0"
+  write(DOS, "(A,F12.6,A)") "set label at  ", orbs%efermi*au2eV , &
+       & ",graph 0.96  center 'E_f'"
   write(DOS, "(A,F12.8,A,F12.8,A)")  "plot [", minE-0.1*(maxE-minE) , &
        & ":", maxE+0.1*(maxE-minE) , "] " // char(92)
   if (orbs%norbd > 0) then

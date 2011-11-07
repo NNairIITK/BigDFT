@@ -305,8 +305,10 @@ This file contains all the parameters required for a single wavefunction calcula
       A positive integer refers to a functional from ABINIT library and a negative one from libXC
       library. In this case, you concatenate the codes for the exchange part and for the correlation part
       (see the table in appendix~\ref{appendix-libXC}).
-\item {\bf ncharge}, {\bf elecfield}: Total charge of the system and constant electric field along the y direction in units of Ha/Bohr. 
-      A positive {\bf ncharge} means that electrons are taken away.
+%\item {\bf ncharge}, {\bf elecfield}: Total charge of the system and constant electric field along the y direction in units of Ha/Bohr. 
+\item {\bf ncharge}, {\bf elecfield}: Total charge of the system and uniform electric field $E_x,E_y,E_z$ in units of Ha/Bohr. 
+      A positive {\bf ncharge} means that electrons are taken away. 
+      The electric field can not have components in periodic directions, e.g. $E_x=E_z=0$ in case surface BC is used.
 \item {\bf nspin}, {\bf mpol}: 
       nspin=1, closed shell system without spin polarization;\hfill\\
       nspin=2: spin polarized system; 
