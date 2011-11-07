@@ -12,15 +12,156 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=33   ! define timimg categories
+  integer, parameter :: ncat=33,ncls=7   ! define timimg categories and classes
+  character(len=14), dimension(ncls), parameter :: clss = (/ &
+       'Communications'    ,  &
+       'Convolutions  '    ,  &
+       'Linear Algebra'    ,  &
+       'Other         '    ,  &
+       'Potential     '    ,  &
+       'Initialization'    ,  &
+       'Finalization  '    /)
+  character(len=14), dimension(3,ncat), parameter :: cats = reshape((/ &
+       !       Name           Class       Operation Kind
+       'ReformatWaves ','Initialization' ,'Small Convol  ' ,  &  !< Reformatting of input waves
+       'CrtDescriptors','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of descriptor arrays
+       'CrtLocPot     ','Initialization' ,'Miscellaneous ' ,  &  !< Calculation of local potential
+       'CrtProjectors ','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of projectors
+       'CrtPcProjects ','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of preconditioning projectors
+       'CrtPawProjects','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of abscalc-pawprojectors
+       'ApplyLocPotKin','Convolutions  ' ,'OpenCL ported ' ,  &  !< Application of PSP, kinetic energy
+       'ApplyProj     ','Other         ' ,'RMA pattern   ' ,  &  !< Application of nonlocal PSP
+       'Precondition  ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Precondtioning
+       'Rho_comput    ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Calculation of charge density (sumrho) computation
+       'Rho_commun    ','Communications' ,'AllReduce grid' ,  &  !< Calculation of charge density (sumrho) communication
+       'Un-TransSwitch','Other         ' ,'RMA pattern   ' ,  &  !< Transposition of wavefunction, computation
+       'Un-TransComm  ','Communications' ,'ALLtoALLV     ' ,  &  !< Transposition of wavefunction, communication
+       'GramS_comput  ','Linear Algebra' ,'DPOTRF        ' ,  &  !< Gram Schmidt computation        
+       'GramS_commun  ','Communications' ,'ALLReduce orbs' ,  &  !< Gram Schmidt communication
+       'LagrM_comput  ','Linear Algebra' ,'DGEMM         ' ,  &  !< Lagrange Multipliers computation
+       'LagrM_commun  ','Communications' ,'ALLReduce orbs' ,  &  !< Lagrange Multipliers communication
+       'Diis          ','Other         ' ,'Other         ' ,  &  
+       'PSolv_comput  ','Potential     ' ,'3D FFT        ' ,  &  
+       'PSolv_commun  ','Communications' ,'ALLtoALL      ' ,  &  
+       'PSolvKernel   ','Initialization' ,'Miscellaneous ' ,  &  
+       'Exchangecorr  ','Potential     ' ,'Miscellaneous ' ,  &  
+       'Forces        ','Finalization  ' ,'Miscellaneous ' ,  &  
+       'Tail          ','Finalization  ' ,'Miscellaneous ' ,  &
+       'Loewdin_comput','Linear Algebra' ,'              ' ,  &
+       'Loewdin_commun','Communications' ,'ALLReduce orbs' ,  &
+       'Chol_commun   ','Communications' ,'              ' ,  &
+       'Chol_comput   ','Linear Algebra' ,'ALLReduce orbs' ,  &
+       'GS/Chol_comput','Linear Algebra' ,'              ' ,  &
+       'GS/Chol_commun','Communications' ,'ALLReduce orbs' ,  &
+       'Input_comput  ','Initialization' ,'Miscellaneous ' ,  &
+       'Input_commun  ','Communications' ,'ALLtoALL+Reduc' ,  &
+       'Davidson      ','Finalization  ' ,'Complete SCF  ' /),(/3,ncat/))
 
-  integer :: istart, ittime, ncounters, ncaton!, nskip
-  logical :: parallel,init
-  integer, dimension(ncat+1) :: itsum
+  logical :: parallel,init,newfile,debugmode
+  integer :: ncounters, ncaton,nproc,nextra
+  real(kind=8) :: time0,t0
   real(kind=8), dimension(ncat+1) :: timesum
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
   character(len=10), dimension(ncat) :: pcnames !names of the partial counters, to be assigned
+  character(len=50) :: formatstring,strextra
   character(len=128) :: filename_time
+
+  contains
+
+    subroutine sum_results(iproc,message)
+      implicit none
+      include 'mpif.h'
+      character(len=*), intent(in) :: message
+      integer, intent(in) :: iproc
+      !local variables
+      integer :: i,iend,count_rate,count_max,ierr,j,icls,icat,jproc,iextra
+
+      real(kind=8) :: total_pc,pc,totaltime,tmax,tmin
+      integer, dimension(ncat) :: isort
+      real(kind=8), dimension(ncls,0:nproc) :: timecls
+      real(kind=8), dimension(ncat+1,0:nproc-1) :: timeall
+
+
+      if (parallel) then 
+         call MPI_GATHER(timesum,ncat+1,MPI_DOUBLE_PRECISION,&
+              timeall,ncat+1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+      else
+         do i=1,ncat+1
+            timeall(i,0)=timesum(i)
+         end do
+      endif
+      if (iproc == 0) then
+         !for the totaltime take the max
+         do jproc=0,nproc-1
+            totaltime=max(totaltime,timeall(ncat+1,jproc))
+         end do
+
+         !regroup the data for each category in any processor
+         do icls=1,ncls
+            timecls(icls,0:nproc)=0.d0 
+            do icat=1,ncat
+               if(trim(cats(2,icat))==clss(icls)) then
+                  do jproc=0,nproc-1
+                     timecls(icls,jproc)=timecls(icls,jproc)+timeall(icat,jproc)
+                  end do
+               end if
+            end do
+         end do
+
+         !synthesis of the categories
+         call data_synthesis(parallel,debugmode,nproc,ncat+1,timeall,timesum)
+         !synthesis of the classes
+         call data_synthesis(parallel,debugmode,nproc,ncls,timecls,timecls(1,nproc))
+
+         !calculate the summary of the category
+         call sort_positions(ncat,timesum,isort)
+         open(unit=60,file=trim(filename_time),status='unknown',position='append')
+         if (newfile) then
+            write(60,'(a)')'---'
+            newfile=.false.
+         end if
+         if (.not. parallel) then
+            write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s)' 
+         else if (debugmode) then
+            write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s), Load per MPI proc (relative) ' 
+         else
+            write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s), Max, Min Load (relative) ' 
+         end if
+         !sum all the information by class
+         write(60,'(2x,a)')'Classes:'
+         total_pc=0.d0
+         do icls=1,ncls
+            pc=0.0d0
+            if (timesum(ncat+1)/=0.d0) pc=100.d0*timecls(icls,nproc)/timesum(ncat+1)
+            total_pc=total_pc+pc
+            write(60,'(4x,a,t21,a,'//trim(formatstring)//')') trim(clss(icls))//':','[',&
+                 pc,',',timecls(icls,nproc),&
+                 (',',timecls(icls,iextra),iextra=0,nextra-1),']'
+         end do
+         write(60,'(4x,a,t21,a,'//trim(formatstring)//')') 'Total:','[',&
+                 total_pc,',',timesum(ncat+1),&
+                    (',',timeall(ncat+1,iextra),iextra=0,nextra-1),']'
+         !Write all relevant categories
+         write(60,'(2x,a)')'Categories:'
+         do j=1,ncat
+            i=isort(j)
+            pc=0.d0
+            if (timesum(i) /= 0.d0) then
+               if (timesum(ncat+1)/=0.d0) pc=100.d0*timesum(i)/timesum(ncat+1)
+               write(60,'(4x,a)') trim(cats(1,i))//':'
+               write(60,'(t12,a,1x,a,'//trim(formatstring)//')')&
+                    ' Data:  ','[',pc,',',timesum(i),&
+                    (',',timeall(i,iextra),iextra=0,nextra-1),']'
+               write(60,'(t12,a,1x,a)')' Class: ',trim(cats(2,i))
+               write(60,'(t12,a,1x,a)')' Info:  ',trim(cats(3,i))
+            end if
+
+         enddo
+         close(unit=60)
+      endif
+
+    END SUBROUTINE sum_results
+
 end module timeData
 
 
@@ -36,70 +177,52 @@ subroutine timing(iproc,category,action)
   character(len=*), intent(in) :: category
   character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
   !Local variables
-  integer :: i,ierr,ii,nproc
-  integer :: iend,count_rate,count_max,ielapsed,itime
+  logical :: catfound
+  integer :: i,ierr,ii,iextra
+  integer :: count_rate,count_max,ielapsed,nthreads
+  integer(kind=8) :: itns
   !cputime routine gives a real
   !real :: total,total0,time,time0
-  real(kind=8) :: pc,total_pc,total
-
-  character(len=14), dimension(ncat), parameter :: cats = (/ &
-       'ReformatWaves '    ,  &  !< Reformatting of input waves
-       'CrtDescriptors'    ,  &  !< Calculation of descriptor arrays
-       'CrtLocPot     '    ,  &  !< Calculation of local potential
-       'CrtProjectors '    ,  &  !< Calculation of projectors
-       'CrtPcProjects '    ,  &  !< Calculation of preconditioning projectors
-       'CrtPawProjects'    ,  &  !< Calculation of abscalc-pawprojectors
-       'ApplyLocPotKin'    ,  &  !< Application of PSP, kinetic energy
-       'ApplyProj     '    ,  &  !< Application of nonlocal PSP
-       'Precondition  '    ,  &  !< Precondtioning
-       'Rho_comput    '    ,  &  !< Calculation of charge density (sumrho) computation
-       'Rho_commun    '    ,  &  !< Calculation of charge density (sumrho) communication
-       'Un-TransSwitch'    ,  &  !< Transposition of wavefunction, computation
-       'Un-TransComm  '    ,  &  !< Transposition of wavefunction, communication
-       'GramS_comput  '    ,  &  !< Gram Schmidt computation        
-       'GramS_commun  '    ,  &  !< Gram Schmidt communication
-       'LagrM_comput  '    ,  &  !< Lagrange Multipliers computation
-       'LagrM_commun  '    ,  &  !< Lagrange Multipliers communication
-       'Diis          '    ,  &  
-       'PSolv_comput  '    ,  &  
-       'PSolv_commun  '    ,  &  
-       'PSolvKernel   '    ,  &  
-       'Exchangecorr  '    ,  &  
-       'Forces        '    ,  &  
-       'Tail          '    ,  &
-       'Loewdin_comput'    ,  &
-       'Loewdin_commun'    ,  &
-       'Chol_commun   '    ,  &
-       'Chol_comput   '    ,  &
-       'GS/Chol_comput'    ,  &
-       'GS/Chol_commun'    ,  &
-       'Input_comput  '    ,  &
-       'Input_commun  '    ,  &
-       'Davidson      '    /)
+  real(kind=8) :: pc,total_pc,total,t1
+  real(kind=8), dimension(ncounters,0:nproc) :: timecnt !< useful only at the very end
+!$ integer :: omp_get_max_threads
 
   !first of all, read the time
-  call system_clock(itime,count_rate,count_max)
+  !call system_clock(itime,count_rate,count_max)
+  call nanosec(itns)
 
   ! write(*,*) 'ACTION=',action,'...','CATEGORY=',category,'...'
   if (action.eq.'IN') then  ! INIT
      !!no need of using system clock for the total time (presumably more than a millisecond)
      !call cpu_time(total0)
      filename_time=repeat(' ',128)
-     ittime=itime
+     time0=real(itns,kind=8)*1.d-9
      do i=1,ncat
-        itsum(i)=0
         timesum(i)=0.d0
         pctimes(i)=0.d0
      enddo
      !in this case iproc stands for nproc
-     parallel=iproc > 1!trim(category).eq.'parallel'
+     parallel=abs(iproc) > 1!trim(category).eq.'parallel'
+     nproc=abs(iproc)
      filename_time=trim(category)
+     newfile=.true.
      init=.false.
+     debugmode=(nproc == 2) .or. iproc < -1
+     if (nproc >=2) then
+        nextra=nproc
+        if (.not. debugmode) nextra=2
+        write(strextra,'(i5)')nextra
+        formatstring='1x,f4.1,a,1x,1pe9.2,a,'//trim(strextra)//'(1x,0pf5.2,a)'
+     else
+        nextra=0
+        formatstring='1x,f4.1,a,1x,1pe9.2,a'
+     end if
+
      ncounters=0
 
   else if (action.eq.'PR') then !stop partial counters and restart from the beginning
-     if (init.neqv..false.) then
-        print *, 'TIMING IS INITIALIZED BEFORE PARTIAL RESULTS'
+     if (init) then
+        print *, 'ERROR: TIMING IS INITIALIZED BEFORE PARTIAL RESULTS'
         stop 
      endif
      ncounters=ncounters+1
@@ -107,129 +230,99 @@ subroutine timing(iproc,category,action)
         print *, 'It is not allowed to have more partial counters that categories; ncat=',ncat
         stop
      end if
+     !name of the category
      pcnames(ncounters)=trim(category)
-     if (itime-ittime < 0) then
-        timesum(ncat+1)=real(itime-ittime+count_max,kind=8)/real(count_rate,kind=8)
-     else
-        timesum(ncat+1)=real(itime-ittime,kind=8)/real(count_rate,kind=8)
-     end if
+     !total time elapsed in the category
+     timesum(ncat+1)=real(itns,kind=8)*1.d-9-time0
      pctimes(ncounters)=timesum(ncat+1)
-     call sum_results(parallel,iproc,ncat,cats,itsum,timesum,pcnames(ncounters))
+     call sum_results(iproc,pcnames(ncounters))
      !reset all timings
-     ittime=itime
+     time0=real(itns,kind=8)*1.d-9
      do i=1,ncat
-        itsum(i)=0
         timesum(i)=0.d0
      enddo
 
-
   else if (action.eq.'RE') then ! RESULT
-     if (init.neqv..false.) then
+     if (init) then
         print *, 'TIMING IS INITIALIZED BEFORE RESULTS'
         stop 
      endif
 
      if (ncounters == 0) then !no partial counters selected
-        if (itime-ittime < 0) then
-           timesum(ncat+1)=real(itime-ittime+count_max,kind=8)/real(count_rate,kind=8)
-        else
-           timesum(ncat+1)=real(itime-ittime,kind=8)/real(count_rate,kind=8)
-        end if
-
-        call sum_results(parallel,iproc,ncat,cats,itsum,timesum,'ALL')
+        timesum(ncat+1)=real(itns,kind=8)*1.d-9-time0
+        call sum_results(iproc,'ALL')
      else !consider only the results of the partial counters
-        total_pc=0.d0
-        do i=1,ncounters
-           total_pc=total_pc+pctimes(i)
-        end do
         if (parallel) then 
-           !calculate total time
-           call MPI_REDUCE(total_pc,total,1,&
-                MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-           call MPI_REDUCE(pctimes,timesum,ncounters,&
-                MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+           call MPI_GATHER(pctimes,ncounters,MPI_DOUBLE_PRECISION,&
+                timecnt,ncounters,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
         else
-           total=total_pc
            do i=1,ncounters
-              timesum(i)=pctimes(i)
+              timecnt(i,0)=pctimes(i)
            end do
-        end if
+        endif
+
         if (iproc == 0) then
-           if (parallel) then
-              call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-           else
-              nproc=1
-           end if
            open(unit=60,file=trim(filename_time),status='unknown',position='append')
-           write(60,*)
-           write(60,*) 'PARTIAL COUNTER   mean TIME(sec)       PERCENT'
-           total_pc=0.d0
+           write(60,'(a,t14,a)')'SUMMARY:','   #     % ,  Time (s)'
+
+           !synthesis of the counters
+           call data_synthesis(parallel,debugmode,nproc,ncounters,timecnt,timecnt(1,nproc))
+
+           !sum all the information by class
            do i=1,ncounters
-              pc=100.d0*timesum(i)/sum(timesum(1:ncounters))
-!!              if (timesum(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
-              write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
-              total_pc=total_pc+pc
-           enddo
-           write(60,'(70("-"))')
-           write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
-                'Total CPU time=',total,'Total categorized percent ',total_pc
-           write(60,*)
+              pc=100.d0*timecnt(i,nproc)/sum(timecnt(1:ncounters,nproc))
+              write(60,'(2x,a,t19,a,'//trim(formatstring)//')') trim(pcnames(i))//':','[',&
+                   pc,',',timecnt(i,nproc),']'
+           end do
+           write(60,'(2x,a,t19,a,1x,f4.0,a,1x,1pe9.2,a)') 'Total:','[',&
+                100.d0,',',sum(timecnt(1:ncounters,nproc)),']'
+           !write the number of processors and the number of OpenMP threads
+           nthreads = 0
+           !$  nthreads=omp_get_max_threads()
+           write(60,'(2x,a)')'CPU Parallelism:'
+           write(60,'(t10,a,1x,i6)')'MPI procs: ',nproc
+           write(60,'(t10,a,1x,i6)')'OMP thrds: ',nthreads
            close(unit=60)
         end if
      end if
-
   else
-
      !controls if the category exists
-     ii=100000
+     catfound=.false.
      do i=1,ncat
-        if (trim(category) == trim(cats(i))) then
+        if (trim(category) == trim(cats(1,i))) then
            ii=i
+           catfound=.true.
            exit
         endif
      enddo
-     !print *,'find category',ii,trim(category)
-     if (ii == 100000) then
+     if (.not. catfound) then
         print *, 'ACTION  ',action
         write(*,*) 'category, action',category, action
         call mpi_barrier(mpi_comm_world, ierr)
         stop 'TIMING CATEGORY NOT DEFINED'
      end if
 
-     if (action.eq.'ON') then  ! ON
-        if (init.neqv..false.) then
-!!!           print *, cats(ii),': TIMING INITIALIZED BEFORE READ'
-!!!           stop 
-           !some other category was initalized before, taking that one
-           return
-        endif
-        istart=itime
+     if (action == 'ON') then  ! ON
+        !some other category was initalized before, overriding
+        if (init) return
+
+        t0=real(itns,kind=8)*1.d-9
         init=.true.
-        ncaton=ii
-     else if (action.eq.'OF' .and. ii==ncaton) then  ! OFF
-        if (init.neqv..true.) then
-           print *, cats(ii), 'not initialized'
+        ncaton=ii !category which has been activated
+     else if (action == 'OF' .and. ii==ncaton) then  ! OFF
+        if (.not. init) then
+           print *, cats(1,ii), 'not initialized'
            stop 
         endif
-        iend=itime
-        if (iend-istart < 0) then
-           ielapsed=iend-istart+count_max
-        else
-           ielapsed=iend-istart
-        end if
-        itsum(ii)=itsum(ii)+ielapsed
-        !resum the values of the category inside timesum if too high
-        if (itsum(ii) > count_max/2) then
-           timesum(ii)=timesum(ii)+real(itsum(ii),kind=8)/real(count_rate,kind=8)
-           itsum(ii)=0
-        end if
+        t1=real(itns,kind=8)*1.d-9
+        timesum(ii)=timesum(ii)+t1-t0
         init=.false.
-     else
+     else if (action == 'OF' .and. ii/=ncaton) then
         !some other category was initalized before, taking that one
         return
-        !print *,action,ii,ncaton,trim(category)
-        !stop 'TIMING ACTION UNDEFINED'
-        
+     else
+        print *,action,ii,ncaton,trim(category)
+        stop 'TIMING ACTION UNDEFINED'
      endif
 
   endif
@@ -237,81 +330,74 @@ subroutine timing(iproc,category,action)
 END SUBROUTINE timing
 
 
-subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
-  use timeData, only: filename_time
+subroutine sort_positions(n,a,ipiv)
   implicit none
-  include 'mpif.h'
-  character(len=*), intent(in) :: message
-  logical, intent(in) :: parallel
-  integer, intent(in) :: iproc,ncat
-  !real, intent(in) :: total0
-  character(len=14), dimension(ncat), intent(in) :: cats
-  integer, dimension(ncat+1), intent(in) :: itsum
-  real(kind=8), dimension(ncat+1), intent(inout) :: timesum
+  integer, intent(in) :: n
+  real(kind=8), dimension(n), intent(in) :: a
+  integer, dimension(n), intent(out) :: ipiv
   !local variables
-  integer :: i,iend,count_rate,count_max,ierr,nproc
-  real(kind=8) :: total_pc,pc,totaltime,sum
-  real(kind=8), dimension(ncat+1) :: timetot!timemax,timemin
+  integer :: i,j,jmax,imax
+  real(kind=8) :: locmax
 
-  !time for other categories
-  call system_clock(iend,count_rate,count_max)
-  sum=0.d0
-  do i=1,ncat
-     timesum(i)=timesum(i)+real(itsum(i),kind=8)/real(count_rate,kind=8)
-     sum=sum+timesum(i)
+  !neutral permutation
+  do i=1,n
+     ipiv(i)=i
   end do
-
-
-  !print *,'iproc, sum, tot',iproc,sum,timesum(ncat+1),count_max
-
-  if (parallel) then 
-     !old method, do not work due to the triangular inequality
-     !call MPI_REDUCE(timesum,timemax,ncat+1,MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-     !call MPI_REDUCE(timesum,timemin,ncat+1,MPI_DOUBLE_PRECISION,MPI_MIN,0,MPI_COMM_WORLD,ierr)
-
-     !newmethod
-     !calculate total time
-     call MPI_REDUCE(timesum(ncat+1),totaltime,1,&
-          MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-     call MPI_REDUCE(timesum,timetot,ncat+1,&
-          MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-  else
-     totaltime=timesum(ncat+1)
-     do i=1,ncat+1
-        timetot(i)=timesum(i)
-     end do
-!!!     do i=1,ncat+1
-!!!        timemax(i)=timesum(i)
-!!!        timemin(i)=timesum(i)
-!!!     enddo
-  endif
-  !total=real(timemax(ncat+1),kind=4)
-
-  if (iproc == 0) then
-     if (parallel) then
-        call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-     else
-        nproc=1
-     end if
-     open(unit=60,file=trim(filename_time),status='unknown',position='append')
-     write(60,*)
-     write(60,*) 'CATEGORY          mean TIME(sec)       PERCENT'
-     total_pc=0.d0
-     do i=1,ncat
-        if (timetot(ncat+1) /= 0.0d0) then
-           pc=100.d0*timetot(i)/timetot(ncat+1)!real(total,kind=8)
-        else
-           pc=0.0d0
+  !find the order for all the arrays
+  do j=1,n
+  !search the maximum
+     locmax=-1.d300
+     do i=j,n
+        if (locmax < a(ipiv(i))) then
+           locmax=a(ipiv(i))
+           jmax=ipiv(i)
+           imax=i
         end if
-!!        if (timetot(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
-        write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
-        total_pc=total_pc+pc
-     enddo
-     write(60,'(70("-"))')
-     write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
-          'Total CPU time for category: '//message//'=',totaltime,'Total categorized percent ',total_pc
-     write(60,*)
-     close(unit=60)
-  endif
+     end do
+     !swap the position with j
+     ipiv(imax)=ipiv(j) !throw in the present element
+     ipiv(j)=jmax       !take out the present maximum
+  end do
+  !do i=1,n
+  !   print *,'a',i,a(i),ipiv(i),a(ipiv(i))
+  !end do
+  !stop
+end subroutine sort_positions
 
-END SUBROUTINE sum_results
+!>put the average value of timeall in the timesum array
+!then rewrite each element with the deviation from it (in debug mode)
+!in normal mode write only the max and min deviations (only in parallel)
+subroutine data_synthesis(parallel,debugmode,nproc,ncats,timeall,timesum)
+  implicit none
+  logical, intent(in) :: parallel,debugmode
+  integer, intent(in) :: nproc,ncats
+  real(kind=8), dimension(ncats,0:nproc-1), intent(inout) :: timeall
+  real(kind=8), dimension(ncats), intent(out) :: timesum
+  !local variables
+  integer :: icat,jproc
+  real(kind=8) :: tmin,tmax
+
+  do icat=1,ncats
+     timesum(icat)=0.d0
+     do jproc=0,nproc-1
+        timesum(icat)=timesum(icat)+timeall(icat,jproc)
+     end do
+     timesum(icat)=timesum(icat)/real(nproc,kind=8)
+     if (timesum(icat)>0.d0) then
+        if (debugmode) then
+           do jproc=0,nproc-1
+              timeall(icat,jproc)=timeall(icat,jproc)/timesum(icat)
+           end do
+        else if (parallel) then
+           tmax=0.0d0
+           tmin=1.0d300
+           do jproc=0,nproc-1
+              tmax=max(timeall(icat,jproc),tmax)
+              tmin=min(timeall(icat,jproc),tmin)
+           end do
+           timeall(icat,0)=tmax/timesum(icat)
+           timeall(icat,1)=tmin/timesum(icat)
+        end if
+     end if
+  end do
+end subroutine data_synthesis
