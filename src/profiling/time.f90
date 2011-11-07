@@ -121,37 +121,39 @@ module timeData
             newfile=.false.
          end if
          if (.not. parallel) then
-            write(60,'(a,t14,a)')trim(message)//':','   #     % ,  Time (s)' 
+            write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s)' 
          else if (debugmode) then
-            write(60,'(a,t14,a)')trim(message)//':','   #     % ,  Time (s), Load per MPI proc (relative) ' 
+            write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s), Load per MPI proc (relative) ' 
          else
-            write(60,'(a,t14,a)')trim(message)//':','   #     % ,  Time (s), Max, Min Load (relative) ' 
+            write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s), Max, Min Load (relative) ' 
          end if
          !sum all the information by class
+         write(60,'(2x,a)')'Classes:'
          total_pc=0.d0
          do icls=1,ncls
             pc=0.0d0
             if (timesum(ncat+1)/=0.d0) pc=100.d0*timecls(icls,nproc)/timesum(ncat+1)
             total_pc=total_pc+pc
-            write(60,'(2x,a,t19,a,'//trim(formatstring)//')') trim(clss(icls))//':','[',&
+            write(60,'(4x,a,t21,a,'//trim(formatstring)//')') trim(clss(icls))//':','[',&
                  pc,',',timecls(icls,nproc),&
                  (',',timecls(icls,iextra),iextra=0,nextra-1),']'
          end do
-         write(60,'(2x,a,t19,a,'//trim(formatstring)//')') 'Total:','[',&
+         write(60,'(4x,a,t21,a,'//trim(formatstring)//')') 'Total:','[',&
                  total_pc,',',timesum(ncat+1),&
                     (',',timeall(ncat+1,iextra),iextra=0,nextra-1),']'
-
+         !Write all relevant categories
+         write(60,'(2x,a)')'Categories:'
          do j=1,ncat
             i=isort(j)
             pc=0.d0
             if (timesum(i) /= 0.d0) then
                if (timesum(ncat+1)/=0.d0) pc=100.d0*timesum(i)/timesum(ncat+1)
-               write(60,'(2x,a)') trim(cats(1,i))//':'
-               write(60,'(t10,a,1x,a,'//trim(formatstring)//')')&
-                    '-Data:  ','[',pc,',',timesum(i),&
+               write(60,'(4x,a)') trim(cats(1,i))//':'
+               write(60,'(t12,a,1x,a,'//trim(formatstring)//')')&
+                    ' Data:  ','[',pc,',',timesum(i),&
                     (',',timeall(i,iextra),iextra=0,nextra-1),']'
-               write(60,'(t10,a,1x,a)')'-Class: ',trim(cats(2,i))
-               write(60,'(t10,a,1x,a)')'-Info:  ',trim(cats(3,i))
+               write(60,'(t12,a,1x,a)')' Class: ',trim(cats(2,i))
+               write(60,'(t12,a,1x,a)')' Info:  ',trim(cats(3,i))
             end if
 
          enddo
@@ -278,8 +280,8 @@ subroutine timing(iproc,category,action)
            nthreads = 0
            !$  nthreads=omp_get_max_threads()
            write(60,'(2x,a)')'CPU Parallelism:'
-           write(60,'(t10,a,1x,i6)')'-MPI procs: ',nproc
-           write(60,'(t10,a,1x,i6)')'-OMP thrds: ',nthreads
+           write(60,'(t10,a,1x,i6)')'MPI procs: ',nproc
+           write(60,'(t10,a,1x,i6)')'OMP thrds: ',nthreads
            close(unit=60)
         end if
      end if
