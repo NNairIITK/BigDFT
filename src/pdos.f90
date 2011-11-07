@@ -544,7 +544,7 @@ subroutine global_analysis(iproc,nproc,orbs,wf,occopt)
   write(DOS, "(A)") 'set ylabel "States per unit cell per eV"'
   !write(DOS, "(A)") 'set ylabel "Electrons per unit cell per eV"'
   write(DOS, "(A,F12.6,A,F12.6,A)") "set arrow from ", orbs%efermi*au2eV , &
-       & ",graph 0.05 to ", orbs%efermi*au2eV , ",graph 0.90 nohead lt 0"
+       & ",graph 0.95 to ", orbs%efermi*au2eV , ",graph 0.05 lt 0"
   write(DOS, "(A,F12.6,A)") "set label at  ", orbs%efermi*au2eV , &
        & ",graph 0.96  center 'E_f'"
   write(DOS, "(A,F12.8,A,F12.8,A)")  "plot [", minE-0.1*(maxE-minE) , &
