@@ -3010,7 +3010,12 @@ end subroutine get_start_and_end_indices
 
 
 
-
+!> Gives the dimensions of the overlap box resulting from the overlap of two wavefunction descriptors and
+!> the number of segments of the resulting overlap descriptor.
+!> Calling arguments: *_i refers to overlap region i (input)
+!>                    *_j refers to overlap region j (input)
+!>                    *_g refers to the global region (input)
+!>                    *_k refers to the overlap region (output)
 subroutine overlapbox_from_descriptors(n1_i, n2_i, n3_i, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, &
            ns1_i, ns2_i, ns3_i, ns1_j, ns2_j, ns3_j, ns1_g, ns2_g, ns3_g, &
            nseg_i, nseg_j, &
@@ -3127,7 +3132,13 @@ end subroutine overlapbox_from_descriptors
 
 
 
-
+!> Creates the overlap descriptor from two input overlap descriptors. The dimension of the overlap box (i.e.
+!> ns1_k,ns2_k,ns3_k (starting indices) and n1_k,n2_k,n3_k (length) have to be determined earlier (using
+!> the subroutine overlapbox_from_descriptors)).
+!> Calling arguments: *_i refers to overlap region i (input)
+!>                    *_j refers to overlap region j (input)
+!>                    *_g refers to the global region (input)
+!>                    *_k refers to the overlap region (input/output)
 subroutine overlapdescriptors_from_descriptors(n1_i, n2_i, n3_i, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, n1_k, n2_k, n3_k, &
            ns1_i, ns2_i, ns3_i, ns1_j, ns2_j, ns3_j, ns1_g, ns2_g, ns3_g, ns1_k, ns2_k, ns3_k, &
            nseg_i, nseg_j, nseg_k, &
