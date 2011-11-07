@@ -209,11 +209,12 @@ subroutine timing(iproc,category,action)
      if (nproc >=2) then
         nextra=nproc
         if (.not. debugmode) nextra=2
+        write(strextra,'(i5)')nextra
+        formatstring='1x,f4.1,a,1x,1pe9.2,a,'//trim(strextra)//'(1x,0pf5.2,a)'
      else
         nextra=0
+        formatstring='1x,f4.1,a,1x,1pe9.2,a'
      end if
-     write(strextra,'(i5)')nextra
-     formatstring='1x,f4.1,a,1x,1pe9.2,a,'//trim(strextra)//'(1x,0pf5.2,a)'
 
      ncounters=0
 
