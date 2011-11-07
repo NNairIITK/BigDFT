@@ -2659,6 +2659,7 @@ character(len=*),parameter:: subname='determine_overlap_from_descriptors'
 
 allocate(overlapMatrix(orbs%norb,maxval(orbs%norb_par),0:nproc-1), stat=istat)
 call memocc(istat, overlapMatrix, 'overlapMatrix', subname)
+!!overlapMatrix=.false.
 
 
 do jproc=0,nproc-1
@@ -2687,7 +2688,7 @@ do jproc=0,nproc-1
                      lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_c, &
                      lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv, lzd%llr(jlr)%wfd%keyg, lzd%llr(jlr)%wfd%keyv, &
                      n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ovrlp)
-                if(n1_ovrlp*n2_ovrlp*n3_ovrlp>0) then
+                if(n1_ovrlp>0 .and. n2_ovrlp>0 .and. n3_ovrlp>0) then
                     ! There is really an overlap
                     overlapMatrix(jorb,iorb,jproc)=.true.
                     ioverlaporb=ioverlaporb+1
@@ -2700,6 +2701,8 @@ do jproc=0,nproc-1
                 else
                     overlapMatrix(jorb,iorb,jproc)=.false.
                 end if
+            else
+                overlapMatrix(jorb,iorb,jproc)=.false.
             end if
         end do
         op%noverlaps(iiorb)=ioverlaporb
@@ -2795,6 +2798,8 @@ type(locreg_descriptors),intent(out):: olr
 ! Local variables
 integer:: n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp
 character(len=*),parameter:: subname='determine_overlapdescriptors_from_descriptors'
+!debug
+integer:: iiproc, ierr
 
 
 
@@ -2867,6 +2872,7 @@ call overlapdescriptors_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      olr%wfd%keyg, olr%wfd%keyv, &
      olr%wfd%nvctr_c)
 
+     call mpi_comm_rank(mpi_comm_world, iiproc, ierr)
 ! Fill the descriptors for the fine part.
 call overlapdescriptors_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_j%d%n1, llr_j%d%n2, llr_j%d%n3, &
