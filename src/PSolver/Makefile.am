@@ -1,27 +1,13 @@
 ## Process this file with automake to produce Makefile.in
 
 SOURCES_MOD = PSolver_Main.f90 \
-	createKernel.f90 \
-	xcenergy.f90 \
-	3Dgradient.f90 
+	createKernel.f90
 
-EXTRA_DIST = \
-	lazy_100.inc \
-	lazy_14.inc \
-	lazy_16.inc \
-	lazy_20.inc \
-	lazy_24.inc \
-	lazy_30.inc \
-	lazy_40.inc \
-	lazy_50.inc \
-	lazy_60.inc \
-	lazy_8.inc \
-	perfdata.inc \
-	$(SOURCES_MOD) \
-	$(OTHERS)
+noinst_LIBRARIES = libpoissonsolver.a
 
-lib_LIBRARIES = libpoissonsolver.a
+AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
+libpoissonsolver_a_SOURCES = Poisson_Solver.f90
 
 if CAPITALIZE
 module_DATA = POISSON_SOLVER.@MODULE_EXT@
@@ -29,49 +15,11 @@ else
 module_DATA = poisson_solver.@MODULE_EXT@
 endif
 
-
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-
-
-if USE_MPI
-mpi_source =
-LMPI = @MPI_LDFLAGS@ 
-else
-mpi_source = ../MPIfake.f90
-LMPI = 
-endif
-
-if USE_CUDA_GPU
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas ../CUDA/libGPU.a 
-else
-libs_cuda=
-endif
-
-libpoissonsolver_a_SOURCES = \
-	Poisson_Solver.f90 \
-	Build_Kernel.f90 \
-	xcenergy.f90 \
-	3Dgradient.f90 \
-	scaling_function.f90 \
-	PSolver_Base_new.f90 \
-	wofz.f90 \
-	../lib/fft/fft3d.f90 \
-	../profiling/time.f90 
-
-#libpoissonsolver_a_LIBADD = ../modules/libmodules.a
-
-
-CLEANFILES = malloc.prc time.prc \
-	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@ \
-	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ \
-	module_base.@MODULE_EXT@ timedata.@MODULE_EXT@ \
-	timedata.@MODULE_EXT@ TIMEDATA.@MODULE_EXT@
+CLEANFILES = $(module_DATA)
 
 #dependencies
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
-Poisson_Solver.o: ../modules/base.o $(SOURCES_MOD)
+Poisson_Solver.o: ../modules/base.o ../modules/xc.o $(SOURCES_MOD)
 
 Build_Kernel.o: fft3d.o
-
-xcenergy.o : Poisson_Solver.o

@@ -310,7 +310,6 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
   fnrm=dot(3*nat,ff(1,1),1,ff(1,1),1)
 END SUBROUTINE fnrmandforcemax
 
-
 subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
   use module_base
   use module_types

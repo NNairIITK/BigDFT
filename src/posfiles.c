@@ -207,9 +207,11 @@ void FC_FUNC(finaliseextract, FINALISEEXTRACT)(void)
 #endif
 }
 
+#ifdef HAVE_LIB_ARCHIVE
 static const void *buff = (void*)0;
 static size_t size;
 static size_t pos = 0;
+#endif
 
 void FC_FUNC(opennextcompress, OPENNEXTCOMPRESS)(const char *archive, int *lgAr,
                                                  const char *filename, int *lgF,
