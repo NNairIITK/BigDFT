@@ -280,8 +280,8 @@ subroutine timing(iproc,category,action)
            nthreads = 0
            !$  nthreads=omp_get_max_threads()
            write(60,'(2x,a)')'CPU Parallelism:'
-           write(60,'(t10,a,1x,i6)')'-MPI procs: ',nproc
-           write(60,'(t10,a,1x,i6)')'-OMP thrds: ',nthreads
+           write(60,'(t10,a,1x,i6)')'MPI procs: ',nproc
+           write(60,'(t10,a,1x,i6)')'OMP thrds: ',nthreads
            close(unit=60)
         end if
      end if
