@@ -1560,18 +1560,6 @@ module module_interfaces
       integer,optional :: iiorb
      end subroutine filename_of_iorb
     
-     subroutine center( vector, vecsize )
-     
-       !use defs, only : natoms, constr
-       !use bigdft_forces, only : in_system
-       implicit none
-     
-       !Arguments
-       integer, intent(in) :: vecsize
-       real(kind=8), dimension(vecsize), intent(inout), target :: vector
-     end subroutine center
-
-
      !subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
      !
      !
