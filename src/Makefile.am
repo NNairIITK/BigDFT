@@ -42,7 +42,7 @@ EXTRA_DIST = \
 	PSolver/lazy_8.inc \
 	PSolver/createKernel.f90 \
 	PSolver/PSolver_Main.f90 \
-	perfdata.inc \
+	PSolver/perfdata.inc \
 	NEB_driver.sh 
 
 # Build targets, binaries and libraries.
