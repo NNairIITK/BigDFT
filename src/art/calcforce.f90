@@ -110,7 +110,7 @@ subroutine calcforce_mix(posa,forca,energy,evalf_numbera, conva) !be careful, th
                yij = posa(k+natoms)-posa(i+natoms)
                zij = posa(k+2*natoms)-posa(i+2*natoms) - box(3) * nint((posa(k+2*natoms)-posa(i+2*natoms))*invbox(3))
                rij2 = xij*xij + yij*yij + zij*zij
-               if (rij2 .lt. 2.5d0*2.5d0) then
+               if (rij2 .lt. 2.7d0*2.7d0) then
                   nat = nat + 1
                   pos_temp(nat) = posa(i) + 0.5d0*xij
                   pos_temp(nat+natoms) = posa(i+natoms) + 0.5d0*yij

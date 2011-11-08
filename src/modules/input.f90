@@ -172,7 +172,7 @@ contains
              !add the writing of the file in the given unit
              open(unit=iunit,file='default.' // trim(input_type), status ='unknown')
              do iline=1,iline_written-1
-                write(iunit,*) inout_lines(iline)
+                write(iunit,'(a)')inout_lines(iline)
              end do
              close(unit=iunit)
           end if

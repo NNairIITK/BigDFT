@@ -1,6 +1,5 @@
 EXTRA_DIST = autogen.sh \
 	config/m4
-	configure
 
 ACLOCAL_AMFLAGS = -I config/m4
 

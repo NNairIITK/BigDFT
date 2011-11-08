@@ -13,7 +13,9 @@ module defs
 
   implicit none
 
-  real(kind=8), parameter :: VERSION_NUMBER  = 1.8    ! Version of the code
+  real(kind=8), parameter :: VERSION_NUMBER  = 524    ! Version of the code
+  character(len=20), parameter :: BIGREVNO ="1.6-tuto-526" ! Bigdft version
+ 
   real(kind=8) :: t1                 ! Initial Date (cputime)
 
   real(kind=8) :: my_gnrm            ! We use a higher convergence criterion for the
@@ -159,10 +161,13 @@ module defs
   character(len=20) :: LOGFILE
   character(len=20) :: EVENTSLIST
   character(len=20) :: REFCONFIG
+  character(len=11) :: RESTARTFILE
   character(len=3)  :: FINAL                ! is the prefix for minima files
   character(len=3)  :: SADDLE 
   character(len=11) :: COUNTER
-  character(len=11) :: RESTARTFILE
+
+
+
   character(len=20) :: eventtype 
   character(len=11),parameter :: pos_units = "angstroemd0"
   
