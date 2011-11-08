@@ -1,7 +1,7 @@
 !> @file
 !! @author
 !!    Copyright (C) Normand Mousseau, June 2001
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -33,13 +33,11 @@ subroutine saddle_converge( ret, saddle_energy )
                                          ! Loop indeces :
   integer :: i, kter, kter_init, liter, diter, step_rejected
   integer :: ierror, ierr                ! File and MPI control.
-  integer :: infodiis
  
   real(kind=8) :: step                        ! This is the step in the hyperplane. 
   real(kind=8),dimension(3) :: boxl
   real(kind=8) :: a1
   real(kind=8) :: current_energy              ! Accepted energy.
-  real(kind=8) :: current_fperp               ! fperp as a criteria of minimization. 
   real(kind=8) :: ftot_b                      ! ftot  for evaluation.
   real(kind=8) :: fpar_b                      ! fpar  for evaluation. 
   real(kind=8) :: fperp_b                     ! fperp for evaluation.
@@ -370,12 +368,12 @@ subroutine write_step ( stage, it, a1, energy )
      open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
          & action = 'write', position = 'append', iostat = ierror )
 
-     write( FLOG,'(i4,2x,a2,i4,x,F10.4,i3,i2,4f12.4,x,1f10.3,i4,i6,f7.2)')  &
+     write( FLOG,'(i4,2x,a2,i4,1x,F10.4,i3,i2,4f12.4,1x,1f10.3,i4,i6,f7.2)')  &
      &           pas, etape, it, delta_e, m_perp, try, ftot, fpar, fperp,  & 
      &  eigenvalue, delr, npart, evalf_number, a1
      close( FLOG )
 
-     write(*,'(a,i4,2x,a2,i4,x,(1p,e17.10,0p),x,2i3,4f12.6,x,1f10.4,i4,i6)') &
+     write(*,'(a,i4,2x,a2,i4,1x,(1p,e17.10,0p),1x,2i3,4f12.6,1x,1f10.4,i4,i6)') &
      & " BART:", pas, etape, it, energy,  m_perp, try, ftot, fpar, fperp,   &
      &  eigenvalue, delr, npart, evalf_number
   end if
@@ -400,7 +398,6 @@ subroutine end_report ( success, ret, saddle_energy )
   integer :: i
   integer :: ierror                   ! File control.
   real(kind=8) :: a1
-  real(kind=8) :: current_energy  
   real(kind=8), dimension(VECSIZE) :: perp_force 
   logical :: new_projection           ! For lanczos.
   character(len=10) :: converg        ! For report.
@@ -497,7 +494,7 @@ subroutine end_report ( success, ret, saddle_energy )
    open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
        & action = 'write', position = 'append', iostat = ierror )
    write(FLOG,"(/' ','SADDLE',i5, a10,' |ret ',i6,' |delta energy= ',  &
-        & f9.4, ' |force_(tot,par,perp)= ', 3f10.4,        &
+        & f9.4, ' |force_(tot,par,perp)= ', 3f10.4, &
         & ' |eigenval=',f9.4,' |npart= ', i4,' |delr= ', f8.3,' |evalf=', &
         & i6 ' |')")                                          & 
         & mincounter, adjustr(converg), ret, delta_e, ftot,  &  

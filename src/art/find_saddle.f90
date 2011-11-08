@@ -1,7 +1,7 @@
 !> @file
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -651,7 +651,7 @@ subroutine center_and_norm ( step )
   real(kind=8), intent(in) :: step
 
   !Local variables 
-  integer :: nat, i
+  integer :: nat
   real(kind=8) :: ierror
   real(kind=8) :: xsum, ysum, zsum
   real(kind=8) :: xnorm, ynorm, znorm, norm
