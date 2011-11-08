@@ -1577,7 +1577,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      end do
 
      !correct the occupation numbers wrt fermi level
-     call evaltoocc(iproc,nproc,.false.,input%Tel,orbs)
+     call evaltoocc(iproc,nproc,.false.,input%Tel,orbs,input%occopt)
 
      !restore the occupation numbers
      call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)

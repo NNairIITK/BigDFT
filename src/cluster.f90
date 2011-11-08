@@ -735,7 +735,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
         !recalculate orbitals occupation numbers
-        call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
+        call evaltoocc(iproc,nproc,.false.,in%Tel,orbs,in%occopt)
         !read potential depending of the mixing scheme
         !considered as optional in the mixing case
         !inquire(file=trim(in%dir_output)//'local_potential.cube',exist=potential_from_disk)
@@ -1101,7 +1101,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         if (in%itrpmax == 1 .and. in%norbsempty > 0) then
            !recalculate orbitals occupation numbers
-           call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
+           call evaltoocc(iproc,nproc,.false.,in%Tel,orbs,in%occopt)
 
            gnrm =1.d10
            diis%energy_min=1.d10
@@ -1118,7 +1118,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         end if
 
         !recalculate orbitals occupation numbers
-        call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
+        call evaltoocc(iproc,nproc,.false.,in%Tel,orbs,in%occopt)
 
         gnrm =1.d10
         diis%energy_min=1.d10
@@ -1237,14 +1237,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !plot the ionic potential, if required by output_grid
   if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
-     if (iproc == 0) write(*,*) 'writing ionic_potential' // gridformat
-     call plot_density(trim(in%dir_output)//'ionic_potential' // gridformat,iproc,nproc,&
+     if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
+     call plot_density(trim(in%dir_output)//'external_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
           1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
   end if
-  if (((in%output_grid == OUTPUT_GRID_DENSPOT)&
-       !.or. (in%output_wf_format /= WF_FORMAT_NONE .and. in%iscf /= SCF_KIND_DIRECT_MINIMIZATION)&
-       ) .and. DoLastRunThings) then
+  if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
      if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
      call plot_density(trim(in%dir_output)//'local_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1293,6 +1291,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rho,&
           nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
 
+        ! calculate dipole moment associated to the charge density
+     if (DoLastRunThings) & 
+        call calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+
      !plot the density on the cube file
      !to be done either for post-processing or if a restart is to be done with mixing enabled
      if (((in%output_grid >= OUTPUT_GRID_DENSITY)) .and. DoLastRunThings) then
@@ -1301,9 +1303,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
              iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
-
-        ! calculate dipole moment associated to the charge density
-        call calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
 
         if (associated(rhocore)) then
            if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
@@ -1337,6 +1336,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              & in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
      end if
 
+
+!     !plot also the electrostatic potential
+!     if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+!        if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
+!        call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
+!             & iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+!             & in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
+!     end if
+!
      call timing(iproc,'Forces        ','ON')
      !refill projectors for tails, davidson
      refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
@@ -1540,9 +1548,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         orbsv%norbp=0
      end if
      call local_analysis(iproc,nproc,hx,hy,hz,in,atoms,rxyz,shift,Glr,orbs,orbsv,psi,psivirt)
-  else if (DoLastRunThings .and. in%itrpmax /= 1 .and. verbose > 2) then
+     else if (DoLastRunThings .and. in%itrpmax /= 1 .and. verbose >= 2) then
      ! Do a full DOS calculation.
-     if (iproc == 0) call global_analysis(iproc, nproc, orbs, in%Tel)
+     if (iproc == 0) call global_analysis(iproc, nproc, orbs, in%Tel,in%occopt)
   end if
 
   i_all=-product(shape(pkernel))*kind(pkernel)
@@ -1650,6 +1658,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,i_all,'ngatherarr',subname)
   endif
   ! --- End if of tail calculation
+
+
+!?!   !Finally, we add the entropic contribution to the energy from non-integer occnums
+!?!   if(orbs%eTS>0_gp) then 
+!?!      energy=energy - orbs%eTS 
+!?! 
+!?!      if (iproc == 0) then
+!?!         write( *,'(1x,a,1(1x,1pe18.11))')&
+!?!              '  Entropic correction due to electronic tempretature',orbs%eTS
+!?!         write( *,'(1x,a,1x,1pe24.17)')&
+!?!              'Free energy (= total energy - T*S)  ',energy
+!?!      endif
+!?!    endif
 
   call deallocate_before_exiting
 
