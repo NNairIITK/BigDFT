@@ -17,7 +17,7 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
   integer, intent(in) :: ndat,icf,nfl,nfu
   integer, dimension(2,ndat), intent(in) :: ib
   real(wp), dimension(lowfil2+2*nfl:2*nfu+lupfil2,ndat), intent(in) :: x
-  real(wp), dimension(ndat,nfl:nfu), intent(out) :: y
+  real(wp), dimension(ndat,nfl:nfu), intent(inout) :: y
   !local variables
   integer :: j,l,i,icur
   real(wp) :: ci0,ci1,ci2,ci3
@@ -128,21 +128,21 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, dimension(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16), intent(in) :: ib
   real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: x
-  real(wp), dimension(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1), intent(out) :: y
+  real(wp), dimension(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1), intent(inout) :: y
   !local variables
   integer, parameter :: lowfil2=-14,lupfil2=16
-  integer :: nflop,i,j2,j3,l,icur
+  integer :: i,j2,j3,l,icur !n(c) nflop
   real(wp) :: c1i0,c1i1,c1i2,c1i3,c2i0,c2i1,c2i2,c2i3,ci1,ci2
   include 'v_long.inc'
 
-  nflop=0
+  !n(c) nflop=0
   !open(unit=20,file='long.flop')
   !call system_clock(ncount0,ncount_rate,ncount_max)
 
   !$omp parallel do default(private) shared(x,y,ib,fil2) &
   !$omp & shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-  do j2=-14+2*nfl2,2*nfu2+16
-     do j3=-14+2*nfl3,2*nfu3+16
+  do j3=-14+2*nfl3,2*nfu3+16
+     do j2=-14+2*nfl2,2*nfu2+16
         if (ib(2,j2,j3)-ib(1,j2,j3).ge.4) then 
            do i=ib(1,j2,j3),ib(2,j2,j3)-4,4
               c1i0=0.0_wp
@@ -216,13 +216,13 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
   integer, intent(in) :: ndat,nfl,nfu
   integer, dimension(2,ndat), intent(in) :: ib
   real(wp), dimension(2,lowfil2+2*nfl:2*nfu+lupfil2,ndat), intent(in) :: x
-  real(wp), dimension(2,2,ndat,nfl:nfu), intent(out) :: y
+  real(wp), dimension(2,2,ndat,nfl:nfu), intent(inout) :: y
   !local variables
-  integer :: nflop,j,i,l,icur
+  integer :: j,i,l,icur !n(c) nflop
   real(wp) :: c11i0,c12i0,c21i0,c22i0,c11i1,c12i1,c21i1,c22i1,ci11,ci12,ci21,ci22
   include 'v_long.inc'
 
-  nflop=0
+  !n(c) nflop=0
   !open(unit=20,file='long.flop')
   !call system_clock(ncount0,ncount_rate,ncount_max)
 

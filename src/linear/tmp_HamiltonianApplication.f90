@@ -786,16 +786,16 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
 
 END SUBROUTINE local_hamiltonian3
 
-subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,nspin,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
+subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,ndimrhopot,nspin,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
   use module_base
   use module_types
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,nproc,ndimpot,ndimgrid, flag,nspin
+  integer, intent(in) :: iproc,nproc,ndimpot,ndimgrid, flag,nspin,ndimrhopot
   type(orbitals_data),intent(inout):: orbs
   type(local_zone_descriptors),intent(inout):: lzd
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-  real(wp), dimension(max(ndimpot,1)*orbs%nspin), intent(in), target :: potential
+  real(wp), dimension(ndimrhopot), intent(in), target :: potential
   real(wp), dimension(:), pointer, intent(out) :: Lpot
   type(p2pCommsGatherPot),intent(inout), optional:: comgp
   !local variables

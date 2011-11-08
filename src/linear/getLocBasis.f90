@@ -208,12 +208,14 @@ real(8),dimension(:),pointer:: lpot
 
   if(.not.lin%useDerivativeBasisFunctions) then
       call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, input%nspin, lin%orbs,lin%lzd, &
-           ngatherarr, rhopot, lpot, 2, lin%comgp)
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
+           input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
   else
       call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, input%nspin, lin%lb%orbs,lin%lzd, &
-           ngatherarr, rhopot, lpot, 2, lin%lb%comgp)
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
+           input%nspin, lin%lb%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%lb%comgp)
   end if
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
@@ -619,8 +621,9 @@ real(8),dimension(:),pointer:: lpot
 
   ! Build the required potential
   call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, input%nspin, lin%orbs,lin%lzd, &
-       ngatherarr, rhopot, lpot, 2, lin%comgp)
+       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
+       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
+       input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
   ! Prepare PSP
   !call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
   !call full_local_potential2(iproc, nproc, ndimpot, ndimgrid,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
@@ -2067,7 +2070,7 @@ is3=0
 ie3=0
 iiorb=0
 do jproc=0,nproc-1
-    do iorb=1,orbs%norb_par(jproc)
+    do iorb=1,orbs%norb_par(jproc,0)
         
         iiorb=iiorb+1 
         ilr=onWhichAtomAll(iiorb)
@@ -2652,26 +2655,26 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, 
   character(len=*),parameter:: subname='prepare_lnlpspd'
 
 
-  allocate(lzd%lnlpspd(lzd%nlr), stat=istat)
-  do ilr=1,lzd%nlr
-      call nullify_nonlocal_psp_descriptors(lzd%lnlpspd(ilr))
+  allocate(Lzd%Lnlpspd(Lzd%nlr), stat=istat)
+  do ilr=1,Lzd%nlr
+      call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(ilr))
   end do
 
-  do ilr=1,lzd%nlr
+  do ilr=1,Lzd%nlr
 
-      nullify(lzd%llr(ilr)%projflg) !to avoid problems when deallocating
+      nullify(Lzd%Llr(ilr)%projflg) !to avoid problems when deallocating
       calc=.false.
       do iorb=1,orbs%norbp
           if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) calc=.true.
       end do
       if (.not. calc) cycle !calculate only for the locreg on this processor, without repeating for same locreg.
       ! allocate projflg
-      allocate(lzd%llr(ilr)%projflg(at%nat), stat=istat)
-      call memocc(istat, lzd%Llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
+      allocate(Lzd%Llr(ilr)%projflg(at%nat), stat=istat)
+      call memocc(istat, Lzd%Llr(ilr)%projflg, 'Lzd%Llr(ilr)%projflg', subname)
 
-      call nlpspd_to_locreg(input, iproc, lzd%Glr, lzd%Llr(ilr), rxyz, at, orbs, &
+      call nlpspd_to_locreg(input, iproc, Lzd%Glr, Lzd%Llr(ilr), rxyz, at, orbs, &
            radii_cf, input%frmult, input%frmult, input%hx, input%hy, input%hz, locregShape, lzd%Gnlpspd, &
-           lzd%lnlpspd(ilr), lzd%llr(ilr)%projflg)
+           Lzd%Lnlpspd(ilr), Lzd%Llr(ilr)%projflg)
 
   end do
 
@@ -2789,7 +2792,7 @@ call dposv('l', lin%orbs%norb, orbs%norbp, ovrlp(1,1), lin%orbs%norb, lambda(1,1
 ! Communicate the coefficients to all processes.
 displs(0)=0
 do jproc=0,nproc-1
-    sendcounts(jproc)=lin%orbs%norb*orbs%norb_par(jproc)
+    sendcounts(jproc)=lin%orbs%norb*orbs%norb_par(jproc,0)
     if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
 end do
 call mpi_allgatherv(lambda, sendcounts(iproc), mpi_double_precision, coeff, sendcounts, displs, &

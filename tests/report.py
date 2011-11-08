@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 26/08/2011
+# Date: 25/10/2011
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -84,19 +84,19 @@ for file in files:
             time = "%8ss" % time[0]
         else:
             time = ""
-        print "%s%-24s %-28s %s%s%s" % (start,dir,fic,state,time,end)
+        print "%s%-27s %-29s %s%s%s" % (start,dir,fic,state,time,end)
     else:
         start = start_fail
         state = "can not parse file.    failed"
-        print "%s%-24s %-28s %s%s" % (start,dir,fic,state,end)
+        print "%s%-27s %-29s %s%s" % (start,dir,fic,state,end)
 
 #Hours, minutes and seconds
 totimeh = int(totime/3600)
 totimem = int(totime-totimeh*3600)/60
 totimes = totime-totimem*60-totimeh*3600
 p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
-print 92*"-"
-print 50*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
+print 96*"-"
+print 54*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
 
 #Error code
 sys.exit(Exit)

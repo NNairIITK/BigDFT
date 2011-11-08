@@ -1,0 +1,7 @@
+FIRE         GEOPT_APPROACH
+600          NCONT_CLUSTER_X 
+1.d-4 3.0d-4 FRAC_FLUCT, FORCEMAX 
+0.d-1        RANDDIS 
+4.d0         BETAX 
+0.75 1.50    dtinit (dtamax/2) dtmax (2pi *sqrt(betax) * .12 )
+

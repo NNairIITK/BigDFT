@@ -1,0 +1,8 @@
+Goedecker pseudopotential for B
+    5   3  070301 zatom,zion,pspdat
+10  1  1 2 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.43392956    2    -5.57864173     0.80425145                                  rloc nloc c1 c2
+    2                                                                               nnonloc
+     0.37384326    1     6.23392822                                                 rs ns hs11
+     0.36039317    1     0.00000000                                                 rp np hp11
+                         0.00087786                                                       kp11

@@ -7,12 +7,12 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
  
-subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,& !n(c) iproc (arg:1)
      rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,n1_old,n2_old,n3_old,n1,n2,n3
+  integer, intent(in) :: n1_old,n2_old,n3_old,n1,n2,n3  !n(c) iproc
   real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(atoms_data), intent(in) :: at
@@ -358,7 +358,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
              nvctr_f_old,wfd%nvctr_f
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
              write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
-        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule'
+        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
      end if
 
      allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
@@ -389,7 +389,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      enddo
 
      ! I put nat = 1 here, since only one position is saved in wavefunction files.
-     call reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+     call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
           rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
 
      i_all=-product(shape(psigold))*kind(psigold)

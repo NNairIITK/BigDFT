@@ -9,6 +9,8 @@
 
 
 !>   Interface for routines which handle diagonalization
+
+
 module lanczos_interface
   use module_base
   use module_types
@@ -19,37 +21,36 @@ module lanczos_interface
   !calculate the allocation dimensions
   public :: EP_inizializza,EP_initialize_start,EP_allocate_for_eigenprob, get_EP_dim, set_EP_shift,&
        EP_mat_mult,EP_make_dummy_vectors,  EP_normalizza,EP_copy,EP_scalare, EP_copia_per_prova, &
-       EP_set_all_random, EP_GramSchmidt, EP_add_from_vect_with_fact, EP_Moltiplica, EP_memorizza_stato, &
-       EP_free, EP_initialize_start_0,  EP_norma2_initialized_state , EP_store_occupied_orbitals, EP_occprojections,&
-       EP_multbyfact, EP_precondition, EP_Moltiplica4spectra
+       EP_set_all_random, EP_GramSchmidt, EP_add_from_vect_with_fact, EP_Moltiplica,  &
+       EP_free,   EP_norma2_initialized_state , EP_store_occupied_orbitals, EP_occprojections,&
+       EP_multbyfact, EP_precondition, EP_Moltiplica4spectra, EP_ApplySinv, EP_ApplyS, &
+       EP_scalare_multik
 
  
   character(len=*), parameter :: subname='lanczos_interface'
   integer :: i_all,i_stat,ierr
   type(lanczos_args), pointer :: ha
 
-  real(kind=8), pointer :: matrix(:,:)
+  real(8), pointer :: matrix(:,:)
   real(wp), pointer :: Qvect   (:,:)
   real(wp), pointer :: dumQvect(:,:)
   real(wp), pointer :: occQvect(:)
 
-  real(kind=8), pointer :: passed_matrix(:,:)
+  real(8), pointer :: passed_matrix(:,:)
 
-  real(kind=8) :: EP_shift
-  integer :: EP_dim
-  integer :: EP_dim_tot
+  real(8) EP_shift
+  integer EP_dim
+  integer EP_dim_tot
 
-  type(gaussian_basis), pointer :: EP_Gabsorber
+  real(wp), dimension(:), pointer :: Qvect_tmp,wrk, wrk1, wrk2
+  real(wp), dimension(:), pointer ::  EP_norma2_initialized_state
 
-  real(wp), dimension(:), pointer :: Qvect_tmp,wrk
-  real(kind=8) :: EP_norma2_initialized_state
-
-  logical :: EP_doorthoocc
-  integer :: EP_norb
+  logical EP_doorthoocc
+  integer EP_norb
   real(wp), dimension(:), pointer :: EP_occprojections
 
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psi_gross
-  logical , allocatable :: logrid(:,:,:)
+  logical , allocatable ::logrid(:,:,:)
 
 contains
 
@@ -69,50 +70,75 @@ contains
 !!!    enddo
 !!!    return
 !!!  END SUBROUTINE testapointer
+
   
 
   integer function get_EP_dim()
     get_EP_dim=EP_dim_tot
     return
-  END FUNCTION get_EP_dim
-
+  end function get_EP_dim
 
   subroutine set_EP_shift(shift)
-    real(8) :: shift
+    real(8) shift
     EP_shift=shift
     return
   END SUBROUTINE set_EP_shift
-
 
   subroutine EP_inizializza(ha_actual)
     implicit none
     !Arguments
     type(lanczos_args), target :: ha_actual
     
+    integer EP_dim_tot_touse
+
     ha=>ha_actual
 
-    EP_dim=ha%comms%nvctr_par(ha%iproc,1)*ha%orbs%nspinor
+    !! for the transposed representation
+    EP_dim=sum( ha%comms%nvctr_par(ha%iproc,ha%orbs%iskpts+1:ha%orbs%iskpts+ ha%orbs%nkptsp )) *ha%orbs%nspinor
 
-    EP_dim_tot=(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nspinor
+    !!   EP_dim_tot=(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nspinor*ha%orbs%nkpts
+    !! for the direct representation
 
-    if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f) /= &
-         sum(ha%comms%nvctr_par(:,1))  ) then
+    EP_dim_tot=(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nspinor*ha%orbs%norbp
+
+    EP_dim_tot_touse=max(EP_dim_tot,1)
+    
+
+!!$    if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nkptsp /= &
+!!$         sum(ha%comms%nvctr_par(:,1))  ) then
+!!$       stop "array size inconsistency" 
+!!$    endif
+
+    if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f) * ha%orbs%nkptsp  /= &
+         sum(ha%comms%nvctr_par(:, ha%orbs%iskpts+1:ha%orbs%iskpts+ ha%orbs%nkptsp   ))  ) then
        stop "array size inconsistency" 
     endif
+    !! arrays which are used in the direct rep after retrieval
+    !! from transposed memory
     
-    allocate(Qvect_tmp(ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat) 
+    allocate(Qvect_tmp( EP_dim_tot_touse  +ndebug) , stat=i_stat) 
     call memocc(i_stat,Qvect_tmp,'Qvect_tmp',subname)
 
-    allocate(wrk      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat )
+    allocate(wrk  ( EP_dim_tot_touse   +ndebug) , stat=i_stat )
     call memocc(i_stat,wrk,'wrk',subname)
+    allocate(wrk1 (  EP_dim_tot_touse    +ndebug) , stat=i_stat )
+    call memocc(i_stat,wrk1,'wrk1',subname)
+    allocate(wrk2 (  EP_dim_tot_touse    +ndebug) , stat=i_stat )
+    call memocc(i_stat,wrk2,'wrk2',subname)
 
     EP_shift=0.0
 
     EP_norb=0
     EP_doorthoocc=.false.
 
-  END SUBROUTINE EP_inizializza
+    allocate( EP_norma2_initialized_state( ha%orbs%norbp+ndebug ) )
+    call memocc(i_stat,EP_norma2_initialized_state,'EP_norma2_initialized_state' , subname)
 
+!added for nullification of the pointers in the lanczos_base module
+  nullify(Qvect,dumQvect)
+
+  END SUBROUTINE EP_inizializza
+  
 
   subroutine EP_mat_mult( m,k ,  EV   ) ! usare i dumvectors a partire da -1
     implicit none
@@ -136,26 +162,48 @@ contains
 !!!    enddo
 
   END SUBROUTINE EP_mat_mult
+  
+
+  !allocate the wavefunctions in the transposed form, for lancsoz
 
 
-  !allocate the wavefunctions in the transposed form, for lanczos
   subroutine EP_free()
+  
+    print * , "DEALLOCATING"
 
     i_all=-product(shape(Qvect))*kind(Qvect)
     deallocate(Qvect,stat=i_stat)
     call memocc(i_stat,i_all,'Qvect',subname)
 
+
+
     i_all=-product(shape(dumQvect))*kind(dumQvect)
     deallocate(dumQvect,stat=i_stat)
     call memocc(i_stat,i_all,'dumQvect',subname)
+
+
+
 
     i_all=-product(shape(Qvect_tmp))*kind(Qvect_tmp)
     deallocate(Qvect_tmp,stat=i_stat)
     call memocc(i_stat,i_all,'Qvect_tmp',subname)
 
+
+
+
     i_all=-product(shape(wrk))*kind(wrk)
     deallocate(wrk,stat=i_stat)
     call memocc(i_stat,i_all,'wrk',subname)
+
+    i_all=-product(shape(wrk1))*kind(wrk1)
+    deallocate(wrk1,stat=i_stat)
+    call memocc(i_stat,i_all,'wrk1',subname)
+
+    i_all=-product(shape(wrk2))*kind(wrk2)
+    deallocate(wrk2,stat=i_stat)
+    call memocc(i_stat,i_all,'wrk2',subname)
+
+
 
     if(EP_doorthoocc) then
        i_all=-product(shape(EP_occprojections))*kind(EP_occprojections)
@@ -163,36 +211,45 @@ contains
        call memocc(i_stat,i_all,'EP_occprojections',subname)
     endif
 
+
+    i_all=-product(shape(EP_norma2_initialized_state))*kind(EP_norma2_initialized_state)
+    deallocate(EP_norma2_initialized_state,stat=i_stat)
+    call memocc(i_stat,i_all,'EP_norma2_initialized_state',subname)
+
+
   END SUBROUTINE EP_free
 
 
   subroutine  EP_allocate_for_eigenprob(nsteps)
     implicit none
+    
     !Arguments
-    integer, intent(in) :: nsteps
-
-    print *, " sono in EP_allocate_for_eigenprob "
+    integer, intent(in):: nsteps
+    
+    integer i, j
 
     if(associated(Qvect) ) then
        i_all=-product(shape(Qvect))*kind(Qvect)
-       print *, " deallocao " 
+
        deallocate(Qvect,stat=i_stat)
        call memocc(i_stat,i_all,'Qvect',subname)
     endif
-    print *, " sono in EP_allocate_for_eigenprob EP_dim , nsteps ", EP_dim, nsteps
 
     allocate(Qvect(EP_dim,0:nsteps+ndebug),&
          stat=i_stat)
     call memocc(i_stat,Qvect,'Qvect',subname)
-    print *, " esco " 
-
+    do i=0,nsteps
+       do j=1,EP_dim
+          Qvect(j,i)=0.0_wp
+       end do
+    enddo
   END SUBROUTINE EP_allocate_for_eigenprob
 
 
   subroutine EP_make_dummy_vectors(nd)
     implicit none
-    integer, intent(in) :: nd
-
+    integer, intent(in):: nd
+! :::::::::::::::::::::::    
     if(associated(dumQvect) ) then
        i_all=-product(shape(dumQvect))*kind(dumQvect)
        deallocate(dumQvect,stat=i_stat)
@@ -204,12 +261,12 @@ contains
     call memocc(i_stat,dumQvect,'dumQvect',subname)
   END SUBROUTINE EP_make_dummy_vectors
 
-
   subroutine EP_store_occupied_orbitals(iproc, nproc, norb, Occ_psit )
     implicit none
     integer, intent(IN) :: iproc, nproc, norb
     real(wp), dimension(:), pointer :: Occ_psit
 
+    ! :::::::::::::::::::::::    
     EP_doorthoocc=.true.
     EP_norb=norb
     occQvect=>Occ_psit
@@ -222,7 +279,7 @@ contains
   subroutine EP_normalizza(j)
     implicit none
     integer, intent(in)::j
-
+! ::::::::::::::::::::::::::::::::::::::
     if(J.ge.0) then
        call EP_normalizza_interno( Qvect(1:,j) )
     else
@@ -230,13 +287,13 @@ contains
     endif
     return 
   END SUBROUTINE EP_normalizza
-
+    
 
   subroutine EP_multbyfact(j, fact)
     implicit none
     integer, intent(in)::j
     real(gp) fact
-
+! ::::::::::::::::::::::::::::::::::::::
     if(J.ge.0) then
        call EP_multbyfact_interno( Qvect(1,j), fact )
     else
@@ -244,6 +301,7 @@ contains
     endif
     return 
   END SUBROUTINE EP_multbyfact
+    
 
 
   subroutine EP_normalizza_interno(Q)
@@ -299,9 +357,81 @@ contains
     endif
 
   END SUBROUTINE EP_copy
+  
+
+  subroutine   EP_scalare_multik(i,j, scalari)
+    use module_base
+    implicit none
+    !Arguments
+    integer, intent(in) :: i,j
+    real(wp) :: scalari(*)
 
 
-  real(kind=8) function EP_scalare(i,j)
+    if( i.ge.0 .and. j.ge.0) then
+       call EP_scalare_interna_multik(   Qvect(:,i)    ,   Qvect(:,j) , scalari )
+    else  if( i.lt.0 .and. j.ge.0) then
+       call EP_scalare_interna_multik(   dumQvect(:,-i),   Qvect(:,j) , scalari )
+    else  if( i.ge.0 .and. j.lt.0) then
+       call EP_scalare_interna_multik(   Qvect(:,i)    ,   dumQvect(:,-j) , scalari )
+    else 
+       call EP_scalare_interna_multik(   dumQvect(:,-i),   dumQvect(:,-j) , scalari )
+    endif
+
+  end subroutine EP_scalare_multik
+
+
+
+  subroutine EP_scalare_interna_multik(a,b, scalari)
+    implicit none
+    !Arguments
+    real(wp), intent(in):: a(*),b(*)
+    real(wp) :: scalari(*)
+    !Local variables
+    real(wp) :: sump, sumtot
+    real(wp) :: ovrlp_local ( ha%orbs%nkpts  )
+    real(wp) :: ovrlp_global( ha%orbs%nkpts  )
+    integer :: ik, ipos, ic, iorb
+    call razero(ha%orbs%nkpts,ovrlp_local)
+    call razero(ha%orbs%nkpts,ovrlp_global)
+    if(ha%orbs%nspinor==1) then
+       ipos=1
+       do ik = 1, ha%orbs%nkptsp  !! this supposes norb=1 for chebychev
+          do ic = 1, ha%comms%nvctr_par(ha%iproc,ha%orbs%iskpts+ik)
+             ovrlp_local( ha%orbs%iskpts+ik)=ovrlp_local( ha%orbs%iskpts+ik)+a(ipos)*b(ipos)
+             ipos=ipos+1
+          end do
+       end do
+    else if (ha%orbs%nspinor ==2) then
+       ipos=1
+       do ik = 1, ha%orbs%nkptsp  !! this supposes norb=1 for chebychev
+          do ic = 1, ha%comms%nvctr_par(ha%iproc,ha%orbs%iskpts+ik)
+             ovrlp_local( ha%orbs%iskpts+ik)=ovrlp_local( ha%orbs%iskpts+ik)+a(ipos)*b(ipos)
+             ovrlp_local( ha%orbs%iskpts+ik)=ovrlp_local( ha%orbs%iskpts+ik)+a(ipos+1)*b(ipos+1)
+             !! for chebychev all scalar product should be real
+             ipos=ipos+2
+          end do
+       end do
+    else if (ha%orbs%nspinor ==4) then
+       STOP "nspinor=4 not treated yet in EP_scalare_interna_multik"
+    end if
+    
+    if(ha%nproc/=1) then
+       call MPI_Allreduce(ovrlp_local,ovrlp_global,ha%orbs%nkpts ,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+       do iorb = 1, ha%orbs%norbp !! this supposes norb=1 for chebychev
+          scalari(iorb) = ovrlp_global(ha%orbs%iokpt(iorb ))
+       end do
+    else
+       do ik=1, ha%orbs%norbp 
+          scalari(ik)=ovrlp_local(ik)
+       end do
+    endif
+  end subroutine EP_scalare_interna_multik
+
+
+
+
+
+  real(8) function   EP_scalare(i,j)
     implicit none
     !Arguments
     integer, intent(in) :: i,j
@@ -315,9 +445,9 @@ contains
     else 
        EP_scalare = EP_scalare_interna(dumQvect(1,-i), dumQvect(1,-j) )
     endif
-  END FUNCTION EP_scalare
-
-
+  end function EP_scalare
+  
+ 
   real(8) function EP_scalare_interna(a,b)
     implicit none
     !Arguments
@@ -325,9 +455,11 @@ contains
     !Local variables
     real(wp) :: sump, sumtot
 
+    
     sump = dot(EP_dim,a,1 ,b,1)
     sumtot=0
 
+    
     if(ha%nproc/=1) then
        call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
     else
@@ -335,8 +467,7 @@ contains
     endif
     EP_scalare_interna=sumtot
 
-  END FUNCTION EP_scalare_interna
-
+  end function EP_scalare_interna
 
 !  real(8) function EP_scalare_interna(a,b)
 !    implicit none
@@ -358,8 +489,8 @@ contains
 !
 !  end function EP_scalare_interna
 !
-
-  subroutine EP_copia_per_prova(psi)
+    
+  subroutine  EP_copia_per_prova(psi)
     use module_interfaces
     !Arguments
     real(wp), dimension(*), target :: psi ! per testare happlication
@@ -377,31 +508,48 @@ contains
 
   END SUBROUTINE EP_copia_per_prova
 
-
-  subroutine EP_memorizza_stato(Gabsorber)
-    implicit none
-    !Arguments
-    type(gaussian_basis), target :: Gabsorber
-  
-    EP_Gabsorber => Gabsorber
-    
-  END SUBROUTINE EP_memorizza_stato
-
-
-  subroutine EP_initialize_start_0( Gabsorber)
+  subroutine EP_initialize_start()
     use module_interfaces
-    implicit none
-    !Arguments
-    type(gaussian_basis) :: Gabsorber
     !Local variables
-    integer :: i
+    integer :: i, volta, ik
+    real(wp), pointer ::  scals(:), scalstot(:)
+    character(len=11) :: orbname
+    logical exist
 
-    print *, "chiamo gaussians_to_wavelets_nonorm"
 
-    call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
-         ha%hx,ha%hy,ha%hz,ha%lr%wfd,Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
-       
-    print *, "chiamo gaussians_to_wavelets_nonorm  OK "
+    if ( ha%at%paw_NofL(ha%at%iatype(ha%in_iat_absorber )).gt.0  ) then
+       print *, "USING PTILDES TO BUILD INITIAL WAVE"
+       !!if(EP_dim_tot.gt.0) then
+          call razero(EP_dim_tot  ,  Qvect_tmp  )
+          call applyPAWprojectors(ha%orbs,ha%at,&
+               ha%rxyz,ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,Qvect_tmp,Qvect_tmp, ha%at%paw_S_matrices, &
+               .true. ,    ha%in_iat_absorber, ha%Labsorber+1, &
+               ha%Gabs_coeffs               ) 
+       !!end if
+    else
+       STOP " ha%at%paw_NofL(ha%at%iatype(ha%in_iat_absorber )).gt.0  is false" 
+!!$       call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
+!!$            ha%hx,ha%hy,ha%hz,ha%lr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
+    endif
+
+!!$
+!!$    inquire(file='DOWRITEDOWNINITIALORBITAL', exist=exist)
+!!$    if(exist) then
+!!$       if(  sum( ha%at%paw_NofL ).gt.0 ) then
+!!$          if(  associated( ha%PAWD) ) then
+!!$             call razero(EP_dim_tot  ,  wrk  )
+!!$             call applyPAWprojectors(ha%orbs,ha%at,&
+!!$                  ha%rxyz,ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_S_matrices, &
+!!$                  .false.)      
+!!$             do i=1, EP_dim_tot
+!!$                Qvect_tmp(i) = Qvect_tmp(i) +wrk(i)
+!!$             end do
+!!$          endif
+!!$       endif
+!!$       
+!!$       write(orbname,'(A)')'in_orb_'
+!!$       call plot_wf_cube(orbname,ha%at,  ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz,Qvect_tmp ,"initial orbital" ) ! solo spinore 1!!$    endif
+
     if (.not. associated(Qvect)) then
        write(*,*)'ERROR: initialization vector not allocated!'
        stop
@@ -416,113 +564,43 @@ contains
        enddo
     endif
 
-   END SUBROUTINE EP_initialize_start_0
 
 
-   subroutine EP_initialize_start()
-     use module_interfaces
-     !Local variables
-     integer :: i, volta
-     real(wp), pointer ::  scals(:), scalstot(:)
+    call EP_scalare_multik(0,0, EP_norma2_initialized_state )
 
-     call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
-             ha%hx,ha%hy,ha%hz,ha%lr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
- 
-     if (.not. associated(Qvect)) then
-        write(*,*)'ERROR: initialization vector not allocated!'
-        stop
-     end if
+
+END SUBROUTINE EP_initialize_start
+
      
-     if( ha%nproc/=1) then
-        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
-             Qvect_tmp,work=wrk,outadd=Qvect(1,0))  
-     else
-        do i=1, EP_dim_tot
-           Qvect(i,0)= Qvect_tmp(i)
-        enddo
-     endif
+subroutine EP_set_all_random(i)
+   implicit none
+   !Arguments
+   integer, intent(in) :: i
+   !Local variables
+   if ( i.ge.0 ) then
+      call EP_set_random_interna(Qvect(1:,i))
+   else 
+      call EP_set_random_interna(dumQvect(1:,-i))
+   endif
 
-     if(EP_doorthoocc) then
-
-        allocate(scals( EP_norb+ndebug) ,stat=i_stat)
-        call memocc(i_stat,scals,'scals',subname)
-        allocate(scalstot( EP_norb+ndebug) ,stat=i_stat)
-        call memocc(i_stat,scalstot,'scalstot',subname)
-
-        do volta=1,2 
-           call gemm('T','N', EP_norb , 1, EP_dim ,1.0_wp ,  occQvect(1)  ,&
-                EP_dim ,  Qvect(1,0) ,EP_dim , 0.0_wp , scals(1) ,  EP_norb )
-           
-           if(ha%nproc/=1) then
-              call MPI_Allreduce(scals(1) ,scalstot(1) ,EP_norb  ,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
-           else
-              do i=1,EP_norb
-                 scalstot(i)=scals(i)
-              enddo
-           endif
-           do i=1, EP_norb
-              call axpy(EP_dim, -scalstot(i)  ,   occQvect(1+i*EP_dim)  , 1, Qvect(1,0)  , 1)
-              
-              if(volta==1) then
-                 EP_occprojections(i)= scalstot(i)
-              endif
-           enddo
-        enddo
-
-        i_all=-product(shape(scals))*kind(scals)
-        deallocate(scals,stat=i_stat)
-        call memocc(i_stat,i_all,'scals',subname)
-        
-        
-        i_all=-product(shape(scalstot))*kind(scalstot)
-        deallocate(scalstot,stat=i_stat)
-        call memocc(i_stat,i_all,'scalstot',subname)
-     endif
-
-!!!    call untranspose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
-!!!               Qvect(1,0), work=wrk,outadd= Qvect_tmp(1) )  
-!!!
-!!!    if(ha%iproc.eq.0) then
-!!!       call plot_wf('testadopo',ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz(1,1),ha%rxyz(2,1),ha%rxyz(3,1),&
-!!!            Qvect_tmp,'comm')
-!!!    endif
-!!! else
-!!!    call EP_set_all_random(0)
-!!! endif
-
-     EP_norma2_initialized_state= EP_scalare(0,0)
-
-   END SUBROUTINE EP_initialize_start
+END SUBROUTINE EP_set_all_random
 
 
-   subroutine EP_set_all_random(i)
-    implicit none
-    !Arguments
-    integer, intent(in) :: i
-    !Local variables
-    if ( i.ge.0 ) then
-       call EP_set_random_interna(Qvect(1:,i))
-    else 
-       call EP_set_random_interna(dumQvect(1:,-i))
-    endif
-   END SUBROUTINE EP_set_all_random
+subroutine EP_set_random_interna(Q)
+   implicit none
+   !Arguments
+   real(wp) :: Q(EP_dim)
+   !Local variables
+   real(4) :: rand
+   integer :: i
+   do i=1,EP_dim
+      call random_number(rand)
+      Q(i)=real(rand,wp)
+   enddo
+END SUBROUTINE EP_set_random_interna
+  
 
-
-   subroutine EP_set_random_interna(Q)
-    implicit none
-    !Arguments
-    real(wp) :: Q(EP_dim)
-    !Local variables
-    real(4) :: rand
-    integer :: i
-    do i=1,EP_dim
-       call random_number(rand)
-       Q(i)=real(rand,wp)
-    enddo
-   END SUBROUTINE EP_set_random_interna
-
-
-   subroutine EP_GramSchmidt(i,n)
+  subroutine EP_GramSchmidt(i,n)
     implicit none
    !Arguments
     integer, intent(in) :: i,n
@@ -533,10 +611,10 @@ contains
        call EP_GramSchmidt_interna(dumQvect(1:,-i),n)
     endif
 
-   END SUBROUTINE EP_GramSchmidt
+  END SUBROUTINE EP_GramSchmidt
 
 
-   subroutine EP_GramSchmidt_interna(Q,n)
+  subroutine EP_GramSchmidt_interna(Q,n)
     implicit none
    !Arguments
     integer, intent(in) :: n
@@ -688,6 +766,7 @@ contains
 !!
 !!
   subroutine wscal_f_spectra(mvctr_f,psi_f,hx,hy,hz,ene, gamma)
+    ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
     use module_base
     implicit none
     integer,intent(in)::mvctr_f
@@ -723,14 +802,17 @@ contains
     enddo
     
   END SUBROUTINE wscal_f_spectra
+  
 
 
 
-!>   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
-!!   x_c is the right hand side on input and the solution on output
-!!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
-!! : adapted from prec_fft_fast
-!! 
+  !!****f* BigDFT/prec_fft_fast_spectra
+  !! FUNCTION
+  !!   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
+  !!   x_c is the right hand side on input and the solution on output
+  !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
+  !! SOURCE : adapted from prec_fft_fast
+  !! 
   subroutine prec_fft_fast_spectra(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        ene, gamma,hx,hy,hz,hpsi,&
        kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
@@ -751,8 +833,12 @@ contains
     real(gp):: kern_k1(0:n1),kern_k2(0:n2),kern_k3(0:n3)
     real(wp),dimension(0:n1,0:n2,0:n3):: x_c! in and out of Fourier preconditioning
     real(wp)::z1(2,nd1b,nd2,nd3,2)! work array
-    real(wp)::z3(2,nd1,nd2,nd3f,2)! work array
+    real(wp)::z3(2,nd1,nd2,nd3f,2)! work array 
     
+    x_c=0.0_wp
+    z1=0.0_wp
+    z3=0.0_wp
+
     if (nvctr_f > 0) then
        call wscal_f_spectra(nvctr_f,hpsi(nvctr_c+1),hx,hy,hz,ene, gamma)
     end if
@@ -769,7 +855,10 @@ contains
     call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
     
   END SUBROUTINE prec_fft_fast_spectra
+  !!***
+  
 
+    
 
 
   subroutine EP_precondition(p,i, ene, gamma)
@@ -780,10 +869,15 @@ contains
     integer, intent(in) :: p,i
     real(gp) ene, gamma
     !Local variables
-    integer :: k
+    integer :: k, j , ind
+    real(gp), dimension(0:7) :: scal
     real(wp), parameter :: b2=24.8758460293923314d0,a2=3.55369228991319019d0
+    real(gp) :: hh(3)
     integer :: nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b 
     type(workarr_precond) :: w
+    logical :: dopcproj
+    dopcproj=.true.
+    
   
     call allocate_work_arrays('P',.true.,1,ha%lr%d,w)
 
@@ -804,9 +898,6 @@ contains
 
     call dimensions_fft(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,&
           nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
-
-
-
 
     if( ha%nproc > 1) then
        if(i>=0) then
@@ -847,8 +938,30 @@ contains
     call dcopy(EP_dim_tot, Qvect_tmp(1),1,wrk(1),1) 
            
 
+    if( dopcproj) then
+
+       call razero(EP_dim_tot  ,  wrk1  )
+       ha%PPD%iproj_to_factor(:) =  1.0_gp
+       call applyPCprojectors(ha%orbs,ha%at,ha%rxyz,ha%hx,ha%hy,ha%hz,&
+            ha%lr,ha%PPD,wrk,wrk1 )
 
 
+       call razero(EP_dim_tot  ,  wrk2  )
+!!$       do k=1, ha%PPD%mprojtot
+!!$          print *, ha%PPD%iproj_to_ene(k), ha%PPD%iproj_to_l(k)
+!!$       end do
+       ha%PPD%iproj_to_factor = ( ha%PPD%iproj_to_ene - ene   )
+       ha%PPD%iproj_to_factor =1.0_gp/(ha%PPD%iproj_to_factor**2 + gamma*gamma)
+
+       call applyPCprojectors(ha%orbs,ha%at,ha%rxyz,ha%hx,ha%hy,ha%hz,&
+            ha%lr,ha%PPD,wrk,wrk2 )
+!!$
+!!$
+
+       call axpy(EP_dim_tot, -1.0_gp  ,  wrk1(1)   , 1,  wrk(1) , 1)
+
+    endif
+    
 
     call prec_fft_fast_spectra(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,&
          ha%lr%wfd%nseg_c,ha%lr%wfd%nvctr_c,ha%lr%wfd%nseg_f,ha%lr%wfd%nvctr_f,&
@@ -859,6 +972,18 @@ contains
 
 
 
+    if( dopcproj) then
+
+       call razero(EP_dim_tot  ,  wrk1  )
+       ha%PPD%iproj_to_factor(:) =  1.0_gp
+       call applyPCprojectors(ha%orbs,ha%at,ha%rxyz,ha%hx,ha%hy,ha%hz,&
+            ha%lr,ha%PPD,wrk,wrk1)
+
+
+       call axpy(EP_dim_tot, -1.0_gp  ,  wrk1(1)   , 1,  wrk(1) , 1)
+       call axpy(EP_dim_tot, +1.0_gp  ,  wrk2(1)   , 1,  wrk(1) , 1)
+    endif
+    
 
     if(  ha%iproc ==0 ) write(*,*)" done "
 
@@ -890,60 +1015,84 @@ contains
 
 
 
- END SUBROUTINE EP_precondition
-
-  
-  subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
-    use module_interfaces
-    !Arguments
-    implicit none
-    integer, intent(in) :: p,i
-    real(gp) ene, gamma
-    !Local variables
-    integer :: k
-    
-    if( ha%nproc > 1) then
-       if(i>=0) then
-          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
-               Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
-       else
-          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
-               dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
-       endif
-    else
-       if(i>=0) then
-          do k=1, EP_dim_tot
-             Qvect_tmp(k)=  Qvect(k,i)
-          enddo
-       else
-          do k=1, EP_dim_tot
-             Qvect_tmp(k)=  dumQvect(k,-i)
-          enddo
-       endif
-    endif
-  
-
-    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,&
-         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,0,0.0_gp,ha%GPU)
-    call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
-    Qvect_tmp   =  wrk
+ end subroutine EP_precondition
+ 
+ 
+ subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
+   use module_interfaces
+   !Arguments
+   implicit none
+   integer, intent(in) :: p,i
+   real(gp) ene, gamma, mene
+   !Local variables
+   integer :: k
    
+   if( ha%nproc > 1) then
+      if(i>=0) then
+         call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+      else
+         call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+      endif
+   else
 
-    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,&
-         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,0,0.0_gp,ha%GPU)
+      if(i>=0) then
+         do k=1, EP_dim_tot
+            Qvect_tmp(k)=  Qvect(k,i)
+         enddo
+      else
+         do k=1, EP_dim_tot
+            Qvect_tmp(k)=  dumQvect(k,-i)
+         enddo
+      endif
+   endif
+   
+!!$    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+!!$         ha%rxyz,&
+!!$         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
+!!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+!!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+
+    call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+         ha%rxyz,ha%lr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+         ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
+
+    call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
+
+    call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
+         ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
+
+
     call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
+    call vcopy(EP_dim_tot,wrk(1),1,Qvect_tmp(1),1)
+    !Qvect_tmp   =  wrk
 
+ 
+!!$    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+!!$         ha%rxyz,&
+!!$         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
+!!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+!!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+    call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+         ha%rxyz,ha%lr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+         ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
+    call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
 
-    if(  ha%iproc ==0 ) write(*,*)" done "
+    call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
+         ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
+  
+  call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
 
-
+   
+   
+   
+   if(  ha%iproc ==0 ) write(*,*)" done "
+   
+   
    
    if(p<0) then
       if(  ha%nproc/=1) then
@@ -954,14 +1103,19 @@ contains
             dumQvect(k,-p) =  wrk(k)
          enddo
       endif
-
+      
       if(i>=0) then
-         dumQvect(:,-p)=Qvect(:,p)+gamma*gamma*Qvect(:,i)
+         
+         do k=1, EP_dim_tot
+            dumQvect(k,-p)=Qvect(k,p)+gamma*gamma*Qvect(k,i)
+         end do
       else
-         dumQvect(:,-p)=Qvect(:,p)+gamma*gamma*dumQvect(:,-i)
+         do k=1, EP_dim_tot
+            dumQvect(k,-p)=Qvect(k,p)+gamma*gamma*dumQvect(k,-i)
+         end do
       endif
-
-
+      
+      
    else
       if(  ha%nproc/=1) then
          call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
@@ -971,21 +1125,25 @@ contains
             Qvect(k,p) =  wrk(k)
          enddo
       endif
-
+      
       if(i>=0) then
-         Qvect(:,p)=Qvect(:,p)+gamma*gamma*Qvect(:,i)
+         do k=1, EP_dim_tot
+            Qvect(k,p)=Qvect(k,p)+gamma*gamma*Qvect(k,i)
+         end do
       else
-         Qvect(:,p)=Qvect(:,p)+gamma*gamma*dumQvect(:,-i)
+         do k=1, EP_dim_tot
+            Qvect(k,p)=Qvect(k,p)+gamma*gamma*dumQvect(k,-i)
+         end do
       endif
-
+      
    endif
-
+   
 
    return 
- END SUBROUTINE EP_Moltiplica4spectra
-  
-
-  subroutine EP_Moltiplica(p,i)
+ END subroutine EP_Moltiplica4spectra
+ 
+ 
+ subroutine EP_Moltiplica(p,i)
     use module_interfaces
     !Arguments
     implicit none
@@ -1018,12 +1176,42 @@ contains
        call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c, Qvect_tmp )
     endif
 
-    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,&
-         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,0,0.0_gp,ha%GPU)
+!!$    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+!!$         ha%rxyz,&
+!!$         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
+!!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+!!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+
+    call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+         ha%rxyz,ha%lr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+         ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
+
+    call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
+
+    call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
+         ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
+
+
     if(  ha%iproc ==0 ) write(*,*)" done "
+
+
+    if(  sum( ha%at%paw_NofL ).gt.0 ) then
+       if(associated( ha%PAWD) ) then
+          call applyPAWprojectors(ha%orbs,ha%at,&
+               ha%rxyz,ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,Qvect_tmp,wrk,ha%at%paw_H_matrices, .false.  )
+
+!!$          call razero(EP_dim_tot  ,  wrk1  )
+!!$          call applyPAWprojectors(ha%orbs,ha%at,&
+!!$               ha%rxyz,ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,wrk,wrk1, ha%at%paw_S_matrices )
+!!$          do k=1, EP_dim_tot
+!!$             wrk(k)  =   wrk(k)+  wrk1(k)
+!!$          enddo
+          
+       endif
+    endif
+    
+
 
     if(ha%iproc==0 .and. .false.) then
        !here the projector should be applied
@@ -1062,7 +1250,137 @@ contains
    return 
  END SUBROUTINE EP_Moltiplica
  
+ subroutine EP_ApplySinv(p,i)
+    use module_interfaces
+    !Arguments
+    implicit none
+    integer, intent(in) :: p,i
+    !Local variables
+    integer :: k
+    
+    if( ha%nproc > 1) then
+       if(i>=0) then
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+       else
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+       endif
+    else
+       if(i>=0) then
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  Qvect(k,i)
+          enddo
+       else
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  dumQvect(k,-i)
+          enddo
+       endif
+    endif
+    call razero(EP_dim_tot  ,  wrk  )
+    if(  sum( ha%at%paw_NofL ).gt.0 ) then
+       if(  associated( ha%PAWD) ) then
+          call applyPAWprojectors(ha%orbs,ha%at,&
+               ha%rxyz,ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_Sm1_matrices, &
+               .false.)      
+       endif
+    endif
+    
+    do k=1, EP_dim_tot
+       wrk(k)=Qvect_tmp(k)+wrk(k)
+    enddo
+
+
+
+   if(p<0) then
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+      else
+         do k=1, EP_dim_tot
+            dumQvect(k,-p) =  wrk(k)
+         enddo
+      endif
+   else
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+      else
+         do k=1, EP_dim_tot
+            Qvect(k,p) =  wrk(k)
+         enddo
+      endif
+   endif
+   return 
+ END SUBROUTINE EP_ApplySinv
+
+
+
  
+ subroutine EP_ApplyS(p,i)
+    use module_interfaces
+    !Arguments
+    implicit none
+    integer, intent(in) :: p,i
+    !Local variables
+    integer :: k
+    
+    if( ha%nproc > 1) then
+       if(i>=0) then
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+       else
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+       endif
+    else
+       if(i>=0) then
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  Qvect(k,i)
+          enddo
+       else
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  dumQvect(k,-i)
+          enddo
+       endif
+    endif
+    call razero(EP_dim_tot  ,  wrk  )
+    if(  sum( ha%at%paw_NofL ).gt.0 ) then
+       if(  associated( ha%PAWD) ) then
+          call applyPAWprojectors(ha%orbs,ha%at,&
+               ha%rxyz,ha%hx,ha%hy,ha%hz,ha%lr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_S_matrices, &
+               .false. )      
+       endif
+    endif
+    
+    do k=1, EP_dim_tot
+       wrk(k)=Qvect_tmp(k)+wrk(k)
+    enddo
+
+   if(p<0) then
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+      else
+         do k=1, EP_dim_tot
+            dumQvect(k,-p) =  wrk(k)
+         enddo
+      endif
+   else
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+      else
+         do k=1, EP_dim_tot
+            Qvect(k,p) =  wrk(k)
+         enddo
+      endif
+   endif
+   return 
+ END SUBROUTINE EP_ApplyS
+
+
+
  subroutine EP_add_from_vect_with_fact(p,i, fact)
    implicit none
    !Arguments
@@ -1201,6 +1519,7 @@ contains
    !calculate the deviation from 1 of the orbital norm
    normdev=0.0_dp
    tt=0.0_dp
+
    do iorb=1,orbs%norb
       if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
          jorb=iorb-orbs%isorb
@@ -1209,6 +1528,7 @@ contains
             call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),psi(wfd%nvctr_c+1,ispinor,jorb),scpr) 
             totnorm=totnorm+scpr
          end do
+         !! print *, " TOTNORM QUI " , totnorm 
          totnorm=1.0_wp
          do ispinor=1,orbs%nspinor !to be verified in case of nspinor=4
             call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),psi(1,ispinor,jorb),psi(wfd%nvctr_c+1,ispinor,jorb))
@@ -1367,3 +1687,4 @@ contains
  
  
 end module lanczos_interface
+!!***

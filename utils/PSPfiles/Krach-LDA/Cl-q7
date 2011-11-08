@@ -1,0 +1,11 @@
+Goedecker pseudopotential for Cl
+   17   7  070301 zatom,zion,pspdat
+10  1  1 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.41000000    1    -6.86475431                                                 rloc nloc c1
+    2                                                                               nnonloc
+     0.33820832    2     9.06223968    -1.96193036                                  rs ns hs11 hs12
+                                        5.06568240                                             hs22
+     0.37613709    2     4.46587640     0.00000000                                  rp np hp11 hp12
+                                        0.00000000                                             hp22
+                         0.01002014    -0.01089588                                        kp11 kp12
+                                        0.02578435                                             kp22

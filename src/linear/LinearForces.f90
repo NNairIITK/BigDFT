@@ -702,7 +702,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
         ! Communicate nonzeroValue to communicate scalprod later.
         displs(0)=0
         do jproc=0,nproc-1
-            sendcounts1(jproc)=linorbs%norb_par(jproc)*at%nat
+            sendcounts1(jproc)=linorbs%norb_par(jproc,0)*at%nat
             if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts1(jproc-1)
         end do
         call mpi_allgatherv(nonzeroValue(1,1), sendcounts1(iproc), mpi_logical, &
@@ -710,7 +710,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
         jj=0
         do jproc=0,nproc-1
             do jat=1,at%nat
-                do jorb=1,linorbs%norb_par(jproc)
+                do jorb=1,linorbs%norb_par(jproc,0)
                     jjorb=jorb+linorbs%isorb_par(jproc)
                     jj=jj+1
                     nonzero(jjorb,jat)=temparr_logical(jj)
@@ -769,7 +769,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                       displs(0)=0
                       do jproc=0,nproc-1
                           iiorb=0
-                          do jorb=1,linorbs%norb_par(jproc)
+                          do jorb=1,linorbs%norb_par(jproc,0)
                               jjorb=jorb+linorbs%isorb_par(jproc)
                               if(nonzero(jjorb,jat)) iiorb = iiorb + 1
                           end do
@@ -799,7 +799,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                   tag1=tag1x+(ii-1)*nproc
                   t1=mpi_wtime()
                   do jproc=0,nproc-1
-                      sendcounts1(jproc)=3*linorbs%norb_par(jproc)*linorbs%norb
+                      sendcounts1(jproc)=3*linorbs%norb_par(jproc,0)*linorbs%norb
                   end do
                   ! Collect the data (the subroutine used mpi_wait).
                   ! After this call, it is save to use the sent data and to reuse the send buffer and requests ii.
@@ -921,7 +921,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                   displs(0)=0
                   do jproc=0,nproc-1
                       iiorb=0
-                      do jorb=1,linorbs%norb_par(jproc)
+                      do jorb=1,linorbs%norb_par(jproc,0)
                           jjorb=jorb+linorbs%isorb_par(jproc)
                           if(nonzero(jjorb,iat+nitoverlaps)) iiorb = iiorb + 1
                       end do
@@ -940,7 +940,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
               ! Send next chunk of fxyz_tmo_temp using my_iallgatherv.
               displs(0)=0
               do jproc=0,nproc-1
-                  sendcounts1(jproc)=3*linorbs%norb_par(jproc)*linorbs%norb
+                  sendcounts1(jproc)=3*linorbs%norb_par(jproc,0)*linorbs%norb
                   if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts1(jproc-1)
               end do
               t1=mpi_wtime()

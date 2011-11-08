@@ -1,0 +1,50 @@
+
+ num_wann        =  18
+ num_iter        = 500
+
+ begin atoms_cart
+ bohr
+C       9.399775     15.779609     13.434431
+C       9.400225     14.113227     15.450517
+C       9.399853     11.534323     15.015963
+C       9.400177     10.620423     12.565499
+C       9.399840     12.286709     10.549548
+C       9.400187     14.865800     10.984134
+H       9.399772     17.815978     13.779176
+H       9.399857     14.831860     17.386990
+H       9.399795     10.218079     16.607907
+H       9.399830      8.584022     12.220846
+H       9.399790     11.568177      8.613010
+H       9.399891     16.181938      9.392107
+ end atoms_cart
+
+ begin unit_cell_cart
+ bohr
+    18.800000      0.000000      0.000000
+     0.000000     26.400000      0.000000
+     0.000000      0.000000     26.000000
+ end unit_cell_cart
+ 
+ begin projections
+ C:sp2
+ end projections
+
+ mp_grid    : 1 1 1
+ gamma_only : true
+
+ begin kpoints
+ 0.0 0.0 0.0
+ end kpoints
+
+ #####################
+ # Plotting keywords 
+ #####################
+
+ wannier_plot = true
+ #wannier_plot_list =
+ wannier_plot_format = cube
+ wvfn_formatted = true
+ wannier_plot_mode = molecule
+ wannier_plot_supercell = 1
+ translate_home_cell = true
+ write_xyz = true

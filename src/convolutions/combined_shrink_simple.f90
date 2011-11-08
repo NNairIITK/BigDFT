@@ -20,8 +20,8 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
   real(wp), dimension(lowfil2+2*nfl:2*nfu+lupfil2,ndat), intent(in) :: x
   real(wp), dimension(ndat,nfl:nfu), intent(out) :: y
   !local variables
-  integer :: j,l,i,icur
-  real(wp) :: ci,ci1,ci2,ci3
+  integer :: j,l,i !n(c) ,icur
+  real(wp) :: ci !n(c) ,ci1,ci2,ci3
   include 'v.inc'
 
 !    open(unit=10,file='simple_shrink.flop')
@@ -66,11 +66,11 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   real(wp), dimension(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1), intent(out) :: y
   !local variables
   integer, parameter :: lowfil2=-14,lupfil2=16
-  integer :: nflop,i,j2,j3,l,icur
-  real(wp) :: c1i0,c1i1,c1i2,c1i3,c2i0,c2i1,c2i2,c2i3,ci1,ci2
+  integer :: i,j2,j3,l !n(c) nflop,icur
+  real(wp) :: ci1,ci2 !n(c) c1i0,c1i1,c1i2,c1i3,c2i0,c2i1,c2i2,c2i3
   include 'v.inc'
 
-    nflop=0
+    !n(c) nflop=0
 !    open(unit=20,file='tree_shrink.flop')
 !    call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -109,11 +109,11 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
   real(wp), dimension(2,lowfil2+2*nfl:2*nfu+lupfil2,ndat), intent(in) :: x
   real(wp), dimension(2,2,ndat,nfl:nfu), intent(out) :: y
   !local variables
-  integer :: nflop,j,i,l,icur
-  real(wp) :: c11i0,c12i0,c21i0,c22i0,c11i1,c12i1,c21i1,c22i1,ci11,ci12,ci21,ci22
+  integer :: j,i,l !n(c) nflop,icur
+  real(wp) :: ci11,ci12,ci21,ci22 !n(c) c11i0,c12i0,c21i0,c22i0,c11i1,c12i1,c21i1,c22i1
   include 'v.inc'
 
-    nflop=0
+    !n(c) nflop=0
     !open(unit=20,file='tree_shrink.flop')
     !call system_clock(ncount0,ncount_rate,ncount_max)
 

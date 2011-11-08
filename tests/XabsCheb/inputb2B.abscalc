@@ -1,7 +1,0 @@
-  1   meaning  : 1 tchebychev 2 Lanczos 
-  1    absorber atom number
-  1        L orbital moment of the final electraon
-  0.0   0.0   1.0              and its componenent
-  2                            pot short_cut
-  20                         number of Hamiltonian multiplications 
-  .false. .false.              flags for test pourposes 

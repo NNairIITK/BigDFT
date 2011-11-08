@@ -169,7 +169,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      if (Lnlpspd%nseg_p(2*iat-1) > 0) then
         if(locregShape=='c') then
             call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-                Gseg,Gvctr,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
+            Gseg,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
                 Lnlpspd%nseg_p(2*iat-1),Lnlpspd%nvctr_p(2*iat-1),&
                 Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
         else if(locregShape=='s') then
@@ -191,7 +191,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !    Fine part 
         if(locregShape=='c') then
             call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-                 Gseg,Gvctr,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
+             Gseg,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
                  Lnlpspd%nseg_p(2*iat),Lnlpspd%nvctr_p(2*iat),&
                  Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
         else if(locregShape=='s') then

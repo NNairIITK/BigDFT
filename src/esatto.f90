@@ -1,7 +1,10 @@
-!> @file
 !!  Routines to do XANES calculation
 !! @author
 !!    Copyright (C) 2009-2011 BigDFT group
+!!****m* BigDFT/esatto
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2009 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -9,6 +12,9 @@
 
 
 !> module for XANES calculation
+
+
+
 module esatto
   use module_base
   use module_interfaces
@@ -38,7 +44,7 @@ contains
     
     integer two_ja,  two_jb,  two_jc,two_ma,  two_mb,  two_mc
     
-    integer  jca ,jcb ,jcc ,jmma ,jmmb, jmmc,jpma,jpmb,jpmc,jsum,kmin, kmax, k, sign, status
+    integer  jca ,jcb ,jcc ,jmma ,jmmb, jmmc,jpma,jpmb,jpmc,jsum,kmin, kmax, k, sign !(c) , status
     real(gp)  sum_pos , sum_neg , norm, term
     real(gp)  bc1, bc2, bc3, bcn1, bcn2, bcd1, bcd2, bcd3, bcd4
 
@@ -69,7 +75,7 @@ contains
        kmin = max(0, jpmb - jmmc, jmma - jpmc)
        kmax = min (jcc, jmma, jpmb)
        sign = (-1)**(kmin - jpma + jmmb) 
-       status = 0
+       !n(c) status = 0
        sum_pos = 0.0
        sum_neg = 0.0
        
@@ -106,7 +112,7 @@ contains
     
     integer , intent(IN) :: Lout,Lpot,Lin,  Mout,Mpot,Min 
     
-    real(8) , PARAMETER :: PI=3.141592653589793D0,TWOPI=2D0*PI
+    real(8) , PARAMETER :: PI=3.141592653589793D0 !n(c) ,TWOPI=2D0*PI
     
     ThreeYintegral  =  sqrt(((2*Lout+1)*(2*Lpot+1)*(2*Lin+1.0))/( 4*PI ))  *Wig(  2*Lout,2*Lpot,2*Lin,  0,0,0)&
          *Wig(  2*Lout,2*Lpot,2*Lin,  -2*Mout,2*Mpot,2*Min)
@@ -406,11 +412,12 @@ contains
 
 
    real(gp) function esatto_CalcolaRiflettivita( ngrid_A ,rgrid, dumgrid1, nls_a, lpot_a, rpot_a,spot_a,hpot_a,y_r,d_r,&
-        Rmts,    Rinf ,nsteps_coarse ,nsteps_fine, Energia )
+        Rmts,    Rinf ,nsteps_coarse ,nsteps_fine, Energia , Labs)
      real(gp) rpot_a, spot_a, hpot_a,Rmts , Rinf, Energia
      integer nls_a, lpot_a, nsteps_coarse, nsteps_fine, ngrid_A
      real(gp), target :: rgrid(1:ngrid_A), dumgrid1(1:ngrid_A)
      real(gp), pointer ::  y_r(:), d_r(:)
+     integer Labs
 
      integer iCs, iFs,i
      real(gp) R0, Rh, rf0, rfh
@@ -473,13 +480,15 @@ contains
         Ref = MatMul(  inverse( nls,  UU-MatMul(Ref, DU)    ), -UD+MatMul(Ref, DD) )
         
         Transm = MatMul(  Transm, DD + MatMul(DU, Ref)      )
-        write(22,'(200(f20.10,1x))')  Rh, (1+Ref(1,1))/Transm(1,1)
+        write(22,'(200(f20.10,1x))')  Rh, (1+Ref(1,1))/Transm(1,1), Kh(1) 
         ! print *, Rh, (1+Ref(1,1))/Transm(1,1)
      enddo
-     esatto_CalcolaRiflettivita= DBLE(sum( Transm(1,:)*conjg(Transm(1,:)))     )
+
+     esatto_CalcolaRiflettivita= DBLE(sum( Transm(Labs,:)*conjg(Transm(Labs,:)))     )
 
      close(unit=22)
 
+
    end function esatto_CalcolaRiflettivita
  end module esatto
- 
+ !!***

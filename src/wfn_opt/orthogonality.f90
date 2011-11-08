@@ -19,7 +19,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,orthpar)
   type(communications_arrays), intent(in) :: comms
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orthon_data), intent(in) :: orthpar
-  real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(inout) :: psi
+  real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='orthogonalize'
   integer :: i_stat,i_all
@@ -151,22 +151,22 @@ END SUBROUTINE check_closed_shell
 
 !>   Orthogonality constraint routine, for all the orbitals
 !!   Uses wavefunctions in their transposed form
-subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
+subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum) !n(c) wfd (arg:5)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(in) :: psi
-  real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(out) :: hpsi
+  !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
+  real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: psi
+  real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: hpsi
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,iorb,ise
+  integer :: i_stat,i_all,ierr,iorb !n(c) ise
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
-  real(dp) :: occ,tt
+  real(dp) :: occ !n(c) tt
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: alag
 
@@ -202,7 +202,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 
      do ispin=1,nspin
 
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
@@ -242,8 +242,8 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
-        if (ispin==1) ise=0
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        !n(c) if (ispin==1) ise=0
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
@@ -286,7 +286,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
               enddo
            end if
         end if
-        ise=norb
+        !n(c) ise=norb
 
         if(nspinor==1 .and. nvctrp /= 0) then
            call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&
@@ -301,7 +301,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   end do
 
   if (nproc > 1) then
-     tt=scprsum
+     !n(c) tt=scprsum
      call mpiallred(scprsum,1,MPI_SUM,MPI_COMM_WORLD,ierr)
      !call MPI_ALLREDUCE(tt,scprsum,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
@@ -328,8 +328,8 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs !eval is updated
   type(communications_arrays), intent(in) :: comms
-  real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(in) :: hpsi
-  real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(out) :: psi
+  real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: hpsi
+  real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
   real(wp), intent(out) :: evsum
   !local variables
   character(len=*), parameter :: subname='subspace_diagonalisation'
@@ -378,7 +378,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 
      do ispin=1,nspin
 
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
@@ -440,13 +440,12 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
      isorb=1
      do ispin=1,nspin
 
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
         if(nspinor==1) then
 
-           !shift to be add for eval
            call syev('V','U',norb,hamks(ndimovrlp(ispin,ikpt-1)+1,1),norb,&
                 orbs%eval(isorb+(ikpt-1)*orbs%norb),work_lp(1),n_lp,info)
            if (info /= 0) write(*,*) 'SYEV ERROR',info
@@ -458,9 +457,6 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
            if (info /= 0) write(*,*) 'HEEV ERROR',info
 
         end if
-
-        !here we have to add evsum and the KS orbitals written in terms of linear algebra
-        !evsum should be corrected like the scprsum above
 
         !calculate the evsum if the k-point is associated to this processor
         if (orbs%ikptproc(ikpt) == iproc) then
@@ -554,8 +550,8 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs,orbsv
   type(communications_arrays), intent(in) :: comms,commsv
-  real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(in) :: psi_occ
-  real(wp), dimension(sum(commsv%nvctr_par(iproc,1:orbsv%nkptsp))*orbsv%nspinor*orbsv%norb), intent(out) :: psi_virt
+  real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: psi_occ
+  real(wp), dimension(commsv%nvctr_par(iproc,0)*orbsv%nspinor*orbsv%norb), intent(inout) :: psi_virt
   !local variables
   character(len=*), parameter :: subname='orthon_virt_occup'
   integer :: i_stat,i_all,ierr,ispsiv,iorb,jorb,isorb
@@ -602,9 +598,9 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
      do ispin=1,nspin
 
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
-        call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
              nvctrpv,norbv,norbsv,ncompv,nspinorv)
         !there checks ensure that the component distribution scheme of virtual and occupied states is the same
         if (nvctrpv /= nvctrp) stop 'nvctrp'
@@ -661,7 +657,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
      do ispin=1,nspin
 
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
@@ -738,16 +734,16 @@ subroutine complex_components(nspinor,norb,norbs,ncomp)
 END SUBROUTINE complex_components
 
 
-subroutine orbitals_and_components(iproc,ikptp,ispin,orbs,comms,nvctrp,norb,norbs,ncomp,nspinor)
+subroutine orbitals_and_components(iproc,ikpt,ispin,orbs,comms,nvctrp,norb,norbs,ncomp,nspinor)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,ikptp,ispin
+  integer, intent(in) :: iproc,ikpt,ispin
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
   integer, intent(out) :: nvctrp,norb,norbs,ncomp,nspinor
-
-  nvctrp=comms%nvctr_par(iproc,ikptp)
+  
+  nvctrp=comms%nvctr_par(iproc,ikpt)
   norb=orbs%norbu
   nspinor=orbs%nspinor
   if (ispin==2) norb=orbs%norbd
@@ -1567,7 +1563,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
   type(communications_arrays), intent(in) :: comms
   integer, dimension(nspin), intent(in) :: norbArr
   integer, dimension(nspin,0:orbs%nkpts), intent(in) :: ndimovrlp
-  real(wp),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb),intent(inout):: psi
+  real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psi
   
   ! Local variables
   integer:: iblock, jblock, ist, jst, iter, iter2, gcd, blocksize, blocksizeSmall, i_stat, i_all
@@ -1695,7 +1691,7 @@ implicit none
 integer,intent(in):: iproc, nproc, norbIn, nspin, nspinor, block1, block2, ispinIn
 type(orbitals_data):: orbs
 type(communications_arrays), intent(in) :: comms
-real(wp),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb),intent(inout):: psit
+real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psit
 integer,dimension(nspin,0:orbs%nkpts):: ndimovrlp
 real(wp),dimension(ndimovrlp(nspin,orbs%nkpts)):: ovrlp
 integer,dimension(nspin):: norbTot
@@ -1718,7 +1714,7 @@ do ikptp=1,orbs%nkptsp
     do ispin=1,nspin
         ! This subroutine gives essentially back nvctrp, i.e. the length of the vectors for.
         ! In addition it sets the value of nspinor to orbs%nspinor.
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
             nvctrp,norb,norbs,ncomp,nspinor)
         ! The subroutine also overwrite the variable norb with the total number of orbitals.
         ! However we want to keep the value of norbIn (since we possibly treat only a part of the orbitals).
@@ -1796,14 +1792,14 @@ implicit none
 integer:: iproc,nproc,nvctrp,norbIn, nspinor, nspin, block1, ispinIn
 type(orbitals_data):: orbs
 type(communications_arrays):: comms
-real(kind=8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb),intent(in out):: psi
+real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psi
 integer,dimension(nspin,0:orbs%nkpts):: ndimL
 real(kind=8),dimension(ndimL(nspin,orbs%nkpts),1):: Lc
 integer,dimension(nspin):: norbTot
 
 ! Local variables
 integer:: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb
-character(len=*),parameter:: subname='cholesky'
+!n(c) character(len=*),parameter:: subname='cholesky'
 
   
  
@@ -1817,7 +1813,7 @@ do ikptp=1,orbs%nkptsp
     do ispin=1,nspin
         ! This subroutine gives essentially back nvctrp, i.e. the length of the vectors for.
         ! In addition it sets the value of nspinor to orbs%nspinor.
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
             nvctrp,norb,norbs,ncomp,nspinor)
         ! The subroutine also overwrite the variable norb with the total number of orbitals.
         ! However we want to keep the value of norbIn (since we possibly treat only a part of the orbitals).
@@ -1890,7 +1886,7 @@ implicit none
 integer,intent(in):: iproc,nproc,norbIn, nspinor, nspin, block1, ispinIn
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in):: comms
-real(kind=8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb),intent(in out):: psit
+real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psit
 integer,dimension(nspin,0:orbs%nkpts):: ndimovrlp
 real(kind=8),dimension(ndimovrlp(nspin,orbs%nkpts)):: ovrlp
 integer,dimension(nspin):: norbTot
@@ -1918,7 +1914,7 @@ do ikptp=1,orbs%nkptsp
     do ispin=1,nspin
         ! This subroutine gives essentially back nvctrp, i.e. the length of the vectors for.
         ! In addition it sets the value of nspinor to orbs%nspinor.
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
             nvctrp,norb,norbs,ncomp,nspinor)
         ! The subroutine also overwrite the variable norb with the total number of orbitals.
         ! However we want to keep the value of norbIn (since we possibly treat only a part of the orbitals).
@@ -2034,7 +2030,7 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
   integer,intent(in):: iproc,nproc,nspin,norbIn,block1,ispinIn
   type(orbitals_data),intent(in):: orbs
   type(communications_arrays),intent(in) :: comms
-  real(wp),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb),intent(in) :: psi
+  real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psi
   integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndimovrlp
   real(wp),dimension(ndimovrlp(nspin,orbs%nkpts)),intent(out):: ovrlp
   integer,dimension(nspin),intent(in):: norbTot
@@ -2060,7 +2056,7 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
 
         ! This subroutine gives essentially back nvctrp, i.e. the length of the vectors for which the overlap
         ! matrix shall be calculated. In addition it sets the value of nspinor to orbs%nspinor.
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         ! The subroutine also overwrite the variable norb with the total number of orbitals.
         ! However we want to keep the value of norbIn (since we treat only a part of the orbitals).
@@ -2145,7 +2141,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
   integer,intent(in):: iproc, nproc, nspin, norbIn, block1, block2, ispinIn
   type(orbitals_data),intent(in):: orbs
   type(communications_arrays),intent(in) :: comms
-  real(kind=8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb),intent(in) :: psit
+  real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psit
   integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndimovrlp
   real(kind=8),dimension(ndimovrlp(nspin,orbs%nkpts)):: ovrlp
   integer,dimension(nspin):: norbTot
@@ -2168,7 +2164,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
         
         ! This subroutine gives essentially back nvctrp, i.e. the length of the vectors for which the overlap
         ! matrix shall be calculated. In addition it sets the value of nspinor to orbs%nspinor.
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         ! The subroutine also overwrite the variable norb with the total number of orbitals.
         ! However we want to keep the value of norbIn (since we treat only a part of the orbitals).

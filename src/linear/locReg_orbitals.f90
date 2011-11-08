@@ -144,7 +144,7 @@
 !============================================================================
 !WARNING: assignToLocreg does not take into account the Kpts yet !!
 !============================================================================
-subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,norbsc)
+subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   use module_base
   use module_types
   implicit none
@@ -153,8 +153,6 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
   type(atoms_data),intent(in) :: atoms 
   type(orbitals_data),intent(inout):: orbs
   type(local_zone_descriptors) :: Lzd
-  integer, dimension(atoms%natsc+1,nspin), intent(in) :: norbsc_arr           !> number of semicore orbitals for the semicore atoms 
-  integer,dimension(Lzd%nlr),intent(out) :: norbsc
   ! Local variables
   integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsctot,orbsc,ispin
   integer :: iat,ind,i_all,noncoll,Lnorb,dimtot,ilr,npsidim,ierr
@@ -186,13 +184,12 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
   end do
 
 !  already associated = 1 by default
-  allocate(orbs%inWhichLocregP(max(1,orbs%norb_par(iproc))),stat=i_stat)
+  allocate(orbs%inWhichLocregP(max(1,orbs%norb_par(iproc,0))),stat=i_stat)
 
 ! initialize inwhichlocreg
   orbs%inWhichLocreg = 0
   orbs%inWhichLocregP = 0
 
-  norbsc = 0
   ind = 0
   jproc=0
   jat=1
@@ -202,7 +199,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
 
       ! Switch to the next MPI process if the numbers of orbitals for a given
       ! MPI process is reached.
-      if(jorb==orbs%norb_par(jproc)) then
+      if(jorb==orbs%norb_par(jproc,0)) then
           jproc=jproc+1
           jorb=ind
           if (jproc==nproc) exit
@@ -218,7 +215,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
       end if
       jorb=jorb+1
       iiOrb=iiOrb+1
-      if(iproc==jproc .and. orbs%norb_par(jproc)> 0) then
+      if(iproc==jproc .and. orbs%norb_par(jproc,0)> 0) then
          orbs%inWhichLocregP(jorb)=jat
          orbs%inWhichLocreg(jorb+orbs%isorb)=jat
       end if
@@ -318,7 +315,7 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
 
       ! Switch to the next MPI process if the numbers of orbitals for a given
       ! MPI process is reached.
-      if(jorb==orbse%norb_par(jproc)) then
+      if(jorb==orbse%norb_par(jproc,0)) then
           jproc=jproc+1
           jorb=0
       end if
@@ -380,7 +377,7 @@ subroutine linear_orbitals_descriptors(ilr,nlr,iwl,iproc,nproc,Gorbs,norb,norbu,
   integer, dimension(:), allocatable :: mykpts
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
-  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
+  allocate(orbs%norb_par(0:nproc-1+ndebug,0:orbs%nkpts),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
   !assign the value of the k-points
@@ -403,7 +400,9 @@ subroutine linear_orbitals_descriptors(ilr,nlr,iwl,iproc,nproc,Gorbs,norb,norbu,
 
   !initialise the array
   do jproc=0,nproc-1
-     orbs%norb_par(jproc)=0 !size 0 nproc-1
+     do ikpt = 0, orbs%nkpts
+        orbs%norb_par(jproc,ikpt)=0 !size 0 nproc-1
+     end do
   end do
 
   !create an array which indicate which processor has a GPU associated 
@@ -429,17 +428,17 @@ subroutine linear_orbitals_descriptors(ilr,nlr,iwl,iproc,nproc,Gorbs,norb,norbu,
   !check the distribution
   norb_tot=0
   do jproc=0,iproc-1
-     norb_tot=norb_tot+Gorbs%norb_par(jproc)
+     norb_tot=norb_tot+Gorbs%norb_par(jproc,0)
   end do
   !reference orbital for process
   orbs%isorb=norb_tot
   do jproc=iproc,nproc-1
-     norb_tot=norb_tot+Gorbs%norb_par(jproc)
+     norb_tot=norb_tot+Gorbs%norb_par(jproc,0)
   end do
 
   if(norb_tot /= Gorbs%norb*Gorbs%nkpts) then
      write(*,*)'ERROR: partition of orbitals incorrect'
-     write(*,*)orbs%norb_par(:),Gorbs%norb*Gorbs%nkpts
+     write(*,*)orbs%norb_par(:,:),Gorbs%norb*Gorbs%nkpts
      stop
   end if
 
@@ -452,7 +451,7 @@ subroutine linear_orbitals_descriptors(ilr,nlr,iwl,iproc,nproc,Gorbs,norb,norbu,
 
   call parallel_repartition_per_kpoints(iproc,nproc,Gorbs%nkpts,Gorbs%norb,orbs%norb_par,&
        orbs%nkptsp,mykpts,norb_par)
-  if (orbs%norb_par(iproc) >0) then
+  if (orbs%norb_par(iproc,0) >0) then
      orbs%iskpts=mykpts(1)-1
   else
      orbs%iskpts=0
@@ -473,7 +472,7 @@ subroutine linear_orbitals_descriptors(ilr,nlr,iwl,iproc,nproc,Gorbs,norb,norbu,
 
   !assign the values of the orbitals data
   orbs%norb=norb
-  orbs%norbp=orbs%norb_par(iproc)
+  orbs%norbp=orbs%norb_par(iproc,0)
   orbs%norbu=norbu
   orbs%norbd=norbd
 
@@ -537,7 +536,7 @@ subroutine linear_orbitals_descriptors(ilr,nlr,iwl,iproc,nproc,Gorbs,norb,norbu,
   iiorb=0
   orbs%isorb_par=0
   do jproc=0,nproc-1
-      do iorb=1,orbs%norb_par(jproc)
+      do iorb=1,orbs%norb_par(jproc,0)
           iiorb=iiorb+1
           orbs%onWhichMPI(iiorb)=jproc
       end do

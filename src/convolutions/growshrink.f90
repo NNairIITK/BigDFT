@@ -27,7 +27,7 @@ subroutine comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
        (2*n1+31)*(n2+1)*(n3+1))), intent(inout) :: w1 !work
   real(wp), dimension(max((n3+1)*(2*n1+31)*(2*n2+31),&
        2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))), intent(inout) :: w2 ! work
-  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(out) :: y
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(inout) :: y
 
   call comb_grow_c(n1,n2,n3,w1,w2,xc,y,ibyz_c,ibzxx_c,ibxxyy_c)
 
@@ -56,7 +56,7 @@ subroutine comb_grow_c(n1,n2,n3,w1,w2,x,y,ibyz,ibzxx,ibxxyy)
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(inout) :: w1
   real(wp), dimension(0:n3,-14:2*n1+16,-14:2*n2+16), intent(inout) :: w2
-  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(out) :: y
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(inout) :: y
 
   ! i1,i2,i3 -> i2,i3,I1
   call  comb_rot_grow_loc_square(n1,n2,n3,x,w1,ibyz,ibzxx) 
@@ -84,22 +84,22 @@ subroutine comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
   integer, dimension(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16), intent(in) :: ibzxx
   integer, dimension(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16), intent(in) :: ibxxyy
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x
-  real(wp), dimension(4,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16), intent(in) :: w1
+  real(wp), dimension(4,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16), intent(inout) :: w1
   real(wp), dimension(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16), intent(in) :: w2
-  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: y
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(inout) :: y
   !local variables
-  integer :: m1,m2,m3,nt
+  !n(c) integer :: m1,m2,m3,nt
 
-  m1=nfu1-nfl1
-  m2=nfu2-nfl2
-  m3=nfu3-nfl3
+  !n(c) m1=nfu1-nfl1
+  !n(c) m2=nfu2-nfl2
+  !n(c) m3=nfu3-nfl3
 
   ! i1,i2,i3 -> i2,i3,I1
-  nt=(nfu2-nfl2+1)*(nfu3-nfl3+1)
+  !n(c) nt=(nfu2-nfl2+1)*(nfu3-nfl3+1)
   call comb_rot_grow_loc_1(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,w1,ibyz,ibzxx) 
 
   ! i2,i3,I1 -> i3,I1,I2
-  nt=(nfu3-nfl3+1)*(2*m1+31)
+  !n(c) nt=(nfu3-nfl3+1)*(2*m1+31)
   call comb_rot_grow_loc_2(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,ibzxx,ibxxyy) 
 
   ! i3,I1,I2  -> I1,I2,I3: add the result to y
@@ -120,7 +120,7 @@ subroutine comb_rot_grow_loc_1(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
   integer, dimension(2,nfl2:nfu2,nfl3:nfu3), intent(in) :: ib
   integer, dimension(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16), intent(in) :: ib2 
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x
-  real(wp), dimension(2,2,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16), intent(out) :: y
+  real(wp), dimension(2,2,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16), intent(inout) :: y
   !local variables
   !integer ncount0,ncount1,ncount_rate,ncount_max,nflop
   !real(kind=8) tel
@@ -228,7 +228,7 @@ subroutine comb_rot_grow_loc_2(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
   integer, dimension(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16), intent(in) :: ib 
   integer, dimension(2,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16), intent(in) :: ib2
   real(wp), dimension(2,2,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16), intent(in) :: x
-  real(wp), dimension(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16), intent(out) :: y
+  real(wp), dimension(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16), intent(inout) :: y
   !integer ncount0,ncount1,ncount_rate,ncount_max,nflop
   !real(kind=8) :: tel
   integer l1,l3,i,t,l2
@@ -325,15 +325,12 @@ subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
        (2*n3+31)*(n1+1)*(n2+1))), intent(inout) :: w2
   real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: xc
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: xf
-
   !    perform the combined transform    
   call comb_shrink_loc_c(0,n1,0,n2,0,n3,w1,w2,y,xc,1,1,1,&
        ibxy_c,ibzzx_c,ibyyzz_c) ! for scfunctions
   !    for wavelets:
-
   call comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,xf,&
        ibxy_f,ibzzx_f,ibyyzz_f)
-
 END SUBROUTINE comb_shrink
 
 
@@ -353,7 +350,7 @@ subroutine comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,&
   real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: y ! input
   real(wp), dimension(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1), intent(inout) :: w1
   real(wp), dimension(4,-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2), intent(inout) :: w2
-  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: x
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: x
   !local variables
   integer :: m1,m2,m3,nt
 
@@ -367,7 +364,6 @@ subroutine comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,&
   ! I2,I3,i1 -> I3,i1,i2
   nt=(2*m3+31)*(m1+1)
   call comb_rot_shrink_loc_2(nt,w1,w2,nfl2,nfu2,ibzzx)
-
   ! I3,i1,i2 -> i1,i2,i3
   nt=(m1+1)*(m2+1)
   call comb_rot_shrink_loc_3(nt,w2,x,nfl3,nfu3,ibxy)
@@ -392,7 +388,7 @@ subroutine comb_shrink_loc_c(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,l1,l2,l3,&
        intent(in) :: y!input
   real(wp), dimension(-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1), intent(inout) :: w1
   real(wp), dimension(-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2), intent(inout) :: w2
-  real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: x!output
+  real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: x!output
   !local variables
   integer :: m1,m2,m3,nt
 
@@ -425,7 +421,7 @@ subroutine comb_rot_shrink_loc_3(ndat,x,y,nfl,nfu,ib)
   integer, intent(in) :: ndat,nfl,nfu
   integer, dimension(2,ndat), intent(in) :: ib
   real(wp), dimension(2,2,lowfil2+2*nfl:2*nfu+lupfil2,ndat), intent(in) :: x
-  real(wp), dimension(7,ndat,nfl:nfu), intent(out) :: y
+  real(wp), dimension(7,ndat,nfl:nfu), intent(inout) :: y
   !local variables
   integer :: i,j,l
   real(wp) :: ci112,ci121,ci122,ci211,ci212,ci221,ci222

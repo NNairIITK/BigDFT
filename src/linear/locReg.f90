@@ -1549,12 +1549,12 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 !       At last, fill the wavefunction descriptors
 !       Coarse part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+          Glr%wfd%nseg_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
           Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c,&
           Olr(index)%wfd%keyg(1,1),Olr(index)%wfd%keyv(1))
 !       Fine part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+          Glr%wfd%nseg_f,&
           Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f,&
@@ -1839,12 +1839,12 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 !       At last, fill the wavefunction descriptors
 !       Coarse part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+          Glr%wfd%nseg_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
           Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c,&
           Olr(index)%wfd%keyg(1,1),Olr(index)%wfd%keyv(1))
 !       Fine part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+          Glr%wfd%nseg_f,&
           Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f,&
@@ -2376,7 +2376,7 @@ END SUBROUTINE parallel_repartition_locreg
 
 !determine a set of localisation regions from the centers and the radii.
 !cut in cubes the global reference system
-subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,orbs)!,outofzone)
+subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,orbs,calculateBounds)!,outofzone)
   use module_base
   use module_types
   implicit none
@@ -2388,6 +2388,7 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
   real(gp), dimension(3,nlr), intent(in) :: cxyz
   type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
   type(orbitals_data),intent(in) :: orbs
+  logical,dimension(nlr),intent(in):: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables
   character(len=*), parameter :: subname='determine_locreg_parallel'
@@ -2416,6 +2417,28 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
 
   !determine the limits of the different localisation regions
   do ilr=1,nlr
+     !nullify all pointers
+     nullify(Llr(ilr)%projflg)
+     nullify(Llr(ilr)%wfd%keyg)
+     nullify(Llr(ilr)%wfd%keyv)
+     nullify(Llr(ilr)%bounds%ibyyzz_r)
+     nullify(Llr(ilr)%bounds%kb%ibyz_c)
+     nullify(Llr(ilr)%bounds%kb%ibxz_c)
+     nullify(Llr(ilr)%bounds%kb%ibxy_c)
+     nullify(Llr(ilr)%bounds%kb%ibyz_f)
+     nullify(Llr(ilr)%bounds%kb%ibxz_f)
+     nullify(Llr(ilr)%bounds%kb%ibxy_f)
+     nullify(Llr(ilr)%bounds%sb%ibzzx_c)
+     nullify(Llr(ilr)%bounds%sb%ibyyzz_c)
+     nullify(Llr(ilr)%bounds%sb%ibxy_ff)
+     nullify(Llr(ilr)%bounds%sb%ibzzx_f)
+     nullify(Llr(ilr)%bounds%sb%ibyyzz_f)
+     nullify(Llr(ilr)%bounds%gb%ibzxx_c)
+     nullify(Llr(ilr)%bounds%gb%ibxxyy_c)
+     nullify(Llr(ilr)%bounds%gb%ibyz_ff)
+     nullify(Llr(ilr)%bounds%gb%ibzxx_f)
+     nullify(Llr(ilr)%bounds%gb%ibxxyy_f)
+
      calc=.false.
      do iorb=1,orbs%norbp
         if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) calc=.true.
@@ -2616,9 +2639,13 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
      ! Sould check if nfu works properly... also relative to locreg!!
      !if the localisation region is isolated build also the bounds
      if (Llr(ilr)%geocode=='F') then
-        call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
-             Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
-             Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+        ! Check whether the bounds shall be calculated. Do this only if the currect process handles
+        ! orbitals in the current localization region.
+        if(calculateBounds(ilr)) then
+           call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
+               Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
+               Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+        end if
      end if
   end do !on iilr
 
@@ -2657,7 +2684,7 @@ integer:: n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ov
 logical,dimension(:,:,:),allocatable:: overlapMatrix
 character(len=*),parameter:: subname='determine_overlap_from_descriptors'
 
-allocate(overlapMatrix(orbs%norb,maxval(orbs%norb_par),0:nproc-1), stat=istat)
+allocate(overlapMatrix(orbs%norb,maxval(orbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, overlapMatrix, 'overlapMatrix', subname)
 !!overlapMatrix=.false.
 
@@ -2665,7 +2692,7 @@ call memocc(istat, overlapMatrix, 'overlapMatrix', subname)
 do jproc=0,nproc-1
     ioverlapMPI=0 ! counts the overlaps for the given MPI process.
     ilrold=-1
-    do iorb=1,orbs%norb_par(jproc)
+    do iorb=1,orbs%norb_par(jproc,0)
         ioverlaporb=0 ! counts the overlaps for the given orbital.
         iiorb=orbs%isorb_par(jproc)+iorb
         ilr=orbs%inWhichLocreg(iiorb)
@@ -2730,7 +2757,7 @@ iiorb=0
 do jproc=0,nproc-1
     ioverlapMPI=0 ! counts the overlaps for the given MPI process.
     ilrold=-1
-    do iorb=1,orbs%norb_par(jproc)
+    do iorb=1,orbs%norb_par(jproc,0)
         ioverlaporb=0 ! counts the overlaps for the given orbital.
         iiorb=orbs%isorb_par(jproc)+iorb
         ilr=orbs%inWhichLocreg(iiorb)

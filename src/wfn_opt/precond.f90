@@ -138,12 +138,10 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
 
   ! Preconditions all orbitals belonging to iproc
   !and calculate the norm of the residue
-
   ! norm of gradient
   gnrm=0.0_dp
   !norm of gradient of unoccupied orbitals
   gnrm_zero=0.0_dp
-
 
   !commented out, never used
 !   evalmax=orbs%eval(orbs%isorb+1)
@@ -157,6 +155,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+
      !if it is the first orbital or the k-point has changed calculate the max
      if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
         !the eval array contains all the values
@@ -197,7 +196,6 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
         end if
 
        if (scpr /= 0.0_wp) then
-
           call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
            !cases with no CG iterations, diagonal preconditioning
            !for Free BC it is incorporated in the standard procedure
@@ -217,14 +215,18 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
               end select
 
            else !normal preconditioner
-
-              call precondition_residue(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
-                   hx,hy,hz,kx,ky,kz,hpsi(1+ist))
-
+              if(.false.)then
+!                 call solvePrecondEquation(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
+!                   hx,hy,hz,kx,ky,kz,hpsi(1+ist), rxyz(1,ilr), orbs,&                         !here should change rxyz to be center of Locreg
+!                   potentialPrefac(ilr), confPotOrder, 1)                         ! should depend on locreg not atom type? 'it' is commented in lower routines, so put 1
+              else
+                 call precondition_residue(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
+                      hx,hy,hz,kx,ky,kz,hpsi(1+ist))
+              end if
            end if
 
-        end if
-        ist = ist + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
+       end if
+       ist = ist + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
 !     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
 !     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
      end do
@@ -282,7 +284,6 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
   call memocc(i_stat,d,'d',subname)
 
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
-
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
   call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal)
@@ -411,7 +412,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
   real(gp), intent(in) :: hx,hy,hz,cprecr
   type(locreg_descriptors), intent(in) :: lr
   type(workarr_precond), intent(inout) :: w
-  real(gp), dimension(0:7), intent(inout) :: scal
+  real(gp), dimension(0:7), intent(out) :: scal
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(inout) ::  x
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  b
   !local variables
@@ -500,7 +501,6 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
                 w%kern_k1,w%kern_k2,w%kern_k3,w%z1,w%z3,w%x_c,&
                 nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
         end do
-
      else
         ! Array sizes for the real-to-complex FFT: note that n1(there)=n1(here)+1
         ! and the same for lr%d%n2,n3.
@@ -642,6 +642,9 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
         call memocc(i_stat,w%x_f3,'x_f3',subname)
         allocate(w%y_f(7,d%nfl1:d%nfu1,d%nfl2:d%nfu2,d%nfl3:d%nfu3+ndebug),stat=i_stat)
         call memocc(i_stat,w%y_f,'y_f',subname)
+        allocate(w%ypsig_c(0:d%n1,0:d%n2,0:d%n3+ndebug),stat=i_stat)
+        call memocc(i_stat,w%ypsig_c,'ypsig_c',subname)
+
 
      else 
 
@@ -761,7 +764,7 @@ subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
   character(len=1), intent(in) :: geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
-  type(workarr_precond), intent(out) :: w
+  type(workarr_precond), intent(inout) :: w
   !local variables
   character(len=*), parameter :: subname='deallocate_work_arrays'
   integer :: i_stat,i_all
@@ -860,6 +863,9 @@ subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
      i_all=-product(shape(w%y_f))*kind(w%y_f)
      deallocate(w%y_f,stat=i_stat)
      call memocc(i_stat,i_all,'y_f',subname)
+     i_all=-product(shape(w%ypsig_c))*kind(w%ypsig_c)
+     deallocate(w%ypsig_c,stat=i_stat)
+     call memocc(i_stat,i_all,'ypsig_c',subname)
 
 
   end if
@@ -907,7 +913,7 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
                 lr%wfd%keyg,lr%wfd%keyv, &
                 cprecr,hx,hy,hz,x(1,idx),y(1,idx),&
-                w%x_f,w%x_c,w%x_f1,w%x_f2,w%x_f3,w%y_f,w%z1,&
+                w%x_f,w%x_c,w%x_f1,w%x_f2,w%x_f3,w%y_f,w%ypsig_c,&
                 lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3,nf,&
                 lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
         end do
@@ -916,7 +922,7 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
            call apply_hp_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
                 lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-                cprecr,hx,hy,hz,x,y,w%psifscf,w%ww,w%modul1,w%modul2,w%modul3,&
+                cprecr,x,y,w%psifscf,w%ww,w%modul1,w%modul2,w%modul3,&
                 w%af,w%bf,w%cf,w%ef,scal) 
         else
            call apply_hp_per_k(lr%d%n1,lr%d%n2,lr%d%n3,&

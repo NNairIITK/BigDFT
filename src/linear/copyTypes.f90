@@ -41,8 +41,9 @@ end if
 
 call copy_grid_dimensions(glrin%d, glrout%d)
 call copy_wavefunctions_descriptors(glrin%wfd, glrout%wfd, subname)
-call copy_convolutions_bounds(glrin%bounds, glrout%bounds, subname)
-
+if(glrin%geocode == 'F' .or. (glrin%geocode == 'P' .and. glrin%hybrid_on)) then
+   call copy_convolutions_bounds(glrin%geocode, glrin%bounds, glrout%bounds, subname)
+end if
 
 end subroutine copy_locreg_descriptors
 
@@ -131,13 +132,14 @@ end subroutine copy_wavefunctions_descriptors
 
 
 
-subroutine copy_convolutions_bounds(boundsin, boundsout, subname)
+subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
 use module_base
 use module_types
 use module_interfaces, expectThisOne => copy_convolutions_bounds
 implicit none
 
 ! Calling arguments
+character(len=1),intent(in) :: geocode
 type(convolutions_bounds),intent(in):: boundsin
 type(convolutions_bounds),intent(out):: boundsout
 character(len=*),intent(in):: subname
@@ -145,42 +147,44 @@ character(len=*),intent(in):: subname
 ! Local variables
 integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
 
-call copy_kinetic_bounds(boundsin%kb, boundsout%kb, subname)
-call copy_shrink_bounds(boundsin%sb, boundsout%sb, subname)
-call copy_grow_bounds(boundsin%gb, boundsout%gb, subname)
+call copy_kinetic_bounds(geocode, boundsin%kb, boundsout%kb, subname)
+call copy_shrink_bounds(geocode, boundsin%sb, boundsout%sb, subname)
+call copy_grow_bounds(geocode, boundsin%gb, boundsout%gb, subname)
 
-iis1=lbound(boundsin%ibyyzz_r,1)
-iie1=ubound(boundsin%ibyyzz_r,1)
-iis2=lbound(boundsin%ibyyzz_r,2)
-iie2=ubound(boundsin%ibyyzz_r,2)
-iis3=lbound(boundsin%ibyyzz_r,3)
-iie3=ubound(boundsin%ibyyzz_r,3)
-
-if(associated(boundsout%ibyyzz_r)) then
-    iall=-product(shape(boundsout%ibyyzz_r))*kind(boundsout%ibyyzz_r)
-    deallocate(boundsout%ibyyzz_r, stat=istat)
-    call memocc(istat, iall, 'boundsout%ibyyzz_r', subname)
+if(geocode == 'F') then
+   iis1=lbound(boundsin%ibyyzz_r,1)
+   iie1=ubound(boundsin%ibyyzz_r,1)
+   iis2=lbound(boundsin%ibyyzz_r,2)
+   iie2=ubound(boundsin%ibyyzz_r,2)
+   iis3=lbound(boundsin%ibyyzz_r,3)
+   iie3=ubound(boundsin%ibyyzz_r,3)
+   
+   if(associated(boundsout%ibyyzz_r)) then
+       iall=-product(shape(boundsout%ibyyzz_r))*kind(boundsout%ibyyzz_r)
+       deallocate(boundsout%ibyyzz_r, stat=istat)
+       call memocc(istat, iall, 'boundsout%ibyyzz_r', subname)
+   end if
+   allocate(boundsout%ibyyzz_r(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
+   call memocc(istat, boundsout%ibyyzz_r, 'boundsout%ibyyzz_r', subname)
+   do i3=iis3,iie3
+       do i2=iis2,iie2
+           do i1=iis1,iie1
+               boundsout%ibyyzz_r(i1,i2,i3) = boundsin%ibyyzz_r(i1,i2,i3)
+           end do
+       end do
+   end do
 end if
-allocate(boundsout%ibyyzz_r(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-call memocc(istat, boundsout%ibyyzz_r, 'boundsout%ibyyzz_r', subname)
-do i3=iis3,iie3
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            boundsout%ibyyzz_r(i1,i2,i3) = boundsin%ibyyzz_r(i1,i2,i3)
-        end do
-    end do
-end do
-
 end subroutine copy_convolutions_bounds
 
 
 
-subroutine copy_kinetic_bounds(kbin, kbout, subname)
+subroutine copy_kinetic_bounds(geocode,kbin, kbout, subname)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
+character(len=1),intent(in) :: geocode 
 type(kinetic_bounds),intent(in):: kbin
 type(kinetic_bounds),intent(out):: kbout
 character(len=*),intent(in):: subname
@@ -188,71 +192,72 @@ character(len=*),intent(in):: subname
 ! Local variables
 integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
 
-if(associated(kbout%ibyz_c)) then
-    iall=-product(shape(kbout%ibyz_c))*kind(kbout%ibyz_c)
-    deallocate(kbout%ibyz_c, stat=istat)
-    call memocc(istat, iall, 'kbout%ibyz_c', subname)
+if(geocode == 'F') then
+   if(associated(kbout%ibyz_c)) then
+       iall=-product(shape(kbout%ibyz_c))*kind(kbout%ibyz_c)
+       deallocate(kbout%ibyz_c, stat=istat)
+       call memocc(istat, iall, 'kbout%ibyz_c', subname)
+   end if
+   iis1=lbound(kbin%ibyz_c,1)
+   iie1=ubound(kbin%ibyz_c,1)
+   iis2=lbound(kbin%ibyz_c,2)
+   iie2=ubound(kbin%ibyz_c,2)
+   iis3=lbound(kbin%ibyz_c,3)
+   iie3=ubound(kbin%ibyz_c,3)
+   allocate(kbout%ibyz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
+   call memocc(istat, kbout%ibyz_c, 'kbout%ibyz_c', subname)
+   do i3=iis3,iie3
+       do i2=iis2,iie2
+           do i1=iis1,iie1
+               kbout%ibyz_c(i1,i2,i3) = kbin%ibyz_c(i1,i2,i3)
+           end do
+       end do
+   end do
+   
+   
+   if(associated(kbout%ibxz_c)) then
+       iall=-product(shape(kbout%ibxz_c))*kind(kbout%ibxz_c)
+       deallocate(kbout%ibxz_c, stat=istat)
+       call memocc(istat, iall, 'kbout%ibxz_c', subname)
+   end if
+   iis1=lbound(kbin%ibxz_c,1)
+   iie1=ubound(kbin%ibxz_c,1)
+   iis2=lbound(kbin%ibxz_c,2)
+   iie2=ubound(kbin%ibxz_c,2)
+   iis3=lbound(kbin%ibxz_c,3)
+   iie3=ubound(kbin%ibxz_c,3)
+   allocate(kbout%ibxz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
+   call memocc(istat, kbout%ibxz_c, 'kbout%ibxz_c', subname)
+   do i3=iis3,iie3
+       do i2=iis2,iie2
+           do i1=iis1,iie1
+               kbout%ibxz_c(i1,i2,i3) = kbin%ibxz_c(i1,i2,i3)
+           end do
+       end do
+   end do
+   
+   
+   if(associated(kbout%ibxy_c)) then
+       iall=-product(shape(kbout%ibxy_c))*kind(kbout%ibxy_c)
+       deallocate(kbout%ibxy_c, stat=istat)
+       call memocc(istat, iall, 'kbout%ibxy_c', subname)
+   end if
+   iis1=lbound(kbin%ibxy_c,1)
+   iie1=ubound(kbin%ibxy_c,1)
+   iis2=lbound(kbin%ibxy_c,2)
+   iie2=ubound(kbin%ibxy_c,2)
+   iis3=lbound(kbin%ibxy_c,3)
+   iie3=ubound(kbin%ibxy_c,3)
+   allocate(kbout%ibxy_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
+   call memocc(istat, kbout%ibxy_c, 'kbout%ibxy_c', subname)
+   do i3=iis3,iie3
+       do i2=iis2,iie2
+           do i1=iis1,iie1
+               kbout%ibxy_c(i1,i2,i3) = kbin%ibxy_c(i1,i2,i3)
+           end do
+       end do
+   end do
 end if
-iis1=lbound(kbin%ibyz_c,1)
-iie1=ubound(kbin%ibyz_c,1)
-iis2=lbound(kbin%ibyz_c,2)
-iie2=ubound(kbin%ibyz_c,2)
-iis3=lbound(kbin%ibyz_c,3)
-iie3=ubound(kbin%ibyz_c,3)
-allocate(kbout%ibyz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-call memocc(istat, kbout%ibyz_c, 'kbout%ibyz_c', subname)
-do i3=iis3,iie3
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            kbout%ibyz_c(i1,i2,i3) = kbin%ibyz_c(i1,i2,i3)
-        end do
-    end do
-end do
-
-
-if(associated(kbout%ibxz_c)) then
-    iall=-product(shape(kbout%ibxz_c))*kind(kbout%ibxz_c)
-    deallocate(kbout%ibxz_c, stat=istat)
-    call memocc(istat, iall, 'kbout%ibxz_c', subname)
-end if
-iis1=lbound(kbin%ibxz_c,1)
-iie1=ubound(kbin%ibxz_c,1)
-iis2=lbound(kbin%ibxz_c,2)
-iie2=ubound(kbin%ibxz_c,2)
-iis3=lbound(kbin%ibxz_c,3)
-iie3=ubound(kbin%ibxz_c,3)
-allocate(kbout%ibxz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-call memocc(istat, kbout%ibxz_c, 'kbout%ibxz_c', subname)
-do i3=iis3,iie3
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            kbout%ibxz_c(i1,i2,i3) = kbin%ibxz_c(i1,i2,i3)
-        end do
-    end do
-end do
-
-
-if(associated(kbout%ibxy_c)) then
-    iall=-product(shape(kbout%ibxy_c))*kind(kbout%ibxy_c)
-    deallocate(kbout%ibxy_c, stat=istat)
-    call memocc(istat, iall, 'kbout%ibxy_c', subname)
-end if
-iis1=lbound(kbin%ibxy_c,1)
-iie1=ubound(kbin%ibxy_c,1)
-iis2=lbound(kbin%ibxy_c,2)
-iie2=ubound(kbin%ibxy_c,2)
-iis3=lbound(kbin%ibxy_c,3)
-iie3=ubound(kbin%ibxy_c,3)
-allocate(kbout%ibxy_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-call memocc(istat, kbout%ibxy_c, 'kbout%ibxy_c', subname)
-do i3=iis3,iie3
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            kbout%ibxy_c(i1,i2,i3) = kbin%ibxy_c(i1,i2,i3)
-        end do
-    end do
-end do
-
 
 if(associated(kbout%ibyz_f)) then
     iall=-product(shape(kbout%ibyz_f))*kind(kbout%ibyz_f)
@@ -325,12 +330,13 @@ end subroutine copy_kinetic_bounds
 
 
 
-subroutine copy_shrink_bounds(sbin, sbout, subname)
+subroutine copy_shrink_bounds(geocode, sbin, sbout, subname)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
+character(len=1), intent(in) :: geocode
 type(shrink_bounds),intent(in):: sbin
 type(shrink_bounds),intent(out):: sbout
 character(len=*),intent(in):: subname
@@ -338,50 +344,50 @@ character(len=*),intent(in):: subname
 ! Local variables
 integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
 
-
-if(associated(sbout%ibzzx_c)) then
-    iall=-product(shape(sbout%ibzzx_c))*kind(sbout%ibzzx_c)
-    deallocate(sbout%ibzzx_c, stat=istat)
-    call memocc(istat, iall, 'sbout%ibzzx_c', subname)
+if(geocode == 'F') then
+   if(associated(sbout%ibzzx_c)) then
+       iall=-product(shape(sbout%ibzzx_c))*kind(sbout%ibzzx_c)
+       deallocate(sbout%ibzzx_c, stat=istat)
+       call memocc(istat, iall, 'sbout%ibzzx_c', subname)
+   end if
+   iis1=lbound(sbin%ibzzx_c,1)
+   iie1=ubound(sbin%ibzzx_c,1)
+   iis2=lbound(sbin%ibzzx_c,2)
+   iie2=ubound(sbin%ibzzx_c,2)
+   iis3=lbound(sbin%ibzzx_c,3)
+   iie3=ubound(sbin%ibzzx_c,3)
+   allocate(sbout%ibzzx_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
+   call memocc(istat, sbout%ibzzx_c, 'sbout%ibzzx_c', subname)
+   do i3=iis3,iie3
+       do i2=iis2,iie2
+           do i1=iis1,iie1
+               sbout%ibzzx_c(i1,i2,i3) = sbin%ibzzx_c(i1,i2,i3)
+           end do
+       end do
+   end do
+   
+   
+   if(associated(sbout%ibyyzz_c)) then
+       iall=-product(shape(sbout%ibyyzz_c))*kind(sbout%ibyyzz_c)
+       deallocate(sbout%ibyyzz_c, stat=istat)
+       call memocc(istat, iall, 'sbout%ibyyzz_c', subname)
+   end if
+   iis1=lbound(sbin%ibyyzz_c,1)
+   iie1=ubound(sbin%ibyyzz_c,1)
+   iis2=lbound(sbin%ibyyzz_c,2)
+   iie2=ubound(sbin%ibyyzz_c,2)
+   iis3=lbound(sbin%ibyyzz_c,3)
+   iie3=ubound(sbin%ibyyzz_c,3)
+   allocate(sbout%ibyyzz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
+   call memocc(istat, sbout%ibyyzz_c, 'sbout%ibyyzz_c', subname)
+   do i3=iis3,iie3
+       do i2=iis2,iie2
+           do i1=iis1,iie1
+               sbout%ibyyzz_c(i1,i2,i3) = sbin%ibyyzz_c(i1,i2,i3)
+           end do
+       end do
+   end do
 end if
-iis1=lbound(sbin%ibzzx_c,1)
-iie1=ubound(sbin%ibzzx_c,1)
-iis2=lbound(sbin%ibzzx_c,2)
-iie2=ubound(sbin%ibzzx_c,2)
-iis3=lbound(sbin%ibzzx_c,3)
-iie3=ubound(sbin%ibzzx_c,3)
-allocate(sbout%ibzzx_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-call memocc(istat, sbout%ibzzx_c, 'sbout%ibzzx_c', subname)
-do i3=iis3,iie3
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            sbout%ibzzx_c(i1,i2,i3) = sbin%ibzzx_c(i1,i2,i3)
-        end do
-    end do
-end do
-
-
-if(associated(sbout%ibyyzz_c)) then
-    iall=-product(shape(sbout%ibyyzz_c))*kind(sbout%ibyyzz_c)
-    deallocate(sbout%ibyyzz_c, stat=istat)
-    call memocc(istat, iall, 'sbout%ibyyzz_c', subname)
-end if
-iis1=lbound(sbin%ibyyzz_c,1)
-iie1=ubound(sbin%ibyyzz_c,1)
-iis2=lbound(sbin%ibyyzz_c,2)
-iie2=ubound(sbin%ibyyzz_c,2)
-iis3=lbound(sbin%ibyyzz_c,3)
-iie3=ubound(sbin%ibyyzz_c,3)
-allocate(sbout%ibyyzz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-call memocc(istat, sbout%ibyyzz_c, 'sbout%ibyyzz_c', subname)
-do i3=iis3,iie3
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            sbout%ibyyzz_c(i1,i2,i3) = sbin%ibyyzz_c(i1,i2,i3)
-        end do
-    end do
-end do
-
 
 if(associated(sbout%ibxy_ff)) then
     iall=-product(shape(sbout%ibxy_ff))*kind(sbout%ibxy_ff)
@@ -455,12 +461,13 @@ end subroutine copy_shrink_bounds
 
 
 
-subroutine copy_grow_bounds(gbin, gbout, subname)
+subroutine copy_grow_bounds(geocode, gbin, gbout, subname)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
+character(len=1),intent(in) :: geocode
 type(grow_bounds),intent(in):: gbin
 type(grow_bounds),intent(out):: gbout
 character(len=*),intent(in):: subname
@@ -468,50 +475,50 @@ character(len=*),intent(in):: subname
 ! Local variables
 integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
 
-
-if(associated(gbout%ibzxx_c)) then
-    iall=-product(shape(gbout%ibzxx_c))*kind(gbout%ibzxx_c)
-    deallocate(gbout%ibzxx_c, stat=istat)
-    call memocc(istat, iall, 'gbout%ibzxx_c', subname)
+if(geocode == 'F')then
+   if(associated(gbout%ibzxx_c)) then
+       iall=-product(shape(gbout%ibzxx_c))*kind(gbout%ibzxx_c)
+       deallocate(gbout%ibzxx_c, stat=istat)
+       call memocc(istat, iall, 'gbout%ibzxx_c', subname)
+   end if
+   iis1=lbound(gbin%ibzxx_c,1)
+   iie1=ubound(gbin%ibzxx_c,1)
+   iis2=lbound(gbin%ibzxx_c,2)
+   iie2=ubound(gbin%ibzxx_c,2)
+   iis3=lbound(gbin%ibzxx_c,3)
+   iie3=ubound(gbin%ibzxx_c,3)
+   allocate(gbout%ibzxx_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
+   call memocc(istat, gbout%ibzxx_c, 'gbout%ibzxx_c', subname)
+   do i3=iis3,iie3
+       do i2=iis2,iie2
+           do i1=iis1,iie1
+               gbout%ibzxx_c(i1,i2,i3) = gbin%ibzxx_c(i1,i2,i3)
+           end do
+       end do
+   end do
+   
+   
+   if(associated(gbout%ibxxyy_c)) then
+       iall=-product(shape(gbout%ibxxyy_c))*kind(gbout%ibxxyy_c)
+       deallocate(gbout%ibxxyy_c, stat=istat)
+       call memocc(istat, iall, 'gbout%ibxxyy_c', subname)
+   end if
+   iis1=lbound(gbin%ibxxyy_c,1)
+   iie1=ubound(gbin%ibxxyy_c,1)
+   iis2=lbound(gbin%ibxxyy_c,2)
+   iie2=ubound(gbin%ibxxyy_c,2)
+   iis3=lbound(gbin%ibxxyy_c,3)
+   iie3=ubound(gbin%ibxxyy_c,3)
+   allocate(gbout%ibxxyy_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
+   call memocc(istat, gbout%ibxxyy_c, 'gbout%ibxxyy_c', subname)
+   do i3=iis3,iie3
+       do i2=iis2,iie2
+           do i1=iis1,iie1
+               gbout%ibxxyy_c(i1,i2,i3) = gbin%ibxxyy_c(i1,i2,i3)
+           end do
+       end do
+   end do
 end if
-iis1=lbound(gbin%ibzxx_c,1)
-iie1=ubound(gbin%ibzxx_c,1)
-iis2=lbound(gbin%ibzxx_c,2)
-iie2=ubound(gbin%ibzxx_c,2)
-iis3=lbound(gbin%ibzxx_c,3)
-iie3=ubound(gbin%ibzxx_c,3)
-allocate(gbout%ibzxx_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-call memocc(istat, gbout%ibzxx_c, 'gbout%ibzxx_c', subname)
-do i3=iis3,iie3
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            gbout%ibzxx_c(i1,i2,i3) = gbin%ibzxx_c(i1,i2,i3)
-        end do
-    end do
-end do
-
-
-if(associated(gbout%ibxxyy_c)) then
-    iall=-product(shape(gbout%ibxxyy_c))*kind(gbout%ibxxyy_c)
-    deallocate(gbout%ibxxyy_c, stat=istat)
-    call memocc(istat, iall, 'gbout%ibxxyy_c', subname)
-end if
-iis1=lbound(gbin%ibxxyy_c,1)
-iie1=ubound(gbin%ibxxyy_c,1)
-iis2=lbound(gbin%ibxxyy_c,2)
-iie2=ubound(gbin%ibxxyy_c,2)
-iis3=lbound(gbin%ibxxyy_c,3)
-iie3=ubound(gbin%ibxxyy_c,3)
-allocate(gbout%ibxxyy_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-call memocc(istat, gbout%ibxxyy_c, 'gbout%ibxxyy_c', subname)
-do i3=iis3,iie3
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            gbout%ibxxyy_c(i1,i2,i3) = gbin%ibxxyy_c(i1,i2,i3)
-        end do
-    end do
-end do
-
 
 if(associated(gbout%ibyz_ff)) then
     iall=-product(shape(gbout%ibyz_ff))*kind(gbout%ibyz_ff)
@@ -743,10 +750,14 @@ if(associated(orbsout%norb_par)) then
 end if
 iis1=lbound(orbsin%norb_par,1)
 iie1=ubound(orbsin%norb_par,1)
-allocate(orbsout%norb_par(iis1:iie1), stat=istat)
+iis2=lbound(orbsin%norb_par,2)
+iie2=ubound(orbsin%norb_par,2)
+allocate(orbsout%norb_par(iis1:iie1,iis1:iie1), stat=istat)
 call memocc(istat, orbsout%norb_par, 'orbsout%norb_par', subname)
 do i1=iis1,iie1
-    orbsout%norb_par(i1) = orbsin%norb_par(i1)
+   do i2 = iis2,iie2
+    orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
+   end do
 end do
 
 if(associated(orbsout%iokpt)) then

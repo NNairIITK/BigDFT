@@ -101,7 +101,7 @@ END SUBROUTINE createDensPotDescriptors
 !!    - each processor has all the orbitals in transposed form
 !!    - each wavefunction is equally distributed in its transposed form
 !!    - this holds for each k-point, which regroups different processors
-subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
+subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
   use module_base
   use module_types
   implicit none
@@ -109,11 +109,12 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(inout) :: orbs
   type(communications_arrays), intent(out) :: comms
+  integer, dimension(0:nproc-1,orbs%nkpts), intent(in), optional :: basedist
   !local variables
   character(len=*), parameter :: subname='orbitals_communicators'
   logical :: yesorb,yescomp
   integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
-  integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info
+  integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info,jkpt
   integer, dimension(:), allocatable :: mykpts
   logical, dimension(:), allocatable :: GPU_for_comp
   integer, dimension(:,:), allocatable :: nvctr_par,norb_par !<for all the components and orbitals (with k-pts)
@@ -144,7 +145,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   jorb=1
   ikpts=1
   do jproc=0,nproc-1
-     do iorbp=1,orbs%norb_par(jproc)
+     do iorbp=1,orbs%norb_par(jproc,0)
         norb_par(jproc,ikpts)=norb_par(jproc,ikpts)+1
         if (mod(jorb,orbs%norb)==0) then
            ikpts=ikpts+1
@@ -217,20 +218,32 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 !!$  end do
 
   !new k-point repartition
-  !first try the naive repartition
-  call kpts_to_procs_via_obj(nproc,orbs%nkpts,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),nvctr_par(0,1))
+  if (present(basedist)) then
+     do jkpt=1,orbs%nkpts
+        do jproc=0,nproc-1
+           nvctr_par(jproc,jkpt)=basedist(jproc,jkpt)
+        end do
+     end do
+  else
+     !first try the naive repartition
+     call kpts_to_procs_via_obj(nproc,orbs%nkpts,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),nvctr_par(0,1))
+  end if
   !then silently check whether the distribution agree
   info=-1
   call check_kpt_distributions(nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),&
        norb_par(0,1),nvctr_par(0,1),info,lubo,lubc)
-  if (info/=0) then !redo the distribution based on the orbitals scheme
+  if (info/=0 .and. .not. present(basedist)) then !redo the distribution based on the orbitals scheme
      info=-1
      call components_kpt_distribution(nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),norb_par(0,1),nvctr_par(0,1))
      call check_kpt_distributions(nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),&
           norb_par(0,1),nvctr_par(0,1),info,lubo,lubc)
   end if
   if (info /=0) then
-     if (iproc==0) write(*,*)'ERROR for nproc,nkpts,norb,nvctr',nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+     if (iproc==0) then
+        write(*,*)'ERROR for nproc,nkpts,norb,nvctr',nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+        call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
+     end if
+     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      stop
   end if
 
@@ -263,7 +276,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      end do loop_jproc
   end do
   
-  !print *,'check',orbs%ikptproc(:)
+  !print*,'check',orbs%ikptproc(:)
 
 !write(*,*) 'orbs%norb_par',orbs%norb_par
 
@@ -290,6 +303,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
      call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
   end if
+
   !print *,iproc,orbs%nkptsp,orbs%norbp,orbs%norb,orbs%nkpts
   !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   !call MPI_FINALIZE(ierr)
@@ -298,22 +312,21 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   do jproc=0,nproc-1
      jsorb=0
      do kproc=0,jproc-1
-        jsorb=jsorb+orbs%norb_par(kproc)
+        jsorb=jsorb+orbs%norb_par(kproc,0)
      end do
      jkpts=min(jsorb/orbs%norb+1,orbs%nkpts)
-     if (nvctr_par(jproc,jkpts) == 0 .and. orbs%norb_par(jproc) /=0 ) then
+     if (nvctr_par(jproc,jkpts) == 0 .and. orbs%norb_par(jproc,0) /=0 ) then
         if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution starts before the components one'
         !print *,jsorb,jkpts,jproc,orbs%iskpts,nvctr_par(jproc,jkpts)
         stop
      end if
-     jkpte=min((jsorb+orbs%norb_par(jproc)-1)/orbs%norb+1,orbs%nkpts)
-     if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc) /=0) then
+     jkpte=min((jsorb+orbs%norb_par(jproc,0)-1)/orbs%norb+1,orbs%nkpts)
+     if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc,0) /=0) then
         if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution ends after the components one'
         print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
         stop
      end if
   end do
-
 
   !before printing the distribution schemes, check that the two distributions contain
   !the same k-points
@@ -346,7 +359,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !print *,'AAAAiproc',iproc,orbs%iskpts,orbs%iskpts+orbs%nkptsp
 
   !allocate communication arrays
-  allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
+  allocate(comms%nvctr_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
 
   allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
@@ -360,12 +373,21 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
 
   !assign the partition of the k-points to the communication array
-  do ikpts=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikpts!orbs%ikptsp(ikpts)
-     do jproc=0,nproc-1
-        comms%nvctr_par(jproc,ikpts)=nvctr_par(jproc,ikpt) 
+  !calculate the number of componenets associated to the k-point
+  do jproc=0,nproc-1
+     comms%nvctr_par(jproc,0)=0
+     do ikpt=1,orbs%nkpts
+        comms%nvctr_par(jproc,0)=comms%nvctr_par(jproc,0)+&
+             nvctr_par(jproc,ikpt) 
+        comms%nvctr_par(jproc,ikpt)=nvctr_par(jproc,ikpt)
      end do
   end do
+!!$  do ikpts=1,orbs%nkptsp
+!!$     ikpt=orbs%iskpts+ikpts!orbs%ikptsp(ikpts)
+!!$     do jproc=0,nproc-1
+!!$        comms%nvctr_par(jproc,ikpts)=nvctr_par(jproc,ikpt) 
+!!$     end do
+!!$  end do
 
   !with this distribution the orbitals and the components are ordered following k-points
   !there must be no overlap for the components
@@ -409,7 +431,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
   !calculate the dimension of the wavefunction
   !for the given processor
-  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc)*orbs%nspinor,&
+  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
        sum(comms%ncntt(0:nproc-1)))
 
   if (iproc == 0) write(*,'(1x,a,i0)') &

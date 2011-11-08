@@ -97,7 +97,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,hxh,hyh,hzh,psi,rho,&
   !switch between GPU/CPU treatment of the density
   if (GPUconv) then
      if(Lzd%linear) stop 'local_partial_density_GPU not implemented with Linear scaling!'
-     call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
+     call local_partial_density_GPU(orbs,nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else if (OCLconv) then
      if(Lzd%linear) stop 'local_partial_density_OCL not implemented with Linear scaling!'
      call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
@@ -135,7 +135,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,hxh,hyh,hzh,psi,rho,&
   ! Symmetrise density, TODO...
   !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
   if (symObj >= 0) then
-     call symmetrise_density(0,1,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nscatterarr,nspin,&
+     call symmetrise_density(0,1,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin,&
           Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
           rho_p,symObj,irrzon,phnons)
   end if
@@ -341,11 +341,9 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   Lnscatterarr(:,3) = 0
   Lnscatterarr(:,4) = 0
 
-  if (xc_isgga()) then   !is this xc logical ok?
-     call razero(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1)*max(nspin,orbs%nspinor),rho)
-  else
-     call tenminustwenty(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1)*max(nspin,orbs%nspinor),rho,nproc)
-  end if
+  !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
+  !otherwise use libXC routine
+  call xc_init_rho(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1)*max(nspin,orbs%nspinor),rho,nproc)
 
   ind=1
   orbitalsLoop: do ii=1,orbs%norbp

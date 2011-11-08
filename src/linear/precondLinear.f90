@@ -343,7 +343,7 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 ! ========
 !   This subroutine uncompresses the wave function, applies the operators on it, 
 !   and compresses it again. The operators are: kinetic energy + cprec*Id + r^4.
-!   Here cprecr is a consatnt and r^4 is the confinement potential of the form
+!   Here cprecr is a constant and r^4 is the confinement potential of the form
 !   lin%potentialPrefac*[(x-x0)^4 + (y-y0)^4 + (z-z0)^4]
 !
   use module_base

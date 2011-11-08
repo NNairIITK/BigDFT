@@ -7,7 +7,7 @@
 #include <math.h>
 #include <assert.h>
 //#include <Tool.h>
-#include <time.h>
+//#include <time.h>
 
 /** @file OpenCL_wrappers.h
  *  @brief Contains global declarations and fortran bindings for OpenCL convolutions.
@@ -92,6 +92,9 @@ struct bigdft_kernels {
   cl_kernel fft_kernel_d0_r_d;
   cl_kernel fft_kernel_d1_r_d;
   cl_kernel fft_kernel_d2_r_d;
+  cl_kernel fft_kernel_k_d0_d;
+  cl_kernel fft_kernel_k_d1_d;
+  cl_kernel fft_kernel_k_d2_d;
 };
 
 struct bigdft_device_infos {
@@ -792,11 +795,60 @@ void FC_FUNC_(ocl_fulllocham_generic,OCL_FULLLOCHAM_GENERIC)(bigdft_command_queu
                                           cl_mem *work1, cl_mem *work2,
                                           cl_mem *work3, cl_mem *work4,
                                           cl_double *epot, cl_double *ekinpot);
+
+/** Performs a full local hamiltonian on a compressed wave function.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the input data, vector of 3 values.
+ *  @param periodic periodicity of the convolution. Vector of three value, one for each dimension. Non zero means periodic.
+ *  @param h hgrid of the system, vector of 3 values.
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the compressed data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the uncompressed data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the compressed data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the uncompressed data.
+ *  @param psi_c_r array of size nvctr_c * sizeof(double), containing coarse input and output real data.
+ *  @param psi_f_r array of size nvctr_f * 7 * sizeof(double), containing fine input and output real data.
+ *  @param psi_c_i array of size nvctr_c * sizeof(double), containing coarse input and output imaginary data.
+ *  @param psi_f_i array of size nvctr_f * 7 * sizeof(double), containing fine input and output imaginary data.
+ *  @param pot array of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double) containing potential input data.
+ *  @param psi_r temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param out_r temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work_r temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param psi_i temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param out_i temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work_i temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param kinres_r temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param kinres_i temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param nspinor identifies the number of internal components used in the computation (1: real only, 2: both, 4: unsupported).
+ *  @param epot potential energy of the system.
+ *  @param ekinpot kinetic energy of the system.
+*/
+void FC_FUNC_(ocl_fulllocham_generic_k,OCL_FULLLOCHAM_GENERIC_K)(bigdft_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          cl_uint *periodic,
+                                          cl_double *h,
+                                          cl_double *k,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c_r, cl_mem *psi_f_r,
+                                          cl_mem *psi_c_i, cl_mem *psi_f_i,
+                                          cl_mem *pot,
+                                          cl_mem *psi_r, cl_mem *out_r, cl_mem *work_r,
+                                          cl_mem *psi_i, cl_mem *out_i, cl_mem *work_i,
+                                          cl_mem *kinres_r,
+                                          cl_mem *kinres_i,
+                                          cl_uint *nspinor,
+                                          cl_double *epot, cl_double *ekinpot);
+
 /** Performs a full local hamiltonian in periodic boundary conditions.
  *  @param command_queue used to process the data.
  *  @param dimensions of the input data, vector of 3 values.
  *  @param periodic periodicity of the convolution. Vector of three value, one for each dimension. Non zero means periodic.
  *  @param h hgrid of the system, vector of 3 values.
+ *  @param k k-points values in the reduced Brillouin zone.
  *  @param nseg_c number of segment of coarse data.
  *  @param nvctr_c number of point of coarse data.
  *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the compressed data.
@@ -825,6 +877,66 @@ void FC_FUNC_(ocl_fulllocham,OCL_FULLLOCHAM)(bigdft_command_queue *command_queue
                                           cl_mem *psi, cl_mem *out,
                                           cl_mem *work, cl_mem *kinres,
                                           cl_double *epot, cl_double *ekinpot);
+
+/** Computes the local partial density of a wave function in periodic boundary condition.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the input data, vector of 3 values.
+ *  @param hfac
+ *  @apram iaddjmp
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the compressed data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the uncompressed data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the compressed data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the uncompressed data.
+ *  @param psi_c array of size nvctr_c * sizeof(double), containing coarse input data.
+ *  @param psi_f array of size nvctr_f * 7 * sizeof(double), containing fine input data.
+ *  @param psi temporary buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double).
+ *  @param out temporary buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double).
+ *  @param work temporary buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double).
+ *  @param pot array of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double) containing potential output data.
+*/
+void FC_FUNC_(ocl_locden,OCL_LOCDEN)(bigdft_command_queue *command_queue,
+                                     cl_uint *dimensions,
+                                     cl_double *hfac,
+                                     cl_uint *iaddjmp,
+                                     cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
+                                     cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                     cl_mem *psi_c, cl_mem *psi_f,
+                                     cl_mem *psi, cl_mem *out, cl_mem *work,
+                                     cl_mem *pot);
+
+/** Computes the local partial density of a wave function.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the input data, vector of 3 values.
+ *  @param periodic periodicity of the convolution. Vector of three value, one for each dimension. Non zero means periodic.
+ *  @param hfac
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the compressed data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the uncompressed data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the compressed data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the uncompressed data.
+ *  @param psi_c array of size nvctr_c * sizeof(double), containing coarse input data.
+ *  @param psi_f array of size nvctr_f * 7 * sizeof(double), containing fine input data.
+ *  @param psi temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param out temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param pot array of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double) containing potential output data.
+*/
+void FC_FUNC_(ocl_locden_generic,OCL_LOCDEN_GENERIC)(bigdft_command_queue *command_queue,
+                                     cl_uint *dimensions,
+                                     cl_uint *periodic,
+                                     cl_double *hfac,
+                                     cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
+                                     cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                     cl_mem *psi_c, cl_mem *psi_f,
+                                     cl_mem *psi, cl_mem *out, cl_mem *work,
+                                     cl_mem *pot);
 
 /** Preconditions the data for further hamiltonian minimizing, in periodic boundary conditions.
  *  @param command_queue used to process the data.
@@ -865,6 +977,112 @@ void FC_FUNC_(ocl_preconditioner,OCL_PRECONDITIONER)(bigdft_command_queue *comma
                                           cl_mem *psi_c_b, cl_mem *psi_f_b,
                                           cl_mem *psi_c_d, cl_mem *psi_f_d,
                                           cl_mem *work1, cl_mem *work2, cl_mem *work3, cl_mem *work4);
+
+/** Preconditions the data for further hamiltonian minimizing.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the input data, vector of 3 values.
+ *  @param periodic periodicity of the convolution. Vector of three value, one for each dimension. Non zero means periodic.
+ *  @param h hgrid of the system, vector of 3 values.
+ *  @param c scaling factor.
+ *  @param ncong number of iterations of the preconditioner.
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the compressed data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the uncompressed data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the compressed data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the uncompressed data.
+ *  @param psi_c array of size nvctr_c * sizeof(double), containing coarse input and output data.
+ *  @param psi_f array of size nvctr_f * 7 * sizeof(double), containing fine input and output data.
+ *  @param psi_c_r temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_r temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param psi_c_b temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_b temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param psi_c_d temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_d temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param work1 temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work2 temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work3 temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work4 temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ */
+void FC_FUNC_(ocl_preconditioner_generic,OCL_PRECONDITIONER_GENERIC)(bigdft_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          cl_uint *periodic,
+                                          cl_double *h,
+                                          cl_double *c,
+                                          cl_uint *ncong,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c, cl_mem *psi_f,
+                                          cl_mem *psi_c_r, cl_mem *psi_f_r,
+                                          cl_mem *psi_c_b, cl_mem *psi_f_b,
+                                          cl_mem *psi_c_d, cl_mem *psi_f_d,
+                                          cl_mem *work1, cl_mem *work2, cl_mem *work3, cl_mem *work4);
+
+/** Preconditions the data for further hamiltonian minimizing.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the input data, vector of 3 values.
+ *  @param periodic periodicity of the convolution. Vector of three value, one for each dimension. Non zero means periodic.
+ *  @param h hgrid of the system, vector of 3 values.
+ *  @param k k-points values in the reduced Brillouin zone.
+ *  @param c scaling factor.
+ *  @param ncong number of iterations of the preconditioner.
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the compressed data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the uncompressed data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the compressed data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the uncompressed data.
+ *  @param psi_c_r array of size nvctr_c * sizeof(double), containing coarse input and output data.
+ *  @param psi_f_r array of size nvctr_f * 7 * sizeof(double), containing fine input and output data.
+ *  @param psi_c_i array of size nvctr_c * sizeof(double), containing coarse input and output data.
+ *  @param psi_f_i array of size nvctr_f * 7 * sizeof(double), containing fine input and output data.
+ *  @param psi_c_r_r temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_r_r temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param psi_c_r_i temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_r_i temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param psi_c_b_r temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_b_r temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param psi_c_b_i temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_b_i temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param psi_c_d_r temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_d_r temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param psi_c_d_i temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_d_i temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param work1_r temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work2_r temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work3_r temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work4_r temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work1_i temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work2_i temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work3_i temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work4_i temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param nspinor identifies the number of internal components used in the computation (1: real only, 2: both, 4: unsupported).
+ */
+void FC_FUNC_(ocl_preconditioner_generic_k,OCL_PRECONDITIONER_GENERIC_K)(bigdft_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          cl_uint *periodic,
+                                          cl_double *h,
+                                          cl_double *k,
+                                          cl_double *c,
+                                          cl_uint *ncong,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c_r, cl_mem *psi_f_r,
+                                          cl_mem *psi_c_i, cl_mem *psi_f_i,
+                                          cl_mem *psi_c_r_r, cl_mem *psi_f_r_r,
+                                          cl_mem *psi_c_r_i, cl_mem *psi_f_r_i,
+                                          cl_mem *psi_c_b_r, cl_mem *psi_f_b_r,
+                                          cl_mem *psi_c_b_i, cl_mem *psi_f_b_i,
+                                          cl_mem *psi_c_d_r, cl_mem *psi_f_d_r,
+                                          cl_mem *psi_c_d_i, cl_mem *psi_f_d_i,
+                                          cl_mem *work1_r, cl_mem *work2_r, cl_mem *work3_r, cl_mem *work4_r,
+                                          cl_mem *work1_i, cl_mem *work2_i, cl_mem *work3_i, cl_mem *work4_i,
+                                          cl_uint *nspinor);
+
 void FC_FUNC_(ocl_isf_to_daub,OCL_ISF_TO_DAUB)(bigdft_command_queue *command_queue,
                                           cl_uint *dimensions,
                                           cl_uint *periodic,
@@ -884,5 +1102,8 @@ void FC_FUNC_(ocl_daub_to_isf,OCL_DAUB_TO_ISF)(bigdft_command_queue *command_que
 void FC_FUNC_(magic_filter_t_3d_generic,MAGIC_FILTER_T_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out);
 void FC_FUNC_(magic_filter_3d_generic,MAGIC_FILTER_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out);
 void FC_FUNC_(fft1d_d,FFT1D_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
+void FC_FUNC_(fft1d_r_d,FFT1D_R_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
 void FC_FUNC_(fft3d_d,FFT3D_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp);
+void FC_FUNC_(fft3d_k_d,FFT3D_K_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp,cl_mem *k);
+void FC_FUNC_(fft3d_r_d,FFT3D_R_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp);
 #endif

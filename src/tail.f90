@@ -15,6 +15,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      proj,psi,output_grid,ekin_sum,epot_sum,eproj_sum)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => CalculateTailCorrection
   implicit none
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -35,7 +36,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
   integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3
   integer :: n1,n2,n3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
-  real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
+  real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail !n(c) eproj1 epot1,ekin1
   type(orbitals_data) :: orbsb
   type(wavefunctions_descriptors) :: wfdb
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
@@ -415,9 +416,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         !     'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
 
         !values of the energies before tail application
-        ekin1=ekin
-        epot1=epot
-        eproj1=eproj
+        !n(c) ekin1=ekin
+        !n(c) epot1=epot
+        !n(c) eproj1=eproj
         !write(*,'(1x,a,1x,i0,f18.14)') 'norm orbital + tail',iorb,sum_tail
         !call plot_wf(20,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keyg,keyv,nsegb_f,nvctrb_f,  & 
         !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
@@ -917,7 +918,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj
   !local variables
-  integer :: i,l,iat,iproj,istart_c,mbseg_c,mbseg_f,jseg_c,jseg_f,mbvctr_c,mbvctr_f,ityp
+  integer :: i,l,iat,iproj,istart_c,mbseg_c,mbseg_f,jseg_c,mbvctr_c,mbvctr_f,ityp !n(c) jseg_f
 
   ! loop over all projectors
   iproj=0
@@ -927,7 +928,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
      mbseg_c=nseg_p(2*iat-1)-nseg_p(2*iat-2)
      mbseg_f=nseg_p(2*iat  )-nseg_p(2*iat-1)
      jseg_c=nseg_p(2*iat-2)+1
-     jseg_f=nseg_p(2*iat-1)+1
+     !n(c) jseg_f=nseg_p(2*iat-1)+1
      mbvctr_c=nvctr_p(2*iat-1)-nvctr_p(2*iat-2)
      mbvctr_f=nvctr_p(2*iat  )-nvctr_p(2*iat-1)
      ityp=iatype(iat)

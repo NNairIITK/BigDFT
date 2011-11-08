@@ -58,13 +58,14 @@ libpoissonsolver_a_SOURCES = \
 	../lib/fft/fft3d.f90 \
 	../profiling/time.f90 
 
-libpoissonsolver_a_LIBADD = ../modules/libmodules.a
+#libpoissonsolver_a_LIBADD = ../modules/libmodules.a
 
 
 CLEANFILES = malloc.prc time.prc \
 	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@ \
 	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ \
-	module_base.@MODULE_EXT@ timedata.@MODULE_EXT@
+	module_base.@MODULE_EXT@ timedata.@MODULE_EXT@ \
+	timedata.@MODULE_EXT@ TIMEDATA.@MODULE_EXT@
 
 #dependencies
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o

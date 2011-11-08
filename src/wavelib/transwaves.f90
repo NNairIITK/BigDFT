@@ -122,7 +122,7 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
      end if
   
      call switch_waves_v(nproc,orbs,&
-          wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,psi,work)
+          wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
 
 
      call timing(iproc,'Un-TransSwitch','OF')
@@ -164,20 +164,23 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
   character(len=*), parameter :: subname='transpose_v'
   integer :: ierr,i_all,i_stat
   integer :: psishift1,totshift,iorb,ilr,ldim
+  real(wp), dimension(:), pointer :: workarr
 
   call timing(iproc,'Un-TransSwitch','ON')
 
   !for linear scaling must project the wavefunctions to whole simulation box
   if(Lzd%linear) then
-     call razero(orbs%npsidim,work)
-     if(.not. present(work) .or. .not. associated(work)) stop 'transpose_v needs optional argument work with Linear Scaling'
+!     if(.not. present(work) .or. .not. associated(work)) stop 'transpose_v needs optional argument work with Linear Scaling'
+     allocate(workarr(orbs%npsidim),stat=i_stat)
+     call memocc(i_stat,workarr,'workarr',subname)
+     call razero(orbs%npsidim,workarr)
      psishift1 = 1
      totshift = 0
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
         call Lpsi_to_global(Lzd%Glr,orbs%npsidim,Lzd%Llr(ilr),psi(psishift1),&
-             ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,work)
+             ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
         psishift1 = psishift1 + ldim
         totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
      end do
@@ -187,7 +190,10 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
      call memocc(i_stat,i_all,'psi',subname)
      allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
-     call dcopy(orbs%npsidim,work,1,psi,1) !psi=work
+     call dcopy(orbs%npsidim,workarr,1,psi,1) !psi=work
+     i_all=-product(shape(workarr))*kind(workarr)
+     deallocate(workarr,stat=i_stat)
+     call memocc(i_stat,i_all,'workarr',subname)
   end if
 
   if (nproc > 1) then
@@ -200,7 +206,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
 
 
      call switch_waves_v(nproc,orbs,&
-          Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par,psi,work)
+          Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
 
 
      call timing(iproc,'Un-TransSwitch','OF')
@@ -261,10 +267,10 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
      call timing(iproc,'Un-TransSwitch','ON')
      if (present(outadd)) then
         call unswitch_waves_v(nproc,orbs,&
-             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,outadd)
+             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,outadd)
      else
         call unswitch_waves_v(nproc,orbs,&
-             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,psi)
+             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,psi)
      end if
   else
      if(orbs%nspinor /= 1) then
@@ -277,12 +283,12 @@ END SUBROUTINE untranspose_v
 
 
 subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: nproc,nvctr
   type(orbitals_data), intent(in) :: orbs
-  integer, dimension(nproc,orbs%nkptsp), intent(in) :: nvctr_par
+  integer, dimension(nproc,orbs%nkpts), intent(in) :: nvctr_par
   real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(in) :: psi
   real(wp), dimension(orbs%nspinor*nvctr*orbs%norbp), intent(out) :: psiw
   !local variables
@@ -306,14 +312,14 @@ subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
                    ispsi
-              do i=1,nvctr_par(j,ikptsp)
+              do i=1,nvctr_par(j,ikpt)
                  it=ind+i
                  psiw(it)=psi(ij,1,iorb+isorbp)
                  ij=ij+1
               enddo
-              ijproc=ijproc+nvctr_par(j,ikptsp)
+              ijproc=ijproc+nvctr_par(j,ikpt)
            enddo
         enddo
      else if (orbs%nspinor == 2) then
@@ -321,16 +327,16 @@ subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
                    ispsi
-              do i=1,nvctr_par(j,ikptsp)
+              do i=1,nvctr_par(j,ikpt)
                  it1=ind+2*i-1
                  it2=ind+2*i
                  psiw(it1)=psi(ij,1,iorb+isorbp)
                  psiw(it2)=psi(ij,2,iorb+isorbp)
                  ij=ij+1
               enddo
-              ijproc=ijproc+nvctr_par(j,ikptsp)
+              ijproc=ijproc+nvctr_par(j,ikpt)
            enddo
         enddo
      else if (orbs%nspinor == 4) then
@@ -338,20 +344,20 @@ subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
                    ispsi
-              do i=1,nvctr_par(j,ikptsp)
+              do i=1,nvctr_par(j,ikpt)
                  it1=ind+2*i-1
                  it2=ind+2*i
-                 it3=ind+2*i+2*nvctr_par(j,ikptsp)-1
-                 it4=ind+2*i+2*nvctr_par(j,ikptsp)
+                 it3=ind+2*i+2*nvctr_par(j,ikpt)-1
+                 it4=ind+2*i+2*nvctr_par(j,ikpt)
                  psiw(it1)=psi(ij,1,iorb+isorbp)
                  psiw(it2)=psi(ij,2,iorb+isorbp)
                  psiw(it3)=psi(ij,3,iorb+isorbp)
                  psiw(it4)=psi(ij,4,iorb+isorbp)
                  ij=ij+1
               enddo
-              ijproc=ijproc+nvctr_par(j,ikptsp)
+              ijproc=ijproc+nvctr_par(j,ikpt)
            enddo
         enddo
      end if
@@ -365,12 +371,12 @@ END SUBROUTINE switch_waves_v
 
 
 subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
-  use module_base
+  !n(c) use module_base
   use module_types
   implicit none
   integer, intent(in) :: nproc,nvctr
   type(orbitals_data), intent(in) :: orbs
-  integer, dimension(nproc,orbs%nkptsp), intent(in) :: nvctr_par
+  integer, dimension(nproc,orbs%nkpts), intent(in) :: nvctr_par
   real(wp), dimension(orbs%nspinor*nvctr*orbs%norbp), intent(in) :: psiw
   real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(out) :: psi
   !local variables
@@ -393,14 +399,14 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
                    ispsi
-              do i=1,nvctr_par(j,ikptsp)
+              do i=1,nvctr_par(j,ikpt)
                  it=ind+i
                  psi(ij,orbs%nspinor,iorb+isorbp)=psiw(it)
                  ij=ij+1
               end do
-              ijproc=ijproc+nvctr_par(j,ikptsp)
+              ijproc=ijproc+nvctr_par(j,ikpt)
            end do
         end do
      else if (orbs%nspinor == 2) then
@@ -408,16 +414,16 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
                    ispsi
-              do i=1,nvctr_par(j,ikptsp)
+              do i=1,nvctr_par(j,ikpt)
                  it1=ind+2*i-1
                  it2=ind+2*i
                  psi(ij,1,iorb+isorbp)=psiw(it1)
                  psi(ij,2,iorb+isorbp)=psiw(it2)
                  ij=ij+1
               end do
-              ijproc=ijproc+nvctr_par(j,ikptsp)
+              ijproc=ijproc+nvctr_par(j,ikpt)
            end do
         end do
      else if (orbs%nspinor == 4) then
@@ -425,20 +431,20 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
                    ispsi
-              do i=1,nvctr_par(j,ikptsp)
+              do i=1,nvctr_par(j,ikpt)
                  it1=ind+2*i-1
                  it2=ind+2*i
-                 it3=ind+2*i+2*nvctr_par(j,ikptsp)-1
-                 it4=ind+2*i+2*nvctr_par(j,ikptsp)
+                 it3=ind+2*i+2*nvctr_par(j,ikpt)-1
+                 it4=ind+2*i+2*nvctr_par(j,ikpt)
                  psi(ij,1,iorb+isorbp)=psiw(it1)
                  psi(ij,2,iorb+isorbp)=psiw(it2)
                  psi(ij,3,iorb+isorbp)=psiw(it3)
                  psi(ij,4,iorb+isorbp)=psiw(it4)
                  ij=ij+1
               end do
-              ijproc=ijproc+nvctr_par(j,ikptsp)
+              ijproc=ijproc+nvctr_par(j,ikpt)
            end do
         end do
      end if

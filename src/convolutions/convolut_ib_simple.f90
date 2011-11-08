@@ -19,7 +19,7 @@ end module convSimpleBench
 subroutine Convolkinetic_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_f,ibxz_f,ibxy_f,x_f,y_f)
   use module_base
-  use convSimpleBench, nflop1 => conv_f_nflop1, nflop2 => conv_f_nflop2, nflop3 => conv_f_nflop3
+  !n(c) use convSimpleBench, nflop1 => conv_f_nflop1, nflop2 => conv_f_nflop2, nflop3 => conv_f_nflop3
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(wp), intent(in) :: cprecr
@@ -31,10 +31,10 @@ subroutine Convolkinetic_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  logical :: firstcall=.true. 
-  integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,l
+  !n(c) logical :: firstcall=.true. 
+  integer :: i,i1,i2,i3,l !n(c) t,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
   real(wp) :: scale,t112, t121,t122,t212,t221,t222,t211
-  real(kind=8) :: tel
+  !n(c) real(kind=8) :: tel
   real(wp), dimension(lowfil:lupfil) :: a,e
 
   scale=-.5_wp/real(hgrid**2,wp)
@@ -187,7 +187,7 @@ END SUBROUTINE Convolkinetic_f
 !<   y = (kinetic energy operator)x + (cprec*I)x 
 subroutine Convolkinetic_sep(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-     cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,x_f1,x_f2,x_f3)
+     cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f) !n(c) x_f1,x_f2,x_f3 (arg:l, l-1)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -198,19 +198,19 @@ subroutine Convolkinetic_sep(n1,n2,n3, &
   integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f
-  real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f1
-  real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(in) :: x_f2
-  real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(in) :: x_f3
+  !n(c) real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f1
+  !n(c) real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(in) :: x_f2
+  !n(c) real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(in) :: x_f3
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  logical :: firstcall=.true. 
-  integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,l
+  !n(c) logical :: firstcall=.true. 
+  !n(c) integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
+  integer :: i,t,i1,i2,i3,l !n(c) ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
   real(wp) :: scale,dyi,t112, t121,t122,t212,t221,t222,t211
-  real(kind=8) :: tel
-  real(wp), dimension(lowfil:lupfil) :: a,b,c,d,e
+  !n(c) real(kind=8) :: tel
+  real(wp), dimension(lowfil:lupfil) :: a,c,e !n(c) b,d
 
   scale=-.5_wp/real(hgrid**2,wp)
   !---------------------------------------------------------------------------
@@ -265,9 +265,9 @@ subroutine Convolkinetic_sep(n1,n2,n3, &
   c( 13)=     -4.84665690596158959648731537084025836e-13_wp*scale
   c( 14)=      1.2392629629188986192855777620877e-17_wp*scale
   !  <psi|D^2|phi_i>
-  do i=-14,14
-     b(i)=c(-i)
-  enddo
+  !n(c) do i=-14,14
+  !n(c)    b(i)=c(-i)
+  !n(c) enddo
   !<psi|D^2|psi_i>
   e(0)=   -24.875846029392331358907766562_wp*scale
   e(1)=   -7.1440597663471719869313377994_wp*scale
@@ -466,10 +466,10 @@ subroutine Convolkinetic(n1,n2,n3, &
   integer, parameter :: lowfil=-14,lupfil=14
   logical :: firstcall=.true. 
   integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,l
+  integer :: i,t,i1,i2,i3,l !n(c) ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
   real(wp) :: scale,dyi,t112, t121,t122,t212,t221,t222,t211
-  real(kind=8) :: tel
-  real(wp), dimension(lowfil:lupfil) :: a,b,c,d,e
+  !n(c) real(kind=8) :: tel
+  real(wp), dimension(lowfil:lupfil) :: a,b,c,e !n(c) d
 
   scale=-.5_wp/real(hgrid**2,wp)
   !---------------------------------------------------------------------------
@@ -887,7 +887,7 @@ subroutine Convolkinetic_c(n1,n2,n3,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,x_c,y_c,fa
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i,t,i1,i2,i3,l
+  integer :: i,t,i1,i2,i3 !n(c) l
   real(wp) :: scale,dyi
   real(wp), dimension(lowfil:lupfil) :: a
 
@@ -986,11 +986,11 @@ subroutine ConvolkineticT(n1,n2,n3, &
   integer, parameter :: lowfil=-14,lupfil=14
   logical :: firstcall=.true. 
   integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  integer :: i,nb,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
-  integer :: icur,istart,iend,l,j
-  real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211,ekin
-  real(kind=8) :: tel
-  real(wp), dimension(lowfil:lupfil) :: a,b,c,d,e
+  integer :: i,t,i1,i2,i3 !n(c) nb,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
+  integer :: l !n(c) icur,istart,iend,j
+  real(wp) :: scale,dyi,t112,t121,t122,t212,t221,t222,t211,ekin !n(c) dyi0,dyi1,dyi2,dyi3 
+  !n(c) real(kind=8) :: tel
+  real(wp), dimension(lowfil:lupfil) :: a,b,c,e !n(c) d
 
   scale=-.5_wp/hgrid**2
   !---------------------------------------------------------------------------
@@ -1353,7 +1353,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
 
   ! + (1/2) d^2/dy^2
-  nb=16
+  !n(c) nb=16
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -1391,7 +1391,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
   !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:y',tel,1.e-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
-  nb=16
+  !n(c) nb=16
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
