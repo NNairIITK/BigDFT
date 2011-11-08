@@ -2825,8 +2825,6 @@ type(locreg_descriptors),intent(out):: olr
 ! Local variables
 integer:: n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp
 character(len=*),parameter:: subname='determine_overlapdescriptors_from_descriptors'
-!debug
-integer:: iiproc, ierr
 
 
 
@@ -2880,7 +2878,7 @@ olr%d%n3i=2*olr%d%n3+31
 call allocate_wfd(olr%wfd,subname)
 
 
-! some cheks
+! some checks
 call check_overlapregion(glr, llr_i, llr_j, olr)
 
 
@@ -2899,7 +2897,6 @@ call overlapdescriptors_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      olr%wfd%keyg, olr%wfd%keyv, &
      olr%wfd%nvctr_c)
 
-     call mpi_comm_rank(mpi_comm_world, iiproc, ierr)
 ! Fill the descriptors for the fine part.
 call overlapdescriptors_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_j%d%n1, llr_j%d%n2, llr_j%d%n3, &
@@ -3078,7 +3075,7 @@ n2_k=0
 n3_k=0
 nseg_k=0
 
-! Initialize some counter
+! Initialize some counters
 iseg=1
 jseg=1
 kxemax=0
@@ -3104,8 +3101,7 @@ segment_loop: do
     iendg=transform_index(iend, n1_i, n2_i, n3_i, n1_g, n2_g, n3_g, ns1_i-ns1_g, ns2_i-ns2_g, ns3_i-ns3_g)
     jendg=transform_index(jend, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, ns1_j-ns1_g, ns2_j-ns2_g, ns3_j-ns3_g)
 
-    ! Determine starting and ending point of the common segment in global coordinates and
-    ! which segment counter has to be increased.
+    ! Determine starting and ending point of the common segment in global coordinates.
     kstartg=max(istartg,jstartg)
     kendg=min(iendg,jendg)
 
@@ -3134,7 +3130,7 @@ segment_loop: do
 
     end if
 
-    ! Check whether all segments of both localization regions have been processed
+    ! Check whether all segments of both localization regions have been processed.
     if(iseg>=nseg_i .and. jseg>=nseg_j) exit segment_loop
 
     ! Increase the segment index
@@ -3216,8 +3212,7 @@ segment_loop: do
     iendg=transform_index(iend, n1_i, n2_i, n3_i, n1_g, n2_g, n3_g, ns1_i-ns1_g, ns2_i-ns2_g, ns3_i-ns3_g)
     jendg=transform_index(jend, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, ns1_j-ns1_g, ns2_j-ns2_g, ns3_j-ns3_g)
 
-    ! Determine starting and ending point of the common segment in global coordinates and
-    ! which segment counter has to be increased.
+    ! Determine starting and ending point of the common segment in global coordinates.
     kstartg=max(istartg,jstartg)
     kendg=min(iendg,jendg)
     if((iendg<=jendg .and. iseg<nseg_i) .or. jseg==nseg_j) then
