@@ -393,7 +393,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
         !calculate tail using the preconditioner as solver for the green function application
         cprecr=-orbs%eval(iorb+orbs%isorb)
-        call precong(iorb+orbs%isorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
+        call precong(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
              nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keyg,keyv, &
              ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
         !call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keyg,keyv,nsegb_f,nvctrb_f,  & 
