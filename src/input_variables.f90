@@ -3691,7 +3691,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='initialize_atomic_file'
-  integer :: i_stat, l
+  integer :: i_stat
   integer :: iat,i
 
   allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)

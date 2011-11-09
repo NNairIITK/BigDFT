@@ -213,7 +213,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=3) :: PSquiet
   character(len=5) :: gridformat, wfformat,wfformat_read, final_out
   character(len=500) :: errmess
-  logical :: endloop,endlooprp,onefile,refill_proj,potential_from_disk=.false.
+  logical :: endloop,endlooprp,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
   integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden,input_wf_format,ipot_from_disk=0
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
@@ -983,10 +983,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!$                nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,&
 !!$                in%SIC,GPU,pkernel=pkernelseq)
 
-           call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+           call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,&
                 Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
 
-           call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+           call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
                 nlpspd,proj,Glr,psi,hpsi,eproj_sum)
 
            call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
@@ -1016,7 +1016,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !control the previous value of idsx_actual
            idsx_actual_before=diis%idsx
 
-           call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in%orthpar) 
+           call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%orthpar) 
 
            if (in%inputPsiId == 0) then
               if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
@@ -1426,19 +1426,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,psivirt,'psivirt',subname)
 
         if (in%norbv < 0) then
-           call direct_minimization(iproc,nproc,n1i,n2i,in,atoms,& 
+           call direct_minimization(iproc,nproc,in,atoms,& 
                 orbs,orbsv,nvirt,Glr,comms,commsv,&
                 hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
                 pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
         else if (in%norbv > 0) then
-           call davidson(iproc,nproc,n1i,n2i,in,atoms,& 
+           call davidson(iproc,nproc,in,atoms,& 
                 orbs,orbsv,in%nvirt,Glr,comms,commsv,&
                 hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
                 pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
-!!$           call constrained_davidson(iproc,nproc,n1i,n2i,in,atoms,&
+!!$           call constrained_davidson(iproc,nproc,in,atoms,&
 !!$                orbs,orbsv,in%nvirt,Glr,comms,commsv,&
-!!$                hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
-!!$                pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
+!!$                hx,hy,hz,rxyz,rhopot, &
+!!$                psi,psivirt,nscatterarr,ngatherarr,GPU)
         end if
 
         ! Write virtual wavefunctions in ETSF format
@@ -1539,10 +1539,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         orbsv%norb=0
         orbsv%norbp=0
      end if
-     call local_analysis(iproc,nproc,hx,hy,hz,in,atoms,rxyz,shift,Glr,orbs,orbsv,psi,psivirt)
+     call local_analysis(iproc,nproc,hx,hy,hz,in,atoms,rxyz,Glr,orbs,orbsv,psi,psivirt)
   else if (DoLastRunThings .and. in%itrpmax /= 1 .and. verbose > 2) then
      ! Do a full DOS calculation.
-     if (iproc == 0) call global_analysis(iproc, nproc, orbs, in%Tel)
+     if (iproc == 0) call global_analysis(orbs, in%Tel)
   end if
 
   i_all=-product(shape(pkernel))*kind(pkernel)

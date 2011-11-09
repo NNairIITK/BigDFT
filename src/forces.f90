@@ -6,6 +6,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
 subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
@@ -72,7 +74,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   energy_ref=energy
 
   !assign the reference
-  functional_ref=functional_definition(iorb_ref,energy,rst%orbs)
+  functional_ref=functional_definition(iorb_ref,energy)
 
   if (order == -1) then
      n_order = 1
@@ -159,7 +161,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
                 rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
 
            !assign the quantity which should be differentiated
-           functional(km)=functional_definition(iorb_ref,energy,rst%orbs)
+           functional(km)=functional_definition(iorb_ref,energy)
 !!$           if (iorb_ref==0) then
 !!$              functional(km)=energy
 !!$           else if (iorb_ref==-1) then
@@ -233,13 +235,12 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
 contains
   
-  function functional_definition(iorb_ref,energy,orbs)
+  function functional_definition(iorb_ref,energy)
     use module_base
     use module_types
     implicit none
     integer, intent(in) :: iorb_ref
     real(gp), intent(in) :: energy
-    type(orbitals_data), intent(in) :: orbs
     real(gp) :: functional_definition
     !local variables
     real(gp) :: mu
@@ -484,13 +485,13 @@ end subroutine rhocore_forces
 
 !>   Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
-     n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)
+     n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc)
   use module_base
   use module_types
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+  integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: rho,pot

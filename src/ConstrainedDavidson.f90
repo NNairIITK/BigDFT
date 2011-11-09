@@ -47,19 +47,18 @@
 !!      (transpose v and hv)\n
 !!   end do\n
 !!   (retranspose v and psi)\n
-subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,& 
+subroutine constrained_davidson(iproc,nproc,in,at,& 
      orbs,orbsv,nvirt,lr,comms,commsv,&
-     hx,hy,hz,rxyz,rhopot,nlpspd,proj,pkernel,psi,v,nscatterarr,ngatherarr,GPU)
+     hx,hy,hz,rxyz,rhopot,psi,v,nscatterarr,ngatherarr,GPU)
   use module_base
   use module_types
   use module_interfaces, except_this_one => constrained_davidson
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,nproc,n1i,n2i
+  integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nvirt
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: at
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: lr 
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms, commsv
@@ -67,9 +66,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp), dimension(*), intent(in) :: rhopot
-  real(dp), dimension(:), pointer :: pkernel
   type(orbitals_data), intent(inout) :: orbsv
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
@@ -80,7 +77,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   integer :: nrhodim,i3rho_add !n(c) occnorb, occnorbu, occnorbd
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor,imin
   integer :: ise,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
-  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,gnrm_fake,emin,diff_max,this_e
+  real(gp) :: tt,gnrm,gnrm_fake,emin,diff_max,this_e
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
   real(wp), dimension(:), allocatable :: hv,g,hg,ew  !,Pv,Pg
@@ -254,7 +251,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   !
   if (iproc==0) write (*,'(1x,a)',advance="no") "Orthogonality..."
   
-  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in%orthpar)
+  call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
   !
   ! set v orthogonal to all occupied psi
   !
@@ -264,7 +261,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   !
   ! orthonormalize v through the projections
   !
-  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in%orthpar)
+  call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
   !
   ! untranspose v 
   !
@@ -484,7 +481,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      !
      ! apply preconditionner
      !
-     call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake,gnrm_fake)
+     call preconditionall(orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake,gnrm_fake)
      !
      ! transpose gradients for orthogonalization and norm computation
      !
@@ -499,7 +496,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      !
      ! orthogonalize gradient directions (a bit more stable)
      !
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,g,in%orthpar)
+     call orthogonalize(iproc,nproc,orbsv,commsv,g,in%orthpar)
      !
      ! untranspose gradients
      !
@@ -791,7 +788,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      !
      ! orthonormalize v set
      !
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in%orthpar)
+     call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
      !
      ! untranspose v 
      !

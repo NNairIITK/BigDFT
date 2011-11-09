@@ -315,6 +315,8 @@ module module_defs
       implicit none
       integer, intent(in) :: one
       integer :: uninitialized_int
+      integer :: foo
+      foo = kind(one)
       uninitialized_int=-123456789
     end function uninitialized_int
 
@@ -322,6 +324,8 @@ module module_defs
       implicit none
       real(kind=4), intent(in) :: one
       real(kind=4) :: uninitialized_real
+      integer :: foo
+      foo = kind(one)
       uninitialized_real=-123456789.e0
     end function uninitialized_real
 
@@ -329,7 +333,8 @@ module module_defs
       implicit none
       real(kind=8), intent(in) :: one
       real(kind=8) :: uninitialized_dbl
-      
+      integer :: foo
+      foo = kind(one)
       uninitialized_dbl=-123456789.d0
     end function uninitialized_dbl
 

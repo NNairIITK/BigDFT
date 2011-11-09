@@ -7,12 +7,11 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-subroutine plot_density_cube_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
+subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nspin,nproc
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -633,11 +632,11 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
 END SUBROUTINE read_density
 
 
-subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
+subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi)
   use module_base
   use module_types
   implicit none
-  character(len=*) :: comment
+  !Arguments
   character(len=*) :: orbname
   integer, intent(in) :: nexpo
   real(gp), intent(in) :: hx,hy,hz
@@ -645,7 +644,7 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='plot_wf'
   integer :: i_stat,i_all
   integer :: n1i,n2i,n3i,n1,n2,n3
@@ -696,7 +695,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
   real(dp), dimension(n1i,n2i,max(n3p,1),nspin), intent(out) :: pot
   !local variables
   character(len=*), parameter :: subname='read_potential_from_disk'
-  integer :: nat,n1t,n2t,n3t,nspint,ierror,ierr,i_all,i_stat,ispin
+  integer :: n1t,n2t,n3t,nspint,ierror,ierr,i_all,i_stat,ispin
   real(gp) :: hxt,hyt,hzt
   real(dp), dimension(:,:), pointer :: pot_from_disk
 
@@ -996,6 +995,7 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
 
 END SUBROUTINE read_cube_field
 
+
 !> Calculate the dipole of a Field given in the rho array.
 !! The parallel distribution used is the one of the potential
 subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
@@ -1010,9 +1010,9 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(n1i,n2i,n3p,nspin), target, intent(in) :: rho
   character(len=*), parameter :: subname='calc_dipole'
-  integer :: i_all,i_stat,ierr,ia,ib,isuffix,fformat
+  integer :: i_all,i_stat,ierr
   real(gp) :: dipole_el(3) , dipole_cores(3), tmpdip(3),q,qtot
-  integer  :: iat,i1,i2,i3,nbx,nby,nbz, nl1,nl2,nl3, ind, ispin
+  integer  :: iat,i1,i2,i3,nbx,nby,nbz, nl1,nl2,nl3, ispin
   real(dp), dimension(:,:,:,:), pointer :: ele_rho
   
   if (nproc > 1) then
@@ -1100,4 +1100,3 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
   end if
 
 END SUBROUTINE calc_dipole
-

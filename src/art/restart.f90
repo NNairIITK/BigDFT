@@ -1,11 +1,12 @@
 !> @file
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
 
 !> ART restart_states
 !!   This subroutine is used to restart an event during the activation. It uses the files:
@@ -22,8 +23,7 @@ subroutine restart_states( istatus, ieventcurrent, iterations, iatp )
   integer, intent(out) :: iatp 
 
   !Local variables
-  integer :: i, j, ierror, ierr
-  integer :: nat, id
+  integer :: i, j, ierror
   real(kind=8), dimension(:), pointer :: dx, dy, dz   ! Pointers for reference position
 
   allocate(direction_restart(vecsize))

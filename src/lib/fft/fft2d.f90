@@ -49,11 +49,21 @@
 !!
 subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
 
-   implicit real*8 (a-h,o-z)
-   integer after,before,now
-   dimension trig(2,1024),zw(2,ncache/4,2),z(2,nd1*nd2,2),after(20),now(20),before(20)
-   if (max(n1,n2).gt.1024) stop '1024'
-   ntrig=1024
+   implicit none
+   !Arguments
+   integer, intent(in) :: n1,n2,nd1,nd2,isign,ncache
+   integer, intent(inout) :: inzee
+   integer, dimension(20) :: after,before,now
+   real(kind=8), dimension(2,nd1*nd2,2) :: z
+   real(kind=8), dimension(2,ncache/4,2) :: zw
+   !Local variables
+   integer, parameter :: nmax = 1024
+   real(kind=8), dimension(2,nmax) :: trig
+   integer :: ntrig,nn,nfft,n,mm,mb,ma,j,m,lot,jp,jj,jb,ja,inzeep
+   integer :: ic,i
+
+   if (max(n1,n2).gt.nmax) stop '1024'
+   ntrig=nmax
    ! vector computer with memory banks:
    if (ncache.eq.0) then
 
