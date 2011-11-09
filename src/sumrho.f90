@@ -410,7 +410,7 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
    !sum different slices by taking into account the overlap
    i3sg=0
    !$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
-      &   !$omp shared(n2i,npsir,hfac,psir,rho_p,n3i,i3sg)
+   !$omp shared(n2i,npsir,hfac,psir,rho_p,n3i,i3sg)
    i3s=0
    hfac2=2.0_gp*hfac
    !!!  ithread=omp_get_thread_num()
@@ -516,7 +516,7 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
    i3sg=0
 
    !$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
-      &   !$omp shared(n2i,npsir,hfac,psir,rho_p,n3i,i3sg,ibyyzz_r)
+   !$omp shared(n2i,npsir,hfac,psir,rho_p,n3i,i3sg,ibyyzz_r)
    i3s=0
 
    !!!   ithread=omp_get_thread_num()
@@ -1074,10 +1074,10 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    enddo
 
    !$omp parallel default(none)&
-      &   !$omp private(iat,irho,dsq,i1,i2,i3)&
-      &   !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
-      &   !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
-      &   !$omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
+   !$omp private(iat,irho,dsq,i1,i2,i3)&
+   !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
+   !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
+   !$omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
    !$omp do schedule(static,1)
    do iat=1,nat
       do i1=i1cmin(iat),i1cmax(iat)
