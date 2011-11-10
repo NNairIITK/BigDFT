@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 31/08/2011
+# Date: 10/11/2011
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -207,7 +207,7 @@ for line in original1:
     if end_left:
         break
 end_right = False
-for line in original1:
+for line in original2:
     end_right = end_line in line
     if end_right:
         break
