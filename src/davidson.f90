@@ -1149,7 +1149,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call timing(iproc,'Davidson      ','OF')
 
       !these routines should work both in parallel or in serial
-      call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in%orthpar)
+      call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
 
       if (occorbs) then
          call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
