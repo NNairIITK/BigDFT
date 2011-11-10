@@ -591,13 +591,17 @@ subroutine transform_fortail(n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu
      mseg_c,mvctr_c,keyg_c,keyv_c,mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      msegb_c,mvctrb_c,keybg_c,keybv_c,msegb_f,mvctrb_f,keybg_f,keybv_f,  & 
      nbuf,psi_c,psi_f,psig_c,psig_f,psib_c,psib_f)
-  implicit real(kind=8) (a-h,o-z)
-  dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
-  dimension keybg_c(2,msegb_c),keybv_c(msegb_c),keybg_f(2,msegb_f),keybv_f(msegb_f)
-  dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
-  dimension psib_c(mvctrb_c),psib_f(7,mvctrb_f)
-  dimension psig_c(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf)
-  dimension psig_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3)
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3
+  integer, intent(in) :: mseg_c,mvctr_c,mseg_f,mvctr_f,msegb_c,mvctrb_c,msegb_f,mvctrb_f,nbuf
+  integer :: keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
+  integer :: keybg_c(2,msegb_c),keybv_c(msegb_c),keybg_f(2,msegb_f),keybv_f(msegb_f)
+  real(kind=8) :: psi_c(mvctr_c),psi_f(7,mvctr_f)
+  real(kind=8) :: psib_c(mvctrb_c),psib_f(7,mvctrb_f)
+  real(kind=8) :: psig_c(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf)
+  real(kind=8) :: psig_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3)
+  !Local variables
+  integer :: iseg,jj,j0,j1,i0,i1,i2,i3,ii,i
 
   call razero((n1+1+2*nbuf)*(n2+1+2*nbuf)*(n3+1+2*nbuf),psig_c)
   call razero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),psig_f)

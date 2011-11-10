@@ -16,11 +16,6 @@ program abscalc_main
    use m_ab6_symmetry
    !  use minimization, only: parameterminimization 
 
-   !implicit real(kind=8) (a-h,o-z)
-   !as a general policy, I will put "implicit none" by assuming the same
-   !name convention as "implicit real(kind=8) (a-h,o-z)"
-   !such that the implicit statement can be commented at will
-
    implicit none
    character(len=*), parameter :: subname='abscalc_main'
    integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode

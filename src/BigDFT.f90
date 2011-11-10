@@ -17,7 +17,6 @@ program BigDFT
    use m_ab6_symmetry
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
-   !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
    character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
    integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
