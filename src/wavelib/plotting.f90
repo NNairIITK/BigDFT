@@ -272,12 +272,6 @@ END SUBROUTINE read_density_cube_old
 
 
 !>   Write a (sum of two) field in the ISF basis in the cube format
-!!   Recent changes by Ali:
-!!   1) Filling the 2nd column in atomic coordinates rows by the pseudo-cores charge. I found it standard in few other packages. 
-!!      In particular it is needed by the recent charge analysis tool.
-!!   2) Outputting the electric-dipole moment is an useful piece of data both for the end-user and for developing step 
-!!      as a tool to investigate the consistency  (e.g. for symmetrical directions). 
-!!      I already did it in this subroutine, but we can do it as a separate subroutine.
 subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
   !n(c) use module_base
@@ -293,7 +287,6 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   character(len=3) :: advancestring
   integer :: nl1,nl2,nl3,nbx,nby,nbz,i1,i2,i3,icount,j,iat
   real(dp) :: later_avg
-  real(gp) :: dipole_el(3) , dipole_cores(3),q
   !conditions for periodicity in the three directions
   !value of the buffer in the x and z direction
   if (at%geocode /= 'F') then
@@ -325,13 +318,9 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   write(22,'(i5,3(f12.6))') 2*(n2+nby),0.0_gp,hyh,0.0_gp
   write(22,'(i5,3(f12.6))') 2*(n3+nbz),0.0_gp,0.0_gp,hzh
   !atomic number and positions
-  dipole_el   (1:3)=0_gp
-  dipole_cores(1:3)=0_gp
   do iat=1,at%nat
-     !write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
      write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)), at%nelpsp(at%iatype(iat))*1. &
           ,(rxyz(j,iat),j=1,3)
-     dipole_cores(1:3)=dipole_cores(1:3)+at%nelpsp(at%iatype(iat)) * rxyz(1:3,iat)
   end do
 
 
@@ -351,10 +340,6 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
            !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
            write(22,'(1x,1pe13.6)',advance=advancestring)&
                 a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
-           q= ( a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3) )* hxh*hyh*hzh 
-           dipole_el(1)=dipole_el(1)+ q* at%alat1/real(2*(n1+nbx),dp)*i1 
-           dipole_el(2)=dipole_el(2)+ q* at%alat2/real(2*(n2+nby),dp)*i2
-           dipole_el(3)=dipole_el(3)+ q* at%alat3/real(2*(n3+nbz),dp)*i3
         end do
      end do
   end do
@@ -405,18 +390,6 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
      write(23,*)i3,at%alat3/real(2*(n3+nbz),dp)*i3,later_avg
   end do
   close(23)
-  if (trim(filename)=='electronic_density') then
-     dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     open(unit=24,file='dipole',status='unknown')
-     write(24,'(a)') " #  Dipole moment of the whole system  (Px, Py, Pz,  |P| [e.bohr])"  ! or [D] 
-     write(24,99) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))
-     write(24,99) "pseudo cores:      ", dipole_cores(1:3) , sqrt(sum(dipole_cores**2))
-     write(24,99) "Total (cores-el.): ", dipole_cores-dipole_el , sqrt(sum((dipole_cores-dipole_el)**2))
-99   format (a20,3f15.7,"    ==> ",f15.5)
-     !99 format (a20,4ES15.7)
-     close(24)
-  endif
 END SUBROUTINE write_cube_fields
 
 
@@ -1020,9 +993,11 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
      allocate(ele_rho(n1i,n2i,n3i,nspin),stat=i_stat)
      call memocc(i_stat,ele_rho,'ele_rho',subname)
 
-     call MPI_ALLGATHERV(rho,n1i*n2i*n3p*nspin,&
-          mpidtypd,ele_rho,ngatherarr(0,1),&
-          ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+     do ispin=1,nspin
+        call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
+             mpidtypd,ele_rho(1,1,1,ispin),ngatherarr(0,1),&
+             ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+     end do
 
   else
      ele_rho => rho
@@ -1075,12 +1050,12 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
   if(iproc==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     write(*,'(a)') " ============= Electric Dipole Moment  ================" 
+     write(*,'(1x,a)')repeat('-',61)//' Electric Dipole Moment'
      tmpdip=dipole_cores+dipole_el
-     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)   ", "   (Px,Py,Pz)= " , tmpdip(1:3)  
+     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)       ", "(Px,Py,Pz)= " , tmpdip(1:3)  
      tmpdip=tmpdip/0.393430307_gp  ! au2debye              
-     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "   (Px,Py,Pz)= " , tmpdip(1:3) 
-96   format (a10,Es14.6 ,a,a,3ES13.4)
+     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "(Px,Py,Pz)= " , tmpdip(1:3) 
+96   format (a8,Es14.6 ,a,a,3ES13.4)
      !     write(*,'(a)') "  ================= Dipole moment in e.a0    (0.39343 e.a0 = 1 Debye) ================"  ! or [Debye] 
      !     write(*,97) "    Px " ,"     Py ","     Pz ","   |P| " 
      !     write(*,98) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))

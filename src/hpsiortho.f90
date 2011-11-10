@@ -7,7 +7,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
       &   lr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
@@ -101,14 +100,14 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
       if (present(psirocc) .and. present(orbsocc)) then
          call exact_exchange_potential_virt(iproc,nproc,at%geocode,orbs%nspin,&
             &   lr,orbsocc,orbs,ngatherarr(0,1),n3p,&
-            &   0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi,pot(ispot))
+         0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi,pot(ispot))
          eexctX = 0._gp
       else
          !here the condition for the scheme should be chosen
          if (.not. op2p) then
             call exact_exchange_potential(iproc,nproc,at%geocode,orbs%nspin,&
                &   lr,orbs,ngatherarr(0,1),n3p,&
-               &   0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+            0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
          else
             !the psi should be transformed in real space
             call exact_exchange_potential_round(iproc,nproc,at%geocode,orbs%nspin,lr,orbs,&
@@ -170,7 +169,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    call timing(iproc,'ApplyLocPotKin','OF') 
 
 END SUBROUTINE LocalHamiltonianApplication
-
 
 !> routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
@@ -379,7 +377,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3
       do ispin=1,nspin
          call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
             &   mpidtypw,pot(ispot),ngatherarr(0,1),&
-            &   ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+         ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
          ispot=ispot+ndimgrid
          ispotential=ispotential+max(1,ndimpot)
       end do
@@ -389,7 +387,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3
          do ispin=1,nspin
             call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
                &   mpidtypw,pot(ispot),ngatherarr(0,1),&
-               &   ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+            ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
             ispot=ispot+ndimgrid
             ispotential=ispotential+max(1,ndimpot)
          end do
@@ -678,9 +676,9 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orth
          &   'Orthogonalization...'
    end if
 
-   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
+   call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,orthpar)
 
-   !       call checkortho_p(iproc,norb,nvctrp,psit)
+   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
 
    call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
       &   psit,work=hpsi,outadd=psi(1))
@@ -701,7 +699,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orth
 
 END SUBROUTINE hpsitopsi
 
-!>Choose among the wavefunctions a subset of them
+
+!> Choose among the wavefunctions a subset of them
 !! Rebuild orbital descriptors for the new space and allocate the psi_as wavefunction
 !! By hypothesis the work array is big enough to contain both wavefunctions
 !! This routine has to be tested
@@ -836,9 +835,9 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar)
    call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
       &   work=hpsi,outadd=psit(1))
 
-   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
+   call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,orthpar)
 
-   !call checkortho_p(iproc,norb,norbp,nvctrp,psit)
+   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
    call untranspose_v(iproc,nproc,orbs,wfd,comms,psit,&
       &   work=hpsi,outadd=psi(1))
@@ -968,7 +967,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
                if (dowrite) & 
                write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4,6x,0pf6.4,1x,a,i4,a,1x,1pe21.14)') &
                   &   'e(',iorb,',u)=',orbs%eval(isorb + iorb),orbs%occup(isorb + iorb),&
-                  &   orbs%occup(isorb + jorb),'e(',iorb,',d)=',orbs%eval(isorb + jorb)
+               orbs%occup(isorb + jorb),'e(',iorb,',d)=',orbs%eval(isorb + jorb)
             end do
             if (orbs%norbu > orbs%norbd) then
                do iorb=orbs%norbd+1,orbs%norbu
@@ -1000,12 +999,13 @@ END SUBROUTINE last_orthon
 
 !> Finds the fermi level ef for an error function distribution with a width wf
 !! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
-subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
+subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    use module_base
    use module_types
    implicit none
    logical, intent(in) :: filewrite
    integer, intent(in) :: iproc, nproc
+   integer, intent(in) :: occopt      
    real(gp), intent(in) :: wf
    type(orbitals_data), intent(inout) :: orbs
    !local variables
@@ -1013,7 +1013,25 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
    real(gp) :: charge, chargef
    real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
    parameter(pi=3.1415926535897932d0)
+   real(gp)  ::a, x, xu, xd, f, df, tt  
+   real(gp)  ::sqrtpi ; parameter (sqrtpi=sqrt(pi)) 
    !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
+
+   orbs%eTS=0.0_gp  
+
+   select case (occopt)
+   case  (SMEARING_DIST_ERF  )
+   case  (SMEARING_DIST_FERMI)
+   case  (SMEARING_DIST_COLD1) !Marzari's cold smearing  with a=-.5634 (bumb minimization)
+      a=-.5634d0
+   case  (SMEARING_DIST_COLD2) !Marzari's cold smearing  with a=-.8165 (monotonic tail)
+      a=-.8165d0
+   case  (SMEARING_DIST_METPX) !Methfessel and Paxton (same as COLD with a=0)
+      a=0.d0
+   case default
+      if(iproc==0) print*, 'unrecognized occopt=', occopt
+      stop 
+   end select
 
    if (orbs%norbd==0) then 
       full=2.d0   ! maximum occupation for closed shell  orbital
@@ -1051,6 +1069,10 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
       ef=orbs%efermi
       factor=1.d0/(sqrt(pi)*wf)
       !print *,0,ef
+
+      ! electrons is N_electons = sum f_i * Wieght_i
+      ! dlectrons is dN_electrons/dEf =dN_electrons/darg * darg/dEf= sum df_i/darg /(-wf) , darg/dEf=-1/wf
+      !  f:= occupation # for band i ,  df:=df/darg
       loop_fermi: do
          ii=ii+1
          if (ii > 10000) stop 'error Fermilevel'
@@ -1060,99 +1082,134 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
             do iorb=1,orbs%norbd+orbs%norbu
                arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
                if (occopt == SMEARING_DIST_ERF) then
-                  ! next 2 line error function distribution
                   call derf_ab(res,arg)
-                  electrons=electrons+.5d0*(1.d0-res) * orbs%kwgts(ikpt)
-                  dlectrons=dlectrons-exp(-arg**2) * orbs%kwgts(ikpt)
+                  f =.5d0*(1.d0-res)
+                  df=-exp(-arg**2)/sqrtpi 
                else if (occopt == SMEARING_DIST_FERMI) then
-                  !print *,iorb,ef,orbs%eval((ikpt-1)*orbs%norb+iorb),arg,electrons
-               else if (occopt == SMEARING_DIST_FERMI) then
-                  !! next 2 line Fermi function distribution
-                  electrons=electrons+1.d0/(1.d0+exp(arg)) * orbs%kwgts(ikpt)
-                  dlectrons=dlectrons-1.d0/(2.d0+exp(arg)+exp(-arg)) * orbs%kwgts(ikpt)
-               end if
-            enddo
-         enddo
-         if (occopt == SMEARING_DIST_ERF) then
-            ! next  line error function distribution
-            dlectrons=dlectrons*factor
-         else if (occopt == SMEARING_DIST_FERMI) then
-            ! next  line Fermi function distribution
-            dlectrons=dlectrons/wf
-         end if
-         diff=real(melec,gp)/full-electrons
-         if (abs(diff) < 1.d-12) exit loop_fermi
-         if (abs(dlectrons) <= 1d-45) then
-            corr=wf
-         else
-            corr=diff/dlectrons
-         end if
-         !if (iproc==0) write(*,*) ii,electrons,ef,dlectrons,melec,corr
-         if (corr > 1.d0*wf) corr=1.d0*wf
-         if (corr < -1.d0*wf) corr=-1.d0*wf
-         if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
-         if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
-         ef=ef-corr
-
-      end do loop_fermi
-
-      do ikpt=1,orbs%nkpts
-         argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
-         argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
-         if (occopt == SMEARING_DIST_ERF) then
-            !error function
-            call derf_ab(resu,argu)
-            call derf_ab(resd,argd)
-            cutoffu=.5d0*(1.d0-resu)
-            cutoffd=.5d0*(1.d0-resd)
-         else if (occopt == SMEARING_DIST_FERMI) then
-            !Fermi function
-            cutoffu=1.d0/(1.d0+exp(argu))
-            cutoffd=1.d0/(1.d0+exp(argd))
-         end if
-      enddo
-      if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
-      orbs%efermi=ef
-
-      !update the occupation number
-      do ikpt=1,orbs%nkpts
-         do iorb=1,orbs%norbu + orbs%norbd
-            arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-            if (occopt == SMEARING_DIST_ERF) then
-               !error function
-               call derf_ab(res,arg)
-               orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
-               !print *,'iorb,arg,res,full*.5d0*(1.d0-res)',iorb,arg,res,full*.5d0*(1.d0-res)
-            else if (occopt == SMEARING_DIST_FERMI) then
-               !Fermi function
-               orbs%occup((ikpt-1)*orbs%norb+iorb)=full*1.d0/(1.d0+exp(arg))
+                  f =1.d0/(1.d0+exp(arg)) 
+                  df=-1.d0/(2.d0+exp(arg)+exp(-arg)) 
+               else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
+                  &  occopt == SMEARING_DIST_METPX ) then
+               x= -arg
+               call derf_ab(res,x)
+               f =.5d0*(1.d0+res +exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
+               df=-exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
             end if
-         end do
-      end do
-      ! Sanity check on sum of occup.
-      chargef=0.0_gp
-      do ikpt=1,orbs%nkpts
-         do iorb=1,orbs%norb
-            chargef=chargef+orbs%kwgts(ikpt) * orbs%occup(iorb+(ikpt-1)*orbs%norb)
-         end do
-      end do
-      if (abs(charge - chargef) > 1e-6)  stop 'error occupation update'
-   else if(full==1.0_gp) then
-      call eFermi_nosmearing(iproc,orbs)
-   end if
+            electrons=electrons+ f  * orbs%kwgts(ikpt)  ! electrons := N_e(Ef+corr.)
+            dlectrons=dlectrons+ df * orbs%kwgts(ikpt)  ! delectrons:= dN_e/darge ( Well! later we need dN_e/dEf=-1/wf*dN_e/darg
+            !if(iproc==0) write(*,*) arg,   f , df
+         enddo
+      enddo
 
-   !write on file the results if needed
-   if (filewrite) then
-      open(unit=11,file='input.occ',status='unknown')
-      write(11,*)orbs%norbu,orbs%norbd
-      do iorb=1,orbs%norb
-         write(11,'(i5,e19.12)')iorb,orbs%occup((ikpt-1)*orbs%norb+iorb)
-         !    write(11,'(i5,e19.12)')iorb,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+iorb)
-      end do
-      close(unit=11)
+      dlectrons=dlectrons/(-wf)  ! df/dEf=df/darg * -1/wf
+      diff=-real(melec,gp)/full+electrons
+      if (abs(diff) < 1.d-12) exit loop_fermi
+      if (abs(dlectrons) <= 1d-45) then
+         corr=wf
+      else
+         corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
+      end if
+      !if (iproc==0) write(*,'(i5,3e,i4,e)') ii,electrons,ef,dlectrons,melec,corr
+      if (corr > 1.d0*wf) corr=1.d0*wf
+      if (corr < -1.d0*wf) corr=-1.d0*wf
+      if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
+      if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
+      ef=ef-corr  ! Ef=Ef_guess+corr.
+
+   end do loop_fermi
+
+   do ikpt=1,orbs%nkpts
+      argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
+      argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
+      if (occopt == SMEARING_DIST_ERF) then
+         !error function
+         call derf_ab(resu,argu)
+         call derf_ab(resd,argd)
+         cutoffu=.5d0*(1.d0-resu)
+         cutoffd=.5d0*(1.d0-resd)
+      else if (occopt == SMEARING_DIST_FERMI) then
+         !Fermi function
+         cutoffu=1.d0/(1.d0+exp(argu))
+         cutoffd=1.d0/(1.d0+exp(argd))
+      else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
+         &  occopt == SMEARING_DIST_METPX ) then
+      !Marzari's relation with different a 
+      xu=-argu
+      xd=-argd
+      call derf_ab(resu,xu)
+      call derf_ab(resd,xd)
+      cutoffu=.5d0*(1.d0+resu +exp(-xu**2)*(-a*xu**2 + .5d0*a+xu)/sqrtpi)
+      cutoffd=.5d0*(1.d0+resd +exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
    end if
+enddo
+if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
+orbs%efermi=ef
+
+!update the occupation number
+do ikpt=1,orbs%nkpts
+   do iorb=1,orbs%norbu + orbs%norbd
+      arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+      if (occopt == SMEARING_DIST_ERF) then
+         call derf_ab(res,arg)
+         f=.5d0*(1.d0-res)
+      else if (occopt == SMEARING_DIST_FERMI) then
+         f=1.d0/(1.d0+exp(arg))
+      else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
+         &  occopt == SMEARING_DIST_METPX ) then
+      x=-arg
+      call derf_ab(res,x)
+      f =.5d0*(1.d0+res +exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
+   end if
+   orbs%occup((ikpt-1)*orbs%norb+iorb)=full* f 
+   !if(iproc==0) print*,  orbs%eval((ikpt-1)*orbs%norb+iorb), orbs%occup((ikpt-1)*orbs%norb+iorb)
+end do
+    end do
+    !update electronic entropy S; eTS=T_ele*S is the electtronic entropy term the negative of which is added to energy: Free energy = energy-T*S 
+    orbs%eTS=0.0_gp
+    do ikpt=1,orbs%nkpts
+       do iorb=1,orbs%norbu + orbs%norbd
+          if (occopt == SMEARING_DIST_ERF) then
+             !error function
+             orbs%eTS=orbs%eTS+full*wf/(2._gp*sqrt(pi))*exp(-((orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf)**2)
+          else if (occopt == SMEARING_DIST_FERMI) then
+             !Fermi function
+             tt=orbs%occup((ikpt-1)*orbs%norb+iorb)
+             orbs%eTS=orbs%eTS-full*wf*(tt*log(tt) + (1._gp-tt)*log(1._gp-tt))
+          else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
+             &  occopt == SMEARING_DIST_METPX ) then
+          !cold 
+          orbs%eTS=orbs%eTS+0._gp  ! to be completed if needed                                             
+       end if
+    end do
+ end do
+ ! Sanity check on sum of occup.
+ chargef=0.0_gp
+ do ikpt=1,orbs%nkpts
+    do iorb=1,orbs%norb
+       chargef=chargef+orbs%kwgts(ikpt) * orbs%occup(iorb+(ikpt-1)*orbs%norb)
+    end do
+ end do
+ if (abs(charge - chargef) > 1e-6)  stop 'error occupation update'
+ else if(full==1.0_gp) then
+    call eFermi_nosmearing(iproc,orbs)
+    ! no entropic term when electronc temprature is zero
+ end if
+
+ !write on file the results if needed
+ if (filewrite) then
+    open(unit=11,file='input.occ',status='unknown')
+    write(11,*)orbs%norbu,orbs%norbd
+    do iorb=1,orbs%norb
+       !write(11,'(i5,e19.12)')iorb,orbs%occup((ikpt-1)*orbs%norb+iorb)
+       !    write(11,'(i5,e19.12)')iorb,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+iorb)
+       write(11,'(i5,e19.12,f10.6)')iorb,orbs%occup((ikpt-1)*orbs%norb+iorb) &
+          &   ,orbs%eval ((ikpt-1)*orbs%norb+iorb)
+    end do
+    close(unit=11)
+ end if
 
 END SUBROUTINE evaltoocc
+
 
 
 subroutine eFermi_nosmearing(iproc,orbs)
@@ -1278,7 +1335,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
 
          call MPI_GATHERV(mom_vec(1,1,2),4*norb_par(iproc),mpidtypw,&
             &   mom_vec(1,1,1),4*norb_par,4*norb_displ,mpidtypw,&
-            &   0,MPI_COMM_WORLD,ierr)
+         0,MPI_COMM_WORLD,ierr)
 
          i_all=-product(shape(norb_displ))*kind(norb_displ)
          deallocate(norb_displ,stat=i_stat)
@@ -1490,8 +1547,6 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    deallocate(pwork,stat=i_stat)
    call memocc(i_stat,i_all,'pwork',subname)
 
-
-
 END SUBROUTINE check_communications
 
 
@@ -1516,7 +1571,6 @@ subroutine test_value(ikpt,iorb,ispinor,icomp,val)
    vali=real(icomp,wp)/512.0_wp  ! *1.d-5
 
    val=(valorb+vali)*(-1)**(ispinor-1)
-
 
 END SUBROUTINE test_value
 

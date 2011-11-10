@@ -2,7 +2,8 @@ program mpi_check
   use BigDFT_API
   implicit none
   logical :: failed
-  integer :: ntot,ierr,i,iproc,nproc
+  integer :: ntot,ierr,i,iproc,nproc,nspin,nother
+  integer, dimension(:,:), allocatable  :: isizes
   real(kind=8), dimension(:), allocatable :: copybuffer,buffer
 
   call MPI_INIT(ierr)
@@ -10,16 +11,22 @@ program mpi_check
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
   ntot=10000
+  nspin=2
+  nother=10
 
-  allocate(buffer(ntot),copybuffer(ntot))
+  allocate(buffer(ntot),copybuffer(ntot),isizes(nspin,nother))
 
   buffer=1.0d0
   copybuffer=0.d0
+  isizes=1
+  !last component indicates the size
+  isizes(nspin,nother)=ntot
 
+  !reference (supposed)
   call MPI_ALLREDUCE(buffer,copybuffer,ntot,&
        MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-  call mpiallred(buffer(1),ntot,MPI_SUM,MPI_COMM_WORLD,ierr)
+  call mpiallred(buffer(1),isizes(nspin,nother),MPI_SUM,MPI_COMM_WORLD,ierr)
   failed=.false.
   do i=1,ntot
      if (abs(copybuffer(i)-buffer(i))>1.d-12 .or. abs(copybuffer(i)-real(nproc,kind=8))> 1.d-12) then
@@ -28,7 +35,7 @@ program mpi_check
      end if
   end do
   
-  deallocate(buffer,copybuffer)
+  deallocate(buffer,copybuffer,isizes)
 
   !wait all processes before finalisation
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
