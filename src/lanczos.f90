@@ -60,7 +60,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    GPU%full_locham=.true.
    if (OCLconv) then
       call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-         &   in%nspin,hx,hy,hz,lr%wfd,orbs,GPU)
+         &   in%nspin,lr%wfd,orbs,GPU)
       if (iproc == 0) write(*,*)&
          &   'GPU data allocated'
    end if
@@ -234,7 +234,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
    if (OCLconv) then
       call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-         &   in%nspin,hx,hy,hz,lr%wfd,orbs,GPU)
+         &   in%nspin,lr%wfd,orbs,GPU)
       if (iproc == 0) write(*,*)&
          &   'GPU data allocated'
    end if
@@ -488,7 +488,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    GPU%full_locham=.true.
    if (OCLconv) then
       call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-         &   in%nspin,hx,hy,hz,lr%wfd,orbs,GPU)
+         &   in%nspin,lr%wfd,orbs,GPU)
       if (iproc == 0) write(*,*)&
          &   'GPU data allocated'
    end if

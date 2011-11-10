@@ -153,7 +153,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    if (GPUconv) then
       call local_hamiltonian_GPU(orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
    else if (OCLconv) then
-      call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekin_sum,epot_sum,GPU)
+      call local_hamiltonian_OCL(orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekin_sum,epot_sum,GPU)
    else
       !local hamiltonian application for different methods
       !print *,'here',ipotmethod,associated(pkernelSIC),ixcSIC
@@ -544,7 +544,7 @@ if (GPUconv) then
    call preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,&
       &   hpsi,gnrm,gnrm_zero,GPU)
 else if (OCLconv) then
-   call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+   call preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,&
       &   hpsi,gnrm,gnrm_zero,GPU)
 else
    call preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)

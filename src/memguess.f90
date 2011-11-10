@@ -893,7 +893,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   else if (OCLconv) then
      !the same with OpenCL, but they cannot exist at same time
      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,lr%geocode,&
-          nspin,hx,hy,hz,lr%wfd,orbs,GPU)
+          nspin,lr%wfd,orbs,GPU)
   end if
   if (iproc == 0) write(*,*)&
        'GPU data allocated'
@@ -923,7 +923,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
      if (GPUconv) then
         call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
      else if (OCLconv) then
-        call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
+        call local_partial_density_OCL(orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
      end if
   end do
   call nanosec(itsc1)
@@ -994,9 +994,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   call nanosec(itsc0)
   do j=1,ntimes
      if (GPUconv) then
-        call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
+        call local_hamiltonian_GPU(orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
      else if (OCLconv) then
-        call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
+        call local_hamiltonian_OCL(orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
      end if
   end do
   if(ASYNCconv .and. OCLconv) call finish_hamiltonian_OCL(orbs,ekinGPU,epotGPU,GPU)
@@ -1100,10 +1100,10 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
      !and calculate the partial norm of the residue
      !switch between CPU and GPU treatment
      if (GPUconv) then
-        call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+        call preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,&
              GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
      else if (OCLconv) then
-        call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+        call preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,&
              GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
      end if
   end do

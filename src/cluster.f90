@@ -815,7 +815,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !the same with OpenCL, but they cannot exist at same time
    if (OCLconv) then
       call allocate_data_OCL(Glr%d%n1,Glr%d%n2,Glr%d%n3,atoms%geocode,&
-         &   in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
+         &   in%nspin,Glr%wfd,orbs,GPU)
       if (iproc == 0) write(*,*)&
          &   'GPU data allocated'
    end if
@@ -1461,7 +1461,7 @@ if (DoDavidson) then
          !does it makes sense to use GPU only for a one-shot sumrho?
          if (OCLconv) then
             call allocate_data_OCL(Glr%d%n1,Glr%d%n2,Glr%d%n3,atoms%geocode,&
-               &   in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
+               &   in%nspin,Glr%wfd,orbs,GPU)
          end if
 
          !this could have been calculated before

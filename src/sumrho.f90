@@ -101,7 +101,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
    if (GPUconv) then
       call local_partial_density_GPU(orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
    else if (OCLconv) then
-      call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
+      call local_partial_density_OCL(orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
    else
       !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
       !otherwise use libXC routine
@@ -113,7 +113,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
    end if
 
    !!  if (OCLconv) then
-   !!     call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi_OCL,rho_p_OCL,GPU)
+   !!     call local_partial_density_OCL(orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi_OCL,rho_p_OCL,GPU)
    !!     maxdiff=0.0_wp
    !!     do i=1,max(nrho,1)
    !!       do j=1,nspin

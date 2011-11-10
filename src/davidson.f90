@@ -81,7 +81,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    else if (OCLconv) then
       call free_gpu_OCL(GPU,orbs,in%nspin)    
       call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-         &   in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
+         &   in%nspin,lr%wfd,orbsv,GPU)
       if (iproc == 0) write(*,*)&
          &   'GPU data allocated'
    end if
@@ -474,7 +474,7 @@ subroutine davidson(iproc,nproc,in,at,&
    else if (OCLconv) then
       call free_gpu_OCL(GPU,orbs,in%nspin)    
       call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-         &   in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
+         &   in%nspin,lr%wfd,orbsv,GPU)
    end if
 
    GPU%full_locham=.true.

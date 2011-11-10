@@ -1213,7 +1213,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
          &   hx,hy,hz,Glr%wfd,orbse,GPU)
    else if (OCLconv .and. potshortcut ==0) then
       call allocate_data_OCL(Glr%d%n1,Glr%d%n2,Glr%d%n3,at%geocode,&
-         &   nspin_ig,hx,hy,hz,Glr%wfd,orbse,GPU)
+         &   nspin_ig,Glr%wfd,orbse,GPU)
       if (iproc == 0) write(*,*)&
          &   'GPU data allocated'
    else if (GPUconv .and. potshortcut >0 ) then
