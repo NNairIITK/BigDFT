@@ -556,12 +556,12 @@ subroutine davidson(iproc,nproc,in,at,&
    !     nvirtep=orbsv%norbp
 
    !this is the same also in serial
-   call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in%orthpar)
+   call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
 
    if (occorbs) then
       call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
       !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-      call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in%orthpar)
+      call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
    end if
 
    !retranspose v
@@ -1154,7 +1154,7 @@ subroutine davidson(iproc,nproc,in,at,&
       if (occorbs) then
          call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
          !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-         call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in%orthpar)
+         call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
       end if
 
       !retranspose v

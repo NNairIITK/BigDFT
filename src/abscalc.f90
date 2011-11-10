@@ -515,8 +515,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    n2=Glr%d%n2
    n3=Glr%d%n3
 
-
-
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call timing(iproc,'CrtDescriptors','ON')
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&

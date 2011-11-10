@@ -676,7 +676,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orth
          &   'Orthogonalization...'
    end if
 
-   call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,orthpar)
+   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
 
    !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
 
@@ -835,7 +835,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar)
    call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
       &   work=hpsi,outadd=psit(1))
 
-   call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,orthpar)
+   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
 
    !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 

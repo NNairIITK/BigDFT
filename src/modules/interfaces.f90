@@ -2,8 +2,7 @@
 !! Define the module module_interfaces containing all interfaces
 !!
 !! @author 
-!!    Luigi Genovese, Damien Caliste
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2011 BigDFT group (LG,DC)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -11,7 +10,9 @@
 
 !>  Modules which contains all interfaces
 !!  Interfaces of:
-!!  - call_cluster
+!!  - call_bigdft
+!!  - geopt
+!!  - geopt_input_variables
 !!  - conjgrad
 !!  - copy_old_wavefunctions
 !!  - system_size
@@ -29,6 +30,7 @@
 !!  - hpsitopsi
 !!  - last_orthon
 !!  - local_forces
+!!  - orbitals_descriptors
 !!  - projectors_derivatives
 !!  - nonlocal_forces
 !!  - CalculateTailCorrection
@@ -197,7 +199,7 @@ module module_interfaces
        real(gp), dimension(:,:), pointer :: rxyz
      END SUBROUTINE read_atomic_file
 
-     !! @author
+     !> @author
      !! Written by Laurent K Beland 2011 UdeM
      !! For QM/MM implementation of BigDFT-ART
      subroutine initialize_atomic_file(iproc,at,rxyz)
