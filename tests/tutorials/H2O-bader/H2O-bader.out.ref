@@ -132,10 +132,10 @@
  e(   3)= -3.41622814356419E-01 2.0000
  e(   4)= -2.69986153944438E-01 2.0000
  ----------------------------------------------------------------- Forces Calculation
- writing electronic_density     
  ============= Electric Dipole Moment  ================
     |P| =   7.264700E-01 (AU)      (Px,Py,Pz)=   -2.6688E-04  -7.2647E-01  -2.0878E-04
     |P| =   1.846502E+00 (Debye)       (Px,Py,Pz)=   -6.7835E-04  -1.8465E+00  -5.3065E-04
+ writing electronic_density     
  PSolver, free  BC, dimensions:   177  177  205   proc    1 ... done.
  average noise along x direction:   4.81443555E-06
  average noise along y direction:  -1.75643359E-04
