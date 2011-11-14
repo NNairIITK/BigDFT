@@ -323,7 +323,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       call print_dft_parameters(in,atoms)
    end if
    if (iproc == 0) call xc_dump()
-   !time initialization
+
+   !Time initialization
    if (verbose > 2) then
       nproctiming=-nproc !timing in debug mode
    else
