@@ -1102,7 +1102,7 @@ module lanczos_base
             call MPI_Gatherv( LB_alpha_cheb(1,2*i+1) , norb_par(LB_iproc),mpidtypw, &
                &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr)
             call MPI_Gatherv( LB_alpha_cheb(1,2*i+2) , norb_par(LB_iproc),mpidtypw, &
-               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD , ierr)
+               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr)
          end if
          if(LB_iproc == 0) then
             write (*,"(A)",advance="no")   "new cheb coeffs "
