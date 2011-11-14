@@ -78,6 +78,7 @@ subroutine standard_inputfile_names(inputs, radical)
   inputs%file_mix=trim(rad) // '.mix'
   inputs%file_sic=trim(rad) // '.sic'
   inputs%file_occnum=trim(rad) // '.occ'
+  inputs%file_lin=trim(rad) // '.lin'
 
   if (trim(rad) == "input") then
      inputs%dir_output="data"
@@ -156,8 +157,10 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   call tddft_input_variables_new(iproc,trim(inputs%file_tddft),inputs)
   ! Read sic variables
   call sic_input_variables_new(iproc,trim(inputs%file_sic),inputs)
-
-
+  ! Read linear variables
+  if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') then
+     call lin_input_variables_new(iproc,trim(inputs%file_lin),inputs,atoms)
+  end if
   ! Shake atoms if required.
   if (inputs%randdis > 0.d0) then
      do iat=1,atoms%nat
@@ -351,7 +354,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12/),input_iostat=ierror)
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100/),input_iostat=ierror)
   ! Validate inputPsiId value (Can be added via error handling exception)
   if (ierror /=0 .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
@@ -816,6 +819,174 @@ subroutine sic_input_variables_new(iproc,filename,in)
   call input_free(iproc)
 
 END SUBROUTINE sic_input_variables_new
+
+!> Read linear input parameters
+subroutine lin_input_variables_new(iproc,filename,in,atoms)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  type(atoms_data), intent(inout) :: atoms
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='lin_input_variables'
+  character(len=132) :: comments
+  logical,dimension(atoms%ntypes) :: parametersSpecified
+  logical :: found
+  character(len=20):: atomname
+  integer :: itype, jtype, ios, ierr, iat, npt
+  real(gp):: pp, lt
+  real(gp),dimension(atoms%ntypes) :: locradType
+
+  ! Begin by nullifying all the pointers
+  nullify(in%lin%potentialPrefac)
+  nullify(in%lin%locrad)
+  nullify(in%lin%norbsPerType)
+  nullify(atoms%rloc)
+
+  !Linear input parameters
+  call input_set_file(iproc,trim(filename),exists,'Linear Parameters')  
+  
+  ! Read the number of iterations and convergence criterion for the basis functions BF
+  comments = 'Max iter. for optimizing basis functions in 1st iter., same for other iter. , BF are fixed if pnrm < this number'
+  call input_var(in%lin%nItBasisFirst,'5',ranges=(/1,10000/))
+  call input_var(in%lin%nItBasis,'5',ranges=(/1,10000/))
+  call input_var(in%lin%fixBasis,'5.d-7',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  
+  ! Convergence criterion
+  call input_var(in%lin%convCrit,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment='Convergence criterion')
+  
+  ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
+  comments = 'DIISHistMin, DIISHistMax, stepa size for DIIS, step size for SD'
+  call input_var(in%lin%DIISHistMin,'0',ranges=(/0,100/))
+  call input_var(in%lin%DIISHistMax,'8',ranges=(/1,100/))
+  call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,1.0_gp/))
+  call input_var(in%lin%alphaSD,'1.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  
+  ! lin%startWithSD, lin%startDIIS
+  comments = 'start with SD, start criterion for DIIS'
+  call input_var(in%lin%startWithSD,'F')
+  call input_var(in%lin%startDIIS,'2.d2',ranges=(/1.d0,1.d3/),comment=comments)
+  
+  !number of iterations in the preconditioner : lin%nItPrecond
+  call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment='number of iterations in the preconditioner')
+  
+  !getCoeff: 'diag' or 'min'
+  call input_var(in%lin%getCoeff,'diag',comment='getCoeff: diag or min')
+  
+  !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential)'
+  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,100/))
+  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/),comment=comments)
+  
+  !max number of process uses for pdsyev/pdsygv, pdgemm
+  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100/))
+  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
+  
+  ! Orthogonalization of wavefunctions:
+  !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
+  comments = '0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the orthonormalization ; convergence criterion'
+  call input_var(in%lin%methTransformOverlap,'0',ranges=(/0,1/))
+  call input_var(in%lin%nItOrtho,'2',ranges=(/1,100/))
+  call input_var(in%lin%convCritOrtho,'1.d-14',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  
+  !in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
+  comments='in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+  call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
+  
+  ! max number of iterations in the minimization of the coefficients, convergence criterion
+  comments='max number of iterations in the minimization of the coefficients, convergence criterion'
+  call input_var(in%lin%nItCoeff,'2000',ranges=(/1,10000/))
+  call input_var(in%lin%convCritCoeff,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  
+  !mixing method: dens or pot
+  comments='mixing method: dens or pot'
+  call input_var(in%lin%mixingMethod,'dens',comment=comments)
+  
+  !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
+  comments = 'mixing history (0-> SD, >0-> DIIS), # iter. in the SCC potential mixing, Mixing parameter, Convergence criterion'
+  call input_var(in%lin%mixHist,'0',ranges=(/0,100/))
+  call input_var(in%lin%nItSCC,'10',ranges=(/1,1000/))
+  call input_var(in%lin%alphaMix,'.4d0',ranges=(/0.0_gp,1.0_gp/))
+  call input_var(in%lin%convCritMix,'1.d-7',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  
+  !use the derivative basis functions, order of confinement potential
+  comments='use the derivative basis functions, Order of confinement potential (4 or 6)'
+  call input_var(in%lin%useDerivativeBasisFunctions,'F')
+  call input_var(in%lin%ConfPotOrder,'4',comment=comments)
+  
+  !number of iterations for the input guess
+  comments='number of iterations for the input guess'
+  call input_var(in%lin%nItInguess,'10',ranges=(/1,10000/),comment=comments)
+  
+  !plot basis functions: true or false
+  comments='plot basis functions: true or false'
+  call input_var(in%lin%plotBasisFunctions,'F',comment=comments)
+  
+  !transform to global orbitals in the end (T/F)
+  comments='transform to global orbitals in the end (T/F)'
+  call input_var(in%lin%transformToGlobal,'F',comment=comments)
+  
+  !number of orbitals per process for trace minimization during input guess.
+  comments='number of orbitals per process for trace minimization during input guess.'
+  call input_var(in%lin%norbsPerProcIG,'1',ranges=(/1,10000/),comment=comments)
+  
+  ! Allocate lin pointers and atoms%rloc
+  call allocateBasicArraysInputLin(atoms, in%lin)
+  
+  ! Now read in the parameters specific for each atom type.
+  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, localization radius'
+  parametersSpecified=.false.
+  do itype=1,atoms%ntypes
+      call input_var(atomname,'C',input_iostat=ios)
+      call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
+      call input_var(pp,'1.0d-3',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+      call input_var(lt,'7.0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+      if(ios/=0) then
+          ! The parameters where not specified for all atom types.
+          if(iproc==0) then
+              write(*,'(x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
+                       & for the following atom types:"
+              do jtype=1,atoms%ntypes
+                  if(.not.parametersSpecified(jtype)) write(*,'(x,a)',advance='no') trim(atoms%atomnames(jtype))
+              end do
+          end if
+          call mpi_barrier(mpi_comm_world, ierr)
+          stop
+      end if
+      ! The reading was succesful. Check whether this atom type is actually present.
+      found=.false.
+      do jtype=1,atoms%ntypes
+          if(trim(atomname)==trim(atoms%atomnames(jtype))) then
+              found=.true.
+              parametersSpecified(jtype)=.true.
+              in%lin%norbsPerType(jtype)=npt
+              in%lin%potentialPrefac(jtype)=pp
+              locradType(jtype)=lt
+              atoms%rloc(jtype,:)=locradType(jtype)
+          end if
+      end do
+      if(.not.found) then
+          if(iproc==0) write(*,'(x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
+                     "', which is not present in the file containing the atomic coordinates."
+          call mpi_barrier(mpi_comm_world, ierr)
+          stop
+      end if
+  end do
+  
+  ! Assign the localization radius to each atom.
+  do iat=1,atoms%nat
+      itype=atoms%iatype(iat)
+      in%lin%locrad(iat)=locradType(itype)
+  end do
+  
+
+  call input_free(iproc)
+
+END SUBROUTINE lin_input_variables_new
 
 
 !> Assign default values for TDDFT variables
@@ -1396,6 +1567,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
   integer :: iline,ierror,ierr,blocks(2)
 
   call input_set_file(iproc, filename, exists,'Performance Options')
+  !Use Linear sclaing methods
+  inputs%linear='OFF'
 
 
   call input_var("debug", .false., "Debug option", inputs%debug)
@@ -1421,7 +1594,10 @@ subroutine perf_input_variables(iproc,filename,inputs)
        & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
   call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
 
+  call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
+  
   call input_free()
+    
 
   !Block size used for the orthonormalization
   inputs%orthpar%bsLow = blocks(1)

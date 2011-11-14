@@ -89,7 +89,7 @@ program oneatom
   call timing(iproc,'CrtDescriptors','OF')
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
-  call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
+  call createProjectorsArrays(iproc,Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
@@ -135,7 +135,7 @@ program oneatom
 
   ! allocate arrays necessary for DIIS convergence acceleration
   !the allocation with npsidim is not necessary here since DIIS arrays
-  !are always calculated in the transpsed form
+  !are always calculated in the transposed form
   call allocate_diis_objects(in%idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
        orbs%nkptsp,orbs%nspinor,diis,subname)  
 

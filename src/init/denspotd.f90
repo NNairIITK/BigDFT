@@ -247,6 +247,8 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
      stop
   end if
 
+!write(*,'(a,i2,3x,8i7,i10)') 'iproc, nvctr_par(jproc), sum', iproc, (nvctr_par(jproc,1), jproc=0,nproc-1), sum(nvctr_par(:,1))
+!write(*,*) 'iproc, (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp', iproc, (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp
   !some checks
   !check the distribution
   do ikpts=1,orbs%nkpts
@@ -276,6 +278,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
   
   !print*,'check',orbs%ikptproc(:)
 
+!write(*,*) 'orbs%norb_par',orbs%norb_par
 
   !calculate the number of k-points treated by each processor in both
   ! the component distribution and the orbital distribution.

@@ -279,14 +279,14 @@ END SUBROUTINE read_density_cube_old
 !!   2) Outputting the electric-dipole moment is an useful piece of data both for the end-user and for developing step 
 !!      as a tool to investigate the consistency  (e.g. for symmetrical directions). 
 !!      I already did it in this subroutine, but we can do it as a separate subroutine.
-subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+subroutine write_cube_fields(filename,message,at,factor,rxyz,n1,n2,n3,n1i,n2i,n3i,n1s,n2s,n3s,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
   !n(c) use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename,message
-  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,nexpo
-  real(gp), intent(in) :: hxh,hyh,hzh,a,b
+  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,n1s,n2s,n3s,nexpo
+  real(gp), intent(in) :: hxh,hyh,hzh,a,b,factor
   type(atoms_data), intent(in) :: at
   real(wp), dimension(n1i,n2i,n3i), intent(in) :: x,y
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -373,7 +373,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
      end do
      later_avg=later_avg/real((2*(n2+nby))*(2*(n3+nbz)),dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     Write(23,*)i1,at%alat1/real(2*(n1+nbx),dp)*i1,later_avg
+     write(23,*)i1+n1s,at%alat1/real(factor*2*(n1+nbx),dp)*(i1+2*n1s),later_avg
   end do
   close(23)
   !average in y direction
@@ -388,7 +388,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
      end do
      later_avg=later_avg/real((2*(n1+nbx))*(2*(n3+nbz)),dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i2,at%alat2/real(2*(n2+nby),dp)*i2,later_avg
+     write(23,*)i2+n2s,at%alat2/real(factor*2*(n2+nby),dp)*(i2+n2s),later_avg
   end do
   close(23)
   !average in z direction
@@ -403,7 +403,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
      end do
      later_avg=later_avg/real((2*(n1+nbx))*(2*(n2+nby)),dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i3,at%alat3/real(2*(n3+nbz),dp)*i3,later_avg
+     write(23,*)i3+n3s,at%alat3/real(factor*2*(n3+nbz)+2,dp)*(i3+n3s),later_avg
   end do
   close(23)
   if (trim(filename)=='electronic_density') then
@@ -490,7 +490,7 @@ subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
            b=0.0_dp
            ib=1
            call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
-                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                at,1.d0,rxyz,n1,n2,n3,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
         else
            call write_etsf_density(filename(:isuffix),message,&
@@ -506,7 +506,7 @@ subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
            b=0.0_dp
            ib=2
            call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
-                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                at,1.d0,rxyz,n1,n2,n3,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
            suffix='-down'
@@ -516,7 +516,7 @@ subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
            b=1.0_dp
            ib=2
            call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
-                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                at,1.d0,rxyz,n1,n2,n3,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
            suffix=''
@@ -526,7 +526,7 @@ subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
            b=1.0_dp
            ib=2
            call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
-                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                at,1.d0,rxyz,n1,n2,n3,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
            suffix='-u-d'
@@ -536,7 +536,7 @@ subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
            b=-1.0_dp
            ib=2
            call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
-                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                at,1.d0,rxyz,n1,n2,n3,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
         else
            message = 'spin up, down, total, difference'
@@ -633,13 +633,14 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
 END SUBROUTINE read_density
 
 
-subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
+subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
   implicit none
   character(len=*) :: comment
   character(len=*) :: orbname
   integer, intent(in) :: nexpo
+  real(dp), intent(in) :: factor
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -648,13 +649,16 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   !local variables
   character(len=*), parameter :: subname='plot_wf'
   integer :: i_stat,i_all
-  integer :: n1i,n2i,n3i,n1,n2,n3
+  integer :: n1i,n2i,n3i,n1,n2,n3,n1s,n2s,n3s
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: psir
 
   n1=lr%d%n1
   n2=lr%d%n2
   n3=lr%d%n3
+  n1s=lr%ns1
+  n2s=lr%ns2
+  n3s=lr%ns3
   n1i=lr%d%n1i
   n2i=lr%d%n2i
   n3i=lr%d%n3i
@@ -671,7 +675,7 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   call daub_to_isf(lr,w,psi,psir)
 
   call write_cube_fields(orbname,' ',&
-       at,rxyz,n1,n2,n3,n1i,n2i,n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+       at,factor,rxyz,n1,n2,n3,n1i,n2i,n3i,n1s,n2s,n3s,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        1.0_gp,psir,nexpo,0.0_gp,psir)
 
   i_all=-product(shape(psir))*kind(psir)

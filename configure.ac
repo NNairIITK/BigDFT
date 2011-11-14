@@ -721,6 +721,8 @@ tests/libs/fft/Makefile
 tests/libs/PSolver/Makefile
 tests/libs/OP2P/Makefile
 tests/libs/xc/Makefile
+tests/Linear/Makefile
+tests/BigDFT2Wannier/Makefile
 tests/libs/OpenCL/Makefile
 tests/libs/CUDA/Makefile
 tests/libs/ETSF_IO/Makefile

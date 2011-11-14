@@ -275,7 +275,7 @@ END SUBROUTINE reformatmywaves
 !>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !!  have changed
 subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
-     wfd,psi)
+     wfd,psi,orblist)
   use module_base
   use module_types
   implicit none
@@ -288,22 +288,30 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
   character(len=*), intent(in) :: filename
+  integer, dimension(orbs%norb), optional :: orblist
   !Local variables
   character(len=*), parameter :: subname='readmywaves'
   logical :: perx,pery,perz,exists
-  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor,isuffix
+  integer :: ncount1,ncount_rate,ncount_max,iorb,iiorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor,isuffix
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
+  integer, dimension(orbs%norb) :: orblist2
 
   isuffix = index(filename, ".etsf", back = .true.)
   exists=(isuffix > 0) !the file is written in binary format
 
   !inquire(file=trim(filename)//".etsf",exist=exists)
   if (exists) then
+     !construct the orblist or us the one in argument
+     do nb1 = 1, orbs%norb
+     orblist2(nb1) = nb1
+     if(present(orblist)) orblist2(nb1) = orblist(nb1) 
+     end do
+
      if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
      call read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
-          wfd,psi)
+          wfd,psi, orblist2)
   else
      call cpu_time(tr0)
      call system_clock(ncount1,ncount_rate,ncount_max)
@@ -313,7 +321,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
      pery=(at%geocode == 'P')
      perz=(at%geocode /= 'F')
 
-     !buffers realted to periodicity
+     !buffers related to periodicity
      !WARNING: the boundary conditions are not assumed to change between new and old
      call ext_buffers_coarse(perx,nb1)
      call ext_buffers_coarse(pery,nb2)
@@ -331,7 +339,9 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
         if (iproc ==0) write(*,*) "Reading wavefunctions in plain text file format."
      end if
 
-     do iorb=1,orbs%norbp!*orbs%nspinor
+     do iiorb=1,orbs%norbp!*orbs%nspinor
+        iorb = iiorb                                         ! switching if a particular list of orbitals is needed
+        if(present(orblist)) iorb = orblist(iiorb+orbs%isorb)
 
 !!$        write(f4,'(i4.4)') iorb+orbs%isorb*orbs%nspinor
 !!$        if (exists) then

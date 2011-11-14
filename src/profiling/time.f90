@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=33   ! define timimg categories
+  integer, parameter :: ncat=38   ! define timimg categories
 
   integer :: istart, ittime, ncounters, ncaton!, nskip
   logical :: parallel,init
@@ -75,7 +75,12 @@ subroutine timing(iproc,category,action)
        'GS/Chol_commun'    ,  &
        'Input_comput  '    ,  &
        'Input_commun  '    ,  &
-       'Davidson      '    /)
+       'Davidson      '    ,  &
+       'check_IG      '    ,  &
+       'constrc_locreg'    ,  &
+       'wavefunction  '    ,  &
+       'create_nlpspd '    ,  &
+       'global_local  '  /)
 
   !first of all, read the time
   call system_clock(itime,count_rate,count_max)

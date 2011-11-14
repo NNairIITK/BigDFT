@@ -13,7 +13,7 @@
 subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,& 
           orbs,orbsv,nvirt,lr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
-          pkernel,psi,psivirt,nscatterarr,ngatherarr,GPU)
+          pkernel,psi,psivirt,nscatterarr,ngatherarr,GPU,Lzd)
   use module_base
   use module_types
   use module_interfaces, except_this_one => direct_minimization
@@ -36,6 +36,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   type(orbitals_data), intent(inout) :: orbsv
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension(:), pointer :: psi,psivirt
+  type(local_zone_descriptors),intent(in) :: Lzd
   !local variables
   character(len=*), parameter :: subname='direct_minimization'
   logical :: msg,exctX,occorbs,endloop !extended output
@@ -286,7 +287,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
 
      !evaluate the functional of the wavefucntions and put it into the diis structure
      !the energy values should be printed out here
-     call calculate_energy_and_gradient(iter,iproc,nproc,orbsv,commsv,GPU,lr,hx,hy,hz,in%ncong,in%iscf,&
+     call calculate_energy_and_gradient(iter,iproc,nproc,orbsv,commsv,GPU,Lzd,hx,hy,hz,in%ncong,in%iscf,&
           ekin_sum,epot_sum,eproj_sum,eSIC_DC,0.0_gp,0.0_gp,0.0_gp,eexctX,0.0_gp,0.0_gp,&
           psivirt,psitvirt,hpsivirt,gnrm,gnrm_zero,diis%energy)
 
@@ -1908,7 +1909,6 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
      if(iproc==0)write(*,'(1x,A,i3)')&
           "WARNING: More plots requested than orbitals calculated." 
   end if
-
   if(output_wf_format == 2) then
      !add a modulo operator to get rid of the particular k-point
      do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals

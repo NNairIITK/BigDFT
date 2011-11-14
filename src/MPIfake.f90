@@ -63,6 +63,23 @@ subroutine  MPI_GROUP_INCL(GROUP,N,NRANKS,NEWGROUP,ierr)
   ierr=GROUP*0
 END SUBROUTINE MPI_GROUP_INCL
 
+subroutine mpi_test(request,flag,MPI_Status)
+  implicit none
+  integer, intent(in) :: request
+  integer, intent(out) :: flag
+  integer, intent(out) :: MPI_Status
+  flag = 1
+  MPI_Status = 1
+end subroutine mpi_test
+
+subroutine mpi_wait(request,MPI_Status)
+  implicit none
+  integer, intent(in) :: request
+  integer, intent(out) :: MPI_Status
+  MPI_Status = 1
+end subroutine mpi_wait
+
+
 !here we have routines which do not transform the argument for nproc==1
 !these routines can be safely called also in the serial version
 subroutine  MPI_FINALIZE(ierr)
@@ -189,3 +206,4 @@ subroutine mpi_comm_free ()
   implicit none
   stop 'MPIFAKE: mpi_comm_free'
 END SUBROUTINE  MPI_COMM_FREE
+

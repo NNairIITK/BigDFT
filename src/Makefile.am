@@ -45,6 +45,12 @@ libs_cuda=
 GPU_BLAS = modules/cublas_fake.f90
 endif
 
+#if USE_BLACS
+#BLACS = 
+#else
+BLACS = modules/blacs_fake.f90
+#endif
+
 if USE_OCL
 sub_dirs_ocl=OpenCL
 OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
@@ -183,7 +189,8 @@ modules_source = modules/base.f90 \
 	modules/input.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
-	$(GPU_BLAS)
+	$(GPU_BLAS) \
+	$(BLACS)
 
 modules_objects = $(modules_source:.f90=.o)
 
@@ -249,7 +256,33 @@ low_level = init/projectors.f90  \
 	wavelib/daubisf.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	$(DGEMMSY_INTERFACE)
+        linear/filterModule.f90 \
+        linear/getLocBasis.f90 \
+        linear/applyHamiltonian.f90 \
+        linear/precondLinear.f90 \
+        linear/locReg.f90 \
+        linear/psitolocReg.f90 \
+        linear/locReg_orbitals.f90 \
+        linear/locReg_projectors.f90 \
+        linear/LinearForces.f90 \
+        linear/tmp_HamiltonianApplication.f90 \
+        linear/transposition.f90 \
+        linear/linearScaling.f90 \
+        linear/energyAndForces.f90 \
+        linear/convolutions.f90 \
+        linear/initAndUtils.f90 \
+        linear/sumrhoLinear.f90 \
+	    linear/inputguessLinear.f90 \
+        linear/psitolocReg.f90 \
+        linear/orthonormality.f90 \
+        linear/orbitalOptimization.f90 \
+        linear/mixdiis.f90 \
+        linear/copyTypes.f90 \
+        linear/cleanup.f90 \
+		linear/derivativeBasis.f90 \
+		linear/parallelLinAlg.f90 \
+		linear/nullify.f90 \
+	$(DGEMMSY_INTERFACE)  
 
 # C objects
 c_level = posfiles.c \
@@ -289,8 +322,17 @@ rism_LDFLAGS =
 rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
-	@MPI_LIBS@ \
+	@MPI_LIBS@\
 	$(libs_opt)
+
+#sandbox_SOURCES = sandbox.f90
+#sandbox_LDFLAGS = 
+#sandbox_LDADD = libbigdft.a \
+#        PSolver/libpoissonsolver.a \
+#        $(LMPI) \
+#        @MPI_LIBS@ \
+#        $(libs_opt)
+
 
 oneatom_SOURCES = oneatom.f90
 oneatom_LDFLAGS =  

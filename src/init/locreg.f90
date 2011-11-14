@@ -220,7 +220,7 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
 
      
      !define the wavefunction descriptors inside the localisation region
-     !calculate the number of point ans segments for local localisation regions
+     !calculate the number of point and segments for local localisation regions
      !coarse part
      call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
           Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
@@ -356,7 +356,7 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   call memocc(i_stat,logrid_c,'logrid_c',subname)
   allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_f,'logrid_f',subname)
-
+  
   call wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
 
   !allocate and calculate kinetic bounds
@@ -731,6 +731,7 @@ subroutine num_segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,key
   !start and end points
   nsrt=0
   nend=0
+ 
   do iseg=1,nseg
      jj=keyv(iseg)
      j0=keyg(1,iseg)

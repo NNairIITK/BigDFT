@@ -31,6 +31,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
   !local variables
+  type(locreg_descriptors) :: lr
   character(len=*), parameter :: subname='CalculateTailCorrection'
   integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
   integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3
@@ -74,6 +75,11 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   nb1=n1+2*nbuf
   nb2=n2+2*nbuf
   nb3=n3+2*nbuf
+
+  ! Create new structure with modified grid sizes
+  call create_Glr(Glr%geocode,nb1,nb2,nb3,Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3,Glr%d%nfu1,&
+             Glr%d%nfu2,Glr%d%nfu3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,Glr%wfd,Glr%bounds,lr)
+ 
   alatb1=real(nb1,kind=8)*hgrid 
   alatb2=real(nb2,kind=8)*hgrid 
   alatb3=real(nb3,kind=8)*hgrid
@@ -368,7 +374,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
 
         if (DistProjApply) then
-           call applyprojectorsonthefly(0,orbsb,at,nb1,nb2,nb3,&
+           call applyprojectorsonthefly(0,orbsb,at,lr,&
                 txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj)
            !only the wavefunction descriptors must change
         else

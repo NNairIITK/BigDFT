@@ -224,7 +224,7 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
         do iat=1,at%nat
            istart_c=1
            call atom_projector(ikpt,iat,0,istart_c,iproj,&
-                lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+                lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
 
            !apply the projector to all the orbitals belonging to the processor
            ispsi=ispsi_k
@@ -437,9 +437,9 @@ END SUBROUTINE free_full_potential
 !> Extract the energy (the quantity which has to be minimised by the wavefunction)
 !! and calculate the corresponding gradient.
 !! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
-!! depending of the functional we want to calculate. The gradient wrt the wavefucntion
-!! Is the put in hpsi accordingly to the functional
-subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
+!! depending of the functional we want to calculate. The gradient wrt the wavefunction
+!! is put in hpsi accordingly to the functional
+subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,ncong,iscf,&
      ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
   use module_base
   use module_types
@@ -449,7 +449,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
-  type(locreg_descriptors), intent(in) :: lr
+  type(local_zone_descriptors), intent(in) :: Lzd
   type(GPU_pointers), intent(in) :: GPU
   real(gp), intent(out) :: gnrm,gnrm_zero,energy
   real(wp), dimension(:), pointer :: psi,psit,hpsi
@@ -477,13 +477,13 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   !this is the Kohn-Sham energy
   energyKS=energybs-ehart+exc-evxc-eexctX-eSIC_DC+eion+edisp
 
-  !calculate orbital poloarisation directions
+  !calculate orbital polarisation directions
   if(orbs%nspinor==4) then
      allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
      call memocc(i_stat,mom_vec,'mom_vec',subname)
 
      call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
-          lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
+          Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
   end if
 
 
@@ -493,12 +493,12 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   end if
 
   !transpose the hpsi wavefunction
-  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+  call transpose_v2(iproc,nproc,orbs,Lzd,comms,hpsi,work=psi)
 
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
      psit => psi
-     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psit)
+     call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psit)
   end if
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
@@ -508,7 +508,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
 
   !retranspose the hpsi wavefunction
-  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=psi)
 
   !after having calcutated the trace of the hamiltonian, the functional have to be defined
   !new value without the trace, to be added in hpsitopsi
@@ -542,13 +542,16 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
   if (GPUconv) then
-     call preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,&
+     call preconditionall_GPU(orbs,Lzd%Glr,hx,hy,hz,ncong,&
           hpsi,gnrm,gnrm_zero,GPU)
   else if (OCLconv) then
-     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+     call preconditionall_OCL(iproc,nproc,orbs,Lzd%Glr,hx,hy,hz,ncong,&
           hpsi,gnrm,gnrm_zero,GPU)
   else
-     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+     call preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+     if(.false.) then
+        call preconditionall(iproc,nproc,orbs,Lzd%Glr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+     end if
   end if
 
   !sum over all the partial residues

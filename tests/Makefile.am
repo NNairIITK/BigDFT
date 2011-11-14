@@ -4,7 +4,9 @@ SUBDIRS = \
 	  libs \
 	  DFT \
 	  overDFT \
-	  tutorials
+	  tutorials \
+	  Linear \
+          BigDFT2Wannier 
 
 if USE_OCL
 oclrun_message = oclrun
