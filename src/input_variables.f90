@@ -293,6 +293,7 @@ subroutine default_input_variables(inputs)
 
 END SUBROUTINE default_input_variables
 
+
 subroutine dft_input_variables_new(iproc,filename,in)
   use module_base
   use module_types
@@ -303,7 +304,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
-  integer :: ivrbproj,ierror
+  integer :: ierror
   real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
   real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
 
@@ -351,6 +352,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   !does not maxes sense a DIIS history longer than the number of iterations
   in%idsx = min(in%idsx, in%itermax)
 
+  !dispersion parameter
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
@@ -405,22 +407,6 @@ subroutine dft_input_variables_new(iproc,filename,in)
        comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
 
   !in%nvirt = min(in%nvirt, in%norbv) commented out
-
-  !verbosity of the output
-  call input_var(ivrbproj,'2',exclusive=(/0,1,2,3,10,11,12,13/),&
-       comment='verbosity of the output 0=low, 2=high')
-
-  !if the verbosity is bigger than 10 apply the projectors
-  !in the once-and-for-all scheme, otherwise use the default
-  if (ivrbproj > 10) then
-     DistProjApply=.false.
-     in%verbosity=ivrbproj-10
-  else
-     in%verbosity=ivrbproj
-  end if
-  if (in%verbosity ==0 ) then
-     call memocc_set_state(0)
-  end if
 
   ! Line to disable automatic behaviours (currently only symmetries).
   call input_var(in%disableSym,'F',comment='disable the symmetry detection')
@@ -1376,6 +1362,18 @@ subroutine perf_input_variables(iproc,filename,inputs)
   call input_var("methortho", 0, (/ 0, 1, 2 /), &
        & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
   call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
+
+  !verbosity of the output
+  call input_var("verbosity", 2,(/0,1,2,3/), &
+     & "verbosity of the output 0=low, 2=high",inputs%verbosity)
+
+  !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
+  call input_var("psp_onfly", .true., &
+       & "Calculate pseudopotential projectors on the fly",DistProjApply)
+
+  if (inputs%verbosity == 0 ) then
+     call memocc_set_state(0)
+  end if
 
   call input_free()
 

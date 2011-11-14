@@ -10,5 +10,4 @@
 10 0    1      InputPsiId, output_wf, output_grid
 0.0  30       rbuf, ncongt: length of the tail (AU),# tail CG iterations
 0 0  0        davidson treatment, no. of virtual orbitals, no of plotted orbitals
-0             verbosity of the output 0=low, 2=high
 T             disable the symmetry detection
