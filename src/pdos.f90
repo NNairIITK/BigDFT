@@ -9,127 +9,126 @@
 
 
 !>    Perform all the projection associated to local variables
-subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,shift,lr,orbs,orbsv,psi,psivirt)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => local_analysis
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  real(gp), intent(in) :: hx,hy,hz
-  type(input_variables), intent(in) :: in
-  type(locreg_descriptors), intent(in) :: lr
-  type(orbitals_data), intent(in) :: orbs,orbsv
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3),intent(in) :: shift
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(:), pointer :: psi,psivirt
-  !local variables
-  character(len=*), parameter :: subname='local_analysis'
-  integer :: i_all,i_stat,norbpv
-  !type(input_variables) :: inc
-  !type(atoms_data) :: atc
-  type(gaussian_basis) :: G
-  real(wp), dimension(:,:), allocatable :: allpsigau,dualcoeffs
-  real(gp), dimension(:,:), allocatable :: radii_cf_fake,thetaphi
-  real(gp), dimension(:), pointer :: Gocc
-  !real(gp), dimension(:,:), pointer :: cxyz
+subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+   use module_base
+   use module_types
+   use module_interfaces, except_this_one => local_analysis
+   implicit none
+   integer, intent(in) :: iproc,nproc
+   real(gp), intent(in) :: hx,hy,hz
+   type(input_variables), intent(in) :: in
+   type(locreg_descriptors), intent(in) :: lr
+   type(orbitals_data), intent(in) :: orbs,orbsv
+   type(atoms_data), intent(in) :: at
+   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(wp), dimension(:), pointer :: psi,psivirt
+   !local variables
+   character(len=*), parameter :: subname='local_analysis'
+   integer :: i_all,i_stat,norbpv
+   !type(input_variables) :: inc
+   !type(atoms_data) :: atc
+   type(gaussian_basis) :: G
+   real(wp), dimension(:,:), allocatable :: allpsigau,dualcoeffs
+   real(gp), dimension(:,:), allocatable :: radii_cf_fake,thetaphi
+   real(gp), dimension(:), pointer :: Gocc
+   !real(gp), dimension(:,:), pointer :: cxyz
 
-  !the number of virtual orbitals in parallel is known only if orbsv%norb>0
-  if (orbsv%norb >0) then
-     norbpv=orbsv%norbp
-  else
-     norbpv=0
-  end if
+   !the number of virtual orbitals in parallel is known only if orbsv%norb>0
+   if (orbsv%norb >0) then
+      norbpv=orbsv%norbp
+   else
+      norbpv=0
+   end if
 
-  !define the local basis starting from the input files
-  !this is done to allow the calculations of charges also in points which
-  !are different from the atoms.
-  !NOTE: this means that the MCPA can be done only on SP calculations
-  !call read_input_variables(iproc,'posinp','input.dft','','','',inc,atc,cxyz)
+   !define the local basis starting from the input files
+   !this is done to allow the calculations of charges also in points which
+   !are different from the atoms.
+   !NOTE: this means that the MCPA can be done only on SP calculations
+   !call read_input_variables(iproc,'posinp','input.dft','','','',inc,atc,cxyz)
 
-  !allocate(radii_cf_fake(atc%ntypes,3+ndebug),stat=i_stat)
-  !call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
+   !allocate(radii_cf_fake(atc%ntypes,3+ndebug),stat=i_stat)
+   !call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
 
-  allocate(radii_cf_fake(at%ntypes,3+ndebug),stat=i_stat)
-  call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
+   allocate(radii_cf_fake(at%ntypes,3+ndebug),stat=i_stat)
+   call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
 
 
-  !call read_system_variables('input.occup',iproc,inc,atc,radii_cf_fake,nelec,&
+   !call read_system_variables('input.occup',iproc,inc,atc,radii_cf_fake,nelec,&
   !     norb,norbu,norbd,iunit)
 
-  !shift the positions with the same value of the original positions
-!  do iat=1,atc%nat
-!     cxyz(1,iat)=cxyz(1,iat)-shift(1)
-!     cxyz(2,iat)=cxyz(2,iat)-shift(2)
-!     cxyz(3,iat)=cxyz(3,iat)-shift(3)
-!  end do
-  
-  nullify(G%rxyz)
+   !shift the positions with the same value of the original positions
+   !  do iat=1,atc%nat
+   !     cxyz(1,iat)=cxyz(1,iat)-shift(1)
+   !     cxyz(2,iat)=cxyz(2,iat)-shift(2)
+   !     cxyz(3,iat)=cxyz(3,iat)-shift(3)
+   !  end do
 
-  !extract the gaussian basis from the pseudowavefunctions
-  !call gaussian_pswf_basis(31,.false.,iproc,inc%nspin,atc,cxyz,G,Gocc)
-  call gaussian_pswf_basis(31,.false.,iproc,in%nspin,at,rxyz,G,Gocc)
+   nullify(G%rxyz)
 
-  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,thetaphi,'thetaphi',subname)
-  call razero(2*G%nat,thetaphi)
-  allocate(allpsigau(G%ncoeff,orbs%norbp+norbpv+ndebug),stat=i_stat)
-  call memocc(i_stat,allpsigau,'allpsigau',subname)
+   !extract the gaussian basis from the pseudowavefunctions
+   !call gaussian_pswf_basis(31,.false.,iproc,inc%nspin,atc,cxyz,G,Gocc)
+   call gaussian_pswf_basis(31,.false.,iproc,in%nspin,at,rxyz,G,Gocc)
 
-  !this routine should be simplified like gaussians_to_wavelets
-  call wavelets_to_gaussians(lr%geocode,orbs%norbp,orbs%nspinor,&
-       lr%d%n1,lr%d%n2,lr%d%n3,G,thetaphi,hx,hy,hz,lr%wfd,psi,allpsigau)
+   allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
+   call memocc(i_stat,thetaphi,'thetaphi',subname)
+   call razero(2*G%nat,thetaphi)
+   allocate(allpsigau(G%ncoeff,orbs%norbp+norbpv+ndebug),stat=i_stat)
+   call memocc(i_stat,allpsigau,'allpsigau',subname)
 
-  !the same can be done for virtual orbitals if orbsv%norb > 0
-  if (orbsv%norb > 0) then
-     call wavelets_to_gaussians(lr%geocode,norbpv,orbsv%nspinor,&
-          lr%d%n1,lr%d%n2,lr%d%n3,G,thetaphi,hx,hy,hz,lr%wfd,psivirt,&
-          allpsigau(1,orbs%norbp+min(1,norbpv)))
-  end if
-  !calculate dual coefficients
-  allocate(dualcoeffs(G%ncoeff,orbs%norbp+norbpv+ndebug),stat=i_stat)
-  call memocc(i_stat,dualcoeffs,'dualcoeffs',subname)
-  call dcopy(G%ncoeff*(orbs%norbp+norbpv),allpsigau,1,dualcoeffs,1)
-  !build dual coefficients
-  call dual_gaussian_coefficients(orbs%norbp+norbpv,G,dualcoeffs)
+   !this routine should be simplified like gaussians_to_wavelets
+   call wavelets_to_gaussians(lr%geocode,orbs%norbp,orbs%nspinor,&
+      &   lr%d%n1,lr%d%n2,lr%d%n3,G,thetaphi,hx,hy,hz,lr%wfd,psi,allpsigau)
 
-  !here we can calculate the Mulliken charge population
-  !for any of the elements of the basis, ordered by angular momentum
-  !do that only for the occupied orbitals
-  call mulliken_charge_population(iproc,nproc,in%nspin,orbs,Gocc,G,allpsigau,dualcoeffs)
+   !the same can be done for virtual orbitals if orbsv%norb > 0
+   if (orbsv%norb > 0) then
+      call wavelets_to_gaussians(lr%geocode,norbpv,orbsv%nspinor,&
+         &   lr%d%n1,lr%d%n2,lr%d%n3,G,thetaphi,hx,hy,hz,lr%wfd,psivirt,&
+         &   allpsigau(1,orbs%norbp+min(1,norbpv)))
+   end if
+   !calculate dual coefficients
+   allocate(dualcoeffs(G%ncoeff,orbs%norbp+norbpv+ndebug),stat=i_stat)
+   call memocc(i_stat,dualcoeffs,'dualcoeffs',subname)
+   call dcopy(G%ncoeff*(orbs%norbp+norbpv),allpsigau,1,dualcoeffs,1)
+   !build dual coefficients
+   call dual_gaussian_coefficients(orbs%norbp+norbpv,G,dualcoeffs)
 
-  !also partial density of states can be analysed here
-  call gaussian_pdos(iproc,nproc,orbs,G,allpsigau,dualcoeffs) !n(m)
+   !here we can calculate the Mulliken charge population
+   !for any of the elements of the basis, ordered by angular momentum
+   !do that only for the occupied orbitals
+   call mulliken_charge_population(iproc,nproc,in%nspin,orbs,Gocc,G,allpsigau,dualcoeffs)
 
-  call deallocate_gwf(G,subname)
-  nullify(G%rxyz)
+   !also partial density of states can be analysed here
+   call gaussian_pdos(iproc,nproc,orbs,G,allpsigau,dualcoeffs) !n(m)
 
-  i_all=-product(shape(allpsigau))*kind(allpsigau)
-  deallocate(allpsigau,stat=i_stat)
-  call memocc(i_stat,i_all,'allpsigau',subname)
-  i_all=-product(shape(dualcoeffs))*kind(dualcoeffs)
-  deallocate(dualcoeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'dualcoeffs',subname)
+   call deallocate_gwf(G,subname)
+   nullify(G%rxyz)
+
+   i_all=-product(shape(allpsigau))*kind(allpsigau)
+   deallocate(allpsigau,stat=i_stat)
+   call memocc(i_stat,i_all,'allpsigau',subname)
+   i_all=-product(shape(dualcoeffs))*kind(dualcoeffs)
+   deallocate(dualcoeffs,stat=i_stat)
+   call memocc(i_stat,i_all,'dualcoeffs',subname)
 
 
-  i_all=-product(shape(thetaphi))*kind(thetaphi)
-  deallocate(thetaphi,stat=i_stat)
-  call memocc(i_stat,i_all,'thetaphi',subname)
+   i_all=-product(shape(thetaphi))*kind(thetaphi)
+   deallocate(thetaphi,stat=i_stat)
+   call memocc(i_stat,i_all,'thetaphi',subname)
 
-  !deallocate the auxiliary structures for the calculations
-  !call deallocate_atoms(atc,subname) 
-  !call deallocate_atoms_scf(atc,subname) 
-  !call free_input_variables(inc)
-  i_all=-product(shape(radii_cf_fake))*kind(radii_cf_fake)
-  deallocate(radii_cf_fake,stat=i_stat)
-  call memocc(i_stat,i_all,'radii_cf_fake',subname)
-  !i_all=-product(shape(cxyz))*kind(cxyz)
-  !deallocate(cxyz,stat=i_stat)
-  !call memocc(i_stat,i_all,'cxyz',subname)
-  i_all=-product(shape(Gocc))*kind(Gocc)
-  deallocate(Gocc,stat=i_stat)
-  call memocc(i_stat,i_all,'Gocc',subname)
-  
+   !deallocate the auxiliary structures for the calculations
+   !call deallocate_atoms(atc,subname) 
+   !call deallocate_atoms_scf(atc,subname) 
+   !call free_input_variables(inc)
+   i_all=-product(shape(radii_cf_fake))*kind(radii_cf_fake)
+   deallocate(radii_cf_fake,stat=i_stat)
+   call memocc(i_stat,i_all,'radii_cf_fake',subname)
+   !i_all=-product(shape(cxyz))*kind(cxyz)
+   !deallocate(cxyz,stat=i_stat)
+   !call memocc(i_stat,i_all,'cxyz',subname)
+   i_all=-product(shape(Gocc))*kind(Gocc)
+   deallocate(Gocc,stat=i_stat)
+   call memocc(i_stat,i_all,'Gocc',subname)
+
 END SUBROUTINE local_analysis
 
 
@@ -265,168 +264,168 @@ END SUBROUTINE mulliken_charge_population
 
 
 subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  type(orbitals_data), intent(in) :: orbs
-  type(gaussian_basis), intent(in) :: G
-  !n(c) real(gp), dimension(G%ncoeff), intent(in) :: Gocc
-  real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeff,duals
-  !local variables
-  character(len=*), parameter :: subname='gaussian_pdos'
-  integer :: icoeff,i_all,i_stat,ierr,iorb !n(c) ispin
-  integer :: jproc,nspin
-  real(wp) :: rsum,tnorm
-  integer, dimension(:), allocatable :: norb_displ
-  real(wp), dimension(:,:), allocatable :: pdos
+   use module_base
+   use module_types
+   implicit none
+   integer, intent(in) :: iproc,nproc
+   type(orbitals_data), intent(in) :: orbs
+   type(gaussian_basis), intent(in) :: G
+   !n(c) real(gp), dimension(G%ncoeff), intent(in) :: Gocc
+   real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeff,duals
+   !local variables
+   character(len=*), parameter :: subname='gaussian_pdos'
+   integer :: icoeff,i_all,i_stat,ierr,iorb !n(c) ispin
+   integer :: jproc,nspin
+   real(wp) :: rsum,tnorm
+   integer, dimension(:), allocatable :: norb_displ
+   real(wp), dimension(:,:), allocatable :: pdos
 
-  
-  !allocate both for spins up and down
-  allocate(pdos(G%ncoeff+1,orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,pdos,'pdos',subname)
 
-  !for any of the orbitals calculate the Mulliken charge
-  nspin=1
-  do icoeff=1,G%ncoeff
-     do iorb=1,orbs%norbp
-        !useful only for finding the spins
-        if (orbs%spinsgn(orbs%isorb+iorb) == 1.0_gp) then
-           !n(c) ispin=1
-        else
-           nspin=2
-           !n(c) ispin=2
-        end if
-        pdos(icoeff,orbs%isorb+iorb)=coeff(icoeff,iorb)*duals(icoeff,iorb)
-     end do
-  end do
+   !allocate both for spins up and down
+   allocate(pdos(G%ncoeff+1,orbs%norb+ndebug),stat=i_stat)
+   call memocc(i_stat,pdos,'pdos',subname)
 
-  !gather the results to the root process
-  if (nproc > 1) then
-        allocate(norb_displ(0:nproc-1+ndebug),stat=i_stat)
-        call memocc(i_stat,norb_displ,'norb_displ',subname)
+   !for any of the orbitals calculate the Mulliken charge
+   nspin=1
+   do icoeff=1,G%ncoeff
+      do iorb=1,orbs%norbp
+         !useful only for finding the spins
+         if (orbs%spinsgn(orbs%isorb+iorb) == 1.0_gp) then
+            !n(c) ispin=1
+         else
+            nspin=2
+            !n(c) ispin=2
+         end if
+         pdos(icoeff,orbs%isorb+iorb)=coeff(icoeff,iorb)*duals(icoeff,iorb)
+      end do
+   end do
 
-        norb_displ(0)=0
-        do jproc=1,nproc-1
-           norb_displ(jproc)=norb_displ(jproc-1)+orbs%norb_par(jproc-1,0)
-        end do
-        
-        call MPI_GATHERV(pdos(1,min(orbs%isorb+1,orbs%norb)),(G%ncoeff+1)*orbs%norb_par(iproc,0),mpidtypw,&
-             pdos(1,1),(G%ncoeff+1)*orbs%norb_par(:,0),(G%ncoeff+1)*norb_displ,mpidtypw,&
-             0,MPI_COMM_WORLD,ierr)
+   !gather the results to the root process
+   if (nproc > 1) then
+      allocate(norb_displ(0:nproc-1+ndebug),stat=i_stat)
+      call memocc(i_stat,norb_displ,'norb_displ',subname)
 
-        i_all=-product(shape(norb_displ))*kind(norb_displ)
-        deallocate(norb_displ,stat=i_stat)
-        call memocc(i_stat,i_all,'norb_displ',subname)
-  end if
- 
-  !now the results have to be written
-  if (iproc == 0) then
-     !renormalize the density of states to 10 (such as to gain a digit)
-     tnorm=5.0_wp*real(nspin,wp)
-     do iorb=1,orbs%norb
-        rsum=0.0_wp
-        do icoeff=1,G%ncoeff
-           rsum=rsum+pdos(icoeff,iorb)
-           pdos(icoeff,iorb)=pdos(icoeff,iorb)*tnorm/real(G%ncoeff,wp)
-        end do
-        pdos(G%ncoeff+1,iorb)=tnorm-rsum*tnorm/real(G%ncoeff,wp)
-     end do
+      norb_displ(0)=0
+      do jproc=1,nproc-1
+         norb_displ(jproc)=norb_displ(jproc-1)+orbs%norb_par(jproc-1,0)
+      end do
 
-     !first spin up, then spin down
-     if (nspin == 2) then
-        open(unit=12,file='pdos-up.dat',status='unknown')
-     else
-        open(unit=12,file='pdos.dat',status='unknown')
-     end if
+      call MPI_GATHERV(pdos(1,min(orbs%isorb+1,orbs%norb)),(G%ncoeff+1)*orbs%norb_par(iproc,0),mpidtypw,&
+         &   pdos(1,1),(G%ncoeff+1)*orbs%norb_par(:,0),(G%ncoeff+1)*norb_displ,mpidtypw,&
+         &   0,MPI_COMM_WORLD,ierr)
+
+      i_all=-product(shape(norb_displ))*kind(norb_displ)
+      deallocate(norb_displ,stat=i_stat)
+      call memocc(i_stat,i_all,'norb_displ',subname)
+   end if
+
+   !now the results have to be written
+   if (iproc == 0) then
+      !renormalize the density of states to 10 (such as to gain a digit)
+      tnorm=5.0_wp*real(nspin,wp)
+      do iorb=1,orbs%norb
+         rsum=0.0_wp
+         do icoeff=1,G%ncoeff
+            rsum=rsum+pdos(icoeff,iorb)
+            pdos(icoeff,iorb)=pdos(icoeff,iorb)*tnorm/real(G%ncoeff,wp)
+         end do
+         pdos(G%ncoeff+1,iorb)=tnorm-rsum*tnorm/real(G%ncoeff,wp)
+      end do
+
+      !first spin up, then spin down
+      if (nspin == 2) then
+         open(unit=12,file='pdos-up.dat',status='unknown')
+      else
+         open(unit=12,file='pdos.dat',status='unknown')
+      end if
      write(12,'(a,a13,5x,i6,a)')  & 
           '# band', ' energy (eV),  ',G%ncoeff,' partial densities of states ' 
-     do iorb=1,orbs%norbu
+      do iorb=1,orbs%norbu
         write(12,'(i5,es14.5,5x,1000es14.5)')iorb,orbs%eval(iorb)*Ha_eV,pdos(1:G%ncoeff,iorb)
-     end do
-     close(unit=12)
-     if (orbs%norbd /= 0) then
-        open(unit=12,file='pdos-down.dat',status='unknown')
+      end do
+      close(unit=12)
+      if (orbs%norbd /= 0) then
+         open(unit=12,file='pdos-down.dat',status='unknown')
         write(12,'(a,a13,5x, a)')  & 
           '# band', ' energy (eV),  ',G%ncoeff,' partial densities of states ' 
-        do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
+         do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
            write(12,'(i5,es14.5,5x,1000es14.5)')iorb-orbs%norbu,orbs%eval(iorb)*Ha_eV,pdos(1:G%ncoeff+1,iorb)
-        end do
-     end if
-  end if
+         end do
+      end if
+   end if
 
-  i_all=-product(shape(pdos))*kind(pdos)
-  deallocate(pdos,stat=i_stat)
-  call memocc(i_stat,i_all,'pdos',subname)
-  
+   i_all=-product(shape(pdos))*kind(pdos)
+   deallocate(pdos,stat=i_stat)
+   call memocc(i_stat,i_all,'pdos',subname)
+
 END SUBROUTINE gaussian_pdos
 
 
 subroutine shell_name(l,m,name)
-  implicit none
-  integer, intent(in) :: l,m
-  character(len=11), intent(out) :: name
-  
-  select case(l)
-  case(1)
-     name(1:1)='s'
-     select case(m)
-     case(1)
-        name(2:11)='          '
-     case default
-        stop 'wrong m'
-     end select
-  case(2)
-     name(1:1)='p'
-     select case(m)
-     case(1)
-        name(2:11)='x         '
-     case(2)
-        name(2:11)='y         '
-     case(3)
-        name(2:11)='z         '
-     case default
-        stop 'wrong m'
-     end select
-  case(3)
-     name(1:1)='d'        
-     select case(m)
-     case(1)
-        name(2:11)='yz        '
-     case(2)
-        name(2:11)='xz        '
-     case(3)
-        name(2:11)='xy        '
-     case(4)
-        name(2:11)='x2-y2     '
-     case(5)
-        name(2:11)='2z2-r2    '
-     case default
-        stop 'wrong m'
-     end select
-  case(4)
-     name(1:1)='f'        
-     select case(m)
-     case(1)
-        name(2:11)='x(r2-5z2) '
-     case(2)
-        name(2:11)='y(r2-5z2) '
-     case(3)
-        name(2:11)='z(3r2-5z2)'
-     case(4)
-        name(2:11)='x(x2-3y2) '
-     case(5)
-        name(2:11)='y(y2-3x2) '
-     case(6)
-        name(2:11)='z(x2-y2)  '
-     case(7)
-        name(2:11)='xyz       '
-     case default
-        stop 'wrong m'
-     end select
-  case default
-     stop 'l not recognized'
-  end select
+   implicit none
+   integer, intent(in) :: l,m
+   character(len=11), intent(out) :: name
+
+   select case(l)
+   case(1)
+      name(1:1)='s'
+      select case(m)
+      case(1)
+         name(2:11)='          '
+      case default
+         stop 'wrong m'
+      end select
+   case(2)
+      name(1:1)='p'
+      select case(m)
+      case(1)
+         name(2:11)='x         '
+      case(2)
+         name(2:11)='y         '
+      case(3)
+         name(2:11)='z         '
+      case default
+         stop 'wrong m'
+      end select
+   case(3)
+      name(1:1)='d'        
+      select case(m)
+      case(1)
+         name(2:11)='yz        '
+      case(2)
+         name(2:11)='xz        '
+      case(3)
+         name(2:11)='xy        '
+      case(4)
+         name(2:11)='x2-y2     '
+      case(5)
+         name(2:11)='2z2-r2    '
+      case default
+         stop 'wrong m'
+      end select
+   case(4)
+      name(1:1)='f'        
+      select case(m)
+      case(1)
+         name(2:11)='x(r2-5z2) '
+      case(2)
+         name(2:11)='y(r2-5z2) '
+      case(3)
+         name(2:11)='z(3r2-5z2)'
+      case(4)
+         name(2:11)='x(x2-3y2) '
+      case(5)
+         name(2:11)='y(y2-3x2) '
+      case(6)
+         name(2:11)='z(x2-y2)  '
+      case(7)
+         name(2:11)='xyz       '
+      case default
+         stop 'wrong m'
+      end select
+   case default
+      stop 'l not recognized'
+   end select
 
 END SUBROUTINE shell_name
 
@@ -438,42 +437,41 @@ END SUBROUTINE shell_name
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-subroutine global_analysis(iproc,nproc,orbs,wf,occopt)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc, nproc
-  type(orbitals_data), intent(in) :: orbs
-  real(gp), intent(in) :: wf
+subroutine global_analysis(orbs,wf,occopt)
+   use module_base
+   use module_types
+   implicit none
+   type(orbitals_data), intent(in) :: orbs
+   real(gp), intent(in) :: wf
   integer , intent(in) :: occopt
 
-  integer, parameter :: DOS = 123456
-  integer :: ikpt, iorb, index, i
-  real(wp) :: minE, maxE, e
+   integer, parameter :: DOS = 123456
+   integer :: ikpt, iorb, index, i
+   real(wp) :: minE, maxE, e
 
-  
-  ! We define a Gnuplot file.
-  open(unit = DOS, file = "dos.gnuplot", action = "write")
 
-  minE = 999_dp
-  maxE = -999_dp
+   ! We define a Gnuplot file.
+   open(unit = DOS, file = "dos.gnuplot", action = "write")
 
-  write(DOS, "(A)") "#!/usr/bin/gnuplot"
-  write(DOS, "(A)") "# DOS generated by BigDFT."
-  write(DOS, "(A)")
-  write(DOS, "(A)") "# Comment out to generate a EPS file"
-  write(DOS, "(A)") "# set term postscript enhanced"
-  write(DOS, "(A)") '# set output "dos.eps"'
-  write(DOS, "(A)")
-  write(DOS, "(A)") "# Comment out to generate a PNG file"
-  write(DOS, "(A)") "# set term png font DejaVuSerif 10 size 600,480"
-  write(DOS, "(A)") '# set output "dos.png"'
-  write(DOS, "(A)")
-  write(DOS, "(A)") "# This is the smearing value used in the calculation."
+   minE = 999_dp
+   maxE = -999_dp
+
+   write(DOS, "(A)") "#!/usr/bin/gnuplot"
+   write(DOS, "(A)") "# DOS generated by BigDFT."
+   write(DOS, "(A)")
+   write(DOS, "(A)") "# Comment out to generate a EPS file"
+   write(DOS, "(A)") "# set term postscript enhanced"
+   write(DOS, "(A)") '# set output "dos.eps"'
+   write(DOS, "(A)")
+   write(DOS, "(A)") "# Comment out to generate a PNG file"
+   write(DOS, "(A)") "# set term png font DejaVuSerif 10 size 600,480"
+   write(DOS, "(A)") '# set output "dos.png"'
+   write(DOS, "(A)")
+   write(DOS, "(A)") "# This is the smearing value used in the calculation."
   write(DOS, "(A,F12.8,A)") "w = ", wf*Ha_eV,"  # eV"
   !write(DOS, "(A,F12.8,A)") "T = ", wf*Ha_K," K"
-  write(DOS, "(A)")
-  write(DOS, "(A)") "# This is the smearing function used in the calculation."
+   write(DOS, "(A)")
+   write(DOS, "(A)") "# This is the smearing function used in the calculation."
   if (occopt == SMEARING_DIST_FERMI) then
      write(DOS, "(A,F6.4,A,F12.6,A)") 'set title "Density of states, Fermi-Dirac smearing w = ', &
           & wf*Ha_eV, 'eV, E_f = ', orbs%efermi*Ha_eV , 'eV"'
@@ -485,76 +483,76 @@ subroutine global_analysis(iproc,nproc,orbs,wf,occopt)
           & wf*Ha_eV, 'eV,  E_f = ', orbs%efermi*Ha_eV , 'eV"'
      write(DOS, "(A)") "f(eb,E)  = 0.5 * (1 - erf((E - eb) / w))"
      write(DOS, "(A)") "df(eb,E) = exp(-((E - eb) / w) ** 2) / w / sqrt(pi)"
-  end if
-  write(DOS, "(A)")
-  write(DOS, "(A)") "U(E) = " // char(92)
-  do ikpt = 1, orbs%nkpts
-     write(DOS, "(A,F12.8,A)") "  ", orbs%kwgts(ikpt), " * (" // char(92)
-     index = 1
-     do iorb = 0, (orbs%norbu - 1) / 6
-        write(DOS, "(A)", advance = "NO") "   "
-        do i = 1, 6
-           e = orbs%eval(index+(ikpt-1)*orbs%norb)
+   end if
+   write(DOS, "(A)")
+   write(DOS, "(A)") "U(E) = " // char(92)
+   do ikpt = 1, orbs%nkpts
+      write(DOS, "(A,F12.8,A)") "  ", orbs%kwgts(ikpt), " * (" // char(92)
+      index = 1
+      do iorb = 0, (orbs%norbu - 1) / 6
+         write(DOS, "(A)", advance = "NO") "   "
+         do i = 1, 6
+            e = orbs%eval(index+(ikpt-1)*orbs%norb)
            e = e*Ha_eV
-           minE = min(e, minE)
-           maxE = max(e, maxE)
-           write(DOS, "(A,F12.8,A)", advance = "NO") "df(", e, ",E)"
-           index = index + 1
-           if (index > orbs%norbu) exit
-           write(DOS, "(A)", advance = "NO") " + "
-        end do
-        write(DOS, "(A)") char(92)
-     end do
-     if (ikpt < orbs%nkpts) then
-        write(DOS, "(A)") "  ) + " // char(92)
-     else
-        write(DOS, "(A)") "  )"
-     end if
-  end do
-  if (orbs%norbd > 0) then
-     write(DOS, "(A)")
-     write(DOS, "(A)") "D(E) = " // char(92)
-     do ikpt = 1, orbs%nkpts
-        write(DOS, "(A,F12.8,A)") "  ", orbs%kwgts(ikpt), " * (" // char(92)
-        index = orbs%norbu + 1
-        do iorb = 0, (orbs%norbd - 1) / 6
-           write(DOS, "(A)", advance = "NO") "   "
-           do i = 1, 6
-              e = orbs%eval(index+(ikpt-1)*orbs%norb)
+            minE = min(e, minE)
+            maxE = max(e, maxE)
+            write(DOS, "(A,F12.8,A)", advance = "NO") "df(", e, ",E)"
+            index = index + 1
+            if (index > orbs%norbu) exit
+            write(DOS, "(A)", advance = "NO") " + "
+         end do
+         write(DOS, "(A)") char(92)
+      end do
+      if (ikpt < orbs%nkpts) then
+         write(DOS, "(A)") "  ) + " // char(92)
+      else
+         write(DOS, "(A)") "  )"
+      end if
+   end do
+   if (orbs%norbd > 0) then
+      write(DOS, "(A)")
+      write(DOS, "(A)") "D(E) = " // char(92)
+      do ikpt = 1, orbs%nkpts
+         write(DOS, "(A,F12.8,A)") "  ", orbs%kwgts(ikpt), " * (" // char(92)
+         index = orbs%norbu + 1
+         do iorb = 0, (orbs%norbd - 1) / 6
+            write(DOS, "(A)", advance = "NO") "   "
+            do i = 1, 6
+               e = orbs%eval(index+(ikpt-1)*orbs%norb)
               e = e**Ha_eV
-              minE = min(e, minE)
-              maxE = max(e, maxE)
-              write(DOS, "(A,F12.8,A)", advance = "NO") "df(", e, ",E)"
-              index = index + 1
-              if (index > orbs%norb) exit
-              write(DOS, "(A)", advance = "NO") " + "
-           end do
-           write(DOS, "(A)") char(92)
-        end do
-        if (ikpt < orbs%nkpts) then
-           write(DOS, "(A)") "  ) + " // char(92)
-        else
-           write(DOS, "(A)") "  )"
-        end if
-     end do
-  end if
+               minE = min(e, minE)
+               maxE = max(e, maxE)
+               write(DOS, "(A,F12.8,A)", advance = "NO") "df(", e, ",E)"
+               index = index + 1
+               if (index > orbs%norb) exit
+               write(DOS, "(A)", advance = "NO") " + "
+            end do
+            write(DOS, "(A)") char(92)
+         end do
+         if (ikpt < orbs%nkpts) then
+            write(DOS, "(A)") "  ) + " // char(92)
+         else
+            write(DOS, "(A)") "  )"
+         end if
+      end do
+   end if
   write(DOS, "(A)") "set samples 2500"
-  write(DOS, "(A)") "set key bottom left"
-  write(DOS, "(A)") 'set xlabel "Energy (eV)"'
+   write(DOS, "(A)") "set key bottom left"
+   write(DOS, "(A)") 'set xlabel "Energy (eV)"'
   write(DOS, "(A)") 'set ylabel "States per unit cell per eV"'
   !write(DOS, "(A)") 'set ylabel "Electrons per unit cell per eV"'
   write(DOS, "(A,F12.6,A,F12.6,A)") "set arrow from ", orbs%efermi*Ha_eV , &
        & ",graph 0.95 to ", orbs%efermi*Ha_eV , ",graph 0.05 lt 0"
   write(DOS, "(A,F12.6,A)") "set label at  ", orbs%efermi*Ha_eV , &
        & ",graph 0.96  center 'E_f'"
-  write(DOS, "(A,F12.8,A,F12.8,A)")  "plot [", minE-0.1*(maxE-minE) , &
-       & ":", maxE+0.1*(maxE-minE) , "] " // char(92)
-  if (orbs%norbd > 0) then
-     write(DOS, "(A)")  '  U(x) t "Spin up", -D(x) t "Spin down"'
-  else
-     write(DOS, "(A)")  "  2 * U(x) notitle"
-  end if
-  write(DOS, "(A)")  "pause -1"
+   write(DOS, "(A,F12.8,A,F12.8,A)")  "plot [", minE-0.1*(maxE-minE) , &
+      &   ":", maxE+0.1*(maxE-minE) , "] " // char(92)
+   if (orbs%norbd > 0) then
+      write(DOS, "(A)")  '  U(x) t "Spin up", -D(x) t "Spin down"'
+   else
+      write(DOS, "(A)")  "  2 * U(x) notitle"
+   end if
+   write(DOS, "(A)")  "pause -1"
 
-  close(DOS)
-end subroutine global_analysis
+   close(DOS)
+END SUBROUTINE global_analysis

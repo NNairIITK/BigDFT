@@ -135,5 +135,4 @@
  70 allocations and 70 deallocations, remaining memory(B): 0
  memory occupation peak: 5 MB
  for the array  logrid_big in the routine  make_all_ib
-/local/genovese/work/BigDFT/binaries/gfortran-fpe-mpi-omp-bc/bigdft-1.6-dev.10/_build/src/memguess 1  dd
 

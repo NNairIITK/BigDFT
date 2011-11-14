@@ -1,28 +1,34 @@
-!!!!!!!!!!!!!! Writen by Ali Sadeghi 2011
+!> @file
+!! Bader charge density analysis program
+!! @author
+!!    Copyright 2009 Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
+!!    Bader is free software: you can redistribute it and/or modify
+!!    it under the terms of the GNU General Public License as published by
+!!    the Free Software Foundation, either version 3 of the License, or
+!!    (at your option) any later version.
+!!    A copy of the GNU General Public License is available at
+!!    http://www.gnu.org/licenses/
+!!    Written by Ali Sadeghi 2011
+!!    Copyright (C) 2011-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! @warning
+!!    From the forum at http://theory.cm.utexas.edu/forum/viewtopic.php?f=1&t=590&p=1921&hilit=dipole#p1921:
+!!    We decided not to keep this up because the bader volumes are not neutral. 
+!!    So there is a dipole due to the charge distribution in any one Bader volume, 
+!!    but there will also be dipoles due to charge transfer between the volumes. 
+!!    It was hard to make sense of the dipoles even for a water molecule.
+!!    So the integration is easy to do and could be enabled again, 
+!!    but the interpretation is difficult, and we decided not to include it.
+!!
+!!    A. Sadeghi: Knowing how polarized is an atom in the molecule can be instructive at least qulitively.
+!!    In this code I include the contibution from charge transfers to avoid the contradiction mentioned in the forum.
 
-!from the forum at http://theory.cm.utexas.edu/forum/viewtopic.php?f=1&t=590&p=1921&hilit=dipole#p1921  :
-!we decided not to keep this up because the bader volumes are not neutral. So there is a dipole due to th e charge distribution in any one Bader volume, but there will also be dipoles due to charge transfer between the volumes. It was hard to make sense of the dipoles even for a water molecule.
-!So the integration is easy to do and could be enabled again, but the interpretation is difficult, and we decided not to include it.
 
-! A. Sadeghi: Knowing how polarized is an atom in the molecule can be instructive at least qulitively.
-! In this code I include the contibution from charge transfers to avoid the contradiction mentioned in the forum.
-
-
-! Copyright 2009
-! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
-!
-! Bader is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! A copy of the GNU General Public License is available at
-! http://www.gnu.org/licenses/
-
-!-----------------------------------------------------------------------------------!
-! Bader charge density analysis program
-!  Module for calculating dipole moment of individual Bader atoms and whole system
-!-----------------------------------------------------------------------------------!
+!> Module for calculating dipole moment of individual Bader atoms and whole system
 MODULE dipole_mod
   USE kind_mod
   USE matrix_mod
@@ -62,7 +68,7 @@ MODULE dipole_mod
     TYPE(dipole_obj) :: dpl
     TYPE(options_obj) :: opts
 
-    REAL(q2),DIMENSION(3) ::rxyz,rxyz0, shift,r123
+    REAL(q2), DIMENSION(3) ::rxyz,rxyz0, shift
     INTEGER :: n1,n2,n3, atom
     REAL(q2) :: dipoleunits
 
@@ -131,51 +137,51 @@ MODULE dipole_mod
 !         dipole.dat        : Stores the main output to the screen.
 !-----------------------------------------------------------------------------------!
 
- SUBROUTINE dipole_output(bdr,ions,chg,dpl)
+ SUBROUTINE dipole_output(bdr,ions,dpl)
     
     IMPLICIT NONE
+
+    integer, parameter :: iunit=400
+    character(len=*), parameter :: format_line = "(100('-'))"
     
     TYPE(bader_obj) :: bdr
     TYPE(ions_obj) :: ions
-    TYPE(charge_obj) :: chg
     TYPE(dipole_obj) :: dpl
 
     real(q2) :: dipoleunits, tmp1(3), tmp2(3)
     parameter(dipoleunits=1._q2)  ! atomic units 
     INTEGER  :: i 
-    character*128 :: fileline
  
     WRITE(*,'(A44,/)') 'WRITING BADER ATOMIC DIPOLES TO dipole.dat'
-    OPEN(400,FILE='dipole.dat',STATUS='replace',ACTION='write')
+    OPEN(UNIT=iunit,FILE='dipole.dat',STATUS='replace',ACTION='write')
 
-90  format (100("-"))
-    WRITE(400,90) 
-    WRITE(400,'(a)') "Atoms coordinates: " 
-    WRITE(400,'(A)')  & 
+    WRITE(iunit,format_line) 
+    WRITE(iunit,'(a)') "Atoms coordinates: " 
+    WRITE(iunit,'(A)')  & 
     'atom#    coordinates:  X           Y           Z           CHARGE:  core      electronic     net'
-    WRITE(400,90) 
+    WRITE(iunit,format_line) 
     DO i=1,ions%nions
-      WRITE(400,'(I4,10x,3F12.4,12x,SP,3F12.5)') i,ions%r_car(i,:), & 
+      WRITE(iunit,'(I4,10x,3F12.4,12x,SP,3F12.5)') i,ions%r_car(i,:), & 
                      ions%ion_chg(i),-bdr%ionchg(i), dpl%ion_netchg(i) 
     END DO
-    WRITE(400,90) 
-    WRITE(400,* ) 
+    WRITE(iunit,format_line) 
+    WRITE(iunit,* ) 
 
-    WRITE(400,90) 
-    WRITE(400,'(a)') & 
+    WRITE(iunit,format_line) 
+    WRITE(iunit,'(a)') & 
     "Atomic polarization dipole-moments with respect to the corresponding nuclei positions [e.a0]" 
-    WRITE(400,'(3A)')  & 
+    WRITE(iunit,'(3A)')  & 
     'atom#         Intra-atomic:                Px          Py          Pz          |P|'   !(1 D=0.3934 e.a0)
-    WRITE(400,90) 
+    WRITE(iunit,format_line) 
 
     DO i=1,ions%nions
       tmp1(:)= dpl%ion_polar(i,:)*dipoleunits
       tmp2(:)= dpl%ion_chgtrans (i,:)*dipoleunits
-      WRITE(400,'(I3,33x,3F12.6,1x,F13.6,6x,F12.6, 5x F12.5 )') i , & 
-                     tmp1(:), sqrt(DOT_PRODUCT(tmp1(:),tmp1(:)))  
+      WRITE(iunit,'(I3,33x,3F12.6,1x,F13.6,6x,F12.6,5x,F12.5)') & 
+      &   i , tmp1(:), sqrt(DOT_PRODUCT(tmp1(:),tmp1(:)))
     END DO
 
-    WRITE(400,90) 
+    WRITE(iunit,format_line) 
     tmp1(1)= sum(dpl%ion_polar(:,1))*dipoleunits
     tmp1(2)= sum(dpl%ion_polar(:,2))*dipoleunits
     tmp1(3)= sum(dpl%ion_polar(:,3))*dipoleunits
@@ -183,30 +189,30 @@ MODULE dipole_mod
     tmp2(1)= sum(dpl%ion_chgtrans (:,1))*dipoleunits
     tmp2(2)= sum(dpl%ion_chgtrans (:,2))*dipoleunits
     tmp2(3)= sum(dpl%ion_chgtrans (:,3))*dipoleunits
-!    WRITE(400,'(A33,3x,3F12.6,1x,F12.6,"   | ",F12.6, 5x F12.5 )') 'Summation:   ' , & 
-!    WRITE(400,'(A33,3x,3F12.6,1x,F12.6 )') 'Summation:   ' , & 
+!    WRITE(iunit,'(A33,3x,3F12.6,1x,F12.6,"   | ",F12.6, 5x F12.5 )') 'Summation:   ' , & 
+!    WRITE(iunit,'(A33,3x,3F12.6,1x,F12.6 )') 'Summation:   ' , & 
 !                     tmp1(:),  sqrt(DOT_PRODUCT(tmp1(:),tmp1(:)))   
-!    WRITE(400,90) 
+!    WRITE(iunit,format_line) 
 
-    WRITE(400,'(A33,3x,3F12.6,1x,F13.6 )') 'Charge-tranfer contribution:' , & 
+    WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Charge-tranfer contribution:' , & 
                      tmp2(:), sqrt(DOT_PRODUCT(tmp2(:),tmp2(:)))   
-    WRITE(400,90) 
-    WRITE(400,'(A33,3x,3F12.6,1x,F13.6 )') 'Total dipole moment:' , & 
+    WRITE(iunit,format_line) 
+    WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Total dipole moment:' , & 
                      tmp1+tmp2,sqrt(DOT_PRODUCT(tmp1+tmp2,tmp1+tmp2))     
  
-    WRITE(400,90) 
+    WRITE(iunit,format_line) 
     tmp1= dpl%tot_core(1:3)*dipoleunits 
     tmp2= dpl%tot_elec(1:3)*dipoleunits 
-    WRITE(400,'(a)') & 
+    WRITE(iunit,'(a)') & 
     "Dipole-moment of the whole system (not decomposited to atoms) with respect to arbitrary origin:" 
- !!   WRITE(400,'(A33,3x,3F12.6,1x,F13.6 )') 'Elec. dipole moment:' , & 
+ !!   WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Elec. dipole moment:' , & 
  !!                    tmp2     ,sqrt(DOT_PRODUCT(tmp2     ,tmp2     ))     
- !!   WRITE(400,'(A33,3x,3F12.6,1x,F13.6 )') 'Cores dipole moment:' , & 
+ !!   WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Cores dipole moment:' , & 
  !!                         tmp1,sqrt(DOT_PRODUCT(     tmp1,     tmp1))     
-    WRITE(400,'(A33,3x,3F12.6,1x,F13.6 )') 'Total dipole moment:' , & 
+    WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Total dipole moment:' , & 
                      tmp1+tmp2,sqrt(DOT_PRODUCT(tmp1+tmp2,tmp1+tmp2))     
-    WRITE(400,90) 
-    CLOSE(400)
+    WRITE(iunit,format_line) 
+    CLOSE(UNIT=iunit)
 
 
  END SUBROUTINE dipole_output

@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Compute one atom system
 !! @deprecated
 program oneatom
@@ -43,6 +44,10 @@ program oneatom
   !for the moment no need to have parallelism
   iproc=0
   nproc=1
+
+  !Initilization
+  idsx_actual = huge(1)
+  energy_min = huge(1.0_gp)
 
   call memocc_set_memory_limit(memorylimit)
 
@@ -165,14 +170,14 @@ program oneatom
 !!$  psi=1.d0
 
 
-  call plot_wf_oneatom('iter0',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'          ')
+  call plot_wf_oneatom('iter0',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi)
 
 
   !othogonalise them
   !transpose the psi wavefunction
   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,&
        psi,work=hpsi)
-  call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psi,in%orthpar)
+  call orthogonalize(iproc,nproc,orbs,comms,psi,in%orthpar)
   !untranspose psi
   call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,psi,work=hpsi)
 
@@ -215,10 +220,10 @@ program oneatom
      !terminate SCF loop if forced to switch more than once from DIIS to SD
      endloop=endloop .or. ndiis_sd_sw > 2
 
-     call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
+     call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,&
           Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
 
-     call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
+     call NonLocalHamiltonianApplication(iproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
           nlpspd,proj,Glr,psi,hpsi,eproj_sum)
 
      call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
@@ -248,10 +253,10 @@ program oneatom
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
 
-     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%nspin,in%orthpar) 
+     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%orthpar) 
 
      write(itername,'(i4.4)')iter
-     call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'           ')
+     call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi)
 
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
@@ -862,15 +867,10 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 END SUBROUTINE psi_from_gaussians
 
 
-
-!>
-!!
-!!
-subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
+subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi)
   use module_base
   use module_types
   implicit none
-  character(len=10) :: comment
   character(len=*) :: orbname
   integer, intent(in) :: nexpo
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -879,7 +879,7 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
   !local variables
-  character(len=*), parameter :: subname='plot_wf'
+  character(len=*), parameter :: subname='plot_wf_oneatom'
   integer :: i_stat,i_all
   integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3,i1,i2,i3,nu1,nu2,nu3,iat
   real(gp) :: x,y,z,maxval
