@@ -35,7 +35,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,hxh,hyh,hzh,psi,rho,&
   integer :: nrhotot,n3d,itmred
   integer :: nspinn
   integer :: i1,i2,i3,i3off,i3s,i,ispin,jproc,i_all,i_stat,ierr,j3,j3p,j
-  real(dp) :: charge,tt
+  real(dp) :: charge,tt, dasum
   real(dp), dimension(:,:), allocatable :: tmred
   real(dp), dimension(:,:), pointer :: rho_p
 !!  real(dp), dimension(:,:), allocatable :: rho_p_OCL
@@ -139,6 +139,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,hxh,hyh,hzh,psi,rho,&
           Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
           rho_p,symObj,irrzon,phnons)
   end if
+
 
   !write(*,*) 'iproc,TIMING:SR1',iproc,real(ncount1-ncount0)/real(ncount_rate)
   !the density must be communicated to meet the shape of the poisson solver

@@ -1158,7 +1158,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
 ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_c) then
-    write(*,*)'There is an error in psi_to_locreg: number of coarse points used',icheck
+    write(*,*)'There is an error in psi_to_locreg2: number of coarse points used',icheck
     write(*,*)'is not equal to the number of coarse points in the region',Llr%wfd%nvctr_c
   end if
 
@@ -1592,6 +1592,8 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
   integer :: i_stat,i_all
   integer :: start,Gstart,Lindex
   integer :: lfinc,Gfinc,spinshift,ispin,Gindex
+  ! debug
+  integer:: lxs, lys, lzs, lxe, lye, lze, gxe, gye, gze, locallength, actuallength
 
 ! Define integers
   nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
@@ -1612,6 +1614,8 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
 
+     locallength=lmax-lmin+1
+     actuallength=0
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = 1,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keyg(1,isegG)
@@ -1629,6 +1633,8 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
 
         ! Define the length of the two segments
         length = min(lmax,Gmax)-max(lmin,Gmin)
+        actuallength=actuallength+length+1
+
 
         !Find the common elements and write them to the new global wavefunction
         ! WARNING: index goes from 0 to length because it is the offset of the element
@@ -1650,11 +1656,14 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
            !!end do
         end do
      end do
+     if(locallength/=actuallength) then
+         write(*,'(2(a,i0),a)') 'ERROR: locallength = ',locallength, ' /= ', actuallength, ' = actuallength' 
+     end if
   end do
 
 ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_c) then
-    write(*,*)'There is an error in index_of_Lpsi_to_global: number of coarse points used',icheck
+    write(*,*)'There is an error in index_of_Lpsi_to_global2: number of coarse points used',icheck
     write(*,*)'is not equal to the number of coarse points in the region',Llr%wfd%nvctr_c
   end if
 
@@ -1831,7 +1840,7 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
 
 ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_c) then
-    write(*,'(2(a,i0))')'There is an error in psi_to_locreg: number of coarse points used, ',icheck, &
+    write(*,'(2(a,i0))')'There is an error in index_of_psi_to_locreg2: number of coarse points used, ',icheck, &
               ', is not equal to the number of coarse points in the region, ',Llr%wfd%nvctr_c
   end if
 

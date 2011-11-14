@@ -713,7 +713,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf) 
 
   case(INPUT_PSI_LINEAR)
-     
+
+     !this does not work with ndebug activated
      lin%as%size_rhopot=size(rhopot)
      lin%as%size_potxc(1)=size(potxc,1)
      lin%as%size_potxc(2)=size(potxc,2)
