@@ -76,11 +76,13 @@ module lanczos_interface
    return
 END FUNCTION get_EP_dim
 
+
 subroutine set_EP_shift(shift)
    real(8) shift
    EP_shift=shift
    return
 END SUBROUTINE set_EP_shift
+
 
 subroutine EP_inizializza(ha_actual)
    implicit none
@@ -162,32 +164,24 @@ nullify(Qvect,dumQvect)
   END SUBROUTINE EP_mat_mult
 
 
-  !allocate the wavefunctions in the transposed form, for lancsoz
+  !> Allocate the wavefunctions in the transposed form, for lancsoz
+  subroutine EP_free(iproc)
+     implicit none
+     integer, intent(in) :: iproc
 
-
-  subroutine EP_free()
-
-     print * , "DEALLOCATING"
+     if (iproc == 0)  write(*,*) "DEALLOCATING"
 
      i_all=-product(shape(Qvect))*kind(Qvect)
      deallocate(Qvect,stat=i_stat)
      call memocc(i_stat,i_all,'Qvect',subname)
 
-
-
      i_all=-product(shape(dumQvect))*kind(dumQvect)
      deallocate(dumQvect,stat=i_stat)
      call memocc(i_stat,i_all,'dumQvect',subname)
 
-
-
-
      i_all=-product(shape(Qvect_tmp))*kind(Qvect_tmp)
      deallocate(Qvect_tmp,stat=i_stat)
      call memocc(i_stat,i_all,'Qvect_tmp',subname)
-
-
-
 
      i_all=-product(shape(wrk))*kind(wrk)
      deallocate(wrk,stat=i_stat)
@@ -201,19 +195,15 @@ nullify(Qvect,dumQvect)
      deallocate(wrk2,stat=i_stat)
      call memocc(i_stat,i_all,'wrk2',subname)
 
-
-
      if(EP_doorthoocc) then
         i_all=-product(shape(EP_occprojections))*kind(EP_occprojections)
         deallocate(EP_occprojections,stat=i_stat)
         call memocc(i_stat,i_all,'EP_occprojections',subname)
      endif
 
-
      i_all=-product(shape(EP_norma2_initialized_state))*kind(EP_norma2_initialized_state)
      deallocate(EP_norma2_initialized_state,stat=i_stat)
      call memocc(i_stat,i_all,'EP_norma2_initialized_state',subname)
-
 
   END SUBROUTINE EP_free
 
@@ -509,7 +499,7 @@ nullify(Qvect,dumQvect)
      integer :: i
 
      if ( ha%at%paw_NofL(ha%at%iatype(ha%in_iat_absorber )).gt.0  ) then
-        print *, "USING PTILDES TO BUILD INITIAL WAVE"
+        if (ha%iproc == 0) write(*,*) "USING PTILDES TO BUILD INITIAL WAVE"
         !!if(EP_dim_tot.gt.0) then
         call razero(EP_dim_tot  ,  Qvect_tmp  )
         call applyPAWprojectors(ha%orbs,ha%at,&

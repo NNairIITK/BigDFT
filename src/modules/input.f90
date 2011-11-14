@@ -275,7 +275,8 @@ module module_input
          !Start the comment at column 16 if possible
          iblank=scan(line_being_processed,' ')
          ipos=ipos+iblank
-         istart=max(ipos+1,16)
+         !+2 in order to add a space before the comment 
+         istart=max(ipos+2,16)
          do i=ipos+1,15
             inout_lines(iline_written)(i:i)=' '
          end do
@@ -646,7 +647,7 @@ module module_input
          else
             call process_line(default=default)
          end if
-         read(default,*,iostat=ierror)var
+         read(default,*,iostat=ierror) var
          if (present(input_iostat) .and. ierror /= 0) then
             input_iostat=-2
             return
@@ -746,7 +747,7 @@ module module_input
          else
             call process_line(default=default)
          end if
-         read(default,*,iostat=ierror)var
+         read(default,*,iostat=ierror) var
          if (present(input_iostat) .and. ierror /= 0) then
             input_iostat=-2
             return
@@ -814,7 +815,7 @@ module module_input
          else
             call process_line(default=default)
          end if
-         read(default,*,iostat=ierror)var
+         read(default,*,iostat=ierror) var
          if (present(input_iostat) .and. ierror /= 0) then
             input_iostat=-2
             return

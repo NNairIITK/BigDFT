@@ -974,7 +974,7 @@ module lanczos_base
       real(gp) tol
       real(wp) alphacollect(nkpts)
 
-      print *, "LB_nproc= ", LB_nproc
+      if(LB_iproc == 0) print *, "LB_nproc= ", LB_nproc
 
       if(LB_nproc/=1) then
          dspl(0)=0
@@ -992,7 +992,7 @@ module lanczos_base
       Sprecedente= 6
 
       call EP_initialize_start()
-      print *, " EP_initialize_start    OK "
+      if (LB_iproc == 0) write(*,*) " EP_initialize_start    OK "
       call EP_copy(attuale,0)
       call EP_copy(precedente,0)
       if(dopaw) then
