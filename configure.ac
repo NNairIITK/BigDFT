@@ -264,25 +264,26 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   AC_PATH_PROG([NVCC], [nvcc], [$ac_with_nvcc], [$PATH:${ac_with_cuda_path}/bin])
   AC_SUBST(NVCC)
 
-  dnl look for the header.
+  dnl look for the cublas header
   AC_LANG_PUSH(C)
   CPPFLAGS_SVG=$CPPFLAGS
   CPPFLAGS="$CPPFLAGS -I$ac_with_cuda_path/include"
-  AC_CHECK_HEADER([cuda.h],
-                  [ac_cuda_header="yes"],
-                  [ac_cuda_header="no"])
+  AC_CHECK_HEADER([cublas.h],
+                  [ac_cublas_header="yes"],
+                  [ac_cublas_header="no"])
   CPPFLAGS=$CPPFLAGS_SVG
-  if test "$ac_cuda_header" = "no"; then
+  if test "$ac_cublas_header" = "no"; then
     AC_MSG_WARN(["No 'CUDA' header found, CUDA parts disabled."])
     ac_use_cuda_gpu="no"
   else
     CUDA_INCLUDE_PATH=$ac_with_cuda_path"/include"
-    AC_SUBST(OCL_INCLUDE_PATH)
-    OCL_INCLUDE="-I"$ac_with_cuda_path"/include"
+    AC_SUBST(CUDA_INCLUDE_PATH)
+    CUDA_INCLUDE="-I"$ac_with_cuda_path"/include"
     AC_SUBST(CUDA_INCLUDE)
   dnl Test the link on libcudart and libcublas.
   LIBS_OLD=$LIBS
   fi
+  dnl look for the cublas library
   ac_cuda_lib_path="$ac_with_cuda_path/lib"
   LIBS="-L$ac_cuda_lib_path $LIBS_OLD"
   AC_CHECK_LIB(cublas, cublasSsymv, withlibcublas=yes, withlibcublas=no, [-lcudart])
