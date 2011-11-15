@@ -1,4 +1,4 @@
-!> @file
+!!> @file
 !!  Routines to read and print input variables
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group 
@@ -329,7 +329,10 @@ subroutine dft_input_variables_new(iproc,filename,in)
 
   !charge and electric field
   call input_var(in%ncharge,'0',ranges=(/-10,10/))
-  call input_var(in%elecfield,'0.',comment='ncharge: charge of the system, Electric field')
+  call input_var(in%elecfield(1),'0.')
+  call input_var(in%elecfield(2),'0.')
+  call input_var(in%elecfield(3),'0.',comment='charge of the system, Electric field (Ex,Ey,Ez)')
+  !call input_var(in%elecfield(3),'0.',comment='ncharge: charge of the system, Electric field (Ex,Ey,Ez)')
 
   !spin and polarization
   call input_var(in%nspin,'1',exclusive=(/1,2,4/))
@@ -452,8 +455,9 @@ subroutine mix_input_variables_default(in)
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%Tel=0.0_gp
   in%norbsempty=0
+  in%Tel=0.0_gp
+  in%occopt=SMEARING_DIST_ERF
   in%alphadiis=2.d0
 
 END SUBROUTINE mix_input_variables_default
@@ -486,11 +490,12 @@ subroutine mix_input_variables_new(iproc,filename,in)
   call input_var(in%rpnrm_cv,'1.e-4',ranges=(/0.0_gp,10.0_gp/),&
        comment="Stop criterion on the residue of potential or density")
   call input_var(in%norbsempty,'0',ranges=(/0,10000/))
-  call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/),&
-       comment="Number of additional bands, electronic temperature")
+  call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/)) 
+  call input_var(in%occopt,'1',ranges=(/1,5/),&
+       comment="No. of additional bands, elec. temperature, smearing method")
   call input_var(in%alphamix,'0.0',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%alphadiis,'2.0',ranges=(/0.0_gp,10.0_gp/),&
-       comment="Multiplying factors for the mixing and the elctronic DIIS")
+       comment="Multiplying factors for the mixing and the electronic DIIS")
 
   call input_free(iproc)
 
@@ -498,60 +503,6 @@ subroutine mix_input_variables_new(iproc,filename,in)
   if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
 
 END SUBROUTINE mix_input_variables_new
-
-
-!> Read the input variables needed for the geometry optimisation
-!!    Every argument should be considered as mandatory
-subroutine mix_input_variables(filename,in)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  !local variables
-  !n(c) character(len=*), parameter :: subname='mix_input_variables'
-  integer :: ierror,iline
-  logical :: exists
-
-  inquire(file=filename,exist=exists)
-  if (.not. exists) then
-     return
-  end if
-
-  ! Read the input variables.
-  open(unit=1,file=filename,status='old')
-
-  !line number, to control the input values
-  iline=0
-
-  read(1,*,iostat=ierror) in%iscf
-  call check()
-  read(1,*,iostat=ierror) in%itrpmax
-  call check()
-  read(1,*,iostat=ierror) in%rpnrm_cv
-  call check()
-  read(1,*,iostat=ierror) in%norbsempty, in%Tel
-  call check()
-  read(1,*,iostat=ierror) in%alphamix,in%alphadiis
-  call check()
-  close(unit=1,iostat=ierror)
-
-  !put the startmix if the mixing has to be done
-  if (in%itrpmax >1) in%gnrm_startmix=1.e300_gp
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-            call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE mix_input_variables
 
 
 !> Assign default values for GEOPT variables
@@ -948,10 +899,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
       if(ios/=0) then
           ! The parameters where not specified for all atom types.
           if(iproc==0) then
-              write(*,'(x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
+              write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
                        & for the following atom types:"
               do jtype=1,atoms%ntypes
-                  if(.not.parametersSpecified(jtype)) write(*,'(x,a)',advance='no') trim(atoms%atomnames(jtype))
+                  if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
               end do
           end if
           call mpi_barrier(mpi_comm_world, ierr)
@@ -970,7 +921,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
           end if
       end do
       if(.not.found) then
-          if(iproc==0) write(*,'(x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
+          if(iproc==0) write(*,'(1x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
                      "', which is not present in the file containing the atomic coordinates."
           call mpi_barrier(mpi_comm_world, ierr)
           stop
@@ -1121,8 +1072,13 @@ subroutine update_symmetries(in, atoms, rxyz)
            call symmetry_set_periodicity(atoms%symObj, &
                 & (/ .false., .false., .false. /), ierr)
         end if
-        if (in%elecfield /= 0) then
-           call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield, 0._gp /), ierr)
+        !if (all(in%elecfield(:) /= 0)) then
+        !     ! I'm not sure what this subroutine does!
+        !   call symmetry_set_field(atoms%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
+        !elseif (in%elecfield(2) /= 0) then
+        !   call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
+        if (in%elecfield(2) /= 0) then
+           call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
         end if
      else
         if (atoms%symObj >= 0) then
@@ -3429,7 +3385,7 @@ subroutine print_general_parameters(nproc,input,atoms)
           & "      DIIS=", input%alphadiis
      write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
           & "  Max iter.=", input%itrpmax,    "|", &
-          & "Occ. scheme=", smearing_names(occopt), "|"
+          & "Occ. scheme=", smearing_names(input%occopt), "|"
      if (input%verbosity > 2) then
         write(dos, "(A)") "dos.gnuplot"
      else
@@ -3514,7 +3470,7 @@ subroutine print_dft_parameters(in,atoms)
        'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
        '|  CG Steps=',in%ncongt
   write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
+       ' elec. field=',sqrt(sum(in%elecfield(:)**2)),'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',in%mpol, '|'
@@ -3867,7 +3823,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='initialize_atomic_file'
-  integer :: i_stat, l
+  integer :: i_stat
   integer :: iat,i
 
   allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)

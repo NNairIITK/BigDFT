@@ -110,7 +110,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,hxh,hyh,hzh,psi,rho,&
      call xc_init_rho(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot*nspinn,rho_p,nproc)
 
      !for each of the orbitals treated by the processor build the partial densities
-     call local_partial_density(iproc,nproc,(rhodsc%icomm==1),nscatterarr,&
+     call local_partial_density(nproc,(rhodsc%icomm==1),nscatterarr,&
           nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   end if
 
@@ -587,7 +587,7 @@ integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
 
 
-if(iproc==0) write(*,'(x,a)',advance='no') 'Calculating charge density...'
+if(iproc==0) write(*,'(1x,a)',advance='no') 'Calculating charge density...'
 
 !lin%comsr%communComplete=.false.
 !lin%comsr%computComplete=.false.
@@ -696,9 +696,9 @@ if(iproc==0) write(*,'(a,es12.4)') 'time for wait:',time
 !call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
                        nfast, ' could be overlapped with computation.'
-if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
 do iorb=1,lin%comsr%noverlaps(iproc)
@@ -822,7 +822,7 @@ time=t2-t1
 if(iproc==0) write(*,'(a,es12.4)') 'time for large loop:',time
 
 call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(x,a,es20.12)') 'done. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
+if(iproc==0) write(*,'(1x,a,es20.12)') 'done. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
 
 iall=-product(shape(densKern))*kind(densKern)

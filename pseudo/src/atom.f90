@@ -1,48 +1,53 @@
-      program main
-!
-!     run atomic program
-!
-      call atom
-      end program main
+!> @file
+!! Atomic program for psueod-potential calculations
+!! @author
+!!    Program for atomic calculations
+!!    written by Sverre Froyen, February 1982
+!!    while at UC Berkeley, California
+!!
+!!    then modified by
+!!    Christian Hartwigsen, February 1998
+!!    while at MPI Stuttgart, Germany
+!!
+!!    and further altered by
+!!    Alex Willand,
+!!            under the supervision of
+!!    Stefan Goedecker, December 2010
+!!    while at Universitaet Basel, Switzerland
+!!
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+!!
+!! @warning
+!!    Some parameters are set inside the program
+!!    the most important ones are the tolerance for the self-
+!!    consistency in the potential (set in the main program)
+!!    and the accuracy in the eigenvalue for a given potential
+!!    (set in difrel,difnrl)
 
 
-       subroutine atom
+!> Run atomic program
+program main
+   call atom
+END PROGRAM main
 
-!
+
+subroutine atom
+
        implicit double precision(a-h,o-z)
-!      ******************************************************
-!      *     program for atomic calculations                *
-!      *     written by Sverre Froyen, February 1982        *
-!      *     while at UC Berkeley, California               *
-!      *                                                    *
-!      *    then  modified by                               *
-!      *    Christian Hartwigsen, february 1998             *
-!      *    while at MPI Stuttgart, Germany                 *
-!      *                                                    *
-!      *                                                    *
-!      *        and further altered by                      *
-!      *        Alex Willand,                               *
-!      *                under the supervision of            *       
-!      *        Stefan Goedecker, December 2010             *
-!      *        while at Universitaet Basel, Switzerland    *
-!      *                                                    *
-!      ******************************************************
-!
-!      some parameters are set inside the program
-!      the most important ones are the tolerance for the self-
-!      consistency in the potential (set in the main program)
-!      and the accuracy in the eigenvalue for a given potential
-!      (set in difrel,difnrl)
-!
-      integer, parameter :: nrmax=10000, maxorb=60, lmax=5, maxconf=19
-      logical, parameter :: debug=.false.
+
+       integer, parameter :: nrmax=10000, maxorb=60, lmax=5, maxconf=19
+       logical, parameter :: debug=.false.
 !
        dimension r(nrmax),rab(nrmax),  &
-       no(maxorb),lo(maxorb),so(maxorb),zo(maxorb),  &
-       cdd(nrmax),cdu(nrmax),cdc(nrmax),  &
-       viod(lmax,nrmax),viou(lmax,nrmax),vid(nrmax),viu(nrmax),  &
-       vod(nrmax),vou(nrmax),  &
-       etot(10),econf(maxconf),ev(maxorb),ek(maxorb),ep(maxorb)
+       & no(maxorb),lo(maxorb),so(maxorb),zo(maxorb),  &
+       & cdd(nrmax),cdu(nrmax),cdc(nrmax),  &
+       & viod(lmax,nrmax),viou(lmax,nrmax),vid(nrmax),viu(nrmax),  &
+       & vod(nrmax),vou(nrmax),  &
+       & etot(10),econf(maxconf),ev(maxorb),ek(maxorb),ep(maxorb)
 !
        character(len=2) :: naold,itype,ityold,nameat,stop_chain,cnum
        character(len=1) :: ispp
@@ -50,9 +55,9 @@
        integer :: iXC
        logical :: abort
 
-!     c.hartwig: additioanl grids for modified integration
-      dimension rw(10000),rd(10000)
-      common /intgrd/ rw,rd
+!      c.hartwig: additioanl grids for modified integration
+       dimension rw(10000),rd(10000)
+       common /intgrd/ rw,rd
 !----------------------------------------------------------------------
        tol = 1.0D-11
 !      heuristic value for fluctuating GGAs
@@ -86,15 +91,15 @@
 !      read input data
 !
        call input (itype,iXC,ispp,  &
-       nrmax,nr,a,b,r,rab,rprb,rcov,lmax,  &
-       nameat,norb,ncore,no,lo,so,zo,  &  
-       znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
-       viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep,nconf,  &
-!      test: pass dummy args instead of using a save block
-       nvalo,ncoreo)
+       & nrmax,nr,a,b,r,rab,rprb,rcov,lmax,  &
+       & nameat,norb,ncore,no,lo,so,zo,  &  
+       & znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
+       & viod,viou,vid,viu,vod,vou,  &
+       & etot,ev,ek,ep,nconf,  &
+       & nvalo,ncoreo) !      test: pass dummy args instead of using a save block
 
        if (itype == stop_chain) goto 140
+
        if (nconf .gt. maxconf) then
           write(6,*) 'too many configurations, max. is:',maxconf
           stop
@@ -2296,10 +2301,10 @@
 !  Normalize the wavefunction.
 !
       factor = 1 / sqrt(factor)
-      do 110 j=1,ninf
+      do j=1,ninf
         ar(j) = factor*ar(j)
         br(j) = factor*br(j)
- 110  continue
+      end do
  111  continue
       return
       end
@@ -2338,7 +2343,7 @@
 !     work-arrays for integration, and xc-potential
 !     SOME OF THOSE SEEM NOT TO BE USED AT ALL
       dimension ttx(50000),tty(50000),ttyp(50000),ttypp(50000),  &
-           ttw(150000),rho(nr),vxcgrd(nr),excgrd(nr)
+           ttw(150000),rho(nr),excgrd(nr)
       dimension rr(10000),rw(10000),rd(10000)
       common /intgrd/ rw,rd
       character*1 il(5)
@@ -2604,9 +2609,6 @@
 !   printout
 !
 
-
-
-
       if(iorb==ncore+nval) then
          write(plotfile, '(a,i0,a)') 'ae.pot.conf.',nconf ,'.plt'
          open(unit=37,file=trim(plotfile),status='unknown')
@@ -2624,8 +2626,6 @@
          end do
          close(37)
       endif
-      
-
 
       vshift=-15d0
       il(1) = 's'

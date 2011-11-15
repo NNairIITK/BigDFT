@@ -510,9 +510,9 @@ end do
 !call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
                        nfast, ' could be overlapped with computation.'
-if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
 

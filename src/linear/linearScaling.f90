@@ -132,8 +132,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
 !!
 
   if(iproc==0) then
-      write(*,'(x,a)') repeat('*',84)
-      write(*,'(x,a)') '****************************** LINEAR SCALING VERSION ******************************'
+      write(*,'(1x,a)') repeat('*',84)
+      write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
   end if
   call mpi_barrier(mpi_comm_world, ierr)
   t1tot=mpi_wtime()
@@ -230,7 +230,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
       time=t2-t1
       call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
       time=time/dble(nproc)
-      if(iproc==0) write(*,'(x,a,es12.4)') 'time for sumrho:',time
+      if(iproc==0) write(*,'(1x,a,es12.4)') 'time for sumrho:',time
 
       if(trim(lin%mixingMethod)=='dens') then
           if(lin%mixHist==0) then
@@ -339,7 +339,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
           time=t2-t1
           call deallocateCommunicationbufferSumrho(lin%comsr, subname)
           !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-          if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time
+          if(iproc==0) write(*,'(1x,a,es10.3)') 'time for sumrho:', time
 
           ! Mix the density.
           !if(lin%nItInguess>0 .or. itSCC>1) then
@@ -563,14 +563,14 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call mpi_barrier(mpi_comm_world, ierr)
   t2tot=mpi_wtime()
   timetot=t2tot-t1tot
-  if(iproc==0) write(*,'(x,a)') '================================================'
-  if(iproc==0) write(*,'(x,a,es10.3,a)') 'total time for linear scaling version:',timetot,'s'
+  if(iproc==0) write(*,'(1x,a)') '================================================'
+  if(iproc==0) write(*,'(1x,a,es10.3,a)') 'total time for linear scaling version:',timetot,'s'
   if(iproc==0) write(*,'(3x,a)') 'of which:'
   if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- initialization:',timeinit,'s (',timeinit/timetot*100.d0,'%)'
   if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- input guess:',timeig,'s (',timeig/timetot*100.d0,'%)'
   if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- self consistency cycle:',timescc,'s (',timescc/timetot*100.d0,'%)'
   if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- forces:',timeforce,'s (',timeforce/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(x,a)') '================================================'
+  if(iproc==0) write(*,'(1x,a)') '================================================'
 
 end subroutine linearScaling
 
@@ -642,8 +642,8 @@ real(8),intent(in):: pnrm, energy, energyDiff
 character(len=4),intent(in):: mixingMethod
 
   if(iproc==0) then
-      write(*,'(x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
-      write(*,'(x,a,i0,a)') 'at iteration ', itSCC, ' of the self consistency cycle:'
+      write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
+      write(*,'(1x,a,i0,a)') 'at iteration ', itSCC, ' of the self consistency cycle:'
       if(infoBasisFunctions<0) then
           write(*,'(3x,a)') '- WARNING: basis functions not converged!'
       else
@@ -661,7 +661,7 @@ character(len=4),intent(in):: mixingMethod
       else if(mixingMethod=='pot') then
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta POT, energy energyDiff', itSCC, pnrm, energy, energyDiff
       end if
-      write(*,'(x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
+      write(*,'(1x,a)') repeat('#',92 + int(log(real(itSCC))/log(10.)))
   end if
 
 end subroutine printSummary
@@ -758,7 +758,7 @@ character(len=*),parameter:: subname='transformToGlobal'
 
 
   if(iproc==0) then
-      write(*,'(x,a)', advance='no') '------------------------------------- Building linear combinations... '
+      write(*,'(1x,a)', advance='no') '------------------------------------- Building linear combinations... '
   end if
   ! Build the extended orbital psi as a linear combination of localized basis functions phi. for real O(N)
   ! this has to replaced, but at the moment it is still needed.

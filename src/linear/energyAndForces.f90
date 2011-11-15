@@ -138,7 +138,7 @@ real(wp) :: sum_psi
   call timing(iproc,'Forces        ','ON')
   ! calculate local part of the forces gxyz
   call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
-       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,rhopot,pot,gxyz)
+       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,rhopot,pot,gxyz)
   !call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
 
   !!i_all=-product(shape(rho))*kind(rho)
@@ -1727,7 +1727,7 @@ logical:: refill_proj
   call timing(iproc,'Forces        ','ON')
   ! calculate local part of the forces gxyz
   call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
-       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,rho,pot,gxyz)
+       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,rho,pot,gxyz)
 
   !i_all=-product(shape(rho))*kind(rho)
   !deallocate(rho,stat=i_stat)
