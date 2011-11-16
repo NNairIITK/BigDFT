@@ -129,3 +129,4 @@
  61 allocations and 61 deallocations, remaining memory(B): 0
  memory occupation peak: 1 MB
  for the array  logrid_big in the routine  make_all_ib
+
