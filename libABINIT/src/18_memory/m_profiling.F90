@@ -928,7 +928,7 @@
       integer :: ndim
       if (ndebug /=0) then
          ndim=product(shape(array))-ndebug
-         call cmpdp_padding(1,ndim,array)
+         !call cmpdp_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_cmpdp1

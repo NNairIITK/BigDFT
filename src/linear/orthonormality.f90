@@ -369,7 +369,7 @@ end subroutine orthonormalizeLocalized2
 
 
 
-subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, trH)
+subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, trH, W, eval)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
@@ -386,16 +386,19 @@ real(8),dimension(lin%orbs%npsidim),intent(in):: lphi
 real(8),dimension(lin%orbs%npsidim),intent(inout):: lhphi
 type(matrixDescriptors),intent(in):: mad
 real(8),intent(out):: trH
+real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out),optional:: W
+real(8),dimension(lin%orbs%norb),intent(out),optional:: eval
 
 ! Local variables
-integer:: it, istat, iall, iorb, ierr, i, maxvaloverlap
-real(8),dimension(:),allocatable:: lphiovrlp, sendBuf, ovrlpCompressed, ovrlpCompressed2
+integer:: it, istat, iall, iorb, ierr, i, maxvaloverlap, lwork, info, jorb, k
+real(8),dimension(:),allocatable:: lphiovrlp, sendBuf, ovrlpCompressed, ovrlpCompressed2, work
 real(8),dimension(:,:),allocatable:: lagmat
 character(len=*),parameter:: subname='orthoconstraintLocalized'
-real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput
+real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput, tt
 real(8):: timecommunp2p, timecommuncoll, timecompress
 logical,dimension(:,:),allocatable:: expanded
 integer,dimension(:),allocatable:: sendcounts, displs
+logical:: present_W, present_eval
 
 
 
@@ -507,6 +510,63 @@ integer,dimension(:),allocatable:: sendcounts, displs
   timeApply=t2-t1
 
   call deallocateCommuncationBuffersOrtho(lin%comon, subname)
+
+  present_W=present(W)
+  present_eval=present(eval)
+  !present_eval=.false.
+  if(present_W .and. .not.present_eval .or. present_eval .and. .not.present_W) then
+      write(*,*) 'ERROR W and eval must be present at the same time'
+      stop
+  end if
+  if(present_W .and. present_eval) then
+      ! Diagonalize lagmat -- EXPERIMENTAL
+
+      ! Copy lagmat to W and symmetrize it.
+      do iorb=1,lin%orbs%norb
+          do jorb=1,lin%orbs%norb
+              W(jorb,iorb)=.5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)
+          end do
+      end do
+      allocate(work(1), stat=istat)
+      call memocc(istat, work, 'work', subname)
+      call dsyev('v', 'l', lin%orbs%norb, W(1,1), lin%orbs%norb, eval, work, -1, info)
+      if(info/=0) stop 'ERROR in dsyev'
+      lwork=work(1)
+      iall=-product(shape(work))*kind(work)
+      deallocate(work, stat=istat)
+      call memocc(istat, iall, 'work', subname)
+      allocate(work(lwork), stat=istat)
+      call memocc(istat, work, 'work', subname)
+      call dsyev('v', 'l', lin%orbs%norb, W(1,1), lin%orbs%norb, eval, work, lwork, info)
+      if(info/=0) stop 'ERROR in dsyev'
+      iall=-product(shape(work))*kind(work)
+      deallocate(work, stat=istat)
+      call memocc(istat, iall, 'work', subname)
+
+      ! Transpose W
+      do iorb=1,lin%orbs%norb
+          do jorb=iorb,lin%orbs%norb
+              tt=W(jorb,iorb)
+              W(jorb,iorb)=W(iorb,jorb)
+              W(iorb,jorb)=tt
+          end do
+      end do
+
+      ! Check
+      !do iorb=1,lin%orbs%norb
+      !    do jorb=1,lin%orbs%norb
+      !        tt=0.d0
+      !        do k=1,lin%orbs%norb
+      !            tt=tt+eval(k)*W(k,iorb)*W(k,jorb)
+      !        end do
+      !        if(iproc==0) then
+      !            write(*,'(a,2i7,2es16.8)') 'iproc, jorb, tt, .5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)', iproc, jorb, tt, .5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)
+      !        end if
+      !    end do
+      !end do
+  end if
+
+  !!
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)

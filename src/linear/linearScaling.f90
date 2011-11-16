@@ -162,6 +162,11 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
   !rhopotold_out=1.d100
 
+  allocate(lin%lpsi(size(lphi)), stat=istat)
+  call memocc(istat, lin%lpsi, 'lin%lpsi', subname)
+  allocate(lin%lhpsi(size(lphi)), stat=istat)
+  call memocc(istat, lin%lhpsi, 'lin%lhpsi', subname)
+
   !allocate(lphiold(size(lphi)), stat=istat)
   !call memocc(istat, lphiold, 'lphiold', subname)
 
@@ -180,6 +185,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
   t2ig=mpi_wtime()
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
+
+  ! Copy lphi to lin%lpsi, don't know whether this is a good choice
+  lin%lpsi=lphi
 
 
   !!allocate(ovrlp(lin%orbs%norb,lin%orbs%norb))
@@ -553,6 +561,13 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi, lphi, coeff)
+
+  iall=-product(shape(lin%lpsi))*kind(lin%lpsi)
+  deallocate(lin%lpsi, stat=istat)
+  call memocc(istat, iall, 'lin%lpsi', subname)
+  iall=-product(shape(lin%lhpsi))*kind(lin%lhpsi)
+  deallocate(lin%lhpsi, stat=istat)
+  call memocc(istat, iall, 'lin%lhpsi', subname)
 
 
 

@@ -913,7 +913,7 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
   use module_base
   use module_types
   use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_local_zone_descriptors
+  use module_interfaces, exceptThisOne => deallocate_Lzd_except_Glr
   implicit none
 
   ! Calling arguments
