@@ -878,7 +878,8 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
 !!$           end do
            write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts:',(rds(1:ncplx,j,1,1),j=1,min(diis%idsx,diis%ids)+1)!,&
            !yaml output
-           write(70,'(1x,a,1pe9.2,18(a,1pe9.2),a)')'DIIS wgts: [ ',rds(1:ncplx,1,1,1),((', ',rds(1:ncplx,j,1,1)),j=2,min(diis%idsx,diis%ids)+1),' ]'
+           write(70,'(1x,a,1pe9.2,18(a,1pe9.2),a)') &
+           &   'DIIS wgts: [ ',rds(1:ncplx,1,1,1),(', ',rds(1:ncplx,j,1,1),j=2,min(diis%idsx,diis%ids)+1),' ]'
            !'(',ttr,tti,')'
         else
            do igroup=1,ngroup

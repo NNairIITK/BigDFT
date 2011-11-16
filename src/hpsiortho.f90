@@ -642,9 +642,11 @@ subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,
      if (gnrm_zero == 0.0_gp) then
         write( *,'(a,1x,a,i6,2x,1pe24.17,1x,1pe9.2)') trim(' '//comment),'iter,total energy,gnrm',iter,energyKS,gnrm
         !yaml output
-        write(70,'(1x,a,1pe24.17,a,1x,a,1pe9.2,a,1x,a,i6,a)') 'total energy: ',energyKS,',','gnrm: ',gnrm,trim(lastsep),'#iter: ',iter,trim(' '//comment)
+        write(70,'(1x,a,1pe24.17,a,1x,a,1pe9.2,a,1x,a,i6,a)') &
+        &   'total energy: ',energyKS,',','gnrm: ',gnrm,trim(lastsep),'#iter: ',iter,trim(' '//comment)
      else
-        write( *,'(a,1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))')  trim(' '//comment),'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
+        write( *,'(a,1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
+        &   trim(' '//comment),'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
      end if
   end if
 
