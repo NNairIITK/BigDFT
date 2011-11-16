@@ -880,12 +880,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
          wfn_loop: do iter=1,in%itermax
 
+            !control whether the minimisation iterations ended
+            endloop= gnrm <= gnrm_cv .or. iter == in%itermax
+
             if (iproc == 0 .and. verbose > 0) then 
                write( *,'(1x,a,i0)') &
                   &   repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
+               !test for yaml output
+               if (endloop) then
+                  write(70,'(a,i0)')'- &last { #iter: ',iter
+               else
+                  write(70,'(a,i0)')'- { #iter: ',iter
+               end if
+
             endif
-            !control whether the minimisation iterations ended
-            endloop= gnrm <= gnrm_cv .or. iter == in%itermax
 
             !control how many times the DIIS has switched into SD
             if (diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
@@ -1043,30 +1051,39 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
             end if
          end if
          !flush all writings on standart output
-         if (iproc==0) flush(unit=6)
+         if (iproc==0) then
+            !yaml output
+            write(70,'(a)')'}'
+            flush(unit=6)
+         end if
       end do wfn_loop
 
       if (iproc == 0) then 
          if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
          write( *,'(1x,a)') &
             &   '--------------------------------------------------- End of Wavefunction Optimisation'
-         write( *,'(1x,a,3(1x,1pe18.11))') &
-            &   'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
-         write( *,'(1x,a,3(1x,1pe18.11))') &
-            &   'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
+!!$         write( *,'(1x,a,3(1x,1pe18.11))') &
+!!$            &   'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
+!!$         write( *,'(1x,a,3(1x,1pe18.11))') &
+!!$            &   'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
          if ((in%itrpmax >1 .and. endlooprp) .or. in%itrpmax == 1) then
             write(final_out, "(A5)") "FINAL"
          else
             write(final_out, "(A5)") "final"
          end if
-         if (gnrm_zero == 0.0_gp) then
-            write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-               &   final_out // ' iter,total energy,gnrm',iter,energy,gnrm
-         else
-            write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
-               &   final_out // ' iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+         call write_energies(iter,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,energy,0.0_gp,gnrm,gnrm_zero,final_out)
+         !yaml output
+         write(70,'(a)')'}'
 
-         end if
+!!$         if (gnrm_zero == 0.0_gp) then
+!!$            write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
+!!$               &   final_out // ' iter,total energy,gnrm',iter,energy,gnrm
+!!$         else
+!!$            write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
+!!$               &   final_out // ' iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+!!$
+!!$         end if
+
          !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
          if (in%itrpmax >1) then
             if ( diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
