@@ -1983,7 +1983,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
 
    if (.not. file_exists) then
       write(*,*) "Atomic input file not found."
-      write(*,*) " Files looked for were '"//file//"'.ascii, '"//file//".xyz' and '"//file//"'."
+      write(*,*) " Files looked for were '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
       stop 
    end if
 

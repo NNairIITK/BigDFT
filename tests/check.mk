@@ -101,7 +101,7 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.xabs.out: $(abs_top_builddir)/src/abscalc
-	name=`basename $@ .xabs.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	name=`basename $@ .xabs.out` ; \
 	$(abs_top_builddir)/src/abscalc $$name > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"

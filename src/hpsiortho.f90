@@ -604,8 +604,25 @@ end if
 
 
 !write the energy information
-if (iproc == 0 .and. verbose>=0) then
-   call write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,' ')
+if (iproc == 0) then
+   if (verbose > 0 .and. iscf<1) then
+      write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+      ekin,epot,eproj
+      write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,exc,evxc
+   end if
+   if (iscf > 1) then
+      if (gnrm_zero == 0.0_gp) then
+         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+      else
+         write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
+      end if
+   else
+      if (gnrm_zero == 0.0_gp) then
+         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energyKS,gnrm
+      else
+         write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
+      end if
+   end if
 endif
 
 END SUBROUTINE calculate_energy_and_gradient
