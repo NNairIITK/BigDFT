@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 10/11/2011
+# Date: 16/11/2011
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -358,13 +358,15 @@ while not EOF:
                 print context,
             print_context = True
             print left[i1],
-            floats = list()
-            for (one,two) in re_float.findall(left[i1]):
-                #'d' is not recognised by python
-                one = one.lower().replace("d","e")
-                floats.append((float(one), n_digits(one)))
-            if len(floats) > 0:
-                maximum = 99
+            #Check if supplementary lines are floating numbers
+            #TD (16/11/2011): Do no check!
+            #floats = list()
+            #for (one,two) in re_float.findall(left[i1]):
+            #    #'d' is not recognised by python
+            #    one = one.lower().replace("d","e")
+            #    floats.append((float(one), n_digits(one)))
+            #if len(floats) > 0:
+            #    maximum = 99
     while i2 < n2-1:
         i2 += 1
         if n2 > 0 and not line_junk(right[i2]):
@@ -372,13 +374,15 @@ while not EOF:
                 print context,
             print_context = True
             print right[i2],
-            floats = list()
-            for (one,two) in re_float.findall(right[i2]):
-                #'d' is not recognised by python
-                one = one.lower().replace("d","e")
-                floats.append((float(one), n_digits(one)))
-            if len(floats) > 0:
-                maximum = 99
+            #Check if supplementary lines are floating numbers
+            #TD (16/11/2011): Do no check!
+            #floats = list()
+            #for (one,two) in re_float.findall(right[i2]):
+            #    #'d' is not recognised by python
+            #    one = one.lower().replace("d","e")
+            #    floats.append((float(one), n_digits(one)))
+            #if len(floats) > 0:
+            #    maximum = 99
 
 if context_lines is not None:
     print context_lines,
