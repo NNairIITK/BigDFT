@@ -9,7 +9,7 @@ EXTRA_DIST = \
 	Manual/grid200.pdf \
 	Manual/grid300.pdf \
 	Manual/grid400.pdf \
-	Manual/manual.tex \
+	Manual/BigDFT-manual.tex \
 	Manual/sym_16.pdf \
 	html/commun.css \
 	html/doxygen.css \
@@ -28,7 +28,7 @@ CLEANFILES = *.aux *.toc *.log *.xml
 if BUILD_PDFDOC
 pdfs = cluster.pdf \
 	halFFT.pdf \
-	manual.pdf
+	BigDFT-manual.pdf
 else
 pdfs =
 endif
@@ -62,9 +62,9 @@ cluster.pdf: cluster.tex compress.pdf figrid.pdf
 halFFT.pdf: halFFT.tex
 	TEXINPUTS=$(top_srcdir)/doc:$${TEXINPUTS} pdflatex $(top_srcdir)/doc/halFFT.tex
 
-manual.pdf: Manual/manual.tex Manual/grid100.pdf Manual/grid200.pdf Manual/grid300.pdf Manual/grid400.pdf Manual/sym_16.pdf
-	TEXINPUTS=$(top_srcdir)/doc/Manual:$${TEXINPUTS} pdflatex $(top_srcdir)/doc/Manual/manual.tex
-	TEXINPUTS=$(top_srcdir)/doc/Manual:$${TEXINPUTS} pdflatex $(top_srcdir)/doc/Manual/manual.tex
+BigDFT-manual.pdf: Manual/BigDFT-manual.tex Manual/grid100.pdf Manual/grid200.pdf Manual/grid300.pdf Manual/grid400.pdf Manual/sym_16.pdf
+	TEXINPUTS=$(top_srcdir)/doc/Manual:$${TEXINPUTS} pdflatex $(top_srcdir)/doc/Manual/BigDFT-manual.tex
+	TEXINPUTS=$(top_srcdir)/doc/Manual:$${TEXINPUTS} pdflatex $(top_srcdir)/doc/Manual/BigDFT-manual.tex
 
 tests.xml:
 	@echo "<?xml version=\"1.0\" encoding=\"iso-8859-15\"?>" > tests.xml ; \
@@ -103,5 +103,5 @@ tests.xml:
 	echo "</bigdft-tests>" >> tests.xml
 
 clean-local:
-	rm -rf *.aux *.log cluster.pdf halFFT.pdf manual.pdf *.toc Doxygen *.stamp
+	rm -rf *.aux *.log cluster.pdf halFFT.pdf BigDFT-manual.pdf *.toc Doxygen *.stamp
 
