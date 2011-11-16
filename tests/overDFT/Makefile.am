@@ -60,7 +60,7 @@ global.mon.out : test.minhop.out
 # Additional run rules.
 InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
-	cp inputGenPot.xyz b2B_xanes.xyz
+	cp InputGenPot.xyz b2B_xanes.xyz
 
 # Define the precision for specific directories.
 %.report: %.ref
