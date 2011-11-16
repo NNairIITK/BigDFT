@@ -877,6 +877,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          !if we are in the last_run case, validate the last_run only for the last cycle
          DoLastRunThings=(in%last_run == 1 .and. icycle == in%nrepmax) !do the last_run things regardless of infocode
 
+         !yaml output
+         if (iproc==0) then
+            write(70,'(a,a)')repeat(' ',yaml_indent),'Iterations: '
+            yaml_indent=yaml_indent+1
+         end if
          wfn_loop: do iter=1,in%itermax
 
             !control whether the minimisation iterations ended
@@ -887,9 +892,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                   &   repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
                !test for yaml output
                if (endloop) then
-                  write(70,'(a,i0)')'- &last { #iter: ',iter
+                  write(70,'(a,i0)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
                else
-                  write(70,'(a,i0)')'- { #iter: ',iter
+                  write(70,'(a,i0)')repeat(' ',yaml_indent)//'- { #iter: ',iter
                end if
 
             endif
@@ -1073,6 +1078,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          call write_energies(iter,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,energy,0.0_gp,gnrm,gnrm_zero,final_out)
          !yaml output
          write(70,'(a)')'}'
+         yaml_indent=yaml_indent-1
 
 !!$         if (gnrm_zero == 0.0_gp) then
 !!$            write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
