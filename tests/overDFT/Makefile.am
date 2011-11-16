@@ -37,7 +37,7 @@ H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
 ElecField.psp: HGH-K/psppar.H HGH-K/psppar.O
 # Additional dependencies
 H2-freq2.freq.out: H2-freq.freq.out
-Xabsb2B.xabs.out: Xabsdel_inputGenPot.xabs.out
+Xabsb2B.xabs.out: InputGenPot.xabs.out
 
 # Additional NEB in.
 NEB.post-in:
@@ -58,7 +58,7 @@ global.mon.out : test.minhop.out
 
 
 # Additional run rules.
-Xabsdel_inputGenPot.xabs.post-out:
+InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp inputGenPot.xyz b2B_xanes.xyz
 
