@@ -752,7 +752,7 @@ iis1=lbound(orbsin%norb_par,1)
 iie1=ubound(orbsin%norb_par,1)
 iis2=lbound(orbsin%norb_par,2)
 iie2=ubound(orbsin%norb_par,2)
-allocate(orbsout%norb_par(iis1:iie1,iis1:iie1), stat=istat)
+allocate(orbsout%norb_par(iis1:iie1,iis2:iie2), stat=istat)
 call memocc(istat, orbsout%norb_par, 'orbsout%norb_par', subname)
 do i1=iis1,iie1
    do i2 = iis2,iie2
