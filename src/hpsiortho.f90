@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
       &   lr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
@@ -170,7 +171,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
 
 END SUBROUTINE LocalHamiltonianApplication
 
-!> routine which calculates the application of nonlocal projectors on the wavefunctions
+
+!> Routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
 subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
       &   nlpspd,proj,lr,psi,hpsi,eproj_sum)
@@ -602,11 +604,12 @@ end if
 
 
 !write the energy information
-if (iproc == 0 .and. verbose>0) then
+if (iproc == 0 .and. verbose>=0) then
    call write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,' ')
 endif
 
 END SUBROUTINE calculate_energy_and_gradient
+
 
 subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,comment)
   use module_base
