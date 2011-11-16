@@ -1841,7 +1841,7 @@ program conv_check_ocl
    call memocc(i_stat,i_all,'keyv',subname)
 
    !Need in order to have the last lines (TD,2011-11-10)
-   call flush()
+   call flush(6)
 
    call print_event_list
    call ocl_clean_command_queue(queue)
