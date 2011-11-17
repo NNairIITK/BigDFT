@@ -1359,8 +1359,8 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    !local variables
    character(len=*), parameter :: subname='check_communications'
    integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
-   integer :: ikpt,ispsi,nspinor,nvctrp
-   real(wp) :: psival,maxdiff,ierr
+   integer :: ikpt,ispsi,nspinor,nvctrp,ierr
+   real(wp) :: psival,maxdiff
    real(wp), dimension(:), allocatable :: psi
    real(wp), dimension(:), pointer :: pwork
    real(wp) :: epsilon

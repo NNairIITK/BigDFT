@@ -1587,7 +1587,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
         ! Orthonormalize the current bunch of vectors.
         call getOverlap(iproc, nproc, nspin, blocksize, orbs, comms, psi(1), &
              ndimovrlp, ovrlp, norbArr, ist, ispin, category)
-        call cholesky(iproc, nproc, blocksize, psi(1), nspinor, nspin, orbs, &
+        call cholesky(iproc, blocksize, psi(1), nspinor, nspin, orbs, &
              comms, ndimovrlp, ovrlp(1), norbArr, ist, ispin)
     
     end do
@@ -1629,7 +1629,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
             ! Orthonormalize the current bunch of vectors.
             call getOverlap(iproc, nproc, nspin, blocksizeSmall, orbs, comms,&
                  psi(1), ndimovrlp, ovrlp, norbArr, ist, ispin, category)
-            call cholesky(iproc, nproc, blocksizeSmall, psi(1), nspinor, nspin,&
+            call cholesky(iproc, blocksizeSmall, psi(1), nspinor, nspin,&
                  orbs, comms, ndimovrlp, ovrlp(1), norbArr, ist, ispin)
         end do
         i_all=-product(shape(ovrlp))*kind(ovrlp)

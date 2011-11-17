@@ -528,7 +528,7 @@ if test -n "$ac_lapack_dir" ; then
 fi
 withlapack=no
 if test "$lapack" = "yes" ; then
-  AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no)
+  AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no,$LINALG_LIBS)
   if test "$withlapack" = "yes"; then
     LINALG_LIBS="-llapack $LINALG_LIBS"
   fi
@@ -541,7 +541,7 @@ if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
   AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
 fi
 if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
-  AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation."])
+  AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
 fi
 AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
 

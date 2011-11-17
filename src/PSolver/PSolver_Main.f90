@@ -27,7 +27,11 @@
 !!          - 'P' periodic BC.
 !!                The density is supposed to be periodic in all the three directions,
 !!                then all the dimensions must be compatible with the FFT.
-!!                No need for setting up the kernel.
+!!                No need for setting up the kernel (in principle for Plane Waves)
+!!          - 'W' Wires BC.
+!!                The density is supposed to be periodic in z direction, 
+!!                which has to be compatible with the FFT.
+!!
 !!  @param datacode Indicates the distribution of the data of the input/output array:
 !!          - 'G' global data. Each process has the whole array of the density 
 !!                which will be overwritten with the whole array of the potential.
@@ -131,6 +135,11 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
           write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'W') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a)',advance='no')&
+          'PSolver, wires BC, dimensions: ',n01,n02,n03,'   proc',nproc,' ... '
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
      stop 'PSolver: geometry code not admitted'
   end if
@@ -139,7 +148,8 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   allocate(zf(md1,md3,md2/nproc+ndebug),stat=i_stat)
   call memocc(i_stat,zf,'zf',subname)
   !initalise to zero the zf array
-  zf=0.0_dp
+  call to_zero(md1*md3*md2/nproc,zf(1,1,1))
+  !zf=0.0_dp
   !call razero(md1*md3*md2/nproc,zf)
 
   !dimension for exchange-correlation (different in the global or distributed case)
@@ -195,6 +205,10 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      scal=-16.0_dp*atan(1.0_dp)*real(hy,dp)/real(n1*n2*n3,dp)
   else if (geocode == 'F') then
      !hgrid=max(hx,hy,hz)
+     scal=hx*hy*hz/real(n1*n2*n3,dp)
+  else if (geocode == 'W') then
+     !only one power of hgrid 
+     !factor of -4*pi for the definition of the Poisson equation
      scal=hx*hy*hz/real(n1*n2*n3,dp)
   end if
   !here the case ncplx/= 1 should be added
@@ -1189,18 +1203,16 @@ END SUBROUTINE xc_dimensions
 !>    Calculate four sets of dimension needed for the calculation of the
 !!    convolution for the periodic system
 !!
-!! SYNOPSIS
-!!    n01,n02,n03 original real dimensions (input)
+!!    @param n01,n02,n03 original real dimensions (input)
 !!
-!!    m1,m2,m3 original real dimension, with m2 and m3 exchanged
+!!    @param m1,m2,m3 original real dimension, with m2 and m3 exchanged
 !!
-!!    n1,n2,n3 the first FFT dimensions, for the moment supposed to be even
+!!    @param n1,n2,n3 the first FFT dimensions (even for the moment - the medium point being n/2+1)
 !!
-!!    md1,md2,md3 the n1,n2,n3 dimensions. They contain the real unpadded space,
-!!                properly enlarged to be compatible with the FFT dimensions n_i.
-!!                md2 is further enlarged to be a multiple of nproc
+!!    @param md1,md2,md3 the n1,n2,n3 dimensions. They contain the real unpadded space.
+!!           !!           md2 is further enlarged to be a multiple of nproc
 !!
-!!    nd1,nd2,nd3 fourier dimensions for which the kernel is injective,
+!!    @param nd1,nd2,nd3 fourier dimensions for which the kernel is injective,
 !!                formally 1/8 of the fourier grid. Here the dimension nd3 is
 !!                enlarged to be a multiple of nproc
 !!
@@ -1219,7 +1231,7 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  integer, intent(in) :: n01,n02,n03,nproc
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
  integer :: l1,l2,l3
-
+ 
  !dimensions of the density in the real space
  m1=n01
  m2=n03
@@ -1228,50 +1240,55 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  ! real space grid dimension (suitable for number of processors)
  l1=m1
  l2=m2
- l3=m3 !beware of the half dimension
-    call fourier_dim(l1,n1)
-    if (n1 == m1) then
-    else
-       print *,'the FFT in the x direction is not allowed'
-       print *,'n01 dimension',n01
-       stop
-    end if
-    l1=l1+1
-    call fourier_dim(l2,n2)
-    if (n2 == m2) then
-    else
-       print *,'the FFT in the z direction is not allowed'
-       print *,'n03 dimension',n03
-       stop
-    end if
-    call fourier_dim(l3,n3)
-    if (n3 == m3) then
-    else
-       print *,'the FFT in the y direction is not allowed'
-       print *,'n02 dimension',n02
-       stop
-    end if
+ l3=m3 
+ call fourier_dim(l1,n1)
+ if (n1 /= m1) then
+    print *,'the FFT in the x direction is not allowed'
+    print *,'n01 dimension',n01
+    stop
+ end if
+
+ call fourier_dim(l2,n2)
+ if (n2 /= m2) then
+    print *,'the FFT in the z direction is not allowed'
+    print *,'n03 dimension',n03
+    stop
+ end if
+ 
+ call fourier_dim(l3,n3)
+ if (n3 /= m3) then
+    print *,'the FFT in the y direction is not allowed'
+    print *,'n02 dimension',n02
+    stop
+ end if
 
  !dimensions that contain the unpadded real space,
  ! compatible with the number of processes
  md1=n1
  md2=n2
  md3=n3
-151 if (nproc*(md2/nproc) < n2) then
-    md2=md2+1
-    goto 151
- endif
 
+ !enlarge the md2 dimension to be compatible with MPI_ALLTOALL communication
+ do while(nproc*(md2/nproc) < n2)
+    !151 if (nproc*(md2/nproc) < n2) then
+    md2=md2+1
+ end do
+!    goto 151
+ !endif
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc
  nd1=n1/2+1 
  nd2=n2/2+1
  nd3=n3/2+1
-250 if (modulo(nd3,nproc) /= 0) then
+ 
+ !enlarge the md2 dimension to be compatible with MPI_ALLTOALL communication
+ do while(modulo(nd3,nproc) /= 0)
+!250 if (modulo(nd3,nproc) /= 0) then
     nd3=nd3+1
-    goto 250
- endif
+!    goto 250
+! endif
+ end do
 
 END SUBROUTINE P_FFT_dimensions
 
@@ -1291,7 +1308,7 @@ END SUBROUTINE P_FFT_dimensions
 !!
 !!    md1,md2     the n1,n2 dimensions. 
 !!    md3         half of n3 dimension. They contain the real unpadded space,
-!!                properly enlarged to be compatible with the FFT dimensions n_i.
+!!                which has been properly enlarged to be compatible with the FFT dimensions n_i.
 !!                md2 is further enlarged to be a multiple of nproc
 !!
 !!    nd1,nd2,nd3 fourier dimensions for which the kernel FFT is injective,
@@ -1323,21 +1340,21 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  l1=m1
  l2=m2
  l3=m3 !beware of the half dimension
-    call fourier_dim(l1,n1)
-    if (n1 == m1) then
-    else
-       print *,'the FFT in the x direction is not allowed'
-       print *,'n01 dimension',n01
-       stop
-    end if
-    l1=l1+1
-    call fourier_dim(l2,n2)
-    if (n2 == m2) then
-    else
-       print *,'the FFT in the z direction is not allowed'
-       print *,'n03 dimension',n03
-       stop
-    end if
+
+ call fourier_dim(l1,n1)
+ if (n1 /= m1) then
+    print *,'the FFT in the x direction is not allowed'
+    print *,'n01 dimension',n01
+    stop
+ end if
+ 
+ call fourier_dim(l2,n2)
+ if (n2 /= m2) then
+    print *,'the FFT in the z direction is not allowed'
+    print *,'n03 dimension',n03
+    stop
+ end if
+
  do
     call fourier_dim(l3,n3)
     if (modulo(n3,2) == 0) then
@@ -1352,10 +1369,12 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  md1=n1
  md2=n2
  md3=n3/2
-151 if (nproc*(md2/nproc).lt.n2) then
+ do while(nproc*(md2/nproc) < n2)
+    !151 if (nproc*(md2/nproc).lt.n2) then
     md2=md2+1
-    goto 151
- endif
+    !goto 151
+    !endif
+ end do
 
 
  !dimensions of the kernel, 1/8 of the total volume,
@@ -1364,34 +1383,135 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  !these two dimensions are like that since they are even
  nd1=n1/2+1
  nd2=n2/2+1
-
  nd3=n3/2+1
-250 if (modulo(nd3,nproc) .ne. 0) then
+ do while(modulo(nd3,nproc) /= 0)
+    !250 if (modulo(nd3,nproc) .ne. 0) then
     nd3=nd3+1
-    goto 250
- endif
+    !goto 250
+    !endif
+ end do
 
 END SUBROUTINE S_FFT_dimensions
+
+!>    Calculate four sets of dimension needed for the calculation of the
+!!    convolution for the Wires BC system
+!!
+!! SYNOPSIS
+!!    n01,n02,n03 original real dimensions (input)
+!!
+!!    m1,m2,m3 original real dimension, with 2 and 3 exchanged
+!!
+!!    n1,n2 the first FFT dimensions, for the moment supposed to be even
+!!    n3    the double of the first FFT even dimension greater than m3
+!!          (improved for the HalFFT procedure)
+!!
+!!    md1,md2     the n1,n2 dimensions. 
+!!    md3         half of n3 dimension. They contain the real unpadded space,
+!!                which has been properly enlarged to be compatible with the FFT dimensions n_i.
+!!                md2 is further enlarged to be a multiple of nproc
+!!
+!!    nd1,nd2,nd3 fourier dimensions for which the kernel FFT is injective,
+!!                formally 1/8 of the fourier grid. Here the dimension nd3 is
+!!                enlarged to be a multiple of nproc
+!!
+!! @warning
+!!    This four sets of dimensions are actually redundant (mi=n0i), 
+!!    due to the backward-compatibility
+!!    with the Poisson Solver with other geometries.
+!!    Dimensions n02 and n03 were exchanged
+!! Author:
+!!    Luigi Genovese
+!! CREATION DATE
+!!    October 2006
+!!
+subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+ implicit none
+ integer, intent(in) :: n01,n02,n03,nproc
+ integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
+ integer :: l1,l2,l3
+
+ !dimensions of the density in the real space
+ m1=n01
+ m2=n03
+ m3=n02
+
+ ! real space grid dimension (suitable for number of processors)
+ l1=2*m1
+ l2=m2
+ l3=m3 !beware of the half dimension
+
+ do
+    call fourier_dim(l1,n1)
+    if (modulo(n1,2) == 0) then
+       exit
+    end if
+    l1=l1+1
+ end do
+
+ 
+ call fourier_dim(l2,n2)
+ if (n2 /= m2) then
+    print *,'the FFT in the z direction is not allowed'
+    print *,'n03 dimension',n03
+    stop
+ end if
+
+ do
+    call fourier_dim(l3,n3)
+    if (modulo(n3,2) == 0) then
+       exit
+    end if
+    l3=l3+1
+ end do
+ n3=2*n3
+
+ !dimensions that contain the unpadded real space,
+ ! compatible with the number of processes
+ md1=n1/2
+ md2=n2
+ md3=n3/2
+ do while(nproc*(md2/nproc) < n2)
+    !151 if (nproc*(md2/nproc).lt.n2) then
+    md2=md2+1
+    !goto 151
+    !endif
+ end do
+
+
+ !dimensions of the kernel, 1/8 of the total volume,
+ !compatible with nproc
+
+ !these two dimensions are like that since they are even
+ nd1=n1/2+1
+ nd2=n2/2+1
+ nd3=n3/2+1
+ do while(modulo(nd3,nproc) /= 0)
+    !250 if (modulo(nd3,nproc) .ne. 0) then
+    nd3=nd3+1
+    !goto 250
+    !endif
+ end do
+
+END SUBROUTINE W_FFT_dimensions
 
 
 
 !>    Calculate four sets of dimension needed for the calculation of the
 !!    zero-padded convolution
 !!
-!! SYNOPSIS
-!!    n01,n02,n03 original real dimensions (input)
+!!    @param n01,n02,n03 original real dimensions (input)
 !!
-!!    m1,m2,m3 original real dimension with the dimension 2 and 3 exchanged
+!!    @param m1,m2,m3 original real dimension with the dimension 2 and 3 exchanged
 !!
-!!    n1,n2 the first FFT even dimensions greater that 2*m1, 2*m2
-!!    n3    the double of the first FFT even dimension greater than m3
+!!    @param n1,n2 the first FFT even dimensions greater that 2*m1, 2*m2
+!!    @param n3    the double of the first FFT even dimension greater than m3
 !!          (improved for the HalFFT procedure)
 !!
-!!    md1,md2,md3 half of n1,n2,n3 dimension. They contain the real unpadded space,
-!!                properly enlarged to be compatible with the FFT dimensions n_i.
+!!    @param md1,md2,md3 half of n1,n2,n3 dimension. They contain the real unpadded space,
+!!                which has been properly enlarged to be compatible with the FFT dimensions n_i.
 !!                md2 is further enlarged to be a multiple of nproc
 !!
-!!    nd1,nd2,nd3 fourier dimensions for which the kernel FFT is injective,
+!!    @param nd1,nd2,nd3 fourier dimensions for which the kernel FFT is injective,
 !!                formally 1/8 of the fourier grid. Here the dimension nd3 is
 !!                enlarged to be a multiple of nproc
 !!
@@ -1439,6 +1559,7 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     end if
     l3=l3+1
  end do
+
  n3=2*n3
 
  !dimensions that contain the unpadded real space,
@@ -1446,10 +1567,12 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  md1=n1/2
  md2=n2/2
  md3=n3/2
-151 if (nproc*(md2/nproc).lt.n2/2) then
+ do while(nproc*(md2/nproc) < n2/2)
+   !151 if (nproc*(md2/nproc).lt.n2/2) then
     md2=md2+1
-    goto 151
- endif
+   !goto 151
+   !endif
+ end do
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc
@@ -1457,10 +1580,12 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  nd2=n2/2+1
  nd3=n3/2+1
 
-250 if (modulo(nd3,nproc) .ne. 0) then
+ do while(modulo(nd3,nproc) /= 0)
+    !250 if (modulo(nd3,nproc) .ne. 0) then
     nd3=nd3+1
-    goto 250
- endif
+    !    goto 250
+    ! endif
+ end do
 
 END SUBROUTINE F_FFT_dimensions
 
