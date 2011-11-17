@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 16/11/2011
+# Date: 17/11/2011
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -135,6 +135,7 @@ elif psolver:
         "True if the line must not be compared"
         return "MEMORY" in line \
             or "CPLX" in line \
+            or "CPU time" in line \
             or "memory" in line \
             or "allocation" in line \
             or "Energy diff" in line \
@@ -226,19 +227,23 @@ if bigdft:
 
 #Remove line_junk before comparing (the line number is wrong)
 memory = 0
-if bigdft:
-    time = 0
+if bigdft or psolver:
+    time = None
 #Open 2 temporary files
 t1 = tempfile.NamedTemporaryFile()
 for line in original1:
     if not line_junk(line):
         t1.write(line)
     else:
-        #Only for BigDFT
-        if bigdft:
+        #Only for BigDFT and PSolver
+        if bigdft or psolver:
             #Keep sum of elapsed time
             if "CPU time/ELAPSED time" in line:
-                time += float(line.split()[-2])
+                if time == None:
+                    time = float(line.split()[-2])
+                else:
+                    time += float(line.split()[-2])
+                print "toto",time,line
             #Test if memory remaining is 0
             if "remaining memory" in line:
                 memory = int(line.split()[-1])
@@ -403,7 +408,7 @@ else:
     start = start_success
     message = "succeeded < "
 
-if bigdft and time:
+if (bigdft or psolver) and time != None:
     print "%sMax discrepancy %s: %s (%s%s) -- time %7.2f%s " % \
         (start,context_discrepancy,maximum,message,max_discrepancy,time,end)
 else:
