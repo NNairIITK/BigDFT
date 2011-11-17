@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
       &   lr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
@@ -170,7 +171,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
 
 END SUBROUTINE LocalHamiltonianApplication
 
-!> routine which calculates the application of nonlocal projectors on the wavefunctions
+
+!> Routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
 subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
       &   nlpspd,proj,lr,psi,hpsi,eproj_sum)
@@ -602,11 +604,30 @@ end if
 
 
 !write the energy information
-if (iproc == 0 .and. verbose>0) then
-   call write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,' ')
+if (iproc == 0) then
+call write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,' ')
+!!$   if (verbose > 0 .and. iscf<1) then
+!!$      write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!!$      ekin,epot,eproj
+!!$      write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,exc,evxc
+!!$   end if
+!!$   if (iscf > 1) then
+!!$      if (gnrm_zero == 0.0_gp) then
+!!$         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+!!$      else
+!!$         write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
+!!$      end if
+!!$   else
+!!$      if (gnrm_zero == 0.0_gp) then
+!!$         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energyKS,gnrm
+!!$      else
+!!$         write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
+!!$      end if
+!!$   end if
 endif
 
 END SUBROUTINE calculate_energy_and_gradient
+
 
 subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,comment)
   use module_base
@@ -625,18 +646,27 @@ subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,
   end if
 
   if (iscf<1) then
-     write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-          ekin,epot,eproj
-     write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,exc,evxc
-      !yaml output
-     write( 70,'(3(1x,a,1pe18.11,a))') 'ekin: ',ekin,',','epot: ',epot,',','eproj: ',eproj,','
-     write( 70,'(3(1x,a,1pe18.11,a))') 'ehart: ',ehart,',','exc: ',exc,',','evxc: ',evxc,','
+     if (verbose >0) then
+        write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+             ekin,epot,eproj
+        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,exc,evxc
+     end if
+     !yaml output
+     write(70,'(3(1x,a,1pe18.11,a))') 'ekin: ',ekin,',','epot: ',epot,',','eproj: ',eproj,','
+     write(70,'(3(1x,a,1pe18.11,a))') ' eha: ',ehart,',',' exc: ',exc,',',' evxc: ',evxc,','
   end if
   if (iscf > 1) then
      if (gnrm_zero == 0.0_gp) then
         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+        !yaml output
+        write(70,'(1x,a,1pe24.17,a,1x,a,1pe9.2,a,1x,a,i6,a)') 'tr(H): ',trH,&
+             ',','gnrm: ',gnrm,trim(lastsep),'#iter: ',iter,trim(' '//comment)
      else
         write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
+        !yaml output
+        write(70,'(1x,a,1pe24.17,2(a,1x,a,1pe9.2),a,1x,a,i6,a)') 'tr(H): ',trH,&
+             ',','gnrm: ',gnrm,',','gnrm_zero: ',gnrm_zero,&
+             trim(lastsep),'#iter: ',iter,trim(' '//comment)
      end if
   else
      if (gnrm_zero == 0.0_gp) then
@@ -647,6 +677,10 @@ subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,
      else
         write( *,'(a,1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))')  trim(' '//comment),&
              'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
+        !yaml output
+        write(70,'(1x,a,1pe24.17,2(a,1x,a,1pe9.2),a,1x,a,i6,a)') 'total energy: ',energyKS,&
+             ',','gnrm: ',gnrm,',','gnrm_zero: ',gnrm_zero,&
+             trim(lastsep),'#iter: ',iter,trim(' '//comment)
      end if
   end if
 
@@ -1063,8 +1097,8 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
            mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
         end do
      end do
-     write(70,"(1x,A,f9.6)")repeat(' ',yaml_indent)//"Total magnetisation: ", mpol
-     write(*,"(A,f9.6)")"Total magnetisation: ", mpol
+     write(70,"(A,f9.6)")repeat(' ',yaml_indent)//"Total magnetisation: ", mpol
+     write(*,"(1x,A,f9.6)")"Total magnetisation: ", mpol
   end if
   if (orbs%nspinor ==4) then
      write(*,'(1x,a)')&
@@ -1140,6 +1174,14 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
               dowrite =(iorb <= 5 .or. iorb >= orbs%norbu-5) .or. verbose > 0
               if (dowrite) & 
                    write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4)') 'e(',iorb,',u)=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb)
+              call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
+                   1.0_gp,ikptw,mx,my,mz)
+              !yaml output (carriage return)
+              if (iorb == orbs%norbu .and. ikpt == orbs%nkpts) then
+                 write(70,'(a)')']'
+              else
+                 write(70,'(a)')','
+              end if
            end do
         else if (orbs%norbd > orbs%norbu) then
            do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
@@ -1147,6 +1189,15 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
               if (dowrite) & 
                    write(*,'(46x,0pf6.4,1x,a,i4,a,1x,1pe21.14)') orbs%occup(isorb + iorb),&
                    &   'e(',iorb-orbs%norbu,',d)=',orbs%eval(isorb + iorb)
+              write(70,'(a)',advance='no')repeat(' ',46)
+              call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
+                   -1.0_gp,ikptw,mx,my,mz)
+              !yaml output (carriage return)
+              if (iorb == orbs%norbd .and. ikpt == orbs%nkpts) then
+                 write(70,'(a)')']'
+              else
+                 write(70,'(a)')','
+              end if
            end do
         end if
      end if
@@ -1178,7 +1229,7 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
      write(70,'(a,i5)',advance='no')', kpt: ',ikpt-1
   end if
   if (mx /= UNINITIALIZED(mx) .and. my /= UNINITIALIZED(my) .and. mz /= UNINITIALIZED(mz)) then
-     write(70,'(3(a,f10.5),a)',advance='no')'M: [',mx,', ',my,', ',mz,']'
+     write(70,'(3(a,f8.5),a)',advance='no')', M: [',mx,', ',my,', ',mz,']'
   end if
   write(70,'(a)',advance='no')' }'
  
@@ -1547,8 +1598,8 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    !local variables
    character(len=*), parameter :: subname='check_communications'
    integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
-   integer :: ikpt,ispsi,nspinor,nvctrp
-   real(wp) :: psival,maxdiff,ierr
+   integer :: ikpt,ispsi,nspinor,nvctrp,ierr
+   real(wp) :: psival,maxdiff
    real(wp), dimension(:), allocatable :: psi
    real(wp), dimension(:), pointer :: pwork
    real(wp) :: epsilon

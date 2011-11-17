@@ -323,7 +323,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       call print_dft_parameters(in,atoms)
    end if
    if (iproc == 0) call xc_dump()
-   !time initialization
+
+   !Time initialization
    if (verbose > 2) then
       nproctiming=-nproc !timing in debug mode
    else
@@ -1057,7 +1058,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          !flush all writings on standart output
          if (iproc==0) then
             !yaml output
-            write(70,'(a)')'}'
+            write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
             flush(unit=6)
          end if
       end do wfn_loop
@@ -1077,7 +1078,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          end if
          call write_energies(iter,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,energy,0.0_gp,gnrm,gnrm_zero,final_out)
          !yaml output
-         write(70,'(a)')'}'
+         write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
          yaml_indent=yaml_indent-1
 
 !!$         if (gnrm_zero == 0.0_gp) then
