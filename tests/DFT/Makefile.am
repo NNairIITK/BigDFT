@@ -29,8 +29,8 @@ endif
 EXTRA_DIST = \
 	README \
 	inguess.dat \
-        $(TESTDIRS) \
-        GPU OCL
+    $(TESTDIRS) \
+    GPU OCL
 
 # Give here the pseudo-potentials used by each test.
 H.psp: psppar.H
