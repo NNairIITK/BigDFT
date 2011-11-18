@@ -1,7 +1,7 @@
 !> @file
 !!  Define routines for timing
 !! @author
-!!    Copyright (C) 2010, BigDFT group (Luigi Genovese)
+!!    Copyright (C) 2010-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -74,9 +74,9 @@ module timeData
       character(len=*), intent(in) :: message
       integer, intent(in) :: iproc
       !local variables
-      integer :: i,iend,count_rate,count_max,ierr,j,icls,icat,jproc,iextra
+      integer :: i,ierr,j,icls,icat,jproc,iextra
 
-      real(kind=8) :: total_pc,pc,totaltime,tmax,tmin
+      real(kind=8) :: total_pc,pc,totaltime
       integer, dimension(ncat) :: isort
       real(kind=8), dimension(ncls,0:nproc) :: timecls
       real(kind=8), dimension(ncat+1,0:nproc-1) :: timeall
@@ -178,12 +178,12 @@ subroutine timing(iproc,category,action)
   character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
   !Local variables
   logical :: catfound
-  integer :: i,ierr,ii,iextra
-  integer :: count_rate,count_max,ielapsed,nthreads
+  integer :: i,ierr,ii
+  integer :: nthreads
   integer(kind=8) :: itns
   !cputime routine gives a real
   !real :: total,total0,time,time0
-  real(kind=8) :: pc,total_pc,total,t1
+  real(kind=8) :: pc,t1
   real(kind=8), dimension(ncounters,0:nproc) :: timecnt !< useful only at the very end
 !$ integer :: omp_get_max_threads
 

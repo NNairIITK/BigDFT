@@ -35,7 +35,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   !first control that the domain is not shorter than the scaling function
   !add also a temporary flag for the allowed ISF types for the kernel
   if (itype_scf > min(n1,n2,n3) .or. itype_scf /= 16) then
-     print *,'ERROR: dimension of the box are too small for the ISB basis chosen',&
+     print *,'ERROR: dimension of the box are too small for the ISF basis chosen',&
           itype_scf,n1,n2,n3
      stop
   end if
@@ -1920,3 +1920,100 @@ subroutine copyreal(n1,nk1,nfft,halfft,kernelfour)
     call dcopy(nk1,halfft(1,1,ifft),2,kernelfour(1,ifft),1)  
   enddo
 END SUBROUTINE copyreal
+
+!> @file
+!!  Temporary Wires BC kernel, mimic Periodic BC. To be modified
+!! @author
+!!    Copyright (C) 2006-2011 BigDFT group (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+!>  Build the kernel of the Poisson operator with
+!!  wires Boundary conditions
+!!  in an interpolating scaling functions basis.
+!!  The periodic direction is z
+!! SYNOPSIS
+!!   @param iproc,nproc        Number of process, number of processes
+!!   @param n1,n2,n3           Dimensions for the FFT
+!!   @param nker1,nker2,nker3  Dimensions of the kernel nker(1,2,3)=n(1,2,3)/2+1
+!!   @param h1,h2,h3           Mesh steps in the three dimensions
+!!   @param itype_scf          Order of the scaling function
+!!   @param karray             output array
+subroutine Wires_Kernel(iproc,nproc,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray)
+  use module_base
+  implicit none
+  !Arguments
+  integer, intent(in) :: n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
+  real(dp), intent(in) :: h1,h2,h3
+  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  !Local variables 
+  character(len=*), parameter :: subname='Wires_Kernel'
+  real(dp), parameter :: pi=3.14159265358979323846_dp
+  integer :: i1,i2,i3,j3,i_all,i_stat
+  real(dp) :: p1,p2,mu3,ker
+  real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
+
+  !first control that the domain is not shorter than the scaling function
+  !add also a temporary flag for the allowed ISF types for the kernel
+  if (itype_scf > min(n1,n2,n3) .or. itype_scf /= 16) then
+     print *,'ERROR: dimension of the box are too small for the ISF basis chosen',&
+          itype_scf,n1,n2,n3
+     stop
+  end if
+  !calculate the FFT of the ISF for the three dimensions
+  allocate(fourISFx(0:nker1-1+ndebug),stat=i_stat)
+  call memocc(i_stat,fourISFx,'fourISFx',subname)
+  allocate(fourISFy(0:nker2-1+ndebug),stat=i_stat)
+  call memocc(i_stat,fourISFy,'fourISFy',subname)
+  allocate(fourISFz(0:nker3-1+ndebug),stat=i_stat)
+  call memocc(i_stat,fourISFz,'fourISFz',subname)
+
+  call fourtrans_isf(n1/2,fourISFx)
+  call fourtrans_isf(n2/2,fourISFy)
+  call fourtrans_isf(n3/2,fourISFz)
+
+!!  fourISFx=0._dp
+!!  fourISFy=0._dp
+!!  fourISFz=0._dp
+
+  !calculate directly the reciprocal space components of the kernel function
+  do i3=1,nker3/nproc
+     j3=iproc*(nker3/nproc)+i3
+     if (j3 <= n3/2+1) then
+        mu3=real(j3-1,dp)/real(n3,dp)
+        mu3=(mu3/h2)**2 !beware of the exchanged dimension
+        do i2=1,nker2
+           p2=real(i2-1,dp)/real(n2,dp)
+           do i1=1,nker1
+              p1=real(i1-1,dp)/real(n1,dp)
+              ker=pi*((p1/h1)**2+(p2/h3)**2+mu3)!beware of the exchanged dimension
+              if (ker/=0._dp) then
+                 karray(i1,i2,i3)=1._dp/ker*fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
+              else
+                 karray(i1,i2,i3)=0._dp
+              end if
+           end do
+        end do
+     else
+        do i2=1,nker2
+           do i1=1,nker1
+              karray(i1,i2,i3)=0._dp
+           end do
+        end do
+     end if
+  end do
+
+  i_all=-product(shape(fourISFx))*kind(fourISFx)
+  deallocate(fourISFx,stat=i_stat)
+  call memocc(i_stat,i_all,'fourISFx',subname)
+  i_all=-product(shape(fourISFy))*kind(fourISFy)
+  deallocate(fourISFy,stat=i_stat)
+  call memocc(i_stat,i_all,'fourISFy',subname)
+  i_all=-product(shape(fourISFz))*kind(fourISFz)
+  deallocate(fourISFz,stat=i_stat)
+  call memocc(i_stat,i_all,'fourISFz',subname)
+
+END SUBROUTINE Wires_Kernel
+

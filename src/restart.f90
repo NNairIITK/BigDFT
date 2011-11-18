@@ -382,6 +382,7 @@ END SUBROUTINE readmywaves
 subroutine verify_file_presence(filerad,orbs,iformat)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
   character(len=*), intent(in) :: filerad
   type(orbitals_data), intent(in) :: orbs

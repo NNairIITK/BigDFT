@@ -10,11 +10,11 @@
 
 !> Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-     n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
+     n1,n2,n3,n1i,n2i,i3s,n3d,rhocore) 
   !n(c) use module_base
   use module_types
   implicit none
-  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
+  integer, intent(in) :: n1,n2,n3,n1i,n2i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
   real(dp), dimension(n1i*n2i*n3d), intent(inout) :: rhocore
@@ -291,8 +291,13 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'W') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
-     stop 'PSolver: geometry code not admitted'
+     stop 'XC potential: geometry code not admitted'
   end if
 
   !dimension for exchange-correlation (different in the global or distributed case)
@@ -413,7 +418,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      if(datacode=='G' .and. &
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         !allocation of an auxiliary array for avoiding the shift 
-        call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+        call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho_G,vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
         !restoring the density on the original form
@@ -432,7 +437,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         deallocate(rho_G,stat=i_stat)
         call memocc(i_stat,i_all,'rho_G',subname)
      else
-        call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+        call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
      end if
@@ -595,7 +600,7 @@ END SUBROUTINE XC_potential
 !!                The density is supposed to be periodic in all the three directions,
 !!                then all the dimensions must be compatible with the FFT.
 !!                No need for setting up the kernel.
-!!    m1,m2,m3    global dimensions in the three directions.
+!!    m1,m3       global dimensions in the three directions.
 !!    nproc       number of processors
 !!    iproc       label of the process,from 0 to nproc-1
 !!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
@@ -617,7 +622,7 @@ END SUBROUTINE XC_potential
 !!    The dimensions of pot_ion must be compatible with geocode, datacode,
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
-subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
+subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nspden)
 
   use module_base
@@ -627,7 +632,7 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   !Arguments----------------------
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nspden
+  integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,ixc,nspden
   integer, intent(in) :: nwbl,nwbr,order,ndvxc
   real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rho

@@ -17,7 +17,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   implicit none
   type(atoms_data), intent(in) :: at
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,nvacancy
-  real(gp), intent(in) :: hxh,hyh,hzh,elecfield
+  real(gp), intent(in) :: hxh,hyh,hzh,elecfield(3)
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
   real(gp), intent(out) :: eion,psoffset
@@ -437,13 +437,18 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   do iat=1,at%nat
      ityp=at%iatype(iat)
      charge=real(at%nelpsp(ityp),gp)
-     ry=rxyz(2,iat) 
-     fion(2,iat)=fion(2,iat)+(charge*elecfield)
-     eion=eion-(charge*elecfield)*ry
+     fion(1:3,iat)=fion(1:3,iat)+(charge*elecfield(1:3))
+     !ry=rxyz(2,iat) 
+     !eion=eion-(charge*elecfield)*ry
+     eion=eion-charge*sum(elecfield(1:3)*rxyz(1:3,iat))
   enddo
 
   if (iproc == 0) then
-     write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+     if(all(elecfield(1:3)==0._gp)) then 
+           write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+     else 
+           write(*,'(1x,a,1pe22.14)') 'ion-ion and ion-electric field interaction energy',eion
+     endif
      if (nvacancy /= 0) then
         open(unit=22,file='eion_corr.tmp',status='unknown')
         write(22,*)eion-0.5_gp*evacancy,psoffset
@@ -466,7 +471,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nvacancy
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: elecfield
+  real(gp), intent(in) :: elecfield(3)
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
@@ -591,6 +596,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      call timing(iproc,'CrtLocPot     ','OF')
      !here the value of the datacode must be kept fixed
      !n(c) nspin=1
+
+     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
      call H_potential(geocode,'D',iproc,nproc,&
           n1i,n2i,n3i,hxh,hyh,hzh,&
@@ -985,16 +992,23 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 !!!  print *,'actual offset',tt_tot*hxh*hyh*hzh
 
   !use rhopot to calculate the potential from a constant electric field along y direction
-  if (elecfield /= 0.0_gp) then
-     !constant electric field allowed only for free BC
+  if (.not. all(elecfield(1:3) == 0.0_gp)) then
+     !constant electric field allowed only for surface and free BC
      if (geocode == 'P') then
      !if (iproc == 0) 
            write(*,'(1x,a)') &
-          'The constant electric field is allowed only for Free and Surfaces BC'
+          'The constant electric field is not allowed for Fully Periodic BC.'
+          !'The constant electric field is allowed only for Free and Surfaces BC'
+     stop
+      !constant electric field allowed for surface BC only normal to the surface
+     elseif (geocode == 'S' .and. (elecfield(1) /= 0.0_gp .or. elecfield(3) /= 0.0_gp) ) then
+     !if (iproc == 0) 
+           write(*,'(1x,a)') &
+          'Only normal constant electric field (Ex=Ez=0) is allowed for Surface BC.'
      stop
      end if
-     if (iproc == 0) write(*,'(1x,3(a,1pe10.2))') &
-          'Constant electric field of',elecfield,' Ha/Bohr for:'
+     if (iproc == 0) write(*,'(1x,a,"(",es10.2,", ",es10.2,", ",es10.2,") ", a)') &
+          'Constant electric field ',elecfield(1:3),' Ha/Bohr'
 !or         'Parabolic confining potential: rprb=',elecfield,&
 !           ';  v_conf(r)= 1/(2*rprb**4) * r**2'
 
@@ -1003,13 +1017,13 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
      if (n3pi > 0) then
         do i3=1,n3pi
-           !z=real(i3+i3s-1-nbl3-1,gp)*hzh
+           z=real(i3+i3s-1-nbl3-1,gp)*hzh
            do i2=1,n2i
               y=real(i2-nbl2-1,gp)*hyh
                  do i1=1,n1i
-                    !x=real(i1-nbl1-1,gp)*hxh
+                    x=real(i1-nbl1-1,gp)*hxh
                     ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    pot_ion(ind)=pot_ion(ind)+elecfield*y
+                    pot_ion(ind)=pot_ion(ind)+elecfield(1)*x+elecfield(2)*y+elecfield(3)*z
 !                    parabola: these two lines replace the above line 
 !                              comment out the if case and calculate x, z
 !                    r2=(x-rx)**2+(y-ry)**2+(z-rz)**2
@@ -1019,10 +1033,25 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
         end do
 
         if (efwrite .and. iproc == 0) then
+           open(unit=17,file='elecpotential_x',status='unknown')
+           write(17,*) "# x , external electric potential(x,y=0,z=0)"
+           do i1=nbl1+1,n1i-nbr1-1
+              x=real(i1-nbl1-1,gp)*hxh
+              write(17,*)x,-elecfield(1)*x
+           end do
+           close(17)
            open(unit=17,file='elecpotential_y',status='unknown')
+           write(17,*) "# y , external electric potential(x=0,y,z=0)"
            do i2=nbl2+1,n2i-nbr2-1
               y=real(i2-nbl2-1,gp)*hyh
-                 write(17,*)i2,y,elecfield*y
+              write(17,*)y,-elecfield(2)*y
+           end do
+           close(17)
+           open(unit=17,file='elecpotential_z',status='unknown')
+           write(17,*) "# z , external electric potential(x=0,y=0,z)"
+           do i3=1,n3pi
+              z=real(i3+i3s-1-nbl3-1,gp)*hzh
+              write(17,*)z,-elecfield(3)*z
            end do
            close(17)
         end if
