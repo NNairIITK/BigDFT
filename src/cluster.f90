@@ -220,7 +220,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nelec,ndegree_ip,j,i,npoints,nrhodim,i3rho_add,irhotot_add,irho_add
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ispin
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt
+  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,nproctiming
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
@@ -324,7 +324,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end if
   if (iproc == 0) call xc_dump()
   !time initialization
-  call timing(nproc,trim(in%dir_output)//'time.prc','IN')
+  if (verbose > 2) then
+     nproctiming=-nproc !timing in debug mode
+  else
+     nproctiming=nproc
+  end if
+  call timing(nproctiming,trim(in%dir_output)//'time.yaml','IN')
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -733,12 +738,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
         !read potential depending of the mixing scheme
         !considered as optional in the mixing case
-        inquire(file=trim(in%dir_output)//'local_potential.cube',exist=potential_from_disk)
-        if (potential_from_disk)  then
-           call read_potential_from_disk(iproc,nproc,trim(in%dir_output)//'local_potential.cube',&
-                atoms%geocode,ngatherarr,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,in%nspin,hxh,hyh,hzh,rhopot)
-           ipot_from_disk=1
-        end if
+        !inquire(file=trim(in%dir_output)//'local_potential.cube',exist=potential_from_disk)
+        !if (potential_from_disk)  then
+        !   call read_potential_from_disk(iproc,nproc,trim(in%dir_output)//'local_potential.cube',&
+        !        atoms%geocode,ngatherarr,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,in%nspin,hxh,hyh,hzh,rhopot)
+        !   ipot_from_disk=1
+        !end if
      end if
 
   case(INPUT_PSI_MEMORY_GAUSS)
@@ -1237,9 +1242,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
           1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
   end if
-  if (((in%output_grid == OUTPUT_GRID_DENSPOT) .or.&
-       (in%output_wf_format /= WF_FORMAT_NONE .and. in%iscf /= SCF_KIND_DIRECT_MINIMIZATION)) &
-       .and. DoLastRunThings) then
+  if (((in%output_grid == OUTPUT_GRID_DENSPOT)&
+       !.or. (in%output_wf_format /= WF_FORMAT_NONE .and. in%iscf /= SCF_KIND_DIRECT_MINIMIZATION)&
+       ) .and. DoLastRunThings) then
      if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
      call plot_density(trim(in%dir_output)//'local_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&

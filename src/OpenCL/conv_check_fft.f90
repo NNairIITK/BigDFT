@@ -155,7 +155,7 @@ program conv_check_fft
    call nanosec(tsc1);
 
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
-   call print_time(CPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
+   call print_time(CPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
 
    write(*,'(a,i6,i6)')'GPU FFT, dimensions:',n1,n2*n3
 
@@ -205,7 +205,7 @@ program conv_check_fft
 
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
-     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
+     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
 
    write(*,'(a,i6,i6,i6)')'GPU 3D FFT, dimensions:',n1,n2,n3
@@ -243,7 +243,7 @@ program conv_check_fft
 
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
-     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
+     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    write(*,'(a,i6,i6,i6)')'GPU 3D Reverse FFT, dimensions:',n1,n2,n3
 
@@ -286,7 +286,7 @@ program conv_check_fft
    call nanosec(tsc1);
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
-        log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
+        log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    !here the GPU part
    write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver, dimensions:',n1,n2,n3

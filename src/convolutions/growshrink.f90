@@ -331,6 +331,7 @@ subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
   !    for wavelets:
   call comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,xf,&
        ibxy_f,ibzzx_f,ibyyzz_f)
+
 END SUBROUTINE comb_shrink
 
 
@@ -365,6 +366,7 @@ subroutine comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,&
   nt=(2*m3+31)*(m1+1)
   call comb_rot_shrink_loc_2(nt,w1,w2,nfl2,nfu2,ibzzx)
   ! I3,i1,i2 -> i1,i2,i3
+
   nt=(m1+1)*(m2+1)
   call comb_rot_shrink_loc_3(nt,w2,x,nfl3,nfu3,ibxy)
 
