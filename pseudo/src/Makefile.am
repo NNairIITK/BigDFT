@@ -34,12 +34,16 @@ atom_SOURCES = atom.f90 atom.splines.f $(xc_level)
 atom_LDADD = \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIBXC_LIBS@ \
+	@LINALG_LIBS@ \
 	$(libs_cuda)
 
 pseudo_SOURCES = pseudo.f90 $(low_level) $(f90_level) $(xc_level) $(cuda_level) $(mpi_source)
 pseudo_LDADD = \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIBXC_LIBS@ \
+	@LINALG_LIBS@ \
 	$(libs_cuda)
 
   

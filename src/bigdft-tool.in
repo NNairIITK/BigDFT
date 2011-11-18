@@ -117,6 +117,6 @@ if __name__ == "__main__":
   if options.action == actions[6]:
     command = "%s 1 %s dd GPUtest %d %d" % (memguess, options.name, options.n_repeats, options.n_orbs)
 
-  print command
-  print 
+  #print command
+  #print 
   os.system(command)

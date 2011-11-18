@@ -14,13 +14,16 @@
 !!  can help to estimate the accuracy the the chosen parameter set( hgrid, crmult etc).
 PROGRAM unitconversion_posinp
 
-   implicit real*8 (a-h,o-z)
-   parameter(natx=2000)
-   character(len=5) atomname(natx)
-   character(len=12) unitsold, unitsnew
-   character(len=20) extra(natx) 
-   character(len=100) line,line2
-   dimension pos(3,natx)
+   implicit none
+
+   integer, parameter :: natx=2000
+   character(len=5) :: atomname(natx)
+   character(len=12) :: unitsold, unitsnew
+   character(len=20) :: extra(natx) 
+   character(len=100) :: line,line2
+   real(kind=8), dimension(3,natx) :: pos
+   real(kind=8) :: scale
+   integer :: iat,nat,ierror
 
    write(*,*) 'reading atomic positions from file posinp'
    open(unit=9,file='posinp.xyz',status='unknown')
@@ -39,23 +42,23 @@ PROGRAM unitconversion_posinp
 
    write(*,*) 'old units:',unitsold
    if (trim(unitsold)=='angstroem') then
-       unitsnew='bohr'
-       scale=1.889725989d0
+      unitsnew='bohr'
+      scale=1.889725989d0
    else if (trim(unitsold)=='angstroemd0') then
-       unitsnew='bohrd0'
-       scale=1.889725989d0
+      unitsnew='bohrd0'
+      scale=1.889725989d0
    else if (trim(unitsold)=='bohr') then
-       unitsnew='angstroem'
-       scale=1.d0/1.889725989d0
+      unitsnew='angstroem'
+      scale=1.d0/1.889725989d0
    else if (trim(unitsold)=='bohrd0') then
-       unitsnew='angstroemd0'
-       scale=1.d0/1.889725989d0
+      unitsnew='angstroemd0'
+      scale=1.d0/1.889725989d0
    else if (trim(unitsold)=='atomic') then
-       unitsnew='angstroem'
-       scale=1.d0/1.889725989d0
+      unitsnew='angstroem'
+      scale=1.d0/1.889725989d0
    else if (trim(unitsold)=='atomicd0') then
-       unitsnew='angstroemd0'
-       scale=1.d0/1.889725989d0
+      unitsnew='angstroemd0'
+      scale=1.d0/1.889725989d0
    else
       stop 'units not recognized'
    endif

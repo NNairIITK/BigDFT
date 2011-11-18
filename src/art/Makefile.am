@@ -30,8 +30,7 @@ art_source = \
 
 AM_FCFLAGS = -I. -I$(srcdir) -I../modules @MPI_INCLUDE@ @LIBABINIT_INCLUDE@
 
-CLEANFILES = defs.@MODULE_EXT@ DEFS.@MODULE_EXT@ \
-	random.@MODULE_EXT@ RANDOM.@MODULE_EXT@
+CLEANFILES = *.@MODULE_EXT@
 
 noinst_LIBRARIES = libart.a
 

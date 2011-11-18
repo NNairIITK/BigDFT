@@ -1,7 +1,7 @@
 !> @file
 !!   In this file, we have the analytic routines for the calculation of the overlap of short-range functions
 !! @author
-!!   Copyright (C) 2010 BigDFT group 
+!!   Copyright (C) 2010-2011 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -267,7 +267,7 @@ subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,
  
   !calculate the first part of rho array
   call calculate_rho(iproc,nproc,atoms%geocode,atoms%nat,radii,rxyz,hxh,hyh,hzh,&
-       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,lr%d%n3i,pot,rhoarr)
+       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,pot,rhoarr)
 
   if (iproc == 0) then
      do iat=1,atoms%nat
@@ -276,7 +276,7 @@ subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,
   end if
 
   call calculate_rho_longrange(iproc,nproc,atoms,radii,rxyz,hxh,hyh,hzh,&
-       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,lr%d%n3i,rho,rhoarr)
+       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,rho,rhoarr)
 
   if (iproc == 0) then
      do iat=1,atoms%nat
@@ -574,13 +574,13 @@ END SUBROUTINE gaussian_hermite_basis
 
 
 subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
-     n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pot,rhoarr)
+     n1,n2,n3,n3pi,i3s,n1i,n2i,pot,rhoarr)
   use module_base
   use module_types
   implicit none
   !Arguments---------
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nat
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,nat
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(nat), intent(in) :: radii
   real(gp), dimension(3,nat), intent(in) :: rxyz
@@ -682,9 +682,9 @@ subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
 END SUBROUTINE calculate_rho
 
 
-!>   Overlap kinetic matrix between two different basis structures
-!!   the kinetic operator is applicated on the A basis structure
-!!   The basis structure is supposed to be based on s-functions times Hermite polynomials
+!> Overlap kinetic matrix between two different basis structures
+!! the kinetic operator is applicated on the A basis structure
+!! The basis structure is supposed to be based on s-functions times Hermite polynomials
 subroutine kinetic_overlap_h(A,B,ovrlp)
   use module_base
   use module_types
