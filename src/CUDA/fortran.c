@@ -956,7 +956,8 @@ float FC_FUNC_(cublas_sdot,CUBLAS_SDOT) (const int *n, const float *x, const int
                    const int *incy)
 #endif
 {
-    void *devPtrx = 0, *devPtry = 0, retVal = 0.0f;
+    void *devPtrx = 0, *devPtry = 0;
+    float retVal = 0.0f;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return retVal;
@@ -1146,7 +1147,7 @@ void FC_FUNC_(cublas_sswap,CUBLAS_SSWAP) (const int *n, float *x, const int *inc
 void FC_FUNC_(cublas_caxpy,CUBLAS_CAXPY) (const int *n, const cuComplex *alpha, const cuComplex *x, 
                    const int *incx, cuComplex *y, const int *incy)
 {
-    cuComplex *devPtrx = 0, *devPtry = 0;
+    void *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -1178,7 +1179,7 @@ void FC_FUNC_(cublas_caxpy,CUBLAS_CAXPY) (const int *n, const cuComplex *alpha, 
 void FC_FUNC_(cublas_ccopy,CUBLAS_CCOPY) (const int *n, const cuComplex *x, const int *incx, 
                    cuComplex *y, const int *incy)
 {
-    cuComplex *devPtrx = 0, *devPtry = 0;
+    void *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -1210,7 +1211,7 @@ void FC_FUNC_(cublas_ccopy,CUBLAS_CCOPY) (const int *n, const cuComplex *x, cons
 void FC_FUNC_(cublas_crot,CUBLAS_CROT) (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
                   const int *incy, const float *sc, const cuComplex *cs)
 {
-    cuComplex *devPtrx = 0, *devPtry = 0;
+    void *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -1249,7 +1250,7 @@ void FC_FUNC_(cublas_crotg,CUBLAS_CROTG) (cuComplex *ca, const cuComplex *cb, fl
 void FC_FUNC_(cublas_cscal,CUBLAS_CSCAL) (const int *n, const cuComplex *alpha, cuComplex *x, 
                    const int *incx)
 {
-    cuComplex *devPtrx = 0;
+    void *devPtrx = 0;
     cublasStatus stat;
     
     if (*n == 0) return;
@@ -1274,7 +1275,7 @@ void FC_FUNC_(cublas_cscal,CUBLAS_CSCAL) (const int *n, const cuComplex *alpha, 
 void FC_FUNC_(cublas_csrot,CUBLAS_CSROT) (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
                    const int *incy, const float *sc, const float *ss)
 {
-    cuComplex *devPtrx = 0, *devPtry = 0;
+    void *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2;
 
     stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
@@ -1306,7 +1307,7 @@ void FC_FUNC_(cublas_csrot,CUBLAS_CSROT) (const int *n, cuComplex *x, const int 
 void FC_FUNC_(cublas_csscal,CUBLAS_CSSCAL) (const int *n, const float *alpha, cuComplex *x, 
                     const int *incx)
 {
-    cuComplex *devPtrx = 0;
+    void *devPtrx = 0;
     cublasStatus stat;
 
     if (*n == 0) return;
@@ -1333,7 +1334,7 @@ void FC_FUNC_(cublas_csscal,CUBLAS_CSSCAL) (const int *n, const float *alpha, cu
 void FC_FUNC_(cublas_cswap,CUBLAS_CSWAP) (const int *n, cuComplex *x, const int *incx, cuComplex *y,
                    const int *incy)
 {
-    cuComplex *devPtrx = 0, *devPtry = 0;
+    void *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -1366,7 +1367,7 @@ void FC_FUNC_(cublas_cswap,CUBLAS_CSWAP) (const int *n, cuComplex *x, const int 
 void FC_FUNC_(cublas_cdotu,CUBLAS_CDOTU) (cuComplex *retVal, const int *n, const cuComplex *x, 
                    const int *incx, const cuComplex *y, const int *incy)
 {
-    cuComplex *devPtrx = 0, *devPtry = 0;
+    void *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2;
 
     *retVal = make_cuComplex (0.0f, 0.0f);
@@ -1395,7 +1396,7 @@ void FC_FUNC_(cublas_cdotu,CUBLAS_CDOTU) (cuComplex *retVal, const int *n, const
 void FC_FUNC_(cublas_cdotc,CUBLAS_CDOTC) (cuComplex *retVal, const int *n, const cuComplex *x, 
                    const int *incx, const cuComplex *y, const int *incy)
 {
-    cuComplex *devPtrx = 0, *devPtry = 0;
+    void *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2;
 
     *retVal = make_cuComplex (0.0f, 0.0f);
@@ -1423,7 +1424,7 @@ void FC_FUNC_(cublas_cdotc,CUBLAS_CDOTC) (cuComplex *retVal, const int *n, const
 
 int FC_FUNC_(cublas_icamax,CUBLAS_ICAMAX) (const int *n, const cuComplex *x, const int *incx)
 {
-    cuComplex *devPtrx = 0;
+    void *devPtrx = 0;
     int retVal = 0;
     cublasStatus stat;
 
@@ -1446,7 +1447,7 @@ int FC_FUNC_(cublas_icamax,CUBLAS_ICAMAX) (const int *n, const cuComplex *x, con
 
 int FC_FUNC_(cublas_icamin,CUBLAS_ICAMIN) (const int *n, const cuComplex *x, const int *incx)
 {
-    cuComplex *devPtrx = 0;
+    void *devPtrx = 0;
     int retVal = 0;
     cublasStatus stat;
 
@@ -1473,7 +1474,7 @@ double FC_FUNC_(cublas_scasum,CUBLAS_SCASUM) (const int *n, const cuComplex *x, 
 float FC_FUNC_(cublas_scasum,CUBLAS_SCASUM) (const int *n, const cuComplex *x, const int *incx)
 #endif
 {
-    cuComplex *devPtrx = 0;
+    void *devPtrx = 0;
     float retVal = 0.0f;
     cublasStatus stat;
 
@@ -1500,7 +1501,7 @@ double FC_FUNC_(cublas_scnrm2,CUBLAS_SCNRM2) (const int *n, const cuComplex *x, 
 float FC_FUNC_(cublas_scnrm2,CUBLAS_SCNRM2) (const int *n, const cuComplex *x, const int *incx)
 #endif
 {
-    cuComplex *devPtrx = 0;
+    void *devPtrx = 0;
     float retVal = 0.0f;
     cublasStatus stat;
 
@@ -1931,7 +1932,7 @@ void FC_FUNC_(cublas_sgemv,CUBLAS_SGEMV) (const char *trans, const int *m, const
                    const float *x, const int *incx, const float *beta,
                    float *y, const int *incy)
 {
-    float *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    void *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2, stat3;
 
     if ((*m == 0) || (*n == 0)) return;
@@ -2001,7 +2002,7 @@ void FC_FUNC_(cublas_sger,CUBLAS_SGER) (const int *m, const int *n, const float 
                   const float *x, const int *incx, const float *y,
                   const int *incy, float *A, const int *lda)
 {
-    float *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    void *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2, stat3;
 
     if ((*m == 0) || (*n == 0)) return;
@@ -2053,7 +2054,7 @@ void FC_FUNC_(cublas_ssbmv,CUBLAS_SSBMV) (const char *uplo, const int *n, const 
                    const float *x, const int *incx, const float *beta, 
                    float *y, const int *incy)
 {
-    float *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    void *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2, stat3;
 
     if (*n == 0) return;
@@ -2107,7 +2108,7 @@ void FC_FUNC_(cublas_sspmv,CUBLAS_SSPMV) (const char *uplo, const int *n, const 
                    const float *AP, const float *x, const int *incx, 
                    const float *beta, float *y, const int *incy)
 {
-    float *devPtrAP = 0, *devPtrx = 0, *devPtry = 0;
+    void *devPtrAP = 0, *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2, stat3;
 
     if (*n == 0) return;
@@ -2159,7 +2160,7 @@ void FC_FUNC_(cublas_sspmv,CUBLAS_SSPMV) (const char *uplo, const int *n, const 
 void FC_FUNC_(cublas_sspr,CUBLAS_SSPR) (const char *uplo, const int *n, const float *alpha, 
                   const float *x, const int *incx, float *AP)
 {
-    float *devPtrAP = 0, *devPtrx = 0;
+    void *devPtrAP = 0, *devPtrx = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -2200,7 +2201,7 @@ void FC_FUNC_(cublas_sspr2,CUBLAS_SSPR2) (const char *uplo, const int *n, const 
                    const float *x, const int *incx, const float *y, 
                    const int *incy, float *AP)
 {
-    float *devPtrAP = 0, *devPtrx = 0, *devPtry = 0;
+    void *devPtrAP = 0, *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2, stat3;
 
     if (*n == 0) return;
@@ -2253,7 +2254,7 @@ void FC_FUNC_(cublas_ssymv,CUBLAS_SSYMV) (const char *uplo, const int *n, const 
                    const int *incx, const float *beta, float *y, 
                    const int *incy)
 {
-    float *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    void *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2, stat3;
 
     if (*n == 0) return;
@@ -2307,7 +2308,7 @@ void FC_FUNC_(cublas_ssymv,CUBLAS_SSYMV) (const char *uplo, const int *n, const 
 void FC_FUNC_(cublas_ssyr,CUBLAS_SSYR) (const char *uplo, const int *n, const float *alpha, 
                   const float *x, const int *incx, float *A, const int *lda)
 {
-    float *devPtrA = 0, *devPtrx = 0;
+    void *devPtrA = 0, *devPtrx = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -2351,7 +2352,7 @@ void FC_FUNC_(cublas_ssyr2,CUBLAS_SSYR2) (const char *uplo, const int *n, const 
                    const float *x, const int *incx, const float *y,
                    const int *incy, float *A, const int *lda)
 {
-    float *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    void *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2, stat3;
 
     if (*n == 0) return;
@@ -2405,7 +2406,7 @@ void FC_FUNC_(cublas_stbmv,CUBLAS_STBMV) (const char *uplo, const char *trans, c
                    const int *n, const int *k, const float *A, const int *lda,
                    float *x, const int *incx)
 {
-    float *devPtrA = 0, *devPtrx = 0;
+    void *devPtrA = 0, *devPtrx = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -2449,7 +2450,7 @@ void FC_FUNC_(cublas_stbsv,CUBLAS_STBSV) (const char *uplo, const char *trans, c
                    const int *n, const int *k, const float *A, const int *lda,
                    float *x, const int *incx)
 {
-    float *devPtrA = 0, *devPtrx = 0;
+    void *devPtrA = 0, *devPtrx = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -2492,7 +2493,7 @@ void FC_FUNC_(cublas_stbsv,CUBLAS_STBSV) (const char *uplo, const char *trans, c
 void FC_FUNC_(cublas_stpmv,CUBLAS_STPMV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const float *AP, float *x, const int *incx)
 {
-    float *devPtrAP = 0, *devPtrx = 0;
+    void *devPtrAP = 0, *devPtrx = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -2532,7 +2533,7 @@ void FC_FUNC_(cublas_stpmv,CUBLAS_STPMV) (const char *uplo, const char *trans, c
 void FC_FUNC_(cublas_stpsv,CUBLAS_STPSV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const float *AP, float *x, const int *incx)
 {
-    float *devPtrAP = 0, *devPtrx = 0;
+    void *devPtrAP = 0, *devPtrx = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -2573,7 +2574,7 @@ void FC_FUNC_(cublas_strmv,CUBLAS_STRMV) (const char *uplo, const char *trans,
                             const char *diag, const int *n, const float *A,
                             const int *lda, float *x, const int *incx)
 {
-    float *devPtrA = 0, *devPtrx = 0;
+    void *devPtrA = 0, *devPtrx = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -2615,7 +2616,7 @@ void FC_FUNC_(cublas_strsv,CUBLAS_STRSV) (const char *uplo, const char *trans, c
                    const int *n, const float *A, const int *lda, float *x, 
                    const int *incx)
 {
-    float *devPtrA = 0, *devPtrx = 0;
+    void *devPtrA = 0, *devPtrx = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -2660,7 +2661,7 @@ void FC_FUNC_(cublas_dgemv,CUBLAS_DGEMV) (const char *trans, const int *m, const
                    const double *x, const int *incx, const double *beta,
                    double *y, const int *incy)
 {
-    double *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    void *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2, stat3;
     
     if ((*m == 0) || (*n == 0)) return;
@@ -2731,7 +2732,7 @@ void FC_FUNC_(cublas_dger,CUBLAS_DGER) (const int *m, const int *n, const double
                   const double *x, const int *incx, const double *y,
                   const int *incy, double *A, const int *lda)
 {
-    double *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    void *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
     cublasStatus stat1, stat2, stat3;
 
     if ((*m == 0) || (*n == 0)) return;
@@ -2783,7 +2784,7 @@ void FC_FUNC_(cublas_dger,CUBLAS_DGER) (const int *m, const int *n, const double
 void FC_FUNC_(cublas_dsyr,CUBLAS_DSYR) (const char *uplo, const int *n, const double *alpha, 
                   const double *x, const int *incx, double *A, const int *lda)
 {
-    double *devPtrA = 0, *devPtrx = 0;
+    void *devPtrA = 0, *devPtrx = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -2827,7 +2828,7 @@ void FC_FUNC_(cublas_dtrsv,CUBLAS_DTRSV) (const char *uplo, const char *trans, c
                    const int *n, const double *A, const int *lda, double *x, 
                    const int *incx)
 {
-    double *devPtrA = 0, *devPtrx = 0;
+    void *devPtrA = 0, *devPtrx = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -2937,7 +2938,7 @@ void FC_FUNC_(cublas_sgemm,CUBLAS_SGEMM) (const char *transa, const char *transb
                    const int *ldb, const float *beta, float *C, const int *ldc)
 {
     int ka, kb;
-    float *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    void *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
     cublasStatus stat1, stat2, stat3;
 
     if ((*m == 0) || (*n == 0)) return; 
@@ -3011,7 +3012,7 @@ void FC_FUNC_(cublas_ssymm,CUBLAS_SSYMM) (const char *side, const char *uplo, co
                    const float *beta, float *C, const int *ldc)
 {
     int ka;
-    float *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    void *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
     cublasStatus stat1, stat2, stat3;
 
     if ((*m == 0) || (*n == 0)) return;
@@ -3072,7 +3073,7 @@ void FC_FUNC_(cublas_ssyr2k,CUBLAS_SSYR2K) (const char *uplo, const char *trans,
                     const float *beta, float *C, const int *ldc)
 {
     int ka, kb;
-    float *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    void *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
     cublasStatus stat1, stat2, stat3;
 
     if (*n == 0) return;
@@ -3139,7 +3140,7 @@ void FC_FUNC_(cublas_ssyrk,CUBLAS_SSYRK) (const char *uplo, const char *trans, c
                    const int *lda, const float *beta, float *C, const int *ldc)
 {
     int ka;
-    float *devPtrA = 0, *devPtrC = 0;
+    void *devPtrA = 0, *devPtrC = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -3192,7 +3193,7 @@ void FC_FUNC_(cublas_strmm,CUBLAS_STRMM) (const char *side, const char *uplo, co
                    float *B, const int *ldb)
 {
     int k;
-    float *devPtrA = 0, *devPtrB = 0;
+    void *devPtrA = 0, *devPtrB = 0;
     cublasStatus stat1, stat2;
     
     if ((*m == 0) || (*n == 0)) return;
@@ -3242,7 +3243,7 @@ void FC_FUNC_(cublas_strsm,CUBLAS_STRSM) (const char *side, const char *uplo, co
                    const float *alpha, const float *A, const int *lda,
                    float *B, const int *ldb)
 {
-    float *devPtrA = 0, *devPtrB = 0;
+    void *devPtrA = 0, *devPtrB = 0;
     int k;
     cublasStatus stat1, stat2;
 
@@ -3292,7 +3293,7 @@ void FC_FUNC_(cublas_cgemm,CUBLAS_CGEMM) (const char *transa, const char *transb
                    const int *ldc)
 {
     int ka, kb;
-    cuComplex *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    void *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
     cublasStatus stat1, stat2, stat3;
 
     if ((*m == 0) || (*n == 0)) return; 
@@ -3400,7 +3401,7 @@ void FC_FUNC_(cublas_dgemm,CUBLAS_DGEMM) (const char *transa, const char *transb
                    const int *ldc)
 {
     int ka, kb;
-    double *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    void *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
     cublasStatus stat1, stat2, stat3;
 
     if ((*m == 0) || (*n == 0)) return;
@@ -3474,7 +3475,7 @@ void FC_FUNC_(cublas_dsymm,CUBLAS_DSYMM) (const char *side, const char *uplo, co
                    const double *beta, double *C, const int *ldc)
 {
     int ka;
-    double *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    void *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
     cublasStatus stat1, stat2, stat3;
     
     if ((*m == 0) || (*n == 0)) return;
@@ -3535,7 +3536,7 @@ void FC_FUNC_(cublas_dsyr2k,CUBLAS_DSYR2K) (const char *uplo, const char *trans,
                     const double *beta, double *C, const int *ldc)
 {
     int ka, kb;
-    double *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    void *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
     cublasStatus stat1, stat2, stat3;
 
     if (*n == 0) return;
@@ -3603,7 +3604,7 @@ void FC_FUNC_(cublas_dsyrk,CUBLAS_DSYRK) (const char *uplo, const char *trans, c
                    const int *ldc)
 {
     int ka;
-    double *devPtrA = 0, *devPtrC = 0;
+    void *devPtrA = 0, *devPtrC = 0;
     cublasStatus stat1, stat2;
 
     if (*n == 0) return;
@@ -3656,7 +3657,7 @@ void FC_FUNC_(cublas_dtrmm,CUBLAS_DTRMM) (const char *side, const char *uplo, co
                    double *B, const int *ldb)
 {
     int k;
-    double *devPtrA = 0, *devPtrB = 0;
+    void *devPtrA = 0, *devPtrB = 0;
     cublasStatus stat1, stat2;
 
     if ((*m == 0) || (*n == 0)) return;
@@ -3706,7 +3707,7 @@ void FC_FUNC_(cublas_dtrsm,CUBLAS_DTRSM) (const char *side, const char *uplo, co
                    const double *alpha, const double *A, const int *lda,
                    double *B, const int *ldb)
 {
-    double *devPtrA = 0, *devPtrB = 0;
+    void *devPtrA = 0, *devPtrB = 0;
     int k;
     cublasStatus stat1, stat2;
 
@@ -3757,7 +3758,7 @@ void FC_FUNC_(cublas_zgemm,CUBLAS_ZGEMM) (const char *transa, const char *transb
                    const int *ldc)
 {
     int ka, kb;
-    cuDoubleComplex *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    void *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
     cublasStatus stat1, stat2, stat3;
 
     if ((*m == 0) || (*n == 0)) return; 
