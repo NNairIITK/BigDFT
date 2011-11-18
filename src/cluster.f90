@@ -1081,15 +1081,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
          yaml_indent=yaml_indent-1
 
-!!$         if (gnrm_zero == 0.0_gp) then
-!!$            write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-!!$               &   final_out // ' iter,total energy,gnrm',iter,energy,gnrm
-!!$         else
-!!$            write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
-!!$               &   final_out // ' iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
-!!$
-!!$         end if
-
          !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
          if (in%itrpmax >1) then
             if ( diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
