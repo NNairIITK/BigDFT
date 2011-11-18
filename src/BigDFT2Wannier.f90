@@ -524,18 +524,30 @@ program BigDFT2Wannier
    allocate(orbs%iokpt(orbs%norbp),stat=i_stat)
    call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
    orbs%iokpt=1
+
+   if(associated(orbs%eval)) nullify(orbs%eval)
+   allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
+   call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+   call razero(orbs%norb*orbs%nkpts,orbs%eval)
    if(orbs%norbp > 0) then
-      if(associated(orbs%eval)) nullify(orbs%eval)
-      allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
-      call memocc(i_stat,orbs%eval,'orbs%eval',subname)
       filename=trim(input%dir_output) // 'wavefunction'// trim(wfformat_read)
       call readmywaves(iproc,filename,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
          Glr%wfd,psi_etsf(1,1))
-      i_all = -product(shape(orbs%eval))*kind(orbs%eval)
-      deallocate(orbs%eval,stat=i_stat)
-      call memocc(i_stat,i_all,'orbs%eval',subname)
-   
    end if
+   ! For bin files, the eigenvalues are distributed, so reduce them
+   if(filetype == 'bin' .or. filetype == 'BIN') then
+     call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+   end if
+   ! Write the eigenvalues into a file to output the hamiltonian matrix elements in Wannier functions
+   if(iproc==0) then     
+     open(15, file=trim(seedname)//'.eig', status='unknown')
+     do nb = 1, orbs%norb            !TO DO: ADD KPTS
+        write(15,'(I4,2x,I4,2x,E17.9)') nb, 1, orbs%eval(nb)
+     end do
+   end if
+   i_all = -product(shape(orbs%eval))*kind(orbs%eval)
+   deallocate(orbs%eval,stat=i_stat)
+   call memocc(i_stat,i_all,'orbs%eval',subname)
 
    ! For the non-occupied orbitals, need to change norbp,isorb
    orbsv%norbp = orbsb%isorb + orbsb%norbp - n_occ
@@ -553,17 +565,29 @@ program BigDFT2Wannier
    orbsv%iokpt=1
  
    ! read unoccupied wavefunctions
+   if(associated(orbsv%eval)) nullify(orbsv%eval)
+   allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
+   call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
+   call razero(orbsv%norb*orbsv%nkpts,orbsv%eval)
    if(orbsv%norbp > 0) then
       filename=trim(input%dir_output) // 'virtuals'// trim(wfformat_read)
-      if(associated(orbsv%eval)) nullify(orbsv%eval)
-      allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
-      call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
       call readmywaves(iproc,filename,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
          Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
-      i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
-      deallocate(orbsv%eval,stat=i_stat)
-      call memocc(i_stat,i_all,'orbsv%eval',subname)
    end if
+   ! For bin files, the eigenvalues are distributed, so reduce them
+   if(filetype == 'bin' .or. filetype == 'BIN') then
+     call mpiallred(orbsv%eval(1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+   end if
+   ! Write the eigenvalues into a file to output the hamiltonian matrix elements in Wannier functions
+   if(iproc==0) then
+     do nb = 1, orbsv%norb            !TO DO: ADD KPTS
+        write(15,'(I4,2x,I4,2x,E17.9)') nb+n_occ, 1, orbsv%eval(nb)
+     end do
+     close(15)
+   end if
+   i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
+   deallocate(orbsv%eval,stat=i_stat)
+   call memocc(i_stat,i_all,'orbsv%eval',subname)
 
    i_all = -product(shape(rxyz_old))*kind(rxyz_old)
    deallocate(rxyz_old,stat=i_stat)
