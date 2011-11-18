@@ -1392,11 +1392,11 @@ logical:: ovrlpx, ovrlpy, ovrlpz
            ! Apply the Hamiltonian for each atom.
            ! onWhichAtomTemp indicates that all orbitals feel the confining potential
            ! centered on atom iat.
-           allocate(onWhichAtomTemp(lin%lig%orbsig%norbp), stat=istat)
+           allocate(onWhichAtomTemp(lin%orbs%norbp), stat=istat)
            call memocc(istat,onWhichAtomTemp,'onWhichAtomTemp',subname)
-           allocate(doNotCalculate(lin%lig%lzdig%nlr), stat=istat)
+           allocate(doNotCalculate(lin%lzd%nlr), stat=istat)
            call memocc(istat, doNotCalculate, 'doNotCalculate', subname)
-           allocate(skip(lin%lig%lzdig%nlr), stat=istat)
+           allocate(skip(lin%lzd%nlr), stat=istat)
            call memocc(istat, skip, 'skip', subname)
            !allocate(skipGlobal(lin%lig%lzdig%nlr,0:nproc-1), stat=istat)
            !call memocc(istat, skipGlobal, 'skipGlobal', subname)
@@ -1405,14 +1405,14 @@ logical:: ovrlpx, ovrlpy, ovrlpz
            ! Determine for how many localization regions we need a Hamiltonian application.
            ndim_lhchi=0
            do iat=1,at%nat
-               call getIndices(lin%lig%lzdig%llr(iat), is1, ie1, is2, ie2, is3, ie3)
+               call getIndices(lin%lzd%llr(iat), is1, ie1, is2, ie2, is3, ie3)
                skip(iat)=.true.
-               do jorb=1,lin%lig%orbsig%norbp
-                  jjorb=jorb+lin%lig%orbsig%isorb
+               do jorb=1,lin%orbs%norbp
+                  jjorb=jorb+lin%orbs%isorb
                    onWhichAtomTemp(jorb)=iat
-                   jlr=lin%lig%orbsig%inWhichLocreg(jjorb)
-                   if(lin%lig%orbsig%inWhichlocreg(jorb+lin%lig%orbsig%isorb)/=jlr) stop 'this should not happen'
-                   call getIndices(lin%lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
+                   jlr=lin%orbs%inWhichLocreg(jjorb)
+                   if(lin%orbs%inWhichlocreg(jorb+lin%orbs%isorb)/=jlr) stop 'this should not happen'
+                   call getIndices(lin%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
                    ovrlpx = ( is1<=je1 .and. ie1>=js1 )
                    ovrlpy = ( is2<=je2 .and. ie2>=js2 )
                    ovrlpz = ( is3<=je3 .and. ie3>=js3 )
@@ -1426,7 +1426,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz
            end do
 
 
-           allocate(lhchi(lin%lig%orbsig%npsidim,ndim_lhchi),stat=istat)
+           allocate(lhchi(lin%orbs%npsidim,ndim_lhchi),stat=istat)
            call memocc(istat, lhchi, 'lhchi', subname)
            lhchi=0.d0
 
@@ -1440,8 +1440,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz
            !!     lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,1)*input%nspin, input%nspin, lin%lig%orbsig,&
            !!     lin%lig%lzdig, ngatherarr, rhopot, lpot, 2, lin%lig%comgp)
 
-           allocate(lin%lig%lzdig%doHamAppl(lin%lig%lzdig%nlr), stat=istat)
-           call memocc(istat, lin%lig%lzdig%doHamAppl, 'lin%lig%lzdig%doHamAppl', subname)
+           allocate(lin%lzd%doHamAppl(lin%lzd%nlr), stat=istat)
+           call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
            withConfinement=.true.
            ii=0
            allocate(lchi(size(lphi)), stat=istat)
@@ -1449,25 +1449,25 @@ logical:: ovrlpx, ovrlpy, ovrlpz
            lchi=lphi
            do iat=1,at%nat
                doNotCalculate=.true.
-               lin%lig%lzdig%doHamAppl=.false.
+               lin%lzd%doHamAppl=.false.
                !!call mpi_barrier(mpi_comm_world, ierr)
-               call getIndices(lin%lig%lzdig%llr(iat), is1, ie1, is2, ie2, is3, ie3)
+               call getIndices(lin%lzd%llr(iat), is1, ie1, is2, ie2, is3, ie3)
                skip(iat)=.true.
-               do jorb=1,lin%lig%orbsig%norbp
+               do jorb=1,lin%orbs%norbp
                    onWhichAtomTemp(jorb)=iat
                    !jlr=onWhichAtomp(jorb)
-                   jlr=lin%lig%orbsig%inWhichLocregp(jorb)
-                   call getIndices(lin%lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
+                   jlr=lin%orbs%inWhichLocregp(jorb)
+                   call getIndices(lin%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
                    ovrlpx = ( is1<=je1 .and. ie1>=js1 )
                    ovrlpy = ( is2<=je2 .and. ie2>=js2 )
                    ovrlpz = ( is3<=je3 .and. ie3>=js3 )
                    if(ovrlpx .and. ovrlpy .and. ovrlpz) then
                        doNotCalculate(jlr)=.false.
-                       lin%lig%lzdig%doHamAppl(jlr)=.true.
+                       lin%lzd%doHamAppl(jlr)=.true.
                        skip(iat)=.false.
                    else
                        doNotCalculate(jlr)=.true.
-                       lin%lig%lzdig%doHamAppl(jlr)=.false.
+                       lin%lzd%doHamAppl(jlr)=.false.
                    end if
                end do
                !write(*,'(a,2i4,4x,100l4)') 'iat, iproc, doNotCalculate', iat, iproc, doNotCalculate
@@ -1475,8 +1475,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz
                if(.not.skip(iat)) then
                    ii=ii+1
                    if(lin%nItInguess>0) then
-                       call HamiltonianApplication3(iproc, nproc, at, lin%lig%orbsig, input%hx, input%hy, input%hz, rxyz, &
-                            proj, lin%lig%lzdig, ngatherarr, lpot, lchi, lhchi(1,ii), &
+                       call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
+                            proj, lin%lzd, ngatherarr, lpot, lchi, lhchi(1,ii), &
                             ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, withConfinement, .false., &
                             pkernel=pkernelseq, lin=lin, confinementCenter=onWhichAtomTemp)
                    end if
@@ -1554,13 +1554,13 @@ logical:: ovrlpx, ovrlpy, ovrlpz
 
            ! Calculate the Hamiltonian matrix.
            call cpu_time(t1)
-           allocate(ham3(lin%lig%orbsig%norb,lin%lig%orbsig%norb,nlocregPerMPI), stat=istat)
+           allocate(ham3(lin%orbs%norb,lin%orbs%norb,nlocregPerMPI), stat=istat)
            call memocc(istat,ham3,'ham3',subname)
            if(lin%nItInguess>0) then
                if(iproc==0) write(*,*) 'calling getHamiltonianMatrix6'
-               call getHamiltonianMatrix6(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, &
-                    onWhichMPITemp, input, lin%lig%orbsig%inWhichLocreg, ndim_lhchi, &
-                    nlocregPerMPI, lchi, lhchi, skip, lin%lig%mad, lin%memoryForCommunOverlapIG, lin%locregShape, tag, ham3)
+               call getHamiltonianMatrix6(iproc, nproc, nprocTemp, lin%lzd, lin%orbs, lin%orbs, &
+                    onWhichMPITemp, input, lin%orbs%inWhichLocreg, ndim_lhchi, &
+                    nlocregPerMPI, lchi, lhchi, skip, lin%mad, lin%memoryForCommunOverlapIG, lin%locregShape, tag, ham3)
            end if
 
            iall=-product(shape(lhchi))*kind(lhchi)
@@ -1570,12 +1570,16 @@ logical:: ovrlpx, ovrlpy, ovrlpz
 
            ! Build the orbitals phi as linear combinations of the atomic orbitals.
            if(iproc==0) write(*,*) 'calling buildLinearCombinationsLocalized3'
-           call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
-                lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, nlocregPerMPI, tag, ham3)
+           call buildLinearCombinationsLocalized3(iproc, nproc, lin%orbs, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
+                lin%orbs%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lzd, nlocregPerMPI, tag, ham3)
 
            iall=-product(shape(lchi))*kind(lchi)
            deallocate(lchi, stat=istat)
            call memocc(istat, iall, 'lchi',subname)
+
+           iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
+           deallocate(lin%lzd%doHamAppl, stat=istat)
+           call memocc(istat, iall, 'lin%lzd%doHamAppl',subname)
 
            iall=-product(shape(norb_parTemp))*kind(norb_parTemp)
            deallocate(norb_parTemp, stat=istat)
