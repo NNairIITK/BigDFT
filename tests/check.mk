@@ -70,7 +70,11 @@ report:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
 	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+    if test -n "$$name" && test -f input.perf && ! grep -qs ACCEL "$$name" ; then \
+	   cat input.perf >> $$name.perf ; \
+    fi ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
+	if test -f input.perf.bak ; then mv input.perf.bak input.perf ; fi 
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out:
@@ -78,7 +82,7 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.dipole.dat.out: %.out.out
-	$(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube > bader.out && mv dipole.dat $@
+	$(run_parallel) $(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube > bader.out && mv dipole.dat $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.freq.out: $(abs_top_builddir)/src/frequencies
@@ -101,7 +105,7 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.xabs.out: $(abs_top_builddir)/src/abscalc
-	name=`basename $@ .xabs.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	name=`basename $@ .xabs.out` ; \
 	$(abs_top_builddir)/src/abscalc $$name > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
@@ -152,12 +156,15 @@ $(INS): in_message
           if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
           for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
         fi ; \
-	if ! test -f $(srcdir)/$$dir/input.perf ; then \
-	  rm -f $$dir/input.perf ; \
-	  if test -n "$(run_ocl)" ; then \
-	    echo "ACCEL OCLGPU" > $$dir/input.perf ; \
-	  fi ; \
-	fi ; \
+	    if ! test -f $(srcdir)/$$dir/input.perf ; then \
+	       rm -f $$dir/input.perf ; \
+		   touch $$dir/input.perf ; \
+		else \
+		   cp $(srcdir)/$$dir/input.perf $$dir/input.perf.bak ;  \
+	    fi ; \
+	    if test -n "$(run_ocl)" && ! grep -qs ACCEL $$dir/input.perf ; then \
+	       echo "ACCEL OCLGPU" >> $$dir/input.perf ; \
+	    fi ; \
         cd $$dir && $(MAKE) -f ../Makefile $$dir".psp"; \
         $(MAKE) -f ../Makefile $$dir".post-in"; \
         echo "Input prepared in "$$dir" dir. make $$dir.run available"

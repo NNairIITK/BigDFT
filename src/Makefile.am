@@ -42,7 +42,7 @@ EXTRA_DIST = \
 	PSolver/lazy_8.inc \
 	PSolver/createKernel.f90 \
 	PSolver/PSolver_Main.f90 \
-	perfdata.inc \
+	PSolver/perfdata.inc \
 	NEB_driver.sh 
 
 # Build targets, binaries and libraries.
@@ -191,7 +191,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA
-AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@
+AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
 
 if USE_MPI
 mpi_source =

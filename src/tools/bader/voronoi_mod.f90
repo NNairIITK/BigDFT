@@ -1,18 +1,18 @@
-! Copyright 2009
-! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
-!
-! Bader is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! A copy of the GNU General Public License is available at
-! http://www.gnu.org/licenses/
+!> @file
+!! Bader charge density analysis program
+!! @author
+!! Copyright 2009 Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
+!! Copyright (C) 2009-2011 BigDFT group
+!! Bader is free software: you can redistribute it and/or modify
+!! it under the terms of the GNU General Public License as published by
+!! the Free Software Foundation, either version 3 of the License, or
+!! (at your option) any later version.
+!!
+!! A copy of the GNU General Public License is available at
+!! http://www.gnu.org/licenses/
 
-!-----------------------------------------------------------------------------------!
-! Bader charge density analysis program
-!  Module for analyzing the charge with a voronoi analysis
-!-----------------------------------------------------------------------------------!
+
+!>  Module for analyzing the charge with a voronoi analysis
 MODULE voronoi_mod
   USE kind_mod
   USE matrix_mod
@@ -45,8 +45,8 @@ MODULE voronoi_mod
     TYPE(ions_obj) :: ions
     TYPE(charge_obj) :: chg
 
-    REAL(q2),DIMENSION(3) :: r_lat,r_car,dr_lat,dr_car
-    REAL(q2) :: dist,min_dist,shift,vol
+    REAL(q2),DIMENSION(3) :: r_lat,dr_lat,dr_car
+    REAL(q2) :: dist,min_dist,vol
     INTEGER :: i,n1,n2,n3,closest,tenths_done,cr,count_max,t1,t2
     REAL(q2),ALLOCATABLE,DIMENSION(:) :: ionvol
 
@@ -54,7 +54,7 @@ MODULE voronoi_mod
 
     WRITE(*,'(/,2x,A)') 'CALCULATING VORONOI CHARGE DISTRIBUTION'
     WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-    WRITE(*,'(2x,A,$)') 'PERCENT DONE:  **'
+    WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
 
     ALLOCATE(vor%vorchg(ions%nions))
 
@@ -68,7 +68,7 @@ MODULE voronoi_mod
       r_lat(1)=REAL(n1,q2)
       IF ((n1*10/chg%npts(1)) > tenths_done) THEN
         tenths_done=(n1*10/chg%npts(1))
-        WRITE(*,'(A,$)') '**'
+        WRITE(*,'(A)',advance="no") '**'
       END IF
       DO n2=1,chg%npts(2)
         r_lat(2)=REAL(n2,q2)

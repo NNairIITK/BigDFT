@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 31/08/2011
+# Date: 17/11/2011
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -135,6 +135,7 @@ elif psolver:
         "True if the line must not be compared"
         return "MEMORY" in line \
             or "CPLX" in line \
+            or "CPU time" in line \
             or "memory" in line \
             or "allocation" in line \
             or "Energy diff" in line \
@@ -207,7 +208,7 @@ for line in original1:
     if end_left:
         break
 end_right = False
-for line in original1:
+for line in original2:
     end_right = end_line in line
     if end_right:
         break
@@ -226,19 +227,23 @@ if bigdft:
 
 #Remove line_junk before comparing (the line number is wrong)
 memory = 0
-if bigdft:
-    time = 0
+if bigdft or psolver:
+    time = None
 #Open 2 temporary files
 t1 = tempfile.NamedTemporaryFile()
 for line in original1:
     if not line_junk(line):
         t1.write(line)
     else:
-        #Only for BigDFT
-        if bigdft:
+        #Only for BigDFT and PSolver
+        if bigdft or psolver:
             #Keep sum of elapsed time
             if "CPU time/ELAPSED time" in line:
-                time += float(line.split()[-2])
+                if time == None:
+                    time = float(line.split()[-2])
+                else:
+                    time += float(line.split()[-2])
+                print "toto",time,line
             #Test if memory remaining is 0
             if "remaining memory" in line:
                 memory = int(line.split()[-1])
@@ -358,13 +363,15 @@ while not EOF:
                 print context,
             print_context = True
             print left[i1],
-            floats = list()
-            for (one,two) in re_float.findall(left[i1]):
-                #'d' is not recognised by python
-                one = one.lower().replace("d","e")
-                floats.append((float(one), n_digits(one)))
-            if len(floats) > 0:
-                maximum = 99
+            #Check if supplementary lines are floating numbers
+            #TD (16/11/2011): Do no check!
+            #floats = list()
+            #for (one,two) in re_float.findall(left[i1]):
+            #    #'d' is not recognised by python
+            #    one = one.lower().replace("d","e")
+            #    floats.append((float(one), n_digits(one)))
+            #if len(floats) > 0:
+            #    maximum = 99
     while i2 < n2-1:
         i2 += 1
         if n2 > 0 and not line_junk(right[i2]):
@@ -372,13 +379,15 @@ while not EOF:
                 print context,
             print_context = True
             print right[i2],
-            floats = list()
-            for (one,two) in re_float.findall(right[i2]):
-                #'d' is not recognised by python
-                one = one.lower().replace("d","e")
-                floats.append((float(one), n_digits(one)))
-            if len(floats) > 0:
-                maximum = 99
+            #Check if supplementary lines are floating numbers
+            #TD (16/11/2011): Do no check!
+            #floats = list()
+            #for (one,two) in re_float.findall(right[i2]):
+            #    #'d' is not recognised by python
+            #    one = one.lower().replace("d","e")
+            #    floats.append((float(one), n_digits(one)))
+            #if len(floats) > 0:
+            #    maximum = 99
 
 if context_lines is not None:
     print context_lines,
@@ -399,7 +408,7 @@ else:
     start = start_success
     message = "succeeded < "
 
-if bigdft and time:
+if (bigdft or psolver) and time != None:
     print "%sMax discrepancy %s: %s (%s%s) -- time %7.2f%s " % \
         (start,context_discrepancy,maximum,message,max_discrepancy,time,end)
 else:

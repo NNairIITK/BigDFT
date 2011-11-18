@@ -23,6 +23,7 @@ module module_defs
   include 'configure.inc' !< Include variables set from configure.
 
   integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
+  integer :: yaml_indent=0 !<Blank spaces indentations for Yaml output level identification
 
   ! General precision, density and the wavefunctions types
   integer, parameter :: gp=kind(1.0d0)  !< general-type precision
@@ -315,6 +316,8 @@ module module_defs
       implicit none
       integer, intent(in) :: one
       integer :: uninitialized_int
+      integer :: foo
+      foo = kind(one)
       uninitialized_int=-123456789
     end function uninitialized_int
 
@@ -322,6 +325,8 @@ module module_defs
       implicit none
       real(kind=4), intent(in) :: one
       real(kind=4) :: uninitialized_real
+      integer :: foo
+      foo = kind(one)
       uninitialized_real=-123456789.e0
     end function uninitialized_real
 
@@ -329,7 +334,8 @@ module module_defs
       implicit none
       real(kind=8), intent(in) :: one
       real(kind=8) :: uninitialized_dbl
-      
+      integer :: foo
+      foo = kind(one)
       uninitialized_dbl=-123456789.d0
     end function uninitialized_dbl
 

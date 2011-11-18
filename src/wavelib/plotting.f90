@@ -7,12 +7,12 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-subroutine plot_density_cube_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
+
+subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nspin,nproc
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -21,7 +21,7 @@ subroutine plot_density_cube_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(n1i*n2i*n3p,nspin), target, intent(in) :: rho
   !local variables
-  character(len=*), parameter :: subname='plot_density_cube'
+  character(len=*), parameter :: subname='plot_density_cube_old'
   character(len=3) :: advancestring
   character(len=5) :: suffix
   character(len=15) :: message
@@ -182,7 +182,7 @@ subroutine read_density_cube_old(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat,
   integer, intent(out) ::  nat
  
   !local variables
-  character(len=*), parameter :: subname='read_density_cube'
+  character(len=*), parameter :: subname='read_density_cube_old'
   character(len=5) :: suffix
   character(len=15) :: message
   character(len=3) :: advancestring
@@ -272,13 +272,7 @@ contains
 END SUBROUTINE read_density_cube_old
 
 
-!>   Write a (sum of two) field in the ISF basis in the cube format
-!!   Recent changes by Ali:
-!!   1) Filling the 2nd column in atomic coordinates rows by the pseudo-cores charge. I found it standard in few other packages. 
-!!      In particular it is needed by the recent charge analysis tool.
-!!   2) Outputting the electric-dipole moment is an useful piece of data both for the end-user and for developing step 
-!!      as a tool to investigate the consistency  (e.g. for symmetrical directions). 
-!!      I already did it in this subroutine, but we can do it as a separate subroutine.
+!> Write a (sum of two) field in the ISF basis in the cube format
 subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
   !n(c) use module_base
@@ -294,7 +288,6 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   character(len=3) :: advancestring
   integer :: nl1,nl2,nl3,nbx,nby,nbz,i1,i2,i3,icount,j,iat
   real(dp) :: later_avg
-  real(gp) :: dipole_el(3) , dipole_cores(3),q
   !conditions for periodicity in the three directions
   !value of the buffer in the x and z direction
   if (at%geocode /= 'F') then
@@ -326,13 +319,9 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   write(22,'(i5,3(f12.6))') 2*(n2+nby),0.0_gp,hyh,0.0_gp
   write(22,'(i5,3(f12.6))') 2*(n3+nbz),0.0_gp,0.0_gp,hzh
   !atomic number and positions
-  dipole_el   (1:3)=0_gp
-  dipole_cores(1:3)=0_gp
   do iat=1,at%nat
-     !write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
      write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)), at%nelpsp(at%iatype(iat))*1. &
           ,(rxyz(j,iat),j=1,3)
-     dipole_cores(1:3)=dipole_cores(1:3)+at%nelpsp(at%iatype(iat)) * rxyz(1:3,iat)
   end do
 
 
@@ -352,10 +341,6 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
            !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
            write(22,'(1x,1pe13.6)',advance=advancestring)&
                 a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
-           q= ( a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3) )* hxh*hyh*hzh 
-           dipole_el(1)=dipole_el(1)+ q* at%alat1/real(2*(n1+nbx),dp)*i1 
-           dipole_el(2)=dipole_el(2)+ q* at%alat2/real(2*(n2+nby),dp)*i2
-           dipole_el(3)=dipole_el(3)+ q* at%alat3/real(2*(n3+nbz),dp)*i3
         end do
      end do
   end do
@@ -406,18 +391,6 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
      write(23,*)i3,at%alat3/real(2*(n3+nbz),dp)*i3,later_avg
   end do
   close(23)
-  if (trim(filename)=='electronic_density') then
-     dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     open(unit=24,file='dipole',status='unknown')
-     write(24,'(a)') " #  Dipole moment of the whole system  (Px, Py, Pz,  |P| [e.bohr])"  ! or [D] 
-     write(24,99) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))
-     write(24,99) "pseudo cores:      ", dipole_cores(1:3) , sqrt(sum(dipole_cores**2))
-     write(24,99) "Total (cores-el.): ", dipole_cores-dipole_el , sqrt(sum((dipole_cores-dipole_el)**2))
-99   format (a20,3f15.7,"    ==> ",f15.5)
-     !99 format (a20,4ES15.7)
-     close(24)
-  endif
 END SUBROUTINE write_cube_fields
 
 
@@ -559,7 +532,7 @@ subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
 END SUBROUTINE plot_density
 
 
-!>  Read a density file using file format depending on the extension.
+!> Read a density file using file format depending on the extension.
 subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz,iatypes, znucl)
   use module_base
@@ -633,11 +606,11 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
 END SUBROUTINE read_density
 
 
-subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
+subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi)
   use module_base
   use module_types
   implicit none
-  character(len=*) :: comment
+  !Arguments
   character(len=*) :: orbname
   integer, intent(in) :: nexpo
   real(gp), intent(in) :: hx,hy,hz
@@ -645,7 +618,7 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='plot_wf'
   integer :: i_stat,i_all
   integer :: n1i,n2i,n3i,n1,n2,n3
@@ -682,7 +655,8 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
 
 END SUBROUTINE plot_wf
 
-!> read the densit and put the values in the rhopot arrays according to the parallelization indicated by
+
+!> Read the densit and put the values in the rhopot arrays according to the parallelization indicated by
 !! nscatterarr array
 subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,n2i,n3i,n3p,nspin,hxh,hyh,hzh,pot)
   use module_base
@@ -696,7 +670,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
   real(dp), dimension(n1i,n2i,max(n3p,1),nspin), intent(out) :: pot
   !local variables
   character(len=*), parameter :: subname='read_potential_from_disk'
-  integer :: nat,n1t,n2t,n3t,nspint,ierror,ierr,i_all,i_stat,ispin
+  integer :: n1t,n2t,n3t,nspint,ierror,ierr,i_all,i_stat,ispin
   real(gp) :: hxt,hyt,hzt
   real(dp), dimension(:,:), pointer :: pot_from_disk
 
@@ -815,7 +789,7 @@ contains
     real(gp), dimension(:,:), pointer :: rxyz
     integer, dimension(:), pointer :: iatypes, znucl
     !local variables
-    character(len=*), parameter :: subname='read_density_cube'
+    character(len=*), parameter :: subname='read_cube_header'
     integer :: n1t,n2t,n3t,n1,n2,n3,idum,iat,i_stat,i_all,j
     integer :: nl1,nl2,nl3,nbx,nby,nbz
     real(gp) :: dum1,dum2,dum3
@@ -918,7 +892,7 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   integer, intent(in) :: n1i,n2i,n3i
   real(dp), dimension(n1i*n2i*n3i) :: rho
   !local variables
-  !n(c) character(len=*), parameter :: subname='read_density_cube'
+  !n(c) character(len=*), parameter :: subname='read_cube_field'
   character(len=3) :: advancestring
   integer :: n1t,n2t,n3t,n1,n2,n3,i1,i2,i3,nat,iat
   integer :: nl1,nl2,nl3,nbx,nby,nbz,icount,ind
@@ -996,6 +970,7 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
 
 END SUBROUTINE read_cube_field
 
+
 !> Calculate the dipole of a Field given in the rho array.
 !! The parallel distribution used is the one of the potential
 subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
@@ -1010,9 +985,9 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(n1i,n2i,n3p,nspin), target, intent(in) :: rho
   character(len=*), parameter :: subname='calc_dipole'
-  integer :: i_all,i_stat,ierr,ia,ib,isuffix,fformat
+  integer :: i_all,i_stat,ierr
   real(gp) :: dipole_el(3) , dipole_cores(3), tmpdip(3),q,qtot
-  integer  :: iat,i1,i2,i3,nbx,nby,nbz, nl1,nl2,nl3, ind, ispin
+  integer  :: iat,i1,i2,i3,nbx,nby,nbz, nl1,nl2,nl3, ispin
   real(dp), dimension(:,:,:,:), pointer :: ele_rho
   
   if (nproc > 1) then
@@ -1020,9 +995,11 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
      allocate(ele_rho(n1i,n2i,n3i,nspin),stat=i_stat)
      call memocc(i_stat,ele_rho,'ele_rho',subname)
 
-     call MPI_ALLGATHERV(rho,n1i*n2i*n3p*nspin,&
-          mpidtypd,ele_rho,ngatherarr(0,1),&
-          ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+     do ispin=1,nspin
+        call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
+             mpidtypd,ele_rho(1,1,1,ispin),ngatherarr(0,1),&
+             ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+     end do
 
   else
      ele_rho => rho
@@ -1075,12 +1052,12 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
   if(iproc==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     write(*,'(a)') " ============= Electric Dipole Moment  ================" 
+     write(*,'(1x,a)')repeat('-',61)//' Electric Dipole Moment'
      tmpdip=dipole_cores+dipole_el
-     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)   ", "   (Px,Py,Pz)= " , tmpdip(1:3)  
+     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)       ", "(Px,Py,Pz)= " , tmpdip(1:3)  
      tmpdip=tmpdip/0.393430307_gp  ! au2debye              
-     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "   (Px,Py,Pz)= " , tmpdip(1:3) 
-96   format (a10,Es14.6 ,a,a,3ES13.4)
+     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "(Px,Py,Pz)= " , tmpdip(1:3) 
+96   format (a8,Es14.6 ,a,a,3ES13.4)
      !     write(*,'(a)') "  ================= Dipole moment in e.a0    (0.39343 e.a0 = 1 Debye) ================"  ! or [Debye] 
      !     write(*,97) "    Px " ,"     Py ","     Pz ","   |P| " 
      !     write(*,98) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))
@@ -1100,4 +1077,3 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
   end if
 
 END SUBROUTINE calc_dipole
-
