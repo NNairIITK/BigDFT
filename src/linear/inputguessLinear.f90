@@ -764,11 +764,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Deallocate all local arrays.
 
   ! Deallocate all types that are not needed any longer.
-  call deallocate_local_zone_descriptors(lin%lig%lzdig, subname)
-  call deallocate_orbitals_data(lin%lig%orbsig, subname)
-  call deallocate_matrixDescriptors(lin%lig%mad, subname)
-  !!call deallocate_overlapParameters(lin%lig%op, subname)
-  !!call deallocate_p2pCommsOrthonormality(lin%lig%comon, subname)
+  !!call deallocate_local_zone_descriptors(lin%lig%lzdig, subname)
+  !!call deallocate_orbitals_data(lin%lig%orbsig, subname)
+  !!call deallocate_matrixDescriptors(lin%lig%mad, subname)
+  if(iproc==0) write(*,*) 'WARNING: THIS WILL CAUSE MEMORY PROBLEMS, DEALLOCATE LATER'
 
   ! Deallocate all remaining local arrays.
   iall=-product(shape(norbsc_arr))*kind(norbsc_arr)
@@ -1673,16 +1672,21 @@ allocate(hamTemp(orbsig%norb,orbsig%norb), stat=istat)
 call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
+if(iproc==0) write(*,*) 'calling initCommsOrtho in getHamiltonianMatrix6'
 call initCommsOrtho(iproc, nproc, lzdig, orbsig, onWhichAtom, input, locregShape, op, comon, tagout)
 
 
+if(iproc==0) write(*,*) 'calling allocateCommuncationBuffersOrtho in getHamiltonianMatrix6'
 call allocateCommuncationBuffersOrtho(comon, subname)
 
 ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
 ! Then post the messages and gather them.
 !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi, comon)
+if(iproc==0) write(*,*) 'calling extractOrbital3 in getHamiltonianMatrix6'
 call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi, comon%nsendBuf, comon%sendBuf)
+if(iproc==0) write(*,*) 'calling postCommsOverlap in getHamiltonianMatrix6'
 call postCommsOverlap(iproc, nproc, comon)
+if(iproc==0) write(*,*) 'calling gatherOrbitals2 in getHamiltonianMatrix6'
 call gatherOrbitals2(iproc, nproc, comon)
 
 
