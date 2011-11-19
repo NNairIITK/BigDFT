@@ -5247,6 +5247,24 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine apply_confinement
 
 
+       subroutine minimize_in_subspace(iproc, nproc, lin, at, input, lpot, GPU, ngatherarr, proj, rxyz, pkernelseq, nlpspd, lphi)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(linearParameters),intent(inout):: lin
+         type(atoms_data),intent(in):: at
+         type(input_variables),intent(in):: input
+         real(8),dimension(lin%lzd%ndimpotisf),intent(in):: lpot
+         type(GPU_pointers),intent(inout):: GPU
+         integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+         type(nonlocal_psp_descriptors),intent(in):: nlpspd
+         real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
+         real(8),dimension(3,at%nat),intent(in):: rxyz
+         real(dp), dimension(:), pointer :: pkernelseq
+         real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
+       end subroutine minimize_in_subspace
+
   end interface
 
 end module module_interfaces

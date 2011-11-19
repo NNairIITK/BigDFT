@@ -3321,3 +3321,42 @@ integer:: ii
   ix = ii - iy * (n1+1)
 
 end subroutine get_coordinates
+
+
+
+
+
+
+function check_whether_locregs_overlap(llr_i, llr_j, glr)
+use module_base
+use module_types
+use module_interfaces
+implicit none
+
+! Calling arguments
+type(locreg_descriptors),intent(in):: llr_i, llr_j, glr
+logical:: check_whether_locregs_overlap
+
+! Local variables
+integer:: n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ovrlp
+
+  ! Check whether there is an overlap by comparing the descriptors.
+  call overlapbox_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
+       llr_j%d%n1, llr_j%d%n2, llr_j%d%n3, &
+       glr%d%n1, glr%d%n2, glr%d%n3, &
+       llr_i%ns1, llr_i%ns2, llr_i%ns3, &
+       llr_j%ns1, llr_j%ns2, llr_j%ns3, &
+       glr%ns1, glr%ns2, glr%ns3, &
+       llr_i%wfd%nseg_c, llr_j%wfd%nseg_c, &
+       llr_i%wfd%keyg, llr_i%wfd%keyv, llr_j%wfd%keyg, llr_j%wfd%keyv, &
+       n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ovrlp)
+
+  ! n1_ovrlp, n2_ovrlp, n3_ovrlp are the dimensions of the overlap localization regions.
+  if(n1_ovrlp>0 .and. n2_ovrlp>0 .and. n3_ovrlp>0) then
+      ! There is an overlap
+      check_whether_locregs_overlap=.true.
+  else
+      ! There is no overlap
+      check_whether_locregs_overlap=.false.
+  end if
+end function check_whether_locregs_overlap

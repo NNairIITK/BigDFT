@@ -676,6 +676,8 @@ integer:: it, istat, iall, iorb, jorb, ierr
 real(8),dimension(:),allocatable:: lphiovrlp
 character(len=*),parameter:: subname='orthonormalize'
 logical:: converged
+real(8):: tt1, tt2, tt3
+type(input_variables):: input
 
   !!allocate(lphiovrlp(lin%op_lb%ndim_lphiovrlp), stat=istat)
   !!call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
@@ -683,12 +685,18 @@ logical:: converged
   call allocateCommuncationBuffersOrtho(comon_lb, subname)
   !call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lphi, comon_lb)
   call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lphi, comon_lb%nsendBuf, comon_lb%sendBuf)
-  call postCommsOverlap(iproc, nproc, comon_lb)
-  call gatherOrbitals2(iproc, nproc, comon_lb)
+  !call postCommsOverlap(iproc, nproc, comon_lb)
+  call postCommsOverlapNew(iproc, nproc, orbs, op_lb, lzd, lphi, comon_lb, tt1, tt2)
+  !call gatherOrbitals2(iproc, nproc, comon_lb)
+  call collectnew(iproc, nproc, comon_lb, mad, op_lb, orbs, input, lzd, comon_lb%nsendbuf, &
+       comon_lb%sendbuf, comon_lb%nrecvbuf, comon_lb%recvbuf, ovrlp, tt1, tt2, tt3)
   !!call calculateOverlapMatrix2(iproc, nproc, orbs, op_lb, comon_lb, orbs%inWhichLocreg, mad, ovrlp)
   call calculateOverlapMatrix3(iproc, nproc, orbs, op_lb, orbs%inWhichLocreg, comon_lb%nsendBuf, &
                                comon_lb%sendBuf, comon_lb%nrecvBuf, comon_lb%recvBuf, mad, ovrlp)
   call deallocateCommuncationBuffersOrtho(comon_lb, subname)
+
+
+
 
 end subroutine getOverlapMatrix2
 
@@ -3250,6 +3258,9 @@ real(8),dimension(orbs%norb,orbs%norb),intent(out):: matrixElements
 integer:: it, istat, iall, iorb
 real(8),dimension(:),allocatable:: lphiovrlp
 character(len=*),parameter:: subname='getMatrixElements2'
+real(8),dimension(:,:),allocatable:: ttmat
+real(8):: tt1, tt2, tt3
+type(input_variables):: input
 
 
 
@@ -3257,8 +3268,13 @@ character(len=*),parameter:: subname='getMatrixElements2'
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
   !call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lphi, comon_lb)
   call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lphi, comon_lb%nsendBuf, comon_lb%sendBuf)
-  call postCommsOverlap(iproc, nproc, comon_lb)
-  call gatherOrbitals2(iproc, nproc, comon_lb)
+  !call postCommsOverlap(iproc, nproc, comon_lb)
+  call postCommsOverlapNew(iproc, nproc, orbs, op_lb, lzd, lphi, comon_lb, tt1, tt2)
+  !call gatherOrbitals2(iproc, nproc, comon_lb)
+  allocate(ttmat(orbs%norb,orbs%norb))
+  call collectnew(iproc, nproc, comon_lb, mad, op_lb, orbs, input, lzd, comon_lb%nsendbuf, &
+       comon_lb%sendbuf, comon_lb%nrecvbuf, comon_lb%recvbuf, ttmat, tt1, tt2, tt3)
+  deallocate(ttmat)
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   !call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lhphi, comon_lb)
   call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lhphi, comon_lb%nsendBuf, comon_lb%sendBuf)
@@ -3283,7 +3299,6 @@ character(len=*),parameter:: subname='getMatrixElements2'
   !!    end do
   !!    write(26000+iproc,*) '=============================='
   !!end if
-
 
 end subroutine getMatrixElements2
 
