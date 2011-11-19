@@ -305,8 +305,10 @@ This file contains all the parameters required for a single wavefunction calcula
       A positive integer refers to a functional from ABINIT library and a negative one from libXC
       library. In this case, you concatenate the codes for the exchange part and for the correlation part
       (see the table in appendix~\ref{appendix-libXC}).
-\item {\bf ncharge}, {\bf elecfield}: Total charge of the system and constant electric field along the y direction in units of Ha/Bohr. 
-      A positive {\bf ncharge} means that electrons are taken away.
+%\item {\bf ncharge}, {\bf elecfield}: Total charge of the system and constant electric field along the y direction in units of Ha/Bohr. 
+\item {\bf ncharge}, {\bf elecfield}: Total charge of the system and uniform electric field $E_x,E_y,E_z$ in units of Ha/Bohr. 
+      A positive {\bf ncharge} means that electrons are taken away. 
+      The electric field can not have components in periodic directions, e.g. $E_x=E_z=0$ in case surface BC is used.
 \item {\bf nspin}, {\bf mpol}: 
       nspin=1, closed shell system without spin polarization;\hfill\\
       nspin=2: spin polarized system; 
@@ -375,6 +377,14 @@ in cases where one has near degeneracy between the HOMO and LUMO orbitals. $50$~
        \item {\bf output\_density} = 12, Same as {\bf output\_density} = 2, but files are writtent in ETSF file format (portable binary format based on NetCDF).
        \item {\bf output\_density} = 21, Same as {\bf output\_density} = 1, but files are writtent in '.cube' file format (plain text).
        \item {\bf output\_density} = 22, Same as {\bf output\_density} = 2, but files are writtent in '.cube' file format (plain text).
+%  %       \item {\bf output\_denpot} = 0, No output density or potential is written.
+%  %       \item {\bf output\_denpot} = 1, Output electronic density and electrostatic potential are written in the .cube format, respectively,  into the files 'electronic\_density.cube' and 'electrostatic\_potential.cube' (Deprecated, use 11 instead).
+%  %       \item {\bf output\_denpot} = 2, In addition to the electronic density and the electrostatic potential the components of the potential                ('external\_potential.cube' which has contributions both from ions and electric field, 'Hartree\_potential.cube' and 'XC\_potental.cube') 
+%  %         are also output in plain text '.cube' files (Deprecated, use 12 instead).
+%  %       \item {\bf output\_denpot} = 11, Same as {\bf output\_denpot} = 1, but files are written in ETSF file format (portable binary format based on NetCDF).
+%  %       \item {\bf output\_denpot} = 12, Same as {\bf output\_denpot} = 2, but files are written in ETSF file format (portable binary format based on NetCDF).
+%  %%%%       \item {\bf output\_denpot} = 21, Same as {\bf output\_denpot} = 1, but files are written in '.cube' file format (plain text).
+%  %%%%       \item {\bf output\_denpot} = 22, Same as {\bf output\_denpot} = 2, but files are written in '.cube' file format (plain text).
       \end{itemize}
 \item {\bf rbuf}, {\bf ncongt}:  Far reaching tails of the wavefunctions decaying into the vacuum are  
       added in a perturbative treatment if the variable {\bf rbuf} is set to a strictly positive value. 

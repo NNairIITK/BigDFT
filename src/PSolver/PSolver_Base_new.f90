@@ -46,7 +46,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   !call system_clock(ncount0,ncount_rate,ncount_max)
 
   !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
+  perx=(geocode /= 'F' .and. geocode /='W')
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
 

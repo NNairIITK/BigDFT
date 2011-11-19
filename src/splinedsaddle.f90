@@ -16,9 +16,6 @@ program splined_saddle
   use module_interfaces
   use m_ab6_symmetry
 
-  !as a general policy, we'll have "implicit none" by assuming the same
-  !name convention as "implicit real(kind=8) (a-h,o-z)"
-
   implicit none
   character(len=*), parameter :: subname='BigDFT'
   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
