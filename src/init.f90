@@ -1128,6 +1128,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    type(communications_arrays) :: commse
    integer, dimension(:,:), allocatable :: norbsc_arr
    real(wp), dimension(:), allocatable :: potxc,passmat
+   real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
    type(locreg_descriptors), dimension(:), allocatable :: Llr
    real(wp), dimension(:), pointer :: pot
@@ -1141,8 +1142,10 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    if (iproc == 0) then
       write(*,'(1x,a)')&
          &   '------------------------------------------------------- Input Wavefunctions Creation'
+      !yaml_output
+      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
+      yaml_indent=yaml_indent+2 !list element
    end if
-
    !spin for inputguess orbitals
    if (nspin == 4) then
       nspin_ig=1
@@ -1461,11 +1464,17 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    !tolerance for comparing the eigenvalues in the case of degeneracies
    etol=accurex/real(orbse%norbu,gp)
    if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
-   if (iproc == 0) then
-      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-      ekin_sum,epot_sum,eproj_sum
-      write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-   endif
+!!$   if (iproc == 0) then
+!!$      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!!$      ekin_sum,epot_sum,eproj_sum
+!!$      write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+!!$   endif
+
+   if (iproc==0) then
+      call write_energies(0,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,0.0_gp,0.0_gp,0.0_gp,0.0_gp,'Input Guess')
+      !yaml output
+      write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
+   end if
 
    !!!  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&
    !!!       psigau,hpsigau,orbse,etol,norbsc_arr)
@@ -1512,10 +1521,12 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    deallocate(passmat,stat=i_stat)
    call memocc(i_stat,i_all,'passmat',subname)
 
+
    if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
 
       !clean the array of the IG eigenvalues
       call to_zero(orbse%norb*orbse%nkpts,orbse%eval(1))
+      !put the actual values on it
       call dcopy(orbs%norb*orbs%nkpts,orbs%eval(1),1,orbse%eval(1),1)
 
       !add a small displacement in the eigenvalues
@@ -1527,10 +1538,35 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
       !correct the occupation numbers wrt fermi level
       call evaltoocc(iproc,nproc,.false.,input%Tel,orbs,input%occopt)
 
-      !restore the occupation numbers
+      !restore the eigenvalues
       call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
 
    end if
+
+!!$   !yaml output
+!!$   if (iproc ==0) then
+!!$      if(orbse%nspinor==4) then
+!!$         allocate(mom_vec(4,orbse%norb,min(nproc,2)+ndebug),stat=i_stat)
+!!$         call memocc(i_stat,mom_vec,'mom_vec',subname)
+!!$         call to_zero(4*orbse%norb*min(nproc,2),mom_vec(1,1,1))
+!!$      end if
+!!$
+!!$      !experimental part to show the actual occupation numbers which will be put in the inputguess
+   !!put the occupation numbers of the normal orbitals
+   !call vcopy(orbs%norb*orbs%nkpts,orbs%occup(1),1,orbse%occup(1),1)
+   !!put to zero the other values
+   !call to_zero(orbse%norb*orbse%nkpts-orbs%norb*orbs%nkpts,&
+   !     orbse%occup(min(orbse%norb*orbse%nkpts,orbs%norb*orbs%nkpts+1)))
+!!$
+!!$      call write_eigenvalues_data(nproc,orbse,mom_vec)
+!!$      yaml_indent=yaml_indent-2
+!!$
+!!$      if (orbs%nspinor ==4) then
+!!$         i_all=-product(shape(mom_vec))*kind(mom_vec)
+!!$         deallocate(mom_vec,stat=i_stat)
+!!$         call memocc(i_stat,i_all,'mom_vec',subname)
+!!$      end if
+!!$   end if
 
    call deallocate_comms(commse,subname)
 

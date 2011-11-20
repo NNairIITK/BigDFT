@@ -653,15 +653,16 @@ subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,
      end if
      !yaml output
      write(70,'(3(1x,a,1pe18.11,a))') 'ekin: ',ekin,',','epot: ',epot,',','eproj: ',eproj,','
-     write(70,'(3(1x,a,1pe18.11,a))') ' eha: ',ehart,',',' exc: ',exc,',',' evxc: ',evxc,','
+     write(70,'(3(a,1pe18.11))',advance='no') '  eha: ',ehart,',   exc: ',exc,',  evxc: ',evxc
+     if (gnrm > 0.0_gp) write(70,'(a)')',' !something else will be written
   end if
   if (iscf > 1) then
-     if (gnrm_zero == 0.0_gp) then
+     if (gnrm_zero == 0.0_gp .and. gnrm > 0.0_gp) then
         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
         !yaml output
         write(70,'(1x,a,1pe24.17,a,1x,a,1pe9.2,a,1x,a,i6,a)') 'tr(H): ',trH,&
              ',','gnrm: ',gnrm,trim(lastsep),'#iter: ',iter,trim(' '//comment)
-     else
+     else if (gnrm > 0.0_gp) then
         write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
         !yaml output
         write(70,'(1x,a,1pe24.17,2(a,1x,a,1pe9.2),a,1x,a,i6,a)') 'tr(H): ',trH,&
@@ -669,12 +670,12 @@ subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,
              trim(lastsep),'#iter: ',iter,trim(' '//comment)
      end if
   else
-     if (gnrm_zero == 0.0_gp) then
+     if (gnrm_zero == 0.0_gp .and. gnrm > 0.0_gp) then
         write( *,'(a,1x,a,i6,2x,1pe24.17,1x,1pe9.2)') trim(' '//comment),'iter,total energy,gnrm',iter,energyKS,gnrm
         !yaml output
         write(70,'(1x,a,1pe24.17,a,1x,a,1pe9.2,a,1x,a,i6,a)') 'total energy: ',energyKS,&
              ',','gnrm: ',gnrm,trim(lastsep),'#iter: ',iter,trim(' '//comment)
-     else
+     else if (gnrm > 0.0_gp) then
         write( *,'(a,1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))')  trim(' '//comment),&
              'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
         !yaml output
@@ -982,83 +983,6 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
    !print the found eigenvalues
    if (iproc == 0) then
       call write_eigenvalues_data(nproc,orbs,mom_vec)
-!!$      write(*,'(1x,a)')&
-!!$         &   '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
-!!$      write(70,'(a)')repeat(' ',yaml_indent)//'Orbitals: ['
-!!$      ! Calculate and print the magnetisation
-!!$      if (nspin == 2) then
-!!$         mpol = 0._gp
-!!$         do ikpt=1,orbs%nkpts
-!!$            isorb = (ikpt - 1) * orbs%norb
-!!$            do iorb = 1, orbs%norbu
-!!$               mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
-!!$            end do
-!!$            do iorb = orbs%norbu + 1, orbs%norb, 1
-!!$               mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
-!!$            end do
-!!$         end do
-!!$         write(*,"(1x,A,f9.6)") "Total magnetisation: ", mpol
-!!$      end if
-!!$      if (orbs%nspinor ==4) then
-!!$         write(*,'(1x,a)')&
-!!$            &   '           Eigenvalue                                      m_x       m_y       m_z'
-!!$      end if
-!!$      do ikpt=1,orbs%nkpts
-!!$         if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) then
-!!$            write(*,"(1x,A,I4.4,A,3F12.6)") &
-!!$                 &   "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
-!!$            ikptw=ikpt
-!!$         else
-!!$            ikptw=UNINITIALIZED(1)
-!!$         end if
-!!$         isorb = (ikpt - 1) * orbs%norb
-!!$         if (nspin==1.or.orbs%nspinor==4) then
-!!$            spinsignw=UNINITIALIZED(1.0_gp)
-!!$            do iorb=1,orbs%norb
-!!$               dowrite =(iorb <= 5 .or. iorb >= orbs%norb-5) .or. verbose > 0
-!!$               if (orbs%nspinor ==4) then
-!!$                  if (dowrite) & 
-!!$                  write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4,16x,(1x,3(0pf10.5)))') &
-!!$                     &   'e(',iorb,')=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
-!!$               else
-!!$                  if (dowrite) then 
-!!$                     write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4)') 'e(',iorb,')=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb)
-!!$                     call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
-!!$                          spinsignw,ikptw,UNINITIALIZED(1.0_gp),UNINITIALIZED(1.0_gp),UNINITIALIZED(1.0_gp))
-!!$                     !yaml output (carriage return)
-!!$                     if (iorb == orbs%norb .and. ikpt == orbs%nkpts) then
-!!$                        write(70,'(a)')']'
-!!$                     else
-!!$                        write(70,'(a)')','
-!!$                     end if
-!!$                  end if
-!!$               end if
-!!$            end do
-!!$         else
-!!$            do iorb=1,min(orbs%norbu,orbs%norbd)
-!!$               jorb=orbs%norbu+iorb
-!!$               dowrite =(iorb <= 5 .or. iorb >= min(orbs%norbu,orbs%norbd)-5)  .or. verbose > 0
-!!$               if (dowrite) & 
-!!$               write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4,6x,0pf6.4,1x,a,i4,a,1x,1pe21.14)') &
-!!$                  &   'e(',iorb,',u)=',orbs%eval(isorb + iorb),orbs%occup(isorb + iorb),&
-!!$               orbs%occup(isorb + jorb),'e(',iorb,',d)=',orbs%eval(isorb + jorb)
-!!$            end do
-!!$            if (orbs%norbu > orbs%norbd) then
-!!$               do iorb=orbs%norbd+1,orbs%norbu
-!!$                  dowrite =(iorb <= 5 .or. iorb >= orbs%norbu-5) .or. verbose > 0
-!!$                  if (dowrite) & 
-!!$                  write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4)') 'e(',iorb,',u)=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb)
-!!$               end do
-!!$            else if (orbs%norbd > orbs%norbu) then
-!!$               do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
-!!$                  dowrite =(iorb <= 5 .or. iorb >= orbs%norbd-5) .or. verbose > 0
-!!$                  if (dowrite) & 
-!!$                  write(*,'(46x,0pf6.4,1x,a,i4,a,1x,1pe21.14)') orbs%occup(isorb + iorb),&
-!!$                     &   'e(',iorb-orbs%norbu,',d)=',orbs%eval(isorb + iorb)
-!!$               end do
-!!$            end if
-!!$         end if
-!!$      end do
    end if
 
    if (orbs%nspinor ==4) then
@@ -1110,6 +1034,9 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
      if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) then
         write(*,"(1x,A,I4.4,A,3F12.6)") &
              &   "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
+        write(70,"(1x,A,I4.4,A,3F12.6)") &
+             &   "# Kpt No.", ikpt-1, " BZ coord. = ", orbs%kpts(:, ikpt)
+
         ikptw=ikpt
      else
         ikptw=UNINITIALIZED(1)
