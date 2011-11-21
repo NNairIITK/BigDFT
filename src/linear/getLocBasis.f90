@@ -1389,7 +1389,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
 
       !! THIRD TEST ##########################################################################################
-      if(mod(it,3)==0) then
+      if(mod(it,3)==-1) then
       !if(it==nit-3) then
            resetDIIS=.true.
            call minimize_in_subspace(iproc, nproc, lin, at, input, lpot, GPU, ngatherarr, proj, rxyz, pkernelseq, nlpspd, lphi)

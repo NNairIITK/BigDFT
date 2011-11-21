@@ -299,7 +299,7 @@ character(len=*),parameter:: subname='initializeRepartitionOrbitals'
 !  - move(1,i,j)=k -> orbital i on process j has to be sent to process k
 !  - move(2,i,j)=l -> orbital i on process j has to be sent to position l (orbital number l)
 
-allocate(move(2,4*maxval(lin%orbs%norb_par),0:nproc-1), stat=istat)
+allocate(move(2,4*maxval(lin%orbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, move, 'move', subname)
 
 kproc=0
@@ -317,12 +317,12 @@ do jproc=0,nproc-1
 end do
 
 
-allocate(lin%lb%comrp%communComplete(4*maxval(lin%orbs%norb_par),0:nproc-1), stat=istat)
+allocate(lin%lb%comrp%communComplete(4*maxval(lin%orbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, lin%lb%comrp%communComplete, 'lin%lb%comrp%communComplete', subname)
 
 
 
-allocate(lin%lb%comrp%comarr(8,4*maxval(lin%orbs%norb_par),0:nproc-1), stat=istat)
+allocate(lin%lb%comrp%comarr(8,4*maxval(lin%orbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, lin%lb%comrp%comarr, 'lin%lb%comrp%comarr', subname)
 
 ! Determine the indices of starting and receive buffer.
@@ -482,7 +482,7 @@ testLoop: do
 end do testLoop
 
 ! Since mpi_test is a local function, check whether the communication has completed on all processes.
-call mpiallred(comrp%communComplete(1,0), nproc*4*maxval(orbs%norb_par), mpi_land, mpi_comm_world, ierr)
+call mpiallred(comrp%communComplete(1,0), nproc*4*maxval(orbs%norb_par(:,0)), mpi_land, mpi_comm_world, ierr)
 
 ! Wait for the communications that have not completed yet
 nslow=0
