@@ -58,8 +58,6 @@ inline void kinetic_k_generic(cl_kernel kernel, cl_command_queue command_queue, 
   clSetKernelArg(kernel, i++,sizeof(*x_out), (void*)x_out);
   clSetKernelArg(kernel, i++,sizeof(*y_in), (void*)y_in);
   clSetKernelArg(kernel, i++,sizeof(*y_out), (void*)y_out);
-  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*2*(block_size_i+FILTER_WIDTH+1), NULL);
-  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*2*(block_size_i+1), NULL);
   ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue kinetic_k kernel!");
 } 
@@ -85,10 +83,6 @@ inline void kinetic_k_generic_2(cl_kernel kernel, cl_command_queue command_queue
   clSetKernelArg(kernel, i++,sizeof(*y_in_i), (void*)y_in_i);
   clSetKernelArg(kernel, i++,sizeof(*y_out_r), (void*)y_out_r);
   clSetKernelArg(kernel, i++,sizeof(*y_out_i), (void*)y_out_i);
-  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i+FILTER_WIDTH+1), NULL);
-  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i+FILTER_WIDTH+1), NULL);
-  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i+1), NULL);
-  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i+1), NULL);
   ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue kinetic_k_2 kernel!");
 } 
@@ -112,6 +106,30 @@ void create_kinetic_kernels(struct bigdft_kernels * kernels) {
     oclErrorCheck(ciErrNum,"Failed to create kinetic_k1d_fKernel_d_2 kernel!");
 }
 
+/*static void print_program_binary(cl_program prog){
+    cl_int ciErrNum;
+    cl_uint dev_num;
+    ciErrNum = clGetProgramInfo(kinetic_kProgram, CL_PROGRAM_NUM_DEVICES, sizeof(cl_uint), &dev_num, NULL);
+    oclErrorCheck(ciErrNum,"Failed to get num devices!");
+    size_t *prog_sizes=(size_t *)malloc(dev_num*sizeof(cl_uint));
+    ciErrNum = clGetProgramInfo(kinetic_kProgram, CL_PROGRAM_BINARY_SIZES , sizeof(size_t)*dev_num, prog_sizes, NULL);
+    oclErrorCheck(ciErrNum,"Failed to get program binary sizes!");
+    unsigned char ** binaries = (unsigned char **)malloc(dev_num * sizeof(unsigned char *));
+    unsigned int i;
+    size_t prog_sum_size = 0;
+    for(i=0; i<dev_num; i++){
+      binaries[i] = (unsigned char *)malloc(prog_sizes[i]*sizeof(unsigned char));
+      prog_sum_size += prog_sizes[i];
+    }
+    ciErrNum = clGetProgramInfo(kinetic_kProgram, CL_PROGRAM_BINARIES , prog_sum_size, binaries, NULL);
+    oclErrorCheck(ciErrNum,"Failed to get program binaries!");
+    for(i=0; i<dev_num; i++){
+      printf("%.*s\n",(int)prog_sizes[i],binaries[i]);
+      free(binaries[i]);
+    }
+    free(binaries);
+}*/
+
 void build_kinetic_programs(cl_context * context){
     struct bigdft_device_infos infos;
     get_context_devices_infos(context, &infos);
@@ -133,7 +151,7 @@ void build_kinetic_programs(cl_context * context){
     kinetic_kProgram = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(kinetic_kProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram(kinetic_kProgram, 0, NULL, "", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build kinetic_k program!\n");
@@ -142,6 +160,7 @@ void build_kinetic_programs(cl_context * context){
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
+//    print_program_binary(kinetic_kProgram);
 }
 
 void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, double * c_in,  double *k) {
