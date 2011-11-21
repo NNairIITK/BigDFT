@@ -737,7 +737,7 @@ character(len=*),parameter:: subname='transformToGlobal'
   !    write(*,'(a,i5,4i12)') 'START transformToGlobal: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
   !end do
 
-  allocate(phi(lin%gorbs%npsidim), stat=istat)
+  allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
   call memocc(istat, phi, 'phi', subname)
   allocate(phiWork(max(size(phi),size(psi))), stat=istat)
   call memocc(istat, phiWork, 'phiWork', subname)
