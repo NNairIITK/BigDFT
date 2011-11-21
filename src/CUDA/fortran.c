@@ -1884,7 +1884,7 @@ void FC_FUNC_(cublas_sgbmv,CUBLAS_SGBMV) (const char *trans, const int *m, const
         stat1 = cublasAlloc(1+(*m-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
         stat2 = cublasAlloc(1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
     }
-    stat3 = cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat3 = cublasAlloc ((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -1956,7 +1956,7 @@ void FC_FUNC_(cublas_sgemv,CUBLAS_SGEMV) (const char *trans, const int *m, const
         stat1=cublasAlloc (1+(*m-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
         stat2=cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
     }
-    stat3=cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat3=cublasAlloc ((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -2015,9 +2015,9 @@ void FC_FUNC_(cublas_sger,CUBLAS_SGER) (const int *m, const int *n, const float 
      *           Before entry, the leading m by n part of the array A must
      *           contain the matrix of coefficients. On exit, A is
      */
-    stat1=cublasAlloc(1+(*m-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
-    stat3=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*m-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    stat3=cublasAlloc((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -2068,9 +2068,9 @@ void FC_FUNC_(cublas_ssbmv,CUBLAS_SSBMV) (const char *uplo, const int *n, const 
      *           Before entry with UPLO = 'U' or 'u', the leading ( k + 1 )
      *           by n part of the array A must contain the upper triangular
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
-    stat3=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    stat3=cublasAlloc((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -2122,9 +2122,9 @@ void FC_FUNC_(cublas_sspmv,CUBLAS_SSPMV) (const char *uplo, const int *n, const 
      *           Before entry with UPLO = 'U' or 'u', the array AP must
      *           contain the upper triangular part of the symmetric matrix
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
-    stat3=cublasAlloc(((*n)*(*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    stat3=cublasAlloc(((*n)*(*n+1))/2, sizeof(AP[0]), (void**)&devPtrAP);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -2170,8 +2170,8 @@ void FC_FUNC_(cublas_sspr,CUBLAS_SSPR) (const char *uplo, const int *n, const fl
      *  AP     - REAL             array of DIMENSION at least
      *           ( ( n*( n + 1 ) )/2 ).
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc(((*n)*(*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(((*n)*(*n+1))/2, sizeof(AP[0]), (void**)&devPtrAP);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Sspr", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -2215,9 +2215,9 @@ void FC_FUNC_(cublas_sspr2,CUBLAS_SSPR2) (const char *uplo, const int *n, const 
      *           Before entry with  UPLO = 'U' or 'u', the array AP must
      *           contain the upper triangular part of the symmetric matrix
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
-    stat3=cublasAlloc(((*n)*(*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    stat3=cublasAlloc(((*n)*(*n+1))/2, sizeof(AP[0]), (void**)&devPtrAP);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -2269,9 +2269,9 @@ void FC_FUNC_(cublas_ssymv,CUBLAS_SSYMV) (const char *uplo, const int *n, const 
      *           Before entry with UPLO = 'L' or 'l', the leading n by n
      *           lower triangular part of the array A must contain the lower
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
-    stat3=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    stat3=cublasAlloc((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -2321,8 +2321,8 @@ void FC_FUNC_(cublas_ssyr,CUBLAS_SSYR) (const char *uplo, const int *n, const fl
      *           Before entry with UPLO = 'L' or 'l', the leading n by n
      *           lower triangular part of the array A must contain the lower
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc((*lda)*(*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda)*(*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Ssyr", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -2367,9 +2367,9 @@ void FC_FUNC_(cublas_ssyr2,CUBLAS_SSYR2) (const char *uplo, const int *n, const 
      *           Before entry with UPLO = 'L' or 'l', the leading n by n
      *           lower triangular part of the array A must contain the lower
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
-    stat3=cublasAlloc((*lda)*(*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    stat3=cublasAlloc((*lda)*(*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -2419,8 +2419,8 @@ void FC_FUNC_(cublas_stbmv,CUBLAS_STBMV) (const char *uplo, const char *trans, c
      *           Before entry with UPLO = 'L' or 'l', the leading ( k + 1 )
      *           by n part of the array A must contain the lower triangular
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Stbmv", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -2463,8 +2463,8 @@ void FC_FUNC_(cublas_stbsv,CUBLAS_STBSV) (const char *uplo, const char *trans, c
      *           Before entry with UPLO = 'L' or 'l', the leading ( k + 1 )
      *           by n part of the array A must contain the lower triangular
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Stbsv", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -2503,8 +2503,8 @@ void FC_FUNC_(cublas_stpmv,CUBLAS_STPMV) (const char *uplo, const char *trans, c
      *  AP     - REAL             array of DIMENSION at least
      *           ( ( n*( n + 1 ) )/2 ).
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc(((*n)*(*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(((*n)*(*n+1))/2, sizeof(AP[0]), (void**)&devPtrAP);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Stpmv", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -2543,8 +2543,8 @@ void FC_FUNC_(cublas_stpsv,CUBLAS_STPSV) (const char *uplo, const char *trans, c
      *  AP     - REAL             array of DIMENSION at least
      *           ( ( n*( n + 1 ) )/2 ).
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc(((*n)*(*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(((*n)*(*n+1))/2, sizeof(AP[0]), (void**)&devPtrAP);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Stpsv", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -2585,8 +2585,8 @@ void FC_FUNC_(cublas_strmv,CUBLAS_STRMV) (const char *uplo, const char *trans,
      *           Before entry with  UPLO = 'U' or 'u', the leading n by n
      *           upper triangular part of the array A must contain the upper
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Strmv", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -2629,8 +2629,8 @@ void FC_FUNC_(cublas_strsv,CUBLAS_STRSV) (const char *uplo, const char *trans, c
      *           Before entry with UPLO = 'L' or 'l', the leading n by n
      *           lower triangular part of the array A must contain the lower
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Strsv", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -2685,7 +2685,7 @@ void FC_FUNC_(cublas_dgemv,CUBLAS_DGEMV) (const char *trans, const int *m, const
         stat1 = cublasAlloc(1+(*m-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
         stat2 = cublasAlloc(1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
     }
-    stat3 = cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat3 = cublasAlloc ((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -2747,9 +2747,9 @@ void FC_FUNC_(cublas_dger,CUBLAS_DGER) (const int *m, const int *n, const double
      *           Before entry, the leading m by n part of the array A must
      *           contain the matrix of coefficients. On exit, A is
      */
-    stat1=cublasAlloc(1+(*m-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
-    stat3=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*m-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    stat3=cublasAlloc((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -2797,8 +2797,8 @@ void FC_FUNC_(cublas_dsyr,CUBLAS_DSYR) (const char *uplo, const int *n, const do
      *           Before entry with UPLO = 'L' or 'l', the leading n by n
      *           lower triangular part of the array A must contain the lower
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Dsyr", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -2841,8 +2841,8 @@ void FC_FUNC_(cublas_dtrsv,CUBLAS_DTRSV) (const char *uplo, const char *trans, c
      *           Before entry with UPLO = 'L' or 'l', the leading n by n
      *           lower triangular part of the array A must contain the lower
      */
-    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
-    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(A[0]), (void**)&devPtrA);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Dtrsv", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -2963,9 +2963,9 @@ void FC_FUNC_(cublas_sgemm,CUBLAS_SGEMM) (const char *transa, const char *transb
      */
     ka = (toupper(transa[0]) == 'N') ? *k : *m;
     kb = (toupper(transb[0]) == 'N') ? *n : *k;
-    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]), (void**)&devPtrA);
-    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]), (void**)&devPtrB);
-    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]), (void**)&devPtrC);
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(A[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(B[0]), (void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(C[0]), (void**)&devPtrC);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -3032,9 +3032,9 @@ void FC_FUNC_(cublas_ssymm,CUBLAS_SSYMM) (const char *side, const char *uplo, co
      *           case C need not be set on entry.
      */
     ka = (toupper(side[0]) == 'L') ? *m : *n;
-    stat1 = cublasAlloc ((*lda) * ka, sizeof(devPtrA[0]), (void**)&devPtrA);
-    stat2 = cublasAlloc ((*ldb) * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
-    stat3 = cublasAlloc ((*ldc) * (*n), sizeof(devPtrC[0]), (void**)&devPtrC);
+    stat1 = cublasAlloc ((*lda) * ka, sizeof(A[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc ((*ldb) * (*n), sizeof(B[0]), (void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n), sizeof(C[0]), (void**)&devPtrC);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -3095,9 +3095,9 @@ void FC_FUNC_(cublas_ssyr2k,CUBLAS_SSYR2K) (const char *uplo, const char *trans,
      */
     ka = (toupper(trans[0]) == 'N') ? *k : *n;
     kb = (toupper(trans[0]) == 'N') ? *k : *n;
-    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
-    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]),(void**)&devPtrB);
-    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]),(void**)&devPtrC);
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(A[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(B[0]),(void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(C[0]),(void**)&devPtrC);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -3155,8 +3155,8 @@ void FC_FUNC_(cublas_ssyrk,CUBLAS_SSYRK) (const char *uplo, const char *trans, c
      *        upper triangular part of the symmetric matrix C and the strictly 
      */
     ka = (toupper(trans[0]) == 'N') ? *k : *n;
-    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
-    stat2 = cublasAlloc ((*ldc)*(*n), sizeof(devPtrC[0]), (void**)&devPtrC);
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(A[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc ((*ldc)*(*n), sizeof(C[0]), (void**)&devPtrC);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Ssyrk", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -3210,8 +3210,8 @@ void FC_FUNC_(cublas_strmm,CUBLAS_STRMM) (const char *side, const char *uplo, co
      *        overwritten with the transformed matrix on exit.
      */
     k = (toupper(side[0]) == 'L') ? *m : *n;
-    stat1 = cublasAlloc (*lda * k, sizeof(devPtrA[0]), (void**)&devPtrA);
-    stat2 = cublasAlloc (*ldb * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
+    stat1 = cublasAlloc (*lda * k, sizeof(A[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (*ldb * (*n), sizeof(B[0]), (void**)&devPtrB);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Strmm", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -3258,8 +3258,8 @@ void FC_FUNC_(cublas_strsm,CUBLAS_STRSM) (const char *side, const char *uplo, co
      *           contain  the  right-hand  side  matrix  B,  and  on exit  is
      */
     k = (toupper(side[0]) == 'L') ? *m : *n;
-    stat1 = cublasAlloc (*lda * k, sizeof(devPtrA[0]), (void**)&devPtrA);
-    stat2 = cublasAlloc (*ldb * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
+    stat1 = cublasAlloc (*lda * k, sizeof(A[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (*ldb * (*n), sizeof(B[0]), (void**)&devPtrB);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Strsm", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -3318,9 +3318,9 @@ void FC_FUNC_(cublas_cgemm,CUBLAS_CGEMM) (const char *transa, const char *transb
      */
     ka = (toupper(transa[0]) == 'N') ? *k : *m;
     kb = (toupper(transb[0]) == 'N') ? *n : *k;
-    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
-    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]),(void**)&devPtrB);
-    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]),(void**)&devPtrC);
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(A[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(B[0]),(void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(C[0]),(void**)&devPtrC);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -3426,9 +3426,9 @@ void FC_FUNC_(cublas_dgemm,CUBLAS_DGEMM) (const char *transa, const char *transb
      */
     ka = (toupper(transa[0]) == 'N') ? *k : *m;
     kb = (toupper(transb[0]) == 'N') ? *n : *k;
-    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]), (void**)&devPtrA);
-    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]), (void**)&devPtrB);
-    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]), (void**)&devPtrC);
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(A[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(B[0]), (void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(C[0]), (void**)&devPtrC);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -3495,9 +3495,9 @@ void FC_FUNC_(cublas_dsymm,CUBLAS_DSYMM) (const char *side, const char *uplo, co
      *           case C need not be set on entry.
      */
     ka = (toupper(side[0]) == 'L') ? *m : *n;
-    stat1 = cublasAlloc ((*lda) * ka, sizeof(devPtrA[0]), (void**)&devPtrA);
-    stat2 = cublasAlloc ((*ldb) * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
-    stat3 = cublasAlloc ((*ldc) * (*n), sizeof(devPtrC[0]), (void**)&devPtrC);
+    stat1 = cublasAlloc ((*lda) * ka, sizeof(A[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc ((*ldb) * (*n), sizeof(B[0]), (void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n), sizeof(C[0]), (void**)&devPtrC);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -3558,9 +3558,9 @@ void FC_FUNC_(cublas_dsyr2k,CUBLAS_DSYR2K) (const char *uplo, const char *trans,
      */
     ka = (toupper(trans[0]) == 'N') ? *k : *n;
     kb = (toupper(trans[0]) == 'N') ? *k : *n;
-    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
-    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]),(void**)&devPtrB);
-    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]),(void**)&devPtrC);
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(A[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(B[0]),(void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(C[0]),(void**)&devPtrC);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
@@ -3619,8 +3619,8 @@ void FC_FUNC_(cublas_dsyrk,CUBLAS_DSYRK) (const char *uplo, const char *trans, c
      *        upper triangular part of the symmetric matrix C and the strictly 
      */
     ka = (toupper(trans[0]) == 'N') ? *k : *n;
-    stat1 = cublasAlloc(imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
-    stat2 = cublasAlloc(imax(1,*ldc*(*n)),sizeof(devPtrC[0]),(void**)&devPtrC);
+    stat1 = cublasAlloc(imax(1,*lda*ka),sizeof(A[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc(imax(1,*ldc*(*n)),sizeof(C[0]),(void**)&devPtrC);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Dsyrk", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -3674,8 +3674,8 @@ void FC_FUNC_(cublas_dtrmm,CUBLAS_DTRMM) (const char *side, const char *uplo, co
      *        overwritten with the transformed matrix on exit.
      */
     k = (toupper(side[0]) == 'L') ? *m : *n;
-    stat1 = cublasAlloc (*lda * k, sizeof(devPtrA[0]), (void**)&devPtrA);
-    stat2 = cublasAlloc (*ldb * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
+    stat1 = cublasAlloc (*lda * k, sizeof(A[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (*ldb * (*n), sizeof(B[0]), (void**)&devPtrB);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Dtrmm", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -3722,8 +3722,8 @@ void FC_FUNC_(cublas_dtrsm,CUBLAS_DTRSM) (const char *side, const char *uplo, co
      *           contain  the  right-hand  side  matrix  B,  and  on exit  is
      */
     k = (toupper(side[0]) == 'L') ? *m : *n;
-    stat1 = cublasAlloc (*lda * k, sizeof(devPtrA[0]), (void**)&devPtrA);
-    stat2 = cublasAlloc (*ldb * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
+    stat1 = cublasAlloc (*lda * k, sizeof(A[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (*ldb * (*n), sizeof(B[0]), (void**)&devPtrB);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS)) {
         wrapperError ("Dtrsm", CUBLAS_WRAPPER_ERROR_ALLOC);
@@ -3783,9 +3783,9 @@ void FC_FUNC_(cublas_zgemm,CUBLAS_ZGEMM) (const char *transa, const char *transb
      */
     ka = (toupper(transa[0]) == 'N') ? *k : *m;
     kb = (toupper(transb[0]) == 'N') ? *n : *k;
-    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
-    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]),(void**)&devPtrB);
-    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]),(void**)&devPtrC);
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(A[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(B[0]),(void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(C[0]),(void**)&devPtrC);
     if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
         (stat2 != CUBLAS_STATUS_SUCCESS) ||
         (stat3 != CUBLAS_STATUS_SUCCESS)) {
