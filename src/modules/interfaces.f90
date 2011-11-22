@@ -4633,7 +4633,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(matrixDescriptors),intent(out):: mad
       end subroutine initMatrixCompression
 
-      subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, trH)
+      subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, trH, W, eval)
         use module_base
         use module_types
         implicit none
@@ -4645,6 +4645,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(lin%orbs%npsidim),intent(inout):: lhphi
         type(matrixDescriptors),intent(in):: mad
         real(8),intent(out):: trH
+        real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(ouT),optional:: W
+        real(8),dimension(lin%orbs%norb),intent(out),optional:: eval
       end subroutine orthoconstraintNonorthogonal
 
       subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
@@ -5271,6 +5273,38 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(inout):: ovrlp
          real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff
        end subroutine getCoefficients_new
+
+
+       subroutine apply_confinement(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
+            rxyzConfinement, hxh, hyh, hzh, potentialPrefac, confPotOrder, offsetx, offsety, offsetz, &
+            ibyyzz_r) !optional
+         use module_base
+         implicit none
+         integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor, confPotOrder, offsetx, offsety, offsetz
+         real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+         integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+         real(8),dimension(3),intent(in):: rxyzConfinement
+         real(8),intent(in):: hxh, hyh, hzh, potentialPrefac
+       end subroutine apply_confinement
+
+
+       subroutine minimize_in_subspace(iproc, nproc, lin, at, input, lpot, GPU, ngatherarr, proj, rxyz, pkernelseq, nlpspd, lphi)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(linearParameters),intent(inout):: lin
+         type(atoms_data),intent(in):: at
+         type(input_variables),intent(in):: input
+         real(8),dimension(lin%lzd%ndimpotisf),intent(in):: lpot
+         type(GPU_pointers),intent(inout):: GPU
+         integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+         type(nonlocal_psp_descriptors),intent(in):: nlpspd
+         real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
+         real(8),dimension(3,at%nat),intent(in):: rxyz
+         real(dp), dimension(:), pointer :: pkernelseq
+         real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
+       end subroutine minimize_in_subspace
 
    end interface
 

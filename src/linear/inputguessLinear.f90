@@ -769,8 +769,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call deallocate_local_zone_descriptors(lin%lig%lzdig, subname)
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
   call deallocate_matrixDescriptors(lin%lig%mad, subname)
-  !!call deallocate_overlapParameters(lin%lig%op, subname)
-  !!call deallocate_p2pCommsOrthonormality(lin%lig%comon, subname)
+  if(iproc==0) write(*,*) 'WARNING: THIS WILL CAUSE MEMORY PROBLEMS, DEALLOCATE LATER'
 
   ! Deallocate all remaining local arrays.
   iall=-product(shape(norbsc_arr))*kind(norbsc_arr)
@@ -1648,8 +1647,9 @@ type(p2pCommsOrthonormality):: comon
 !real(8),dimension(:),allocatable:: lchi, lhchi, lphiovrlp
 real(8),dimension(:,:),allocatable:: hamTemp
 character(len=*),parameter:: subname='getHamiltonianMatrix6'
-real(8),dimension(:,:),allocatable:: hamTempCompressed, hamTempCompressed2
+real(8),dimension(:,:),allocatable:: hamTempCompressed, hamTempCompressed2, ttmat
 integer,dimension(:),allocatable:: displs, sendcounts, sendrequests, recvrequests
+real(8):: tt1, tt2, tt3
 
 
 allocate(sendcounts(0:nproc-1), stat=istat)
@@ -1675,17 +1675,27 @@ allocate(hamTemp(orbsig%norb,orbsig%norb), stat=istat)
 call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
+if(iproc==0) write(*,*) 'calling initCommsOrtho in getHamiltonianMatrix6'
 call initCommsOrtho(iproc, nproc, lzdig, orbsig, onWhichAtom, input, locregShape, op, comon, tagout)
 
 
+if(iproc==0) write(*,*) 'calling allocateCommuncationBuffersOrtho in getHamiltonianMatrix6'
 call allocateCommuncationBuffersOrtho(comon, subname)
 
 ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
 ! Then post the messages and gather them.
 !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi, comon)
+if(iproc==0) write(*,*) 'calling extractOrbital3 in getHamiltonianMatrix6'
 call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi, comon%nsendBuf, comon%sendBuf)
-call postCommsOverlap(iproc, nproc, comon)
-call gatherOrbitals2(iproc, nproc, comon)
+if(iproc==0) write(*,*) 'calling postCommsOverlap in getHamiltonianMatrix6'
+!!call postCommsOverlap(iproc, nproc, comon)
+call postCommsOverlapNew(iproc, nproc, orbsig, op, lzdig, lchi, comon, tt1, tt2)
+if(iproc==0) write(*,*) 'calling gatherOrbitals2 in getHamiltonianMatrix6'
+!call gatherOrbitals2(iproc, nproc, comon)
+allocate(ttmat(orbsig%norb,orbsig%norb))
+call collectnew(iproc, nproc, comon, mad, op, orbsig, input, lzdig, comon%nsendbuf, &
+     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt1, tt2, tt3)
+deallocate(ttmat)
 
 
 if(iproc==0) write(*,'(1x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
@@ -3418,6 +3428,9 @@ type(overlapParameters):: op
 type(p2pCommsOrthonormality):: comon
 real(8),dimension(:),allocatable:: lchiovrlp
 character(len=*),parameter:: subname='buildLinearCombinations'
+type(matrixDescriptors):: mad !just for calling collectnew, not really needed
+real(8),dimension(:,:),allocatable:: ttmat
+real(8):: tt1, tt2, tt3
 
 !tag=10000
 call initCommsOrtho(iproc, nproc, lzdig, orbsig, orbsig%inWhichLocreg, input, locregShape, op, comon, tag)
@@ -3427,8 +3440,13 @@ call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
 call allocateCommuncationBuffersOrtho(comon, subname)
 !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, orbsig%inWhichLocreg, lzdig, op, lchi, comon)
 call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, orbsig%inWhichLocreg, lzdig, op, lchi, comon%nsendBuf, comon%sendBuf)
-call postCommsOverlap(iproc, nproc, comon)
-call gatherOrbitals2(iproc, nproc, comon)
+!call postCommsOverlap(iproc, nproc, comon)
+call postCommsOverlapNew(iproc, nproc, orbsig, op, lzdig, lchi, comon, tt1, tt2)
+!call gatherOrbitals2(iproc, nproc, comon)
+allocate(ttmat(orbsig%norb,orbsig%norb))
+call collectnew(iproc, nproc, comon, mad, op, orbsig, input, lzdig, comon%nsendbuf, &
+     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt1, tt2, tt3)
+deallocate(ttmat)
 call expandOrbital2(iproc, nproc, orbsig, input, orbsig%inWhichLocreg, lzdig, op, comon, lchiovrlp)
 call deallocateCommuncationBuffersOrtho(comon, subname)
 

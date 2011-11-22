@@ -1114,6 +1114,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
             !control the previous value of idsx_actual
             idsx_actual_before=diis%idsx
 !          !Do not modify psi in the linear scaling case (i.e. if inputpsi==100)
+
+
            if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,Lzd%Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%orthpar)
 
             if (in%inputPsiId == 0) then

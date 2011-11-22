@@ -714,7 +714,7 @@ end do
 
 
 
-! No calculate the charge density. Each process calculates only one slice of the total charge density.
+! Now calculate the charge density. Each process calculates only one slice of the total charge density.
 ! Such a slice has the full extent in the x and y direction, but is limited in the z direction.
 ! The bounds of the slice are given by nscatterarr. To do so, each process has received all orbitals that
 ! extend into this slice. The number of these orbitals is given by lin%comsr%noverlaps(iproc).

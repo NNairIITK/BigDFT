@@ -1808,7 +1808,7 @@ logical:: refill_proj
   if(iproc==0) then
       write(*,'(x,a)') 'Force values for all atoms in x, y, z direction.'
       do iat=1,atoms%nat
-         write(*,'(3x,i0,x,a6,x,3(x,es12.5))') &
+         write(*,'(3x,i0,x,a6,x,3(x,es17.10))') &
               iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
       end do
   end if
