@@ -74,7 +74,7 @@ report:
 	   cat input.perf >> $$name.perf ; \
     fi ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
-	if test -f input.perf.bak ; then mv input.perf.bak input.perf ; fi 
+	if test -f input.perf.bak ; then mv -f input.perf.bak input.perf ; fi 
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out:
