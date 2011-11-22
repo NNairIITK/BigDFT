@@ -681,6 +681,13 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
 fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
+dnl Test the availability of clock_gettime() and rt library.
+AC_LANG_PUSH(C)
+AC_CHECK_HEADERS([time.h])
+AC_CHECK_LIB([rt], [clock_gettime])
+AC_CHECK_FUNCS([clock_gettime])
+AC_LANG_POP(C)
+
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
 LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS -lrt $MPI_LDFLAGS $MPI_LIBS"
