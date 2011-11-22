@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.6-tuto],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.6-tuto.1],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -49,29 +49,13 @@ AC_FC_SRCEXT(f90)
 
 AC_FC_WRAPPERS()
 AX_FC_FLUSH()
-AX_FC_F2003()
 AX_FC_DEFS()
+AX_FC_F2003()
 
-dnl Set if the module name are capitalized or not with the FC compiler.
-AC_MSG_CHECKING([for module extension for compiler '$fc_type'])
-case "$fc_type" in
-  "pathscale")
-     capitalize_module=yes
-     capitalize_module_ext="mod" ;;
-  "mipspro")
-     capitalize_module=yes
-     capitalize_module_ext="mod" ;;
-  *)
-     capitalize_module=no
-     capitalize_module_ext="mod" ;;
-esac
-AC_MSG_RESULT([$capitalize_module_ext])
-
-dnl We custom the module naming scheme depending on the compiler
-dnl and the platform.
-dnl Not done yet
-AM_CONDITIONAL(CAPITALIZE, test "$capitalize_module" = "yes")
-AC_SUBST(MODULE_EXT, $capitalize_module_ext)
+dnl Set if the module name are capitalized or not with the FC compiler. 
+AX_FC_MOD()
+AM_CONDITIONAL(CAPITALIZE, test "$ax_fc_mod_capitalize" = "yes")
+AC_SUBST(MODULE_EXT, $ax_fc_mod_ext)
 
 dnl Set the FCFLAGS and FFLAGS variable
 if test -z "$FFLAGS" ; then
@@ -193,7 +177,7 @@ ac_with_memory_limit="no"
 AC_MSG_CHECKING([for memory limit in GB])
 AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit value in GB. It stops EVERYTHING if some process passes such limit (disabled by default).]),
               ac_with_memory_limit=$withval, ac_with_memory_limit="no")
-if test "${ac_with_memory_limit/.*/}" -ge "0" 2> /dev/null ; then
+if test `echo "$ac_with_memory_limit" | sed "s/[.].*//"` -ge "0" 2> /dev/null ; then
   MEMORY_LIMIT=$ac_with_memory_limit
 else
   ac_with_memory_limit="undefined"
@@ -348,7 +332,7 @@ if test x"$ac_use_ocl" = "xyes" ; then
       ac_use_ocl="no"
     else
 dnl      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
-      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt"
+      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm"
     fi
     LIBS=$LIBS_OLD
   fi
@@ -677,9 +661,16 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
 fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
+dnl Test the availability of clock_gettime() and rt library.
+AC_LANG_PUSH(C)
+AC_CHECK_HEADERS([time.h])
+AC_CHECK_LIB([rt], [clock_gettime])
+AC_CHECK_FUNCS([clock_gettime])
+AC_LANG_POP(C)
+
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS $LIB_ARCHIVE_LIBS -lrt"
+LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS $LIB_ARCHIVE_LIBS"
 
 
 dnl Test for the documentation.
@@ -825,20 +816,16 @@ Installation paths:
 "
 
 if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" ; then
-  echo -n "Warnings:"
+  echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
-    echo -n "
-  MPI:                       disabled by tests"
+    echo "  MPI:                       disabled by tests"
   fi
   if test x"$ac_use_archive" = x"warn" ; then
-    echo -n "
-  libarchive:                disabled by tests"
+    echo "  libarchive:                disabled by tests"
   fi
   if test x"$ac_use_etsfio" = x"warn" ; then
-    echo -n "
-  ETSF_IO:                   disabled by tests"
+    echo "  ETSF_IO:                   disabled by tests"
   fi
-  echo
 fi
 
 dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
