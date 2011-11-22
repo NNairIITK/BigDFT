@@ -55,7 +55,6 @@ module module_interfaces
          real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
       END SUBROUTINE call_bigdft
 
-
       subroutine geopt(nproc,iproc,x,at,f,epot,rst,in,ncount_bigdft)
 
          !    use module_base
@@ -77,6 +76,12 @@ module module_interfaces
          real(gp), dimension(3*at%nat), intent(out) :: f
       END SUBROUTINE geopt
 
+     subroutine timing(iproc,category,action)
+       implicit none
+       integer, intent(in) :: iproc
+       character(len=*), intent(in) :: category
+       character(len=2), intent(in) :: action
+     end subroutine timing
 
       subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
             &   n1_old,n2_old,n3_old,wfd_old,psi_old)
@@ -553,6 +558,37 @@ module module_interfaces
          type(orbitals_data), intent(in), optional :: orbsocc
          real(wp), dimension(:), pointer, optional :: psirocc
       END SUBROUTINE LocalHamiltonianApplication
+
+      subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
+           nlpspd,proj,lr,psi,hpsi,eproj_sum)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: iproc,nproc
+        real(gp), intent(in) :: hx,hy,hz
+        type(atoms_data), intent(in) :: at
+        type(orbitals_data),  intent(in) :: orbs
+        type(locreg_descriptors), intent(in) :: lr 
+        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+        real(gp), dimension(3,at%nat), intent(in) :: rxyz
+        real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+        real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
+        real(gp), intent(out) :: eproj_sum
+      END SUBROUTINE NonLocalHamiltonianApplication
+
+      subroutine SynchronizeHamiltonianApplication(nproc,orbs,lr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+        use module_base
+        use module_types
+        use module_xc
+        implicit none
+        integer, intent(in) :: nproc
+        type(orbitals_data),  intent(in) :: orbs
+        type(locreg_descriptors), intent(in) :: lr 
+        type(GPU_pointers), intent(inout) :: GPU
+        real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
+        real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
+      END SUBROUTINE SynchronizeHamiltonianApplication
 
       subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,orthpar)
          !n(c) use module_base
