@@ -572,13 +572,16 @@ type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 
 ! Local variables
-real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot, t2tot, timetot, tt1, tt2, tt3, tt4, tt5, lstep, dfactorial
+real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot
+real(8) :: t2tot, timetot, tt1, tt2, tt3, tt4, tt5, lstep, dfactorial
 real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
 real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress
-integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest, info, lwork, ndim_lchi, ndim_lhchi
+integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot
+integer :: icountDIISFailureCons, itBest, info, lwork, ndim_lchi, ndim_lhchi
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb, i, ist, jst, iiorb, jjorb, ilrold, k
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
-real(8),dimension(:),allocatable:: alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold, eval, lvphi, lvphiovrlp, alpha2, lhpsiold, work, rwork, lphiold
+real(8),dimension(:),allocatable:: alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
+real(8),dimension(:),allocatable:: eval, lvphi, lvphiovrlp, alpha2, lhpsiold, work, rwork, lphiold
 real(8),dimension(:),allocatable:: lchi
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr, W, ttmat, Kmat, Gmat, Umat, lhchi
 real(8),dimension(:,:,:),allocatable:: Gmatc, tempmat, Omat, tempmat2, ham3
@@ -596,7 +599,8 @@ complex(8),dimension(:),allocatable:: Gmat_c, expD_cmplx
 character(len=3):: orbname, comment
 integer,dimension(:),allocatable:: onwhichatomtemp, norb_parTemp, onWhichMPITemp
 logical,dimension(:),allocatable:: doNotCalculate, skip
-integer:: iat, is1, ie1, is2, ie2, is3, ie3, jlr, js1, je1, js2, je2, js3, je3, norbTarget, nprocTemp, kk, jlrold, nlocregPerMPI, tag, jproc
+integer:: iat, is1, ie1, is2, ie2, is3, ie3, jlr, js1, je1, js2, je2, js3, je3
+integer :: norbTarget, nprocTemp, kk, jlrold, nlocregPerMPI, tag, jproc
 logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, immediateSwitchToSD
 
 
@@ -3861,7 +3865,7 @@ character(len=*),parameter:: subname='minimize_in_subspace'
            call memocc(istat, lchi, 'lchi', subname)
            lchi=lphi
            do iat=1,at%nat
-               doNotCalculate=.true.
+               doNotCalculate=1!.true.
                lin%lzd%doHamAppl=.false.
                !!call mpi_barrier(mpi_comm_world, ierr)
                call getIndices(lin%lzd%llr(iat), is1, ie1, is2, ie2, is3, ie3)
@@ -3875,11 +3879,11 @@ character(len=*),parameter:: subname='minimize_in_subspace'
                    ovrlpy = ( is2<=je2 .and. ie2>=js2 )
                    ovrlpz = ( is3<=je3 .and. ie3>=js3 )
                    if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-                       doNotCalculate(jlr)=.false.
+                       doNotCalculate(jlr)=0!.false.
                        lin%lzd%doHamAppl(jlr)=.true.
                        skip(iat)=.false.
                    else
-                       doNotCalculate(jlr)=.true.
+                       doNotCalculate(jlr)=1
                        lin%lzd%doHamAppl(jlr)=.false.
                    end if
                end do
@@ -3973,7 +3977,8 @@ character(len=*),parameter:: subname='minimize_in_subspace'
                if(iproc==0) write(*,*) 'calling getHamiltonianMatrix6'
                call getHamiltonianMatrix6(iproc, nproc, nprocTemp, lin%lzd, lin%orbs, lin%orbs, &
                     onWhichMPITemp, input, lin%orbs%inWhichLocreg, ndim_lhchi, &
-                    nlocregPerMPI, lchi, lhchi, skip, lin%mad, lin%memoryForCommunOverlapIG, lin%locregShape, tag, ham3)
+                    nlocregPerMPI, lchi, lhchi, skip, lin%mad, &
+                    lin%memoryForCommunOverlapIG, lin%locregShape, tag, ham3)
            end if
 
            iall=-product(shape(lhchi))*kind(lhchi)
@@ -3983,8 +3988,10 @@ character(len=*),parameter:: subname='minimize_in_subspace'
 
            ! Build the orbitals phi as linear combinations of the atomic orbitals.
            if(iproc==0) write(*,*) 'calling buildLinearCombinationsLocalized3'
-           call buildLinearCombinationsLocalized3(iproc, nproc, lin%orbs, lin%orbs, lin%comms, at, lin%lzd%Glr, input, lin%norbsPerType, &
-                lin%orbs%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lzd, nlocregPerMPI, tag, ham3)
+           call buildLinearCombinationsLocalized3(iproc, nproc, lin%orbs, lin%orbs, lin%comms,&
+                at, lin%lzd%Glr, input, lin%norbsPerType, &
+                lin%orbs%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, &
+                lin, lin%lzd, nlocregPerMPI, tag, ham3)
 
            iall=-product(shape(lchi))*kind(lchi)
            deallocate(lchi, stat=istat)
