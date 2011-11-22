@@ -547,46 +547,51 @@ fi # End of the if library compilation
 
 dnl Test the libXC library
 ac_internal_libxc="yes"
+ac_use_libxc="no"
+ac_build_libxc="no"
+AC_ARG_ENABLE(libxc, AS_HELP_STRING([--disable-libxc], [Do not link with libXC library (default = yes).]), ac_use_libxc=$enableval, ac_use_libxc="yes")
 AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_internal_libxc=$enableval, ac_internal_libxc="yes")
 AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path for an external libXC library, lib and module files (default = None).]),
             ac_libxc_dir=$withval, ac_libxc_dir=)
-ac_use_libxc="no"
-ac_build_libxc=$ac_internal_libxc
-if test "$ac_internal_libxc" = "yes" ; then
-  ac_build_libxc="yes"
-  ac_use_libxc="yes"
-  ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
-  AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
-  AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
-  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
-  LIBXC_LIBS="-lxc"
-else
-  if test -n "$ac_libxc_dir" ; then
-    LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
-    
-    dnl Test the given implementation of libXC.
-    ac_libxc_libname="xc"
-    AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
-    if test x"$withlibxc" = x"no" ; then
-      ac_libxc_libname="dft_xc"
-      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
-    fi
-    AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
-    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
-    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
-    if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
-      ac_use_libxc="yes"
-      AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
-      AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
-      LIBXC_LIBS="-l"$ac_libxc_libname
-    fi
+if test x"$ac_use_libxc" = x"yes" ; then
+  ac_build_libxc=$ac_internal_libxc
+  if test "$ac_internal_libxc" = "yes" ; then
+    ac_build_libxc="yes"
+    ac_use_libxc="yes"
+    ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
+    AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
+    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
+    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
+    LIBXC_LIBS="-lxc"
   else
-    LIBXC_CFLAGS="-I/usr/include"
-    PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
-    AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
+    if test -n "$ac_libxc_dir" ; then
+      LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
+      
+      dnl Test the given implementation of libXC.
+      ac_libxc_libname="xc"
+      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+      if test x"$withlibxc" = x"no" ; then
+        ac_libxc_libname="dft_xc"
+        AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+      fi
+      AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
+      AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
+      AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
+      if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
+        ac_use_libxc="yes"
+        AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
+        AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
+        LIBXC_LIBS="-l"$ac_libxc_libname
+      fi
+    else
+      LIBXC_CFLAGS="-I/usr/include"
+      PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
+      AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
+    fi
   fi
 fi
 AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
+AM_CONDITIONAL(DISABLE_LIBXC, test x"$ac_use_libxc" = x"no")
 if test x"$ac_use_libxc" = x"yes" ; then
   AC_DEFINE([HAVE_LIBXC], [1], [use libXC in BigDFT.])
 fi

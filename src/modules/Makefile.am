@@ -10,12 +10,12 @@ else
 mpi_include = mpif.h
 endif
 
-if BUILD_LIBXC
-LIBXC_MODULE =
-xc.o: base.o
-else
+if DISABLE_LIBXC
 LIBXC_MODULE = libxc_fake.f90
 xc.o: base.o libxc_fake.o
+else
+LIBXC_MODULE =
+xc.o: base.o
 endif
 
 if CAPITALIZE

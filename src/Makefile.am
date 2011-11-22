@@ -64,6 +64,12 @@ DGEMMSY_INTERFACE = dgemmsy/interface_dgemmsy_fake.f90
 libs_dgemmsy=
 endif
 
+if DISABLE_LIBXC
+LIBXC_MODULE = modules/libxc_fake.f90
+else
+LIBXC_MODULE =
+endif
+
 libs_opt=$(libs_cuda)\
  $(libs_ocl)\
  $(libs_dgemmsy)
@@ -188,7 +194,8 @@ modules_source = modules/base.f90 \
 	modules/input.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
-	$(GPU_BLAS)
+	$(GPU_BLAS) \
+	$(LIBXC_MODULE)
 
 modules_objects = $(modules_source:.f90=.o)
 
