@@ -4,6 +4,12 @@ else
 GPUBLAS_INTERFACE = cublas_fake.f90
 endif
 
+#if USE_BLACS
+#BLACS = 
+#else
+BLACS = blacs_fake.f90
+#endif
+
 if USE_MPI
 mpi_include =
 else
@@ -25,7 +31,8 @@ mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_INTERFACES.@MODULE_EXT@ \
 	MODULE_XC.@MODULE_EXT@ \
 	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
-	MODULE_INPUT.@MODULE_EXT@
+	MODULE_INPUT.@MODULE_EXT@ \
+	BIGDFT_API.@MODULE_EXT@
 else
 mod_bigdft = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -33,7 +40,8 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ \
 	module_xc.@MODULE_EXT@ \
 	overlap_point_to_point.@MODULE_EXT@ \
-	module_input.@MODULE_EXT@
+	module_input.@MODULE_EXT@ \
+	bigdft_api.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)
 
@@ -46,8 +54,10 @@ modules_source = base.f90 \
 	interfaces.f90 \
 	xc.f90 \
 	op2p_module.f90 \
+	BigDFT_API.f90 \
 	$(LIBXC_MODULE) \
-	$(GPUBLAS_INTERFACE)
+	$(GPUBLAS_INTERFACE) \
+	$(BLACS)
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
@@ -69,8 +79,8 @@ mpif.h:
 	echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1, MPI_CHARACTER=1, MPI_REAL8=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=1, MPI_STATUS_SIZE=1,MPI_LAND=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_LAND=1" >> mpif.h
-        echo "integer, parameter :: MPI_REQUEST_NULL=1" >> mpif.h
+        echo "integer, parameter :: MPI_REQUEST_NULL=1,MPI_STATUS_IGNORE=1" >> mpif.h &&\
+        echo "real(kind=8), external :: mpi_wtime" >> mpif.h
 
 
 #dependencies
@@ -80,5 +90,6 @@ types.o: base.o
 input.o: base.o
 interfaces.o: base.o types.o xc.o
 op2p_module.o : base.o
+BigDFT_API.o: base.o types.o interfaces.o xc.o
 
 $(mod_bigdft) : base.o types.o interfaces.o

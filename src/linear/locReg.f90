@@ -431,7 +431,8 @@ subroutine determine_locregSphere(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calcula
      llr(ilr)%locrad=cutoff
 
      ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
-     call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, cutoff, llr(ilr)%locregCenter, &
+     call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
+          cutoff, llr(ilr)%locregCenter, &
            glr%wfd%nseg_c, glr%wfd%keyg, glr%wfd%keyv, isx, isy, isz, iex, iey, iez)
 
      ln1 = iex-isx
@@ -839,8 +840,9 @@ END SUBROUTINE num_segkeys_periodic
 
 
 
-subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, hx, hy, hz, locrad, locregCenter, &
-           nsegglob, keygglob, keyvglob, nseg, nvctr)
+subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, hx, hy, hz, &
+     locrad, locregCenter, &
+     nsegglob, keygglob, keyvglob, nseg, nvctr)
   implicit none
   integer, intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nsegglob
   real(8),intent(in):: hx, hy, hz, locrad
@@ -1079,8 +1081,9 @@ END SUBROUTINE segkeys_periodic
 
 
 
-subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, locrad, locregCenter, &
-           nsegglob, keygglob, keyvglob, keyg, keyv)
+subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, &
+     locrad, locregCenter, &
+     nsegglob, keygglob, keyvglob, keyg, keyv)
   implicit none
   integer,intent(in):: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob
   real(8):: hx, hy, hz, locrad

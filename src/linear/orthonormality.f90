@@ -1681,7 +1681,7 @@ do iorb=1,orbs%norb
 end do
 
 if(indovrlp/=nsendBuf+1) then
-    write(*,'(x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=nsendBuf+1', indovrlp, nsendBuf+1
+    write(*,'(1x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=nsendBuf+1', indovrlp, nsendBuf+1
     stop
 end if
 
@@ -1747,9 +1747,9 @@ end subroutine extractOrbital3
 !!call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
 !!call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
 !!call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-!!!if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+!!!if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
 !!!                       nfast, ' could be overlapped with computation.'
-!!!if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+!!!if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 !!
 !!
 !!
@@ -1827,9 +1827,9 @@ end do
 !nfast=nint(dble(nfast)/dble(nproc))
 !nfast=nint(dble(nslow)/dble(nproc))
 !nfast=nint(dble(nsameproc)/dble(nproc))
-!if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+!if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
 !                       nfast, ' could be overlapped with computation.'
-!if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+!if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
 end subroutine gatherOrbitals2
@@ -1963,9 +1963,9 @@ end do
 !call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
                        nfast, ' could be overlapped with computation.'
-if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
 end subroutine gatherOrbitalsOverlapWithComput
@@ -1976,7 +1976,8 @@ end subroutine gatherOrbitalsOverlapWithComput
 
 
 
-subroutine gatherOrbitalsOverlapWithComput2(iproc, nproc, orbs, input, lzd, op, comon, nsendbuf, sendbuf, nrecvbuf, recvbuf, lphiovrlp, expanded, ovrlp)
+subroutine gatherOrbitalsOverlapWithComput2(iproc, nproc, orbs, input, lzd, op, comon,&
+     nsendbuf, sendbuf, nrecvbuf, recvbuf, lphiovrlp, expanded, ovrlp)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => gatherOrbitalsOverlapWithComput2
@@ -2125,9 +2126,9 @@ end do
 !call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
                        nfast, ' could be overlapped with computation.'
-if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
 end subroutine gatherOrbitalsOverlapWithComput2
@@ -2855,12 +2856,12 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
       ! Exact inversion
       call dpotrf('l', norb, ovrlp(1,1), norb, info)
       if(info/=0) then
-          write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
+          write(*,'(1x,a,i0)') 'ERROR in dpotrf, info=',info
           stop
       end if
       call dpotri('l', norb, ovrlp(1,1), norb, info)
       if(info/=0) then
-          write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
+          write(*,'(1x,a,i0)') 'ERROR in dpotri, info=',info
           stop
       end if
   
@@ -2931,7 +2932,7 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
   !!    deallocate(ovrlp3, stat=istat)
   !!    call memocc(istat, iall, 'ovrlp3', subname)
   else
-      write(*,'(x,a)') 'ERROR: iorder must be 0,1 or 2!'
+      write(*,'(1x,a)') 'ERROR: iorder must be 0,1 or 2!'
       stop
 end if
 
@@ -3106,7 +3107,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
 
   else
 
-      write(*,'(x,a)') 'ERROR: methTransformOrder must be 0,1 or 2!'
+      write(*,'(1x,a)') 'ERROR: methTransformOrder must be 0,1 or 2!'
       stop
 
 end if
@@ -3225,7 +3226,7 @@ do iorb=1,orbs%norb
 end do
 
 if(indovrlp/=comon%nsendBuf+1) then
-    write(*,'(x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=comon%nsendBuf+1', indovrlp, comon%nsendBuf+1
+    write(*,'(1x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=comon%nsendBuf+1', indovrlp, comon%nsendBuf+1
     stop
 end if
 
@@ -3744,7 +3745,7 @@ do iorb=1,orbs%norb
 end do
 
 if(indovrlp/=comon%nsendBuf+1) then
-    write(*,'(x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=comon%nsendBuf+1', indovrlp, comon%nsendBuf+1
+    write(*,'(1x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=comon%nsendBuf+1', indovrlp, comon%nsendBuf+1
     stop
 end if
 
@@ -3824,7 +3825,7 @@ do iorb=1,orbs%norb
 end do
 
 if(indovrlp/=comon%nsendBuf+1) then
-    write(*,'(x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=comon%nsendBuf+1', indovrlp, comon%nsendBuf+1
+    write(*,'(1x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=comon%nsendBuf+1', indovrlp, comon%nsendBuf+1
     stop
 end if
 
@@ -4264,7 +4265,8 @@ end subroutine postCommsOverlapNew2
 
 
 subroutine collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, input, lzd, &
-           nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, lphiovrlp,timecommunp2p, timecommuncoll, timeoverlap, timeexpand, timecompress)
+           nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, lphiovrlp,timecommunp2p, &
+           timecommuncoll, timeoverlap, timeexpand, timecompress)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => collectAndCalculateOverlap
@@ -5031,7 +5033,7 @@ do iorb=1,orbs%norb
 end do
 
 if(indovrlp/=nsendBuf+1) then
-    write(*,'(x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=nsendBuf+1', indovrlp, nsendBuf+1
+    write(*,'(1x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=nsendBuf+1', indovrlp, nsendBuf+1
     stop
 end if
 
@@ -5143,8 +5145,9 @@ end subroutine overlapMatrixCubic
 
 
 
-subroutine applyOrthoconstraintNonorthogonalCubic(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, gorbs, comms, lzd, input, &
-           op, ovrlp, mad, lphi, lhphi, trH)
+subroutine applyOrthoconstraintNonorthogonalCubic(iproc, nproc, methTransformOverlap,&
+     blocksize_pdgemm, orbs, gorbs, comms, lzd, input, &
+     op, ovrlp, mad, lphi, lhphi, trH)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => applyOrthoconstraintNonorthogonalCubic
@@ -5157,7 +5160,7 @@ type(communications_arrays),intent(in):: comms
 type(local_zone_descriptors),intent(in):: lzd
 type(input_variables),intent(in):: input
 type(overlapParameters),intent(in):: op
-real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
+real(8),dimension(orbs%norb,orbs%norb),intent(inout):: ovrlp
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(orbs%npsidim),intent(inout):: lphi, lhphi
 real(8),intent(out):: trH

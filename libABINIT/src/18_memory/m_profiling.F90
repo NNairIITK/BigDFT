@@ -928,6 +928,7 @@
       integer :: ndim
       if (ndebug /=0) then
          ndim=product(shape(array))-ndebug
+         stop "I don't have this function!!!!!"
          !call cmpdp_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)

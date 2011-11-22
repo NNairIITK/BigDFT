@@ -21,7 +21,7 @@
 #include <string.h>
 #include <time.h>
 
-void FC_FUNC(nanosec,NANOSEC)(long * t){
+void FC_FUNC(nanosec,NANOSEC)(unsigned long long int * t){
   struct timespec time;
   clock_gettime(CLOCK_REALTIME, &time);
   *t = time.tv_sec;

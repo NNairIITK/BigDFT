@@ -76,7 +76,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
                   case(4) 
                       at%aocc(13,iat)=1.d0
                   case default 
-                      write(*,'(x,a)') 'ERROR: more than 16 basis functions per atom are not possible!'
+                      write(*,'(1x,a)') 'ERROR: more than 16 basis functions per atom are not possible!'
                       stop
               end select
           end if
@@ -92,7 +92,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   !     input%nspin, lin%orbs%nspinor, lin%orbs%nkpts, lin%orbs%kpts, lin%orbs%kwgts, lin%lig%orbsig)
   call orbitals_descriptors_forLinear(iproc, nproc, norbtot, norbtot, 0, &
        input%nspin, lin%orbs%nspinor, lin%orbs%nkpts, lin%orbs%kpts, lin%orbs%kwgts, lin%lig%orbsig)
-  call repartitionOrbitals(iproc, nproc, lin%lig%orbsig%norb, lin%lig%orbsig%norb_par, lin%lig%orbsig%norbp, lin%lig%orbsig%isorb_par, lin%lig%orbsig%isorb, lin%lig%orbsig%onWhichMPI)
+  call repartitionOrbitals(iproc, nproc, lin%lig%orbsig%norb, lin%lig%orbsig%norb_par, &
+       lin%lig%orbsig%norbp, lin%lig%orbsig%isorb_par, lin%lig%orbsig%isorb, lin%lig%orbsig%onWhichMPI)
 
 
   ! lzdig%orbs%inWhichLocreg has been allocated in orbitals_descriptors. Since it will again be allcoated
@@ -275,7 +276,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   case(4) 
                       at%aocc(13,iat)=1.d0
                   case default 
-                      write(*,'(x,a)') 'ERROR: more than 16 basis functions per atom are not possible!'
+                      write(*,'(1x,a)') 'ERROR: more than 16 basis functions per atom are not possible!'
                       stop
               end select
           end if
@@ -295,7 +296,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        orbs,lin%lig%orbsig,norbsc_arr,locrad,G,psigau,eks)
   ! Since inputguess_gaussian_orbitals overwrites lin%lig%orbsig, we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
-  call repartitionOrbitals(iproc, nproc, lin%lig%orbsig%norb, lin%lig%orbsig%norb_par, lin%lig%orbsig%norbp, lin%lig%orbsig%isorb_par, lin%lig%orbsig%isorb, lin%lig%orbsig%onWhichMPI)
+  call repartitionOrbitals(iproc, nproc, lin%lig%orbsig%norb, lin%lig%orbsig%norb_par, &
+       lin%lig%orbsig%norbp, lin%lig%orbsig%isorb_par, lin%lig%orbsig%isorb, lin%lig%orbsig%onWhichMPI)
 
   ! lin%lig%orbsig%inWhichLocreg has been allocated in inputguess_gaussian_orbitals. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
@@ -394,7 +396,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Create the potential. First calculate the charge density.
-  if(iproc==0) write(*,'(x,a)',advance='no') 'Calculating charge density...'
+  if(iproc==0) write(*,'(1x,a)',advance='no') 'Calculating charge density...'
   call sumrhoLinear(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsig, hxh, hyh, hzh, lchi2, rhopot,&
        nscatterarr, input%nspin, GPU, at%symObj, irrzon, phnons, rhodsc)
   if(iproc==0) write(*,'(a)') 'done.'
@@ -564,7 +566,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   lhchi=0.d0
 
 
-  if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
+  if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
   call mpi_barrier(mpi_comm_world, ierr)
   call cpu_time(t1)
   call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%locregShape, lin%lig%lzdig)
@@ -649,7 +651,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call mpi_barrier(mpi_comm_world, ierr)
   call cpu_time(t2)
   time=t2-t1
-  if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time
+  if(iproc==0) write(*,'(1x,a,es10.3)') 'time for applying potential:', time
 
   ! Deallocate the buffers needed for communication the potential.
   call deallocateCommunicationsBuffersPotential(lin%lig%comgp, subname)
@@ -756,9 +758,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call cpu_time(t2)
   time=t2-t1
   call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-  if(iproc==0) write(*,'(x,a,es10.3)') 'time for "buildLinearCombinations":', time/dble(nproc)
+  if(iproc==0) write(*,'(1x,a,es10.3)') 'time for "buildLinearCombinations":', time/dble(nproc)
 
-  if(iproc==0) write(*,'(x,a)') '------------------------------------------------------------- Input guess generated.'
+  if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
 
 
   ! Deallocate all local arrays.
@@ -1155,7 +1157,7 @@ end subroutine initializeInguessParameters
 !!availableMemory=memoryForCommunOverlapIG*1048576
 !!availableMemory=availableMemory/8 ! double precision
 !!noverlaps=max(availableMemory/mad%nvctr,1)
-!!if(iproc==0) write(*,'(x,a,i0,a)') 'the specified memory allows to overlap ', noverlaps,' iterations with communication'
+!!if(iproc==0) write(*,'(1x,a,i0,a)') 'the specified memory allows to overlap ', noverlaps,' iterations with communication'
 !!noverlaps=min(noverlaps,lzdig%nlr)
 !!
 !!allocate(hamTempCompressed(mad%nvctr,noverlaps), stat=istat)
@@ -1190,7 +1192,7 @@ end subroutine initializeInguessParameters
 !!call postCommsOverlap(iproc, nproc, comon)
 !!call gatherOrbitals2(iproc, nproc, comon)
 !!
-!!if(iproc==0) write(*,'(x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
+!!if(iproc==0) write(*,'(1x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
 !!ilrold=0
 !!iilr=0
 !!iatold=0
@@ -1428,7 +1430,7 @@ end subroutine initializeInguessParameters
 !!availableMemory=availableMemory/8 ! double precision
 !!ii=maxval(sendcounts)
 !!noverlaps=max(availableMemory/ii,1)
-!!if(iproc==0) write(*,'(x,a,i0,a)') 'the specified memory allows to overlap ', noverlaps,' iterations with communication'
+!!if(iproc==0) write(*,'(1x,a,i0,a)') 'the specified memory allows to overlap ', noverlaps,' iterations with communication'
 !!noverlaps=min(noverlaps,lzdig%nlr)
 !!
 !!
@@ -1454,7 +1456,7 @@ end subroutine initializeInguessParameters
 !!call gatherOrbitals2(iproc, nproc, comon)
 !!
 !!
-!!if(iproc==0) write(*,'(x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
+!!if(iproc==0) write(*,'(1x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
 !!ilrold=0
 !!iilr=0
 !!iatold=0
@@ -1660,7 +1662,7 @@ availableMemory=memoryForCommunOverlapIG*1048576
 availableMemory=availableMemory/8 ! double precision
 ii=maxval(sendcounts)
 noverlaps=max(availableMemory/ii,1)
-if(iproc==0) write(*,'(x,a,i0,a)') 'the specified memory allows to overlap ', noverlaps,' iterations with communication'
+if(iproc==0) write(*,'(1x,a,i0,a)') 'the specified memory allows to overlap ', noverlaps,' iterations with communication'
 noverlaps=min(noverlaps,lzdig%nlr)
 
 
@@ -1696,7 +1698,7 @@ call collectnew(iproc, nproc, comon, mad, op, orbsig, input, lzdig, comon%nsendb
 deallocate(ttmat)
 
 
-if(iproc==0) write(*,'(x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
+if(iproc==0) write(*,'(1x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
 ilrold=0
 iilr=0
 iatold=0
@@ -1728,7 +1730,7 @@ do iat=1,lzdig%nlr
     if(ioverlap==noverlaps .or. iat==lzdig%nlr) then
         
         ! Communicate the matrices calculated so far.
-        if(iproc==0) write(*,'(x,a)',advance='no') 'communicating matrices...'
+        if(iproc==0) write(*,'(1x,a)',advance='no') 'communicating matrices...'
 
         ! jj indicates how many matrices ar eto be communicated.
         jj=mod(iat-1,noverlaps)+1
@@ -2990,9 +2992,9 @@ end do
 !call mpiallred(nfast, 1, mpi_sum, newComm, ierr)
 !call mpiallred(nslow, 1, mpi_sum, newComm, ierr)
 !call mpiallred(nsameproc, 1, mpi_sum, newComm, ierr)
-!if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+!if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
 !                       nfast, ' could be overlapped with computation.'
-!if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+!if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
 end subroutine gatherVectors
@@ -3090,7 +3092,7 @@ do iorb=1,norb
 end do
 
 if(ist/=comom%nsendBuf) then
-    write(*,'(x,a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ist/=comom%nsendBuf',ist,comom%nsendBuf
+    write(*,'(1x,a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ist/=comom%nsendBuf',ist,comom%nsendBuf
 end if
 
 
@@ -3289,12 +3291,12 @@ call dcopy(norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 !!! Invert the overlap matrix
 !!call dpotrf('l', norb, ovrlp2(1,1), norb, info)
 !!if(info/=0) then
-!!    write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
+!!    write(*,'(1x,a,i0)') 'ERROR in dpotrf, info=',info
 !!    stop
 !!end if
 !!call dpotri('l', norb, ovrlp2(1,1), norb, info)
 !!if(info/=0) then
-!!    write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
+!!    write(*,'(1x,a,i0)') 'ERROR in dpotri, info=',info
 !!    stop
 !!end if
 
@@ -3319,7 +3321,8 @@ correctionIf: if(correctionOrthoconstraint==0) then
         ovrlp_minus_one_lagmat=0.d0
         !!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
         !!     ovrlp2, lagmat, ovrlp_minus_one_lagmat)
-        call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+        call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax,&
+             mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
              orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
         !ovrlp_minus_one_lagmat=lagmat
         ! Transpose lagmat
@@ -3336,7 +3339,8 @@ correctionIf: if(correctionOrthoconstraint==0) then
         ovrlp_minus_one_lagmat_trans=0.d0
         !!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
         !!     ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
-        call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+        call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax,&
+             mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
              orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
     
     else
@@ -3634,7 +3638,7 @@ type(matrixMinimization):: matmin
 logical:: same
 type(matrixDescriptors):: mad
 
-  if(iproc==0) write(*,'(x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
+  if(iproc==0) write(*,'(1x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
   ! Allocate the local arrays that are hold by all processes.
   allocate(coeff(orbsig%norb,orbs%norb), stat=istat)
@@ -3762,7 +3766,7 @@ type(matrixDescriptors):: mad
       ! Flag which checks convergence.
       converged=.false.
     
-      if(iproc==0) write(*,'(x,a)') '============================== optmizing coefficients =============================='
+      if(iproc==0) write(*,'(1x,a)') '============================== optmizing coefficients =============================='
     
       ! The optimization loop.
     
@@ -3770,7 +3774,9 @@ type(matrixDescriptors):: mad
       do iorb=1,ip%norb_par(iproc)
           ilr=matmin%inWhichLocregExtracted(iorb)
           if(ilr/=orbs%inWhichLocreg(iorb+orbs%isorb)) then
-              write(*,'(a,2i6,3x,2i8)') 'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)', iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
+              write(*,'(a,2i6,3x,2i8)') &
+                   'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)',&
+                   iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
           end if
           call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
       end do
@@ -3781,7 +3787,9 @@ type(matrixDescriptors):: mad
           do iorb=1,ip%norb_par(iproc)
               ilr=matmin%inWhichLocregExtracted(iorb)
               if(ilr/=orbs%inWhichLocreg(iorb+orbs%isorb)) then
-                  write(*,'(a,2i6,3x,2i8)') 'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)', iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
+                  write(*,'(a,2i6,3x,2i8)') &
+                       'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)',&
+                       iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
               end if
               call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
           end do
@@ -3950,12 +3958,12 @@ type(matrixDescriptors):: mad
       
     
           ! Write some informations to the screen, but only every 1000th iteration.
-          if(iproc==0 .and. mod(it,1)==0) write(*,'(x,a,es11.2,es22.13,es10.2)') 'fnrm, trace, mean alpha', &
+          if(iproc==0 .and. mod(it,1)==0) write(*,'(1x,a,es11.2,es22.13,es10.2)') 'fnrm, trace, mean alpha', &
               fnrm, trace, meanAlpha
           
           ! Check for convergence.
           if(fnrm<1.d-3) then
-              if(iproc==0) write(*,'(x,a,i0,a)') 'converged in ', it, ' iterations.'
+              if(iproc==0) write(*,'(1x,a,i0,a)') 'converged in ', it, ' iterations.'
               if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, trace:', fnrm, trace
               converged=.true.
               infoCoeff=it
@@ -3969,9 +3977,9 @@ type(matrixDescriptors):: mad
       
           ! Quit if the maximal number of iterations is reached.
           if(it==lin%nItInguess) then
-              if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
+              if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
-              if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, trace: ', fnrm, trace
+              if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, trace: ', fnrm, trace
               infoCoeff=-1
               ! Transform back to global ragion.
               do iorb=1,ip%norb_par(iproc)
@@ -3992,7 +4000,7 @@ type(matrixDescriptors):: mad
       end do iterLoop
     
     
-      if(iproc==0) write(*,'(x,a)') '===================================================================================='
+      if(iproc==0) write(*,'(1x,a)') '===================================================================================='
     
     
       ! Cut out the zeros

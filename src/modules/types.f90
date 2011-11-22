@@ -59,10 +59,18 @@ module module_types
   !> Occupation parameters.
   integer, parameter :: SMEARING_DIST_ERF   = 1
   integer, parameter :: SMEARING_DIST_FERMI = 2
-  character(len = 11), dimension(2), parameter :: smearing_names = &
-       & (/ "Error func.", "Fermi      " /)
-  ! To be moved as an input parameter later
-  integer, parameter :: occopt = SMEARING_DIST_ERF
+  integer, parameter :: SMEARING_DIST_COLD1 = 3  !Marzari's cold smearing  with a=-.5634 (bumb minimization)
+  integer, parameter :: SMEARING_DIST_COLD2 = 4  !Marzari's cold smearing  with a=-.8165 (monotonic tail)
+  integer, parameter :: SMEARING_DIST_METPX = 5  !Methfessel and Paxton (same as COLD with a=0)
+  character(len = 11), dimension(5), parameter :: smearing_names = &
+       & (/ "Error func.",   &    
+       &    "Fermi      ",   &
+       &    "Cold (bumb)",   &
+       &    "Cold (mono)",   &
+       &    "Meth.-Pax. " /)
+ !!!!!!! MOVED ....   ! To be moved as an input parameter later
+  !integer, parameter :: occopt = SMEARING_DIST_ERF
+ !!!!!!! MOVED ....   
 
 
   !> Type used for the orthogonalisation parameter
@@ -115,12 +123,12 @@ module module_types
      !miscellaneous variables
      logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
-     integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
+     integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty, occopt
      integer :: output_grid, dispersion,last_run,output_wf_format,output_grid_format
-     real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel,alphadiis
+     real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel, alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: verbosity
-     real(gp) :: elecfield
+     real(gp) :: elecfield(3)
      logical :: disableSym
 
      ! For absorption calculations
@@ -351,7 +359,7 @@ module module_types
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
-     real(gp) :: efermi,HLgap
+     real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,inwhichlocreg, inWhichLocregP, onWhichMPI, isorb_par, ispot
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
@@ -648,10 +656,12 @@ end type largeBasis
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
-    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG
+    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff 
+    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG
     integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItOuterSCC, nItSCCWhenFixed
-    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMixWhenFixed, alphaMixWhenOptimizing, convCritMix, convCritOrtho, fixBasis
+    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMixWhenFixed
+    real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho, fixBasis
     real(8):: FactorFixBasis, convCritMixOut, minimalFixBasis
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lxi, transmat, lpsi, lhpsi
     real(8),dimension(:,:),pointer:: hamold

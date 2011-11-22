@@ -561,7 +561,7 @@ subroutine overlap_matrix_for_locreg(ilr,nlr,nspin,psidim1,psishift1,npsidim,at,
           call razero(nspin*ndim_hamovr*2*(orbs%nkpts+ndebug),Lohamovr)
 
           ! Construct the overlap region descriptors
-          call get_overlap_region_periodic(ilr,ilr2,Glr,isovrlp,Llr,nlr,Olr,outofzone)
+          call get_overlap_region_periodic(ilr,ilr2,Glr,isovrlp,Llr,nlr,Olr)
 
           ! Third, transform the wavefunction to overlap regions
           do iolr=1,isovrlp

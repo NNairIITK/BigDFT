@@ -88,12 +88,14 @@ norbd=0
 !     input%nkpt, input%kpt, input%wkpt, lin%orbs)
 call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
-call repartitionOrbitals(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, lin%orbs%norbp, lin%orbs%isorb_par, lin%orbs%isorb, lin%orbs%onWhichMPI)
+call repartitionOrbitals(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par,&
+     lin%orbs%norbp, lin%orbs%isorb_par, lin%orbs%isorb, lin%orbs%onWhichMPI)
 !call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
 !     input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
-call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, lin%gorbs%norbp, lin%gorbs%isorb_par, lin%gorbs%isorb, lin%gorbs%onWhichMPI)
+call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, &
+     lin%gorbs%norbp, lin%gorbs%isorb_par, lin%gorbs%isorb, lin%gorbs%onWhichMPI)
 !!ii=0
 !!do jproc=0,nproc-1
 !!    ii=ii+lin%orbs%norb_par(jproc)
@@ -118,13 +120,17 @@ else
     norbd=0
 end if
 !call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
-call orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
-call repartitionOrbitals(iproc, nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par, lin%lb%orbs%norbp, lin%lb%orbs%isorb_par, lin%lb%orbs%isorb, lin%lb%orbs%onWhichMPI)
+call orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,input%nspin,&
+     orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
+call repartitionOrbitals(iproc, nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par,&
+     lin%lb%orbs%norbp, lin%lb%orbs%isorb_par, lin%lb%orbs%isorb, lin%lb%orbs%onWhichMPI)
 !call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
 !     lin%lb%gorbs)
-call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
+call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin,&
+     orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
      lin%lb%gorbs)
-call repartitionOrbitals(iproc, nproc, lin%lb%gorbs%norb, lin%lb%gorbs%norb_par, lin%lb%gorbs%norbp, lin%lb%gorbs%isorb_par, lin%lb%gorbs%isorb, lin%lb%gorbs%onWhichMPI)
+call repartitionOrbitals(iproc, nproc, lin%lb%gorbs%norb, lin%lb%gorbs%norb_par,&
+     lin%lb%gorbs%norbp, lin%lb%gorbs%isorb_par, lin%lb%gorbs%isorb, lin%lb%gorbs%onWhichMPI)
 
 
 
@@ -168,7 +174,7 @@ call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! Initialize the localization regions.
-if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing localization regions... '
+if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
 t1=mpi_wtime()
 call initLocregs(iproc, at%nat, rxyz, lin, input, Glr)
 allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
@@ -207,7 +213,7 @@ call initCoefficients(iproc, orbs, lin, coeff)
 
 ! Initialize the parameters for the point to point communication for the
 ! calculation of the charge density.
-if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing communications sumrho... '
+if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications sumrho... '
 t1=mpi_wtime()
 call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, tag)
 t2=mpi_wtime()
@@ -248,7 +254,7 @@ end do
 
 ! Initialize the parameters for the communication for the
 ! potential.
-if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing communications potential... '
+if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications potential... '
 t1=mpi_wtime()
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%orbs%inWhichLocreg, tag)
 !call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp, &
@@ -259,10 +265,12 @@ t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 ! Initialize the parameters for the communication for the orthonormalization.
-if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing communications orthonormalization... '
+if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications orthonormalization... '
 t1=mpi_wtime()
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg, input, lin%locregShape, lin%op, lin%comon, tag)
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, input, lin%locregShape, lin%lb%op, lin%lb%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
+     input, lin%locregShape, lin%op, lin%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
+     input, lin%locregShape, lin%lb%op, lin%lb%comon, tag)
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
@@ -293,7 +301,7 @@ iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
 deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
-if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing input guess... '
+if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing input guess... '
 t1=mpi_wtime()
 call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr, tag)
 t2=mpi_wtime()
@@ -304,7 +312,7 @@ if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 
 
-if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing matrix compression... '
+if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing matrix compression... '
 t1=mpi_wtime()
 call initMatrixCompression(iproc, nproc, lin%orbs, lin%op, lin%mad)
 call initCompressedMatmul3(lin%orbs%norb, lin%mad)
@@ -358,7 +366,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   ! Open the input file and read in the parameters.
   inquire(file='input.lin', exist=fileExists)
   if(.not. fileExists) then
-      if(iproc==0) write(*,'(x,a)') "ERROR: the file 'input.lin' must be present for the linear &
+      if(iproc==0) write(*,'(1x,a)') "ERROR: the file 'input.lin' must be present for the linear &
           & scaling version!"
       call mpi_barrier(mpi_comm_world, ierr)
       stop
@@ -393,10 +401,10 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
       if(ios/=0) then
           ! The parameters where not specified for all atom types.
           if(iproc==0) then
-              write(*,'(x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
+              write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
                        & for the following atom types:"
               do jtype=1,at%ntypes
-                  if(.not.parametersSpecified(jtype)) write(*,'(x,a)',advance='no') trim(at%atomnames(jtype))
+                  if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(at%atomnames(jtype))
               end do
           end if
           call mpi_barrier(mpi_comm_world, ierr)
@@ -416,7 +424,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
           end if
       end do
       if(.not.found) then
-          if(iproc==0) write(*,'(x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
+          if(iproc==0) write(*,'(1x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
                      "', which is not present in the file containing the atomic coordinates."
           call mpi_barrier(mpi_comm_world, ierr)
           stop
@@ -465,8 +473,8 @@ character(len=14):: message2
 character(len=2):: hist
 
 
-write(*,'(x,a)') '################################# Input parameters #################################'
-write(*,'(x,a)') '>>>> General parameters.'
+write(*,'(1x,a)') '################################# Input parameters #################################'
+write(*,'(1x,a)') '>>>> General parameters.'
 write(*,'(4x,a)') '|           |    number of    |     prefactor for     | localization |'
 write(*,'(4x,a)') '| atom type | basis functions | confinement potential |    radius    |'
 do itype=1,at%ntypes
@@ -489,8 +497,10 @@ end if
 write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es8.2,a,es9.3,a,es9.3,a)') '| ', &
      lin%mixingMethod, '  |', message1, ' | ', repeat(' ', optimalLength(4, lin%nItSCCWhenOptimizing)), &
      lin%nItSCCWhenOptimizing, '   /', repeat(' ', optimalLength(3, lin%nItSCCWhenFixed)), lin%nItSCCWhenFixed, &
-     '   |', lin%alphaMixWhenOptimizing, ' /', lin%alphaMixWhenOptimizing, ' |    ', lin%convCritMix, ' |', repeat(' ', optimalLength(9, lin%nItOuterSCC)), &
-     lin%nItOuterSCC, '      |   ', lin%factorFixBasis, '   | ', lin%minimalFixBasis, ' |   ', lin%convCritMixOut, '    |'
+     '   |', lin%alphaMixWhenOptimizing, ' /', lin%alphaMixWhenOptimizing, ' |    ',&
+     lin%convCritMix, ' |', repeat(' ', optimalLength(9, lin%nItOuterSCC)), &
+     lin%nItOuterSCC, '      |   ', lin%factorFixBasis, '   | ', lin%minimalFixBasis, ' |   ',&
+     lin%convCritMixOut, '    |'
 write(*,'(4x,a)') '-----------------------------------------------------------------------------------------&
 &-------------------------------------------'
 write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  | transform |'
@@ -500,12 +510,12 @@ if(lin%correctionOrthoconstraint==0) then
 else if(lin%correctionOrthoconstraint==1) then
     message1='  no    '
 end if
-write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a,5x,a,4x,a,5x,l,4x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
+write(*,'(4x,a,8x,l2,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a,5x,a,4x,a,5x,l2,4x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
      lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
      lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|', &
      message1, '|', lin%transformToGlobal, '|'
 write(*,'(4x,a)') '----------------------------------------------------------------------'
-write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
+write(*,'(1x,a)') '>>>> Parameters for the optimization of the basis functions.'
 write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |     stop     |'
 write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis | optimization |'
 write(*,'(4x,a)') '|  first   else  |             |                |           |       |              |'
@@ -519,7 +529,7 @@ if(trim(lin%getCoeff)=='diag') then
 else if(trim(lin%getCoeff)=='min') then
     message1='   min  '
 end if
-write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a,2x,es10.3,2x,a)') '| ', &
+write(*,'(4x,a,a,i0,3x,a,i0,2x,a,1x,es9.3,1x,a,a,i0,a,a,a,l2,a,2x,es10.3,2x,a)') '| ', &
     repeat(' ', 5-ceiling(log10(dble(lin%nItBasisFirst+1)+1.d-10))), lin%nItBasisFirst, &
     repeat(' ', 5-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
       '| ', lin%convCrit, ' | ', &
@@ -538,19 +548,19 @@ else if(lin%methTransformOverlap==2) then
 else if(lin%methTransformOverlap==3) then
     message2='taylor appr. 3'
 end if
-write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l3,a,x,es10.3,a,a,i0,7x,es7.1,2x,a,x,a,x,a)') '|', &
+write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,1x,es8.2,1x,a,l3,a,1x,es10.3,a,a,i0,7x,es7.1,2x,a,1x,a,1x,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
     repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
     lin%alphaDIIS, '|', lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |', &
     repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, lin%convCritOrtho, '|', message2, '|'
 write(*,'(4x,a)') '------------------------------------------------------------------------------------------------------'
-write(*,'(x,a)') '>>>> Parameters for the optimization of the coefficients.'
+write(*,'(1x,a)') '>>>> Parameters for the optimization of the coefficients.'
 write(*,'(4x,a)') '| maximal number | convergence |'
 write(*,'(4x,a)') '|  of iterations |  criterion  |'
-write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a)') '| ', &
+write(*,'(4x,a,a,i0,5x,a,1x,es9.3,1x,a)') '| ', &
     repeat(' ', 9-ceiling(log10(dble(lin%nItCoeff+1)+1.d-10))), lin%nItCoeff, ' | ', lin%convCritCoeff, ' | '
 write(*,'(4x,a)') '--------------------------------'
-write(*,'(x,a)') '>>>> Performance options'
+write(*,'(1x,a)') '>>>> Performance options'
 write(*,'(4x,a)') '| blocksize | blocksize | max proc | max proc | memory for |'
 write(*,'(4x,a)') '|  pdsyev   |  pdgemm   |  pdsyev  |  pdgemm  | overlap IG |'
 write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a,a,i0,4x,a)') '|',repeat(' ', &
@@ -559,11 +569,11 @@ write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a,a,i0,4x,a)') '|',repeat('
     '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm,'|',&
     repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm, '|',&
     repeat(' ', 8-ceiling(log10(dble(abs(lin%memoryForCommunOverlapIG)+1)+1.d-10))),lin%memoryForCommunOverlapIG, '|'
-write(*,'(x,a)') 'lin%locregShape:',lin%locregShape
+write(*,'(1x,a)') 'lin%locregShape:',lin%locregShape
 
 
 written=.false.
-write(*,'(x,a)') '>>>> Partition of the basis functions among the processes.'
+write(*,'(1x,a)') '>>>> Partition of the basis functions among the processes.'
 do jproc=1,nproc-1
     if(lin%orbs%norb_par(jproc,0)<lin%orbs%norb_par(jproc-1,0)) then
         len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%orbs%norb_par(jproc-1,0)+1.d-5)))
@@ -588,11 +598,11 @@ if(.not.written) then
     write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
         ' treat ',lin%orbs%norbp,' orbitals. |'!, &
 end if
-write(*,'(x,a)') '-----------------------------------------------'
+write(*,'(1x,a)') '-----------------------------------------------'
 
 
 written=.false.
-write(*,'(x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
+write(*,'(1x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
 do jproc=1,nproc-1
     if(lin%lb%orbs%norb_par(jproc,0)<lin%lb%orbs%norb_par(jproc-1,0)) then
         len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%lb%orbs%norb_par(jproc-1,0)+1.d-5)))
@@ -617,7 +627,7 @@ if(.not.written) then
     write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
         ' treat ',lin%lb%orbs%norbp,' orbitals. |'!, &
 end if
-write(*,'(x,a)') '####################################################################################'
+write(*,'(1x,a)') '####################################################################################'
 
 
 end subroutine writeLinearParameters
@@ -794,21 +804,21 @@ integer:: norbTarget, nprocIG, ierr
 
 
   if(lin%DIISHistMin>lin%DIISHistMax) then
-      if(iproc==0) write(*,'(x,a,i0,a,i0,a)') 'ERROR: DIISHistMin must not be larger than &
+      if(iproc==0) write(*,'(1x,a,i0,a,i0,a)') 'ERROR: DIISHistMin must not be larger than &
       & DIISHistMax, but you chose ', lin%DIISHistMin, ' and ', lin%DIISHistMax, '!'
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if
 
   if(trim(lin%getCoeff)/='min' .and. trim(lin%getCoeff)/='diag') then
-      if(iproc==0) write(*,'(x,a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min', &
+      if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min', &
           & but we found '", trim(lin%getCoeff), "'!"
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if
 
   if(lin%methTransformOverlap<0 .or. lin%methTransformOverlap>2) then
-      if(iproc==0) write(*,'(x,a,i0,a)') 'ERROR: lin%methTransformOverlap must be 0,1 or 2, but you specified ', &
+      if(iproc==0) write(*,'(1x,a,i0,a)') 'ERROR: lin%methTransformOverlap must be 0,1 or 2, but you specified ', &
                                lin%methTransformOverlap,'.'
       call mpi_barrier(mpi_comm_world, ierr)
       stop
@@ -816,7 +826,7 @@ integer:: norbTarget, nprocIG, ierr
 
   !!if(trim(lin%getCoeff)=='diag') then
   !!    if(trim(lin%diagMethod)/='seq' .and. trim(lin%diagMethod)/='par') then
-  !!        if(iproc==0) write(*,'(x,a,a,a)') "ERROR: lin%diagMethod can have the values 'seq' or 'par', &
+  !!        if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: lin%diagMethod can have the values 'seq' or 'par', &
   !!            & but we found '", trim(lin%diagMethod), "'!"
   !!        call mpi_barrier(mpi_comm_world, ierr)
   !!        stop
@@ -824,7 +834,7 @@ integer:: norbTarget, nprocIG, ierr
   !!end if
 
   if(lin%confPotOrder/=4 .and. lin%confPotOrder/=6) then
-      if(iproc==0) write(*,'(x,a,i0,a)') 'ERROR: lin%confPotOrder can have the values 4 or 6, &
+      if(iproc==0) write(*,'(1x,a,i0,a)') 'ERROR: lin%confPotOrder can have the values 4 or 6, &
           & but we found ', lin%confPotOrder, '!'
       call mpi_barrier(mpi_comm_world, ierr)
       stop
@@ -843,9 +853,9 @@ integer:: norbTarget, nprocIG, ierr
   if( nprocIG/=nproc .and. ((lin%methTransformOverlap==0 .and. (lin%blocksize_pdsyev>0 .or. lin%blocksize_pdgemm>0)) .or. &
       (lin%methTransformOverlap==1 .and. lin%blocksize_pdgemm>0)) ) then
       if(iproc==0) then
-          write(*,'(x,a)') 'ERROR: You want to use some routines from scalapack. This is only possible if all processes are &
+          write(*,'(1x,a)') 'ERROR: You want to use some routines from scalapack. This is only possible if all processes are &
                      &involved in these calls, which is not the case here.'
-          write(*,'(x,a)') 'To avoid this problem you have several possibilities:'
+          write(*,'(1x,a)') 'To avoid this problem you have several possibilities:'
           write(*,'(3x,a,i0,a)') "-set 'lin%norbsperProcIG' to a value not greater than ",floor(dble(lin%orbs%norb)/dble(nproc)), &
               ' (recommended; probably only little influence on performance)'
           write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==1': set 'lin%blocksize_pdgemm' to a negative value &
@@ -858,13 +868,13 @@ integer:: norbTarget, nprocIG, ierr
   end if
 
   if(lin%nproc_pdsyev>nproc) then
-      if(iproc==0) write(*,'(x,a)') 'ERROR: lin%nproc_pdsyev can not be larger than nproc'
+      if(iproc==0) write(*,'(1x,a)') 'ERROR: lin%nproc_pdsyev can not be larger than nproc'
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if
 
   if(lin%nproc_pdgemm>nproc) then
-      if(iproc==0) write(*,'(x,a)') 'ERROR: lin%nproc_pdgemm can not be larger than nproc'
+      if(iproc==0) write(*,'(1x,a)') 'ERROR: lin%nproc_pdgemm can not be larger than nproc'
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if
@@ -1227,7 +1237,7 @@ end do
 
 call mpiallred(ttIntot, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(ttOuttot, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(x,a)') 'cutting of outside localization region:'
+if(iproc==0) write(*,'(1x,a)') 'cutting of outside localization region:'
 if(iproc==0) write(*,'(3x,a,2es17.8)') 'before cut; average weights in / out:', ttIntot/dble(lin%orbs%norb),&
              ttOuttot/dble(lin%orbs%norb)
 
@@ -1731,7 +1741,7 @@ end do
  call memocc(istat, iall, 'calculateBounds', subname)
 
 !do ilr=1,lin%nlr
-!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
+!    if(iproc==0) write(*,'(1x,a,i0)') '>>>>>>> zone ', ilr
 !    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
 !    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
 !    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
@@ -1872,9 +1882,9 @@ integer:: mempeak, peaksection, isection, iarray, megabytes, memtot, iorb, ilr, 
 character(len=100),dimension(nsection):: section
 
 if(iproc==0) then
-    write(*,'(x,a)') '################################# Memory estimator ##################################'
-    write(*,'(x,a)') 'WARNING: The memory requirements are underestimated by about 20-30%!'
-    write(*,'(x,a)') 'Memory requirements of the largest arrays:'
+    write(*,'(1x,a)') '################################# Memory estimator ##################################'
+    write(*,'(1x,a)') 'WARNING: The memory requirements are underestimated by about 20-30%!'
+    write(*,'(1x,a)') 'Memory requirements of the largest arrays:'
 
     ! For all large arrays determine the memory the occupy and in which code segment they are allcoated.
     ! There are .. segments:
@@ -2018,10 +2028,10 @@ if(iproc==0) then
             peaksection=isection
         end if
     end do
-    write(*,'(x,a,i0,a)') '>>> estimated memory peak: ',megabytes(mempeak),'MB'
-    write(*,'(x,a,a)') '>>> peak section: ',trim(section(peaksection))
+    write(*,'(1x,a,i0,a)') '>>> estimated memory peak: ',megabytes(mempeak),'MB'
+    write(*,'(1x,a,a)') '>>> peak section: ',trim(section(peaksection))
 
-    write(*,'(x,a)') '#####################################################################################'
+    write(*,'(1x,a)') '#####################################################################################'
 
 end if
 
@@ -3137,7 +3147,8 @@ do iseg=1,nsegmatmul
         icolumn=(i-1)/norb+1
         irow=i-(icolumn-1)*norb
         !if(irow>isorb_par(iproc) .and. irow<=isorb_par(min(iproc+1,nproc-1))) then
-        if((icolumn>isorb_par(iproc) .and. icolumn<=isorb_par(min(iproc+1,nproc-1))) .or. (iproc==nproc-1 .and. icolumn>isorb_par(iproc))) then
+        if((icolumn>isorb_par(iproc) .and. icolumn<=isorb_par(min(iproc+1,nproc-1)))&
+             .or. (iproc==nproc-1 .and. icolumn>isorb_par(iproc))) then
             !iirow=irow-isorb_par(iproc)
             iicolumn=icolumn-isorb_par(iproc)
             ! This process handles this entry of the matrix
@@ -3273,14 +3284,16 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
        i1=i0+j1-j0
        do i=i0,i1
            jjj=jjj+1
-           if(phi(jjj)==1.d0) write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  lg ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
-           write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  g ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+           if(phi(jjj)==1.d0) write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  lg ',&
+                real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+           write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  g ',real(i,kind=8)*hx,&
+                real(i2,kind=8)*hy,real(i3,kind=8)*hz
        enddo
     enddo
-  
+
+    ishift=glr%wfd%nseg_c  
     ! fine part
     !$omp do
-    ishift=glr%wfd%nseg_c
     do iseg=1,glr%wfd%nseg_f
        jj=glr%wfd%keyv(ishift+iseg)
        j0=glr%wfd%keyg(1,ishift+iseg)
@@ -3431,6 +3444,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
         ityp = atoms%iatype(iat)
         locrad(iat) = atoms%rloc(ityp,1)
      end do  
+     call timing(iproc,'check_IG      ','ON')
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,linear) 
      call timing(iproc,'check_IG      ','OF')
      if(input%nspin >= 4) linear = .false. 
@@ -3499,7 +3513,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
 !!write(*,*)'Global fine grid: nfl',Lzd%Glr%d%nfl1,Lzd%Glr%d%nfl2,Lzd%Glr%d%nfl3
 !!write(*,*)'Global fine grid: nfu',Lzd%Glr%d%nfu1,Lzd%Glr%d%nfu2,Lzd%Glr%d%nfu3
 !!write(*,*)'Global inter. grid: ni',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i
-!!write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Lzd%Glr%d%n1*input%hx,Lzd%Glr%d%n2*input%hy,Lzd%Glr%d%n3*input%hz
+!!write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (1x,y,z):',Lzd%Glr%d%n1*input%hx,Lzd%Glr%d%n2*input%hy,Lzd%Glr%d%n3*input%hz
 !!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*input%hx*Lzd%Glr%d%n2*input%hy*Lzd%Glr%d%n3*input%hz
 !!print *,'Global wfd statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
 !!print *,'###################################################'
@@ -3511,7 +3525,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
 !!   write(*,*)'Local fine grid: nfl',Lzd%Llr(i_stat)%d%nfl1,Lzd%Llr(i_stat)%d%nfl2,Lzd%Llr(i_stat)%d%nfl3
 !!   write(*,*)'Local fine grid: nfu',Lzd%Llr(i_stat)%d%nfu1,Lzd%Llr(i_stat)%d%nfu2,Lzd%Llr(i_stat)%d%nfu3
 !!   write(*,*)'Local inter. grid: ni',Lzd%Llr(i_stat)%d%n1i,Lzd%Llr(i_stat)%d%n2i,Lzd%Llr(i_stat)%d%n3i
-!!   write(*,'(a27,f6.2,f6.2,f6.2)')'Local dimension (x,y,z):',Lzd%Llr(i_stat)%d%n1*input%hx,Lzd%Llr(i_stat)%d%n2*input%hy,&
+!!   write(*,'(a27,f6.2,f6.2,f6.2)')'Local dimension (1x,y,z):',Lzd%Llr(i_stat)%d%n1*input%hx,Lzd%Llr(i_stat)%d%n2*input%hy,&
 !!            Lzd%Llr(i_stat)%d%n3*input%hz
 !!   write(*,'(a17,f12.2)')'Local volume: ',Lzd%Llr(i_stat)%d%n1*input%hx*Lzd%Llr(i_stat)%d%n2*input%hy*Lzd%Llr(i_stat)%d%n3*input%hz
 !!   print *,'Local wfd statistics:',Lzd%Llr(i_stat)%wfd%nseg_c,Lzd%Llr(i_stat)%wfd%nseg_f,Lzd%Llr(i_stat)%wfd%nvctr_c,&

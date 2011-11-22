@@ -342,7 +342,7 @@ program memguess
 
        call take_psi_from_file(filename_wfn,in%hx,in%hy,in%hz,Glr,atoms,rxyz,psi)
 
-       call plot_wf(filename_wfn,1,atoms,1.0_wp,Glr,in%hx,in%hy,in%hz,rxyz,psi,' ')
+       call plot_wf(filename_wfn,1,atoms,1.0_wp,Glr,in%hx,in%hy,in%hz,rxyz,psi)
   
        i_all=-product(shape(psi))*kind(psi)
        deallocate(psi,stat=i_stat)
@@ -785,7 +785,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   integer :: icoeff,i_stat,i_all,i1,i2,i3,ispin,j
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
   integer(kind=8) :: itsc0,itsc1
-  real(kind=4) :: tt,t0,t1
+  real(kind=4) :: tt
   real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrm_zero,gnrmGPU
   real(gp) :: Rden,Rham,Rgemm,Rsyrk,Rprec,eSIC_DC
   real(kind=8) :: CPUtime,GPUtime
@@ -893,7 +893,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   else if (OCLconv) then
      !the same with OpenCL, but they cannot exist at same time
      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,lr%geocode,&
-          nspin,hx,hy,hz,lr%wfd,orbs,GPU)
+          nspin,lr%wfd,orbs,GPU)
   end if
   if (iproc == 0) write(*,*)&
        'GPU data allocated'
@@ -923,7 +923,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
      if (GPUconv) then
         call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
      else if (OCLconv) then
-        call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
+        call local_partial_density_OCL(orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
      end if
   end do
   call nanosec(itsc1)
@@ -994,9 +994,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   call nanosec(itsc0)
   do j=1,ntimes
      if (GPUconv) then
-        call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
+        call local_hamiltonian_GPU(orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
      else if (OCLconv) then
-        call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
+        call local_hamiltonian_OCL(orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
      end if
   end do
   if(ASYNCconv .and. OCLconv) call finish_hamiltonian_OCL(orbs,ekinGPU,epotGPU,GPU)
@@ -1084,7 +1084,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
   !the input function is psi
   call nanosec(itsc0)
   do j=1,ntimes
-     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+     call preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   end do
   call nanosec(itsc1)
 
@@ -1100,10 +1100,10 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
      !and calculate the partial norm of the residue
      !switch between CPU and GPU treatment
      if (GPUconv) then
-        call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+        call preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,&
              GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
      else if (OCLconv) then
-        call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+        call preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,&
              GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
      end if
   end do

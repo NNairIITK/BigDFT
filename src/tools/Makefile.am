@@ -6,8 +6,10 @@ analyze_georelax_SOURCES = analyze_georelax.f90
 fermi_SOURCES = fermi.f90
 
 matchrotation_SOURCES = matchrotation.f90
+matchrotation_LDADD = @LINALG_LIBS@
 
 p_axis_posinp_SOURCES = p_axis_posinp.f90
+p_axis_posinp_LDADD = @LINALG_LIBS@
 
 rotate_posinp_SOURCES = rotate_posinp.f90
 

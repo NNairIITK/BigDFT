@@ -733,7 +733,8 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
             !!     lin%potentialprefac(at%iatype(ilr)),lin%confpotorder, &
             !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &
             !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-            call apply_potentialConfinement2(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+            call apply_potentialConfinement2(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,&
+                 lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
                  Lpot(orbs%ispot(iorb)),epot, rxyz(1,icenter), hxh, hyh, hzh,&
                  lin%potentialprefac(at%iatype(icenter)),lin%confpotorder, &
                  lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &

@@ -131,7 +131,7 @@ real(8),dimension(:),pointer:: lpot
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   if(lin%useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
       call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
-      if(iproc==0) write(*,'(x,a)',advance='no') 'calculating derivative basis functions...'
+      if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
       call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
       if(iproc==0) write(*,'(a)') 'done.'
 
@@ -196,7 +196,7 @@ real(8),dimension(:),pointer:: lpot
   call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
   
 
-  if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
+  if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
   ! Gather the potential (it has been posted in the subroutine linearScaling) if the basis functions
   ! have not been updated (in that case it was gathered there).
@@ -223,7 +223,7 @@ real(8),dimension(:),pointer:: lpot
   allocate(lhphi(lin%lb%orbs%npsidim), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
-  if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
+  if(iproc==0) write(*,'(1x,a)',advance='no') 'Hamiltonian application...'
   allocate(lin%lzd%doHamAppl(lin%lzd%nlr), stat=istat)
   call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
   lin%lzd%doHamAppl=.true.
@@ -306,7 +306,7 @@ real(8),dimension(:),pointer:: lpot
   deallocate(lpot, stat=istat)
   call memocc(istat, iall, 'lpot', subname)
 
-  if(iproc==0) write(*,'(x,a)') 'done.'
+  if(iproc==0) write(*,'(1x,a)') 'done.'
 
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
@@ -350,11 +350,11 @@ real(8),dimension(:),pointer:: lpot
       call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       !if(trim(lin%diagMethod)=='seq') then
       if(lin%blocksize_pdsyev<0) then
-          if(iproc==0) write(*,'(x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
+          if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
           call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
       !else if(trim(lin%diagMethod)=='par') then
       else
-          if(iproc==0) write(*,'(x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
+          if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
           !call diagonalizeHamiltonianParallel(iproc, nproc, lin%lb%orbs%norb, matrixElements(1,1,2), ovrlp, eval)
           call dsygv_parallel(iproc, nproc, lin%blocksize_pdsyev, lin%nproc_pdsyev, mpi_comm_world, 1, 'v', 'l', lin%lb%orbs%norb,&
                matrixElements(1,1,2), lin%lb%orbs%norb, ovrlp, lin%lb%orbs%norb, eval, info)
@@ -368,11 +368,11 @@ real(8),dimension(:),pointer:: lpot
       if(iproc==0) then
           do iorb=max(orbs%norb-8,1),min(orbs%norb+8,lin%orbs%norb)
               if(iorb==orbs%norb) then
-                  write(*,'(x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
+                  write(*,'(1x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
               else if(iorb==orbs%norb+1) then
-                  write(*,'(x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- first virtual orbital'
+                  write(*,'(1x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- first virtual orbital'
               else
-                  write(*,'(x,a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
+                  write(*,'(1x,a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
               end if
           end do
       end if
@@ -384,7 +384,7 @@ real(8),dimension(:),pointer:: lpot
   end if
   call cpu_time(t2)
   time=t2-t1
-  if(iproc==0) write(*,'(x,a,es10.3)') 'time for diagonalizing the Hamiltonian:',time
+  if(iproc==0) write(*,'(1x,a,es10.3)') 'time for diagonalizing the Hamiltonian:',time
   !!do iorb=1,lin%lb%orbs%norb
   !!    write(2000+iproc,'(100es9.2)') (coeff(iorb,jorb), jorb=1,orbs%norb)
   !!end do
@@ -573,7 +573,8 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 
 ! Local variables
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot, t2tot, timetot, tt1, tt2, tt3, tt4, tt5, lstep, dfactorial
-real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2, timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress, dnrm2
+real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
+real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest, info, lwork, ndim_lchi, ndim_lhchi
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb, i, ist, jst, iiorb, jjorb, ilrold, k
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
@@ -589,6 +590,7 @@ real(8),dimension(4):: time
 real(8),dimension(:),pointer:: potential
 real(8),dimension(:),pointer:: phiWork
 real(8),dimension(:),pointer:: lpot
+real(8), external :: mpi_wtime1
 complex(8):: ttc, ttc2, ttc3, zdotu
 complex(8),dimension(:),allocatable:: Gmat_c, expD_cmplx
 character(len=3):: orbname, comment
@@ -611,7 +613,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   call allocateLocalArrays()
   
   
-  if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
+  if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
   ! Initialize the arrays and variable needed for DIIS.
   call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, lin%alphaDIIS, &
@@ -684,7 +686,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
       ! will be the usual case), the orthogonalization can not be done exactly, but only approximately.
       if(iproc==0) then
-          write(*,'(x,a)') 'Orthonormalization... '
+          write(*,'(1x,a)') 'Orthonormalization... '
       end if
       t1=mpi_wtime()
       call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
@@ -705,14 +707,15 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       call allocateSendBufferOrtho(lin%comon, subname)
       call allocateRecvBufferOrtho(lin%comon, subname)
       ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-      call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+      call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, &
+           lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
       ! Post the send messages.
       call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
 
   
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       if(iproc==0) then
-          write(*,'(x,a)', advance='no') 'Hamiltonian application... '
+          write(*,'(1x,a)', advance='no') 'Hamiltonian application... '
       end if
       t1=mpi_wtime()
       !withConfinement=.false.
@@ -1627,21 +1630,21 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       meanAlpha=tt/dble(lin%orbs%norb)
   
       ! Write some informations to the screen.
-      if(iproc==0) write(*,'(x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
+      if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
       if(fnrmMax<lin%convCrit .or. it>=nit) then
           if(it>=nit) then
-              if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
+              if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
-              if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
           else
               if(iproc==0) then
-                  write(*,'(x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
-                  write (*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+                  write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
+                  write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               end if
               infoBasisFunctions=it
           end if
-          if(iproc==0) write(*,'(x,a)') '============================= Basis functions created. ============================='
+          if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           !!if(lin%plotBasisFunctions) then
           !!    call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
           !!        .5d0*input%hy, .5d0*input%hz, 1)
@@ -1654,7 +1657,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       call DIISorSD()
       if(iproc==0) then
           if(ldiis%isx>0) then
-              write(*,'(x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
+              write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
                   icountDIISFailureCons, ', total failures=', icountDIISFailureTot
           else
               if(allowDIIS) then
@@ -1662,7 +1665,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
               else
                   message='n'
               end if
-              write(*,'(x,a,es9.3,a,i0,a,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
+              write(*,'(1x,a,es9.3,a,i0,a,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
               ', consecutive successes=', icountSDSatur, ', DIIS=', message
           end if
       end if
@@ -1746,7 +1749,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   time=time/dble(nproc)
   timetot=timetot/dble(nproc)
   if(iproc==0) then
-      write(*,'(x,a)') 'timings:'
+      write(*,'(1x,a)') 'timings:'
       write(*,'(3x,a,es10.3)') '-total time:', timetot
       write(*,'(5x,a,es10.3,a,f4.1,a)') '- orthonormalization:', time(1), '=', 100.d0*time(1)/timetot, '%'
       write(*,'(5x,a,es10.3,a,f4.1,a)') '- Hamiltonian application:', time(2),  '=', 100.d0*time(2)/timetot, '%'
@@ -1786,13 +1789,13 @@ contains
       ! Decide whether the force is small eneough to allow DIIS
       if(fnrmMax<lin%startDIIS .and. .not.allowDIIS) then
           allowDIIS=.true.
-          if(iproc==0) write(*,'(x,a)') 'The force is small enough to allow DIIS.'
+          if(iproc==0) write(*,'(1x,a)') 'The force is small enough to allow DIIS.'
           ! This is to get the correct DIIS history 
           ! (it is chosen as max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch).
           icountSwitch=icountSwitch-1
       else if(fnrmMax>lin%startDIIS .and. allowDIIS) then
           allowDIIS=.false.
-          if(iproc==0) write(*,'(x,a)') 'The force is too large to allow DIIS.'
+          if(iproc==0) write(*,'(1x,a)') 'The force is too large to allow DIIS.'
       end if    
 
       ! Switch to SD if the flag indicating that we should start with SD is true.
@@ -1807,7 +1810,7 @@ contains
       ! Decide whether we should switch from DIIS to SD in case we are using DIIS and it 
       ! is not allowed.
       if(.not.startWithSD .and. .not.allowDIIS .and. ldiis%isx>0) then
-          if(iproc==0) write(*,'(x,a,es10.3)') 'The force is too large, switch to SD with stepsize', alpha(1)
+          if(iproc==0) write(*,'(1x,a,es10.3)') 'The force is too large, switch to SD with stepsize', alpha(1)
           call deallocateDIIS(ldiis)
           ldiis%isx=0
           ldiis%switchSD=.true.
@@ -1836,7 +1839,7 @@ contains
               icountSwitch=icountSwitch+1
               idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
               if(idsx>0) then
-                  if(iproc==0) write(*,'(x,a,i0)') 'switch to DIIS with new history length ', idsx
+                  if(iproc==0) write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
                   call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, &
                        lin%alphaDIIS, lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, &
                        icountDIISFailureCons, allowDIIS, startWithSD, ldiis, alpha, alphaDIIS)
@@ -1856,9 +1859,9 @@ contains
               ! Switch back to SD. The initial step size is 1.d0.
               alpha=lin%alphaSD
               if(iproc==0) then
-                  if(icountDIISFailureCons>=2) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
+                  if(icountDIISFailureCons>=2) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
                       icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
-                  if(icountDIISFailureTot>=3) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
+                  if(icountDIISFailureTot>=3) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
                       icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
                   if(resetDIIS) write(*,'(x,a)') 'reset DIIS due to flag'
               end if
@@ -1871,7 +1874,7 @@ contains
               ! these orbitals are still present in the DIIS history.
               if(it-itBest<ldiis%isx) then
                  if(iproc==0) then
-                     if(iproc==0) write(*,'(x,a,i0,a)')  'Recover the orbitals from iteration ', &
+                     if(iproc==0) write(*,'(1x,a,i0,a)')  'Recover the orbitals from iteration ', &
                          itBest, ' which are the best so far.'
                  end if
                  ii=modulo(ldiis%mis-(it-itBest),ldiis%mis)
@@ -2609,7 +2612,7 @@ processIf: if(iproc==0) then
     ! Flag which checks convergence.
     converged=.false.
 
-    if(iproc==0) write(*,'(x,a)') '============================== optmizing coefficients =============================='
+    if(iproc==0) write(*,'(1x,a)') '============================== optmizing coefficients =============================='
 
     ! The optimization loop.
     iterLoop: do it=1,lin%nItCoeff
@@ -2700,13 +2703,13 @@ processIf: if(iproc==0) then
             ebsMod=2.d0*ebsMod
         end if
 
-        !if(iproc==0) write(*,'(x,a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', &
-        if(iproc==0) write(*,'(x,a,es11.2,es22.13,es10.2)') 'fnrm, band structure energy, mean alpha', &
+        !if(iproc==0) write(*,'(1x,a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', &
+        if(iproc==0) write(*,'(1x,a,es11.2,es22.13,es10.2)') 'fnrm, band structure energy, mean alpha', &
             fnrm, ebsMod, meanAlpha
         
         ! Check for convergence.
         if(fnrm<lin%convCritCoeff) then
-            if(iproc==0) write(*,'(x,a,i0,a)') 'converged in ', it, ' iterations.'
+            if(iproc==0) write(*,'(1x,a,i0,a)') 'converged in ', it, ' iterations.'
             if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, Energy:', fnrm, ebsMod
             converged=.true.
             infoCoeff=it
@@ -2714,9 +2717,9 @@ processIf: if(iproc==0) then
         end if
   
         if(it==lin%nItCoeff) then
-            if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
+            if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                 ' iterations! Exiting loop due to limitations of iterations.'
-            if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, ebsMod
+            if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, ebsMod
             infoCoeff=-1
             exit
         end if
@@ -2732,9 +2735,9 @@ processIf: if(iproc==0) then
     end do iterLoop
 
     !!if(.not.converged) then
-    !!    if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
+    !!    if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
     !!        ' iterations! Exiting loop due to limitations of iterations.'
-    !!    if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, ebsMod
+    !!    if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, ebsMod
     !!    infoCoeff=-1
     !!    ! Orthonormalize the coefficient vectors (Gram-Schmidt).
     !!    do iorb=1,orbs%norb
@@ -2747,7 +2750,7 @@ processIf: if(iproc==0) then
     !!    end do
     !!end if
 
-    if(iproc==0) write(*,'(x,a)') '===================================================================================='
+    if(iproc==0) write(*,'(1x,a)') '===================================================================================='
 
 end if processIf
 
@@ -2803,7 +2806,7 @@ integer:: ist, istr, ilr
 ! and continues with other calculations.
 ! Be aware that you must not modify the send buffer without checking whether
 ! the communications has completed.
-if(iproc==0) write(*,'(x,a)', advance='no') 'Posting sends / receives for the calculation of the charge density... '
+if(iproc==0) write(*,'(1x,a)', advance='no') 'Posting sends / receives for the calculation of the charge density... '
 nreceives=0
 nsends=0
 lin%comsr%communComplete=.false.
@@ -2868,7 +2871,7 @@ end do procLoop1
 if(iproc==0) write(*,'(a)') 'done.'
 
 if(nreceives/=lin%comsr%noverlaps(iproc)) then
-    write(*,'(x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=lin%comsr%noverlaps(iproc)', nreceives,&
+    write(*,'(1x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=lin%comsr%noverlaps(iproc)', nreceives,&
          lin%comsr%noverlaps(iproc)
     stop
 end if
@@ -3131,7 +3134,7 @@ integer:: jproc, kproc, nsends, nreceives, istat, mpisource, istsource, ncount, 
 
 
 ! Post the messages
-if(iproc==0) write(*,'(x,a)', advance='no') 'Posting sends / receives for communicating the potential... '
+if(iproc==0) write(*,'(1x,a)', advance='no') 'Posting sends / receives for communicating the potential... '
 nreceives=0
 nsends=0
 comgp%communComplete=.false.
@@ -3193,7 +3196,7 @@ end do destLoop
 if(iproc==0) write(*,'(a)') 'done.'
 
 if(nreceives/=comgp%noverlaps(iproc)) then
-    write(*,'(x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=comgp%noverlaps(iproc)',&
+    write(*,'(1x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=comgp%noverlaps(iproc)',&
          nreceives, comgp%noverlaps(iproc)
     stop
 end if
@@ -3276,9 +3279,9 @@ end do
 call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
                        nfast, ' could be overlapped with computation.'
-if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
 end subroutine gatherPotential

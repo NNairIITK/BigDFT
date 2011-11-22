@@ -293,7 +293,7 @@
 !!       call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
 !!            hpsi,gnrm,gnrm_zero,GPU)
 !!    else
-!!       call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+!!       call preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
 !!    end if
 !!  
 !!    !sum over all the partial residues
