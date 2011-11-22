@@ -117,7 +117,7 @@ program abscalc_main
 
       call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
-      if (iproc.eq.0) then
+      if (iproc == 0) then
          sumx=0.d0
          sumy=0.d0
          sumz=0.d0
@@ -263,7 +263,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          end if
 
       else if (in%inputPsiId == 0 .and. infocode==3) then
-         if (iproc.eq.0) then
+         if (iproc == 0) then
             write( *,'(1x,a)')'Convergence error, cannot proceed.'
             write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
             write(comment,'(a)')'UNCONVERGED WF '
@@ -589,7 +589,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       &   n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
    !allocate ionic potential
-   print *, " allocate ionic potential " 
+   if (iproc == 0) write(*,*) " allocate ionic potential " 
    if (n3pi > 0) then
       allocate(pot_ion(n1i*n2i*n3pi+ndebug),stat=i_stat)
       call memocc(i_stat,pot_ion,'pot_ion',subname)
@@ -609,7 +609,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel,&
       &   quiet=PSquiet)
 
-   print *, " IonicEnergyandForces  " 
+   if (iproc == 0) write(*,*) "IonicEnergyandForces  " 
 
    call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
       &   psoffset,0,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
@@ -698,7 +698,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          nspinor=4
          !n(c) noncoll=2
       case default
-         write(*,*)' ERROR: nspin not valid:',nspin
+         if (iproc == 0) write(*,*)' ERROR: nspin not valid:',nspin
          stop
       end select
 
@@ -940,7 +940,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
             rhotarget=0.0_gp
 
 
-
             itype=16
             nd=2**20
 
@@ -989,7 +988,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                   enddo
                enddo
 
-               write(*,'(a,1x,i2,1x,a,1x,3ES13.6)')  "for replica ", ireplica,  "SHIFT " , shift_b2B
+               if (iproc == 0) write(*,'(a,1x,i2,1x,a,1x,3ES13.6)')  "for replica ", ireplica,  "SHIFT " , shift_b2B
 
                rhopottmp=0.0_gp
                do iz_bB = 1,n3i_bB

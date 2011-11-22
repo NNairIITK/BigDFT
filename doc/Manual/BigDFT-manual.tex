@@ -406,10 +406,6 @@ in cases where one has near degeneracy between the HOMO and LUMO orbitals. $50$~
       of the highest occupied orbitals will be  written in the 'orbital.*.pot' file
       The Kohn Sham eigenvalues are written in the ordinary output file.  {\bf nvirt} corresponds to the actual number of orbitals the convergence process is taking care of during the Davidson iterations.
 
-\item {\bf verbosity}: Determines the amount of output from little (0)
-      to detailed (2). By adding 10 to its value it switch on the
-      once-and-for-all strategy for calculating the PSP projectors, which
-      is faster but more memory demanding (considered by \texttt{memguess}).
 \item \textbf{disable sym}: a logical to set to 'T' to disable the
       usage of symmetry operations in the calculations. By default symmetries
       are used to update the density in periodic boundary condition
@@ -532,15 +528,18 @@ does not exist, default values are used. On the contrary to other BigDFT input f
   \item  \textbf{'debug' T/F}: The debug mode is enable mainly for memory profiling.
   \item  \textbf{'fftcache' ncache\_size}: Specify the cache size for FFT in kBytes.
   \item  \textbf{'accel' NO/CUDAGPU/OCLGPU}: Specify the use of CUDA (resp. OCL) versions of various subroutines. For CUDA, a 'GPU.config' file is needed.
-  \item  \textbf{'blas' T/F}: Use or not the CUBlas acceleration.
-  \item  \textbf{'projrad' real}: Radius of the projector as a function of the maxrad.
-  \item  \textbf{'exctxpar' key}: Exact exchange parallelisation scheme.
-  \item  \textbf{'ig\_diag' T/F}: Input guess: (T:Direct, F:Iterative) diagonalisation of Hamiltonian.
-  \item  \textbf{'ig\_norbp' int}: Input guess: Orbitals per process for iterative diagonalisation.
+  \item  \textbf{'blas' T/F}:           Use or not the CUBlas acceleration.
+  \item  \textbf{'projrad' real}:       Radius of the projector as a function of the maxrad.
+  \item  \textbf{'exctxpar' key}:       Exact exchange parallelisation scheme.
+  \item  \textbf{'ig\_diag' T/F}:       Input guess: (T:Direct, F:Iterative) diagonalisation of Hamiltonian.
+  \item  \textbf{'ig\_norbp' int}:      Input guess: Orbitals per process for iterative diagonalisation.
   \item  \textbf{'ig\_blocks' int int}: Input guess: Block sizes for orthonormalisation.
-  \item  \textbf{'ig\_tol' real}: Input guess: Tolerance criterion.
-  \item  \textbf{'methortho' key}: Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin).
-  \item  \textbf{'rho\_commun' key}: Density communication scheme.
+  \item  \textbf{'ig\_tol' real}:       Input guess: Tolerance criterion.
+  \item  \textbf{'methortho' key}:      Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin).
+  \item  \textbf{'rho\_commun' key}:    Density communication scheme.
+  \item  \textbf{'verbosity' int}:      Determines the amount of output from little (0) to detailed (2 by default)
+  \item  \textbf{'psp\_onfly' T/F}:     Switch on the once-and-for-all strategy for calculating the PSP projectors, which
+      is faster but more memory demanding (considered by \texttt{memguess}). The default is on-the-fly strategy (T).
 \end{itemize}
 
 \chapter{ Running BigDFT executables}

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Program splined_saddle ??
+!>  Program splined_saddle: Methot determine the saddle point
 program splined_saddle
 
   use module_base
