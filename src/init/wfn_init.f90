@@ -125,7 +125,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
      norbsc_arr,psigau,hpsigau,hamovr)
 
   call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
-       ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr,orbs%eval)
+       ndim_hamovr,sum(norbgrp),natsceff,nspin,nspinor,tolerance,norbgrp,hamovr,orbs%eval)
 !!!
 !!!  !allocate the pointer for virtual orbitals
 !!!  if(present(orbsv) .and. present(psivirt) .and. orbsv%norb > 0) then
@@ -490,7 +490,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      do ikptp=1,orbsu%nkptsp
         ikpt=orbsu%iskpts+ikptp!orbs%ikptsp(ikptp)
         call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
-             ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr(1,1,ikpt),&
+             ndim_hamovr,sum(norbgrp),natsceff,nspin,nspinor,tolerance,norbgrp,hamovr(1,1,ikpt),&
              orbsu%eval((ikpt-1)*orbsu%norb+1)) !changed from orbs
 
         !assign the value for the orbital
@@ -709,16 +709,16 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
 END SUBROUTINE overlap_matrices
 
 
-subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
+subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,ndim_eval,&
      natsc,nspin,nspinor,etol,&
      norbsc_arr,hamovr,eval)
   use module_base
   implicit none
-  integer, intent(in) :: iproc,norb,norbi_max,ndim_hamovr,natsc,nspin,norbu,norbd,nspinor
+  integer, intent(in) :: iproc,norb,norbi_max,ndim_hamovr,natsc,nspin,norbu,norbd,nspinor,ndim_eval
   integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   real(gp), intent(in) :: etol
   real(wp), dimension(nspin*ndim_hamovr,2), intent(inout) :: hamovr
-  real(wp), dimension(sum(norbsc_arr)), intent(out) :: eval
+  real(wp), dimension(ndim_eval), intent(out) :: eval
   !local variables
   character(len=*), parameter :: subname='solve_eigensystem'
   character(len=25) :: gapstring
