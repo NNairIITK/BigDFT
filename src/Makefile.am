@@ -19,8 +19,7 @@ SUBDIRS = modules \
 	art \
 	$(sub_dirs_cuda) \
 	$(sub_dirs_ocl) \
-	tools \
-	tools/bader
+	$(sub_dirs_bin)
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
@@ -66,10 +65,12 @@ if BUILD_BINARIES
 binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc BigDFT2Wannier
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
+sub_dirs_bin = tools tools/bader
 else
 binaries_sources = 
 local_binaries =
 scripts_sources = 
+sub_dirs_bin =
 endif
 
 
