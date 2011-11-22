@@ -20,10 +20,12 @@ if BUILD_BINARIES
 binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh
+sub_dirs_bin = tools tools/bader
 else
 binaries_sources = 
 local_binaries =
 scripts_sources = 
+sub_dirs_bin =
 endif
 
 if HAVE_ETSF_IO
@@ -109,7 +111,7 @@ global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) $(sub_dirs_dgemmsy) art $(sub_dirs_libconfig) tools tools/bader
+SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) $(sub_dirs_dgemmsy) art $(sub_dirs_libconfig) $(sub_dirs_bin)
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
