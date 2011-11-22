@@ -10,7 +10,7 @@ else
 mpi_include = mpif.h
 endif
 
-if BUILD_LIBXC
+if USE_LIBXC
 LIBXC_MODULE =
 xc.o: base.o
 else

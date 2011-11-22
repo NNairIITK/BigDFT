@@ -155,6 +155,12 @@ else
 DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy_fake.f90
 endif
 
+if USE_LIBXC
+LIBXC_MODULES =
+else
+LIBXC_MODULES = modules/libxc_fake.f90
+endif
+
 if HAVE_LIBCONFIG
 sub_dirs_libconfig=convolutions-c
 else
@@ -238,6 +244,7 @@ modules_source = modules/base.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
 	$(CUDA_MODULES) \
+	$(LIBXC_MODULES) \
 	$(PS_MODULES)
 modules_objects = $(modules_source:.f90=.o)
 
