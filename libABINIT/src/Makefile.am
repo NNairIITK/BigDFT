@@ -29,10 +29,10 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 
 lib_LIBRARIES = libabinit.a
 
-if DISABLE_LIBXC
-LIBXC_DEFS =
-else
+if USE_LIBXC
 LIBXC_DEFS = -DHAVE_LIBXC
+else
+LIBXC_DEFS =
 endif
 
 # Don't use the HAVE_CONFIG_H
