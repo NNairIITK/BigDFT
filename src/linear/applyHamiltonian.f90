@@ -1209,7 +1209,7 @@ real(8),intent(in):: hxh, hyh, hzh, potentialPrefac
 integer :: i1,i2,i3,i1s,i1e,ispinor, order
 real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
 real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
-real(gp) :: epot_p
+real(gp) :: epot_p, epot
 
 
   !the Tail treatment is allowed only in the Free BC case

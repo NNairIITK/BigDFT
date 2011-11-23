@@ -186,6 +186,12 @@ real(8),dimension(:,:),allocatable:: ovrlp
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
 
+  !debug
+  do istat=1,size(lphi)
+      write(5000+iproc,*) istat, lphi(istat)
+  end do
+
+
   ! Copy lphi to lin%lpsi, don't know whether this is a good choice
   lin%lpsi=lphi
 
@@ -231,7 +237,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
       ! Calculate the charge density.
       call cpu_time(t1)
-      call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+      call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, lphi, Glr%d%n1i*Glr%d%n2i*n3d, &
            rhopot, at, nscatterarr)
       call deallocateCommunicationbufferSumrho(lin%comsr, subname)
       call cpu_time(t2)
@@ -319,6 +325,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !lin%getCoeff='new'
   reduceConvergenceTolerance=.false.
   !if(iproc==0) write(*,'(a,es9.2)') 'dampingForMixing',dampingForMixing
+
+
   do itout=1,lin%nItOuterSCC
       updatePhi=.true.
       if(reduceConvergenceTolerance) lin%fixBasis=max(lin%fixBasis*lin%factorFixBasis,lin%minimalFixBasis)

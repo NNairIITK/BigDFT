@@ -261,6 +261,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    real(gp), allocatable :: wkptv(:)
    type(rho_descriptors) :: rhodsc
   type(linearParameters):: lin
+  !new
+  real(8),dimension(:),pointer:: psiwork
+  real(8):: E0, El, stepsize, derivative
+  stepsize=-1.d0
 
    ! ----------------------------------
 
@@ -1113,10 +1117,34 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
             !control the previous value of idsx_actual
             idsx_actual_before=diis%idsx
-!          !Do not modify psi in the linear scaling case (i.e. if inputpsi==100)
 
+!! TEST
+if(mod(iter,10)/=1) then
+    if(iproc==0) write(*,*) 'INNER LOOP: calling minimize_by_orthogonal_transformation'
+    psi=psit
+    allocate(psiwork(size(psi)), stat=i_stat)
+    call untranspose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, psi, work=psiwork)
+    call untranspose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, hpsi, work=psiwork)
+    deallocate(psiwork)
+    do i_stat=1,size(psi)
+        write(4000+iproc,*) psi(i_stat)
+    end do
+    El=energy
+    call minimize_by_orthogonal_transformation(iproc, nproc, orbs, lzd%glr%wfd, comms, in%orthpar, E0, El, stepsize, hpsi, psi, derivative)
+    E0=energy
+    !call untranspose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, psi, work=hpsi)
+    do i_stat=1,size(psi)
+        write(4100+iproc,*) psi(i_stat)
+    end do
+end if
+!! END TEST
 
-           if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,Lzd%Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%orthpar)
+           !Do not modify psi in the linear scaling case (i.e. if inputpsi==100)
+           if(mod(iter,10)==1) then
+               if(iproc==0) write(*,*) 'OUTER LOOP: calling minimize_by_orthogonal_transformation'
+               if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,Lzd%Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%orthpar)
+           end if
+           !if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,Lzd%Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%orthpar)
 
             if (in%inputPsiId == 0) then
                if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
