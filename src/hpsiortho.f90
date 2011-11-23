@@ -928,9 +928,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
    !local variables
    logical :: keeppsit
    character(len=*), parameter :: subname='last_orthon'
-   logical :: dowrite !write the screen output
-   integer :: i_all,i_stat,iorb,jorb,md,ikpt,isorb,ikptw
-   real(gp) :: mpol,spinsignw
+   integer :: i_all,i_stat
    real(wp), dimension(:,:,:), allocatable :: mom_vec
 
 

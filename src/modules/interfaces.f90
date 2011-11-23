@@ -536,66 +536,35 @@ module module_interfaces
       END SUBROUTINE rho_segkey
 
       subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
-            &   lr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
-         use module_base
-         use module_types
-         use module_xc
-         implicit none
-         integer, intent(in) :: iproc,nproc
-         real(gp), intent(in) :: hx,hy,hz
-         type(atoms_data), intent(in) :: at
-         type(orbitals_data), intent(in) :: orbs
-         type(locreg_descriptors), intent(in) :: lr 
-         type(SIC_data), intent(in) :: SIC
-         integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-         real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
-         real(wp), dimension(:), pointer :: pot
-         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
-         real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
-         real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
-         type(GPU_pointers), intent(inout) :: GPU
-         real(dp), dimension(:), pointer, optional :: pkernel
-         type(orbitals_data), intent(in), optional :: orbsocc
-         real(wp), dimension(:), pointer, optional :: psirocc
-      END SUBROUTINE LocalHamiltonianApplication
-
-      subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-           nlpspd,proj,lr,psi,hpsi,eproj_sum)
-        use module_base
-        use module_types
-        implicit none
-        integer, intent(in) :: iproc,nproc
-        real(gp), intent(in) :: hx,hy,hz
-        type(atoms_data), intent(in) :: at
-        type(orbitals_data),  intent(in) :: orbs
-        type(locreg_descriptors), intent(in) :: lr 
-        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-        real(gp), dimension(3,at%nat), intent(in) :: rxyz
-        real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
-        real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
-        real(gp), intent(out) :: eproj_sum
-      END SUBROUTINE NonLocalHamiltonianApplication
-
-      subroutine SynchronizeHamiltonianApplication(nproc,orbs,lr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+           &   lr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
         use module_base
         use module_types
         use module_xc
         implicit none
-        integer, intent(in) :: nproc
-        type(orbitals_data),  intent(in) :: orbs
+        integer, intent(in) :: iproc,nproc
+        real(gp), intent(in) :: hx,hy,hz
+        type(atoms_data), intent(in) :: at
+        type(orbitals_data), intent(in) :: orbs
         type(locreg_descriptors), intent(in) :: lr 
+        type(SIC_data), intent(in) :: SIC
+        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+        real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+        real(wp), dimension(:), pointer :: pot
+        real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
+        real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
+        real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
         type(GPU_pointers), intent(inout) :: GPU
-        real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
-        real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
-      END SUBROUTINE SynchronizeHamiltonianApplication
+        real(dp), dimension(:), pointer, optional :: pkernel
+        type(orbitals_data), intent(in), optional :: orbsocc
+        real(wp), dimension(:), pointer, optional :: psirocc
+      END SUBROUTINE LocalHamiltonianApplication
 
-      subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-           nlpspd,proj,lr,psi,hpsi,eproj_sum)
+      subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
+           &   nlpspd,proj,lr,psi,hpsi,eproj_sum)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,nproc
+        integer, intent(in) :: iproc
         real(gp), intent(in) :: hx,hy,hz
         type(atoms_data), intent(in) :: at
         type(orbitals_data),  intent(in) :: orbs

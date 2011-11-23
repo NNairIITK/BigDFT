@@ -1128,7 +1128,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    type(communications_arrays) :: commse
    integer, dimension(:,:), allocatable :: norbsc_arr
    real(wp), dimension(:), allocatable :: potxc,passmat
-   real(wp), dimension(:,:,:), allocatable :: mom_vec
+   !real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
    type(locreg_descriptors), dimension(:), allocatable :: Llr
    real(wp), dimension(:), pointer :: pot
