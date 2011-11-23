@@ -313,7 +313,7 @@ low_level = \
 	wavelib/daubisf.f90 \
 	profiling/time.f90 \
 	profiling/memoryestimator.f90 \
-    linear/cleanup.f90 \
+	linear/cleanup.f90 \
 	linear/nullify.f90 \
 	linear/filterModule.f90 \
 	linear/getLocBasis.f90 \
