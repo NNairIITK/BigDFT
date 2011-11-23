@@ -1027,7 +1027,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
            end if
            !flush all writings on standart output
-           if (iproc==0) flush(unit=6)
+           if (iproc==0) call bigdft_utils_flush(unit = 6)
         end do wfn_loop
 
         if (iproc == 0) then 
