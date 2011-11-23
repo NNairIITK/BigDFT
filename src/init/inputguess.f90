@@ -74,7 +74,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
          !if (nvirte < nvirt) then
          !   nvirt=nvirte
          !   if(iproc==0) write(*,'(1x,a,i3)')&
-            &   !        "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
+               !        "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
          !end if
          !nvirt=min(nvirt,nvirte)
       end do
@@ -112,7 +112,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
          end if
       end do
       !write(*,'(3(a,i0),a)')&
-         &   !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
+            !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
    end if
 
   !write(*,'(a,3i6)') 'iproc, orbse%isorb, orbse%norbp', iproc, orbse%isorb,orbse%norbp
@@ -1397,8 +1397,8 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
 
    !can be switched on for debugging
    !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
-      &   !     'Input Guess Generation for atom',trim(atomname),&
-      &   !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
+         !     'Input Guess Generation for atom',trim(atomname),&
+         !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
 
    rij=3._gp
    ! exponents of gaussians
@@ -1612,8 +1612,8 @@ subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,
 
    !can be switched on for debugging
    !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
-      &   !     'Input Guess Generation for atom',trim(atomname),&
-      &   !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
+         !     'Input Guess Generation for atom',trim(atomname),&
+         !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
 
    rij=3._gp
    ! exponents of gaussians
