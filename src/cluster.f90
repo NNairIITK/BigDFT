@@ -1130,7 +1130,8 @@ if(mod(iter,10)/=1) then
         write(4000+iproc,*) psi(i_stat)
     end do
     El=energy
-    call minimize_by_orthogonal_transformation(iproc, nproc, orbs, lzd%glr%wfd, comms, in%orthpar, E0, El, stepsize, hpsi, psi, derivative)
+    call minimize_by_orthogonal_transformation(iproc, nproc, orbs, lzd%glr%wfd, comms, in%orthpar, &
+         E0, El, stepsize, hpsi, psi, derivative)
     E0=energy
     !call untranspose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, psi, work=hpsi)
     do i_stat=1,size(psi)
