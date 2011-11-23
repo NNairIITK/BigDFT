@@ -974,7 +974,7 @@ module lanczos_base
       real(gp) tol
       real(wp) alphacollect(nkpts)
 
-      print *, "LB_nproc= ", LB_nproc
+      if(LB_iproc == 0) print *, "LB_nproc= ", LB_nproc
 
       if(LB_nproc/=1) then
          dspl(0)=0
@@ -992,7 +992,7 @@ module lanczos_base
       Sprecedente= 6
 
       call EP_initialize_start()
-      print *, " EP_initialize_start    OK "
+      if (LB_iproc == 0) write(*,*) " EP_initialize_start    OK "
       call EP_copy(attuale,0)
       call EP_copy(precedente,0)
       if(dopaw) then
@@ -1100,18 +1100,11 @@ module lanczos_base
 
          if(LB_nproc/=1) then
             call MPI_Gatherv( LB_alpha_cheb(1,2*i+1) , norb_par(LB_iproc),mpidtypw, &
-               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr )
-            if(LB_iproc==0) then
-               print *, "  new cheb coeffs (nkpts=", nkpts, ")"
-               write( *,"(10(d20.10,1x))")  alphacollect
-            endif
+               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr)
             call MPI_Gatherv( LB_alpha_cheb(1,2*i+2) , norb_par(LB_iproc),mpidtypw, &
-               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD , ierr)
-            if(LB_iproc==0) then
-               print *, "  and  "
-               write( *,"(10(d20.10,1x))")  alphacollect
-            endif
-         else
+               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr)
+         end if
+         if(LB_iproc == 0) then
             write (*,"(A)",advance="no")   "new cheb coeffs "
             write( *,"(1x,10(d20.10,1x))")   LB_alpha_cheb(1:LB_norbp ,2*i+1) , LB_alpha_cheb(1:LB_norbp,2*i+2)
          endif

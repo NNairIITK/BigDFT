@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
@@ -20,7 +21,7 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(n1i*n2i*n3p,nspin), target, intent(in) :: rho
   !local variables
-  character(len=*), parameter :: subname='plot_density_cube'
+  character(len=*), parameter :: subname='plot_density_cube_old'
   character(len=3) :: advancestring
   character(len=5) :: suffix
   character(len=15) :: message
@@ -181,7 +182,7 @@ subroutine read_density_cube_old(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat,
   integer, intent(out) ::  nat
  
   !local variables
-  character(len=*), parameter :: subname='read_density_cube'
+  character(len=*), parameter :: subname='read_density_cube_old'
   character(len=5) :: suffix
   character(len=15) :: message
   character(len=3) :: advancestring
@@ -271,7 +272,7 @@ contains
 END SUBROUTINE read_density_cube_old
 
 
-!>   Write a (sum of two) field in the ISF basis in the cube format
+!> Write a (sum of two) field in the ISF basis in the cube format
 subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
   !n(c) use module_base
@@ -531,7 +532,7 @@ subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
 END SUBROUTINE plot_density
 
 
-!>  Read a density file using file format depending on the extension.
+!> Read a density file using file format depending on the extension.
 subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz,iatypes, znucl)
   use module_base
@@ -654,7 +655,8 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi)
 
 END SUBROUTINE plot_wf
 
-!> read the densit and put the values in the rhopot arrays according to the parallelization indicated by
+
+!> Read the densit and put the values in the rhopot arrays according to the parallelization indicated by
 !! nscatterarr array
 subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,n2i,n3i,n3p,nspin,hxh,hyh,hzh,pot)
   use module_base
@@ -787,7 +789,7 @@ contains
     real(gp), dimension(:,:), pointer :: rxyz
     integer, dimension(:), pointer :: iatypes, znucl
     !local variables
-    character(len=*), parameter :: subname='read_density_cube'
+    character(len=*), parameter :: subname='read_cube_header'
     integer :: n1t,n2t,n3t,n1,n2,n3,idum,iat,i_stat,i_all,j
     integer :: nl1,nl2,nl3,nbx,nby,nbz
     real(gp) :: dum1,dum2,dum3
@@ -890,7 +892,7 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   integer, intent(in) :: n1i,n2i,n3i
   real(dp), dimension(n1i*n2i*n3i) :: rho
   !local variables
-  !n(c) character(len=*), parameter :: subname='read_density_cube'
+  !n(c) character(len=*), parameter :: subname='read_cube_field'
   character(len=3) :: advancestring
   integer :: n1t,n2t,n3t,n1,n2,n3,i1,i2,i3,nat,iat
   integer :: nl1,nl2,nl3,nbx,nby,nbz,icount,ind

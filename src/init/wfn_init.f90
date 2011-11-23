@@ -512,8 +512,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
          &   orbsu%eval(1), orbsu%ikptproc)
 
       !here the value of the IG occupation numbers can be calculated
-
-
       if (iproc ==0) then 
          call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
       end if
