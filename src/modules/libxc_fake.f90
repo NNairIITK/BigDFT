@@ -29,6 +29,7 @@ contains
   integer function xc_f90_info_flags(xc_info)
     type(xc_f90_pointer_t), intent(in) :: xc_info
 
+    xc_f90_info_flags = 0
     write(0, *) "No LibXC support at compile time, abort."
     stop
   end function xc_f90_info_flags
@@ -36,6 +37,7 @@ contains
   integer function xc_f90_info_kind(xc_info)
     type(xc_f90_pointer_t), intent(in) :: xc_info
 
+    xc_f90_info_kind = 0
     write(0, *) "No LibXC support at compile time, abort."
     stop
   end function xc_f90_info_kind
@@ -60,6 +62,7 @@ contains
   integer function xc_f90_family_from_id(xc_id)
     integer, intent(in) :: xc_id
 
+    xc_f90_family_from_id = 0
     write(0, *) "No LibXC support at compile time, abort."
     stop
   end function xc_f90_family_from_id
