@@ -243,7 +243,6 @@ for line in original1:
                     time = float(line.split()[-2])
                 else:
                     time += float(line.split()[-2])
-                print "toto",time,line
             #Test if memory remaining is 0
             if "remaining memory" in line:
                 memory = int(line.split()[-1])
