@@ -177,6 +177,12 @@ module module_defs
      module procedure c_axpy_simple,c_axpy_double
   end interface
 
+  interface
+     subroutine bigdft_utils_flush(unit)
+       integer, intent(in) :: unit
+     end subroutine bigdft_utils_flush
+  end interface
+
   contains
     
     !interface for MPI_ALLREDUCE operations

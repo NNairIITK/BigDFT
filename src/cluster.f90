@@ -1086,7 +1086,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          if (iproc==0) then
             !yaml output
             write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
-            flush(unit=6)
+            call bigdft_utils_flush(unit=6)
          end if
       end do wfn_loop
 

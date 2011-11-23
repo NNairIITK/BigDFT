@@ -174,6 +174,12 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
+if HAVE_FC_FLUSH
+flush_files = flush.f90
+else
+flush_files = flush_fake.f90
+endif
+
 if HAVE_FC_GET_COMMAND_ARGUMENT
 getarg_files =
 else
