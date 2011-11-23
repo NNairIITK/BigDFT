@@ -235,6 +235,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    type(gaussian_basis) :: Gvirt
    type(diis_objects) :: diis
    real(gp), dimension(3) :: shift
+   real(dp), dimension(6) :: strten
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(kind=8), dimension(:), allocatable :: rho
    real(gp), dimension(:,:), allocatable :: radii_cf,fion,thetaphi,band_structure_eval
@@ -1385,7 +1386,16 @@ if (inputpsi /= -1000) then
    !calculate electrostatic potential
    call dcopy(n1i*n2i*n3p,rho,1,pot,1) 
    call H_potential(atoms%geocode,'D',iproc,nproc,&
-      &   n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.)
+      &   n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.,stress_tensor=strten)
+
+   !temporary printout of the stress tensor
+   if (iproc==0 .and. atoms%geocode =='P') then
+     write(*,*) 
+     write(*,*) 'STRESS TENSOR: HARTREE CONTRIBUTION (Ha/Bohr**3)'
+     write(*,*) strten(1),strten(3),strten(2)
+     write(*,*) strten(6),strten(5),strten(4)
+  end if
+
 
    !plot also the electrostatic potential
    if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then

@@ -11,7 +11,7 @@
 !>  Parallel version of Poisson Solver
 !!  General version, for each boundary condition
 subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,&
-             scal,hx,hy,hz,offset)
+             scal,hx,hy,hz,offset,strten)
   use module_base
   implicit none
   !to be preprocessed
@@ -22,6 +22,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   real(gp), intent(in) :: scal,hx,hy,hz,offset
   real(dp), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
   real(dp), dimension(ncplx,md1,md3,md2/nproc), intent(inout) :: zf
+  real(dp), dimension(6), intent(out) :: strten !< non-symmetric components of Ha stress tensor
   !Local variables
   character(len=*), parameter :: subname='G_Poisson_Solver'
   logical :: perx,pery,perz,halffty,cplx
@@ -45,13 +46,17 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 
   !call system_clock(ncount0,ncount_rate,ncount_max)
 
+  !initialize stress tensor no matter of the BC
+  call to_zero(6,strten(1))
+
+!strten=0.d0
+
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F' .and. geocode /='W')
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
 
   cplx= (ncplx ==2)
-
 
   !also for complex input this should be eliminated
   halffty=.not. pery .and. .not. cplx
@@ -367,8 +372,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            !Multiply with kernel in fourier space
            i3=iproc*(nd3/nproc)+j3
            if (geocode == 'P') then
-              call P_multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee),&
-                   i3,hx,hy,hz,offset)
+              call P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee),&
+                   i3,hx,hy,hz,offset,scal,strten)
            else
               call multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee))
            end if
@@ -506,14 +511,16 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   end do
   !$omp enddo
   !$omp critical
-    i_all=-product(shape(zw))*kind(zw)
-    deallocate(zw,stat=i_stat)
-    call memocc(i_stat,i_all,'zw',subname)
-    i_all=-product(shape(zt))*kind(zt)
-    deallocate(zt,stat=i_stat)
-    call memocc(i_stat,i_all,'zt',subname)
+  i_all=-product(shape(zw))*kind(zw)
+  deallocate(zw,stat=i_stat)
+  call memocc(i_stat,i_all,'zw',subname)
+  i_all=-product(shape(zt))*kind(zt)
+  deallocate(zt,stat=i_stat)
+  call memocc(i_stat,i_all,'zt',subname)
   !$omp end critical
   !$omp end parallel
+
+  
 
   !De-allocations  
   i_all=-product(shape(btrig1))*kind(btrig1)
@@ -858,6 +865,7 @@ END SUBROUTINE unscramble_P
 !!   @param  nd1,nd2:  Dimensions of POT
 !!   @param  jS, nfft: starting point of the plane and number of remaining lines
 !!   @param  offset  : Offset to be defined for periodic BC (usually 0)
+!!   @param  strten  : Components of the Hartree stress tensor order: (11,22,33,12,13,23) - y and z are interchanged!
 !!
 !! @author
 !!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
@@ -868,34 +876,156 @@ END SUBROUTINE unscramble_P
 !!      GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 !! Author:S
 !!    S. Goedecker, L. Genovese
-subroutine P_multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset)
+subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,scal,strten)
+  use module_base
   implicit none
   !Argments
-  integer, intent(in) :: nd1,nd2,n1,n2,lot,nfft,jS,j3
-  real(kind=8), intent(in) :: hx,hy,hz,offset
+  integer, intent(in) :: nd1,nd2,n1,n2,n3,lot,nfft,jS,j3
+  real(dp), intent(in) :: hx,hy,hz,offset,scal
   real(kind=8), dimension(nd1,nd2), intent(in) :: pot
   real(kind=8), dimension(2,lot,n2), intent(inout) :: zw
+  real(dp), dimension(6), intent(inout) :: strten
   !real(kind=8), dimension(0:n1/2), intent(in) :: fourisf
   !Local variables
-  !n(c) real(kind=8), parameter :: pi=3.14159265358979323846d0
+  real(gp), parameter :: pi=3.14159265358979323846_gp
   integer :: i1,j1,i2,j2
+  real(gp) :: rhog2,g2
+  real(dp), dimension(3) :: pxyz
 
   !Body
-  !generic case
-  do i2=1,n2
-     do i1=1,nfft
-        j1=i1+jS-1
-        j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
-        j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
-        if (j1 ==1 .and. j2==1 .and. j3==1) then
-           zw(1,i1,i2)=offset/(hx*hy*hz) 
-           zw(2,i1,i2)=0.d0              
-        else
+  !running recip space coordinates
+  pxyz(3)=real(j3-1,dp)/(real(n3,dp)*hy)
+
+  !j3=1 case (it might contain the zero component)
+  if (j3==1) then
+     if (jS==1) then
+        !zero fourier component (no strten contribution)
+        i2=1
+        zw(1,1,1)=offset/(hx*hy*hz) 
+        zw(2,1,1)=0.d0              
+        !running recip space coordinates
+        pxyz(2)=0.0_dp
+        do i1=2,nfft
+           j1=i1+jS-1
+           !running recip space coordinate
+           pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+           !square of modulus of recip space coordinate
+           g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
+           !density squared over modulus
+           rhog2=(zw(1,i1,i2)**2+zw(2,i1,i2)**2)/g2
+           rhog2=rhog2/pi*scal**2
+           !stress tensor components (diagonal part)
+           strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
+           strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+           strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+           strten(4)=strten(4)+(pxyz(1)*pxyz(2)/g2)*rhog2
+           strten(5)=strten(5)+(pxyz(1)*pxyz(3)/g2)*rhog2
+           strten(6)=strten(6)+(pxyz(2)*pxyz(3)/g2)*rhog2
+
+           j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+           j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
            zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
            zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)
-        end if
+        end do
+        do i2=2,n2
+           !running recip space coordinate
+           pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz) 
+
+           do i1=1,nfft
+              j1=i1+jS-1
+              !running recip space coordinate
+              pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+
+              !square of modulus of recip space coordinate
+              g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
+              !density squared over modulus
+              rhog2=(zw(1,i1,i2)**2+zw(2,i1,i2)**2)/g2
+              rhog2=rhog2/pi*scal**2
+              !stress tensor components (diagonal part)
+              strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
+              strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+              strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+              strten(4)=strten(4)+(pxyz(1)*pxyz(2)/g2)*rhog2
+              strten(5)=strten(5)+(pxyz(1)*pxyz(3)/g2)*rhog2
+              strten(6)=strten(6)+(pxyz(2)*pxyz(3)/g2)*rhog2
+
+              j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+              j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
+              zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
+              zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)
+           end do
+        end do
+     else
+        !generic case
+        do i2=1,n2
+           !running recip space coordinate
+           pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz) 
+
+           do i1=1,nfft
+              j1=i1+jS-1
+              !running recip space coordinate
+              pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+
+              !square of modulus of recip space coordinate
+              g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
+              !density squared over modulus
+              rhog2=(zw(1,i1,i2)**2+zw(2,i1,i2)**2)/g2
+              rhog2=rhog2/pi*scal**2
+              !stress tensor components (diagonal part)
+              strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
+              strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+              strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+              strten(4)=strten(4)+(pxyz(1)*pxyz(2)/g2)*rhog2
+              strten(5)=strten(5)+(pxyz(1)*pxyz(3)/g2)*rhog2
+              strten(6)=strten(6)+(pxyz(2)*pxyz(3)/g2)*rhog2
+
+              j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+              j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
+              zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
+              zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)
+           end do
+        end do
+     end if
+  else
+     !generic case
+     do i2=1,n2
+        !running recip space coordinate
+        pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz) 
+        do i1=1,nfft
+           j1=i1+jS-1
+           !running recip space coordinate
+           pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+
+           !square of modulus of recip space coordinate
+           g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
+           !density squared over modulus
+           rhog2=(zw(1,i1,i2)**2+zw(2,i1,i2)**2)/g2
+           rhog2=rhog2/pi*scal**2
+           !stress tensor components (diagonal part)
+           strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
+           strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+           strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+           strten(4)=strten(4)+(pxyz(1)*pxyz(2)/g2)*rhog2
+           strten(5)=strten(5)+(pxyz(1)*pxyz(3)/g2)*rhog2
+           strten(6)=strten(6)+(pxyz(2)*pxyz(3)/g2)*rhog2
+           !avoid mirroring for last j3 point
+           if (j3 /= n3/2+1) then
+              !stress tensor components (diagonal part)
+              strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
+              strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+              strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+              strten(4)=strten(4)+(pxyz(1)*pxyz(2)/g2)*rhog2
+              strten(5)=strten(5)+(pxyz(1)*pxyz(3)/g2)*rhog2
+              strten(6)=strten(6)+(pxyz(2)*pxyz(3)/g2)*rhog2
+           end if
+
+           j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+           j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
+           zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
+           zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)
+        end do
      end do
-  end do
+  end if
 END SUBROUTINE P_multkernel
 
 

@@ -78,7 +78,7 @@
 !!    Wire boundary condition is missing
 subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,offset,sumpion,&
-     quiet) !optional argument
+     quiet,stress_tensor) !optional argument
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -92,6 +92,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
   character(len=3), intent(in), optional :: quiet
+  real(dp), dimension(6), intent(out), optional :: stress_tensor
   !local variables
   character(len=*), parameter :: subname='H_potential'
   logical :: wrtmsg
@@ -100,6 +101,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
   integer :: nxc,istden,istglo
   real(dp) :: scal,ehartreeLOC,pot
+  real(dp), dimension(6) :: strten
   real(dp), dimension(:,:,:), allocatable :: zf
   integer, dimension(:,:), allocatable :: gather_arr
 
@@ -118,7 +120,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   else
      wrtmsg=.true.
   end if
-
+! rewrite
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
      if (iproc==0 .and. wrtmsg) &
@@ -198,7 +200,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
 
   if(geocode == 'P') then
      !no powers of hgrid because they are incorporated in the plane wave treatment
-     scal=1.0_dp/real(n1*n2*n3,dp)
+     scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of overflow
   else if (geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
@@ -216,8 +218,13 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   call timing(iproc,'PSolv_comput  ','OF')
   call G_PoissonSolver(geocode,iproc,nproc,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,&
        zf(1,1,1),&
-       scal,hx,hy,hz,offset)
+       scal,hx,hy,hz,offset,strten)
   call timing(iproc,'PSolv_comput  ','ON')
+
+  !check for the presence of the stress tensor
+  if (present(stress_tensor)) then
+     call vcopy(6,strten(1),1,stress_tensor(1),1)
+  end if
 
   
   !the value of the shift depends on the distributed i/o or not
@@ -281,6 +288,11 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
 
      eh=ehartreeLOC
      call mpiallred(eh,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     !reduce also the value of the stress tensor
+
+if (present(stress_tensor)) then
+call mpiallred(stress_tensor(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
+end if
 
      call timing(iproc,'PSolv_commun  ','OF')
 
@@ -322,6 +334,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
 
   !if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+
 
 END SUBROUTINE H_potential
 

@@ -597,6 +597,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      !here the value of the datacode must be kept fixed
      !n(c) nspin=1
 
+     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
      call H_potential(geocode,'D',iproc,nproc,&
           n1i,n2i,n3i,hxh,hyh,hzh,&
           pot_ion,pkernel,pot_ion,ehart,-psoffset,.false.)
