@@ -175,9 +175,9 @@ etsf_files = wavelib/etsf_fake.f90
 endif
 
 if HAVE_FC_FLUSH
-flush_files = flush.f90
+flush_files = lib/flush.f90
 else
-flush_files = flush_fake.f90
+flush_files = lib/flush_fake.f90
 endif
 
 if HAVE_FC_GET_COMMAND_ARGUMENT
@@ -309,6 +309,7 @@ low_level = \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
 	lib/lbfgs.f90 \
+	$(flush_files) \
 	$(etsf_files) \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
