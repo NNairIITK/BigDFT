@@ -9,7 +9,7 @@
 
 !>   Read a ETSF (NETCDF) file containing wavefunctions.
 !!    Only import the given iorbp (processor-related number), in a compress form.
-subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi, orblist)
+subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
   use module_base
   use module_types
   use etsf_io_low_level
@@ -21,28 +21,15 @@ subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi, orblist)
   type(orbitals_data), intent(in) :: orbs
   integer, dimension(wfd%nvctr_c), intent(in) :: nvctr
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
-  integer, dimension(orbs%norb), intent(in) :: orblist
+!  integer, dimension(orbs%norb), intent(in) :: orblist
   
   integer :: iFine, iCoeff, iGrid, diGrid
   integer :: start(6), count(6)
   type(etsf_io_low_error) :: error
   logical :: lstat
-  interface
-     subroutine etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
-       use module_base
-       use module_types
-
-       implicit none
-
-       integer, intent(out) :: start(6), count(6)
-       integer, intent(in) :: iorbp
-       type(orbitals_data), intent(in) :: orbs
-       integer,dimension(orbs%norb), intent(in), optional :: orblist
-     end subroutine etsf_orbsToStartCount
-  end interface
 
   ! We read the coefficients.
-  call etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
+  call etsf_orbsToStartCount(start, count, iorbp, orbs)
 
   iFine = wfd%nvctr_c + 1
   iCoeff = 1
@@ -80,7 +67,7 @@ end subroutine read_psi_compress_etsf
 !>   Read a ETSF (NETCDF) file containing wavefunctions.
 !!    Only import the given iorbp (processor-related number), in a grid form.
 subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
-     & nvctr_c, nvctr, gcoord, psig, orblist)
+     & nvctr_c, nvctr, gcoord, psig)
   use module_base
   use module_types
   use etsf_io_low_level
@@ -91,7 +78,7 @@ subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(out) :: psig
   integer, dimension(3,nvctr_c), intent(in) :: gcoord
-  integer, dimension(orbs%norb), intent(in) :: orblist
+!  integer, dimension(orbs%norb), intent(in) :: orblist
   integer, dimension(nvctr_c), intent(in) :: nvctr
 
   integer :: i, iCoeff
@@ -99,22 +86,9 @@ subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
   real(wp) :: fv(7)
   type(etsf_io_low_error) :: error
   logical :: lstat
-  interface
-     subroutine etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
-       use module_base
-       use module_types
-
-       implicit none
-
-       integer, intent(out) :: start(6), count(6)
-       integer, intent(in) :: iorbp
-       type(orbitals_data), intent(in) :: orbs
-       integer,dimension(orbs%norb), intent(in), optional :: orblist
-     end subroutine etsf_orbsToStartCount
-  end interface
 
   ! We read the coefficients.
-  call etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
+  call etsf_orbsToStartCount(start, count, iorbp, orbs)
 
   ! We transfer the coefficients in psig.
   iCoeff = 1
@@ -145,14 +119,8 @@ subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
   end do
 end subroutine read_psi_full_etsf
 
-!>   Read a ETSF (NETCDF) file containing wavefunctions.
-!!    coordinates_of_grid_points is used to store the geometric
-!!   position of coefficients of wavelets i, as integer in
-!!   dtset%wvl%ni(:) dimensions.
-!!   coefficients_of_wavefunctions is used to store the psi values for
-!!   each wavelet.
-subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
-     wfd,psi,orblist)
+subroutine read_waves_etsf_internal(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz, & 
+     wfd,psi,norb,nspinor,iorbparr,isorb,eval)
   use module_base
   use module_types
   use etsf_io_low_level
@@ -160,22 +128,22 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
 
   implicit none
 
-  integer, intent(in) :: iproc,n1,n2,n3
+  integer, intent(in) :: iproc,n1,n2,n3,norb,isorb,nspinor
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
-  type(orbitals_data), intent(inout) :: orbs
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
-  character(len = *), intent(in) :: filename
-  integer, dimension(orbs%norb), intent(in) :: orblist
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norb), intent(out) :: psi
+  real(wp), dimension(norb), intent(out) :: eval
+  integer, dimension(norb*nspinor), intent(in) :: iorbparr
+  character(len=*), intent(in) :: filename
   ! Local variables
-  character(len = *), parameter :: subname = "read_waves_etsf"
+  character(len = *), parameter :: subname = "read_waves_etsf_internal"
   integer, pointer :: nvctr_old(:)
-  integer :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
-  integer :: i, iorb, ncid, nspin
-  integer :: nb1, nb2, nb3, i_all, i_stat
+  integer :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old, ncid
+  integer :: i, iorb
+  integer :: nb1, nb2, nb3, i_all, i_stat, ispinor
   real(gp) :: hx_old, hy_old, hz_old
   real(gp) :: displ
   logical :: perx, pery, perz
@@ -186,9 +154,6 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   type(etsf_io_low_error) :: error
   logical :: lstat
 
-!  call cpu_time(tr0)
-!  call system_clock(ncount1,ncount_rate,ncount_max)
-
   ! We open the ETSF file
   call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
   if (.not. lstat) call etsf_error(error)
@@ -196,21 +161,21 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   ! We read the basis set description and the atomic definition.
   call etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, hx_old, hy_old, hz_old, &
        & rxyz_old, at%nat, nvctr_old, nvctr_c_old, nvctr_f_old)
-  orbsd%isorb = orbs%isorb
+  orbsd%isorb = isorb
 
   !conditions for periodicity in the three directions
   call calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
-
-  nspin = 1
-  if (orbs%norbd /= 0) nspin = 2
 
   if (abs(hx_old - hx) < 1e-6 .and. abs(hy_old - hy) < 1e-6 .and. abs(hz_old - hz) < 1e-6 .and. &
        & nvctr_c_old == wfd%nvctr_c .and. nvctr_f_old == wfd%nvctr_f .and. & 
        & n1_old == n1 .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
 
-     do iorb = 1, orbs%norbp*orbs%nspinor, 1
-        call read_psi_compress_etsf(ncid, iorb, orbsd, nvctr_old, wfd, psi(1, iorb))
+     do iorb = 1, norb, 1
+        do ispinor = 1, nspinor, 1
+           call read_psi_compress_etsf(ncid, iorbparr(nspinor * (iorb - 1) + ispinor), &
+                & orbsd, nvctr_old, wfd, psi(1, ispinor, iorb))
+        end do
      end do
   else
      if (iproc == 0) then
@@ -247,12 +212,15 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
      call memocc(i_stat,psigold,'psigold',subname)
      call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
-     do iorb = 1, orbs%norbp*orbs%nspinor, 1
-        call read_psi_full_etsf(ncid, iorb, orbsd, n1_old, n2_old, n3_old, &
-             & nvctr_c_old, nvctr_old, gcoord, psigold, orblist)
+     do iorb = 1, norb, 1
+        do ispinor = 1, nspinor, 1
+           call read_psi_full_etsf(ncid, iorbparr(nspinor * (iorb - 1) + ispinor), &
+                & orbsd, n1_old, n2_old, n3_old, &
+                & nvctr_c_old, nvctr_old, gcoord, psigold)
 
-        call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
-             rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi(1,iorb))
+           call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+                rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi(1,ispinor,iorb))
+        end do
      end do
 
      i_all=-product(shape(psigold))*kind(psigold)
@@ -272,17 +240,18 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   deallocate(nvctr_old,stat=i_stat)
   call memocc(i_stat,i_all,'nvctr_old',subname)
 
-  ! We transfer the eigenvalues & occupations.
-  call transferEvalAndOccup(orbs, orbsd)
+  ! We transfer the eval values.
+  do iorb = 1, norb, 1
+     eval(iorb) = orbsd%eval(orbsd%isorb + (iorbparr(nspinor * (iorb - 1) + 1) - 1) / nspinor + 1)
+  end do
+
+  i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
+  deallocate(orbsd%eval,stat=i_stat)
+  call memocc(i_stat,i_all,'orbsd%eval',subname)
 
   ! We close the file.
   call etsf_io_low_close(ncid, lstat, error)
   if (.not. lstat) call etsf_error(error)
-
-!  call cpu_time(tr1)
-!  call system_clock(ncount2,ncount_rate,ncount_max)
-!  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!  write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 
 contains
 
@@ -372,39 +341,34 @@ contains
     orbsd%norb = orbsd%norbu + orbsd%norbd
     orbsd%nspinor = dims%number_of_spinor_components
     orbsd%nkpts = dims%number_of_kpoints
+    ! Put back the evals as sorted in BigDFT.
+    call sortEvals(orbsd)
   END SUBROUTINE etsf_read_descr
 
-  subroutine transferEvalAndOccup(orbs, orbsd)
-    type(orbitals_data), intent(inout) :: orbs, orbsd
+  subroutine sortEvals(orbsd)
+    type(orbitals_data), intent(inout) :: orbsd
 
-    integer :: i, ik, ikd, isd
+    integer :: i, ik, ikd, isd, i_stat, i_all
+    real(wp), dimension(:), allocatable :: eval
 
-    ! Eigenvalues are reduced later in cluster.
-    if (iproc == 0) then
-       ! We transfer the eigenvalues & occupations.
-       isd = max(orbsd%norbu, orbsd%norbd) * orbsd%nkpts
-       do i = 1, orbs%nkpts, 1
-          ik = (i - 1) * orbs%norb
-          ikd = (i - 1) * max(orbsd%norbu, orbsd%norbd)
-          orbs%eval(ik + 1:ik + orbs%norbu) = orbsd%eval(ikd + 1:ikd + orbs%norbu)
-!!$       orbs%occup(ik + 1:ik + orbs%norbu) = orbsd%occup(ikd + 1:ikd + orbs%norbu)
-          if (orbs%nspin > 1) then
-             orbs%eval(ik + orbs%norbu + 1:ik + orbs%norb) = &
-                  & orbsd%eval(isd + ikd + 1:isd + ikd + orbs%norbd)
-!!$          orbs%occup(ik + orbs%norbu + 1:ik + orbs%norb) = &
-!!$               & orbsd%occup(isd + ikd + 1:isd + ikd + orbs%norbd)
-          end if
-       end do
-       i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
-       deallocate(orbsd%eval,stat=i_stat)
-       call memocc(i_stat,i_all,'orbsd%eval',subname)
-!!$    i_all=-product(shape(orbsd%occup))*kind(orbsd%occup)
-!!$    deallocate(orbsd%occup,stat=i_stat)
-!!$    call memocc(i_stat,i_all,'orbsd%occup',subname)
-    else
-       orbs%eval = real(0, gp)
-    end if
-  end subroutine transferEvalAndOccup
+    allocate(eval(size(orbsd%eval)),stat=i_stat)
+    call memocc(i_stat,eval,'eval',"sortEvals")
+    ! We transfer the eigenvalues & occupations.
+    isd = max(orbsd%norbu, orbsd%norbd) * orbsd%nkpts
+    do i = 1, orbsd%nkpts, 1
+       ik = (i - 1) * orbsd%norb
+       ikd = (i - 1) * max(orbsd%norbu, orbsd%norbd)
+       eval(ik + 1:ik + orbsd%norbu) = orbsd%eval(ikd + 1:ikd + orbsd%norbu)
+       if (orbsd%nspin > 1) then
+          eval(ik + orbsd%norbu + 1:ik + orbsd%norb) = &
+               & orbsd%eval(isd + ikd + 1:isd + ikd + orbsd%norbd)
+       end if
+    end do
+    orbsd%eval = eval
+    i_all=-product(shape(eval))*kind(eval)
+    deallocate(eval,stat=i_stat)
+    call memocc(i_stat,i_all,'eval',"sortEvals")
+  end subroutine sortEvals
 
   subroutine calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
     type(atoms_data), intent(in) :: at
@@ -429,8 +393,65 @@ contains
     enddo
     displ=sqrt(tx+ty+tz)
   END SUBROUTINE calc_displ
+END SUBROUTINE read_waves_etsf_internal
+
+!>   Read a ETSF (NETCDF) file containing wavefunctions.
+!!    coordinates_of_grid_points is used to store the geometric
+!!   position of coefficients of wavelets i, as integer in
+!!   dtset%wvl%ni(:) dimensions.
+!!   coefficients_of_wavefunctions is used to store the psi values for
+!!   each wavelet.
+subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+     wfd,psi)
+  use module_base
+  use module_types
+  use etsf_io_low_level
+  use etsf_io
+
+  implicit none
+
+  integer, intent(in) :: iproc,n1,n2,n3
+  real(gp), intent(in) :: hx,hy,hz
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(inout) :: orbs
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
+  character(len = *), intent(in) :: filename
+  ! Local variables
+  integer :: i
+
+  i = 0
+  call read_waves_etsf_internal(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz, & 
+     & wfd,psi,orbs%norbp,orbs%nspinor,(/ (i, i=1, orbs%norbp*orbs%nspinor) /), &
+     & orbs%isorb,orbs%eval(orbs%isorb + 1))
 END SUBROUTINE read_waves_etsf
 
+subroutine read_one_wave_etsf(iproc,filename,iorbp,isorb,nspinor,n1,n2,n3,&
+     & hx,hy,hz,at,rxyz_old,rxyz,wfd,psi,eval)
+  use module_base
+  use module_types
+  use etsf_io_low_level
+  implicit none
+  integer, intent(in) :: iorbp,iproc,n1,n2,n3,nspinor,isorb
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), intent(out) :: eval
+  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor), intent(out) :: psi
+  character(len = *), intent(in) :: filename
+
+  if (nspinor == 1) then
+     call read_waves_etsf_internal(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz, & 
+          & wfd,psi,1,nspinor,(/ iorbp /),isorb,eval)
+  else
+     call read_waves_etsf_internal(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz, & 
+          & wfd,psi,1,nspinor,(/ 2 * iorbp - 1, 2 * iorbp /),isorb,eval)
+  end if
+end subroutine read_one_wave_etsf
 
 subroutine write_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
   use module_base
@@ -837,7 +858,7 @@ contains
 END SUBROUTINE write_waves_etsf
 
 
-subroutine etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
+subroutine etsf_orbsToStartCount(start, count, iorbp, orbs)
   use module_base
   use module_types
 
@@ -846,27 +867,20 @@ subroutine etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
   integer, intent(out) :: start(6), count(6)
   integer, intent(in) :: iorbp
   type(orbitals_data), intent(in) :: orbs
-  integer,dimension(orbs%norb), intent(in), optional :: orblist
-
-  integer :: ind
+!  integer,dimension(orbs%norb), intent(in), optional :: orblist
 
   start(:) = 1
   count(:) = 0
-  ! Read one spinor.
+  ! Read/Write one spinor.
   start(3) = modulo(iorbp - 1, orbs%nspinor) + 1
   count(3) = 1
-  ! Read one orbital.
-  ind = modulo(orbs%isorb + (iorbp - 1) / orbs%nspinor, orbs%norb) + 1
-  if (present(orblist)) then
-     start(4) = orblist(ind)
-  else
-     start(4) = ind
-  end if
+  ! Read/Write one orbital.
+  start(4) = modulo(orbs%isorb + (iorbp - 1) / orbs%nspinor, orbs%norb) + 1
   count(4) = 1
-  ! Read one kpoint.
+  ! Read/Write one kpoint.
   start(5) = (orbs%isorb + (iorbp - 1) / orbs%nspinor) / orbs%norb + 1
   count(5) = 1
-  ! Write one spin.
+  ! Read/Write one spin.
   start(6) = 1
   if (start(4) > orbs%norbu) then
      start(6) = 2
