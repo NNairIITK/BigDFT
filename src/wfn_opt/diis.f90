@@ -895,7 +895,7 @@ subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   use module_base
   implicit none
   integer, intent(in) :: ncplx,idsx,ngroup,nkpts,itdiis
-  real(wp), dimension(ncplx,idsx+1,ngroup,nkpts), intent(in) :: rds
+  real(tp), dimension(ncplx,idsx+1,ngroup,nkpts), intent(in) :: rds
   !local variables
   integer :: j,igroup,ikpt
   character(len=2) :: mesupdw

@@ -689,7 +689,9 @@ end module modtest
       rm -f MODTEST.mod
     fi
     if test $ax_fc_mod_name = "unknown" ; then
-       AC_MSG_ERROR(Unknown module naming scheme for Fortran compiler.)
+       AC_MSG_WARN(Unknown module naming scheme for Fortran compiler.)
+       ax_fc_mod_capitalize="no"
+       ax_fc_mod_ext=""
     fi  
   fi
   AC_MSG_RESULT([$ax_fc_mod_name.$ax_fc_mod_ext])

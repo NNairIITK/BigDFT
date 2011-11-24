@@ -299,8 +299,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    !!$     accontentati_di=1
    !!$     
    !!$     cercacount = LB_cerca( 10, shift, tol, set_EP_shift, EP_allocate_for_eigenprob, EP_make_dummy_vectors, &
-      &   !!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
-      &   !!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
+!!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
+!!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
    !!$     
    !!$     if(iproc==0) then
    !!$        print *, " maximal eigenvalues " 
@@ -313,8 +313,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    !!$     
    !!$     
    !!$     cercacount = LB_cerca( 10, shift, tol, set_EP_shift, EP_allocate_for_eigenprob, EP_make_dummy_vectors, &
-      &   !!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
-      &   !!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
+         !!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
+         !!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
    !!$     
    !!$     if(iproc==0) then
    !!$        print *, " minima eigenvalues" 

@@ -805,7 +805,7 @@ module lanczos_base
          !!$    do n=1,Nu-1
          !!$       expn(:)=expn(:)*alphas(:)
          !!$       fact = 1.0/(Nu+1)*( (Nu-n +1.0)*cos(pi* n /(Nu+1))+ &
-            &   !!$       sin(pi* n /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
+!!$       sin(pi* n /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
          !!$       res(:)=res(:)+2*REAL(expn(:))*LB_alpha(n)*fact
          !!$    enddo
 
@@ -1000,8 +1000,8 @@ module lanczos_base
 
          if(   S_do_cg ) then
             !!$          call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
-               &   !!$               EP_ApplySinv ,  EP_copy,  &
-               &   !!$               EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, Sattuale, attuale)
+               !!$               EP_ApplySinv ,  EP_copy,  &
+               !!$               EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, Sattuale, attuale)
             STOP " S_do_cg temporarily disactivate beacause chebychev is potentially multik " 
 
 
@@ -1048,8 +1048,8 @@ module lanczos_base
                call EP_copy(Stmp1,tmp1)
                if(   Sinv_do_cg ) then
                   !!$                call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
-                     &   !!$                     EP_ApplyS ,  EP_copy,  &
-                     &   !!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol,tmp1 ,Stmp1 )  
+!!$                     EP_ApplyS ,  EP_copy,  &
+!!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol,tmp1 ,Stmp1 )  
                   STOP " Sinv_do_cg temporarily disactivate beacaause chebychev is potentially multik" 
 
                else
@@ -1064,8 +1064,8 @@ module lanczos_base
 
                if(   Sinv_do_cg ) then
                   !!$                call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
-                     &   !!$                     EP_ApplyS ,  EP_copy,  &
-                     &   !!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, tmp1,Stmp1 )
+                     !!$                     EP_ApplyS ,  EP_copy,  &
+                     !!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, tmp1,Stmp1 )
                   STOP " Sinv_do_cg temporarily disactivate beacaause chebychev is potentially multik " 
                else
                   call EP_ApplySinv(tmp1, Stmp1 )             

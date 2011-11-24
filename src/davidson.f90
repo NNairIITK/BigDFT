@@ -597,7 +597,7 @@ subroutine davidson(iproc,nproc,in,at,&
       !experimental: add confining potential to the hamiltonian
       !should already be guaranteed by the crmult terms
       !call add_confining_potential(lr%d%n1i,lr%d%n2i,lr%d%n3i,orbs%nspin,1.e-10_gp,1.e-14_gp,-0.5_gp,&
-         &   !     pot(1),pot(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1))
+      !     pot(1),pot(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1))
    end if
 
 
@@ -718,8 +718,6 @@ subroutine davidson(iproc,nproc,in,at,&
    davidson_loop: do 
 
       if(iproc==0) write( *,'(1x,a,i0)') repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
-      !write(*,'(1x,a,i3)')&
-         &   !"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter",iter
       if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
 
       allocate(g(orbsv%npsidim+ndebug),stat=i_stat)
