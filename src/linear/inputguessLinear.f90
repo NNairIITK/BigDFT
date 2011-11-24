@@ -3685,6 +3685,11 @@ type(matrixMinimization):: matmin
 logical:: same
 type(matrixDescriptors):: mad
 
+do iall=1,nlocregPerMPI
+    write(*,'(a,2i8,es16.8)') 'iproc, iall, dsum(ham3(:,:,iall)', &
+        iproc, iall, dsum(orbsig%norb**2, ham3(1,1,iall))
+end do
+
   if(iproc==0) write(*,'(1x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
   ! Allocate the local arrays that are hold by all processes.
