@@ -182,7 +182,7 @@ module module_defs
     subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
-      integer, intent(in) :: buffer
+      integer, intent(inout) :: buffer
       integer, intent(out) :: ierr
 #ifdef HAVE_MPI2
       !case with MPI_IN_PLACE
@@ -215,7 +215,7 @@ module module_defs
     subroutine mpiallred_real(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
-      real(kind=4), intent(in) :: buffer
+      real(kind=4), intent(inout) :: buffer
       integer, intent(out) :: ierr
 #ifdef HAVE_MPI2
       !case with MPI_IN_PLACE
@@ -247,7 +247,7 @@ module module_defs
     subroutine mpiallred_double(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
-      real(kind=8), intent(in) :: buffer
+      real(kind=8), intent(inout) :: buffer
       integer, intent(out) :: ierr
 #ifdef HAVE_MPI2
       !case with MPI_IN_PLACE
