@@ -3745,6 +3745,7 @@ type(matrixDescriptors):: mad
       call initCompressedMatmul3(orbs%norb, mad)
 
 
+
       allocate(lcoeff(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
       call memocc(istat, lcoeff, 'lcoeff', subname)
       allocate(lgrad(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
@@ -3829,65 +3830,65 @@ type(matrixDescriptors):: mad
       end do
 
 
-      do i=1,0
-          ! Transform to localization regions and cut at the edge.
-          do iorb=1,ip%norb_par(iproc)
-              ilr=matmin%inWhichLocregExtracted(iorb)
-              if(ilr/=orbs%inWhichLocreg(iorb+orbs%isorb)) then
-                  write(*,'(a,2i6,3x,2i8)') &
-                       'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)',&
-                       iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
-              end if
-              call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
-          end do
+      !!do i=1,0
+      !!    ! Transform to localization regions and cut at the edge.
+      !!    do iorb=1,ip%norb_par(iproc)
+      !!        ilr=matmin%inWhichLocregExtracted(iorb)
+      !!        if(ilr/=orbs%inWhichLocreg(iorb+orbs%isorb)) then
+      !!            write(*,'(a,2i6,3x,2i8)') &
+      !!                 'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)',&
+      !!                 iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
+      !!        end if
+      !!        call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
+      !!    end do
 
-          ilr=onWhichAtom(ip%isorb+1)
+      !!    ilr=onWhichAtom(ip%isorb+1)
 
-          methTransformOverlap=0
-          call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
-               lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
-               lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
-               lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
-          ilr=onWhichAtom(ip%isorb+1)
+      !!    methTransformOverlap=0
+      !!    call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
+      !!         lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
+      !!         lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
+      !!         lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
+      !!    ilr=onWhichAtom(ip%isorb+1)
 
-          do iorb=1,ip%norb_par(iproc)
-              ilr=matmin%inWhichLocregExtracted(iorb)
-              call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
-          end do
+      !!    do iorb=1,ip%norb_par(iproc)
+      !!        ilr=matmin%inWhichLocregExtracted(iorb)
+      !!        call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
+      !!    end do
 
-          valout=0.d0
-          valin=0.d0
-          ii=0
-          do jproc=0,ip%nproc-1
-              do iorb=1,ip%norb_par(jproc)
-                  iiAt=onWhichAtomPhi(ip%isorb_par(jproc)+iorb)
-                  ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
-                  cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
-                  do jorb=1,ip%norbtot
-                      ii=ii+1
-                      if(iproc==jproc) then
-                          jjAt=onWhichAtom(jorb)
-                          tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
-                          if(tt>cut) then
-                              ! set to zero
-                              valout=valout+coeffPad((iorb-1)*ip%norbtotPad+jorb)**2
-                              coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
-                          else
-                              ! keep the current value
-                              valin=valin+coeffPad((iorb-1)*ip%norbtotPad+jorb)**2
-                          end if
-                      end if
-                  end do
-              end do
-          end do
-          call mpiallred(valin, 1, mpi_sum, mpi_comm_world, ierr)
-          call mpiallred(valout, 1, mpi_sum, mpi_comm_world, ierr)
-          if(iproc==0) then
-              write(*,'(a,es15.6)') 'valin',valin
-              write(*,'(a,es15.6)') 'valout',valout
-              write(*,'(a,es15.6)') 'ratio:',valout/(valout+valin)
-          end if
-      end do
+      !!    valout=0.d0
+      !!    valin=0.d0
+      !!    ii=0
+      !!    do jproc=0,ip%nproc-1
+      !!        do iorb=1,ip%norb_par(jproc)
+      !!            iiAt=onWhichAtomPhi(ip%isorb_par(jproc)+iorb)
+      !!            ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
+      !!            cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
+      !!            do jorb=1,ip%norbtot
+      !!                ii=ii+1
+      !!                if(iproc==jproc) then
+      !!                    jjAt=onWhichAtom(jorb)
+      !!                    tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
+      !!                    if(tt>cut) then
+      !!                        ! set to zero
+      !!                        valout=valout+coeffPad((iorb-1)*ip%norbtotPad+jorb)**2
+      !!                        coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
+      !!                    else
+      !!                        ! keep the current value
+      !!                        valin=valin+coeffPad((iorb-1)*ip%norbtotPad+jorb)**2
+      !!                    end if
+      !!                end if
+      !!            end do
+      !!        end do
+      !!    end do
+      !!    call mpiallred(valin, 1, mpi_sum, mpi_comm_world, ierr)
+      !!    call mpiallred(valout, 1, mpi_sum, mpi_comm_world, ierr)
+      !!    if(iproc==0) then
+      !!        write(*,'(a,es15.6)') 'valin',valin
+      !!        write(*,'(a,es15.6)') 'valout',valout
+      !!        write(*,'(a,es15.6)') 'ratio:',valout/(valout+valin)
+      !!    end if
+      !!end do
 
 
       if(lin%nItInguess==0) then
@@ -3917,10 +3918,12 @@ type(matrixDescriptors):: mad
     
     
           ! Orthonormalize the coefficients.
+write(*,*) 'calling orthonormalizeVectors...'
           call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
                lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
                lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
                lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
+write(*,*) 'after orthonormalizeVectors...'
           !call orthonormalizeVectors(iproc, ip%nproc, lin%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
           !     matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
           !     matmin%mlr, lcoeff, comom)
@@ -3929,6 +3932,7 @@ type(matrixDescriptors):: mad
           ! Calculate the gradient grad.
           ilrold=0
           iilr=0
+write(*,*) 'iproc, ip%norb_par(iproc)', iproc, ip%norb_par(iproc)
           do iorb=1,ip%norb_par(iproc)
               ilr=onWhichAtom(ip%isorb+iorb)
               iilr=matmin%inWhichLocregOnMPI(iorb)
@@ -3936,6 +3940,8 @@ type(matrixDescriptors):: mad
               !!    iilr=iilr+1
               !!    ilrold=ilr
               !!end if
+write(*,'(a,3i8,es16.8)') 'iproc, iorb, ilr, dsum(hamextract(:,:,iilr)', &
+    iproc, iorb, iilr, dsum(matmin%mlr(ilr)%norbinlr**2, hamextract(1,1,iilr))
               call dgemv('n', matmin%mlr(ilr)%norbinlr, matmin%mlr(ilr)%norbinlr, 1.d0, hamextract(1,1,iilr), matmin%norbmax, &
                    lcoeff(1,iorb), 1, 0.d0, lgrad(1,iorb), 1)
           end do
