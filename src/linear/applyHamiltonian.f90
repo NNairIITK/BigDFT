@@ -53,6 +53,8 @@ real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
 real(gp) :: epot_p
 
 
+
+
   !the Tail treatment is allowed only in the Free BC case
   if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
 
@@ -193,6 +195,7 @@ real(gp) :: epot_p
      endif
   enddo
 !$omp end do
+
 
 !$omp critical
   epot=epot+epot_p

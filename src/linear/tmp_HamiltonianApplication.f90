@@ -682,6 +682,7 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
   real(gp) :: ekin,epot,kx,ky,kz,etest, hxh, hyh, hzh
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable,target :: psir
+  real(8):: dsum
 
   if(withConfinement .and. .not.present(lin)) then
       stop "'lin' must be present when 'withConfinement' is true!"
