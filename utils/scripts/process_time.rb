@@ -53,6 +53,12 @@ ARGV.each { |arg|
 #    }
     printf( " %#{'| Ref.: Time '.length}.2e %5d %5d",timeref, nprocref,nthdsref)
     puts
+    #write the hostname associated to the iproc=0
+    iproc=0
+    hostnames=doc["SUMMARY"]["CPU Parallelism"]["Hostnames"]
+    puts "# Hostame for processor #{iproc}: #{hostnames[iproc]}" if hostnames
+
+
   }
 }
 
