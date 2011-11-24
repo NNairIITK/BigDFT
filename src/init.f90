@@ -1512,7 +1512,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    allocate(passmat(ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd)+ndebug),stat=i_stat)
    call memocc(i_stat,passmat,'passmat',subname)
    !print '(a,10i5)','iproc,passmat',iproc,ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd),&
-      &   !     orbs%nspinor,orbs%nkptsp,orbse%norbu,orbse%norbd,orbs%norbu,orbs%norbd
+   !     orbs%nspinor,orbs%nkptsp,orbse%norbu,orbse%norbd,orbs%norbu,orbs%norbd
 
    call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
       &   psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
@@ -1581,7 +1581,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
          write(*,'(1x,a,1pe9.2)') &
             &   'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
          !write(*,'(1x,a,1pe9.2)') &
-            &   !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
+         !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
       end if
    endif
 

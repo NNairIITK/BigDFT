@@ -1122,9 +1122,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
          ! if (iproc == 0) write(*,*) 'writing NEW local_potential.pot'
          ! call plot_density('local_potentialb2BNEW',iproc,nproc,&
-            &   !      n1,n2,n3,n1i,n2i,n3i,n3p,&
-            &   !      in%nspin,hxh,hyh,hzh,&
-            &   !      atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
+               !      n1,n2,n3,n1i,n2i,n3i,n3p,&
+               !      in%nspin,hxh,hyh,hzh,&
+               !      atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
 
 
 

@@ -433,7 +433,8 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         fends(3*iat-0,1)=fatsp(3,iat)
     enddo
     pnow%exends_b(1)=epot_sp
-    call atomic_dot(atoms,fends(1,1),fends(1,1),fnrm1);fnrm1=sqrt(fnrm1)
+    call atomic_dot(atoms,fends(1,1),fends(1,1),fnrm1)
+    fnrm1=sqrt(fnrm1)
     x_bigdft(1:n)=x(1:n,np)
     !if(iproc==0) write(*,*) 'ALIREZA-03'
     call cpu_time(time1)

@@ -64,10 +64,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
 
    !flag for toggling the REDUCE_SCATTER stategy (deprecated, icomm used instead of ixc value)
    !rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
-      &   !     & (ixc < 0 .and. module_xc_isgga()))
+   !     & (ixc < 0 .and. module_xc_isgga()))
 
    !  write(*,*) 'RSFLAG stuffs ',(ixc >= 11 .and. ixc <= 16),&
-      &   !             (ixc < 0 .and. module_xc_isgga()), have_mpi2,rsflag
+   !             (ixc < 0 .and. module_xc_isgga()), have_mpi2,rsflag
 
    !calculate dimensions of the complete array to be allocated before the reduction procedure
    if (rhodsc%icomm==1) then
@@ -358,7 +358,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
             end do
 
             !print *,'iorb,nrm',iorb,&
-               &   !nrm2(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir(1,1),1)
+            !nrm2(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir(1,1),1)
 
             select case(lr%geocode)
             case('F')
