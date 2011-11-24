@@ -5306,6 +5306,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
        end subroutine minimize_in_subspace
 
+
+
    end interface
 
 END MODULE module_interfaces
