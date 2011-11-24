@@ -2747,15 +2747,19 @@ call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, como
 ! Calculate the Lagrange multiplier matrix <vec|grad>.
 call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
      gradOvrlp, newComm, lagmat)
-!!do iorb=1,orbs%norb
-!!    do jorb=1,orbs%norb
-!!        write(500+iproc,*) iorb, jorb, lagmat(iorb,jorb)
-!!    end do
-!!end do
+do iorb=1,orbs%norb
+    do jorb=1,orbs%norb
+        write(500+iproc,*) iorb, jorb, lagmat(iorb,jorb)
+    end do
+end do
+write(500,*) '================================'
 trace=0.d0
 do iorb=1,orbs%norb
     trace=trace+lagmat(iorb,iorb)
+    write(510,*) iorb, trace
 end do
+write(510,*) '================================='
+write(*,'(a,es24.14)') 'trace in sub',trace
 
 ! Now we also have to calculate the overlap matrix.
 call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
@@ -3904,7 +3908,8 @@ type(matrixDescriptors):: mad
           end if
           ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
           ! multiplier matrix.
-          call orthoconstraintVectors(iproc, ip%nproc, methTransformOverlap, lin%correctionOrthoconstraint, lin%blocksize_pdgemm, &
+          call orthoconstraintVectors(iproc, ip%nproc, methTransformOverlap, lin%correctionOrthoconstraint, &
+               lin%blocksize_pdgemm, &
                lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
                matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
                matmin%mlr, mad, lcoeff, lgrad, comom, trace)
@@ -3918,7 +3923,15 @@ type(matrixDescriptors):: mad
           do iorb=1,ip%norb_par(iproc)
               ilr=onWhichAtom(ip%isorb+iorb)
               iilr=matmin%inWhichLocregOnMPI(iorb)
-              fnrmArr(iorb)=ddot(matmin%mlr(ilr), lgrad(1,iorb), 1, lgrad(1,iorb), 1)
+              fnrmArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgrad(1,iorb), 1)
+tt=0.d0
+do iall=1,matmin%mlr(ilr)%norbinlr
+   tt=tt+lgrad(iall,iorb)**2
+end do
+if(iorb==1) write(*,'(a,2es24.13)') 'tt, ddot',tt, ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgrad(1,iorb), 1)
+if(iorb==1) write(*,'(a,2i8,i9,2es24.14)') 'iorb, ilr, matmin%mlr(ilr)%norbinlr, fnrmArr(iorb), lgrad(1,iorb)', &
+              iorb, ilr, matmin%mlr(ilr)%norbinlr, fnrmArr(iorb), lgrad(1,iorb)
+if(iorb==1) write(*,'(a,14es13.5)') 'lgrad(:,iorb)',lgrad(:,iorb)
               if(it>1) fnrmOvrlpArr(iorb)=ddot(matmin%mlr(ilr), lgrad(1,iorb), 1, lgradold(1,iorb), 1)
           end do
           call dcopy(ip%norb_par(iproc)*matmin%norbmax, lgrad(1,1), 1, lgradold(1,1), 1)
@@ -3994,6 +4007,7 @@ type(matrixDescriptors):: mad
               ilr=onWhichAtom(ip%isorb+iorb)
               call daxpy(matmin%mlr(ilr)%norbinlr, -alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
           end do
+          write(*,'(a,i7,es16.7)') 'iproc, ddot', iproc, ddot(matmin%norbmax*ip%norb_par(iproc), lcoeff(1,1), 1, lcoeff(1,1), 1)
 
     
     
