@@ -2667,6 +2667,23 @@ do it=1,nItOrtho
   !!else
   !!    stop 'methTransformOverlap is wrong'
   !!end if
+
+!!!!debug: add noise to ovrlp
+!!!do iorb=1,orbs%norb
+!!!    do jorb=1,orbs%norb
+!!!        call random_number(tt)
+!!!        tt=tt-.5d0
+!!!        tt=tt*.2d0
+!!!        ovrlp(jorb,iorb)=ovrlp(jorb,iorb)+tt
+!!!    end do
+!!!end do
+do iorb=1,orbs%norb
+    do jorb=1,orbs%norb
+        write(750,*) iorb, jorb, ovrlp(jorb,iorb)
+    end do
+end do
+
+
   call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, &
        orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
   
@@ -2715,6 +2732,7 @@ real(8),intent(out):: trace
 integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall
 real(8),dimension(:,:),allocatable:: gradOvrlp, vecOvrlp, lagmat, ovrlp
 character(len=*),parameter:: subname='orthoconstraintVectors'
+real(8):: ddot
 
 
 noverlaps=0
@@ -2745,8 +2763,17 @@ call gatherVectorsNew(iproc, nproc, comom)
 call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, gradOvrlp)
 
 ! Calculate the Lagrange multiplier matrix <vec|grad>.
+do iorb=1,orbs%norbp
+    ilr=onWhichAtom(iorb)
+    write(530,*) iorb, ddot(mlr(ilr)%norbinlr, vec(1,iorb), 1, gradOvrlp(1,iorb), 1)
+    write(540,*) iorb, ddot(mlr(ilr)%norbinlr, vec(1,iorb), 1, grad(1,iorb), 1)
+end do
+write(530,*) '================================='
+write(540,*) '================================='
 call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
      gradOvrlp, newComm, lagmat)
+!subroutine calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, comom, mlr, onWhichAtom, vec,&
+!           vecOvrlp, newComm, ovrlp)
 do iorb=1,orbs%norb
     do jorb=1,orbs%norb
         write(500+iproc,*) iorb, jorb, lagmat(iorb,jorb)
@@ -3173,6 +3200,13 @@ real(8),dimension(norb,norb),intent(out):: ovrlp
 integer:: ijorb, ilrold, ilr, iorb, iiorb, ncount, jjorb, jorb, ierr
 real(8):: ddot
 
+
+do iorb=1,norbp
+    ilr=onWhichAtom(iorb)
+    write(550,'(4i9,es20.12)') iorb, iorb, ilr, mlr(ilr)%norbinlr, ddot(mlr(ilr)%norbinlr, vec(1,iorb), 1, vecOvrlp(1,iorb), 1)
+end do
+write(550,*) '================================='
+
 ovrlp=0.d0
 
 ijorb=0
@@ -3189,12 +3223,21 @@ do iorb=1,norbp
         ijorb=ijorb+1
         jjorb=comom%overlaps(jorb,ilr)
         ovrlp(iiorb,jjorb)=ddot(ncount, vec(1,iorb), 1, vecOvrlp(1,ijorb), 1)
+        if(iiorb==jjorb) write(560,'(4i9,es20.12)') iiorb, ijorb, ilr, ncount, ddot(ncount, vec(1,iorb), 1, vecOvrlp(1,ijorb), 1)
     end do
     ilrold=ilr
 end do
 
 call mpiallred(ovrlp(1,1), norb**2, mpi_sum, newComm, ierr)
 
+do iorb=1,norb
+    ilr=onWhichAtom(iorb)
+    write(580,*) iorb, ovrlp(iorb,iorb)
+    do jorb=1,norb
+        write(590+iproc,*) iorb, jorb, ovrlp(iorb,jorb)
+    end do
+end do
+write(580,*) '================================='
 
 end subroutine calculateOverlap
 
@@ -3624,7 +3667,7 @@ real(8),dimension(:,:),allocatable:: coeff, lagMat, coeffOld, lcoeff, lgrad, lgr
 !!real(8),dimension(:,:,:),allocatable:: HamPad
 real(8),dimension(:),pointer:: chiw
 integer,dimension(:),allocatable:: recvcounts, displs, norb_par
-real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax, valin, valout, dsum
+real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax, valin, valout, dsum, tt2
 logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinationsLocalized'
 real(4):: ttreal, builtin_rand
@@ -3765,7 +3808,7 @@ type(matrixDescriptors):: mad
     
       
       ! Initial step size for the optimization
-      alpha=1.d-1
+      alpha=1.d5
     
       ! Flag which checks convergence.
       converged=.false.
@@ -3897,6 +3940,20 @@ type(matrixDescriptors):: mad
                    lcoeff(1,iorb), 1, 0.d0, lgrad(1,iorb), 1)
           end do
           ilr=onWhichAtom(ip%isorb+1)
+
+tt=0.d0
+tt2=0.d0
+do iorb=1,orbs%norbp
+    ilr=onWhichAtom(ip%isorb+iorb)
+    write(520,*) iorb, ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
+    write(710,*) iorb, ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgrad(1,iorb), 1)
+    tt=tt+ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
+    tt2=tt2+ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgrad(1,iorb), 1)
+end do
+write(*,*) '>> trace in main ', tt
+write(*,*) '>> fnrm in main', tt2
+write(520,*) '================================='
+write(710,*) '================================='
       
           !!do jorb=1,matmin%norbmax
           !!    write(650+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
@@ -3932,6 +3989,7 @@ if(iorb==1) write(*,'(a,2es24.13)') 'tt, ddot',tt, ddot(matmin%mlr(ilr)%norbinlr
 if(iorb==1) write(*,'(a,2i8,i9,2es24.14)') 'iorb, ilr, matmin%mlr(ilr)%norbinlr, fnrmArr(iorb), lgrad(1,iorb)', &
               iorb, ilr, matmin%mlr(ilr)%norbinlr, fnrmArr(iorb), lgrad(1,iorb)
 if(iorb==1) write(*,'(a,14es13.5)') 'lgrad(:,iorb)',lgrad(:,iorb)
+if(iorb==1) write(*,'(a,14es13.5)') 'lcoeff(:,iorb)',lcoeff(:,iorb)
               if(it>1) fnrmOvrlpArr(iorb)=ddot(matmin%mlr(ilr), lgrad(1,iorb), 1, lgradold(1,iorb), 1)
           end do
           call dcopy(ip%norb_par(iproc)*matmin%norbmax, lgrad(1,1), 1, lgradold(1,1), 1)
@@ -4005,6 +4063,7 @@ if(iorb==1) write(*,'(a,14es13.5)') 'lgrad(:,iorb)',lgrad(:,iorb)
           ! Improve the coefficients (by steepet descent).
           do iorb=1,ip%norb_par(iproc)
               ilr=onWhichAtom(ip%isorb+iorb)
+              write(*,*) 'iorb, alpha(iorb)',iorb,alpha(iorb)
               call daxpy(matmin%mlr(ilr)%norbinlr, -alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
           end do
           write(*,'(a,i7,es16.7)') 'iproc, ddot', iproc, ddot(matmin%norbmax*ip%norb_par(iproc), lcoeff(1,1), 1, lcoeff(1,1), 1)
