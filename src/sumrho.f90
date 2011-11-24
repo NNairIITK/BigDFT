@@ -278,6 +278,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
       end if
       write(*,'(1x,a,f21.12)')&
          &   'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
+      !yaml output
+      write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
       if(nspin == 4 .and. tt > 0._dp)&
          &   write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
          &   (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)

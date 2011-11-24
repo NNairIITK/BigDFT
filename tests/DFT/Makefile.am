@@ -29,8 +29,8 @@ endif
 EXTRA_DIST = \
 	README \
 	inguess.dat \
-        $(TESTDIRS) \
-        GPU OCL
+    $(TESTDIRS) \
+    GPU OCL
 
 # Give here the pseudo-potentials used by each test.
 H.psp: psppar.H
@@ -68,6 +68,7 @@ TDDFT.psp: psppar.N
           AgBulk.out*)      prec="6.e-8" ;; \
           SiH4.out*)        prec="5.e-9" ;; \
 	  TDDFT.out*)       prec="2.e-9" ;; \
+	  Mn2.out*)         prec="1.5e-10" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

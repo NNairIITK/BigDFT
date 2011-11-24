@@ -14,7 +14,7 @@ module defs
   implicit none
 
   real(kind=8), parameter :: VERSION_NUMBER  = 1.6    ! Version of the code
-  character(len=20), parameter :: BIGREVNO ="1.6-dev.10-533" ! Bigdft version
+  character(len=20), parameter :: BIGREVNO ="1.6-dev.12-534" ! Bigdft version
  
   real(kind=8) :: t1                 ! Initial Date (cputime)
 
