@@ -1649,7 +1649,14 @@ real(8),dimension(:,:),allocatable:: hamTemp
 character(len=*),parameter:: subname='getHamiltonianMatrix6'
 real(8),dimension(:,:),allocatable:: hamTempCompressed, hamTempCompressed2, ttmat
 integer,dimension(:),allocatable:: displs, sendcounts, sendrequests, recvrequests
-real(8):: tt1, tt2, tt3
+real(8):: tt1, tt2, tt3, dsum
+
+
+write(*,*) 'iproc, dsum(lchi)', iproc, dsum(orbsig%npsidim, lchi(1))
+do iall=1,ndim_lhchi
+    write(*,*) 'iproc, iall, dsum(lhchi,iall)', iproc, iall, dsum(orbsig%npsidim, lhchi(1,iall))
+end do
+write(*,'(a,8l4)') 'skip',skip
 
 
 allocate(sendcounts(0:nproc-1), stat=istat)
