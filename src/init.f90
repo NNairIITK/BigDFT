@@ -1925,7 +1925,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
          write(*,'(1x,a,1pe9.2)') &
             &   'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
          !write(*,'(1x,a,1pe9.2)') &
-            &   !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
+               !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
       end if
    endif
 

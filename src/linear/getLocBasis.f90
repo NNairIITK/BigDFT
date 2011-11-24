@@ -185,6 +185,11 @@ real(8),dimension(:),pointer:: lpot
       ist = ist + lin%lzd%Llr(ilr)%wfd%nvctr_c + 7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       istr = istr + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
   end do
+  !!do iall=1,size(lin%comsr%sendBuf)
+  !!    write(5100+iproc,*) lin%comsr%sendBuf(iall)
+  !!end do
+  !!call mpi_barrier(mpi_comm_world, ierr)
+  !!stop
   if(istr/=lin%comsr%nsendBuf+1) then
       write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=lin%comsr%nsendBuf+1'
       stop
@@ -610,6 +615,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   !!do iall=1,size(lphi)
   !!    write(21000+iproc,*) lphi(iall)
   !!end do
+
 
 
 
@@ -3791,8 +3797,8 @@ real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
 ! Local variables
 integer:: ndim_lhchi, jorb, jjorb, jlr, ii, istat, iall, jproc, iiorb, kk, iorb, norbTarget, nprocTemp
 integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, iat, ilr, ierr, tag, jlrold, nlocregPerMPI
-integer,dimension(:),allocatable:: onWhichAtomTemp, doNotCalculate, norb_parTemp, onWhichMPITemp
-logical,dimension(:),allocatable:: skip
+integer,dimension(:),allocatable:: onWhichAtomTemp, norb_parTemp, onWhichMPITemp
+logical,dimension(:),allocatable:: skip, doNotCalculate
 logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, withConfinement
 real(8),dimension(:),allocatable:: lchi
 real(8),dimension(:,:),allocatable:: lhchi

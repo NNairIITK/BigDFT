@@ -721,6 +721,7 @@ end do
 call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t1)
 
+
 ! Bounds of the slice in global coordinates.
 is=nscatterarr(iproc,3)-14
 ie=is+nscatterarr(iproc,1)-1
@@ -744,8 +745,10 @@ do iorb=1,lin%comsr%noverlaps(iproc)
         factorTimesDensKern = factor*densKern(iiorb,jjorb)
         ! Now loop over all points in the box in which the orbitals overlap.
         do i3=i3s,i3e !bounds in z direction
-            i3d=i3-i3s+1 !z coordinate of orbital iorb with respect to the overlap box
-            j3d=i3-i3s+1 !z coordinate of orbital jorb with respect to the overlap box
+            !!i3d=i3-i3s+1 !z coordinate of orbital iorb with respect to the overlap box
+            !!j3d=i3-i3s+1 !z coordinate of orbital jorb with respect to the overlap box
+            i3d=i3-max(is,2*lin%lzd%llr(ilr)%ns3-14)+1 !z coordinate of orbital iorb with respect to the overlap box
+            j3d=i3-max(is,2*lin%lzd%llr(jlr)%ns3-14)+1 !z coordinate of orbital jorb with respect to the overlap box
             indi3=(i3d-1)*lin%lzd%llr(ilr)%d%n2i*lin%lzd%llr(ilr)%d%n1i !z-part of the index of orbital iorb in the 1-dim receive buffer
             indj3=(j3d-1)*lin%lzd%llr(jlr)%d%n2i*lin%lzd%llr(jlr)%d%n1i !z-part of the index of orbital jorb in the 1-dim receive buffer
             indl3=(i3-is)*Glr%d%n2i*Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
@@ -823,7 +826,6 @@ if(iproc==0) write(*,'(a,es12.4)') 'time for large loop:',time
 
 call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
 if(iproc==0) write(*,'(1x,a,es20.12)') 'done. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
-
 
 iall=-product(shape(densKern))*kind(densKern)
 deallocate(densKern, stat=istat)
