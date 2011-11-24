@@ -5,7 +5,145 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
+
+!>   Read a ETSF (NETCDF) file containing wavefunctions.
+!!    Only import the given iorbp (processor-related number), in a compress form.
+subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi, orblist)
+  use module_base
+  use module_types
+  use etsf_io_low_level
+
+  implicit none
+
+  integer, intent(in) :: iorbp, ncid
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
+  integer, dimension(wfd%nvctr_c), intent(in) :: nvctr
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+  integer, dimension(orbs%norb), intent(in) :: orblist
+  
+  integer :: iFine, iCoeff, iGrid, diGrid
+  integer :: start(6), count(6)
+  type(etsf_io_low_error) :: error
+  logical :: lstat
+  interface
+     subroutine etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
+       use module_base
+       use module_types
+
+       implicit none
+
+       integer, intent(out) :: start(6), count(6)
+       integer, intent(in) :: iorbp
+       type(orbitals_data), intent(in) :: orbs
+       integer,dimension(orbs%norb), intent(in), optional :: orblist
+     end subroutine etsf_orbsToStartCount
+  end interface
+
+  ! We read the coefficients.
+  call etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
+
+  iFine = wfd%nvctr_c + 1
+  iCoeff = 1
+  iGrid = 1
+  do
+     if (iGrid > wfd%nvctr_c) exit
+     diGrid = 0
+     do
+        if (nvctr(iGrid + diGrid) /= 1 .or. &
+             & iGrid + diGrid == wfd%nvctr_c) exit
+        diGrid = diGrid + 1
+     end do
+     ! Read diGrid + 1 coeff.
+     start(2) = iCoeff
+     count(2) = diGrid + 1
+     call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+          & psi(iGrid:iGrid + diGrid), lstat, error_data = error, start = start, count = count)
+     if (.not. lstat) call etsf_error(error)
+     iCoeff  = iCoeff + diGrid + 1
+
+     if (nvctr(iGrid + diGrid) == 8) then
+        ! Read seven coeff.
+        start(2) = iCoeff
+        count(2) = 7
+        call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+             & psi(iFine:iFine+6), lstat, error_data = error, start = start, count = count)
+        if (.not. lstat) call etsf_error(error)
+        iCoeff = iCoeff + 7
+        iFine  = iFine + 7
+     end if
+     iGrid = iGrid + diGrid + 1
+  end do
+end subroutine read_psi_compress_etsf
+
+!>   Read a ETSF (NETCDF) file containing wavefunctions.
+!!    Only import the given iorbp (processor-related number), in a grid form.
+subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
+     & nvctr_c, nvctr, gcoord, psig, orblist)
+  use module_base
+  use module_types
+  use etsf_io_low_level
+
+  implicit none
+
+  integer, intent(in) :: iorbp, n1, n2, n3, nvctr_c, ncid
+  type(orbitals_data), intent(in) :: orbs
+  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(out) :: psig
+  integer, dimension(3,nvctr_c), intent(in) :: gcoord
+  integer, dimension(orbs%norb), intent(in) :: orblist
+  integer, dimension(nvctr_c), intent(in) :: nvctr
+
+  integer :: i, iCoeff
+  integer :: start(6), count(6), coord(3)
+  real(wp) :: fv(7)
+  type(etsf_io_low_error) :: error
+  logical :: lstat
+  interface
+     subroutine etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
+       use module_base
+       use module_types
+
+       implicit none
+
+       integer, intent(out) :: start(6), count(6)
+       integer, intent(in) :: iorbp
+       type(orbitals_data), intent(in) :: orbs
+       integer,dimension(orbs%norb), intent(in), optional :: orblist
+     end subroutine etsf_orbsToStartCount
+  end interface
+
+  ! We read the coefficients.
+  call etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
+
+  ! We transfer the coefficients in psig.
+  iCoeff = 1
+  do i = 1, nvctr_c, 1
+     coord = gcoord(:, i)
+     start(2) = iCoeff
+     count(2) = 1
+     call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+          & psig(coord(1), 1, coord(2), 1, coord(3), 1), &
+          & lstat, error_data = error, start = start, count = count)
+     if (.not. lstat) call etsf_error(error)
+     iCoeff = iCoeff + 1
+     if (nvctr(i) == 8) then
+        start(2) = iCoeff
+        count(2) = 7
+        call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+             & fv, lstat, error_data = error, start = start, count = count)
+        if (.not. lstat) call etsf_error(error)
+        psig(coord(1), 2, coord(2), 1, coord(3), 1) = fv(1)
+        psig(coord(1), 1, coord(2), 2, coord(3), 1) = fv(2)
+        psig(coord(1), 2, coord(2), 2, coord(3), 1) = fv(3)
+        psig(coord(1), 1, coord(2), 1, coord(3), 2) = fv(4)
+        psig(coord(1), 2, coord(2), 1, coord(3), 2) = fv(5)
+        psig(coord(1), 1, coord(2), 2, coord(3), 2) = fv(6)
+        psig(coord(1), 2, coord(2), 2, coord(3), 2) = fv(7)
+        iCoeff = iCoeff + 7
+     end if
+  end do
+end subroutine read_psi_full_etsf
 
 !>   Read a ETSF (NETCDF) file containing wavefunctions.
 !!    coordinates_of_grid_points is used to store the geometric
@@ -17,7 +155,6 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
      wfd,psi,orblist)
   use module_base
   use module_types
-
   use etsf_io_low_level
   use etsf_io
 
@@ -32,19 +169,16 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
   character(len = *), intent(in) :: filename
-  integer, dimension(orbs%norb) :: orblist
+  integer, dimension(orbs%norb), intent(in) :: orblist
   ! Local variables
   character(len = *), parameter :: subname = "read_waves_etsf"
   integer, pointer :: nvctr_old(:)
-  integer :: iCoeff, iFine, n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
-  integer :: i, iorb, ncid, iGrid, diGrid, nspin
-  integer :: nb1, nb2, nb3, i_all, i_stat, ncount1,ncount_rate,ncount_max, ncount2
-  integer :: start(6), count(6), coord(3)
-  real :: tr0,tr1
+  integer :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
+  integer :: i, iorb, ncid, nspin
+  integer :: nb1, nb2, nb3, i_all, i_stat
   real(gp) :: hx_old, hy_old, hz_old
-  real(gp) :: displ,tel
-  real(wp) :: fv(7)
-  logical :: perx, pery, perz, check
+  real(gp) :: displ
+  logical :: perx, pery, perz
   integer, dimension(:,:), allocatable :: gcoord
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
@@ -70,50 +204,14 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   nspin = 1
   if (orbs%norbd /= 0) nspin = 2
 
-  start(:) = 1
-  count(:) = 0
   if (abs(hx_old - hx) < 1e-6 .and. abs(hy_old - hy) < 1e-6 .and. abs(hz_old - hz) < 1e-6 .and. &
        & nvctr_c_old == wfd%nvctr_c .and. nvctr_f_old == wfd%nvctr_f .and. & 
        & n1_old == n1 .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
 
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
-        ! start(4) corresponds to the orbital index
-        call orbsToETSF(start, count, iorb, orbsd, orblist)
-
-        iFine = wfd%nvctr_c + 1
-        iCoeff = 1
-        iGrid = 1
-        do
-           if (iGrid > wfd%nvctr_c) exit
-           diGrid = 0
-           do
-              if (nvctr_old(iGrid + diGrid) /= 1 .or. &
-                   & iGrid + diGrid == wfd%nvctr_c) exit
-              diGrid = diGrid + 1
-           end do
-           ! Read diGrid + 1 coeff.
-           start(2) = iCoeff
-           count(2) = diGrid + 1
-           call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
-                & psi(iGrid:iGrid + diGrid, iorb), lstat, error_data = error, start = start, count = count)
-           if (.not. lstat) call etsf_error(error)
-           iCoeff  = iCoeff + diGrid + 1
-           
-           if (nvctr_old(iGrid + diGrid) == 8) then
-              ! Write seven coeff.
-              start(2) = iCoeff
-              count(2) = 7
-              call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
-                   & psi(iFine:iFine+6, iorb), lstat, error_data = error, start = start, count = count)
-              if (.not. lstat) call etsf_error(error)
-              iCoeff = iCoeff + 7
-              iFine  = iFine + 7
-           end if
-           iGrid = iGrid + diGrid + 1
-        end do
+        call read_psi_compress_etsf(ncid, iorb, orbsd, nvctr_old, wfd, psi(1, iorb))
      end do
-!!$     write(33 + iproc,"(G18.10)") psi
   else
      if (iproc == 0) then
         write(*,*) 'wavefunctions need reformatting'
@@ -150,36 +248,8 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
      call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
-        ! We read the coefficients.
-        call orbsToETSF(start, count, iorb, orbsd, orblist)
-
-        ! We transfer the coefficients in psigold.
-        iCoeff = 1
-        do i = 1, nvctr_c_old, 1
-           coord = gcoord(:, i)
-           start(2) = iCoeff
-           count(2) = 1
-           call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
-                & psigold(coord(1), 1, coord(2), 1, coord(3), 1), &
-                & lstat, error_data = error, start = start, count = count)
-           if (.not. lstat) call etsf_error(error)
-           iCoeff = iCoeff + 1
-           if (nvctr_old(i) == 8) then
-              start(2) = iCoeff
-              count(2) = 7
-              call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
-                   & fv, lstat, error_data = error, start = start, count = count)
-              if (.not. lstat) call etsf_error(error)
-              psigold(coord(1), 2, coord(2), 1, coord(3), 1) = fv(1)
-              psigold(coord(1), 1, coord(2), 2, coord(3), 1) = fv(2)
-              psigold(coord(1), 2, coord(2), 2, coord(3), 1) = fv(3)
-              psigold(coord(1), 1, coord(2), 1, coord(3), 2) = fv(4)
-              psigold(coord(1), 2, coord(2), 1, coord(3), 2) = fv(5)
-              psigold(coord(1), 1, coord(2), 2, coord(3), 2) = fv(6)
-              psigold(coord(1), 2, coord(2), 2, coord(3), 2) = fv(7)
-              iCoeff = iCoeff + 7
-           end if
-        end do
+        call read_psi_full_etsf(ncid, iorb, orbsd, n1_old, n2_old, n3_old, &
+             & nvctr_c_old, nvctr_old, gcoord, psigold, orblist)
 
         call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
              rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi(1,iorb))
@@ -215,17 +285,6 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
 !  write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 
 contains
-
-  subroutine etsf_error(error)
-    type(etsf_io_low_error), intent(in) :: error
-    
-    integer :: ierr
-    character(len=etsf_io_low_error_len)  :: errmess
-
-    call etsf_io_low_error_to_str(errmess, error)
-    write(0,"(A)") trim(errmess)
-    call MPI_ABORT(MPI_COMM_WORLD, ierr)
-  END SUBROUTINE etsf_error
 
   subroutine general_error(error)
     character(len = *), intent(in) :: error
@@ -370,34 +429,78 @@ contains
     enddo
     displ=sqrt(tx+ty+tz)
   END SUBROUTINE calc_displ
-
-  subroutine orbsToETSF(start, count, iorb, orbs,orblist)
-    integer, intent(inout) :: start(6), count(6)
-    integer, intent(in) :: iorb
-    type(orbitals_data), intent(in) :: orbs
-    integer,dimension(orbs%norb) :: orblist
-    integer :: ind
-
-    ! Read one spinor.
-    start(3) = modulo(iorb - 1, orbs%nspinor) + 1
-    count(3) = 1
-    ! Read one orbital.
-    ind = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
-    start(4) = orblist(ind)
-    count(4) = 1
-    ! Read one kpoint.
-    start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
-    count(5) = 1
-    ! Write one spin.
-    start(6) = 1
-    if (start(4) > orbs%norbu) then
-       start(6) = 2
-       start(4) = start(4) - orbs%norbu
-    end if
-    count(6) = 1
-  end subroutine orbsToETSF
 END SUBROUTINE read_waves_etsf
 
+
+subroutine write_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
+  use module_base
+  use module_types
+  use etsf_io_low_level
+
+  implicit none
+
+  integer, intent(in) :: iorbp, ncid
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
+  integer, dimension(wfd%nvctr_c), intent(in) :: nvctr
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(in) :: psi
+
+  integer :: iFine, iCoeff, iGrid, diGrid
+  integer :: start(6), count(6)
+  type(etsf_io_low_error) :: error
+  logical :: lstat
+  interface
+     subroutine etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
+       use module_base
+       use module_types
+
+       implicit none
+
+       integer, intent(out) :: start(6), count(6)
+       integer, intent(in) :: iorbp
+       type(orbitals_data), intent(in) :: orbs
+       integer,dimension(orbs%norb), intent(in), optional :: orblist
+     end subroutine etsf_orbsToStartCount
+  end interface
+  
+  call etsf_orbsToStartCount(start, count, iorbp, orbs)
+
+  ! iCoeff is the index of the coefficient we are writing in ETSF
+  iCoeff  = 1
+  ! iFine is the index of the fine part in psi
+  iFine = wfd%nvctr_c + 1
+  ! iGrid runs on all grid points.
+  iGrid = 1
+  do
+     if (iGrid > wfd%nvctr_c) exit
+     diGrid = 0
+     do
+        if (nvctr(iGrid + diGrid) /= 1 .or. iGrid + diGrid == wfd%nvctr_c) exit
+        diGrid = diGrid + 1
+     end do
+     ! Write diGrid + 1 coeff.
+     start(2) = iCoeff
+     count(2) = diGrid + 1
+     call etsf_io_low_write_var(ncid, "coefficients_of_wavefunctions", &
+          & psi(iGrid:iGrid + diGrid), lstat, error_data = error, &
+          & start = start, count = count)
+     if (.not. lstat) call etsf_error(error)
+     iCoeff  = iCoeff + diGrid + 1
+
+     if (nvctr(iGrid + diGrid) == 8) then
+        ! Write seven coeff.
+        start(2) = iCoeff
+        count(2) = 7
+        call etsf_io_low_write_var(ncid, "coefficients_of_wavefunctions", &
+             & psi(iFine:iFine+6), lstat, error_data = error, &
+             & start = start, count = count)
+        if (.not. lstat) call etsf_error(error)
+        iCoeff = iCoeff + 7
+        iFine  = iFine  + 7
+     end if
+     iGrid = iGrid + diGrid + 1
+  end do
+end subroutine write_psi_compress_etsf
 
 !>   Write a ETSF file containing wavefunctions.
 !!   Write a NetCDF file.
@@ -427,9 +530,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   type(etsf_io_low_error) :: error
   logical :: lstat
   integer :: ncid, ierr, nproc
-  integer :: i_all, i_stat, ncount1,ncount_rate,ncount_max, ncount2, i
-  integer :: iCoeff, iFine, iGrid, iorb, diGrid
-  integer :: start(6), count(6)
+  integer :: i_all, i_stat, ncount1,ncount_rate,ncount_max, ncount2, i, iorb
   real :: tr0,tr1
   integer, allocatable :: nvctr(:)
   integer, allocatable :: gcoord(:,:)
@@ -486,65 +587,11 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   call etsf_io_low_set_write_mode(ncid, lstat, error)
   if (.not. lstat) call etsf_error(error)
 
-  start(:) = 1
-  count(:) = 0
-
   ! We run over a processor independant number of orbitals
   ! to ensure the synchronisation to disk (see later).
   do iorb = 1, (orbs%norb * orbs%nkpts / nproc + 1 ) * orbs%nspinor, 1
      if (iorb <= (orbs%norbp * orbs%nspinor)) then
-        ! Write one spinor.
-        start(3) = modulo(iorb - 1, orbs%nspinor) + 1
-        count(3) = 1
-        ! Write one orbital.
-        start(4) = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
-        count(4) = 1
-        ! Write one kpoint.
-        start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
-        count(5) = 1
-        ! Write one spin.
-        start(6) = 1
-        if (start(4) > orbs%norbu) then
-           start(6) = 2
-           start(4) = start(4) - orbs%norbu
-        end if
-        count(6) = 1
-
-        ! iCoeff is the index of the coefficient we are writing in ETSF
-        iCoeff  = 1
-        ! iFine is the index of the fine part in psi
-        iFine = wfd%nvctr_c + 1
-        ! iGrid runs on all grid points.
-        iGrid = 1
-        do
-           if (iGrid > wfd%nvctr_c) exit
-           diGrid = 0
-           do
-              if (nvctr(iGrid + diGrid) /= 1 .or. iGrid + diGrid == wfd%nvctr_c) exit
-              diGrid = diGrid + 1
-           end do
-           ! Write diGrid + 1 coeff.
-           start(2) = iCoeff
-           count(2) = diGrid + 1
-           call etsf_io_low_write_var(ncid, "coefficients_of_wavefunctions", &
-                & psi(iGrid:iGrid + diGrid, iorb), lstat, error_data = error, &
-                & start = start, count = count)
-           if (.not. lstat) call etsf_error(error)
-           iCoeff  = iCoeff + diGrid + 1
-
-           if (nvctr(iGrid + diGrid) == 8) then
-              ! Write seven coeff.
-              start(2) = iCoeff
-              count(2) = 7
-              call etsf_io_low_write_var(ncid, "coefficients_of_wavefunctions", &
-                   & psi(iFine:iFine+6, iorb), lstat, error_data = error, &
-                   & start = start, count = count)
-              if (.not. lstat) call etsf_error(error)
-              iCoeff = iCoeff + 7
-              iFine  = iFine  + 7
-           end if
-           iGrid = iGrid + diGrid + 1
-        end do
+        call write_psi_compress_etsf(ncid, iorb, orbs, nvctr, wfd, psi(1, iorb))
      end if
      ! We synchronise the output to disk.
      if (.not. sequential) then
@@ -582,18 +629,6 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   end if
 
 contains
-
-  subroutine etsf_error(error)
-    type(etsf_io_low_error), intent(in) :: error
-    
-    integer :: ierr
-    character(len=etsf_io_low_error_len)  :: errmess
-
-    call etsf_io_low_error_to_str(errmess, error)
-    write(0,"(A)") "Error: ETSF_IO error for proc", iproc
-    write(0,"(A)") trim(errmess)
-    call MPI_ABORT(MPI_COMM_WORLD, ierr)
-  END SUBROUTINE etsf_error
 
   subroutine etsf_write_global(ncid,orbs, n1,n2,n3,hx,hy,hz,rxyz,at,wfd,gcoord,nvctr)
     integer, intent(in) :: ncid, n1, n2, n3
@@ -800,3 +835,58 @@ contains
     call memocc(i_stat,i_all,'coeff_map',subname)
   END SUBROUTINE build_grid
 END SUBROUTINE write_waves_etsf
+
+
+subroutine etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
+  use module_base
+  use module_types
+
+  implicit none
+
+  integer, intent(out) :: start(6), count(6)
+  integer, intent(in) :: iorbp
+  type(orbitals_data), intent(in) :: orbs
+  integer,dimension(orbs%norb), intent(in), optional :: orblist
+
+  integer :: ind
+
+  start(:) = 1
+  count(:) = 0
+  ! Read one spinor.
+  start(3) = modulo(iorbp - 1, orbs%nspinor) + 1
+  count(3) = 1
+  ! Read one orbital.
+  ind = modulo(orbs%isorb + (iorbp - 1) / orbs%nspinor, orbs%norb) + 1
+  if (present(orblist)) then
+     start(4) = orblist(ind)
+  else
+     start(4) = ind
+  end if
+  count(4) = 1
+  ! Read one kpoint.
+  start(5) = (orbs%isorb + (iorbp - 1) / orbs%nspinor) / orbs%norb + 1
+  count(5) = 1
+  ! Write one spin.
+  start(6) = 1
+  if (start(4) > orbs%norbu) then
+     start(6) = 2
+     start(4) = start(4) - orbs%norbu
+  end if
+  count(6) = 1
+end subroutine etsf_orbsToStartCount
+
+subroutine etsf_error(error)
+  use module_defs
+  use etsf_io_low_level
+
+  implicit none
+
+  type(etsf_io_low_error), intent(in) :: error
+
+  integer :: ierr
+  character(len=etsf_io_low_error_len)  :: errmess
+
+  call etsf_io_low_error_to_str(errmess, error)
+  write(0,"(A)") trim(errmess)
+  call MPI_ABORT(MPI_COMM_WORLD, ierr)
+end subroutine etsf_error
