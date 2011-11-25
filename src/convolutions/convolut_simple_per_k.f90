@@ -434,7 +434,7 @@ END SUBROUTINE convolut_kinetic_per_c_k
 !!   where k=(k1,k2,k3); r=(x,y,z)
 !!
 !! 
-subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
+subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -442,7 +442,7 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
   real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(2,0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(2,0:n1,0:n2,0:n3), intent(inout) :: y
-  real(wp),intent(out)::ener
+  real(wp), dimension(6), intent(out):: kstrten
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
   integer :: i1,i2,i3,i,l,j
@@ -498,13 +498,17 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
      fil(2,-i,:)=-fil(2,i,:)
   enddo
 
+  !sequence for kinetic stress tensors
+  ! 11 22 33 12 13 23
+  kstrten(1:6)=0.0_wp
 
-  ener=0._wp
-!$omp parallel default (private) shared(x,y,ener,fil,c,n1,n2,n3)
+  !ener=0._wp
+!$omp parallel default (private) shared(x,y,kstrten,fil,c,n1,n2,n3)
 
-!$omp do reduction(+:ener)
+!!$omp do reduction(+:ener)
+!$omp do reduction(+:kstrten(1),kstrten(2))
   do i3=0,n3
-     ! (1/2) d^2/dx^2
+     ! (1/2) |d/dx+ik_x)|^2
      do i2=0,n2
         do i1=0,n1
            tt1=x(1,i1,i2,i3)*c
@@ -518,7 +522,8 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
 
-           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           !ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           kstrten(1)=kstrten(1)+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
@@ -535,13 +540,13 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
 
-           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           kstrten(2)=kstrten(2)+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
   enddo
 !$omp enddo
-!$omp do reduction(+:ener)
+!$omp do reduction(+:kstrten(3))
 
   ! + (1/2) d^2/dz^2
   do i2=0,n2
@@ -556,12 +561,13 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+
+           kstrten(3)=kstrten(3)+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
   enddo
 !$omp enddo
-!  ener=ener*.5_wp
+
 !$omp end parallel  
 END SUBROUTINE convolut_kinetic_per_T_k
 

@@ -377,7 +377,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            else
               call multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee))
            end if
-           !TRANSFORM BACK IN REAL SPACE
+
+!TRANSFORM BACK IN REAL SPACE
            !transform along y axis
            !input: i1,i2,j3,(jp3)
            do i=1,ic2
@@ -421,6 +422,9 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            ! output: I1,J2,j3,Jp2,(jp3)
         end do
      endif
+
+!END OF TRANSFORM FOR X AND Z
+
   end do
   !$omp enddo
   !$omp critical
@@ -433,6 +437,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   !$omp end critical
   !$omp end parallel
 
+!TRANSFORM BACK IN Y
   !Interprocessor data transposition
   !input: I1,J2,j3,Jp2,(jp3)
   if (nproc.gt.1) then
@@ -520,7 +525,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   !$omp end critical
   !$omp end parallel
 
-  
+!END OF TRANSFORM IN Y DIRECTION  
 
   !De-allocations  
   i_all=-product(shape(btrig1))*kind(btrig1)

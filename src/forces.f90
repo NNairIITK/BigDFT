@@ -297,12 +297,13 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
   !local variables
   integer :: ierr,iat
-  real(gp), dimension(6) :: strten
+  real(gp), dimension(6) :: strten,locstrten
 
 call to_zero(6,strten(1))
+call to_zero(6,locstrten(1))
 
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz)
+       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,locstrten)
 
   !calculate forces originated by rhocore
   call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
@@ -318,14 +319,20 @@ call to_zero(6,strten(1))
   ! Add up all the force contributions
   if (nproc > 1) then
      call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(locstrten(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
      call mpiallred(strten(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
 
   if (iproc == 0 .and. verbose > 1 .and. atoms%geocode=='P') then
+write(*,*) 'STRESS TENSOR: LOCAL PART (Ha/bohr**3)'
+write(*,*) locstrten(1),locstrten(2),locstrten(3)
+write(*,*) locstrten(4),locstrten(5),locstrten(6)
+write(*,*)
 write(*,*) 'STRESS TENSOR: NON-LOCAL PART (Ha/bohr**3)'
 write(*,*) strten(1),strten(2),strten(3)
 write(*,*) strten(4),strten(5),strten(6)
 write(*,*)
+
   end if
 
 !!$  if (iproc == 0) then
@@ -496,7 +503,7 @@ end subroutine rhocore_forces
 
 !>   Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
-     n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc)
+     n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten)
   use module_base
   use module_types
   implicit none
@@ -507,17 +514,20 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: rho,pot
   real(gp), dimension(3,at%nat), intent(out) :: floc
+  real(gp), dimension(6), intent(out) :: locstrten
   !Local variables---------
   logical :: perx,pery,perz,gox,goy,goz
   real(kind=8) :: pi,prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
-  real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,tt
+  real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
   integer :: i1,i2,i3,ind,iat,ityp,nloc,iloc
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
   
   pi=4.d0*atan(1.d0)
+
+  locstrten=0.0_gp
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   forceleaked=0.d0
@@ -550,6 +560,13 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      fxgau=0.d0
      fygau=0.d0
      fzgau=0.d0
+     !local stress tensor component for this atom
+     Txx=0.0_gp
+     Tyy=0.0_gp
+     Tzz=0.0_gp
+     Txy=0.0_gp
+     Txz=0.0_gp
+     Tyz=0.0_gp
 
      !building array of coefficients of the derivative of the gaussian part
      cprime(1)=2.d0*at%psppar(0,2,ityp)-at%psppar(0,1,ityp)
@@ -608,6 +625,15 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
                        fxgau=fxgau+forceloc*x
                        fygau=fygau+forceloc*y
                        fzgau=fzgau+forceloc*z
+                       if (r2 /= 0.0_gp) then
+                          forceloc=forceloc/sqrt(arg)
+                          Txx=Txx+forceloc*x*x
+                          Tyy=Tyy+forceloc*y*y
+                          Tzz=Tzz+forceloc*z*z
+                          Txy=Txy+forceloc*x*y
+                          Txz=Txz+forceloc*x*z
+                          Tyz=Tyz+forceloc*y*z
+                       end if
                     end if
                     !error function part
                     Vel=pot(ind)
@@ -632,6 +658,13 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      floc(1,iat)=fxion+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
      floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
      floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
+
+     locstrten(1)=locstrten(1)+(hxh*hyh*hzh/rloc**2)*Txx
+     locstrten(2)=locstrten(2)+(hxh*hyh*hzh/rloc**2)*Tyy
+     locstrten(3)=locstrten(3)+(hxh*hyh*hzh/rloc**2)*Tzz
+     locstrten(4)=locstrten(4)+(hxh*hyh*hzh/rloc**2)*Txy
+     locstrten(5)=locstrten(5)+(hxh*hyh*hzh/rloc**2)*Txz
+     locstrten(6)=locstrten(6)+(hxh*hyh*hzh/rloc**2)*Tyz
 
 !!!     !only for testing purposes, printing the components of the forces for each atoms
 !!!     write(10+iat,'(2(1x,3(1x,1pe12.5)))') &
@@ -3676,3 +3709,99 @@ subroutine symmetrise_forces(iproc, fxyz, at)
      fxyz(:, ia) = fxyz(:, ia) * alat
   end do
 end subroutine symmetrise_forces
+
+subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,psi,tens)
+  use module_base
+  use module_types
+  use module_interfaces
+  use libxc_functionals
+  implicit none
+  integer, intent(in) :: iproc
+  real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
+  real(gp), intent(inout) :: tens(6)
+  !local variables
+  character(len=*), parameter :: subname='local_hamiltonian_stress'
+  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
+  real(wp) :: exctXcoeff,kinstr(6)
+  real(gp) :: ekin,epot,kx,ky,kz,etest
+  type(workarr_locham) :: wrk_lh
+  real(wp), dimension(:,:), allocatable :: psir,hpsi
+
+  exctXcoeff=libxc_functionals_exctXfac()
+
+  !initialise the work arrays
+  call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)
+
+tens=0.d0
+
+  !components of the potential
+  npot=orbs%nspinor
+  if (orbs%nspinor == 2) npot=1
+
+  ! Wavefunction in real space
+  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
+
+
+  !no need of initializin hpsi since it is trown out
+  allocate(hpsi((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,hpsi,'hpsi',subname)
+
+
+  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+
+  etest=0.0_gp
+
+
+  do iorb=1,orbs%norbp
+kinstr=0._wp
+oidx=(iorb-1)*orbs%nspinor+1
+
+     call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
+
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+
+!     if (exctXcoeff /= 0.0_gp) then
+!        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
+!        !add to the psir function the part of the potential coming from the
+!        exact exchange
+!        call
+!        axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
+!     end if
+
+     !apply the kinetic term, sum with the potential and transform back to
+     !Daubechies basis
+
+     call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
+          psir,hpsi(1,oidx),ekin,kinstr)
+
+kinstr = -kinstr*8.d0/(hx*hy*hz)/real(lr%d%n1i*lr%d%n2i*lr%d%n3i,gp)
+tens(:)=tens(:)+kinstr(:)*2.d0*&
+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
+
+
+  end do !loop over orbitals: finished
+  !deallocations of work arrays
+  i_all=-product(shape(psir))*kind(psir)
+  deallocate(psir,stat=i_stat)
+  call memocc(i_stat,i_all,'psir',subname)
+
+  i_all=-product(shape(hpsi))*kind(hpsi)
+  deallocate(hpsi,stat=i_stat)
+  call memocc(i_stat,i_all,'hpsi',subname)
+
+  call deallocate_work_arrays_locham(lr,wrk_lh)
+
+END SUBROUTINE local_hamiltonian_stress
+!!***
+
+
+
+
+

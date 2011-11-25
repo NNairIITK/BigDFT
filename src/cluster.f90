@@ -236,6 +236,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    type(diis_objects) :: diis
    real(gp), dimension(3) :: shift
    real(dp), dimension(6) :: strten
+   real(dp), dimension(6) :: kinstrorb
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(kind=8), dimension(:), allocatable :: rho
    real(gp), dimension(:,:), allocatable :: radii_cf,fion,thetaphi,band_structure_eval
@@ -1420,6 +1421,24 @@ if (inputpsi /= -1000) then
 
    call calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s+i3xcsh,n3p,in%nspin,refill_proj,&
       &   rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise)
+
+!yk
+
+call local_hamiltonian_stress(iproc,orbs,Glr,in%hx,in%hy,in%hz,psi,kinstrorb)
+  if (nproc > 1) then
+     call mpiallred(kinstrorb(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
+  else
+!kinstr(:)=kinstrorb(:)
+  end if
+
+if (iproc == 0 .and. verbose > 1) then
+write(*,*)'--------------------------------------------------------------------'
+write(*,*) 'STRESS TENSOR: KINETIC PART'
+write(*,*) kinstrorb(1),kinstrorb(2),kinstrorb(3)
+write(*,*)
+end if
+
+!yk
 
    i_all=-product(shape(rho))*kind(rho)
    deallocate(rho,stat=i_stat)

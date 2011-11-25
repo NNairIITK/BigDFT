@@ -434,8 +434,8 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
 END SUBROUTINE daub_to_isf_locham
 
 
-subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
-  !n(c) use module_base
+subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
+  !use module_base
   use module_types
   implicit none
   integer, intent(in) :: nspinor
@@ -445,12 +445,14 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
   real(gp), intent(out) :: ekin
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
+  real(wp), dimension(6), optional :: k_strten
   !Local variables
   logical :: usekpts
   integer :: idx,i,i_f,iseg_f
   real(gp) :: ekino
   real(wp), dimension(0:3) :: scal
   real(gp), dimension(3) :: hgridh
+  real(wp), dimension(6) :: kstrten,kstrteno
 
   !control whether the k points are to be used
   !real k-point different from Gamma still not implemented
@@ -470,7 +472,8 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
 
   !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   ekin=0.0_gp
-
+  
+  kstrten=0.0_wp
   select case(lr%geocode)
   case('F')
 
@@ -590,10 +593,11 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
 
            call convolut_kinetic_hyb_T(lr%d%n1,lr%d%n2,lr%d%n3, &
                 lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-                hgridh,w%x_c(1,idx),w%x_f(1,idx),w%y_c(1,idx),w%y_f(1,idx),ekino,&
+                hgridh,w%x_c(1,idx),w%x_f(1,idx),w%y_c(1,idx),w%y_f(1,idx),kstrteno,&
                 w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),lr%bounds%kb%ibyz_f,&
                 lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
-           ekin=ekin+ekino
+            kstrten=kstrten+kstrteno
+            !ekin=ekin+ekino
 
            call compress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,&
@@ -624,9 +628,11 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
            ! the kinetic energy is calculated at the same time
            do idx=1,nspinor,2
               !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
+              
               call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino,kx,ky,kz)
-              ekin=ekin+ekino
+                   hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kx,ky,kz)
+              kstrten=kstrten+kstrteno
+              !ekin=ekin+ekino
            end do
 
            !Transposition of the work arrays (use psir as workspace)
@@ -650,8 +656,9 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
               ! compute the kinetic part and add  it to psi_out
               ! the kinetic energy is calculated at the same time
               call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
-              ekin=ekin+ekino
+                   hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno)
+              kstrten=kstrten+kstrteno
+
               call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
                    lr%wfd%nseg_c,lr%wfd%nvctr_c,&
                    lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
@@ -660,7 +667,10 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
                    w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
            end do
         end if
+
      end if
+     ekin=ekin+kstrten(1)+kstrten(2)+kstrten(3)
+     if (present(k_strten)) k_strten=kstrten 
 
   end select
 
