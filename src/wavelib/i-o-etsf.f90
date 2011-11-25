@@ -153,6 +153,7 @@ subroutine read_waves_etsf_internal(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old
   type(orbitals_data) :: orbsd
   type(etsf_io_low_error) :: error
   logical :: lstat
+  type(wavefunctions_descriptors) :: wfd_
 
   ! We open the ETSF file
   call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
@@ -162,6 +163,13 @@ subroutine read_waves_etsf_internal(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old
   call etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, hx_old, hy_old, hz_old, &
        & rxyz_old, at%nat, nvctr_old, nvctr_c_old, nvctr_f_old)
   orbsd%isorb = isorb
+
+!!$  allocate(gcoord(3,nvctr_c_old))
+!!$  call etsf_io_low_read_var(ncid, "coordinates_of_basis_grid_points", &
+!!$       & gcoord, lstat, error_data = error)
+!!$  if (.not. lstat) call etsf_error(error)
+!!$  call etsf_gcoordToWfd(n1_old, n2_old, n3_old, nvctr_c_old, nvctr_old, gcoord, wfd_)
+!!$  deallocate(gcoord)
 
   !conditions for periodicity in the three directions
   call calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
@@ -904,3 +912,50 @@ subroutine etsf_error(error)
   write(0,"(A)") trim(errmess)
   call MPI_ABORT(MPI_COMM_WORLD, ierr)
 end subroutine etsf_error
+
+subroutine etsf_gcoordToWfd(n1, n2, n3, nvctr_c, nvctr, gcoord, wfd)
+  use module_defs
+  use module_types
+
+  implicit none
+
+  integer, intent(in) :: n1, n2, n3, nvctr_c
+  integer, dimension(nvctr_c), intent(in) :: nvctr
+  integer, dimension(3, nvctr_c), intent(in) :: gcoord
+  type(wavefunctions_descriptors), intent(out) :: wfd
+
+  character(len = *), parameter :: subname = "etsf_gcoordToWfd"
+  integer :: i, i_stat, i_all
+  logical, dimension(:,:,:), allocatable :: logrid_c, logrid_f
+
+  allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid_c,'logrid_c',subname)
+  allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid_f,'logrid_f',subname)
+
+  logrid_c(:,:,:) = .false.
+  logrid_f(:,:,:) = .false.
+  do i = 1, nvctr_c, 1
+     logrid_c(gcoord(1, i), gcoord(2, i), gcoord(3, i)) = .true.
+     if (nvctr(i) == 8) then
+        logrid_f(gcoord(1, i), gcoord(2, i), gcoord(3, i)) = .true.
+     end if
+  end do
+  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,wfd%nseg_c,wfd%nvctr_c)
+  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,wfd%nseg_f,wfd%nvctr_f)
+  
+  call allocate_wfd(wfd, subname)
+
+  call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,wfd%nseg_c,wfd%keyg(1,1),wfd%keyv(1))
+  if (wfd%nseg_f > 0) then
+     call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f, &
+          & wfd%nseg_f,wfd%keyg(1,wfd%nseg_c+1), wfd%keyv(wfd%nseg_c+1))
+  end if
+
+  i_all=-product(shape(logrid_c))*kind(logrid_c)
+  deallocate(logrid_c,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid_c',subname)
+  i_all=-product(shape(logrid_f))*kind(logrid_f)
+  deallocate(logrid_f,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid_f',subname)
+end subroutine etsf_gcoordToWfd

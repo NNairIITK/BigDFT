@@ -386,11 +386,11 @@ program memguess
            & (export_wf_iband < 1 .or. export_wf_iband > orbs%norbd))) stop "Wrong orbital"
       iorbp = (export_wf_ikpt - 1) * orbs%norb + (export_wf_ispin - 1) * orbs%norbu + export_wf_iband
 
-      call take_psi_from_file(filename_wfn,in%hx,in%hy,in%hz,Glr, &
+      call take_psi_from_file(filename_wfn,hx,hy,hz,Glr, &
            & atoms,rxyz,orbs,psi,iorbp,export_wf_ispinor)
       call filename_of_iorb(.false.,"wavefunction",orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
-      call plot_wf(filename_wfn,1,atoms,Glr,in%hx,in%hy,in%hz,rxyz, &
+      call plot_wf(filename_wfn,1,atoms,Glr,hx,hy,hz,rxyz, &
            & psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
 
       i_all=-product(shape(psi))*kind(psi)
@@ -1322,10 +1322,8 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       call memocc(i_stat,i_all,'psifscf',subname)
 
    else if (iformat == WF_FORMAT_ETSF) then
-      write(*,*) iorbp, orbs%nspinor
       call read_one_wave_etsf(0,filename,iorbp,0,orbs%nspinor,lr%d%n1,lr%d%n2,lr%d%n3,&
            & hx,hy,hz,at,rxyz_file,rxyz,lr%wfd,psi,eval_fake)
-      write(*,*) psi(1:10,2)
    end if
    i_all=-product(shape(rxyz_file))*kind(rxyz_file)
    deallocate(rxyz_file,stat=i_stat)
