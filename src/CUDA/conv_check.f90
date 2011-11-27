@@ -602,7 +602,7 @@ program conv_check_cuda
               call uncompress(n1,n1,n1,nseg,nvctr_cf,keyg,keyv,  & 
                    nseg,nvctr_cf,keyg,keyv,psi(1),psi(nvctr_cf+1),psi_in)
 
-              !call compress(n1,n1,n1,0,n1,0,n1,0,n1,nseg,mvctr_cf,keyg,keyv,  & 
+              !call compress(n1,n1,0,n1,0,n1,0,n1,nseg,mvctr_cf,keyg,keyv,  & 
               !     nseg,mvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
            end do
            call nanosec_cuda(tsc1)
@@ -698,7 +698,7 @@ program conv_check_cuda
            !take timings
            call nanosec_cuda(tsc0)
            do i=1,ntimes
-              call compress(n1,n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
+              call compress(n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
                    nseg,nvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
            end do
            call nanosec_cuda(tsc1)

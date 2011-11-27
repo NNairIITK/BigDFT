@@ -20,6 +20,7 @@
 
 program conv_check_fft
   use module_base
+  use Poisson_Solver
   implicit none
   integer  :: n1,n2,n3 !n(c) n1bis,n2bis,n3bis
   real(gp) :: hx,r2,sigma2,x,y,z,maxdiff,arg !n(c) epot,hy,hz
@@ -30,10 +31,10 @@ program conv_check_fft
   !local variables
   character(len=*), parameter :: subname='conv_check_fft'
   !n(c) character(len=50) :: chain
-  integer :: i,i_stat,j,i1,i2,i3,ntimes !n(c) i_all,i1_max,i_max,it0,it1,ndim,itimes
+  integer :: i,i_stat,j,i1,i2,i3,ntimes,i_all !n(c) i_all,i1_max,i_max,it0,it1,ndim,itimes
   integer :: l,ierror !n(c) i1s,i1e,count_rate,count_max
   real(wp) :: tt,scale
-  real(gp) :: CPUtime,GPUtime,ekin !n(c) v,p,comp
+  real(gp) :: CPUtime,GPUtime,ekin,ehartree !n(c) v,p,comp
   !n(c) real(gp), dimension(3) :: hgridh
   !n(c) real(gp), dimension(8) :: scal
   integer, dimension(:), allocatable :: modarr !n(c) keyv
@@ -45,9 +46,9 @@ program conv_check_fft
   !n(c) real(kind=8), dimension(:,:,:,:,:), allocatable :: psi_cuda_k_in,psi_cuda_k_out,psi_cuda_k_in_bis 
   !n(c) real(kind=8), dimension(:,:,:,:), allocatable :: psi_cuda_k_in_a,psi_cuda_k_out_a 
   real(kind=4), dimension(:,:,:,:), allocatable :: psi_cuda_l,v_cuda_l !temporary in view of wp 
-  real(kind=8) :: ekinGPUd
+  real(kind=8) :: ekinGPUd,ehartreeGPUd
   !n(c) real(kind=4) :: t0,t1,epotGPU,ekinGPU
-  real(kind=8) :: psi_GPU,work_GPU,work2_GPU !pointer to the GPU  memory addresses (with norb=1) !n(c) keys_GPU,v_GPU
+  real(kind=8) :: psi_GPU,work_GPU,work2_GPU,k_GPU !pointer to the GPU  memory addresses (with norb=1) !n(c) keys_GPU,v_GPU
   !n(c) real(kind=8) :: psi_c_GPU, psi_f_GPU,keyg_GPU, keyv_GPU
   real(kind=8) :: context,queue
   !n(c) integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
@@ -55,6 +56,9 @@ program conv_check_fft
   integer, parameter :: lowfilK=-14,lupfilK=14 ! kinetic term
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
   integer(kind=8) :: tsc0, tsc1
+  !objects for the 3D Poisson solver
+  real(kind=8), dimension(:), allocatable :: rhopot,rhopot2
+  real(kind=8), dimension(:), pointer :: pkernel,pkernel2
  
 !!!  !Use arguments
 !!!  call getarg(1,chain)
@@ -73,7 +77,7 @@ program conv_check_fft
   end if
 
   call ocl_create_gpu_context(context)
-  call customize_fft((/n1,n2,n3/));
+  call customize_fft((/n1,n2,n3/))
   call ocl_build_programs(context)
   call ocl_create_command_queue(queue,context)
   call init_event_list
@@ -82,48 +86,6 @@ program conv_check_fft
   !n(c) hy=0.1e0_gp
   !n(c) hz=0.1e0_gp
 
-  scale=real(-.5_gp/hx**2,wp)
-
-  ! second derivative filters for Daubechies 16
-  fil(0)=   -3.5536922899131901941296809374e0_wp*scale
-  fil(1)=    2.2191465938911163898794546405e0_wp*scale
-  fil(2)=   -0.6156141465570069496314853949e0_wp*scale
-  fil(3)=    0.2371780582153805636239247476e0_wp*scale
-  fil(4)=   -0.0822663999742123340987663521e0_wp*scale
-  fil(5)=    0.02207029188482255523789911295638968409e0_wp*scale
-  fil(6)=   -0.409765689342633823899327051188315485e-2_wp*scale
-  fil(7)=    0.45167920287502235349480037639758496e-3_wp*scale
-  fil(8)=   -0.2398228524507599670405555359023135e-4_wp*scale
-  fil(9)=    2.0904234952920365957922889447361e-6_wp*scale
-  fil(10)=  -3.7230763047369275848791496973044e-7_wp*scale
-  fil(11)=  -1.05857055496741470373494132287e-8_wp*scale
-  fil(12)=  -5.813879830282540547959250667e-11_wp*scale
-  fil(13)=   2.70800493626319438269856689037647576e-13_wp*scale
-  fil(14)=  -6.924474940639200152025730585882e-18_wp*scale
-
-!!!  ! second derivative filters for Daubechies 16
-!!!  fil(0)=    0.e-3_wp*scale
-!!!  fil(1)=    1.e-3_wp*scale
-!!!  fil(2)=    2.e-3_wp*scale
-!!!  fil(3)=    3.e-3_wp*scale
-!!!  fil(4)=    4.e-3_wp*scale
-!!!  fil(5)=    5.e-3_wp*scale
-!!!  fil(6)=    6.e-3_wp*scale
-!!!  fil(7)=    7.e-3_wp*scale
-!!!  fil(8)=    8.e-3_wp*scale
-!!!  fil(9)=    9.e-3_wp*scale
-!!!  fil(10)=  10.e-3_wp*scale
-!!!  fil(11)=  11.e-3_wp*scale
-!!!  fil(12)=  12.e-3_wp*scale
-!!!  fil(13)=  13.e-3_wp*scale
-!!!  fil(14)=  14.e-3_wp*scale
-
-
-  do i=1,14
-     fil(-i)=fil(i)
-  enddo
-
-  ekin=0.0_wp
   
    !allocate arrays
    allocate(psi_in(2,n1,n2*n3,1+ndebug),stat=i_stat)
@@ -143,6 +105,10 @@ program conv_check_fft
    call memocc(i_stat,psi_cuda_l,'psi_cuda_l',subname)
    allocate(v_cuda_l(2,n2*n3,n1,1+ndebug),stat=i_stat)
    call memocc(i_stat,v_cuda_l,'v_cuda_l',subname)
+   allocate(rhopot(n1*n2*n3+ndebug),stat=i_stat)
+   call memocc(i_stat,rhopot,'rhopot',subname)
+   allocate(rhopot2(n1*n2*n3+ndebug),stat=i_stat)
+   call memocc(i_stat,rhopot2,'rhopot2',subname)
 
    !initialise array
    sigma2=0.25d0*((n1*hx)**2)
@@ -159,6 +125,14 @@ program conv_check_fft
         end do
       end do
    end do
+
+   !initialize rhopots
+   call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot(1),1)
+!   call to_zero(2*n1*n2*n3,rhopot2(1))
+   call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot2(1),1)
+
+   !call to_zero(2*n1*n2*n3,rhopot2(1))
+   !call to_zero(n1*n2*n3,rhopot(1))
 
    !the input and output arrays must be reverted in this implementation
    do i=1,n2*n3
@@ -180,10 +154,10 @@ program conv_check_fft
    call fft_1d_ctoc(-1,n2*n3,n1,v_cuda_str,i3)
    call nanosec(tsc1);
 
-   CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-   call print_time(CPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
+   CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
+   call print_time(CPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
 
-  write(*,'(a,i6,i6)')'GPU FFT, dimensions:',n1,n2*n3
+   write(*,'(a,i6,i6)')'GPU FFT, dimensions:',n1,n2*n3
 
    call ocl_create_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, 2*n1*n2*n3*8, work_GPU)
@@ -229,9 +203,9 @@ program conv_check_fft
    call FFT(n1,n2,n3,n1,n2,n3,v_cuda_str,-1,i3)
    call nanosec(tsc1);
 
-   CPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
-     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
+     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
 
    write(*,'(a,i6,i6,i6)')'GPU 3D FFT, dimensions:',n1,n2,n3
@@ -267,10 +241,9 @@ program conv_check_fft
    call FFT(n1,n2,n3,n1,n2,n3,v_cuda_str,1,i3)
    call nanosec(tsc1);
 
-   CPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
-     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
-
+     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    write(*,'(a,i6,i6,i6)')'GPU 3D Reverse FFT, dimensions:',n1,n2,n3
 
@@ -297,7 +270,72 @@ program conv_check_fft
    call compare_3D_cplx_results(n1, n2, n3, psi_in, psi_cuda, maxdiff, 3.d-7)
    call compare_time(CPUtime,GPUtime,n1*n2*n3,5 * (log(real(n1,kind=8))+&
      log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
- 
+
+   
+   !Poisson Solver
+    write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver, dimensions:',n1,n2,n3
+   !calculate the kernel in parallel for each processor
+   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,quiet='yes') 
+
+   !call to_zero(size(pkernel),pkernel(1))
+   !pkernel(1:size(pkernel))=1.0_dp
+
+   call nanosec(tsc0);
+   call H_potential('P','D',0,1,n1,n2,n3,0.2d0,0.2d0,0.2d0,&
+        rhopot,pkernel,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   call nanosec(tsc1);
+   CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
+   call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
+        log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
+
+   !here the GPU part
+   write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver, dimensions:',n1,n2,n3
+
+   !transpose the kernel before copying
+   call transpose_kernel_forGPU('P',n1,n2,n3,pkernel,pkernel2)
+   !pkernel2(1:size(pkernel2))=1.0_dp
+   call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
+   call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
+   call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, work2_GPU)
+   call ocl_create_read_write_buffer(context, n1*n2*n3*8, k_GPU)
+   call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, rhopot2)!v_cuda)!
+   call ocl_enqueue_write_buffer(queue, k_GPU, n1*n2*n3*8, pkernel2)!v_cuda)!
+
+   call nanosec(tsc0);
+   do i=1,ntimes
+      call fft3d_k_r2c_d(queue,(/n1,n2,n3/),work_GPU,psi_GPU,work2_GPU,k_GPU)
+      call fft3d_r_c2r_d(queue,(/n1,n2,n3/),psi_GPU,work2_GPU,psi_GPU)
+   end do
+   call ocl_finish(queue);
+   call nanosec(tsc1);
+
+   call ocl_enqueue_read_buffer(queue, work2_GPU, n1*n2*n3*8, rhopot2(1))
+   call ocl_release_mem_object(k_GPU)
+   call ocl_release_mem_object(psi_GPU)
+   call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(work2_GPU)
+
+   GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
+!   call vcopy(n1*n2*n3,psi_cuda(1,1,1,1),2,rhopot2(1),1)
+   call compare_3D_results(n1, n2, n3, rhopot(1), rhopot2(1), maxdiff, 3.d-7)
+   call compare_time(CPUtime,GPUtime,n1*n2*n3,2*5 * (log(real(n1,kind=8))+&
+        log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
+
+
+
+   i_all=-product(shape(pkernel))*kind(pkernel)
+   deallocate(pkernel,stat=i_stat)
+   call memocc(i_stat,i_all,'pkernel',subname)
+  i_all=-product(shape(rhopot))*kind(rhopot)
+  deallocate(rhopot,stat=i_stat)
+  call memocc(i_stat,i_all,'rhopot',subname)
+  i_all=-product(shape(rhopot2))*kind(rhopot2)
+  deallocate(rhopot2,stat=i_stat)
+  call memocc(i_stat,i_all,'rhopot2',subname)
+  i_all=-product(shape(pkernel2))*kind(pkernel2)
+  deallocate(pkernel2,stat=i_stat)
+  call memocc(i_stat,i_all,'pkernel2',subname)
 
 
   call print_event_list
@@ -516,77 +554,56 @@ contains
     end do
   end subroutine compare_1D_results
 
-  subroutine conv_kin_x(x,y,ndat,ekin)
+  subroutine transpose_kernel_forGPU(geocode,n01,n02,n03,pkernel,pkernel2)
+    use module_base
+    use Poisson_Solver
     implicit none
-    integer,intent(in)::ndat
-    real(wp),intent(in):: x(0:n1-1,ndat)
-    real(wp),intent(out)::y(ndat,0:n1-1)
-    real(wp),intent(inout)::ekin
-    real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
+    integer, intent(in) :: n01,n02,n03
+    character(len=*), intent(in) :: geocode
+    real(dp), dimension(*), intent(in) :: pkernel
+    real(dp), dimension(:), pointer :: pkernel2
+    !local variables
+    character(len=*), parameter :: subname='transpose_kernel_forGPU'
+    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,nproc,i1,i2,i3,ind,indt
+    integer :: j1,j2,j3,i_stat
 
-    !$omp do
-    do i=0,ndat/12-1
-       do i1=0,n1-1
-          tt1=0.e0_wp
-          tt2=0.e0_wp
-          tt3=0.e0_wp
-          tt4=0.e0_wp
-          tt5=0.e0_wp
-          tt6=0.e0_wp
-          tt7=0.e0_wp
-          tt8=0.e0_wp
-          tt9 =0.e0_wp
-          tt10=0.e0_wp
-          tt11=0.e0_wp
-          tt12=0.e0_wp
+    !only makes sense in serial for the moment
+    nproc=1
+    !calculate the dimensions wrt the geocode
+    if (geocode == 'P') then
+       call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+    else if (geocode == 'S') then
+       call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+    else if (geocode == 'F') then
+       call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+    else
+       stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
+    end if
 
-          do l=lowfilK,lupfilK
-             j=modarr(i1+l)
+    allocate(pkernel2(n1*n2*n3+ndebug),stat=i_stat)
+    call memocc(i_stat,pkernel2,'pkernel2',subname)
 
-             tt1=tt1+x(j,i*12+1)*fil(l)
-             tt2=tt2+x(j,i*12+2)*fil(l)
-             tt3=tt3+x(j,i*12+3)*fil(l)
-             tt4=tt4+x(j,i*12+4)*fil(l)
-             tt5=tt5+x(j,i*12+5)*fil(l)
-             tt6=tt6+x(j,i*12+6)*fil(l)
-             tt7=tt7+x(j,i*12+7)*fil(l)
-             tt8=tt8+x(j,i*12+8)*fil(l)
-             tt9 =tt9 +x(j,i*12+9 )*fil(l)
-             tt10=tt10+x(j,i*12+10)*fil(l)
-             tt11=tt11+x(j,i*12+11)*fil(l)
-             tt12=tt12+x(j,i*12+12)*fil(l)
-          enddo
-          y(i*12+1 ,i1)=tt1;	 ekin=ekin+tt1*x(i1,i*12+1)
-          y(i*12+2 ,i1)=tt2;	 ekin=ekin+tt2*x(i1,i*12+2)
-          y(i*12+3 ,i1)=tt3;	 ekin=ekin+tt3*x(i1,i*12+3)
-          y(i*12+4 ,i1)=tt4;	 ekin=ekin+tt4*x(i1,i*12+4)
-          y(i*12+5 ,i1)=tt5;	 ekin=ekin+tt5*x(i1,i*12+5)
-          y(i*12+6 ,i1)=tt6;	 ekin=ekin+tt6*x(i1,i*12+6)
-          y(i*12+7 ,i1)=tt7;	 ekin=ekin+tt7*x(i1,i*12+7)
-          y(i*12+8 ,i1)=tt8;	 ekin=ekin+tt8*x(i1,i*12+8)
-          y(i*12+9 ,i1)=tt9 ;	 ekin=ekin+tt9 *x(i1,i*12+9 )
-          y(i*12+10,i1)=tt10;	 ekin=ekin+tt10*x(i1,i*12+10)
-          y(i*12+11,i1)=tt11;	 ekin=ekin+tt11*x(i1,i*12+11)
-          y(i*12+12,i1)=tt12;	 ekin=ekin+tt12*x(i1,i*12+12)
-       enddo
-    enddo
-    !$omp end do
 
-    !$omp do
-    do i=(ndat/12)*12+1,ndat
-       do i1=0,n1-1
-          tt=0.e0_wp
-          do l=lowfilK,lupfilK
-             j=modarr(i1+l)
-             tt=tt+x(j   ,i)*fil(l)
-          enddo
-          y(i,i1)=tt ; ekin=ekin+tt*x(i1,i)
-       enddo
-    enddo
-    !$omp end do
-  end subroutine conv_kin_x
+    do i3=1,n3
+       j3=i3+(i3/(n3/2+2))*(n3+2-2*i3)!injective dimension
+       do i2=1,n2
+          j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)!injective dimension
+          do i1=1,n1
+             j1=i1+(i1/(n1/2+2))*(n1+2-2*i1)!injective dimension
+             !injective index
+             ind=j1+(j2-1)*nd1+(j3-1)*nd1*nd2
+             !unfolded index
+             indt=i1+(i3-1)*n1+(i2-1)*n1*n3             
+             pkernel2(indt)=pkernel(ind)
+          end do
+       end do
+    end do
+    !offset to zero
+    pkernel2(1)=0.0_dp
 
+  end subroutine transpose_kernel_forGPU
  
 end program conv_check_fft
+
 
 !!***

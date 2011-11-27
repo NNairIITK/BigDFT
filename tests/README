@@ -21,6 +21,7 @@ MDanalysis:  browse the posout files generated during a molecular dynamic to com
              like the radial distribution g(r).
 bart:        EXPERIMENTAL, ART implementation using BigDFT for the force calculation.
 abscalc:     EXPERIMENTAL, compute XANES spectrum.
+splsad:      EXPERIMENTAL, use spline saddle search method
 
 
 Read the manual for more information or go to the web siet http://inac.cea.fr/L_Sim/BigDFT

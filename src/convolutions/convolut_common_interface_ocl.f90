@@ -32,13 +32,12 @@ subroutine init_acceleration_OCL(GPU)
 END SUBROUTINE init_acceleration_OCL
 
 
-subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
+subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   use module_base
   use module_types
   implicit none
   character(len=1), intent (in) :: geocode
   integer, intent(in) :: n1,n2,n3,nspin
-  real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs
   type(GPU_pointers), intent(out) :: GPU
@@ -210,11 +209,11 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
 
 END SUBROUTINE free_gpu_OCL
 
-subroutine daub_to_isf_OCL(orbs,lr,psi,psi_r,GPU)
+
+subroutine daub_to_isf_OCL(lr,psi,psi_r,GPU)
   use module_base
   use module_types
   
-  type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)), intent(in) :: psi
@@ -263,11 +262,11 @@ subroutine daub_to_isf_OCL(orbs,lr,psi,psi_r,GPU)
 
 END SUBROUTINE daub_to_isf_OCL
 
-subroutine isf_to_daub_OCL(orbs,lr,psi_r,psi,GPU)
+
+subroutine isf_to_daub_OCL(lr,psi_r,psi,GPU)
   use module_base
   use module_types
   
-  type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)), intent(out) :: psi
@@ -317,14 +316,12 @@ subroutine isf_to_daub_OCL(orbs,lr,psi_r,psi,GPU)
 END SUBROUTINE isf_to_daub_OCL
 
 
-
-
-subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
+subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nspin
+  integer, intent(in) :: nspin
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
@@ -471,12 +468,13 @@ subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
 
 END SUBROUTINE finish_hamiltonian_OCL
 
-subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
+
+subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   use module_base
   use module_types
   implicit none
   type(orbitals_data), intent(in) :: orbs
-  integer, intent(in) :: iproc,nproc,ncong
+  integer, intent(in) :: ncong
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   real(dp), intent(out) :: gnrm,gnrm_zero
@@ -626,17 +624,16 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
   deallocate(b,stat=i_stat)
   call memocc(i_stat,i_all,'b',subname)
 
-
-
 END SUBROUTINE preconditionall_OCL
 
-subroutine local_partial_density_OCL(iproc,nproc,orbs,&
+
+subroutine local_partial_density_OCL(orbs,&
      nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   use module_base
   use module_types
   use module_interfaces
   implicit none
-  integer, intent(in) :: iproc,nproc,nrhotot
+  integer, intent(in) :: nrhotot
   type(orbitals_data), intent(in) :: orbs
   integer, intent(in) :: nspin
   real(gp), intent(in) :: hxh,hyh,hzh

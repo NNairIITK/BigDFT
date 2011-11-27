@@ -13,13 +13,6 @@
 #include <pmmintrin.h>
 #include <time.h>
 
-void nanosec_(long long unsigned int * t){
-  struct timespec time;
-  clock_gettime(CLOCK_REALTIME, &time);
-  *t = time.tv_sec;
-  *t *= 1000000000;
-  *t += time.tv_nsec;
-}
 
 const double filter[] __attribute__ ((aligned (16))) = { 8.4334247333529341094733325815816e-7,
                        -0.1290557201342060969516786758559028e-4,

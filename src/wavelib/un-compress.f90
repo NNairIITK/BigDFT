@@ -1,7 +1,7 @@
 !> @file
 !!  Routines of compression and uncompression of the wavefunctions
 !! @author
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -9,13 +9,13 @@
 
 
 !> Compresses a psig wavefunction into psi_c,psi_f form
-subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, & 
+subroutine compress(n1,n2,nl1,nu1,nl2,nu2,nl3,nu3, & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      psig,psi_c,psi_f)
   use module_base
   implicit none
-  integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3
+  integer, intent(in) :: n1,n2,nl1,nu1,nl2,nu2,nl3,nu3
   integer, intent(in) :: mseg_c,mvctr_c,mseg_f,mvctr_f
   integer, dimension(mseg_c), intent(in) :: keyv_c
   integer, dimension(mseg_f), intent(in) :: keyv_f
@@ -94,7 +94,7 @@ subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   integer, dimension(2,nseg_f), intent(in) :: keyg_f
   real(wp), dimension(nvctr_c), intent(in) :: psi_c
   real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
-  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
+  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(out) :: psig
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
@@ -150,14 +150,12 @@ END SUBROUTINE uncompress
 
 
 subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & !n(c) mvctr_c, mvctr_f (arg:11,15)
-     mseg_c,keyg_c,keyv_c,  &
-     mseg_f,keyg_f,keyv_f,  & 
+     mseg_c,keyg_c,  &
+     mseg_f,keyg_f,  & 
      psig_c,psig_f)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,mseg_c,mseg_f !n(c) mvctr_c,mvctr_f 
-  integer, dimension(mseg_c), intent(in) :: keyv_c
-  integer, dimension(mseg_f), intent(in) :: keyv_f
   integer, dimension(2,mseg_c), intent(in) :: keyg_c
   integer, dimension(2,mseg_f), intent(in) :: keyg_f
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: psig_c
@@ -295,7 +293,8 @@ subroutine uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
-  !$omp parallel default(private) shared(scal,psig_c,psig_f,x_f1,x_f2,x_f3)&
+  !$omp parallel default(private) &
+  !$omp shared(scal,psig_c,psig_f,x_f1,x_f2,x_f3) &
   !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,mseg_c,mseg_f)
   ! coarse part
   !$omp do
@@ -348,12 +347,12 @@ subroutine uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
 END SUBROUTINE uncompress_forstandard
 
 
-subroutine uncompress_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+subroutine uncompress_f(n1,n2,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      scal,psi_f,psig_f)
   use module_base
   implicit none
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,mseg_f,mvctr_f
+  integer, intent(in) :: n1,n2,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,mseg_f,mvctr_f
   integer, dimension(mseg_f), intent(in) :: keyv_f
   integer, dimension(2,mseg_f), intent(in) :: keyg_f
   real(wp), dimension(0:3), intent(in) :: scal
@@ -387,12 +386,12 @@ subroutine uncompress_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
 END SUBROUTINE uncompress_f
 
 
-subroutine compress_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+subroutine compress_f(n1,n2,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      scal,psig_f,psi_f)
   use module_base
   implicit none
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,mseg_f,mvctr_f
+  integer, intent(in) :: n1,n2,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,mseg_f,mvctr_f
   integer, dimension(mseg_f), intent(in) :: keyv_f
   integer, dimension(2,mseg_f), intent(in) :: keyg_f
   real(wp), dimension(0:3), intent(in) :: scal
@@ -446,7 +445,8 @@ subroutine compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
-  !$omp parallel default(private) shared(scal,psig_c,psig_f)&
+  !$omp parallel default(private) &
+  !$omp shared(scal,psig_c,psig_f) &
   !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,mseg_c,mseg_f)
   ! coarse part
   !$omp do
@@ -647,14 +647,15 @@ subroutine compress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   integer, dimension(2,nseg_c), intent(in) :: keyg_c
   integer, dimension(2,nseg_f), intent(in) :: keyg_f
   real(wp), dimension(0:7), intent(in) :: scal
-  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psifscf
+  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(in) :: psifscf
   real(wp), dimension(nvctr_c), intent(out) :: psi_c
   real(wp), dimension(7,nvctr_f), intent(out) :: psi_f
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
   !$omp parallel default(private) &
-  !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal)
+  !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal) &
+  !$omp shared(psifscf)
   
   ! coarse part
   !$omp do
@@ -722,7 +723,8 @@ subroutine uncompress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
   !$omp parallel default(private) &
-  !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal)
+  !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal) &
+  !$omp shared(psifscf)
   
   call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psifscf)
 
@@ -1069,7 +1071,7 @@ END SUBROUTINE compress_sd_scal
 
 
 !> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-!! into fine scaling functions (psifscf)
+!! into fine scaling functions
 subroutine uncompress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psig)
@@ -1082,7 +1084,7 @@ subroutine uncompress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   integer, dimension(2,nseg_f), intent(in) :: keyg_f
   real(wp), dimension(nvctr_c), intent(in) :: psi_c
   real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
-  real(wp), dimension(0:7,0:n1,0:n2,0:n3), intent(inout) :: psig
+  real(wp), dimension(0:7,0:n1,0:n2,0:n3), intent(out) :: psig
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
@@ -1150,7 +1152,7 @@ subroutine compress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   integer, dimension(nseg_f), intent(in) :: keyv_f
   integer, dimension(2,nseg_c), intent(in) :: keyg_c
   integer, dimension(2,nseg_f), intent(in) :: keyg_f
-  real(wp), dimension(0:7,0:n1,0:n2,0:n3), intent(inout) :: psig
+  real(wp), dimension(0:7,0:n1,0:n2,0:n3), intent(in) :: psig
   real(wp), dimension(nvctr_c), intent(out) :: psi_c
   real(wp), dimension(7,nvctr_f), intent(out) :: psi_f
   !local variables

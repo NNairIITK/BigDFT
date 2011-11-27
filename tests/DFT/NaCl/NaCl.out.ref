@@ -21,12 +21,13 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.6-dev.7)
+                           ggggg       i         BBBB                (Ver 1.6-dev.11)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- |... (file:input.perf.. not present)............................Performance Options 
+
+ |... (file:input.perf)...........................................Performance Options
  |debug F                    Debug option
  |fftcache 8192              Cache size for the FFT
  |accel NO                   Acceleration (NO, CUDAGPU, OCLGPU)
@@ -39,11 +40,13 @@
  |ig_tol  1.00E-04           Input guess: Tolerance criterion
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
+ |verbosity 0                verbosity of the output 0=low, 2=high
+ |psp_onfly T                Calculate pseudopotential projectors on the fly
  |... (file:input.dft).....................................DFT Calculation Parameters
- |0.550 0.550 0.550 hx,hy,hz: grid spacing in the three directions                   
+ |0.550 0.550 0.550  hx,hy,hz: grid spacing in the three directions                  
  |6.0 10.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
  |1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                  
- |0 0.0          ncharge: charge of the system, Electric field                       
+ |0 0.0   0.0 0. charge of the system, Electric field (Ex,Ey,Ez)                     
  |1  0           nspin=1 non-spin polarization, mpol=total magnetic moment           
  |1.E-04         gnrm_cv: convergence criterion gradient                             
  |100 10         itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs     
@@ -52,7 +55,6 @@
  |10 1  0        InputPsiId, output_wf, output_grid                                  
  |0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations          
  |0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs           
- |0              verbosity of the output 0=low, 2=high                               
  |T              disable the symmetry detection                                      
  |... (file:input.kpt.. not present)..............Brillouin Zone Sampling Parameters 
  |manual         K-point sampling method                                             
@@ -62,8 +64,8 @@
  |0              Mixing parameters                                                   
  |1              Maximum number of diagonalisation iterations                        
  |1.e-4          Stop criterion on the residue of potential or density               
- |0 0.0          Number of additional bands, electronic temperature                  
- |0.0 2.0        Multiplying factors for the mixing and the elctronic DIIS           
+ |0 0.0 1        No. of additional bands, elec. temperature, smearing method         
+ |0.0 2.0        Multiplying factors for the mixing and the electronic DIIS          
  |... (file:input.geopt)..........................................Geometry Parameters
  |VSSD           Geometry optimisation method                                        
  |4              Maximum number of force evaluations                                 
@@ -91,8 +93,8 @@
         algorithm=VSSD    |   Max. in forces=1.0E-04 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=1.0E+02 |
 
- Number of MPI processes 2
- Number of maximal OpenMP threads per MPI process 2
+ Number of MPI processes 1
+ MPI process does not use OpenMP
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
@@ -126,7 +128,6 @@
      l=1      rl        h1j       h2j       h3j 
             0.37614   4.46588
  Total Number of Electrons        8
- Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -139,7 +140,7 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1831 points=     59239
    Fine resolution grid: Number of segments=        117 points=       961
- Wavefunctions memory occupation for root processor (Bytes): 1055456
+ Wavefunctions memory occupation for root processor (Bytes): 2110912
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -151,62 +152,57 @@
  ion-ion interaction energy  8.49102048812929E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 5 Atomic Input Orbitals
- Processes from 0 to 0 treat 3 inguess orbitals 
- Processes from 1 to 1 treat 2 inguess orbitals 
- Wavefunctions memory occupation for root processor (Bytes): 1583184
+ Wavefunctions memory occupation for root processor (Bytes): 2638640
  Deviation from normalization of the imported orbitals    1.21E-04
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  ekin_sum,epot_sum,eproj_sum  5.70847696520E+00 -1.21001695492E+01  3.24729536429E+00
     ehart,   eexcu,    vexcu  1.36713436985E+01 -2.86282299835E+00 -3.74291950990E+00
  Direct diagonalization...
- evale(1)= -7.47600409609780E-01 <-
- evale(2)= -3.09515053273828E-01 <-
- evale(3)= -3.08625067614838E-01 <-
- evale(4)= -3.08625067614834E-01 <- Last InputGuess eval, H-L IG gap:   5.6502 eV
- evale(5)= -1.00985525209742E-01 <- First virtual eval
+ evale(1)= -7.47600409609781E-01 <-
+ evale(2)= -3.09515053273830E-01 <-
+ evale(3)= -3.08625067614840E-01 <-
+ evale(4)= -3.08625067614835E-01 <- Last InputGuess eval, H-L IG gap:   5.6502 eV
+ evale(5)= -1.00985525209745E-01 <- First virtual eval
  expected accuracy in energy  6.55E-04
  expected accuracy in energy per orbital  1.64E-04
- iter,total energy,gnrm     1  -1.50926713879705172E+01  1.06E-01
- iter,total energy,gnrm     2  -1.51667803931909138E+01  3.44E-02
- iter,total energy,gnrm     3  -1.51729431260618330E+01  1.13E-02
- iter,total energy,gnrm     4  -1.51761518387000702E+01  8.08E-03
- iter,total energy,gnrm     5  -1.51769734597573862E+01  7.12E-03
- iter,total energy,gnrm     6  -1.51774782873225842E+01  6.23E-03
- iter,total energy,gnrm     7  -1.51786556433667545E+01  6.69E-03
- iter,total energy,gnrm     8  -1.51799840444076484E+01  4.59E-03
- iter,total energy,gnrm     9  -1.51800138053282740E+01  6.57E-03
- iter,total energy,gnrm    10  -1.51803733466245152E+01  6.10E-03
- iter,total energy,gnrm    11  -1.51808656596605527E+01  2.16E-03
- iter,total energy,gnrm    12  -1.51808529117088167E+01  8.97E-04
- iter,total energy,gnrm    13  -1.51808774293950126E+01  4.28E-04
- iter,total energy,gnrm    14  -1.51808769653326561E+01  2.55E-04
- iter,total energy,gnrm    15  -1.51808783394943472E+01  1.31E-04
- iter,total energy,gnrm    16  -1.51808783593223691E+01  5.28E-05
+ iter,total energy,gnrm     1  -1.50926713879702863E+01  1.06E-01
+ iter,total energy,gnrm     2  -1.51667803931908924E+01  3.44E-02
+ iter,total energy,gnrm     3  -1.51729431260616945E+01  1.13E-02
+ iter,total energy,gnrm     4  -1.51761518387000418E+01  8.08E-03
+ iter,total energy,gnrm     5  -1.51769734597574892E+01  7.12E-03
+ iter,total energy,gnrm     6  -1.51774782873224527E+01  6.23E-03
+ iter,total energy,gnrm     7  -1.51786556433668931E+01  6.69E-03
+ iter,total energy,gnrm     8  -1.51799840444077230E+01  4.59E-03
+ iter,total energy,gnrm     9  -1.51800138053281461E+01  6.57E-03
+ iter,total energy,gnrm    10  -1.51803733466244974E+01  6.10E-03
+ iter,total energy,gnrm    11  -1.51808656596602614E+01  2.16E-03
+ iter,total energy,gnrm    12  -1.51808529117087811E+01  8.97E-04
+ iter,total energy,gnrm    13  -1.51808774293949522E+01  4.28E-04
+ iter,total energy,gnrm    14  -1.51808769653327129E+01  2.55E-04
+ iter,total energy,gnrm    15  -1.51808783394942335E+01  1.31E-04
+ iter,total energy,gnrm    16  -1.51808783593223655E+01  5.28E-05
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   5.69569435287E+00 -1.09271656658E+01  3.17702945013E+00
- final ehart, eexcu,  vexcu   1.48914015427E+01 -2.97858636666E+00 -3.89444935196E+00
- FINAL iter,total energy,gnrm    17  -1.51808783714025157E+01  5.28E-05
+ FINAL iter,total energy,gnrm    17  -1.51808783714024482E+01  5.28E-05
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -5.75534623104109E-01 2.0000
- e(   2)= -1.58566282660262E-01 2.0000
+ e(   1)= -5.75534623104115E-01 2.0000
+ e(   2)= -1.58566282660261E-01 2.0000
  e(   3)= -1.46560012826448E-01 2.0000
  e(   4)= -1.46560012826448E-01 2.0000
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  average noise along x direction:  -2.14837600E-04
  average noise along y direction:  -2.14837600E-04
  average noise along z direction:  -2.14837600E-04
  total average noise            :   3.72109639E-04
  clean forces norm (Ha/Bohr): maxval=  1.522327404164E-02  fnrm2=  2.317480725469E-04
- raw forces:                  maxval=  1.548639529043E-02  fnrm2=  4.636346106769E-04
- CPU time/ELAPSED time for root process     0        28.23        52.41
+ raw forces:                  maxval=  1.548639529042E-02  fnrm2=  4.636346106770E-04
+ CPU time/ELAPSED time for root process     0       119.77       119.44
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
-Warning: no possibility of archive, compile BigDFT with libarchive.
  Begin of minimization using  VSSD      
  # ENTERING VSSD
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -240,7 +236,6 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
      l=1      rl        h1j       h2j       h3j 
             0.37614   4.46588
  Total Number of Electrons        8
- Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -253,7 +248,7 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1831 points=     59239
    Fine resolution grid: Number of segments=        117 points=       961
- Wavefunctions memory occupation for root processor (Bytes): 1055456
+ Wavefunctions memory occupation for root processor (Bytes): 2110912
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -265,30 +260,28 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  ion-ion interaction energy  8.49102048812929E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions do not need reformatting and can be imported directly...    done.
- iter,total energy,gnrm     1  -1.51808783714027999E+01  1.51E-05
+ iter,total energy,gnrm     1  -1.51808783714025051E+01  1.51E-05
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   5.69570040884E+00 -1.09271603156E+01  3.17703354328E+00
- final ehart, eexcu,  vexcu   1.48914177477E+01 -2.97858862233E+00 -3.89445231127E+00
- FINAL iter,total energy,gnrm     2  -1.51808783734395707E+01  1.51E-05
+ FINAL iter,total energy,gnrm     2  -1.51808783734393398E+01  1.51E-05
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -5.75532451854817E-01 2.0000
- e(   2)= -1.58564568653469E-01 2.0000
- e(   3)= -1.46558080617392E-01 2.0000
- e(   4)= -1.46558080617391E-01 2.0000
+ e(   1)= -5.75532451854819E-01 2.0000
+ e(   2)= -1.58564568653468E-01 2.0000
+ e(   3)= -1.46558080617393E-01 2.0000
+ e(   4)= -1.46558080617392E-01 2.0000
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  average noise along x direction:  -2.13428299E-04
  average noise along y direction:  -2.13428299E-04
  average noise along z direction:  -2.13428299E-04
  total average noise            :   3.69668658E-04
- clean forces norm (Ha/Bohr): maxval=  1.522196795330E-02  fnrm2=  2.317083083712E-04
- raw forces:                  maxval=  1.548336316788E-02  fnrm2=  4.635532716587E-04
- CPU time/ELAPSED time for root process     0         4.91         8.75
-    0     0  GEOPT_VSSD  -1.51808783734396E+01  -1.52E+01  1.522E-02  1.52E-02  0.00E+00  3.70E-04  beta= 1.00E+2
+ clean forces norm (Ha/Bohr): maxval=  1.522196795330E-02  fnrm2=  2.317083083714E-04
+ raw forces:                  maxval=  1.548336316788E-02  fnrm2=  4.635532716592E-04
+ CPU time/ELAPSED time for root process     0        19.19        19.13
+    0     0  GEOPT_VSSD  -1.51808783734393E+01  -1.52E+01  1.522E-02  1.52E-02  0.00E+00  3.70E-04  beta= 1.00E+2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -320,7 +313,6 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
      l=1      rl        h1j       h2j       h3j 
             0.37614   4.46588
  Total Number of Electrons        8
- Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -333,7 +325,7 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1804 points=     58142
    Fine resolution grid: Number of segments=        120 points=       979
- Wavefunctions memory occupation for root processor (Bytes): 1039936
+ Wavefunctions memory occupation for root processor (Bytes): 2079840
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -342,49 +334,47 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  1.04138673264737E+00
+ ion-ion interaction energy  1.04138673264749E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   59239   58142
  Reformatting... done.
- iter,total energy,gnrm     1  -1.26418564362081511E+01  9.17E-01
- iter,total energy,gnrm     2  -1.47400840217983458E+01  3.55E-01
- iter,total energy,gnrm     3  -1.50865881867977727E+01  2.09E-01
- iter,total energy,gnrm     4  -1.51738639175594408E+01  1.08E-01
- iter,total energy,gnrm     5  -1.52018220905275143E+01  4.70E-02
- iter,total energy,gnrm     6  -1.52084413714798181E+01  1.79E-02
- iter,total energy,gnrm     7  -1.52095792765491744E+01  8.48E-03
- iter,total energy,gnrm     8  -1.52100709765762687E+01  3.76E-03
- iter,total energy,gnrm     9  -1.52102005137070968E+01  3.90E-03
- iter,total energy,gnrm    10  -1.52102498775471524E+01  2.87E-03
- iter,total energy,gnrm    11  -1.52102736706613371E+01  1.75E-03
- iter,total energy,gnrm    12  -1.52102818191600484E+01  4.61E-04
- iter,total energy,gnrm    13  -1.52102824480759438E+01  2.19E-04
- iter,total energy,gnrm    14  -1.52102825796127199E+01  1.21E-04
- iter,total energy,gnrm    15  -1.52102826173133714E+01  4.95E-05
+ iter,total energy,gnrm     1  -1.26418564362057282E+01  9.17E-01
+ iter,total energy,gnrm     2  -1.47400840217977809E+01  3.55E-01
+ iter,total energy,gnrm     3  -1.50865881867976537E+01  2.09E-01
+ iter,total energy,gnrm     4  -1.51738639175595278E+01  1.08E-01
+ iter,total energy,gnrm     5  -1.52018220905274593E+01  4.70E-02
+ iter,total energy,gnrm     6  -1.52084413714798909E+01  1.79E-02
+ iter,total energy,gnrm     7  -1.52095792765493893E+01  8.48E-03
+ iter,total energy,gnrm     8  -1.52100709765762989E+01  3.76E-03
+ iter,total energy,gnrm     9  -1.52102005137071910E+01  3.90E-03
+ iter,total energy,gnrm    10  -1.52102498775472359E+01  2.87E-03
+ iter,total energy,gnrm    11  -1.52102736706612962E+01  1.75E-03
+ iter,total energy,gnrm    12  -1.52102818191598868E+01  4.61E-04
+ iter,total energy,gnrm    13  -1.52102824480759775E+01  2.19E-04
+ iter,total energy,gnrm    14  -1.52102825796127785E+01  1.21E-04
+ iter,total energy,gnrm    15  -1.52102826173132524E+01  4.95E-05
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   5.69562410290E+00 -1.10040121228E+01  3.17329231242E+00
- final ehart, eexcu,  vexcu   1.50372003360E+01 -2.99421347456E+00 -3.91484016012E+00
- FINAL iter,total energy,gnrm    16  -1.52102826252747363E+01  4.95E-05
+ FINAL iter,total energy,gnrm    16  -1.52102826252747523E+01  4.95E-05
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -5.84376408070776E-01 2.0000
- e(   2)= -1.70581760586871E-01 2.0000
- e(   3)= -1.56294842552207E-01 2.0000
- e(   4)= -1.56294842552206E-01 2.0000
+ e(   1)= -5.84376408070785E-01 2.0000
+ e(   2)= -1.70581760586886E-01 2.0000
+ e(   3)= -1.56294842552219E-01 2.0000
+ e(   4)= -1.56294842552219E-01 2.0000
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  average noise along x direction:  -1.33276740E-04
  average noise along y direction:  -1.33276740E-04
  average noise along z direction:  -1.33276740E-04
  total average noise            :   2.30842085E-04
- clean forces norm (Ha/Bohr): maxval=  2.362673659190E-02  fnrm2=  5.582226819828E-04
- raw forces:                  maxval=  2.378996659553E-02  fnrm2=  1.116498652034E-03
- CPU time/ELAPSED time for root process     0        25.47        47.56
-    2     1  GEOPT_VSSD  -1.52102826252747E+01  -2.94E-02  2.363E-02  2.36E-02  0.00E+00  3.42E-04  beta= 1.25E+2  last beta=-9.06E+1
+ clean forces norm (Ha/Bohr): maxval=  2.362673659189E-02  fnrm2=  5.582226819828E-04
+ raw forces:                  maxval=  2.378996659551E-02  fnrm2=  1.116498652034E-03
+ CPU time/ELAPSED time for root process     0       110.36       110.05
+    2     1  GEOPT_VSSD  -1.52102826252748E+01  -2.94E-02  2.363E-02  2.36E-02  0.00E+00  3.42E-04  beta= 1.25E+2  last beta=-9.06E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -416,7 +406,6 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
      l=1      rl        h1j       h2j       h3j 
             0.37614   4.46588
  Total Number of Electrons        8
- Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -429,7 +418,7 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1804 points=     57856
    Fine resolution grid: Number of segments=        120 points=       968
- Wavefunctions memory occupation for root processor (Bytes): 1034112
+ Wavefunctions memory occupation for root processor (Bytes): 2068224
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -438,17 +427,17 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  1.85752057131079E+00
+ ion-ion interaction energy  1.85752057131108E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   58142   57856
  Reformatting... done.
- iter,total energy,gnrm     1  -8.49580210747748410E+00  1.27E+00
+ iter,total energy,gnrm     1  -8.49580210747779496E+00  1.27E+00
  The norm of the residue is too large, need to recalculate input wavefunctions
- CPU time/ELAPSED time for root process     0         3.56         5.93
+ CPU time/ELAPSED time for root process     0        14.82        14.78
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 11
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -480,7 +469,6 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
      l=1      rl        h1j       h2j       h3j 
             0.37614   4.46588
  Total Number of Electrons        8
- Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -493,7 +481,7 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1804 points=     57856
    Fine resolution grid: Number of segments=        120 points=       968
- Wavefunctions memory occupation for root processor (Bytes): 1034112
+ Wavefunctions memory occupation for root processor (Bytes): 2068224
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -502,42 +490,40 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  1.85752057131079E+00
+ ion-ion interaction energy  1.85752057131108E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  --------------------------------------- Quick Wavefunctions Restart (Gaussian basis)
  Deviation from normalization of the imported orbitals    5.67E-02
- iter,total energy,gnrm     1  -1.51319413688140472E+01  1.26E-01
- iter,total energy,gnrm     2  -1.52460128138706281E+01  4.75E-02
- iter,total energy,gnrm     3  -1.52608612642777537E+01  2.14E-02
- iter,total energy,gnrm     4  -1.52642543145339502E+01  1.10E-02
- iter,total energy,gnrm     5  -1.52646935449384920E+01  6.12E-03
- iter,total energy,gnrm     6  -1.52648782213586145E+01  2.49E-03
- iter,total energy,gnrm     7  -1.52648993515409686E+01  8.62E-04
- iter,total energy,gnrm     8  -1.52649009338516315E+01  2.58E-04
- iter,total energy,gnrm     9  -1.52649010881582008E+01  1.24E-04
- iter,total energy,gnrm    10  -1.52649011203000597E+01  6.10E-05
+ iter,total energy,gnrm     1  -1.51319413688139672E+01  1.26E-01
+ iter,total energy,gnrm     2  -1.52460128138704878E+01  4.75E-02
+ iter,total energy,gnrm     3  -1.52608612642775672E+01  2.14E-02
+ iter,total energy,gnrm     4  -1.52642543145338063E+01  1.10E-02
+ iter,total energy,gnrm     5  -1.52646935449381811E+01  6.12E-03
+ iter,total energy,gnrm     6  -1.52648782213585772E+01  2.49E-03
+ iter,total energy,gnrm     7  -1.52648993515409739E+01  8.62E-04
+ iter,total energy,gnrm     8  -1.52649009338512993E+01  2.58E-04
+ iter,total energy,gnrm     9  -1.52649010881582736E+01  1.24E-04
+ iter,total energy,gnrm    10  -1.52649011202998519E+01  6.10E-05
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   5.87431028961E+00 -1.17412598351E+01  3.28168397442E+00
- final ehart, eexcu,  vexcu   1.54817241789E+01 -3.07073646394E+00 -4.01530451278E+00
- FINAL iter,total energy,gnrm    11  -1.52649011297332002E+01  6.10E-05
+ FINAL iter,total energy,gnrm    11  -1.52649011297332979E+01  6.10E-05
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -6.41297584481313E-01 2.0000
- e(   2)= -2.26021023314770E-01 2.0000
- e(   3)= -2.12657088860112E-01 2.0000
- e(   4)= -2.12657088860111E-01 2.0000
+ e(   1)= -6.41297584481328E-01 2.0000
+ e(   2)= -2.26021023314774E-01 2.0000
+ e(   3)= -2.12657088860127E-01 2.0000
+ e(   4)= -2.12657088860126E-01 2.0000
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  average noise along x direction:  -1.17529787E-05
  average noise along y direction:  -1.17529787E-05
- average noise along z direction:  -1.17529788E-05
+ average noise along z direction:  -1.17529787E-05
  total average noise            :   2.03567563E-05
- clean forces norm (Ha/Bohr): maxval=  4.128482934873E-02  fnrm2=  1.704437134354E-03
- raw forces:                  maxval=  4.129922374913E-02  fnrm2=  3.408874683105E-03
- CPU time/ELAPSED time for root process     0        18.26        33.66
-    3     2  GEOPT_VSSD  -1.52649011297332E+01  -5.46E-02  4.128E-02  4.13E-02  0.00E+00  2.78E-04  beta= 1.00E+2  last beta= 2.27E+1
+ clean forces norm (Ha/Bohr): maxval=  4.128482934881E-02  fnrm2=  1.704437134360E-03
+ raw forces:                  maxval=  4.129922374920E-02  fnrm2=  3.408874683118E-03
+ CPU time/ELAPSED time for root process     0        76.13        75.92
+    3     2  GEOPT_VSSD  -1.52649011297333E+01  -5.46E-02  4.128E-02  4.13E-02  0.00E+00  2.78E-04  beta= 1.00E+2  last beta= 2.27E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -569,7 +555,6 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
      l=1      rl        h1j       h2j       h3j 
             0.37614   4.46588
  Total Number of Electrons        8
- Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -582,7 +567,7 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1823 points=     58938
    Fine resolution grid: Number of segments=        119 points=       964
- Wavefunctions memory occupation for root processor (Bytes): 1050976
+ Wavefunctions memory occupation for root processor (Bytes): 2101952
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -591,17 +576,17 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  8.86418482038403E-01
+ ion-ion interaction energy  8.86418482037585E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   57856   58938
  Reformatting... done.
- iter,total energy,gnrm     1  -5.17955787150901870E+00  1.40E+00
+ iter,total energy,gnrm     1  -5.17955787148541358E+00  1.40E+00
  The norm of the residue is too large, need to recalculate input wavefunctions
- CPU time/ELAPSED time for root process     0         3.56         5.94
+ CPU time/ELAPSED time for root process     0        14.80        14.75
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 11
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -633,7 +618,6 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
      l=1      rl        h1j       h2j       h3j 
             0.37614   4.46588
  Total Number of Electrons        8
- Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -646,7 +630,7 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1823 points=     58938
    Fine resolution grid: Number of segments=        119 points=       964
- Wavefunctions memory occupation for root processor (Bytes): 1050976
+ Wavefunctions memory occupation for root processor (Bytes): 2101952
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -655,45 +639,43 @@ Warning: no possibility of archive, compile BigDFT with libarchive.
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  8.86418482038403E-01
+ ion-ion interaction energy  8.86418482037585E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  --------------------------------------- Quick Wavefunctions Restart (Gaussian basis)
  Deviation from normalization of the imported orbitals    9.23E-02
- iter,total energy,gnrm     1  -1.50747144303281129E+01  9.11E-02
- iter,total energy,gnrm     2  -1.51601265006682038E+01  4.59E-02
- iter,total energy,gnrm     3  -1.51806794852481541E+01  2.13E-02
- iter,total energy,gnrm     4  -1.51858355440010353E+01  1.03E-02
- iter,total energy,gnrm     5  -1.51861993853540671E+01  4.15E-03
- iter,total energy,gnrm     6  -1.51863768514963393E+01  2.38E-03
- iter,total energy,gnrm     7  -1.51864213226960647E+01  1.48E-03
- iter,total energy,gnrm     8  -1.51864411936055372E+01  6.85E-04
- iter,total energy,gnrm     9  -1.51864440281599027E+01  3.87E-04
- iter,total energy,gnrm    10  -1.51864449746323356E+01  2.15E-04
- iter,total energy,gnrm    11  -1.51864455903841158E+01  1.56E-04
- iter,total energy,gnrm    12  -1.51864458659971593E+01  1.17E-04
- iter,total energy,gnrm    13  -1.51864459306277499E+01  6.02E-05
+ iter,total energy,gnrm     1  -1.50747144303278517E+01  9.11E-02
+ iter,total energy,gnrm     2  -1.51601265006677934E+01  4.59E-02
+ iter,total energy,gnrm     3  -1.51806794852481914E+01  2.13E-02
+ iter,total energy,gnrm     4  -1.51858355440009056E+01  1.03E-02
+ iter,total energy,gnrm     5  -1.51861993853538699E+01  4.15E-03
+ iter,total energy,gnrm     6  -1.51863768514962629E+01  2.38E-03
+ iter,total energy,gnrm     7  -1.51864213226962192E+01  1.48E-03
+ iter,total energy,gnrm     8  -1.51864411936052370E+01  6.85E-04
+ iter,total energy,gnrm     9  -1.51864440281599080E+01  3.87E-04
+ iter,total energy,gnrm    10  -1.51864449746324368E+01  2.15E-04
+ iter,total energy,gnrm    11  -1.51864455903840785E+01  1.56E-04
+ iter,total energy,gnrm    12  -1.51864458659966601E+01  1.17E-04
+ iter,total energy,gnrm    13  -1.51864459306278157E+01  6.02E-05
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   5.69452506153E+00 -1.09305673787E+01  3.17553674295E+00
- final ehart, eexcu,  vexcu   1.49293038782E+01 -2.98214066210E+00 -3.89908569477E+00
- FINAL iter,total energy,gnrm    14  -1.51864459376534011E+01  6.02E-05
+ FINAL iter,total energy,gnrm    14  -1.51864459376531293E+01  6.02E-05
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -5.75977750785416E-01 2.0000
- e(   2)= -1.59635532254739E-01 2.0000
- e(   3)= -1.47319752031069E-01 2.0000
- e(   4)= -1.47319752031068E-01 2.0000
+ e(   1)= -5.75977750785397E-01 2.0000
+ e(   2)= -1.59635532254707E-01 2.0000
+ e(   3)= -1.47319752031044E-01 2.0000
+ e(   4)= -1.47319752031042E-01 2.0000
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  average noise along x direction:  -2.35480367E-04
  average noise along y direction:  -2.35480367E-04
  average noise along z direction:  -2.35480367E-04
  total average noise            :   4.07863960E-04
- clean forces norm (Ha/Bohr): maxval=  1.708890039598E-02  fnrm2=  2.920305167439E-04
- raw forces:                  maxval=  1.737730376785E-02  fnrm2=  5.842273864976E-04
- CPU time/ELAPSED time for root process     0        22.50        42.22
-    4     3  GEOPT_VSSD  -1.51864459376534E+01   7.85E-02  1.709E-02  1.71E-02  0.00E+00  3.04E-04  beta= 1.00E+2  last beta= 3.54E+1
+ clean forces norm (Ha/Bohr): maxval=  1.708890039592E-02  fnrm2=  2.920305167415E-04
+ raw forces:                  maxval=  1.737730376774E-02  fnrm2=  5.842273864928E-04
+ CPU time/ELAPSED time for root process     0        95.49        95.22
+    4     3  GEOPT_VSSD  -1.51864459376531E+01   7.85E-02  1.709E-02  1.71E-02  0.00E+00  3.04E-04  beta= 1.00E+2  last beta= 3.54E+1
 End of minimization using  VSSD      
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  --- (file: input.dft) --------------------------------------------- Input Parameters
@@ -726,7 +708,6 @@ End of minimization using  VSSD
      l=1      rl        h1j       h2j       h3j 
             0.37614   4.46588
  Total Number of Electrons        8
- Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -739,7 +720,7 @@ End of minimization using  VSSD
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1823 points=     58938
    Fine resolution grid: Number of segments=        119 points=       964
- Wavefunctions memory occupation for root processor (Bytes): 1050976
+ Wavefunctions memory occupation for root processor (Bytes): 2101952
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
@@ -748,51 +729,52 @@ End of minimization using  VSSD
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
- ion-ion interaction energy  8.86418482038403E-01
+ ion-ion interaction energy  8.86418482037585E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions do not need reformatting and can be imported directly...    done.
- iter,total energy,gnrm     1  -1.51864459376530103E+01  2.61E-05
+ iter,total energy,gnrm     1  -1.51864459376527172E+01  2.61E-05
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   5.69450263258E+00 -1.09305665232E+01  3.17553016097E+00
- final ehart, eexcu,  vexcu   1.49292739841E+01 -2.98213517283E+00 -3.89907846585E+00
- FINAL iter,total energy,gnrm     2  -1.51864459386426542E+01  2.61E-05
+ FINAL iter,total energy,gnrm     2  -1.51864459386424855E+01  2.61E-05
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -5.75981970712407E-01 2.0000
- e(   2)= -1.59638648228408E-01 2.0000
- e(   3)= -1.47323122929297E-01 2.0000
- e(   4)= -1.47323122929296E-01 2.0000
+ e(   1)= -5.75981970712384E-01 2.0000
+ e(   2)= -1.59638648228376E-01 2.0000
+ e(   3)= -1.47323122929274E-01 2.0000
+ e(   4)= -1.47323122929274E-01 2.0000
  ---------------------------------------------------------- Gaussian Basis Projection
  Writing wavefunctions in wavefunction.gau file
  Deviation from normalization of the imported orbitals    1.27E-02
- Mean L2 norm of gaussian-wavelet difference:  4.1228E-03
+ Mean L2 norm of gaussian-wavelet difference:  3.9906E-03
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:   125  125  125   proc    2 ... done.
+ ------------------------------------------------------------- Electric Dipole Moment
+  |P| =   6.116737E+00 (AU)       (Px,Py,Pz)=   -3.5315E+00  -3.5315E+00  -3.5315E+00
+  |P| =   1.554719E+01 (Debye)    (Px,Py,Pz)=   -8.9762E+00  -8.9762E+00  -8.9762E+00
+ PSolver, free  BC, dimensions:   125  125  125   proc    1 ... done.
  average noise along x direction:  -2.37581519E-04
  average noise along y direction:  -2.37581519E-04
  average noise along z direction:  -2.37581519E-04
  total average noise            :   4.11503261E-04
- clean forces norm (Ha/Bohr): maxval=  1.709140286586E-02  fnrm2=  2.921160519231E-04
- raw forces:                  maxval=  1.738237961234E-02  fnrm2=  5.844014387802E-04
- ------------------------------------------------ Mulliken Charge Population Analysis
- Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  | Gross Chg
-      1     |  s          |    1.52  |  0.10965 |  0.10965   |  0.00000 |  0.78070
-                 Center Quantities : |  0.10965 |  0.10965   |  0.00000 |  0.78070
- ----------------------------------------------------------------------------------
-      2     |  s          |    0.54  |  0.99879 |  0.99879   |  0.00000 |  0.00242
-      2     |  px         |    0.64  |  0.95154 |  0.95154   |  0.00000 | -0.23642
-      2     |  py         |    0.64  |  0.95154 |  0.95154   |  0.00000 | -0.23642
-      2     |  pz         |    0.64  |  0.95154 |  0.95154   |  0.00000 | -0.23642
-                 Center Quantities : |  3.85342 |  3.85342   |  0.00000 | -0.70683
- ----------------------------------------------------------------------------------
-                        Total Charge considered on the centers:        7.926130974004
- CPU time/ELAPSED time for root process     0         6.68        10.74
+ clean forces norm (Ha/Bohr): maxval=  1.709140286584E-02  fnrm2=  2.921160519223E-04
+ raw forces:                  maxval=  1.738237961232E-02  fnrm2=  5.844014387786E-04
+ --------------------------------------------------------- Mulliken Charge Population Analysis
+ Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg
+      1     |  s          |    1.52  |  0.10965 |  0.10965   |  0.21930  |  0.00000 |  0.78070
+                 Center Quantities : |  0.10965 |  0.10965   |  0.21930  |  0.00000 |  0.78070
+ ---------------------------------------------------------------------------------------------
+      2     |  s          |    0.54  |  0.99879 |  0.99879   |  1.99758  |  0.00000 |  0.00242
+      2     |  px         |    0.64  |  0.95154 |  0.95154   |  1.90308  |  0.00000 | -0.23642
+      2     |  py         |    0.64  |  0.95154 |  0.95154   |  1.90308  |  0.00000 | -0.23642
+      2     |  pz         |    0.64  |  0.95154 |  0.95154   |  1.90308  |  0.00000 | -0.23642
+                 Center Quantities : |  3.85342 |  3.85342   |  7.70683  |  0.00000 | -0.70683
+ ---------------------------------------------------------------------------------------------
+                 Total Charge considered on the centers:        7.926130974004
+ CPU time/ELAPSED time for root process     0        22.18        22.12
  Final values of the Forces for each atom
      1     Na  0.00000E+00  0.00000E+00  0.00000E+00
      2     Cl -9.86773E-03 -9.86773E-03 -9.86773E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 13290 allocations and 13290 deallocations, remaining memory(B): 0
- memory occupation peak: 142 MB
- for the array  rmt in the routine iguess_generator
+ 16858 allocations and 16858 deallocations, remaining memory(B): 0
+ memory occupation peak: 168 MB
+ for the array  zt in the routine G_Poisson_Solver

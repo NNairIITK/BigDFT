@@ -8,7 +8,7 @@
 !!   For the list of contributors, see ~/AUTHORS 
 
 
-!>   Calculate the action of the local hamiltonian on the orbitals
+!> Calculate the action of the local hamiltonian on the orbitals
 !! @param ipotmethod Indicates the method which has to be chosen for applying the potential to the wavefunctions in the 
 !!                   real space form:
 !!                   0 is the traditional potential application
@@ -90,13 +90,12 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      end if
 
      oidx=(iorb-1)*orbs%nspinor+1
-
      !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
      !the psir wavefunction is given in the spinorial form
      call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
      !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
      !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
-     !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
+     !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb
 
      !Perdew-Zunger SIC scheme
      eSIC_DCi=0.0_gp
@@ -156,7 +155,6 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
           psir,hpsi(1,oidx),ekin)
 
-     !print *,iorb, ekin, epot,orbs%kwgts(orbs%iokpt(iorb))
      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
   enddo
@@ -663,7 +661,7 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   integer, intent(inout) :: istart_c !< address of the starting point of the projector in proj array
   real(gp), intent(inout) :: eproj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
-  !local variables
+  !Local variables
   integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx
   real(gp) :: eproj_spinor
 
@@ -701,14 +699,16 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   end do
 END SUBROUTINE apply_atproj_iorb
 
+
 subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
   use module_base
   implicit none
+  !Arguments
   integer, intent(in) :: npspcode
   real(gp), dimension(0:4,0:6), intent(in) :: psppar
   real(gp), dimension(3,3,4), intent(out) :: hij
-  !local variables
-  integer :: l,i,m,j
+  !Local variables
+  integer :: l,i,j
   real(gp), dimension(2,2,3) :: offdiagarr
 
   !enter the coefficients for the off-diagonal terms (HGH case, npspcode=3)
@@ -871,8 +871,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,h
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='apply_atproj_iorb'
-  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx,m,j,icplx,i_stat,i_all
-  integer(kind=8) :: itsc0,itsc1
+  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx,m,j,icplx
   real(gp) :: eproj_i
   real(wp), dimension(4,7,3,4) :: cproj,dproj !scalar products with the projectors (always assumed to be complex and spinorial)
   real(gp), dimension(3,3,4) :: hij_hgh 
