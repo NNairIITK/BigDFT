@@ -201,7 +201,7 @@ module module_defs
 
       !not appropriate for integers, to be seen if it works
       call scopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_INTEGER,mpi_op,mpi_comm,ierr)
       
@@ -233,7 +233,7 @@ module module_defs
       call memocc(i_stat,copybuf,'copybuf',subname)
       
       call scopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_REAL,mpi_op,mpi_comm,ierr)
       
@@ -265,7 +265,7 @@ module module_defs
       call memocc(i_stat,copybuf,'copybuf',subname)
       
       call dcopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
       
@@ -298,7 +298,7 @@ module module_defs
 
       !not appropriate for logical, to be seen if it works
       call scopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_LOGICAL,mpi_op,mpi_comm,ierr)
       

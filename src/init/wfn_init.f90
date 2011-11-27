@@ -137,11 +137,11 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
    !!!  nvctr=wfd%nvctr_c+7*wfd%nvctr_f
    !!!  if (.not. present(orbsv)) then
    !!!     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-         !!!          natsceff,nspin,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit)
+!!!          natsceff,nspin,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit)
    !!!  else
    !!!     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-         !!!          natsceff,nspin,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit,orbsv%norb,psivirt)
-   !!!  end if
+      !!!          natsceff,nspin,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit,orbsv%norb,psivirt)
+!!!  end if
    !!!  
    !!!  !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
    !!!     
@@ -198,7 +198,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
    !!!
    !!!  !this untranspose also the wavefunctions 
    !!!  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,nvctrp,comms,&
-         !!!       psit,work=hpsi,outadd=psi(1))
+        !!!       psit,work=hpsi,outadd=psi(1))
    !!!
    !!!  if (nproc == 1) then
    !!!     nullify(psit)
@@ -1075,9 +1075,9 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
          !        print *,'ncplx,nspinor',ncplx,nspinor
          !        do jorb=1,8!norbi
          !           write(17,'(i0,1x,48(1pe10.1))')jorb,&
-               !                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,1),icplx=1,ncplx),iorb=1,8)!norbi)
+         !                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,1),icplx=1,ncplx),iorb=1,8)!norbi)
          !           write(18,'(i0,1x,48(1pe10.1))')jorb,&
-               !                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,2),icplx=1,ncplx),iorb=1,8)!norbi)
+         !                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,2),icplx=1,ncplx),iorb=1,8)!norbi)
          !        end do
          !
          !        close(17)
@@ -1225,20 +1225,20 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
 !!$     do jjorb=1,8!norbi
       !!$        !   do jiorb=1,norbi
       !!$        !      write(12,'(1x,2(i0,1x),200(1pe24.17,1x))')jjorb,jiorb,&
-            !!$        !           hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
+!!$        !           hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
       !!$        !   end do
       !!$        !end do
       !!$        !close(12)
 !!$        open(33+2*(i-1)+100*iproc)
 !!$        write(33+2*(i-1)+100*iproc,'(2000(1pe10.2))')&
-!!$             (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
+            !!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
 !!$        !                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
 !!$     end do
 !!$     close(33+2*(i-1)+100*iproc)
 !!$     open(34+2*(i-1)+100*iproc)
 !!$     do jjorb=1,8!norbi
 !!$        write(34+2*(i-1)+100*iproc,'(2000(1pe10.2))')&
-!!$             (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,2),jiorb=1,8*ncomp*ncplx)
+            !!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,2),jiorb=1,8*ncomp*ncplx)
 !!$        !                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,2),jiorb=1,norbi*ncomp*ncplx)
 !!$     end do
 !!$     close(34+2*(i-1)+100*iproc+100*iproc)

@@ -73,8 +73,8 @@ real(gp) :: epot_p
   
   epot=0.0_wp
 
-!$omp parallel default(private)&
-!$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
+!!$omp parallel default(private)&
+!!$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
   !case without bounds
   i1s=-14*nl1
   i1e=2*n1+1+15*nl1
@@ -201,7 +201,7 @@ real(gp) :: epot_p
   epot=epot+epot_p
 !$omp end critical
 
-!$omp end parallel
+!!$omp end parallel
 
 END SUBROUTINE apply_potentialConfinement2
 !!***
@@ -1232,8 +1232,8 @@ real(gp) :: epot_p, epot
   end if
   
 
-  !$omp parallel default(private)&
-  !$omp shared(psir,n1,n2,n3,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
+  !!$omp parallel default(private)&
+  !!$omp shared(psir,n1,n2,n3,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
   !case without bounds
   i1s=-14*nl1
   i1e=2*n1+1+15*nl1
@@ -1294,7 +1294,7 @@ real(gp) :: epot_p, epot
   enddo
 !$omp end do
 
-!$omp end parallel
+!!$omp end parallel
 
 END SUBROUTINE apply_confinement
 !!***

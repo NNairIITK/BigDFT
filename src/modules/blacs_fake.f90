@@ -58,6 +58,7 @@ END SUBROUTINE pdsymm
 
 integer function numroc()
   implicit none
+  numroc=1
   stop 'FAKE NUMROC'
 end function numroc
 

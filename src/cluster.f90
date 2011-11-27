@@ -529,7 +529,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !Allocate Charge density, Potential in real space
    nrhodim=in%nspin
    i3rho_add=0
-   if (in%SIC%approach=='NK') then
+   if (trim(in%SIC%approach)=='NK') then
       nrhodim=2*nrhodim
      i3rho_add=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*i3xcsh+1
    end if
@@ -2000,11 +2000,11 @@ END SUBROUTINE deallocate_before_exiting
     !   call deallocate_diis_objects(diis,subname)
     !end if
 
-    if (nproc > 1) then
+    !if (nproc > 1) then
        i_all=-product(shape(psit))*kind(psit)
        deallocate(psit,stat=i_stat)
        call memocc(i_stat,i_all,'psit',subname)
-    end if
+    !end if
 
     i_all=-product(shape(pot_ion))*kind(pot_ion)
     deallocate(pot_ion,stat=i_stat)

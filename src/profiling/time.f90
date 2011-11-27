@@ -185,12 +185,13 @@ subroutine timing(iproc,category,action)
   !Local variables
   logical :: catfound
   integer :: i,ierr,ii
-  integer :: nthreads
+  integer :: nthreads,jproc,namelen
   integer(kind=8) :: itns
   !cputime routine gives a real
   !real :: total,total0,time,time0
   real(kind=8) :: pc,t1
   real(kind=8), dimension(ncounters,0:nproc) :: timecnt !< useful only at the very end
+  character(len=MPI_MAX_PROCESSOR_NAME), dimension(0:nproc-1) :: nodename
 !$ integer :: omp_get_max_threads
 
   !first of all, read the time
@@ -261,12 +262,26 @@ subroutine timing(iproc,category,action)
         if (parallel) then 
            call MPI_GATHER(pctimes,ncounters,MPI_DOUBLE_PRECISION,&
                 timecnt,ncounters,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+           if (debugmode) then
+              !initalise nodenames
+              do jproc=0,nproc-1
+                 nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
+              end do
+              
+              call MPI_GET_PROCESSOR_NAME(nodename(iproc),namelen,ierr)
+              
+              !gather the result between all the process
+              call MPI_GATHER(nodename(iproc),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+                   nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
+                   MPI_COMM_WORLD,ierr)
+           end if
+
         else
            do i=1,ncounters
               timecnt(i,0)=pctimes(i)
            end do
         endif
-
+          
         if (iproc == 0) then
            open(unit=60,file=trim(filename_time),status='unknown',position='append')
            write(60,'(a,t14,a)')'SUMMARY:','   #     % ,  Time (s)'
@@ -288,6 +303,12 @@ subroutine timing(iproc,category,action)
            write(60,'(2x,a)')'CPU Parallelism:'
            write(60,'(t10,a,1x,i6)')'MPI procs: ',nproc
            write(60,'(t10,a,1x,i6)')'OMP thrds: ',nthreads
+           if (debugmode) then
+              write(60,'(t10,a)')'Hostnames:'
+              do jproc=0,nproc-1
+                 write(60,'(t10,a)')'  - '//trim(nodename(jproc))
+              end do
+           end if
            close(unit=60)
         end if
      end if

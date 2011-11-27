@@ -162,6 +162,7 @@ call allocateLinArrays(lin)
 iall=-product(shape(lin%orbs%inWhichLocreg))*kind(lin%orbs%inWhichLocreg)
 deallocate(lin%orbs%inWhichLocreg, stat=istat)
 call memocc(istat, iall, 'lin%orbs%inWhichLocreg', subname)
+
 iall=-product(shape(lin%lb%orbs%inWhichLocreg))*kind(lin%lb%orbs%inWhichLocreg)
 deallocate(lin%lb%orbs%inWhichLocreg, stat=istat)
 call memocc(istat, iall, 'lin%lb%orbs%inWhichLocreg', subname)
@@ -3198,8 +3199,12 @@ do jproc=0,nproc-1
     sendcounts(jproc)=norb*norb_par(jproc)
     if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
 end do
-call mpi_allgatherv(c_loc(1,1), sendcounts(iproc), mpi_double_precision, c(1,1), sendcounts, displs, &
-     mpi_double_precision, mpi_comm_world, ierr)
+if (nproc > 1) then
+   call mpi_allgatherv(c_loc(1,1), sendcounts(iproc), mpi_double_precision, c(1,1), sendcounts, displs, &
+        mpi_double_precision, mpi_comm_world, ierr)
+else
+   call vcopy(sendcounts(iproc),c_loc(1,1),1,c(1,1),1)
+end if
 
 iall=-product(shape(sendcounts))*kind(sendcounts)
 deallocate(sendcounts, stat=istat)
@@ -3489,6 +3494,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
 !        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,calculateBounds)
         call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,&
              orbs,calculateBounds)  
+        i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
         deallocate(calculateBounds,stat=i_stat)
         call memocc(i_stat,i_all,'calculateBounds',subname)
 

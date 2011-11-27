@@ -424,7 +424,7 @@ real(8),dimension(:),pointer:: lpot
 
   
   !!if(iproc==0) then
-  !!    write(*,'(x,a)', advance='no') '------------------------------------- Building linear combinations... '
+  !!    write(*,'(1x,a)', advance='no') '------------------------------------- Building linear combinations... '
   !!end if
   !!! Build the extended orbital psi as a linear combination of localized basis functions phi. for real O(N)
   !!! this has to replaced, but at the moment it is still needed.
@@ -1450,7 +1450,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
            !!!!!!lhchi=0.d0
 
 
-           !!!!!!if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
+           !!!!!!if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
            !!!!!!call mpi_barrier(mpi_comm_world, ierr)
            !!!!!!call cpu_time(t1)
            !!!!!!!!call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%locregShape, lin%lig%lzdig)
@@ -1518,7 +1518,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
            !!!!!!call mpi_barrier(mpi_comm_world, ierr)
            !!!!!!call cpu_time(t2)
            !!!!!!time=t2-t1
-           !!!!!!if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time
+           !!!!!!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for applying potential:', time
 
 
 
@@ -1873,7 +1873,7 @@ contains
                       icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
                   if(icountDIISFailureTot>=3) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
                       icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
-                  if(resetDIIS) write(*,'(x,a)') 'reset DIIS due to flag'
+                  if(resetDIIS) write(*,'(1x,a)') 'reset DIIS due to flag'
               end if
               if(resetDIIS) then
                   resetDIIS=.false.
@@ -2850,7 +2850,8 @@ procLoop1: do jproc=0,nproc-1
                     lin%comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
                     nsends=nsends+1
                 else if(iproc==mpidest) then
-                    !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                   !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, &
+                   !     ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                     call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
                          lin%comsr%comarr(9,iorb,jproc), ierr)
                     lin%comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
@@ -3175,7 +3176,8 @@ destLoop: do jproc=0,nproc-1
                     comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
                     nsends=nsends+1
                 else if(iproc==mpidest) then
-                    !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                   !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, &
+                   !    ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                     call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
                         comgp%comarr(8,kproc,jproc), ierr)
                     comgp%comarr(7,kproc,jproc)=mpi_request_null !is this correct?
@@ -3653,8 +3655,12 @@ do jproc=0,nproc-1
     sendcounts(jproc)=lin%orbs%norb*orbs%norb_par(jproc,0)
     if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
 end do
-call mpi_allgatherv(lambda, sendcounts(iproc), mpi_double_precision, coeff, sendcounts, displs, &
-     mpi_double_precision, mpi_comm_world, ierr)
+if (nproc > 1) then
+   call mpi_allgatherv(lambda, sendcounts(iproc), mpi_double_precision, coeff, sendcounts, displs, &
+        mpi_double_precision, mpi_comm_world, ierr)
+else
+   call vcopy(sendcounts(iproc),lambda(1,1),1,coeff(1,1),1)
+end if
 
 iall=-product(shape(Q))*kind(Q)
 deallocate(Q, stat=istat)
@@ -3854,7 +3860,7 @@ character(len=*),parameter:: subname='minimize_in_subspace'
            lhchi=0.d0
 
 
-           if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
+           if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
            call mpi_barrier(mpi_comm_world, ierr)
            call cpu_time(t1)
            !!call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%locregShape, lin%lig%lzdig)
@@ -3871,7 +3877,7 @@ character(len=*),parameter:: subname='minimize_in_subspace'
            call memocc(istat, lchi, 'lchi', subname)
            lchi=lphi
            do iat=1,at%nat
-               doNotCalculate=1!.true.
+               doNotCalculate=.true.
                lin%lzd%doHamAppl=.false.
                !!call mpi_barrier(mpi_comm_world, ierr)
                call getIndices(lin%lzd%llr(iat), is1, ie1, is2, ie2, is3, ie3)
@@ -3885,11 +3891,11 @@ character(len=*),parameter:: subname='minimize_in_subspace'
                    ovrlpy = ( is2<=je2 .and. ie2>=js2 )
                    ovrlpz = ( is3<=je3 .and. ie3>=js3 )
                    if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-                       doNotCalculate(jlr)=0!.false.
+                       doNotCalculate(jlr)=.false.
                        lin%lzd%doHamAppl(jlr)=.true.
                        skip(iat)=.false.
                    else
-                       doNotCalculate(jlr)=1
+                       doNotCalculate(jlr)=.true.
                        lin%lzd%doHamAppl(jlr)=.false.
                    end if
                end do
@@ -3922,7 +3928,7 @@ character(len=*),parameter:: subname='minimize_in_subspace'
            call mpi_barrier(mpi_comm_world, ierr)
            call cpu_time(t2)
            time=t2-t1
-           if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time
+           if(iproc==0) write(*,'(1x,a,es10.3)') 'time for applying potential:', time
 
 
 

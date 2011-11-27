@@ -109,8 +109,8 @@ END SUBROUTINE MPI_ALLREDUCE
 
 
 ! These routines in serial version should not be called.
-! A stop is added
-
+! A stop is added when necessary, otherwise for copying routines, the corresponding copy 
+! is implemented whenever possible
 subroutine  MPI_ALLGatherV()
   implicit none
   stop 'MPIFAKE: ALLGATHERV'
