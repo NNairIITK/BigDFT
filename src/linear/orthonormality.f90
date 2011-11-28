@@ -168,25 +168,25 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
   timeoverlap=timeoverlap/dble(nproc)
   timeexpand=timeexpand/dble(nproc)
   timecompress=timecompress/dble(nproc)
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for computation:', timeComput, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for computation:', timeComput, '=',&
                 100.d0*timeComput/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for communication:', timeCommun, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for communication:', timeCommun, '=',&
                100.d0*timeCommun/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for calculating overlap:', timeoverlap, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for calculating overlap:', timeoverlap, '=',&
                100.d0*timeoverlap/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for expansion:', timeexpand, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for expansion:', timeexpand, '=',&
                100.d0*timeexpand/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for Loewdin:', timeLoewdin, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for Loewdin:', timeLoewdin, '=',&
                100.d0*timeLoewdin/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for transform:', timeTransform, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for transform:', timeTransform, '=',&
                100.d0*timeTransform/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for extract:', timeExtract, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for extract:', timeExtract, '=',&
                100.d0*timeExtract/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for p2p communication:', timecommunp2p, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for p2p communication:', timecommunp2p, '=',&
                100.d0*timecommunp2p/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for collective communication:', timecommuncoll, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for collective communication:', timecommuncoll, '=',&
                100.d0*timecommuncoll/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for expand:', timeExpand, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for expand:', timeExpand, '=',&
                100.d0*timeExpand/(timeComput+timeCommun), '%'
 
 
@@ -338,25 +338,25 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
   timeoverlap=timeoverlap/dble(nproc)
   timeexpand=timeexpand/dble(nproc)
   timecompress=timecompress/dble(nproc)
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for computation:', timeComput, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for computation:', timeComput, '=',&
                 100.d0*timeComput/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for communication:', timeCommun, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for communication:', timeCommun, '=',&
                100.d0*timeCommun/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for calculating overlap:', timeoverlap, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for calculating overlap:', timeoverlap, '=',&
                100.d0*timeoverlap/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for expansion:', timeexpand, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for expansion:', timeexpand, '=',&
                100.d0*timeexpand/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for Loewdin:', timeLoewdin, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for Loewdin:', timeLoewdin, '=',&
                100.d0*timeLoewdin/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for transform:', timeTransform, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for transform:', timeTransform, '=',&
                100.d0*timeTransform/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for extract:', timeExtract, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for extract:', timeExtract, '=',&
                100.d0*timeExtract/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for p2p communication:', timecommunp2p, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for p2p communication:', timecommunp2p, '=',&
                100.d0*timecommunp2p/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for collective communication:', timecommuncoll, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for collective communication:', timecommuncoll, '=',&
                100.d0*timecommuncoll/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for expand:', timeExpand, '=',&
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for expand:', timeExpand, '=',&
                100.d0*timeExpand/(timeComput+timeCommun), '%'
 
 
@@ -599,17 +599,17 @@ logical:: present_W, present_eval
   timeExpand=timeExpand/dble(nproc)
   timeApply=timeApply/dble(nproc)
   timeExtract=timeExtract/dble(nproc)
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for computation:', timeComput, '=', &
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for computation:', timeComput, '=', &
        100.d0*timeComput/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for communication:', timeCommun, '=', &
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for communication:', timeCommun, '=', &
        100.d0*timeCommun/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for calculating overlap:', timeCalcMatrix, &
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for calculating overlap:', timeCalcMatrix, &
        '=', 100.d0*timeCalcMatrix/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for expansion:', timeExpand, '=', &
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for expansion:', timeExpand, '=', &
         100.d0*timeExpand/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for applying orthoconstraint:', timeApply, &
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for applying orthoconstraint:', timeApply, &
         '=', 100.d0*timeApply/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for extract:', timeExtract, '=', &
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f5.1,a)') 'time for extract:', timeExtract, '=', &
          100.d0*timeExtract/(timeComput+timeCommun), '%'
 
 
@@ -1532,7 +1532,8 @@ do jproc=0,nproc-1
             ! The orbitals are on different processes, so we need a point to point communication.
             if(iproc==mpisource) then
             else if(iproc==mpidest) then
-                !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+               !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount,&
+               !     ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                 call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
                      mpi_comm_world, comon%comarr(8,iorb,jproc), ierr)
                 comon%comarr(7,iorb,jproc)=mpi_request_null !is this correct?
@@ -2216,8 +2217,13 @@ call compressMatrix2(iproc, nproc, orbs, mad, ovrlp, ovrlpCompressed, sendcounts
 !call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
 allocate(ovrlpCompressed2(mad%nvctr), stat=istat)
 call memocc(istat, ovrlpCompressed2, 'ovrlpCompressed2', subname)
-call mpi_allgatherv(ovrlpCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed2(1), &
-     sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
+if (nproc >1) then
+   call mpi_allgatherv(ovrlpCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed2(1), &
+        sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
+else
+   call vcopy(sendcounts(iproc),ovrlpCompressed(displs(iproc)+1),1,ovrlpCompressed2(1+displs(iproc)),1)
+end if
+
 !call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
 call uncompressMatrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
 
@@ -4084,7 +4090,7 @@ do jproc=0,nproc-1
         tag=comon%comarr(6,jorb,jproc)
         !write(*,'(6(a,i0))') 'iproc=',iproc,', tag=',tag,', mpisource=',mpisource,', mpidest=',mpidest,' jproc=',jproc,', iorb=',iorb
         !irecv=irecv+1
-        if(iproc==mpidest) then
+        if(iproc==mpidest .and. nproc >1) then
             irecv=irecv+1
             !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
             !call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
@@ -4119,7 +4125,7 @@ do jproc=0,nproc-1
         tag=comon%comarr(6,jorb,jproc)
         ! The orbitals are on different processes, so we need a point to point communication.
         !isend=isend+1
-        if(iproc==mpisource) then
+        if(iproc==mpisource .and. nproc >1) then
             isend=isend+1
             t2=mpi_wtime()
             timeextract=timeextract+t2-t1
@@ -4131,6 +4137,8 @@ do jproc=0,nproc-1
             !     mpi_comm_world, ierr)
             t2=mpi_wtime()
             timecommun=timecommun+t2-t1
+         else if (nproc==1) then
+            call vcopy(ncount,comon%sendBuf(istsource),1,comon%recvBuf(istdest),1)
         end if
     end do
 end do
@@ -4309,72 +4317,75 @@ end do
 
 
 ! Now the sends
-t1=mpi_wtime()
-nsend=0
-waitLoopSend: do
-    !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
-    !!nsend=nsend+ncomplete
-    !!if(nsend==comon%nsend) exit waitLoopSend
-    call mpi_waitany(comon%nsend-nsend, comon%requests(1,1), ind, mpi_status_ignore, ierr)
-    nsend=nsend+1
-    do i=ind,comon%nsend-nsend
-        comon%requests(i,1)=comon%requests(i+1,1)
-    end do
-    if(nsend==comon%nsend) exit waitLoopSend
-end do waitLoopSend
-t2=mpi_wtime()
-timecommunp2p=timecommunp2p+t2-t1
-
+if (nproc >1) then
+   t1=mpi_wtime()
+   nsend=0
+   waitLoopSend: do
+      !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
+      !!nsend=nsend+ncomplete
+      !!if(nsend==comon%nsend) exit waitLoopSend
+      call mpi_waitany(comon%nsend-nsend, comon%requests(1,1), ind, mpi_status_ignore, ierr)
+      nsend=nsend+1
+      do i=ind,comon%nsend-nsend
+         comon%requests(i,1)=comon%requests(i+1,1)
+      end do
+      if(nsend==comon%nsend) exit waitLoopSend
+   end do waitLoopSend
+   t2=mpi_wtime()
+   timecommunp2p=timecommunp2p+t2-t1
+end if
 
 ovrlp=0.d0
 lphiovrlp=0.d0
 nrecv=0
 waitLoopRecv: do
-    t1=mpi_wtime()
-    call mpi_waitany(comon%nrecv-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
-    !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
-    !ind=1
-    t2=mpi_wtime()
-    timecommunp2p=timecommunp2p+t2-t1
-    ncomplete=1
-    received=.true.
-    if(received) then
-        do i=1,ncomplete
-            ! Calculate overlap matrix
-            !jorb=indcomplete(i)
-            jorb=indexarray(ind)
-            !!write(*,'(2(a,i0))') 'process ',iproc,' has received message ',jorb
-            if(.not.done(jorb)) then
-                orbsource=comon%comarr(9,jorb,iproc)
-                do iorb=1,orbs%norbp
-                    orbdest=orbs%isorb+iorb
-                    call getStartingIndicesGlobal(orbdest, orbsource, op, orbs, ist, jst, ncount)
-                    !jst=comon%comarr(5,jorb,iproc)
-                    !ncount=comon%comarr(3,jorb,iproc)
-                    !write(*,'(a,i4,2i5,3x,2i8,4x,2i8)') 'iproc, ind, jorb, ncount, comon%comarr(3,jorb,iproc) ; jst, comon%comarr(5,jorb,iproc)', iproc, ind, jorb, ncount, comon%comarr(3,jorb,iproc), jst, comon%comarr(5,jorb,iproc)
-                    t1=mpi_wtime()
-                    ovrlp(orbsource,orbdest)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
-                    t2=mpi_wtime()
-                    timeoverlap=timeoverlap+t2-t1
-                    t1=mpi_wtime()
-                    call expandoneorbital2(iproc, nproc, orbsource, orbdest-orbs%isorb, orbs, input, &
-                         orbs%inwhichlocreg, lzd, op, nrecvbuf, recvbuf, lphiovrlp)
-                    t2=mpi_wtime()
-                    timeexpand=timeexpand+t2-t1
-                end do
-                done(jorb)=.true.
-            end if
-        end do
-        nrecv=nrecv+ncomplete
-        !write(*,'(5(a,i0))') 'iproc=',iproc,': communication ',ind,' corresponding to jorb=',jorb,') has completed; moving requests from ',ind,' to ',comon%nrecv-nrecv
-        !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests before: ',comon%requests(1:comon%nrecv,2)
-        do i=ind,comon%nrecv-nrecv
-            comon%requests(i,2)=comon%requests(i+1,2)
-            indexarray(i)=indexarray(i+1)
-        end do
-        !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests after: ',comon%requests(1:comon%nrecv,2)
-        if(nrecv==comon%nrecv) exit waitLoopRecv
-    end if
+   if (nproc > 1) then
+      t1=mpi_wtime()
+      call mpi_waitany(comon%nrecv-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
+      !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
+      !ind=1
+      t2=mpi_wtime()
+      timecommunp2p=timecommunp2p+t2-t1
+   end if
+   ncomplete=1
+   received=.true.
+   if(received) then
+      do i=1,ncomplete
+         ! Calculate overlap matrix
+         !jorb=indcomplete(i)
+         jorb=indexarray(ind)
+         !!write(*,'(2(a,i0))') 'process ',iproc,' has received message ',jorb
+         if(.not.done(jorb)) then
+            orbsource=comon%comarr(9,jorb,iproc)
+            do iorb=1,orbs%norbp
+               orbdest=orbs%isorb+iorb
+               call getStartingIndicesGlobal(orbdest, orbsource, op, orbs, ist, jst, ncount)
+               !jst=comon%comarr(5,jorb,iproc)
+               !ncount=comon%comarr(3,jorb,iproc)
+               !write(*,'(a,i4,2i5,3x,2i8,4x,2i8)') 'iproc, ind, jorb, ncount, comon%comarr(3,jorb,iproc) ; jst, comon%comarr(5,jorb,iproc)', iproc, ind, jorb, ncount, comon%comarr(3,jorb,iproc), jst, comon%comarr(5,jorb,iproc)
+               t1=mpi_wtime()
+               ovrlp(orbsource,orbdest)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
+               t2=mpi_wtime()
+               timeoverlap=timeoverlap+t2-t1
+               t1=mpi_wtime()
+               call expandoneorbital2(iproc, nproc, orbsource, orbdest-orbs%isorb, orbs, input, &
+                    orbs%inwhichlocreg, lzd, op, nrecvbuf, recvbuf, lphiovrlp)
+               t2=mpi_wtime()
+               timeexpand=timeexpand+t2-t1
+            end do
+            done(jorb)=.true.
+         end if
+      end do
+      nrecv=nrecv+ncomplete
+      !write(*,'(5(a,i0))') 'iproc=',iproc,': communication ',ind,' corresponding to jorb=',jorb,') has completed; moving requests from ',ind,' to ',comon%nrecv-nrecv
+      !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests before: ',comon%requests(1:comon%nrecv,2)
+      do i=ind,comon%nrecv-nrecv
+         comon%requests(i,2)=comon%requests(i+1,2)
+         indexarray(i)=indexarray(i+1)
+      end do
+      !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests after: ',comon%requests(1:comon%nrecv,2)
+      if(nrecv==comon%nrecv) exit waitLoopRecv
+   end if
 end do waitLoopRecv
 
 !write(*,'(a,i0,a)') 'iproc=',iproc,' is here'
@@ -4441,8 +4452,13 @@ allocate(ovrlpCompressed2(mad%nvctr), stat=istat)
 call memocc(istat, ovrlpCompressed2, 'ovrlpCompressed2', subname)
 
 t1=mpi_wtime()
-call mpi_allgatherv(ovrlpCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed2(1), &
-     sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
+if (nproc >1) then
+   call mpi_allgatherv(ovrlpCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed2(1), &
+        sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
+else
+   call vcopy(sendcounts(iproc),ovrlpCompressed(displs(iproc)+1),1,ovrlpCompressed2(1+displs(iproc)),1)
+end if
+
 t2=mpi_wtime()
 timecommuncoll=timecommuncoll+t2-t1     
 
@@ -4481,7 +4497,7 @@ end subroutine collectAndCalculateOverlap
 
 
 subroutine collectnew(iproc, nproc, comon, mad, op, orbs, input, lzd, &
-           nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
+   nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => collectnew
@@ -4518,53 +4534,53 @@ done=.false.
 allocate(indexarray(comon%nrecv), stat=istat)
 call memocc(istat, indexarray, 'indexarray', subname)
 do i=1,comon%nrecv
-    indexarray(i)=i
+   indexarray(i)=i
 end do
 
 
 ! Wait for the sends to complete.
-t1=mpi_wtime()
-nsend=0
-waitLoopSend: do
-    !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
-    !!nsend=nsend+ncomplete
-    !!if(nsend==comon%nsend) exit waitLoopSend
-    call mpi_waitany(comon%nsend-nsend, comon%requests(1,1), ind, mpi_status_ignore, ierr)
-    nsend=nsend+1
-    do i=ind,comon%nsend-nsend
-        comon%requests(i,1)=comon%requests(i+1,1)
-    end do
-    if(nsend==comon%nsend) exit waitLoopSend
-end do waitLoopSend
-t2=mpi_wtime()
-timecommunp2p=timecommunp2p+t2-t1
+if (nproc > 1) then
+   t1=mpi_wtime()
+   nsend=0
+   waitLoopSend: do
+      !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
+      !!nsend=nsend+ncomplete
+      !!if(nsend==comon%nsend) exit waitLoopSend
+      call mpi_waitany(comon%nsend-nsend, comon%requests(1,1), ind, mpi_status_ignore, ierr)
+      nsend=nsend+1
+      do i=ind,comon%nsend-nsend
+         comon%requests(i,1)=comon%requests(i+1,1)
+      end do
+      if(nsend==comon%nsend) exit waitLoopSend
+   end do waitLoopSend
+   t2=mpi_wtime()
+   timecommunp2p=timecommunp2p+t2-t1
 
 
-
-ovrlp=0.d0
-nrecv=0
-waitLoopRecv: do
-    t1=mpi_wtime()
-    call mpi_waitany(comon%nrecv-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
-    !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
-    !ind=1
-    t2=mpi_wtime()
-    timecommunp2p=timecommunp2p+t2-t1
-    ncomplete=1
-    received=.true.
-    if(received) then
-        nrecv=nrecv+ncomplete
-        !write(*,'(5(a,i0))') 'iproc=',iproc,': communication ',ind,' corresponding to jorb=',jorb,') has completed; moving requests from ',ind,' to ',comon%nrecv-nrecv
-        !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests before: ',comon%requests(1:comon%nrecv,2)
-        do i=ind,comon%nrecv-nrecv
+   ovrlp=0.d0
+   nrecv=0
+   waitLoopRecv: do
+      t1=mpi_wtime()
+      call mpi_waitany(comon%nrecv-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
+      !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
+      !ind=1
+      t2=mpi_wtime()
+      timecommunp2p=timecommunp2p+t2-t1
+      ncomplete=1
+      received=.true.
+      if(received) then
+         nrecv=nrecv+ncomplete
+         !write(*,'(5(a,i0))') 'iproc=',iproc,': communication ',ind,' corresponding to jorb=',jorb,') has completed; moving requests from ',ind,' to ',comon%nrecv-nrecv
+         !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests before: ',comon%requests(1:comon%nrecv,2)
+         do i=ind,comon%nrecv-nrecv
             comon%requests(i,2)=comon%requests(i+1,2)
             indexarray(i)=indexarray(i+1)
-        end do
-        !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests after: ',comon%requests(1:comon%nrecv,2)
-        if(nrecv==comon%nrecv) exit waitLoopRecv
-    end if
-end do waitLoopRecv
-
+         end do
+         !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests after: ',comon%requests(1:comon%nrecv,2)
+         if(nrecv==comon%nrecv) exit waitLoopRecv
+      end if
+   end do waitLoopRecv
+end if
 !write(*,'(a,i0,a)') 'iproc=',iproc,' is here'
 
 iall=-product(shape(done))*kind(done)
@@ -4669,7 +4685,7 @@ end subroutine collectnew
 
 
 subroutine collectnew2(iproc, nproc, comon, mad, op, orbs, input, lzd, &
-           nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
+   nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => collectnew
@@ -4701,57 +4717,57 @@ logical:: received
 allocate(indexarray(comon%nrecvtemp), stat=istat)
 call memocc(istat, indexarray, 'indexarray', subname)
 do i=1,comon%nrecvtemp
-    indexarray(i)=i
+   indexarray(i)=i
 end do
 
-
-! Wait for the sends to complete.
-t1=mpi_wtime()
-nsend=0
-if(comon%nsendtemp/=0) then
-    waitLoopSend: do
-        !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
-        !!nsend=nsend+ncomplete
-        !!if(nsend==comon%nsend) exit waitLoopSend
-        call mpi_waitany(comon%nsendtemp-nsend, comon%requests(1,1), ind, mpi_status_ignore, ierr)
-        nsend=nsend+1
-        do i=ind,comon%nsendtemp-nsend
+if (nproc > 1) then
+   ! Wait for the sends to complete.
+   t1=mpi_wtime()
+   nsend=0
+   if(comon%nsendtemp/=0) then
+      waitLoopSend: do
+         !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
+         !!nsend=nsend+ncomplete
+         !!if(nsend==comon%nsend) exit waitLoopSend
+         call mpi_waitany(comon%nsendtemp-nsend, comon%requests(1,1), ind, mpi_status_ignore, ierr)
+         nsend=nsend+1
+         do i=ind,comon%nsendtemp-nsend
             comon%requests(i,1)=comon%requests(i+1,1)
-        end do
-        if(nsend==comon%nsendtemp) exit waitLoopSend
-    end do waitLoopSend
-end if
-t2=mpi_wtime()
-timecommunp2p=timecommunp2p+t2-t1
+         end do
+         if(nsend==comon%nsendtemp) exit waitLoopSend
+      end do waitLoopSend
+   end if
+   t2=mpi_wtime()
+   timecommunp2p=timecommunp2p+t2-t1
 
 
 
-ovrlp=0.d0
-nrecv=0
-if(comon%nrecvtemp/=0) then
-    waitLoopRecv: do
-        t1=mpi_wtime()
-        call mpi_waitany(comon%nrecvtemp-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
-        !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
-        !ind=1
-        t2=mpi_wtime()
-        timecommunp2p=timecommunp2p+t2-t1
-        ncomplete=1
-        received=.true.
-        if(received) then
+   ovrlp=0.d0
+   nrecv=0
+   if(comon%nrecvtemp/=0) then
+      waitLoopRecv: do
+         t1=mpi_wtime()
+         call mpi_waitany(comon%nrecvtemp-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
+         !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
+         !ind=1
+         t2=mpi_wtime()
+         timecommunp2p=timecommunp2p+t2-t1
+         ncomplete=1
+         received=.true.
+         if(received) then
             nrecv=nrecv+ncomplete
             !write(*,'(5(a,i0))') 'iproc=',iproc,': communication ',ind,' corresponding to jorb=',jorb,') has completed; moving requests from ',ind,' to ',comon%nrecv-nrecv
             !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests before: ',comon%requests(1:comon%nrecv,2)
             do i=ind,comon%nrecvtemp-nrecv
-                comon%requests(i,2)=comon%requests(i+1,2)
-                indexarray(i)=indexarray(i+1)
+               comon%requests(i,2)=comon%requests(i+1,2)
+               indexarray(i)=indexarray(i+1)
             end do
             !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests after: ',comon%requests(1:comon%nrecv,2)
             if(nrecv==comon%nrecvtemp) exit waitLoopRecv
-        end if
-    end do waitLoopRecv
+         end if
+      end do waitLoopRecv
+   end if
 end if
-
 
 iall=-product(shape(indexarray))*kind(indexarray)
 deallocate(indexarray, stat=istat)
@@ -4768,7 +4784,7 @@ end subroutine collectnew2
 
 
 subroutine collectAndCalculateOverlap2(iproc, nproc, comon, mad, op, orbs, input, lzd, &
-           nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, timecommunp2p, timecommuncoll, timeoverlap, timecompress)
+   nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, timecommunp2p, timecommuncoll, timeoverlap, timecompress)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => collectAndCalculateOverlap2
@@ -4805,7 +4821,7 @@ done=.false.
 allocate(indexarray(comon%nrecv), stat=istat)
 call memocc(istat, indexarray, 'indexarray', subname)
 do i=1,comon%nrecv
-    indexarray(i)=i
+   indexarray(i)=i
 end do
 
 
@@ -4813,51 +4829,53 @@ end do
 ovrlp=0.d0
 nrecv=0
 waitLoopRecv: do
-    t1=mpi_wtime()
-    call mpi_waitany(comon%nrecv-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
-    !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
-    !ind=1
-    t2=mpi_wtime()
-    timecommunp2p=timecommunp2p+t2-t1
-    ncomplete=1
-    received=.true.
-    if(received) then
-        do i=1,ncomplete
-            ! Calculate overlap matrix
-            !jorb=indcomplete(i)
-            jorb=indexarray(ind)
-            !!write(*,'(2(a,i0))') 'process ',iproc,' has received message ',jorb
-            if(.not.done(jorb)) then
-                orbsource=comon%comarr(9,jorb,iproc)
-                do iorb=1,orbs%norbp
-                    orbdest=orbs%isorb+iorb
-                    call getStartingIndicesGlobal(orbdest, orbsource, op, orbs, ist, jst, ncount)
-                    !jst=comon%comarr(5,jorb,iproc)
-                    !ncount=comon%comarr(3,jorb,iproc)
-                    !write(*,'(a,i4,2i5,3x,2i8,4x,2i8)') 'iproc, ind, jorb, ncount, comon%comarr(3,jorb,iproc) ; jst, comon%comarr(5,jorb,iproc)', iproc, ind, jorb, ncount, comon%comarr(3,jorb,iproc), jst, comon%comarr(5,jorb,iproc)
-                    t1=mpi_wtime()
-                    ovrlp(orbsource,orbdest)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
-                    t2=mpi_wtime()
-                    timeoverlap=timeoverlap+t2-t1
-                    !!t1=mpi_wtime()
-                    !!call expandoneorbital2(iproc, nproc, orbsource, orbdest-orbs%isorb, orbs, input, &
-                    !!     orbs%inwhichlocreg, lzd, op, nrecvbuf, recvbuf, lphiovrlp)
-                    !!t2=mpi_wtime()
-                    !!timeexpand=timeexpand+t2-t1
-                end do
-                done(jorb)=.true.
-            end if
-        end do
-        nrecv=nrecv+ncomplete
-        !write(*,'(5(a,i0))') 'iproc=',iproc,': communication ',ind,' corresponding to jorb=',jorb,') has completed; moving requests from ',ind,' to ',comon%nrecv-nrecv
-        !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests before: ',comon%requests(1:comon%nrecv,2)
-        do i=ind,comon%nrecv-nrecv
-            comon%requests(i,2)=comon%requests(i+1,2)
-            indexarray(i)=indexarray(i+1)
-        end do
-        !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests after: ',comon%requests(1:comon%nrecv,2)
-        if(nrecv==comon%nrecv) exit waitLoopRecv
-    end if
+   if (nproc > 1) then
+      t1=mpi_wtime()
+      call mpi_waitany(comon%nrecv-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
+      !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
+      !ind=1
+      t2=mpi_wtime()
+      timecommunp2p=timecommunp2p+t2-t1
+   end if
+   ncomplete=1
+   received=.true.
+   if(received) then
+      do i=1,ncomplete
+         ! Calculate overlap matrix
+         !jorb=indcomplete(i)
+         jorb=indexarray(ind)
+         !!write(*,'(2(a,i0))') 'process ',iproc,' has received message ',jorb
+         if(.not.done(jorb)) then
+            orbsource=comon%comarr(9,jorb,iproc)
+            do iorb=1,orbs%norbp
+               orbdest=orbs%isorb+iorb
+               call getStartingIndicesGlobal(orbdest, orbsource, op, orbs, ist, jst, ncount)
+               !jst=comon%comarr(5,jorb,iproc)
+               !ncount=comon%comarr(3,jorb,iproc)
+               !write(*,'(a,i4,2i5,3x,2i8,4x,2i8)') 'iproc, ind, jorb, ncount, comon%comarr(3,jorb,iproc) ; jst, comon%comarr(5,jorb,iproc)', iproc, ind, jorb, ncount, comon%comarr(3,jorb,iproc), jst, comon%comarr(5,jorb,iproc)
+               t1=mpi_wtime()
+               ovrlp(orbsource,orbdest)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
+               t2=mpi_wtime()
+               timeoverlap=timeoverlap+t2-t1
+               !!t1=mpi_wtime()
+               !!call expandoneorbital2(iproc, nproc, orbsource, orbdest-orbs%isorb, orbs, input, &
+               !!     orbs%inwhichlocreg, lzd, op, nrecvbuf, recvbuf, lphiovrlp)
+               !!t2=mpi_wtime()
+               !!timeexpand=timeexpand+t2-t1
+            end do
+            done(jorb)=.true.
+         end if
+      end do
+      nrecv=nrecv+ncomplete
+      !write(*,'(5(a,i0))') 'iproc=',iproc,': communication ',ind,' corresponding to jorb=',jorb,') has completed; moving requests from ',ind,' to ',comon%nrecv-nrecv
+      !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests before: ',comon%requests(1:comon%nrecv,2)
+      do i=ind,comon%nrecv-nrecv
+         comon%requests(i,2)=comon%requests(i+1,2)
+         indexarray(i)=indexarray(i+1)
+      end do
+      !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests after: ',comon%requests(1:comon%nrecv,2)
+      if(nrecv==comon%nrecv) exit waitLoopRecv
+   end if
 end do waitLoopRecv
 
 !write(*,'(a,i0,a)') 'iproc=',iproc,' is here'
@@ -4924,8 +4942,12 @@ allocate(ovrlpCompressed2(mad%nvctr), stat=istat)
 call memocc(istat, ovrlpCompressed2, 'ovrlpCompressed2', subname)
 
 t1=mpi_wtime()
-call mpi_allgatherv(ovrlpCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed2(1), &
-     sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
+if (nproc > 1) then
+   call mpi_allgatherv(ovrlpCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed2(1), &
+        sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
+else
+   call vcopy(sendcounts(iproc),ovrlpCompressed(displs(iproc)+1),1,ovrlpCompressed2(1+displs(iproc)),1)
+end if
 t2=mpi_wtime()
 timecommuncoll=timecommuncoll+t2-t1     
 

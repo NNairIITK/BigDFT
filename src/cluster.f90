@@ -328,7 +328,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       call print_dft_parameters(in,atoms)
    end if
    if (iproc == 0) call xc_dump()
-   !time initialization
+
+   !Time initialization
    if (verbose > 2) then
       nproctiming=-nproc !timing in debug mode
    else
@@ -528,7 +529,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !Allocate Charge density, Potential in real space
    nrhodim=in%nspin
    i3rho_add=0
-   if (in%SIC%approach=='NK') then
+   if (trim(in%SIC%approach)=='NK') then
       nrhodim=2*nrhodim
      i3rho_add=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*i3xcsh+1
    end if
@@ -559,6 +560,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
       allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
       call memocc(i_stat,orbs%eval,'eval',subname)
+   end if
+
+   !start the optimization
+   !yaml output
+   if (iproc==0) then
+      write(70,'(a,a)')repeat(' ',yaml_indent),'Electronic Ground State: '
+      yaml_indent=yaml_indent+1 !hash table element
    end if
 
    inputpsi=in%inputPsiId
@@ -947,20 +955,45 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
    infocode=0
    rhopot_loop: do itrp=1,in%itrpmax
+      !yaml output 
+      if (iproc==0) then
+         write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Hamiltonian Optimization: &itrp',itrp
+         yaml_indent=yaml_indent+2 !list element
+      end if
+
       !set the infocode to the value it would have in the case of no convergence
       infocode=1
       subd_loop : do icycle=1,in%nrepmax
+         !yaml output 
+         if (iproc==0) then
+            write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Subspace Optimization: &itrep',icycle
+            yaml_indent=yaml_indent+3 !list element
+         end if
+
          !if we are in the last_run case, validate the last_run only for the last cycle
          DoLastRunThings=(in%last_run == 1 .and. icycle == in%nrepmax) !do the last_run things regardless of infocode
 
+         !yaml output
+         if (iproc==0) then
+            write(70,'(a,a)')repeat(' ',yaml_indent),'Wavefunctions Iterations: '
+            yaml_indent=yaml_indent+1 !Hash table element
+         end if
          wfn_loop: do iter=1,in%itermax
+
+            !control whether the minimisation iterations ended
+            endloop= gnrm <= gnrm_cv .or. iter == in%itermax
 
             if (iproc == 0 .and. verbose > 0) then 
                write( *,'(1x,a,i0)') &
                   &   repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
+               !test for yaml output
+               if (endloop) then
+                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
+               else
+                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',iter
+               end if
+
             endif
-            !control whether the minimisation iterations ended
-            endloop= gnrm <= gnrm_cv .or. iter == in%itermax
 
             !control how many times the DIIS has switched into SD
             if (diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
@@ -994,8 +1027,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                   if (mix%kind == AB6_MIXING_DENSITY) then
                      call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
                          & rhopot,itrp,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hx*hy*hz,rpnrm,nscatterarr)
-                     if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                        &   'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                     if (iproc == 0 .and. itrp > 1) then
+                        write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                        &   'DENSITY iteration,Delta : (Norm 2/Volume)',itrp,rpnrm
+                        !yaml output
+                        write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
+                     end if
                      endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
                      ! xc_init_rho should be put in the mixing routines
                      rhopot = abs(rhopot) + 1.0d-20
@@ -1045,8 +1082,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                if (mix%kind == AB6_MIXING_POTENTIAL .and. in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
                   call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
                       & rhopot,itrp,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hx*hy*hz,rpnrm,nscatterarr)
-                  if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                     &   'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                  if (iproc == 0 .and. itrp > 1) then
+                     write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                          &   'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                     !yaml output
+                     write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
+                  end if
                   endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
                end if
 
@@ -1118,33 +1159,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
             !control the previous value of idsx_actual
             idsx_actual_before=diis%idsx
 
-!!!! TEST
-!!if(mod(iter,10)/=1) then
-!!    if(iproc==0) write(*,*) 'INNER LOOP: calling minimize_by_orthogonal_transformation'
-!!    psi=psit
-!!    allocate(psiwork(size(psi)), stat=i_stat)
-!!    call untranspose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, psi, work=psiwork)
-!!    call untranspose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, hpsi, work=psiwork)
-!!    deallocate(psiwork)
-!!    do i_stat=1,size(psi)
-!!        write(4000+iproc,*) psi(i_stat)
-!!    end do
-!!    El=energy
-!!    call minimize_by_orthogonal_transformation(iproc, nproc, orbs, lzd%glr%wfd, comms, in%orthpar, &
-!!         E0, El, stepsize, hpsi, psi, derivative)
-!!    E0=energy
-!!    !call untranspose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, psi, work=hpsi)
-!!    do i_stat=1,size(psi)
-!!        write(4100+iproc,*) psi(i_stat)
-!!    end do
-!!end if
-!!!! END TEST
 
            !Do not modify psi in the linear scaling case (i.e. if inputpsi==100)
-           !!if(mod(iter,10)==1) then
-           !!    if(iproc==0) write(*,*) 'OUTER LOOP: calling minimize_by_orthogonal_transformation'
-           !!    if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,Lzd%Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%orthpar)
-           !!end if
            if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,Lzd%Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%orthpar)
 
             if (in%inputPsiId == 0) then
@@ -1171,7 +1187,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
             end if
          end if
          !flush all writings on standart output
-         if (iproc==0) flush(unit=6)
+         if (iproc==0) then
+            !yaml output
+            write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
+            flush(unit=6)
+         end if
       end do wfn_loop
 
 
@@ -1181,23 +1201,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
          write( *,'(1x,a)') &
             &   '--------------------------------------------------- End of Wavefunction Optimisation'
-         write( *,'(1x,a,3(1x,1pe18.11))') &
-            &   'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
-         write( *,'(1x,a,3(1x,1pe18.11))') &
-            &   'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
+!!$         write( *,'(1x,a,3(1x,1pe18.11))') &
+!!$            &   'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
+!!$         write( *,'(1x,a,3(1x,1pe18.11))') &
+!!$            &   'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
          if ((in%itrpmax >1 .and. endlooprp) .or. in%itrpmax == 1) then
             write(final_out, "(A5)") "FINAL"
          else
             write(final_out, "(A5)") "final"
          end if
-         if (gnrm_zero == 0.0_gp) then
-            write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-               &   final_out // ' iter,total energy,gnrm',iter,energy,gnrm
-         else
-            write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
-               &   final_out // ' iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+         call write_energies(iter,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,energy,0.0_gp,gnrm,gnrm_zero,final_out)
+         !yaml output
+         write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
+         yaml_indent=yaml_indent-1 !end hash table element
 
-         end if
          !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
          if (in%itrpmax >1) then
             if ( diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
@@ -1222,6 +1239,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
       !exit if the infocode is correct
       if (infocode == 0) then
+         yaml_indent=yaml_indent-3 !end list element
          exit subd_loop
       else
          if(iproc==0) then
@@ -1241,6 +1259,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          diis%alpha=2.d0
       end if
 
+      if (iproc==0) then
+         !yaml output
+         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',icycle
+         yaml_indent=yaml_indent-3 !end list element
+      end if
    end do subd_loop
 
    if (in%itrpmax > 1) then
@@ -1258,7 +1281,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       diis%alpha=2.d0
    end if
 
+   if (iproc == 0) then
+      !yaml output
+      yaml_indent=yaml_indent-2 !end list element
+      !reassume the key elements in the itrp element
+      if (itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
+      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End itrp:',itrp
+   end if
+
 end do rhopot_loop
+!yaml output
+if (iproc==0) yaml_indent=yaml_indent-1 !end hash table element
+
   !!do i_all=1,size(rhopot)
   !!    write(10000+iproc,*) rhopot(i_all)
   !!end do
@@ -1966,11 +2000,11 @@ END SUBROUTINE deallocate_before_exiting
     !   call deallocate_diis_objects(diis,subname)
     !end if
 
-    if (nproc > 1) then
+    !if (nproc > 1) then
        i_all=-product(shape(psit))*kind(psit)
        deallocate(psit,stat=i_stat)
        call memocc(i_stat,i_all,'psit',subname)
-    end if
+    !end if
 
     i_all=-product(shape(pot_ion))*kind(pot_ion)
     deallocate(pot_ion,stat=i_stat)

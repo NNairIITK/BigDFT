@@ -12,7 +12,8 @@ TESTDIRS = C \
 	  TiMix \
 	  TiSmear \
 	  O2-Spin \
-	  TDDFT
+	  TDDFT \
+	  Linear
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -29,8 +30,8 @@ endif
 EXTRA_DIST = \
 	README \
 	inguess.dat \
-        $(TESTDIRS) \
-        GPU OCL
+    $(TESTDIRS) \
+    GPU OCL
 
 # Give here the pseudo-potentials used by each test.
 H.psp: psppar.H
@@ -53,6 +54,7 @@ GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 TDDFT.psp: psppar.N
+Linear.psp: HGH/psppar.C extra/psppar.H
 
 
 # Define the precision for specific directories.
@@ -68,6 +70,8 @@ TDDFT.psp: psppar.N
           AgBulk.out*)      prec="6.e-8" ;; \
           SiH4.out*)        prec="5.e-9" ;; \
 	  TDDFT.out*)       prec="2.e-9" ;; \
+	  Mn2.out*)         prec="1.5e-10" ;; \
+	  Linear.out*)         prec="1.e-8" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

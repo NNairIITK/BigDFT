@@ -35,8 +35,13 @@ EXTRA_DIST = $(TESTDIRS) \
      Xabs \
      Wannier
 
+# Additional post-in commands
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
+# Remove HF.perf in case of acceleration
+N2.post-in :
+	rm -f input.perf
+
 
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
@@ -54,7 +59,7 @@ dev.post-clean:
           *) mode="";; \
         esac ; \
         case $* in \
-          CH3-.out*) prec="5.e-7" ;; \
+          CH3-.out*) prec="5.2e-7" ;; \
           scalability.out*)  prec="1.e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \

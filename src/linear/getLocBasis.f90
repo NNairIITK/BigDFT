@@ -424,7 +424,7 @@ real(8),dimension(:),pointer:: lpot
 
   
   !!if(iproc==0) then
-  !!    write(*,'(x,a)', advance='no') '------------------------------------- Building linear combinations... '
+  !!    write(*,'(1x,a)', advance='no') '------------------------------------- Building linear combinations... '
   !!end if
   !!! Build the extended orbital psi as a linear combination of localized basis functions phi. for real O(N)
   !!! this has to replaced, but at the moment it is still needed.
@@ -577,16 +577,16 @@ type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 
 ! Local variables
-real(8)::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot, t2tot, timetot
-real(8):: tt1, tt2, tt3, tt4, tt5, lstep, dfactorial
+real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot
+real(8) :: t2tot, timetot, tt1, tt2, tt3, tt4, tt5, lstep, dfactorial
 real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
 real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress
-integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest, info
-integer:: lwork, ndim_lchi, ndim_lhchi
+integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot
+integer :: icountDIISFailureCons, itBest, info, lwork, ndim_lchi, ndim_lhchi
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb, i, ist, jst, iiorb, jjorb, ilrold, k
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
-real(8),dimension(:),allocatable:: alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold, eval, lvphi, lvphiovrlp
-real(8),dimension(:),allocatable:: alpha2, lhpsiold, work, rwork, lphiold
+real(8),dimension(:),allocatable:: alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
+real(8),dimension(:),allocatable:: eval, lvphi, lvphiovrlp, alpha2, lhpsiold, work, rwork, lphiold
 real(8),dimension(:),allocatable:: lchi
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr, W, ttmat, Kmat, Gmat, Umat, lhchi
 real(8),dimension(:,:,:),allocatable:: Gmatc, tempmat, Omat, tempmat2, ham3
@@ -604,8 +604,8 @@ complex(8),dimension(:),allocatable:: Gmat_c, expD_cmplx
 character(len=3):: orbname, comment
 integer,dimension(:),allocatable:: onwhichatomtemp, norb_parTemp, onWhichMPITemp
 logical,dimension(:),allocatable:: doNotCalculate, skip
-integer:: iat, is1, ie1, is2, ie2, is3, ie3, jlr, js1, je1, js2, je2, js3, je3, norbTarget, nprocTemp
-integer:: kk, jlrold, nlocregPerMPI, tag, jproc
+integer:: iat, is1, ie1, is2, ie2, is3, ie3, jlr, js1, je1, js2, je2, js3, je3
+integer :: norbTarget, nprocTemp, kk, jlrold, nlocregPerMPI, tag, jproc
 logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, immediateSwitchToSD
 
 
@@ -1450,7 +1450,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
            !!!!!!lhchi=0.d0
 
 
-           !!!!!!if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
+           !!!!!!if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
            !!!!!!call mpi_barrier(mpi_comm_world, ierr)
            !!!!!!call cpu_time(t1)
            !!!!!!!!call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%locregShape, lin%lig%lzdig)
@@ -1518,7 +1518,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
            !!!!!!call mpi_barrier(mpi_comm_world, ierr)
            !!!!!!call cpu_time(t2)
            !!!!!!time=t2-t1
-           !!!!!!if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time
+           !!!!!!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for applying potential:', time
 
 
 
@@ -1873,7 +1873,7 @@ contains
                       icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
                   if(icountDIISFailureTot>=3) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
                       icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
-                  if(resetDIIS) write(*,'(x,a)') 'reset DIIS due to flag'
+                  if(resetDIIS) write(*,'(1x,a)') 'reset DIIS due to flag'
               end if
               if(resetDIIS) then
                   resetDIIS=.false.
@@ -2850,7 +2850,8 @@ procLoop1: do jproc=0,nproc-1
                     lin%comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
                     nsends=nsends+1
                 else if(iproc==mpidest) then
-                    !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                   !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, &
+                   !     ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                     call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
                          lin%comsr%comarr(9,iorb,jproc), ierr)
                     lin%comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
@@ -3175,7 +3176,8 @@ destLoop: do jproc=0,nproc-1
                     comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
                     nsends=nsends+1
                 else if(iproc==mpidest) then
-                    !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                   !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, &
+                   !    ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                     call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
                         comgp%comarr(8,kproc,jproc), ierr)
                     comgp%comarr(7,kproc,jproc)=mpi_request_null !is this correct?
@@ -3653,8 +3655,12 @@ do jproc=0,nproc-1
     sendcounts(jproc)=lin%orbs%norb*orbs%norb_par(jproc,0)
     if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
 end do
-call mpi_allgatherv(lambda, sendcounts(iproc), mpi_double_precision, coeff, sendcounts, displs, &
-     mpi_double_precision, mpi_comm_world, ierr)
+if (nproc > 1) then
+   call mpi_allgatherv(lambda, sendcounts(iproc), mpi_double_precision, coeff, sendcounts, displs, &
+        mpi_double_precision, mpi_comm_world, ierr)
+else
+   call vcopy(sendcounts(iproc),lambda(1,1),1,coeff(1,1),1)
+end if
 
 iall=-product(shape(Q))*kind(Q)
 deallocate(Q, stat=istat)
@@ -3854,7 +3860,7 @@ character(len=*),parameter:: subname='minimize_in_subspace'
            lhchi=0.d0
 
 
-           if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
+           if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
            call mpi_barrier(mpi_comm_world, ierr)
            call cpu_time(t1)
            !!call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%locregShape, lin%lig%lzdig)
@@ -3922,7 +3928,7 @@ character(len=*),parameter:: subname='minimize_in_subspace'
            call mpi_barrier(mpi_comm_world, ierr)
            call cpu_time(t2)
            time=t2-t1
-           if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time
+           if(iproc==0) write(*,'(1x,a,es10.3)') 'time for applying potential:', time
 
 
 
@@ -3983,7 +3989,8 @@ character(len=*),parameter:: subname='minimize_in_subspace'
                if(iproc==0) write(*,*) 'calling getHamiltonianMatrix6'
                call getHamiltonianMatrix6(iproc, nproc, nprocTemp, lin%lzd, lin%orbs, lin%orbs, &
                     onWhichMPITemp, input, lin%orbs%inWhichLocreg, ndim_lhchi, &
-                    nlocregPerMPI, lchi, lhchi, skip, lin%mad, lin%memoryForCommunOverlapIG, lin%locregShape, tag, ham3)
+                    nlocregPerMPI, lchi, lhchi, skip, lin%mad, &
+                    lin%memoryForCommunOverlapIG, lin%locregShape, tag, ham3)
            end if
 
            iall=-product(shape(lhchi))*kind(lhchi)
@@ -3993,8 +4000,8 @@ character(len=*),parameter:: subname='minimize_in_subspace'
 
            ! Build the orbitals phi as linear combinations of the atomic orbitals.
            if(iproc==0) write(*,*) 'calling buildLinearCombinationsLocalized3'
-           call buildLinearCombinationsLocalized3(iproc, nproc, lin%orbs, lin%orbs, lin%comms, at, &
-                lin%lzd%Glr, input, lin%norbsPerType, &
+           call buildLinearCombinationsLocalized3(iproc, nproc, lin%orbs, lin%orbs, lin%comms,&
+                at, lin%lzd%Glr, input, lin%norbsPerType, &
                 lin%orbs%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, &
                 lin, lin%lzd, nlocregPerMPI, tag, ham3)
 

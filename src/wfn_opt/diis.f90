@@ -516,8 +516,11 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
      else
         diis%alpha=min(1.05_wp*diis%alpha,diis%alpha_max)
      endif
-     if (iproc == 0 .and. verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
-
+     if (iproc == 0) then
+        if (verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
+        !yaml output
+        write(70,'(1x,a,1pe11.3)') 'SDalpha: ',diis%alpha
+     end if
      call axpy(sum(comms%ncntt(0:nproc-1)),-diis%alpha,hpsit(1),1,psit(1),1)
 
   endif
@@ -599,7 +602,6 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   type(diis_objects), intent(inout) :: diis
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
-  character(len=2) :: mesupdw
   integer :: i,j,ist,jst,mi,info,jj,mj,i_all,i_stat,ierr,ipsi_spin_sh,iorb_group_sh
   integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp,icplx,ncplx,norbi,ngroup,igroup,iacc_add
   complex(tp) :: zdres,zdotc
@@ -866,41 +868,14 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
      call broadcast_kpt_objects(nproc, orbs%nkpts, ncplx*ngroup*(diis%idsx+1), rds, orbs%ikptproc)
   end if
 
-  if (iproc == 0 .and. verbose > 0) then 
-     if (verbose < 10) then
-        !we restrict the printing to the first k point only.
-        if (ngroup==1) then
 !!$           ttr=0.0_dp
 !!$           tti=0.0_dp
 !!$           do j=1,min(diis%idsx,diis%ids)+1
 !!$              ttr=ttr+rds(1,j,1,1)
 !!$              tti=tti+rds(2,j,1,1) 
 !!$           end do
-           write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts:',(rds(1:ncplx,j,1,1),j=1,min(diis%idsx,diis%ids)+1)!,&
-           !'(',ttr,tti,')'
-        else
-           do igroup=1,ngroup
-              if (igroup==1) mesupdw='up'
-              if (igroup==2) mesupdw='dw'
-              write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts'//mesupdw//':',&
-                   (rds(1:ncplx,j,igroup,1),j=1,min(diis%idsx,diis%ids)+1)
-           end do
-        end if
-     else
-        do ikpt = 1, orbs%nkpts
-           if (ngroup==1) then
-              write(*,'(1x,a,I3.3,a,2x,9(1x,(1pe9.2)))')'DIIS wgts (kpt #', ikpt, &
-                   & ')',(rds(1:ncplx,j,1,ikpt),j=1,min(diis%idsx,diis%ids)+1)
-           else
-              do igroup=1,ngroup
-                 if (igroup==1) mesupdw='up'
-                 if (igroup==2) mesupdw='dw'
-                 write(*,'(1x,a,I3.3,a,2x,9(1x,a,2(1pe9.2),a))')'DIIS wgts (kpt #', ikpt, &
-                      & ')'//mesupdw//':',('(',rds(1:ncplx,j,igroup,ikpt),')',j=1,min(diis%idsx,diis%ids)+1)
-              end do
-           end if
-        end do
-     end if
+  if (iproc == 0) then 
+     call write_diis_weights(ncplx,diis%idsx,ngroup,orbs%nkpts,min(diis%idsx,diis%ids),rds)
   endif
   
   i_all=-product(shape(ipiv))*kind(ipiv)
@@ -915,6 +890,50 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
 
 
 END SUBROUTINE diisstp
+
+subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
+  use module_base
+  implicit none
+  integer, intent(in) :: ncplx,idsx,ngroup,nkpts,itdiis
+  real(tp), dimension(ncplx,idsx+1,ngroup,nkpts), intent(in) :: rds
+  !local variables
+  integer :: j,igroup,ikpt
+  character(len=2) :: mesupdw
+  if (verbose < 10) then  
+     !we restrict the printing to the first k point only.
+     if (ngroup==1) then
+        if (verbose >0) write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts:',(rds(1:ncplx,j,1,1),j=1,itdiis+1)!,&
+        !yaml output
+        write(70,'(1x,a,1pe9.2)',advance='no')'DIIS wgts: [ ',rds(1:ncplx,1,1,1)
+        do j=2,itdiis+1
+           write(70,'(a,1pe9.2)',advance='no')', ',rds(1:ncplx,j,1,1)
+        end do
+        write(70,'(a)')']'
+        !'(',ttr,tti,')'
+     else if (verbose >0) then
+        do igroup=1,ngroup
+           if (igroup==1) mesupdw='up'
+           if (igroup==2) mesupdw='dw'
+           write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts'//mesupdw//':',&
+                (rds(1:ncplx,j,igroup,1),j=1,itdiis+1)
+        end do
+     end if
+  else if (verbose >0) then
+     do ikpt = 1, nkpts
+        if (ngroup==1) then
+           write(*,'(1x,a,I3.3,a,2x,9(1x,(1pe9.2)))')'DIIS wgts (kpt #', ikpt, &
+                & ')',(rds(1:ncplx,j,1,ikpt),j=1,itdiis+1)
+        else
+           do igroup=1,ngroup
+              if (igroup==1) mesupdw='up'
+              if (igroup==2) mesupdw='dw'
+              write(*,'(1x,a,I3.3,a,2x,9(1x,a,2(1pe9.2),a))')'DIIS wgts (kpt #', ikpt, &
+                   & ')'//mesupdw//':',('(',rds(1:ncplx,j,igroup,ikpt),')',j=1,itdiis+1)
+           end do
+        end if
+     end do
+  end if
+END SUBROUTINE write_diis_weights
 
 
 !> compute a dot product of two single precision vectors 

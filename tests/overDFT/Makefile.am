@@ -33,11 +33,15 @@ XabsLanc.psp: Xabs/psppar.Fe
 Xabsb2B.psp: Xabs/psppar.Fe
 NH3.psp: HGH-K/psppar.N HGH-K/psppar.H
 H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
-
 ElecField.psp: HGH-K/psppar.H HGH-K/psppar.O
+
 # Additional dependencies
-H2-freq2.freq.out: H2-freq.freq.out
-Xabsb2B.xabs.out: Xabsdel_inputGenPot.xabs.out
+H2-freq2.freq.out: H2-freq.freq.out frequencies.res
+Xabsb2B.xabs.out: InputGenPot.xabs.out
+
+# Additional freq in.
+H2-freq.post-in: $(abs_top_builddir)/src/frequencies
+	rm -f frequencies.res
 
 # Additional NEB in.
 NEB.post-in:
@@ -51,16 +55,16 @@ H2O-slab.post-in:
 	cp -f velocities.in velocities.xyz
 	chmod a+w velocities.xyz
 
-#additional reference for geopt.mon test
+# Additional reference for geopt.mon test
 global.mon.out : test.minhop.out
 	cp -f global.mon $@
 #	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy="5e-9" global.mon global.mon.ref | tee global.mon.report
 
 
 # Additional run rules.
-Xabsdel_inputGenPot.xabs.post-out:
+InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
-	cp inputGenPot.xyz b2B_xanes.xyz
+	cp InputGenPot.xyz b2B_xanes.xyz
 
 # Define the precision for specific directories.
 %.report: %.ref

@@ -266,14 +266,16 @@ void FC_FUNC(extractnextline, EXTRACTNEXTLINE)(char line[150], int *eof)
   do
     {
       if (!buff)
-        r = archive_read_data_block(_posinp_, &buff, &size, &offset);
-      if (r != ARCHIVE_OK)
         {
-          buff = (void*)0;
-          pos = 0;
-          if (!jdx)
-            *eof = 1;
-          return;
+          r = archive_read_data_block(_posinp_, &buff, &size, &offset);
+          if (r != ARCHIVE_OK)
+            {
+              buff = (void*)0;
+              pos = 0;
+              if (!jdx)
+                *eof = 1;
+              return;
+            }
         }
       vals = (char*)buff;
       for (idx = pos; idx < size; idx++)

@@ -64,10 +64,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
 
    !flag for toggling the REDUCE_SCATTER stategy (deprecated, icomm used instead of ixc value)
    !rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
-         !     & (ixc < 0 .and. module_xc_isgga()))
+   !     & (ixc < 0 .and. module_xc_isgga()))
 
    !  write(*,*) 'RSFLAG stuffs ',(ixc >= 11 .and. ixc <= 16),&
-         !             (ixc < 0 .and. module_xc_isgga()), have_mpi2,rsflag
+   !             (ixc < 0 .and. module_xc_isgga()), have_mpi2,rsflag
    !calculate dimensions of the complete array to be allocated before the reduction procedure
    if (rhodsc%icomm==1) then
       nrhotot=0
@@ -277,6 +277,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
       end if
       write(*,'(1x,a,f21.12)')&
          &   'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
+      !yaml output
+      write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
       if(nspin == 4 .and. tt > 0._dp)&
          &   write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
          &   (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
@@ -355,7 +357,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
             end do
 
             !print *,'iorb,nrm',iorb,&
-                  !nrm2(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir(1,1),1)
+            !nrm2(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir(1,1),1)
 
             select case(lr%geocode)
             case('F')

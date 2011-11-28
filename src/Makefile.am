@@ -63,7 +63,7 @@ PS_SOURCES =
 PS_MODULES =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc BigDFT2Wannier
+binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 else
@@ -71,7 +71,6 @@ binaries_sources =
 local_binaries =
 scripts_sources = 
 endif
-
 
 # Additional sources.
 # ------------------
@@ -197,7 +196,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA
-AM_CFLAGS = -Wall -Werror @DGEMMSY_CPPFLAGS@
+AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
 
 if USE_MPI
 mpi_source =
@@ -377,6 +376,9 @@ oneatom_LDADD = @LIBS_DEPENDENCIES@
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
 BigDFT2Wannier_LDADD = @LIBS_DEPENDENCIES@
 
+WaCo_SOURCES = WaCo.f90                                                                                                                                                                    
+WaCo_LDADD = @LIBS_DEPENDENCIES@
+
 MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = @LIBS_DEPENDENCIES@ 
 
@@ -411,7 +413,7 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-$(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o: $(mpi_include)  $(modules_objects)
+$(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o WaCo.o: $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
 
@@ -420,3 +422,4 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 $(modules_objects) : $(mpi_include)
+

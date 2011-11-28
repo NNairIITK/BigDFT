@@ -91,6 +91,7 @@ program BigDFT
       call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
       if (iproc == 0) then
          call print_general_parameters(nproc,inputs,atoms)
+         !call write_input_parameters(inputs,atoms)
       end if
 
       !initialize memory counting
