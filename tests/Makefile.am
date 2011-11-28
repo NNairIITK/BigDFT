@@ -4,8 +4,7 @@ SUBDIRS = \
 	  libs \
 	  DFT \
 	  overDFT \
-	  tutorials \
-	  Linear
+	  tutorials
 
 
 if USE_OCL
