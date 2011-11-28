@@ -14,14 +14,17 @@
 !!  can help to estimate the accuracy the the chosen parameter set( hgrid, crmult etc).
 PROGRAM rotate_posinp
 
-   implicit real*8 (a-h,o-z)
-   parameter(natx=2000)
-   character(len=5) atomname(natx)
-   character(len=12) units
-   character(len=20) extra(natx) 
-   character(len=120) line,line2
-   dimension pos(3,natx),pos_s(3)
-   parameter(PI=3.141592654d0)       
+   implicit none
+   integer, parameter :: natx=2000
+   character(len=5) :: atomname(natx)
+   character(len=12) :: units
+   character(len=20) :: extra(natx) 
+   character(len=120) :: line,line2
+   real(kind=8), dimension(3,natx) :: pos
+   real(kind=8), dimension(3) :: pos_s
+   real(kind=8) :: scale,t1,t2,t3,phi_1,phi_2,phi_3
+   real(kind=8), parameter :: PI=3.141592654d0
+   integer :: nat,iat,ierror
 
    write(*,*) 'reading atomic positions from file posinp'
    open(unit=9,file='posinp.xyz',status='unknown')
@@ -29,7 +32,7 @@ PROGRAM rotate_posinp
    if (nat.gt.natx) stop 'increase natx'
    read(9,*) line2
 
-! put center of mass at origin
+   ! put center of mass at origin
    pos_s(1)=0.d0
    pos_s(2)=0.d0
    pos_s(3)=0.d0
@@ -85,7 +88,7 @@ PROGRAM rotate_posinp
       pos(3,iat)=t3
    end do
 
-! shift back center of mass to original position
+   ! shift back center of mass to original position
    do iat=1,nat
       pos(1,iat)=pos(1,iat)+pos_s(1)
       pos(2,iat)=pos(2,iat)+pos_s(2)
@@ -101,7 +104,7 @@ PROGRAM rotate_posinp
    write(9,'(a100)') line2
    do iat=1,nat
       write(9,'(a5,3x,3(1x,e17.10),4x,a)') atomname(iat),   & 
-            pos(1,iat)*scale,pos(2,iat)*scale,pos(3,iat)*scale,extra(iat)
+      pos(1,iat)*scale,pos(2,iat)*scale,pos(3,iat)*scale,extra(iat)
    end do
    close(unit=9)
 

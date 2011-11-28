@@ -354,7 +354,7 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
  
   !calculate the long range part of the density
   call calculate_rho_longrange(iproc,nproc,atoms,nlr,iatlr,radii,rxyz,hxh,hyh,hzh,&
-       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,lr%d%n3i,rho,rhoarr)
+       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,rho,rhoarr)
 
   if (iproc == 0) then
      do iat=1,nlr
@@ -578,12 +578,12 @@ END SUBROUTINE two_center_two_electrons_analytic
 
 
 subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,hzh,&
-     n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,rhoarr)
+     n1,n2,n3,n3pi,i3s,n1i,n2i,rho,rhoarr)
   use module_base
   use module_types
   implicit none
   !Arguments---------
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nlr
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,nlr
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
   integer, dimension(at%nat), intent(in) :: iatlr
@@ -769,6 +769,7 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
      rho,rhoarr)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hxh,hyh,hzh

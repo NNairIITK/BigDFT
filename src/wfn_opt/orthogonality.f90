@@ -1,5 +1,5 @@
 !> @file
-!!   Routines to orthogonalize waveffunctions
+!!   Routines to orthogonalize the wavefunctions
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
@@ -10,14 +10,13 @@
 
 !> Orthogonality routine, for all the orbitals
 !! Uses wavefunctions in their transposed form
-subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,orthpar)
+subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
-  type(wavefunctions_descriptors), intent(in) :: wfd
   type(orthon_data), intent(in) :: orthpar
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
   !local variables
@@ -69,7 +68,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,orthpar)
         call getOverlap(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
              psi(1),ndimovrlp,ovrlp,norbArr,1,ispin,category)
 
-        call cholesky(iproc,nproc,norbArr(ispin),psi(1),nspinor,nspin,orbs,comms,&
+        call cholesky(iproc,norbArr(ispin),psi(1),nspinor,nspin,orbs,comms,&
              ndimovrlp,ovrlp(1),norbArr,1,ispin)
 !call cholesky(iproc,nproc,norbArr(ispin),psi(1),nspinor,nspin,orbs,comms,&
 !     ndimovrlp,ovrlp(1),norbArr,1,ispin)
@@ -102,7 +101,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,orthpar)
      ! Make a loop over npsin; calculate the overlap matrix (for up/down,resp.) and orthogonalize (again for up/down,resp.).
      do ispin=1,nspin
         call getOverlap(iproc,nproc,nspin,norbArr(ispin),orbs,comms,psi(1),ndimovrlp,ovrlp,norbArr,1,ispin,category)
-        call loewdin(iproc,nproc,norbArr(ispin),orbs%nspinor,1,ispin,orbs,comms,nspin,psi,ovrlp,ndimovrlp,norbArr)
+        call loewdin(iproc,norbArr(ispin),orbs%nspinor,1,ispin,orbs,comms,nspin,psi,ovrlp,ndimovrlp,norbArr)
      end do
      
      ! Deallocate the arrays.
@@ -111,7 +110,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,orthpar)
      call memocc(i_stat,i_all,'ovrlp',subname)
           
   else
-     if(iproc==0) write(*,'(a)') 'ERROR: invalid choice for methOrtho.'
+     if(iproc==0) write(*,'(a,i0)') 'ERROR: invalid choice for methOrtho:',orthpar%methOrtho
      if(iproc==0) write(*,'(a)') "Change it in 'input.perf' to 0, 1 or 2!"
      stop
   end if
@@ -951,10 +950,10 @@ END SUBROUTINE orthoconstraint_p
 
 
 !> Gram-Schmidt orthogonalisation
-subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
+subroutine orthon_p(iproc,nproc,norb,nvctrp,psit,nspinor)
   use module_base
   implicit none
-  integer, intent(in) :: iproc,nproc,norb,nvctrp,nvctr_tot,nspinor
+  integer, intent(in) :: iproc,nproc,norb,nvctrp,nspinor
   real(wp), dimension(nspinor*nvctrp,norb), intent(inout) :: psit
   !local variables
   character(len=*), parameter :: subname='orthon_p'
@@ -1130,7 +1129,7 @@ END SUBROUTINE orthon_p
 !> Loewdin orthogonalisation
 !! @todo
 !!  The loewe routines must be uniformised serial/parallel and nspinor should be added
-subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,nvctr_tot,psit)
+subroutine loewe_p(iproc,norb,ndim,nvctrp,nvctr_tot,psit)
   use module_base
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.true.
@@ -1232,7 +1231,7 @@ subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,nvctr_tot,psit)
 END SUBROUTINE loewe_p
 
 
-!> loewdin orthogonalisation
+!> Loewdin orthogonalisation
 subroutine loewe(norb,nvctrp,psi)
   use module_base
   implicit real(kind=8) (a-h,o-z)
@@ -1314,7 +1313,7 @@ subroutine loewe(norb,nvctrp,psi)
 END SUBROUTINE loewe
 
 
-subroutine checkortho_p(iproc,nproc,norb,nvctrp,psit)
+subroutine checkortho_p(iproc,norb,nvctrp,psit)
   use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension psit(nvctrp,norb)
@@ -1403,13 +1402,13 @@ subroutine checkortho(norb,nvctrp,psi)
 END SUBROUTINE checkortho
 
 
-!> at the start each processor has all the Psi's but only its part of the HPsi's
+!> At the start each processor has all the Psi's but only its part of the HPsi's
 !! at the end each processor has only its part of the Psi's
-subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  & 
+subroutine KStrans_p(nproc,norb,nvctrp,occup,  & 
      hpsit,psit,evsum,eval,nspinor)
   use module_base
   implicit none
-  integer, intent(in) :: iproc,nproc,norb,nvctrp,nspinor
+  integer, intent(in) :: nproc,norb,nvctrp,nspinor
   real(wp), intent(out) :: evsum
   real(gp), dimension(norb), intent(in) :: occup
   real(wp), dimension(nvctrp*nspinor,norb), intent(in) :: hpsit
@@ -1575,7 +1574,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
   ! Make a loop over spin up/down.
   do ispin=1,nspin
      ! Get the blocksize.
-     blocksize=getBlocksize(iproc, nproc, orthpar, norbArr(ispin))
+     blocksize=getBlocksize(orthpar, norbArr(ispin))
      
      ! There are two orthonormalization subroutines: gramschmidt orthogonalizes a given bunch of vectors to another bunch
      ! of already orthonormal vectors, and the subroutine cholesky orthonormalizes the given bunch.
@@ -1597,14 +1596,14 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
            jst=blocksize*(jblock-1)+1
            call getOverlapDifferentPsi(iproc, nproc, nspin, blocksize,orbs, &
                 comms, psi(1), ndimovrlp, ovrlp, norbArr, ist, jst, ispin, category)
-           call gramschmidt(iproc, nproc, blocksize, psi(1), ndimovrlp, ovrlp, &
+           call gramschmidt(iproc, blocksize, psi(1), ndimovrlp, ovrlp, &
                 orbs, nspin, nspinor, comms, norbArr, ist, jst, ispin)
         end do
     
         ! Orthonormalize the current bunch of vectors.
         call getOverlap(iproc, nproc, nspin, blocksize, orbs, comms, psi(1), &
              ndimovrlp, ovrlp, norbArr, ist, ispin, category)
-        call cholesky(iproc, nproc, blocksize, psi(1), nspinor, nspin, orbs, &
+        call cholesky(iproc, blocksize, psi(1), nspinor, nspin, orbs, &
              comms, ndimovrlp, ovrlp(1), norbArr, ist, ispin)
     
     end do
@@ -1640,13 +1639,13 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
                 jst=blocksizeSmall*(jblock-1)+1
                 call getOverlapDifferentPsi(iproc, nproc, nspin, blocksizeSmall, &
                      orbs, comms, psi(1), ndimovrlp, ovrlp, norbArr, ist, jst, ispin, category)
-                call gramschmidt(iproc, nproc, blocksizeSmall, psi(1), ndimovrlp, &
+                call gramschmidt(iproc, blocksizeSmall, psi(1), ndimovrlp, &
                      ovrlp, orbs, nspin, nspinor, comms, norbArr, ist, jst, ispin)
             end do
             ! Orthonormalize the current bunch of vectors.
             call getOverlap(iproc, nproc, nspin, blocksizeSmall, orbs, comms,&
                  psi(1), ndimovrlp, ovrlp, norbArr, ist, ispin, category)
-            call cholesky(iproc, nproc, blocksizeSmall, psi(1), nspinor, nspin,&
+            call cholesky(iproc, blocksizeSmall, psi(1), nspinor, nspin,&
                  orbs, comms, ndimovrlp, ovrlp(1), norbArr, ist, ispin)
         end do
         i_all=-product(shape(ovrlp))*kind(ovrlp)
@@ -1665,7 +1664,6 @@ END SUBROUTINE gsChol
 !!
 !!  Input arguments:
 !!   @param  iproc       process ID
-!!   @param  nproc       total number of processes
 !!   @param  norbIn     number of orbitals to be orthonormalized
 !!   @param  ndimovrlp      describes the shape of the overlap matrix
 !!   @param  orbs       type that contains many parameters concerning the orbitals
@@ -1681,14 +1679,14 @@ END SUBROUTINE gsChol
 !!  Input/Output arguments:
 !!   @param  psit       the vectors that shall be orthonormalized
 !!   @param  ovrlp      the overlap matrix which will be destroyed during this subroutine
-subroutine gramschmidt(iproc, nproc, norbIn, psit, ndimovrlp, ovrlp, orbs, nspin,&
+subroutine gramschmidt(iproc, norbIn, psit, ndimovrlp, ovrlp, orbs, nspin,&
      nspinor, comms, norbTot, block1, block2, ispinIn)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, norbIn, nspin, nspinor, block1, block2, ispinIn
+integer,intent(in):: iproc, norbIn, nspin, nspinor, block1, block2, ispinIn
 type(orbitals_data):: orbs
 type(communications_arrays), intent(in) :: comms
 real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psit
@@ -1766,7 +1764,6 @@ END SUBROUTINE gramschmidt
 !!
 !!  Input arguments:
 !!   @param  iproc      process ID
-!!   @param  nproc      total number of processes
 !!   @param  norbIn     number of orbitals to be orthonormalized
 !!   @param  nspinor    real wavefunction -> nspinor=1, complex wavefunction -> nspinor>1
 !!   @param  nspin      closed shell -> nspin=1 ; spin polarised -> nspin=2
@@ -1781,15 +1778,15 @@ END SUBROUTINE gramschmidt
 !!  Input/Output arguments:
 !!   @param  psi        the vectors that shall be orthonormalized
 !!   @param  Lc      the overlap matrix which will be destroyed during this subroutine
-subroutine cholesky(iproc, nproc, norbIn, psi, nspinor, nspin, orbs, comms, ndimL, Lc, norbTot, block1, ispinIn)
+subroutine cholesky(iproc, norbIn, psi, nspinor, nspin, orbs, comms, ndimL, Lc, norbTot, block1, ispinIn)
 
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-!integer:: iproc,nproc,nvctrp,norbIn, nspinor, nspin, norbTot, block1, ispinIn
-integer:: iproc,nproc,nvctrp,norbIn, nspinor, nspin, block1, ispinIn
+!integer:: iproc,nvctrp,norbIn, nspinor, nspin, norbTot, block1, ispinIn
+integer:: iproc,nvctrp,norbIn, nspinor, nspin, block1, ispinIn
 type(orbitals_data):: orbs
 type(communications_arrays):: comms
 real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psi
@@ -1861,7 +1858,6 @@ END SUBROUTINE cholesky
 !!
 !!  Input arguments:
 !!   @param  iproc      process ID
-!!   @param  nproc      number of processes
 !!   @param  norbIn     number of orbitals to be orthonormalized
 !!   @param  nspinor    real wavefunction -> nspinor=1, complex wavefunction -> nspinor>1
 !!   @param  block1     gives the starting orbital of the orbitals to be orthonormalized
@@ -1876,14 +1872,14 @@ END SUBROUTINE cholesky
 !!  Input/output Arguments
 !!   @param  psit       the orbitals to be orthonormalized
 !!   @param  ovrlp      the overlap matrix which will be destroyed during this subroutine
-subroutine loewdin(iproc,nproc, norbIn, nspinor, block1, ispinIn, orbs, comms, nspin, psit, ovrlp, ndimovrlp, norbTot)
+subroutine loewdin(iproc, norbIn, nspinor, block1, ispinIn, orbs, comms, nspin, psit, ovrlp, ndimovrlp, norbTot)
 
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc,nproc,norbIn, nspinor, nspin, block1, ispinIn
+integer,intent(in):: iproc,norbIn, nspinor, nspin, block1, ispinIn
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in):: comms
 real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psit

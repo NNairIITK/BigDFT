@@ -35,7 +35,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,hxh,hyh,hzh,psi,rho,&
   integer :: nrhotot,n3d,itmred
   integer :: nspinn
   integer :: i1,i2,i3,i3off,i3s,i,ispin,jproc,i_all,i_stat,ierr,j3,j3p,j
-  real(dp) :: charge,tt
+  real(dp) :: charge,tt, dasum
   real(dp), dimension(:,:), allocatable :: tmred
   real(dp), dimension(:,:), pointer :: rho_p
 !!  real(dp), dimension(:,:), allocatable :: rho_p_OCL
@@ -110,7 +110,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,hxh,hyh,hzh,psi,rho,&
      call xc_init_rho(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot*nspinn,rho_p,nproc)
 
      !for each of the orbitals treated by the processor build the partial densities
-     call local_partial_density(iproc,nproc,(rhodsc%icomm==1),nscatterarr,&
+     call local_partial_density(nproc,(rhodsc%icomm==1),nscatterarr,&
           nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   end if
 
@@ -139,6 +139,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,hxh,hyh,hzh,psi,rho,&
           Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
           rho_p,symObj,irrzon,phnons)
   end if
+
 
   !write(*,*) 'iproc,TIMING:SR1',iproc,real(ncount1-ncount0)/real(ncount_rate)
   !the density must be communicated to meet the shape of the poisson solver
@@ -586,7 +587,7 @@ integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
 
 
-if(iproc==0) write(*,'(x,a)',advance='no') 'Calculating charge density...'
+if(iproc==0) write(*,'(1x,a)',advance='no') 'Calculating charge density...'
 
 !lin%comsr%communComplete=.false.
 !lin%comsr%computComplete=.false.
@@ -695,9 +696,9 @@ if(iproc==0) write(*,'(a,es12.4)') 'time for wait:',time
 !call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
                        nfast, ' could be overlapped with computation.'
-if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
 do iorb=1,lin%comsr%noverlaps(iproc)
@@ -713,12 +714,13 @@ end do
 
 
 
-! No calculate the charge density. Each process calculates only one slice of the total charge density.
+! Now calculate the charge density. Each process calculates only one slice of the total charge density.
 ! Such a slice has the full extent in the x and y direction, but is limited in the z direction.
 ! The bounds of the slice are given by nscatterarr. To do so, each process has received all orbitals that
 ! extend into this slice. The number of these orbitals is given by lin%comsr%noverlaps(iproc).
 call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t1)
+
 
 ! Bounds of the slice in global coordinates.
 is=nscatterarr(iproc,3)-14
@@ -743,8 +745,10 @@ do iorb=1,lin%comsr%noverlaps(iproc)
         factorTimesDensKern = factor*densKern(iiorb,jjorb)
         ! Now loop over all points in the box in which the orbitals overlap.
         do i3=i3s,i3e !bounds in z direction
-            i3d=i3-i3s+1 !z coordinate of orbital iorb with respect to the overlap box
-            j3d=i3-i3s+1 !z coordinate of orbital jorb with respect to the overlap box
+            !!i3d=i3-i3s+1 !z coordinate of orbital iorb with respect to the overlap box
+            !!j3d=i3-i3s+1 !z coordinate of orbital jorb with respect to the overlap box
+            i3d=i3-max(is,2*lin%lzd%llr(ilr)%ns3-14)+1 !z coordinate of orbital iorb with respect to the overlap box
+            j3d=i3-max(is,2*lin%lzd%llr(jlr)%ns3-14)+1 !z coordinate of orbital jorb with respect to the overlap box
             indi3=(i3d-1)*lin%lzd%llr(ilr)%d%n2i*lin%lzd%llr(ilr)%d%n1i !z-part of the index of orbital iorb in the 1-dim receive buffer
             indj3=(j3d-1)*lin%lzd%llr(jlr)%d%n2i*lin%lzd%llr(jlr)%d%n1i !z-part of the index of orbital jorb in the 1-dim receive buffer
             indl3=(i3-is)*Glr%d%n2i*Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
@@ -821,8 +825,7 @@ time=t2-t1
 if(iproc==0) write(*,'(a,es12.4)') 'time for large loop:',time
 
 call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(x,a,es20.12)') 'done. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
-
+if(iproc==0) write(*,'(1x,a,es20.12)') 'done. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
 iall=-product(shape(densKern))*kind(densKern)
 deallocate(densKern, stat=istat)

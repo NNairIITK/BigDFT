@@ -146,19 +146,28 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   real(8),dimension(linorbs%norb,orbs%norb),intent(in),optional:: coeff       !optional for Trace Minimizing orbitals
   !local variables--------------
   character(len=*), parameter :: subname='Linearnonlocal_forces'
-  integer :: istart_c,iproj,iat,ityp,i,j,l,m,jproc, ierr
+  integer :: istart_c,iproj,iat,ityp,i,j,l,m,jproc, ierr, jjorb2, jjorb
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,jorbd
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,ispinor
-  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac
-  integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb
+  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac, t1, t2, ttot1, ttot2
+  real(gp) :: timecomm1, timecomm2, timecomp1, timecomp2, timetot
+  integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb, jst
   real(gp), dimension(2,2,3) :: offdiagarr
-  real(gp), dimension(:,:), allocatable :: fxyz_orb,fxyz_tmorb
-  real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod, scalprodGlobal
-  integer :: ilr,iatom,ii,iiat,iilr,iorb2,nilr,iiorb,ilr2,kptshft,orbtot
-  integer :: norb,itmorb,itmorb2,jorb2
-  real(gp) :: spi2,sp1,sum_scalprod
-  integer,dimension(:),allocatable :: ilrtable, sendcounts, displs
+  real(gp),dimension(:),allocatable:: temparr
+  real(gp), dimension(:,:), allocatable :: fxyz_orb
+  real(gp),dimension(:,:,:,:),allocatable:: fxyz_tmo, fxyz_tmo_temp
+  real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod!!, scalprodGlobal
+  real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprodGlobal
+  integer :: ilr,iatom,ii,iiat,iilr,iorb2,nilr,iiorb,ilr2,kptshft,orbtot, nitoverlaps, ioverlap, tag1x, tag2x, tag1, tag2, jat, jj
+  integer :: norb,itmorb,itmorb2,jorb2, ncount
+  real(gp) :: spi2,sp1,sum_scalprod, dsum, tt
+  integer,dimension(:),allocatable :: ilrtable, sendcounts1, displs
+  integer,dimension(:,:),allocatable :: sendcounts2
+  integer,dimension(:,:,:),allocatable:: requests1, requests2
   logical :: calcproj,newvalue,useTMO
+  logical,dimension(:),allocatable:: temparr_logical
+  logical,dimension(:,:),allocatable:: nonzeroValue
+  logical,dimension(:,:),allocatable:: nonzero
 
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0 .and. .not.present(phi)) return
@@ -235,6 +244,9 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      allocate(scalprod(2,0:3,7,3,4,at%nat,max(linorbs%norbp,1)*linorbs%nspinor+ndebug),stat=i_stat)   
      call memocc(i_stat,scalprod,'scalprod',subname)
      call razero(2*4*7*3*4*at%nat*max(linorbs%norbp,1)*linorbs%nspinor,scalprod)
+     allocate(nonzeroValue(max(linorbs%norbp,1),at%nat), stat=i_stat)
+     call memocc(i_stat,nonzeroValue,'nonzeroValue',subname)
+     nonzeroValue=.false.
   else
      allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)   
      call memocc(i_stat,scalprod,'scalprod',subname)
@@ -261,6 +273,8 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
         nwarnings=0 !not used, simply initialised 
         iproj=0 !should be equal to four times nproj at the end
         kptshft = orbtot
+        call mpi_barrier(mpi_comm_world, ierr)
+        t1=mpi_wtime()
         do iat=1,at%nat
            !check if projector for this atom must be generated
            calcproj = .false.
@@ -326,11 +340,14 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                                         Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&        !must define jseg_c
                                         proj(istart_c),&
                                         scalprod(1,idir,m,i,l,iat,jorb))
+                                        !write(*,'(a,7i7,es15.7)') 'iproc, iat, jorb, idir, m, i, l, value', iproc, iat, jorb, idir, m, i, l, scalprod(1,idir,m,i,l,iat,jorb)
+                                        nonzeroValue(jorb,iat)=.true.
                                    istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                 end do
                              end if
                           end do
                        end do
+                       !write(*,'(a,3i7,es15.7)') 'iproc, iat, jorb, dsum', iproc, iat, jorb, dsum(2*4*7*3*4, scalprod(1,0,1,1,1,iat,jorb))
                        jorb = jorb + 1
                        orbtot = orbtot + 1
                     end do
@@ -339,6 +356,10 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
               end do
            end do
         end do
+        call mpi_barrier(mpi_comm_world, ierr)
+        t2=mpi_wtime()
+        timecomp1=t2-t1
+        if(iproc==0) write(*,'(a,es11.4)') 'time for calculating scalprod:',timecomp1
 !        if (ieorb == orbs%norbp) exit loop_kptTMO
 !        ikpt=ikpt+1
 !        ispsi_k=ispsi
@@ -346,34 +367,34 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
 
 
 ! Communicate scalprod
-allocate(scalprodGlobal(2,0:3,7,3,4,at%nat,linorbs%norb*linorbs%nspinor+ndebug),stat=i_stat)   
-call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
-allocate(sendcounts(0:nproc-1), stat=i_stat)
-call memocc(i_stat,sendcounts,'sendcounts',subname)
-allocate(displs(0:nproc-1), stat=i_stat)
-call memocc(i_stat,displs,'displs',subname)
+!!allocate(sendcounts(0:nproc-1), stat=i_stat)
+!!call memocc(i_stat,sendcounts,'sendcounts',subname)
+!!allocate(displs(0:nproc-1), stat=i_stat)
+!!call memocc(i_stat,displs,'displs',subname)
 
-displs(0)=0
-do jproc=0,nproc-1
-    sendcounts(jproc)=2*4*7*3*4*at%nat*linorbs%norb_par(jproc,0)*linorbs%nspinor
-    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
-end do
-call mpi_allgatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
-     scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
-!call mpi_gatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
+!!allocate(scalprodGlobal(2,0:3,7,3,4,at%nat,linorbs%norb*linorbs%nspinor+ndebug),stat=i_stat)   
+!!call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
+!!displs(0)=0
+!!do jproc=0,nproc-1
+!!    sendcounts(jproc)=2*4*7*3*4*at%nat*linorbs%norb_par(jproc)*linorbs%nspinor
+!!    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+!!end do
+!!call mpi_allgatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
+!!     scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
+!!!call mpi_gatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
 !     scalprodGlobal, sendcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
 !call mpi_bcast(scalprodGlobal, 2*4*7*3*4*at%nat*linorbs%norb*linorbs%nspinor, mpi_double_precision, 0, &
 !     mpi_comm_world, ierr)
 
-i_all = -product(shape(sendcounts))*kind(sendcounts)
-deallocate(sendcounts,stat=i_stat)
-call memocc(i_stat,i_all,'sendcounts',subname)
-i_all = -product(shape(displs))*kind(displs)
-deallocate(displs,stat=i_stat)
-call memocc(i_stat,i_all,'displs',subname)
-i_all = -product(shape(scalprod))*kind(scalprod)
-deallocate(scalprod,stat=i_stat)
-call memocc(i_stat,i_all,'scalprod',subname)
+!!i_all = -product(shape(sendcounts))*kind(sendcounts)
+!!deallocate(sendcounts,stat=i_stat)
+!!call memocc(i_stat,i_all,'sendcounts',subname)
+!!i_all = -product(shape(displs))*kind(displs)
+!!deallocate(displs,stat=i_stat)
+!!call memocc(i_stat,i_all,'displs',subname)
+!!i_all = -product(shape(scalprod))*kind(scalprod)
+!!deallocate(scalprod,stat=i_stat)
+!!call memocc(i_stat,i_all,'scalprod',subname)
 
 
 
@@ -643,8 +664,29 @@ call memocc(i_stat,i_all,'scalprod',subname)
 
   if(useTMO) then
   
-     allocate(fxyz_tmorb(3,at%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,fxyz_tmorb,'fxyz_tmorb',subname)
+     nitoverlaps=2
+
+     allocate(scalprodGlobal(2,0:3,7,3,4,linorbs%norb*linorbs%nspinor,nitoverlaps),stat=i_stat)   
+     call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
+
+     allocate(sendcounts2(0:nproc-1,nitoverlaps), stat=i_stat)
+     call memocc(i_stat,sendcounts2,'sendcounts2',subname)
+     allocate(sendcounts1(0:nproc-1), stat=i_stat)
+     call memocc(i_stat,sendcounts1,'sendcounts1',subname)
+     allocate(displs(0:nproc-1), stat=i_stat)
+     call memocc(i_stat,displs,'displs',subname)
+     allocate(nonzero(linorbs%norb,at%nat), stat=i_stat)
+     call memocc(i_stat,nonzero,'nonzero',subname)
+
+     allocate(requests1(2,nproc**2,nitoverlaps), stat=i_stat)
+     call memocc(i_stat,requests1,'requests1',subname)
+     allocate(requests2(2,nproc**2,nitoverlaps), stat=i_stat)
+     call memocc(i_stat,requests2,'requests2',subname)
+     allocate(fxyz_tmo(3,linorbs%norb,linorbs%norb,nitoverlaps), stat=i_stat)
+     call memocc(i_stat, fxyz_tmo, 'fxyz_tmo', subname)
+     allocate(fxyz_tmo_temp(3,linorbs%norb,linorbs%norbp,nitoverlaps), stat=i_stat)
+     call memocc(i_stat, fxyz_tmo_temp, 'fxyz_tmo_temp', subname)
+
      
      !apply the projectors  k-point of the processor
      !starting k-point
@@ -656,93 +698,326 @@ call memocc(i_stat,i_all,'scalprod',subname)
 !
 !        call ncplx_kpt(ikpt,orbs,ncplx)
 
+        allocate(temparr_logical(linorbs%norb*at%nat), stat=i_stat)
+        call memocc(i_stat, temparr_logical, 'temparr_logical', subname)
+        ! Communicate nonzeroValue to communicate scalprod later.
+        displs(0)=0
+        do jproc=0,nproc-1
+            sendcounts1(jproc)=linorbs%norb_par(jproc,0)*at%nat
+            if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts1(jproc-1)
+        end do
+        call mpi_allgatherv(nonzeroValue(1,1), sendcounts1(iproc), mpi_logical, &
+             temparr_logical(1), sendcounts1, displs, mpi_logical, mpi_comm_world, ierr)
+        jj=0
+        do jproc=0,nproc-1
+            do jat=1,at%nat
+                do jorb=1,linorbs%norb_par(jproc,0)
+                    jjorb=jorb+linorbs%isorb_par(jproc)
+                    jj=jj+1
+                    nonzero(jjorb,jat)=temparr_logical(jj)
+                end do
+            end do
+        end do
+        i_all=-product(shape(temparr_logical))*kind(temparr_logical)
+        deallocate(temparr_logical, stat=i_stat)
+        call memocc(i_stat,i_all,'temparr_logical',subname)
+
+        ncount=2*4*7*3*4*max(linorbs%norbp,1)*linorbs%nspinor*nitoverlaps
+        allocate(temparr(ncount+ndebug),stat=i_stat)   
+        call memocc(i_stat,temparr,'temparr',subname)
+
         kptshft = orbtot
         ! loop over all my orbitals for calculating forces
-        do iorb=1,orbs%norbp
+        !do iorb=1,orbs%norbp
+        do iorb=1,maxval(orbs%norb_par)
            call razero(3*at%nat,fxyz_orb)
-           do itmorb = 1, linorbs%norb
-              jorb = itmorb + kptshft
-              do itmorb2=1,linorbs%norb
-                 jorb2=itmorb2 + kptshft
-                 call razero(3*at%nat,fxyz_tmorb)
-                 do ispinor=1,orbs%nspinor,ncplx
-                    do iat=1,at%nat
-                       ityp=at%iatype(iat)
-                       do l=1,4
-                          do i=1,3
-                             if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                do m=1,2*l-1
-                                   do icplx=1,ncplx
-                                      ! scalar product with the derivatives in all the directions
-                                      sp0=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
-                                      !sp1=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb2),gp)
-                                      do idir=1,3
-                                         spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb2),gp)
-                                       !  spi2=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
-                                         fxyz_tmorb(idir,iat)=fxyz_tmorb(idir,iat)+&
-                                              at%psppar(l,i,ityp)*(sp0*spi)!+sp1*spi2)
+           timecomp1=0.d0
+           timecomp2=0.d0
+           timecomm1=0.d0
+           timecomm2=0.d0
+           timetot=0.d0
+
+
+           tag1x=1
+           !tag2x=tag1x+nitoverlaps*nproc**2
+           tag2x=tag1x+nitoverlaps*nproc
+
+           do iat=1,at%nat
+              ttot1=mpi_wtime()
+              ityp=at%iatype(iat)
+              if(iproc==0) write(*,'(a,i0)') 'iat=',iat
+              ioverlap=mod(iat-1,nitoverlaps)+1
+
+
+              ! Communicate the first nitoverlaps chunks of scalprod. Use my_iallgatherv which is a
+              ! non blocking version of mpi_allgatherv. Therefore we can send several chunks and don't
+              ! have to wait right now.
+              if(iat==1) then
+                  ncount=2*4*7*3*4
+
+                  do jat=1,min(nitoverlaps,at%nat)
+                      ! First copy scalprod to a temporary array for communication.
+                      ii=mod(jat-1,nitoverlaps)+1 !index within the "communication history"
+                      jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
+                      do jorb=1,linorbs%norbp*linorbs%nspinor
+                          if(nonzeroValue(jorb,jat)) then
+                              call dcopy(ncount, scalprod(1,0,1,1,1,jat,jorb), 1, temparr(jst), 1)
+                              jst=jst+ncount
+                          end if
+                      end do
+
+                      ! Determine the arrays needed for the communication.
+                      displs(0)=0
+                      do jproc=0,nproc-1
+                          iiorb=0
+                          do jorb=1,linorbs%norb_par(jproc,0)
+                              jjorb=jorb+linorbs%isorb_par(jproc)
+                              if(nonzero(jjorb,jat)) iiorb = iiorb + 1
+                          end do
+                          sendcounts2(jproc,ii)=2*4*7*3*4*iiorb*linorbs%nspinor
+                          if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts2(jproc-1,ii)
+                      end do
+
+                      ! Communicate using my_iallgatherv. To make sure that the communication has completed,
+                      ! use the subroutine my_iallgather_collect with the same request array that is used here.
+                      t1=mpi_wtime()
+                      !tag2 = tag2x + (ii-1)*nproc**2
+                      tag2 = tag2x + (ii-1)*nproc
+                      jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
+                      call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), &
+                           scalprodGlobal(1,0,1,1,1,1,ii), sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
+                      call mpi_barrier(mpi_comm_world, ierr)
+                      t2=mpi_wtime()
+                      timecomm1=timecomm1+t2-t1
+
+                  end do
+              end if
+
+
+              ! Collect a chunk of fxyz_tmo. This array has also been communicated with my_iallgatherv.
+              if(iat>nitoverlaps) then
+                  ii=mod(iat-1,nitoverlaps)+1 !index in the "communication history"
+                  !tag1=tag1x+(ii-1)*nproc**2
+                  tag1=tag1x+(ii-1)*nproc
+                  t1=mpi_wtime()
+                  do jproc=0,nproc-1
+                      sendcounts1(jproc)=3*linorbs%norb_par(jproc,0)*linorbs%norb
+                  end do
+                  ! Collect the data (the subroutine used mpi_wait).
+                  ! After this call, it is save to use the sent data and to reuse the send buffer and requests ii.
+                  call my_iallgather_collect(iproc, nproc, sendcounts1(iproc), sendcounts1, requests1(1,1,ii))
+                  t2=mpi_wtime()
+                  timecomm2=timecomm2+t2-t1
+                  t1=mpi_wtime()
+
+                  ! Sum up the force contribution from these TMOs.
+                  if(iorb<=orbs%norbp) then
+                     iiorb=iorb+orbs%isorb
+                     do itmorb = 1,linorbs%norb
+                        jorb = itmorb + kptshft
+                        do itmorb2=1,linorbs%norb
+                           jorb2=itmorb2 + kptshft
+                           tt=coeff(jorb,iiorb)*coeff(jorb2,iiorb)
+                           fxyz_orb(1,iat-nitoverlaps) = fxyz_orb(1,iat-nitoverlaps) + tt*fxyz_tmo(1,jorb2,jorb,ii)
+                           fxyz_orb(2,iat-nitoverlaps) = fxyz_orb(2,iat-nitoverlaps) + tt*fxyz_tmo(2,jorb2,jorb,ii)
+                           fxyz_orb(3,iat-nitoverlaps) = fxyz_orb(3,iat-nitoverlaps) + tt*fxyz_tmo(3,jorb2,jorb,ii)
+                        end do
+                     end do
+                  end if
+                  t2=mpi_wtime()
+                  timecomp2=timecomp2+t2-t1
+              end if
+
+              ! Collect scalprodGlobal for atom iat (has also been sent using my_iallgatherv).
+              t1=mpi_wtime()
+              ii=mod(iat-1,nitoverlaps)+1
+              call my_iallgather_collect(iproc, nproc, sendcounts2(iproc,ii), sendcounts2(0,ii), requests2(1,1,ii))
+              t2=mpi_wtime()
+              timecomm1=timecomm1+t2-t1
+
+              call razero(3*linorbs%norb*linorbs%norb, fxyz_tmo(1,1,1,ioverlap))
+              call razero(3*linorbs%norb*linorbs%norbp, fxyz_tmo_temp(1,1,1,ioverlap))
+              jorb=0
+              t1=mpi_wtime()
+              do itmorb = 1,linorbs%norbp
+                 !jorb = itmorb + kptshft
+                 !jjorb=itmorb+linorbs%isorb
+                 if(nonzeroValue(itmorb,iat)) then
+                    !jorb = itmorb + kptshft + linorbs%isorb
+                    !jorb = itmorb + kptshft + linorbs%isorb
+                    jjorb2=0
+                    do itmorb2=1,linorbs%norb
+                       jorb2=itmorb2 + kptshft
+                       if(nonzero(jorb2,iat)) then
+                          jjorb2=jjorb2+1
+                          do ispinor=1,orbs%nspinor,ncplx
+                             do l=1,4
+                                do i=1,3
+                                   if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                      do m=1,2*l-1
+                                         do icplx=1,ncplx
+                                            ! scalar product with the derivatives in all the directions
+                                            sp0=real(scalprod(icplx,0,m,i,l,iat,itmorb),gp)
+                                            do idir=1,3
+                                               spi=real(scalprodGlobal(icplx,idir,m,i,l,jjorb2,ioverlap),gp)
+                                               !write(*,'(a,4i6,2es15.7)') 'iat, iorb, jorb, jorb2, sp0, spi', iat, iorb, jorb, jorb2, sp0, spi
+                                               fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) = &
+                                                    fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) + at%psppar(l,i,ityp)*(sp0*spi)
+                                            end do
+                                         end do
                                       end do
+                                   end if
+                                end do
+                             end do
+                             !HGH case, offdiagonal terms
+                             if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
+                                do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
+                                   do i=1,2
+                                      if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                         loop_jTMO: do j=i+1,3
+                                            if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_jTMO
+                                            !offdiagonal HGH term
+                                            if (at%npspcode(ityp) == 3) then !traditional HGH convention
+                                               hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
+                                            else !HGH-K convention
+                                               hij=at%psppar(l,i+j+1,ityp)
+                                            end if
+                                            do m=1,2*l-1
+                                               !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
+                                               !(the two factor is below)
+                                               do icplx=1,ncplx
+                                                  sp0i=real(scalprod(icplx,0,m,i,l,iat,itmorb),gp)
+                                                  sp0j=real(scalprodGlobal(icplx,0,m,j,l,jjorb2,ioverlap),gp)
+                                                  do idir=1,3
+                                                     spi=real(scalprod(icplx,idir,m,i,l,iat,itmorb),gp)
+                                                     spj=real(scalprodGlobal(icplx,idir,m,j,l,jjorb2,ioverlap),gp)
+                                                     fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) = &
+                                                          fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) + hij*(sp0j*spi+spj*sp0i)  !! CHECK THIS
+                                                  end do
+                                               end do
+                                            end do
+                                         end do loop_jTMO
+                                      end if
                                    end do
                                 end do
                              end if
                           end do
-                       end do
-                       !HGH case, offdiagonal terms
-                       if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
-                          do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
-                             do i=1,2
-                                if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                   loop_jTMO: do j=i+1,3
-                                      if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_jTMO
-                                      !offdiagonal HGH term
-                                      if (at%npspcode(ityp) == 3) then !traditional HGH convention
-                                         hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
-                                      else !HGH-K convention
-                                         hij=at%psppar(l,i+j+1,ityp)
-                                      end if
-                                      do m=1,2*l-1
-                                         !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
-                                         !(the two factor is below)
-                                         do icplx=1,ncplx
-                                            sp0i=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
-                                            sp0j=real(scalprodGlobal(icplx,0,m,j,l,iat,jorb2),gp)
-                                            do idir=1,3
-                                               spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
-                                               spj=real(scalprodGlobal(icplx,idir,m,j,l,iat,jorb2),gp)
-                                               fxyz_tmorb(idir,iat)=fxyz_tmorb(idir,iat)+&
-                                                    hij*(sp0j*spi+spj*sp0i)
-                                            end do
-                                         end do
-                                      end do
-                                   end do loop_jTMO
-                                end if
-                             end do
-                          end do
                        end if
                     end do
-                 end do
-                 !here sum over the trace minimizing orbitals to reconstruct the force for orbital iorb
-                 ! coeff is REAL (only finite systems???)
-                 do idir=1,3
-                    do iat=1,at%nat
-                       fxyz_orb(idir,iat) = fxyz_orb(idir,iat) + coeff(jorb,iorb+orbs%isorb)*coeff(jorb2,iorb+orbs%isorb)&
-                            *fxyz_tmorb(idir,iat)
-                    end do
-                 end do
-                 jorb2 = jorb2+1 
+                 end if
               end do
-              jorb = jorb +1
-              orbtot = orbtot + 1
+              t2=mpi_wtime()
+              timecomp1=timecomp1+t2-t1
+
+              ! Send the next chunk of scalprod using my_iallgatherv.
+              if(iat+nitoverlaps<=at%nat) then
+                  t1=mpi_wtime()
+                  ii=mod(iat+nitoverlaps-1,nitoverlaps)+1
+                  ncount=2*4*7*3*4
+                  jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
+                  ! Copy scalprod to temporary array for communication.
+                  do jorb=1,linorbs%norbp*linorbs%nspinor
+                      if(nonzeroValue(jorb,iat+nitoverlaps)) then
+                          call dcopy(ncount, scalprod(1,0,1,1,1,iat+nitoverlaps,jorb), 1, temparr(jst), 1)
+                          jst=jst+ncount
+                      end if
+                  end do
+                  displs(0)=0
+                  do jproc=0,nproc-1
+                      iiorb=0
+                      do jorb=1,linorbs%norb_par(jproc,0)
+                          jjorb=jorb+linorbs%isorb_par(jproc)
+                          if(nonzero(jjorb,iat+nitoverlaps)) iiorb = iiorb + 1
+                      end do
+                      sendcounts2(jproc,ii)=2*4*7*3*4*iiorb*linorbs%nspinor
+                      if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts2(jproc-1,ii)
+                  end do
+                  !tag2 = tag2x + (ii-1)*nproc**2
+                  tag2 = tag2x + (ii-1)*nproc
+                  jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
+                  call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), &
+                       scalprodGlobal(1,0,1,1,1,1,ii), sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
+                  t2=mpi_wtime()
+                  timecomm1=timecomm1+t2-t1
+              end if
+
+
+              ! Send next chunk of fxyz_tmo_temp using my_iallgatherv.
+              displs(0)=0
+              do jproc=0,nproc-1
+                  sendcounts1(jproc)=3*linorbs%norb_par(jproc,0)*linorbs%norb
+                  if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts1(jproc-1)
+              end do
+              t1=mpi_wtime()
+              ii=mod(iat-1,nitoverlaps)+1
+              !tag1=tag1x+(ii-1)*nproc**2
+              tag1=tag1x+(ii-1)*nproc
+              call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts1(iproc), &
+                   fxyz_tmo(1,1,1,ii), sendcounts1, displs, mpi_comm_world, tag1, requests1(1,1,ii))
+              t2=mpi_wtime()
+              timecomm2=timecomm2+t2-t1
+              !call mpiallred(fxyz_tmo(1,1,1), 3*linorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+
+              ! Collect the remaning chunks of fxyz_tmo (which have been sent using my_iallgatherv).
+              if(iat==at%nat) then
+                  do jat=max(at%nat-nitoverlaps+1,1),at%nat
+                      ii=mod(jat-1,nitoverlaps)+1
+                      !tag1=tag1x+(ii-1)*nproc**2
+                      tag1=tag1x+(ii-1)*nproc
+                      t1=mpi_wtime()
+                      !call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts(iproc), fxyz_tmo(1,1,1,ii), sendcounts, displs, mpi_comm_world, 'recv', tag1, requests(1,1,ii))
+                      call my_iallgather_collect(iproc, nproc, sendcounts1(iproc), sendcounts1, requests1(1,1,ii))
+                      t2=mpi_wtime()
+                      timecomm2=timecomm2+t2-t1
+                      t1=mpi_wtime()
+                      if(iorb<=orbs%norbp) then
+                         iiorb=iorb+orbs%isorb
+                         do itmorb = 1,linorbs%norb
+                            jorb = itmorb + kptshft
+                            do itmorb2=1,linorbs%norb
+                               jorb2=itmorb2 + kptshft
+                               tt=coeff(jorb,iiorb)*coeff(jorb2,iiorb)
+                               fxyz_orb(1,jat) = fxyz_orb(1,jat) + tt*fxyz_tmo(1,jorb2,jorb,ii)
+                               fxyz_orb(2,jat) = fxyz_orb(2,jat) + tt*fxyz_tmo(2,jorb2,jorb,ii)
+                               fxyz_orb(3,jat) = fxyz_orb(3,jat) + tt*fxyz_tmo(3,jorb2,jorb,ii)
+                            end do
+                         end do
+                      end if
+                      t2=mpi_wtime()
+                      timecomp2=timecomp2+t2-t1
+                  end do
+              end if
+              ttot2=mpi_wtime()
+              timetot=timetot+ttot2-ttot1
+              if(iproc==0) write(*,'(a,es15.7)') 'time for first communication:',timecomm1/dble(nproc)
+              if(iproc==0) write(*,'(a,es15.7)') 'time for second communication:',timecomm2/dble(nproc)
+              if(iproc==0) write(*,'(a,es15.7)') 'time for first loop:',timecomp1/dble(nproc)
+              if(iproc==0) write(*,'(a,es15.7)') 'time for second loop:',timecomp2/dble(nproc)
+              if(iproc==0) write(*,'(a,i0,a,es11.4)') 'total time for atom',iat,':',timetot/dble(nproc)
            end do
+           call mpiallred(timecomm1, 1, mpi_sum, mpi_comm_world, ierr)
+           call mpiallred(timecomm2, 1, mpi_sum, mpi_comm_world, ierr)
+           call mpiallred(timecomp1, 1, mpi_sum, mpi_comm_world, ierr)
+           call mpiallred(timecomp2, 1, mpi_sum, mpi_comm_world, ierr)
+           call mpiallred(timetot, 1, mpi_sum, mpi_comm_world, ierr)
+           if(iproc==0) write(*,'(a,es15.7)') 'FINAL TIME: time for first communication:',timecomm1/dble(nproc)
+           if(iproc==0) write(*,'(a,es15.7)') 'FINAL TIME: time for second communication:',timecomm2/dble(nproc)
+           if(iproc==0) write(*,'(a,es15.7)') 'FINAL TIME: time for first loop:',timecomp1/dble(nproc)
+           if(iproc==0) write(*,'(a,es15.7)') 'FINAL TIME: time for second loop:',timecomp2/dble(nproc)
+           if(iproc==0) write(*,'(a,es15.7)') 'FINAL TIME: total time: ',timetot/dble(nproc)
+
+
 
            !orbital-dependent factor for the forces
 !           orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb)*2.0_gp
-            orbfac=orbs%occup(iorb+orbs%isorb)*2.0_gp
-           do iat=1,at%nat
-              fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
-              fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
-              fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
-           end do
+            if(iorb<=orbs%norbp) then
+                orbfac=orbs%occup(iorb+orbs%isorb)*2.0_gp
+                do iat=1,at%nat
+                   fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
+                   fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
+                   fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
+                end do
+            end if
 
         end do
 
@@ -751,10 +1026,37 @@ call memocc(i_stat,i_all,'scalprod',subname)
 !        ispsi_k=ispsi
 !     end do loop_kptF
 
-        i_all=-product(shape(fxyz_tmorb))*kind(fxyz_tmorb)
-        deallocate(fxyz_tmorb,stat=i_stat)
-        call memocc(i_stat,i_all,'fxyz_tmorb',subname)
- 
+     i_all=-product(shape(temparr))*kind(temparr)
+     deallocate(temparr,stat=i_stat)
+     call memocc(i_stat,i_all,'temparr',subname)
+     i_all = -product(shape(sendcounts1))*kind(sendcounts1)
+     deallocate(sendcounts1,stat=i_stat)
+     call memocc(i_stat,i_all,'sendcounts1',subname)
+     i_all = -product(shape(sendcounts2))*kind(sendcounts2)
+     deallocate(sendcounts2,stat=i_stat)
+     call memocc(i_stat,i_all,'sendcounts2',subname)
+     i_all = -product(shape(displs))*kind(displs)
+     deallocate(displs,stat=i_stat)
+     call memocc(i_stat,i_all,'displs',subname)
+     i_all = -product(shape(scalprod))*kind(scalprod)
+     deallocate(scalprod,stat=i_stat)
+     call memocc(i_stat,i_all,'scalprod',subname)
+     i_all = -product(shape(fxyz_tmo))*kind(fxyz_tmo)
+     deallocate(fxyz_tmo,stat=i_stat)
+     call memocc(i_stat,i_all,'fxyz_tmo',subname)
+     i_all = -product(shape(nonzeroValue))*kind(nonzeroValue)
+     deallocate(nonzeroValue,stat=i_stat)
+     call memocc(i_stat,i_all,'nonzeroValue',subname)
+     i_all = -product(shape(nonzero))*kind(nonzero)
+     deallocate(nonzero,stat=i_stat)
+     call memocc(i_stat,i_all,'nonzero',subname)
+     i_all = -product(shape(requests1))*kind(requests1)
+     deallocate(requests1,stat=i_stat)
+     call memocc(i_stat,i_all,'requests1',subname)
+     i_all = -product(shape(requests2))*kind(requests2)
+     deallocate(requests2,stat=i_stat)
+     call memocc(i_stat,i_all,'requests2',subname)
+
   else
      !apply the projectors  k-point of the processor
      !starting k-point
@@ -866,3 +1168,233 @@ call memocc(i_stat,i_all,'scalprod',subname)
 
 END SUBROUTINE Linearnonlocal_forces
 
+
+
+
+
+function dsum(n, x)
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: n
+  real(8),dimension(n),intent(in):: x
+  real(8):: dsum
+  
+  ! Local variables
+  integer:: m, i, mp1
+  real(8):: tt
+  
+  dsum=0.d0
+  do i=1,n
+      dsum = dsum + x(i)
+  end do
+  
+  !!tt=0.d0
+  !!dsum=0.d0
+  !!m=mod(n,5)
+  !!if(m/=0) then
+  !!    do i=1,m
+  !!        tt=tt+x(i)
+  !!    end do
+  !!    if(n<5) then
+  !!        dsum=tt
+  !!        return
+  !!    end if
+  !!end if
+  !!mp1=m+1
+  !!do i=mp1,n,5
+  !!    tt = tt + x(i) + x(i+1) + x(i+2) + x(i+3) + x(i+4)
+  !!end do
+  !!dsum=tt
+
+end function dsum
+
+
+
+
+
+subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
+  use module_base
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, sendcount, comm
+  integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
+  real(8),dimension(sendcount),intent(in):: sendbuf
+  integer,dimension(2,0:nproc*nproc-1),intent(in):: requests
+  integer,intent(in):: tagx
+  real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
+  
+  ! Local variables
+  integer:: jproc, kproc, tag, tag0, ierr
+
+
+  do jproc=0,nproc-1
+      do kproc=0,nproc-1
+          if(iproc==kproc .and. recvcounts(jproc)/=0) then
+              !tag0=jproc*nproc+kproc
+              tag0=kproc
+              tag=tagx+tag0
+              !write(*,'(5(a,i0))') 'process ',kproc,' receives ',recvcounts(jproc),' elements at position ',displs(jproc)+1,' from process ',jproc,' with tag ',tag
+              call mpi_irecv(recvbuf(displs(jproc)+1), recvcounts(jproc), mpi_double_precision, &
+                   jproc, tag, comm, requests(2,tag0), ierr)
+          end if
+      end do
+  end do
+
+  call mpi_barrier(mpi_comm_world, ierr)
+  
+  do jproc=0,nproc-1
+      if(iproc==jproc .and. sendcount/=0) then
+          do kproc=0,nproc-1
+              !tag0=jproc*nproc+kproc
+              tag0=kproc
+              tag=tagx+tag0
+              !write(*,'(4(a,i0))') 'process ',jproc,' sends ',sendcount,' elements to process ',kproc,' with tag ',tag
+              !call mpi_irsend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
+              call mpi_rsend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, ierr)
+          end do
+      end if
+  end do
+
+
+
+end subroutine my_iallgatherv
+
+
+
+subroutine my_iallgather_collect(iproc, nproc, sendcount, recvcounts, requests)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, sendcount
+  integer,dimension(0:nproc),intent(in):: recvcounts
+  integer,dimension(2,0:nproc*nproc-1),intent(inout):: requests
+
+  ! Local variables
+  integer:: jproc, kproc, tag0, ierr
+
+
+  !!! Wait for the send operation to finish.
+  !!do jproc=0,nproc-1
+  !!    if(iproc==jproc .and. sendcount/=0) then
+  !!        do kproc=0,nproc-1
+  !!            !tag0=jproc*nproc+kproc
+  !!            tag0=kproc
+  !!            !write(*,'(3(a,i0))') 'process ',iproc,' waits for send to finish; dest= ',kproc,', tag=',tag0
+  !!            call mpi_wait(requests(1,tag0), mpi_status_ignore, ierr)
+  !!        end do
+  !!    end if
+  !!end do
+  
+  ! Wait for the receive operation to finish.
+  do jproc=0,nproc-1
+      do kproc=0,nproc-1
+          if(iproc==kproc .and. recvcounts(jproc)/=0) then
+              !tag0=jproc*nproc+kproc
+              tag0=kproc
+              !write(*,'(3(a,i0))') 'process ',iproc,' waits for receive to finish; source= ',jproc,', tag=',tag0
+              call mpi_wait(requests(2,tag0), mpi_status_ignore, ierr)
+          end if
+      end do
+  end do
+
+  call mpi_barrier(mpi_comm_world, ierr)
+
+end subroutine my_iallgather_collect
+
+
+
+
+subroutine my_iallgatherv2(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
+  use module_base
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, sendcount, comm
+  integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
+  real(8),dimension(sendcount),intent(in):: sendbuf
+  integer,dimension(2,0:nproc-1),intent(in):: requests
+  integer,intent(in):: tagx
+  real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
+  
+  ! Local variables
+  integer:: jproc, kproc, tag, tag0, ierr
+
+
+  do jproc=0,nproc-1
+      do kproc=0,nproc-1
+          if(iproc==kproc .and. recvcounts(jproc)/=0) then
+              !tag0=jproc*nproc+kproc
+              tag0=kproc
+              tag=tagx+tag0
+              !write(*,'(5(a,i0))') 'process ',kproc,' receives ',recvcounts(jproc),' elements at position ',displs(jproc)+1,' from process ',jproc,' with tag ',tag
+              call mpi_irecv(recvbuf(displs(jproc)+1), recvcounts(jproc), mpi_double_precision, &
+                   jproc, tag, comm, requests(2,tag0), ierr)
+          end if
+      end do
+  end do
+
+  !call mpi_barrier(mpi_comm_world, ierr)
+  
+  do jproc=0,nproc-1
+      if(iproc==jproc .and. sendcount/=0) then
+          do kproc=0,nproc-1
+              !tag0=jproc*nproc+kproc
+              tag0=kproc
+              tag=tagx+tag0
+              !write(*,'(4(a,i0))') 'process ',jproc,' sends ',sendcount,' elements to process ',kproc,' with tag ',tag
+              !call mpi_irsend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
+              call mpi_isend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
+              !call mpi_rsend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, ierr)
+          end do
+      end if
+  end do
+
+
+
+end subroutine my_iallgatherv2
+
+
+
+subroutine my_iallgather_collect2(iproc, nproc, sendcount, recvcounts, requests)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, sendcount
+  integer,dimension(0:nproc-1),intent(in):: recvcounts
+  integer,dimension(2,0:nproc-1),intent(inout):: requests
+
+  ! Local variables
+  integer:: jproc, kproc, tag0, ierr
+
+
+  ! Wait for the send operation to finish.
+  do jproc=0,nproc-1
+      if(iproc==jproc .and. sendcount/=0) then
+          do kproc=0,nproc-1
+              !tag0=jproc*nproc+kproc
+              tag0=kproc
+              !write(*,'(3(a,i0))') 'process ',iproc,' waits for send to finish; dest= ',kproc,', tag=',tag0
+              call mpi_wait(requests(1,tag0), mpi_status_ignore, ierr)
+          end do
+      end if
+  end do
+  
+  ! Wait for the receive operation to finish.
+  do jproc=0,nproc-1
+      do kproc=0,nproc-1
+          if(iproc==kproc .and. recvcounts(jproc)/=0) then
+              !tag0=jproc*nproc+kproc
+              tag0=kproc
+              !write(*,'(3(a,i0))') 'process ',iproc,' waits for receive to finish; source= ',jproc,', tag=',tag0
+              call mpi_wait(requests(2,tag0), mpi_status_ignore, ierr)
+          end if
+      end do
+  end do
+
+  call mpi_barrier(mpi_comm_world, ierr)
+
+end subroutine my_iallgather_collect2

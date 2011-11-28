@@ -1,4 +1,4 @@
-!> @file
+!!> @file
 !!  Routines to read and print input variables
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group 
@@ -296,6 +296,7 @@ subroutine default_input_variables(inputs)
 
 END SUBROUTINE default_input_variables
 
+
 subroutine dft_input_variables_new(iproc,filename,in)
   use module_base
   use module_types
@@ -306,7 +307,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
-  integer :: ivrbproj,ierror
+  integer :: ierror
   real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
   real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
 
@@ -329,7 +330,10 @@ subroutine dft_input_variables_new(iproc,filename,in)
 
   !charge and electric field
   call input_var(in%ncharge,'0',ranges=(/-10,10/))
-  call input_var(in%elecfield,'0.',comment='ncharge: charge of the system, Electric field')
+  call input_var(in%elecfield(1),'0.')
+  call input_var(in%elecfield(2),'0.')
+  call input_var(in%elecfield(3),'0.',comment='charge of the system, Electric field (Ex,Ey,Ez)')
+  !call input_var(in%elecfield(3),'0.',comment='ncharge: charge of the system, Electric field (Ex,Ey,Ez)')
 
   !spin and polarization
   call input_var(in%nspin,'1',exclusive=(/1,2,4/))
@@ -351,6 +355,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   !does not maxes sense a DIIS history longer than the number of iterations
   in%idsx = min(in%idsx, in%itermax)
 
+  !dispersion parameter
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
@@ -406,22 +411,6 @@ subroutine dft_input_variables_new(iproc,filename,in)
 
   !in%nvirt = min(in%nvirt, in%norbv) commented out
 
-  !verbosity of the output
-  call input_var(ivrbproj,'2',exclusive=(/0,1,2,3,10,11,12,13/),&
-       comment='verbosity of the output 0=low, 2=high')
-
-  !if the verbosity is bigger than 10 apply the projectors
-  !in the once-and-for-all scheme, otherwise use the default
-  if (ivrbproj > 10) then
-     DistProjApply=.false.
-     in%verbosity=ivrbproj-10
-  else
-     in%verbosity=ivrbproj
-  end if
-  if (in%verbosity ==0 ) then
-     call memocc_set_state(0)
-  end if
-
   ! Line to disable automatic behaviours (currently only symmetries).
   call input_var(in%disableSym,'F',comment='disable the symmetry detection')
 
@@ -452,8 +441,9 @@ subroutine mix_input_variables_default(in)
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%Tel=0.0_gp
   in%norbsempty=0
+  in%Tel=0.0_gp
+  in%occopt=SMEARING_DIST_ERF
   in%alphadiis=2.d0
 
 END SUBROUTINE mix_input_variables_default
@@ -486,11 +476,12 @@ subroutine mix_input_variables_new(iproc,filename,in)
   call input_var(in%rpnrm_cv,'1.e-4',ranges=(/0.0_gp,10.0_gp/),&
        comment="Stop criterion on the residue of potential or density")
   call input_var(in%norbsempty,'0',ranges=(/0,10000/))
-  call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/),&
-       comment="Number of additional bands, electronic temperature")
+  call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/)) 
+  call input_var(in%occopt,'1',ranges=(/1,5/),&
+       comment="No. of additional bands, elec. temperature, smearing method")
   call input_var(in%alphamix,'0.0',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%alphadiis,'2.0',ranges=(/0.0_gp,10.0_gp/),&
-       comment="Multiplying factors for the mixing and the elctronic DIIS")
+       comment="Multiplying factors for the mixing and the electronic DIIS")
 
   call input_free(iproc)
 
@@ -498,60 +489,6 @@ subroutine mix_input_variables_new(iproc,filename,in)
   if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
 
 END SUBROUTINE mix_input_variables_new
-
-
-!> Read the input variables needed for the geometry optimisation
-!!    Every argument should be considered as mandatory
-subroutine mix_input_variables(filename,in)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  !local variables
-  !n(c) character(len=*), parameter :: subname='mix_input_variables'
-  integer :: ierror,iline
-  logical :: exists
-
-  inquire(file=filename,exist=exists)
-  if (.not. exists) then
-     return
-  end if
-
-  ! Read the input variables.
-  open(unit=1,file=filename,status='old')
-
-  !line number, to control the input values
-  iline=0
-
-  read(1,*,iostat=ierror) in%iscf
-  call check()
-  read(1,*,iostat=ierror) in%itrpmax
-  call check()
-  read(1,*,iostat=ierror) in%rpnrm_cv
-  call check()
-  read(1,*,iostat=ierror) in%norbsempty, in%Tel
-  call check()
-  read(1,*,iostat=ierror) in%alphamix,in%alphadiis
-  call check()
-  close(unit=1,iostat=ierror)
-
-  !put the startmix if the mixing has to be done
-  if (in%itrpmax >1) in%gnrm_startmix=1.e300_gp
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-            call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE mix_input_variables
 
 
 !> Assign default values for GEOPT variables
@@ -948,10 +885,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
       if(ios/=0) then
           ! The parameters where not specified for all atom types.
           if(iproc==0) then
-              write(*,'(x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
+              write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
                        & for the following atom types:"
               do jtype=1,atoms%ntypes
-                  if(.not.parametersSpecified(jtype)) write(*,'(x,a)',advance='no') trim(atoms%atomnames(jtype))
+                  if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
               end do
           end if
           call mpi_barrier(mpi_comm_world, ierr)
@@ -970,7 +907,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
           end if
       end do
       if(.not.found) then
-          if(iproc==0) write(*,'(x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
+          if(iproc==0) write(*,'(1x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
                      "', which is not present in the file containing the atomic coordinates."
           call mpi_barrier(mpi_comm_world, ierr)
           stop
@@ -1121,8 +1058,13 @@ subroutine update_symmetries(in, atoms, rxyz)
            call symmetry_set_periodicity(atoms%symObj, &
                 & (/ .false., .false., .false. /), ierr)
         end if
-        if (in%elecfield /= 0) then
-           call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield, 0._gp /), ierr)
+        !if (all(in%elecfield(:) /= 0)) then
+        !     ! I'm not sure what this subroutine does!
+        !   call symmetry_set_field(atoms%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
+        !elseif (in%elecfield(2) /= 0) then
+        !   call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
+        if (in%elecfield(2) /= 0) then
+           call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
         end if
      else
         if (atoms%symObj >= 0) then
@@ -1596,6 +1538,18 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
   call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
   
+  !verbosity of the output
+  call input_var("verbosity", 2,(/0,1,2,3/), &
+     & "verbosity of the output 0=low, 2=high",inputs%verbosity)
+
+  !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
+  call input_var("psp_onfly", .true., &
+       & "Calculate pseudopotential projectors on the fly",DistProjApply)
+
+  if (inputs%verbosity == 0 ) then
+     call memocc_set_state(0)
+  end if
+
   call input_free()
     
 
@@ -2205,7 +2159,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
 
    if (.not. file_exists) then
       write(*,*) "Atomic input file not found."
-      write(*,*) " Files looked for were '"//file//"'.ascii, '"//file//".xyz' and '"//file//"'."
+      write(*,*) " Files looked for were '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
       stop 
    end if
 
@@ -3429,7 +3383,7 @@ subroutine print_general_parameters(nproc,input,atoms)
           & "      DIIS=", input%alphadiis
      write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
           & "  Max iter.=", input%itrpmax,    "|", &
-          & "Occ. scheme=", smearing_names(occopt), "|"
+          & "Occ. scheme=", smearing_names(input%occopt), "|"
      if (input%verbosity > 2) then
         write(dos, "(A)") "dos.gnuplot"
      else
@@ -3495,6 +3449,7 @@ END SUBROUTINE print_general_parameters
 
 !> Print all dft input parameters
 subroutine print_dft_parameters(in,atoms)
+  use module_base
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
@@ -3514,7 +3469,7 @@ subroutine print_dft_parameters(in,atoms)
        'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
        '|  CG Steps=',in%ncongt
   write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
+       ' elec. field=',sqrt(sum(in%elecfield(:)**2)),'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',in%mpol, '|'
@@ -3531,7 +3486,88 @@ subroutine print_dft_parameters(in,atoms)
   write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
        & "Output grid policy=", in%output_grid, "   (" // output_grid_names(in%output_grid) // ")", "|", &
        & "Output grid format=", in%output_grid_format, "         (" // output_grid_format_names(in%output_grid_format) // ")"
+
 END SUBROUTINE print_dft_parameters
+
+subroutine write_input_parameters(in,atoms)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  type(atoms_data), intent(in) :: atoms
+  !local variables
+  character(len = 11) :: potden
+  !start yaml output
+  write(70,'(a)')repeat(' ',yaml_indent)//'Physical System Parameters:'
+  yaml_indent=yaml_indent+3
+  write(70,'(a,t55,a)')repeat(' ',yaml_indent)//'Boundary Conditions:',atoms%geocode
+  if (atoms%geocode /= 'F')write(70,'(a,t55,a,3(1x,f5.3,a))')&
+       repeat(' ',yaml_indent)//'Box Sizes (a0):','[',atoms%alat1,',',atoms%alat2,',',atoms%alat3,' ]'
+  if (in%ncharge > 0) write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Net Charge of the System (Ions-Electrons):',in%ncharge
+  if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) write(70,'(a,t55,a,3(1x,1pe7.1,a))')&
+       repeat(' ',yaml_indent)//'External Electric Field (Ha/a0):',&
+       '[',in%elecfield(1),',',in%elecfield(2),',',in%elecfield(3),' ]'
+  yaml_indent=yaml_indent-3
+  write(70,'(a)')repeat(' ',yaml_indent)//'DFT Approximations Parameters:'
+  yaml_indent=yaml_indent+3
+  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Exchange-Correlation ID:',in%ixc
+  yaml_indent=yaml_indent-3
+  write(70,'(a)')repeat(' ',yaml_indent)//'Basis Set Parameters:'
+  yaml_indent=yaml_indent+3
+  write(70,'(a,t55,a,3(1x,f5.3,a))')repeat(' ',yaml_indent)//'Input Grid Spacings (a0):','[',in%hx,',',in%hy,',',in%hz,' ]'
+  write(70,'(a,t55,a,2(1x,f4.1,a))')repeat(' ',yaml_indent)//'Coarse and Fine Radii Multipliers:','[',in%crmult,',',in%frmult,' ]'
+  yaml_indent=yaml_indent-3
+  write(70,'(a)')repeat(' ',yaml_indent)//'Wavefunction Optimization Parameters:'
+  yaml_indent=yaml_indent+3
+  write(70,'(a,t55,1pe8.1)')repeat(' ',yaml_indent)//'Gradient Norm Convergence Criterion:',in%gnrm_cv
+  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Iterations:',in%itermax
+  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Subspace Diagonalizations:',in%nrepmax
+  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Density/Potential Optimisations:',in%itrpmax
+  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'CG Steps for Preconditioning Equation:',in%ncong
+  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'DIIS History length:',in%idsx
+  if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
+     write(70,'(a)')repeat(' ',yaml_indent)//'Mixing Parameters:'
+     yaml_indent=yaml_indent+3
+       if (in%iscf < 10) then
+        write(potden, "(A)") "potential"
+     else
+        write(potden, "(A)") "density"
+     end if
+     write(70,'(a,t55,a)')'Target:',potden
+     write(70,'(a,t55,I12)')'Scheme:',modulo(in%iscf, 10)
+!!$     write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
+!!$          & "     Target=", potden,        "|", &
+!!$          & " Add. bands=", input%norbsempty, "|", &
+!!$          & "    Coeff.=", input%alphamix
+!!$     write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
+!!$          & "     Scheme=", modulo(input%iscf, 10), "|", &
+!!$          & "Elec. temp.=", input%Tel,              "|", &
+!!$          & "      DIIS=", input%alphadiis
+!!$     write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
+!!$          & "  Max iter.=", input%itrpmax,    "|", &
+!!$          & "Occ. scheme=", smearing_names(input%occopt), "|"
+!!$     if (input%verbosity > 2) then
+!!$        write(dos, "(A)") "dos.gnuplot"
+!!$     else
+!!$        write(dos, "(A)") "no verb. < 3"
+!!$     end if
+!!$     write(*,"(1x,A12,1pe12.2,1x,A1,1x,2A12,1x,A1)") &
+!!$          & "   Rp norm.=", input%rpnrm_cv,    "|", " output DOS=", dos, "|"
+     yaml_indent=yaml_indent-3
+  end if
+  yaml_indent=yaml_indent-3
+  write(70,'(a)')repeat(' ',yaml_indent)//'Post Optimization Treatments:'
+  yaml_indent=yaml_indent+3
+  if (in%rbuf > 0.0_gp) then
+     write(70,'(a)')repeat(' ',yaml_indent)//'Finite-Size Correction Estimation:'
+     yaml_indent=yaml_indent+3
+     write(70,'(a,t55,f4.1)')repeat(' ',yaml_indent)//'Radius (a0):',in%rbuf
+     write(70,'(a,t55,i4)')repeat(' ',yaml_indent)//'CG Steps for the FS Correction:',in%ncongt
+     yaml_indent=yaml_indent-3
+  end if
+  yaml_indent=yaml_indent-3
+  stop
+end subroutine write_input_parameters
 
 
 !>Routine for moving atomic positions, takes into account the 
@@ -3867,7 +3903,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='initialize_atomic_file'
-  integer :: i_stat, l
+  integer :: i_stat
   integer :: iat,i
 
   allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)

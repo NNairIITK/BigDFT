@@ -832,7 +832,9 @@ subroutine deallocate_linearParameters(lin, subname)
 
   call checkAndDeallocatePointer(lin%potentialPrefac, 'lin%potentialPrefac', subname)
   call checkAndDeallocatePointer(lin%locrad, 'lin%locrad', subname)
-  call checkAndDeallocatePointer(lin%lphiRestart, 'lphi%Restart', subname)
+  call checkAndDeallocatePointer(lin%lphiRestart, 'lin%lphiold', subname)
+  call checkAndDeallocatePointer(lin%lphiold, 'lin%lphiold', subname)
+  call checkAndDeallocatePointer(lin%hamold, 'lin%hamold', subname)
   !call checkAndDeallocatePointer(lin%lphiold, 'lphiold', subname)
   !call checkAndDeallocatePointer(lin%lhphiold, 'lhphiold', subname)
   !call checkAndDeallocatePointer(lin%hamold, 'lin%hamold', subname)
@@ -911,7 +913,7 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
   use module_base
   use module_types
   use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_local_zone_descriptors
+  use module_interfaces, exceptThisOne => deallocate_Lzd_except_Glr
   implicit none
 
   ! Calling arguments
@@ -1289,6 +1291,7 @@ subroutine deallocate_largeBasis(lb, subname)
   call deallocate_p2pCommsOrthonormality(lb%comon, subname)
   call deallocate_overlapParameters(lb%op, subname)
   call deallocate_p2pCommsGatherPot(lb%comgp, subname)
+  call deallocate_matrixDescriptors(lb%mad, subname)
 
 
 end subroutine deallocate_largeBasis
@@ -1327,6 +1330,7 @@ subroutine deallocate_p2pCommsOrthonormality(comon, subname)
   call checkAndDeallocatePointer(comon%sendBuf, 'comon%sendBuf', subname)
   call checkAndDeallocatePointer(comon%recvBuf, 'comon%recvBuf', subname)
   call checkAndDeallocatePointer(comon%communComplete, 'comon%communComplete', subname)
+  call checkAndDeallocatePointer(comon%requests, 'comon%requests', subname)
 
 end subroutine deallocate_p2pCommsOrthonormality
 
@@ -1417,6 +1421,7 @@ subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
   call checkAndDeallocatePointer(comom%recvBuf, 'comom%recvBuf', subname)
   call checkAndDeallocatePointer(comom%sendBuf, 'comom%sendBuf', subname)
   call checkAndDeallocatePointer(comom%communComplete, 'comom%communComplete', subname)
+  call checkAndDeallocatePointer(comom%requests, 'comom%requests', subname)
 
   iis1=lbound(comom%olr,1)
   iie1=ubound(comom%olr,1)

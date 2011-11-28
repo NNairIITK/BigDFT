@@ -619,7 +619,7 @@ contains
 
   subroutine conv_kin_y
     implicit none
-    real(wp) tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
+    real(wp) :: tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
 
 !$omp do 
    do i3=0,n3/8-1
@@ -748,8 +748,8 @@ contains
   subroutine conv_kin_z(x,y,ndat)
     implicit none
     integer,intent(in)::ndat
-    real(wp),intent(in):: x(ndat,0:n1)
-    real(wp),intent(inout)::y(ndat,0:n1)
+    real(wp),intent(in):: x(ndat,0:n3)
+    real(wp),intent(inout)::y(ndat,0:n3)
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 
 !$omp do 

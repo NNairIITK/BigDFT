@@ -35,7 +35,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   !first control that the domain is not shorter than the scaling function
   !add also a temporary flag for the allowed ISF types for the kernel
   if (itype_scf > min(n1,n2,n3) .or. itype_scf /= 16) then
-     print *,'ERROR: dimension of the box are too small for the ISB basis chosen',&
+     print *,'ERROR: dimension of the box are too small for the ISF basis chosen',&
           itype_scf,n1,n2,n3
      stop
   end if

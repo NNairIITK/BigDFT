@@ -263,7 +263,7 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(:), pointer :: hpsi2
   character(len=*), parameter :: subname='HamiltonianApplication3'
   logical :: exctX,op2p
-  integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat, ist
+  integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat, ist, ilr
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
@@ -404,6 +404,10 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
         ! loop over all my orbitals
         ispsi=ispsi_k
         do iorb=isorb,ieorb
+           !!!! These two lines are new #################
+           !!ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+           !!if(.not.lzd%doHamAppl(ilr)) cycle
+           !!!! #########################################
            istart_c=istart_ck
            do iat=1,at%nat
               call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,Lzd%Glr%wfd,Lzd%Gnlpspd,&
@@ -678,6 +682,7 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
   real(gp) :: ekin,epot,kx,ky,kz,etest, hxh, hyh, hzh
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable,target :: psir
+  real(8):: dsum
 
   if(withConfinement .and. .not.present(lin)) then
       stop "'lin' must be present when 'withConfinement' is true!"
@@ -698,7 +703,11 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
   nsoffset=1
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-     if(.not.lzd%doHamAppl(ilr)) cycle
+     if(.not.lzd%doHamAppl(ilr)) then
+         oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+         ilrold=ilr
+         cycle
+     end if
   
      !initialise the work arrays
      call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)
@@ -725,7 +734,8 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
             !!     lin%potentialprefac(at%iatype(ilr)),lin%confpotorder, &
             !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &
             !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-            call apply_potentialConfinement2(lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+            call apply_potentialConfinement2(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,&
+                 lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
                  Lpot(orbs%ispot(iorb)),epot, rxyz(1,icenter), hxh, hyh, hzh,&
                  lin%potentialprefac(at%iatype(icenter)),lin%confpotorder, &
                  lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &

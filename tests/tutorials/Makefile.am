@@ -2,24 +2,6 @@
 
 #SUBDIRS = Xabs/pawpatchgen  Xabs/scfpotgen   Xabs/spectra    
 
-#Flags for optimization libraries
-if USE_DGEMMSY
-libs_dgemmsy = $(top_builddir)/src/dgemmsy/libdgemmsy.a
-else
-libs_dgemmsy =
-endif
-if USE_CUDA_GPU
-libs_cuda=$(top_builddir)/src/CUDA/libGPU.a
-else
-libs_cuda=
-endif
-if USE_OCL
-libs_ocl = $(top_builddir)/src/OpenCL/libOCL.a -lstdc++
-else
-libs_ocl =
-endif
-libs_opt=$(libs_cuda) $(libs_ocl) $(libs_dgemmsy)
-
 TESTDIRS = CH4 \
 	  CH3- \
 	  H2O-slab \
@@ -53,13 +35,18 @@ EXTRA_DIST = $(TESTDIRS) \
      Xabs \
      Wannier
 
+# Additional post-in commands
 H2O-bader.post-in :
 	cp -f input-all.dft input.dft
+# Remove HF.perf in case of acceleration
+N2.post-in :
+	rm -f input.perf
+
 
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
 dev/toy_model: $(srcdir)/dev/toy_model.f90
-	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 -L$(top_builddir)/src -lbigdft  -L$(top_builddir)/src/PSolver -lpoissonsolver $(libs_opt) $(LDFLAGS) $(LIBS)
+	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 $(LDFLAGS) @LIBS_DEPENDENCIES@ $(LIBS)
 toy_model.dat.out: dev-N2.out.out toy_model
 	./toy_model > toy_model.dat.out
 dev.post-clean:
@@ -72,7 +59,7 @@ dev.post-clean:
           *) mode="";; \
         esac ; \
         case $* in \
-          CH3-.out*) prec="5.e-7" ;; \
+          CH3-.out*) prec="5.2e-7" ;; \
           scalability.out*)  prec="1.e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \

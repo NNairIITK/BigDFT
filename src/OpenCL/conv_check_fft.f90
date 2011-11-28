@@ -107,7 +107,7 @@ program conv_check_fft
    call memocc(i_stat,v_cuda_l,'v_cuda_l',subname)
    allocate(rhopot(n1*n2*n3+ndebug),stat=i_stat)
    call memocc(i_stat,rhopot,'rhopot',subname)
-   allocate(rhopot2(2*n1*n2*n3+ndebug),stat=i_stat)
+   allocate(rhopot2(n1*n2*n3+ndebug),stat=i_stat)
    call memocc(i_stat,rhopot2,'rhopot2',subname)
 
    !initialise array
@@ -128,8 +128,8 @@ program conv_check_fft
 
    !initialize rhopots
    call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot(1),1)
-   call to_zero(2*n1*n2*n3,rhopot2(1))
-   call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot2(1),2)
+!   call to_zero(2*n1*n2*n3,rhopot2(1))
+   call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot2(1),1)
 
    !call to_zero(2*n1*n2*n3,rhopot2(1))
    !call to_zero(n1*n2*n3,rhopot(1))
@@ -155,7 +155,7 @@ program conv_check_fft
    call nanosec(tsc1);
 
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
-   call print_time(CPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
+   call print_time(CPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
 
    write(*,'(a,i6,i6)')'GPU FFT, dimensions:',n1,n2*n3
 
@@ -205,7 +205,7 @@ program conv_check_fft
 
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
-     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
+     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
 
    write(*,'(a,i6,i6,i6)')'GPU 3D FFT, dimensions:',n1,n2,n3
@@ -243,7 +243,7 @@ program conv_check_fft
 
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
-     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
+     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    write(*,'(a,i6,i6,i6)')'GPU 3D Reverse FFT, dimensions:',n1,n2,n3
 
@@ -286,7 +286,7 @@ program conv_check_fft
    call nanosec(tsc1);
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
-        log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
+        log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    !here the GPU part
    write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver, dimensions:',n1,n2,n3
@@ -295,21 +295,21 @@ program conv_check_fft
    call transpose_kernel_forGPU('P',n1,n2,n3,pkernel,pkernel2)
    !pkernel2(1:size(pkernel2))=1.0_dp
    call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
-   call ocl_create_read_buffer(context, 2*n1*n2*n3*8, work_GPU)
+   call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, work2_GPU)
    call ocl_create_read_write_buffer(context, n1*n2*n3*8, k_GPU)
-   call ocl_enqueue_write_buffer(queue, work_GPU, 2*n1*n2*n3*8, rhopot2)!v_cuda)!
+   call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, rhopot2)!v_cuda)!
    call ocl_enqueue_write_buffer(queue, k_GPU, n1*n2*n3*8, pkernel2)!v_cuda)!
 
    call nanosec(tsc0);
    do i=1,ntimes
-      call fft3d_k_d(queue,(/n1,n2,n3/),work_GPU,psi_GPU,work2_GPU,k_GPU)
-      call fft3d_r_d(queue,(/n1,n2,n3/),psi_GPU,work2_GPU,psi_GPU)
+      call fft3d_k_r2c_d(queue,(/n1,n2,n3/),work_GPU,psi_GPU,work2_GPU,k_GPU)
+      call fft3d_r_c2r_d(queue,(/n1,n2,n3/),psi_GPU,work2_GPU,psi_GPU)
    end do
    call ocl_finish(queue);
    call nanosec(tsc1);
 
-   call ocl_enqueue_read_buffer(queue, work2_GPU, 2*n1*n2*n3*8, psi_cuda)
+   call ocl_enqueue_read_buffer(queue, work2_GPU, n1*n2*n3*8, rhopot2(1))
    call ocl_release_mem_object(k_GPU)
    call ocl_release_mem_object(psi_GPU)
    call ocl_release_mem_object(work_GPU)
@@ -317,7 +317,7 @@ program conv_check_fft
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
-   call vcopy(n1*n2*n3,psi_cuda(1,1,1,1),2,rhopot2(1),1)
+!   call vcopy(n1*n2*n3,psi_cuda(1,1,1,1),2,rhopot2(1),1)
    call compare_3D_results(n1, n2, n3, rhopot(1), rhopot2(1), maxdiff, 3.d-7)
    call compare_time(CPUtime,GPUtime,n1*n2*n3,2*5 * (log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)

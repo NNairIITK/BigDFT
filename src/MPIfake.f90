@@ -109,8 +109,8 @@ END SUBROUTINE MPI_ALLREDUCE
 
 
 ! These routines in serial version should not be called.
-! A stop is added
-
+! A stop is added when necessary, otherwise for copying routines, the corresponding copy 
+! is implemented whenever possible
 subroutine  MPI_ALLGatherV()
   implicit none
   stop 'MPIFAKE: ALLGATHERV'
@@ -207,3 +207,25 @@ subroutine mpi_comm_free ()
   stop 'MPIFAKE: mpi_comm_free'
 END SUBROUTINE  MPI_COMM_FREE
 
+subroutine mpi_waitany ()
+  implicit none
+  return !stop 'MPIFAKE: mpi_waitany'
+END SUBROUTINE  MPI_WAITANY
+
+subroutine mpi_irsend()
+  implicit none
+  stop 'MPIFAKE: mpi_irsend'
+END SUBROUTINE  MPI_IRSEND
+
+subroutine mpi_rsend()
+  implicit none
+  stop 'MPIFAKE: mpi_rsend'
+END SUBROUTINE  MPI_RSEND
+
+
+real(kind=8) function mpi_wtime()
+  implicit none
+  integer(kind=8) :: itns
+  call nanosec(itns)
+  mpi_wtime=real(itns,kind=8)*1.d-9
+end function mpi_wtime

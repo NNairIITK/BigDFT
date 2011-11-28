@@ -28,11 +28,9 @@ character(len=*):: filterCode
 integer:: i
 real(8):: fac, fac2, prefac1, prefac2a, hgrid2, hgrid3, x02, x03
 real(8):: scale
-
 !scale=1.d0
-scale=1.d-4
+scale=1.d-1
 !scale=5.d-2
-
 prefac1=-.5d0/hgrid**2
 !fac=dble(max(100-int(dble(it)/2.d0),1))*parabPrefac
 !fac2=dble(max(100-int(dble(it)/2.d0),1))*parabPrefac*hgrid
@@ -42,7 +40,6 @@ hgrid2=hgrid**2
 hgrid3=hgrid**3
 x02=x0**2
 x03=x0**3
-
 ! Determine which filter we have to calculate
 select case(trim(filterCode))
 case('a')
@@ -452,10 +449,10 @@ aeff2=0.d0 ; beff2=0.d0 ; ceff2=0.d0 ; eeff2=0.0
 aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
 
 
-!$omp parallel default(private) &
-!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
-!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
-!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
+!!$!$omp parallel default(private) &
+!!$!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!!$!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
+!!$!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
   !$omp do  
   do i3=0,n3
      do i2=0,n2
@@ -985,7 +982,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
   enddo
   !$omp enddo
 
-  !$omp end parallel
+!  !$omp end parallel
 !dee
 !call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)
@@ -1286,10 +1283,10 @@ aeff2=0.d0 ; beff2=0.d0 ; ceff2=0.d0 ; eeff2=0.0
 aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
 
 
-!$omp parallel default(private) &
-!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
-!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
-!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
+!!$omp parallel default(private) &
+!!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
+!!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
   !$omp do  
   do i3=0,n3
      do i2=0,n2
@@ -1816,7 +1813,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
   enddo
   !$omp enddo
 
-  !$omp end parallel
+  !!$omp end parallel
 !dee
 !call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)
@@ -2139,10 +2136,10 @@ do i=lowfil,lupfil
 end do
 
 
-!$omp parallel default(private) &
-!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
-!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,w_c,w_f,y_c,y_f)& 
-!$omp shared(w_f1,w_f2,w_f3,a,b,c,e)
+!!$omp parallel default(private) &
+!!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!!$omp shared(ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,w_c,w_f,y_c,y_f)& 
+!!$omp shared(w_f1,w_f2,w_f3,ad1_ext,bd1_ext,cd1_ext)
   !$omp do  
   do i3=0,n3
      do i2=0,n2
@@ -2671,8 +2668,7 @@ end do
      enddo
   enddo
   !$omp enddo
-
-  !$omp end parallel
+!!$omp end parallel
 !dee
 !call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)

@@ -520,7 +520,7 @@ subroutine gauss_c_to_daub_k(hgrid,kval,ncplx,gau_bf,ncs_s,factor , &
 
   !local variables
   integer :: rightx,leftx,right_t,i0,i,k,length,j,ics, icplx
-  real(gp) :: a,z0,h,x,r,coeff,r2,fac,rk
+  real(gp) :: a,z0,h,x,r,coeff,r2,fac
   real(wp) :: func,cval,sval
   integer, dimension(0:8) :: lefts,rights
   integer :: nrefinement, nforwards, ifwdtarget , ifwdsource, iswap

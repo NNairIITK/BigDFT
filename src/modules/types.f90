@@ -59,10 +59,18 @@ module module_types
   !> Occupation parameters.
   integer, parameter :: SMEARING_DIST_ERF   = 1
   integer, parameter :: SMEARING_DIST_FERMI = 2
-  character(len = 11), dimension(2), parameter :: smearing_names = &
-       & (/ "Error func.", "Fermi      " /)
-  ! To be moved as an input parameter later
-  integer, parameter :: occopt = SMEARING_DIST_ERF
+  integer, parameter :: SMEARING_DIST_COLD1 = 3  !Marzari's cold smearing  with a=-.5634 (bumb minimization)
+  integer, parameter :: SMEARING_DIST_COLD2 = 4  !Marzari's cold smearing  with a=-.8165 (monotonic tail)
+  integer, parameter :: SMEARING_DIST_METPX = 5  !Methfessel and Paxton (same as COLD with a=0)
+  character(len = 11), dimension(5), parameter :: smearing_names = &
+       & (/ "Error func.",   &    
+       &    "Fermi      ",   &
+       &    "Cold (bumb)",   &
+       &    "Cold (mono)",   &
+       &    "Meth.-Pax. " /)
+ !!!!!!! MOVED ....   ! To be moved as an input parameter later
+  !integer, parameter :: occopt = SMEARING_DIST_ERF
+ !!!!!!! MOVED ....   
 
 
   !> Type used for the orthogonalisation parameter
@@ -115,12 +123,12 @@ module module_types
      !miscellaneous variables
      logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
-     integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
+     integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty, occopt
      integer :: output_grid, dispersion,last_run,output_wf_format,output_grid_format
-     real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel,alphadiis
+     real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel, alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: verbosity
-     real(gp) :: elecfield
+     real(gp) :: elecfield(3)
      logical :: disableSym
 
      ! For absorption calculations
@@ -351,7 +359,7 @@ module module_types
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
-     real(gp) :: efermi,HLgap
+     real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,inwhichlocreg, inWhichLocregP, onWhichMPI, isorb_par, ispot
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
@@ -373,6 +381,8 @@ module module_types
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
+     real(8),dimension(3):: locregCenter !< center of the locreg (used for O(N) versions)
+     real(8):: locrad !< cutoff radius of the localization region (used for O(N) versions)
   end type locreg_descriptors
 
 
@@ -414,7 +424,7 @@ module module_types
   type,public:: local_zone_descriptors
     logical :: linear                                           !> if true, use linear part of the code
     integer :: nlr                                              !> Number of localization regions 
-    integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
+    integer :: Lpsidimtot, lpsidimtot_der                       !> Total dimension of the wavefunctions in the locregs, the same including the derivatives
     integer:: ndimpotisf                                        !> total dimension of potential in isf (including exctX)
     integer :: Lnprojel                                         !> Total number of projector elements
     real(gp), dimension(:,:),pointer :: rxyz                    !> Centers for the locregs
@@ -533,12 +543,13 @@ module module_types
 !> Contains the parameter needed for the point to point communication for
 !! the orthonormlization.
    type,public:: p2pCommsOrthonormality
-       integer:: nsendBuf, nrecvBuf, noverlapsmax
+       integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend, nrecvtemp, nsendtemp, isoverlap, nstepoverlap
        integer,dimension(:),pointer:: noverlaps
        integer,dimension(:,:),pointer:: overlaps
        integer,dimension(:,:,:),pointer:: comarr
        real(8),dimension(:),pointer:: sendBuf, recvBuf
        logical,dimension(:,:),pointer:: communComplete
+       integer,dimension(:,:),pointer:: requests
    end type p2pCommsOrthonormality
 
 
@@ -567,9 +578,9 @@ module module_types
 
 
   type,public:: p2pCommsOrthonormalityMatrix
-      integer:: nrecvBuf, nsendBuf
+      integer:: nrecvBuf, nsendBuf, nrecv, nsend
       integer,dimension(:),pointer:: noverlap, noverlapProc
-      integer,dimension(:,:),pointer:: overlaps, indexInRecvBuf, overlapsProc
+      integer,dimension(:,:),pointer:: overlaps, indexInRecvBuf, overlapsProc, requests
       integer,dimension(:,:,:),pointer:: comarr, olrForExpansion
       real(8),dimension(:),pointer:: recvBuf, sendBuf
       logical,dimension(:,:),pointer:: communComplete
@@ -587,6 +598,12 @@ module module_types
   end type matrixMinimization
 
 
+  type,public:: matrixDescriptors
+      integer:: nvctr, nseg, nvctrmatmul, nsegmatmul, nseglinemax
+      integer,dimension(:),pointer:: keyv, keyvmatmul, nsegline
+      integer,dimension(:,:),pointer:: keyg, keygmatmul
+      integer,dimension(:,:,:),pointer:: keygline
+  end type matrixDescriptors
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
 !! minimizing orbitals, this basis may be larger than only the trace minimizing
@@ -600,14 +617,9 @@ type,public:: largeBasis
     type(p2pCommsOrthonormality):: comon
     type(overlapParameters):: op
     type(p2pCommsGatherPot):: comgp
+    type(matrixDescriptors):: mad
 end type largeBasis
 
-  type,public:: matrixDescriptors
-      integer:: nvctr, nseg, nvctrmatmul, nsegmatmul, nseglinemax
-      integer,dimension(:),pointer:: keyv, keyvmatmul, nsegline
-      integer,dimension(:,:),pointer:: keyg, keygmatmul
-      integer,dimension(:,:,:),pointer:: keygline
-  end type matrixDescriptors
 
 
   !> Contains the parameters for the parallel input guess for the O(N) version.
@@ -644,11 +656,15 @@ end type largeBasis
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
-    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
+    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff 
+    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG
     integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
-    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho, fixBasis
-    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart
+    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItOuterSCC, nItSCCWhenFixed
+    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMixWhenFixed
+    real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho, fixBasis
+    real(8):: FactorFixBasis, convCritMixOut, minimalFixBasis
+    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lxi, transmat, lpsi, lhpsi
+    real(8),dimension(:,:),pointer:: hamold
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
@@ -663,6 +679,7 @@ end type largeBasis
     type(overlapParameters):: op
     type(linearInputGuess):: lig
     type(matrixDescriptors):: mad
+    character(len=1):: locregShape
   end type linearParameters
 
 !> Contains the arguments needed for the diis procedure

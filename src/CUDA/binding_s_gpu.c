@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <config.h>
 
+#include <s_gpu.h>
 #include <sg_common_def.h>
 
 
@@ -55,6 +56,12 @@ typedef struct sg_param_intprecond
   
 } sg_param_intprecond_t;
 
+void gpuprecond_(int *n1,int *n2, int *n3,int *npsi,
+		 double *h1,double *h2,double *h3,
+		 double **x,int **keys, 
+		 double **r,double **b,double **d,
+		 double **work1,double **work2,double **work3,
+		 double *c,int *ncong, double *gnrm);
 
 void sg_callback_precond(void *param)
 {
@@ -71,6 +78,11 @@ void sg_callback_precond(void *param)
 
   *(locpar->gnrm) += gnrmToAdd;
 }
+
+void FC_FUNC_(precond_preconditioner_wrapper,PRECOND_PRECONDITIONER_WRAPPER)
+     (int *hybrid_on, int *n1, int *n2, int *n3, int *nvctr_c, int *nvctr_f, int *nseg_c, int *nseg_f, int *ncplx,
+     double *cprecr, double *hx, double *hy, double *hz, double **scal, int **keyg, int **keyv, int **modul1, int **modul2, int **modul3,
+      double **af, double **bf, double **cf, double **ef, double **kern_k1, double **kern_k2, double **kern_k3, double **z1, double **z3, double **x_c, double **psifscf, double **ww, double **x, double **b);
 
 void sg_callback_precondprecond(void *param)
 {
@@ -92,6 +104,12 @@ void sg_callback_precondprecond(void *param)
 
 }
 
+void gpuintprecond_(int *n1,int *n2, int *n3,int *npsi,
+		    double *h1,double *h2,double *h3,
+		    double **x,int **keys, 
+		    double **r,double **b,double **d,
+		    double **work1,double **work2,double **work3,
+		    double *c,int *ncong);
 
 void sg_callback_intprecond(void *param)
 {
@@ -240,6 +258,11 @@ typedef struct sg_param_locham
 } sg_param_locham_t;
 
 
+void gpulocham_(int *n1,int *n2, int *n3,
+		double *h1,double *h2,double *h3,
+		double **psi,double **pot,int **keys, 
+		double **work1,double **work2,double **work3,
+		double *epot,double *ekin);
 
 void sg_callback_locham(void *param)
 {
@@ -258,6 +281,13 @@ void sg_callback_locham(void *param)
   *locpar->ekin_sum += locpar->occup_gpu*ekinToAdd;
  *locpar->epot_sum += locpar->occup_gpu*epotToAdd;
 }
+
+void gpufulllocham_(int *n1,int *n2, int *n3,
+		    double *h1,double *h2,double *h3,
+		    double **psiw,double **pot,int **keys, 
+		    double **psi,double **out,
+		    double **work,
+		    double *epot,double *ekinpot);
 
 void sg_callback_fulllocham(void *param)
 {
@@ -360,6 +390,12 @@ typedef struct sg_param_locden
 } sg_param_locden_t;
 
 
+void gpulocden_(int *n1,int *n2, int *n3,int *norbp,int *nspin,
+		double *h1,double *h2,double *h3,
+		double *occup,double *spinsgn,
+		double **psi,int **keys, 
+		double **work1,double **work2,
+		double **rho);
 
 void sg_callback_locden(void *param)
 {

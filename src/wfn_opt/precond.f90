@@ -9,11 +9,11 @@
  
 
 !>    Calls the preconditioner for each orbital treated by the processor
-subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,ncong
+  integer, intent(in) :: ncong
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
@@ -937,7 +937,7 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
         call apply_hp_slab_sd_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
              lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-             cprecr,hx,hy,hz,x,y,w%psifscf,w%ww,w%modul1,w%modul3,&
+             cprecr,x,y,w%psifscf,w%ww,w%modul1,w%modul3,&
              w%af,w%bf,w%cf,w%ef,scal)
      else
         call apply_hp_slab_k(lr%d%n1,lr%d%n2,lr%d%n3,&
@@ -1211,15 +1211,14 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
 END SUBROUTINE precond_proper
 
 
-!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-!!   hpsi is the right hand side on input and the solution on output
-subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+!> Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!! hpsi is the right hand side on input and the solution on output
+subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
   use module_base
   implicit none
-  !implicit real(kind=8) (a-h,o-z)
-  integer, intent(in) :: iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f,ncong
   real(gp), intent(in) :: hgrid
   real(dp), intent(in) :: cprecr
