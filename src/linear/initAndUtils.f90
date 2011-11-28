@@ -3293,7 +3293,6 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
 
     ishift=glr%wfd%nseg_c  
     ! fine part
-    !$omp do
     do iseg=1,glr%wfd%nseg_f
        jj=glr%wfd%keyv(ishift+iseg)
        j0=glr%wfd%keyg(1,ishift+iseg)

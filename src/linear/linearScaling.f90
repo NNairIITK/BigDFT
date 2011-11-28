@@ -186,10 +186,10 @@ real(8),dimension(:,:),allocatable:: ovrlp
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
 
-  !debug
-  do istat=1,size(lphi)
-      write(5000+iproc,*) istat, lphi(istat)
-  end do
+  !!!debug
+  !!do istat=1,size(lphi)
+  !!    write(5000+iproc,*) istat, lphi(istat)
+  !!end do
 
 
   ! Copy lphi to lin%lpsi, don't know whether this is a good choice

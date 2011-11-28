@@ -453,7 +453,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
 !!$!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
 !!$!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
 !!$!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
-  !$omp do  
+  !!!$omp do  
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -586,14 +586,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
   
   !  call system_clock(ncount1,ncount_rate,ncount_max)
   !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
 
   ! + (1/2) d^2/dy^2
-  !$omp do
+  !!!$omp do
   do i3=0,n3
      do i1=0,n1
         if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
@@ -723,7 +723,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
 
   !  call system_clock(ncount2,ncount_rate,ncount_max)
@@ -732,7 +732,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
 
   ! + (1/2) d^2/dz^2
 
-  !$omp do
+  !!!$omp do
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -862,7 +862,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
 
   
@@ -873,7 +873,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
   ! wavelet part
   ! (1/2) d^2/dx^2
 
-  !$omp do
+  !!!$omp do
   do i3=nfl3,nfu3
      do i2=nfl2,nfu2
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -903,7 +903,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
   !  call system_clock(ncount4,ncount_rate,ncount_max)
   !  tel=dble(ncount4-ncount3)/dble(ncount_rate)
@@ -911,7 +911,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
 
 
   ! + (1/2) d^2/dy^2
-  !$omp do
+  !!!$omp do
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -941,14 +941,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
   !  call system_clock(ncount5,ncount_rate,ncount_max)
   !  tel=dble(ncount5-ncount4)/dble(ncount_rate)
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:y',tel,1.d-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
-  !$omp do
+  !!!$omp do
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
@@ -980,9 +980,9 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
-!  !$omp end parallel
+!  !!!$omp end parallel
 !dee
 !call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)
@@ -1283,11 +1283,11 @@ aeff2=0.d0 ; beff2=0.d0 ; ceff2=0.d0 ; eeff2=0.0
 aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
 
 
-!$omp parallel default(private) &
-!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
-!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
-!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
-  !$omp do  
+!!!$omp parallel default(private) &
+!!!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!!!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
+!!!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
+  !!!$omp do  
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -1417,14 +1417,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
   
   !  call system_clock(ncount1,ncount_rate,ncount_max)
   !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
 
   ! + (1/2) d^2/dy^2
-  !$omp do
+  !!!$omp do
   do i3=0,n3
      do i1=0,n1
         if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
@@ -1554,7 +1554,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
 
   !  call system_clock(ncount2,ncount_rate,ncount_max)
@@ -1563,7 +1563,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
 
   ! + (1/2) d^2/dz^2
 
-  !$omp do
+  !!!$omp do
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -1693,7 +1693,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
 
   
@@ -1704,7 +1704,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
   ! wavelet part
   ! (1/2) d^2/dx^2
 
-  !$omp do
+  !!!$omp do
   do i3=nfl3,nfu3
      do i2=nfl2,nfu2
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -1734,7 +1734,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
   !  call system_clock(ncount4,ncount_rate,ncount_max)
   !  tel=dble(ncount4-ncount3)/dble(ncount_rate)
@@ -1742,7 +1742,7 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
 
 
   ! + (1/2) d^2/dy^2
-  !$omp do
+  !!!$omp do
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -1772,14 +1772,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
   !  call system_clock(ncount5,ncount_rate,ncount_max)
   !  tel=dble(ncount5-ncount4)/dble(ncount_rate)
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:y',tel,1.d-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
-  !$omp do
+  !!!$omp do
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
@@ -1811,9 +1811,9 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
-  !$omp end parallel
+  !!!$omp end parallel
 !dee
 !call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)
@@ -2136,11 +2136,11 @@ do i=lowfil,lupfil
 end do
 
 
-!$omp parallel default(private) &
-!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
-!$omp shared(ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,w_c,w_f,y_c,y_f)& 
-!$omp shared(w_f1,w_f2,w_f3,ad1_ext,bd1_ext,cd1_ext)
-  !$omp do  
+!!!$omp parallel default(private) &
+!!!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!!!$omp shared(ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,w_c,w_f,y_c,y_f)& 
+!!!$omp shared(w_f1,w_f2,w_f3,ad1_ext,bd1_ext,cd1_ext)
+  !!!$omp do  
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -2273,14 +2273,14 @@ end do
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
   
   !  call system_clock(ncount1,ncount_rate,ncount_max)
   !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
 
   ! + (1/2) d^2/dy^2
-  !$omp do
+  !!!$omp do
   do i3=0,n3
      do i1=0,n1
         if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
@@ -2410,7 +2410,7 @@ end do
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
 
   !  call system_clock(ncount2,ncount_rate,ncount_max)
@@ -2419,7 +2419,7 @@ end do
 
   ! + (1/2) d^2/dz^2
 
-  !$omp do
+  !!!$omp do
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -2549,7 +2549,7 @@ end do
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
 
   
@@ -2560,7 +2560,7 @@ end do
   ! wavelet part
   ! (1/2) d^2/dx^2
 
-  !$omp do
+  !!!$omp do
   do i3=nfl3,nfu3
      do i2=nfl2,nfu2
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -2590,7 +2590,7 @@ end do
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
   !  call system_clock(ncount4,ncount_rate,ncount_max)
   !  tel=dble(ncount4-ncount3)/dble(ncount_rate)
@@ -2598,7 +2598,7 @@ end do
 
 
   ! + (1/2) d^2/dy^2
-  !$omp do
+  !!!$omp do
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -2628,14 +2628,14 @@ end do
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
   !  call system_clock(ncount5,ncount_rate,ncount_max)
   !  tel=dble(ncount5-ncount4)/dble(ncount_rate)
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:y',tel,1.d-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
-  !$omp do
+  !!!$omp do
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
@@ -2667,9 +2667,9 @@ end do
         enddo
      enddo
   enddo
-  !$omp enddo
+  !!!$omp enddo
 
-  !$omp end parallel
+  !!!$omp end parallel
 !dee
 !call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)
