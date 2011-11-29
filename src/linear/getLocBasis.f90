@@ -89,15 +89,15 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 
 ! Local variables 
 integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount, jlr, ii
-real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold, hphiold, eps, temparr
-real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, ovrlpold, hamold
+real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold, hphiold, eps, temparr, work
+real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, ovrlpold, hamold, overlapmatrix, lambda, coeffold
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork
 real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
 type(workarr_sumrho):: w
-integer:: ist, ierr, iiorb, info
+integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot
 real(8),dimension(:),pointer:: lpot
 
   ! Allocate the local arrays.  
@@ -352,6 +352,10 @@ real(8),dimension(:),pointer:: lpot
   !!    write(23000+iproc,*) '=============================='
   !!!end if
 
+
+  allocate(overlapmatrix(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
+  call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
+  overlapmatrix=ovrlp
   
 
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
@@ -403,6 +407,57 @@ real(8),dimension(:),pointer:: lpot
   !!do iorb=1,lin%lb%orbs%norb
   !!    write(2000+iproc,'(100es9.2)') (coeff(iorb,jorb), jorb=1,orbs%norb)
   !!end do
+
+  ! EXPERIMENTAL ##################################################################
+  norbtot=orbs%norb+lin%norbvirt
+  allocate(lambda(norbtot,norbtot), stat=istat)
+  call memocc(istat, lambda, 'lambda', subname)
+
+  do iorb=1,norbtot
+      do jorb=1,norbtot
+          lambda(jorb,iorb)=0.d0
+          do korb=1,lin%lb%orbs%norb
+              do lorb=1,lin%lb%orbs%norb
+                  !lambda(jorb,iorb) = lambda(jorb,iorb) + coeff(korb,iorb)*coeff(lorb,jorb)*overlapmatrix(lorb,korb)
+                  !lambda(jorb,iorb) = lambda(jorb,iorb) + coeff(korb,iorb)*coeff(lorb,jorb)*matrixElements(lorb,korb,1)
+                  lambda(jorb,iorb) = lambda(jorb,iorb) + matrixElements(korb,iorb,2)*matrixElements(lorb,jorb,2)*matrixElements(lorb,korb,1)
+              end do
+          end do
+      end do
+  end do
+
+  lwork=100*orbs%norb
+  allocate(work(lwork), stat=istat)
+  call memocc(istat, work, 'work', subname)
+  call dsyev('v', 'l', 2*orbs%norb, lambda(1,1), 2*orbs%norb, eval, work, lwork, info)
+  iall=-product(shape(work))*kind(work)
+  deallocate(work, stat=istat)
+  call memocc(istat, iall, 'work', subname)
+
+  
+  allocate(coeffold(lin%orbs%norb,norbtot), stat=istat)
+  call memocc(istat, coeffold, 'coeffold', subname)
+  call dcopy(lin%orbs%norb*norbtot, matrixElements(1,1,2), 1, coeffold(1,1), 1)
+  !coeffold=matrixElements(:,:,2)
+  do iorb=1,orbs%norb
+      do jorb=1,lin%orbs%norb
+          coeff(jorb,iorb)=0.d0
+          do korb=1,norbtot
+              coeff(jorb,iorb) = coeff(jorb,iorb) + lambda(korb,iorb)*coeffold(jorb,korb)
+          end do
+          write(400+iproc,'(2i7,2es20.8)') iorb, jorb, coeffold(jorb,iorb), coeff(jorb,iorb)
+      end do
+  end do
+  iall=-product(shape(coeffold))*kind(coeffold)
+  deallocate(coeffold, stat=istat)
+  call memocc(istat, iall, 'coeffold', subname)
+
+  iall=-product(shape(lambda))*kind(lambda)
+  deallocate(lambda, stat=istat)
+  call memocc(istat, iall, 'lambda', subname)
+
+  
+  ! END EXPERIMENTAL ##############################################################
 
 
   ! Calculate the band structure energy with matrixElements.
@@ -497,6 +552,10 @@ real(8),dimension(:),pointer:: lpot
   iall=-product(shape(ovrlp))*kind(ovrlp)
   deallocate(ovrlp, stat=istat)
   call memocc(istat, iall, 'ovrlp', subname)
+
+  iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
+  deallocate(overlapmatrix, stat=istat)
+  call memocc(istat, iall, 'overlapmatrix', subname)
 
 
 

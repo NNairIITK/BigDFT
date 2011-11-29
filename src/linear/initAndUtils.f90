@@ -69,6 +69,7 @@ call allocateBasicArrays(at, lin)
 ! Read in all parameters related to the linear scaling version.
 call readLinearParameters(iproc, nproc, lin, at, atomNames)
 
+
 ! Count the number of basis functions.
 norb=0
 do iat=1,at%nat
@@ -133,6 +134,12 @@ call repartitionOrbitals(iproc, nproc, lin%lb%gorbs%norb, lin%lb%gorbs%norb_par,
      lin%lb%gorbs%norbp, lin%lb%gorbs%isorb_par, lin%lb%gorbs%isorb, lin%lb%gorbs%onWhichMPI)
 
 
+! Check the number of virtual orbitals.
+if(lin%norbvirt>lin%lb%orbs%norb-orbs%norb) then
+    lin%norbvirt=lin%lb%orbs%norb-orbs%norb
+    if(iproc==0) write(*,'(x,a,i0)') 'WARNING: the number of virtual orbitals is adjusted to its maximal &
+        & possible value of ', lin%norbvirt
+end if
 
 
 ! Assign the parameters needed for the communication to lin%comms. Again distinguish
@@ -393,6 +400,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   read(99,*) lin%plotBasisFunctions
   read(99,*) lin%transformToGlobal
   read(99,*) lin%norbsPerProcIG
+  read(99,*) lin%norbvirt
 
 
   ! Now read in the parameters specific for each atom type.
