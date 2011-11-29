@@ -445,7 +445,7 @@ real(8),dimension(:),pointer:: lpot
           do korb=1,norbtot
               coeff(jorb,iorb) = coeff(jorb,iorb) + lambda(korb,iorb)*coeffold(jorb,korb)
           end do
-          write(400+iproc,'(2i7,2es20.8)') iorb, jorb, coeffold(jorb,iorb), coeff(jorb,iorb)
+          !write(400+iproc,'(2i7,2es20.8)') iorb, jorb, coeffold(jorb,iorb), coeff(jorb,iorb)
       end do
   end do
   iall=-product(shape(coeffold))*kind(coeffold)
