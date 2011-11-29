@@ -2121,8 +2121,8 @@ subroutine createDerivativeBasis(n1,n2,n3, &
 !aeff2=0.d0 ; beff2=0.d0 ; ceff2=0.d0 ; eeff2=0.0
 !aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
 
-! Copy the filters to the 'extended filters', i.e. add zome zeros.
-! This seem sto be required since we use loop unrolling.
+! Copy the filters to the 'extended filters', i.e. add some zeros.
+! This seems to be required since we use loop unrolling.
 ad1_ext=0.d0
 bd1_ext=0.d0
 cd1_ext=0.d0
@@ -2572,17 +2572,17 @@ end do
            !call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, ceff0(lowfil), 'c')
            !call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, eeff0(lowfil), 'e')
            do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
-              t112=t112 + w_f(4,i1+l,i2,i3)*ad1_ext(l) + w_f(5,i1+l,i2,i3)*bd1_ext(l)
+              !t112=t112 + w_f(4,i1+l,i2,i3)*ad1_ext(l) + w_f(5,i1+l,i2,i3)*bd1_ext(l)
               t121=t121 + w_f(2,i1+l,i2,i3)*ad1_ext(l) + w_f(3,i1+l,i2,i3)*bd1_ext(l)
-              t122=t122 + w_f(6,i1+l,i2,i3)*ad1_ext(l) + w_f(7,i1+l,i2,i3)*bd1_ext(l)
-              t212=t212 + w_f(4,i1+l,i2,i3)*cd1_ext(l) + w_f(5,i1+l,i2,i3)*ed1(l)
+              !t122=t122 + w_f(6,i1+l,i2,i3)*ad1_ext(l) + w_f(7,i1+l,i2,i3)*bd1_ext(l)
+              !t212=t212 + w_f(4,i1+l,i2,i3)*cd1_ext(l) + w_f(5,i1+l,i2,i3)*ed1(l)
               t221=t221 + w_f(2,i1+l,i2,i3)*cd1_ext(l) + w_f(3,i1+l,i2,i3)*ed1(l)
-              t222=t222 + w_f(6,i1+l,i2,i3)*cd1_ext(l) + w_f(7,i1+l,i2,i3)*ed1(l)
-              t211=t211 + w_f(1,i1+l,i2,i3)*ed1(l)
+              !t222=t222 + w_f(6,i1+l,i2,i3)*cd1_ext(l) + w_f(7,i1+l,i2,i3)*ed1(l)
+              !t211=t211 + w_f(1,i1+l,i2,i3)*ed1(l)
            enddo
            x_f(4,i1,i2,i3)=t112
            x_f(2,i1,i2,i3)=t121
-           x_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+t211
+           x_f(1,i1,i2,i3)=x_f(1,i1,i2,i3)+t211
            x_f(6,i1,i2,i3)=t122
            x_f(5,i1,i2,i3)=t212
            x_f(3,i1,i2,i3)=t221
@@ -2681,7 +2681,6 @@ end do
 !  tel=dble(ncount6-ncount0)/dble(ncount_rate)
 !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'ALL   PART',  & 
 !  tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
-
 
 
 

@@ -79,6 +79,8 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
       istz_f=istz_c+lin%lzd%llr(ilr)%wfd%nvctr_c
 
       ! Uncompress the wavefunction.
+      !phi(ist1_f:ist1_f+7*lin%lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
+      !phi(ist1_c:ist1_c+lin%lzd%llr(ilr)%wfd%nvctr_c-1)=0.d0
       call uncompress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, &
            lin%lzd%llr(ilr)%d%nfl1, lin%lzd%llr(ilr)%d%nfu1, & 
            lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3, lin%lzd%llr(ilr)%d%nfu3,  &

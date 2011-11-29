@@ -769,7 +769,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call deallocate_local_zone_descriptors(lin%lig%lzdig, subname)
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
   call deallocate_matrixDescriptors(lin%lig%mad, subname)
-  if(iproc==0) write(*,*) 'WARNING: THIS WILL CAUSE MEMORY PROBLEMS, DEALLOCATE LATER'
+  !!if(iproc==0) write(*,*) 'WARNING: THIS WILL CAUSE MEMORY PROBLEMS, DEALLOCATE LATER'
 
   ! Deallocate all remaining local arrays.
   iall=-product(shape(norbsc_arr))*kind(norbsc_arr)

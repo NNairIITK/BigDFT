@@ -146,6 +146,11 @@ real(8),dimension(:),pointer:: lpot
           call dscal(ncount, 1/tt, lphi(ist), 1)
           ist=ist+ncount
       end do
+
+      !!! Orthonormalize
+      !!call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
+      !!     lin%blocksize_pdgemm, lin%lb%orbs, lin%lb%op, lin%lb%comon, lin%lzd, lin%lb%orbs%inWhichLocreg, lin%convCritOrtho, &
+      !!     input, lin%lb%mad, lphi, ovrlp)
   end if
 
   ! Get the overlap matrix.
@@ -157,6 +162,11 @@ real(8),dimension(:),pointer:: lpot
   if(lin%useDerivativeBasisFunctions) then
       !call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
       call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, lin%lb%mad, ovrlp)
+      do iorb=1,lin%lb%orbs%norb
+          do jorb=1,lin%lb%orbs%norb
+              write(200+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+          end do
+      end do
   end if
 
   !ierr=0
