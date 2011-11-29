@@ -135,17 +135,17 @@ real(8),dimension(:),pointer:: lpot
       call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
       if(iproc==0) write(*,'(a)') 'done.'
 
-      ! Normalize the derivative basis functions. Normalize all of them (i.e. also the trace minimizing
-      ! orbitals) to keep it easy.
-      ! Do not orthogonalize them, since the 'normal' phis are not exactly orthogonal either.
-      ist=1
-      do iorb=1,lin%lb%orbs%norbp
-          ilr=lin%lb%orbs%inWhichLocregp(iorb)
-          ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-          tt=dnrm2(ncount, lphi(ist), 1)
-          call dscal(ncount, 1/tt, lphi(ist), 1)
-          ist=ist+ncount
-      end do
+      !! Normalize the derivative basis functions. Normalize all of them (i.e. also the trace minimizing
+      !! orbitals) to keep it easy.
+      !! Do not orthogonalize them, since the 'normal' phis are not exactly orthogonal either.
+      !ist=1
+      !do iorb=1,lin%lb%orbs%norbp
+      !    ilr=lin%lb%orbs%inWhichLocregp(iorb)
+      !    ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !    tt=dnrm2(ncount, lphi(ist), 1)
+      !    call dscal(ncount, 1/tt, lphi(ist), 1)
+      !    ist=ist+ncount
+      !end do
 
       !!! Orthonormalize
       !!call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
@@ -162,11 +162,11 @@ real(8),dimension(:),pointer:: lpot
   if(lin%useDerivativeBasisFunctions) then
       !call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
       call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, lin%lb%mad, ovrlp)
-      do iorb=1,lin%lb%orbs%norb
-          do jorb=1,lin%lb%orbs%norb
-              write(200+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-          end do
-      end do
+      !!do iorb=1,lin%lb%orbs%norb
+      !!    do jorb=1,lin%lb%orbs%norb
+      !!        write(200+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+      !!    end do
+      !!end do
   end if
 
   !ierr=0
