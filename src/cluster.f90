@@ -517,7 +517,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !Allocate Charge density, Potential in real space
    nrhodim=in%nspin
    i3rho_add=0
-   if (in%SIC%approach=='NK') then
+   if (trim(in%SIC%approach)=='NK') then
       nrhodim=2*nrhodim
       i3rho_add=Glr%d%n1i*Glr%d%n2i*i3xcsh+1
    end if
