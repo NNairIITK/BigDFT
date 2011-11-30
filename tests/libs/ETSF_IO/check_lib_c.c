@@ -16,6 +16,8 @@ int main(int argc, char **argv)
   fprintf(stdout, " --- Test read_wave_to_isf_etsf() from %s ---\n", WAVEFILE);
 
   psiscf = read_wave_to_isf_etsf(WAVEFILE, IORBP, h, n, &nspinor);
+  /* for (i = 0; i < F90_POINTER_SIZE; i++) */
+  /*   fprintf(stdout, "%d %p\n", i, psiscf->info[i]); */
 
   fprintf(stdout, " hgrid values for iscf representation:     %9.6f %9.6f %9.6f\n",
           h[0], h[1], h[2]);

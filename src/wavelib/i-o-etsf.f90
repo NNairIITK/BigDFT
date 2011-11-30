@@ -475,7 +475,7 @@ subroutine read_wave_to_isf_etsf(filename, ln, iorbp, hx, hy, hz, n1, n2, n3, ns
   nspinor = orbsd%nspinor
   orbsd%isorb = 0
 
-  ! Initail allocations.
+  ! Initial allocations.
   allocate(gcoord(3,nvctr_c + ndebug),stat=i_stat)
   call memocc(i_stat,gcoord,'gcoord',"read_wave_to_isf_etsf")
 
