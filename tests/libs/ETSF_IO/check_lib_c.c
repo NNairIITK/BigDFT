@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 
   fprintf(stdout, " --- Test read_wave_to_isf_etsf() from %s ---\n", WAVEFILE);
 
-  psiscf = read_wave_to_isf_etsf(WAVEFILE, IORBP, h, n, &nspinor);
+  psiscf = bigdft_read_wave_to_isf_etsf(WAVEFILE, IORBP, h, n, &nspinor);
   /* for (i = 0; i < F90_POINTER_SIZE; i++) */
   /*   fprintf(stdout, "%d %p\n", i, psiscf->info[i]); */
 
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
         }
   fprintf(stdout, " norm of orbital %d:                      %12.8f\n", IORBP, nrm);
 
-  free_wave_to_isf_etsf(psiscf);
+  bigdft_free_wave_to_isf_etsf(psiscf);
 
   __m_profiling_MOD_memocc_report();
 

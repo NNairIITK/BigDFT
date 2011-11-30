@@ -12,8 +12,8 @@ void FC_FUNC_(read_wave_to_isf_etsf, READ_WAVE_TO_ISF_ETSF)
 
 void FC_FUNC_(free_wave_to_isf_etsf, FREE_WAVE_TO_ISF_ETSF)(f90_pointer_double *psiscf);
 
-f90_pointer_double* read_wave_to_isf_etsf(const char *filename, int iorbp,
-                                          double h[3], int n[3], int *nspinor)
+f90_pointer_double* bigdft_read_wave_to_isf_etsf(const char *filename, int iorbp,
+                                                 double h[3], int n[3], int *nspinor)
 {
   int ln;
   f90_pointer_double *psiscf;
@@ -32,7 +32,7 @@ f90_pointer_double* read_wave_to_isf_etsf(const char *filename, int iorbp,
   return psiscf;
 }
 
-void free_wave_to_isf_etsf(f90_pointer_double *psiscf)
+void bigdft_free_wave_to_isf_etsf(f90_pointer_double *psiscf)
 {
   FC_FUNC_(free_wave_to_isf_etsf, FREE_WAVE_TO_ISF_ETSF)(psiscf);
   free(psiscf);
