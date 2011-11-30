@@ -14,8 +14,18 @@ EXTRA_CLEAN = wavefunction.etsf
 
 PPFILES = psppar.O
 
-CLEANFILES = write.out read.out *.prc fldiff.*.report geopt.mon default.* input.dft \
-	wf_etsf.cube wf_plain.cube $(EXTRA_CLEAN) $(PPFILES)
+CLEANFILES = write.out write_plain.out read.out *.prc fldiff.*.report geopt.mon default.* input.dft \
+	wf_etsf.cube wf_plain.cube exportwf.etsf.log exportwf.plain.log $(EXTRA_CLEAN) $(PPFILES)
+
+check_PROGRAMS = check_lib check_lib_c
+
+check_lib_SOURCES = check_lib.f90
+check_lib_FCFLAGS = -I$(top_builddir)/src/modules
+check_lib_LDADD = @LIBS_DEPENDENCIES@
+
+check_lib_c_SOURCES = check_lib_c.c
+check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules
+check_lib_c_LDADD = @LIBS_DEPENDENCIES@ @FCLIBS@
 
 clean-local: 
 	rm -rf data
@@ -82,6 +92,9 @@ read.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft
 	@rm -f input.dft
 	$(MAKE) clean.in
 
+check_lib.out: check_lib
+	./check_lib > $@
+
 fldiff.write.report: write.out write.out.ref
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft write.out \
 		$(srcdir)/write.out.ref | tee $@
@@ -94,4 +107,8 @@ fldiff.exportwf.report: wf_etsf.cube wf_plain.cube
 	python $(top_srcdir)/tests/fldiff.py wf_etsf.cube \
 		wf_plain.cube | tee $@
 
-check : fldiff.write.report fldiff.read.report fldiff.exportwf.report
+fldiff.check_lib.report: check_lib.out.ref check_lib.out
+	python $(top_srcdir)/tests/fldiff.py check_lib.out \
+		$(srcdir)/check_lib.out.ref | tee $@
+
+check: fldiff.write.report fldiff.read.report fldiff.exportwf.report fldiff.check_lib.report

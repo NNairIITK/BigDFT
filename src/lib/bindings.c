@@ -1,0 +1,33 @@
+#include "bigdft.h"
+
+#include <config.h>
+
+#include <string.h>
+#include <stdlib.h>
+
+void FC_FUNC_(read_wave_to_isf_etsf, READ_WAVE_TO_ISF_ETSF)
+     (const char* filename, int *ln, int *iorbp, double *hx, double *hy, double *hz,
+      int *n1, int *n2, int *n3, int *nspinor, f90_pointer_double *psiscf);
+
+     void FC_FUNC_(free_wave_to_isf_etsf, FREE_WAVE_TO_ISF_ETSF)(f90_pointer_double *psiscf);
+
+f90_pointer_double* read_wave_to_isf_etsf(const char *filename, int iorbp,
+                                          double h[3], int n[3], int *nspinor)
+{
+  int ln;
+  f90_pointer_double *psiscf;
+
+  psiscf = malloc(sizeof(f90_pointer_double));
+  memset(psiscf, 0, sizeof(f90_pointer_double));
+  ln = strlen(filename);
+  FC_FUNC_(read_wave_to_isf_etsf, READ_WAVE_TO_ISF_ETSF)
+    (filename, &ln, &iorbp, h, h + 1, h + 2, n, n + 1, n + 2, nspinor, psiscf);
+
+  return psiscf;
+}
+
+void free_wave_to_isf_etsf(f90_pointer_double *psiscf)
+{
+  FC_FUNC_(free_wave_to_isf_etsf, FREE_WAVE_TO_ISF_ETSF)(psiscf);
+  free(psiscf);
+}

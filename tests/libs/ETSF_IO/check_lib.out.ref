@@ -1,0 +1,8 @@
+ --- Test read_wave_to_isf_etsf() from data/wavefunction.etsf ---
+ hgrid values for iscf representation:      0.177162  0.177162  0.177162
+ number of points in iscf representation:         48        48        48
+ norm of orbital 23:                        0.99999996
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 14 allocations and 14 deallocations, remaining memory(B): 0
+ memory occupation peak: 2 MB
+ for the array  w2 in the routine initialize_work_arrays_sumrho

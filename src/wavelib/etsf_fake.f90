@@ -172,3 +172,24 @@ subroutine write_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
 
   stop 'No ETSF support at compilation!'
 end subroutine write_psi_compress_etsf
+
+subroutine read_wave_to_isf_etsf(filename, iorbp, hx, hy, hz, n1, n2, n3, nspinor, psiscf)
+  use module_base
+  use module_types
+  implicit none
+  character(len = *), intent(in) :: filename
+  integer, intent(in) :: iorbp
+  integer, intent(out) :: n1, n2, n3, nspinor
+  real(gp), intent(out) :: hx, hy, hz
+  real(wp), dimension(:,:,:,:), pointer :: psiscf
+
+  stop 'No ETSF support at compilation!'
+end subroutine read_wave_to_isf_etsf
+
+subroutine free_wave_to_isf_etsf(psiscf)
+  use module_base
+  implicit none
+  real(wp), dimension(:,:,:,:), pointer :: psiscf
+
+  stop 'No ETSF support at compilation!'
+end subroutine free_wave_to_isf_etsf

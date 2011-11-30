@@ -1588,6 +1588,23 @@ module module_interfaces
          integer,optional :: iiorb
       END SUBROUTINE filename_of_iorb
 
+      subroutine read_wave_to_isf_etsf(filename, ln, iorbp, hx, hy, hz, n1, n2, n3, nspinor, psiscf)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: ln
+        character(len = ln), intent(in) :: filename
+        integer, intent(in) :: iorbp
+        integer, intent(out) :: n1, n2, n3, nspinor
+        real(gp), intent(out) :: hx, hy, hz
+        real(wp), dimension(:,:,:,:), pointer :: psiscf
+      end subroutine read_wave_to_isf_etsf
+
+      subroutine free_wave_to_isf_etsf(psiscf)
+        use module_base
+        implicit none
+        real(wp), dimension(:,:,:,:), pointer :: psiscf
+      end subroutine free_wave_to_isf_etsf
 
       !subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
       !

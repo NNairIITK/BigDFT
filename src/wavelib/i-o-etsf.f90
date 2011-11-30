@@ -119,6 +119,137 @@ subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
   end do
 end subroutine read_psi_full_etsf
 
+subroutine etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, &
+     & hx_old, hy_old, hz_old, nvctr_old, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
+  use module_base
+  use module_types
+  use etsf_io_low_level
+  use etsf_io
+
+  implicit none
+
+  integer, intent(in) :: ncid
+  type(orbitals_data), intent(out) :: orbsd
+  integer, intent(out) :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
+  real(gp), intent(out) :: hx_old, hy_old, hz_old
+  integer, pointer :: nvctr_old(:)
+  integer, intent(in), optional :: nat
+  real(gp), dimension(:,:), intent(out), optional :: rxyz_old
+
+  character(len = *), parameter :: subname = "etsf_read_descr"
+  type(etsf_dims) :: dims
+  logical :: lstat
+  type(etsf_io_low_error) :: error
+  real(dp) :: rprimd(3,3)
+  integer :: i, iat, i_stat
+
+  call etsf_io_dims_get(ncid, dims, lstat, error)
+  if (.not. lstat) call etsf_error(error)
+  ! The number of grid steps.
+  n1_old = dims%number_of_grid_points_vector1
+  n2_old = dims%number_of_grid_points_vector2
+  n3_old = dims%number_of_grid_points_vector3
+  ! The hgrid parameters.
+  call etsf_io_low_read_var(ncid, "primitive_vectors", &
+       & rprimd, lstat, error_data = error)
+  if (.not. lstat) call etsf_error(error)
+  hx_old = rprimd(1,1) / n1_old
+  hy_old = rprimd(2,2) / n2_old
+  hz_old = rprimd(3,3) / n3_old
+  ! The number of coarse and fine grid points.
+  allocate(nvctr_old(dims%max_number_of_basis_grid_points+ndebug),stat=i_stat)
+  call memocc(i_stat,nvctr_old,'nvctr_old',subname)
+  call etsf_io_low_read_var(ncid, "number_of_coefficients_per_grid_point", &
+       & nvctr_old, lstat, error_data = error)
+  if (.not. lstat) call etsf_error(error)
+  nvctr_c_old = dims%max_number_of_basis_grid_points
+  nvctr_f_old = 0
+  do i = 1, dims%max_number_of_basis_grid_points, 1
+     if (nvctr_old(i) == 8) nvctr_f_old = nvctr_f_old + 1
+  end do
+  ! We read the eigenvalues & occupations.
+  allocate(orbsd%eval(dims%number_of_spins * dims%max_number_of_states * &
+       & dims%number_of_kpoints),stat=i_stat)
+  call memocc(i_stat,orbsd%eval,'orbsd%eval',subname)
+!!$    allocate(orbsd%occup(dims%number_of_spins * dims%max_number_of_states * &
+!!$         & dims%number_of_kpoints),stat=i_stat)
+!!$    call memocc(i_stat,orbsd%occup,'orbsd%occup',subname)
+  call etsf_io_low_read_var(ncid, "eigenvalues", &
+       & orbsd%eval, lstat, error_data = error)
+  if (.not. lstat) call etsf_error(error)
+!!$    call etsf_io_low_read_var(ncid, "occupations", &
+!!$         & orbsd%occup, lstat, error_data = error)
+!!$    if (.not. lstat) call etsf_error(error)
+  ! The orbitals description as on disk.
+  orbsd%nspin = dims%number_of_spins
+  orbsd%norbu = 0
+  orbsd%norbd = 0
+  do i = 1, dims%max_number_of_states, 1
+     if (orbsd%eval(i) /= UNINITIALIZED(1.d0)) orbsd%norbu = orbsd%norbu + 1
+     if (dims%number_of_spins > 1) then
+        if (orbsd%eval(i + dims%max_number_of_states * dims%number_of_kpoints) /= &
+             & UNINITIALIZED(1.d0)) orbsd%norbd = orbsd%norbd + 1
+     end if
+  end do
+  orbsd%norb = orbsd%norbu + orbsd%norbd
+  orbsd%nspinor = dims%number_of_spinor_components
+  orbsd%nkpts = dims%number_of_kpoints
+  ! Put back the evals as sorted in BigDFT.
+  call sortEvals(orbsd)
+
+  ! Additional information read from the file.
+  if (present(nat) .And. present(rxyz_old)) then
+     ! Sanity checks
+     if (dims%number_of_atoms /= nat) call general_error("Mismatch in number of atoms")
+     if (size(rxyz_old, 2) /= nat) call general_error("Mismatch in coordinate array size")
+     ! The old atomic coordinates.
+     call etsf_io_low_read_var(ncid, "reduced_atom_positions", &
+          & rxyz_old, lstat, error_data = error)
+     if (.not. lstat) call etsf_error(error)
+     do iat = 1, nat, 1
+        rxyz_old(1, iat) = rxyz_old(1, iat) * rprimd(1, 1)
+        rxyz_old(2, iat) = rxyz_old(2, iat) * rprimd(2, 2)
+        rxyz_old(3, iat) = rxyz_old(3, iat) * rprimd(3, 3)
+     end do
+  end if
+
+contains
+
+  subroutine general_error(error)
+    character(len = *), intent(in) :: error
+    
+    integer :: ierr
+
+    write(0,"(A)") error
+    call MPI_ABORT(MPI_COMM_WORLD, ierr)
+  END SUBROUTINE general_error
+
+  subroutine sortEvals(orbsd)
+    type(orbitals_data), intent(inout) :: orbsd
+
+    integer :: i, ik, ikd, isd, i_stat, i_all
+    real(wp), dimension(:), allocatable :: eval
+
+    allocate(eval(size(orbsd%eval)),stat=i_stat)
+    call memocc(i_stat,eval,'eval',"sortEvals")
+    ! We transfer the eigenvalues & occupations.
+    isd = max(orbsd%norbu, orbsd%norbd) * orbsd%nkpts
+    do i = 1, orbsd%nkpts, 1
+       ik = (i - 1) * orbsd%norb
+       ikd = (i - 1) * max(orbsd%norbu, orbsd%norbd)
+       eval(ik + 1:ik + orbsd%norbu) = orbsd%eval(ikd + 1:ikd + orbsd%norbu)
+       if (orbsd%nspin > 1) then
+          eval(ik + orbsd%norbu + 1:ik + orbsd%norb) = &
+               & orbsd%eval(isd + ikd + 1:isd + ikd + orbsd%norbd)
+       end if
+    end do
+    orbsd%eval = eval
+    i_all=-product(shape(eval))*kind(eval)
+    deallocate(eval,stat=i_stat)
+    call memocc(i_stat,i_all,'eval',"sortEvals")
+  END SUBROUTINE sortEvals
+END SUBROUTINE etsf_read_descr
+
 subroutine read_waves_etsf_internal(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz, & 
      wfd,psi,norb,nspinor,iorbparr,isorb,eval)
   use module_base
@@ -141,8 +272,7 @@ subroutine read_waves_etsf_internal(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old
   ! Local variables
   character(len = *), parameter :: subname = "read_waves_etsf_internal"
   integer, pointer :: nvctr_old(:)
-  integer :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old, ncid
-  integer :: i, iorb
+  integer :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old, ncid, iorb
   integer :: nb1, nb2, nb3, i_all, i_stat, ispinor
   real(gp) :: hx_old, hy_old, hz_old
   real(gp) :: displ
@@ -153,7 +283,21 @@ subroutine read_waves_etsf_internal(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old
   type(orbitals_data) :: orbsd
   type(etsf_io_low_error) :: error
   logical :: lstat
-  type(wavefunctions_descriptors) :: wfd_
+  interface
+     subroutine etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, &
+          & hx_old, hy_old, hz_old, nvctr_old, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: ncid
+       type(orbitals_data), intent(out) :: orbsd
+       integer, intent(out) :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
+       real(gp), intent(out) :: hx_old, hy_old, hz_old
+       integer, pointer :: nvctr_old(:)
+       integer, intent(in), optional :: nat
+       real(gp), dimension(:,:), intent(out), optional :: rxyz_old
+     end subroutine etsf_read_descr
+  end interface
 
   ! We open the ETSF file
   call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
@@ -161,15 +305,8 @@ subroutine read_waves_etsf_internal(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old
 
   ! We read the basis set description and the atomic definition.
   call etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, hx_old, hy_old, hz_old, &
-       & rxyz_old, at%nat, nvctr_old, nvctr_c_old, nvctr_f_old)
+       & nvctr_old, nvctr_c_old, nvctr_f_old, rxyz_old, at%nat)
   orbsd%isorb = isorb
-
-!!$  allocate(gcoord(3,nvctr_c_old))
-!!$  call etsf_io_low_read_var(ncid, "coordinates_of_basis_grid_points", &
-!!$       & gcoord, lstat, error_data = error)
-!!$  if (.not. lstat) call etsf_error(error)
-!!$  call etsf_gcoordToWfd(n1_old, n2_old, n3_old, nvctr_c_old, nvctr_old, gcoord, wfd_)
-!!$  deallocate(gcoord)
 
   !conditions for periodicity in the three directions
   call calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
@@ -263,121 +400,6 @@ subroutine read_waves_etsf_internal(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old
 
 contains
 
-  subroutine general_error(error)
-    character(len = *), intent(in) :: error
-    
-    integer :: ierr
-
-    write(0,"(A)") error
-    call MPI_ABORT(MPI_COMM_WORLD, ierr)
-  END SUBROUTINE general_error
-
-  subroutine etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, &
-       & hx_old, hy_old, hz_old, rxyz_old, nat, nvctr_old, nvctr_c_old, nvctr_f_old)
-    integer, intent(in) :: nat, ncid
-    type(orbitals_data), intent(out) :: orbsd
-    integer, intent(out) :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
-    real(gp), intent(out) :: hx_old, hy_old, hz_old
-    real(gp), dimension(3,nat), intent(out) :: rxyz_old
-    integer, pointer :: nvctr_old(:)
-
-    type(etsf_dims) :: dims
-    logical :: lstat
-    type(etsf_io_low_error) :: error
-    real(dp) :: rprimd(3,3)
-    integer :: iat, i_stat
-
-    call etsf_io_dims_get(ncid, dims, lstat, error)
-    if (.not. lstat) call etsf_error(error)
-    ! Sanity checks
-    if (dims%number_of_atoms /= nat) call general_error("Mismatch in number of atoms")
-    ! The number of grid steps.
-    n1_old = dims%number_of_grid_points_vector1
-    n2_old = dims%number_of_grid_points_vector2
-    n3_old = dims%number_of_grid_points_vector3
-    ! The hgrid parameters.
-    call etsf_io_low_read_var(ncid, "primitive_vectors", &
-         & rprimd, lstat, error_data = error)
-    if (.not. lstat) call etsf_error(error)
-    hx_old = rprimd(1,1) / n1_old
-    hy_old = rprimd(2,2) / n2_old
-    hz_old = rprimd(3,3) / n3_old
-    ! The old atomic coordinates.
-    call etsf_io_low_read_var(ncid, "reduced_atom_positions", &
-         & rxyz_old, lstat, error_data = error)
-    if (.not. lstat) call etsf_error(error)
-    do iat = 1, nat, 1
-       rxyz_old(1, iat) = rxyz_old(1, iat) * rprimd(1, 1)
-       rxyz_old(2, iat) = rxyz_old(2, iat) * rprimd(2, 2)
-       rxyz_old(3, iat) = rxyz_old(3, iat) * rprimd(3, 3)
-    end do
-    ! The number of coarse and fine grid points.
-    allocate(nvctr_old(dims%max_number_of_basis_grid_points+ndebug),stat=i_stat)
-    call memocc(i_stat,nvctr_old,'nvctr_old',subname)
-    call etsf_io_low_read_var(ncid, "number_of_coefficients_per_grid_point", &
-         & nvctr_old, lstat, error_data = error)
-    if (.not. lstat) call etsf_error(error)
-    nvctr_c_old = dims%max_number_of_basis_grid_points
-    nvctr_f_old = 0
-    do i = 1, dims%max_number_of_basis_grid_points, 1
-       if (nvctr_old(i) > 1) nvctr_f_old = nvctr_f_old + 1
-    end do
-    ! We read the eigenvalues & occupations.
-    allocate(orbsd%eval(dims%number_of_spins * dims%max_number_of_states * &
-         & dims%number_of_kpoints),stat=i_stat)
-    call memocc(i_stat,orbsd%eval,'orbsd%eval',subname)
-!!$    allocate(orbsd%occup(dims%number_of_spins * dims%max_number_of_states * &
-!!$         & dims%number_of_kpoints),stat=i_stat)
-!!$    call memocc(i_stat,orbsd%occup,'orbsd%occup',subname)
-    call etsf_io_low_read_var(ncid, "eigenvalues", &
-         & orbsd%eval, lstat, error_data = error)
-    if (.not. lstat) call etsf_error(error)
-!!$    call etsf_io_low_read_var(ncid, "occupations", &
-!!$         & orbsd%occup, lstat, error_data = error)
-!!$    if (.not. lstat) call etsf_error(error)
-    ! The orbitals description as on disk.
-    orbsd%nspin = dims%number_of_spins
-    orbsd%norbu = 0
-    orbsd%norbd = 0
-    do i = 1, dims%max_number_of_states, 1
-       if (orbsd%eval(i) /= UNINITIALIZED(1.d0)) orbsd%norbu = orbsd%norbu + 1
-       if (dims%number_of_spins > 1) then
-          if (orbsd%eval(i + dims%max_number_of_states * dims%number_of_kpoints) /= &
-               & UNINITIALIZED(1.d0)) orbsd%norbd = orbsd%norbd + 1
-       end if
-    end do
-    orbsd%norb = orbsd%norbu + orbsd%norbd
-    orbsd%nspinor = dims%number_of_spinor_components
-    orbsd%nkpts = dims%number_of_kpoints
-    ! Put back the evals as sorted in BigDFT.
-    call sortEvals(orbsd)
-  END SUBROUTINE etsf_read_descr
-
-  subroutine sortEvals(orbsd)
-    type(orbitals_data), intent(inout) :: orbsd
-
-    integer :: i, ik, ikd, isd, i_stat, i_all
-    real(wp), dimension(:), allocatable :: eval
-
-    allocate(eval(size(orbsd%eval)),stat=i_stat)
-    call memocc(i_stat,eval,'eval',"sortEvals")
-    ! We transfer the eigenvalues & occupations.
-    isd = max(orbsd%norbu, orbsd%norbd) * orbsd%nkpts
-    do i = 1, orbsd%nkpts, 1
-       ik = (i - 1) * orbsd%norb
-       ikd = (i - 1) * max(orbsd%norbu, orbsd%norbd)
-       eval(ik + 1:ik + orbsd%norbu) = orbsd%eval(ikd + 1:ikd + orbsd%norbu)
-       if (orbsd%nspin > 1) then
-          eval(ik + orbsd%norbu + 1:ik + orbsd%norb) = &
-               & orbsd%eval(isd + ikd + 1:isd + ikd + orbsd%norbd)
-       end if
-    end do
-    orbsd%eval = eval
-    i_all=-product(shape(eval))*kind(eval)
-    deallocate(eval,stat=i_stat)
-    call memocc(i_stat,i_all,'eval',"sortEvals")
-  end subroutine sortEvals
-
   subroutine calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
     type(atoms_data), intent(in) :: at
     real(gp), intent(in) :: rxyz_old(3,at%nat), rxyz(3, at%nat)
@@ -403,6 +425,126 @@ contains
   END SUBROUTINE calc_displ
 END SUBROUTINE read_waves_etsf_internal
 
+subroutine read_wave_to_isf_etsf(filename, ln, iorbp, hx, hy, hz, n1, n2, n3, nspinor, psiscf)
+  use module_base
+  use module_types
+  use etsf_io_low_level
+  use etsf_io
+
+  implicit none
+
+  integer, intent(in) :: ln
+  character(len = ln), intent(in) :: filename
+  integer, intent(in) :: iorbp
+  integer, intent(out) :: n1, n2, n3, nspinor
+  real(gp), intent(out) :: hx, hy, hz
+  real(wp), dimension(:,:,:,:), pointer :: psiscf
+
+  integer :: ncid, i_all, i_stat, ispinor, nvctr_c, nvctr_f
+  integer, dimension(:,:), allocatable :: gcoord
+  integer, dimension(:), pointer :: nvctr
+  real(wp), dimension(:), allocatable :: psi
+  type(orbitals_data) :: orbsd
+  type(locreg_descriptors) :: lr
+  type(etsf_io_low_error) :: error
+  type(workarr_sumrho) :: w
+  logical :: lstat
+  interface
+     subroutine etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, &
+          & hx_old, hy_old, hz_old, nvctr_old, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: ncid
+       type(orbitals_data), intent(out) :: orbsd
+       integer, intent(out) :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
+       real(gp), intent(out) :: hx_old, hy_old, hz_old
+       integer, pointer :: nvctr_old(:)
+       integer, intent(in), optional :: nat
+       real(gp), dimension(:,:), intent(out), optional :: rxyz_old
+     end subroutine etsf_read_descr
+  end interface
+
+  ! We open the ETSF file
+  call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
+  if (.not. lstat) call etsf_error(error)
+
+  ! We read the basis set description and the atomic definition.
+  call etsf_read_descr(ncid, orbsd, n1, n2, n3, hx, hy, hz, &
+       & nvctr, nvctr_c, nvctr_f)
+  nspinor = orbsd%nspinor
+  orbsd%isorb = 0
+
+  ! Initail allocations.
+  allocate(gcoord(3,nvctr_c + ndebug),stat=i_stat)
+  call memocc(i_stat,gcoord,'gcoord',"read_wave_to_isf_etsf")
+
+  allocate(psi(nvctr_c + 7 * nvctr_f + ndebug),stat=i_stat)
+  call memocc(i_stat,psi,'psi',"read_wave_to_isf_etsf")
+  
+  call etsf_io_low_read_var(ncid, "coordinates_of_basis_grid_points", &
+       & gcoord, lstat, error_data = error)
+  if (.not. lstat) call etsf_error(error)
+  call etsf_gcoordToLocreg(n1, n2, n3, nvctr_c, nvctr, gcoord, lr)
+
+  i_all=-product(shape(gcoord))*kind(gcoord)
+  deallocate(gcoord,stat=i_stat)
+  call memocc(i_stat,i_all,'gcoord',"read_wave_to_isf_etsf")
+
+  allocate(psiscf(lr%d%n1i, lr%d%n2i, lr%d%n3i, orbsd%nspinor + ndebug),stat=i_stat)
+  call memocc(i_stat,psiscf,'psiscf',"read_wave_to_isf_etsf")
+
+  call initialize_work_arrays_sumrho(lr,w)
+
+  do ispinor = 1, orbsd%nspinor, 1
+     call read_psi_compress_etsf(ncid, orbsd%nspinor * (iorbp - 1) + ispinor, &
+          & orbsd, nvctr, lr%wfd, psi)
+     call daub_to_isf(lr, w, psi, psiscf(1,1,1,ispinor))
+  end do
+
+  ! We close the ETSF file.
+  call etsf_io_low_close(ncid, lstat, error)
+  if (.not. lstat) call etsf_error(error)
+
+  ! Final deallocations.
+  i_all=-product(shape(nvctr))*kind(nvctr)
+  deallocate(nvctr,stat=i_stat)
+  call memocc(i_stat,i_all,'nvctr',"read_wave_to_isf_etsf")
+
+  i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
+  deallocate(orbsd%eval,stat=i_stat)
+  call memocc(i_stat,i_all,'orbsd%eval',"read_wave_to_isf_etsf")
+
+  i_all=-product(shape(psi))*kind(psi)
+  deallocate(psi,stat=i_stat)
+  call memocc(i_stat,i_all,'psi',"read_wave_to_isf_etsf")
+
+  call deallocate_work_arrays_sumrho(w)
+  call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds, "read_wave_to_isf_etsf")
+  call deallocate_wfd(lr%wfd, "read_wave_to_isf_etsf")
+
+  ! We update the size values to match the allocation of psiscf.
+  n1 = lr%d%n1i
+  n2 = lr%d%n2i
+  n3 = lr%d%n3i
+  hx = hx * 0.5d0
+  hy = hy * 0.5d0
+  hz = hz * 0.5d0
+END SUBROUTINE read_wave_to_isf_etsf
+
+subroutine free_wave_to_isf_etsf(psiscf)
+  use module_base
+  implicit none
+  real(wp), dimension(:,:,:,:), pointer :: psiscf
+
+  integer :: i_all, i_stat
+
+  i_all=-product(shape(psiscf))*kind(psiscf)
+  deallocate(psiscf,stat=i_stat)
+  call memocc(i_stat,i_all,'psiscf',"free_wave_to_isf_etsf")
+END SUBROUTINE free_wave_to_isf_etsf
+
+
 !>   Read a ETSF (NETCDF) file containing wavefunctions.
 !!    coordinates_of_grid_points is used to store the geometric
 !!   position of coefficients of wavelets i, as integer in
@@ -413,8 +555,6 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
      wfd,psi)
   use module_base
   use module_types
-  use etsf_io_low_level
-  use etsf_io
 
   implicit none
 
@@ -440,7 +580,6 @@ subroutine read_one_wave_etsf(iproc,filename,iorbp,isorb,nspinor,n1,n2,n3,&
      & hx,hy,hz,at,rxyz_old,rxyz,wfd,psi,eval)
   use module_base
   use module_types
-  use etsf_io_low_level
   implicit none
   integer, intent(in) :: iorbp,iproc,n1,n2,n3,nspinor,isorb
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -478,19 +617,6 @@ subroutine write_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
   integer :: start(6), count(6)
   type(etsf_io_low_error) :: error
   logical :: lstat
-  interface
-     subroutine etsf_orbsToStartCount(start, count, iorbp, orbs, orblist)
-       use module_base
-       use module_types
-
-       implicit none
-
-       integer, intent(out) :: start(6), count(6)
-       integer, intent(in) :: iorbp
-       type(orbitals_data), intent(in) :: orbs
-       integer,dimension(orbs%norb), intent(in), optional :: orblist
-     end subroutine etsf_orbsToStartCount
-  end interface
   
   call etsf_orbsToStartCount(start, count, iorbp, orbs)
 
@@ -564,10 +690,8 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   integer, allocatable :: nvctr(:)
   integer, allocatable :: gcoord(:,:)
   real(gp) :: tel
-  logical, parameter :: sequential = .false.
+  logical :: sequential
   character(len = *), parameter :: subname = "write_waves_etsf"
-
-  integer :: iproc_writing
 
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
@@ -578,6 +702,9 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   allocate(gcoord(3, wfd%nvctr_c),stat=i_stat)
   call memocc(i_stat,gcoord,'gcoord',subname)
   call build_grid(n1, n2, n3, nvctr, gcoord, wfd)
+
+!!$  sequential = .not. etsf_io_low_check_parallel_io()
+  sequential = .true.
 
   ! Only the master proc create the file.
   if (iproc == 0) then
@@ -600,19 +727,19 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   deallocate(gcoord)
   call memocc(i_stat,i_all,'gcoord',subname)
 
-  iproc_writing = 0
-
   ! Now that the file is created and writable, we call the writing routines.
   if (sequential) then
      do i = 0, iproc - 1, 1
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
      end do
-  else
-     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+     call etsf_io_low_open_modify(ncid, filename, lstat, error_data = error)
+     if (.not. lstat) call etsf_error(error)
+!!$  else
+!!$     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+!!$     call etsf_io_low_open_modify(ncid, filename, lstat, error_data = error, &
+!!$          & mpi_comm = MPI_COMM_WORLD, mpi_info = MPI_INFO_NULL)
+!!$     if (.not. lstat) call etsf_error(error)
   end if
-
-  call etsf_io_low_open_modify(ncid, filename, lstat, error_data = error)
-  if (.not. lstat) call etsf_error(error)
   call etsf_io_low_set_write_mode(ncid, lstat, error)
   if (.not. lstat) call etsf_error(error)
 
@@ -621,16 +748,6 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   do iorb = 1, (orbs%norb * orbs%nkpts / nproc + 1 ) * orbs%nspinor, 1
      if (iorb <= (orbs%norbp * orbs%nspinor)) then
         call write_psi_compress_etsf(ncid, iorb, orbs, nvctr, wfd, psi(1, iorb))
-     end if
-     ! We synchronise the output to disk.
-     if (.not. sequential) then
-        do i = 0, iproc - 1, 1
-           call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-        end do
-        ierr = nf90_sync(ncid)
-        do i = iproc, nproc - 1, 1
-           call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-        end do
      end if
   end do
   
@@ -654,7 +771,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
      call cpu_time(tr1)
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     write(*,'(a,i4,2(1x,1pe10.3))') '- WRITING WAVES TIME',iproc,tr1-tr0,tel
+     write(*,'(a,l1,a,2(1x,1pe10.3))') '- WRITING WAVES TIME (',sequential,')',tr1-tr0,tel
   end if
 
 contains
@@ -913,7 +1030,7 @@ subroutine etsf_error(error)
   call MPI_ABORT(MPI_COMM_WORLD, ierr)
 end subroutine etsf_error
 
-subroutine etsf_gcoordToWfd(n1, n2, n3, nvctr_c, nvctr, gcoord, wfd)
+subroutine etsf_gcoordToLocreg(n1, n2, n3, nvctr_c, nvctr, gcoord, lr)
   use module_defs
   use module_types
 
@@ -922,16 +1039,38 @@ subroutine etsf_gcoordToWfd(n1, n2, n3, nvctr_c, nvctr, gcoord, wfd)
   integer, intent(in) :: n1, n2, n3, nvctr_c
   integer, dimension(nvctr_c), intent(in) :: nvctr
   integer, dimension(3, nvctr_c), intent(in) :: gcoord
-  type(wavefunctions_descriptors), intent(out) :: wfd
+  type(locreg_descriptors), intent(out) :: lr
 
-  character(len = *), parameter :: subname = "etsf_gcoordToWfd"
+  character(len = *), parameter :: subname = "etsf_gcoordToLocreg"
   integer :: i, i_stat, i_all
   logical, dimension(:,:,:), allocatable :: logrid_c, logrid_f
+
+  lr%geocode = "P"
+  lr%hybrid_on = .false.
+
+  lr%ns1 = 0
+  lr%ns2 = 0
+  lr%ns3 = 0
+
+  lr%d%n1 = n1
+  lr%d%n2 = n2
+  lr%d%n3 = n3
+
+  lr%d%n1i = 2 * n1 + 2
+  lr%d%n2i = 2 * n2 + 2
+  lr%d%n3i = 2 * n3 + 2
 
   allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_c,'logrid_c',subname)
   allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_f,'logrid_f',subname)
+
+  lr%d%nfl1 = n1
+  lr%d%nfl2 = n2
+  lr%d%nfl3 = n3
+  lr%d%nfu1 = 0
+  lr%d%nfu2 = 0
+  lr%d%nfu3 = 0
 
   logrid_c(:,:,:) = .false.
   logrid_f(:,:,:) = .false.
@@ -939,18 +1078,30 @@ subroutine etsf_gcoordToWfd(n1, n2, n3, nvctr_c, nvctr, gcoord, wfd)
      logrid_c(gcoord(1, i), gcoord(2, i), gcoord(3, i)) = .true.
      if (nvctr(i) == 8) then
         logrid_f(gcoord(1, i), gcoord(2, i), gcoord(3, i)) = .true.
+        lr%d%nfl1 = min(lr%d%nfl1, gcoord(1, i))
+        lr%d%nfl2 = min(lr%d%nfl2, gcoord(2, i))
+        lr%d%nfl3 = min(lr%d%nfl3, gcoord(3, i))
+        lr%d%nfu1 = max(lr%d%nfu1, gcoord(1, i))
+        lr%d%nfu2 = max(lr%d%nfu2, gcoord(2, i))
+        lr%d%nfu3 = max(lr%d%nfu3, gcoord(3, i))
      end if
   end do
-  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,wfd%nseg_c,wfd%nvctr_c)
-  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,wfd%nseg_f,wfd%nvctr_f)
-  
-  call allocate_wfd(wfd, subname)
 
-  call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,wfd%nseg_c,wfd%keyg(1,1),wfd%keyv(1))
-  if (wfd%nseg_f > 0) then
-     call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f, &
-          & wfd%nseg_f,wfd%keyg(1,wfd%nseg_c+1), wfd%keyv(wfd%nseg_c+1))
+  !correct the values of the delimiter if there are no wavelets
+  if (lr%d%nfl1 == n1 .and. lr%d%nfu1 == 0) then
+     lr%d%nfl1 = n1 / 2
+     lr%d%nfu1 = n1 / 2
   end if
+  if (lr%d%nfl2 == n2 .and. lr%d%nfu2 == 0) then
+     lr%d%nfl2 = n2 / 2
+     lr%d%nfu2 = n2 / 2
+  end if
+  if (lr%d%nfl3 == n3 .and. lr%d%nfu3 == 0) then
+     lr%d%nfl3 = n3 / 2
+     lr%d%nfu3 = n3 / 2
+  end if
+
+  call wfd_from_grids(logrid_c, logrid_f, lr)
 
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
@@ -958,4 +1109,4 @@ subroutine etsf_gcoordToWfd(n1, n2, n3, nvctr_c, nvctr, gcoord, wfd)
   i_all=-product(shape(logrid_f))*kind(logrid_f)
   deallocate(logrid_f,stat=i_stat)
   call memocc(i_stat,i_all,'logrid_f',subname)
-end subroutine etsf_gcoordToWfd
+end subroutine etsf_gcoordToLocreg
