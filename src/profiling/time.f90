@@ -92,6 +92,7 @@ module timeData
       endif
       if (iproc == 0) then
          !for the totaltime take the max
+totaltime=0.d0
          do jproc=0,nproc-1
             totaltime=max(totaltime,timeall(ncat+1,jproc))
          end do
