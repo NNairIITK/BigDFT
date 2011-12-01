@@ -17,14 +17,24 @@ contains
     implicit none
 
     type(etsf_io_low_error), intent(in) :: error
-
     integer :: ierr
+
+    call etsf_warning(error)
+    call MPI_ABORT(MPI_COMM_WORLD, ierr)
+  END SUBROUTINE etsf_error
+
+  subroutine etsf_warning(error)
+    use module_defs
+    use etsf_io_low_level
+
+    implicit none
+
+    type(etsf_io_low_error), intent(in) :: error
     character(len=etsf_io_low_error_len)  :: errmess
 
     call etsf_io_low_error_to_str(errmess, error)
     write(0,"(A)") trim(errmess)
-    call MPI_ABORT(MPI_COMM_WORLD, ierr)
-  END SUBROUTINE etsf_error
+  END SUBROUTINE etsf_warning
 
   subroutine etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, hx_old, hy_old, hz_old, &
        & lstat, error, nvctr_old, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
@@ -276,7 +286,7 @@ END MODULE internal_etsf
 
 !>   Read a ETSF (NETCDF) file containing wavefunctions.
 !!    Only import the given iorbp (processor-related number), in a compress form.
-subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
+subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi, lstat, error)
   use module_base
   use module_types
   use etsf_io_low_level
@@ -289,12 +299,11 @@ subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
   type(orbitals_data), intent(in) :: orbs
   integer, dimension(wfd%nvctr_c), intent(in) :: nvctr
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
-!  integer, dimension(orbs%norb), intent(in) :: orblist
+  type(etsf_io_low_error), intent(out) :: error
+  logical, intent(out) :: lstat
   
   integer :: iFine, iCoeff, iGrid, diGrid
   integer :: start(6), count(6)
-  type(etsf_io_low_error) :: error
-  logical :: lstat
 
   ! We read the coefficients.
   call etsf_orbsToStartCount(start, count, iorbp, orbs)
@@ -315,7 +324,7 @@ subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
      count(2) = diGrid + 1
      call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
           & psi(iGrid:iGrid + diGrid), lstat, error_data = error, start = start, count = count)
-     if (.not. lstat) call etsf_error(error)
+     if (.not. lstat) return
      iCoeff  = iCoeff + diGrid + 1
 
      if (nvctr(iGrid + diGrid) == 8) then
@@ -324,7 +333,7 @@ subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
         count(2) = 7
         call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
              & psi(iFine:iFine+6), lstat, error_data = error, start = start, count = count)
-        if (.not. lstat) call etsf_error(error)
+        if (.not. lstat) return
         iCoeff = iCoeff + 7
         iFine  = iFine + 7
      end if
@@ -335,7 +344,7 @@ end subroutine read_psi_compress_etsf
 !>   Read a ETSF (NETCDF) file containing wavefunctions.
 !!    Only import the given iorbp (processor-related number), in a grid form.
 subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
-     & nvctr_c, nvctr, gcoord, psig)
+     & nvctr_c, nvctr, gcoord, psig, lstat, error)
   use module_base
   use module_types
   use etsf_io_low_level
@@ -347,14 +356,13 @@ subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(out) :: psig
   integer, dimension(3,nvctr_c), intent(in) :: gcoord
-!  integer, dimension(orbs%norb), intent(in) :: orblist
   integer, dimension(nvctr_c), intent(in) :: nvctr
+  type(etsf_io_low_error), intent(out) :: error
+  logical, intent(out) :: lstat
 
   integer :: i, iCoeff
   integer :: start(6), count(6), coord(3)
   real(wp) :: fv(7)
-  type(etsf_io_low_error) :: error
-  logical :: lstat
 
   ! We read the coefficients.
   call etsf_orbsToStartCount(start, count, iorbp, orbs)
@@ -368,14 +376,14 @@ subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
      call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
           & psig(coord(1), 1, coord(2), 1, coord(3), 1), &
           & lstat, error_data = error, start = start, count = count)
-     if (.not. lstat) call etsf_error(error)
+     if (.not. lstat) return
      iCoeff = iCoeff + 1
      if (nvctr(i) == 8) then
         start(2) = iCoeff
         count(2) = 7
         call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
              & fv, lstat, error_data = error, start = start, count = count)
-        if (.not. lstat) call etsf_error(error)
+        if (.not. lstat) return
         psig(coord(1), 2, coord(2), 1, coord(3), 1) = fv(1)
         psig(coord(1), 1, coord(2), 2, coord(3), 1) = fv(2)
         psig(coord(1), 2, coord(2), 2, coord(3), 1) = fv(3)
@@ -444,7 +452,8 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
      do iorb = 1, norb, 1
         do ispinor = 1, nspinor, 1
            call read_psi_compress_etsf(ncid, iorbparr(nspinor * (iorb - 1) + ispinor), &
-                & orbsd, nvctr_old, wfd, psi(1, ispinor, iorb))
+                & orbsd, nvctr_old, wfd, psi(1, ispinor, iorb), lstat, error)
+           if (.not. lstat) call etsf_error(error)
         end do
      end do
   else
@@ -485,8 +494,9 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
      do iorb = 1, norb, 1
         do ispinor = 1, nspinor, 1
            call read_psi_full_etsf(ncid, iorbparr(nspinor * (iorb - 1) + ispinor), &
-                & orbsd, n1_old, n2_old, n3_old, &
-                & nvctr_c_old, nvctr_old, gcoord, psigold)
+                & orbsd, n1_old, n2_old, n3_old, nvctr_c_old, nvctr_old, gcoord, psigold, &
+                & lstat, error)
+           if (.not. lstat) call etsf_error(error)
 
            call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
                 rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi(1,ispinor,iorb))
@@ -550,7 +560,56 @@ contains
   END SUBROUTINE calc_displ
 END SUBROUTINE read_waves_from_list_etsf
 
-subroutine read_wave_to_isf_etsf(filename, ln, iorbp, hx, hy, hz, n1, n2, n3, nspinor, psiscf)
+subroutine read_wave_descr_etsf(lstat, filename, ln, norbu, norbd, nkpt, nspinor)
+  use module_base
+  use module_types
+  use etsf_io_low_level
+  use internal_etsf
+
+  implicit none
+
+  integer, intent(in) :: ln
+  character(len = ln), intent(in) :: filename
+  integer, intent(out) :: norbu, norbd, nkpt, nspinor
+  logical, intent(out) :: lstat
+
+  integer :: ncid, n1, n2, n3, i_all, i_stat
+  real(gp) :: hx, hy, hz
+  type(orbitals_data) :: orbsd
+  type(etsf_io_low_error) :: error
+
+  ! We open the ETSF file
+  call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
+  if (.not. lstat) then
+     call etsf_warning(error)
+     return
+  end if
+
+  ! We read the basis set description and the atomic definition.
+  call etsf_read_descr(ncid, orbsd, n1, n2, n3, hx, hy, hz, lstat, error)
+  if (.not. lstat) then
+     call etsf_warning(error)
+     return
+  end if
+
+  ! We close the ETSF file.
+  call etsf_io_low_close(ncid, lstat, error)
+  if (.not. lstat) call etsf_warning(error)
+
+  if (associated(orbsd%eval)) then
+     i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
+     deallocate(orbsd%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'orbsd%eval',"read_wave_descr_etsf")
+  end if
+
+  norbu   = orbsd%norbu
+  norbd   = orbsd%norbd
+  nkpt    = orbsd%nkpts
+  nspinor = orbsd%nspinor
+END SUBROUTINE read_wave_descr_etsf
+
+subroutine read_wave_to_isf_etsf(lstat, filename, ln, iorbp, hx, hy, hz, &
+     & n1, n2, n3, nspinor, psiscf)
   use module_base
   use module_types
   use etsf_io_low_level
@@ -565,6 +624,7 @@ subroutine read_wave_to_isf_etsf(filename, ln, iorbp, hx, hy, hz, n1, n2, n3, ns
   integer, intent(out) :: n1, n2, n3, nspinor
   real(gp), intent(out) :: hx, hy, hz
   real(wp), dimension(:,:,:,:), pointer :: psiscf
+  logical, intent(out) :: lstat
 
   integer :: ncid, i_all, i_stat, ispinor, nvctr_c, nvctr_f
   integer, dimension(:,:), allocatable :: gcoord
@@ -574,16 +634,21 @@ subroutine read_wave_to_isf_etsf(filename, ln, iorbp, hx, hy, hz, n1, n2, n3, ns
   type(locreg_descriptors) :: lr
   type(etsf_io_low_error) :: error
   type(workarr_sumrho) :: w
-  logical :: lstat
 
   ! We open the ETSF file
   call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
-  if (.not. lstat) call etsf_error(error)
+  if (.not. lstat) then
+     call etsf_warning(error)
+     return
+  end if
 
   ! We read the basis set description and the atomic definition.
   call etsf_read_descr(ncid, orbsd, n1, n2, n3, hx, hy, hz, lstat, error, &
        & nvctr, nvctr_c, nvctr_f)
-  if (.not. lstat) call etsf_error(error)
+  if (.not. lstat) then
+     call etsf_warning(error)
+     return
+  end if
   nspinor = orbsd%nspinor
   orbsd%isorb = 0
 
@@ -596,7 +661,11 @@ subroutine read_wave_to_isf_etsf(filename, ln, iorbp, hx, hy, hz, n1, n2, n3, ns
   
   call etsf_io_low_read_var(ncid, "coordinates_of_basis_grid_points", &
        & gcoord, lstat, error_data = error)
-  if (.not. lstat) call etsf_error(error)
+  if (.not. lstat) then
+     call etsf_warning(error)
+     call deallocate_local()
+     return
+  end if
   call etsf_gcoordToLocreg(n1, n2, n3, nvctr_c, nvctr, gcoord, lr)
 
   i_all=-product(shape(gcoord))*kind(gcoord)
@@ -610,30 +679,14 @@ subroutine read_wave_to_isf_etsf(filename, ln, iorbp, hx, hy, hz, n1, n2, n3, ns
 
   do ispinor = 1, orbsd%nspinor, 1
      call read_psi_compress_etsf(ncid, orbsd%nspinor * (iorbp - 1) + ispinor, &
-          & orbsd, nvctr, lr%wfd, psi)
+          & orbsd, nvctr, lr%wfd, psi, lstat, error)
+     if (.not. lstat) then
+        call etsf_warning(error)
+        call deallocate_local()
+        return
+     end if
      call daub_to_isf(lr, w, psi, psiscf(1,1,1,ispinor))
   end do
-
-  ! We close the ETSF file.
-  call etsf_io_low_close(ncid, lstat, error)
-  if (.not. lstat) call etsf_error(error)
-
-  ! Final deallocations.
-  i_all=-product(shape(nvctr))*kind(nvctr)
-  deallocate(nvctr,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr',"read_wave_to_isf_etsf")
-
-  i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
-  deallocate(orbsd%eval,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsd%eval',"read_wave_to_isf_etsf")
-
-  i_all=-product(shape(psi))*kind(psi)
-  deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi',"read_wave_to_isf_etsf")
-
-  call deallocate_work_arrays_sumrho(w)
-  call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds, "read_wave_to_isf_etsf")
-  call deallocate_wfd(lr%wfd, "read_wave_to_isf_etsf")
 
   ! We update the size values to match the allocation of psiscf.
   n1 = lr%d%n1i
@@ -642,6 +695,51 @@ subroutine read_wave_to_isf_etsf(filename, ln, iorbp, hx, hy, hz, n1, n2, n3, ns
   hx = hx * 0.5d0
   hy = hy * 0.5d0
   hz = hz * 0.5d0
+
+  call deallocate_local()
+
+contains
+
+  subroutine deallocate_local()
+    character(len = *), parameter :: subname = "read_wave_to_isf_etsf"
+
+    ! We close the ETSF file.
+    call etsf_io_low_close(ncid, lstat, error)
+    if (.not. lstat) call etsf_warning(error)
+
+    ! Final deallocations.
+    if (associated(nvctr)) then
+       i_all=-product(shape(nvctr))*kind(nvctr)
+       deallocate(nvctr,stat=i_stat)
+       call memocc(i_stat,i_all,'nvctr',subname)
+    end if
+
+    if (associated(orbsd%eval)) then
+       i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
+       deallocate(orbsd%eval,stat=i_stat)
+       call memocc(i_stat,i_all,'orbsd%eval',subname)
+    end if
+
+    if (allocated(psi)) then
+       i_all=-product(shape(psi))*kind(psi)
+       deallocate(psi,stat=i_stat)
+       call memocc(i_stat,i_all,'psi',subname)
+    end if
+
+    if (allocated(gcoord)) then
+       i_all=-product(shape(gcoord))*kind(gcoord)
+       deallocate(gcoord,stat=i_stat)
+       call memocc(i_stat,i_all,'gcoord',subname)
+    end if
+
+    if (associated(w%x_c)) then
+       call deallocate_work_arrays_sumrho(w)
+    end if
+    if (associated(lr%bounds%kb%ibyz_f)) then
+       call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds, subname)
+    end if
+    call deallocate_wfd(lr%wfd, subname)
+  END SUBROUTINE deallocate_local
 END SUBROUTINE read_wave_to_isf_etsf
 
 subroutine free_wave_to_isf_etsf(psiscf)
