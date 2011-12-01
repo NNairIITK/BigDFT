@@ -248,6 +248,7 @@ module module_types
   type, public :: rho_descriptors
      character(len=1) :: geocode
      integer :: icomm !< method for communicating the density
+     integer :: nrhotot !< dimension of the partial density array before communication
      integer :: n_csegs,n_fsegs,dp_size,sp_size
      integer, dimension(:,:), pointer :: spkey,dpkey
      integer, dimension(:), pointer :: cseg_b,fseg_b
@@ -358,9 +359,11 @@ module module_types
 !> All the parameters which are important for describing the orbitals
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
+     integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb
+     integer :: npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap, eTS
-     integer, dimension(:), pointer :: iokpt,ikptproc,inwhichlocreg, inWhichLocregP, onWhichMPI, isorb_par, ispot
+     integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
+     integer, dimension(:), pointer :: inwhichlocreg, inWhichLocregP,onWhichMPI
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -491,7 +494,7 @@ module module_types
      type(orbitals_data), pointer :: orbs
      type(communications_arrays) :: comms
      type(nonlocal_psp_descriptors), pointer :: nlpspd
-     type(locreg_descriptors), pointer :: lr 
+     type(local_zone_descriptors), pointer :: Lzd
      type(gaussian_basis), pointer :: Gabsorber    
      type(SIC_data), pointer :: SIC
      integer, dimension(:,:), pointer :: ngatherarr 
@@ -958,12 +961,11 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%onWhichMPI))*kind(orbs%onWhichMPI)
     deallocate(orbs%onWhichMPI,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%onWhichMPI',subname)
-
-    !contradictory: needed for component distribution and allocated for
-    !               orbital distribution. Better to deal with scalars
-    !i_all=-product(shape(orbs%ikptsp))*kind(orbs%ikptsp)
-    !deallocate(orbs%ikptsp,stat=i_stat)
-    !call memocc(i_stat,i_all,'orbs%ikptsp',subname)
+    if (associated(orbs%ispot)) then
+       i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
+       deallocate(orbs%ispot,stat=i_stat)
+       call memocc(i_stat,i_all,'orbs%ispot',subname)
+    end if
 
 END SUBROUTINE deallocate_orbs
 

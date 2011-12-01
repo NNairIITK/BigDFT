@@ -338,73 +338,238 @@ END SUBROUTINE SynchronizeHamiltonianApplication
 !!                   if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
 !!                   the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
 !!                   the same holds for non-collinear calculations
-subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3rho_add,norb,norbp,ngatherarr,potential,pot)
+subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
+     ndimrhopot,i3rho_add,orbs,&
+     Lzd,iflag,ngatherarr,potential,Lpot,comgp)
    use module_base
+   use module_types
    use module_xc
    implicit none
-   integer, intent(in) :: iproc,nproc,nspin,ndimpot,norb,norbp,ndimgrid
+   integer, intent(in) :: iproc,nproc,nspin,ndimpot,ndimgrid,iflag
    integer, intent(in) :: ndimrhopot,i3rho_add
+   type(orbitals_data),intent(in) :: orbs
+   type(local_zone_descriptors),intent(in) :: Lzd
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(max(ndimrhopot,1)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
-   real(wp), dimension(:), pointer :: pot
+   real(wp), dimension(:), pointer :: Lpot
+   type(p2pCommsGatherPot),intent(inout), optional:: comgp
    !local variables
    character(len=*), parameter :: subname='full_local_potential'
-   logical :: odp !orbital dependent potential
-   integer :: npot,ispot,ispotential,ispin,ierr,i_stat
-
+   logical :: odp,newvalue !orbital dependent potential
+   integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,iilr,ilr,iorb,iorb2,nilr
+   integer:: istl, ist, size_Lpot, i3s, i3e
+   integer,dimension(:,:),allocatable:: ilrtable
+   real(wp), dimension(:), pointer :: pot
+   
    call timing(iproc,'Rho_commun    ','ON')
 
-   odp = (xc_exctXfac() /= 0.0_gp .or. (i3rho_add /= 0 .and. norbp > 0))
-   !determine the dimension of the potential array
-   if (odp) then
-      if (xc_exctXfac() /= 0.0_gp) then
-         npot=ndimgrid*nspin+&
-            &   max(max(ndimgrid*norbp,ngatherarr(0,1)*norb),1) !part which refers to exact exchange
-      else if (i3rho_add /= 0 .and. norbp > 0) then
-         npot=ndimgrid*nspin+&
-            &   ndimgrid*max(norbp,nspin) !part which refers to SIC correction
-      end if
-   else
-      npot=ndimgrid*nspin
-   end if
+   odp = (xc_exctXfac() /= 0.0_gp .or. (i3rho_add /= 0 .and. orbs%norbp > 0))
 
-   !build the potential on the whole simulation box
-   !in the linear scaling case this should be done for a given localisation region
-   !this routine should then be modified or integrated in HamiltonianApplication
-   if (nproc > 1) then
-      allocate(pot(npot+ndebug),stat=i_stat)
-      call memocc(i_stat,pot,'pot',subname)
-      ispot=1
-      ispotential=1
-      do ispin=1,nspin
-         call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
-            &   mpidtypw,pot(ispot),ngatherarr(0,1),&
-         ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
-         ispot=ispot+ndimgrid
-         ispotential=ispotential+max(1,ndimpot)
-      end do
-      !continue to copy the density after the potential if required
-      if (i3rho_add >0 .and. norbp > 0) then
-         ispot=ispot+i3rho_add-1
+   !############################################################################
+   ! Build the potential on the whole simulation box
+   ! NOTE: in the linear scaling case this should be done for a given localisation
+   !       region this routine should then be modified or integrated in HamiltonianApplication
+   ! WARNING : orbs%nspin and nspin are not the same !! Check if orbs%nspin should be replaced everywhere
+   !#############################################################################
+   if (iflag<2) then
+
+      !determine the dimension of the potential array
+      if (odp) then
+         if (xc_exctXfac() /= 0.0_gp) then
+            npot=ndimgrid*nspin+&
+                 &   max(max(ndimgrid*orbs%norbp,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
+         else if (i3rho_add /= 0 .and. orbs%norbp > 0) then
+            npot=ndimgrid*nspin+&
+                 &   ndimgrid*max(orbs%norbp,nspin) !part which refers to SIC correction
+         end if
+      else
+         npot=ndimgrid*nspin
+      end if
+
+      !build the potential on the whole simulation box
+      !in the linear scaling case this should be done for a given localisation region
+      !this routine should then be modified or integrated in HamiltonianApplication
+      if (nproc > 1) then
+         allocate(pot(npot+ndebug),stat=i_stat)
+         call memocc(i_stat,pot,'pot',subname)
+         ispot=1
+         ispotential=1
          do ispin=1,nspin
             call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
-               &   mpidtypw,pot(ispot),ngatherarr(0,1),&
-            ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+                 &   mpidtypw,pot(ispot),ngatherarr(0,1),&
+                 ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
             ispot=ispot+ndimgrid
             ispotential=ispotential+max(1,ndimpot)
          end do
-      end if
-   else
-      if (odp) then
-         allocate(pot(npot+ndebug),stat=i_stat)
-         call memocc(i_stat,pot,'pot',subname)
-         call dcopy(ndimgrid*nspin,potential,1,pot,1)
-         if (i3rho_add >0 .and. norbp > 0) then
-            ispot=ndimgrid*nspin+1
-            call dcopy(ndimgrid*nspin,potential(ispot+i3rho_add),1,pot(ispot),1)
+         !continue to copy the density after the potential if required
+         if (i3rho_add >0 .and. orbs%norbp > 0) then
+            ispot=ispot+i3rho_add-1
+            do ispin=1,nspin
+               call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
+                    &   mpidtypw,pot(ispot),ngatherarr(0,1),&
+                    ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+               ispot=ispot+ndimgrid
+               ispotential=ispotential+max(1,ndimpot)
+            end do
          end if
       else
-         pot => potential
+         if (odp) then
+            allocate(pot(npot+ndebug),stat=i_stat)
+            call memocc(i_stat,pot,'pot',subname)
+            call dcopy(ndimgrid*nspin,potential,1,pot,1)
+            if (i3rho_add >0 .and. orbs%norbp > 0) then
+               ispot=ndimgrid*nspin+1
+               call dcopy(ndimgrid*nspin,potential(ispot+i3rho_add),1,pot(ispot),1)
+            end if
+         else
+            pot => potential
+         end if
+      end if
+   else
+      call gatherPotential(iproc, nproc, comgp)
+   end if
+
+
+   !########################################################################
+   ! Determine the dimension of the potential array and orbs%ispot
+   !########################################################################
+!!$   if(associated(orbs%ispot)) then
+!!$      nullify(orbs%ispot)
+!!$      !     i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
+!!$      !     deallocate(orbs%ispot,stat=i_stat)
+!!$      !     call memocc(i_stat,i_all,'orbs%ispot',subname)
+!!$   end if
+!!$   allocate(orbs%ispot(orbs%norbp),stat=i_stat)
+!!$   call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
+
+   if(Lzd%nlr > 1) then
+      allocate(ilrtable(orbs%norbp,2),stat=i_stat)
+      call memocc(i_stat,ilrtable,'ilrtable',subname)
+      !call to_zero(orbs%norbp*2,ilrtable(1,1))
+      ilrtable=0
+      ii=0
+      do iorb=1,orbs%norbp
+         newvalue=.true.
+         !localization region to which the orbital belongs
+         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+         !spin state of the orbital
+         if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then
+            ispin = 1       
+         else
+            ispin=2
+         end if
+         !check if the orbitals already visited have the same conditions
+         loop_iorb2: do iorb2=1,orbs%norbp
+            if(ilrtable(iorb2,1) == ilr .and. ilrtable(iorb2,2)==ispin) then
+               newvalue=.false.
+               exit loop_iorb2
+            end if
+         end do loop_iorb2
+         if (newvalue) then
+            ii = ii + 1
+            ilrtable(ii,1)=ilr
+            ilrtable(ii,2)=ispin    !SOMETHING IS NOT WORKING IN THE CONCEPT HERE... ispin is not a property of the locregs, but of the orbitals
+         end if
+      end do
+      !number of inequivalent potential regions
+      nilr = ii
+   else 
+      allocate(ilrtable(1,2),stat=i_stat)
+      call memocc(i_stat,ilrtable,'ilrtable',subname)
+      nilr = 1
+      ilrtable=1
+   end if
+
+!!$   !calculate the dimension of the potential in the gathered form 
+!!$   !this part has been deplaced in check_linear_and_create_Lzd routine 
+!!$   lzd%ndimpotisf=0
+!!$   do iilr=1,nilr
+!!$      ilr=ilrtable(iilr,1)
+!!$      do iorb=1,orbs%norbp
+!!$         !put the starting point
+!!$         if (orbs%inWhichLocreg(iorb+orbs%isorb) == ilr) then
+!!$            !assignment of ispot array to the value of the starting address of inequivalent
+!!$            orbs%ispot(iorb)=lzd%ndimpotisf + 1
+!!$            if(orbs%spinsgn(orbs%isorb+iorb) <= 0.0_gp) then
+!!$               orbs%ispot(iorb)=lzd%ndimpotisf + &
+!!$                    1 + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+!!$            end if
+!!$         end if
+!!$      end do
+!!$      lzd%ndimpotisf = lzd%ndimpotisf + &
+!!$           lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*nspin
+!!$   end do
+!!$   !part which refers to exact exchange
+!!$   if (exctX) then
+!!$      lzd%ndimpotisf = lzd%ndimpotisf + &
+!!$           max(max(ndimgrid*orbs%norbp,ngatherarr(0,1)*orbs%norb),1) 
+!!$   end if
+
+   !#################################################################################################################################################
+   ! Depending on the scheme, cut out the local pieces of the potential
+   !#################################################################################################################################################
+   if(iflag==0) then
+      !       allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
+      !       call dcopy(lzd%ndimpotisf,pot,1,Lpot,1) 
+      Lpot=>pot
+   else if(iflag<2 .and. iflag>0) then
+      allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
+      call memocc(i_stat,Lpot,'Lpot',subname)
+      ! Cut potential
+      istl=1
+      do iorb=1,nilr
+         ilr = ilrtable(iorb,1)
+
+         ! Cut the potential into locreg pieces
+         call global_to_local(Lzd%Glr,Lzd%Llr(ilr),orbs%nspin,npot,lzd%ndimpotisf,pot,Lpot(istl))
+         istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin
+      end do
+   else
+      allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
+      call memocc(i_stat,Lpot,'Lpot',subname)
+      ist=1
+      do iorb=1,nilr
+         ilr = ilrtable(iorb,1)
+         !determine the dimension of the potential array (copied from full_local_potential)
+         if (xc_exctXfac() /= 0.0_gp) then
+            stop 'exctX not yet implemented!'
+         else
+            size_Lpot = Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
+         end if
+
+         ! Extract the part of the potential which is needed for the current localization region.
+         i3s=lzd%Llr(ilr)%nsi3-comgp%ise3(1,iproc)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
+         i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise3(1,iproc)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
+         if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
+            write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
+            stop
+         end if
+
+         call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
+              comgp%recvBuf, Lpot(ist), i3s, i3e)
+
+         ist = ist + size_lpot
+      end do
+   end if
+
+   i_all=-product(shape(ilrtable))*kind(ilrtable)
+   deallocate(ilrtable,stat=i_stat)
+   call memocc(i_stat,i_all,'ilrtable',subname)
+
+   ! Deallocate pot.
+   if (iflag<2 .and. iflag>0) then
+      if (nproc > 1) then
+         i_all=-product(shape(pot))*kind(pot)
+         deallocate(pot,stat=i_stat)
+         call memocc(i_stat,i_all,'pot',subname)
+      else
+         if (xc_exctXfac() /= 0.0_gp) then
+            i_all=-product(shape(pot))*kind(pot)
+            deallocate(pot,stat=i_stat)
+            call memocc(i_stat,i_all,'pot',subname)
+         else
+            nullify(pot)
+         end if
       end if
    end if
 
@@ -459,7 +624,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
    logical :: lcs
    integer :: ierr,ikpt,iorb,i_all,i_stat,k
    real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
-   real(wp), dimension(:,:,:), allocatable :: mom_vec
+   real(wp), dimension(:,:,:), pointer :: mom_vec
 
    !band structure energy calculated with occupation numbers
    energybs=ekin+epot+eproj !the potential energy contains also exctX
@@ -485,6 +650,8 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
 
       call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
           Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
+   else
+      nullify(mom_vec)
    end if
 
 
@@ -934,7 +1101,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
    logical :: dowrite !write the screen output
    integer :: i_all,i_stat,iorb,jorb,md,ikpt,isorb,ikptw
    real(gp) :: mpol,spinsignw
-   real(wp), dimension(:,:,:), allocatable :: mom_vec
+   real(wp), dimension(:,:,:), pointer :: mom_vec
 
 
    if (present(opt_keeppsit)) then
@@ -977,6 +1144,8 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
       call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,wfd%nvctr_c+7*wfd%nvctr_f,&
          &   orbs%nspinor,psi,mom_vec)
+   else
+     nullify(mom_vec)   
    end if
 
    ! Send all eigenvalues to all procs.
@@ -1004,7 +1173,7 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
   implicit none
   integer, intent(in) :: nproc
   type(orbitals_data), intent(in) :: orbs
-  real(gp), dimension(4,orbs%norb,min(nproc,2)), intent(in) :: mom_vec
+  real(gp), dimension(:,:,:), intent(in), pointer :: mom_vec
   !local variables
   logical :: dowrite
   integer :: ikptw,iorb,ikpt,jorb,isorb,md
@@ -1049,13 +1218,14 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
         spinsignw=UNINITIALIZED(1.0_gp)
         do iorb=1,orbs%norb
            dowrite =(iorb <= 5 .or. iorb >= orbs%norb-5) .or. verbose > 0
-           if (orbs%nspinor ==4) then
+           if (orbs%nspinor ==4 .and. associated(mom_vec)) then
               mx=(mom_vec(2,iorb,1)/mom_vec(1,iorb,1))
               my=(mom_vec(3,iorb,1)/mom_vec(1,iorb,1))
               mz=(mom_vec(4,iorb,1)/mom_vec(1,iorb,1))
               if (dowrite) & 
                    write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4,16x,(1x,3(0pf10.5)))') &
-                   &   'e(',iorb,')=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
+                   'e(',iorb,')=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
+                   (mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
            else
               mx=UNINITIALIZED(1.0_gp)
               my=UNINITIALIZED(1.0_gp)

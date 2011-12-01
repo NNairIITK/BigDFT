@@ -27,7 +27,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   integer:: ist, iadd, ii, jj, norbtot, istat, iall, iat, nspin_ig, norbat
 
 
-  ! Nullify the linear zone descriptors.
+  ! Nullify the local zone descriptors.
   call nullify_local_zone_descriptors(lin%lig%lzdig)
   call nullify_local_zone_descriptors(lin%lig%lzdGauss)
 
@@ -205,6 +205,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(gp) :: hxh, hyh, hzh, eks, epot_sum, ekin_sum, eexctX, eproj_sum, t1, t2, time, tt, ddot, dsum
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
+  real(dp), dimension(:,:), pointer :: rho_p
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   real(8),dimension(:),allocatable:: lchi, lchi2, dummyArray
@@ -259,7 +260,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       do 
           ! Count the number of atomic orbitals and increase the number if necessary until we have more
           ! (or equal) atomic orbitals than basis functions per atom.
-          jj=1*nint(at%aocc(1,iat))+3*nint(at%aocc(3,iat))+5*nint(at%aocc(7,iat))+7*nint(at%aocc(13,iat))
+          jj=1*nint(at%aocc(1,iat))+3*nint(at%aocc(3,iat))+&
+               5*nint(at%aocc(7,iat))+7*nint(at%aocc(13,iat))
           if(jj>=ii) then
               ! we have enough atomic orbitals
               exit
@@ -397,8 +399,14 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Create the potential. First calculate the charge density.
   if(iproc==0) write(*,'(1x,a)',advance='no') 'Calculating charge density...'
-  call sumrhoLinear(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsig, hxh, hyh, hzh, lchi2, rhopot,&
-       nscatterarr, input%nspin, GPU, at%symObj, irrzon, phnons, rhodsc)
+!!$  call sumrhoLinear(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsig, hxh, hyh, hzh, lchi2, rhopot,&
+!!$       nscatterarr, input%nspin, GPU, at%symObj, irrzon, phnons, rhodsc)
+
+  call sumrho(iproc,nproc,lin%lig%orbsig,lin%lig%lzdGauss,hxh,hyh,hzh,nscatterarr,&
+       GPU,at%symObj,irrzon,phnons,rhodsc,lchi2,rho_p)
+  call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,lin%lig%lzdGauss,&
+       rhodsc,nscatterarr,rho_p,rhopot)
+
   if(iproc==0) write(*,'(a)') 'done.'
 
   if(trim(lin%mixingmethod)=='dens') then
@@ -559,8 +567,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
     !!call memocc(istat, iall, 'displs', subname)
 
 
-
-
   allocate(lhchi(lin%lig%orbsig%npsidim,ndim_lhchi),stat=istat)
   call memocc(istat, lhchi, 'lhchi', subname)
   lhchi=0.d0
@@ -570,10 +576,25 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call mpi_barrier(mpi_comm_world, ierr)
   call cpu_time(t1)
   call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%locregShape, lin%lig%lzdig)
-  call full_local_potential2(iproc, nproc, lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2), &
-       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*lin%lig%lzdig%glr%d%n3i,&
-       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,1)*input%nspin, input%nspin, lin%lig%orbsig,&
-       lin%lig%lzdig, ngatherarr, rhopot, lpot, 2, lin%lig%comgp)
+
+!!$  call full_local_potential2(iproc, nproc, &
+!!$       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2), &
+!!$       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*lin%lig%lzdig%glr%d%n3i,&
+!!$       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,1)*input%nspin, &
+!!$       input%nspin, lin%lig%orbsig,&
+!!$       lin%lig%lzdig, ngatherarr, rhopot, lpot, 2, lin%lig%comgp)
+
+  !allocation is compulsory here, these part should be better handled
+!!$  allocate(lin%lig%orbsig%ispot(lin%lig%orbsig%norbp),stat=istat)
+!!$  call memocc(istat,lin%lig%orbsig%ispot,'lin%lig%orbsig%ispot',subname)
+
+  call local_potential_dimensions(lin%lig%lzdig,lin%lig%orbsig)
+
+  call full_local_potential(iproc,nproc,&
+       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2),&
+       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*lin%lig%lzdig%glr%d%n3i,input%nspin,&
+       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
+       lin%lig%orbsig,lin%lig%lzdig,2,ngatherarr,rhopot,lpot,lin%lig%comgp)
 
   allocate(lin%lig%lzdig%doHamAppl(lin%lig%lzdig%nlr), stat=istat)
   call memocc(istat, lin%lig%lzdig%doHamAppl, 'lin%lig%lzdig%doHamAppl', subname)
@@ -616,10 +637,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
           !!     withConfinement, .false., doNotCalculate=doNotCalculate, pkernel=pkernelseq)
           if(lin%nItInguess>0) then
-              call HamiltonianApplication3(iproc, nproc, at, lin%lig%orbsig, input%hx, input%hy, input%hz, rxyz, &
-                   proj, lin%lig%lzdig, ngatherarr, lpot, lchi, lhchi(1,ii), &
-                   ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, withConfinement, .false., &
-                   pkernel=pkernelseq, lin=lin, confinementCenter=onWhichAtomTemp)
+             call HamiltonianApplication3(iproc,nproc,at,&
+                  lin%lig%orbsig,&
+                  input%hx,input%hy,input%hz,rxyz,&
+                  proj,lin%lig%lzdig,ngatherarr,lpot,lchi,lhchi(1,ii),&
+                  ekin_sum,epot_sum,eexctX,eproj_sum,input%nspin,GPU,withConfinement,.false.,&
+                  pkernel=pkernelseq,lin=lin,confinementCenter=onWhichAtomTemp)
           end if
 
       else

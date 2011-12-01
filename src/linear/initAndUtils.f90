@@ -199,7 +199,7 @@ do iorb=1,lin%lb%orbs%norbp
  npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
 end do
 lin%lzd%Lpsidimtot_der = max(npsidim,1)
-
+ 
 
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
@@ -3413,23 +3413,23 @@ end subroutine repartitionOrbitals2
 
 
 subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radii_cf)
-
   use module_base
   use module_types
-
+  use module_xc
   implicit none
 
   integer, intent(in) :: iproc,nproc
   type(input_variables), intent(in) :: input
   type(local_zone_descriptors), intent(inout) :: Lzd
   type(atoms_data), intent(in) :: atoms
-  type(orbitals_data),intent(in) :: orbs
+  type(orbitals_data),intent(inout) :: orbs
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
-  logical :: linear
-  integer :: iat,ityp,nspin_ig,i_all,i_stat
+  logical :: linear,newvalue
+  integer :: iat,ityp,nspin_ig,i_all,i_stat,ii,iilr,ilr,iorb,iorb2,nilr,ispin
+  integer,dimension(:,:),allocatable:: ilrtable
   real(gp), dimension(:), allocatable :: locrad
   logical,dimension(:),allocatable:: calculateBounds
 
@@ -3450,7 +3450,8 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
         locrad(iat) = atoms%rloc(ityp,1)
      end do  
      call timing(iproc,'check_IG      ','ON')
-     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,linear) 
+     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,&
+          Lzd%Glr,linear) 
      call timing(iproc,'check_IG      ','OF')
      if(input%nspin >= 4) linear = .false. 
   end if
@@ -3468,7 +3469,8 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
-     Lzd%doHamAppl = .true.                  !for now, always true because we want to calculate the hamiltonians for all locregs
+     Lzd%doHamAppl = .true. 
+     !for now, always true because we want to calculate the hamiltonians for all locregs
      if(.not. Lzd%linear) then
         !copy Glr to Llr(1)
         call nullify_locreg_descriptors(Lzd%Llr(1))
@@ -3505,6 +3507,21 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
         call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf, Lzd)
      end if
   end if
+
+  !########################################################################
+  ! Determine the dimension of the potential array and orbs%ispot
+  !########################################################################
+
+!!$  if(associated(orbs%ispot)) then
+!!$     !nullify(orbs%ispot)
+!!$     i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
+!!$     deallocate(orbs%ispot,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'orbs%ispot',subname)
+!!$  end if
+!!$  allocate(orbs%ispot(orbs%norbp),stat=i_stat)
+!!$  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
+
+  call local_potential_dimensions(Lzd,orbs)
 
 !DEBUG
 !!if(iproc==0)then
@@ -3562,6 +3579,88 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
 !END DEBUG
 
 end subroutine check_linear_and_create_Lzd
+
+subroutine local_potential_dimensions(Lzd,orbs)
+  use module_base
+  use module_types
+  use module_xc
+  implicit none
+  type(local_zone_descriptors), intent(inout) :: Lzd
+  type(orbitals_data), intent(inout) :: orbs
+  !local variables
+  character(len=*), parameter :: subname='local_potential_dimensions'
+  logical :: newvalue
+  integer :: i_all,i_stat,ii,iilr,ilr,iorb,iorb2,nilr,ispin
+  integer,dimension(:,:),allocatable:: ilrtable
+  
+  if(Lzd%nlr > 1) then
+     allocate(ilrtable(orbs%norbp,2),stat=i_stat)
+     call memocc(i_stat,ilrtable,'ilrtable',subname)
+     !call to_zero(orbs%norbp*2,ilrtable(1,1))
+     ilrtable=0
+     ii=0
+     do iorb=1,orbs%norbp
+        newvalue=.true.
+        !localization region to which the orbital belongs
+        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+        !spin state of the orbital
+        if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then
+           ispin = 1       
+        else
+           ispin=2
+        end if
+        !check if the orbitals already visited have the same conditions
+        loop_iorb2: do iorb2=1,orbs%norbp
+           if(ilrtable(iorb2,1) == ilr .and. ilrtable(iorb2,2)==ispin) then
+              newvalue=.false.
+              exit loop_iorb2
+           end if
+        end do loop_iorb2
+        if (newvalue) then
+           ii = ii + 1
+           ilrtable(ii,1)=ilr
+           ilrtable(ii,2)=ispin    !SOMETHING IS NOT WORKING IN THE CONCEPT HERE... ispin is not a property of the locregs, but of the orbitals
+        end if
+     end do
+     !number of inequivalent potential regions
+     nilr = ii
+  else 
+     allocate(ilrtable(1,2),stat=i_stat)
+     call memocc(i_stat,ilrtable,'ilrtable',subname)
+     nilr = 1
+     ilrtable=1
+  end if
+
+  !calculate the dimension of the potential in the gathered form
+  lzd%ndimpotisf=0
+  do iilr=1,nilr
+     ilr=ilrtable(iilr,1)
+     do iorb=1,orbs%norbp
+        !put the starting point
+        if (orbs%inWhichLocreg(iorb+orbs%isorb) == ilr) then
+           !assignment of ispot array to the value of the starting address of inequivalent
+           orbs%ispot(iorb)=lzd%ndimpotisf + 1
+           if(orbs%spinsgn(orbs%isorb+iorb) <= 0.0_gp) then
+              orbs%ispot(iorb)=lzd%ndimpotisf + &
+                   1 + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+           end if
+        end if
+     end do
+     lzd%ndimpotisf = lzd%ndimpotisf + &
+          lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%nspin
+  end do
+  !part which refers to exact exchange (only meaningful for one region)
+  if (xc_exctXfac() /= 0.0_gp) then
+     lzd%ndimpotisf = lzd%ndimpotisf + &
+          max(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%norbp,1)
+  end if
+
+  i_all=-product(shape(ilrtable))*kind(ilrtable)
+  deallocate(ilrtable,stat=i_stat)
+  call memocc(i_stat,i_all,'ilrtable',subname)
+
+end subroutine local_potential_dimensions
+
 
 subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radii_cf)
   use module_base
@@ -3679,7 +3778,6 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
      deallocate(locrad,stat=i_stat)
      call memocc(i_stat,i_all,'locrad',subname)
 
-                                                                                                                                                                                                            
      ! determine the wavefunction dimension
      call wavefunction_dimension(Lzd,orbs)
 

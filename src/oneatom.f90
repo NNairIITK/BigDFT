@@ -27,6 +27,7 @@ program oneatom
   type(input_variables) :: in
   type(orbitals_data) :: orbs
   type(locreg_descriptors) :: Glr
+  type(local_zone_descriptors) :: Lzd
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
   type(GPU_pointers) :: GPU
@@ -100,6 +101,8 @@ program oneatom
 
   !allocate communications arrays
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
+
+  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
 
   allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
   call memocc(i_stat,nscatterarr,'nscatterarr',subname)
@@ -201,9 +204,10 @@ program oneatom
   idsx_actual_before=diis%idsx
 
   !allocate the potential in the full box
-  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,&
+       in%nspin,&
        Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,0,&
-       orbs%norb,orbs%norbp,ngatherarr,pot_ion,pot)
+       orbs,Lzd,0,ngatherarr,pot_ion,pot)
   
   wfn_loop: do iter=1,in%itermax
 

@@ -734,6 +734,7 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
             !!     lin%potentialprefac(at%iatype(ilr)),lin%confpotorder, &
             !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &
             !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+
             call apply_potentialConfinement2(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,&
                  lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
                  Lpot(orbs%ispot(iorb)),epot, rxyz(1,icenter), hxh, hyh, hzh,&
@@ -910,7 +911,8 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,ndimrhopot,nspin,o
             !assignment of ispot array to the value of the starting address of inequivalent
             orbs%ispot(iorb)=lzd%ndimpotisf + 1
             if(orbs%spinsgn(orbs%isorb+iorb) <= 0.0_gp) then
-               orbs%ispot(iorb)=lzd%ndimpotisf + 1 + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+               orbs%ispot(iorb)=lzd%ndimpotisf &
+                    + 1 + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
             end if
        end if
      end do
@@ -954,14 +956,20 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,ndimrhopot,nspin,o
          end if
 
          ! Extract the part of the potential which is needed for the current localization region.
-         i3s=lzd%Llr(ilr)%nsi3-comgp%ise3(1,iproc)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
-         i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise3(1,iproc)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
+
+         ! starting index of localized  potential with respect to total potential in comgp%recvBuf
+         i3s=lzd%Llr(ilr)%nsi3-comgp%ise3(1,iproc)+2 
+
+         ! ending index of localized potential with respect to total potential in comgp%recvBuf
+         i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise3(1,iproc)+1 
          if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
-             write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
+             write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',&
+                  i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
              stop
          end if
 
-         call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
+         call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, &
+              comgp%nrecvBuf, size_Lpot,&
               comgp%recvBuf, Lpot(ist), i3s, i3e)
 
          ist = ist + size_lpot

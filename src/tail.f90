@@ -350,7 +350,6 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
      !write(*,*) 'transform_fortail finished',iproc,iorb
 
-
      npt=2
      tail_adding: do ipt=1,npt
 
@@ -447,7 +446,6 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   if (iproc == 0) then
      write(*,'(1x,a)')'done.'
   end if
-
   call deallocate_orbs(orbsb,subname)
 
   i_all=-product(shape(txyz))*kind(txyz)

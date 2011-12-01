@@ -1141,7 +1141,8 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    real(wp), dimension(:), allocatable :: potxc,passmat
    real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
-  real(wp), dimension(:), pointer :: pot,pot1
+   real(wp), dimension(:), pointer :: pot,pot1
+   real(dp), dimension(:,:), pointer :: rho_p
    real(wp), dimension(:,:,:), pointer :: psigau
 ! #### Linear Scaling Variables
   integer :: ilr,ityp
@@ -1346,7 +1347,13 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      !close(44)
 !END DEBUG
 
-     call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,Lpsi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)    
+     !call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,Lpsi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)    
+     !spin adaptation for the IG in the spinorial case
+     orbse%nspin=nspin
+     call sumrho(iproc,nproc,orbse,Lzd,hxh,hyh,hzh,nscatterarr,&
+          GPU,symObj,irrzon,phnons,rhodsc,Lpsi,rho_p)
+     call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rhopot)
+     orbse%nspin=nspin_ig
 
 
      if(orbs%nspinor==4) then
@@ -1410,9 +1417,17 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
     end if
 
     ! Create local potential
-    call full_local_potential2(iproc, nproc, lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
-         lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,nspin, orbse, lzd, &
-         ngatherarr, rhopot, Lpot, 1)
+!!$    call full_local_potential2(iproc, nproc, lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
+!!$         lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,nspin, orbse, lzd, &
+!!$         ngatherarr, rhopot, Lpot, 1)
+
+    call full_local_potential(iproc, nproc, &
+         lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
+         lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
+         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add, &
+         orbse, Lzd,1,&
+         ngatherarr, rhopot, Lpot)
+
 
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
     allocate(Lhpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
@@ -1556,13 +1571,20 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    end if
 
    !application of the hamiltonian for gaussian based treatment
-  if(.false.) then
-     call sumrho(iproc,nproc,orbse,Lzd%Glr,hxh,hyh,hzh,psi,rhopot,&
-         nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
-  end if
+   !if(.false.) then
+   !   call sumrho(iproc,nproc,orbse,Lzd%Glr,hxh,hyh,hzh,psi,rhopot,&
+   !        nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
+   !end if
 
   ! test merging of the cubic and linear code
-  call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,psi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)    
+  !call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,psi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)    
+
+   !spin adaptation for the IG in the spinorial case
+   orbse%nspin=nspin
+   call sumrho(iproc,nproc,orbse,Lzd,hxh,hyh,hzh,nscatterarr,&
+        GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+   call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rhopot)
+   orbse%nspin=nspin_ig
 
    !-- if spectra calculation uses a energy dependent potential
    !    input_wf_diag will write (to be used in abscalc)
@@ -1743,10 +1765,17 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
       eexctX=0.0_gp
    end if
 
+   ! Create local potential
+!!$   call full_local_potential2(iproc, nproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2), &    
+!!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
+!!$        nspin, orbse, Lzd, ngatherarr, rhopot, pot, 0)
+   call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
+        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,&
+        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
+        i3rho_add,orbse,Lzd,0,ngatherarr,rhopot,pot)
+
     if(.false.) then
-        call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-          Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
-          i3rho_add,orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)
 
    call LocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,&
          Lzd%Glr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
@@ -1757,11 +1786,6 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
         call SynchronizeHamiltonianApplication(nproc,orbse,Lzd%Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
     end if
     
-    ! Create local potential
-    call full_local_potential2(iproc, nproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2), &    
-         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
-         nspin, orbse, Lzd, ngatherarr, rhopot, pot, 0)
-
     withConfinement=.false.
     call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
          proj, lzd, ngatherarr, pot, psi, hpsi, &

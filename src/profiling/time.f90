@@ -81,7 +81,7 @@ module timeData
       !local variables
       integer :: i,ierr,j,icls,icat,jproc,iextra
 
-      real(kind=8) :: total_pc,pc,totaltime
+      real(kind=8) :: total_pc,pc
       integer, dimension(ncat) :: isort
       real(kind=8), dimension(ncls,0:nproc) :: timecls
       real(kind=8), dimension(ncat+1,0:nproc-1) :: timeall
@@ -96,11 +96,11 @@ module timeData
          end do
       endif
       if (iproc == 0) then
-         !for the totaltime take the max
-         totaltime=0.d0
-         do jproc=0,nproc-1
-            totaltime=max(totaltime,timeall(ncat+1,jproc))
-         end do
+         !!for the totaltime take the max
+         !totaltime=0.d0
+         !do jproc=0,nproc-1
+         !   totaltime=max(totaltime,timeall(ncat+1,jproc))
+         !end do
 
          !regroup the data for each category in any processor
          do icls=1,ncls

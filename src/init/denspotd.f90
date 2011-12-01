@@ -86,6 +86,15 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
      endif
   end if
 
+  !calculate dimensions of the complete array to be allocated before the reduction procedure
+  if (rhodsc%icomm==1) then
+     rhodsc%nrhotot=0
+     do jproc=0,nproc-1
+        rhodsc%nrhotot=rhodsc%nrhotot+nscatterarr(jproc,1)
+     end do
+  else
+     rhodsc%nrhotot=gdim%n3i
+  end if
 
 END SUBROUTINE createDensPotDescriptors
 
@@ -322,7 +331,8 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
      end if
      jkpte=min((jsorb+orbs%norb_par(jproc,0)-1)/orbs%norb+1,orbs%nkpts)
      if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc,0) /=0) then
-        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution ends after the components one'
+        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,&
+             ' the orbital k-points distribution ends after the components one'
         print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
         stop
      end if
