@@ -983,7 +983,7 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
   type(atoms_data), intent(in) :: at
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(dp), dimension(n1i,n2i,n3p,nspin), target, intent(in) :: rho
+  real(dp), dimension(n1i,n2i,max(n3p, 1),nspin), target, intent(in) :: rho
   character(len=*), parameter :: subname='calc_dipole'
   integer :: i_all,i_stat,ierr
   real(gp) :: dipole_el(3) , dipole_cores(3), tmpdip(3),q,qtot

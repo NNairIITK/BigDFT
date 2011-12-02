@@ -57,6 +57,7 @@
     public :: memocc
     public :: memocc_set_state
     public :: memocc_set_memory_limit
+    public :: memocc_report
     public :: d_nan,r_nan
 
   contains
@@ -101,6 +102,10 @@
 
       memorylimit = limit
     end subroutine memocc_set_memory_limit
+
+    subroutine memocc_report()
+      call memocc(0,0,'count', 'stop')
+    end subroutine memocc_report
 
     !> Put to zero memocc counters
     subroutine memocc_variables_init()
