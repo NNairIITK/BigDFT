@@ -1344,7 +1344,7 @@ if (inputpsi /= -1000) then
       allocate(rho(n1i*n2i*n3p*in%nspin+ndebug),stat=i_stat)
       call memocc(i_stat,rho,'rho',subname)
    else
-      allocate(rho(1+ndebug),stat=i_stat)
+      allocate(rho(1*in%nspin+ndebug),stat=i_stat)
       call memocc(i_stat,rho,'rho',subname)
    end if
    call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rho,&

@@ -295,9 +295,11 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
       if(nspin == 4 .and. tt > 0._dp)&
          &   write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
          &   (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
-     write(*,'(1x,a,f21.12)') &
+     if (rhodsc%icomm==2) then
+       write(*,'(1x,a,f21.12)') &
          'Electronic charge changed by rho compression =                 ',&
           rhotot_dbl-real(charge,gp)*hxh*hyh*hzh
+     endif
    end if
 
    i_all=-product(shape(tmred))*kind(tmred)
