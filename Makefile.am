@@ -1,9 +1,11 @@
-EXTRA_DIST = autogen.sh \
-	config/m4
+EXTRA_DIST = autogen.sh config/m4
 
 ACLOCAL_AMFLAGS = -I config/m4
 
-DISTCLEANFILES = config.inc
+DISTCLEANFILES = config.inc bigdft.pc
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = bigdft.pc
 
 if BUILD_LIBABINIT
 libABINIT_dir = libABINIT/src

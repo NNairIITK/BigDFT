@@ -8,14 +8,26 @@
 
 int main(int argc, char **argv)
 {
+  char *filename;
   f90_pointer_double *psiscf;
   int n[3], nspinor;
-  int i, j, k, ind, ntot;
+  int i, j, k, ind, ntot, norb, nspin, nkpt;
   double h[3], nrm;
 
-  fprintf(stdout, " --- Test read_wave_to_isf_etsf() from %s ---\n", WAVEFILE);
+  if (argc > 1)
+    filename = argv[1];
+  else
+    filename = WAVEFILE;
 
-  psiscf = bigdft_read_wave_to_isf_etsf(WAVEFILE, IORBP, h, n, &nspinor);
+  fprintf(stdout, " --- Test read_wave_to_isf_etsf() from %s ---\n", filename);
+
+  if (bigdft_read_wave_descr_etsf(filename, &norb, &nspin, &nkpt, &nspinor))
+    fprintf(stdout, " ETSF wavefunction file (no, ns, nk, sp):  %d %d %d %d\n",
+            norb, nspin, nkpt, nspinor);
+  else
+    return 1;
+
+  psiscf = bigdft_read_wave_to_isf_etsf(filename, IORBP, h, n, &nspinor);
   /* for (i = 0; i < F90_POINTER_SIZE; i++) */
   /*   fprintf(stdout, "%d %p\n", i, psiscf->info[i]); */
 
