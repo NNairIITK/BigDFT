@@ -331,11 +331,13 @@ if test x"$ac_use_ocl" = "xyes" ; then
   AC_LANG_PUSH(C)
   dnl Optional OpenCL installation dir.
   AC_ARG_WITH(ocl-path, AS_HELP_STRING([--with-ocl-path], [give the path to the OpenCL library (default is /usr).]),
-                         [ac_ocl_path=$withval], [ac_ocl_path="/usr"])
+                         [ac_ocl_path=$withval], [ac_ocl_path=""])
   dnl Test the link on libOpenCL.
   dnl look for the header.
   CPPFLAGS_SVG=$CPPFLAGS
-  CPPFLAGS="$CPPFLAGS -I$ac_ocl_path/include"
+  if test -n "$ac_ocl_path" ; then
+     CPPFLAGS="$CPPFLAGS -I$ac_ocl_path/include"
+  fi
   AC_CHECK_HEADER([CL/cl.h],
                   [ac_ocl_header="yes"],
                   [ac_ocl_header="no"])
@@ -344,19 +346,25 @@ if test x"$ac_use_ocl" = "xyes" ; then
     AC_MSG_WARN(["No 'OpenCL' header found, OpenCL parts disabled."])
     ac_use_ocl="no"
   else
-    OCL_INCLUDE_PATH=$ac_ocl_path"/include"
+    if test -n "$ac_ocl_path" ; then
+       OCL_INCLUDE_PATH=$ac_ocl_path"/include"
+       OCL_INCLUDE="-I"$ac_ocl_path"/include"
+    fi
     AC_SUBST(OCL_INCLUDE_PATH)
-    OCL_INCLUDE="-I"$ac_ocl_path"/include"
     AC_SUBST(OCL_INCLUDE)
     dnl Now test for the library.
     LIBS_OLD=$LIBS
-    LIBS="-L$ac_ocl_path/lib $LIBS"
+    if test -n "$ac_ocl_path" ; then
+       LIBS="-L$ac_ocl_path/lib $LIBS"
+    fi
     AC_CHECK_LIB(OpenCL, clCreateContext, withlibocl=yes, withlibocl=no)
     if test "$withlibocl" = "no"; then
       AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
       ac_use_ocl="no"
     else
-      LDFLAGS="$LDFLAGS -L$ac_ocl_path/lib"
+      if test -n "$ac_ocl_path" ; then
+         LDFLAGS="$LDFLAGS -L$ac_ocl_path/lib"
+      fi
       LIBOCL_LIBS="-lOpenCL -lm -lstdc++"
     fi
     LIBS=$LIBS_OLD
@@ -727,6 +735,7 @@ AC_SUBST(docdir)
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
+bigdft.pc
 libABINIT/src/Makefile
 config/Doxyfile
 src/bigdft-tool
