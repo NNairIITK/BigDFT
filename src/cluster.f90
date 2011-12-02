@@ -453,8 +453,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !create the descriptors for the density and the potential
    !these descriptors should take into account the localisation regions
   call createDensPotDescriptors(iproc,nproc,atoms,Lzd%Glr%d,hxh,hyh,hzh,&
-      &   rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',ixc,in%rho_commun,&
-   n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
+       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',ixc,in%rho_commun,&
+       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
+
+  call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
    !calculate the irreductible zone, if necessary.
    if (atoms%symObj >= 0) then

@@ -301,6 +301,7 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   size_potxc = 0
   if (exctX .and. .not.present(lin)) then
      size_potxc = max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,ngatherarr(0,1)*orbs%norb),1)
+
      ist=lzd%ndimpotisf-size_potxc+1
      if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
         call cubic_exact_exchange(iproc,nproc,nspin,Lzd%Lpsidimtot,size_potxc,hx,hy,hz,Lzd%Glr,orbs,&

@@ -219,7 +219,7 @@ real(8),dimension(:),pointer:: lpot
 !!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
 !!$           input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
 
-     call local_potential_dimensions(lin%Lzd,lin%orbs)
+     call local_potential_dimensions(lin%Lzd,lin%orbs,ngatherarr(0,1))
 
       call full_local_potential(iproc,nproc,&
            lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2),&
@@ -233,7 +233,7 @@ real(8),dimension(:),pointer:: lpot
 !!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
 !!$           input%nspin, lin%lb%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%lb%comgp)
 
-     call local_potential_dimensions(lin%Lzd,lin%lb%orbs)
+     call local_potential_dimensions(lin%Lzd,lin%lb%orbs,ngatherarr(0,1))
       
       call full_local_potential(iproc,nproc,&
            lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2),&
@@ -669,7 +669,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 !!$       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
 !!$       input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
 
-  call local_potential_dimensions(lin%lzd,lin%orbs)
+  call local_potential_dimensions(lin%lzd,lin%orbs,ngatherarr(0,1))
 
   call full_local_potential(iproc,nproc,&
        lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2),&

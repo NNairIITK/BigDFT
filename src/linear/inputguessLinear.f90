@@ -588,7 +588,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 !!$  allocate(lin%lig%orbsig%ispot(lin%lig%orbsig%norbp),stat=istat)
 !!$  call memocc(istat,lin%lig%orbsig%ispot,'lin%lig%orbsig%ispot',subname)
 
-  call local_potential_dimensions(lin%lig%lzdig,lin%lig%orbsig)
+  call local_potential_dimensions(lin%lig%lzdig,lin%lig%orbsig,ngatherarr(0,1))
 
   call full_local_potential(iproc,nproc,&
        lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2),&

@@ -3520,9 +3520,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
 !!$  end if
 !!$  allocate(orbs%ispot(orbs%norbp),stat=i_stat)
 !!$  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
-
-  call local_potential_dimensions(Lzd,orbs)
-
+  
 !DEBUG
 !!if(iproc==0)then
 !!print *,'###################################################'
@@ -3580,11 +3578,12 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
 
 end subroutine check_linear_and_create_Lzd
 
-subroutine local_potential_dimensions(Lzd,orbs)
+subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
   use module_base
   use module_types
   use module_xc
   implicit none
+  integer, intent(in) :: ndimfirstproc
   type(local_zone_descriptors), intent(inout) :: Lzd
   type(orbitals_data), intent(inout) :: orbs
   !local variables
@@ -3624,36 +3623,59 @@ subroutine local_potential_dimensions(Lzd,orbs)
      end do
      !number of inequivalent potential regions
      nilr = ii
+
+     !calculate the dimension of the potential in the gathered form
+     lzd%ndimpotisf=0
+     do iilr=1,nilr
+        ilr=ilrtable(iilr,1)
+        do iorb=1,orbs%norbp
+           !put the starting point
+           if (orbs%inWhichLocreg(iorb+orbs%isorb) == ilr) then
+              !assignment of ispot array to the value of the starting address of inequivalent
+              orbs%ispot(iorb)=lzd%ndimpotisf + 1
+              if(orbs%spinsgn(orbs%isorb+iorb) <= 0.0_gp) then
+                 orbs%ispot(iorb)=lzd%ndimpotisf + &
+                      1 + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+              end if
+           end if
+        end do
+        lzd%ndimpotisf = lzd%ndimpotisf + &
+             lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%nspin
+     end do
+     !part which refers to exact exchange (only meaningful for one region)
+     if (xc_exctXfac() /= 0.0_gp) then
+        lzd%ndimpotisf = lzd%ndimpotisf + &
+             max(max(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%norbp,ndimfirstproc*orbs%norb),1)
+     end if
+
   else 
      allocate(ilrtable(1,2),stat=i_stat)
      call memocc(i_stat,ilrtable,'ilrtable',subname)
      nilr = 1
      ilrtable=1
-  end if
 
-  !calculate the dimension of the potential in the gathered form
-  lzd%ndimpotisf=0
-  do iilr=1,nilr
-     ilr=ilrtable(iilr,1)
+     !calculate the dimension of the potential in the gathered form
+     lzd%ndimpotisf=0
      do iorb=1,orbs%norbp
-        !put the starting point
-        if (orbs%inWhichLocreg(iorb+orbs%isorb) == ilr) then
-           !assignment of ispot array to the value of the starting address of inequivalent
-           orbs%ispot(iorb)=lzd%ndimpotisf + 1
-           if(orbs%spinsgn(orbs%isorb+iorb) <= 0.0_gp) then
-              orbs%ispot(iorb)=lzd%ndimpotisf + &
-                   1 + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-           end if
+        !assignment of ispot array to the value of the starting address of inequivalent
+        orbs%ispot(iorb)=lzd%ndimpotisf + 1
+        if(orbs%spinsgn(orbs%isorb+iorb) <= 0.0_gp) then
+           orbs%ispot(iorb)=lzd%ndimpotisf + &
+                1 + lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
         end if
      end do
      lzd%ndimpotisf = lzd%ndimpotisf + &
-          lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%nspin
-  end do
-  !part which refers to exact exchange (only meaningful for one region)
-  if (xc_exctXfac() /= 0.0_gp) then
-     lzd%ndimpotisf = lzd%ndimpotisf + &
-          max(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%norbp,1)
+          lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i*orbs%nspin
+          
+     !part which refers to exact exchange (only meaningful for one region)
+     if (xc_exctXfac() /= 0.0_gp) then
+        lzd%ndimpotisf = lzd%ndimpotisf + &
+             max(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i*orbs%norbp,ndimfirstproc*orbs%norb),1)
+     end if
+
+
   end if
+
 
   i_all=-product(shape(ilrtable))*kind(ilrtable)
   deallocate(ilrtable,stat=i_stat)

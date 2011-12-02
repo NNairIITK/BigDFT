@@ -565,8 +565,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call timing(iproc,'CrtPcProjects ','OF')
    endif
 
-   !call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
-
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
    if (iproc==0 .and. verbose > 0) then

@@ -113,6 +113,7 @@ program oneatom
        rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',0,in%rho_commun,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
+  call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
   !commented out, to be used in the future
   if (dokernel) then
      ndegree_ip=16 !default value 

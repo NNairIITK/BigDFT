@@ -168,6 +168,8 @@ program wvl
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & rxyz,inputs%crmult,inputs%frmult,radii_cf,inputs%nspin,'D',inputs%ixc, &
        & inputs%rho_commun,n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
+  call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
+
   allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * n3d))
   allocate(irrzon(1,2,1))
   allocate(phnons(2,1,1))

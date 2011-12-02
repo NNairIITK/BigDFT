@@ -1420,6 +1420,8 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!$    call full_local_potential2(iproc, nproc, lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
 !!$         lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,nspin, orbse, lzd, &
 !!$         ngatherarr, rhopot, Lpot, 1)
+    !change temporarily value of Lzd%npotddim
+    call local_potential_dimensions(Lzd,orbse,ngatherarr(0,1))
 
     call full_local_potential(iproc, nproc, &
          lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
@@ -1427,7 +1429,6 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
          Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add, &
          orbse, Lzd,1,&
          ngatherarr, rhopot, Lpot)
-
 
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
     allocate(Lhpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
@@ -1444,6 +1445,9 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
          proj, lzd, ngatherarr, Lpot, lpsi, lhpsi, &
          ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
          pkernel=pkernelseq)
+
+    !restore the value
+    call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
     ! Deallocate local potential
     i_all=-product(shape(Lpot))*kind(Lpot)
@@ -1770,6 +1774,11 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
 !!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
 !!$        nspin, orbse, Lzd, ngatherarr, rhopot, pot, 0)
+
+    !change temporarily value of Lzd%npotddim
+    call local_potential_dimensions(Lzd,orbse,ngatherarr(0,1))
+
+
    call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,&
         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
@@ -1791,6 +1800,10 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
          proj, lzd, ngatherarr, pot, psi, hpsi, &
          ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
          pkernel=pkernel)
+
+    !restore the good value
+    call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
+
  
      !deallocate potential
      call free_full_potential(nproc,pot,subname)

@@ -54,7 +54,7 @@ GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 TDDFT.psp: psppar.N
-Linear.psp: HGH/psppar.C extra/psppar.H
+Linear.psp Linear_withder.psp: HGH/psppar.C extra/psppar.H
 
 
 # Define the precision for specific directories.
