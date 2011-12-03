@@ -35,7 +35,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
   integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3
   integer :: n1,n2,n3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
-  real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
+  real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail !n(c) eproj1 epot1,ekin1
   type(orbitals_data) :: orbsb
   type(wavefunctions_descriptors) :: wfdb
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
@@ -334,7 +334,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   do iorb=1,orbs%norbp
 
      !build the compressed wavefunction in the enlarged box
-     call transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
+     call transform_fortail(n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
           Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
           Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keyg(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1),  &
           nsegb_c,nvctrb_c,keyg(1,1),keyv(1),nsegb_f,nvctrb_f,&
@@ -393,7 +393,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
         !calculate tail using the preconditioner as solver for the green function application
         cprecr=-orbs%eval(iorb+orbs%isorb)
-        call precong(iorb+orbs%isorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
+        call precong(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
              nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keyg,keyv, &
              ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
         !call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keyg,keyv,nsegb_f,nvctrb_f,  & 
@@ -410,9 +410,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         !     'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
 
         !values of the energies before tail application
-        ekin1=ekin
-        epot1=epot
-        eproj1=eproj
+        !n(c) ekin1=ekin
+        !n(c) epot1=epot
+        !n(c) eproj1=eproj
         !write(*,'(1x,a,1x,i0,f18.14)') 'norm orbital + tail',iorb,sum_tail
         !call plot_wf(20,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keyg,keyv,nsegb_f,nvctrb_f,  & 
         !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
@@ -587,17 +587,21 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 END SUBROUTINE CalculateTailCorrection
 
 
-subroutine transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,& 
+subroutine transform_fortail(n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,& 
      mseg_c,mvctr_c,keyg_c,keyv_c,mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      msegb_c,mvctrb_c,keybg_c,keybv_c,msegb_f,mvctrb_f,keybg_f,keybv_f,  & 
      nbuf,psi_c,psi_f,psig_c,psig_f,psib_c,psib_f)
-  implicit real(kind=8) (a-h,o-z)
-  dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
-  dimension keybg_c(2,msegb_c),keybv_c(msegb_c),keybg_f(2,msegb_f),keybv_f(msegb_f)
-  dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
-  dimension psib_c(mvctrb_c),psib_f(7,mvctrb_f)
-  dimension psig_c(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf)
-  dimension psig_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3)
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3
+  integer, intent(in) :: mseg_c,mvctr_c,mseg_f,mvctr_f,msegb_c,mvctrb_c,msegb_f,mvctrb_f,nbuf
+  integer, intent(in) :: keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
+  integer, intent(in) :: keybg_c(2,msegb_c),keybv_c(msegb_c),keybg_f(2,msegb_f),keybv_f(msegb_f)
+  real(kind=8) :: psi_c(mvctr_c),psi_f(7,mvctr_f)
+  real(kind=8) :: psib_c(mvctrb_c),psib_f(7,mvctrb_f)
+  real(kind=8) :: psig_c(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf)
+  real(kind=8) :: psig_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3)
+  !Local variables
+  integer :: iseg,jj,j0,j1,i0,i1,i2,i3,ii,i
 
   call razero((n1+1+2*nbuf)*(n2+1+2*nbuf)*(n3+1+2*nbuf),psig_c)
   call razero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),psig_f)
@@ -680,18 +684,23 @@ subroutine transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,
 END SUBROUTINE transform_fortail
 
 
-subroutine transform_fortail_prev(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,& 
+subroutine transform_fortail_prev(n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,& 
      mseg_c,mvctr_c,keyg_c,keyv_c,mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      msegb_c,mvctrb_c,keybg_c,keybv_c,msegb_f,mvctrb_f,keybg_f,keybv_f,  & 
      nbuf,psi_c,psi_f,psig_c,psig_fc,psig_f,psib_c,psib_f)
-  implicit real(kind=8) (a-h,o-z)
-  dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
-  dimension keybg_c(2,msegb_c),keybv_c(msegb_c),keybg_f(2,msegb_f),keybv_f(msegb_f)
-  dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
-  dimension psib_c(mvctrb_c),psib_f(7,mvctrb_f)
-  dimension psig_c(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf)
-  dimension psig_fc(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf,3),  & 
-       psig_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3)
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3
+  integer, intent(in) :: mseg_c,mvctr_c,mseg_f,mvctr_f
+  integer, intent(in) :: msegb_c,mvctrb_c,msegb_f,mvctrb_f,nbuf
+  integer, intent(in) :: keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
+  integer, intent(in) :: keybg_c(2,msegb_c),keybv_c(msegb_c),keybg_f(2,msegb_f),keybv_f(msegb_f)
+  real(kind=8) :: psi_c(mvctr_c),psi_f(7,mvctr_f)
+  real(kind=8) :: psib_c(mvctrb_c),psib_f(7,mvctrb_f)
+  real(kind=8) :: psig_c(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf)
+  real(kind=8) :: psig_fc(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf,3),  & 
+        & psig_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3)
+  !Local variables
+  integer :: iseg,j0,jj,j1,i0,i1,i2,i3,ii,i
 
   call razero((n1+1+2*nbuf)*(n2+1+2*nbuf)*(n3+1+2*nbuf),psig_c)
   call razero(3*(n1+1+2*nbuf)*(n2+1+2*nbuf)*(n3+1+2*nbuf),psig_fc)
@@ -912,7 +921,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj
   !local variables
-  integer :: i,l,iat,iproj,istart_c,mbseg_c,mbseg_f,jseg_c,jseg_f,mbvctr_c,mbvctr_f,ityp
+  integer :: i,l,iat,iproj,istart_c,mbseg_c,mbseg_f,jseg_c,mbvctr_c,mbvctr_f,ityp !n(c) jseg_f
 
   ! loop over all projectors
   iproj=0
@@ -922,7 +931,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
      mbseg_c=nseg_p(2*iat-1)-nseg_p(2*iat-2)
      mbseg_f=nseg_p(2*iat  )-nseg_p(2*iat-1)
      jseg_c=nseg_p(2*iat-2)+1
-     jseg_f=nseg_p(2*iat-1)+1
+     !n(c) jseg_f=nseg_p(2*iat-1)+1
      mbvctr_c=nvctr_p(2*iat-1)-nvctr_p(2*iat-2)
      mbvctr_f=nvctr_p(2*iat  )-nvctr_p(2*iat-1)
      ityp=iatype(iat)

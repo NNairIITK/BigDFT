@@ -1,10 +1,11 @@
-EXTRA_DIST = autogen.sh \
-	config/m4
-	configure
+EXTRA_DIST = autogen.sh config/m4
 
 ACLOCAL_AMFLAGS = -I config/m4
 
-DISTCLEANFILES = config.inc
+DISTCLEANFILES = config.inc bigdft.pc
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = bigdft.pc
 
 if BUILD_LIBABINIT
 libABINIT_dir = libABINIT/src
@@ -46,4 +47,7 @@ SUBDIRS = $(libXC_dir) \
 	$(tests_dir)
 
 check:
+	@python $(top_srcdir)/tests/report.py
+
+report:
 	@python $(top_srcdir)/tests/report.py

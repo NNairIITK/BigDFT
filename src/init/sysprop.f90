@@ -21,7 +21,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   type(orbitals_data), intent(inout) :: orbs
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
-  character(len=*), parameter :: subname='system_properties'
+  !n(c) character(len=*), parameter :: subname='system_properties'
   integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty
 
@@ -119,8 +119,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
            cutoff=10.d0*rloc
 
            call calc_rhocore_iat(iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,&
-                i3s,n3d,rhocore)
+                d%n1,d%n2,d%n3,d%n1i,d%n2i,i3s,n3d,rhocore)
 
            if (iproc == 0) write(*,'(1x,a)')'done.'
         end if

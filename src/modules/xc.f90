@@ -327,9 +327,9 @@ contains
     integer :: ipte, nb
     real(dp) :: rhotmp(nspden, n_blocks), exctmp(n_blocks), vxctmp(nspden, n_blocks)
     real(dp) :: sigma(2*min(nspden,2)-1, n_blocks), vsigma(2*min(nspden,2)-1, n_blocks)
-    real(dp) :: v2rho2(3, n_blocks), v2rhosigma(6, n_blocks), v2sigma2(6, n_blocks)
+    real(dp) :: v2rho2(3, n_blocks), v2rhosigma(6, n_blocks), v2sigma2(6, n_blocks)  
     real(dp), allocatable :: rho_(:,:), exc_(:), vxc_(:,:)
-    character(len=*), parameter :: subname='xc_getvxc'
+    !n(c) character(len=*), parameter :: subname='xc_getvxc'
 
     if (xc%kind == XC_ABINIT) then
        ! ABINIT case, call drivexc
@@ -366,7 +366,6 @@ contains
        end select
     else if (xc%kind == XC_MIXED) then
        ! LibXC case with ABINIT rho distribution.
-
        ! Inititalize all relevant arrays to zero
        vxc=real(0,dp)
        exc=real(0,dp)
@@ -374,6 +373,9 @@ contains
        if (present(dvxci)) dvxci=real(0,dp)
 
        !Loop over points
+       !$omp parallel do default(private) &
+       !$omp & shared(npts,rho,grho2,nspden) &
+       !$omp & shared(xc,vxc,exc,vxcgr,dvxci) 
        do ipts = 1, npts, n_blocks
           ipte = min(ipts + n_blocks - 1, npts)
           nb = ipte - ipts + 1
@@ -426,6 +428,7 @@ contains
                    call xc_f90_gga_vxc(xc%funcs(i)%conf,nb,rhotmp(1,1),sigma(1,1),vxctmp(1,1),vsigma(1,1))
                 end select
              end if
+
              if (present(dvxci)) then
                 v2rho2     = real(0, dp)
                 v2rhosigma = real(0, dp)
@@ -445,7 +448,7 @@ contains
              do j = 1, nspden
                 vxc(ipts:ipte,j) = vxc(ipts:ipte,j) + vxctmp(j, 1:nb)
              end do
-
+             
              if (xc_isgga()) then
                 !Convert the quantities returned by Libxc to the ones needed by ABINIT
                 if (nspden == 1) then
@@ -477,6 +480,8 @@ contains
 
           end do
        end do
+       !$omp end parallel do
+
     else if (xc%kind == XC_LIBXC) then
        ! Pure LibXC case.
        ! WARNING: LDA implementation only, first derivative, no fxc

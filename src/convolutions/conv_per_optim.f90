@@ -205,7 +205,7 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   real(wp), dimension(nt,0:right1), intent(out) :: c1
   !local variables
   character(len=*), parameter :: subname='syn_rot_per_old'
-  integer, parameter :: m=8
+  !n(c) integer, parameter :: m=8
   integer, parameter :: m_2=4
   integer :: i_all,i_stat,len_2,mod_left,mod_right,i,it,it0,i2,i_j,j,i21,i_j2,j2,j21
 !$  integer :: ithread,omp_get_thread_num

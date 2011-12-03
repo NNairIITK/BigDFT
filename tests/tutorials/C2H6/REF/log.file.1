@@ -1,0 +1,100 @@
+ ****************************** 
+ WELCOME TO BART : BigDFT + ART 
+ ****************************** 
+>> Start:  17-OCT-2011  12:18:00
+  - Version number of  ART            :        1.800
+ 
+  - Event type                        :GUESS_DIRECTION
+  - Temperature                       :      -0.5000
+  - Number of atoms                   :            8
+  - Number of events                  :         1000
+  - Maximum number of neighbours      :            8
+  - Atomic types                      : 
+                           Type   1   :            C
+                           Type   2   :            H
+  
+ Selection of the event 
+ ********************** 
+  - Type of events                    :        local
+  - Radius of deformation (local ev.) :       1.2000
+  - Central atom for events           : 
+  
+ Activation parameters 
+ ********************* 
+  - Eigenvalue threshold                          :  -0.0500
+  - Total force threshold (saddle)                :   0.2500
+  - Initial step size                             :   0.0500
+  - Increment size                                :   0.0900
+  - Atomic displacement for breaking the symmetry :   0.0010
+  - Number of vectors computed by Lanzcos         :       13      12
+  - Delta displacement for derivative in Lanzcos  :   0.0100
+  
+  - Calculation of the Hessian for each minimum   :        F
+  - Min. number of ksteps before calling lanczos  :        3
+  - Factor mult. INCREMENT for leaving basin      :   2.1000
+  - Maximum number of iteractions (basin -kter)   :       12
+  - Maximum number of perpendicular moves (basin) :        3
+  
+  - Maximum number of iteractions (activation)    :      300
+  - Maximum number of perpendicular moves (activ) :        3
+  - Force threshold for perpendicular relaxation  :   0.5000
+  - Fraction of displacement over the saddle      :   0.3000
+  
+  Use DIIS for convergence to saddle               F
+  
+ Input / Output 
+ ********************* 
+  - Name of log file                  :      log.file.1
+  - Liste of events                   :     events.list
+  - Reference configuration           :       refconfig
+  - Restart file                      :     restart.dat
+  - Prefix for minima (file)          :             min
+  - Prefix for saddle points          :             sad
+  - File with filecounter             :     filecounter
+ ********************* 
+  
+  - The seed is                  :              -621
+  - Restart                      :                 F
+  Start with new event    
+  - Mincounter                   :              1000
+  RELAXATION
+  - Configuration stored in file :           min1000
+  __________________________________________________
+  - Simulation                   :                 1
+  - Attempt                      :                 1
+  - Starting from minconf        :              1001
+  - Reference Energy (eV)        : -4.0553758289E+02
+  - Temperature                  :         -0.500000
+  
+       -following a given initial direction : 
+                 E-Eref  m_perp    ftot        fpar       fperp       eigen       delr  npart evalf   a1
+                 ( eV )                     ( eV/Ang )              ( eV/Ang**2 )
+   0  K=   0     0.0004  1 1      0.1231     -0.0070      0.1229      0.0000      0.050   0     2   0.00
+   1  K=   1     0.0054  0 1      0.1223     -0.0397      0.1157      0.0000      0.239   3     4   0.00
+   2  K=   2     0.0169  1 1      0.3945     -0.0638      0.3893      0.0000      0.428   3     6   0.00
+   3  K=   3     0.0343  1 1      0.5026     -0.1119      0.4900      0.2503      0.619   3    22   0.00
+   4  K=   4     0.0502  3 5      0.3787     -0.1470      0.3491      0.0214      0.813   3    42   0.70
+   5  K=   5     0.0716  3 3      0.5110     -0.1963      0.4717     -0.0758      1.013   3    60   0.72
+   6  L=   1     0.0777  1 1      0.4191     -0.0726      0.4127     -0.0835      0.997   3    75   0.93
+   7  L=   2     0.0838  1 1      0.3772     -0.1038      0.3626     -0.0526      1.013   3    90   0.99
+   8  L=   3     0.0891  1 1      0.3483     -0.1059      0.3318     -0.1309      1.034   5   105   0.99
+   9  L=   4     0.0937  1 1      0.3256     -0.1064      0.3077     -0.1292      1.060   6   120   1.00
+  10  L=   5     0.0977  1 1      0.3069     -0.1026      0.2892     -0.1644      1.086   6   135   1.00
+  11  L=   6     0.1011  1 1      0.2905     -0.0956      0.2743     -0.2125      1.112   6   150   1.00
+  12  L=   7     0.1040  1 1      0.2756     -0.0878      0.2613     -0.2179      1.137   6   165   1.00
+  13  L=   8     0.1064  1 1      0.2617     -0.0797      0.2493     -0.1926      1.161   6   180   1.00
+  14  L=   9     0.1084  1 1      0.2490     -0.0727      0.2382     -0.1872      1.184   6   195   1.00
+
+ SADDLE 1001 CONVERGED |ret  20014 |delta energy=    0.1084 |force_(tot,par,perp)=     0.2490   -0.0727    0.2382 |eigenval=  -0.1872 |npart=    6 |delr=    1.184 |evalf=   195 |
+  - Configuration stored in file :           sad1001
+  - Total energy Saddle (eV)     : -4.0542915711E+02
+  
+  RELAXATION
+  - Configuration stored in file :           min1001
+  - Total energy Minimum (eV)    : -4.0553755357E+02
+ MINIMUM 1001 REJECTED |E(fin-ini)=    0.0000 |E(fin-sad)=   -0.1084 |npart=    6 |delr=    2.509 |evalf=   278 |
+ ********************** 
+   A bientot !
+ ********************** 
+ CPU_TIME:    3053.2600 seg
+>> End:  17-OCT-2011  13:11:43

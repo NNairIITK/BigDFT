@@ -8,14 +8,14 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>   @brief Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-!!   x is the right hand side on input and the solution on output
-!!   This subroutine is almost similar to precong_per
-!!   with minor differences: 
-!!   -the convolutions are in the surface BC
-!!   -the work arrays psifscf and ww are slightly bigger
-!!   -the work array z is smaller now
-!!   -the Fourier preconditioner is in the surface version
+!> Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!! x is the right hand side on input and the solution on output
+!! This subroutine is almost similar to precong_per
+!! with minor differences: 
+!! -the convolutions are in the surface BC
+!! -the work arrays psifscf and ww are slightly bigger
+!! -the work array z is smaller now
+!! -the Fourier preconditioner is in the surface version
 subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hx,hy,hz,x)
   use module_base
@@ -55,7 +55,7 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   !   call apply_hp_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   !     cprecr,hx,hy,hz,x,d,psifscf,ww) ! d:=Ax
   call apply_hp_slab_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-       cprecr,hx,hy,hz,x,d,psifscf,ww,modul1,modul3,af,bf,cf,ef) ! d:=Ax
+       cprecr,x,d,psifscf,ww,modul1,modul3,af,bf,cf,ef) ! d:=Ax
   r=b-d
  
   call wscal_per(nvctr_c,nvctr_f,scal,r(1),r(nvctr_c+1),d(1),d(nvctr_c+1))
@@ -67,7 +67,7 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      !      call apply_hp_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      !        cprecr,hx,hy,hz,d,b,psifscf,ww) ! b:=Ad
      call apply_hp_slab_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-          cprecr,hx,hy,hz,d,b,psifscf,ww,modul1,modul3,af,bf,cf,ef) ! b:=Ad
+          cprecr,d,b,psifscf,ww,modul1,modul3,af,bf,cf,ef) ! b:=Ad
 
      !alpha=rmr/dot_product(d,b)
      alpha=rmr/dot(nvctr_c+7*nvctr_f,d(1),1,b(1),1)
@@ -206,19 +206,19 @@ END SUBROUTINE apply_hp_slab
 !!   array x is input, array y is output
 subroutine apply_hp_slab_sd(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-     cprecr,hx,hy,hz,x,y,psifscf,ww,modul1,modul3,a,b,c,e)
+     cprecr,x,y,psifscf,ww,modul1,modul3,a,b,c,e)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
-  real(gp), intent(in) :: hx,hy,hz,cprecr
+  real(gp), intent(in) :: cprecr
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   real(wp), intent(in) ::  x(nvctr_c+7*nvctr_f)  
   real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
   integer, parameter :: lowfil=-14,lupfil=14
 
-  real(gp) hgrid(3)   
+  !n(c) real(gp) hgrid(3)   
   real(wp),dimension((2*n1+2)*(2*n2+16)*(2*n3+2))::ww,psifscf
 
   integer,intent(in)::modul1(lowfil:n1+lupfil)
@@ -233,9 +233,9 @@ subroutine apply_hp_slab_sd(n1,n2,n3, &
        nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)),   &
        x(1),x(nvctr_c+min(1,nvctr_f)),psifscf)
 
-  hgrid(1)=hx
-  hgrid(2)=hy
-  hgrid(3)=hz
+  !n(c) hgrid(1)=hx
+  !n(c) hgrid(2)=hy
+  !n(c) hgrid(3)=hz
   ! psifscf: input, ww: output
   !     call convolut_kinetic_slab_c(2*n1+1,2*n2+15,2*n3+1,hgridh,psifscf,ww,cprecr)
   call convolut_kinetic_slab_sdc(n1,n2,n3,psifscf,ww,cprecr,modul1,modul3,a,b,c,e)
@@ -252,20 +252,20 @@ END SUBROUTINE apply_hp_slab_sd
 !!   array x is input, array y is output
 subroutine apply_hp_slab_sd_scal(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-     cprecr,hx,hy,hz,x,y,psifscf,ww,modul1,modul3,a,b,c,e,scal)
+     cprecr,x,y,psifscf,ww,modul1,modul3,a,b,c,e,scal)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp),intent(in) :: scal(0:7)
-  real(gp), intent(in) :: hx,hy,hz,cprecr
+  real(gp), intent(in) :: cprecr
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   real(wp), intent(in) ::  x(nvctr_c+7*nvctr_f)  
   real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
   integer, parameter :: lowfil=-14,lupfil=14
 
-  real(gp) hgrid(3)   
+  !n(c) real(gp) hgrid(3)   
   real(wp),dimension((2*n1+2)*(2*n2+16)*(2*n3+2))::ww,psifscf
 
   integer,intent(in)::modul1(lowfil:n1+lupfil)
@@ -280,9 +280,9 @@ subroutine apply_hp_slab_sd_scal(n1,n2,n3, &
        nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)),&
        x(1),x(nvctr_c+min(1,nvctr_f)),psifscf,scal)
 
-  hgrid(1)=hx
-  hgrid(2)=hy
-  hgrid(3)=hz
+  !n(c) hgrid(1)=hx
+  !n(c) hgrid(2)=hy
+  !n(c) hgrid(3)=hz
   ! psifscf: input, ww: output
   !     call convolut_kinetic_slab_c(2*n1+1,2*n2+15,2*n3+1,hgridh,psifscf,ww,cprecr)
   call convolut_kinetic_slab_sdc(n1,n2,n3,psifscf,ww,cprecr,modul1,modul3,a,b,c,e)

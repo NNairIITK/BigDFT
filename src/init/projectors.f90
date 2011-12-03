@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to handel projectors
 !! @author
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -22,7 +22,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   !Local variables
-  logical :: cmplxprojs
+  !n(c) logical :: cmplxprojs
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
   integer :: ikpt,nkptsproj,ikptp
   real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
@@ -205,7 +205,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   !Compute the multiplying coefficient for nprojel in case of imaginary k points.
   !activate the complex projector if there are kpoints
   !TO BE COMMENTED OUT
-  cmplxprojs= (orbs%kpts(1,1)**2+orbs%kpts(2,1)**2+orbs%kpts(3,1)**2 >0) .or. orbs%nkpts>1
+  !n(c) cmplxprojs= (orbs%kpts(1,1)**2+orbs%kpts(2,1)**2+orbs%kpts(3,1)**2 >0) .or. orbs%nkpts>1
   nkptsproj=1
   if ((.not.DistProjApply) .and. orbs%norbp > 0) then
      nkptsproj = 0
@@ -245,7 +245,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
 END SUBROUTINE localize_projectors
 
 
-!>   Fill the proj array with the PSP projectors or their derivatives, following idir value
+!> Fill the proj array with the PSP projectors or their derivatives, following idir value
 subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   use module_base
   use module_types
@@ -258,7 +258,7 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !Local variables
-  integer, parameter :: nterm_max=20 !if GTH nterm_max=4
+  !n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
 
   if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) write(*,'(1x,a)',advance='no') &
@@ -515,9 +515,9 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
 END SUBROUTINE numb_proj
 
 
-!>  Returns the compressed form of a Gaussian projector 
-!!  @f$ x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 )) @f$
-!!  in the arrays proj_c, proj_f
+!> Returns the compressed form of a Gaussian projector 
+!! @f$ x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 )) @f$
+!! in the arrays proj_c, proj_f
 subroutine crtproj(geocode,nterm,n1,n2,n3, & 
      hx,hy,hz,kx,ky,kz,ncplx,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj)
@@ -538,7 +538,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
   integer :: mvctr,i_all,i_stat,j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
   real(wp) :: re_cmplx_prod,im_cmplx_prod
-  real(gp) :: factor,err_norm
+  real(gp) :: factor !n(c) err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
 !$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
@@ -559,7 +559,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
   perz=(geocode /= 'F')
 
   ! make sure that the coefficients returned by CALL GAUSS_TO_DAUB are zero outside [ml:mr] 
-  err_norm=0.0_gp 
+  !n(c) err_norm=0.0_gp 
   do iterm=1,nterm
 
      factor=fac_arr(iterm)
@@ -1003,7 +1003,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
 END SUBROUTINE crtproj
 
 
-!>   Real part of the complex product
+!> Real part of the complex product
 function re_cmplx_prod(a,b,c)
   use module_base
   implicit none
@@ -1033,8 +1033,8 @@ function im_cmplx_prod(a,b,c)
 END FUNCTION im_cmplx_prod
 
 
-!>   Finds the size of the smallest subbox that contains a localization region made 
-!!   out of atom centered spheres
+!> Finds the size of the smallest subbox that contains a localization region made 
+!! out of atom centered spheres
 subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
   use module_base
   implicit none
@@ -1045,14 +1045,14 @@ subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,
   integer, intent(out) :: nl1,nu1,nl2,nu2,nl3,nu3
   !Local variables
   real(kind=8), parameter :: eps_mach=1.d-12
-  real(kind=8) :: onem
+  !n(c) real(kind=8) :: onem
   real(gp) :: cxmax,cymax,czmax,cxmin,cymin,czmin,rad
 
   rad=radius*rmult
   cxmax=rxyz(1)+rad ; cxmin=rxyz(1)-rad
   cymax=rxyz(2)+rad ; cymin=rxyz(2)-rad
   czmax=rxyz(3)+rad ; czmin=rxyz(3)-rad
-  onem=1.d0-eps_mach
+  !n(c) onem=1.d0-eps_mach
 
   nl1=ceiling(real(cxmin/hx,kind=8) - eps_mach)   
   nl2=ceiling(real(cymin/hy,kind=8) - eps_mach)   
@@ -1636,18 +1636,8 @@ subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   endif
   
 END SUBROUTINE calc_coeff_proj
-!!****f* BigDFT/localize_projectors_paw
-!! FUNCTION
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2010 BigDFT group 
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
 subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
      logrid,at,orbs,PAWD)
   use module_base
@@ -1663,8 +1653,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   type(PAWproj_data_type) ::PAWD
 
-  !local variables
-  logical :: cmplxprojs
+  !Local variables
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
   integer :: ikpt,nkptsproj,ikptp
   real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
@@ -1811,7 +1800,6 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
         endif
      endif
   enddo
-
   
   
   !   if (memorylimit /= 0.e0 .and. .not. DistProjApply .and. &
@@ -1931,6 +1919,5 @@ subroutine numb_proj_paw(ityp,mproj)
 end subroutine numb_proj_paw
 
 END subroutine localize_projectors_paw
-!!***
 
 

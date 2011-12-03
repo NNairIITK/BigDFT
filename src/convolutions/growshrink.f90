@@ -88,18 +88,18 @@ subroutine comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
   real(wp), dimension(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16), intent(in) :: w2
   real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(inout) :: y
   !local variables
-  integer :: m1,m2,m3,nt
+  !n(c) integer :: m1,m2,m3,nt
 
-  m1=nfu1-nfl1
-  m2=nfu2-nfl2
-  m3=nfu3-nfl3
+  !n(c) m1=nfu1-nfl1
+  !n(c) m2=nfu2-nfl2
+  !n(c) m3=nfu3-nfl3
 
   ! i1,i2,i3 -> i2,i3,I1
-  nt=(nfu2-nfl2+1)*(nfu3-nfl3+1)
+  !n(c) nt=(nfu2-nfl2+1)*(nfu3-nfl3+1)
   call comb_rot_grow_loc_1(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,w1,ibyz,ibzxx) 
 
   ! i2,i3,I1 -> i3,I1,I2
-  nt=(nfu3-nfl3+1)*(2*m1+31)
+  !n(c) nt=(nfu3-nfl3+1)*(2*m1+31)
   call comb_rot_grow_loc_2(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,ibzxx,ibxxyy) 
 
   ! i3,I1,I2  -> I1,I2,I3: add the result to y
@@ -325,12 +325,10 @@ subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
        (2*n3+31)*(n1+1)*(n2+1))), intent(inout) :: w2
   real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: xc
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: xf
-
   !    perform the combined transform    
   call comb_shrink_loc_c(0,n1,0,n2,0,n3,w1,w2,y,xc,1,1,1,&
        ibxy_c,ibzzx_c,ibyyzz_c) ! for scfunctions
   !    for wavelets:
-
   call comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,xf,&
        ibxy_f,ibzzx_f,ibyyzz_f)
 
@@ -367,8 +365,8 @@ subroutine comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,&
   ! I2,I3,i1 -> I3,i1,i2
   nt=(2*m3+31)*(m1+1)
   call comb_rot_shrink_loc_2(nt,w1,w2,nfl2,nfu2,ibzzx)
-
   ! I3,i1,i2 -> i1,i2,i3
+
   nt=(m1+1)*(m2+1)
   call comb_rot_shrink_loc_3(nt,w2,x,nfl3,nfu3,ibxy)
 

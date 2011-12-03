@@ -81,7 +81,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   character(len=*), parameter :: subname='parse_cp2k_files'
   character(len=6) :: string,symbol
   character(len=100) :: line
-  integer, parameter :: nterm_max=3
+  !n(c) integer, parameter :: nterm_max=3
   integer :: ngx,nbx,nst,nend,num,mmax,myshift,i,ipar,ipg,jat
   integer :: iorb,jorb,iat,ityp,i_all,i_stat,ibas,ig,iset,jbas,ishell,lmax
   integer :: isat,iexpo,icoeff,iam
@@ -649,7 +649,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=65536
   logical :: perx,pery,perz
   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
-  integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
+  integer :: nterms_max,nterms,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3 !n(c) iscoeff
   real(gp) :: rx,ry,rz,gau_a
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
@@ -686,7 +686,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   ishell=0
   iexpo=1
   icoeff=1
-  iscoeff=1
+  !n(c) iscoeff=1
   iterm=1
   do iat=1,G%nat
      rx=G%rxyz(1,iat)
@@ -795,13 +795,9 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   real(gp), dimension(nterm_max) :: fac_arr
   real(wp), allocatable, dimension(:,:,:, :) :: work
   real(wp), allocatable, dimension(:,  :,:,:,:) :: wx,wy,wz
-  real(wp), allocatable, dimension(:,:,:,:) :: wx_k,wy_k,wz_k
   real(wp), allocatable, dimension(:,:) :: cossinfacts
-  character(len=11) :: filename
-
-  real(gp) test_wf(500), r
-
   integer :: ncplxC
+
   ncplxC=2
 
   ! if ( ncplx.ne.1) then
@@ -863,9 +859,6 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
         !print *,iproc,iat,ishell,G%nam(ishell),G%nshell(iat)
         !multiply the values of the gaussian contraction times the orbital coefficient
     
-
-
-        test_wf=0.0
 
         do m=1,2*l-1
            call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
@@ -1157,7 +1150,7 @@ function re_re_cmplx_prod(a,b,c)
   implicit none
   real(wp), dimension(2,2), intent(in) :: a,b,c
   real(wp) :: re_re_cmplx_prod
-  real(wp) :: re_cmplx_prod,im_cmplx_prod
+  real(wp) :: re_cmplx_prod
   
   re_re_cmplx_prod=re_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
        -re_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
@@ -1171,7 +1164,7 @@ function im_re_cmplx_prod(a,b,c)
   implicit none
   real(wp), dimension(2,2), intent(in) :: a,b,c
   real(wp) :: im_re_cmplx_prod
-  real(wp) :: re_cmplx_prod,im_cmplx_prod
+  real(wp) :: re_cmplx_prod
   
   im_re_cmplx_prod=-re_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
                    +re_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
@@ -1180,12 +1173,13 @@ function im_re_cmplx_prod(a,b,c)
   
 END FUNCTION im_re_cmplx_prod
 
+
 function re_im_cmplx_prod(a,b,c)
   use module_base
   implicit none
   real(wp), dimension(2,2), intent(in) :: a,b,c
   real(wp) :: re_im_cmplx_prod
-  real(wp) :: re_cmplx_prod,im_cmplx_prod
+  real(wp) :: im_cmplx_prod
   
   re_im_cmplx_prod=im_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
        -im_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
@@ -1194,12 +1188,13 @@ function re_im_cmplx_prod(a,b,c)
   
 END FUNCTION re_im_cmplx_prod
 
+
 function im_im_cmplx_prod(a,b,c)
   use module_base
   implicit none
   real(wp), dimension(2,2), intent(in) :: a,b,c
   real(wp) :: im_im_cmplx_prod
-  real(wp) :: re_cmplx_prod,im_cmplx_prod
+  real(wp) :: im_cmplx_prod
   
   im_im_cmplx_prod=-im_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
                    +im_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
@@ -1208,13 +1203,8 @@ function im_im_cmplx_prod(a,b,c)
 END FUNCTION im_im_cmplx_prod
 
 
-
-
-
-
-
-!accumulate 3d projector in real form from a tensor produc decomposition
-! using complex gaussians
+!> Accumulate 3d projector in real form from a tensor produc decomposition
+!! using complex gaussians
 subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
   use module_base
   use module_types
@@ -1736,7 +1726,7 @@ END SUBROUTINE segments_to_grid
 !> Parse the output of CP2K to read the basis set information
 subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hx,hy,hz,psi)
+     nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,rxyz,hx,hy,hz,psi) !n(c) occup (arg:l-5)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -1748,7 +1738,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   integer, dimension(nat), intent(in) :: iatype
   real(gp), intent(in) :: hx,hy,hz
   real(gp), dimension(3,nat), intent(in) :: rxyz
-  real(gp), dimension(norb), intent(in) :: occup
+  !n(c) real(gp), dimension(norb), intent(in) :: occup
   !real(gp), intent(out) :: eks
   real(wp), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: psi
   !local variables

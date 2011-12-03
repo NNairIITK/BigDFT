@@ -230,7 +230,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
 
   !local variables
   character(len=*), parameter :: subname='gaussian_pswf_basis'
-  integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
+  integer, parameter :: noccmax=2,lmax=4,nelecmax=32 !n(c) nmax=6
   logical :: occeq
   integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,ictotpsi,norbe,norbsc,ishltmp
   integer :: ityx,ntypesx,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll,ngv,ngc,islcc
@@ -517,19 +517,12 @@ END SUBROUTINE gaussian_pswf_basis
 
 
 
-!!****f* BigDFT/gaussian_pswf_basis_for_paw
-!! FUNCTION
-!!   gaussian section
-!!   Create gaussian structure from ptildes   _for_paw
-!!
-!! SOURCE
-!!
-subroutine gaussian_pswf_basis_for_paw(iproc,nspin,at,rxyz,G,  &
+!> Create gaussian structure from ptildes   _for_paw
+subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg, iorbto_paw_nchannels, iorbto_imatrixbeg )
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nspin
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
   type(gaussian_basis_c), intent(inout) :: G
@@ -545,20 +538,11 @@ subroutine gaussian_pswf_basis_for_paw(iproc,nspin,at,rxyz,G,  &
   !local variables
   character(len=*), parameter :: subname='gaussian_pswf_basis_for_paw'
   integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
-  logical :: occeq
-  integer :: i_stat,i_all,iat,ityp,jtyp,ishell,iexpo,l,i,ig,ictotpsi,norbe,norbsc,ishltmp,&
-       iexpoat_qs , iexpoat_coeffs
-  integer :: ityx,ntypesx,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll
-  real(gp) :: ek
-  integer, dimension(lmax) :: nl
-  real(gp), dimension(noccmax,lmax) :: occup
-  integer, dimension(:), allocatable :: iatypex
-  real(gp), dimension(:), allocatable :: psiatn,locrad
-  real(gp), dimension(:,:), allocatable :: xpt
-  real(gp), dimension(:,:,:), allocatable :: psiat  
-  real(gp)  :: gaenes_aux(5*at%nat)
-  integer :: last_aux, firstperityx(at%nat), il, j
+  integer :: il, j
+  integer :: i_stat,iat,ityp,jtyp,ishell,iexpo,l,i
+  integer :: ig,iexpoat_qs , iexpoat_coeffs
   integer :: natpaw, imatrix
+  integer :: nspinor,noncoll,icoeff,m
 
   !quick return if possible
   !if the positions are already associated it means that the basis is generated
@@ -747,18 +731,13 @@ subroutine gaussian_pswf_basis_for_paw(iproc,nspin,at,rxyz,G,  &
 
 !!  gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
 
-
 END SUBROUTINE gaussian_pswf_basis_for_paw
-!!***
-
 
 
 !>   Extract the pseudopotential basis
 !! @warning
 !!   This is not the complete PSP basis set. 
 !!   The radial power term is lacking in the gaussian descriptors should be added if needed
-!!
-!!
 subroutine gaussian_psp_basis(at,rxyz,G)
   use module_base
   use module_types

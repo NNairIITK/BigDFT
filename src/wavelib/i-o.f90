@@ -7,12 +7,12 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
  
-subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,& !n(c) iproc (arg:1)
      rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,n1_old,n2_old,n3_old,n1,n2,n3
+  integer, intent(in) :: n1_old,n2_old,n3_old,n1,n2,n3  !n(c) iproc
   real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(atoms_data), intent(in) :: at
@@ -190,7 +190,7 @@ subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old
   end if
 
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
-  call compress(n1,n2,n3,0,n1,0,n2,0,n3,  &
+  call compress(n1,n2,0,n1,0,n2,0,n3,  &
        wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),   &
        wfd%nseg_f,wfd%nvctr_f,&
        wfd%keyg(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
@@ -389,7 +389,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      enddo
 
      ! I put nat = 1 here, since only one position is saved in wavefunction files.
-     call reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+     call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
           rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
 
      i_all=-product(shape(psigold))*kind(psigold)

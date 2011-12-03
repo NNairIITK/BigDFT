@@ -57,6 +57,7 @@
     public :: memocc
     public :: memocc_set_state
     public :: memocc_set_memory_limit
+    public :: memocc_report
     public :: d_nan,r_nan
 
   contains
@@ -101,6 +102,10 @@
 
       memorylimit = limit
     end subroutine memocc_set_memory_limit
+
+    subroutine memocc_report()
+      call memocc(0,0,'count', 'stop')
+    end subroutine memocc_report
 
     !> Put to zero memocc counters
     subroutine memocc_variables_init()
@@ -928,7 +933,8 @@
       integer :: ndim
       if (ndebug /=0) then
          ndim=product(shape(array))-ndebug
-         call cmpdp_padding(1,ndim,array)
+         stop "I don't have this function!!!!!"
+         !call cmpdp_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_cmpdp1

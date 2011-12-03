@@ -224,7 +224,7 @@ subroutine wofz_mod(alpha,m,q,jm,u,v,flag)
   real(dp), intent(out) :: u,v
   !local variables
   real(dp), parameter :: factor=1.12837916709551257388_dp,rmaxreal=0.5e+154_dp
-  real(dp), parameter :: rmaxexp=708.503061461606_dp,rmaxgoni=3.53711887601422e+15_dp
+  real(dp), parameter :: rmaxexp=708.503061461606_dp !n(c) ,rmaxgoni=3.53711887601422e+15_dp
   real(dp), parameter :: pi=3.1415926535897932384_dp
   logical :: a,b
   integer :: j,n,i,kapn,nu,np1

@@ -1,10 +1,14 @@
-#MSUB -r test # Request name
-#MSUB -n 2 # Number of tasks to use
-#MSUB -T 1800 # Elapsed time limit in seconds
-#MSUB -o job_%I.o # Standard output. %I is the job id
-#MSUB -e job_%I.e # Error output. %I is the job id
+#!/bin/bash
+#MSUB -r jobname
+#MSUB -n 7 
+#MSUB -T 1800
+#MSUB -q hybrid
+#MSUB -o job_%I.o
+#MSUB -e job_%I.e
 #MSUB -A gch0001
 set -x
-cd ${BRIDGE_MSUB_PWD}
-export OMP_NUM_THREADS=4
-ccc_mprun 
+cd ${BRIDGE_MSUB_PWD} 
+module load netcdf/3.6.3
+module load cuda/4.0
+export OMP_NUM_THREADS=2
+ccc_mprun  ./bigdft > out

@@ -1235,7 +1235,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
      if (ncommsstep2 > 0) then
         !verify that the messages have been passed
         call MPI_WAITALL(ncommsstep2,mpireq2,mpistat2,ierr)
-        if (ierr /=0)  print *,'step2,ierr',jproc+1,iproc,ierr,mpistat2,MPI_STATUSES_IGNORE
+        if (ierr /=0)  print *,'step2,ierr',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
         
         !copy the results which have been received (the messages sending are after)
         do igroup=1,ngroupp
@@ -1290,7 +1290,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
         !verify that the messages have been passed
         !print *,'waiting,iproc',iproc
         call MPI_WAITALL(ncommsstep,mpireq,mpistat,ierr)
-        if (ierr /=0) print *,'step,ierr',jproc+1,iproc,ierr,mpistat,MPI_STATUSES_IGNORE
+        if (ierr /=0) print *,'step,ierr',jproc+1,iproc,ierr,mpistat !,MPI_STATUSES_IGNORE
         !print *,'done,iproc',iproc
      end if
      isnow=3-isnow

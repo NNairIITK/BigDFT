@@ -59,7 +59,9 @@ program frequencies
    real(gp), dimension(3) :: freq_step
    character(len=60) :: radical
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
-   integer :: k,km,ii,jj,ik,imoves,order,n_order,istat
+   real(gp) :: tel
+   real :: tcpu0,tcpu1
+   integer :: k,km,ii,jj,ik,imoves,order,n_order,istat,ncount0,ncount1,ncount_rate,ncount_max
    logical :: exists
 
    ! Start MPI in parallel version
@@ -149,7 +151,7 @@ program frequencies
    !Message
    if (iproc == 0) then
       write(*,'(1x,a,i0,a,i0,a)') '=F=> There are ', imoves, ' moves already calculated over ', &
-      n_order*3*atoms%nat,' frequencies.'
+         &   n_order*3*atoms%nat,' frequencies.'
       write(*,*)
    end if
 
@@ -160,7 +162,7 @@ program frequencies
    else
       call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
       call frequencies_write_restart(iproc,0,0,0,rxyz,etot,fxyz,&
-      n_order=n_order,freq_step=freq_step,amu=atoms%amu)
+         &   n_order=n_order,freq_step=freq_step,amu=atoms%amu)
       moves(:,0) = .true.
       call restart_inputs(inputs)
    end if
@@ -171,7 +173,7 @@ program frequencies
       write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
       do iat=1,atoms%nat
          write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-         iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(i+3*(iat-1)),i=1,3)
+            &   iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(i+3*(iat-1)),i=1,3)
       end do
    end if
 
@@ -223,7 +225,7 @@ program frequencies
             rpos=rxyz
             if (iproc == 0) then
                write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") &
-               '=F Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
+                  &   '=F Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
             end if
             if (atoms%geocode == 'P') then
                rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
@@ -290,6 +292,10 @@ program frequencies
    allocate(iperm(3*atoms%nat+ndebug),stat=i_stat)
    call memocc(i_stat,iperm,'iperm',subname)
 
+   !Start timing only for the last part
+   call cpu_time(tcpu0)
+   call system_clock(ncount0,ncount_rate,ncount_max)
+
    !Diagonalise the hessian matrix
    call solve(hessian,3*atoms%nat,eigen_r,eigen_i,vector_l,vector_r)
    !Sort eigenvalues in ascending order (use abinit routine sort_dp)
@@ -323,7 +329,7 @@ program frequencies
             ity=atoms%iatype(iat)
             do j=1,3
                write(15,'(1x,a,1x,100(1pe20.10))') &
-               atoms%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
+                  &   atoms%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
             end do
          end do
          !Blank line
@@ -351,13 +357,13 @@ program frequencies
       total_energy=energies(1,0)+vibrational_energy
       write(*,'(1x,a,81("="))') '=F '
       write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a)') &
-      '=F: Zero-point energy   =', zpenergy*Ha_cmm1, 'cm-1',zpenergy,'Hartree'
+         &   '=F: Zero-point energy   =', zpenergy*Ha_cmm1, 'cm-1',zpenergy,'Hartree'
       write(*,'(1x,a,1pe22.10,a,0pf5.1,a)') &
-      '=F: Vibrational entropy =', vibrational_entropy,' at ',Temperature,'K'
+         &   '=F: Vibrational entropy =', vibrational_entropy,' at ',Temperature,'K'
       write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a,0pf5.1,a)') &
-      '=F: Vibrational  energy =', vibrational_energy*Ha_cmm1, 'cm-1',vibrational_energy,'Hartree at ',Temperature,'K'
+         &   '=F: Vibrational  energy =', vibrational_energy*Ha_cmm1, 'cm-1',vibrational_energy,'Hartree at ',Temperature,'K'
       write(*,'(1x,a,1pe22.10,1x,a,0pf5.1,a)') &
-      '=F: Total energy        =', total_energy,'Hartree at ',Temperature,'K'
+         &   '=F: Total energy        =', total_energy,'Hartree at ',Temperature,'K'
    end if
 
    !Deallocations
@@ -406,6 +412,13 @@ program frequencies
    call memocc(i_stat,i_all,'forces',subname)
 
    call free_input_variables(inputs)
+
+   !Final timing
+   call cpu_time(tcpu1)
+   call system_clock(ncount1,ncount_rate,ncount_max)
+   tel=real(ncount1-ncount0,kind=gp)/real(ncount_rate,kind=gp)
+   if (iproc == 0) &
+      &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') '=F: CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
    !Finalize memory counting
    call memocc(0,0,'count','stop')
@@ -498,7 +511,7 @@ program frequencies
          return
       else
          if (steps(1) /= freq_step(1) .or. &
-         steps(2) /= freq_step(2) .or. &
+            &   steps(2) /= freq_step(2) .or. &
          steps(3) /= freq_step(3)) then
          if (iproc == 0) write(*,freq_form) 'The step to calculate frequencies is not the same: stop.'
          stop
@@ -561,7 +574,7 @@ subroutine frequencies_write_restart(iproc,km,i,iat,rxyz,etot,fxyz,n_order,freq_
    integer, parameter :: iunit = 15
 
    if (km == 0 .and. &
-   .not.(present(n_order).and.present(freq_step).and.present(amu))) then
+      &   .not.(present(n_order).and.present(freq_step).and.present(amu))) then
    if (iproc == 0) write(*,*) "Bug for use of frequencies_write_restart"
    stop
 end if
@@ -591,19 +604,19 @@ END PROGRAM frequencies
 
 
 !> Integrate forces (not used)
-subroutine integrate_forces(iproc,energies,forces,n_moves,nat)
+subroutine integrate_forces(iproc,n_moves) !n(c) energies,forces (arg:2,3)
 
    use module_base
 
    implicit none
    !Arguments
-   integer, intent(in) :: iproc,n_moves,nat
-   real(gp), intent(in) :: energies(n_moves)
-   real(gp), intent(in) :: forces(3*nat,n_moves)
+   integer, intent(in) :: iproc,n_moves
+   !n(c) real(gp), intent(in) :: energies(n_moves)
+   !n(c) real(gp), intent(in) :: forces(3*nat,n_moves)
    !Local variables
    character(len=*), parameter :: subname = "integrate_forces"
    real(gp), dimension(:), allocatable :: weight
-   real(gp) :: path
+   !n(c) real(gp) :: path
    integer :: i,i_stat,i_all
 
    !Allocation
@@ -624,7 +637,7 @@ subroutine integrate_forces(iproc,energies,forces,n_moves,nat)
    weight(n_moves)=1.d0/3.d0
 
    !Start integration
-   path = 0_gp
+   !n(c) path = 0_gp
    do i=1,n_moves
    end do
 

@@ -12,27 +12,27 @@
 program conv_check_cuda
   use module_base
   implicit none
-  integer  :: n1,n2,n3
-  real(gp) :: hx,hy,hz,r2,sigma2,x,y,z,maxdiff,epot,arg
-  real(wp), dimension(:,:,:), allocatable :: pot,psir,psi_in,psi_out
+  integer  :: n1 !n(c) n2,n3
+  real(gp) :: hx,r2,sigma2,x,y,z,maxdiff,arg !n(c) epot,hy,hz
+  real(wp), dimension(:,:,:), allocatable :: psi_in,psi_out !n(c) pot,psir
   !local variables
   character(len=*), parameter :: subname='conv_check'
-  character(len=50) :: chain
-  integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max,it0,it1,ndim,itimes
-  integer :: count_rate,count_max,l,ierror,i1s,i1e
+  !n(c) character(len=50) :: chain
+  integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,it0,it1,ndim,itimes !n(c) i1_max,i_max
+  integer :: l,ierror,i1s,i1e !n(c) count_rate,count_max
   integer :: n1s,n1e,ndats,ndate,nvctr_cf,nseg,iseg
   real(wp) :: tt,scale
-  real(gp) :: v,p,CPUtime,GPUtime,comp,ekin
-  real(gp), dimension(3) :: hgridh
+  real(gp) :: CPUtime,GPUtime,comp,ekin !n(c) v,p
+  !n(c) real(gp), dimension(3) :: hgridh
   integer, dimension(:), allocatable :: keyv,modarr
   integer, dimension(:,:), allocatable :: keyg
   real(kind=8), dimension(:), allocatable :: psi !temporary in view of wp 
   real(kind=8), dimension(:,:,:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
   real(kind=8) :: ekinGPUd
-  real(kind=4) :: t0,t1,epotGPU,ekinGPU
+  !n(c) real(kind=4) :: t0,t1,epotGPU,ekinGPU
   real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,keys_GPU !pointer to the GPU  memory addresses (with norb=1)
-  integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
-  integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
+  !n(c) integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
+  !n(c) integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
   integer, parameter :: lowfilK=-14,lupfilK=14 ! kinetic term
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
   integer(kind=8) :: tsc0, tsc1
@@ -56,8 +56,8 @@ program conv_check_cuda
   end if
 
   hx=0.1e0_gp
-  hy=0.1e0_gp
-  hz=0.1e0_gp
+  !n(c) hy=0.1e0_gp
+  !n(c) hz=0.1e0_gp
 
   scale=real(-.5_gp/hx**2,wp)
 
@@ -203,8 +203,8 @@ program conv_check_cuda
 
            !check the differences between the results
            maxdiff=0.d0
-           i1_max=1
-           i_max=1
+           !n(c) i1_max=1
+           !n(c) i_max=1
            do i=1,ndat
               do i1=1,n1
                  !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
@@ -213,8 +213,8 @@ program conv_check_cuda
                  !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
                  if (comp > maxdiff) then
                     maxdiff=comp
-                    i1_max=i1
-                    i_max=i
+                    !n(c) i1_max=i1
+                    !n(c) i_max=i
                  end if
               end do
            end do
@@ -325,8 +325,8 @@ program conv_check_cuda
 
            !check the differences between the results
            maxdiff=0.d0
-           i1_max=1
-           i_max=1
+           !n(c) i1_max=1
+           !n(c) i_max=1
            do i=1,ndat
               do i1=1,n1
                  !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
@@ -335,8 +335,8 @@ program conv_check_cuda
                  !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
                  if (comp > maxdiff) then
                     maxdiff=comp
-                    i1_max=i1
-                    i_max=i
+                    !n(c) i1_max=i1
+                    !n(c) i_max=i
                  end if
               end do
            end do
@@ -413,8 +413,8 @@ program conv_check_cuda
 
               !check the differences between the results
               maxdiff=0.d0
-              i1_max=1
-              i_max=1
+              !n(c) i1_max=1
+              !n(c) i_max=1
               do i=1,ndat
                  do i1=1,n1
                     !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
@@ -423,8 +423,8 @@ program conv_check_cuda
                     !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
                     if (comp > maxdiff) then
                        maxdiff=comp
-                       i1_max=i1
-                       i_max=i
+                       !n(c) i1_max=i1
+                       !n(c) i_max=i
                     end if
                  end do
               end do
@@ -500,8 +500,8 @@ program conv_check_cuda
 
               !check the differences between the results
               maxdiff=0.d0
-              i1_max=1
-              i_max=1
+              !n(c) i1_max=1
+              !n(c) i_max=1
               do i=1,ndat
                  do i1=1,n1
                     !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
@@ -510,8 +510,8 @@ program conv_check_cuda
                     !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
                     if (comp > maxdiff) then
                        maxdiff=comp
-                       i1_max=i1
-                       i_max=i
+                       !n(c) i1_max=i1
+                       !n(c) i_max=i
                     end if
                  end do
               end do
@@ -602,7 +602,7 @@ program conv_check_cuda
               call uncompress(n1,n1,n1,nseg,nvctr_cf,keyg,keyv,  & 
                    nseg,nvctr_cf,keyg,keyv,psi(1),psi(nvctr_cf+1),psi_in)
 
-              !call compress(n1,n1,n1,0,n1,0,n1,0,n1,nseg,mvctr_cf,keyg,keyv,  & 
+              !call compress(n1,n1,0,n1,0,n1,0,n1,nseg,mvctr_cf,keyg,keyv,  & 
               !     nseg,mvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
            end do
            call nanosec_cuda(tsc1)
@@ -649,8 +649,8 @@ program conv_check_cuda
 
            !check the differences between the results
            maxdiff=0.d0
-           i1_max=1
-           i_max=1
+           !n(c) i1_max=1
+           !n(c) i_max=1
            do i3=1,2*n1+2
               do i2=1,2*n1+2
                  do i1=1,2*n1+2
@@ -660,8 +660,8 @@ program conv_check_cuda
                  !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
                  if (comp > maxdiff) then
                     maxdiff=comp
-                    i1_max=i1
-                    i_max=i
+                    !n(c) i1_max=i1
+                    !n(c) i_max=i
                  end if
                  end do
               end do
@@ -698,7 +698,7 @@ program conv_check_cuda
            !take timings
            call nanosec_cuda(tsc0)
            do i=1,ntimes
-              call compress(n1,n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
+              call compress(n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
                    nseg,nvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
            end do
            call nanosec_cuda(tsc1)
@@ -746,15 +746,15 @@ program conv_check_cuda
 
            !check the differences between the results
            maxdiff=0.d0
-           i1_max=1
-           i_max=1
+           !n(c) i1_max=1
+           !n(c) i_max=1
            do i1=1,8*nvctr_cf
               !write(17,'(i6,2(1pe24.17))')i1,psi(i1),psi_cuda(i1,1,1)
               comp=abs(psi(i1)-real(psi_cuda(i1,1,1),kind=8))
               if (comp > maxdiff) then
                  maxdiff=comp
-                 i1_max=i1
-                 i_max=i
+                 !n(c) i1_max=i1
+                 !n(c) i_max=i
               end if
            end do
            call compare_time(CPUtime,GPUtime,n1*ndat,1,ntimes,maxdiff,1.d-12)

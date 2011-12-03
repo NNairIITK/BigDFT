@@ -23,6 +23,7 @@ module module_defs
   include 'configure.inc' !< Include variables set from configure.
 
   integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
+  integer :: yaml_indent=0 !<Blank spaces indentations for Yaml output level identification
 
   ! General precision, density and the wavefunctions types
   integer, parameter :: gp=kind(1.0d0)  !< general-type precision
@@ -43,8 +44,6 @@ module module_defs
   integer :: MPI_IN_PLACE = 0               !< Fake MPI_IN_PLACE variable to allow compilation in sumrho.
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
-
-
 
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
@@ -178,13 +177,19 @@ module module_defs
      module procedure c_axpy_simple,c_axpy_double
   end interface
 
+  interface
+     subroutine bigdft_utils_flush(unit)
+       integer, intent(in) :: unit
+     end subroutine bigdft_utils_flush
+  end interface
+
   contains
     
     !interface for MPI_ALLREDUCE operations
     subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
-      integer, intent(in) :: buffer
+      integer, intent(inout) :: buffer
       integer, intent(out) :: ierr
 #ifdef HAVE_MPI2
       !case with MPI_IN_PLACE
@@ -217,7 +222,7 @@ module module_defs
     subroutine mpiallred_real(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
-      real(kind=4), intent(in) :: buffer
+      real(kind=4), intent(inout) :: buffer
       integer, intent(out) :: ierr
 #ifdef HAVE_MPI2
       !case with MPI_IN_PLACE
@@ -249,7 +254,7 @@ module module_defs
     subroutine mpiallred_double(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
-      real(kind=8), intent(in) :: buffer
+      real(kind=8), intent(inout) :: buffer
       integer, intent(out) :: ierr
 #ifdef HAVE_MPI2
       !case with MPI_IN_PLACE
@@ -281,7 +286,7 @@ module module_defs
     subroutine mpiallred_log(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
-      logical, intent(in) :: buffer
+      logical, intent(inout) :: buffer
       integer, intent(out) :: ierr
 #ifdef HAVE_MPI2
       !case with MPI_IN_PLACE
@@ -313,25 +318,30 @@ module module_defs
 
     end subroutine mpiallred_log
 
-    function uninitialized_int(one)
+    function uninitialized_int(one) 
       implicit none
       integer, intent(in) :: one
       integer :: uninitialized_int
+      integer :: foo
+      foo = kind(one)
       uninitialized_int=-123456789
     end function uninitialized_int
 
-    function uninitialized_real(one)
+    function uninitialized_real(one) 
       implicit none
       real(kind=4), intent(in) :: one
       real(kind=4) :: uninitialized_real
+      integer :: foo
+      foo = kind(one)
       uninitialized_real=-123456789.e0
     end function uninitialized_real
 
-    function uninitialized_dbl(one)
+    function uninitialized_dbl(one) 
       implicit none
       real(kind=8), intent(in) :: one
       real(kind=8) :: uninitialized_dbl
-      
+      integer :: foo
+      foo = kind(one)
       uninitialized_dbl=-123456789.d0
     end function uninitialized_dbl
 
@@ -1138,5 +1148,14 @@ module module_defs
          call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
       end if
     end function fdot_denpot
+
+#ifndef HAVE_FC_FLUSH
+    integer function flush(unit)
+      integer, intent(in) :: unit
+
+      flush = unit
+      return
+    end function flush
+#endif
 
 end module module_defs

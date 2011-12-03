@@ -22,18 +22,15 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
   real(wp),intent(inout) :: x(0:n1,0:n2,0:n3)! input and output
   real(wp) :: zx(2,0:(n1+1)/2,0:n2,0:n3)! work array
   integer :: i1,i2,i3,isign,inzee
-  integer :: nd1,nd2,nd3
+  integer :: nd1,nd3 !n(c) nd2
 
   !*******************************************************************************************
   ! for 2-dimensional FFT:
   real(wp),allocatable :: trig(:,:),z(:,:,:,:),zw(:)
   integer,parameter :: ncache=4*1024
 
-  real(wp) :: t1,t2,tela
-  integer :: count1,count2,count_rate,count_max
-
   nd1=n1+2
-  nd2=n2+2
+  !n(c) nd2=n2+2
   nd3=n3+2
 
   ! fourier transform the x

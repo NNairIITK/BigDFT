@@ -1,0 +1,132 @@
+#!/usr/bin/env python
+
+import sys
+import os.path
+import os
+from optparse import OptionParser, OptionGroup
+
+actions = ["memory-estimation", "rotate", "convert-field",
+           "export-wf", "export-grid", "atomic-wf", "GPU-test"]
+
+abs_top_builddir = "@abs_top_builddir@"
+bindir = "@prefix@"
+
+def toHelp(list):
+  ret = ""
+  for ele in list[:-1]:
+    ret += ele + ", "
+  ret += "or " + list[-1]
+  return ret
+
+def parse():
+  parser = OptionParser("usage: bigdft-tool -a ACTION")
+  parser.add_option("-a", "--action", default=actions[0],
+                    help="perform one of the action: %s " % toHelp(actions) +
+                    "[default: %default]. "
+                    "Possible options for each action are described below.")
+  parser.add_option("--name", type="string", default="", metavar="NAME",
+                    help="read input files using NAME as radical [default: not specified]")
+
+  # The memory estimation.
+  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[0],
+                      "Performing memory estimation for a run of BigDFT.")
+  group.add_option("-n", "--n-proc", type="int", default=1, metavar="N",
+                   help="provide the number of processors that should be"
+                   " tested [default: %default]")
+  parser.add_option_group(group)
+  
+  # The rotation.
+  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[1],
+                      "Rotate the input file to use the smallest mesh possible"
+                      " using files following NAME scheme.")
+  parser.add_option_group(group)
+
+  # The field converter.
+  group = OptionGroup(parser, "bigdft-tool -a %s FROM TO" % actions[2],
+                      "Convert the given scalar field to another format, files"
+                      " FROM and TO are of the form <file.{etsf,cube}>.")
+  parser.add_option_group(group)
+
+  # Wavefunction exportation.
+  group = OptionGroup(parser, "bigdft-tool -a %s FILE" % actions[3],
+                      "Export the compressed wavefunction from FILE to a scalar-field"
+                      " representation in Cube format. If FILE is in ETSF format,"
+                      " one should provide the characteristic of the orbital to export"
+                      " with the following options.")
+  group.add_option("--i-band", type="int", default=1, metavar="BAND",
+                   help="choose the orbital to export [default: %default]")
+  group.add_option("--i-kpt", type="int", default=1, metavar="KPT",
+                   help="choose the k-point to export [default: %default]")
+  group.add_option("--i-spin", type="int", default=1, metavar="SPIN",
+                   help="choose the spin orientation to export [default: %default]")
+  group.add_option("--i-complex", type="int", default=1, metavar="CPLX",
+                   help="choose the real or imaginary part to export [default: %default]")
+  parser.add_option_group(group)
+
+  # Grid exportation
+  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[4],
+                      "Export in XYZ format the positions of all grid points.")
+  parser.add_option_group(group)
+
+  # GAtom
+  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[5],
+                      "Calculates the atomic wavefunctions of the first"
+                      " atom in the gatom basis.")
+  group.add_option("--n-gaussians", type="int", default=31, metavar="NUM", \
+                    help="number of gaussians used in gatom calculation"
+                   " in atomic-wf action [default: %default]")
+  parser.add_option_group(group)
+
+  # Test GPU speed
+  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[6],
+                      "Test the speed of 3D operators with GPU.")
+  group.add_option("--n-repeats", type="int", default=5, metavar="NUM", \
+                    help="number of repeated calculations in"
+                   " GPU-test action [default: %default]")
+  group.add_option("--n-orbs", type="int", default=0, metavar="NUM", \
+                    help="limit the number of computed orbitals in"
+                   " GPU-test action [default: %default]")
+  parser.add_option_group(group)
+
+  return parser
+
+if __name__ == "__main__":
+  parser = parse()
+  (options, args) = parser.parse_args()
+
+  # Try to find memguess executable.
+  memguess = None
+  if os.path.isfile(os.path.join(os.path.dirname(sys.argv[0]), "memguess")):
+    memguess = os.path.join(os.path.dirname(sys.argv[0]), "memguess")
+  elif os.path.isfile("./memguess"):
+    memguess = "./memguess"
+  elif os.path.isfile(os.path.join(abs_top_builddir, "src", "memguess")):
+    memguess = os.path.join(abs_top_builddir, "src", "memguess")
+  elif os.path.isfile(os.path.join(bindir, "bin", "memguess")):
+    memguess = os.path.join(bindir, "bin", "memguess")
+
+  # Run memguess
+  if options.action == actions[0]:
+    command = "%s %d %s dd" % (memguess, options.n_proc, options.name)
+  if options.action == actions[1]:
+    command = "%s 1 %s dd o" % (memguess, options.name)
+  if options.action == actions[2]:
+    if len(args) < 2:
+      parser.print_help()
+      raise ValueError("Action '%s' requires two mandatory arguments" % actions[2])
+    command = "%s 1 dd convert %s %s" % (memguess, args[0], args[1])
+  if options.action == actions[3]:
+    if len(args) < 1:
+      parser.print_help()
+      raise ValueError("Action '%s' requires one mandatory argument" % actions[3])
+    command = "%s 1 dd exportwf %s %d %d %d %d" % (memguess, args[0], options.i_band, options.i_spin, options.i_kpt, options.i_complex)
+  if options.action == actions[4]:
+    command = "%s 1 %s dd y" % (memguess, options.name)
+  if options.action == actions[5]:
+    command = "%s 1 %s dd atwf %d" % (memguess, options.name, options.n_gaussians)
+  if options.action == actions[6]:
+    command = "%s 1 %s dd GPUtest %d %d" % (memguess, options.name, options.n_repeats, options.n_orbs)
+
+  #print command
+  #print 
+  os.system(command)

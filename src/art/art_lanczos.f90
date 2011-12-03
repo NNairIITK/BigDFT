@@ -2,7 +2,7 @@
 !! Contains routines for the lanczos procedure
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -19,7 +19,7 @@ module lanczos_defs
   implicit none
   save
 
-  integer      :: NVECTOR_LANCZOS_A
+  integer      :: NVECTOR_LANCZOS_H
   integer      :: NVECTOR_LANCZOS_C
   integer      :: LANCZOS_SCL
 
@@ -48,6 +48,7 @@ subroutine lanczos( maxvec, new_projection, produit )
   use lanczos_defs
   use random
   use bigdft_forces
+  use module_interfaces
   implicit none
 
   !Arguments
@@ -56,13 +57,12 @@ subroutine lanczos( maxvec, new_projection, produit )
   real(kind=8), intent(out) :: produit 
 
   !Local variables
-  integer      :: i, j, k, i_err, ivec, ierror, nat
+  integer      :: i, j, k, i_err, ivec, ierror
   real(kind=8) :: a1, a0, b2, b1, c1, norm, ran3
   real(kind=8) :: excited_energy, sum2, invsum
   !real(kind=8) :: dr2
   real(kind=8), dimension(3) :: boxl
   real(kind=8), dimension(VECSIZE)         :: newpos, newforce, ref_force
-  real(kind=8), dimension( 2 * maxvec -1 ) :: scratcha
   real(kind=8), dimension(maxvec)          :: diag
   real(kind=8), dimension(maxvec-1)        :: offdiag
   real(kind=8), dimension(maxvec, maxvec)  :: vector
@@ -79,6 +79,13 @@ subroutine lanczos( maxvec, new_projection, produit )
   integer                                  :: lwork
   integer                                  :: i_min
   real(kind=8)                             :: e_min
+  interface
+     subroutine center( vector, vecsize )
+       integer, intent(in) :: vecsize
+       real(kind=8), dimension(vecsize), intent(inout), target :: vector
+     end subroutine center
+  end interface
+  
   !_______________________
   newpos = 0.0d0
   diag = 0.0d0

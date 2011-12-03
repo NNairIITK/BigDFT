@@ -1,7 +1,7 @@
 !> @file
 !!   In this file, we have the analytic routines for the calculation of the overlap of short-range functions
 !! @author
-!!   Copyright (C) 2010 BigDFT group 
+!!   Copyright (C) 2010-2011 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -267,7 +267,7 @@ subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,
  
   !calculate the first part of rho array
   call calculate_rho(iproc,nproc,atoms%geocode,atoms%nat,radii,rxyz,hxh,hyh,hzh,&
-       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,lr%d%n3i,pot,rhoarr)
+       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,pot,rhoarr)
 
   if (iproc == 0) then
      do iat=1,atoms%nat
@@ -276,7 +276,7 @@ subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,
   end if
 
   call calculate_rho_longrange(iproc,nproc,atoms,radii,rxyz,hxh,hyh,hzh,&
-       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,lr%d%n3i,rho,rhoarr)
+       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,rho,rhoarr)
 
   if (iproc == 0) then
      do iat=1,atoms%nat
@@ -459,7 +459,7 @@ subroutine assign_atomic_radii_york(at,radii)
   type(atoms_data), intent(in) :: at
   real(gp), dimension(at%nat), intent(out) :: radii
   !local variables
-  real(gp), parameter :: xi=1.1839527_gp
+  !n(c) real(gp), parameter :: xi=1.1839527_gp
   integer :: iat,ityp
   real(gp) :: lambda,lambdafrac,cutoff
 
@@ -519,7 +519,7 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
   type(gaussian_basis), intent(out) :: G  
   !local variables
   character(len=*), parameter :: subname='gaussian_psp_basis'
-  real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
+  !n(c) real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
   integer :: iat,nshell,iexpo,l,ishell,i_stat
 
   G%nat=nat
@@ -574,13 +574,13 @@ END SUBROUTINE gaussian_hermite_basis
 
 
 subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
-     n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pot,rhoarr)
+     n1,n2,n3,n3pi,i3s,n1i,n2i,pot,rhoarr)
   use module_base
   use module_types
   implicit none
   !Arguments---------
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nat
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,nat
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(nat), intent(in) :: radii
   real(gp), dimension(3,nat), intent(in) :: rxyz
@@ -682,9 +682,9 @@ subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
 END SUBROUTINE calculate_rho
 
 
-!>   Overlap kinetic matrix between two different basis structures
-!!   the kinetic operator is applicated on the A basis structure
-!!   The basis structure is supposed to be based on s-functions times Hermite polynomials
+!> Overlap kinetic matrix between two different basis structures
+!! the kinetic operator is applicated on the A basis structure
+!! The basis structure is supposed to be based on s-functions times Hermite polynomials
 subroutine kinetic_overlap_h(A,B,ovrlp)
   use module_base
   use module_types
@@ -994,7 +994,7 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   integer, parameter :: nterm_max=48,maxsizeKB=2048,nw=65536
   logical :: perx,pery,perz
   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
-  integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
+  integer :: nterms_max,nterms,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3 !n(c) iscoeff
   real(gp) :: rx,ry,rz,gau_a
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
@@ -1031,7 +1031,7 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   ishell=0
   iexpo=1
   icoeff=1
-  iscoeff=1
+  !n(c) iscoeff=1
   iterm=1
   do iat=1,G%nat
      rx=G%rxyz(1,iat)

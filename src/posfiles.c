@@ -207,9 +207,11 @@ void FC_FUNC(finaliseextract, FINALISEEXTRACT)(void)
 #endif
 }
 
+#ifdef HAVE_LIB_ARCHIVE
 static const void *buff = (void*)0;
 static size_t size;
 static size_t pos = 0;
+#endif
 
 void FC_FUNC(opennextcompress, OPENNEXTCOMPRESS)(const char *archive, int *lgAr,
                                                  const char *filename, int *lgF,
@@ -264,14 +266,16 @@ void FC_FUNC(extractnextline, EXTRACTNEXTLINE)(char line[150], int *eof)
   do
     {
       if (!buff)
-        r = archive_read_data_block(_posinp_, &buff, &size, &offset);
-      if (r != ARCHIVE_OK)
         {
-          buff = (void*)0;
-          pos = 0;
-          if (!jdx)
-            *eof = 1;
-          return;
+          r = archive_read_data_block(_posinp_, &buff, &size, &offset);
+          if (r != ARCHIVE_OK)
+            {
+              buff = (void*)0;
+              pos = 0;
+              if (!jdx)
+                *eof = 1;
+              return;
+            }
         }
       vals = (char*)buff;
       for (idx = pos; idx < size; idx++)

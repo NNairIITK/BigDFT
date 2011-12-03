@@ -1,7 +1,7 @@
 !> @file
 !! Routines to creation localisation regions
 !! @author
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -46,7 +46,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
 
   nseg_c=wfd%nseg_c
   call make_logrid_f(n1,n2,n3, & 
-       wfd%nseg_f,wfd%keyg(1,nseg_c+min(1,wfd%nseg_f)),wfd%keyv(nseg_c+min(1,wfd%nseg_f)),  & 
+       wfd%nseg_f,wfd%keyg(1,nseg_c+min(1,wfd%nseg_f)),  & 
        logrid)
 
   call make_bounds(n1,n2,n3,logrid,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
@@ -65,7 +65,7 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   use module_base
   implicit none
   integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer :: i1,i2,i3,m1,m2,m3,i_stat,i_all
+  integer :: i1,i2,i3,i_stat,i_all !n(c) m1,m2,m3
 
   integer,intent(in):: ibyz_f(2,0:n2,0:n3+ndebug),ibxy_f(2,0:n1,0:n2+ndebug)
 
@@ -85,9 +85,9 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   allocate(logrid_big((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_big,'logrid_big',subname)
 
-  m1=nfu1-nfl1
-  m2=nfu2-nfl2
-  m3=nfu3-nfl3
+  !n(c) m1=nfu1-nfl1
+  !n(c) m2=nfu2-nfl2
+  !n(c) m3=nfu3-nfl3
 
   !   (0:n3,0:2*n1+1,0:2*n2+1) from grow
   !   (0:2*n2+1,0:2*n3+1,0:n1) from shrink
@@ -209,21 +209,20 @@ END SUBROUTINE ib_to_logrid_rot_per
 
 
 subroutine make_logrid_f(n1,n2,n3, & 
-     mseg_f,keyg_f,keyv_f,&
+     mseg_f,keyg_f,&
      logrid)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
   integer, intent(in) :: mseg_f
-  integer, dimension(mseg_f), intent(in) :: keyv_f
   integer, dimension(2,mseg_f), intent(in) :: keyg_f
   logical,intent(out),dimension(0:n1,0:n2,0:n3)::logrid
   !local variables
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+  integer :: iseg,j0,j1,ii,i1,i2,i3,i0,i !n(c) jj
 
   logrid=.false.
   do iseg=1,mseg_f
-     jj=keyv_f(iseg)
+     !n(c) jj=keyv_f(iseg)
      j0=keyg_f(1,iseg)
      j1=keyg_f(2,iseg)
      ii=j0-1

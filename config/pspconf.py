@@ -64,7 +64,15 @@ def export_psp(dir, symbol, elements):
   print '     exists = .true.'
 
 def natural_sortkey(string):
-  return tuple(int(num) if num else alpha for num, alpha in tokenize(string))
+  ret = []
+  for num, alpha in tokenize(string):
+    if num:
+      ret.append(int(num))
+    else:
+      ret.append(alpha)
+  return ret
+## Disabled since not working for Python 2.4 ...
+##  return tuple(int(num) if num else alpha for num, alpha in tokenize(string))
 
 re_psp = re.compile("[A-Z][a-z]?-q[0-9]+")
 tokenize = re.compile(r'(\d+)|(\D+)').findall
