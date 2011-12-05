@@ -85,7 +85,7 @@ tt = mad(tmp[2* 1] - tmp[2* -1], FILT2_1,  tt);\n";
 }
 
 static void generate_kinetic_k1dKernel(std::stringstream &program){
-  program<<"__kernel void kinetic_k1dKernel_d(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in, __global double *  restrict x, __global const double *  restrict y_in, __global double *  restrict y) {\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<BUFFER_WIDTH<<", 1))) void kinetic_k1dKernel_d(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in, __global double *  restrict x, __global const double *  restrict y_in, __global double *  restrict y) {\n\
 __local double tmp_r["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
 __local double tmp_i["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
 __local double tmp_y_r["<<BUFFER_WIDTH<<"*("<<FILTER_WIDTH<<"+1)];\n\
@@ -212,7 +212,7 @@ tt = mad(tmp[ 1] - tmp[ -1], FILT2_1,  tt);\n";
 }
 
 static void generate_kinetic_k1dKernel_2(std::stringstream &program){
-  program<<"__kernel void kinetic_k1dKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in_r, __global const double *  restrict x_in_i, __global double *  restrict x_r, __global double *  restrict x_i, __global const double *  restrict y_in_r, __global const double *  restrict y_in_i, __global double *  restrict y_r, __global double *  restrict y_i ) {\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<BUFFER_WIDTH<<", 1))) void kinetic_k1dKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in_r, __global const double *  restrict x_in_i, __global double *  restrict x_r, __global double *  restrict x_i, __global const double *  restrict y_in_r, __global const double *  restrict y_in_i, __global double *  restrict y_r, __global double *  restrict y_i ) {\n\
 __local double tmp_r["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
 __local double tmp_i["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
 __local double tmp_y_r["<<BUFFER_WIDTH<<"*("<<FILTER_WIDTH<<"+1)];\n\
@@ -267,7 +267,7 @@ x_i[jg*n + ig] = tmp_o_i[0];\n\
 }
 
 static void generate_kinetic_k1d_fKernel_2(std::stringstream &program){
-  program<<"__kernel void kinetic_k1d_fKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in_r, __global const double *  restrict x_in_i, __global double *  restrict x_r, __global double *  restrict x_i, __global const double *  restrict y_in_r, __global const double *  restrict y_in_i, __global double *  restrict y_r, __global double *  restrict y_i ) {\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<BUFFER_WIDTH<<", 1))) void kinetic_k1d_fKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in_r, __global const double *  restrict x_in_i, __global double *  restrict x_r, __global double *  restrict x_i, __global const double *  restrict y_in_r, __global const double *  restrict y_in_i, __global double *  restrict y_r, __global double *  restrict y_i ) {\n\
 __local double tmp_r["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
 __local double tmp_i["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
 __local double tmp_y_r["<<BUFFER_WIDTH<<"*("<<FILTER_WIDTH<<"+1)];\n\
