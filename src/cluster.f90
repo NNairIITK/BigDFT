@@ -1420,15 +1420,11 @@ if (inputpsi /= -1000) then
    refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
 
    call calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s+i3xcsh,n3p,in%nspin,refill_proj,&
-      &   rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise)
+      &   rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise,psoffset)
 
-!yk
-
-call local_hamiltonian_stress(iproc,orbs,Glr,in%hx,in%hy,in%hz,psi,kinstrorb)
+call local_hamiltonian_stress(iproc,orbs,Glr,hx,hy,hz,psi,kinstrorb)
   if (nproc > 1) then
      call mpiallred(kinstrorb(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
-  else
-!kinstr(:)=kinstrorb(:)
   end if
 
 if (iproc == 0 .and. verbose > 1) then

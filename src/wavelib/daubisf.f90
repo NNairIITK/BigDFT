@@ -585,7 +585,6 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
         hgridh(1)=hx
         hgridh(2)=hy
         hgridh(3)=hz
-
         do idx=1,nspinor
            call comb_shrink_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&

@@ -278,13 +278,13 @@ end subroutine forces_via_finite_differences
 
 
 subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,refill_proj,&
-     rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise)
+     rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise,psoffset)
   use module_base
   use module_types
   implicit none
   logical, intent(in) :: refill_proj
   integer, intent(in) :: iproc,nproc,i3s,n3p,nspin
-  real(gp), intent(in) :: hx,hy,hz
+  real(gp), intent(in) :: hx,hy,hz,psoffset
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data), intent(in) :: orbs
@@ -298,12 +298,13 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   !local variables
   integer :: ierr,iat
   real(gp), dimension(6) :: strten,locstrten
+  real(gp) :: charge
 
 call to_zero(6,strten(1))
 call to_zero(6,locstrten(1))
 
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,locstrten)
+       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,locstrten,charge)
 
   !calculate forces originated by rhocore
   call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
@@ -321,7 +322,14 @@ call to_zero(6,locstrten(1))
      call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
      call mpiallred(locstrten(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
      call mpiallred(strten(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(charge,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
+
+if (iproc == 0) then
+locstrten(:)=locstrten(:)/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)
+locstrten(1:3)=locstrten(1:3)+charge*psoffset&
+/real(0.5_gp*hx*0.5_gp*hy*0.5_gp*hz,gp)**2.0_gp/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)**2.0_gp
+end if
 
   if (iproc == 0 .and. verbose > 1 .and. atoms%geocode=='P') then
 write(*,*) 'STRESS TENSOR: LOCAL PART (Ha/bohr**3)'
@@ -503,14 +511,15 @@ end subroutine rhocore_forces
 
 !>   Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
-     n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten)
+     n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
   use module_base
   use module_types
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
   integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
-  real(gp), intent(in) :: hxh,hyh,hzh
+  real(gp), intent(in) :: hxh,hyh,hzh 
+  real(gp),intent(out) :: charge
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: rho,pot
   real(gp), dimension(3,at%nat), intent(out) :: floc
@@ -528,6 +537,17 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   pi=4.d0*atan(1.d0)
 
   locstrten=0.0_gp
+
+charge=0.d0
+do i3=1,n3pi
+        do i2=1,n2i
+           do i1=1,n1i
+              ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+charge=charge+rho(ind)
+           enddo
+        enddo
+     enddo
+charge=charge*hxh*hyh*hzh
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   forceleaked=0.d0
@@ -626,7 +646,6 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
                        fygau=fygau+forceloc*y
                        fzgau=fzgau+forceloc*z
                        if (r2 /= 0.0_gp) then
-                          forceloc=forceloc/sqrt(arg)
                           Txx=Txx+forceloc*x*x
                           Tyy=Tyy+forceloc*y*y
                           Tzz=Tzz+forceloc*z*z
@@ -659,19 +678,22 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
      floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
 
-     locstrten(1)=locstrten(1)+(hxh*hyh*hzh/rloc**2)*Txx
-     locstrten(2)=locstrten(2)+(hxh*hyh*hzh/rloc**2)*Tyy
-     locstrten(3)=locstrten(3)+(hxh*hyh*hzh/rloc**2)*Tzz
-     locstrten(4)=locstrten(4)+(hxh*hyh*hzh/rloc**2)*Txy
-     locstrten(5)=locstrten(5)+(hxh*hyh*hzh/rloc**2)*Txz
-     locstrten(6)=locstrten(6)+(hxh*hyh*hzh/rloc**2)*Tyz
-
+     locstrten(1)=locstrten(1)+Txx/rloc/rloc
+     locstrten(2)=locstrten(2)+Tyy/rloc/rloc
+     locstrten(3)=locstrten(3)+Tzz/rloc/rloc
+     locstrten(4)=locstrten(4)+Txy/rloc/rloc
+     locstrten(5)=locstrten(5)+Txz/rloc/rloc
+     locstrten(6)=locstrten(6)+Tyz/rloc/rloc
 !!!     !only for testing purposes, printing the components of the forces for each atoms
 !!!     write(10+iat,'(2(1x,3(1x,1pe12.5)))') &
 !!!          (hxh*hyh*hzh*prefactor)*fxerf,(hxh*hyh*hzh*prefactor)*fyerf,&
 !!!          (hxh*hyh*hzh*prefactor)*fzerf,(hxh*hyh*hzh/rloc**2)*fxgau,(hxh*hyh*hzh/rloc**2)*fygau,(hxh*hyh*hzh/rloc**2)*fzgau
 
-  end do
+  end do !iat
+
+!write(*,*) 'iproc,charge:',iproc,charge
+
+!locstrten(1:3)=locstrten(1:3)+charge*psoffset/(hxh*hyh*hzh)/real(n1i*n2i*n3pi,kind=8)
 
   forceleaked=forceleaked*hxh*hyh*hzh
   if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
@@ -945,7 +967,7 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
 strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
 sab(idir-3)=&
 sab(idir-3)+&   
-at%psppar(l,i,ityp)*sp0*2*strc*&
+at%psppar(l,i,ityp)*sp0*2.0_gp*strc*&
 orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                             end do
                           end do
@@ -979,14 +1001,14 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                                            hij*(sp0j*spi+spj*sp0i)
                                    end do
 
-Enl=Enl+2.0*sp0i*sp0j*hij&
+Enl=Enl+2.0_gp*sp0i*sp0j*hij&
 *orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                                   do idir=4,12
 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
 spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
 sab(idir-3)=&
 sab(idir-3)+&   
-2*hij*(sp0j*spi+sp0i*spj)&
+2.0_gp*hij*(sp0j*spi+sp0i*spj)&
 *orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                                   end do
                                 end do
@@ -1007,10 +1029,12 @@ strten(1)=strten(1)+sab(1)/vol
 strten(2)=strten(2)+sab(5)/vol 
 strten(3)=strten(3)+sab(9)/vol 
 ! symmetrize tensor ( 12 -> (12+21)/2 )
-strten(4)=strten(4)+(sab(2)+sab(4))/2._gp/vol
-strten(5)=strten(5)+(sab(6)+sab(8))/2._gp/vol
-strten(6)=strten(6)+(sab(3)+sab(7))/2._gp/vol
-
+!strten(4)=strten(4)+(sab(2)+sab(4))/2._gp/vol
+!strten(5)=strten(5)+(sab(6)+sab(8))/2._gp/vol
+!strten(6)=strten(6)+(sab(3)+sab(7))/2._gp/vol
+strten(4)=strten(4)+sab(2)/vol
+strten(5)=strten(5)+sab(6)/vol
+strten(6)=strten(6)+sab(3)/vol
         do iat=1,at%nat
            fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
            fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
@@ -3710,7 +3734,9 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   end do
 end subroutine symmetrise_forces
 
-subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,psi,tens)
+
+subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,&
+     psi,tens)
   use module_base
   use module_types
   use module_interfaces
@@ -3722,9 +3748,10 @@ subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,psi,tens)
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(gp), intent(inout) :: tens(6)
+   real(gp) :: ekin_sum,epot_sum
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_stress'
-  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
+  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ii
   real(wp) :: exctXcoeff,kinstr(6)
   real(gp) :: ekin,epot,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
@@ -3733,7 +3760,7 @@ subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,psi,tens)
   exctXcoeff=libxc_functionals_exctXfac()
 
   !initialise the work arrays
-  call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)
+  call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
 
 tens=0.d0
 
@@ -3741,24 +3768,25 @@ tens=0.d0
   npot=orbs%nspinor
   if (orbs%nspinor == 2) npot=1
 
+allocate(hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp),stat=i_stat)
+  call memocc(i_stat,hpsi,'hpsi',subname)
+hpsi=0.0_wp
   ! Wavefunction in real space
   allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
-
-
-  !no need of initializin hpsi since it is trown out
-  allocate(hpsi((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,hpsi,'hpsi',subname)
-
-
   call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+
+
+
+  ekin_sum=0.0_gp
+  epot_sum=0.0_gp
 
   etest=0.0_gp
 
 
   do iorb=1,orbs%norbp
 kinstr=0._wp
-oidx=(iorb-1)*orbs%nspinor+1
+     oidx=(iorb-1)*orbs%nspinor+1
 
      call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
 
@@ -3766,27 +3794,19 @@ oidx=(iorb-1)*orbs%nspinor+1
      ky=orbs%kpts(2,orbs%iokpt(iorb))
      kz=orbs%kpts(3,orbs%iokpt(iorb))
 
-
-!     if (exctXcoeff /= 0.0_gp) then
-!        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
-!        !add to the psir function the part of the potential coming from the
-!        exact exchange
-!        call
-!        axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
-!     end if
-
-     !apply the kinetic term, sum with the potential and transform back to
-     !Daubechies basis
-
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
           psir,hpsi(1,oidx),ekin,kinstr)
 
-kinstr = -kinstr*8.d0/(hx*hy*hz)/real(lr%d%n1i*lr%d%n2i*lr%d%n3i,gp)
-tens(:)=tens(:)+kinstr(:)*2.d0*&
+!write(*,*) 'done: per K'
+!-- ykvashni
+!write(*,*) 'kinstr',kinstr
+kinstr = -kinstr*8.0_gp/(hx*hy*hz)/real(lr%d%n1i*lr%d%n2i*lr%d%n3i,gp)
+tens=tens+kinstr*2.0_gp*&
 orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
 
 
   end do !loop over orbitals: finished
+
   !deallocations of work arrays
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
@@ -3800,8 +3820,4 @@ orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
 
 END SUBROUTINE local_hamiltonian_stress
 !!***
-
-
-
-
 

@@ -511,8 +511,12 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
      ! (1/2) |d/dx+ik_x)|^2
      do i2=0,n2
         do i1=0,n1
-           tt1=x(1,i1,i2,i3)*c
-           tt2=x(2,i1,i2,i3)*c
+!yk
+!           tt1=x(1,i1,i2,i3)*c
+!           tt2=x(2,i1,i2,i3)*c
+           tt1=x(1,i1,i2,i3)*.5_wp*k1*k1
+           tt2=x(2,i1,i2,i3)*.5_wp*k1*k1
+!yk
            do l=lowfil,lupfil
               j=modulo(i1+l,n1+1)
               tt1=tt1+x(1,j,i2,i3)*fil(1,l,1)-x(2,j,i2,i3)*fil(2,l,1)
@@ -526,12 +530,16 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
            kstrten(1)=kstrten(1)+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
-     
+
      ! + (1/2) d^2/dy^2
      do i1=0,n1
         do i2=0,n2
-           tt1=0._wp
-           tt2=0._wp
+!yk
+!           tt1=0._wp
+!           tt2=0._wp
+           tt1=x(1,i1,i2,i3)*.5_wp*k2*k2
+           tt2=x(2,i1,i2,i3)*.5_wp*k2*k2
+!yk
            do l=lowfil,lupfil
               j=modulo(i2+l,n2+1)
               tt1=tt1+x(1,i1,j,i3)*fil(1,l,2)-x(2,i1,j,i3)*fil(2,l,2)
@@ -552,8 +560,12 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
   do i2=0,n2
      do i1=0,n1
         do i3=0,n3
-           tt1=0._wp
-           tt2=0._wp
+!yk
+!           tt1=0._wp
+!           tt2=0._wp
+           tt1=x(1,i1,i2,i3)*.5_wp*k3*k3
+           tt2=x(2,i1,i2,i3)*.5_wp*k3*k3
+!yk
            do l=lowfil,lupfil
               j=modulo(i3+l,n3+1)
               tt1=tt1+x(1,i1,i2,j)*fil(1,l,3)-x(2,i1,i2,j)*fil(2,l,3)

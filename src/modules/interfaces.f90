@@ -604,7 +604,7 @@ module module_interfaces
       END SUBROUTINE last_orthon
 
       subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
-            &   n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc)
+            &   n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
          ! Calculates the local forces acting on the atoms belonging to iproc
          use module_types
          implicit none
@@ -612,9 +612,11 @@ module module_interfaces
          type(atoms_data), intent(in) :: at
          integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
          real(kind=8), intent(in) :: hxh,hyh,hzh
+         real(kind=8),intent(out) :: charge
          real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
          real(kind=8), dimension(*), intent(in) :: rho,pot
          real(kind=8), dimension(3,at%nat), intent(out) :: floc
+         real(kind=8), dimension(6),intent(out) :: locstrten
       END SUBROUTINE local_forces
 
       subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
