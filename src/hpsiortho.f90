@@ -224,15 +224,16 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
          iproj=0
          do iat=1,at%nat
             istart_c=1
-            call atom_projector(ikpt,iat,0,istart_c,iproj,&
-                lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+            call atom_projector(ikpt,iat,0,istart_c,iproj,nlpspd%nprojel,&
+                lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings)
 
             !apply the projector to all the orbitals belonging to the processor
             ispsi=ispsi_k
             do iorb=isorb,ieorb
                istart_c=1
-               call apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,lr%wfd,nlpspd,&
-                  &   proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+               call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
+                    at,orbs,lr%wfd,nlpspd%plr(iat),&
+                    proj,psi(ispsi),hpsi(ispsi),eproj_sum)
                ispsi=ispsi+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*nspinor
             end do
 
@@ -246,8 +247,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
          do iorb=isorb,ieorb
             istart_c=istart_ck
             do iat=1,at%nat
-               call apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,lr%wfd,nlpspd,&
-                  &   proj,psi(ispsi),hpsi(ispsi),eproj_sum)           
+               call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
+                    at,orbs,lr%wfd,nlpspd%plr(iat),&
+                    proj,psi(ispsi),hpsi(ispsi),eproj_sum)           
             end do
             ispsi=ispsi+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*nspinor
          end do

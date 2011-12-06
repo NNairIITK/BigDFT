@@ -426,7 +426,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,Lzd%Gnlpspd,proj)
    call timing(iproc,'CrtProjectors ','OF')
-
   ! See if linear scaling should be activated and build the correct Lzd 
   ! There is a copy of this inside the LCAO input guess because the norbs changes
   ! and so the inwhichlocreg also ==> different distribution for the locregs
@@ -766,8 +765,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      scpot=.true.
      eexctX=0.0_gp   !Exact exchange is not calculated right now 
      ! This is the main routine that does everything related to the linear scaling version.
-     call linearScaling(iproc,nproc,n3d,n3p,n3pi,i3s,i3xcsh,Lzd%Glr,orbs,comms,atoms,in,rhodsc,lin,&
-          rxyz,fion,fdisp,radii_cf,nscatterarr,ngatherarr,Lzd%Gnlpspd,proj,rhopot,GPU,pkernelseq,&
+     call linearScaling(iproc,nproc,n3d,n3p,n3pi,i3s,i3xcsh,Lzd%Glr,&
+          orbs,comms,atoms,in,rhodsc,lin,&
+          rxyz,fion,fdisp,radii_cf,nscatterarr,ngatherarr,&
+          Lzd%Gnlpspd,proj,rhopot,GPU,pkernelseq,&
           irrzon,phnons,pkernel,pot_ion,rhocore,potxc,PSquiet,eion,edisp,eexctX,scpot,psi,psit,&
           energy,fxyz)
 
@@ -1124,7 +1125,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 ekin_sum, epot_sum, eexctX, eproj_sum, in%nspin, GPU, withConfinement, .true., &
                 pkernel=pkernelseq)
            end if
-           
+
             call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,&
                  Lzd%Glr,ngatherarr,potential,psi,hpsi,&
                  ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
@@ -1590,7 +1591,7 @@ if (DoDavidson) then
          call memocc(i_stat,i_all,'wkptv',subname)
 
          !recreate the memory space for the projectors 
-           call deallocate_proj_descr(Lzd%Gnlpspd,subname)  
+         call deallocate_proj_descr(Lzd%Gnlpspd,subname)  
          i_all=-product(shape(proj))*kind(proj)
          deallocate(proj,stat=i_stat)
          call memocc(i_stat,i_all,'proj',subname)
@@ -1799,7 +1800,6 @@ if ((in%rbuf > 0.0_gp) .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
    deallocate(potxc,stat=i_stat)
    call memocc(i_stat,i_all,'potxc',subname)
 
-
    !pass hx instead of hgrid since we are only in free BC
    call CalculateTailCorrection(iproc,nproc,atoms,rbuf,orbs,&
       &   Lzd%Glr,Lzd%Gnlpspd,ncongt,pot,hx,rxyz,radii_cf,crmult,frmult,in%nspin,&
@@ -1937,8 +1937,10 @@ subroutine deallocate_before_exiting
 
     call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds,subname)
 
+
 !    call deallocate_local_zone_descriptors(Lzd, subname)
     call deallocate_Lzd_except_Glr(Lzd, subname)
+
     i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
     deallocate(Lzd%Glr%projflg,stat=i_stat)
     call memocc(i_stat,i_all,'Glr%projflg',subname)

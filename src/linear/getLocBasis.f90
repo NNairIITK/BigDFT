@@ -3565,7 +3565,8 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, 
       call memocc(istat, Lzd%Llr(ilr)%projflg, 'Lzd%Llr(ilr)%projflg', subname)
 
       call nlpspd_to_locreg(input, iproc, Lzd%Glr, Lzd%Llr(ilr), rxyz, at, orbs, &
-           radii_cf, input%frmult, input%frmult, input%hx, input%hy, input%hz, locregShape, lzd%Gnlpspd, &
+           radii_cf, input%frmult, input%frmult, &
+           input%hx, input%hy, input%hz, locregShape, lzd%Gnlpspd, &
            Lzd%Lnlpspd(ilr), Lzd%Llr(ilr)%projflg)
 
   end do
@@ -3607,6 +3608,9 @@ subroutine free_lnlpspd(orbs, lzd)
 
       call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(ilr), subname)
   end do
+
+  deallocate(lzd%lnlpspd)
+  nullify(lzd%lnlpspd)
 
 end subroutine free_lnlpspd
 

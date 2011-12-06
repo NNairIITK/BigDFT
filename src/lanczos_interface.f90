@@ -17,9 +17,12 @@ module lanczos_interface
    private
 
    !calculate the allocation dimensions
-   public :: EP_inizializza,EP_initialize_start,EP_allocate_for_eigenprob, get_EP_dim, set_EP_shift,&
-      &   EP_mat_mult,EP_make_dummy_vectors,  EP_normalizza,EP_copy,EP_scalare, EP_copia_per_prova, &
-      &   EP_set_all_random, EP_GramSchmidt, EP_add_from_vect_with_fact, EP_Moltiplica,  &
+   public :: EP_inizializza,EP_initialize_start,EP_allocate_for_eigenprob, &
+        get_EP_dim, set_EP_shift,&
+      &   EP_mat_mult,EP_make_dummy_vectors,  EP_normalizza,EP_copy,EP_scalare,&
+      EP_copia_per_prova, &
+      &   EP_set_all_random, EP_GramSchmidt, EP_add_from_vect_with_fact,&
+      EP_Moltiplica,  &
       &   EP_free,   EP_norma2_initialized_state , EP_store_occupied_orbitals, EP_occprojections,&
       &   EP_multbyfact, EP_precondition, EP_Moltiplica4spectra, EP_ApplySinv, EP_ApplyS, &
       &   EP_scalare_multik
@@ -1710,8 +1713,9 @@ subroutine applyPAWprojectors(orbs,at,&
       imatrix=1
 
       !!$ check that the coarse wavelets cover the whole box
-      if(Glr%wfd%nvctr_c .ne. ( (Glr%d%n1+1) *(Glr%d%n2+1) * (Glr%d%n3+1)  ) ) then
-         print *, " WARNING : coarse wavelets dont cover the whole box "
+      if(Glr%wfd%nvctr_c .ne. &
+           ((Glr%d%n1+1)*(Glr%d%n2+1)*(Glr%d%n3+1))) then
+         print *," WARNING : coarse wavelets dont cover the whole box "
       endif
 
       if(dosuperposition) then 
@@ -1751,23 +1755,26 @@ subroutine applyPAWprojectors(orbs,at,&
                   do ispinor=1,orbs%nspinor,ncplx_global
                      eproj_spinor=0.0_gp
                      if (ispinor >= 2) istart_c=istart_c_i
-                     mbvctr_c=PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
-                     mbvctr_f=PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
-                     mbseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
-                     mbseg_f=PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
-                     jseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
+                     call plr_segs_and_vctrs(PAWD%paw_nlpspd%plr(iat),&
+                          mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+                     jseg_c=1
+!!$                     mbvctr_c=PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
+!!$                     mbvctr_f=PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
+!!$                     mbseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
+!!$                     mbseg_f=PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
+!!$                     jseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
                      mdone=0
                      iproj=iproj_old
                      if(mproj>0) then
                         if(  PAWD%DistProjApply) then
                            jorb=1
-                           do while( jorb<=PAWD%G%ncoeff         .and. PAWD%iorbtolr(jorb)/= iat) 
+                           do while(jorb<=PAWD%G%ncoeff .and. PAWD%iorbtolr(jorb)/= iat) 
                               jorb=jorb+1
                            end do
                            if(jorb<PAWD%G%ncoeff) then
-                              call fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,&
-                                 &   kx,ky,kz, &
-                                 &   jorb, istart_c,  at%geocode, at, iatat ) 
+                              call fillPawProjOnTheFly(PAWD,Glr,iat,hx,hy,hz,&
+                                 &   kx,ky,kz,&
+                                 &   jorb,istart_c,at%geocode,at,iatat ) 
                            endif
                         end if
                      endif
@@ -1793,13 +1800,18 @@ subroutine applyPAWprojectors(orbs,at,&
 
                               if( .not. dosuperposition .and. lsign>0 ) then
                                  call wpdot_wrap(ncplx,  &
-                                    &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
-                                    &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
-                                    &   psi(ispsi+ (ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),  &
-                                    &   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                    &   PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
-                                    &   PAWD%paw_proj(istart_c),&
-                                    &   dotbuffer( ibuffer ) )
+                                      Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,&
+                                      Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
+                                      Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
+                                      psi(ispsi+&
+                                      (ispinor-1)*(orbs%npsidim/orbs%nspinor)),&
+                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                                      PAWD%paw_nlpspd%keyv_p(jseg_c),&
+!!$                                      PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
+                                      PAWD%paw_nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                                      PAWD%paw_nlpspd%plr(iat)%wfd%keyg(1,jseg_c),&
+                                      PAWD%paw_proj(istart_c),&
+                                      dotbuffer( ibuffer ) )
                               end if
                               ibuffer=ibuffer + (ncplx-1)
 
@@ -1887,8 +1899,10 @@ subroutine applyPAWprojectors(orbs,at,&
                               ibuffer=ibuffer+1
 
                               call waxpy_wrap(ncplx,dotbufferbis( ibuffer ) ,&
-                                 &   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                 &   PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
+                                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                                 &   PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
+                                   PAWD%paw_nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                                   PAWD%paw_nlpspd%plr(iat)%wfd%keyg(1,jseg_c),&
                                  &   PAWD%paw_proj(istart_c),&
                                  &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
                                  &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
@@ -1996,13 +2010,16 @@ subroutine applyPCprojectors(orbs,at,&
 
                if (ispinor >= 2) istart_c=istart_c_i
 
-               mbvctr_c=PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-               mbvctr_f=PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+               call plr_segs_and_vctrs(PPD%pc_nlpspd%plr(iat),&
+                    mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+               jseg_c=1
 
-               mbseg_c=PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
-               mbseg_f=PPD%pc_nlpspd%nseg_p(2*iat  )-PPD%pc_nlpspd%nseg_p(2*iat-1)
-               jseg_c=PPD%pc_nlpspd%nseg_p(2*iat-2)+1
-
+!!$               mbvctr_c=PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+!!$               mbvctr_f=PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+!!$
+!!$               mbseg_c=PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
+!!$               mbseg_f=PPD%pc_nlpspd%nseg_p(2*iat  )-PPD%pc_nlpspd%nseg_p(2*iat-1)
+!!$               jseg_c=PPD%pc_nlpspd%nseg_p(2*iat-2)+1
 
                mdone=0
                iproj=iproj_old
@@ -2014,9 +2031,8 @@ subroutine applyPCprojectors(orbs,at,&
                         jorb=jorb+1
                      end do
                      if(jorb<PPD%G%ncoeff) then
-
-                        call fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz, jorb,PPD%ecut_pc ,  istart_c ) 
-
+                        call fillPcProjOnTheFly(PPD,Glr,iat,at,hx,hy,hz,&
+                             jorb,PPD%ecut_pc,istart_c) 
                      endif
                   end if
                endif
@@ -2034,26 +2050,32 @@ subroutine applyPCprojectors(orbs,at,&
 
 
                   call applyprojector(ncplx,l,i, psppar_aux(0,0), 2 ,&
-                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
-                     &   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                     &   PPD%pc_nlpspd%keyv_p(jseg_c),PPD%pc_nlpspd%keyg_p(1,jseg_c),&
-                     &   PPD%pc_proj(istart_c),&
-                     &   psi(ispsi+ (ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),&
-                     &   hpsi(ispsi+(ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),&
-                     &   eproj_spinor)
+                       Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c,&
+                       Glr%wfd%nseg_f,&
+                       Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
+                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                       PPD%pc_nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                       PPD%pc_nlpspd%plr(iat)%wfd%keyg(1,jseg_c),&
+!!$                       PPD%pc_nlpspd%keyv_p(jseg_c),PPD%pc_nlpspd%keyg_p(1,jseg_c),&
+                       PPD%pc_proj(istart_c),&
+                       psi(ispsi+ (ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),&
+                       hpsi(ispsi+(ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),&
+                       eproj_spinor)
 
 
                   if(iorb==1) then         
                      if( present(dotest) ) then
                         eproj_spinor=0.0_gp
-                        call wpdot_wrap(ncplx,  &
-                           &   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,PPD%pc_nlpspd%keyv_p(jseg_c),&
-                           &   PPD%pc_nlpspd%keyg_p(1,jseg_c),PPD%pc_proj(istart_c),& 
-                        mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,PPD%pc_nlpspd%keyv_p(jseg_c),&
-                           &   PPD%pc_nlpspd%keyg_p(1,jseg_c),&
-                           &   PPD%pc_proj(istart_c),&
-                           &   eproj_spinor)
+!!$                        call wpdot_wrap(ncplx,  &
+!!$                             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                             PPD%pc_nlpspd%keyv_p(jseg_c),&
+!!$                             PPD%pc_nlpspd%keyg_p(1,jseg_c),&
+!!$                             PPD%pc_proj(istart_c),& 
+!!$                             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                             PPD%pc_nlpspd%keyv_p(jseg_c),&
+!!$                             PPD%pc_nlpspd%keyg_p(1,jseg_c),&
+!!$                             PPD%pc_proj(istart_c),&
+!!$                             eproj_spinor)
                         print *, " IL PROIETTORE HA MODULO QUADRO  " ,eproj_spinor 
                         if(dotest) then
                            !! ---------------  use this to plot projectors
@@ -2061,16 +2083,20 @@ subroutine applyPCprojectors(orbs,at,&
                            Plr%d%n1=Glr%d%n1
                            Plr%d%n2=Glr%d%n2
                            Plr%d%n3=Glr%d%n3
-                           Plr%geocode = at%geocode                    
-                           Plr%wfd%nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-                           Plr%wfd%nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
-                           Plr%wfd%nseg_c   =PPD%pc_nlpspd%nseg_p(2*iat-1 )-PPD%pc_nlpspd%nseg_p(2*iat-2)
-                           Plr%wfd%nseg_f   =PPD%pc_nlpspd%nseg_p(2*iat  ) -PPD%pc_nlpspd%nseg_p(2*iat-1)
+                           Plr%geocode=at%geocode
+                           
+                           call plr_segs_and_vctrs(PPD%pc_nlpspd%plr(iat),&
+                                Plr%wfd%nseg_c,Plr%wfd%nseg_f,&
+                                Plr%wfd%nvctr_c,Plr%wfd%nvctr_f)                  
+!!$                           Plr%wfd%nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+!!$                           Plr%wfd%nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+!!$                           Plr%wfd%nseg_c   =PPD%pc_nlpspd%nseg_p(2*iat-1 )-PPD%pc_nlpspd%nseg_p(2*iat-2)
+!!$                           Plr%wfd%nseg_f   =PPD%pc_nlpspd%nseg_p(2*iat  ) -PPD%pc_nlpspd%nseg_p(2*iat-1)
                            call allocate_wfd(Plr%wfd,subname)
-                           Plr%wfd%keyv(:)  = PPD%pc_nlpspd%keyv_p(  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
-                              &   PPD%pc_nlpspd%nseg_p(2*iat)   )
-                           Plr%wfd%keyg(1:2, :)  = PPD%pc_nlpspd%keyg_p( 1:2,  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
-                              &   PPD%pc_nlpspd%nseg_p(2*iat)   )
+!!$                           Plr%wfd%keyv(:)=PPD%pc_nlpspd%keyv_p(PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
+!!$                              &   PPD%pc_nlpspd%nseg_p(2*iat)   )
+!!$                           Plr%wfd%keyg(1:2, :)  = PPD%pc_nlpspd%keyg_p( 1:2,  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
+!!$                              &   PPD%pc_nlpspd%nseg_p(2*iat)   )
                            Plr%bounds = Glr%bounds
                            Plr%d          = Glr%d                    
                            !! call plot_wf_cube(orbname,at,Plr,hx,hy,hz,rxyz, PPD%pc_proj(istart_c) ,"1234567890" ) 
@@ -2089,20 +2115,20 @@ subroutine applyPCprojectors(orbs,at,&
             if( present(dotest) ) then
                if(dotest) then
                   eproj_spinor=0.0_gp
-                  call wpdot_wrap(ncplx,  &
-                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ), &
-                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ),  &
-                     &   eproj_spinor)
+!!$                  call wpdot_wrap(ncplx,  &
+!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ), &
+!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ),  &
+!!$                     &   eproj_spinor)
                   print *, "hpsi  HA MODULO QUADRO  " ,eproj_spinor 
                   eproj_spinor=0.0_gp
-                  call wpdot_wrap(ncplx,  &
-                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ), &
-                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ),  &
-                     &   eproj_spinor)
+!!$                  call wpdot_wrap(ncplx,  &
+!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ), &
+!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ),  &
+!!$                     &   eproj_spinor)
                   print *, "psi  HA MODULO QUADRO  " ,eproj_spinor         
                   !! CECCARE IPROJ = mproj tot, istart_c=nelproj 
                   write(orbname,'(A,i4.4)')'pcorb_',iorb

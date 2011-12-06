@@ -150,46 +150,48 @@ subroutine HamiltonianApplication2(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 ! Applying the NonLocal part of the  pseudopotentials
 !#############################################################################################################################
 
-  ! apply all PSP projectors for all orbitals belonging to iproc
-  call timing(iproc,'ApplyProj     ','ON')
-
-  !here the localisation region should be changed, temporary only for cubic approach
-  eproj_sum=0.0_gp
-  !apply the projectors following the strategy (On-the-fly calculation or not)
-  if (DistProjApply .and. .not.Lzd%linear) then
-     call applyprojectorsonthefly(iproc,orbs,at,Lzd%Glr,&
-          rxyz,hx,hy,hz,Lzd%Glr%wfd,Lzd%Gnlpspd,proj,psi,hpsi,eproj_sum)
-  else if(orbs%norbp > 0 .and. .not.Lzd%linear) then
-     !apply the projectors  k-point of the processor
-     !starting k-point
-     ikpt=orbs%iokpt(1)
-     istart_ck=1
-     ispsi_k=1
-     loop_kpt: do
-        call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
-
-        ! loop over all my orbitals
-        ispsi=ispsi_k
-        do iorb=isorb,ieorb
-           istart_c=istart_ck
-           do iat=1,at%nat
-              call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,Lzd%Glr%wfd,Lzd%Gnlpspd,&
-                   proj,psi(ispsi),hpsi(ispsi),eproj_sum)
-           end do
-           ispsi=ispsi+(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*nspinor
-        end do
-        istart_ck=istart_c
-        if (ieorb == orbs%norbp) exit loop_kpt
-        ikpt=ikpt+1
-        ispsi_k=ispsi
-     end do loop_kpt
-     if (istart_ck-1 /= Lzd%Gnlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
-     if (ispsi-1 /= (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
-
-! Linear part of the NLPSP
-  else if(orbs%norbp > 0 .and. Lzd%linear) then
-     call ApplyProjectorsLinear(iproc,hx,hy,hz,at,Lzd,orbs,rxyz,psi,hpsi,eproj_sum)
-  end if
+  call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
+       Lzd%Gnlpspd,proj,Lzd%Glr,psi,hpsi,eproj_sum)
+!!$  ! apply all PSP projectors for all orbitals belonging to iproc
+!!$  call timing(iproc,'ApplyProj     ','ON')
+!!$
+!!$  !here the localisation region should be changed, temporary only for cubic approach
+!!$  eproj_sum=0.0_gp
+!!$  !apply the projectors following the strategy (On-the-fly calculation or not)
+!!$  if (DistProjApply .and. .not.Lzd%linear) then
+!!$     call applyprojectorsonthefly(iproc,orbs,at,Lzd%Glr,&
+!!$          rxyz,hx,hy,hz,Lzd%Glr%wfd,Lzd%Gnlpspd,proj,psi,hpsi,eproj_sum)
+!!$  else if(orbs%norbp > 0 .and. .not.Lzd%linear) then
+!!$     !apply the projectors  k-point of the processor
+!!$     !starting k-point
+!!$     ikpt=orbs%iokpt(1)
+!!$     istart_ck=1
+!!$     ispsi_k=1
+!!$     loop_kpt: do
+!!$        call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+!!$
+!!$        ! loop over all my orbitals
+!!$        ispsi=ispsi_k
+!!$        do iorb=isorb,ieorb
+!!$           istart_c=istart_ck
+!!$           do iat=1,at%nat
+!!$              call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,Lzd%Glr%wfd,Lzd%Gnlpspd,&
+!!$                   proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+!!$           end do
+!!$           ispsi=ispsi+(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*nspinor
+!!$        end do
+!!$        istart_ck=istart_c
+!!$        if (ieorb == orbs%norbp) exit loop_kpt
+!!$        ikpt=ikpt+1
+!!$        ispsi_k=ispsi
+!!$     end do loop_kpt
+!!$     if (istart_ck-1 /= Lzd%Gnlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
+!!$     if (ispsi-1 /= (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
+!!$
+!!$! Linear part of the NLPSP
+!!$  else if(orbs%norbp > 0 .and. Lzd%linear) then
+!!$     call ApplyProjectorsLinear(iproc,hx,hy,hz,at,Lzd,orbs,rxyz,psi,hpsi,eproj_sum)
+!!$  end if
 
   if(OCLconv .and. ASYNCconv) then
     call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
@@ -199,7 +201,7 @@ subroutine HamiltonianApplication2(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
     call memocc(i_stat,i_all,'hpsi2',subname)
   endif
 
-  call timing(iproc,'ApplyProj     ','OF')
+!!$  call timing(iproc,'ApplyProj     ','OF')
 
   !energies reduction
   if (nproc > 1) then
@@ -384,6 +386,9 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 ! Applying the NonLocal part of the  pseudopotentials
 !#############################################################################################################################
 
+!!$  call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
+!!$       Lzd%Gnlpspd,proj,Lzd%Glr,psi,hpsi,eproj_sum)
+
   ! apply all PSP projectors for all orbitals belonging to iproc
   call timing(iproc,'ApplyProj     ','ON')
 
@@ -391,6 +396,7 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   eproj_sum=0.0_gp
   !apply the projectors following the strategy (On-the-fly calculation or not)
   if (DistProjApply .and. .not.Lzd%linear) then
+
      call applyprojectorsonthefly(iproc,orbs,at,Lzd%Glr,&
           rxyz,hx,hy,hz,Lzd%Glr%wfd,Lzd%Gnlpspd,proj,psi,hpsi,eproj_sum)
   else if(orbs%norbp > 0 .and. .not.Lzd%linear) then
@@ -411,7 +417,10 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
            !!!! #########################################
            istart_c=istart_ck
            do iat=1,at%nat
-              call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,Lzd%Glr%wfd,Lzd%Gnlpspd,&
+!!$              call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,Lzd%Glr%wfd,Lzd%Gnlpspd,&
+!!$                   proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+              call apply_atproj_iorb_new(iat,iorb,istart_c,Lzd%Gnlpspd%nprojel,&
+                   at,orbs,Lzd%Glr%wfd,Lzd%Gnlpspd%plr(iat),&
                    proj,psi(ispsi),hpsi(ispsi),eproj_sum)
            end do
            ispsi=ispsi+(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*nspinor

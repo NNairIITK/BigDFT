@@ -726,19 +726,25 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
         jorbd=jorb
         do iat=1,at%nat
 
-           mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-           mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-           jseg_c=nlpspd%nseg_p(2*iat-2)+1
-           jseg_f=nlpspd%nseg_p(2*iat-1)+1
-           mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-           mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-           ityp=at%iatype(iat)
+           call plr_segs_and_vctrs(nlpspd%plr(iat),&
+                mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+           jseg_c=1
+           jseg_f=1
 
+!!$           mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+!!$           mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
+!!$           jseg_c=nlpspd%nseg_p(2*iat-2)+1
+!!$           jseg_f=nlpspd%nseg_p(2*iat-1)+1
+!!$           mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+!!$           mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
+
+           ityp=at%iatype(iat)
            do idir=0,3
               !calculate projectors
               istart_c=1
-              call atom_projector(ikpt,iat,idir,istart_c,iproj,&
-                   lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+              call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
+                   lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),&
+                   proj,nwarnings)
 !              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
  
               !calculate the contribution for each orbital
@@ -758,7 +764,10 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                      wfd%keyv,wfd%keyg,psi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                     nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
+!!$                                     nlpspd%keyv_p(jseg_c),&
+!!$                                     nlpspd%keyg_p(1,jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyg(1,jseg_c),&
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -807,12 +816,17 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                  iproj=0
                  istart_c=istart_ck
                  do iat=1,at%nat
-                    mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-                    mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-                    jseg_c=nlpspd%nseg_p(2*iat-2)+1
-                    jseg_f=nlpspd%nseg_p(2*iat-1)+1
-                    mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-                    mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
+                    call plr_segs_and_vctrs(nlpspd%plr(iat),&
+                         mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+                    jseg_c=1
+                    jseg_f=1
+
+!!$                    mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+!!$                    mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
+!!$                    jseg_c=nlpspd%nseg_p(2*iat-2)+1
+!!$                    jseg_f=nlpspd%nseg_p(2*iat-1)+1
+!!$                    mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+!!$                    mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
                     ityp=at%iatype(iat)
                     do l=1,4
                        do i=1,3
@@ -823,7 +837,10 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                      wfd%keyv,wfd%keyg,psi(ispsi),  &
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                     nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
+!!$                                     nlpspd%keyv_p(jseg_c),&
+!!$                                     nlpspd%keyg_p(1,jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyg(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                              end do

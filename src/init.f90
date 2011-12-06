@@ -223,9 +223,9 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    use module_base
    use module_types
    implicit none
-  integer, intent(in) :: iproc
+   integer, intent(in) :: iproc
    real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
-  type(locreg_descriptors),intent(in) :: lr
+   type(locreg_descriptors),intent(in) :: lr
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -234,18 +234,23 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    real(wp), dimension(:), pointer :: proj
    !local variables
    character(len=*), parameter :: subname='createProjectorsArrays'
-  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
+   integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
    integer :: iat,i_stat,i_all,iseg
    logical, dimension(:,:,:), allocatable :: logrid
 
-   allocate(nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nseg_p,'nlpspd%nseg_p',subname)
-   allocate(nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nvctr_p,'nlpspd%nvctr_p',subname)
-   allocate(nlpspd%nboxp_c(2,3,at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nboxp_c,'nlpspd%nboxp_c',subname)
-   allocate(nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nboxp_f,'nlpspd%nboxp_f',subname)
+   !allocate the different localization regions of the projectors
+   nlpspd%natoms=at%nat
+   allocate(nlpspd%plr(at%nat),stat=i_stat)
+   
+
+!!$   allocate(nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nseg_p,'nlpspd%nseg_p',subname)
+!!$   allocate(nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nvctr_p,'nlpspd%nvctr_p',subname)
+!!$   allocate(nlpspd%nboxp_c(2,3,at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nboxp_c,'nlpspd%nboxp_c',subname)
+!!$   allocate(nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nboxp_f,'nlpspd%nboxp_f',subname)
 
 
   ! define the region dimensions
@@ -257,14 +262,21 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid,'logrid',subname)
 
-   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
-      &   logrid,at,orbs,nlpspd)
+   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
+        rxyz,radii_cf,logrid,at,orbs,nlpspd)
 
-   ! allocations for arrays holding the projectors and their data descriptors
-   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
-   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
+   !here the allocation is possible
+   do iat=1,nlpspd%natoms
+      !for the moments the bounds are not needed for projectors
+      call allocate_wfd(nlpspd%plr(iat)%wfd,subname)
+   end do
+
+!!$   ! allocations for arrays holding the projectors and their data descriptors
+!!$   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
+!!$   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
+
    allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
    call memocc(i_stat,proj,'proj',subname)
 
@@ -273,40 +285,75 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
       call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
       if (mproj.ne.0) then 
 
-         ! coarse grid quantities
-         nl1=nlpspd%nboxp_c(1,1,iat) 
-         nl2=nlpspd%nboxp_c(1,2,iat) 
-         nl3=nlpspd%nboxp_c(1,3,iat) 
+         call bounds_to_plr_limits(.false.,1,nlpspd%plr(iat),&
+              nl1,nl2,nl3,nu1,nu2,nu3)         
+!!$         nl1=nlpspd%plr(iat)%ns1
+!!$         nl2=nlpspd%plr(iat)%ns2
+!!$         nl3=nlpspd%plr(iat)%ns3
+!!$             
+!!$         nu1=nlpspd%plr(iat)%d%n1+nl1
+!!$         nu2=nlpspd%plr(iat)%d%n2+nl2
+!!$         nu3=nlpspd%plr(iat)%d%n3+nl3
 
-         nu1=nlpspd%nboxp_c(2,1,iat)
-         nu2=nlpspd%nboxp_c(2,2,iat)
-         nu3=nlpspd%nboxp_c(2,3,iat)
+!!$         ! coarse grid quantities
+!!$         nl1=nlpspd%nboxp_c(1,1,iat) 
+!!$         nl2=nlpspd%nboxp_c(1,2,iat) 
+!!$         nl3=nlpspd%nboxp_c(1,3,iat) 
+!!$
+!!$         nu1=nlpspd%nboxp_c(2,1,iat)
+!!$         nu2=nlpspd%nboxp_c(2,2,iat)
+!!$         nu3=nlpspd%nboxp_c(2,3,iat)
 
          call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
+            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
+            cpmult,hx,hy,hz,logrid)
 
-         iseg=nlpspd%nseg_p(2*iat-2)+1
-         mseg=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+!!$         iseg=nlpspd%nseg_p(2*iat-2)+1
+!!$         mseg=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
 
-         call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-         logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
+         call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,&
+              nlpspd%plr(iat)%wfd%nseg_c,&
+              nlpspd%plr(iat)%wfd%keyg(1,1),nlpspd%plr(iat)%wfd%keyv(1))
+
+!!$         call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+!!$         logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
+
 
          ! fine grid quantities
-         nl1=nlpspd%nboxp_f(1,1,iat)
-         nl2=nlpspd%nboxp_f(1,2,iat)
-         nl3=nlpspd%nboxp_f(1,3,iat)
+         call bounds_to_plr_limits(.false.,2,nlpspd%plr(iat),&
+              nl1,nl2,nl3,nu1,nu2,nu3)         
 
-         nu1=nlpspd%nboxp_f(2,1,iat)
-         nu2=nlpspd%nboxp_f(2,2,iat)
-         nu3=nlpspd%nboxp_f(2,3,iat)
+!!$         nl1=nlpspd%plr(iat)%d%nfl1+nlpspd%plr(iat)%ns1
+!!$         nl2=nlpspd%plr(iat)%d%nfl2+nlpspd%plr(iat)%ns2
+!!$         nl3=nlpspd%plr(iat)%d%nfl3+nlpspd%plr(iat)%ns3
+!!$                                  
+!!$         nu1=nlpspd%plr(iat)%d%nfu1+nlpspd%plr(iat)%ns1
+!!$         nu2=nlpspd%plr(iat)%d%nfu2+nlpspd%plr(iat)%ns2
+!!$         nu3=nlpspd%plr(iat)%d%nfu3+nlpspd%plr(iat)%ns3
+
+!!$         nl1=nlpspd%nboxp_f(1,1,iat)
+!!$         nl2=nlpspd%nboxp_f(1,2,iat)
+!!$         nl3=nlpspd%nboxp_f(1,3,iat)
+!!$
+!!$         nu1=nlpspd%nboxp_f(2,1,iat)
+!!$         nu2=nlpspd%nboxp_f(2,2,iat)
+!!$         nu3=nlpspd%nboxp_f(2,3,iat)
 
          call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
-         iseg=nlpspd%nseg_p(2*iat-1)+1
-         mseg=nlpspd%nseg_p(2*iat)-nlpspd%nseg_p(2*iat-1)
+            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),&
+            fpmult,hx,hy,hz,logrid)
+
+         mseg=nlpspd%plr(iat)%wfd%nseg_f
+         iseg=nlpspd%plr(iat)%wfd%nseg_c+1
+
+!!$         iseg=nlpspd%nseg_p(2*iat-1)+1
+!!$         mseg=nlpspd%nseg_p(2*iat)-nlpspd%nseg_p(2*iat-1)
          if (mseg > 0) then
+!!$            call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+!!$            logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
             call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-            logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
+                 logrid,mseg,nlpspd%plr(iat)%wfd%keyg(1,iseg),&
+                 nlpspd%plr(iat)%wfd%keyv(iseg))
          end if
       endif
    enddo
@@ -353,16 +400,24 @@ subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   i
    Plr%geocode = at%geocode
 
 
-   Plr%wfd%nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-   Plr%wfd%nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
-   Plr%wfd%nseg_c   =PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
-   Plr%wfd%nseg_f   =PPD%pc_nlpspd%nseg_p(2*iat  )-PPD%pc_nlpspd%nseg_p(2*iat-1)
+   call plr_segs_and_vctrs(PPD%pc_nlpspd%plr(iat),&
+        Plr%wfd%nseg_c,Plr%wfd%nseg_f,Plr%wfd%nvctr_c,Plr%wfd%nvctr_f)
+!!$   Plr%wfd%nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+!!$   Plr%wfd%nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+!!$   Plr%wfd%nseg_c   =PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
+!!$   Plr%wfd%nseg_f   =PPD%pc_nlpspd%nseg_p(2*iat  )-PPD%pc_nlpspd%nseg_p(2*iat-1)
 
    call allocate_wfd(Plr%wfd,subname)
 
+   call vcopy(Plr%wfd%nseg_c+Plr%wfd%nseg_f,&
+        PPD%pc_nlpspd%plr(iat)%wfd%keyv(1),1,Plr%wfd%keyv(1),1)
+   call vcopy(2*(Plr%wfd%nseg_c+Plr%wfd%nseg_f),&
+        PPD%pc_nlpspd%plr(iat)%wfd%keyg(1,1),1,Plr%wfd%keyg(1,1),1)
 
-   Plr%wfd%keyv(:)  = PPD%pc_nlpspd%keyv_p(  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:  PPD%pc_nlpspd%nseg_p(2*iat)   )
-   Plr%wfd%keyg(1:2, :)  = PPD%pc_nlpspd%keyg_p( 1:2,  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:  PPD%pc_nlpspd%nseg_p(2*iat)   )
+!!$   Plr%wfd%keyv(:)  = &
+!!$        PPD%pc_nlpspd%keyv_p(  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:  PPD%pc_nlpspd%nseg_p(2*iat)   )
+!!$   Plr%wfd%keyg(1:2, :)  = &
+!!$        PPD%pc_nlpspd%keyg_p( 1:2,  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:  PPD%pc_nlpspd%nseg_p(2*iat)   )
 
    kx=0.0_gp
    ky=0.0_gp
@@ -372,14 +427,13 @@ subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   i
 
    jorb=startjorb
 
-   do while( jorb<=PPD%G%ncoeff         .and. PPD%iorbtolr(jorb)== iat) 
+   do while( jorb<=PPD%G%ncoeff .and. PPD%iorbtolr(jorb)== iat) 
       if( PPD%gaenes(jorb)<ecut_pc) then
 
          Gocc(jorb)=1.0_wp
-
          ncplx=1
          call gaussians_to_wavelets_orb(ncplx,Plr,hx,hy,hz,kx,ky,kz,PPD%G,&
-            &   Gocc(1),  PPD%pc_proj(istart_c)  )
+              Gocc(1),PPD%pc_proj(istart_c))
          Gocc(jorb)=0.0_wp
 
 
@@ -439,15 +493,23 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
    Plr%d%n3 = Glr%d%n3
    Plr%geocode = geocode
 
-   Plr%wfd%nvctr_c  =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
-   Plr%wfd%nvctr_f  =PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
-   Plr%wfd%nseg_c   =PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
-   Plr%wfd%nseg_f   =PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
+   call plr_segs_and_vctrs(PAWD%paw_nlpspd%plr(iat),&
+        Plr%wfd%nseg_c,Plr%wfd%nseg_f,Plr%wfd%nvctr_c,Plr%wfd%nvctr_f)
+
+!!$   Plr%wfd%nvctr_c  =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
+!!$   Plr%wfd%nvctr_f  =PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
+!!$   Plr%wfd%nseg_c   =PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
+!!$   Plr%wfd%nseg_f   =PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
 
    call allocate_wfd(Plr%wfd,subname)
 
-   Plr%wfd%keyv(:)  = PAWD%paw_nlpspd%keyv_p(  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:  PAWD%paw_nlpspd%nseg_p(2*iat)   )
-   Plr%wfd%keyg(1:2, :)  = PAWD%paw_nlpspd%keyg_p( 1:2,  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:  PAWD%paw_nlpspd%nseg_p(2*iat)   )
+   call vcopy(Plr%wfd%nseg_c+Plr%wfd%nseg_f,&
+        PAWD%paw_nlpspd%plr(iat)%wfd%keyv(1),1,Plr%wfd%keyv(1),1)
+   call vcopy(2*(Plr%wfd%nseg_c+Plr%wfd%nseg_f),&
+        PAWD%paw_nlpspd%plr(iat)%wfd%keyg(1,1),1,Plr%wfd%keyg(1,1),1)
+
+!!$   Plr%wfd%keyv(:)  = PAWD%paw_nlpspd%keyv_p(  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:  PAWD%paw_nlpspd%nseg_p(2*iat)   )
+!!$   Plr%wfd%keyg(1:2, :)  = PAWD%paw_nlpspd%keyg_p( 1:2,  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:  PAWD%paw_nlpspd%nseg_p(2*iat)   )
 
    if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
       ncplx=1
@@ -555,16 +617,18 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    !!$ ========================================================================================
 
 
-   !---------
 
-   allocate(PPD%pc_nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%nseg_p,'pc_nlpspd%nseg_p',subname)
-   allocate(PPD%pc_nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%nvctr_p,'pc_nlpspd%nvctr_p',subname)
-   allocate(PPD%pc_nlpspd%nboxp_c(2,3,at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%nboxp_c,'pc_nlpspd%nboxp_c',subname)
-   allocate(PPD%pc_nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%nboxp_f,'pc_nlpspd%nboxp_f',subname)
+   PPD%pc_nlpspd%natoms=at%nat
+   allocate(PPD%pc_nlpspd%plr(at%nat),stat=i_stat)
+
+!!$   allocate(PPD%pc_nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%nseg_p,'pc_nlpspd%nseg_p',subname)
+!!$   allocate(PPD%pc_nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%nvctr_p,'pc_nlpspd%nvctr_p',subname)
+!!$   allocate(PPD%pc_nlpspd%nboxp_c(2,3,at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%nboxp_c,'pc_nlpspd%nboxp_c',subname)
+!!$   allocate(PPD%pc_nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%nboxp_f,'pc_nlpspd%nboxp_f',subname)
 
    allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid,'logrid',subname)
@@ -578,14 +642,18 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    !-------------------
 
    ! allocations for arrays holding the projectors and their data descriptors
+   !here the allocation is possible
+   do iat=1,PPD%pc_nlpspd%natoms
+      !for the moments the bounds are not needed for projectors
+      call allocate_wfd(PPD%pc_nlpspd%plr(iat)%wfd,subname)
+   end do
 
-
-   allocate(PPD%pc_nlpspd%keyg_p(2,PPD%pc_nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%keyg_p,'pc_nlpspd%keyg_p',subname)
-
-
-   allocate(PPD%pc_nlpspd%keyv_p(PPD%pc_nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%keyv_p,'pc_nlpspd%keyv_p',subname)
+!!$   allocate(PPD%pc_nlpspd%keyg_p(2,PPD%pc_nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%keyg_p,'pc_nlpspd%keyg_p',subname)
+!!$
+!!$
+!!$   allocate(PPD%pc_nlpspd%keyv_p(PPD%pc_nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%keyv_p,'pc_nlpspd%keyv_p',subname)
 
 
 
@@ -625,46 +693,56 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
          nprojel_tmp=0
 
-         ! coarse grid quantities
-         nl1=PPD%pc_nlpspd%nboxp_c(1,1,iat) 
-         nl2=PPD%pc_nlpspd%nboxp_c(1,2,iat) 
-         nl3=PPD%pc_nlpspd%nboxp_c(1,3,iat) 
-
-         nu1=PPD%pc_nlpspd%nboxp_c(2,1,iat)
-         nu2=PPD%pc_nlpspd%nboxp_c(2,2,iat)
-         nu3=PPD%pc_nlpspd%nboxp_c(2,3,iat)
+         call bounds_to_plr_limits(.false.,1,PPD%pc_nlpspd%plr(iat),nl1,nl2,nl3,nu1,nu2,nu3)
+!!$         ! coarse grid quantities
+!!$         nl1=PPD%pc_nlpspd%nboxp_c(1,1,iat) 
+!!$         nl2=PPD%pc_nlpspd%nboxp_c(1,2,iat) 
+!!$         nl3=PPD%pc_nlpspd%nboxp_c(1,3,iat) 
+!!$
+!!$         nu1=PPD%pc_nlpspd%nboxp_c(2,1,iat)
+!!$         nu2=PPD%pc_nlpspd%nboxp_c(2,2,iat)
+!!$         nu3=PPD%pc_nlpspd%nboxp_c(2,3,iat)
 
          call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
             &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),Pcpmult,hx,hy,hz,logrid)
 
-         iseg=PPD%pc_nlpspd%nseg_p(2*iat-2)+1
-         mseg=PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
+!!$         iseg=PPD%pc_nlpspd%nseg_p(2*iat-2)+1
+!!$         mseg=PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
+         mseg=PPD%pc_nlpspd%plr(iat)%wfd%nseg_c
 
          call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-         logrid,mseg,PPD%pc_nlpspd%keyg_p(1,iseg),PPD%pc_nlpspd%keyv_p(iseg))
+!!$         logrid,mseg,PPD%pc_nlpspd%keyg_p(1,iseg),PPD%pc_nlpspd%keyv_p(iseg))
+         logrid,mseg,PPD%pc_nlpspd%plr(iat)%wfd%keyg(1,1),PPD%pc_nlpspd%plr(iat)%wfd%keyv(1))
 
-         mvctr =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-
+!!$         mvctr =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+         mvctr =PPD%pc_nlpspd%plr(iat)%wfd%nvctr_c
 
          nprojel_tmp =nprojel_tmp +mproj*mvctr
 
-         ! fine grid quantities
-         nl1=PPD%pc_nlpspd%nboxp_f(1,1,iat)
-         nl2=PPD%pc_nlpspd%nboxp_f(1,2,iat)
-         nl3=PPD%pc_nlpspd%nboxp_f(1,3,iat)
-
-         nu1=PPD%pc_nlpspd%nboxp_f(2,1,iat)
-         nu2=PPD%pc_nlpspd%nboxp_f(2,2,iat)
-         nu3=PPD%pc_nlpspd%nboxp_f(2,3,iat)
+         call bounds_to_plr_limits(.false.,2,PPD%pc_nlpspd%plr(iat),nl1,nl2,nl3,nu1,nu2,nu3)
+!!$         ! fine grid quantities
+!!$         nl1=PPD%pc_nlpspd%nboxp_f(1,1,iat)
+!!$         nl2=PPD%pc_nlpspd%nboxp_f(1,2,iat)
+!!$         nl3=PPD%pc_nlpspd%nboxp_f(1,3,iat)
+!!$
+!!$         nu1=PPD%pc_nlpspd%nboxp_f(2,1,iat)
+!!$         nu2=PPD%pc_nlpspd%nboxp_f(2,2,iat)
+!!$         nu3=PPD%pc_nlpspd%nboxp_f(2,3,iat)
          call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
             &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
-         iseg=PPD%pc_nlpspd%nseg_p(2*iat-1)+1
-         mseg=PPD%pc_nlpspd%nseg_p(2*iat)-PPD%pc_nlpspd%nseg_p(2*iat-1)
+!!$         iseg=PPD%pc_nlpspd%nseg_p(2*iat-1)+1
+!!$         mseg=PPD%pc_nlpspd%nseg_p(2*iat)-PPD%pc_nlpspd%nseg_p(2*iat-1)
+         iseg=PPD%pc_nlpspd%plr(iat)%wfd%nseg_c+1
+         mseg=PPD%pc_nlpspd%plr(iat)%wfd%nseg_f
+
          if (mseg > 0) then
             call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-            logrid,mseg,PPD%pc_nlpspd%keyg_p(1,iseg),PPD%pc_nlpspd%keyv_p(iseg))
+                 logrid,mseg,&
+!!$                 PPD%pc_nlpspd%keyg_p(1,iseg),PPD%pc_nlpspd%keyv_p(iseg))
+                 PPD%pc_nlpspd%plr(iat)%wfd%keyg(1,iseg),&
+                 PPD%pc_nlpspd%plr(iat)%wfd%keyv(iseg))
 
-            mvctr =PPD%pc_nlpspd%nvctr_p(2*iat)-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+            mvctr =PPD%pc_nlpspd%plr(iat)%wfd%nvctr_f!PPD%pc_nlpspd%nvctr_p(2*iat)-PPD%pc_nlpspd%nvctr_p(2*iat-1)
 
             nprojel_tmp=nprojel_tmp+mproj*mvctr*7
 
@@ -720,8 +798,8 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
       PPD%ilr_to_mproj(iat)=mproj
       if( mproj>0) then
-         nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-         nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+         nvctr_c  =PPD%pc_nlpspd%plr(iat)%wfd%nvctr_c!PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+         nvctr_f  =PPD%pc_nlpspd%plr(iat)%wfd%nvctr_f!PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
 
          jorb=startjorb
          do while( jorb<=PPD%G%ncoeff         .and. PPD%iorbtolr(jorb)== iat) 
@@ -875,14 +953,18 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    !!$ ========================================================================================
    !---------
 
-   allocate(PAWD%paw_nlpspd%nseg_p(0:2*PAWD%G%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%nseg_p,'pc_nlpspd%nseg_p',subname)
-   allocate(PAWD%paw_nlpspd%nvctr_p(0:2*PAWD%G%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%nvctr_p,'pc_nlpspd%nvctr_p',subname)
-   allocate(PAWD%paw_nlpspd%nboxp_c(2,3,PAWD%G%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%nboxp_c,'pc_nlpspd%nboxp_c',subname)
-   allocate(PAWD%paw_nlpspd%nboxp_f(2,3,PAWD%G%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%nboxp_f,'pc_nlpspd%nboxp_f',subname)
+   PAWD%paw_nlpspd%natoms=PAWD%G%nat
+   allocate(PAWD%paw_nlpspd%plr(PAWD%paw_nlpspd%natoms),stat=i_stat)
+
+
+!!$   allocate(PAWD%paw_nlpspd%nseg_p(0:2*PAWD%G%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%nseg_p,'pc_nlpspd%nseg_p',subname)
+!!$   allocate(PAWD%paw_nlpspd%nvctr_p(0:2*PAWD%G%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%nvctr_p,'pc_nlpspd%nvctr_p',subname)
+!!$   allocate(PAWD%paw_nlpspd%nboxp_c(2,3,PAWD%G%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%nboxp_c,'pc_nlpspd%nboxp_c',subname)
+!!$   allocate(PAWD%paw_nlpspd%nboxp_f(2,3,PAWD%G%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%nboxp_f,'pc_nlpspd%nboxp_f',subname)
 
    allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid,'logrid',subname)
@@ -895,12 +977,16 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    !-------------------
 
    ! allocations for arrays holding the projectors and their data descriptors
+   do iat=1,PAWD%paw_nlpspd%natoms
+      !for the moments the bounds are not needed for projectors
+      call allocate_wfd(PAWD%paw_nlpspd%plr(iat)%wfd,subname)
+   end do
 
-   allocate(PAWD%paw_nlpspd%keyg_p(2,PAWD%paw_nlpspd%nseg_p(2*PAWD%G%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%keyg_p,'pc_nlpspd%keyg_p',subname)
-
-   allocate(PAWD%paw_nlpspd%keyv_p(PAWD%paw_nlpspd%nseg_p(2*PAWD%G%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%keyv_p,'pc_nlpspd%keyv_p',subname)
+!!$   allocate(PAWD%paw_nlpspd%keyg_p(2,PAWD%paw_nlpspd%nseg_p(2*PAWD%G%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%keyg_p,'pc_nlpspd%keyg_p',subname)
+!!$
+!!$   allocate(PAWD%paw_nlpspd%keyv_p(PAWD%paw_nlpspd%nseg_p(2*PAWD%G%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%keyv_p,'pc_nlpspd%keyv_p',subname)
 
    !!$  -- this one delayed, waiting for the correct pc_nlpspd%nprojel, pc_nlpspd%nproj
    !!$  --
@@ -936,41 +1022,57 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
          PAWD%paw_nlpspd%nproj=PAWD%paw_nlpspd%nproj+mproj
          if (mproj.ne.0) then 
 
-            ! coarse grid quantities
-            nl1=PAWD%paw_nlpspd%nboxp_c(1,1,iat) 
-            nl2=PAWD%paw_nlpspd%nboxp_c(1,2,iat) 
-            nl3=PAWD%paw_nlpspd%nboxp_c(1,3,iat) 
-
-            nu1=PAWD%paw_nlpspd%nboxp_c(2,1,iat)
-            nu2=PAWD%paw_nlpspd%nboxp_c(2,2,iat)
-            nu3=PAWD%paw_nlpspd%nboxp_c(2,3,iat)
+            call bounds_to_plr_limits(.false.,1,PAWD%paw_nlpspd%plr(iat),nl1,nl2,nl3,nu1,nu2,nu3)
+!!$            ! coarse grid quantities
+!!$            nl1=PAWD%paw_nlpspd%nboxp_c(1,1,iat) 
+!!$            nl2=PAWD%paw_nlpspd%nboxp_c(1,2,iat) 
+!!$            nl3=PAWD%paw_nlpspd%nboxp_c(1,3,iat) 
+!!$
+!!$            nu1=PAWD%paw_nlpspd%nboxp_c(2,1,iat)
+!!$            nu2=PAWD%paw_nlpspd%nboxp_c(2,2,iat)
+!!$            nu3=PAWD%paw_nlpspd%nboxp_c(2,3,iat)
 
             call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
                &   at%ntypes,at%iatype(iatat),rxyz(1,iatat),radii_cf(1,3),Pcpmult,hx,hy,hz,logrid)
 
-            iseg=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
-            mseg=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
+!!$            iseg=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
+!!$            mseg=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
+            mseg=PAWD%paw_nlpspd%plr(iat)%wfd%nseg_c
 
             call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-            logrid,mseg,PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
-            mvctr =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
+                 logrid,mseg,&
+!!$                 PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
+                 PAWD%paw_nlpspd%plr(iat)%wfd%keyg(1,1),&
+                 PAWD%paw_nlpspd%plr(iat)%wfd%keyv(1))
 
-            ! fine grid quantities
-            nl1=PAWD%paw_nlpspd%nboxp_f(1,1,iat)
-            nl2=PAWD%paw_nlpspd%nboxp_f(1,2,iat)
-            nl3=PAWD%paw_nlpspd%nboxp_f(1,3,iat)
+            mvctr =PAWD%paw_nlpspd%plr(iat)%wfd%nvctr_c!PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
 
-            nu1=PAWD%paw_nlpspd%nboxp_f(2,1,iat)
-            nu2=PAWD%paw_nlpspd%nboxp_f(2,2,iat)
-            nu3=PAWD%paw_nlpspd%nboxp_f(2,3,iat)
+            call bounds_to_plr_limits(.false.,2,PAWD%paw_nlpspd%plr(iat),&
+                 nl1,nl2,nl3,nu1,nu2,nu3)
+!!$            ! fine grid quantities
+!!$            nl1=PAWD%paw_nlpspd%nboxp_f(1,1,iat)
+!!$            nl2=PAWD%paw_nlpspd%nboxp_f(1,2,iat)
+!!$            nl3=PAWD%paw_nlpspd%nboxp_f(1,3,iat)
+!!$
+!!$            nu1=PAWD%paw_nlpspd%nboxp_f(2,1,iat)
+!!$            nu2=PAWD%paw_nlpspd%nboxp_f(2,2,iat)
+!!$            nu3=PAWD%paw_nlpspd%nboxp_f(2,3,iat)
             call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
                &   at%ntypes,at%iatype(iatat),rxyz(1,iatat),radii_cf(1,2),1*fpmult,hx,hy,hz,logrid)
-            iseg=PAWD%paw_nlpspd%nseg_p(2*iat-1)+1
-            mseg=PAWD%paw_nlpspd%nseg_p(2*iat)-PAWD%paw_nlpspd%nseg_p(2*iat-1)
+            
+!!$            iseg=PAWD%paw_nlpspd%nseg_p(2*iat-1)+1
+!!$            mseg=PAWD%paw_nlpspd%nseg_p(2*iat)-PAWD%paw_nlpspd%nseg_p(2*iat-1)
+            iseg=PAWD%paw_nlpspd%plr(iat)%wfd%nseg_c+1
+            mseg=PAWD%paw_nlpspd%plr(iat)%wfd%nseg_f
+
             if (mseg > 0) then
                call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-               logrid,mseg,PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
-               mvctr =PAWD%paw_nlpspd%nvctr_p(2*iat)-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
+                    logrid,mseg,&
+!!$               PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
+                    PAWD%paw_nlpspd%plr(iat)%wfd%keyg(1,iseg),&
+                    PAWD%paw_nlpspd%plr(iat)%wfd%keyv(iseg))
+               
+               mvctr =PAWD%paw_nlpspd%plr(iat)%wfd%nvctr_f!PAWD%paw_nlpspd%nvctr_p(2*iat)-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
             end if
 
 
@@ -1019,8 +1121,8 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
             PAWD%ilr_to_mproj(iat)=mproj
             if( mproj>0) then
-               nvctr_c  =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
-               nvctr_f  =PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
+               nvctr_c  =PAWD%paw_nlpspd%plr(iat)%wfd%nvctr_c!PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
+               nvctr_f  =PAWD%paw_nlpspd%plr(iat)%wfd%nvctr_f!PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
 
                jorb=startjorb
                do while( jorb<=PAWD%G%ncoeff  .and. PAWD%iorbtolr(jorb)== iat) 

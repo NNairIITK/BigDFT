@@ -890,11 +890,6 @@ integer:: norbTarget, nprocIG, ierr
 
 end subroutine checkLinearParameters
 
-
-
-
-
-
 subroutine deallocateLinear(iproc, lin, phi, lphi, coeff)
 !
 ! Purpose:
@@ -935,12 +930,7 @@ character(len=*),parameter:: subname='deallocateLinear'
 
   call deallocate_linearParameters(lin, subname)
 
-
 end subroutine deallocateLinear
-
-
-
-
 
 subroutine randomWithinCutoff(iproc, orbs, Glr, at, lin, input, rxyz, phi)
 !

@@ -396,27 +396,28 @@ program memguess
    call deallocate_comms(comms,subname)
 
    ! determine localization region for all projectors, but do not yet fill the descriptor arrays
-   allocate(nlpspd%nseg_p(0:2*atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nseg_p,'nseg_p',subname)
-   allocate(nlpspd%nvctr_p(0:2*atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nvctr_p,'nvctr_p',subname)
-   allocate(nlpspd%nboxp_c(2,3,atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nboxp_c,'nboxp_c',subname)
-   allocate(nlpspd%nboxp_f(2,3,atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nboxp_f,'nboxp_f',subname)
+   allocate(nlpspd%plr(atoms%nat))
+!!$   allocate(nlpspd%nseg_p(0:2*atoms%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nseg_p,'nseg_p',subname)
+!!$   allocate(nlpspd%nvctr_p(0:2*atoms%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nvctr_p,'nvctr_p',subname)
+!!$   allocate(nlpspd%nboxp_c(2,3,atoms%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nboxp_c,'nboxp_c',subname)
+!!$   allocate(nlpspd%nboxp_f(2,3,atoms%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nboxp_f,'nboxp_f',subname)
 
    allocate(logrid(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid,'logrid',subname)
 
    call localize_projectors(0,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,&
       &   in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
-
+   deallocate(nlpspd%plr)
    !allocations for arrays holding the data descriptors
-   !just for modularity
-   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
-   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
+!!$   !just for modularity
+!!$   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
+!!$   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
 
    if (atwf) then
       !here the treatment of the AE Core charge density
@@ -478,7 +479,7 @@ program memguess
    deallocate(logrid,stat=i_stat)
    call memocc(i_stat,i_all,'logrid',subname)
 
-   call deallocate_proj_descr(nlpspd,subname)
+   !call deallocate_proj_descr(nlpspd,subname)
    call deallocate_atoms_scf(atoms,subname) 
 
    call MemoryEstimator(nproc,in%idsx,Glr,&

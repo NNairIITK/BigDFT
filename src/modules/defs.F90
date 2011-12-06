@@ -152,7 +152,7 @@ module module_defs
      module procedure scal_simple,scal_double
   end interface
   interface vcopy
-     module procedure copy_simple,copy_double,copy_double_to_simple,&
+     module procedure copy_integer,copy_simple,copy_double,copy_double_to_simple,&
           copy_complex_real_simple,copy_complex_real_double
   end interface
   interface c_vscal
@@ -646,6 +646,15 @@ module module_defs
       !call to BLAS routine
       call DCOPY(n,dx,incx,dy,incy)
     end subroutine copy_complex_real_double
+
+    subroutine copy_integer(n,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: incx,incy,n
+      integer, intent(in) :: dx
+      integer, intent(out) :: dy
+      !custom blas routine
+      call icopy(n,dx,incx,dy,incy)
+    end subroutine copy_integer
 
     subroutine copy_simple(n,dx,incx,dy,incy)
       implicit none

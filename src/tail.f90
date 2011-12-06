@@ -99,24 +99,33 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
 
   !---reformat keyg_p
-  do iseg=1,nlpspd%nseg_p(2*at%nat)
-     j0=nlpspd%keyg_p(1,iseg)
-     j1=nlpspd%keyg_p(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     i3=i3+nbuf
-     i2=i2+nbuf
-     i1=i1+nbuf
-     i0=i0+nbuf
-     j0=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i0+1
-     j1=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i1+1
-     nlpspd%keyg_p(1,iseg)=j0
-     nlpspd%keyg_p(2,iseg)=j1
+
+  do iat=1,at%nat
+     do iseg=1,nlpspd%plr(iat)%wfd%nseg_c+nlpspd%plr(iat)%wfd%nseg_f
+        j0=nlpspd%plr(iat)%wfd%keyg(1,iseg)
+        j1=nlpspd%plr(iat)%wfd%keyg(2,iseg)
+        !do iseg=1,nlpspd%nseg_p(2*at%nat)
+        !j0=nlpspd%keyg_p(1,iseg)
+        !j1=nlpspd%keyg_p(2,iseg)
+        ii=j0-1
+        i3=ii/((n1+1)*(n2+1))
+        ii=ii-i3*(n1+1)*(n2+1)
+        i2=ii/(n1+1)
+        i0=ii-i2*(n1+1)
+        i1=i0+j1-j0
+        i3=i3+nbuf
+        i2=i2+nbuf
+        i1=i1+nbuf
+        i0=i0+nbuf
+        j0=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i0+1
+        j1=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i1+1
+        nlpspd%plr(iat)%wfd%keyg(1,iseg)=j0
+        nlpspd%plr(iat)%wfd%keyg(2,iseg)=j1
+!!$        nlpspd%keyg_p(1,iseg)=j0
+!!$        nlpspd%keyg_p(2,iseg)=j1
+     end do
   end do
+!end do
 
   !---reformat wavefunctions
 
@@ -377,9 +386,11 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
                 txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj)
            !only the wavefunction descriptors must change
         else
-           call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
-                nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,&
-                nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,proj,  &
+           call applyprojectorsone(at%ntypes,at%nat,at%iatype,&
+                at%psppar,at%npspcode, &
+                nlpspd%nprojel,nlpspd%nproj,nlpspd,&
+                !nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,&
+                proj,&
                 nsegb_c,nsegb_f,keyg,keyv,nvctrb_c,nvctrb_f,  & 
                 psib,hpsib,eproj)
            !write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail
@@ -907,18 +918,22 @@ END SUBROUTINE applylocpotkinone
 !! Input: psi_c,psi_f
 !! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
 subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
-     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-     nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj)
+     nprojel,nproj,&
+     !nseg_p,keyg_p,keyv_p,nvctr_p,&
+     proj,nlpspd,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,&
+     psi,hpsi,eproj)
   use module_base
+  use module_types
   implicit none
   integer, intent(in) :: ntypes,nat,nprojel,nproj,nseg_c,nseg_f,nvctr_c,nvctr_f
   integer, dimension(ntypes), intent(in) :: npspcode
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
-  integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
-  integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+!!$  integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
+!!$  integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
+!!$  integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
   real(gp), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
   real(wp), dimension(nprojel), intent(in) :: proj
@@ -932,12 +947,17 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
   eproj=0.0_gp
   istart_c=1
   do iat=1,nat
-     mbseg_c=nseg_p(2*iat-1)-nseg_p(2*iat-2)
-     mbseg_f=nseg_p(2*iat  )-nseg_p(2*iat-1)
-     jseg_c=nseg_p(2*iat-2)+1
-     !n(c) jseg_f=nseg_p(2*iat-1)+1
-     mbvctr_c=nvctr_p(2*iat-1)-nvctr_p(2*iat-2)
-     mbvctr_f=nvctr_p(2*iat  )-nvctr_p(2*iat-1)
+     call plr_segs_and_vctrs(nlpspd%plr(iat),&
+          mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+     jseg_c=1
+
+!!$     mbseg_c=nseg_p(2*iat-1)-nseg_p(2*iat-2)
+!!$     mbseg_f=nseg_p(2*iat  )-nseg_p(2*iat-1)
+!!$     jseg_c=nseg_p(2*iat-2)+1
+!!$     !n(c) jseg_f=nseg_p(2*iat-1)+1
+!!$     mbvctr_c=nvctr_p(2*iat-1)-nvctr_p(2*iat-2)
+!!$     mbvctr_f=nvctr_p(2*iat  )-nvctr_p(2*iat-1)
+
      ityp=iatype(iat)
      !GTH and HGH pseudopotentials
      do l=1,4
@@ -946,7 +966,10 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
               !in this case the ncplx value is 1 mandatory 
               call applyprojector(1,l,i,psppar(0,0,ityp),npspcode(ityp),&
                    nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
-                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyg_p(1,jseg_c),&
+                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                   nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                   nlpspd%plr(iat)%wfd%keyg(1,jseg_c),&
+!!$                   keyv_p(jseg_c),keyg_p(1,jseg_c),&
                    proj(istart_c),psi,hpsi,eproj)
               iproj=iproj+2*l-1
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)

@@ -879,12 +879,12 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
 !  end do
   
 !  call deallocate_communications_arrays(lzd%comms, subname)
-  
+
   call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
 
-  call deallocate_nonlocal_psp_descriptors(lzd%Gnlpspd, subname)
+  !call deallocate_nonlocal_psp_descriptors(lzd%Gnlpspd, subname)
 
   if(associated(lzd%llr)) then  
      iis1=lbound(lzd%llr,1)
@@ -899,7 +899,6 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
      end do
   end if
-
   if(associated(lzd%lnlpspd)) then 
      iis1=lbound(lzd%lnlpspd,1)
      iie1=ubound(lzd%lnlpspd,1)
@@ -1171,13 +1170,20 @@ subroutine deallocate_nonlocal_psp_descriptors(nlpspd, subname)
   ! Calling arguments
   type(nonlocal_psp_descriptors),intent(inout):: nlpspd
   character(len=*),intent(in):: subname
+  integer :: i_stat,iat
 
-  call checkAndDeallocatePointer(nlpspd%nvctr_p, 'nlpspd%nvctr_p', subname)
-  call checkAndDeallocatePointer(nlpspd%nseg_p, 'nlpspd%nseg_p', subname)
-  call checkAndDeallocatePointer(nlpspd%keyv_p, 'nlpspd%keyv_p', subname)
-  call checkAndDeallocatePointer(nlpspd%keyg_p, 'nlpspd%keyg_p', subname)
-  call checkAndDeallocatePointer(nlpspd%nboxp_c, 'nlpspd%nboxp_c', subname)
-  call checkAndDeallocatePointer(nlpspd%nboxp_f, 'nlpspd%nboxp_f', subname)
+  do iat=1,nlpspd%natoms
+     call deallocate_wfd(nlpspd%plr(iat)%wfd,subname)
+  end do
+  deallocate(nlpspd%plr,stat=i_stat)
+  nullify(nlpspd%plr)
+
+!!$  call checkAndDeallocatePointer(nlpspd%nvctr_p, 'nlpspd%nvctr_p', subname)
+!!$  call checkAndDeallocatePointer(nlpspd%nseg_p, 'nlpspd%nseg_p', subname)
+!!$  call checkAndDeallocatePointer(nlpspd%keyv_p, 'nlpspd%keyv_p', subname)
+!!$  call checkAndDeallocatePointer(nlpspd%keyg_p, 'nlpspd%keyg_p', subname)
+!!$  call checkAndDeallocatePointer(nlpspd%nboxp_c, 'nlpspd%nboxp_c', subname)
+!!$  call checkAndDeallocatePointer(nlpspd%nboxp_f, 'nlpspd%nboxp_f', subname)
 
 end subroutine deallocate_nonlocal_psp_descriptors
 
