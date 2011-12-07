@@ -1,4 +1,4 @@
-!> @file
+!>  @file
 !!  Routines to calculate atomic forces
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
@@ -1024,7 +1024,7 @@ sab(idir-3)+&
         !orbital-dependent factor for the forces
         orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*2.0_gp
 
-!seq: strten(1:6) =  11 22 33 12 23 31 
+!seq: strten(1:6) =  11 22 33 12 13 23 
 strten(1)=strten(1)+sab(1)/vol 
 strten(2)=strten(2)+sab(5)/vol 
 strten(3)=strten(3)+sab(9)/vol 
@@ -1033,8 +1033,8 @@ strten(3)=strten(3)+sab(9)/vol
 !strten(5)=strten(5)+(sab(6)+sab(8))/2._gp/vol
 !strten(6)=strten(6)+(sab(3)+sab(7))/2._gp/vol
 strten(4)=strten(4)+sab(2)/vol
-strten(5)=strten(5)+sab(6)/vol
-strten(6)=strten(6)+sab(3)/vol
+strten(5)=strten(5)+sab(3)/vol
+strten(6)=strten(6)+sab(6)/vol
         do iat=1,at%nat
            fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
            fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
@@ -3797,13 +3797,9 @@ kinstr=0._wp
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
           psir,hpsi(1,oidx),ekin,kinstr)
 
-!write(*,*) 'done: per K'
-!-- ykvashni
-!write(*,*) 'kinstr',kinstr
 kinstr = -kinstr*8.0_gp/(hx*hy*hz)/real(lr%d%n1i*lr%d%n2i*lr%d%n3i,gp)
 tens=tens+kinstr*2.0_gp*&
 orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
-
 
   end do !loop over orbitals: finished
 
@@ -3820,4 +3816,148 @@ orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
 
 END SUBROUTINE local_hamiltonian_stress
 !!***
+
+subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,tens)
+use module_base
+use module_types
+use module_fft_sg
+implicit none
+!passed var
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+  real(gp), intent(in) :: hxh,hyh,hzh
+  integer,intent(in) :: n1i,n2i,n3i,n3p,iproc,nproc
+  real(kind=8), dimension(n1i*n2i*max(n3p,1)), intent(in), target :: rho
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+  real(dp),dimension(6), intent(out) :: tens
+!local var
+  character(len=*), parameter :: subname='erf_stress'
+  real(kind=8),allocatable :: rhog(:,:,:,:,:)
+  real(kind=8),dimension(:),pointer :: rhor
+  integer :: i,ierr,i_stat
+  real(kind=8) :: pi,p(3),g2,rloc,set,fac
+  real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
+  real(kind=8) :: potg,potg2
+  integer :: Zion,iat,ityp
+  integer :: j1,j2,j3,i1,i2,i3,inzee,ind
+
+!write(*,*) 'iproc,n3i,n3p',iproc,n3i,n3p
+!write(*,*) 'iproc',iproc, ngatherarr(iproc-1,1),ngatherarr(iproc-1,2)
+
+if (nproc > 1) then
+     allocate(rhor(n1i*n2i*n3i),stat=i_stat)
+     call memocc(i_stat,rhor,'rhor',subname)
+        call MPI_ALLGATHERV(rho(1),ngatherarr(iproc,1),&
+            &   mpidtypw,rhor(1),ngatherarr(0,1),&
+         ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+else
+        rhor => rho        
+end if
+
+pi = 4.0_gp*atan(1.0_gp)
+allocate(rhog(2,n1i+1,n2i+1,n3i+1,2))
+tens(:)=0.0_dp ; p(:)=0.0_dp
+
+! calculate total rho(G)
+rhog=0.0_dp
+     do i3=1,n3i
+     do i2=1,n2i
+     do i1=1,n1i
+              ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+              rhog(1,i1,i2,i3,1)=rhor(ind)
+              rhog(2,i1,i2,i3,1)=0.d0
+     end do
+     end do
+     end do
+
+! DO FFT OF DENSITY: Rho(r) -FFT-> Rho(G)
+inzee=1
+        call FFT(n1i,n2i,n3i,n1i+1,n2i+1,n3i+1,rhog,-1,inzee)   
+rhog=rhog/real(n1i*n2i*n3i,kind=8)
+
+tens=0.0_dp
+
+do iat=1,at%nat                          ! SUM OVER ATOMS
+
+   ityp=at%iatype(iat)                ! ityp
+   rloc=at%psppar(0,0,ityp)           ! take corresp. r_loc
+   Zion = real(at%nelpsp(ityp),kind=8)
+
+   !coordinates of new center (atom)
+   rx=real(rxyz(1,iat),kind=8) 
+   ry=real(rxyz(2,iat),kind=8) 
+   rz=real(rxyz(3,iat),kind=8)
+
+
+   potg=0.0_dp
+
+        do i3=1,n3i
+         j3=i3-(i3/(n3i/2+2))*n3i-1
+         p(3)=real(j3,dp)/(n3i*hzh)         
+
+        do i2=1,n2i
+         j2=i2-(i2/(n2i/2+2))*n2i-1
+         p(2)=real(j2,dp)/(n2i*hyh)    
+
+        do i1=1,n1i
+          j1=i1-(i1/(n1i/2+2))*n1i-1
+          p(1)=real(j1,dp)/(n1i*hxh)
+
+
+   ! calculate structural factor exp(-2*pi*i*R*G)
+   sfr=cos(-2.0_gp*pi*(rx*p(1)+ry*p(2)+rz*p(3)))
+   sfi=sin(-2.0_gp*pi*(rx*p(1)+ry*p(2)+rz*p(3)))
+
+   ! multiply density by shift /structural/ factor 
+   rhore=rhog(1,i1,i2,i3,inzee)*sfr
+   rhoim=rhog(2,i1,i2,i3,inzee)*sfi
+
+   ! use analytical expression for rhog^el
+   ! multiply by  Kernel 1/pi/G^2 in reciprocal space
+
+   g2=real(p(1)**2+p(2)**2+p(3)**2,kind=8)
+
+   !set = rhog^el (analytic)
+   fac=(Zion/rloc**3.0_gp)/sqrt(2.0_gp*pi)/(2.0_gp*pi)
+   fac=fac/real(n1i*hxh*n2i*hyh*n3i*hzh,kind=8)                    !Division by Volume
+   set=((sqrt(pi*2.0_gp*rloc**2.0_gp))**3)*fac*exp(-pi*pi*g2*2.0_gp*rloc**2.0_gp)
+
+   if (g2 /= 0) then
+
+     potg = -set/(pi*g2)  ! V^el(G)
+     potg2 = (set/pi)*((real(1.d0,kind=8)/g2**2.d0)&
+     +real(pi*pi*2.d0*rloc**2.d0/g2,kind=8))
+
+     !STRESS TENSOR
+     tens(1)=tens(1)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(1)+potg)
+     tens(2)=tens(2)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(2)+potg)
+     tens(3)=tens(3)-(rhore+rhoim)*(potg2*2.0_gp*p(3)*p(3)+potg)
+     tens(4)=tens(4)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(2))
+     tens(5)=tens(5)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(3))
+     tens(6)=tens(6)-(rhore+rhoim)*(potg2*2.0_gp*p(3)*p(1))
+
+   end if  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! g2 /=0
+
+
+            end do !i3
+         end do !i2
+      end do !i1
+
+
+
+end do !iat -atoms
+
+if (iproc ==0) then
+write(*,*)
+write(*,*)'--------------------------------------------------------------------'
+write(*,*) 'STRESS TENSOR: ERF PART'
+write(*,*) tens(1),tens(2),tens(3)
+write(*,*) tens(4),tens(5),tens(6)
+write(*,*)
+end if
+
+if (nproc>1) deallocate(rhor)
+deallocate(rhog)
+
+END SUBROUTINE erf_stress
 

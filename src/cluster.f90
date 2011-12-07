@@ -236,7 +236,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    type(diis_objects) :: diis
    real(gp), dimension(3) :: shift
    real(dp), dimension(6) :: strten
-   real(dp), dimension(6) :: kinstrorb
+   real(dp), dimension(6) :: kinstr,erfstr
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(kind=8), dimension(:), allocatable :: rho
    real(gp), dimension(:,:), allocatable :: radii_cf,fion,thetaphi,band_structure_eval
@@ -1422,19 +1422,20 @@ if (inputpsi /= -1000) then
    call calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s+i3xcsh,n3p,in%nspin,refill_proj,&
       &   rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise,psoffset)
 
-call local_hamiltonian_stress(iproc,orbs,Glr,hx,hy,hz,psi,kinstrorb)
+if (atoms%geocode == 'P') then
+  call erf_stress(atoms,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,erfstr)
+  call local_hamiltonian_stress(iproc,orbs,Glr,hx,hy,hz,psi,kinstr)
   if (nproc > 1) then
-     call mpiallred(kinstrorb(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(kinstr(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
+end if
 
 if (iproc == 0 .and. verbose > 1) then
 write(*,*)'--------------------------------------------------------------------'
 write(*,*) 'STRESS TENSOR: KINETIC PART'
-write(*,*) kinstrorb(1),kinstrorb(2),kinstrorb(3)
+write(*,*) kinstr(1),kinstr(2),kinstr(3)
 write(*,*)
 end if
-
-!yk
 
    i_all=-product(shape(rho))*kind(rho)
    deallocate(rho,stat=i_stat)
