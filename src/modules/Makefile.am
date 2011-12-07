@@ -10,7 +10,7 @@ else
 mpi_include = mpif.h
 endif
 
-if BUILD_LIBXC
+if USE_LIBXC
 LIBXC_MODULE =
 xc.o: base.o
 else
@@ -38,10 +38,15 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)
+include_HEADERS = bigdft.h
 
 EXTRA_DIST = configure.inc.in
 
-modules_source = base.f90 \
+AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+
+noinst_LIBRARIES = libmodules.a
+
+libmodules_a_SOURCES = base.f90 \
 	defs.F90 \
 	types.f90 \
 	input.f90 \
@@ -49,14 +54,9 @@ modules_source = base.f90 \
 	xc.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
+	bigdft.h \
 	$(LIBXC_MODULE) \
 	$(GPUBLAS_INTERFACE)
-
-AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-
-noinst_LIBRARIES = libmodules.a
-
-libmodules_a_SOURCES = $(modules_source)
 
 CLEANFILES = mpif.h $(mod_bigdft)
 

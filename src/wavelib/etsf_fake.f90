@@ -88,6 +88,23 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   psi(1,1)=0.0_wp
 END SUBROUTINE read_waves_etsf
 
+subroutine read_one_wave_etsf(iproc,filename,iorbp,isorb,nspinor,n1,n2,n3,&
+     & hx,hy,hz,at,rxyz_old,rxyz,wfd,psi,eval)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iorbp,iproc,n1,n2,n3,nspinor,isorb
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), intent(out) :: eval
+  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor), intent(out) :: psi
+  character(len = *), intent(in) :: filename
+
+  stop 'No ETSF support at compilation!'
+end subroutine read_one_wave_etsf
 
 !> Write wavefunctions in ETSF format
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
@@ -107,3 +124,72 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,p
   !To avoid warnings from the compiler
   write(*,*) iproc,filename,n1,n2,n3,nat,hx,hy,hz,rxyz(1,1),psi(1,1)
 END SUBROUTINE write_waves_etsf
+
+subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi, orblist)
+  use module_base
+  use module_types
+
+  implicit none
+
+  integer, intent(in) :: iorbp, ncid
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
+  integer, dimension(wfd%nvctr_c), intent(in) :: nvctr
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+  integer, dimension(orbs%norb), intent(in) :: orblist
+
+  stop 'No ETSF support at compilation!'
+end subroutine read_psi_compress_etsf
+
+subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
+     & nvctr_c, nvctr, gcoord, psig, orblist)
+  use module_base
+  use module_types
+
+  implicit none
+
+  integer, intent(in) :: iorbp, n1, n2, n3, nvctr_c, ncid
+  type(orbitals_data), intent(in) :: orbs
+  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(out) :: psig
+  integer, dimension(3,nvctr_c), intent(in) :: gcoord
+  integer, dimension(orbs%norb), intent(in) :: orblist
+  integer, dimension(nvctr_c), intent(in) :: nvctr
+
+  stop 'No ETSF support at compilation!'
+end subroutine read_psi_full_etsf
+
+subroutine write_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
+  use module_base
+  use module_types
+
+  implicit none
+
+  integer, intent(in) :: iorbp, ncid
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
+  integer, dimension(wfd%nvctr_c), intent(in) :: nvctr
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(in) :: psi
+
+  stop 'No ETSF support at compilation!'
+end subroutine write_psi_compress_etsf
+
+subroutine read_wave_to_isf_etsf(filename, iorbp, hx, hy, hz, n1, n2, n3, nspinor, psiscf)
+  use module_base
+  use module_types
+  implicit none
+  character(len = *), intent(in) :: filename
+  integer, intent(in) :: iorbp
+  integer, intent(out) :: n1, n2, n3, nspinor
+  real(gp), intent(out) :: hx, hy, hz
+  real(wp), dimension(:,:,:,:), pointer :: psiscf
+
+  stop 'No ETSF support at compilation!'
+end subroutine read_wave_to_isf_etsf
+
+subroutine free_wave_to_isf_etsf(psiscf)
+  use module_base
+  implicit none
+  real(wp), dimension(:,:,:,:), pointer :: psiscf
+
+  stop 'No ETSF support at compilation!'
+end subroutine free_wave_to_isf_etsf
