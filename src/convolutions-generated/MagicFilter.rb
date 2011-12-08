@@ -18,20 +18,35 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 
 
 
-def MagicFilter( invert, filt, center, unroll )
-  function_name = "magicfilter_per"
+def MagicFilter(filt, center, unroll, invert, free=false )
+  function_name = "magicfilter"
+  if free then
+    function_name += "_free"
+  else 
+    function_name += "_per"
+  end
   if invert then
     function_name += "_inv"
   end
-  
+  dim_in_min = "0"
+  dim_in_max = "n-1"
+  dim_out_min = "0"
+  dim_out_max = "n-1"
+  if free then
+    if invert then
+      dim_in_min = "lowfil"
+      dim_in_max = "n-1+upfil"
+    else
+      dim_out_min = "-upfil"
+      dim_out_max = "n-1-lowfil"
+    end
+  end
+ 
   puts "\
 subroutine #{function_name}(n,ndat,x,y)
   use module_base
   implicit none
-  integer, intent(in) :: n,ndat
-  real(wp), dimension(0:n-1,ndat), intent(in) :: x
-  real(wp), dimension(ndat,0:n-1), intent(out) :: y
-"
+  integer, intent(in) :: n,ndat"
   if invert then
   puts "\
   integer, parameter :: lowfil=-#{filt.length-center-1},upfil=#{center}"
@@ -39,7 +54,11 @@ subroutine #{function_name}(n,ndat,x,y)
   puts "\
   integer, parameter :: lowfil=-#{center},upfil=#{filt.length-center-1}"
   end
-  
+  puts "\ 
+  real(wp), dimension(#{dim_in_min}:#{dim_in_max},ndat), intent(in) :: x
+  real(wp), dimension(ndat,#{dim_out_min}:#{dim_out_max}), intent(out) :: y
+"
+ 
   print"\
   integer :: i,j,k,l
   real(wp) :: tt1"
@@ -59,45 +78,72 @@ subroutine #{function_name}(n,ndat,x,y)
   
   puts "
   do j=1,ndat#{unroll>1?"#{-unroll+1},#{unroll}":",1"}
-    do i=0,n-1
+    do i=#{dim_out_min},#{dim_out_max}
       tt1=0.e0_wp"
   2.upto(unroll){ |i| puts"\
       tt#{i}=0.e0_wp"
   }
-  puts"\
-      do l=lowfil,upfil
-        k=modulo(i+l,n)   
+  if free and not invert then
+    puts"\
+      do l=max(-i,lowfil),min(lupfil,n1-i)"
+  else
+    puts "\
+      do l=lowfil,upfil"
+  end
+  if not free then
+    puts "\
+        k=modulo(i+l,n)"
+  else
+    puts "\
+        k=i+l"
+  end
+  puts "\
         tt1=tt1+x( k,j  )*fil(l)"
-  2.upto(unroll){ |i| puts"\
+  2.upto(unroll){ |i| puts "\
         tt#{i}=tt#{i}+x( k,j+#{i-1})*fil(l)"
   }
-  puts"\
+  puts "\
       enddo
       y(j  ,i)=tt1"
-  2.upto(unroll){ |i| puts"\
+  2.upto(unroll){ |i| puts "\
       y(j+#{i-1},i)=tt#{i}"
   }
-  puts"\
+  puts "\
     enddo
   enddo"
 
   if unroll>2 then puts "\
   do j=ndat-modulo(ndat,#{unroll})+1,ndat
-    do i=0,n-1
-      tt1=0.e0_wp
-      do l=lowfil,upfil
-        k=modulo(i+l,n)   
+    do i=#{dim_out_min},#{dim_out_max}
+      tt1=0.e0_wp"
+  if free and not invert then
+    puts "\
+      do l=max(-i,lowfil),min(lupfil,n1-i)"
+  else
+    puts "\
+      do l=lowfil,upfil"
+  end
+  if not free then
+    puts "\
+        k=modulo(i+l,n)"
+  else
+    puts "\
+        k=i+l"
+  end
+  puts "\
         tt1=tt1+x( k,j  )*fil(l)
       enddo
       y(j  ,i)=tt1
     enddo
   end"
   end
-  puts"\
+  puts "\
 END SUBROUTINE #{function_name}"
 end
 
-MagicFilter(false,FILTER,8,-1)
-MagicFilter(true,FILTER,8,-1)
+MagicFilter(FILTER,8,0,false)
+MagicFilter(FILTER,8,5,true)
+MagicFilter(FILTER,8,3,false,true)
+MagicFilter(FILTER,8,4,true,true)
   
 
