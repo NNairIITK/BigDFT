@@ -419,7 +419,7 @@ end]], ac_use_etsfio=yes, ac_use_etsfio=no)
          ac_etsfio_incs=$ac_etsfio_incs" -I$ac_netcdf_dir/include"
       fi
       AC_SUBST(LIBETSFIO_INCLUDE, $ac_etsfio_incs)
-      LIBETSFIO_LIBS="-letsf_io $ac_netcdf_libs"
+      LIBETSFIO_LIBS="-letsf_io_utils -letsf_io $ac_netcdf_libs"
    else
       ac_use_etsfio="warn"
    fi
