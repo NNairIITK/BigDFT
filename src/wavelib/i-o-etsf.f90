@@ -75,6 +75,9 @@ contains
     hx_old = rprimd(1,1) / n1_old
     hy_old = rprimd(2,2) / n2_old
     hz_old = rprimd(3,3) / n3_old
+    n1_old = n1_old - 1
+    n2_old = n2_old - 1
+    n3_old = n3_old - 1
     ! We read the eigenvalues & occupations.
     allocate(orbsd%eval(dims%number_of_spins * dims%max_number_of_states * &
          & dims%number_of_kpoints),stat=i_stat)
@@ -659,9 +662,6 @@ subroutine read_wave_to_isf_etsf(lstat, filename, ln, iorbp, hx, hy, hz, &
   end if
   nspinor = orbsd%nspinor
   orbsd%isorb = 0
-  n1 = n1 - 1
-  n2 = n2 - 1
-  n3 = n3 - 1
 
   ! Initial allocations.
   allocate(gcoord(3,nvctr_c + ndebug),stat=i_stat)
