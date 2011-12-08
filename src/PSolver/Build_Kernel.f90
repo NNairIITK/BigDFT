@@ -851,7 +851,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  !(the support of the exponential should be inside [-n_range/2,n_range/2])
  real(dp), dimension(n_gauss) :: p_gauss,w_gauss
  real(dp), dimension(:), allocatable :: fwork
- real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
+ real(dp), dimension(:,:), allocatable :: kernel_scf, fftwork
  real(dp) :: ur_gauss,dr_gauss,acc_gauss,pgauss,a_range
  real(dp) :: factor,factor2 !n(c) ,dx
  real(dp) :: a1,a2,a3
@@ -921,7 +921,6 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  allocate(fwork(0:n_range+ndebug),stat=i_stat)
  call memocc(i_stat,fwork,'fwork',subname)
  allocate(fftwork(2,max(nfft1,nfft2,nfft3)*2+ndebug),stat=i_stat)
- fftwork(1,1)=0.0d0
  call memocc(i_stat,fftwork,'fftwork',subname)
 
  do i3=1,n3k/nproc
@@ -1059,10 +1058,15 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         nk=ndimsk(idir)
         !copy the values on the real part of the fftwork array
         fftwork=0.0_dp
-        do j=0,min(n_range,n/2)
+        do j=0,min(n_range,n/2)-1
            fftwork(1,n/2+1+j)=fwork(j)
-           fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
+           fftwork(1,n/2+1-j)=fwork(j)
         end do
+        !old version of the loop, after Cray compiler bug.
+        !do j=0,min(n_range,n/2)
+        !   fftwork(1,n/2+1+j)=fwork(j)
+        !   fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
+        !end do
         !calculate the fft 
         call fft_1d_ctoc(1,1,n,fftwork,inzee)
         !copy the real part on the kfft array
