@@ -336,12 +336,13 @@ write(*,*) 'STRESS TENSOR: LOCAL PART (Ha/bohr**3)'
 write(*,*) locstrten(1),locstrten(2),locstrten(3)
 write(*,*) locstrten(4),locstrten(5),locstrten(6)
 write(*,*)
+call symm_stress(iproc,locstrten,atoms)
 write(*,*) 'STRESS TENSOR: NON-LOCAL PART (Ha/bohr**3)'
 write(*,*) strten(1),strten(2),strten(3)
 write(*,*) strten(4),strten(5),strten(6)
 write(*,*)
-
-  end if
+call symm_stress(iproc,strten,atoms)
+ end if
 
 !!$  if (iproc == 0) then
 !!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
@@ -367,7 +368,7 @@ write(*,*)
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   ! Apply symmetries when needed
-  if (atoms%symObj >= 0) call symmetrise_forces(iproc, fxyz, atoms)
+  if (atoms%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
 
 !> calculate the contribution to the forces given by the core density charge
@@ -3666,6 +3667,69 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   end if
 END SUBROUTINE clean_forces
 
+subroutine symm_stress(iproc,tens,at)
+  use defs_basis
+  use m_ab6_symmetry
+  use module_types
+
+  integer, intent(in) :: iproc
+  real(gp),intent(inout) :: tens(6)
+  type(atoms_data), intent(in) :: at
+  integer, pointer  :: sym(:,:,:)
+  integer, pointer  :: symAfm(:)
+  real(gp), pointer :: transNon(:,:)
+  integer :: isym, errno, ind, nsym,k,l
+  integer :: indsym(4, AB6_MAX_SYMMETRIES)
+  integer, allocatable :: symrec(:,:,:)
+  real(gp),dimension(3,3) :: symtens
+
+  call symmetry_get_matrices_p(at%symObj, nsym, sym, transNon, symAfm, errno)
+  if (errno /= AB6_NO_ERROR) stop
+  if (nsym < 2) return
+
+  if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, "symmetries."
+
+  !Get the symmetry matrices in terms of reciprocal basis
+  allocate(symrec(3, 3, nsym))
+  do isym = 1, nsym, 1
+     call mati3inv(sym(:,:,isym), symrec(:,:,isym))
+  end do
+
+symtens=0.0_gp
+do isym = 1,nsym
+  do k=1,3
+   do l=1,3
+    symtens(k,l)=&
+    symtens(k,l)+&
+    sym(1,k,isym)*tens(1)*sym(1,l,isym)+&
+    sym(1,k,isym)*tens(4)*sym(2,l,isym)+&
+    sym(1,k,isym)*tens(5)*sym(3,l,isym)+&
+    sym(2,k,isym)*tens(4)*sym(1,l,isym)+&
+    sym(2,k,isym)*tens(2)*sym(2,l,isym)+&
+    sym(2,k,isym)*tens(6)*sym(3,l,isym)+&
+    sym(3,k,isym)*tens(5)*sym(1,l,isym)+&
+    sym(3,k,isym)*tens(6)*sym(2,l,isym)+&
+    sym(3,k,isym)*tens(3)*sym(3,l,isym)
+   end do
+  end do
+end do
+symtens=symtens / real(nsym,gp)
+
+tens(1)=symtens(1,1)
+tens(2)=symtens(2,2)
+tens(3)=symtens(3,3)
+tens(4)=symtens(1,2)
+tens(5)=symtens(1,3)
+tens(6)=symtens(2,3)
+
+if (iproc == 0) then
+write(*,*) '=== SYMMETRIZED ==='
+write(*,*) tens(:)
+end if
+
+
+end subroutine symm_stress
+
 subroutine symmetrise_forces(iproc, fxyz, at)
   use defs_basis
   use m_ab6_symmetry
@@ -3676,7 +3740,6 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   integer, intent(in) :: iproc
   type(atoms_data), intent(in) :: at
   real(gp), intent(inout) :: fxyz(3, at%nat)
-
   integer :: ia, mu, isym, errno, ind, nsym
   integer :: indsym(4, AB6_MAX_SYMMETRIES)
   real(gp) :: summ
@@ -3933,8 +3996,8 @@ do iat=1,at%nat                          ! SUM OVER ATOMS
      tens(2)=tens(2)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(2)+potg)
      tens(3)=tens(3)-(rhore+rhoim)*(potg2*2.0_gp*p(3)*p(3)+potg)
      tens(4)=tens(4)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(2))
-     tens(5)=tens(5)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(3))
-     tens(6)=tens(6)-(rhore+rhoim)*(potg2*2.0_gp*p(3)*p(1))
+     tens(5)=tens(5)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(3))
+     tens(6)=tens(6)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(3))
 
    end if  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! g2 /=0
 

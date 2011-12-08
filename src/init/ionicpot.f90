@@ -37,6 +37,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
   real(gp), dimension(:,:), allocatable :: fewald,xred
+  real(dp),dimension(6) :: ewaldstr
 
   pi=4.d0*datan(1.d0)
   psoffset=0.0_gp
@@ -88,9 +89,15 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
         end if
      end do
 
-     !calculate ewald energy and forces
+     !calculate ewald energy and forces + stress
      call ewald(eion,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,&
           xred,real(at%nelpsp,kind=8))
+ewaldstr=0.0_dp
+     call ewald2(gmet,at%nat,at%ntypes,rmet,rprimd,ewaldstr,at%iatype,&
+     ucvol,xred,real(at%nelpsp,kind=8))
+
+! our sequence of strten elements : 11 22 33 12 13 23
+! abinit output                   : 11 22 33 23 13 12
 
      !make forces dimensional
      do iat=1,at%nat
@@ -131,6 +138,15 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      !if (iproc ==0) print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
      !correct ionic energy taking into account the PSP core correction
      eion=eion+charge/ucvol*(psoffset+shortlength)
+
+!PSP core correction of the stress tensor (diag.)
+ewaldstr(1:3)=ewaldstr(1:3)-charge*(psoffset+shortlength)/ucvol/ucvol
+
+ if (iproc == 0) then
+  write(*,*) 'STRESS TENSOR: EWALD + PSP-CORE'
+  write(*,*) ewaldstr(1:3)
+  write(*,*) ewaldstr(6),ewaldstr(5),ewaldstr(4)
+ end if
 
 !!!     !in the surfaces case, correct the energy term following (J.Chem.Phys. 111(7)-3155, 1999)
 !!!     if (at%geocode == 'S') then
