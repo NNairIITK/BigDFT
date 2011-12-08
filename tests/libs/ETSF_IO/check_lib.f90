@@ -4,11 +4,11 @@ program schtroumpf_lib
   implicit none
 
   character(len = *), parameter :: filename = "data/wavefunction.etsf"
-  logical :: lstat
   integer, parameter :: iorbp = 23
   real(wp), dimension(:,:,:,:), pointer :: psiscf
   real(gp) :: hx, hy, hz
-  integer :: n1, n2, n3, nspinor
+  integer :: n1, n2, n3, nspinor, norbu, norbd, nkpt
+  logical :: lstat
   
   real(wp) :: nrm
   integer :: ierr, i, j, k  
@@ -16,11 +16,9 @@ program schtroumpf_lib
   call MPI_INIT(ierr)
 
   write(*,"(3A)") " --- Test read_wave_to_isf_etsf() from ", filename ," ---"
-  call read_wave_to_isf_etsf(lstat,filename, len(filename),&
-       iorbp, hx, hy, hz, n1, n2, n3, nspinor, psiscf)
+  call read_wave_descr_etsf(lstat, filename, len(filename), norbu, norbd, nkpt, nspinor)
 
-  !check the library status
-  if (.not. lstat) stop 'reading wave error'
+  call read_wave_to_isf_etsf(lstat, filename, len(filename), iorbp, hx, hy, hz, n1, n2, n3, nspinor, psiscf)
 
   nrm = real(0, wp)
   do k = 1, n3, 1
