@@ -659,6 +659,9 @@ subroutine read_wave_to_isf_etsf(lstat, filename, ln, iorbp, hx, hy, hz, &
   end if
   nspinor = orbsd%nspinor
   orbsd%isorb = 0
+  n1 = n1 - 1
+  n2 = n2 - 1
+  n3 = n3 - 1
 
   ! Initial allocations.
   allocate(gcoord(3,nvctr_c + ndebug),stat=i_stat)
@@ -1055,9 +1058,19 @@ contains
 
     dims%number_of_atoms               = at%nat
     dims%number_of_atom_species        = at%ntypes
-    dims%number_of_grid_points_vector1 = n1
-    dims%number_of_grid_points_vector2 = n2
-    dims%number_of_grid_points_vector3 = n3
+!!$    if (at%geocode == 'P') then
+       dims%number_of_grid_points_vector1 = n1 + 1
+       dims%number_of_grid_points_vector2 = n2 + 1
+       dims%number_of_grid_points_vector3 = n3 + 1
+!!$    else if (at%geocode == 'S') then
+!!$       dims%number_of_grid_points_vector1 = n1 + 1
+!!$       dims%number_of_grid_points_vector2 = n2
+!!$       dims%number_of_grid_points_vector3 = n3 + 1
+!!$    else
+!!$       dims%number_of_grid_points_vector1 = n1
+!!$       dims%number_of_grid_points_vector2 = n2
+!!$       dims%number_of_grid_points_vector3 = n3
+!!$    end if
 
     ! We write the dimensions to the file.
     call etsf_io_dims_def(ncid, dims, lstat, error)
@@ -1086,13 +1099,16 @@ contains
 
     ! We write the global informations.
     ! Geometry
-    rprimd = reshape((/ (hx * n1),0.0_gp,0.0_gp, &
-         & 0.0_gp,(hy * n2),0.0_gp, &
-         & 0.0_gp,0.0_gp,(hz * n3) /), (/ 3, 3 /))
+    rprimd = reshape((/ (hx * dims%number_of_grid_points_vector1),0.0_gp,0.0_gp, &
+         & 0.0_gp,(hy * dims%number_of_grid_points_vector2),0.0_gp, &
+         & 0.0_gp,0.0_gp,(hz * dims%number_of_grid_points_vector3) /), (/ 3, 3 /))
     allocate(xred(3, at%nat),stat=i_stat)
     call memocc(i_stat,xred,'xred',subname)
     do iat = 1, at%nat, 1
-       xred(:, iat) = rxyz(:, iat) / (/ hx * n1, hy * n2, hz * n3 /)
+       xred(:, iat) = rxyz(:, iat) / &
+            & (/ hx * dims%number_of_grid_points_vector1, &
+            &    hy * dims%number_of_grid_points_vector2, &
+            &    hz * dims%number_of_grid_points_vector3 /)
     end do
     allocate(znucl(at%ntypes),stat=i_stat)
     call memocc(i_stat,znucl,'znucl',subname)
