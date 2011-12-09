@@ -3,11 +3,12 @@ program schtroumpf_lib
 
   implicit none
 
-  character(len = *), parameter :: filename = "data/wavefunction.etsf"
+!!$  character(len = *), parameter :: filename = "data/wavefunction.etsf"
+  character(len = *), parameter :: filename = "data/wavefunction-k002-UR.bin.b0003"
   integer, parameter :: iorbp = 23
   real(wp), dimension(:,:,:,:), pointer :: psiscf
   real(gp) :: hx, hy, hz
-  integer :: n1, n2, n3, nspinor, norbu, norbd, nkpt
+  integer :: n1, n2, n3, nspinor, norbu, norbd, nkpt, iorb, ispin, ikpt, ispinor
   logical :: lstat
   
   real(wp) :: nrm
@@ -16,9 +17,15 @@ program schtroumpf_lib
   call MPI_INIT(ierr)
 
   write(*,"(3A)") " --- Test read_wave_to_isf_etsf() from ", filename ," ---"
-  call read_wave_descr_etsf(lstat, filename, len(filename), norbu, norbd, nkpt, nspinor)
+  call read_wave_descr(lstat, filename, len(filename), &
+       & norbu, norbd, iorb, ispin, nkpt, ikpt, nspinor, ispinor)
+  write(*, "(A,2x,4I7)") " ETSF wavefunction file (nou, nod, nk, sp):", &
+       norbu, norbd, nkpt, nspinor
+  if (.not. lstat) stop
 
-  call read_wave_to_isf_etsf(lstat, filename, len(filename), iorbp, hx, hy, hz, n1, n2, n3, nspinor, psiscf)
+  call read_wave_to_isf(lstat, filename, len(filename), iorbp, hx, hy, hz, &
+       & n1, n2, n3, nspinor, psiscf)
+  if (.not. lstat) stop
 
   nrm = real(0, wp)
   do k = 1, n3, 1
@@ -35,7 +42,7 @@ program schtroumpf_lib
   write(*,"(A,3I10)")   " number of points in iscf representation: ", n1, n2, n3
   write(*,"(A,I2,A,22x,F12.8)")  " norm of orbital ", iorbp, ":", nrm
 
-  call free_wave_to_isf_etsf(psiscf)
+  call free_wave_to_isf(psiscf)
 
   call memocc(0,0,'count','stop')
 

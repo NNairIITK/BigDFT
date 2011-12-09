@@ -1289,7 +1289,7 @@ if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
       nullify(gbd%rxyz)
 
    else
-      call  writemywaves(iproc,trim(in%dir_output) // "wavefunction" // trim(wfformat), &
+      call  writemywaves(iproc,trim(in%dir_output) // "wavefunction", in%output_wf_format, &
          &   orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psi)
    end if
 end if
@@ -1510,7 +1510,7 @@ if (DoDavidson) then
 
       ! Write virtual wavefunctions in ETSF format
       if (in%output_wf_format /= WF_FORMAT_NONE  .and. abs(in%norbv) > 0) then
-         call  writemywaves(iproc,trim(in%dir_output) // "virtuals" // trim(wfformat), &
+         call  writemywaves(iproc,trim(in%dir_output) // "virtuals", in%output_wf_format, &
             &   orbsv,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psivirt)
       end if
 

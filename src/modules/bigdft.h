@@ -17,10 +17,11 @@ typedef struct f90_pointer_double_
   void *info[F90_POINTER_SIZE];
 } f90_pointer_double;
 
-f90_pointer_double* bigdft_read_wave_to_isf_etsf(const char *filename, int iorbp,
-                                                 double h[3], int n[3], int *nspinor);
-void bigdft_free_wave_to_isf_etsf(f90_pointer_double *psiscf);
-gboolean bigdft_read_wave_descr_etsf(const char *filename, int *norbu,
-                                     int *norbd, int *nkpt, int *nspinor);
+f90_pointer_double* bigdft_read_wave_to_isf(const char *filename, int iorbp,
+                                            double h[3], int n[3], int *nspinor);
+void bigdft_free_wave_to_isf(f90_pointer_double *psiscf);
+gboolean bigdft_read_wave_descr(const char *filename, int *norbu,
+                                int *norbd, int *nkpt, int *nspinor,
+                                int *iorb, int *ispin, int *ikpt, int *ispinor);
 
 #endif
