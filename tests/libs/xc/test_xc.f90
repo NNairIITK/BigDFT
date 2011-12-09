@@ -38,10 +38,15 @@ program test_xc
 !!$             & exc(2), "time = ", dt, "s"
 !!$     end if
   end do
-  call MPI_ALLREDUCE(exc_, exc, 2 * n_funcs, &
-           & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(dt_, dt, n_funcs, &
-           & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+  if (nproc == 1) then
+     exc = exc_
+     dt = dt_
+  else
+     call MPI_ALLREDUCE(exc_, exc, 2 * n_funcs, &
+          & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+     call MPI_ALLREDUCE(dt_, dt, n_funcs, &
+          & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+  end if
 
   if (iproc == 0) then
      ixc_prev = 1

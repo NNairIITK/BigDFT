@@ -19,8 +19,7 @@ SUBDIRS = modules \
 	art \
 	$(sub_dirs_cuda) \
 	$(sub_dirs_ocl) \
-	tools \
-	tools/bader
+	$(sub_dirs_bin)
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
@@ -42,7 +41,7 @@ EXTRA_DIST = \
 	PSolver/lazy_8.inc \
 	PSolver/createKernel.f90 \
 	PSolver/PSolver_Main.f90 \
-	perfdata.inc \
+	PSolver/perfdata.inc \
 	NEB_driver.sh 
 
 # Build targets, binaries and libraries.
@@ -63,18 +62,16 @@ PS_SOURCES =
 PS_MODULES =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
+binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
+sub_dirs_bin = tools tools/bader
 else
 binaries_sources = 
 local_binaries =
 scripts_sources = 
+sub_dirs_bin =
 endif
-if HAVE_ETSF_IO
-binaries_sources += BigDFT2Wannier
-endif
-
 
 # Additional sources.
 # ------------------
@@ -157,6 +154,12 @@ else
 DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy_fake.f90
 endif
 
+if USE_LIBXC
+LIBXC_MODULES =
+else
+LIBXC_MODULES = modules/libxc_fake.f90
+endif
+
 if HAVE_LIBCONFIG
 sub_dirs_libconfig=convolutions-c
 else
@@ -168,6 +171,12 @@ etsf_files = wavelib/plotting-etsf.f90 \
 	wavelib/i-o-etsf.f90
 else
 etsf_files = wavelib/etsf_fake.f90
+endif
+
+if HAVE_FC_FLUSH
+flush_files = lib/flush.f90
+else
+flush_files = lib/flush_fake.f90
 endif
 
 if HAVE_FC_GET_COMMAND_ARGUMENT
@@ -193,8 +202,8 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	-I$(srcdir)/PSolver -I$(srcdir)/wavelib -I$(srcdir)/convolutions \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
-AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA
-AM_CFLAGS = -Wall -Werror @DGEMMSY_CPPFLAGS@
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules
+AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
 
 if USE_MPI
 mpi_source =
@@ -240,6 +249,7 @@ modules_source = modules/base.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
 	$(CUDA_MODULES) \
+	$(LIBXC_MODULES) \
 	$(PS_MODULES)
 modules_objects = $(modules_source:.f90=.o)
 
@@ -298,6 +308,8 @@ low_level = \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
 	lib/lbfgs.f90 \
+	lib/bindings.c \
+	$(flush_files) \
 	$(etsf_files) \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
@@ -344,6 +356,9 @@ oneatom_LDADD = @LIBS_DEPENDENCIES@
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
 BigDFT2Wannier_LDADD = @LIBS_DEPENDENCIES@
 
+WaCo_SOURCES = WaCo.f90                                                                                                                                                                    
+WaCo_LDADD = @LIBS_DEPENDENCIES@
+
 MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = @LIBS_DEPENDENCIES@ 
 
@@ -378,7 +393,7 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-$(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o: $(mpi_include)  $(modules_objects)
+$(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o WaCo.o: $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
 

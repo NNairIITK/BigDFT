@@ -23,6 +23,7 @@ module module_defs
   include 'configure.inc' !< Include variables set from configure.
 
   integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
+  integer :: yaml_indent=1 !<Blank spaces indentations for Yaml output level identification
 
   ! General precision, density and the wavefunctions types
   integer, parameter :: gp=kind(1.0d0)  !< general-type precision
@@ -176,6 +177,12 @@ module module_defs
      module procedure c_axpy_simple,c_axpy_double
   end interface
 
+  interface
+     subroutine bigdft_utils_flush(unit)
+       integer, intent(in) :: unit
+     end subroutine bigdft_utils_flush
+  end interface
+
   contains
     
     !interface for MPI_ALLREDUCE operations
@@ -279,7 +286,7 @@ module module_defs
     subroutine mpiallred_log(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
-      logical, intent(in) :: buffer
+      logical, intent(inout) :: buffer
       integer, intent(out) :: ierr
 #ifdef HAVE_MPI2
       !case with MPI_IN_PLACE
@@ -315,6 +322,8 @@ module module_defs
       implicit none
       integer, intent(in) :: one
       integer :: uninitialized_int
+      integer :: foo
+      foo = kind(one)
       uninitialized_int=-123456789
     end function uninitialized_int
 
@@ -322,6 +331,8 @@ module module_defs
       implicit none
       real(kind=4), intent(in) :: one
       real(kind=4) :: uninitialized_real
+      integer :: foo
+      foo = kind(one)
       uninitialized_real=-123456789.e0
     end function uninitialized_real
 
@@ -329,7 +340,8 @@ module module_defs
       implicit none
       real(kind=8), intent(in) :: one
       real(kind=8) :: uninitialized_dbl
-      
+      integer :: foo
+      foo = kind(one)
       uninitialized_dbl=-123456789.d0
     end function uninitialized_dbl
 

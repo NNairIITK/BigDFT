@@ -1,3 +1,4 @@
 SUBDIRS = PSPfiles
 
-EXTRA_DIST = 
+EXTRA_DIST = scripts
+

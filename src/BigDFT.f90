@@ -17,7 +17,6 @@ program BigDFT
    use m_ab6_symmetry
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
-   !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
    character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
    integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
@@ -92,6 +91,7 @@ program BigDFT
       call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
       if (iproc == 0) then
          call print_general_parameters(nproc,inputs,atoms)
+         !call write_input_parameters(inputs,atoms)
       end if
 
       !initialize memory counting
@@ -117,14 +117,20 @@ program BigDFT
          ! geometry optimization
          call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
          close(16)
-         filename=trim('final_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
       end if
 
       !if there is a last run to be performed do it now before stopping
       if (inputs%last_run == -1) then
          inputs%last_run = 1
          call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
+      end if
+
+      if (inputs%ncount_cluster_x > 1) then
+         filename=trim('final_'//trim(arr_posinp(iconfig)))
+         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
+      else
+         filename=trim('forces_'//trim(arr_posinp(iconfig)))
+         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
       end if
 
       if (iproc == 0) then

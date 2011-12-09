@@ -2,11 +2,12 @@
 !! @author
 !!    Eduardo Machado-Charry (EM) 2010
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
 
 !> ART Module diis_defs
 !! with the DIIS global arrays
@@ -73,7 +74,7 @@ subroutine apply_diis( diter, saddle_energy, ret )
   integer,      intent(inout) :: ret
 
   !Local variables
-  integer :: ierror, i, j
+  integer :: i
   real(kind=8) :: a1, smallest_error, invse
   real(kind=8) :: n_deltaGdiis
   real(kind=8), dimension(3) :: boxl
@@ -178,7 +179,7 @@ subroutine apply_diis( diter, saddle_energy, ret )
          rejected_step = .false.
       end if 
       if ( iproc == 0 ) then          ! REPORT DIIS 
-        write (*,'(a,3I5,x,2F11.4,2x,(1p,e14.5,0p),x,L1)') 'BART DIIS:',  &
+        write (*,'(a,3I5,1x,2F11.4,2x,(1p,e14.5,0p),1x,L1)') 'BART DIIS:',  &
         &  pas, diter, maxter, n_deltaGdiis, factor_diis*INCREMENT, solution(maxter+1), &
         &  rejected_step 
       end if
@@ -346,7 +347,7 @@ subroutine get_solution( maxter, error_vector, solution )
   real(kind=8), dimension(maxter+1), intent(out) :: solution
 
   ! Local variables for Lapack.
-  integer :: ierror, i, j
+  integer :: i, j
   integer :: i_err, lwork, n, nrhs
   integer,      dimension(:),   allocatable :: interchanges
   real(kind=8), dimension(:),   allocatable :: work
@@ -579,7 +580,7 @@ subroutine lanczos_step ( current_energy, a1, liter, get_proj )
   logical, intent(in)  :: get_proj  ! If we need get the projection vector.
 
   !Local variables
-  integer :: i, step_rejected, ierror
+  integer :: i, step_rejected
 
   real(kind=8), dimension(VECSIZE) :: pos_b        ! Position for evaluation.
   real(kind=8), dimension(VECSIZE) :: force_b      ! Total Force for evaluation.
@@ -648,7 +649,7 @@ subroutine lanczos_step ( current_energy, a1, liter, get_proj )
     end if
     try = try + 1 
                                       ! exit criteria 
-    if ( fperp < FTHRESHOLD .or. m_perp > MAXIPERP .or. &
+    if ( fperp < FTHRESHOLD .or. m_perp >= MAXIPERP .or. &
        & (try > 12 .or. (liter < 2 .and. try > 2 ) ) ) exit While_perpi
     
   end do  While_perpi 
@@ -713,20 +714,17 @@ subroutine apply_glisse( giter, saddle_energy )
 
   !Local variables
   real(kind=8) :: current_energy              ! Accept energy.
-  real(8) :: a1
-  logical :: get_proj,should_reset_velo,new_projection
+  real(kind=8) :: a1
+  logical :: should_reset_velo,new_projection
 
-  real(8), parameter :: dt = 0.015d0
-  real(8) :: alpha , alphastart
-  real(8), dimension(3*natoms) :: fcur,poscur,velcur,fpred,pospred,velpred,perp_force
-  integer :: liter,i,j, step_rejected
+  real(kind=8), parameter :: dt = 0.015d0
+  real(kind=8), dimension(3*natoms) :: fcur,poscur,velcur,fpred,pospred,velpred,perp_force
+  integer :: liter,i,step_rejected
   logical :: conv
 
   real(kind=8), dimension(VECSIZE) :: pos_b        ! Position for evaluation.
   real(kind=8), dimension(VECSIZE) :: force_b      ! Total Force for evaluation.
   real(kind=8), dimension(VECSIZE) :: perp_force_b ! ...& for evaluation.  
-  real(kind=8), dimension(VECSIZE) :: pos_tmp      ! position for parallel lanc accel 
-  real(kind=8), dimension(VECSIZE) :: pos_former
 
   real(kind=8) :: step                        ! This is the step in the hyperplane. 
   real(kind=8) :: ftot_b                     ! ...& for evaluation.

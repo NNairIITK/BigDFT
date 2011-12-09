@@ -1,14 +1,14 @@
 !> @file
+!! This file contains a series of utilities that could be used by a
+!! number of programs. They suppose very little.
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!!    This file contains a series of utilities that could be used by a
-!!    number of programs. They suppose very little.
 
 !> ART print_event
 !!    This subroutine prints the initial details for an event
@@ -57,7 +57,7 @@ subroutine displacement( posa, posb, delr, npart )
   integer, intent(out)                                 :: npart
 
   !Local variables
-  integer :: i, j
+  integer :: i
   real(kind=8),dimension(3) :: invbox
   real(kind=8), parameter :: THRESHOLD = 0.1d0  ! In Angstroems
   real(kind=8), dimension(:), pointer :: xa, ya, za, xb, yb, zb

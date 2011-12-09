@@ -15,5 +15,9 @@ if USE_OCL
 SUBDIRS += OpenCL
 endif
 
+if USE_LIBXC
+SUBDIRS += xc
+endif
+
 check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
