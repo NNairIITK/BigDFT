@@ -677,8 +677,8 @@ subroutine read_wave_descr(lstat, filename, ln, &
      ispinor = 1
   else
      call readwavedescr(lstat, filename, iorbs, ispins, ikpts, ispinor, nspinor, testf)
-     norbu = 1
-     norbd = 1
-     nkpt = 1
+     norbu = 0
+     norbd = 0
+     nkpt = 0
   end if
 END SUBROUTINE read_wave_descr

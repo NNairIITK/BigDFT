@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#define WAVEFILE "data/wavefunction-k002-UR.bin.b0003"
+#define WAVEFILE "data/wavefunction-k001-UR.bin.b0001"
 #define IORBP 23
 
 int main(int argc, char **argv)
