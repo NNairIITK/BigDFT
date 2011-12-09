@@ -30,6 +30,7 @@ real(8):: fac, fac2, prefac1, prefac2a, hgrid2, hgrid3, x02, x03
 real(8):: scale
 !scale=1.d0
 scale=1.d-1
+!scale=0.d-1
 !scale=5.d-2
 prefac1=-.5d0/hgrid**2
 !fac=dble(max(100-int(dble(it)/2.d0),1))*parabPrefac

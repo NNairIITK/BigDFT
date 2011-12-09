@@ -3118,7 +3118,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-                blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, mad, lphi, ovrlp)
+                blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, mad, lphi, ovrlp, method)
        use module_base
        use module_types
        implicit none
@@ -3133,6 +3133,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(matrixDescriptors),intent(in):: mad
        real(8),dimension(orbs%npsidim),intent(inout):: lphi
        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+       character(len=3),intent(in):: method
      end subroutine orthonormalizeLocalized
 
 
@@ -5306,6 +5307,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
        end subroutine minimize_in_subspace
 
+       subroutine applyOrthoconstraintlocal(iproc, nproc, lzd, orbs, op, lagmat, lphiovrlp, lhphi)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(local_zone_descriptors),intent(in):: lzd
+         type(orbitals_data),intent(in):: orbs
+         type(overlapParameters),intent(in):: op
+         real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
+         real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
+         real(8),dimension(orbs%npsidim),intent(out):: lhphi
+       end subroutine applyOrthoconstraintlocal
 
 
    end interface

@@ -860,7 +860,7 @@ allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
 call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm, &
-     orbs, op, comon, lzd, orbs%inWhichLocreg, convCritOrtho, input, mad, lchi,  ovrlp)
+     orbs, op, comon, lzd, orbs%inWhichLocreg, convCritOrtho, input, mad, lchi,  ovrlp, 'old')
 !!do iall=1,orbs%norb
 !!  do istat=1,orbs%norb
 !!  if(iproc==0) write(333,*) iall, istat, ovrlp(istat,iall)

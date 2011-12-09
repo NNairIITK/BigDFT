@@ -665,7 +665,7 @@ end type largeBasis
     real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho, fixBasis
     real(8):: FactorFixBasis, convCritMixOut, minimalFixBasis
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lxi, transmat, lpsi, lhpsi
-    real(8),dimension(:,:),pointer:: hamold
+    real(8),dimension(:,:),pointer:: hamold, coeffall
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType

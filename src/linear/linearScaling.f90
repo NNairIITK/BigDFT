@@ -166,6 +166,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call memocc(istat, lin%lpsi, 'lin%lpsi', subname)
   allocate(lin%lhpsi(size(lphi)), stat=istat)
   call memocc(istat, lin%lhpsi, 'lin%lhpsi', subname)
+  allocate(lin%coeffall(lin%lb%orbs%norb,orbs%norb+lin%norbvirt), stat=istat)
+  call memocc(istat, lin%coeffall, 'lin%coeffall', subname)
 
   !allocate(lphiold(size(lphi)), stat=istat)
   !call memocc(istat, lphiold, 'lphiold', subname)
@@ -586,6 +588,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
   iall=-product(shape(lin%lhpsi))*kind(lin%lhpsi)
   deallocate(lin%lhpsi, stat=istat)
   call memocc(istat, iall, 'lin%lhpsi', subname)
+  iall=-product(shape(lin%coeffall))*kind(lin%coeffall)
+  deallocate(lin%coeffall, stat=istat)
+  call memocc(istat, iall, 'lin%coeffall', subname)
 
 
 
