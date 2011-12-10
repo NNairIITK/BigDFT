@@ -28,6 +28,8 @@ int main(int argc, char **argv)
     return 1;
 
   psiscf = bigdft_read_wave_to_isf_etsf(filename, IORBP, h, n, &nspinor);
+  if (!psiscf)
+    return 1;
   /* for (i = 0; i < F90_POINTER_SIZE; i++) */
   /*   fprintf(stdout, "%d %p\n", i, psiscf->info[i]); */
 
