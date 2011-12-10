@@ -1131,7 +1131,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                  ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
 
             call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
-                 Lzd%Gnlpspd,proj,Lzd%Glr,psi,hpsi,eproj_sum)
+                 proj,Lzd,psi,hpsi,eproj_sum)
             
             call SynchronizeHamiltonianApplication(nproc,orbs,Lzd%Glr,GPU,hpsi,&
                 ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
@@ -1193,7 +1193,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          if (iproc==0) then
             !yaml output
             write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
-            flush(unit=6)
+            call bigdft_utils_flush(unit=6)
          end if
       end do wfn_loop
 
@@ -1464,7 +1464,7 @@ if (inputpsi /= -1000) then
       allocate(rho(n1i*n2i*n3p*in%nspin+ndebug),stat=i_stat)
       call memocc(i_stat,rho,'rho',subname)
    else
-      allocate(rho(1+ndebug),stat=i_stat)
+      allocate(rho(1*in%nspin+ndebug),stat=i_stat)
       call memocc(i_stat,rho,'rho',subname)
    end if
 

@@ -1041,7 +1041,7 @@ nullify(Qvect,dumQvect)
         &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
      call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%rxyz,ha%nlpspd,ha%proj,ha%Lzd%Glr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
+        &   ha%rxyz,ha%proj,ha%Lzd,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
 
      call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd%Glr,ha%GPU,wrk,&
         &   ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
@@ -1062,7 +1062,7 @@ nullify(Qvect,dumQvect)
         &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
      call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%rxyz,ha%nlpspd,ha%proj,ha%Lzd%Glr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
+        &   ha%rxyz,ha%proj,ha%Lzd,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
 
      call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd%Glr,ha%GPU,wrk,&
         &   ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
@@ -1164,15 +1164,18 @@ nullify(Qvect,dumQvect)
      !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
      !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
 
-     call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%Lzd%Glr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-        &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
+     call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,&
+          ha%hx,ha%hy,ha%hz,&
+          ha%Lzd%Glr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,ha%ekin_sum,&
+          ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
-     call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%rxyz,ha%nlpspd,ha%proj,ha%Lzd%Glr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
+     call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,&
+          ha%hx,ha%hy,ha%hz,&
+          ha%rxyz,ha%proj,ha%Lzd,Qvect_tmp,wrk,ha%eproj_sum)
 
-     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd%Glr,ha%GPU,wrk,&
-        &   ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
+     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd%Glr,&
+          ha%GPU,wrk,&
+          ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
 
 
      if(  ha%iproc ==0 ) write(*,*)" done "

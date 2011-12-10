@@ -573,9 +573,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(mpi_comm_world,ierr)
   call cpu_time(t1)
-  call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%locregShape, lin%lig%lzdig)
+  call prepare_lnlpspd(iproc,at,input,lin%lig%orbsig,rxyz,radii_cf,&
+       lin%locregShape,lin%lig%lzdig)
 
 !!$  call full_local_potential2(iproc, nproc, &
 !!$       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2), &
@@ -584,9 +585,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 !!$       input%nspin, lin%lig%orbsig,&
 !!$       lin%lig%lzdig, ngatherarr, rhopot, lpot, 2, lin%lig%comgp)
 
-  !allocation is compulsory here, these part should be better handled
-!!$  allocate(lin%lig%orbsig%ispot(lin%lig%orbsig%norbp),stat=istat)
-!!$  call memocc(istat,lin%lig%orbsig%ispot,'lin%lig%orbsig%ispot',subname)
 
   call local_potential_dimensions(lin%lig%lzdig,lin%lig%orbsig,ngatherarr(0,1))
 
@@ -637,6 +635,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
           !!     withConfinement, .false., doNotCalculate=doNotCalculate, pkernel=pkernelseq)
           if(lin%nItInguess>0) then
+
              call HamiltonianApplication3(iproc,nproc,at,&
                   lin%lig%orbsig,&
                   input%hx,input%hy,input%hz,rxyz,&
@@ -674,7 +673,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call mpi_barrier(mpi_comm_world, ierr)
   call cpu_time(t2)
   time=t2-t1
-  if(iproc==0) write(*,'(1x,a,es10.3)') 'time for applying potential:', time
+  if (verbose > 2) then
+     if(iproc==0) write(*,'(1x,a,es10.3)') 'time for applying potential:', time
+  end if
 
   ! Deallocate the buffers needed for communication the potential.
   call deallocateCommunicationsBuffersPotential(lin%lig%comgp, subname)
@@ -3929,9 +3930,8 @@ type(matrixDescriptors):: mad
               !!    iilr=iilr+1
               !!    ilrold=ilr
               !!end if
-              
-              call dgemv('n', matmin%mlr(ilr)%norbinlr, matmin%mlr(ilr)%norbinlr, 1.d0, hamextract(1,1,iilr), matmin%norbmax, &
-                   lcoeff(1,iorb), 1, 0.d0, lgrad(1,iorb), 1)
+              call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
+                   hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
               !print *,'iorb',iorb,lgrad(1,iorb),lcoeff(1,iorb), matmin%norbmax
               !print *,'Newcoeffs',lcoeff(1:matmin%mlr(ilr)%norbinlr-1,iorb)
               !print *,'coeffs',hamextract(1:matmin%mlr(ilr)%norbinlr-1,1,iilr)

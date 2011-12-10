@@ -271,6 +271,31 @@ subroutine reformatmywaves(iproc,orbs,at,&
 
 END SUBROUTINE reformatmywaves
 
+integer function wave_format_from_filename(iproc, filename)
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: filename
+
+  integer :: isuffix
+
+  wave_format_from_filename = WF_FORMAT_NONE
+
+  isuffix = index(filename, ".etsf", back = .true.)
+  if (isuffix > 0) then
+     wave_format_from_filename = WF_FORMAT_ETSF
+     if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
+  else
+     isuffix = index(filename, ".bin", back = .true.)
+     if (isuffix > 0) then
+        wave_format_from_filename = WF_FORMAT_BINARY
+        if (iproc ==0) write(*,*) "Reading wavefunctions in BigDFT binary file format."
+     else
+        wave_format_from_filename = WF_FORMAT_PLAIN
+        if (iproc ==0) write(*,*) "Reading wavefunctions in plain text file format."
+     end if
+  end if
+end function wave_format_from_filename
 
 !>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !!  have changed
@@ -292,31 +317,28 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   integer, dimension(orbs%norb), optional :: orblist
   !Local variables
   character(len=*), parameter :: subname='readmywaves'
-  logical :: perx,pery,perz,exists
-  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor,isuffix
+  logical :: perx,pery,perz
+  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor
+  integer :: wave_format_from_filename,iformat
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
   integer, dimension(orbs%norb) :: orblist2
 
-  isuffix = index(filename, ".etsf", back = .true.)
-  exists=(isuffix > 0) !the file is written in binary format
+  call cpu_time(tr0)
+  call system_clock(ncount1,ncount_rate,ncount_max)
 
-  !inquire(file=trim(filename)//".etsf",exist=exists)
-  if (exists) then
+  iformat = wave_format_from_filename(iproc, filename)
+  if (iformat == WF_FORMAT_ETSF) then
      !construct the orblist or use the one in argument
      do nb1 = 1, orbs%norb
      orblist2(nb1) = nb1
      if(present(orblist)) orblist2(nb1) = orblist(nb1) 
      end do
 
-     if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
      call read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
-          wfd,psi, orblist2)
-  else
-     call cpu_time(tr0)
-     call system_clock(ncount1,ncount_rate,ncount_max)
-
+          wfd,psi)
+  else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
      !conditions for periodicity in the three directions
      perx=(at%geocode /= 'F')
      pery=(at%geocode == 'P')
@@ -330,15 +352,6 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
 
      allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
      call memocc(i_stat,psifscf,'psifscf',subname)
-
-     !inquire(file=trim(filename)//".bin.0001",exist=exists) !old approach
-     isuffix = index(filename, ".bin", back = .true.)
-     exists=(isuffix > 0) !the file is written in binary format
-     if (exists) then
-        if (iproc ==0) write(*,*) "Reading wavefunctions in BigDFT binary file format."
-     else
-        if (iproc ==0) write(*,*) "Reading wavefunctions in plain text file format."
-     end if
 
      do iorb=1,orbs%norbp!*orbs%nspinor
 
@@ -356,11 +369,13 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
 
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
-              call open_filename_of_iorb(99,exists,filename,orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
+              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+                   & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
            else
-              call open_filename_of_iorb(99,exists,filename,orbs,iorb,ispinor,iorb_out)
+              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+                   & orbs,iorb,ispinor,iorb_out)
            end if           
-           call readonewave(99, .not.exists,iorb_out,iproc,n1,n2,n3, &
+           call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,n1,n2,n3, &
                 & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
                 psi(1,ispinor,iorb),orbs%eval(orbs%isorb+iorb),psifscf)
            close(99)
@@ -372,11 +387,15 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
      deallocate(psifscf,stat=i_stat)
      call memocc(i_stat,i_all,'psifscf',subname)
 
-     call cpu_time(tr1)
-     call system_clock(ncount2,ncount_rate,ncount_max)
-     tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+  else
+     write(0,*) "Unknown wavefunction file format from filename."
+     stop
   end if
+
+  call cpu_time(tr1)
+  call system_clock(ncount2,ncount_rate,ncount_max)
+  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+  write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 END SUBROUTINE readmywaves
 
 subroutine verify_file_presence(filerad,orbs,iformat)
@@ -457,15 +476,15 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   integer, intent(in), optional :: iiorb
   !local variables
   character(len=1) :: spintype,realimag
-  character(len=3) :: f3
-  character(len=4) :: f4
-  character(len=7) :: completename
+  character(len=4) :: f3
+  character(len=5) :: f4
+  character(len=8) :: completename
   integer :: ikpt
   real(gp) :: spins
 
   !calculate k-point
   ikpt=orbs%iokpt(iorb)
-  write(f3,'(i3.3)') ikpt !not more than 999 kpts
+  write(f3,'(a1,i3.3)') "k", ikpt !not more than 999 kpts
   !see if the wavefunction is real or imaginary
   if(modulo(ispinor,2)==0) then
      realimag='I'
@@ -497,7 +516,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   if (spins==-1.0_gp) iorb_out=iorb_out-orbs%norbu
 
   !value of the orbital 
-  write(f4,'(i4.4)') iorb_out
+  write(f4,'(a1,i4.4)') "b", iorb_out
 
   !complete the information in the name of the orbital
   completename='-'//f3//'-'//spintype//realimag

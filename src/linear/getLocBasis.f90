@@ -513,13 +513,6 @@ real(8),dimension(:),pointer:: lpot
 
 end subroutine getLinearPsi
 
-
-
-
-
-
-
-
 subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
     itScc, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj)
@@ -3561,19 +3554,16 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, 
       end do
       if (.not. calc) cycle !calculate only for the locreg on this processor, without repeating for same locreg.
       ! allocate projflg
-      allocate(Lzd%Llr(ilr)%projflg(at%nat), stat=istat)
-      call memocc(istat, Lzd%Llr(ilr)%projflg, 'Lzd%Llr(ilr)%projflg', subname)
+      allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=istat)
+      call memocc(istat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
 
-      call nlpspd_to_locreg(input, iproc, Lzd%Glr, Lzd%Llr(ilr), rxyz, at, orbs, &
-           radii_cf, input%frmult, input%frmult, &
-           input%hx, input%hy, input%hz, locregShape, lzd%Gnlpspd, &
-           Lzd%Lnlpspd(ilr), Lzd%Llr(ilr)%projflg)
-
+      call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,orbs,&
+           radii_cf,input%frmult,input%frmult,&
+           input%hx,input%hy,input%hz,locregShape,lzd%Gnlpspd,&
+           Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
   end do
 
 end subroutine prepare_lnlpspd
-
-
 
 
 subroutine free_lnlpspd(orbs, lzd)
@@ -3598,7 +3588,7 @@ subroutine free_lnlpspd(orbs, lzd)
       do iorb=1,orbs%norbp
          if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) go=.true.
       end do
-      if (.not. go) cycle !deallocate only for the locreg on this processor, without repeating for same locreg.
+      !if (.not. go) cycle !deallocate only for the locreg on this processor, without repeating for same locreg.
 
       ! Deallocate projflg.
       !call checkAndDeallocatePointer(lzd%llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
@@ -3609,8 +3599,8 @@ subroutine free_lnlpspd(orbs, lzd)
       call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(ilr), subname)
   end do
 
-  deallocate(lzd%lnlpspd)
-  nullify(lzd%lnlpspd)
+!!$  deallocate(lzd%lnlpspd)
+!!$  nullify(lzd%lnlpspd)
 
 end subroutine free_lnlpspd
 

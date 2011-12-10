@@ -266,7 +266,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
          &   pkernel,orbs,psirocc) ! optional arguments
 
       call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
-         &   nlpspd,proj,Lzd%Glr,psivirt,hpsivirt,eproj_sum)
+           proj,Lzd,psivirt,hpsivirt,eproj_sum)
 
       call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd%Glr,GPU,hpsivirt,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -628,7 +628,7 @@ subroutine davidson(iproc,nproc,in,at,&
       &   pkernel,orbs,psirocc) ! optional arguments
 
    call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
-      &   nlpspd,proj,Lzd%Glr,v,hv,eproj_sum)
+        proj,Lzd,v,hv,eproj_sum)
 
    call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd%Glr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -911,7 +911,7 @@ subroutine davidson(iproc,nproc,in,at,&
          &   pkernel,orbs,psirocc) ! optional arguments
 
       call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
-         &   nlpspd,proj,Lzd%Glr,g,hg,eproj_sum)
+           proj,Lzd,g,hg,eproj_sum)
 
       call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd%Glr,GPU,hg,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -1185,7 +1185,7 @@ subroutine davidson(iproc,nproc,in,at,&
          &   pkernel,orbs,psirocc) ! optional arguments
 
       call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
-         &   nlpspd,proj,Lzd%Glr,v,hv,eproj_sum)
+           proj,Lzd,v,hv,eproj_sum)
 
       call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd%Glr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 

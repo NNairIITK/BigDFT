@@ -257,7 +257,7 @@ module module_types
      integer :: nsi1,nsi2,nsi3  !< starting point of locreg for interpolating grid
      integer :: Localnorb              !< number of orbitals contained in locreg
      integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
-     integer,dimension(:),pointer :: projflg    !< atoms contributing nlpsp projectors to locreg
+     integer,dimension(:), pointer :: projflg    !< atoms contributing nlpsp projectors to locreg
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
@@ -419,19 +419,19 @@ module module_types
      real(wp), dimension(:), pointer :: hpsi_ASYNC !<pointer to the wavefunction allocated in the case of asyncronous local_hamiltonian
   end type GPU_pointers
 
-!!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
+!> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: local_zone_descriptors
-    logical :: linear                                           !> if true, use linear part of the code
-    integer :: nlr                                              !> Number of localization regions 
-    integer :: Lpsidimtot, lpsidimtot_der                       !> Total dimension of the wavefunctions in the locregs, the same including the derivatives
-    integer:: ndimpotisf                                        !> total dimension of potential in isf (including exctX)
-    integer :: Lnprojel                                         !> Total number of projector elements
-    real(gp), dimension(:,:),pointer :: rxyz                    !> Centers for the locregs
-    logical,dimension(:),pointer:: doHamAppl                    !> if entry i is true, apply the Hamiltonian to orbitals in locreg i
-    type(locreg_descriptors) :: Glr                             !> Global region descriptors
-    type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
-    type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
-    type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
+    logical :: linear                         !< if true, use linear part of the code
+    integer :: nlr                            !< Number of localization regions 
+    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
+    integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
+    integer :: Lnprojel                       !< Total number of projector elements
+    real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
+    logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
+    type(locreg_descriptors) :: Glr           !< Global region descriptors
+    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
+    type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
+    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
   end type
 
 !>  Used to restart a new DFT calculation or to save information 

@@ -190,7 +190,9 @@ contains
     implicit none
 
     integer :: i
-    character(len=500) :: message
+#ifndef HAVE_LIBXC
+   character(len=500) :: message
+#endif
 
 #if defined HAVE_LIBXC
     do i = 1, 2

@@ -351,7 +351,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum
    real(kind=8) :: tel,psoffset
    real(gp) :: edisp ! Dispersion energy
-   type(nonlocal_psp_descriptors) :: nlpspd
+   !type(nonlocal_psp_descriptors) :: nlpspd
    type(communications_arrays) :: comms
    type(gaussian_basis) :: Gvirt
    type(rho_descriptors)  :: rhodsc
@@ -479,7 +479,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call timing(nproc,trim(in%dir_output)//'time.prc','IN')
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max)
-
+ 
    if(nspin/=1 .and. nspin/=2 .and. nspin/=4) nspin=1
 
    ! grid spacing (same in x,y and z direction)
@@ -537,8 +537,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-      &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+      &   radii_cf,cpmult,fpmult,hx,hy,hz,Lzd%Gnlpspd,proj)
    call timing(iproc,'CrtProjectors ','OF')
+
+!   if (in%inputPsiId /= 0 .and. in%inputPsiId /= 10) then
+   call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
+!   end if
 
    if(sum(atoms%paw_NofL).gt.0) then
       ! Calculate all paw_projectors, or allocate array for on-the-fly calculation
@@ -569,7 +573,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !memory estimation
    if (iproc==0 .and. verbose > 0) then
      call MemoryEstimator(nproc,idsx,Lzd%Glr,&
-         &   atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+         &   atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,Lzd%Gnlpspd%nprojel,&
          &   in%nspin,in%itrpmax,in%iscf,peakmem)
    end if
 
@@ -729,7 +733,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
           orbsAO,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          Lzd%Gnlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in,radii_cf)
 
       if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
@@ -809,8 +813,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
       call input_wf_diag(iproc,nproc,atoms,rhodsc,&
           orbsAO,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-         &   nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in, radii_cf)
+          Lzd%Gnlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          nscatterarr,ngatherarr,nspin,in%potshortcut,-1,irrzon,phnons,GPU,in,radii_cf)
 
       i_all=-product(shape(psi))*kind(psi)
       deallocate(psi,stat=i_stat)
@@ -1243,18 +1247,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,Lzd%Gnlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
             &   rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
             &   , in%iat_absorber  , in , PAWD, orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,Lzd%Gnlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
             &   rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
             &   , in%iat_absorber, in, PAWD, orbs)
       else if (in%iabscalc_type==3) then
          call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,Lzd%Gnlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
             &   rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
             &   , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
       else
@@ -1390,26 +1394,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call deallocate_atoms_scf(atoms,subname) 
 
-      call deallocate_proj_descr(nlpspd,subname)
-
-!!$      i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
-!!$      deallocate(nlpspd%nboxp_c,stat=i_stat)
-!!$      call memocc(i_stat,i_all,'nboxp_c',subname)
-!!$      i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
-!!$      deallocate(nlpspd%nboxp_f,stat=i_stat)
-!!$      call memocc(i_stat,i_all,'nboxp_f',subname)
-!!$      i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
-!!$      deallocate(nlpspd%keyg_p,stat=i_stat)
-!!$      call memocc(i_stat,i_all,'keyg_p',subname)
-!!$      i_all=-product(shape(nlpspd%keyv_p))*kind(nlpspd%keyv_p)
-!!$      deallocate(nlpspd%keyv_p,stat=i_stat)
-!!$      call memocc(i_stat,i_all,'keyv_p',subname)
-!!$      i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
-!!$      deallocate(nlpspd%nvctr_p,stat=i_stat)
-!!$      call memocc(i_stat,i_all,'nvctr_p',subname)
-!!$      i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
-!!$      deallocate(nlpspd%nseg_p,stat=i_stat)
-!!$      call memocc(i_stat,i_all,'nseg_p',subname)
+      call deallocate_proj_descr(Lzd%Gnlpspd,subname)
 
       i_all=-product(shape(proj))*kind(proj)
       deallocate(proj,stat=i_stat)

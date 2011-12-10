@@ -67,7 +67,7 @@ lin%lzd%nlr=at%nat
 call allocateBasicArrays(at, lin)
 
 ! Read in all parameters related to the linear scaling version.
-call readLinearParameters(iproc, nproc, lin, at, atomNames)
+call readLinearParameters(iproc, nproc, input%file_lin, lin, at, atomNames)
 
 ! Count the number of basis functions.
 norb=0
@@ -276,7 +276,8 @@ t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 ! Initialize the parameters for the repartitioning of the orbitals.
-if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
+if(lin%useDerivativeBasisFunctions) &
+     call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
 
 ! Restart array for the basis functions (only needed if we use the derivative basis functions).
 allocate(lin%lphiRestart(lin%orbs%npsidim), stat=istat)
@@ -341,12 +342,13 @@ end subroutine allocateAndInitializeLinear
 
 
 
-subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
+subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   use module_base
   use module_types
   implicit none
   
   integer,intent(in):: iproc, nproc
+  character(len=*), intent(in) :: filename
   type(linearParameters):: lin
   type(atoms_data),intent(inout):: at
   character(len=20),dimension(at%ntypes):: atomNames
@@ -365,14 +367,14 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   call memocc(istat, locradType, 'locradType', subname)
 
   ! Open the input file and read in the parameters.
-  inquire(file='input.lin', exist=fileExists)
+  inquire(file=trim(filename), exist=fileExists)
   if(.not. fileExists) then
       if(iproc==0) write(*,'(1x,a)') "ERROR: the file 'input.lin' must be present for the linear &
           & scaling version!"
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if
-  open(unit=99, file='input.lin')
+  open(unit=99, file=trim(filename))
   read(99,*) lin%nItBasisFirst, lin%nItBasis, lin%fixBasis
   read(99,*) lin%convCrit
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
@@ -3423,12 +3425,14 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
   real(gp), dimension(:), allocatable :: locrad
   logical,dimension(:),allocatable:: calculateBounds
 
+  !default variables
+  Lzd%nlr = 1
+
   if (input%nspin == 4) then
      nspin_ig=1
   else
      nspin_ig=input%nspin
   end if
-
   linear  = .true.
   if (input%linear == 'LIG' .or. input%linear == 'FUL') then
      Lzd%nlr=atoms%nat
@@ -3454,7 +3458,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
 
   Lzd%linear = .true.
   if (.not. linear)  Lzd%linear = .false. 
-  
+
   if(input%linear /= 'TMO') then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
@@ -3464,14 +3468,16 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
      if(.not. Lzd%linear) then
         !copy Glr to Llr(1)
         call nullify_locreg_descriptors(Lzd%Llr(1))
-        call copy_locreg_descriptors(Lzd%Glr, Lzd%Llr(1), subname)
+        call copy_locreg_descriptors(Lzd%Glr,Lzd%Llr(1),subname)
         !copy dimensions of wavefunction and projectors
         Lzd%Lpsidimtot=orbs%npsidim
         Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
         ! copy nlpspd to Lnlpspd(1)  NOTE: NOT NEEDED!
-        !allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)
-        !call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(1))
-        !call copy_nonlocal_psp_descriptors(nlpspd, Lzd%Lnlpspd(1), subname)   
+        allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)
+        call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(1))
+        call copy_nonlocal_psp_descriptors(Lzd%Gnlpspd,Lzd%Lnlpspd(1),subname)
+
+        !call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
      else 
         ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
         call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
@@ -3484,7 +3490,8 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
         call memocc(i_stat,calculateBounds,'calculateBounds',subname)
         calculateBounds=.true.
 !        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,calculateBounds)
-        call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,&
+        call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,&
+             input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,&
              orbs,calculateBounds)  
         i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
         deallocate(calculateBounds,stat=i_stat)

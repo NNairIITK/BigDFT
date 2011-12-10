@@ -898,13 +898,17 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
          !write(*,*) 'i1',i1
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
      end do
+     deallocate(lzd%llr)
+     nullify(lzd%llr)
   end if
   if(associated(lzd%lnlpspd)) then 
      iis1=lbound(lzd%lnlpspd,1)
      iie1=ubound(lzd%lnlpspd,1)
      do i1=iis1,iie1
-         call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
+        call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
      end do
+     deallocate(lzd%lnlpspd)
+     nullify(lzd%lnlpspd)
   end if
 end subroutine deallocate_local_zone_descriptors
 
@@ -1175,8 +1179,13 @@ subroutine deallocate_nonlocal_psp_descriptors(nlpspd, subname)
   do iat=1,nlpspd%natoms
      call deallocate_wfd(nlpspd%plr(iat)%wfd,subname)
   end do
-  deallocate(nlpspd%plr,stat=i_stat)
-  nullify(nlpspd%plr)
+  if (nlpspd%natoms /=0) then
+     deallocate(nlpspd%plr,stat=i_stat)
+     if (i_stat /= 0) stop 'plr deallocation error'
+     nlpspd%natoms=0
+  else
+     nullify(nlpspd%plr)
+  end if
 
 !!$  call checkAndDeallocatePointer(nlpspd%nvctr_p, 'nlpspd%nvctr_p', subname)
 !!$  call checkAndDeallocatePointer(nlpspd%nseg_p, 'nlpspd%nseg_p', subname)
@@ -1372,6 +1381,8 @@ subroutine deallocate_overlapParameters(op, subname)
           call deallocate_locreg_descriptors2(op%olr(i1,i2), subname)
       end do
   end do
+  deallocate(op%olr)
+  nullify(op%olr)
 
 end subroutine deallocate_overlapParameters
 

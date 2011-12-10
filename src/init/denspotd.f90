@@ -65,12 +65,13 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
   ngatherarr(:,1)=gdim%n1i*gdim%n2i*nscatterarr(:,2)
   ngatherarr(:,2)=gdim%n1i*gdim%n2i*nscatterarr(:,3)
 
+!write (*,*) 'hxh,hyh,hzh',hxh,hyh,hzh
   !create rhopot descriptors
     !allocate rho_descriptors if the density repartition is activated
   !decide rho communication strategy
   if (rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1) .and. xc_isgga()) then
      call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
-          gdim%n1,gdim%n2,gdim%n3,gdim%n1i,gdim%n2i,gdim%n3i,&
+          gdim%n1i,gdim%n2i,gdim%n3i,&
           hxh,hyh,hzh,nspin,rhodsc,.false.)
      rhodsc%icomm=2
   else

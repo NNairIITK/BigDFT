@@ -80,14 +80,15 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 
     !fill the localisation region bounds
      call bounds_to_plr_limits(.true.,1,Lnlpspd%plr(iat),&
-          bounds(1,1,1),bounds(1,1,2),bounds(1,1,3),bounds(1,2,1),bounds(1,2,2),bounds(1,2,3))
+          bounds(1,1,1),bounds(1,1,2),bounds(1,1,3),&
+          bounds(1,2,1),bounds(1,2,2),bounds(1,2,3))
      call bounds_to_plr_limits(.true.,2,Lnlpspd%plr(iat),&
-          bounds(2,1,1),bounds(2,1,2),bounds(2,1,3),bounds(2,2,1),bounds(2,2,2),bounds(2,2,3))
+          bounds(2,1,1),bounds(2,1,2),bounds(2,1,3),&
+          bounds(2,2,1),bounds(2,2,2),bounds(2,2,3))
 
      !rename the variables
      call bounds_to_plr_limits(.false.,1,nlpspd%plr(iatom),&
           nl1,nl2,nl3,nu1,nu2,nu3)
-
 
 !!$     do ii = 1,2
 !!$        do jj = 1,3
@@ -105,14 +106,18 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$     nu3 = nlpspd%nboxp_c(2,3,iatom)
 
 !    Now we can determine the number of segments and elements of coarse grid
-     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
-&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,3),cpmult,hx,hy,hz,logrid)
+     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+          nl1,nu1,nl2,nu2,nl3,nu3,0,1,&
+          atoms%ntypes,atoms%iatype(iatom),rxyz(1,iatom),&
+          radii_cf(:,3),cpmult,hx,hy,hz,logrid)
 
      if(locregShape=='c') then
-         call number_of_projector_elements_in_locreg(iatom,1,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_c,mvctr_c)
+         call number_of_projector_elements_in_locreg(iatom,1,atoms,Glr,&
+              Llr,logrid,nlpspd,mproj,mseg_c,mvctr_c)
      else if(locregShape=='s') then
-         call number_of_projector_elements_in_locregSphere(iatom,1,atoms,Glr,Llr,logrid,nlpspd, &
-         hx, hy, hz, llr%locrad, llr%locregCenter, mproj,mseg_c,mvctr_c)
+         call number_of_projector_elements_in_locregSphere(iatom,1,atoms,Glr,&
+              Llr,logrid,nlpspd, &
+              hx, hy, hz, llr%locrad, llr%locregCenter, mproj,mseg_c,mvctr_c)
      end if
 
      Lnlpspd%plr(iat)%wfd%nseg_c=mseg_c
@@ -134,8 +139,9 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$     nl3 = nlpspd%nboxp_f(1,3,iatom)
 !!$     nu3 = nlpspd%nboxp_f(2,3,iatom)
 
-     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
-&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,2),fpmult,hx,hy,hz,logrid)
+     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+          nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
+          atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,2),fpmult,hx,hy,hz,logrid)
 
      if(locregShape=='c') then
          call number_of_projector_elements_in_locreg(iatom,2,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_f,mvctr_f)
@@ -203,9 +209,11 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$                 Lnlpspd%nseg_p(2*iat-1),Lnlpspd%nvctr_p(2*iat-1),&
 !!$                 Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
            call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-                Gseg,nlpspd%plr(iatom)%wfd%keyg(1,jseg),nlpspd%plr(iatom)%wfd%keyv(jseg),&
+                Gseg,nlpspd%plr(iatom)%wfd%keyg(1,jseg),&
+                nlpspd%plr(iatom)%wfd%keyv(jseg),&
                 Lnlpspd%plr(iat)%wfd%nseg_c,Lnlpspd%plr(iat)%wfd%nvctr_c,&
-                Lnlpspd%plr(iat)%wfd%keyg(1,iseg),Lnlpspd%plr(iat)%wfd%keyv(iseg))
+                Lnlpspd%plr(iat)%wfd%keyg(1,iseg),&
+                Lnlpspd%plr(iat)%wfd%keyv(iseg))
 
         else if(locregShape=='s') then
 !!$            call segkeys_locSphere(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
@@ -213,11 +221,14 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$                hx, hy, hz, llr%locrad, llr%locregCenter, &
 !!$                Lnlpspd%nseg_p(2*iat-1),Lnlpspd%nvctr_p(2*iat-1),&
 !!$                Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
-            call segkeys_locSphere(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-                Gseg,Gvctr,nlpspd%plr(iatom)%wfd%keyg(1,jseg),nlpspd%plr(iatom)%wfd%keyv(jseg),&
-                hx, hy, hz, llr%locrad, llr%locregCenter, &
-                Lnlpspd%plr(iat)%wfd%nseg_c,Lnlpspd%plr(iat)%wfd%nvctr_c,&
-                Lnlpspd%plr(iat)%wfd%keyg(1,iseg),Lnlpspd%plr(iat)%wfd%keyv(iseg))
+            call segkeys_locSphere(Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+                 isx,iex,isy,iey,isz,iez,&
+                 Gseg,Gvctr,nlpspd%plr(iatom)%wfd%keyg(1,jseg),&
+                 nlpspd%plr(iatom)%wfd%keyv(jseg),&
+                 hx, hy, hz, llr%locrad, llr%locregCenter, &
+                 Lnlpspd%plr(iat)%wfd%nseg_c,Lnlpspd%plr(iat)%wfd%nvctr_c,&
+                 Lnlpspd%plr(iat)%wfd%keyg(1,iseg),&
+                 Lnlpspd%plr(iat)%wfd%keyv(iseg))
         end if
      end if
 
@@ -950,11 +961,13 @@ subroutine allocate_Lnlpspd(natom,Lnlpspd,subname)
   integer :: i_stat,ierr
 
   Lnlpspd%natoms=natom
-  allocate(Lnlpspd%plr(natom),stat=i_stat)
-  if (i_stat/=0) then
-     write(*,*)' subroutine ',subname,': problem of allocation of array Lnlpspd%plr',&
-                    ', error code=',i_stat,' exiting...'
-     call MPI_ABORT(MPI_COMM_WORLD,i_stat,ierr)
+  if (natom /=0) then
+     allocate(Lnlpspd%plr(natom),stat=i_stat)
+     if (i_stat/=0) then
+        write(*,*)' subroutine ',subname,': problem of allocation of array Lnlpspd%plr',&
+             ', error code=',i_stat,' exiting...'
+        call MPI_ABORT(MPI_COMM_WORLD,i_stat,ierr)
+     end if
   end if
                
 
@@ -1713,7 +1726,7 @@ subroutine ApplyProjectorsLinear(iproc,hx,hy,hz,atoms,Lzd,orbs,rxyz,psi,hpsi,epr
                    Lzd%Lnlpspd(ilr)%nprojel,atoms,orbs,Lzd%Llr(ilr)%wfd,&
                    Lzd%Lnlpspd(ilr)%plr(iatom),Lproj,&
                    psi_tmp(1,iorb),hpsi_tmp(1,iorb),eproj)
-              
+
               !! #########################################
 
 !!$              do ispinor=1,nspinor,ncplx

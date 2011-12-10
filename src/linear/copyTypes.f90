@@ -616,6 +616,7 @@ subroutine copy_nonlocal_psp_descriptors(nlpspin, nlpspout, subname)
   if (istat /= 0) stop 'allocation error, nlpspout' 
 
   do iat=1,nlpspout%natoms
+
      !copy dimensions which are relevant for the moment
      nlpspout%plr(iat)%ns1=nlpspin%plr(iat)%ns1
      nlpspout%plr(iat)%ns2=nlpspin%plr(iat)%ns2
@@ -638,7 +639,7 @@ subroutine copy_nonlocal_psp_descriptors(nlpspin, nlpspout, subname)
      nlpspout%plr(iat)%wfd%nvctr_f=nlpspin%plr(iat)%wfd%nvctr_f
 
      call allocate_wfd(nlpspout%plr(iat)%wfd,subname)
-
+ 
      if (nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f > 0) then
         call vcopy(nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f,&
              nlpspin%plr(iat)%wfd%keyv(1),1,&

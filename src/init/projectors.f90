@@ -546,7 +546,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
                  write(*,'(1x,a)')&
                       'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
               !end if
-              stop
+                 !stop commented for the moment
            else
 !!!              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
 !!!                   'The norm of the nonlocal PSP for atom n=',iat,&
@@ -650,7 +650,6 @@ subroutine crtproj(geocode,nterm,lr, &
   perx=(geocode /= 'F')
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
-
   ! make sure that the coefficients returned by CALL GAUSS_TO_DAUB are zero outside [ml:mr] 
   !n(c) err_norm=0.0_gp 
   do iterm=1,nterm
@@ -1771,7 +1770,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
      do ityp=1,at%ntypes
         natyp=0
         mproj=0
-        if(  at%paw_NofL(ityp).gt.0) then
+        if(at%paw_NofL(ityp).gt.0) then
            do iat=1,at%nat
               if (at%iatype(iat) == ityp) then
                  if(natyp.eq.0) then

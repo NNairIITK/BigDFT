@@ -32,6 +32,7 @@ dnl fi
 dnl We defined CC for the ABINIT part.
 AC_PROG_CC()
 AC_PROG_CXX()
+AM_PROG_CC_C_O()
 
 dnl If FC environment variable is not already set, it
 dnl looks for a modern Fortran compiler, prefering newest
@@ -330,11 +331,13 @@ if test x"$ac_use_ocl" = "xyes" ; then
   AC_LANG_PUSH(C)
   dnl Optional OpenCL installation dir.
   AC_ARG_WITH(ocl-path, AS_HELP_STRING([--with-ocl-path], [give the path to the OpenCL library (default is /usr).]),
-                         [ac_ocl_path=$withval], [ac_ocl_path="/usr"])
+                         [ac_ocl_path=$withval], [ac_ocl_path=""])
   dnl Test the link on libOpenCL.
   dnl look for the header.
   CPPFLAGS_SVG=$CPPFLAGS
-  CPPFLAGS="$CPPFLAGS -I$ac_ocl_path/include"
+  if test -n "$ac_ocl_path" ; then
+     CPPFLAGS="$CPPFLAGS -I$ac_ocl_path/include"
+  fi
   AC_CHECK_HEADER([CL/cl.h],
                   [ac_ocl_header="yes"],
                   [ac_ocl_header="no"])
@@ -343,19 +346,25 @@ if test x"$ac_use_ocl" = "xyes" ; then
     AC_MSG_WARN(["No 'OpenCL' header found, OpenCL parts disabled."])
     ac_use_ocl="no"
   else
-    OCL_INCLUDE_PATH=$ac_ocl_path"/include"
+    if test -n "$ac_ocl_path" ; then
+       OCL_INCLUDE_PATH=$ac_ocl_path"/include"
+       OCL_INCLUDE="-I"$ac_ocl_path"/include"
+    fi
     AC_SUBST(OCL_INCLUDE_PATH)
-    OCL_INCLUDE="-I"$ac_ocl_path"/include"
     AC_SUBST(OCL_INCLUDE)
     dnl Now test for the library.
     LIBS_OLD=$LIBS
-    LIBS="-L$ac_ocl_path/lib $LIBS"
+    if test -n "$ac_ocl_path" ; then
+       LIBS="-L$ac_ocl_path/lib $LIBS"
+    fi
     AC_CHECK_LIB(OpenCL, clCreateContext, withlibocl=yes, withlibocl=no)
     if test "$withlibocl" = "no"; then
       AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
       ac_use_ocl="no"
     else
-      LDFLAGS="$LDFLAGS -L$ac_ocl_path/lib"
+      if test -n "$ac_ocl_path" ; then
+         LDFLAGS="$LDFLAGS -L$ac_ocl_path/lib"
+      fi
       LIBOCL_LIBS="-lOpenCL -lm -lstdc++"
     fi
     LIBS=$LIBS_OLD
@@ -368,7 +377,7 @@ dnl Use ETSF_IO
 ac_use_etsfio=no
 AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio=no)
 AC_ARG_WITH(etsf-io-path, AS_HELP_STRING([--with-etsf-io-path], [Give the path of the ETSF_IO installation (default = /usr).]),
-            ac_etsfio_dir=$withval, ac_etsfio_dir="/usr")
+            ac_etsfio_dir=$withval, ac_etsfio_dir=)
 AC_ARG_WITH(netcdf-path, AS_HELP_STRING([--with-netcdf-path], [Give the path to NetCDF (required by ETSF_IO) (default = /usr).]),
             ac_netcdf_dir=$withval, ac_netcdf_dir=)
 AC_ARG_WITH(netcdf-libs, AS_HELP_STRING([--with-netcdf-libs], [Give the library to link with NetCDF (required by ETSF_IO) (default = -lnetcdff -lnetcdf).]),
@@ -566,46 +575,51 @@ fi # End of the if library compilation
 
 dnl Test the libXC library
 ac_internal_libxc="yes"
+ac_use_libxc="no"
+ac_build_libxc="no"
+AC_ARG_WITH(libxc, AS_HELP_STRING([--without-libxc], [Do not link with libXC library (default = yes).]), ac_use_libxc=$enableval, ac_use_libxc="yes")
 AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_internal_libxc=$enableval, ac_internal_libxc="yes")
 AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path for an external libXC library, lib and module files (default = None).]),
             ac_libxc_dir=$withval, ac_libxc_dir=)
-ac_use_libxc="no"
-ac_build_libxc=$ac_internal_libxc
-if test "$ac_internal_libxc" = "yes" ; then
-  ac_build_libxc="yes"
-  ac_use_libxc="yes"
-  ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
-  AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
-  AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
-  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
-  LIBXC_LIBS="-lxc"
-else
-  if test -n "$ac_libxc_dir" ; then
-    LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
-    
-    dnl Test the given implementation of libXC.
-    ac_libxc_libname="xc"
-    AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
-    if test x"$withlibxc" = x"no" ; then
-      ac_libxc_libname="dft_xc"
-      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
-    fi
-    AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$ax_fc_mod_ext, funcs="yes", funcs="no")
-    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$ax_fc_mod_ext, lib="yes", lib="no")
-    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$ax_fc_mod_ext, types="yes", types="no")
-    if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
-      ac_use_libxc="yes"
-      AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
-      AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
-      LIBXC_LIBS="-l"$ac_libxc_libname
-    fi
+if test x"$ac_use_libxc" = x"yes" ; then
+  ac_build_libxc=$ac_internal_libxc
+  if test "$ac_internal_libxc" = "yes" ; then
+    ac_build_libxc="yes"
+    ac_use_libxc="yes"
+    ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
+    AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
+    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
+    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
+    LIBXC_LIBS="-lxc"
   else
-    LIBXC_CFLAGS="-I/usr/include"
-    PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
-    AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
+    if test -n "$ac_libxc_dir" ; then
+      LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
+      
+      dnl Test the given implementation of libXC.
+      ac_libxc_libname="xc"
+      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+      if test x"$withlibxc" = x"no" ; then
+        ac_libxc_libname="dft_xc"
+        AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+      fi
+      AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$ax_fc_mod_ext, funcs="yes", funcs="no")
+      AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$ax_fc_mod_ext, lib="yes", lib="no")
+      AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$ax_fc_mod_ext, types="yes", types="no")
+      if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
+        ac_use_libxc="yes"
+        AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
+        AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
+        LIBXC_LIBS="-l"$ac_libxc_libname
+      fi
+    else
+      LIBXC_CFLAGS="-I/usr/include"
+      PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
+      AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
+    fi
   fi
 fi
 AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
+AM_CONDITIONAL(USE_LIBXC, test x"$ac_use_libxc" = x"yes")
 if test x"$ac_use_libxc" = x"yes" ; then
   AC_DEFINE([HAVE_LIBXC], [1], [use libXC in BigDFT.])
 fi
@@ -681,9 +695,16 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
 fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
+dnl Test the availability of clock_gettime() and rt library.
+AC_LANG_PUSH(C)
+AC_CHECK_HEADERS([time.h])
+AC_CHECK_LIB([rt], [clock_gettime])
+AC_CHECK_FUNCS([clock_gettime])
+AC_LANG_POP(C)
+
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS -lrt $MPI_LDFLAGS $MPI_LIBS"
+LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 
@@ -714,6 +735,7 @@ AC_SUBST(docdir)
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
+bigdft.pc
 libABINIT/src/Makefile
 config/Doxyfile
 src/bigdft-tool

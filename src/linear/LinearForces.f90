@@ -234,10 +234,10 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
            end if
         end do loop_iorb2
         if (newvalue) then
-          ii = ii + 1
-          ilrtable(ii)=ilr
+           ii = ii + 1
+           ilrtable(ii)=ilr
         end if
-     end do 
+     end do
      nilr = ii
   end if
 
@@ -256,9 +256,9 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
   end if
 
-!##############################################################################################
-! Scalar Product of projectors and wavefunctions: Linear scaling with Trace Minimizing Orbitals
-!##############################################################################################
+  !##############################################################################################
+  ! Scalar Product of projectors and wavefunctions: Linear scaling with Trace Minimizing Orbitals
+  !##############################################################################################
 
   if (useTMO) then
 
@@ -266,157 +266,157 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      ikpt=1!orbs%iokpt(1)
      ispsi_k=1
      orbtot=0
-!DEACTIVATED K-points
-!     loop_kptTMO: do
+     !DEACTIVATED K-points
+     !     loop_kptTMO: do
 
-!        call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+     !        call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
 
-!        call ncplx_kpt(ikpt,orbs,ncplx)
-        ncplx = 1
-        nwarnings=0 !not used, simply initialised 
-        iproj=0 !should be equal to four times nproj at the end
-        kptshft = orbtot
-        call mpi_barrier(mpi_comm_world, ierr)
-        t1=mpi_wtime()
-        do iat=1,at%nat
-           !check if projector for this atom must be generated
-           calcproj = .false.
-           loop_orb: do iorb=1,orbs%norb
-              loop_iiorb: do iiorb = 1,linorbs%norbp
-!                 if(coeff(iiorb+linorbs%isorb,iorb) < 10**-12) cycle
-                 ilr = linorbs%inwhichlocreg(iiorb+linorbs%isorb)
-                 if(Lzd%Llr(ilr)%projflg(iat) == 0) cycle
-                 calcproj = .true.
-                 exit loop_iiorb
-                 exit loop_orb
-              end do loop_iiorb
-           end do loop_orb
-           if (.not. calcproj) cycle  !if not, don't calculate it
-           do iilr=1,nilr      !loop on different localization regions on this proc
-              ilr = ilrtable(iilr)
-              if(ilr == 0) stop 'Linearnonlocal_forces'
+     !        call ncplx_kpt(ikpt,orbs,ncplx)
+     ncplx = 1
+     nwarnings=0 !not used, simply initialised 
+     iproj=0 !should be equal to four times nproj at the end
+     kptshft = orbtot
+     call mpi_barrier(mpi_comm_world, ierr)
+     t1=mpi_wtime()
+     do iat=1,at%nat
+        !check if projector for this atom must be generated
+        calcproj = .false.
+        loop_orb: do iorb=1,orbs%norb
+           loop_iiorb: do iiorb = 1,linorbs%norbp
+              !                 if(coeff(iiorb+linorbs%isorb,iorb) < 10**-12) cycle
+              ilr = linorbs%inwhichlocreg(iiorb+linorbs%isorb)
               if(Lzd%Llr(ilr)%projflg(iat) == 0) cycle
-              iatom=0             !iatom is index of atom in local region
-              jseg_c = 1
-              do iiat=1,iat  !find index of atom for this locreg
-                 if(Lzd%Llr(ilr)%projflg(iiat) == 0) cycle
+              calcproj = .true.
+              exit loop_iiorb
+              exit loop_orb
+           end do loop_iiorb
+        end do loop_orb
+        if (.not. calcproj) cycle  !if not, don't calculate it
+        do iilr=1,nilr      !loop on different localization regions on this proc
+           ilr = ilrtable(iilr)
+           if(ilr == 0) stop 'Linearnonlocal_forces'
+           if(Lzd%Llr(ilr)%projflg(iat) == 0) cycle
+           iatom=0             !iatom is index of atom in local region
+           jseg_c = 1
+           do iiat=1,iat  !find index of atom for this locreg
+              if(Lzd%Llr(ilr)%projflg(iiat) == 0) cycle
 !!$                 if(iatom > 0) then
 !!$                   jseg_c = jseg_c + &
 !!$                        Lzd%Lnlpspd(ilr)%nseg_p(2*iatom - 1)+ Lzd%Lnlpspd(ilr)%nseg_p(2*iatom)
 !!$                 end if
-                 iatom = iatom + 1
-              end do
-              call plr_segs_and_vctrs(Lzd%Lnlpspd(ilr)%plr(iatom),mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+              iatom = iatom + 1
+           end do
+           call plr_segs_and_vctrs(Lzd%Lnlpspd(ilr)%plr(iatom),mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
 !!$              mbseg_c=Lzd%Lnlpspd(ilr)%nseg_p(2*iatom-1)
 !!$              mbseg_f=Lzd%Lnlpspd(ilr)%nseg_p(2*iatom  )
 !!$              mbvctr_c=Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1)
 !!$              mbvctr_f=Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom  )
-              ityp=at%iatype(iat)
+           ityp=at%iatype(iat)
 
-              do idir=0,3
-                 !calculate projectors
-                 istart_c=1
-                 call atom_projector(ikpt,iat,idir,istart_c,iproj,Lzd%Lnlpspd(ilr)%nprojel,&
-                      Lzd%Llr(ilr),hx,hy,hz,rxyz(1,iat),at,orbs,Lzd%Lnlpspd(ilr)%plr(iatom),proj,nwarnings)
+           do idir=0,3
+              !calculate projectors
+              istart_c=1
+              call atom_projector(ikpt,iat,idir,istart_c,iproj,Lzd%Lnlpspd(ilr)%nprojel,&
+                   Lzd%Llr(ilr),hx,hy,hz,rxyz(1,iat),at,orbs,Lzd%Lnlpspd(ilr)%plr(iatom),proj,nwarnings)
 !!$                 call Linearatom_projector(ikpt,iat,iatom,idir,istart_c,iproj,&
 !!$                      Lzd%Llr(ilr),hx,hy,hz,rxyz,at,orbs,Lzd%Lnlpspd(ilr),proj,nwarnings)
 
-                 !calculate the contribution for each Trace minimizing orbital
-                 !here the nspinor contribution should be adjusted
-                 ! loop over all my orbitals
-                 ispsi=ispsi_k
-                 do iorb=1,linorbs%norbp
-                    if(linorbs%inwhichlocreg(iorb+linorbs%isorb) .ne. ilr) cycle
-                    jorb = iorb+kptshft
-                    ispsi = 1
-                    do iiorb=1,iorb-1             !does not work with spinor...
-                       ilr2 = linorbs%inwhichlocreg(iiorb+linorbs%isorb)
-                       ispsi = ispsi + (Lzd%Llr(ilr2)%wfd%nvctr_c+7*Lzd%Llr(ilr2)%wfd%nvctr_f)*ncplx
-                    end do
-                    do ispinor=1,orbs%nspinor,ncplx
-                       istart_c=1
-                       do l=1,4
-                          do i=1,3
-                             if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                do m=1,2*l-1
-                                   call wpdot_wrap(ncplx,&
-                                        Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,&
-                                        Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nseg_f,&
-                                        Lzd%Llr(ilr)%wfd%keyv,Lzd%Llr(ilr)%wfd%keyg,phi(ispsi),&
-                                        mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+              !calculate the contribution for each Trace minimizing orbital
+              !here the nspinor contribution should be adjusted
+              ! loop over all my orbitals
+              ispsi=ispsi_k
+              do iorb=1,linorbs%norbp
+                 if(linorbs%inwhichlocreg(iorb+linorbs%isorb) .ne. ilr) cycle
+                 jorb = iorb+kptshft
+                 ispsi = 1
+                 do iiorb=1,iorb-1             !does not work with spinor...
+                    ilr2 = linorbs%inwhichlocreg(iiorb+linorbs%isorb)
+                    ispsi = ispsi + (Lzd%Llr(ilr2)%wfd%nvctr_c+7*Lzd%Llr(ilr2)%wfd%nvctr_f)*ncplx
+                 end do
+                 do ispinor=1,orbs%nspinor,ncplx
+                    istart_c=1
+                    do l=1,4
+                       do i=1,3
+                          if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                             do m=1,2*l-1
+                                call wpdot_wrap(ncplx,&
+                                     Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,&
+                                     Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nseg_f,&
+                                     Lzd%Llr(ilr)%wfd%keyv,Lzd%Llr(ilr)%wfd%keyg,phi(ispsi),&
+                                     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                        Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),&
 !!$                                        Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&   !must define jseg_c
-                                        Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyv(jseg_c),&
-                                        Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyg(1,jseg_c),& !jseg_c=1
-                                        proj(istart_c),&
-                                        scalprod(1,idir,m,i,l,iat,jorb))
-                                        !write(*,'(a,7i7,es15.7)') 'iproc, iat, jorb, idir, m, i, l, value', iproc, iat, jorb, idir, m, i, l, scalprod(1,idir,m,i,l,iat,jorb)
-                                        nonzeroValue(jorb,iat)=.true.
-                                   istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
-                                end do
-                             end if
-                          end do
+                                     Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyv(jseg_c),&
+                                     Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyg(1,jseg_c),& !jseg_c=1
+                                     proj(istart_c),&
+                                     scalprod(1,idir,m,i,l,iat,jorb))
+                                !write(*,'(a,7i7,es15.7)') 'iproc, iat, jorb, idir, m, i, l, value', iproc, iat, jorb, idir, m, i, l, scalprod(1,idir,m,i,l,iat,jorb)
+                                nonzeroValue(jorb,iat)=.true.
+                                istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                             end do
+                          end if
                        end do
-                       !write(*,'(a,3i7,es15.7)') 'iproc, iat, jorb, dsum', iproc, iat, jorb, dsum(2*4*7*3*4, scalprod(1,0,1,1,1,iat,jorb))
-                       jorb = jorb + 1
-                       orbtot = orbtot + 1
                     end do
+                    !write(*,'(a,3i7,es15.7)') 'iproc, iat, jorb, dsum', iproc, iat, jorb, dsum(2*4*7*3*4, scalprod(1,0,1,1,1,iat,jorb))
+                    jorb = jorb + 1
+                    orbtot = orbtot + 1
                  end do
-                 if (istart_c-1  > Lzd%Lnlpspd(ilr)%nprojel) stop '2:applyprojectors'
               end do
+              if (istart_c-1  > Lzd%Lnlpspd(ilr)%nprojel) stop '2:applyprojectors'
            end do
         end do
-        call mpi_barrier(mpi_comm_world, ierr)
-        t2=mpi_wtime()
-        timecomp1=t2-t1
-        if(iproc==0) write(*,'(a,es11.4)') 'time for calculating scalprod:',timecomp1
-!        if (ieorb == orbs%norbp) exit loop_kptTMO
-!        ikpt=ikpt+1
-!        ispsi_k=ispsi
-!     end do loop_kptTMO
+     end do
+     call mpi_barrier(mpi_comm_world, ierr)
+     t2=mpi_wtime()
+     timecomp1=t2-t1
+     if(iproc==0) write(*,'(a,es11.4)') 'time for calculating scalprod:',timecomp1
+     !        if (ieorb == orbs%norbp) exit loop_kptTMO
+     !        ikpt=ikpt+1
+     !        ispsi_k=ispsi
+     !     end do loop_kptTMO
 
 
-! Communicate scalprod
-!!allocate(sendcounts(0:nproc-1), stat=i_stat)
-!!call memocc(i_stat,sendcounts,'sendcounts',subname)
-!!allocate(displs(0:nproc-1), stat=i_stat)
-!!call memocc(i_stat,displs,'displs',subname)
+     ! Communicate scalprod
+     !!allocate(sendcounts(0:nproc-1), stat=i_stat)
+     !!call memocc(i_stat,sendcounts,'sendcounts',subname)
+     !!allocate(displs(0:nproc-1), stat=i_stat)
+     !!call memocc(i_stat,displs,'displs',subname)
 
-!!allocate(scalprodGlobal(2,0:3,7,3,4,at%nat,linorbs%norb*linorbs%nspinor+ndebug),stat=i_stat)   
-!!call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
-!!displs(0)=0
-!!do jproc=0,nproc-1
-!!    sendcounts(jproc)=2*4*7*3*4*at%nat*linorbs%norb_par(jproc)*linorbs%nspinor
-!!    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
-!!end do
-!!call mpi_allgatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
-!!     scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
+     !!allocate(scalprodGlobal(2,0:3,7,3,4,at%nat,linorbs%norb*linorbs%nspinor+ndebug),stat=i_stat)   
+     !!call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
+     !!displs(0)=0
+     !!do jproc=0,nproc-1
+     !!    sendcounts(jproc)=2*4*7*3*4*at%nat*linorbs%norb_par(jproc)*linorbs%nspinor
+     !!    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+     !!end do
+     !!call mpi_allgatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
+     !!     scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
 !!!call mpi_gatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
-!     scalprodGlobal, sendcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
-!call mpi_bcast(scalprodGlobal, 2*4*7*3*4*at%nat*linorbs%norb*linorbs%nspinor, mpi_double_precision, 0, &
-!     mpi_comm_world, ierr)
+     !     scalprodGlobal, sendcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+     !call mpi_bcast(scalprodGlobal, 2*4*7*3*4*at%nat*linorbs%norb*linorbs%nspinor, mpi_double_precision, 0, &
+     !     mpi_comm_world, ierr)
 
-!!i_all = -product(shape(sendcounts))*kind(sendcounts)
-!!deallocate(sendcounts,stat=i_stat)
-!!call memocc(i_stat,i_all,'sendcounts',subname)
-!!i_all = -product(shape(displs))*kind(displs)
-!!deallocate(displs,stat=i_stat)
-!!call memocc(i_stat,i_all,'displs',subname)
-!!i_all = -product(shape(scalprod))*kind(scalprod)
-!!deallocate(scalprod,stat=i_stat)
-!!call memocc(i_stat,i_all,'scalprod',subname)
+     !!i_all = -product(shape(sendcounts))*kind(sendcounts)
+     !!deallocate(sendcounts,stat=i_stat)
+     !!call memocc(i_stat,i_all,'sendcounts',subname)
+     !!i_all = -product(shape(displs))*kind(displs)
+     !!deallocate(displs,stat=i_stat)
+     !!call memocc(i_stat,i_all,'displs',subname)
+     !!i_all = -product(shape(scalprod))*kind(scalprod)
+     !!deallocate(scalprod,stat=i_stat)
+     !!call memocc(i_stat,i_all,'scalprod',subname)
 
 
 
-!DEBUG
-!sum_scalprod = sum(scalprod)
-!call mpiallred(sum_scalprod,1,MPI_SUM,MPI_COMM_WORLD,i_all)
-!if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
-!END DEBUG
+     !DEBUG
+     !sum_scalprod = sum(scalprod)
+     !call mpiallred(sum_scalprod,1,MPI_SUM,MPI_COMM_WORLD,i_all)
+     !if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
+     !END DEBUG
 
-!##########################################################################################
-! Standard OnTheFLY calculation, including Linear Scaling without Trace Minimizing Orbitals
-!#########################################################################################
+     !##########################################################################################
+     ! Standard OnTheFLY calculation, including Linear Scaling without Trace Minimizing Orbitals
+     !#########################################################################################
   else if (DistProjApply) then
 
      !apply the projectors on the fly for each k-point of the processor
@@ -520,9 +520,9 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
         ispsi_k=ispsi
      end do loop_LkptD
 
-!############################################################################################################################################
-! Cubic On The Fly Calculation
-!############################################################################################################################################
+     !############################################################################################################################################
+     ! Cubic On The Fly Calculation
+     !############################################################################################################################################
   else if (DistProjApply) then
      !apply the projectors on the fly for each k-point of the processor
      !starting k-point
@@ -560,7 +560,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
               call atom_projector(ikpt,iat,idir,istart_c,iproj,Lzd%Gnlpspd%nprojel,&
                    Lzd%Glr,hx,hy,hz,rxyz(1,iat),at,orbs,&
                    Lzd%Gnlpspd%plr(iat),proj,nwarnings)
-!              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
+              !              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
 
               !calculate the contribution for each orbital
               !here the nspinor contribution should be adjusted
@@ -604,9 +604,9 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
         ispsi_k=ispsi
      end do loop_kptD
 
-!#############################################################################################################################################
-! Cubic Not On The Fly calculation : NOT ADAPTED FOR LINEAR YET (PERTINENT??) !!
-!#############################################################################################################################################
+     !#############################################################################################################################################
+     ! Cubic Not On The Fly calculation : NOT ADAPTED FOR LINEAR YET (PERTINENT??) !!
+     !#############################################################################################################################################
   else
 
      !calculate all the scalar products for each direction and each orbitals
@@ -692,15 +692,15 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   deallocate(ilrtable,stat=i_stat)
   call memocc(i_stat,i_all,'ilrtable',subname)
 
-!#####################################################################################
-! Force calculation
-!#####################################################################################
+  !#####################################################################################
+  ! Force calculation
+  !#####################################################################################
 
   allocate(fxyz_orb(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz_orb,'fxyz_orb',subname)
 
   if(useTMO) then
-  
+
      nitoverlaps=2
 
      allocate(scalprodGlobal(2,0:3,7,3,4,linorbs%norb*linorbs%nspinor,nitoverlaps),stat=i_stat)   
@@ -724,317 +724,319 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      allocate(fxyz_tmo_temp(3,linorbs%norb,linorbs%norbp,nitoverlaps), stat=i_stat)
      call memocc(i_stat, fxyz_tmo_temp, 'fxyz_tmo_temp', subname)
 
-     
+
      !apply the projectors  k-point of the processor
      !starting k-point
      ikpt=1!orbs%iokpt(1)
      orbtot = 0
-!     loop_kptF: do                          !DISABLED KPOINTS
-!
-!        call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
-!
-!        call ncplx_kpt(ikpt,orbs,ncplx)
+     !     loop_kptF: do                          !DISABLED KPOINTS
+     !
+     !        call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+     !
+     !        call ncplx_kpt(ikpt,orbs,ncplx)
 
-        allocate(temparr_logical(linorbs%norb*at%nat), stat=i_stat)
-        call memocc(i_stat, temparr_logical, 'temparr_logical', subname)
-        ! Communicate nonzeroValue to communicate scalprod later.
-        displs(0)=0
-        do jproc=0,nproc-1
-            sendcounts1(jproc)=linorbs%norb_par(jproc,0)*at%nat
-            if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts1(jproc-1)
+     allocate(temparr_logical(linorbs%norb*at%nat), stat=i_stat)
+     call memocc(i_stat, temparr_logical, 'temparr_logical', subname)
+     ! Communicate nonzeroValue to communicate scalprod later.
+     displs(0)=0
+     do jproc=0,nproc-1
+        sendcounts1(jproc)=linorbs%norb_par(jproc,0)*at%nat
+        if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts1(jproc-1)
+     end do
+     call mpi_allgatherv(nonzeroValue(1,1), sendcounts1(iproc), mpi_logical, &
+          temparr_logical(1), sendcounts1, displs, mpi_logical, mpi_comm_world, ierr)
+     jj=0
+     do jproc=0,nproc-1
+        do jat=1,at%nat
+           do jorb=1,linorbs%norb_par(jproc,0)
+              jjorb=jorb+linorbs%isorb_par(jproc)
+              jj=jj+1
+              nonzero(jjorb,jat)=temparr_logical(jj)
+           end do
         end do
-        call mpi_allgatherv(nonzeroValue(1,1), sendcounts1(iproc), mpi_logical, &
-             temparr_logical(1), sendcounts1, displs, mpi_logical, mpi_comm_world, ierr)
-        jj=0
-        do jproc=0,nproc-1
-            do jat=1,at%nat
-                do jorb=1,linorbs%norb_par(jproc,0)
-                    jjorb=jorb+linorbs%isorb_par(jproc)
-                    jj=jj+1
-                    nonzero(jjorb,jat)=temparr_logical(jj)
-                end do
-            end do
-        end do
-        i_all=-product(shape(temparr_logical))*kind(temparr_logical)
-        deallocate(temparr_logical, stat=i_stat)
-        call memocc(i_stat,i_all,'temparr_logical',subname)
+     end do
+     i_all=-product(shape(temparr_logical))*kind(temparr_logical)
+     deallocate(temparr_logical, stat=i_stat)
+     call memocc(i_stat,i_all,'temparr_logical',subname)
 
-        ncount=2*4*7*3*4*max(linorbs%norbp,1)*linorbs%nspinor*nitoverlaps
-        allocate(temparr(ncount+ndebug),stat=i_stat)   
-        call memocc(i_stat,temparr,'temparr',subname)
+     ncount=2*4*7*3*4*max(linorbs%norbp,1)*linorbs%nspinor*nitoverlaps
+     allocate(temparr(ncount+ndebug),stat=i_stat)   
+     call memocc(i_stat,temparr,'temparr',subname)
 
-        kptshft = orbtot
-        ! loop over all my orbitals for calculating forces
-        !do iorb=1,orbs%norbp
-        do iorb=1,maxval(orbs%norb_par)
-           call razero(3*at%nat,fxyz_orb)
-           timecomp1=0.d0
-           timecomp2=0.d0
-           timecomm1=0.d0
-           timecomm2=0.d0
-           timetot=0.d0
+     kptshft = orbtot
+     ! loop over all my orbitals for calculating forces
+     !do iorb=1,orbs%norbp
+     do iorb=1,maxval(orbs%norb_par)
+        call razero(3*at%nat,fxyz_orb)
+        timecomp1=0.d0
+        timecomp2=0.d0
+        timecomm1=0.d0
+        timecomm2=0.d0
+        timetot=0.d0
 
 
-           tag1x=1
-           !tag2x=tag1x+nitoverlaps*nproc**2
-           tag2x=tag1x+nitoverlaps*nproc
+        tag1x=1
+        !tag2x=tag1x+nitoverlaps*nproc**2
+        tag2x=tag1x+nitoverlaps*nproc
 
-           do iat=1,at%nat
-              ttot1=mpi_wtime()
-              ityp=at%iatype(iat)
-              if(iproc==0) write(*,'(a,i0)') 'iat=',iat
-              ioverlap=mod(iat-1,nitoverlaps)+1
-
-
-              ! Communicate the first nitoverlaps chunks of scalprod. Use my_iallgatherv which is a
-              ! non blocking version of mpi_allgatherv. Therefore we can send several chunks and don't
-              ! have to wait right now.
-              if(iat==1) then
-                  ncount=2*4*7*3*4
-
-                  do jat=1,min(nitoverlaps,at%nat)
-                      ! First copy scalprod to a temporary array for communication.
-                      ii=mod(jat-1,nitoverlaps)+1 !index within the "communication history"
-                      jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
-                      do jorb=1,linorbs%norbp*linorbs%nspinor
-                          if(nonzeroValue(jorb,jat)) then
-                              call dcopy(ncount, scalprod(1,0,1,1,1,jat,jorb), 1, temparr(jst), 1)
-                              jst=jst+ncount
-                          end if
-                      end do
-
-                      ! Determine the arrays needed for the communication.
-                      displs(0)=0
-                      do jproc=0,nproc-1
-                          iiorb=0
-                          do jorb=1,linorbs%norb_par(jproc,0)
-                              jjorb=jorb+linorbs%isorb_par(jproc)
-                              if(nonzero(jjorb,jat)) iiorb = iiorb + 1
-                          end do
-                          sendcounts2(jproc,ii)=2*4*7*3*4*iiorb*linorbs%nspinor
-                          if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts2(jproc-1,ii)
-                      end do
-
-                      ! Communicate using my_iallgatherv. To make sure that the communication has completed,
-                      ! use the subroutine my_iallgather_collect with the same request array that is used here.
-                      t1=mpi_wtime()
-                      !tag2 = tag2x + (ii-1)*nproc**2
-                      tag2 = tag2x + (ii-1)*nproc
-                      jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
-                      call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), &
-                           scalprodGlobal(1,0,1,1,1,1,ii), &
-                           sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
-                      call mpi_barrier(mpi_comm_world, ierr)
-                      t2=mpi_wtime()
-                      timecomm1=timecomm1+t2-t1
-
-                  end do
-              end if
+        do iat=1,at%nat
+           ttot1=mpi_wtime()
+           ityp=at%iatype(iat)
+           if(iproc==0) write(*,'(a,i0)') 'iat=',iat
+           ioverlap=mod(iat-1,nitoverlaps)+1
 
 
-              ! Collect a chunk of fxyz_tmo. This array has also been communicated with my_iallgatherv.
-              if(iat>nitoverlaps) then
-                  ii=mod(iat-1,nitoverlaps)+1 !index in the "communication history"
-                  !tag1=tag1x+(ii-1)*nproc**2
-                  tag1=tag1x+(ii-1)*nproc
-                  t1=mpi_wtime()
-                  do jproc=0,nproc-1
-                      sendcounts1(jproc)=3*linorbs%norb_par(jproc,0)*linorbs%norb
-                  end do
-                  ! Collect the data (the subroutine used mpi_wait).
-                  ! After this call, it is save to use the sent data and to reuse the send buffer and requests ii.
-                  call my_iallgather_collect(iproc, nproc, sendcounts1(iproc), sendcounts1, requests1(1,1,ii))
-                  t2=mpi_wtime()
-                  timecomm2=timecomm2+t2-t1
-                  t1=mpi_wtime()
+           ! Communicate the first nitoverlaps chunks of scalprod. Use my_iallgatherv which is a
+           ! non blocking version of mpi_allgatherv. Therefore we can send several chunks and don't
+           ! have to wait right now.
+           if(iat==1) then
+              ncount=2*4*7*3*4
 
-                  ! Sum up the force contribution from these TMOs.
-                  if(iorb<=orbs%norbp) then
-                     iiorb=iorb+orbs%isorb
-                     do itmorb = 1,linorbs%norb
-                        jorb = itmorb + kptshft
-                        do itmorb2=1,linorbs%norb
-                           jorb2=itmorb2 + kptshft
-                           tt=coeff(jorb,iiorb)*coeff(jorb2,iiorb)
-                           fxyz_orb(1,iat-nitoverlaps) = &
-                                fxyz_orb(1,iat-nitoverlaps) + tt*fxyz_tmo(1,jorb2,jorb,ii)
-                           fxyz_orb(2,iat-nitoverlaps) = &
-                                fxyz_orb(2,iat-nitoverlaps) + tt*fxyz_tmo(2,jorb2,jorb,ii)
-                           fxyz_orb(3,iat-nitoverlaps) = &
-                                fxyz_orb(3,iat-nitoverlaps) + tt*fxyz_tmo(3,jorb2,jorb,ii)
-                        end do
-                     end do
-                  end if
-                  t2=mpi_wtime()
-                  timecomp2=timecomp2+t2-t1
-              end if
+              do jat=1,min(nitoverlaps,at%nat)
+                 ! First copy scalprod to a temporary array for communication.
+                 ii=mod(jat-1,nitoverlaps)+1 !index within the "communication history"
+                 jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
+                 do jorb=1,linorbs%norbp*linorbs%nspinor
+                    if(nonzeroValue(jorb,jat)) then
+                       call dcopy(ncount, scalprod(1,0,1,1,1,jat,jorb), 1, temparr(jst), 1)
+                       jst=jst+ncount
+                    end if
+                 end do
 
-              ! Collect scalprodGlobal for atom iat (has also been sent using my_iallgatherv).
+                 ! Determine the arrays needed for the communication.
+                 displs(0)=0
+                 do jproc=0,nproc-1
+                    iiorb=0
+                    do jorb=1,linorbs%norb_par(jproc,0)
+                       jjorb=jorb+linorbs%isorb_par(jproc)
+                       if(nonzero(jjorb,jat)) iiorb = iiorb + 1
+                    end do
+                    sendcounts2(jproc,ii)=2*4*7*3*4*iiorb*linorbs%nspinor
+                    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts2(jproc-1,ii)
+                 end do
+
+                 ! Communicate using my_iallgatherv. To make sure that the communication has completed,
+                 ! use the subroutine my_iallgather_collect with the same request array that is used here.
+                 t1=mpi_wtime()
+                 !tag2 = tag2x + (ii-1)*nproc**2
+                 tag2 = tag2x + (ii-1)*nproc
+                 jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
+                 call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), &
+                      scalprodGlobal(1,0,1,1,1,1,ii), &
+                      sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
+                 call mpi_barrier(mpi_comm_world, ierr)
+                 t2=mpi_wtime()
+                 timecomm1=timecomm1+t2-t1
+
+              end do
+           end if
+
+
+           ! Collect a chunk of fxyz_tmo. This array has also been communicated with my_iallgatherv.
+           if(iat>nitoverlaps) then
+              ii=mod(iat-1,nitoverlaps)+1 !index in the "communication history"
+              !tag1=tag1x+(ii-1)*nproc**2
+              tag1=tag1x+(ii-1)*nproc
               t1=mpi_wtime()
-              ii=mod(iat-1,nitoverlaps)+1
-              call my_iallgather_collect(iproc, nproc, sendcounts2(iproc,ii), sendcounts2(0,ii), requests2(1,1,ii))
+              do jproc=0,nproc-1
+                 sendcounts1(jproc)=3*linorbs%norb_par(jproc,0)*linorbs%norb
+              end do
+              ! Collect the data (the subroutine used mpi_wait).
+              ! After this call, it is save to use the sent data and to reuse the send buffer and requests ii.
+              call my_iallgather_collect(iproc, nproc, sendcounts1(iproc), sendcounts1, requests1(1,1,ii))
               t2=mpi_wtime()
-              timecomm1=timecomm1+t2-t1
-
-              call razero(3*linorbs%norb*linorbs%norb, fxyz_tmo(1,1,1,ioverlap))
-              call razero(3*linorbs%norb*linorbs%norbp, fxyz_tmo_temp(1,1,1,ioverlap))
-              jorb=0
+              timecomm2=timecomm2+t2-t1
               t1=mpi_wtime()
-              do itmorb = 1,linorbs%norbp
-                 !jorb = itmorb + kptshft
-                 !jjorb=itmorb+linorbs%isorb
-                 if(nonzeroValue(itmorb,iat)) then
-                    !jorb = itmorb + kptshft + linorbs%isorb
-                    !jorb = itmorb + kptshft + linorbs%isorb
-                    jjorb2=0
+
+              ! Sum up the force contribution from these TMOs.
+              if(iorb<=orbs%norbp) then
+                 iiorb=iorb+orbs%isorb
+                 do itmorb = 1,linorbs%norb
+                    jorb = itmorb + kptshft
                     do itmorb2=1,linorbs%norb
                        jorb2=itmorb2 + kptshft
-                       if(nonzero(jorb2,iat)) then
-                          jjorb2=jjorb2+1
-                          do ispinor=1,orbs%nspinor,ncplx
-                             do l=1,4
-                                do i=1,3
-                                   if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                      do m=1,2*l-1
-                                         do icplx=1,ncplx
-                                            ! scalar product with the derivatives in all the directions
-                                            sp0=real(scalprod(icplx,0,m,i,l,iat,itmorb),gp)
-                                            do idir=1,3
-                                               spi=real(scalprodGlobal(icplx,idir,m,i,l,jjorb2,ioverlap),gp)
-                                               !write(*,'(a,4i6,2es15.7)') 'iat, iorb, jorb, jorb2, sp0, spi', iat, iorb, jorb, jorb2, sp0, spi
-                                               fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) = &
-                                                    fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) + at%psppar(l,i,ityp)*(sp0*spi)
-                                            end do
+                       tt=coeff(jorb,iiorb)*coeff(jorb2,iiorb)
+                       fxyz_orb(1,iat-nitoverlaps) = &
+                            fxyz_orb(1,iat-nitoverlaps) + tt*fxyz_tmo(1,jorb2,jorb,ii)
+                       fxyz_orb(2,iat-nitoverlaps) = &
+                            fxyz_orb(2,iat-nitoverlaps) + tt*fxyz_tmo(2,jorb2,jorb,ii)
+                       fxyz_orb(3,iat-nitoverlaps) = &
+                            fxyz_orb(3,iat-nitoverlaps) + tt*fxyz_tmo(3,jorb2,jorb,ii)
+                    end do
+                 end do
+              end if
+              t2=mpi_wtime()
+              timecomp2=timecomp2+t2-t1
+           end if
+
+           ! Collect scalprodGlobal for atom iat (has also been sent using my_iallgatherv).
+           t1=mpi_wtime()
+           ii=mod(iat-1,nitoverlaps)+1
+           call my_iallgather_collect(iproc, nproc, sendcounts2(iproc,ii), sendcounts2(0,ii), requests2(1,1,ii))
+           t2=mpi_wtime()
+           timecomm1=timecomm1+t2-t1
+
+           call razero(3*linorbs%norb*linorbs%norb, fxyz_tmo(1,1,1,ioverlap))
+           call razero(3*linorbs%norb*linorbs%norbp, fxyz_tmo_temp(1,1,1,ioverlap))
+           jorb=0
+           t1=mpi_wtime()
+           do itmorb = 1,linorbs%norbp
+              !jorb = itmorb + kptshft
+              !jjorb=itmorb+linorbs%isorb
+              if(nonzeroValue(itmorb,iat)) then
+                 !jorb = itmorb + kptshft + linorbs%isorb
+                 !jorb = itmorb + kptshft + linorbs%isorb
+                 jjorb2=0
+                 do itmorb2=1,linorbs%norb
+                    jorb2=itmorb2 + kptshft
+                    if(nonzero(jorb2,iat)) then
+                       jjorb2=jjorb2+1
+                       do ispinor=1,orbs%nspinor,ncplx
+                          do l=1,4
+                             do i=1,3
+                                if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                   do m=1,2*l-1
+                                      do icplx=1,ncplx
+                                         ! scalar product with the derivatives in all the directions
+                                         sp0=real(scalprod(icplx,0,m,i,l,iat,itmorb),gp)
+                                         do idir=1,3
+                                            spi=real(scalprodGlobal(icplx,idir,m,i,l,jjorb2,ioverlap),gp)
+                                            !write(*,'(a,4i6,2es15.7)') 'iat, iorb, jorb, jorb2, sp0, spi', iat, iorb, jorb, jorb2, sp0, spi
+                                            fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) = &
+                                                 fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) + at%psppar(l,i,ityp)*(sp0*spi)
                                          end do
                                       end do
+                                   end do
+                                end if
+                             end do
+                          end do
+                          !HGH case, offdiagonal terms
+                          if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
+                             do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
+                                do i=1,2
+                                   if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                      loop_jTMO: do j=i+1,3
+                                         if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_jTMO
+                                         !offdiagonal HGH term
+                                         if (at%npspcode(ityp) == 3) then !traditional HGH convention
+                                            hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
+                                         else !HGH-K convention
+                                            hij=at%psppar(l,i+j+1,ityp)
+                                         end if
+                                         do m=1,2*l-1
+                                            !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
+                                            !(the two factor is below)
+                                            do icplx=1,ncplx
+                                               sp0i=real(scalprod(icplx,0,m,i,l,iat,itmorb),gp)
+                                               sp0j=real(scalprodGlobal(icplx,0,m,j,l,jjorb2,ioverlap),gp)
+                                               do idir=1,3
+                                                  spi=real(scalprod(icplx,idir,m,i,l,iat,itmorb),gp)
+                                                  spj=real(scalprodGlobal(icplx,idir,m,j,l,jjorb2,ioverlap),gp)
+                                                  fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) = &
+                                                       fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) + hij*(sp0j*spi+spj*sp0i)  !! CHECK THIS
+                                               end do
+                                            end do
+                                         end do
+                                      end do loop_jTMO
                                    end if
                                 end do
                              end do
-                             !HGH case, offdiagonal terms
-                             if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
-                                do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
-                                   do i=1,2
-                                      if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                         loop_jTMO: do j=i+1,3
-                                            if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_jTMO
-                                            !offdiagonal HGH term
-                                            if (at%npspcode(ityp) == 3) then !traditional HGH convention
-                                               hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
-                                            else !HGH-K convention
-                                               hij=at%psppar(l,i+j+1,ityp)
-                                            end if
-                                            do m=1,2*l-1
-                                               !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
-                                               !(the two factor is below)
-                                               do icplx=1,ncplx
-                                                  sp0i=real(scalprod(icplx,0,m,i,l,iat,itmorb),gp)
-                                                  sp0j=real(scalprodGlobal(icplx,0,m,j,l,jjorb2,ioverlap),gp)
-                                                  do idir=1,3
-                                                     spi=real(scalprod(icplx,idir,m,i,l,iat,itmorb),gp)
-                                                     spj=real(scalprodGlobal(icplx,idir,m,j,l,jjorb2,ioverlap),gp)
-                                                     fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) = &
-                                                          fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) + hij*(sp0j*spi+spj*sp0i)  !! CHECK THIS
-                                                  end do
-                                               end do
-                                            end do
-                                         end do loop_jTMO
-                                      end if
-                                   end do
-                                end do
-                             end if
-                          end do
-                       end if
-                    end do
+                          end if
+                       end do
+                    end if
+                 end do
+              end if
+           end do
+           t2=mpi_wtime()
+           timecomp1=timecomp1+t2-t1
+
+           ! Send the next chunk of scalprod using my_iallgatherv.
+           if(iat+nitoverlaps<=at%nat) then
+              t1=mpi_wtime()
+              ii=mod(iat+nitoverlaps-1,nitoverlaps)+1
+              ncount=2*4*7*3*4
+              jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
+              ! Copy scalprod to temporary array for communication.
+              do jorb=1,linorbs%norbp*linorbs%nspinor
+                 if(nonzeroValue(jorb,iat+nitoverlaps)) then
+                    call dcopy(ncount, scalprod(1,0,1,1,1,iat+nitoverlaps,jorb), 1, temparr(jst), 1)
+                    jst=jst+ncount
                  end if
               end do
-              t2=mpi_wtime()
-              timecomp1=timecomp1+t2-t1
-
-              ! Send the next chunk of scalprod using my_iallgatherv.
-              if(iat+nitoverlaps<=at%nat) then
-                  t1=mpi_wtime()
-                  ii=mod(iat+nitoverlaps-1,nitoverlaps)+1
-                  ncount=2*4*7*3*4
-                  jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
-                  ! Copy scalprod to temporary array for communication.
-                  do jorb=1,linorbs%norbp*linorbs%nspinor
-                      if(nonzeroValue(jorb,iat+nitoverlaps)) then
-                          call dcopy(ncount, scalprod(1,0,1,1,1,iat+nitoverlaps,jorb), 1, temparr(jst), 1)
-                          jst=jst+ncount
-                      end if
-                  end do
-                  displs(0)=0
-                  do jproc=0,nproc-1
-                      iiorb=0
-                      do jorb=1,linorbs%norb_par(jproc,0)
-                          jjorb=jorb+linorbs%isorb_par(jproc)
-                          if(nonzero(jjorb,iat+nitoverlaps)) iiorb = iiorb + 1
-                      end do
-                      sendcounts2(jproc,ii)=2*4*7*3*4*iiorb*linorbs%nspinor
-                      if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts2(jproc-1,ii)
-                  end do
-                  !tag2 = tag2x + (ii-1)*nproc**2
-                  tag2 = tag2x + (ii-1)*nproc
-                  jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
-                  call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), &
-                       scalprodGlobal(1,0,1,1,1,1,ii), sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
-                  t2=mpi_wtime()
-                  timecomm1=timecomm1+t2-t1
-              end if
-
-
-              ! Send next chunk of fxyz_tmo_temp using my_iallgatherv.
               displs(0)=0
               do jproc=0,nproc-1
-                  sendcounts1(jproc)=3*linorbs%norb_par(jproc,0)*linorbs%norb
-                  if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts1(jproc-1)
+                 iiorb=0
+                 do jorb=1,linorbs%norb_par(jproc,0)
+                    jjorb=jorb+linorbs%isorb_par(jproc)
+                    if(nonzero(jjorb,iat+nitoverlaps)) iiorb = iiorb + 1
+                 end do
+                 sendcounts2(jproc,ii)=2*4*7*3*4*iiorb*linorbs%nspinor
+                 if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts2(jproc-1,ii)
               end do
-              t1=mpi_wtime()
-              ii=mod(iat-1,nitoverlaps)+1
-              !tag1=tag1x+(ii-1)*nproc**2
-              tag1=tag1x+(ii-1)*nproc
-              call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts1(iproc), &
-                   fxyz_tmo(1,1,1,ii), sendcounts1, displs, mpi_comm_world, tag1, requests1(1,1,ii))
+              !tag2 = tag2x + (ii-1)*nproc**2
+              tag2 = tag2x + (ii-1)*nproc
+              jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
+              call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), &
+                   scalprodGlobal(1,0,1,1,1,1,ii), sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
               t2=mpi_wtime()
-              timecomm2=timecomm2+t2-t1
-              !call mpiallred(fxyz_tmo(1,1,1), 3*linorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+              timecomm1=timecomm1+t2-t1
+           end if
 
-              ! Collect the remaning chunks of fxyz_tmo (which have been sent using my_iallgatherv).
-              if(iat==at%nat) then
-                  do jat=max(at%nat-nitoverlaps+1,1),at%nat
-                      ii=mod(jat-1,nitoverlaps)+1
-                      !tag1=tag1x+(ii-1)*nproc**2
-                      tag1=tag1x+(ii-1)*nproc
-                      t1=mpi_wtime()
-                      !call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts(iproc), fxyz_tmo(1,1,1,ii), sendcounts, displs, mpi_comm_world, 'recv', tag1, requests(1,1,ii))
-                      call my_iallgather_collect(iproc, nproc, sendcounts1(iproc), sendcounts1, requests1(1,1,ii))
-                      t2=mpi_wtime()
-                      timecomm2=timecomm2+t2-t1
-                      t1=mpi_wtime()
-                      if(iorb<=orbs%norbp) then
-                         iiorb=iorb+orbs%isorb
-                         do itmorb = 1,linorbs%norb
-                            jorb = itmorb + kptshft
-                            do itmorb2=1,linorbs%norb
-                               jorb2=itmorb2 + kptshft
-                               tt=coeff(jorb,iiorb)*coeff(jorb2,iiorb)
-                               fxyz_orb(1,jat) = fxyz_orb(1,jat) + tt*fxyz_tmo(1,jorb2,jorb,ii)
-                               fxyz_orb(2,jat) = fxyz_orb(2,jat) + tt*fxyz_tmo(2,jorb2,jorb,ii)
-                               fxyz_orb(3,jat) = fxyz_orb(3,jat) + tt*fxyz_tmo(3,jorb2,jorb,ii)
-                            end do
-                         end do
-                      end if
-                      t2=mpi_wtime()
-                      timecomp2=timecomp2+t2-t1
-                  end do
-              end if
-              ttot2=mpi_wtime()
-              timetot=timetot+ttot2-ttot1
+
+           ! Send next chunk of fxyz_tmo_temp using my_iallgatherv.
+           displs(0)=0
+           do jproc=0,nproc-1
+              sendcounts1(jproc)=3*linorbs%norb_par(jproc,0)*linorbs%norb
+              if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts1(jproc-1)
+           end do
+           t1=mpi_wtime()
+           ii=mod(iat-1,nitoverlaps)+1
+           !tag1=tag1x+(ii-1)*nproc**2
+           tag1=tag1x+(ii-1)*nproc
+           call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts1(iproc), &
+                fxyz_tmo(1,1,1,ii), sendcounts1, displs, mpi_comm_world, tag1, requests1(1,1,ii))
+           t2=mpi_wtime()
+           timecomm2=timecomm2+t2-t1
+           !call mpiallred(fxyz_tmo(1,1,1), 3*linorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+
+           ! Collect the remaning chunks of fxyz_tmo (which have been sent using my_iallgatherv).
+           if(iat==at%nat) then
+              do jat=max(at%nat-nitoverlaps+1,1),at%nat
+                 ii=mod(jat-1,nitoverlaps)+1
+                 !tag1=tag1x+(ii-1)*nproc**2
+                 tag1=tag1x+(ii-1)*nproc
+                 t1=mpi_wtime()
+                 !call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts(iproc), fxyz_tmo(1,1,1,ii), sendcounts, displs, mpi_comm_world, 'recv', tag1, requests(1,1,ii))
+                 call my_iallgather_collect(iproc, nproc, sendcounts1(iproc), sendcounts1, requests1(1,1,ii))
+                 t2=mpi_wtime()
+                 timecomm2=timecomm2+t2-t1
+                 t1=mpi_wtime()
+                 if(iorb<=orbs%norbp) then
+                    iiorb=iorb+orbs%isorb
+                    do itmorb = 1,linorbs%norb
+                       jorb = itmorb + kptshft
+                       do itmorb2=1,linorbs%norb
+                          jorb2=itmorb2 + kptshft
+                          tt=coeff(jorb,iiorb)*coeff(jorb2,iiorb)
+                          fxyz_orb(1,jat) = fxyz_orb(1,jat) + tt*fxyz_tmo(1,jorb2,jorb,ii)
+                          fxyz_orb(2,jat) = fxyz_orb(2,jat) + tt*fxyz_tmo(2,jorb2,jorb,ii)
+                          fxyz_orb(3,jat) = fxyz_orb(3,jat) + tt*fxyz_tmo(3,jorb2,jorb,ii)
+                       end do
+                    end do
+                 end if
+                 t2=mpi_wtime()
+                 timecomp2=timecomp2+t2-t1
+              end do
+           end if
+           ttot2=mpi_wtime()
+           timetot=timetot+ttot2-ttot1
+           if (verbose > 2) then
               if(iproc==0) write(*,'(a,es15.7)') 'time for first communication:',timecomm1/dble(nproc)
               if(iproc==0) write(*,'(a,es15.7)') 'time for second communication:',timecomm2/dble(nproc)
               if(iproc==0) write(*,'(a,es15.7)') 'time for first loop:',timecomp1/dble(nproc)
               if(iproc==0) write(*,'(a,es15.7)') 'time for second loop:',timecomp2/dble(nproc)
               if(iproc==0) write(*,'(a,i0,a,es11.4)') 'total time for atom',iat,':',timetot/dble(nproc)
+           end if
            end do
            call mpiallred(timecomm1, 1, mpi_sum, mpi_comm_world, ierr)
            call mpiallred(timecomm2, 1, mpi_sum, mpi_comm_world, ierr)

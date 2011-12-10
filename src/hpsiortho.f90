@@ -175,7 +175,7 @@ END SUBROUTINE LocalHamiltonianApplication
 !> Routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
 subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
-      &   nlpspd,proj,lr,psi,hpsi,eproj_sum)
+     proj,Lzd,psi,hpsi,eproj_sum)
    use module_base
    use module_types
    implicit none
@@ -183,16 +183,17 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
    type(orbitals_data),  intent(in) :: orbs
-   type(locreg_descriptors), intent(in) :: lr 
-   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+   type(local_zone_descriptors), intent(in) :: Lzd
+   !type(nonlocal_psp_descriptors), intent(in) :: nlpspd !should be put back in
+   real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
-   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
+   real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
+   real(wp), dimension(Lzd%Lpsidimtot), intent(inout) :: hpsi
    real(gp), intent(out) :: eproj_sum
    !local variables
+   logical :: dosome
    integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
-   integer :: iproj,ispsi,istart_c
+   integer :: iproj,ispsi,istart_c,ilr,iat_proj,ilr_skip
 
    eproj_sum=0.0_gp
 
@@ -218,53 +219,109 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
    loop_kpt: do
 
       call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+      !localisation regions loop
+      loop_lr: do ilr=1,Lzd%nlr
+         !do something only if at least one of the orbitals lives in the ilr
+         dosome=.false.
+         do iorb=isorb,ieorb
+            dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
+            if (dosome) exit
+         end do
+         if (.not. dosome) cycle loop_lr
 
-      if (DistProjApply) then
-         !first create a projector ,then apply it for everyone
-         iproj=0
-         do iat=1,at%nat
-            istart_c=1
-            call atom_projector(ikpt,iat,0,istart_c,iproj,nlpspd%nprojel,&
-                lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings)
+         if (DistProjApply) then
+            !first create a projector ,then apply it for everyone
+            iproj=0
+            iat_proj=0
+            do iat=1,at%nat
+               !check if the atom intersect with the given localisation region
+               if(Lzd%Llr(ilr)%projflg(iat) == 0) cycle
+               iat_proj=iat_proj+1
+               if (Lzd%Lnlpspd(ilr)%nprojel > Lzd%Gnlpspd%nprojel) then
+                  stop 'ERROR: proj array size not corrected'
+               end if
+               istart_c=1
+               call atom_projector(ikpt,iat,0,istart_c,iproj,&
+                    Lzd%Lnlpspd(ilr)%nprojel,&
+                    Lzd%Llr(ilr),hx,hy,hz,rxyz(1,iat),at,orbs,&
+                    Lzd%Lnlpspd(ilr)%plr(iat_proj),proj,nwarnings)
 
-            !apply the projector to all the orbitals belonging to the processor
+               if (iproj > Lzd%Lnlpspd(ilr)%nproj) then
+                  write(*,*)&
+                       'ERROR (NonLocalHamiltonianApplication): iproc incorrect. ilr,iat,iproj,nproj:',&
+                       ilr,iat,iproj,Lzd%Lnlpspd(ilr)%nproj
+                  stop
+               end if
+
+               !apply the projector to all the orbitals belonging to the processor
+               ispsi=ispsi_k
+               do iorb=isorb,ieorb
+                  if (orbs%inwhichlocreg(iorb+orbs%isorb) /= ilr) then
+                     !increase ispsi to meet orbital index
+                     ilr_skip=orbs%inwhichlocreg(iorb+orbs%isorb)
+                     ispsi=ispsi+&
+                          (Lzd%Llr(ilr_skip)%wfd%nvctr_c+&
+                          7*Lzd%Llr(ilr_skip)%wfd%nvctr_f)*nspinor
+                     cycle
+                  end if
+                  istart_c=1
+                  call apply_atproj_iorb_new(iat,iorb,istart_c,Lzd%Lnlpspd(ilr)%nprojel,&
+                       at,orbs,Lzd%Llr(ilr)%wfd,Lzd%Lnlpspd(ilr)%plr(iat_proj),&
+                       proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+                  !print *,'iorb,iat,eproj',iorb,iat,eproj_sum
+                  ispsi=ispsi+&
+                       (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
+               end do
+
+            end do
+            if (iproj /= Lzd%Lnlpspd(ilr)%nproj) stop &
+                 'NonLocal HamiltonianApplication: incorrect number of projectors created'     
+            !for the moment, localization region method is not implemented with
+            !once-and-for-all calculation
+         else if (Lzd%nlr == 1) then
+
+            !loop over the interesting my orbitals, and apply all the projectors over all orbitals
             ispsi=ispsi_k
             do iorb=isorb,ieorb
-               istart_c=1
-               call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
-                    at,orbs,lr%wfd,nlpspd%plr(iat),&
-                    proj,psi(ispsi),hpsi(ispsi),eproj_sum)
-               ispsi=ispsi+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*nspinor
-            end do
+               if (orbs%inwhichlocreg(iorb+orbs%isorb) /= ilr) then
+                  !increase ispsi to meet orbital index
+                  ilr_skip=orbs%inwhichlocreg(iorb+orbs%isorb)
+                  ispsi=ispsi+&
+                       (Lzd%Llr(ilr_skip)%wfd%nvctr_c+7*Lzd%Llr(ilr_skip)%wfd%nvctr_f)*nspinor
+                  cycle
+               end if
 
-         end do
-         if (iproj /= nlpspd%nproj) &
-            &   stop 'NonLocal HamiltonianApplication: incorrect number of projectors created'           
-      else
-
-         ! loop over all my orbitals, and apply all the projectors over all orbitals
-         ispsi=ispsi_k
-         do iorb=isorb,ieorb
-            istart_c=istart_ck
-            do iat=1,at%nat
-               call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
-                    at,orbs,lr%wfd,nlpspd%plr(iat),&
-                    proj,psi(ispsi),hpsi(ispsi),eproj_sum)           
+               istart_c=istart_ck !TO BE CHANGED IN ONCE-AND-FOR-ALL 
+               do iat=1,at%nat
+                  !check if the atom intersect with the given localisation region
+                  if(Lzd%Llr(ilr)%projflg(iat) == 0) stop 'ERROR all atoms should be in global'
+                  call apply_atproj_iorb_new(iat,iorb,istart_c,Lzd%Lnlpspd(ilr)%nprojel,&
+                       at,orbs,Lzd%Llr(ilr)%wfd,Lzd%Lnlpspd(ilr)%plr(iat),&
+                       proj,psi(ispsi),hpsi(ispsi),eproj_sum)           
+               end do
+               ispsi=ispsi+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
             end do
-            ispsi=ispsi+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*nspinor
-         end do
-         istart_ck=istart_c
-      end if
+            istart_ck=istart_c !TO BE CHANGED IN THIS ONCE-AND-FOR-ALL
+         else
+           stop 'Localization Regions not allowed in once-and-for-all'    
+         end if
+
+      end do loop_lr
+
+      !last k-point has been treated
       if (ieorb == orbs%norbp) exit loop_kpt
+      
       ikpt=ikpt+1
       ispsi_k=ispsi
+
    end do loop_kpt
 
-   if (.not. DistProjApply) then
-      if (istart_ck-1 /= nlpspd%nprojel) &
+   if (.not. DistProjApply) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
+      if (istart_ck-1 /= Lzd%Lnlpspd(1)%nprojel) &
          &   stop 'incorrect once-and-for-all psp application'
    end if
-   if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
+   !for the moment it has to be removed. A number of components in orbital distribution should be defined
+   !if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
 
    !used on the on-the-fly projector creation
    if (nwarnings /= 0 .and. iproc == 0) then
@@ -352,7 +409,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
    type(orbitals_data),intent(in) :: orbs
    type(local_zone_descriptors),intent(in) :: Lzd
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-   real(wp), dimension(max(ndimrhopot,1)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+   real(wp), dimension(max(ndimrhopot,nspin)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
    real(wp), dimension(:), pointer :: Lpot
    type(p2pCommsGatherPot),intent(inout), optional:: comgp
    !local variables
@@ -1100,9 +1157,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
    !local variables
    logical :: keeppsit
    character(len=*), parameter :: subname='last_orthon'
-   logical :: dowrite !write the screen output
-   integer :: i_all,i_stat,iorb,jorb,md,ikpt,isorb,ikptw
-   real(gp) :: mpol,spinsignw
+   integer :: i_all,i_stat
    real(wp), dimension(:,:,:), pointer :: mom_vec
 
 

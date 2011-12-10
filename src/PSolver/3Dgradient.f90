@@ -766,6 +766,7 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
 
 
     !calculating the gradient by using the auxiliary array
+    !$omp parallel do default(shared) private(i3,i2,i1,derx,dery,derz)
     do i3=5,n3grad+4 
        do i2=5,n2+4
           do i1=5,n1+4
@@ -793,6 +794,7 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
           end do
        end do
     end do
+    !$end parallel do
  end do
  
  !Once again for total density 
