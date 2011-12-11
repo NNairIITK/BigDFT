@@ -951,11 +951,11 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH, W, eval)
       !call applyOrthoconstraintNonorthogonalCubic(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%gorbs, lin%comms, lin%lzd, input, &
       !     lin%op, ovrlp, lin%mad, lphi, lhphi, trH)
-      do iorb=1,lin%orbs%norb
-          do jorb=1,lin%orbs%norb
-              if(iproc==0) write(333,'(2i9,2es20.10)') iorb,jorb,W(jorb,iorb),ovrlp(jorb,iorb)
-          end do
-      end do
+      !!do iorb=1,lin%orbs%norb
+      !!    do jorb=1,lin%orbs%norb
+      !!        if(iproc==0) write(333,'(2i9,2es20.10)') iorb,jorb,W(jorb,iorb),ovrlp(jorb,iorb)
+      !!    end do
+      !!end do
 
       t2=mpi_wtime()
       time(3)=time(3)+t2-t1

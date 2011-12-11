@@ -510,11 +510,11 @@ logical:: present_W, present_eval
   t1=mpi_wtime()
   call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
                                lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, lagmat)
-  do iorb=1,lin%orbs%norb
-      do jorb=1,lin%orbs%norb
-          if(iproc==0) write(332,'(2i9,es20.10)') iorb,jorb,lagmat(jorb,iorb)
-      end do 
-  end do 
+  !!do iorb=1,lin%orbs%norb
+  !!    do jorb=1,lin%orbs%norb
+  !!        if(iproc==0) write(332,'(2i9,es20.10)') iorb,jorb,lagmat(jorb,iorb)
+  !!    end do 
+  !!end do 
   t2=mpi_wtime()
   timecalcmatrix=timecalcmatrix+t2-t1
 
