@@ -341,16 +341,16 @@ real(8),dimension(:),pointer:: lpot
       call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%lb%mad, matrixElements)
   end if
 
-  !!!if(iproc==0) then
-  !!    ierr=0
-  !!    do iall=1,lin%lb%orbs%norb
-  !!        do istat=1,lin%lb%orbs%norb
-  !!            ierr=ierr+1
-  !!            write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
-  !!        end do
-  !!    end do
-  !!    write(23000+iproc,*) '=============================='
-  !!!end if
+  if(iproc==0) then
+     ierr=0
+     do iall=1,lin%lb%orbs%norb
+         do istat=1,lin%lb%orbs%norb
+             ierr=ierr+1
+             write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
+         end do
+     end do
+     write(23000+iproc,*) '=============================='
+  end if
 
 
   allocate(overlapmatrix(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
@@ -722,16 +722,17 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot
 real(8) :: t2tot, timetot, tt1, tt2, tt3, tt4, tt5, lstep, dfactorial
 real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
-real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress
-integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot
+real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress, energyconf_0, energyconf_trial
+real(8):: energyconf_der0, lstep_optimal
+integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, itinner
 integer :: icountDIISFailureCons, itBest, info, lwork, ndim_lchi, ndim_lhchi
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb, i, ist, jst, iiorb, jjorb, ilrold, k
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
 real(8),dimension(:),allocatable:: alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
-real(8),dimension(:),allocatable:: eval, lvphi, lvphiovrlp, alpha2, lhpsiold, work, rwork, lphiold
+real(8),dimension(:),allocatable:: eval, lvphi, lvphiovrlp, alpha2, lhpsiold, work, rwork, lphiold, lphiovrlporig, lphi2
 real(8),dimension(:),allocatable:: lchi, lphidebug
-real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr, W, ttmat, Kmat, Gmat, Umat, lhchi
-real(8),dimension(:,:,:),allocatable:: Gmatc, tempmat, Omat, tempmat2, ham3
+real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr, W, ttmat, Kmat, Gmat, Umat, lhchi, omatr, omat2
+real(8),dimension(:,:,:),allocatable:: Gmatc, tempmat, Omat, tempmat2, ham3, tempmat3, omatrtot
 logical:: quiet, allowDIIS, startWithSD, withConfinement, calc
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
@@ -810,6 +811,12 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   call memocc(istat, tempmat, 'tempmat', subname)
   allocate(tempmat2(2,lin%orbs%norb,lin%orbs%norb), stat=istat)
   call memocc(istat, tempmat2, 'tempmat2', subname)
+  allocate(tempmat3(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
+  call memocc(istat, tempmat3, 'tempmat3', subname)
+  allocate(omatr(lin%orbs%norb,lin%orbs%norb), stat=istat)
+  call memocc(istat, omatr, 'omatr', subname)
+  allocate(omatrtot(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
+  call memocc(istat, omatrtot, 'omatrtot', subname)
   allocate(Umat(lin%orbs%norb,lin%orbs%norb), stat=istat)
   call memocc(istat, Umat, 'Umat', subname)
   allocate(eval(lin%orbs%norb), stat=istat)
@@ -820,6 +827,10 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   call memocc(istat, alpha2, 'alpha2', subname)
   allocate(lhpsiold(size(lin%lpsi)), stat=istat)
   call memocc(istat, lhpsiold, 'lhpsiold', subname)
+  allocate(lphi2(size(lphi)), stat=istat)
+  call memocc(istat, lphi2, 'lhpsiold', subname)
+  allocate(omat2(lin%orbs%norb,lin%orbs%norb), stat=istat)
+  call memocc(istat, omat2, 'omat2', subname)
   alpha2=1.d-3
 
   time=0.d0
@@ -938,6 +949,11 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH, W, eval)
       !call applyOrthoconstraintNonorthogonalCubic(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%gorbs, lin%comms, lin%lzd, input, &
       !     lin%op, ovrlp, lin%mad, lphi, lhphi, trH)
+      do iorb=1,lin%orbs%norb
+          do jorb=1,lin%orbs%norb
+              if(iproc==0) write(333,'(2i9,2es20.10)') iorb,jorb,W(jorb,iorb),ovrlp(jorb,iorb)
+          end do
+      end do
 
       t2=mpi_wtime()
       time(3)=time(3)+t2-t1
@@ -1186,338 +1202,493 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
       ! SECOND TEST ###################################################################################
 
-      ! plot the orbitals -- EXPERIMENTAL ##################################################
-      allocate(lvphiovrlp(lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f))
-      ist=1
-      write(comment,'(i3.3)') it
-      do iorb=1,lin%orbs%norbp
-          iiorb=iorb+lin%orbs%isorb
-          ilr=lin%orbs%inwhichlocreg(iiorb)
-          lvphiovrlp=0.d0
-          call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
-               lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
-               lin%lzd%Glr, lin%lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
-          call plotOrbitals(iproc, orbs, lin%lzd%Glr, lvphiovrlp, at%nat, rxyz, lin%orbs%inwhichlocreg, .5d0*input%hx, .5d0*input%hy, .5d0*input%hz, it)
-          ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      end do
+      !!!! plot the orbitals -- EXPERIMENTAL ##################################################
+      !!!allocate(lvphiovrlp(lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f))
+      !!!ist=1
+      !!!write(comment,'(i3.3)') it
+      !!!do iorb=1,lin%orbs%norbp
+      !!!    iiorb=iorb+lin%orbs%isorb
+      !!!    ilr=lin%orbs%inwhichlocreg(iiorb)
+      !!!    lvphiovrlp=0.d0
+      !!!    call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
+      !!!         lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
+      !!!         lin%lzd%Glr, lin%lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
+      !!!    call plotOrbitals(iproc, orbs, lin%lzd%Glr, lvphiovrlp, at%nat, rxyz, lin%orbs%inwhichlocreg, .5d0*input%hx, .5d0*input%hy, .5d0*input%hz, it)
+      !!!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!!end do
 
-      allocate(lphidebug(size(lphi)))
-      lphidebug=1.d0
-      call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphidebug, lvphi)
-      ist=1
-      write(comment,'(i3.3)') it
-      do iorb=1,lin%orbs%norbp
-          iiorb=iorb+lin%orbs%isorb
-          ilr=lin%orbs%inwhichlocreg(iiorb)
-          lvphiovrlp=0.d0
-          call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
-               lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
-               lin%lzd%Glr, lin%lzd%Llr(ilr), lvphi(ist), lvphiovrlp(1))
-          call plotOrbitals(iproc, orbs, lin%lzd%Glr, lvphiovrlp, at%nat, rxyz, lin%orbs%inwhichlocreg, .5d0*input%hx, .5d0*input%hy, .5d0*input%hz, 200+it)
-          ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      end do
-      deallocate(lphidebug)
+      !!!allocate(lphidebug(size(lphi)))
+      !!!lphidebug=1.d0
+      !!!call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphidebug, lvphi)
+      !!!ist=1
+      !!!write(comment,'(i3.3)') it
+      !!!do iorb=1,lin%orbs%norbp
+      !!!    iiorb=iorb+lin%orbs%isorb
+      !!!    ilr=lin%orbs%inwhichlocreg(iiorb)
+      !!!    lvphiovrlp=0.d0
+      !!!    call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
+      !!!         lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
+      !!!         lin%lzd%Glr, lin%lzd%Llr(ilr), lvphi(ist), lvphiovrlp(1))
+      !!!    call plotOrbitals(iproc, orbs, lin%lzd%Glr, lvphiovrlp, at%nat, rxyz, lin%orbs%inwhichlocreg, .5d0*input%hx, .5d0*input%hy, .5d0*input%hz, 200+it)
+      !!!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!!end do
+      !!!deallocate(lphidebug)
 
-      deallocate(lvphiovrlp)
+      !!!deallocate(lvphiovrlp)
 
-      ! ####################################################################################
+      !!!! ####################################################################################
 
-      call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
-      tt=ddot(size(lphi), lphi(1), 1, lvphi(1), 1)
-      call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-      if(iproc==0) write(*,'(a,es15.7)') 'before: energy of confinement',tt
-      ist=1
-      do iorb=1,lin%orbs%norbp
-          iiorb=iorb+lin%orbs%isorb
-          ilr=lin%orbs%inwhichlocreg(iiorb)
-          write(998,*) iorb, ddot(lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, lphi(ist), 1, lvphi(ist), 1)
-          ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      end do
+      !!! NEW #########################################################
+      !call unitary_optimization(iproc, nproc, lin%orbs, W, omat2)
+      call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lphi)
+      !!! #############################################################
 
-      call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lvphi, lin%mad, Kmat)
-      ! Construct antisymmtric matrix Gmat
-      do iorb=1,lin%orbs%norb
-          do jorb=1,lin%orbs%norb
-              !Gmat(jorb,iorb)=2.d0*(Kmat(jorb,iorb)-Kmat(iorb,jorb))
-              Gmat(jorb,iorb)=2.d0*(W(jorb,iorb)-W(iorb,jorb))
-              write(1400,'(2i8,es20.8)') iorb,jorb,Kmat(jorb,iorb)
-          end do
-      end do 
-      if(iproc==0) then
-          do iorb=1,lin%orbs%norb
-              do jorb=1,lin%orbs%norb
-                  write(1500,'(2i8,2es20.8)') iorb,jorb,Gmat(jorb,iorb),2.d0*(W(jorb,iorb)-W(iorb,jorb))
-              end do
-              write(1501,'(14f10.5)') (Gmat(iorb,jorb), jorb=1,lin%orbs%norb)
-          end do
-          write(1501,'(a)') repeat('-',100)
-      end if
+      !!!!!!!!call allocateSendBufferOrtho(lin%comon, subname)
+      !!!!!!!!call allocateRecvBufferOrtho(lin%comon, subname)
+      !!!!!!!!! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+      !!!!!!!!call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
 
-      !Build the complex matrix -iGmat
-      do iorb=1,lin%orbs%norb
-          do jorb=1,lin%orbs%norb
-              Gmatc(1,jorb,iorb)=0.d0
-              Gmatc(2,jorb,iorb)=-Gmat(jorb,iorb)
-              !!Gmatc(1,jorb,iorb)=abs(Gmat(jorb,iorb))
-              !!Gmatc(2,jorb,iorb)=0.d0
-          end do
-      end do 
+      !!!!!!!!! gather all lvphi extending in this locreg
+      !!!!!!!!call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, tt1, tt2)
+      !!!!!!!!allocate(lphiovrlporig(lin%op%ndim_lphiovrlp), stat=istat)
+      !!!!!!!!call memocc(istat, lphiovrlporig, 'lphiovrlporig',subname)
+      !!!!!!!!allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+      !!!!!!!!call collectnew(iproc, nproc, lin%comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
+      !!!!!!!!     lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ttmat, tt3, tt4, tt5)
+      !!!!!!!!deallocate(ttmat)
+      !!!!!!!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlporig)
+      !!!!!!!!call deallocateRecvBufferOrtho(lin%comon, subname)
+      !!!!!!!!call deallocateSendBufferOrtho(lin%comon, subname)
 
-      if(iproc==0) then
-          do iorb=1,lin%orbs%norb
-              do jorb=1,lin%orbs%norb
-                  write(1505,'(2i8,2es20.8)') iorb,jorb,Gmatc(:,jorb,iorb)
-              end do
-          end do
-      end if
+      !!!!!!!!innerLoop: do itinner=1,20
 
-      !!! debug
-      !!allocate(Gmat_c(lin%orbs%norb,lin%orbs%norb))
-      !!do iorb=1,lin%orbs%norb
-      !!    do jorb=1,lin%orbs%norb
-      !!        !Gmat_c(jorb,iorb)=cmplx(0.d0,-Gmat(jorb,iorb))
-      !!        if(iorb==jorb) then
-      !!            Gmat_c(jorb,iorb)=cmplx(0.d0,-Gmat(jorb,iorb))
-      !!        else
-      !!            Gmat_c(jorb,iorb)=cmplx(0.d0,-Gmat(jorb,iorb))
-      !!            !Gmat_c(jorb,iorb)=cmplx(0.d0,5.d0)
-      !!        end if
-      !!    end do
-      !!end do 
+      !!!!!!!!call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
+      !!!!!!!!tt=ddot(size(lphi), lphi(1), 1, lvphi(1), 1)
+      !!!!!!!!call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+      !!!!!!!!energyconf_0=tt
+      !!!!!!!!if(iproc==0) write(*,'(a,es15.7)') 'before: energy of confinement',tt
+      !!!!!!!!ist=1
+      !!!!!!!!do iorb=1,lin%orbs%norbp
+      !!!!!!!!    iiorb=iorb+lin%orbs%isorb
+      !!!!!!!!    ilr=lin%orbs%inwhichlocreg(iiorb)
+      !!!!!!!!    write(998,*) iorb, ddot(lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, lphi(ist), 1, lvphi(ist), 1)
+      !!!!!!!!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!!!!!!!end do
 
-      ! Check whether hermitian
-      do iorb=1,lin%orbs%norb
-          do jorb=1,lin%orbs%norb
-              if((Gmatc(1,jorb,iorb))/=(Gmatc(1,iorb,jorb)) .or. (Gmatc(2,jorb,iorb))/=-(Gmatc(2,iorb,jorb))) then
-                  write(*,'(a,4es16.7)') 'ERROR: (Gmatc(1,jorb,iorb)), (Gmatc(1,iorb,jorb)), (Gmatc(2,jorb,iorb)), (Gmatc(2,iorb,jorb))', (Gmatc(1,jorb,iorb)), (Gmatc(1,iorb,jorb)), (Gmatc(2,jorb,iorb)), (Gmatc(2,iorb,jorb))
-              end if
-          end do
-      end do 
+      !!!!!!!!call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lvphi, lin%mad, Kmat)
+      !!!!!!!!! Construct antisymmtric matrix Gmat
+      !!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!        !Gmat(jorb,iorb)=2.d0*(Kmat(jorb,iorb)-Kmat(iorb,jorb))
+      !!!!!!!!        !Gmat(jorb,iorb)=-2.d0*(Kmat(jorb,iorb)-Kmat(iorb,jorb))
+      !!!!!!!!        !Gmat(jorb,iorb)=2.d0*(W(jorb,iorb)-W(iorb,jorb))
+      !!!!!!!!        Gmat(jorb,iorb)=-2.d0*(W(jorb,iorb)-W(iorb,jorb))
+      !!!!!!!!        write(1400,'(2i8,es20.8)') iorb,jorb,Kmat(jorb,iorb)
+      !!!!!!!!    end do
+      !!!!!!!!end do 
 
+      !!!!!!!!! calculate gmat with new method
+      !!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!        omatr(jorb,iorb)=Omat(1,jorb,iorb)
+      !!!!!!!!    end do
+      !!!!!!!!end do
+      !!!!!!!!call dgemm('t', 'n', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, 1.d0, omatr(1,1), lin%orbs%norb, &
+      !!!!!!!!     W(1,1), lin%orbs%norb, 0.d0, tempmat3(1,1,1), lin%orbs%norb)
+      !!!!!!!!call dgemm('n', 'n', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, 1.d0, tempmat3(1,1,1), lin%orbs%norb, &
+      !!!!!!!!     omatr(1,1), lin%orbs%norb, 0.d0, tempmat3(1,1,2), lin%orbs%norb)
 
+      !!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!        tempmat3(jorb,iorb,1)=-2.d0*(tempmat3(jorb,iorb,2)-tempmat3(iorb,jorb,2))
+      !!!!!!!!    end do
+      !!!!!!!!end do 
 
-      ! Diagonalize Gmatc
-      lwork=10*lin%orbs%norb
-      allocate(work(2*lwork), stat=istat) ! factor of 2 since it is assumed to be complex
-      allocate(rwork(lwork), stat=istat)
-      call zheev('v', 'l', lin%orbs%norb, Gmatc(1,1,1), lin%orbs%norb, eval(1), work, lwork, rwork, info)
-      !call zheev('V', 'L', lin%orbs%norb, Gmat_c(1,1), lin%orbs%norb, eval(1), work, lwork, rwork, info)
-      if(info/=0) stop 'ERROR in zheev'
-      deallocate(work)
-      deallocate(rwork)
+      !!!!!!!!if(iproc==0) then
+      !!!!!!!!    do iorb=1,lin%orbs%norb
+      !!!!!!!!        do jorb=1,lin%orbs%norb
+      !!!!!!!!            write(1500,'(2i8,3es20.8)') iorb,jorb,Gmat(jorb,iorb),2.d0*(W(jorb,iorb)-W(iorb,jorb)), tempmat3(jorb,iorb,1)
+      !!!!!!!!        end do
+      !!!!!!!!        write(1501,'(14f10.5)') (Gmat(iorb,jorb), jorb=1,lin%orbs%norb)
+      !!!!!!!!    end do
+      !!!!!!!!    write(1501,'(a)') repeat('-',100)
+      !!!!!!!!end if
 
-      !! CHECK
-      !call zgemm('c', 'n', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, (1.d0,0.d0), Gmatc(1,1,1), lin%orbs%norb, &
-      !     Gmatc(1,1,1), lin%orbs%norb, (0.d0,0.d0), tempmat(1,1,1), lin%orbs%norb)
+      !!!!!!!!!Build the complex matrix -iGmat
+      !!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!        Gmatc(1,jorb,iorb)=0.d0
+      !!!!!!!!        Gmatc(2,jorb,iorb)=-Gmat(jorb,iorb)
+      !!!!!!!!        !!Gmatc(1,jorb,iorb)=abs(Gmat(jorb,iorb))
+      !!!!!!!!        !!Gmatc(2,jorb,iorb)=0.d0
+      !!!!!!!!    end do
+      !!!!!!!!end do 
 
-      ! debug
-      !deallocate(Gmat_c)
+      !!!!!!!!if(iproc==0) then
+      !!!!!!!!    do iorb=1,lin%orbs%norb
+      !!!!!!!!        do jorb=1,lin%orbs%norb
+      !!!!!!!!            write(1505,'(2i8,2es20.8)') iorb,jorb,Gmatc(:,jorb,iorb)
+      !!!!!!!!        end do
+      !!!!!!!!    end do
+      !!!!!!!!end if
 
-      if(iproc==0) then
-          do iorb=1,lin%orbs%norb
-              do jorb=1,lin%orbs%norb
-                  write(1510,'(2i8,2es20.8,4x,es20.8)') iorb,jorb,Gmatc(:,jorb,iorb),eval(jorb)
-              end do
-          end do
-          !!do iorb=1,lin%orbs%norb
-          !!    do jorb=1,lin%orbs%norb
-          !!        write(1520,'(2i8,2es20.8)') iorb,jorb,tempmat(:,jorb,iorb)
-          !!    end do
-          !!end do
-      end if
-      !!do iorb=1,lin%orbs%norb
-      !!    do jorb=1,lin%orbs%norb
-      !!        ttc=cmplx(0.d0,eval(jorb))
-      !!        ttc2=cmplx(tempmat(1,jorb,iorb),tempmat(2,jorb,iorb))
-      !!        ttc=ttc*ttc2
-      !!        tempmat(1,jorb,iorb)=real(ttc)
-      !!        tempmat(2,jorb,iorb)=aimag(ttc)
-      !!    end do
-      !!end do
-      !!if(iproc==0) then
-      !!    do iorb=1,lin%orbs%norb
-      !!        do jorb=1,lin%orbs%norb
-      !!            write(1600,'(2i8,2es20.8)') iorb,jorb,tempmat(:,jorb,iorb)
-      !!        end do
-      !!    end do
-      !!end if
+      !!!!!!!!!!! debug
+      !!!!!!!!!!allocate(Gmat_c(lin%orbs%norb,lin%orbs%norb))
+      !!!!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!!!        !Gmat_c(jorb,iorb)=cmplx(0.d0,-Gmat(jorb,iorb))
+      !!!!!!!!!!        if(iorb==jorb) then
+      !!!!!!!!!!            Gmat_c(jorb,iorb)=cmplx(0.d0,-Gmat(jorb,iorb))
+      !!!!!!!!!!        else
+      !!!!!!!!!!            Gmat_c(jorb,iorb)=cmplx(0.d0,-Gmat(jorb,iorb))
+      !!!!!!!!!!            !Gmat_c(jorb,iorb)=cmplx(0.d0,5.d0)
+      !!!!!!!!!!        end if
+      !!!!!!!!!!    end do
+      !!!!!!!!!!end do 
 
-      ! Calculate step size
-      lstep=-1.d-3/(maxval(abs(eval)))
-
-      ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
-      ! This is also a diagonal matrix, so only calculate the diagonal part.
-      do iorb=1,lin%orbs%norb
-         ttc=cmplx(0.d0,-lstep*eval(iorb),kind=8)
-         expD_cmplx(iorb)=(0.d0,0.d0)
-          do k=0,100
-              expD_cmplx(iorb)=expD_cmplx(iorb)+ttc**k/dfactorial(k)
-          end do
-      end do
-      if(iproc==0) then
-          do iorb=1,lin%orbs%norb
-              write(1610,'(i8,2es20.8)') iorb,expD_cmplx(iorb)
-          end do
-      end if
-
-      ! Calculate the matrix O
-      !do iorb=1,lin%orbs%norb
-      !    do jorb=1,lin%orbs%norb
-      !        ttc=cmplx(Gmatc(1,jorb,iorb),Gmatc(2,jorb,iorb),kind=8)
-      !        !ttc=expD_cmplx(jorb)*ttc
-      !        ttc=cmplx(eval(jorb),0.d0,kind=8)*ttc
-      !        !ttc=cmplx(1.d0,0.d0,kind=8)*ttc
-      !        tempmat(1,jorb,iorb)=real(ttc)
-      !        tempmat(2,jorb,iorb)=aimag(ttc)
-      !    end do
-      !end do
-      do iorb=1,lin%orbs%norb
-          do jorb=1,lin%orbs%norb
-              if(iorb==jorb) then
-                  tempmat2(1,jorb,iorb)=real(expD_cmplx(iorb))
-                  tempmat2(2,jorb,iorb)=aimag(expD_cmplx(iorb))
-              else
-                  tempmat2(1,jorb,iorb)=0.d0
-                  tempmat2(2,jorb,iorb)=0.d0
-              end if
-          end do
-      end do
-      call zgemm('n', 'c', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, (1.d0,0.d0), tempmat2(1,1,1), lin%orbs%norb, &
-           Gmatc(1,1,1), lin%orbs%norb, (0.d0,0.d0), tempmat(1,1,1), lin%orbs%norb)
-
-      call zgemm('n', 'n', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, (1.d0,0.d0), Gmatc(1,1,1), lin%orbs%norb, &
-           tempmat(1,1,1), lin%orbs%norb, (0.d0,0.d0), Omat(1,1,1), lin%orbs%norb)
-      !do iorb=1,lin%orbs%norb
-      !    do jorb=1,lin%orbs%norb
-      !        ttc=cmplx(tempmat(1,jorb,iorb),tempmat(2,jorb,iorb),kind=8)
-      !        ttc=expD_cmplx(jorb)*ttc
-      !        Omat(1,jorb,iorb)=real(ttc)
-      !        Omat(2,jorb,iorb)=aimag(ttc)
-      !    end do
-      !end do
-      if(iproc==0) then
-          do iorb=1,lin%orbs%norb
-              do jorb=1,lin%orbs%norb
-                  write(1700,'(2i8,2es20.8)') iorb,jorb,Omat(:,jorb,iorb)
-                  write(1710,'(2i8,2es20.8)') iorb,jorb,tempmat(:,jorb,iorb)
-              end do
-          end do
-      end if
-
-      ! Check orthogonality of Omat
-      call zgemm('c', 'n', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, (1.d0,0.d0), Omat, lin%orbs%norb, &
-           Omat, lin%orbs%norb, (0.d0,0.d0), tempmat2, lin%orbs%norb)
-      if(iproc==0) then
-          do iorb=1,lin%orbs%norb
-              do jorb=1,lin%orbs%norb
-                  write(1720,'(2i8,2es20.8)') iorb,jorb,tempmat2(:,jorb,iorb)
-              end do
-          end do
-      end if
-
-
-      ! Update the orbitals with Omat
-      ! Gather all lin%lpsi in the same locreg...
-      call allocateSendBufferOrtho(lin%comon, subname)
-      call allocateRecvBufferOrtho(lin%comon, subname)
-      ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-      call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
-
-      ! gather all lvphi extending in this locreg
-      call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, tt1, tt2)
-      allocate(lvphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
-      call memocc(istat, lvphiovrlp, 'lvphiovrlp',subname)
-      allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
-      call collectnew(iproc, nproc, lin%comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
-           lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ttmat, tt3, tt4, tt5)
-      deallocate(ttmat)
-      call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lvphiovrlp)
-      call deallocateRecvBufferOrtho(lin%comon, subname)
-      call deallocateSendBufferOrtho(lin%comon, subname)
-
-      !! Modify Omat to have norm 1 within locreg
-      do iorb=1,lin%orbs%norbp
-          iiorb=lin%orbs%isorb+iorb
-          tt=0.d0
-          do jorb=1,lin%op%noverlaps(iiorb)
-              jjorb=lin%op%overlaps(jorb,iiorb)
-              tt=tt+Omat(1,jjorb,iiorb)
-          end do
-          call dscal(lin%orbs%norb, 1/tt, Omat(1,1,iiorb), 1)
-      end do
-
-      ! Build new lphi
-      !if(mod(it,1)==-1) then
-          lphiold=lphi
-          lphi=0.d0
-          ist=1
-          jst=1
-          ilrold=-1
-          do iorb=1,lin%orbs%norbp
-              iiorb=lin%orbs%isorb+iorb
-              ilr=lin%orbs%inWhichLocreg(iiorb)
-              if(ilr==ilrold) then
-                  ! Set back the index of lphiovrlp, since we again need the same orbitals.
-                  jst=jst-lin%op%noverlaps(iiorb)*ncount
-              end if
-              ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-              do jorb=1,lin%op%noverlaps(iiorb)
-                  jjorb=lin%op%overlaps(jorb,iiorb)
-                  tt=ddot(ncount, lphiold(ist), 1, lvphiovrlp(jst), 1)
-                  !if(iproc==0) write(*,*) 'tt',tt
-                  !tt=1.d0
-                  call daxpy(ncount, Omat(1,jjorb,iiorb), lvphiovrlp(jst), 1, lphi(ist), 1)
-                  !if(lin%orbs%inwhichlocreg(iiorb)==lin%orbs%inwhichlocreg(jjorb)) call daxpy(ncount, Omat(1,jjorb,iiorb), lvphiovrlp(jst), 1, lphi(ist), 1)
-                  !call daxpy(ncount, tt*Omat(1,jjorb,iiorb), lvphiovrlp(jst), 1, lphi(ist), 1)
-                  jst=jst+ncount
-              end do
-          
-              ist=ist+ncount
-              ilrold=ilr
-          
-          end do
-      !end if
-      iall=-product(shape(lvphiovrlp))*kind(lvphiovrlp)
-      deallocate(lvphiovrlp, stat=istat)
-      call memocc(istat, iall, 'lvphiovrlp', subname)
-
-
-      ! plot the orbitals and potential -- EXPERIMENTAL ##################################################
-      allocate(lvphiovrlp(lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f))
-      ist=1
-      write(comment,'(i3.3)') it+100
-      do iorb=1,lin%orbs%norbp
-          iiorb=iorb+lin%orbs%isorb
-          ilr=lin%orbs%inwhichlocreg(iiorb)
-          lvphiovrlp=0.d0
-          call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
-               lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
-               lin%lzd%Glr, lin%lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
-          call plotOrbitals(iproc, orbs, lin%lzd%Glr, lvphiovrlp, at%nat, rxyz, lin%orbs%inwhichlocreg, .5d0*input%hx, .5d0*input%hy, .5d0*input%hz, it+100)
-          ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      end do
-      deallocate(lvphiovrlp)
+      !!!!!!!!! Check whether hermitian
+      !!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!        if((Gmatc(1,jorb,iorb))/=(Gmatc(1,iorb,jorb)) .or. (Gmatc(2,jorb,iorb))/=-(Gmatc(2,iorb,jorb))) then
+      !!!!!!!!            write(*,'(a,4es16.7)') 'ERROR: (Gmatc(1,jorb,iorb)), (Gmatc(1,iorb,jorb)), (Gmatc(2,jorb,iorb)), (Gmatc(2,iorb,jorb))', (Gmatc(1,jorb,iorb)), (Gmatc(1,iorb,jorb)), (Gmatc(2,jorb,iorb)), (Gmatc(2,iorb,jorb))
+      !!!!!!!!        end if
+      !!!!!!!!    end do
+      !!!!!!!!end do 
 
 
 
-      ! ####################################################################################
+      !!!!!!!!! Diagonalize Gmatc
+      !!!!!!!!lwork=10*lin%orbs%norb
+      !!!!!!!!allocate(work(2*lwork), stat=istat) ! factor of 2 since it is assumed to be complex
+      !!!!!!!!allocate(rwork(lwork), stat=istat)
+      !!!!!!!!call zheev('v', 'l', lin%orbs%norb, Gmatc(1,1,1), lin%orbs%norb, eval(1), work, lwork, rwork, info)
+      !!!!!!!!!call zheev('V', 'L', lin%orbs%norb, Gmat_c(1,1), lin%orbs%norb, eval(1), work, lwork, rwork, info)
+      !!!!!!!!if(info/=0) stop 'ERROR in zheev'
+      !!!!!!!!deallocate(work)
+      !!!!!!!!deallocate(rwork)
+
+      !!!!!!!!!! CHECK
+      !!!!!!!!!call zgemm('c', 'n', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, (1.d0,0.d0), Gmatc(1,1,1), lin%orbs%norb, &
+      !!!!!!!!!     Gmatc(1,1,1), lin%orbs%norb, (0.d0,0.d0), tempmat(1,1,1), lin%orbs%norb)
+
+      !!!!!!!!! debug
+      !!!!!!!!!deallocate(Gmat_c)
+
+      !!!!!!!!if(iproc==0) then
+      !!!!!!!!    do iorb=1,lin%orbs%norb
+      !!!!!!!!        do jorb=1,lin%orbs%norb
+      !!!!!!!!            write(1510,'(2i8,2es20.8,4x,es20.8)') iorb,jorb,Gmatc(:,jorb,iorb),eval(jorb)
+      !!!!!!!!        end do
+      !!!!!!!!    end do
+      !!!!!!!!    !!do iorb=1,lin%orbs%norb
+      !!!!!!!!    !!    do jorb=1,lin%orbs%norb
+      !!!!!!!!    !!        write(1520,'(2i8,2es20.8)') iorb,jorb,tempmat(:,jorb,iorb)
+      !!!!!!!!    !!    end do
+      !!!!!!!!    !!end do
+      !!!!!!!!end if
+      !!!!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!!!        ttc=cmplx(0.d0,eval(jorb))
+      !!!!!!!!!!        ttc2=cmplx(tempmat(1,jorb,iorb),tempmat(2,jorb,iorb))
+      !!!!!!!!!!        ttc=ttc*ttc2
+      !!!!!!!!!!        tempmat(1,jorb,iorb)=real(ttc)
+      !!!!!!!!!!        tempmat(2,jorb,iorb)=aimag(ttc)
+      !!!!!!!!!!    end do
+      !!!!!!!!!!end do
+      !!!!!!!!!!if(iproc==0) then
+      !!!!!!!!!!    do iorb=1,lin%orbs%norb
+      !!!!!!!!!!        do jorb=1,lin%orbs%norb
+      !!!!!!!!!!            write(1600,'(2i8,2es20.8)') iorb,jorb,tempmat(:,jorb,iorb)
+      !!!!!!!!!!        end do
+      !!!!!!!!!!    end do
+      !!!!!!!!!!end if
+
+      !!!!!!!!! Calculate step size
+      !!!!!!!!lstep=1.d-3/(maxval(abs(eval)))
+
+      !!!!!!!!! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
+      !!!!!!!!! This is also a diagonal matrix, so only calculate the diagonal part.
+      !!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!   ttc=cmplx(0.d0,-lstep*eval(iorb),kind=8)
+      !!!!!!!!   expD_cmplx(iorb)=(0.d0,0.d0)
+      !!!!!!!!    do k=0,100
+      !!!!!!!!        expD_cmplx(iorb)=expD_cmplx(iorb)+ttc**k/dfactorial(k)
+      !!!!!!!!    end do
+      !!!!!!!!end do
+      !!!!!!!!if(iproc==0) then
+      !!!!!!!!    do iorb=1,lin%orbs%norb
+      !!!!!!!!        write(1610,'(i8,2es20.8)') iorb,expD_cmplx(iorb)
+      !!!!!!!!    end do
+      !!!!!!!!end if
+
+      !!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!        if(iorb==jorb) then
+      !!!!!!!!            tempmat2(1,jorb,iorb)=real(expD_cmplx(iorb))
+      !!!!!!!!            tempmat2(2,jorb,iorb)=aimag(expD_cmplx(iorb))
+      !!!!!!!!        else
+      !!!!!!!!            tempmat2(1,jorb,iorb)=0.d0
+      !!!!!!!!            tempmat2(2,jorb,iorb)=0.d0
+      !!!!!!!!        end if
+      !!!!!!!!    end do
+      !!!!!!!!end do
+      !!!!!!!!call zgemm('n', 'c', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, (1.d0,0.d0), tempmat2(1,1,1), lin%orbs%norb, &
+      !!!!!!!!     Gmatc(1,1,1), lin%orbs%norb, (0.d0,0.d0), tempmat(1,1,1), lin%orbs%norb)
+
+      !!!!!!!!call zgemm('n', 'n', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, (1.d0,0.d0), Gmatc(1,1,1), lin%orbs%norb, &
+      !!!!!!!!     tempmat(1,1,1), lin%orbs%norb, (0.d0,0.d0), Omat(1,1,1), lin%orbs%norb)
+      !!!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!!        ttc=cmplx(tempmat(1,jorb,iorb),tempmat(2,jorb,iorb),kind=8)
+      !!!!!!!!!        ttc=expD_cmplx(jorb)*ttc
+      !!!!!!!!!        Omat(1,jorb,iorb)=real(ttc)
+      !!!!!!!!!        Omat(2,jorb,iorb)=aimag(ttc)
+      !!!!!!!!!    end do
+      !!!!!!!!!end do
+      !!!!!!!!if(iproc==0) then
+      !!!!!!!!    do iorb=1,lin%orbs%norb
+      !!!!!!!!        do jorb=1,lin%orbs%norb
+      !!!!!!!!            write(1700,'(2i8,2es20.8)') iorb,jorb,Omat(:,jorb,iorb)
+      !!!!!!!!            write(1710,'(2i8,2es20.8)') iorb,jorb,tempmat(:,jorb,iorb)
+      !!!!!!!!        end do
+      !!!!!!!!    end do
+      !!!!!!!!end if
+
+      !!!!!!!!! Check orthogonality of Omat
+      !!!!!!!!call zgemm('c', 'n', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, (1.d0,0.d0), Omat, lin%orbs%norb, &
+      !!!!!!!!     Omat, lin%orbs%norb, (0.d0,0.d0), tempmat2, lin%orbs%norb)
+      !!!!!!!!if(iproc==0) then
+      !!!!!!!!    do iorb=1,lin%orbs%norb
+      !!!!!!!!        do jorb=1,lin%orbs%norb
+      !!!!!!!!            write(1720,'(2i8,2es20.8)') iorb,jorb,tempmat2(:,jorb,iorb)
+      !!!!!!!!        end do
+      !!!!!!!!    end do
+      !!!!!!!!end if
 
 
-      call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
-      tt=ddot(size(lphi), lphi(1), 1, lvphi(1), 1)
-      call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-      if(iproc==0) write(*,'(a,es15.7)') 'after: energy of confinement',tt
-      ist=1
-      do iorb=1,lin%orbs%norbp
-          iiorb=iorb+lin%orbs%isorb
-          ilr=lin%orbs%inwhichlocreg(iiorb)
-          write(999,*) iorb, ddot(lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, lphi(ist), 1, lvphi(ist), 1)
-          ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      end do
-      
+      !!!!!!!!! Update the orbitals with Omat
+      !!!!!!!!! Gather all lin%lpsi in the same locreg...
+      !!!!!!!!call allocateSendBufferOrtho(lin%comon, subname)
+      !!!!!!!!call allocateRecvBufferOrtho(lin%comon, subname)
+      !!!!!!!!! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+      !!!!!!!!call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+
+      !!!!!!!!! gather all lvphi extending in this locreg
+      !!!!!!!!call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, tt1, tt2)
+      !!!!!!!!allocate(lvphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
+      !!!!!!!!call memocc(istat, lvphiovrlp, 'lvphiovrlp',subname)
+      !!!!!!!!allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+      !!!!!!!!call collectnew(iproc, nproc, lin%comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
+      !!!!!!!!     lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ttmat, tt3, tt4, tt5)
+      !!!!!!!!deallocate(ttmat)
+      !!!!!!!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lvphiovrlp)
+      !!!!!!!!call deallocateRecvBufferOrtho(lin%comon, subname)
+      !!!!!!!!call deallocateSendBufferOrtho(lin%comon, subname)
+
+      !!!!!!!!!! Modify Omat to have norm 1 within locreg
+      !!!!!!!!do iorb=1,lin%orbs%norbp
+      !!!!!!!!    iiorb=lin%orbs%isorb+iorb
+      !!!!!!!!    tt=0.d0
+      !!!!!!!!    do jorb=1,lin%op%noverlaps(iiorb)
+      !!!!!!!!        jjorb=lin%op%overlaps(jorb,iiorb)
+      !!!!!!!!        tt=tt+Omat(1,jjorb,iiorb)
+      !!!!!!!!    end do
+      !!!!!!!!    call dscal(lin%orbs%norb, 1/tt, Omat(1,1,iiorb), 1)
+      !!!!!!!!end do
+
+      !!!!!!!!! Build new lphi
+      !!!!!!!!!if(mod(it,1)==-1) then
+      !!!!!!!!    lphiold=lphi
+      !!!!!!!!    lphi=0.d0
+      !!!!!!!!    ist=1
+      !!!!!!!!    jst=1
+      !!!!!!!!    ilrold=-1
+      !!!!!!!!    do iorb=1,lin%orbs%norbp
+      !!!!!!!!        iiorb=lin%orbs%isorb+iorb
+      !!!!!!!!        ilr=lin%orbs%inWhichLocreg(iiorb)
+      !!!!!!!!        if(ilr==ilrold) then
+      !!!!!!!!            ! Set back the index of lphiovrlp, since we again need the same orbitals.
+      !!!!!!!!            jst=jst-lin%op%noverlaps(iiorb)*ncount
+      !!!!!!!!        end if
+      !!!!!!!!        ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!!!!!!!        do jorb=1,lin%op%noverlaps(iiorb)
+      !!!!!!!!            jjorb=lin%op%overlaps(jorb,iiorb)
+      !!!!!!!!            tt=ddot(ncount, lphiold(ist), 1, lvphiovrlp(jst), 1)
+      !!!!!!!!            !if(iproc==0) write(*,*) 'tt',tt
+      !!!!!!!!            !tt=1.d0
+      !!!!!!!!            call daxpy(ncount, Omat(1,jjorb,iiorb), lvphiovrlp(jst), 1, lphi(ist), 1)
+      !!!!!!!!            !if(lin%orbs%inwhichlocreg(iiorb)==lin%orbs%inwhichlocreg(jjorb)) call daxpy(ncount, Omat(1,jjorb,iiorb), lvphiovrlp(jst), 1, lphi(ist), 1)
+      !!!!!!!!            !call daxpy(ncount, tt*Omat(1,jjorb,iiorb), lvphiovrlp(jst), 1, lphi(ist), 1)
+      !!!!!!!!            jst=jst+ncount
+      !!!!!!!!        end do
+      !!!!!!!!    
+      !!!!!!!!        ist=ist+ncount
+      !!!!!!!!        ilrold=ilr
+      !!!!!!!!    
+      !!!!!!!!    end do
+      !!!!!!!!!end if
+      !!!!!!!!!!iall=-product(shape(lvphiovrlp))*kind(lvphiovrlp)
+      !!!!!!!!!!deallocate(lvphiovrlp, stat=istat)
+      !!!!!!!!!!call memocc(istat, iall, 'lvphiovrlp', subname)
 
 
-      !!! END SECOND TEST ###############################################################################
+      !!!!!!!!!!!!!! plot the orbitals and potential -- EXPERIMENTAL ##################################################
+      !!!!!!!!!!!!!allocate(lvphiovrlp(lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f))
+      !!!!!!!!!!!!!ist=1
+      !!!!!!!!!!!!!write(comment,'(i3.3)') it+100
+      !!!!!!!!!!!!!do iorb=1,lin%orbs%norbp
+      !!!!!!!!!!!!!    iiorb=iorb+lin%orbs%isorb
+      !!!!!!!!!!!!!    ilr=lin%orbs%inwhichlocreg(iiorb)
+      !!!!!!!!!!!!!    lvphiovrlp=0.d0
+      !!!!!!!!!!!!!    call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
+      !!!!!!!!!!!!!         lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
+      !!!!!!!!!!!!!         lin%lzd%Glr, lin%lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
+      !!!!!!!!!!!!!    call plotOrbitals(iproc, orbs, lin%lzd%Glr, lvphiovrlp, at%nat, rxyz, lin%orbs%inwhichlocreg, .5d0*input%hx, .5d0*input%hy, .5d0*input%hz, it+100)
+      !!!!!!!!!!!!!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!!!!!!!!!!!!end do
+      !!!!!!!!!!!!!deallocate(lvphiovrlp)
+
+
+
+      !!!!!!!!! ####################################################################################
+
+
+      !!!!!!!!call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
+      !!!!!!!!tt=ddot(size(lphi), lphi(1), 1, lvphi(1), 1)
+      !!!!!!!!call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+      !!!!!!!!if(iproc==0) write(*,'(a,es15.7)') 'after: energy of confinement',tt
+      !!!!!!!!energyconf_trial=tt
+
+      !!!!!!!!! Calculate the gradient of the confinement
+      !!!!!!!!energyconf_der0=0.d0
+      !!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!        energyconf_der0=energyconf_der0+gmat(jorb,iorb)**2
+      !!!!!!!!    end do
+      !!!!!!!!end do
+      !!!!!!!!energyconf_der0=-.5d0*energyconf_der0
+
+      !!!!!!!!! Calculate optimal step size
+      !!!!!!!!!lstep_optimal = -energyconf_der0*lstep**2/(2.d0*(energyconf_trial-energyconf_0-lstep*energyconf_der0))
+      !!!!!!!!lstep_optimal = energyconf_der0*lstep**2/(2.d0*(energyconf_trial-energyconf_0-lstep*energyconf_der0))
+      !!!!!!!!if(iproc==0) write(*,*) 'lstep, lstep_optimal', lstep, lstep_optimal
+
+      !!!!!!!!! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
+      !!!!!!!!! This is also a diagonal matrix, so only calculate the diagonal part.
+      !!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!   ttc=cmplx(0.d0,-lstep_optimal*eval(iorb),kind=8)
+      !!!!!!!!   expD_cmplx(iorb)=(0.d0,0.d0)
+      !!!!!!!!    do k=0,100
+      !!!!!!!!        expD_cmplx(iorb)=expD_cmplx(iorb)+ttc**k/dfactorial(k)
+      !!!!!!!!    end do
+      !!!!!!!!end do
+      !!!!!!!!if(iproc==0) then
+      !!!!!!!!    do iorb=1,lin%orbs%norb
+      !!!!!!!!        write(1610,'(i8,2es20.8)') iorb,expD_cmplx(iorb)
+      !!!!!!!!    end do
+      !!!!!!!!end if
+
+      !!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!        if(iorb==jorb) then
+      !!!!!!!!            tempmat2(1,jorb,iorb)=real(expD_cmplx(iorb))
+      !!!!!!!!            tempmat2(2,jorb,iorb)=aimag(expD_cmplx(iorb))
+      !!!!!!!!        else
+      !!!!!!!!            tempmat2(1,jorb,iorb)=0.d0
+      !!!!!!!!            tempmat2(2,jorb,iorb)=0.d0
+      !!!!!!!!        end if
+      !!!!!!!!    end do
+      !!!!!!!!end do
+      !!!!!!!!call zgemm('n', 'c', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, (1.d0,0.d0), tempmat2(1,1,1), lin%orbs%norb, &
+      !!!!!!!!     Gmatc(1,1,1), lin%orbs%norb, (0.d0,0.d0), tempmat(1,1,1), lin%orbs%norb)
+
+      !!!!!!!!call zgemm('n', 'n', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, (1.d0,0.d0), Gmatc(1,1,1), lin%orbs%norb, &
+      !!!!!!!!     tempmat(1,1,1), lin%orbs%norb, (0.d0,0.d0), Omat(1,1,1), lin%orbs%norb)
+
+
+
+      !!!!!!!!! Update omatr
+      !!!!!!!!do iorb=1,lin%orbs%norb
+      !!!!!!!!    do jorb=1,lin%orbs%norb
+      !!!!!!!!        omatr(jorb,iorb)=Omat(1,jorb,iorb)
+      !!!!!!!!    end do
+      !!!!!!!!end do
+      !!!!!!!!if(itinner==1) then
+      !!!!!!!!    call dcopy(lin%orbs%norb**2, omatr(1,1), 1, omatrtot(1,1,1), 1)
+      !!!!!!!!else
+      !!!!!!!!    call dgemm('n', 'n', lin%orbs%norb, lin%orbs%norb, lin%orbs%norb, 1.d0, omatrtot(1,1,1), lin%orbs%norb, &
+      !!!!!!!!         omatr(1,1), lin%orbs%norb, 0.d0, omatrtot(1,1,2), lin%orbs%norb)
+      !!!!!!!!    call dcopy(lin%orbs%norb, omatrtot(1,1,2), 1, omatrtot(1,1,1), 1)
+      !!!!!!!!end if
+
+
+      !!!!!!!!! Build new lphi
+      !!!!!!!!!if(mod(it,1)==-1) then
+      !!!!!!!!    lphi=0.d0
+      !!!!!!!!    lphi2=0.d0
+      !!!!!!!!    ist=1
+      !!!!!!!!    jst=1
+      !!!!!!!!    ilrold=-1
+      !!!!!!!!    do iorb=1,lin%orbs%norbp
+      !!!!!!!!        iiorb=lin%orbs%isorb+iorb
+      !!!!!!!!        ilr=lin%orbs%inWhichLocreg(iiorb)
+      !!!!!!!!        if(ilr==ilrold) then
+      !!!!!!!!            ! Set back the index of lphiovrlp, since we again need the same orbitals.
+      !!!!!!!!            jst=jst-lin%op%noverlaps(iiorb)*ncount
+      !!!!!!!!        end if
+      !!!!!!!!        ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!!!!!!!        do jorb=1,lin%op%noverlaps(iiorb)
+      !!!!!!!!            jjorb=lin%op%overlaps(jorb,iiorb)
+      !!!!!!!!            tt=ddot(ncount, lphiold(ist), 1, lvphiovrlp(jst), 1)
+      !!!!!!!!            !if(iproc==0) write(*,*) 'tt',tt
+      !!!!!!!!            !tt=1.d0
+      !!!!!!!!            call daxpy(ncount, Omat(1,jjorb,iiorb), lvphiovrlp(jst), 1, lphi(ist), 1)
+      !!!!!!!!            call daxpy(ncount, Omatrtot(jjorb,iiorb,1), lphiovrlporig(jst), 1, lphi2(ist), 1)
+      !!!!!!!!            !if(lin%orbs%inwhichlocreg(iiorb)==lin%orbs%inwhichlocreg(jjorb)) call daxpy(ncount, Omat(1,jjorb,iiorb), lvphiovrlp(jst), 1, lphi(ist), 1)
+      !!!!!!!!            !call daxpy(ncount, tt*Omat(1,jjorb,iiorb), lvphiovrlp(jst), 1, lphi(ist), 1)
+      !!!!!!!!            jst=jst+ncount
+      !!!!!!!!        end do
+      !!!!!!!!    
+      !!!!!!!!        ist=ist+ncount
+      !!!!!!!!        ilrold=ilr
+      !!!!!!!!    
+      !!!!!!!!    end do
+      !!!!!!!!!end if
+      !!!!!!!!do iorb=1,lin%orbs%norbp
+      !!!!!!!!    do iall=1,size(lphi)
+      !!!!!!!!         write(10000+1000*iproc+100*itinner+1,*) iall, lphi(iall)   
+      !!!!!!!!         write(10000+1000*iproc+100*itinner+2,*) iall, lphi2(iall)   
+      !!!!!!!!    end do
+      !!!!!!!!end do
+      !!!!!!!!iall=-product(shape(lvphiovrlp))*kind(lvphiovrlp)
+      !!!!!!!!deallocate(lvphiovrlp, stat=istat)
+      !!!!!!!!call memocc(istat, iall, 'lvphiovrlp', subname)
+
+      !!!!!!!!call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
+      !!!!!!!!tt=ddot(size(lphi), lphi(1), 1, lvphi(1), 1)
+      !!!!!!!!call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+      !!!!!!!!if(iproc==0) write(*,'(a,es15.7)') 'after: energy of confinement with optimal step',tt
+
+
+
+
+      !!!!!!!!ist=1
+      !!!!!!!!do iorb=1,lin%orbs%norbp
+      !!!!!!!!    iiorb=iorb+lin%orbs%isorb
+      !!!!!!!!    ilr=lin%orbs%inwhichlocreg(iiorb)
+      !!!!!!!!    write(999,*) iorb, ddot(lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, lphi(ist), 1, lvphi(ist), 1)
+      !!!!!!!!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!!!!!!!end do
+
+
+      !!!!!!!!end do innerLoop
+      !!!!!!!!
+      !!!!!!!!iall=-product(shape(lphiovrlporig))*kind(lphiovrlporig)
+      !!!!!!!!deallocate(lphiovrlporig, stat=istat)
+      !!!!!!!!call memocc(istat, iall, 'lphiovrlporig', subname)
+
+
+      !!!!!!!!!!! END SECOND TEST ###############################################################################
 
 
 
@@ -1970,6 +2141,12 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   end do iterLoop
 
 
+  iall=-product(shape(omatr))*kind(omatr)
+  deallocate(omatr, stat=istat)
+  call memocc(istat, iall, 'omatr', subname)
+  iall=-product(shape(omatrtot))*kind(omatrtot)
+  deallocate(omatrtot, stat=istat)
+  call memocc(istat, iall, 'omatrtot', subname)
   iall=-product(shape(lphiold))*kind(lphiold)
   deallocate(lphiold, stat=istat)
   call memocc(istat, iall, 'lphiold', subname)
@@ -1996,6 +2173,9 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   call memocc(istat, iall, 'tempmat2', subname)
   iall=-product(shape(tempmat2))*kind(tempmat2)
   deallocate(tempmat2, stat=istat)
+  call memocc(istat, iall, 'tempmat3', subname)
+  iall=-product(shape(tempmat3))*kind(tempmat3)
+  deallocate(tempmat3, stat=istat)
   call memocc(istat, iall, 'tempmat', subname)
   iall=-product(shape(Umat))*kind(Umat)
   deallocate(Umat, stat=istat)
@@ -2012,6 +2192,12 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   iall=-product(shape(lhpsiold))*kind(lhpsiold)
   deallocate(lhpsiold, stat=istat)
   call memocc(istat, iall, 'lhpsiold', subname)
+  iall=-product(shape(lphi2))*kind(lphi2)
+  deallocate(lphi2, stat=istat)
+  call memocc(istat, iall, 'lphi2', subname)
+  iall=-product(shape(omat2))*kind(omat2)
+  deallocate(omat2, stat=istat)
+  call memocc(istat, iall, 'omat2', subname)
 
 
   iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
@@ -4320,3 +4506,281 @@ character(len=*),parameter:: subname='minimize_in_subspace'
 
 
 end subroutine minimize_in_subspace
+
+
+
+
+
+
+
+
+
+subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, lphi)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(in):: lin
+type(local_zone_descriptors),intent(in):: lzd
+type(orbitals_data),intent(in):: orbs
+type(atoms_data),intent(in):: at
+type(input_variables),intent(in):: input
+type(overlapParameters),intent(inout):: op
+type(p2pCommsOrthonormality),intent(inout):: comon
+real(8),dimension(3,at%nat),intent(in):: rxyz
+real(8),dimension(orbs%npsidim),intent(inout):: lphi
+
+! Local variables
+integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr
+real(8):: trace, lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
+real(8):: tt1, tt2, tt3, tt4, tt5
+complex(8):: ttc
+real(8),dimension(:,:),allocatable:: gmat, hamtrans, ttmat, Kmat
+complex(8),dimension(:,:),allocatable:: gmatc, omatc
+complex(8),dimension(:,:,:),allocatable:: tempmatc
+complex(8),dimension(:),allocatable:: work, expD_cmplx
+real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi
+real(8),dimension(:,:,:),allocatable:: tempmat3
+character(len=*),parameter:: subname='unitary_optimization'
+
+allocate(gmat(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, gmat, 'gmat', subname)
+allocate(hamtrans(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, hamtrans, 'hamtrans', subname)
+allocate(gmatc(orbs%norb,orbs%norb), stat=istat)
+!call memocc(istat, gmatc, 'gmatc', subname)
+allocate(omatc(orbs%norb,orbs%norb), stat=istat)
+!call memocc(istat, omatc, 'omatc', subname)
+allocate(tempmat3(orbs%norb,orbs%norb,3), stat=istat)
+call memocc(istat, gmat, 'gmat', subname)
+allocate(eval(orbs%norb), stat=istat)
+call memocc(istat, eval, 'eval', subname)
+allocate(expD_cmplx(orbs%norb), stat=istat)
+call memocc(istat, expD_cmplx, 'expD_cmplx', subname)
+allocate(tempmatc(orbs%norb,orbs%norb,2), stat=istat)
+!call memocc(istat, tempmatc, 'tempmatc', subname)
+allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
+call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+allocate(lvphi(orbs%npsidim), stat=istat)
+call memocc(istat, lvphi, 'lvphi', subname)
+allocate(Kmat(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, Kmat, 'Kmat', subname)
+
+
+      call allocateSendBufferOrtho(comon, subname)
+      call allocateRecvBufferOrtho(comon, subname)
+      ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+      call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+      call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
+
+
+
+  innerLoop: do it=1,10
+
+
+      call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
+      energyconf_0=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
+      call mpiallred(energyconf_0, 1, mpi_sum, mpi_comm_world, ierr)
+      if(iproc==0) write(*,'(a,i6,es15.7)') 'it, energyconf_0', it, energyconf_0
+
+      allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+      call collectnew(iproc, nproc, lin%comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
+           lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ttmat, tt3, tt4, tt5)
+      deallocate(ttmat)
+      call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
+
+      call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lvphi, lin%mad, Kmat)
+
+
+      ! Construct antisymmtric matrix Gmat
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              !gmat(jorb,iorb)=-2.d0*(ham(jorb,iorb)-ham(iorb,jorb))
+              gmat(jorb,iorb)=-2.d0*(Kmat(jorb,iorb)-Kmat(iorb,jorb))
+          end do
+      end do 
+
+
+      !Build the complex matrix -iGmat
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              gmatc(jorb,iorb)=cmplx(0.d0,-gmat(jorb,iorb),kind=8)
+          end do
+      end do 
+
+
+
+      ! Diagonalize Gmatc
+      lwork=10*orbs%norb
+      allocate(work(lwork), stat=istat) ! factor of 2 since it is assumed to be complex
+      allocate(rwork(lwork), stat=istat)
+      call zheev('v', 'l', orbs%norb, gmatc(1,1), orbs%norb, eval(1), work, lwork, rwork, info)
+      if(info/=0) stop 'ERROR in zheev'
+      deallocate(work)
+      deallocate(rwork)
+
+
+      ! Calculate step size
+      !if(it==1) then
+          lstep=1.d-3/(maxval(eval))
+      !else
+      !    lstep=2.d0*lstep_optimal
+      !end if
+
+      ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
+      ! This is also a diagonal matrix, so only calculate the diagonal part.
+      do iorb=1,orbs%norb
+         ttc=cmplx(0.d0,-lstep*eval(iorb),kind=8)
+         expD_cmplx(iorb)=(0.d0,0.d0)
+          do k=0,100
+              expD_cmplx(iorb)=expD_cmplx(iorb)+ttc**k/dfactorial(k)
+          end do
+      end do
+
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              if(iorb==jorb) then
+                  tempmatc(jorb,iorb,1)=expD_cmplx(iorb)
+              else
+                  tempmatc(jorb,iorb,1)=cmplx(0.d0,0.d0,kind=8)
+              end if
+          end do
+      end do
+      call zgemm('n', 'c', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), tempmatc(1,1,1), orbs%norb, &
+           gmatc(1,1), orbs%norb, (0.d0,0.d0), tempmatc(1,1,2), orbs%norb)
+      call zgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), gmatc(1,1), orbs%norb, &
+           tempmatc(1,1,2), orbs%norb, (0.d0,0.d0), omatc(1,1), orbs%norb)
+
+      ! Build new lphi
+      lphi=0.d0
+      ist=1
+      jst=1
+      ilrold=-1
+      do iorb=1,lin%orbs%norbp
+          iiorb=lin%orbs%isorb+iorb
+          ilr=lin%orbs%inWhichLocreg(iiorb)
+          if(ilr==ilrold) then
+              ! Set back the index of lphiovrlp, since we again need the same orbitals.
+              jst=jst-lin%op%noverlaps(iiorb)*ncount
+          end if
+          ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+          do jorb=1,lin%op%noverlaps(iiorb)
+              jjorb=lin%op%overlaps(jorb,iiorb)
+              call daxpy(ncount, real(omatc(jjorb,iiorb)), lphiovrlp(jst), 1, lphi(ist), 1)
+              jst=jst+ncount
+          end do
+          ist=ist+ncount
+          ilrold=ilr
+      end do
+      call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
+
+      energyconf_trial=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
+      call mpiallred(energyconf_trial, 1, mpi_sum, mpi_comm_world, ierr)
+
+      ! Calculate the gradient of the confinement
+      energyconf_der0=0.d0
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              energyconf_der0=energyconf_der0+gmat(jorb,iorb)**2
+          end do
+      end do
+      energyconf_der0=-.5d0*energyconf_der0
+
+      ! Calculate optimal step size
+      lstep_optimal = energyconf_der0*lstep**2/(2.d0*(energyconf_trial-energyconf_0-lstep*energyconf_der0))
+      !if(iproc==0) write(*,*) 'lstep, lstep_optimal', lstep, lstep_optimal
+
+      ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
+      ! This is also a diagonal matrix, so only calculate the diagonal part.
+      do iorb=1,orbs%norb
+         ttc=cmplx(0.d0,-lstep_optimal*eval(iorb),kind=8)
+         expD_cmplx(iorb)=(0.d0,0.d0)
+          do k=0,100
+              expD_cmplx(iorb)=expD_cmplx(iorb)+ttc**k/dfactorial(k)
+          end do
+      end do
+
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              if(iorb==jorb) then
+                  tempmatc(jorb,iorb,1)=expD_cmplx(iorb)
+              else
+                  tempmatc(jorb,iorb,1)=cmplx(0.d0,0.d0,kind=8)
+              end if
+          end do
+      end do
+      call zgemm('n', 'c', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), tempmatc(1,1,1), orbs%norb, &
+           gmatc(1,1), orbs%norb, (0.d0,0.d0), tempmatc(1,1,2), orbs%norb)
+      call zgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), gmatc(1,1), orbs%norb, &
+           tempmatc(1,1,2), orbs%norb, (0.d0,0.d0), omatc(1,1), orbs%norb)
+
+
+      ! Build new lphi
+      lphi=0.d0
+      ist=1
+      jst=1
+      ilrold=-1
+      do iorb=1,lin%orbs%norbp
+          iiorb=lin%orbs%isorb+iorb
+          ilr=lin%orbs%inWhichLocreg(iiorb)
+          if(ilr==ilrold) then
+              ! Set back the index of lphiovrlp, since we again need the same orbitals.
+              jst=jst-lin%op%noverlaps(iiorb)*ncount
+          end if
+          ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+          do jorb=1,lin%op%noverlaps(iiorb)
+              jjorb=lin%op%overlaps(jorb,iiorb)
+              call daxpy(ncount, real(omatc(jjorb,iiorb)), lphiovrlp(jst), 1, lphi(ist), 1)
+              jst=jst+ncount
+          end do
+          ist=ist+ncount
+          ilrold=ilr
+      end do
+
+
+      call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+      call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
+
+
+  end do innerLoop
+
+  iall=-product(shape(gmat))*kind(gmat)
+  deallocate(gmat, stat=istat)
+  call memocc(istat, iall, 'gmat', subname)
+  iall=-product(shape(gmatc))*kind(gmatc)
+  deallocate(gmatc, stat=istat)
+  !call memocc(istat, iall, 'gmatc', subname)
+  iall=-product(shape(omatc))*kind(omatc)
+  deallocate(omatc, stat=istat)
+  !call memocc(istat, iall, 'omatc', subname)
+  iall=-product(shape(tempmat3))*kind(tempmat3)
+  deallocate(tempmat3, stat=istat)
+  call memocc(istat, iall, 'tempmat3', subname)
+  iall=-product(shape(eval))*kind(eval)
+  deallocate(eval, stat=istat)
+  call memocc(istat, iall, 'eval', subname)
+  iall=-product(shape(expD_cmplx))*kind(expD_cmplx)
+  deallocate(expD_cmplx, stat=istat)
+  call memocc(istat, iall, 'expD_cmplx', subname)
+  iall=-product(shape(tempmatc))*kind(tempmatc)
+  deallocate(tempmatc, stat=istat)
+  !call memocc(istat, iall, 'tempmatc', subname)
+  iall=-product(shape(hamtrans))*kind(hamtrans)
+  deallocate(hamtrans, stat=istat)
+  call memocc(istat, iall, 'hamtrans', subname)
+  iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
+  deallocate(lphiovrlp, stat=istat)
+  call memocc(istat, iall, 'lphiovrlp', subname)
+  iall=-product(shape(lvphi))*kind(lvphi)
+  deallocate(lvphi, stat=istat)
+  call memocc(istat, iall, 'lvphi', subname)
+  iall=-product(shape(Kmat))*kind(Kmat)
+  deallocate(Kmat, stat=istat)
+  call memocc(istat, iall, 'Kmat', subname)
+
+  call deallocateRecvBufferOrtho(lin%comon, subname)
+  call deallocateSendBufferOrtho(lin%comon, subname)
+
+end subroutine unitary_optimization

@@ -5321,6 +5321,23 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine applyOrthoconstraintlocal
 
 
+       subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, lphi)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(linearParameters),intent(in):: lin
+         type(local_zone_descriptors),intent(in):: lzd
+         type(orbitals_data),intent(in):: orbs
+         type(atoms_data),intent(in):: at
+         type(input_variables),intent(in):: input
+         type(overlapParameters),intent(inout):: op
+         type(p2pCommsOrthonormality),intent(inout):: comon
+         real(8),dimension(3,at%nat),intent(in):: rxyz
+         real(8),dimension(orbs%npsidim),intent(inout):: lphi
+       end subroutine unitary_optimization
+
+
    end interface
 
 END MODULE module_interfaces
