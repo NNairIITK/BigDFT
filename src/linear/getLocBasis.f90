@@ -1239,7 +1239,6 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       !!!! ####################################################################################
 
       !!! NEW #########################################################
-      !call unitary_optimization(iproc, nproc, lin%orbs, W, omat2)
       call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lphi)
       !!! #############################################################
 
@@ -4518,11 +4517,12 @@ end subroutine minimize_in_subspace
 subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, lphi)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => unitary_optimization
 implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linearParameters),intent(in):: lin
+type(linearParameters),intent(inout):: lin
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(in):: at
@@ -4533,7 +4533,7 @@ real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(orbs%npsidim),intent(inout):: lphi
 
 ! Local variables
-integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr
+integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, nit
 real(8):: trace, lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
 real(8):: tt1, tt2, tt3, tt4, tt5
 complex(8):: ttc
@@ -4569,21 +4569,24 @@ allocate(Kmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, Kmat, 'Kmat', subname)
 
 
-      call allocateSendBufferOrtho(comon, subname)
-      call allocateRecvBufferOrtho(comon, subname)
-      ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+  nit=4
+
+  call allocateSendBufferOrtho(comon, subname)
+  call allocateRecvBufferOrtho(comon, subname)
+  ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+  if(nit>0) then
       call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
       call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
+  end if
 
-
-
-  innerLoop: do it=1,10
+  innerLoop: do it=1,nit
 
 
       call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
       energyconf_0=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
       call mpiallred(energyconf_0, 1, mpi_sum, mpi_comm_world, ierr)
-      if(iproc==0) write(*,'(a,i6,es15.7)') 'it, energyconf_0', it, energyconf_0
+      if(iproc==0) write(*,'(a,i6,2es17.7, es14.3)') 'it, energyconf_0, energyvonf_trial, lstep_optimal', &
+                   it, energyconf_0, energyconf_trial, lstep_optimal
 
       allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
       call collectnew(iproc, nproc, lin%comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
@@ -4624,7 +4627,7 @@ call memocc(istat, Kmat, 'Kmat', subname)
 
       ! Calculate step size
       !if(it==1) then
-          lstep=1.d-3/(maxval(eval))
+          lstep=5.d-2/(maxval(eval))
       !else
       !    lstep=2.d0*lstep_optimal
       !end if
@@ -4740,8 +4743,10 @@ call memocc(istat, Kmat, 'Kmat', subname)
       end do
 
 
-      call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
-      call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
+      if(it<nit) then
+          call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+          call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
+      end if
 
 
   end do innerLoop

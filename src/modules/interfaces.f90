@@ -5326,7 +5326,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
-         type(linearParameters),intent(in):: lin
+         type(linearParameters),intent(inout):: lin
          type(local_zone_descriptors),intent(in):: lzd
          type(orbitals_data),intent(in):: orbs
          type(atoms_data),intent(in):: at
