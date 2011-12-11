@@ -341,16 +341,16 @@ real(8),dimension(:),pointer:: lpot
       call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%lb%mad, matrixElements)
   end if
 
-  if(iproc==0) then
-     ierr=0
-     do iall=1,lin%lb%orbs%norb
-         do istat=1,lin%lb%orbs%norb
-             ierr=ierr+1
-             write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
-         end do
-     end do
-     write(23000+iproc,*) '=============================='
-  end if
+  !!if(iproc==0) then
+  !!   ierr=0
+  !!   do iall=1,lin%lb%orbs%norb
+  !!       do istat=1,lin%lb%orbs%norb
+  !!           ierr=ierr+1
+  !!           write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
+  !!       end do
+  !!   end do
+  !!   write(23000+iproc,*) '=============================='
+  !!end if
 
 
   allocate(overlapmatrix(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
@@ -410,129 +410,129 @@ real(8),dimension(:),pointer:: lpot
   !!    write(2000+iproc,'(100es9.2)') (coeff(iorb,jorb), jorb=1,orbs%norb)
   !!end do
 
-  ! EXPERIMENTAL ##################################################################
-  norbtot=orbs%norb+lin%norbvirt
-  allocate(lambda(norbtot,norbtot), stat=istat)
-  call memocc(istat, lambda, 'lambda', subname)
+  !!!!! EXPERIMENTAL ##################################################################
+  !!!!norbtot=orbs%norb+lin%norbvirt
+  !!!!allocate(lambda(norbtot,norbtot), stat=istat)
+  !!!!call memocc(istat, lambda, 'lambda', subname)
 
-  !! ATTENTION: modify lin%coeffall
-  ! use lambda array
-  do iorb=1,norbtot
-      do jorb=1,norbtot
-          lambda(jorb,iorb)=0.d0
-          do k=1,lin%lb%orbs%norb
-              do l=1,lin%lb%orbs%norb
-                  lambda(jorb,iorb)=lambda(jorb,iorb)+lin%coeffall(k,iorb)*lin%coeffall(l,jorb)*matrixElements(l,k,1)
-              end do
-          end do
-      end do
-  end do
-  ! use coeffold as work array
-  allocate(coeffold(lin%lb%orbs%norb,norbtot), stat=istat)
-  call memocc(istat, coeffold, 'coeffold', subname)
-  coeffold=lin%coeffall
-  do iorb=1,norbtot
-      do korb=1,lin%lb%orbs%norb
-          lin%coeffall(korb,iorb)=coeffold(korb,iorb)
-          do jorb=1,lin%lb%orbs%norb
-              lin%coeffall(korb,iorb)=lin%coeffall(korb,iorb)-&
-                                      matrixElements(jorb,korb,1)*coeffold(jorb,iorb) + &
-                                      coeffold(korb,jorb)*lambda(jorb,iorb)
-          end do
-          !!do jorb=1,norbtot
-          !!    do k=1,lin%lb%orbs%norb
-          !!        do l=1,lin%lb%orbs%norb
-          !!            lin%coeffall(korb,iorb)=lin%coeffall(korb,iorb)+matrixElements(l,k,1)*coeffold(k,iorb)*coeffold(l,jorb)*coeffold(korb,jorb)
-          !!        end do
-          !!    end do
-          !!end do
-      end do
-  end do
+  !!!!!! ATTENTION: modify lin%coeffall
+  !!!!! use lambda array
+  !!!!do iorb=1,norbtot
+  !!!!    do jorb=1,norbtot
+  !!!!        lambda(jorb,iorb)=0.d0
+  !!!!        do k=1,lin%lb%orbs%norb
+  !!!!            do l=1,lin%lb%orbs%norb
+  !!!!                lambda(jorb,iorb)=lambda(jorb,iorb)+lin%coeffall(k,iorb)*lin%coeffall(l,jorb)*matrixElements(l,k,1)
+  !!!!            end do
+  !!!!        end do
+  !!!!    end do
+  !!!!end do
+  !!!!! use coeffold as work array
+  !!!!allocate(coeffold(lin%lb%orbs%norb,norbtot), stat=istat)
+  !!!!call memocc(istat, coeffold, 'coeffold', subname)
+  !!!!coeffold=lin%coeffall
+  !!!!do iorb=1,norbtot
+  !!!!    do korb=1,lin%lb%orbs%norb
+  !!!!        lin%coeffall(korb,iorb)=coeffold(korb,iorb)
+  !!!!        do jorb=1,lin%lb%orbs%norb
+  !!!!            lin%coeffall(korb,iorb)=lin%coeffall(korb,iorb)-&
+  !!!!                                    matrixElements(jorb,korb,1)*coeffold(jorb,iorb) + &
+  !!!!                                    coeffold(korb,jorb)*lambda(jorb,iorb)
+  !!!!        end do
+  !!!!        !!do jorb=1,norbtot
+  !!!!        !!    do k=1,lin%lb%orbs%norb
+  !!!!        !!        do l=1,lin%lb%orbs%norb
+  !!!!        !!            lin%coeffall(korb,iorb)=lin%coeffall(korb,iorb)+matrixElements(l,k,1)*coeffold(k,iorb)*coeffold(l,jorb)*coeffold(korb,jorb)
+  !!!!        !!        end do
+  !!!!        !!    end do
+  !!!!        !!end do
+  !!!!    end do
+  !!!!end do
 
-  ! orthonormalize lin%coeffall
-  do iorb=1,norbtot
-      do jorb=1,iorb-1
-          tt=ddot(lin%lb%orbs%norb, lin%coeffall(1,iorb), 1, lin%coeffall(1,jorb), 1)
-          lin%coeffall(:,iorb)=lin%coeffall(:,iorb)-tt*lin%coeffall(:,jorb)
-      end do
-      tt=dnrm2(lin%lb%orbs%norb, lin%coeffall(1,iorb), 1)
-      lin%coeffall(:,iorb)=lin%coeffall(:,iorb)/tt
-  end do
+  !!!!! orthonormalize lin%coeffall
+  !!!!do iorb=1,norbtot
+  !!!!    do jorb=1,iorb-1
+  !!!!        tt=ddot(lin%lb%orbs%norb, lin%coeffall(1,iorb), 1, lin%coeffall(1,jorb), 1)
+  !!!!        lin%coeffall(:,iorb)=lin%coeffall(:,iorb)-tt*lin%coeffall(:,jorb)
+  !!!!    end do
+  !!!!    tt=dnrm2(lin%lb%orbs%norb, lin%coeffall(1,iorb), 1)
+  !!!!    lin%coeffall(:,iorb)=lin%coeffall(:,iorb)/tt
+  !!!!end do
 
-  do iorb=1,norbtot
-      do jorb=1,norbtot
-          tt=0.d0
-          do korb=1,lin%lb%orbs%norb
-              do lorb=1,lin%lb%orbs%norb
-                  tt=tt+lin%coeffall(korb,iorb)*overlapmatrix(korb,lorb)*lin%coeffall(lorb,jorb)
-              end do
-          end do
-          write(500+iproc,*) iorb, jorb, tt
-      end do
-  end do
+  !!!!do iorb=1,norbtot
+  !!!!    do jorb=1,norbtot
+  !!!!        tt=0.d0
+  !!!!        do korb=1,lin%lb%orbs%norb
+  !!!!            do lorb=1,lin%lb%orbs%norb
+  !!!!                tt=tt+lin%coeffall(korb,iorb)*overlapmatrix(korb,lorb)*lin%coeffall(lorb,jorb)
+  !!!!            end do
+  !!!!        end do
+  !!!!        write(500+iproc,*) iorb, jorb, tt
+  !!!!    end do
+  !!!!end do
 
-  do iorb=1,norbtot
-      do jorb=1,norbtot
-          lambda(jorb,iorb)=0.d0
-          do korb=1,lin%lb%orbs%norb
-              do lorb=1,lin%lb%orbs%norb
-                  !lambda(jorb,iorb) = lambda(jorb,iorb) + coeff(korb,iorb)*coeff(lorb,jorb)*overlapmatrix(lorb,korb)
-                  !lambda(jorb,iorb) = lambda(jorb,iorb) + coeff(korb,iorb)*coeff(lorb,jorb)*matrixElements(lorb,korb,1)
-                  !lambda(jorb,iorb) = lambda(jorb,iorb) + &
-                  !    matrixElements(korb,iorb,2)*matrixElements(lorb,jorb,2)*matrixElements(lorb,korb,1)
-                  lambda(jorb,iorb) = lambda(jorb,iorb) + &
-                      lin%coeffall(korb,iorb)*lin%coeffall(lorb,jorb)*matrixElements(lorb,korb,1)*overlapmatrix(jorb,iorb)
-              end do
-              !lambda(jorb,iorb) = lambda(jorb,iorb) + lin%coeffall(korb,iorb)*lin%coeffall(korb,jorb)*overlapmatrix(jorb,iorb)*eval(jorb)
-          end do
-      end do
-  end do
-  !!do iorb=1,norbtot
-  !!    do jorb=1,norbtot
-  !!        write(380+iproc,'(2i7,2es20.8)') iorb, jorb, lambda(jorb,iorb), matrixElements(jorb,iorb,2)
-  !!    end do
-  !!end do
+  !!!!do iorb=1,norbtot
+  !!!!    do jorb=1,norbtot
+  !!!!        lambda(jorb,iorb)=0.d0
+  !!!!        do korb=1,lin%lb%orbs%norb
+  !!!!            do lorb=1,lin%lb%orbs%norb
+  !!!!                !lambda(jorb,iorb) = lambda(jorb,iorb) + coeff(korb,iorb)*coeff(lorb,jorb)*overlapmatrix(lorb,korb)
+  !!!!                !lambda(jorb,iorb) = lambda(jorb,iorb) + coeff(korb,iorb)*coeff(lorb,jorb)*matrixElements(lorb,korb,1)
+  !!!!                !lambda(jorb,iorb) = lambda(jorb,iorb) + &
+  !!!!                !    matrixElements(korb,iorb,2)*matrixElements(lorb,jorb,2)*matrixElements(lorb,korb,1)
+  !!!!                lambda(jorb,iorb) = lambda(jorb,iorb) + &
+  !!!!                    lin%coeffall(korb,iorb)*lin%coeffall(lorb,jorb)*matrixElements(lorb,korb,1)*overlapmatrix(jorb,iorb)
+  !!!!            end do
+  !!!!            !lambda(jorb,iorb) = lambda(jorb,iorb) + lin%coeffall(korb,iorb)*lin%coeffall(korb,jorb)*overlapmatrix(jorb,iorb)*eval(jorb)
+  !!!!        end do
+  !!!!    end do
+  !!!!end do
+  !!!!!!do iorb=1,norbtot
+  !!!!!!    do jorb=1,norbtot
+  !!!!!!        write(380+iproc,'(2i7,2es20.8)') iorb, jorb, lambda(jorb,iorb), matrixElements(jorb,iorb,2)
+  !!!!!!    end do
+  !!!!!!end do
 
-  lwork=100*orbs%norb
-  allocate(work(lwork), stat=istat)
-  call memocc(istat, work, 'work', subname)
-  call dsyev('v', 'l', norbtot, lambda(1,1), norbtot, eval, work, lwork, info)
-  iall=-product(shape(work))*kind(work)
-  deallocate(work, stat=istat)
-  call memocc(istat, iall, 'work', subname)
-  do iorb=1,norbtot
-      do jorb=1,norbtot
-          tt=0.d0
-          do lorb=1,norbtot
-              tt=tt+lin%coeffall(lorb,jorb)*matrixElements(lorb,iorb,2)
-          end do
-          !!write(390+iproc,'(2i7,2es20.8)') iorb, jorb, lambda(jorb,iorb), tt
-      end do
-  end do
+  !!!!lwork=100*orbs%norb
+  !!!!allocate(work(lwork), stat=istat)
+  !!!!call memocc(istat, work, 'work', subname)
+  !!!!call dsyev('v', 'l', norbtot, lambda(1,1), norbtot, eval, work, lwork, info)
+  !!!!iall=-product(shape(work))*kind(work)
+  !!!!deallocate(work, stat=istat)
+  !!!!call memocc(istat, iall, 'work', subname)
+  !!!!do iorb=1,norbtot
+  !!!!    do jorb=1,norbtot
+  !!!!        tt=0.d0
+  !!!!        do lorb=1,norbtot
+  !!!!            tt=tt+lin%coeffall(lorb,jorb)*matrixElements(lorb,iorb,2)
+  !!!!        end do
+  !!!!        !!write(390+iproc,'(2i7,2es20.8)') iorb, jorb, lambda(jorb,iorb), tt
+  !!!!    end do
+  !!!!end do
 
-  
-  !call dcopy(lin%orbs%norb*norbtot, matrixElements(1,1,2), 1, coeffold(1,1), 1)
-  call dcopy(lin%lb%orbs%norb*norbtot, lin%coeffall(1,1), 1, coeffold(1,1), 1)
-  !coeffold=matrixElements(:,:,2)
-  do iorb=1,orbs%norb
-      do jorb=1,lin%lb%orbs%norb
-          coeff(jorb,iorb)=0.d0
-          do korb=1,norbtot
-              coeff(jorb,iorb) = coeff(jorb,iorb) + lambda(korb,iorb)*coeffold(jorb,korb)
-          end do
-          !!write(400+iproc,'(2i7,3es20.8)') iorb, jorb, coeffold(jorb,iorb), coeff(jorb,iorb), matrixElements(jorb,iorb,2)
-      end do
-  end do
-  iall=-product(shape(coeffold))*kind(coeffold)
-  deallocate(coeffold, stat=istat)
-  call memocc(istat, iall, 'coeffold', subname)
+  !!!!
+  !!!!!call dcopy(lin%orbs%norb*norbtot, matrixElements(1,1,2), 1, coeffold(1,1), 1)
+  !!!!call dcopy(lin%lb%orbs%norb*norbtot, lin%coeffall(1,1), 1, coeffold(1,1), 1)
+  !!!!!coeffold=matrixElements(:,:,2)
+  !!!!do iorb=1,orbs%norb
+  !!!!    do jorb=1,lin%lb%orbs%norb
+  !!!!        coeff(jorb,iorb)=0.d0
+  !!!!        do korb=1,norbtot
+  !!!!            coeff(jorb,iorb) = coeff(jorb,iorb) + lambda(korb,iorb)*coeffold(jorb,korb)
+  !!!!        end do
+  !!!!        !!write(400+iproc,'(2i7,3es20.8)') iorb, jorb, coeffold(jorb,iorb), coeff(jorb,iorb), matrixElements(jorb,iorb,2)
+  !!!!    end do
+  !!!!end do
+  !!!!iall=-product(shape(coeffold))*kind(coeffold)
+  !!!!deallocate(coeffold, stat=istat)
+  !!!!call memocc(istat, iall, 'coeffold', subname)
 
-  iall=-product(shape(lambda))*kind(lambda)
-  deallocate(lambda, stat=istat)
-  call memocc(istat, iall, 'lambda', subname)
+  !!!!iall=-product(shape(lambda))*kind(lambda)
+  !!!!deallocate(lambda, stat=istat)
+  !!!!call memocc(istat, iall, 'lambda', subname)
 
-  
-  ! END EXPERIMENTAL ##############################################################
+  !!!!
+  !!!!! END EXPERIMENTAL ##############################################################
 
 
   ! Calculate the band structure energy with matrixElements.
