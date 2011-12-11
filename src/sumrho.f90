@@ -1023,12 +1023,12 @@ subroutine uncompress_rho_old(sprho_comp,dprho_comp,&
 END SUBROUTINE uncompress_rho_old
 
 
-subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
+subroutine rho_segkey(iproc,nproc,at,rxyz,crmult,frmult,radii_cf,&
       &   n1i,n2i,n3i,hxh,hyh,hzh,nspin,rhodsc,iprint)
    use module_base
    use module_types
    implicit none
-   integer,intent(in) :: n1i,n2i,n3i,iproc,nspin
+   integer,intent(in) :: n1i,n2i,n3i,iproc,nproc,nspin
    type(atoms_data), intent(in) :: at
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
@@ -1047,11 +1047,24 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax
    integer,dimension(at%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax,& !n(c) imin,imax,&
       &   i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,dsq_cr,dsq_fr
-   integer :: csegstot,fsegstot,corx,cory,corz
-   !n(c) integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
+   integer :: csegstot,fsegstot,corx,cory,corz,ierr
+!   integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
+   integer, dimension(at%nat) :: at2proc
 
    rhodsc%geocode=at%geocode
    nat=at%nat
+
+   ! assign atoms to procs
+   if (at%nat.le.nproc) then
+     do iat=1,at%nat
+       at2proc(iat)=iat-1
+     enddo
+   else       ! nat > nproc
+     do iat=1,at%nat
+       at2proc(iat)=mod(iat-1,nproc)
+     enddo
+   endif
+
 
 !write (*,*) 'hxh,hyh,hzh',hxh,hyh,hzh
 
@@ -1059,7 +1072,7 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    spadd=10.0_gp
    dpmult=1.0_gp
 
-   !call system_clock(ncount0,ncount_rate,ncount_max)
+!   call system_clock(ncount0,ncount_rate,ncount_max)
 
    ! calculate the corrections of the grid when transforming from 
    ! n1,n2,n3 to n1i, n2i, n3i
@@ -1082,8 +1095,9 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    do irho=nrhomin,nrhomax
       reg(irho)=0
    enddo
-   !call system_clock(ncount1,ncount_rate,ncount_max)
-   !write(*,*) 'TIMING:RHOKEY1',real(ncount1-ncount0)/real(ncount_rate)
+
+!   call system_clock(ncount1,ncount_rate,ncount_max)
+!   write(*,*) 'TIMING:RHOKEY1',real(ncount1-ncount0)/real(ncount_rate)
 
    do iat=1,nat
       call get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,&
@@ -1095,51 +1109,92 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
       dsq_fr(iat)=(radii_cf(at%iatype(iat),2)*frmult*dpmult)**2
    enddo
 
-   !$omp parallel default(none)&
-   !$omp private(iat,irho,dsq,i1,i2,i3)&
-   !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
-   !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
-   !$omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
-   !$omp do schedule(static,1)
-   do iat=1,nat
+  do iat=1,at%nat
+    if ((nproc.gt.1).and.(at2proc(iat).eq.iproc)) then
       do i1=i1cmin(iat),i1cmax(iat)
-         do i2=i2cmin(iat),i2cmax(iat)
-            do i3=i3cmin(iat),i3cmax(iat)
-               dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
-                  &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
-                  &   (rxyz(3,iat)-(i3-corz)*hzh)**2
-               irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
-               if(dsq.lt.dsq_cr(iat)) then
-                  reg(irho)=1
-               endif
-            enddo
-         enddo
+        do i2=i2cmin(iat),i2cmax(iat)
+          do i3=i3cmin(iat),i3cmax(iat)
+            dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
+                (rxyz(2,iat)-(i2-cory)*hyh)**2+&
+                (rxyz(3,iat)-(i3-corz)*hzh)**2          
+            if(dsq.lt.dsq_cr(iat)) then
+              irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+              reg(irho)=1
+            endif
+          enddo
+        enddo
       enddo
-   enddo
-   !$omp enddo
-   !$omp end parallel
+    endif
+  enddo
 
-   !call system_clock(ncount2,ncount_rate,ncount_max)
-   !write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
-
-   do iat=1,at%nat
+  do iat=1,at%nat
+    if ((nproc.gt.1).and.(at2proc(iat).eq.iproc)) then
       do i1=i1fmin(iat),i1fmax(iat)
-         do i2=i2fmin(iat),i2fmax(iat)
-            do i3=i3fmin(iat),i3fmax(iat)
-               dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
-                  &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
-                  &   (rxyz(3,iat)-(i3-corz)*hzh)**2          
-               irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
-               if(dsq.lt.dsq_fr(iat)) then
-                  reg(irho)=2
-               endif
-            enddo
-         enddo
+        do i2=i2fmin(iat),i2fmax(iat)
+          do i3=i3fmin(iat),i3fmax(iat)
+            dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
+                (rxyz(2,iat)-(i2-cory)*hyh)**2+&
+                (rxyz(3,iat)-(i3-corz)*hzh)**2          
+            if(dsq.lt.dsq_fr(iat)) then
+              irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+              reg(irho)=2
+            endif
+          enddo
+        enddo
       enddo
-   enddo
+    endif
+  enddo
 
-   !call system_clock(ncount3,ncount_rate,ncount_max)
-   !write(*,*) 'TIMING:RHOKEY3',real(ncount3-ncount2)/real(ncount_rate)
+  if (nproc.gt.1) then
+    call mpiallred(reg(1),n1i*n2i*n3i,MPI_MAX,MPI_COMM_WORLD,ierr)
+  endif
+
+
+!   !$omp parallel default(shared)&
+!   !$omp private(iat,irho,dsq,i1,i2,i3)
+!   !omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
+!   !omp firstprivate(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
+!   !omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
+!   !$omp do schedule(static,1)
+!   do iat=1,nat
+!      do i1=i1cmin(iat),i1cmax(iat)
+!         do i2=i2cmin(iat),i2cmax(iat)
+!            do i3=i3cmin(iat),i3cmax(iat)
+!               dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
+!                  &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
+!                  &   (rxyz(3,iat)-(i3-corz)*hzh)**2
+!               irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+!               if(dsq.lt.dsq_cr(iat)) then
+!                  reg(irho)=1
+!               endif
+!            enddo
+!         enddo
+!      enddo
+!   enddo
+!   !$omp enddo
+!   !$omp end parallel
+!
+!   !call system_clock(ncount2,ncount_rate,ncount_max)
+!   !write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
+!
+!   do iat=1,at%nat
+!      do i1=i1fmin(iat),i1fmax(iat)
+!         do i2=i2fmin(iat),i2fmax(iat)
+!            do i3=i3fmin(iat),i3fmax(iat)
+!               dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
+!                  &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
+!                  &   (rxyz(3,iat)-(i3-corz)*hzh)**2          
+!               irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+!               if(dsq.lt.dsq_fr(iat)) then
+!                  reg(irho)=2
+!               endif
+!            enddo
+!         enddo
+!      enddo
+!   enddo
+!
+!   call system_clock(ncount2,ncount_rate,ncount_max)
+!   write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
 
    do irho=nrhomin,nrhomax
       if (irho.eq.nrhomin) then
