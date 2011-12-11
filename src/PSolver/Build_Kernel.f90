@@ -921,7 +921,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  allocate(fwork(0:n_range+ndebug),stat=i_stat)
  call memocc(i_stat,fwork,'fwork',subname)
  allocate(fftwork(2,max(nfft1,nfft2,nfft3)*2+ndebug),stat=i_stat)
- fftwork(1,1)=0.0d0
+ !fftwork(1,1)=0.0d0
  call memocc(i_stat,fftwork,'fftwork',subname)
 
  do i3=1,n3k/nproc
