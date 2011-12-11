@@ -435,7 +435,9 @@ real(8),dimension(:),pointer:: lpot
       do korb=1,lin%lb%orbs%norb
           lin%coeffall(korb,iorb)=coeffold(korb,iorb)
           do jorb=1,lin%lb%orbs%norb
-              lin%coeffall(korb,iorb)=lin%coeffall(korb,iorb)-matrixElements(jorb,korb,1)*coeffold(jorb,iorb) + coeffold(korb,jorb)*lambda(jorb,iorb)
+              lin%coeffall(korb,iorb)=lin%coeffall(korb,iorb)-&
+                                      matrixElements(jorb,korb,1)*coeffold(jorb,iorb) + &
+                                      coeffold(korb,jorb)*lambda(jorb,iorb)
           end do
           !!do jorb=1,norbtot
           !!    do k=1,lin%lb%orbs%norb
@@ -485,11 +487,11 @@ real(8),dimension(:),pointer:: lpot
           end do
       end do
   end do
-  do iorb=1,norbtot
-      do jorb=1,norbtot
-          write(380+iproc,'(2i7,2es20.8)') iorb, jorb, lambda(jorb,iorb), matrixElements(jorb,iorb,2)
-      end do
-  end do
+  !!do iorb=1,norbtot
+  !!    do jorb=1,norbtot
+  !!        write(380+iproc,'(2i7,2es20.8)') iorb, jorb, lambda(jorb,iorb), matrixElements(jorb,iorb,2)
+  !!    end do
+  !!end do
 
   lwork=100*orbs%norb
   allocate(work(lwork), stat=istat)
@@ -504,7 +506,7 @@ real(8),dimension(:),pointer:: lpot
           do lorb=1,norbtot
               tt=tt+lin%coeffall(lorb,jorb)*matrixElements(lorb,iorb,2)
           end do
-          write(390+iproc,'(2i7,2es20.8)') iorb, jorb, lambda(jorb,iorb), tt
+          !!write(390+iproc,'(2i7,2es20.8)') iorb, jorb, lambda(jorb,iorb), tt
       end do
   end do
 
@@ -518,7 +520,7 @@ real(8),dimension(:),pointer:: lpot
           do korb=1,norbtot
               coeff(jorb,iorb) = coeff(jorb,iorb) + lambda(korb,iorb)*coeffold(jorb,korb)
           end do
-          write(400+iproc,'(2i7,3es20.8)') iorb, jorb, coeffold(jorb,iorb), coeff(jorb,iorb), matrixElements(jorb,iorb,2)
+          !!write(400+iproc,'(2i7,3es20.8)') iorb, jorb, coeffold(jorb,iorb), coeff(jorb,iorb), matrixElements(jorb,iorb,2)
       end do
   end do
   iall=-product(shape(coeffold))*kind(coeffold)
@@ -2114,22 +2116,23 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
 
 
-      ! plot the orbitals -- EXPERIMENTAL ##################################################
-      allocate(lvphiovrlp(lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f))
-      ist=1
-      write(comment,'(i3.3)') it
-      do iorb=1,lin%orbs%norbp
-          iiorb=iorb+lin%orbs%isorb
-          ilr=lin%orbs%inwhichlocreg(iiorb)
-          lvphiovrlp=0.d0
-          call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
-               lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
-               lin%lzd%Glr, lin%lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
-          call plotOrbitals(iproc, orbs, lin%lzd%Glr, lvphiovrlp, at%nat, rxyz, lin%orbs%inwhichlocreg, .5d0*input%hx, .5d0*input%hy, .5d0*input%hz, it)
-          ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      end do
-      deallocate(lvphiovrlp)
-      ! ####################################################################################
+      !!! plot the orbitals -- EXPERIMENTAL ##################################################
+      !!allocate(lvphiovrlp(lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f))
+      !!ist=1
+      !!write(comment,'(i3.3)') it
+      !!do iorb=1,lin%orbs%norbp
+      !!    iiorb=iorb+lin%orbs%isorb
+      !!    ilr=lin%orbs%inwhichlocreg(iiorb)
+      !!    lvphiovrlp=0.d0
+      !!    call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
+      !!         lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
+      !!         lin%lzd%Glr, lin%lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
+      !!    call plotOrbitals(iproc, orbs, lin%lzd%Glr, lvphiovrlp, at%nat, rxyz, lin%orbs%inwhichlocreg, &
+      !!         .5d0*input%hx, .5d0*input%hy, .5d0*input%hz, it)
+      !!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!end do
+      !!deallocate(lvphiovrlp)
+      !!! ####################################################################################
 
 
 
