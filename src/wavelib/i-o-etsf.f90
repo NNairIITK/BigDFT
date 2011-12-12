@@ -920,7 +920,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
      call cpu_time(tr0)
      call system_clock(ncount1,ncount_rate,ncount_max)
 
-     call etsf_io_low_open_create(ncid, filename, 1.3, lstat, &
+     call etsf_io_low_open_create(ncid, filename // ".etsf", 1.3, lstat, &
           & title = "BigDFT wavefunctions", error_data = error, &
           & overwrite = .true., with_etsf_header = .true.)
      if (.not. lstat) call etsf_error(error)
@@ -941,7 +941,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
      do i = 0, iproc - 1, 1
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
      end do
-     call etsf_io_low_open_modify(ncid, filename, lstat, error_data = error)
+     call etsf_io_low_open_modify(ncid, filename // ".etsf", lstat, error_data = error)
      if (.not. lstat) call etsf_error(error)
 !!$  else
 !!$     call MPI_BARRIER(MPI_COMM_WORLD, ierr)

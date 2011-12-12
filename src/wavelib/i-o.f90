@@ -689,6 +689,8 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   character(len = 256) :: error
   type(workarr_sumrho) :: w
   character(len = 1024) :: fileRI
+  integer :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
+  real(gp) :: hx_old, hy_old, hz_old
 
   ! We open the Fortran file
   call io_open(unitwf, filename, formatted)
@@ -739,7 +741,15 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   ! Read the other psi part, if any
   if (nspinor > 1) then
      close(unitwf)
-
+     n1_old = n1
+     n2_old = n2
+     n3_old = n3
+     hx_old = hx
+     hy_old = hy
+     hz_old = hz
+     nvctr_c_old = lr%wfd%nvctr_c
+     nvctr_f_old = lr%wfd%nvctr_f
+     
      ispinor = modulo(ispinor, 2) + 1
      call io_open(unitwf, trim(fileRI), formatted)
      if (unitwf < 0) then
@@ -755,13 +765,25 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
         call deallocate_local()
         return
      end if
-     call read_psi_compress(unitwf, formatted, lr%wfd, psi, lstat, error, gcoord_c, gcoord_f)
-     if (.not. lstat) then
-        call io_warning(trim(error))
-        call deallocate_local()
-        return
+     ! Check consistency of the basis-set.
+     if (n1_old == n1 .and. n2_old == n2 .and. n3_old == n3 .and. &
+          & hx_old == hx .and. hy_old == hy .and. hz_old == hz .and. &
+          & nvctr_c_old == lr%wfd%nvctr_c .and. nvctr_f_old == lr%wfd%nvctr_f) then
+        call read_psi_compress(unitwf, formatted, lr%wfd, psi, lstat, error)
+        if (.not. lstat) then
+           call io_warning(trim(error))
+           call deallocate_local()
+           return
+        end if
+        call daub_to_isf(lr, w, psi, psiscf(1,1,1,ispinor))
+     else
+        call io_warning("It exists a file with the same naming convention" // &
+             & " but with a different basis-set.")
+        hx = hx_old
+        hy = hy_old
+        hz = hz_old
+        psiscf(:,:,:,ispinor) = real(0, wp)
      end if
-     call daub_to_isf(lr, w, psi, psiscf(1,1,1,ispinor))
   end if
 
   ! We update the size values to match the allocation of psiscf.

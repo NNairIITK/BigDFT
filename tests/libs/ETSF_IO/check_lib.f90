@@ -4,7 +4,7 @@ program schtroumpf_lib
   implicit none
 
 !!$  character(len = *), parameter :: filename = "data/wavefunction.etsf"
-  character(len = *), parameter :: filename = "data/wavefunction-k002-UR.bin.b0003"
+  character(len = *), parameter :: filename = "data/wavefunction-k001-UR.b0003"
   integer, parameter :: iorbp = 23
   real(wp), dimension(:,:,:,:), pointer :: psiscf
   real(gp) :: hx, hy, hz
