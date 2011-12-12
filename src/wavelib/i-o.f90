@@ -457,8 +457,6 @@ contains
   subroutine read_psi_compress(unitwf, formatted, wfd, psi, lstat, error, gcoord_c, gcoord_f)
     use module_base
     use module_types
-    use etsf_io_low_level
-    use internal_etsf
 
     implicit none
 
