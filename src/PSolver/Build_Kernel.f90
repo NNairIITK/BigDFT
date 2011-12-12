@@ -854,7 +854,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  real(dp), dimension(:,:), allocatable :: kernel_scf, fftwork
  real(dp) :: ur_gauss,dr_gauss,acc_gauss,pgauss,a_range
  real(dp) :: factor,factor2 !n(c) ,dx
- real(dp) :: a1,a2,a3
+ real(dp) :: a1,a2,a3,wg,k1,k2,k3
  integer :: n_scf,nker2,nker3 !n(c) nker1
  integer :: i_gauss,n_range,n_cell
  integer :: i1,i2,i3,i_stat,i_all
@@ -983,17 +983,30 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
          fwork,fftwork,kernel_scf)
 
     !Add to the kernel (only the local part)
-    do i3=1,nker3/nproc  
-       if (iproc*(nker3/nproc)+i3  <= nfft3/2+1) then
-          i03=iproc*(nker3/nproc)+i3
-          do i2=1,n2k
-             do i1=1,n1k
-                karray(i1,i2,i3) = karray(i1,i2,i3) + w_gauss(i_gauss)* &
-                     kernel_scf(i1,1)*kernel_scf(i2,2)*kernel_scf(i03,3)
-             end do
+    wg=w_gauss(i_gauss)
+    do i03=iproc*(nker3/nproc)+1,min((iproc+1)*(nker3/nproc),nfft3/2+1)
+       i3=i03-iproc*(nker3/nproc)
+       k3=kernel_scf(i03,3)
+       do i2=1,n2k
+          k2=kernel_scf(i2,2)*k3
+          do i1=1,n1k
+             k1=kernel_scf(i1,1)*k2
+             karray(i1,i2,i3) = karray(i1,i2,i3)+ wg*k1
           end do
-       end if
+       end do
     end do
+
+!!$    do i3=1,nker3/nproc  
+!!$       if (iproc*(nker3/nproc)+i3  <= nfft3/2+1) then
+!!$          i03=iproc*(nker3/nproc)+i3
+!!$          do i2=1,n2k
+!!$             do i1=1,n1k
+!!$                karray(i1,i2,i3) = karray(i1,i2,i3) + w_gauss(i_gauss)* &
+!!$                     kernel_scf(i1,1)*kernel_scf(i2,2)*kernel_scf(i03,3)
+!!$             end do
+!!$          end do
+!!$       end if
+!!$    end do
 !!$
  end do
 !!$stop
