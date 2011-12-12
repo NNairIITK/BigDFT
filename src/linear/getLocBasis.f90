@@ -4598,7 +4598,7 @@ call memocc(istat, Kmat, 'Kmat', subname)
       call collectnew(iproc, nproc, lin%comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
            lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ttmat, tt3, tt4, tt5)
       deallocate(ttmat)
-      call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
+      !call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
 
       call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lvphi, lin%mad, Kmat)
 
@@ -4664,26 +4664,7 @@ call memocc(istat, Kmat, 'Kmat', subname)
            tempmatc(1,1,2), orbs%norb, (0.d0,0.d0), omatc(1,1), orbs%norb)
 
       ! Build new lphi
-      lphi=0.d0
-      ist=1
-      jst=1
-      ilrold=-1
-      do iorb=1,lin%orbs%norbp
-          iiorb=lin%orbs%isorb+iorb
-          ilr=lin%orbs%inWhichLocreg(iiorb)
-          if(ilr==ilrold) then
-              ! Set back the index of lphiovrlp, since we again need the same orbitals.
-              jst=jst-lin%op%noverlaps(iiorb)*ncount
-          end if
-          ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-          do jorb=1,lin%op%noverlaps(iiorb)
-              jjorb=lin%op%overlaps(jorb,iiorb)
-              call daxpy(ncount, real(omatc(jjorb,iiorb)), lphiovrlp(jst), 1, lphi(ist), 1)
-              jst=jst+ncount
-          end do
-          ist=ist+ncount
-          ilrold=ilr
-      end do
+      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon, lphiovrlp, omatc, lphi)
       call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
 
       energyconf_trial=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
@@ -4729,26 +4710,7 @@ call memocc(istat, Kmat, 'Kmat', subname)
 
 
       ! Build new lphi
-      lphi=0.d0
-      ist=1
-      jst=1
-      ilrold=-1
-      do iorb=1,lin%orbs%norbp
-          iiorb=lin%orbs%isorb+iorb
-          ilr=lin%orbs%inWhichLocreg(iiorb)
-          if(ilr==ilrold) then
-              ! Set back the index of lphiovrlp, since we again need the same orbitals.
-              jst=jst-lin%op%noverlaps(iiorb)*ncount
-          end if
-          ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-          do jorb=1,lin%op%noverlaps(iiorb)
-              jjorb=lin%op%overlaps(jorb,iiorb)
-              call daxpy(ncount, real(omatc(jjorb,iiorb)), lphiovrlp(jst), 1, lphi(ist), 1)
-              jst=jst+ncount
-          end do
-          ist=ist+ncount
-          ilrold=ilr
-      end do
+      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon, lphiovrlp, omatc, lphi)
 
       !!!!!! NEW VERSION - EXPERIMENTAL, NOT WORKING #######################################
       !!!! use lvphi as work array
@@ -4836,3 +4798,103 @@ call memocc(istat, Kmat, 'Kmat', subname)
   call deallocateSendBufferOrtho(lin%comon, subname)
 
 end subroutine unitary_optimization
+
+
+
+
+subroutine build_new_linear_combinations(lzd, orbs, op, comon, lphiovrlp, omatc, lphi)
+use module_base
+use module_types
+implicit none
+
+!Calling arguments
+type(local_zone_descriptors),intent(in):: lzd
+type(orbitals_data),intent(in):: orbs
+type(overlapParameters),intent(in):: op
+type(p2pCommsOrthonormality),intent(in):: comon
+real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
+complex(8),dimension(orbs%norb,orbs%norb),intent(in):: omatc
+real(8),dimension(orbs%npsidim),intent(out):: lphi
+
+! Local variables
+integer:: ist, jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, i, ldim, ind, indout, gdim, iorbref, m, ii
+real(8):: tt
+
+
+      !!! Build new lphi
+      !!lphi=0.d0
+      !!ist=1
+      !!jst=1
+      !!ilrold=-1
+      !!do iorb=1,orbs%norbp
+      !!    iiorb=orbs%isorb+iorb
+      !!    ilr=orbs%inWhichLocreg(iiorb)
+      !!    if(ilr==ilrold) then
+      !!        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+      !!        jst=jst-op%noverlaps(iiorb)*ncount
+      !!    end if
+      !!    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !!    do jorb=1,op%noverlaps(iiorb)
+      !!        jjorb=op%overlaps(jorb,iiorb)
+      !!        call daxpy(ncount, real(omatc(jjorb,iiorb)), lphiovrlp(jst), 1, lphi(ist), 1)
+      !!        jst=jst+ncount
+      !!    end do
+      !!    ist=ist+ncount
+      !!    ilrold=ilr
+      !!end do
+
+
+
+      ! Build new lphi
+      lphi=0.d0
+      indout=1
+      ilrold=-1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          if(ilr>ilrold) then
+              iorbref=iorb
+          end if
+          gdim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+          do jorb=1,op%noverlaps(iiorb)
+              jjorb=op%overlaps(jorb,iiorb)
+              !jst=op%indexInRecvBuf(iorb,jjorb)
+              jst=op%indexInRecvBuf(iorbref,jjorb)
+              !ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
+              ldim=op%olr(jorb,iorbref)%wfd%nvctr_c+7*op%olr(jorb,iorbref)%wfd%nvctr_f
+              tt=real(omatc(jjorb,iiorb))
+              !! THIS IS THE OLD VERSION
+              !!do i=0,ldim-1
+              !!    ind=indout+op%indexExpand(jst+i)-1
+              !!    lphi(ind)=lphi(ind)+tt*comon%recvBuf(jst+i)
+              !!end do
+              m=mod(ldim,7)
+              if(m/=0) then
+                  do i=0,m-1
+                      ii=jst+i
+                      ind=indout+op%indexExpand(ii)-1
+                      lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii)
+                  end do
+              end if
+              do i=m,ldim-1,7
+                  ii=jst+i
+                  ind=indout+op%indexExpand(ii+0)-1
+                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+0)
+                  ind=indout+op%indexExpand(ii+1)-1
+                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+1)
+                  ind=indout+op%indexExpand(ii+2)-1
+                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+2)
+                  ind=indout+op%indexExpand(ii+3)-1
+                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+3)
+                  ind=indout+op%indexExpand(ii+4)-1
+                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+4)
+                  ind=indout+op%indexExpand(ii+5)-1
+                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+5)
+                  ind=indout+op%indexExpand(ii+6)-1
+                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+6)
+              end do
+          end do
+          indout=indout+gdim
+          ilrold=ilr
+      end do
+end subroutine build_new_linear_combinations

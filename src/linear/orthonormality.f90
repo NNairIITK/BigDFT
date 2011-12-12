@@ -2503,18 +2503,25 @@ do iorb=1,orbs%norbp
         do i=m,ldim-1,7
                 ii=jst+i
                 indDest=ind+op%indexExpand(ii+0)-1
+                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+0)
                 indDest=ind+op%indexExpand(ii+1)-1
+                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+1)
                 indDest=ind+op%indexExpand(ii+2)-1
+                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+2)
                 indDest=ind+op%indexExpand(ii+3)-1
+                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+3)
                 indDest=ind+op%indexExpand(ii+4)-1
+                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+4)
                 indDest=ind+op%indexExpand(ii+5)-1
+                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+5)
                 indDest=ind+op%indexExpand(ii+6)-1
+                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+6)
         end do
         ind=ind+gdim
