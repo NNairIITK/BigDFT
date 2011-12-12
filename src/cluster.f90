@@ -553,7 +553,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !start the optimization
    !yaml output
    if (iproc==0) then
-      write(70,'(a,a)')repeat(' ',yaml_indent),'Electronic Ground State: '
+!      write(70,'(a,a)')repeat(' ',yaml_indent),'Electronic Ground State: '
       yaml_indent=yaml_indent+1 !hash table element
    end if
 
@@ -881,7 +881,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    rhopot_loop: do itrp=1,in%itrpmax
       !yaml output 
       if (iproc==0) then
-         write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Hamiltonian Optimization: &itrp',itrp
+!         write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Hamiltonian Optimization: &itrp',itrp
          yaml_indent=yaml_indent+2 !list element
       end if
 
@@ -890,7 +890,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       subd_loop : do icycle=1,in%nrepmax
          !yaml output 
          if (iproc==0) then
-            write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Subspace Optimization: &itrep',icycle
+!            write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Subspace Optimization: &itrep',icycle
             yaml_indent=yaml_indent+3 !list element
          end if
 
@@ -899,7 +899,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
          !yaml output
          if (iproc==0) then
-            write(70,'(a,a)')repeat(' ',yaml_indent),'Wavefunctions Iterations: '
+!            write(70,'(a,a)')repeat(' ',yaml_indent),'Wavefunctions Iterations: '
             yaml_indent=yaml_indent+1 !Hash table element
          end if
          wfn_loop: do iter=1,in%itermax
@@ -912,9 +912,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                   &   repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
                !test for yaml output
                if (endloop) then
-                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
+!                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
                else
-                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',iter
+!                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',iter
                end if
 
             endif
@@ -950,7 +950,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                         write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
                         &   'DENSITY iteration,Delta : (Norm 2/Volume)',itrp,rpnrm
                         !yaml output
-                        write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
+!                        write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
                      end if
                      endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
                      ! xc_init_rho should be put in the mixing routines
@@ -1005,7 +1005,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                      write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
                           &   'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
                      !yaml output
-                     write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
+!                     write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
                   end if
                   endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
                end if
@@ -1085,7 +1085,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          !flush all writings on standart output
          if (iproc==0) then
             !yaml output
-            write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
+!            write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
             call bigdft_utils_flush(unit=6)
          end if
       end do wfn_loop
@@ -1105,7 +1105,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          end if
          call write_energies(iter,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,energy,0.0_gp,gnrm,gnrm_zero,final_out)
          !yaml output
-         write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
+!         write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
          yaml_indent=yaml_indent-1 !end hash table element
 
          !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
@@ -1153,7 +1153,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
       if (iproc==0) then
          !yaml output
-         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',icycle
+!         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',icycle
          yaml_indent=yaml_indent-3 !end list element
       end if
    end do subd_loop
@@ -1177,8 +1177,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       !yaml output
       yaml_indent=yaml_indent-2 !end list element
       !reassume the key elements in the itrp element
-      if (itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
-      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End itrp:',itrp
+!      if (itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
+!      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End itrp:',itrp
    end if
 
 end do rhopot_loop
