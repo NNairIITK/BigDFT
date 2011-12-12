@@ -44,7 +44,7 @@ distclean: clean clean-local
 
 CLEANFILES = write_*.out read_*.out *.prc *.report geopt.mon default.* \
 	wf_*.cube exportwf_*.log binary.* plain.* etsf.* \
-	$(EXTRA_CLEAN) $(PPFILES)
+	check_lib_*.out $(EXTRA_CLEAN) $(PPFILES)
 
 
 #dependencies

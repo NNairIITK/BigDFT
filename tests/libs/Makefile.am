@@ -16,5 +16,5 @@ if USE_LIBXC
 SUBDIRS += xc
 endif
 
-check:
+check, report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
