@@ -1684,7 +1684,7 @@ real(8),dimension(nsendBuf),intent(out):: sendBuf
 
 ! Local variables
 integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
-integer:: i, indSource, m
+integer:: i, indSource, m, ii
 
 indovrlp=1
 op%indexInSendBuf=0
@@ -1718,30 +1718,36 @@ do iorb=1,orbs%norb
                 klr=onWhichAtom(kkorb)
                 ind = ind + lzd%llr(klr)%wfd%nvctr_c + 7*lzd%llr(klr)%wfd%nvctr_f
             end do
-            !write(*,'(5(a,i0))') 'process ',iproc,' adds ',op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f,' elements at position ',indovrlp,' from orbital ',jjorb,' for orbital ', iorb
-            !call psi_to_locreg2(iproc, nproc, ldim, gdim, op%olr(lorb,korb), lzd%llr(jjlr), phi(ind), comon%sendBuf(indovrlp))
             !! THIS IS THE OLD VERSION
             !!do i=0,ldim-1
             !!    indSource=ind+op%indexExtract(indovrlp+i)-1
             !!    sendBuf(indovrlp+i)=phi(indSource)
             !!end do
             !! THIS IS THE NEW VERSION
-            m=mod(ldim,4)
+            m=mod(ldim,7)
             if(m/=0) then
                 do i=0,m-1
-                    indSource=ind+op%indexExtract(indovrlp+i)-1
-                    sendBuf(indovrlp+i)=phi(indSource)
+                    ii=indovrlp+i
+                    indSource=ind+op%indexExtract(ii)-1
+                    sendBuf(ii)=phi(indSource)
                 end do
             end if
-            do i=m,ldim-1,4
-                indSource=ind+op%indexExtract(indovrlp+i+0)-1
-                sendBuf(indovrlp+i+0)=phi(indSource)
-                indSource=ind+op%indexExtract(indovrlp+i+1)-1
-                sendBuf(indovrlp+i+1)=phi(indSource)
-                indSource=ind+op%indexExtract(indovrlp+i+2)-1
-                sendBuf(indovrlp+i+2)=phi(indSource)
-                indSource=ind+op%indexExtract(indovrlp+i+3)-1
-                sendBuf(indovrlp+i+3)=phi(indSource)
+            do i=m,ldim-1,7
+                ii=indovrlp+i
+                indSource=ind+op%indexExtract(ii+0)-1
+                sendBuf(ii+0)=phi(indSource)
+                indSource=ind+op%indexExtract(ii+1)-1
+                sendBuf(ii+1)=phi(indSource)
+                indSource=ind+op%indexExtract(ii+2)-1
+                sendBuf(ii+2)=phi(indSource)
+                indSource=ind+op%indexExtract(ii+3)-1
+                sendBuf(ii+3)=phi(indSource)
+                indSource=ind+op%indexExtract(ii+4)-1
+                sendBuf(ii+4)=phi(indSource)
+                indSource=ind+op%indexExtract(ii+5)-1
+                sendBuf(ii+5)=phi(indSource)
+                indSource=ind+op%indexExtract(ii+6)-1
+                sendBuf(ii+6)=phi(indSource)
             end do
             op%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
             indovrlp=indovrlp+op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
@@ -2459,11 +2465,15 @@ type(p2pCommsOrthonormality),intent(in):: comon
 real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
 
 ! Local variables
-integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, i, indDest, m
+integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, i, indDest, m, ii
+!!real(8):: t1, t2, time1, time2
 
-
+!!t1=mpi_wtime()
 lphiovrlp=0.d0
+!!t2=mpi_wtime()
+!!time1=t2-t1
 
+!!t1=mpi_wtime()
 ind=1
 ilrold=-1
 do iorb=1,orbs%norbp
@@ -2482,27 +2492,38 @@ do iorb=1,orbs%norbp
         !!    lphiovrlp(indDest)=comon%recvBuf(jst+i)
         !!end do
         !! THIS IS NEW
-        m=mod(ldim,4)
+        m=mod(ldim,7)
         if(m/=0) then
             do i=0,m-1
-                indDest=ind+op%indexExpand(jst+i)-1
-                lphiovrlp(indDest)=comon%recvBuf(jst+i)
+                ii=jst+i
+                indDest=ind+op%indexExpand(ii)-1
+                lphiovrlp(indDest)=comon%recvBuf(ii)
             end do
         end if
-        do i=m,ldim-1,4
-                indDest=ind+op%indexExpand(jst+i+0)-1
-                lphiovrlp(indDest)=comon%recvBuf(jst+i+0)
-                indDest=ind+op%indexExpand(jst+i+1)-1
-                lphiovrlp(indDest)=comon%recvBuf(jst+i+1)
-                indDest=ind+op%indexExpand(jst+i+2)-1
-                lphiovrlp(indDest)=comon%recvBuf(jst+i+2)
-                indDest=ind+op%indexExpand(jst+i+3)-1
-                lphiovrlp(indDest)=comon%recvBuf(jst+i+3)
+        do i=m,ldim-1,7
+                ii=jst+i
+                indDest=ind+op%indexExpand(ii+0)-1
+                lphiovrlp(indDest)=comon%recvBuf(ii+0)
+                indDest=ind+op%indexExpand(ii+1)-1
+                lphiovrlp(indDest)=comon%recvBuf(ii+1)
+                indDest=ind+op%indexExpand(ii+2)-1
+                lphiovrlp(indDest)=comon%recvBuf(ii+2)
+                indDest=ind+op%indexExpand(ii+3)-1
+                lphiovrlp(indDest)=comon%recvBuf(ii+3)
+                indDest=ind+op%indexExpand(ii+4)-1
+                lphiovrlp(indDest)=comon%recvBuf(ii+4)
+                indDest=ind+op%indexExpand(ii+5)-1
+                lphiovrlp(indDest)=comon%recvBuf(ii+5)
+                indDest=ind+op%indexExpand(ii+6)-1
+                lphiovrlp(indDest)=comon%recvBuf(ii+6)
         end do
         ind=ind+gdim
     end do
     ilrold=ilr
 end do
+!!t2=mpi_wtime()
+!!time2=t2-t1
+!!if(iproc==0) write(*,*) 'time1, time2', time1, time2
 
 end subroutine expandOrbital2
 

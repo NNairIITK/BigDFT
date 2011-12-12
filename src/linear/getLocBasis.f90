@@ -4581,6 +4581,10 @@ call memocc(istat, Kmat, 'Kmat', subname)
       call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
   end if
 
+  energyconf_trial=0.d0 !just to initialize this variable and make the compiler happy
+  lstep=0.d0 !just to initialize this variable and make the compiler happy
+  lstep_optimal=0.d0 !just to initialize this variable and make the compiler happy
+
   innerLoop: do it=1,nit
 
 
@@ -4640,7 +4644,7 @@ call memocc(istat, Kmat, 'Kmat', subname)
       do iorb=1,orbs%norb
          ttc=cmplx(0.d0,-lstep*eval(iorb),kind=8)
          expD_cmplx(iorb)=(0.d0,0.d0)
-          do k=0,100
+          do k=0,50
               expD_cmplx(iorb)=expD_cmplx(iorb)+ttc**k/dfactorial(k)
           end do
       end do
@@ -4704,7 +4708,7 @@ call memocc(istat, Kmat, 'Kmat', subname)
       do iorb=1,orbs%norb
          ttc=cmplx(0.d0,-lstep_optimal*eval(iorb),kind=8)
          expD_cmplx(iorb)=(0.d0,0.d0)
-          do k=0,100
+          do k=0,50
               expD_cmplx(iorb)=expD_cmplx(iorb)+ttc**k/dfactorial(k)
           end do
       end do
@@ -4745,6 +4749,45 @@ call memocc(istat, Kmat, 'Kmat', subname)
           ist=ist+ncount
           ilrold=ilr
       end do
+
+      !!!!!! NEW VERSION - EXPERIMENTAL, NOT WORKING #######################################
+      !!!! use lvphi as work array
+      !!!! Build new lphi
+      !!!lphi=0.d0
+      !!!lvphi=0.d0
+      !!!ist=1
+      !!!jst=1
+      !!!ilrold=-1
+      !!!do iorb=1,lin%orbs%norbp
+      !!!    iiorb=lin%orbs%isorb+iorb
+      !!!    ilr=lin%orbs%inWhichLocreg(iiorb)
+      !!!    if(ilr==ilrold) then
+      !!!        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+      !!!        jst=jst-lin%op%noverlaps(iiorb)*ncount
+      !!!    end if
+      !!!    ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!!    do jorb=1,lin%op%noverlaps(iiorb)
+      !!!        jjorb=lin%op%overlaps(jorb,iiorb)
+      !!!        ! Starting index of orbital jjorb
+      !!!        jst=op%indexInRecvBuf(iorb,jjorb)
+      !!!        ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
+      !!!        call daxpy(ldim, real(omatc(jjorb,iiorb)), comon%recvBuf(jst), 1, lvphi(ist), 1)
+      !!!    end do
+      !!!    ! Expand lvphi to lphi
+      !!!    jjorb=op%overlaps(jorb,iiorb)
+      !!!    ! Starting index of orbital jjorb
+      !!!    jst=op%indexInRecvBuf(iorb,jjorb)
+      !!!    ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
+      !!!    !! THIS IS THE OLD VERSION
+      !!!    !!do i=0,ldim-1
+      !!!    !!    indDest=ind+op%indexExpand(jst+i)-1
+      !!!    !!    lphiovrlp(indDest)=comon%recvBuf(jst+i)
+      !!!    !!end do
+
+      !!!    ist=ist+ncount
+      !!!    ilrold=ilr
+      !!!end do
+      !!!!!! END NEW VERSION - EXPERIMENTAL #######################################
 
 
       if(it<nit) then
