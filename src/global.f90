@@ -18,7 +18,7 @@ program MINHOP
 
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
-  logical :: newmin,CPUcheck,occured
+  logical :: newmin,CPUcheck,occured,exist_poslocm
   character(len=20) :: unitsp,units,atmn
   character(len=80) :: line
   type(atoms_data) :: atoms,md_atoms
@@ -40,6 +40,7 @@ program MINHOP
   character(len=41) :: filename
   character(len=4) :: fn4
   character(len=5) :: fn5
+  character(len=12) :: fn12
   character(len=50) :: comment
   real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
 
@@ -277,6 +278,19 @@ program MINHOP
 !  if (atoms%geocode == 'P') & 
 !       call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
 
+  nconjgr=0
+      do 
+        write(fn12,'(a8,i4.4)') "poslocm_",nconjgr
+        inquire(file=fn12,exist=exist_poslocm)
+        if (exist_poslocm) then
+            nconjgr=nconjgr+1
+        else
+            exit
+        endif
+       enddo
+       if (iproc == 0) write(*,*) '# number of poslocm files that exist already ',nconjgr
+
+
   call geopt(nproc,iproc,pos,atoms,ff,e_pos,rst,inputs_md,ncount_bigdft)
   if (iproc == 0) then
      write(*,*) '# ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
@@ -287,7 +301,7 @@ program MINHOP
      write(*,*) '# ', ncount_bigdft,' Wvfnctn Opt. steps for accurate initial conf'
   end if
 
-  nconjgr=0
+
   if (iproc == 0) then 
      tt=dnrm2(3*atoms%nat,ff,1)
      write(fn4,'(i4.4)') nconjgr

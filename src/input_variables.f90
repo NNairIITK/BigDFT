@@ -232,7 +232,7 @@ subroutine check_for_data_writing_directory(iproc,in)
 
   shouldwrite=shouldwrite .or. &
        in%output_wf_format /= WF_FORMAT_NONE .or. & !write wavefunctions
-       in%output_grid /= OUTPUT_GRID_NONE .or. &    !write output density
+       in%output_denspot /= output_denspot_NONE .or. &    !write output density
        in%ncount_cluster_x > 1 .or. &               !write posouts or posmds
        in%inputPsiId == 2 .or. &                    !have wavefunctions to read
        in%inputPsiId == 12 .or.  &                    !read in gaussian basis
@@ -272,7 +272,7 @@ subroutine default_input_variables(inputs)
 
   ! Default values.
   inputs%output_wf_format = WF_FORMAT_NONE
-  inputs%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
+  inputs%output_denspot_format = output_denspot_FORMAT_CUBE
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)
@@ -372,8 +372,8 @@ subroutine dft_input_variables_new(iproc,filename,in)
      call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
-  call input_var(in%output_grid,'0',exclusive=(/0,1,2/),&
-       comment='InputPsiId, output_wf, output_grid')
+  call input_var(in%output_denspot,'0',exclusive=(/0,1,2/),&
+       comment='InputPsiId, output_wf, output_denspot')
 
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10)
@@ -384,13 +384,13 @@ subroutine dft_input_variables_new(iproc,filename,in)
      in%inputPsiId=0
   end if
   ! Setup out grid parameters.
-  if (in%output_grid >= 0) then
-     in%output_grid_format = in%output_grid / 10
+  if (in%output_denspot >= 0) then
+     in%output_denspot_format = in%output_denspot / 10
   else
-     in%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
-     in%output_grid = abs(in%output_grid)
+     in%output_denspot_format = output_denspot_FORMAT_CUBE
+     in%output_denspot = abs(in%output_denspot)
   end if
-  in%output_grid = modulo(in%output_grid, 10)
+  in%output_denspot = modulo(in%output_denspot, 10)
 
   ! Tail treatment.
   call input_var(in%rbuf,'0.0',ranges=(/0.0_gp,10.0_gp/))
@@ -414,7 +414,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   !define whether there should be a last_run after geometry optimization
   !also the mulliken charge population should be inserted
   if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. &
-       in%output_grid /= OUTPUT_GRID_NONE .or. in%norbv /= 0) then
+       in%output_denspot /= output_denspot_NONE .or. in%norbv /= 0) then
      in%last_run=-1 !last run to be done depending of the external conditions
   else
      in%last_run=0
@@ -1099,7 +1099,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
            in%itermax=0
            in%itrpmax=0
            in%inputPsiId=-1000 !allocate empty wavefunctions
-           in%output_grid=0
+           in%output_denspot=0
         end if
      end if
   end if
@@ -1293,7 +1293,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         in%itermax=0
         in%itrpmax=0
         in%inputPsiId=-1000 !allocate empty wavefunctions
-        in%output_grid=0
+        in%output_denspot=0
      end if
   end if
   close(unit=1,iostat=ierror)
@@ -3308,8 +3308,8 @@ subroutine print_dft_parameters(in,atoms)
        & "Input wf. policy=", in%inputPsiId, " (" // input_psi_names(in%inputPsiId) // ")", "|", &
        & "Output wf. policy=", in%output_wf_format, " (" // wf_format_names(in%output_wf_format) // ")"
   write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
-       & "Output grid policy=", in%output_grid, "   (" // output_grid_names(in%output_grid) // ")", "|", &
-       & "Output grid format=", in%output_grid_format, "         (" // output_grid_format_names(in%output_grid_format) // ")"
+       & "Output grid policy=", in%output_denspot, "   (" // output_denspot_names(in%output_denspot) // ")", "|", &
+       & "Output grid format=", in%output_denspot_format, "         (" // output_denspot_format_names(in%output_denspot_format) // ")"
 
 END SUBROUTINE print_dft_parameters
 
@@ -3322,43 +3322,43 @@ subroutine write_input_parameters(in,atoms)
   !local variables
   character(len = 11) :: potden
   !start yaml output
-  write(70,'(a)')repeat(' ',yaml_indent)//'Physical System Parameters:'
+!  write(70,'(a)')repeat(' ',yaml_indent)//'Physical System Parameters:'
   yaml_indent=yaml_indent+3
-  write(70,'(a,t55,a)')repeat(' ',yaml_indent)//'Boundary Conditions:',atoms%geocode
-  if (atoms%geocode /= 'F')write(70,'(a,t55,a,3(1x,f5.3,a))')&
-       repeat(' ',yaml_indent)//'Box Sizes (a0):','[',atoms%alat1,',',atoms%alat2,',',atoms%alat3,' ]'
-  if (in%ncharge > 0) write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Net Charge of the System (Ions-Electrons):',in%ncharge
-  if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) write(70,'(a,t55,a,3(1x,1pe7.1,a))')&
-       repeat(' ',yaml_indent)//'External Electric Field (Ha/a0):',&
-       '[',in%elecfield(1),',',in%elecfield(2),',',in%elecfield(3),' ]'
+!  write(70,'(a,t55,a)')repeat(' ',yaml_indent)//'Boundary Conditions:',atoms%geocode
+!  if (atoms%geocode /= 'F')write(70,'(a,t55,a,3(1x,f5.3,a))')&
+!       repeat(' ',yaml_indent)//'Box Sizes (a0):','[',atoms%alat1,',',atoms%alat2,',',atoms%alat3,' ]'
+!  if (in%ncharge > 0) write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Net Charge of the System (Ions-Electrons):',in%ncharge
+!  if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) write(70,'(a,t55,a,3(1x,1pe7.1,a))')&
+!       repeat(' ',yaml_indent)//'External Electric Field (Ha/a0):',&
+!       '[',in%elecfield(1),',',in%elecfield(2),',',in%elecfield(3),' ]'
   yaml_indent=yaml_indent-3
-  write(70,'(a)')repeat(' ',yaml_indent)//'DFT Approximations Parameters:'
+!  write(70,'(a)')repeat(' ',yaml_indent)//'DFT Approximations Parameters:'
   yaml_indent=yaml_indent+3
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Exchange-Correlation ID:',in%ixc
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Exchange-Correlation ID:',in%ixc
   yaml_indent=yaml_indent-3
-  write(70,'(a)')repeat(' ',yaml_indent)//'Basis Set Parameters:'
+!  write(70,'(a)')repeat(' ',yaml_indent)//'Basis Set Parameters:'
   yaml_indent=yaml_indent+3
-  write(70,'(a,t55,a,3(1x,f5.3,a))')repeat(' ',yaml_indent)//'Input Grid Spacings (a0):','[',in%hx,',',in%hy,',',in%hz,' ]'
-  write(70,'(a,t55,a,2(1x,f4.1,a))')repeat(' ',yaml_indent)//'Coarse and Fine Radii Multipliers:','[',in%crmult,',',in%frmult,' ]'
+!  write(70,'(a,t55,a,3(1x,f5.3,a))')repeat(' ',yaml_indent)//'Input Grid Spacings (a0):','[',in%hx,',',in%hy,',',in%hz,' ]'
+!  write(70,'(a,t55,a,2(1x,f4.1,a))')repeat(' ',yaml_indent)//'Coarse and Fine Radii Multipliers:','[',in%crmult,',',in%frmult,' ]'
   yaml_indent=yaml_indent-3
-  write(70,'(a)')repeat(' ',yaml_indent)//'Wavefunction Optimization Parameters:'
+!  write(70,'(a)')repeat(' ',yaml_indent)//'Wavefunction Optimization Parameters:'
   yaml_indent=yaml_indent+3
-  write(70,'(a,t55,1pe8.1)')repeat(' ',yaml_indent)//'Gradient Norm Convergence Criterion:',in%gnrm_cv
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Iterations:',in%itermax
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Subspace Diagonalizations:',in%nrepmax
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Density/Potential Optimisations:',in%itrpmax
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'CG Steps for Preconditioning Equation:',in%ncong
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'DIIS History length:',in%idsx
+!  write(70,'(a,t55,1pe8.1)')repeat(' ',yaml_indent)//'Gradient Norm Convergence Criterion:',in%gnrm_cv
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Iterations:',in%itermax
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Subspace Diagonalizations:',in%nrepmax
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Density/Potential Optimisations:',in%itrpmax
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'CG Steps for Preconditioning Equation:',in%ncong
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'DIIS History length:',in%idsx
   if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-     write(70,'(a)')repeat(' ',yaml_indent)//'Mixing Parameters:'
+!     write(70,'(a)')repeat(' ',yaml_indent)//'Mixing Parameters:'
      yaml_indent=yaml_indent+3
        if (in%iscf < 10) then
         write(potden, "(A)") "potential"
      else
         write(potden, "(A)") "density"
      end if
-     write(70,'(a,t55,a)')'Target:',potden
-     write(70,'(a,t55,I12)')'Scheme:',modulo(in%iscf, 10)
+!     write(70,'(a,t55,a)')'Target:',potden
+!     write(70,'(a,t55,I12)')'Scheme:',modulo(in%iscf, 10)
 !!$     write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
 !!$          & "     Target=", potden,        "|", &
 !!$          & " Add. bands=", input%norbsempty, "|", &
@@ -3380,13 +3380,13 @@ subroutine write_input_parameters(in,atoms)
      yaml_indent=yaml_indent-3
   end if
   yaml_indent=yaml_indent-3
-  write(70,'(a)')repeat(' ',yaml_indent)//'Post Optimization Treatments:'
+!  write(70,'(a)')repeat(' ',yaml_indent)//'Post Optimization Treatments:'
   yaml_indent=yaml_indent+3
   if (in%rbuf > 0.0_gp) then
-     write(70,'(a)')repeat(' ',yaml_indent)//'Finite-Size Correction Estimation:'
+!     write(70,'(a)')repeat(' ',yaml_indent)//'Finite-Size Correction Estimation:'
      yaml_indent=yaml_indent+3
-     write(70,'(a,t55,f4.1)')repeat(' ',yaml_indent)//'Radius (a0):',in%rbuf
-     write(70,'(a,t55,i4)')repeat(' ',yaml_indent)//'CG Steps for the FS Correction:',in%ncongt
+!     write(70,'(a,t55,f4.1)')repeat(' ',yaml_indent)//'Radius (a0):',in%rbuf
+!     write(70,'(a,t55,i4)')repeat(' ',yaml_indent)//'CG Steps for the FS Correction:',in%ncongt
      yaml_indent=yaml_indent-3
   end if
   yaml_indent=yaml_indent-3
