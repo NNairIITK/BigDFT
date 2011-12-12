@@ -4664,7 +4664,12 @@ call memocc(istat, Kmat, 'Kmat', subname)
            tempmatc(1,1,2), orbs%norb, (0.d0,0.d0), omatc(1,1), orbs%norb)
 
       ! Build new lphi
-      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon, lphiovrlp, omatc, lphi)
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              tempmat3(jorb,iorb,1)=real(omatc(jorb,iorb))
+          end do
+      end do
+      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon, lphiovrlp, tempmat3(1,1,1), .true., lphi)
       call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
 
       energyconf_trial=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
@@ -4710,7 +4715,12 @@ call memocc(istat, Kmat, 'Kmat', subname)
 
 
       ! Build new lphi
-      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon, lphiovrlp, omatc, lphi)
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              tempmat3(jorb,iorb,1)=real(omatc(jorb,iorb))
+          end do
+      end do
+      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon, lphiovrlp, tempmat3(1,1,1), .true., lphi)
 
       !!!!!! NEW VERSION - EXPERIMENTAL, NOT WORKING #######################################
       !!!! use lvphi as work array
@@ -4802,7 +4812,7 @@ end subroutine unitary_optimization
 
 
 
-subroutine build_new_linear_combinations(lzd, orbs, op, comon, lphiovrlp, omatc, lphi)
+subroutine build_new_linear_combinations(lzd, orbs, op, comon, lphiovrlp, omat, reset, lphi)
 use module_base
 use module_types
 implicit none
@@ -4813,7 +4823,9 @@ type(orbitals_data),intent(in):: orbs
 type(overlapParameters),intent(in):: op
 type(p2pCommsOrthonormality),intent(in):: comon
 real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
-complex(8),dimension(orbs%norb,orbs%norb),intent(in):: omatc
+!complex(8),dimension(orbs%norb,orbs%norb),intent(in):: omatc
+real(8),dimension(orbs%norb,orbs%norb),intent(in):: omat
+logical,intent(in):: reset
 real(8),dimension(orbs%npsidim),intent(out):: lphi
 
 ! Local variables
@@ -4836,7 +4848,7 @@ real(8):: tt
       !!    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
       !!    do jorb=1,op%noverlaps(iiorb)
       !!        jjorb=op%overlaps(jorb,iiorb)
-      !!        call daxpy(ncount, real(omatc(jjorb,iiorb)), lphiovrlp(jst), 1, lphi(ist), 1)
+      !!        call daxpy(ncount, omat(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
       !!        jst=jst+ncount
       !!    end do
       !!    ist=ist+ncount
@@ -4846,7 +4858,10 @@ real(8):: tt
 
 
       ! Build new lphi
-      lphi=0.d0
+      if(reset) then
+          lphi=0.d0
+      end if
+
       indout=1
       ilrold=-1
       do iorb=1,orbs%norbp
@@ -4862,7 +4877,8 @@ real(8):: tt
               jst=op%indexInRecvBuf(iorbref,jjorb)
               !ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
               ldim=op%olr(jorb,iorbref)%wfd%nvctr_c+7*op%olr(jorb,iorbref)%wfd%nvctr_f
-              tt=real(omatc(jjorb,iiorb))
+              !tt=real(omatc(jjorb,iiorb))
+              tt=omat(jjorb,iiorb)
               !! THIS IS THE OLD VERSION
               !!do i=0,ldim-1
               !!    ind=indout+op%indexExpand(jst+i)-1

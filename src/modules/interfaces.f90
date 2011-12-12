@@ -3102,7 +3102,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine localGramschmidt
      
      
-     subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, ovrlp, lphiovrlp, lphi)
+     subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon, ovrlp, lphiovrlp, lphi)
        use module_base
        use module_types
        implicit none
@@ -3111,6 +3111,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
        type(local_zone_descriptors),intent(in):: lzd
        type(overlapParameters),intent(in):: op
+       type(p2pCommsOrthonormality),intent(in):: comon
        real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
        real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
        real(8),dimension(lorbs%npsidim),intent(out):: lphi
@@ -4453,7 +4454,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine deallocateRecvBufferOrtho
 
       subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, &
-                 orbs, lorbs, onWhichAtom, lzd, op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
+                 orbs, lorbs, onWhichAtom, lzd, op, comon, lagmat, ovrlp, lphiovrlp, mad, lhphi)
         use module_base
         use module_types
         implicit none
@@ -4462,6 +4463,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer,dimension(orbs%norb),intent(in):: onWhichAtom
         type(local_zone_descriptors),intent(in):: lzd
         type(overlapParameters),intent(in):: op
+        type(p2pCommsOrthonormality),intent(in):: comon
         real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
         real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
         real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
@@ -5337,6 +5339,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(orbs%npsidim),intent(inout):: lphi
        end subroutine unitary_optimization
 
+
+      subroutine build_new_linear_combinations(lzd, orbs, op, comon, lphiovrlp, omat, reset, lphi)
+        use module_base
+        use module_types
+        implicit none
+        type(local_zone_descriptors),intent(in):: lzd
+        type(orbitals_data),intent(in):: orbs
+        type(overlapParameters),intent(in):: op
+        type(p2pCommsOrthonormality),intent(in):: comon
+        real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
+        real(8),dimension(orbs%norb,orbs%norb),intent(in):: omat
+        logical,intent(in):: reset
+        real(8),dimension(orbs%npsidim),intent(out):: lphi
+      end subroutine build_new_linear_combinations
 
    end interface
 

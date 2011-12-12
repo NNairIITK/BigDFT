@@ -91,7 +91,7 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress, tt, ttmax, d
       timeCommun=timeCommun+t2-t1
       t1=mpi_wtime()
       !call deallocateSendBufferOrtho(comon, subname)
-      call expandOrbital2(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon, lphiovrlp)
+      !call expandOrbital2(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon, lphiovrlp)
       t2=mpi_wtime()
       timeexpand=timeexpand+t2-t1
       !call checkUnity(iproc, orbs%norb, ovrlp, maxError)
@@ -133,16 +133,16 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress, tt, ttmax, d
       t4=mpi_wtime()
       timeTransform=timeTransform+t4-t3
       t3=mpi_wtime()
-      call deallocateRecvBufferOrtho(comon, subname)
-      call deallocateSendBufferOrtho(comon, subname)
 
 
       t4=mpi_wtime()
       timeExpand=timeExpand+t4-t3
       t3=mpi_wtime()
       !!if(method=='old' .or. maxError>2.d-20) then
-          call globalLoewdin(iproc, nproc, orbs, orbs, onWhichAtomAll, lzd, op, ovrlp, lphiovrlp, lphi)
+          call globalLoewdin(iproc, nproc, orbs, orbs, onWhichAtomAll, lzd, op, comon, ovrlp, lphiovrlp, lphi)
       !!end if
+      call deallocateRecvBufferOrtho(comon, subname)
+      call deallocateSendBufferOrtho(comon, subname)
 
       !!if(method=='new' .and. maxError<=2.d-20) then
       !!    call localloewdin(iproc, nproc, lzd, orbs, op, ovrlp, lphiovrlp, lphi)
@@ -539,7 +539,7 @@ logical:: present_W, present_eval
   end do
   ! Expand the receive buffer, i.e. lphi
   t1=mpi_wtime()
-  call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
+  !call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
   !call expandRemainingOrbitals(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
   !     lin%comon, expanded, lphiovrlp)
   t2=mpi_wtime()
@@ -570,7 +570,7 @@ logical:: present_W, present_eval
 
   if(iproc==0) write(*,*) 'old version of orthoconstraint'
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%orbs, &
-       lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
+       lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lagmat, ovrlp, lphiovrlp, mad, lhphi)
   !!if(iproc==0) write(*,*) 'new version of orthoconstraint'
   !!call applyOrthoconstraintlocal(iproc, nproc, lin%lzd, lin%orbs, lin%op, lagmat, lphiovrlp, lhphi)
 
@@ -2725,7 +2725,7 @@ end subroutine checkUnity
 
 
 
-subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, ovrlp, lphiovrlp, lphi)
+subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon, ovrlp, lphiovrlp, lphi)
 use module_base
 use module_types
 implicit none
@@ -2736,6 +2736,7 @@ type(orbitals_data),intent(in):: orbs, lorbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
+type(p2pCommsOrthonormality),intent(in):: comon
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
 real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
 real(8),dimension(lorbs%npsidim),intent(out):: lphi
@@ -2744,33 +2745,50 @@ real(8),dimension(lorbs%npsidim),intent(out):: lphi
 integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount
 real(8):: tt, dnrm2
 
-lphi=0.d0
 
+call build_new_linear_combinations(lzd, orbs, op, comon, lphiovrlp, ovrlp, .true., lphi)
+
+! Normalize
 ist=1
-jst=1
-ilrold=-1
 do iorb=1,orbs%norbp
     iiorb=orbs%isorb+iorb
     ilr=onWhichAtom(iiorb)
-    if(ilr==ilrold) then
-        ! Set back the index of lphiovrlp, since we again need the same orbitals.
-        jst=jst-op%noverlaps(iiorb)*ncount
-    end if
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-    do jorb=1,op%noverlaps(iiorb)
-        jjorb=op%overlaps(jorb,iiorb)
-        call daxpy(ncount, ovrlp(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
-        jst=jst+ncount
-    end do
 
     ! Normalize
     tt=dnrm2(ncount, lphi(ist), 1)
     call dscal(ncount, 1/tt, lphi(ist), 1)
 
     ist=ist+ncount
-    ilrold=ilr
-
 end do
+
+!!lphi=0.d0
+!!
+!!ist=1
+!!jst=1
+!!ilrold=-1
+!!do iorb=1,orbs%norbp
+!!    iiorb=orbs%isorb+iorb
+!!    ilr=onWhichAtom(iiorb)
+!!    if(ilr==ilrold) then
+!!        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+!!        jst=jst-op%noverlaps(iiorb)*ncount
+!!    end if
+!!    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+!!    do jorb=1,op%noverlaps(iiorb)
+!!        jjorb=op%overlaps(jorb,iiorb)
+!!        call daxpy(ncount, ovrlp(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
+!!        jst=jst+ncount
+!!    end do
+!!
+!!    ! Normalize
+!!    tt=dnrm2(ncount, lphi(ist), 1)
+!!    call dscal(ncount, 1/tt, lphi(ist), 1)
+!!
+!!    ist=ist+ncount
+!!    ilrold=ilr
+!!
+!!end do
 
 
 end subroutine globalLoewdin
@@ -2865,7 +2883,7 @@ end subroutine globalLoewdin
 
 
 subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, lorbs, onWhichAtom, lzd, &
-           op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
+           op, comon, lagmat, ovrlp, lphiovrlp, mad, lhphi)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => applyOrthoconstraintNonorthogonal2
@@ -2877,6 +2895,7 @@ type(orbitals_data),intent(in):: orbs, lorbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
+type(p2pCommsOrthonormality),intent(in):: comon
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
 real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
 real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
@@ -2998,30 +3017,44 @@ time_dsymm=t2-t1
 
 
 
-call cpu_time(t1)
-ist=1
-jst=1
-ilrold=-1
-do iorb=1,orbs%norbp
-    iiorb=orbs%isorb+iorb
-    ilr=onWhichAtom(iiorb)
-    if(ilr==ilrold) then
-        ! Set back the index of lphiovrlp, since we again need the same orbitals.
-        jst=jst-op%noverlaps(iiorb)*ncount
-    end if
-    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-    !call dscal(ncount, 1.5d0, lhphi(ist), 1)
-    do jorb=1,op%noverlaps(iiorb)
-        jjorb=op%overlaps(jorb,iiorb)
-        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
-        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
-        jst=jst+ncount
+do iorb=1,orbs%norb
+    do jorb=1,orbs%norb
+        ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
     end do
-    ist=ist+ncount
-    ilrold=ilr
 end do
-call cpu_time(t2)
-time_daxpy=t2-t1
+call build_new_linear_combinations(lzd, orbs, op, comon, lphiovrlp, ovrlp2, .false., lhphi)
+
+do iorb=1,orbs%norb
+    do jorb=1,orbs%norb
+        ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
+    end do
+end do
+call build_new_linear_combinations(lzd, orbs, op, comon, lphiovrlp, ovrlp2, .false., lhphi)
+
+!!call cpu_time(t1)
+!!ist=1
+!!jst=1
+!!ilrold=-1
+!!do iorb=1,orbs%norbp
+!!    iiorb=orbs%isorb+iorb
+!!    ilr=onWhichAtom(iiorb)
+!!    if(ilr==ilrold) then
+!!        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+!!        jst=jst-op%noverlaps(iiorb)*ncount
+!!    end if
+!!    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+!!    !call dscal(ncount, 1.5d0, lhphi(ist), 1)
+!!    do jorb=1,op%noverlaps(iiorb)
+!!        jjorb=op%overlaps(jorb,iiorb)
+!!        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
+!!        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
+!!        jst=jst+ncount
+!!    end do
+!!    ist=ist+ncount
+!!    ilrold=ilr
+!!end do
+!!call cpu_time(t2)
+!!time_daxpy=t2-t1
 
 call mpiallred(time_dsymm, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(time_daxpy, 1, mpi_sum, mpi_comm_world, ierr)
