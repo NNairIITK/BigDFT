@@ -1241,7 +1241,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       !!!! ####################################################################################
 
       !!! NEW #########################################################
-      call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lphi)
+      call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
       !!! #############################################################
 
       !!!!!!!!call allocateSendBufferOrtho(lin%comon, subname)
@@ -4517,14 +4517,14 @@ end subroutine minimize_in_subspace
 
 
 
-subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, lphi)
+subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, nit, lphi)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => unitary_optimization
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, nit
 type(linearParameters),intent(inout):: lin
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
@@ -4536,7 +4536,7 @@ real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(orbs%npsidim),intent(inout):: lphi
 
 ! Local variables
-integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, nit
+integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr
 real(8):: trace, lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
 real(8):: tt1, tt2, tt3, tt4, tt5
 complex(8):: ttc
@@ -4572,7 +4572,6 @@ allocate(Kmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, Kmat, 'Kmat', subname)
 
 
-  nit=4
 
   call allocateSendBufferOrtho(comon, subname)
   call allocateRecvBufferOrtho(comon, subname)

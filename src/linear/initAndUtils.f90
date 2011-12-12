@@ -381,7 +381,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   end if
   open(unit=99, file='input.lin')
   read(99,*) lin%nItBasisFirst, lin%nItBasis, lin%fixBasis
-  read(99,*) lin%convCrit
+  read(99,*) lin%nItInnerLoop, lin%convCrit
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
   read(99,*) lin%startWithSD, lin%startDIIS
   read(99,*) lin%nItPrecond

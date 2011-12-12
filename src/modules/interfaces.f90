@@ -5321,11 +5321,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine applyOrthoconstraintlocal
 
 
-       subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, lphi)
+       subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, nit, lphi)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc
+         integer,intent(in):: iproc, nproc, nit
          type(linearParameters),intent(inout):: lin
          type(local_zone_descriptors),intent(in):: lzd
          type(orbitals_data),intent(in):: orbs
