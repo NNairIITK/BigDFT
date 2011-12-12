@@ -369,7 +369,7 @@ program memguess
 
    ! Build and print the communicator scheme.
    call createWavefunctionsDescriptors(0,hx,hy,hz,&
-      &   atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
+      &   atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_denspot = (output_grid > 0))
    call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
    if (exportwf) then

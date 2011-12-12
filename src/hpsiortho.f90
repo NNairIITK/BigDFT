@@ -661,27 +661,27 @@ subroutine write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,
         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
         !yaml output
 !       write(70,'(1x,a,1pe24.17,a,1x,a,1pe9.2,a,1x,a,i6,a)') 'tr(H): ',trH,&
-             ',','gnrm: ',gnrm,trim(lastsep),'#iter: ',iter,trim(' '//comment)
+!             ',','gnrm: ',gnrm,trim(lastsep),'#iter: ',iter,trim(' '//comment)
      else if (gnrm > 0.0_gp) then
         write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
         !yaml output
 !       write(70,'(1x,a,1pe24.17,2(a,1x,a,1pe9.2),a,1x,a,i6,a)') 'tr(H): ',trH,&
-             ',','gnrm: ',gnrm,',','gnrm_zero: ',gnrm_zero,&
-             trim(lastsep),'#iter: ',iter,trim(' '//comment)
+!             ',','gnrm: ',gnrm,',','gnrm_zero: ',gnrm_zero,&
+!             trim(lastsep),'#iter: ',iter,trim(' '//comment)
      end if
   else
      if (gnrm_zero == 0.0_gp .and. gnrm > 0.0_gp) then
         write( *,'(a,1x,a,i6,2x,1pe24.17,1x,1pe9.2)') trim(' '//comment),'iter,total energy,gnrm',iter,energyKS,gnrm
         !yaml output
 !       write(70,'(1x,a,1pe24.17,a,1x,a,1pe9.2,a,1x,a,i6,a)') 'total energy: ',energyKS,&
-             ',','gnrm: ',gnrm,trim(lastsep),'#iter: ',iter,trim(' '//comment)
+!             ',','gnrm: ',gnrm,trim(lastsep),'#iter: ',iter,trim(' '//comment)
      else if (gnrm > 0.0_gp) then
         write( *,'(a,1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))')  trim(' '//comment),&
              'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
         !yaml output
 !       write(70,'(1x,a,1pe24.17,2(a,1x,a,1pe9.2),a,1x,a,i6,a)') 'total energy: ',energyKS,&
-             ',','gnrm: ',gnrm,',','gnrm_zero: ',gnrm_zero,&
-             trim(lastsep),'#iter: ',iter,trim(' '//comment)
+!             ',','gnrm: ',gnrm,',','gnrm_zero: ',gnrm_zero,&
+!             trim(lastsep),'#iter: ',iter,trim(' '//comment)
      end if
   end if
 
@@ -1033,7 +1033,7 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
         write(*,"(1x,A,I4.4,A,3F12.6)") &
              &   "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
 !       write(70,"(1x,A,I4.4,A,3F12.6)") &
-             &   "# Kpt No.", ikpt-1, " BZ coord. = ", orbs%kpts(:, ikpt)
+!             &   "# Kpt No.", ikpt-1, " BZ coord. = ", orbs%kpts(:, ikpt)
 
         ikptw=ikpt
      else
