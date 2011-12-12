@@ -4587,8 +4587,8 @@ call memocc(istat, Kmat, 'Kmat', subname)
       call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
       energyconf_0=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
       call mpiallred(energyconf_0, 1, mpi_sum, mpi_comm_world, ierr)
-      if(iproc==0) write(*,'(a,i6,2es17.7, es14.3)') 'it, energyconf_0, energyvonf_trial, lstep_optimal', &
-                   it, energyconf_0, energyconf_trial, lstep_optimal
+      if(iproc==0) write(*,'(a,i6,2es17.7,2es14.3)') 'it, energyconf_0, energyvonf_trial, lstep, lstep_optimal', &
+                   it, energyconf_0, energyconf_trial, lstep, lstep_optimal
 
       allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
       call collectnew(iproc, nproc, lin%comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
@@ -4603,7 +4603,8 @@ call memocc(istat, Kmat, 'Kmat', subname)
       do iorb=1,orbs%norb
           do jorb=1,orbs%norb
               !gmat(jorb,iorb)=-2.d0*(ham(jorb,iorb)-ham(iorb,jorb))
-              gmat(jorb,iorb)=-2.d0*(Kmat(jorb,iorb)-Kmat(iorb,jorb))
+              !gmat(jorb,iorb)=-2.d0*(Kmat(jorb,iorb)-Kmat(iorb,jorb))
+              gmat(jorb,iorb)=2.d0*(Kmat(jorb,iorb)-Kmat(iorb,jorb))
           end do
       end do 
 
@@ -4628,11 +4629,11 @@ call memocc(istat, Kmat, 'Kmat', subname)
 
 
       ! Calculate step size
-      !if(it==1) then
+      if(it==1) then
           lstep=5.d-2/(maxval(eval))
-      !else
-      !    lstep=2.d0*lstep_optimal
-      !end if
+      else
+          lstep=2.d0*lstep_optimal
+      end if
 
       ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
       ! This is also a diagonal matrix, so only calculate the diagonal part.
@@ -4694,7 +4695,8 @@ call memocc(istat, Kmat, 'Kmat', subname)
       energyconf_der0=-.5d0*energyconf_der0
 
       ! Calculate optimal step size
-      lstep_optimal = energyconf_der0*lstep**2/(2.d0*(energyconf_trial-energyconf_0-lstep*energyconf_der0))
+      lstep_optimal = -energyconf_der0*lstep**2/(2.d0*(energyconf_trial-energyconf_0-lstep*energyconf_der0))
+      lstep_optimal=min(lstep_optimal,lstep)
       !if(iproc==0) write(*,*) 'lstep, lstep_optimal', lstep, lstep_optimal
 
       ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
