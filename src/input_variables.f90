@@ -232,7 +232,7 @@ subroutine check_for_data_writing_directory(iproc,in)
 
   shouldwrite=shouldwrite .or. &
        in%output_wf_format /= WF_FORMAT_NONE .or. & !write wavefunctions
-       in%output_grid /= OUTPUT_GRID_NONE .or. &    !write output density
+       in%output_denspot /= output_denspot_NONE .or. &    !write output density
        in%ncount_cluster_x > 1 .or. &               !write posouts or posmds
        in%inputPsiId == 2 .or. &                    !have wavefunctions to read
        in%inputPsiId == 12 .or.  &                    !read in gaussian basis
@@ -272,7 +272,7 @@ subroutine default_input_variables(inputs)
 
   ! Default values.
   inputs%output_wf_format = WF_FORMAT_NONE
-  inputs%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
+  inputs%output_denspot_format = output_denspot_FORMAT_CUBE
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)
@@ -372,8 +372,8 @@ subroutine dft_input_variables_new(iproc,filename,in)
      call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
-  call input_var(in%output_grid,'0',exclusive=(/0,1,2/),&
-       comment='InputPsiId, output_wf, output_grid')
+  call input_var(in%output_denspot,'0',exclusive=(/0,1,2/),&
+       comment='InputPsiId, output_wf, output_denspot')
 
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10)
@@ -384,13 +384,13 @@ subroutine dft_input_variables_new(iproc,filename,in)
      in%inputPsiId=0
   end if
   ! Setup out grid parameters.
-  if (in%output_grid >= 0) then
-     in%output_grid_format = in%output_grid / 10
+  if (in%output_denspot >= 0) then
+     in%output_denspot_format = in%output_denspot / 10
   else
-     in%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
-     in%output_grid = abs(in%output_grid)
+     in%output_denspot_format = output_denspot_FORMAT_CUBE
+     in%output_denspot = abs(in%output_denspot)
   end if
-  in%output_grid = modulo(in%output_grid, 10)
+  in%output_denspot = modulo(in%output_denspot, 10)
 
   ! Tail treatment.
   call input_var(in%rbuf,'0.0',ranges=(/0.0_gp,10.0_gp/))
@@ -414,7 +414,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   !define whether there should be a last_run after geometry optimization
   !also the mulliken charge population should be inserted
   if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. &
-       in%output_grid /= OUTPUT_GRID_NONE .or. in%norbv /= 0) then
+       in%output_denspot /= output_denspot_NONE .or. in%norbv /= 0) then
      in%last_run=-1 !last run to be done depending of the external conditions
   else
      in%last_run=0
@@ -1099,7 +1099,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
            in%itermax=0
            in%itrpmax=0
            in%inputPsiId=-1000 !allocate empty wavefunctions
-           in%output_grid=0
+           in%output_denspot=0
         end if
      end if
   end if
@@ -1293,7 +1293,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         in%itermax=0
         in%itrpmax=0
         in%inputPsiId=-1000 !allocate empty wavefunctions
-        in%output_grid=0
+        in%output_denspot=0
      end if
   end if
   close(unit=1,iostat=ierror)
@@ -3308,8 +3308,8 @@ subroutine print_dft_parameters(in,atoms)
        & "Input wf. policy=", in%inputPsiId, " (" // input_psi_names(in%inputPsiId) // ")", "|", &
        & "Output wf. policy=", in%output_wf_format, " (" // wf_format_names(in%output_wf_format) // ")"
   write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
-       & "Output grid policy=", in%output_grid, "   (" // output_grid_names(in%output_grid) // ")", "|", &
-       & "Output grid format=", in%output_grid_format, "         (" // output_grid_format_names(in%output_grid_format) // ")"
+       & "Output grid policy=", in%output_denspot, "   (" // output_denspot_names(in%output_denspot) // ")", "|", &
+       & "Output grid format=", in%output_denspot_format, "         (" // output_denspot_format_names(in%output_denspot_format) // ")"
 
 END SUBROUTINE print_dft_parameters
 

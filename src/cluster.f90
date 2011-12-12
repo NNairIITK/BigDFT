@@ -282,10 +282,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    ncongt=in%ncongt
    nspin=in%nspin
    write(gridformat, "(A)") ""
-   select case (in%output_grid_format)
-   case (OUTPUT_GRID_FORMAT_ETSF)
+   select case (in%output_denspot_format)
+   case (output_denspot_FORMAT_ETSF)
       write(gridformat, "(A)") ".etsf"
-   case (OUTPUT_GRID_FORMAT_CUBE)
+   case (output_denspot_FORMAT_CUBE)
       write(gridformat, "(A)") ".cube"
    end select
    write(wfformat, "(A)") ""
@@ -1294,14 +1294,14 @@ if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
    end if
 end if
 
-!plot the ionic potential, if required by output_grid
-if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+!plot the ionic potential, if required by output_denspot
+if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
    if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
    call plot_density(trim(in%dir_output)//'external_potential' // gridformat,iproc,nproc,&
       &   n1,n2,n3,n1i,n2i,n3i,n3p,&
    1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
 end if
-if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
    if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
    call plot_density(trim(in%dir_output)//'local_potential' // gridformat,iproc,nproc,&
       &   n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1356,7 +1356,7 @@ if (inputpsi /= -1000) then
 
    !plot the density on the cube file
    !to be done either for post-processing or if a restart is to be done with mixing enabled
-   if (((in%output_grid >= OUTPUT_GRID_DENSITY)) .and. DoLastRunThings) then
+   if (((in%output_denspot >= output_denspot_DENSITY)) .and. DoLastRunThings) then
       if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
 
       call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
@@ -1388,7 +1388,7 @@ if (inputpsi /= -1000) then
       &   n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.)
 
    !plot also the electrostatic potential
-   if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+   if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
       if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
       call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
          &   iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1397,7 +1397,7 @@ if (inputpsi /= -1000) then
 
 
    !     !plot also the electrostatic potential
-   !     if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+   !     if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
    !        if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
    !        call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
    !             & iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1672,7 +1672,7 @@ if ((in%rbuf > 0.0_gp) .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
    !pass hx instead of hgrid since we are only in free BC
    call CalculateTailCorrection(iproc,nproc,atoms,rbuf,orbs,&
       &   Glr,nlpspd,ncongt,pot,hx,rxyz,radii_cf,crmult,frmult,in%nspin,&
-   proj,psi,(in%output_grid /= 0),ekin_sum,epot_sum,eproj_sum)
+   proj,psi,(in%output_denspot /= 0),ekin_sum,epot_sum,eproj_sum)
 
    i_all=-product(shape(pot))*kind(pot)
    deallocate(pot,stat=i_stat)
