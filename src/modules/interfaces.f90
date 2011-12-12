@@ -1546,12 +1546,12 @@ module module_interfaces
          real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin), intent(out), optional :: wxdsave 
       END SUBROUTINE NK_SIC_potential
 
-      subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+      subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
          wfd,psi,orblist)
          use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc,n1,n2,n3
+         integer, intent(in) :: iproc,n1,n2,n3, iformat
          real(gp), intent(in) :: hx,hy,hz
          type(wavefunctions_descriptors), intent(in) :: wfd
          type(orbitals_data), intent(inout) :: orbs

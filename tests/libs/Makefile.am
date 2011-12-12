@@ -1,11 +1,8 @@
 SUBDIRS = fft \
 	xc \
 	PSolver \
-	OP2P
-
-if HAVE_ETSF_IO
-SUBDIRS += ETSF_IO
-endif
+	OP2P \
+	IO-wf
 
 if USE_CUDA_GPU
 SUBDIRS += CUDA

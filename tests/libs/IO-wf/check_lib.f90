@@ -4,7 +4,7 @@ program schtroumpf_lib
   implicit none
 
 !!$  character(len = *), parameter :: filename = "data/wavefunction.etsf"
-  character(len = *), parameter :: filename = "data/wavefunction-k001-UR.b0003"
+  character(len = 1024) :: filename
   integer, parameter :: iorbp = 23
   real(wp), dimension(:,:,:,:), pointer :: psiscf
   real(gp) :: hx, hy, hz
@@ -16,14 +16,16 @@ program schtroumpf_lib
 
   call MPI_INIT(ierr)
 
-  write(*,"(3A)") " --- Test read_wave_to_isf_etsf() from ", filename ," ---"
-  call read_wave_descr(lstat, filename, len(filename), &
+  call get_command_argument(1, value = filename)
+
+  write(*,"(3A)") " --- Test read_wave_to_isf_etsf() from ", trim(filename) ," ---"
+  call read_wave_descr(lstat, trim(filename), len(trim(filename)), &
        & norbu, norbd, iorb, ispin, nkpt, ikpt, nspinor, ispinor)
   write(*, "(A,2x,4I7)") " ETSF wavefunction file (nou, nod, nk, sp):", &
        norbu, norbd, nkpt, nspinor
   if (.not. lstat) stop
 
-  call read_wave_to_isf(lstat, filename, len(filename), iorbp, hx, hy, hz, &
+  call read_wave_to_isf(lstat, trim(filename), len(trim(filename)), iorbp, hx, hy, hz, &
        & n1, n2, n3, nspinor, psiscf)
   if (.not. lstat) stop
 

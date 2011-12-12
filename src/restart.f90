@@ -299,13 +299,13 @@ end function wave_format_from_filename
 
 !>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !!  have changed
-subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi,orblist)
   use module_base
   use module_types
   use module_interfaces, except_this_one => readmywaves
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3
+  integer, intent(in) :: iproc,n1,n2,n3, iformat
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(inout) :: orbs
@@ -319,7 +319,6 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   character(len=*), parameter :: subname='readmywaves'
   logical :: perx,pery,perz
   integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor
-  integer :: wave_format_from_filename,iformat
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
@@ -328,7 +327,6 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
-  iformat = wave_format_from_filename(iproc, filename)
   if (iformat == WF_FORMAT_ETSF) then
      !construct the orblist or use the one in argument
      do nb1 = 1, orbs%norb
@@ -336,7 +334,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
      if(present(orblist)) orblist2(nb1) = orblist(nb1) 
      end do
 
-     call read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+     call read_waves_etsf(iproc,filename // ".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
           wfd,psi)
   else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
      !conditions for periodicity in the three directions
@@ -437,7 +435,7 @@ subroutine verify_file_presence(filerad,orbs,iformat)
      allfiles = .true.
      loop_binary: do iorb=1,orbs%norbp
         do ispinor=1,orbs%nspinor
-           call filename_of_iorb(.true.,trim(filerad) // ".bin",orbs,iorb,ispinor,filename,iorb_out)
+           call filename_of_iorb(.true.,trim(filerad),orbs,iorb,ispinor,filename,iorb_out)
 
            inquire(file=filename,exist=onefile)
            allfiles=allfiles .and. onefile
