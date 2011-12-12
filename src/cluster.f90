@@ -211,7 +211,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !local variables
    character(len=*), parameter :: subname='cluster'
    character(len=3) :: PSquiet
-   character(len=5) :: gridformat, wfformat,wfformat_read, final_out
+   character(len=5) :: gridformat, wfformat, final_out
    character(len=500) :: errmess
    logical :: endloop,endlooprp,onefile,refill_proj
    logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
@@ -562,27 +562,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !for the inputPsiId==2 case, check 
    !if the wavefunctions are all present
    !otherwise switch to normal input guess
-   if (in%inputPsiId ==2) then
+   if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
       ! Test ETSF file.
       inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
-      if (onefile) input_wf_format=3
-
-      if (.not. onefile) then
+      if (onefile) then
+         input_wf_format= WF_FORMAT_ETSF
+      else
          call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
       end if
-
-      !assign the input_wf_format
-      write(wfformat_read, "(A)") ""
-      select case (input_wf_format)
-      case (WF_FORMAT_NONE)
-         if (iproc == 0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-         inputpsi = 0
-      case (WF_FORMAT_ETSF)
-         write(wfformat_read, "(A)") ".etsf"
-      case (WF_FORMAT_BINARY)
-         write(wfformat_read, "(A)") ".bin"
-      end select
-
+      if (input_wf_format == WF_FORMAT_NONE .and. iproc == 0) &
+           & write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
    end if
 
    !all the input formats need to allocate psi except the LCAO input_guess
@@ -735,7 +724,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       !since each processor read only few eigenvalues, initialise them to zero for all
       call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
 
-      call readmywaves(iproc,trim(in%dir_output) // "wavefunction" // trim(wfformat_read), &
+      call readmywaves(iproc,trim(in%dir_output) // "wavefunction", input_wf_format, &
          &   orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
 
       !reduce the value for all the eigenvectors
@@ -1289,7 +1278,7 @@ if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
       nullify(gbd%rxyz)
 
    else
-      call  writemywaves(iproc,trim(in%dir_output) // "wavefunction" // trim(wfformat), &
+      call  writemywaves(iproc,trim(in%dir_output) // "wavefunction", in%output_wf_format, &
          &   orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psi)
    end if
 end if
@@ -1510,7 +1499,7 @@ if (DoDavidson) then
 
       ! Write virtual wavefunctions in ETSF format
       if (in%output_wf_format /= WF_FORMAT_NONE  .and. abs(in%norbv) > 0) then
-         call  writemywaves(iproc,trim(in%dir_output) // "virtuals" // trim(wfformat), &
+         call  writemywaves(iproc,trim(in%dir_output) // "virtuals", in%output_wf_format, &
             &   orbsv,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psivirt)
       end if
 

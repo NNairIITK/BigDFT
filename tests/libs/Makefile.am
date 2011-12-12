@@ -1,11 +1,8 @@
 SUBDIRS = fft \
 	xc \
 	PSolver \
-	OP2P
-
-if HAVE_ETSF_IO
-SUBDIRS += ETSF_IO
-endif
+	OP2P \
+	IO-wf
 
 if USE_CUDA_GPU
 SUBDIRS += CUDA
@@ -19,5 +16,5 @@ if USE_LIBXC
 SUBDIRS += xc
 endif
 
-check:
+check, report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi

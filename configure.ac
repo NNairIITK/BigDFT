@@ -763,7 +763,7 @@ tests/libs/OP2P/Makefile
 tests/libs/xc/Makefile
 tests/libs/OpenCL/Makefile
 tests/libs/CUDA/Makefile
-tests/libs/ETSF_IO/Makefile
+tests/libs/IO-wf/Makefile
 tests/DFT/Makefile
 tests/overDFT/Makefile
 tests/tutorials/Makefile
