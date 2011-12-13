@@ -48,7 +48,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
    integer :: iseg,jseg,Gseg,Gvctr
    integer :: nl1,nl2,nl3,nu1,nu2,nu3 ! bounds of projectors around atom iatom
    integer,dimension(1:2,1:2,1:3) :: bounds
-   logical,dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3) :: logrid
+   logical,dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3) :: logrid !big automatic array, dangerous
    character(len=*),parameter :: subname='nlpspd_to_locreg'
 
 !Determine the number of projectors with components in locreg
@@ -326,11 +326,13 @@ subroutine number_of_projectors_in_locreg(atoms,cpmult,fpmult,Glr,hx,hy,hz,Llr,n
   natp = 0
   do iatom=1,atoms%nat
 !       check if projector of atom iatom overlap the locreg (coarse grid)        
-        call check_projector_intersect_with_locreg(atoms,cpmult,Glr,hx,hy,hz,iatom,Llr,&
+        call check_projector_intersect_with_locreg(atoms,cpmult,&
+             Glr,hx,hy,hz,iatom,Llr,&
 &            radii_cf(atoms%iatype(iatom),3),rxyz,intersect)
 
         if(intersect) then
-           call numb_proj(atoms%iatype(iatom),atoms%ntypes,atoms%psppar,atoms%npspcode,nproj)
+           call numb_proj(atoms%iatype(iatom),atoms%ntypes,&
+                atoms%psppar,atoms%npspcode,nproj)
            mproj = mproj + nproj
            if(nproj > 0) then
               projflg(iatom) = nproj
@@ -338,11 +340,12 @@ subroutine number_of_projectors_in_locreg(atoms,cpmult,fpmult,Glr,hx,hy,hz,Llr,n
            end if
         end if        
 
-! Only have to do it if the atom is not yet selected
-     if (projflg(iatom) .eq. 0) then
-!         check if projector of atom iatom overlap the locreg (fine grid)
-          call check_projector_intersect_with_locreg(atoms,fpmult,Glr,hx,hy,hz,iatom,Llr,&
-&              radii_cf(atoms%iatype(iatom),2),rxyz,intersect)
+! Only have to do it if the atom is not yet selecte
+! check if projector of atom iatom overlap the locreg (fine grid)
+        if (projflg(iatom) .eq. 0) then
+          call check_projector_intersect_with_locreg(atoms,fpmult,&
+               Glr,hx,hy,hz,iatom,Llr,&
+               radii_cf(atoms%iatype(iatom),2),rxyz,intersect)
 
           if(intersect) then        
              call numb_proj(atoms%iatype(iatom),atoms%ntypes,atoms%psppar,atoms%npspcode,nproj)
@@ -401,27 +404,33 @@ subroutine check_projector_intersect_with_locreg(atoms,pmult,Glr,hx,hy,hz,iatom,
   do i3 = Llr%ns3,Llr%ns3+Llr%d%n3
      dz1 = (real(i3,gp)*hz-rxyz(3,iatom))**2
      if (Glr%geocode == 'S' .or. Glr%geocode =='P') then
-        dz2 = (real(i3,gp)*hz-(rxyz(3,iatom)+ (Glr%d%n3+1)*hz))**2 !translating to positive
+        !translating to positive
+        dz2 = (real(i3,gp)*hz-(rxyz(3,iatom)+ (Glr%d%n3+1)*hz))**2 
         dz1 = min(dz1,dz2) 
-        dz2 = (real(i3,gp)*hz-(rxyz(3,iatom)- (Glr%d%n3+1)*hz))**2 !translating to negative
+        !translating to negative
+        dz2 = (real(i3,gp)*hz-(rxyz(3,iatom)- (Glr%d%n3+1)*hz))**2 
         dz1 = min(dz1,dz2)
      end if
 
      do i2 = Llr%ns2,Llr%ns2+Llr%d%n2
         dy1 = (real(i2,gp)*hy-rxyz(2,iatom))**2
         if (Glr%geocode == 'P') then
-           dy2 = (real(i2,gp)*hy-(rxyz(2,iatom)+ (Glr%d%n2+1)*hy))**2 !translating to positive
+           !translating to positive
+           dy2 = (real(i2,gp)*hy-(rxyz(2,iatom)+ (Glr%d%n2+1)*hy))**2 
            dy1 = min(dy1,dy2) 
-           dy2 = (real(i2,gp)*hy-(rxyz(2,iatom)- (Glr%d%n2+1)*hy))**2 !translating to negative
+           !translating to negative
+           dy2 = (real(i2,gp)*hy-(rxyz(2,iatom)- (Glr%d%n2+1)*hy))**2 
            dy1 = min(dy1,dy2)
         end if
 
         do i1 = Llr%ns1,Llr%ns1+Llr%d%n1
            dx1 = (real(i1,gp)*hx-rxyz(1,iatom))**2
            if (Glr%geocode == 'S' .or. Glr%geocode =='P') then
-              dx2 = (real(i1,gp)*hx-(rxyz(1,iatom)+ (Glr%d%n1+1)*hx))**2 !translating to positive
+              !translating to positive
+              dx2 = (real(i1,gp)*hx-(rxyz(1,iatom)+ (Glr%d%n1+1)*hx))**2 
               dx1 = min(dx1,dx2) 
-              dx2 = (real(i1,gp)*hx-(rxyz(1,iatom)- (Glr%d%n1+1)*hx))**2 !translating to negative
+              !translating to negative
+              dx2 = (real(i1,gp)*hx-(rxyz(1,iatom)- (Glr%d%n1+1)*hx))**2 
               dx1 = min(dx1,dx2)
            end if
 
@@ -482,13 +491,16 @@ subroutine number_of_projector_elements_in_locreg(iatom,igrid,atoms,Glr,Llr,logr
 
 ! Set boundaries of projectors (coarse)
   if(igrid == 1) then
-      nl1 = nlpspd%plr(iatom)%ns1
-      nl2 = nlpspd%plr(iatom)%ns2
-      nl3 = nlpspd%plr(iatom)%ns3
+     call bounds_to_plr_limits(.false.,1,nlpspd%plr(iatom),&
+          nl1,nl2,nl3,nu1,nu2,nu3)
 
-      nu1 = nlpspd%plr(iatom)%d%n1+nlpspd%plr(iatom)%ns1
-      nu2 = nlpspd%plr(iatom)%d%n2+nlpspd%plr(iatom)%ns2
-      nu3 = nlpspd%plr(iatom)%d%n3+nlpspd%plr(iatom)%ns3
+!!$      nl1 = nlpspd%plr(iatom)%ns1
+!!$      nl2 = nlpspd%plr(iatom)%ns2
+!!$      nl3 = nlpspd%plr(iatom)%ns3
+!!$
+!!$      nu1 = nlpspd%plr(iatom)%d%n1+nlpspd%plr(iatom)%ns1
+!!$      nu2 = nlpspd%plr(iatom)%d%n2+nlpspd%plr(iatom)%ns2
+!!$      nu3 = nlpspd%plr(iatom)%d%n3+nlpspd%plr(iatom)%ns3
 
 !!$      nl1 = nlpspd%nboxp_c(1,1,iatom)
 !!$      nl2 = nlpspd%nboxp_c(1,2,iatom)
@@ -502,14 +514,16 @@ subroutine number_of_projector_elements_in_locreg(iatom,igrid,atoms,Glr,Llr,logr
 
 ! Set boundaries of projectors (fine)
    if(igrid == 2) then
+     call bounds_to_plr_limits(.false.,2,nlpspd%plr(iatom),&
+          nl1,nl2,nl3,nu1,nu2,nu3)
 
-      nl1 = nlpspd%plr(iatom)%d%nfl1+nlpspd%plr(iatom)%ns1
-      nl2 = nlpspd%plr(iatom)%d%nfl2+nlpspd%plr(iatom)%ns2
-      nl3 = nlpspd%plr(iatom)%d%nfl3+nlpspd%plr(iatom)%ns3
-
-      nu1 = nlpspd%plr(iatom)%d%nfu1+nlpspd%plr(iatom)%ns1
-      nu2 = nlpspd%plr(iatom)%d%nfu2+nlpspd%plr(iatom)%ns2
-      nu3 = nlpspd%plr(iatom)%d%nfu3+nlpspd%plr(iatom)%ns3
+!!$      nl1 = nlpspd%plr(iatom)%d%nfl1+nlpspd%plr(iatom)%ns1
+!!$      nl2 = nlpspd%plr(iatom)%d%nfl2+nlpspd%plr(iatom)%ns2
+!!$      nl3 = nlpspd%plr(iatom)%d%nfl3+nlpspd%plr(iatom)%ns3
+!!$
+!!$      nu1 = nlpspd%plr(iatom)%d%nfu1+nlpspd%plr(iatom)%ns1
+!!$      nu2 = nlpspd%plr(iatom)%d%nfu2+nlpspd%plr(iatom)%ns2
+!!$      nu3 = nlpspd%plr(iatom)%d%nfu3+nlpspd%plr(iatom)%ns3
 
 !!$      nl1 = nlpspd%nboxp_f(1,1,iatom)
 !!$      nl2 = nlpspd%nboxp_f(1,2,iatom)
@@ -675,13 +689,16 @@ subroutine number_of_projector_elements_in_locregSphere(iatom,igrid,atoms,Glr,Ll
 
 ! Set boundaries of projectors (coarse)
    if(igrid == 1) then
-      nl1 = nlpspd%plr(iatom)%ns1
-      nl2 = nlpspd%plr(iatom)%ns2
-      nl3 = nlpspd%plr(iatom)%ns3
+     call bounds_to_plr_limits(.false.,1,nlpspd%plr(iatom),&
+          nl1,nl2,nl3,nu1,nu2,nu3)
 
-      nu1 = nlpspd%plr(iatom)%d%n1+nlpspd%plr(iatom)%ns1
-      nu2 = nlpspd%plr(iatom)%d%n2+nlpspd%plr(iatom)%ns2
-      nu3 = nlpspd%plr(iatom)%d%n3+nlpspd%plr(iatom)%ns3
+!!$      nl1 = nlpspd%plr(iatom)%ns1
+!!$      nl2 = nlpspd%plr(iatom)%ns2
+!!$      nl3 = nlpspd%plr(iatom)%ns3
+!!$
+!!$      nu1 = nlpspd%plr(iatom)%d%n1+nlpspd%plr(iatom)%ns1
+!!$      nu2 = nlpspd%plr(iatom)%d%n2+nlpspd%plr(iatom)%ns2
+!!$      nu3 = nlpspd%plr(iatom)%d%n3+nlpspd%plr(iatom)%ns3
 
 !!$      nl1 = nlpspd%nboxp_c(1,1,iatom)
 !!$      nl2 = nlpspd%nboxp_c(1,2,iatom)
@@ -695,13 +712,16 @@ subroutine number_of_projector_elements_in_locregSphere(iatom,igrid,atoms,Glr,Ll
 
 ! Set boundaries of projectors (fine)
    if(igrid == 2) then
-      nl1 = nlpspd%plr(iatom)%d%nfl1+nlpspd%plr(iatom)%ns1
-      nl2 = nlpspd%plr(iatom)%d%nfl2+nlpspd%plr(iatom)%ns2
-      nl3 = nlpspd%plr(iatom)%d%nfl3+nlpspd%plr(iatom)%ns3
+      call bounds_to_plr_limits(.false.,2,nlpspd%plr(iatom),&
+           nl1,nl2,nl3,nu1,nu2,nu3)
 
-      nu1 = nlpspd%plr(iatom)%d%nfu1+nlpspd%plr(iatom)%ns1
-      nu2 = nlpspd%plr(iatom)%d%nfu2+nlpspd%plr(iatom)%ns2
-      nu3 = nlpspd%plr(iatom)%d%nfu3+nlpspd%plr(iatom)%ns3
+!!$      nl1 = nlpspd%plr(iatom)%d%nfl1+nlpspd%plr(iatom)%ns1
+!!$      nl2 = nlpspd%plr(iatom)%d%nfl2+nlpspd%plr(iatom)%ns2
+!!$      nl3 = nlpspd%plr(iatom)%d%nfl3+nlpspd%plr(iatom)%ns3
+!!$
+!!$      nu1 = nlpspd%plr(iatom)%d%nfu1+nlpspd%plr(iatom)%ns1
+!!$      nu2 = nlpspd%plr(iatom)%d%nfu2+nlpspd%plr(iatom)%ns2
+!!$      nu3 = nlpspd%plr(iatom)%d%nfu3+nlpspd%plr(iatom)%ns3
 
 !!$      nl1 = nlpspd%nboxp_f(1,1,iatom)
 !!$      nl2 = nlpspd%nboxp_f(1,2,iatom)
@@ -875,13 +895,16 @@ subroutine projector_box_in_locreg(iatom,Glr,Llr,nlpspd,bounds)
   integer,dimension(1:2,1:3) :: Cnl,Fnl,Lnl
   
 ! Set boundaries of projectors (coarse)
-  Cnl(1,1) = nlpspd%plr(iatom)%ns1
-  Cnl(1,2) = nlpspd%plr(iatom)%ns2
-  Cnl(1,3) = nlpspd%plr(iatom)%ns3
+  call bounds_to_plr_limits(.false.,1,nlpspd%plr(iatom),&
+       Cnl(1,1),Cnl(1,2),Cnl(1,3),Cnl(2,1),Cnl(2,2),Cnl(2,3))
 
-  Cnl(2,1) = nlpspd%plr(iatom)%d%n1+nlpspd%plr(iatom)%ns1
-  Cnl(2,2) = nlpspd%plr(iatom)%d%n2+nlpspd%plr(iatom)%ns2
-  Cnl(2,3) = nlpspd%plr(iatom)%d%n3+nlpspd%plr(iatom)%ns3
+!!$  Cnl(1,1) = nlpspd%plr(iatom)%ns1
+!!$  Cnl(1,2) = nlpspd%plr(iatom)%ns2
+!!$  Cnl(1,3) = nlpspd%plr(iatom)%ns3
+!!$
+!!$  Cnl(2,1) = nlpspd%plr(iatom)%d%n1+nlpspd%plr(iatom)%ns1
+!!$  Cnl(2,2) = nlpspd%plr(iatom)%d%n2+nlpspd%plr(iatom)%ns2
+!!$  Cnl(2,3) = nlpspd%plr(iatom)%d%n3+nlpspd%plr(iatom)%ns3
 
 !!$  !lower bounds
 !!$  Cnl(1,1) = nlpspd%nboxp_c(1,1,iatom)
@@ -893,13 +916,16 @@ subroutine projector_box_in_locreg(iatom,Glr,Llr,nlpspd,bounds)
 !!$  Cnl(2,3) = nlpspd%nboxp_c(2,3,iatom)
 
 ! Set boundaries of projectors (fine)
-  Fnl(1,1) = nlpspd%plr(iatom)%d%nfl1+nlpspd%plr(iatom)%ns1
-  Fnl(1,2) = nlpspd%plr(iatom)%d%nfl2+nlpspd%plr(iatom)%ns2
-  Fnl(1,3) = nlpspd%plr(iatom)%d%nfl3+nlpspd%plr(iatom)%ns3
-  
-  Fnl(2,1) = nlpspd%plr(iatom)%d%nfu1+nlpspd%plr(iatom)%ns1
-  Fnl(2,2) = nlpspd%plr(iatom)%d%nfu2+nlpspd%plr(iatom)%ns2
-  Fnl(2,3) = nlpspd%plr(iatom)%d%nfu3+nlpspd%plr(iatom)%ns3
+  call bounds_to_plr_limits(.false.,2,nlpspd%plr(iatom),&
+       Fnl(1,1),Fnl(1,2),Fnl(1,3),Fnl(2,1),Fnl(2,2),Fnl(2,3))
+
+!!$  Fnl(1,1) = nlpspd%plr(iatom)%d%nfl1+nlpspd%plr(iatom)%ns1
+!!$  Fnl(1,2) = nlpspd%plr(iatom)%d%nfl2+nlpspd%plr(iatom)%ns2
+!!$  Fnl(1,3) = nlpspd%plr(iatom)%d%nfl3+nlpspd%plr(iatom)%ns3
+!!$  
+!!$  Fnl(2,1) = nlpspd%plr(iatom)%d%nfu1+nlpspd%plr(iatom)%ns1
+!!$  Fnl(2,2) = nlpspd%plr(iatom)%d%nfu2+nlpspd%plr(iatom)%ns2
+!!$  Fnl(2,3) = nlpspd%plr(iatom)%d%nfu3+nlpspd%plr(iatom)%ns3
 
 !!$  !lower bounds
 !!$  Fnl(1,1) = nlpspd%nboxp_f(1,1,iatom)

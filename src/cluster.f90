@@ -1935,7 +1935,8 @@ subroutine deallocate_before_exiting
    deallocate(phnons,stat=i_stat)
    call memocc(i_stat,i_all,'phnons',subname)
 
-    call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds,subname)
+    call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,&
+         Lzd%Glr%bounds,subname)
 
 
 !    call deallocate_local_zone_descriptors(Lzd, subname)

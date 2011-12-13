@@ -3588,7 +3588,7 @@ subroutine free_lnlpspd(orbs, lzd)
       do iorb=1,orbs%norbp
          if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) go=.true.
       end do
-      !if (.not. go) cycle !deallocate only for the locreg on this processor, without repeating for same locreg.
+      if (.not. go) cycle !deallocate only for the locreg on this processor, without repeating for same locreg.
 
       ! Deallocate projflg.
       !call checkAndDeallocatePointer(lzd%llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)

@@ -67,9 +67,9 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),&
              cpmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
-
         call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
              nl1,nl2,nl3,nu1,nu2,nu3)
+
 !!$        nlpspd%plr(iat)%ns1=nl1     
 !!$        nlpspd%plr(iat)%ns2=nl2       
 !!$        nlpspd%plr(iat)%ns3=nl3       

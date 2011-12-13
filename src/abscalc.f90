@@ -509,13 +509,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    hxh=0.5d0*hx
    hyh=0.5d0*hy
    hzh=0.5d0*hz
-  n1i=Lzd%Glr%d%n1i
-  n2i=Lzd%Glr%d%n2i
-  n3i=Lzd%Glr%d%n3i
+   n1i=Lzd%Glr%d%n1i
+   n2i=Lzd%Glr%d%n2i
+   n3i=Lzd%Glr%d%n3i
 
-  n1=Lzd%Glr%d%n1
-  n2=Lzd%Glr%d%n2
-  n3=Lzd%Glr%d%n3
+   n1=Lzd%Glr%d%n1
+   n2=Lzd%Glr%d%n2
+   n3=Lzd%Glr%d%n3
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call timing(iproc,'CrtDescriptors','ON')
@@ -1270,9 +1270,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !    No tail calculation
    if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
-   call deallocate_local_zone_descriptors(lzd, subname)
    call deallocate_before_exiting
-
+   call deallocate_local_zone_descriptors(lzd, subname)
 
    contains
 
@@ -1382,10 +1381,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
 
       !De-allocations
-      !call deallocate_bounds(atoms%geocode,Lzd%Glr%hybrid_on,  Lzd%Glr%bounds,subname)
-      !i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
-      !deallocate(Lzd%Glr%projflg,stat=i_stat)
-      !call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
+      call deallocate_bounds(atoms%geocode,Lzd%Glr%hybrid_on,&
+           Lzd%Glr%bounds,subname)
+      call deallocate_Lzd_except_Glr(Lzd, subname)
+      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
+      deallocate(Lzd%Glr%projflg,stat=i_stat)
+      call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
 
       call deallocate_comms(comms,subname)
 

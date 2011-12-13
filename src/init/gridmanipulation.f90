@@ -69,7 +69,6 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    !!  cymin=cymin-eps_mach
    !!  czmin=czmin-eps_mach
 
-
    !define the box sizes for free BC, and calculate dimensions for the fine grid with ISF
    if (atoms%geocode == 'F') then
       atoms%alat1=(cxmax-cxmin)

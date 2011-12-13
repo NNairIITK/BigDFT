@@ -1006,8 +1006,8 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    integer :: nbx,nby,nbz,nl1,nl2,nl3,nat
    real(gp) :: dpmult,dsq,spadd
    integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax
-   integer,dimension(at%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax,& !n(c) imin,imax,&
-      &   i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,dsq_cr,dsq_fr
+   integer,dimension(at%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
+   integer,dimension(at%nat) :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,dsq_cr,dsq_fr
    integer :: csegstot,fsegstot,corx,cory,corz
    !n(c) integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
 

@@ -317,7 +317,7 @@ subroutine orthonormalizeLocalized2(iproc, nproc, methTransformOverlap, nItOrtho
   !write(*,*)'iproc, timecommunp2p', iproc, timecommunp2p
   !write(*,*)'iproc, timecommuncoll', iproc, timecommuncoll
 
-  if (vrebose > 2) then
+  if (verbose > 2) then
      timeComput=timeLoewdin+timeTransform+timeextract+timeoverlap+timeexpand+timecompress
      timeCommun=timecommunp2p+timecommuncoll
      call mpiallred(timeComput, 1, mpi_sum, mpi_comm_world, ierr)
@@ -372,35 +372,35 @@ end subroutine orthonormalizeLocalized2
 
 
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, trH, W, eval)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
-implicit none
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
+  implicit none
 
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(linearParameters),intent(inout):: lin
-type(input_variables),intent(in):: input
-real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: ovrlp
-!real(8),dimension(lin%lorbs%npsidim),intent(in):: lphi
-real(8),dimension(lin%orbs%npsidim),intent(in):: lphi
-!real(8),dimension(lin%lorbs%npsidim),intent(inout):: lhphi
-real(8),dimension(lin%orbs%npsidim),intent(inout):: lhphi
-type(matrixDescriptors),intent(in):: mad
-real(8),intent(out):: trH
-real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out),optional:: W
-real(8),dimension(lin%orbs%norb),intent(out),optional:: eval
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(linearParameters),intent(inout):: lin
+  type(input_variables),intent(in):: input
+  real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: ovrlp
+  !real(8),dimension(lin%lorbs%npsidim),intent(in):: lphi
+  real(8),dimension(lin%orbs%npsidim),intent(in):: lphi
+  !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lhphi
+  real(8),dimension(lin%orbs%npsidim),intent(inout):: lhphi
+  type(matrixDescriptors),intent(in):: mad
+  real(8),intent(out):: trH
+  real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out),optional:: W
+  real(8),dimension(lin%orbs%norb),intent(out),optional:: eval
 
-! Local variables
-integer:: it, istat, iall, iorb, ierr, i, maxvaloverlap, lwork, info, jorb, k
-real(8),dimension(:),allocatable:: lphiovrlp, sendBuf, ovrlpCompressed, ovrlpCompressed2, work
-real(8),dimension(:,:),allocatable:: lagmat
-character(len=*),parameter:: subname='orthoconstraintLocalized'
-real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput, tt
-real(8):: timecommunp2p, timecommuncoll, timecompress
-logical,dimension(:,:),allocatable:: expanded
-integer,dimension(:),allocatable:: sendcounts, displs
-logical:: present_W, present_eval
+  ! Local variables
+  integer:: it, istat, iall, iorb, ierr, i, maxvaloverlap, lwork, info, jorb, k
+  real(8),dimension(:),allocatable:: lphiovrlp, sendBuf, ovrlpCompressed, ovrlpCompressed2, work
+  real(8),dimension(:,:),allocatable:: lagmat
+  character(len=*),parameter:: subname='orthoconstraintLocalized'
+  real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput, tt
+  real(8):: timecommunp2p, timecommuncoll, timecompress
+  logical,dimension(:,:),allocatable:: expanded
+  integer,dimension(:),allocatable:: sendcounts, displs
+  logical:: present_W, present_eval
 
 
 
@@ -444,7 +444,7 @@ logical:: present_W, present_eval
   !!call gatherOrbitalsOverlapWithComput2(iproc, nproc, lin%orbs, input, lin%lzd, lin%op, lin%comon, lin%comon%nsendbuf, sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, lphiovrlp, expanded, lagmat)
   call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
        lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, lagmat, timecommunp2p, timecommuncoll, timecompress)
-  !!!! THIS IS NEW #####################
+!!!! THIS IS NEW #####################
   !!maxvaloverlap=maxval(lin%comon%noverlaps)
   !!lin%comon%nstepoverlap=50000
   !!lin%comon%isoverlap=1
@@ -469,12 +469,12 @@ logical:: present_W, present_eval
   !call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
   !                     lhphi, lin%comon%nsendBuf, sendBuf)
   call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
-                       lhphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+       lhphi, lin%comon%nsendBuf, lin%comon%sendBuf)
   t2=mpi_wtime()
   timeextract=timeextract+t2-t1
   t1=mpi_wtime()
   call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
-                               lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, lagmat)
+       lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, lagmat)
   t2=mpi_wtime()
   timecalcmatrix=timecalcmatrix+t2-t1
 
@@ -484,7 +484,7 @@ logical:: present_W, present_eval
   !timeCalcMatrix=t2-t1
   trH=0.d0
   do iorb=1,lin%orbs%norb
-      trH=trH+lagmat(iorb,iorb)
+     trH=trH+lagmat(iorb,iorb)
   end do
   ! Expand the receive buffer, i.e. lphi
   t1=mpi_wtime()
@@ -498,13 +498,13 @@ logical:: present_W, present_eval
   !!end do
 
   !! I think this is not needed??
-  !!!! Now we also have to send lhphi
-  !!!!call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  !!!call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
-  !!!call postCommsOverlap(iproc, nproc, lin%comon)
-  !!!call gatherOrbitals2(iproc, nproc, lin%comon)
-  !!!! Expand the receive buffer, i.e. lhphi
-  !!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
+!!!! Now we also have to send lhphi
+!!!!call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
+!!!call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
+!!!call postCommsOverlap(iproc, nproc, lin%comon)
+!!!call gatherOrbitals2(iproc, nproc, lin%comon)
+!!!! Expand the receive buffer, i.e. lhphi
+!!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
   t1=mpi_wtime()
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%orbs, &
        lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
@@ -517,55 +517,55 @@ logical:: present_W, present_eval
   present_eval=present(eval)
   !present_eval=.false.
   if(present_W .and. .not.present_eval .or. present_eval .and. .not.present_W) then
-      write(*,*) 'ERROR W and eval must be present at the same time'
-      stop
+     write(*,*) 'ERROR W and eval must be present at the same time'
+     stop
   end if
   if(present_W .and. present_eval) then
-      ! Diagonalize lagmat -- EXPERIMENTAL
+     ! Diagonalize lagmat -- EXPERIMENTAL
 
-      ! Copy lagmat to W and symmetrize it.
-      do iorb=1,lin%orbs%norb
-          do jorb=1,lin%orbs%norb
-              W(jorb,iorb)=.5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)
-          end do
-      end do
-      allocate(work(1), stat=istat)
-      call memocc(istat, work, 'work', subname)
-      call dsyev('v', 'l', lin%orbs%norb, W(1,1), lin%orbs%norb, eval, work, -1, info)
-      if(info/=0) stop 'ERROR in dsyev'
-      lwork=work(1)
-      iall=-product(shape(work))*kind(work)
-      deallocate(work, stat=istat)
-      call memocc(istat, iall, 'work', subname)
-      allocate(work(lwork), stat=istat)
-      call memocc(istat, work, 'work', subname)
-      call dsyev('v', 'l', lin%orbs%norb, W(1,1), lin%orbs%norb, eval, work, lwork, info)
-      if(info/=0) stop 'ERROR in dsyev'
-      iall=-product(shape(work))*kind(work)
-      deallocate(work, stat=istat)
-      call memocc(istat, iall, 'work', subname)
+     ! Copy lagmat to W and symmetrize it.
+     do iorb=1,lin%orbs%norb
+        do jorb=1,lin%orbs%norb
+           W(jorb,iorb)=.5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)
+        end do
+     end do
+     allocate(work(1), stat=istat)
+     call memocc(istat, work, 'work', subname)
+     call dsyev('v', 'l', lin%orbs%norb, W(1,1), lin%orbs%norb, eval, work, -1, info)
+     if(info/=0) stop 'ERROR in dsyev'
+     lwork=work(1)
+     iall=-product(shape(work))*kind(work)
+     deallocate(work, stat=istat)
+     call memocc(istat, iall, 'work', subname)
+     allocate(work(lwork), stat=istat)
+     call memocc(istat, work, 'work', subname)
+     call dsyev('v', 'l', lin%orbs%norb, W(1,1), lin%orbs%norb, eval, work, lwork, info)
+     if(info/=0) stop 'ERROR in dsyev'
+     iall=-product(shape(work))*kind(work)
+     deallocate(work, stat=istat)
+     call memocc(istat, iall, 'work', subname)
 
-      ! Transpose W
-      do iorb=1,lin%orbs%norb
-          do jorb=iorb,lin%orbs%norb
-              tt=W(jorb,iorb)
-              W(jorb,iorb)=W(iorb,jorb)
-              W(iorb,jorb)=tt
-          end do
-      end do
+     ! Transpose W
+     do iorb=1,lin%orbs%norb
+        do jorb=iorb,lin%orbs%norb
+           tt=W(jorb,iorb)
+           W(jorb,iorb)=W(iorb,jorb)
+           W(iorb,jorb)=tt
+        end do
+     end do
 
-      ! Check
-      !do iorb=1,lin%orbs%norb
-      !    do jorb=1,lin%orbs%norb
-      !        tt=0.d0
-      !        do k=1,lin%orbs%norb
-      !            tt=tt+eval(k)*W(k,iorb)*W(k,jorb)
-      !        end do
-      !        if(iproc==0) then
-      !            write(*,'(a,2i7,2es16.8)') 'iproc, jorb, tt, .5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)', iproc, jorb, tt, .5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)
-      !        end if
-      !    end do
-      !end do
+     ! Check
+     !do iorb=1,lin%orbs%norb
+     !    do jorb=1,lin%orbs%norb
+     !        tt=0.d0
+     !        do k=1,lin%orbs%norb
+     !            tt=tt+eval(k)*W(k,iorb)*W(k,jorb)
+     !        end do
+     !        if(iproc==0) then
+     !            write(*,'(a,2i7,2es16.8)') 'iproc, jorb, tt, .5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)', iproc, jorb, tt, .5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)
+     !        end if
+     !    end do
+     !end do
   end if
 
   !!
