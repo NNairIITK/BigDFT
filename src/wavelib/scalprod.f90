@@ -538,7 +538,7 @@ subroutine waxpy(  &
   real(wp), dimension(mavctr_c), intent(inout) :: apsi_c
   real(wp), dimension(7,mavctr_f), intent(inout) :: apsi_f
   !local variables
-  integer :: ibseg,iaseg0,jaj,jb1,jb0,jbj,iaoff,length,i
+  integer :: ibseg,iaseg0,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(wp) :: scprwp
   integer, dimension(maseg_c) :: keyag_c_lin!linear version of second inidces of keyag_c
   integer, dimension(maseg_f) :: keyag_f_lin!linear version of second inidces of keyag_f
@@ -706,7 +706,7 @@ subroutine hunt1(ascnd,xx,n,x,jlo)
   !increment of the segment
   inc=1
   !target is above starting point
-  if (x >= xx(jlo) == ascnd) then
+  if ((x >= xx(jlo)) .eqv. ascnd) then
      guess_end: do
         jhi=jlo+inc
         !number of segments is over
@@ -714,7 +714,7 @@ subroutine hunt1(ascnd,xx,n,x,jlo)
            jhi=n+1
            exit guess_end
         !increase until the target is below
-        else if((x >= xx(jhi)) == ascnd)then
+        else if((x >= xx(jhi)) .eqv. ascnd)then
            jlo=jhi
            inc=inc+inc
         else
@@ -731,7 +731,7 @@ subroutine hunt1(ascnd,xx,n,x,jlo)
            jlo=0
            exit guess_start
         !decrease until the target is above
-        else if((x < xx(jlo)) == ascnd)then
+        else if((x < xx(jlo)) .eqv. ascnd)then
            jhi=jlo
            inc=inc+inc
         else
@@ -752,7 +752,7 @@ subroutine hunt1(ascnd,xx,n,x,jlo)
      !mean point (integer division, rounded towards jhi)
      jm=(jhi+jlo)/2
      !restrict search from the bottom of from the top
-     if ((x >= xx(jm)) == ascnd) then
+     if ((x >= xx(jm)) .eqv. ascnd) then
         jlo=jm
      else
         jhi=jm
