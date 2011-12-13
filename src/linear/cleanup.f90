@@ -1394,6 +1394,17 @@ subroutine deallocate_overlapParameters(op, subname)
       end do
   end do
 
+
+  iis1=lbound(op%extseg,1)
+  iie1=ubound(op%extseg,1)
+  iis2=lbound(op%extseg,2)
+  iie2=ubound(op%extseg,2)
+  do i2=iis2,iie2
+      do i1=iis1,iie1
+          call deallocate_expansionSegments(op%extseg(i1,i2), subname)
+      end do
+  end do
+
 end subroutine deallocate_overlapParameters
 
 

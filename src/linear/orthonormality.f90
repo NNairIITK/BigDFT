@@ -875,6 +875,12 @@ character(len=*),parameter:: subname='initCommsOrtho'
   ! to the overlap region.
   allocate(op%indexExtract(comon%nsendBuf), stat=istat)
   call memocc(istat, op%indexExtract, 'op%indexExtract',subname)
+  allocate(op%extseg(op%noverlapsmaxp,orbs%norbp), stat=istat)
+  do i1=1,orbs%norbp
+      do i2=1,op%noverlapsmaxp
+          call nullify_expansionSegments(op%extseg(i2,i1))
+      end do
+  end do
   call indicesForExtraction(iproc, nproc, orbs, orbs%npsidim, onWhichAtomAll, lzd, op, comon)
 
 
@@ -1693,7 +1699,7 @@ real(8),dimension(nsendBuf),intent(out):: sendBuf
 
 ! Local variables
 integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
-integer:: i, indSource, m, ii
+integer:: i, indSource, m, ii, jst, istart, iend, ncount, iseg
 
 indovrlp=1
 op%indexInSendBuf=0
@@ -1732,39 +1738,56 @@ do iorb=1,orbs%norb
             !!    indSource=ind+op%indexExtract(indovrlp+i)-1
             !!    sendBuf(indovrlp+i)=phi(indSource)
             !!end do
-            !! THIS IS THE NEW VERSION
-            m=mod(ldim,7)
-            if(m/=0) then
-                do i=0,m-1
-                    ii=indovrlp+i
-                    indSource=ind+op%indexExtract(ii)-1
-                    sendBuf(ii)=phi(indSource)
-                end do
-            end if
-            do i=m,ldim-1,7
-                ii=indovrlp+i
-                indSource=ind+op%indexExtract(ii+0)-1
-                sendBuf(ii+0)=phi(indSource)
-                indSource=ind+op%indexExtract(ii+1)-1
-                sendBuf(ii+1)=phi(indSource)
-                indSource=ind+op%indexExtract(ii+2)-1
-                sendBuf(ii+2)=phi(indSource)
-                indSource=ind+op%indexExtract(ii+3)-1
-                sendBuf(ii+3)=phi(indSource)
-                indSource=ind+op%indexExtract(ii+4)-1
-                sendBuf(ii+4)=phi(indSource)
-                indSource=ind+op%indexExtract(ii+5)-1
-                sendBuf(ii+5)=phi(indSource)
-                indSource=ind+op%indexExtract(ii+6)-1
-                sendBuf(ii+6)=phi(indSource)
+
+            !! THIS IS THE NEWEST VERSION
+            jst=0
+            do iseg=1,op%extseg(lorb,korb)%nseg
+                istart=op%extseg(lorb,korb)%segborders(1,iseg)
+                iend=op%extseg(lorb,korb)%segborders(2,iseg)
+                ncount=iend-istart+1
+                !call dcopy(ncount,  comon%recvBuf(jst), 1, lphi(indout+istart-1), 1)
+                call dcopy(ncount, phi(ind+istart-1), 1, sendBuf(indovrlp+jst), 1)
+                jst=jst+ncount
             end do
+
+
+            !!!! THIS IS THE NEW VERSION
+            !!m=mod(ldim,7)
+            !!if(m/=0) then
+            !!    do i=0,m-1
+            !!        ii=indovrlp+i
+            !!        indSource=ind+op%indexExtract(ii)-1
+            !!        sendBuf(ii)=phi(indSource)
+            !!    end do
+            !!end if
+            !!do i=m,ldim-1,7
+            !!    ii=indovrlp+i
+            !!    indSource=ind+op%indexExtract(ii+0)-1
+            !!    sendBuf(ii+0)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+1)-1
+            !!    sendBuf(ii+1)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+2)-1
+            !!    sendBuf(ii+2)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+3)-1
+            !!    sendBuf(ii+3)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+4)-1
+            !!    sendBuf(ii+4)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+5)-1
+            !!    sendBuf(ii+5)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+6)-1
+            !!    sendBuf(ii+6)=phi(indSource)
+            !!end do
             op%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
             indovrlp=indovrlp+op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
         end if
     end do
     ilrold=ilr
     iiprocold=iiproc
+
 end do
+!!do i=1,nsendBuf
+!!     write(1000+iproc,*) i, sendbuf(i)
+!!end do
 
 if(indovrlp/=nsendBuf+1) then
     write(*,'(1x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=nsendBuf+1', indovrlp, nsendBuf+1
@@ -3490,6 +3513,7 @@ end subroutine determineExpansionSegments
 subroutine indicesForExtraction(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, comon)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => indicesForExtraction
 implicit none
 
 ! Calling arguments
@@ -3502,7 +3526,8 @@ type(p2pCommsOrthonormality),intent(out):: comon
 
 ! Local variables
 integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
-integer:: i
+integer:: i, istat
+character(len=*),parameter:: subname='indicesForExtraction'
 
 indovrlp=1
 op%indexInSendBuf=0
@@ -3538,6 +3563,12 @@ do iorb=1,orbs%norb
             !write(*,'(5(a,i0))') 'process ',iproc,' adds ',op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f,' elements at position ',indovrlp,' from orbital ',jjorb,' for orbital ', iorb
             !call psi_to_locreg2(iproc, nproc, ldim, gdim, op%olr(lorb,korb), lzd%llr(jjlr), phi(ind), comon%sendBuf(indovrlp))
             call index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, op%olr(lorb,korb), lzd%llr(jjlr), op%indexExtract(indovrlp))
+
+            call countExpansionSegments(ldim, op%indexExtract(indovrlp), op%extseg(lorb,korb)%nseg)
+            allocate(op%extseg(lorb,korb)%segborders(2,op%extseg(lorb,korb)%nseg), stat=istat)
+            call memocc(istat, op%extseg(lorb,korb)%segborders, 'op%extseg(lorb,korb)%segborders', subname)
+            call determineExpansionSegments(ldim, op%indexExtract(indovrlp), op%extseg(lorb,korb)%nseg, op%extseg(lorb,korb)%segborders)
+
             op%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
             indovrlp=indovrlp+op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
         end if

@@ -565,6 +565,7 @@ module module_types
       integer,dimension(:,:),pointer:: segborders
   end type expansionSegments
 
+
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
       integer:: ndim_lphiovrlp, noverlapsmax, noverlapsmaxp
@@ -574,6 +575,7 @@ module module_types
       integer,dimension(:,:),pointer:: indexInSendBuf
       type(locreg_descriptors),dimension(:,:),pointer:: olr
       type(expansionSegments),dimension(:,:),pointer:: expseg
+      type(expansionSegments),dimension(:,:),pointer:: extseg
   end type overlapParameters
 
 

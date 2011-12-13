@@ -5388,6 +5388,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine nullify_expansionSegments
 
 
+      subroutine indicesForExtraction(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, comon)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, sizePhi
+        type(orbitals_data),intent(in):: orbs
+        integer,dimension(orbs%norb),intent(in):: onWhichAtom
+        type(local_zone_descriptors),intent(in):: lzd
+        type(overlapParameters),intent(inout):: op
+        type(p2pCommsOrthonormality),intent(out):: comon
+      end subroutine indicesForExtraction
+
    end interface
 
 END MODULE module_interfaces
