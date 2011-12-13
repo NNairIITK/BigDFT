@@ -483,6 +483,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   !calculate k-point
   ikpt=orbs%iokpt(iorb)
   write(f3,'(a1,i3.3)') "k", ikpt !not more than 999 kpts
+
   !see if the wavefunction is real or imaginary
   if(modulo(ispinor,2)==0) then
      realimag='I'
