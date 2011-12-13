@@ -797,6 +797,8 @@ integer::  je3, istat, i1, i2, irecv, isend, mpidest, mpisource
 logical:: ovrlpx, ovrlpy, ovrlpz
 character(len=*),parameter:: subname='initCommsOrtho'
 
+  call nullify_overlapParameters(op)
+
   ! Allocate the arrays that count the number of overlaps per process (comon%noverlaps)
   ! and per orbital (op%noverlaps)
   allocate(comon%noverlaps(0:nproc-1), stat=istat)
@@ -860,6 +862,13 @@ character(len=*),parameter:: subname='initCommsOrtho'
   ! to ordinary localization region.
   allocate(op%indexExpand(comon%nrecvBuf), stat=istat)
   call memocc(istat, op%indexExpand, 'op%indexExpand',subname)
+
+  allocate(op%expseg(op%noverlapsmaxp,orbs%norbp), stat=istat)
+  do i1=1,orbs%norbp
+      do i2=1,op%noverlapsmaxp
+          call nullify_expansionSegments(op%expseg(i2,i1))
+      end do
+  end do
   call indicesForExpansion(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon)
   
   ! Initialize the index arrays for the transformations from the ordinary localization region
@@ -3365,6 +3374,7 @@ endsubroutine overlapPowerMinusOneHalf
 subroutine indicesForExpansion(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => indicesForExpansion
 implicit none
 
 ! Calling arguments
@@ -3373,12 +3383,12 @@ type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(local_zone_descriptors),intent(in):: lzd
-type(overlapParameters),intent(in):: op
+type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(in):: comon
 
 ! Local variables
-integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold
-
+integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, istat
+character(len=*),parameter:: subname='indicesForExpansion'
 
 
 ind=1
@@ -3398,6 +3408,12 @@ do iorb=1,orbs%norbp
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), comon%recvBuf(jst), lphiovrlp(ind))
         call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, &
              lzd%llr(ilr), op%olr(jorb,iorb), op%indexExpand(jst))
+
+        call countExpansionSegments(ldim, op%indexExpand(jst), op%expseg(jorb,iorb)%nseg)
+        allocate(op%expseg(jorb,iorb)%segborders(2,op%expseg(jorb,iorb)%nseg), stat=istat)
+        call memocc(istat, op%expseg(jorb,iorb)%segborders, 'op%expseg(jorb,iorb)%segborders', subname)
+        call determineExpansionSegments(ldim, op%indexExpand(jst), op%expseg(jorb,iorb)%nseg, op%expseg(jorb,iorb)%segborders)
+
         ind=ind+gdim
     end do
     ilrold=ilr
@@ -3405,6 +3421,68 @@ end do
 
 end subroutine indicesForExpansion
 
+
+
+subroutine countExpansionSegments(ldim, indexExpand, nseg)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: ldim
+integer,dimension(ldim),intent(in):: indexExpand
+integer,intent(out):: nseg
+integer,dimension(:,:),pointer:: segborders
+
+! Local variables
+integer:: i
+
+! Count the numbers of segments
+nseg=0
+do i=2,ldim
+    if(indexExpand(i)==indexExpand(i-1)+1) then
+        !consecutive, same segment
+    else
+        !segment ended
+        nseg=nseg+1
+    end if
+end do
+nseg=nseg+1 !last segment
+
+end subroutine countExpansionSegments
+
+
+subroutine determineExpansionSegments(ldim, indexExpand, nseg, segborders)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: ldim, nseg
+integer,dimension(ldim),intent(in):: indexExpand
+integer,dimension(2,nseg):: segborders
+
+! Local variables
+integer:: iseg, i
+character(len=*),parameter:: subname='determineExpansionSegments'
+
+iseg=1
+segborders(1,iseg)=indexExpand(1)
+do i=2,ldim
+    if(indexExpand(i)==indexExpand(i-1)+1) then
+        !consecutive, same segment
+    else
+        !segment ended
+        segborders(2,iseg)=indexExpand(i-1)
+        iseg=iseg+1
+        segborders(1,iseg)=indexExpand(i)
+    end if
+end do
+segborders(2,iseg)=indexExpand(ldim) !last segments
+
+
+
+end subroutine determineExpansionSegments
 
 
 

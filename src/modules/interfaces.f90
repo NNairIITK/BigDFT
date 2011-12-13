@@ -4254,20 +4254,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(orbs%npsidim),intent(out):: lphi
     end subroutine buildLinearCombinationsVariable
 
-    subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, indexLpsi)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc, nproc
-      integer :: Gdim          ! dimension of psi 
-      integer :: Ldim          ! dimension of lpsi
-      integer :: norb          ! number of orbitals
-      integer :: nspinor       ! number of spinors
-      integer :: nspin         ! number of spins 
-      type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
-      type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 
-      integer,dimension(Ldim),intent(out) :: indexLpsi         !Wavefunction in localization region
-    end subroutine index_of_Lpsi_to_global2
+    !subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, indexLpsi)
+    !  use module_base
+    !  use module_types
+    !  implicit none
+    !  integer,intent(in):: iproc, nproc
+    !  integer :: Gdim          ! dimension of psi 
+    !  integer :: Ldim          ! dimension of lpsi
+    !  integer :: norb          ! number of orbitals
+    !  integer :: nspinor       ! number of spinors
+    !  integer :: nspin         ! number of spins 
+    !  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+    !  type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 
+    !  integer,dimension(Ldim),intent(out) :: indexLpsi         !Wavefunction in localization region
+    !end subroutine index_of_Lpsi_to_global2
 
     subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr, tag)
       use module_base
@@ -5353,6 +5353,40 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         logical,intent(in):: reset
         real(8),dimension(orbs%npsidim),intent(out):: lphi
       end subroutine build_new_linear_combinations
+
+
+      subroutine indicesForExpansion(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc
+        type(orbitals_data),intent(in):: orbs
+        type(input_variables),intent(in):: input
+        integer,dimension(orbs%norb),intent(in):: onWhichAtom
+        type(local_zone_descriptors),intent(in):: lzd
+        type(overlapParameters),intent(inout):: op
+        type(p2pCommsOrthonormality),intent(in):: comon
+      end subroutine indicesForExpansion
+
+
+      !!!!subroutine determineExpansionSegments(ldim, indexExpand, nseg, segborders)
+      !!!!  use module_base
+      !!!!  use module_types
+      !!!!  implicit none
+      !!!!  integer,intent(in):: ldim
+      !!!!  integer,dimension(ldim),intent(in):: indexExpand
+      !!!!  integer,intent(out):: nseg
+      !!!!  integer,dimension(:,:),pointer:: segborders
+      !!!!end subroutine determineExpansionSegments
+
+
+      subroutine nullify_expansionSegments(expseg)
+        use module_base
+        use module_types
+        implicit none
+        type(expansionSegments),intent(out):: expseg
+      end subroutine nullify_expansionSegments
+
 
    end interface
 

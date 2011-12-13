@@ -560,6 +560,11 @@ module module_types
        logical,dimension(:,:),pointer:: communComplete
   end type p2pCommsRepartition
 
+  type,public:: expansionSegments
+      integer:: nseg
+      integer,dimension(:,:),pointer:: segborders
+  end type expansionSegments
+
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
       integer:: ndim_lphiovrlp, noverlapsmax, noverlapsmaxp
@@ -568,6 +573,7 @@ module module_types
       integer,dimension(:,:),pointer:: indexInRecvBuf
       integer,dimension(:,:),pointer:: indexInSendBuf
       type(locreg_descriptors),dimension(:,:),pointer:: olr
+      type(expansionSegments),dimension(:,:),pointer:: expseg
   end type overlapParameters
 
 

@@ -4830,6 +4830,7 @@ real(8),dimension(orbs%npsidim),intent(out):: lphi
 
 ! Local variables
 integer:: ist, jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, i, ldim, ind, indout, gdim, iorbref, m, ii
+integer:: istart, iend, iseg
 real(8):: tt
 
 
@@ -4879,38 +4880,58 @@ real(8):: tt
               ldim=op%olr(jorb,iorbref)%wfd%nvctr_c+7*op%olr(jorb,iorbref)%wfd%nvctr_f
               !tt=real(omatc(jjorb,iiorb))
               tt=omat(jjorb,iiorb)
-              !! THIS IS THE OLD VERSION
+              ! THIS IS THE OLD VERSION
               !!do i=0,ldim-1
               !!    ind=indout+op%indexExpand(jst+i)-1
               !!    lphi(ind)=lphi(ind)+tt*comon%recvBuf(jst+i)
               !!end do
-              m=mod(ldim,7)
-              if(m/=0) then
-                  do i=0,m-1
-                      ii=jst+i
-                      ind=indout+op%indexExpand(ii)-1
-                      lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii)
-                  end do
-              end if
-              do i=m,ldim-1,7
-                  ii=jst+i
-                  ind=indout+op%indexExpand(ii+0)-1
-                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+0)
-                  ind=indout+op%indexExpand(ii+1)-1
-                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+1)
-                  ind=indout+op%indexExpand(ii+2)-1
-                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+2)
-                  ind=indout+op%indexExpand(ii+3)-1
-                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+3)
-                  ind=indout+op%indexExpand(ii+4)-1
-                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+4)
-                  ind=indout+op%indexExpand(ii+5)-1
-                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+5)
-                  ind=indout+op%indexExpand(ii+6)-1
-                  lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+6)
+ 
+              !!!! NEWEST METHOD
+              do iseg=1,op%expseg(jorb,iorbref)%nseg
+                  istart=op%expseg(jorb,iorbref)%segborders(1,iseg)
+                  iend=op%expseg(jorb,iorbref)%segborders(2,iseg)
+                  ncount=iend-istart+1
+                  call daxpy(ncount, tt, comon%recvBuf(jst), 1, lphi(indout+istart-1), 1)
+                  jst=jst+ncount
               end do
+
+
+
+              !!! NEW METHOD
+              !!m=mod(ldim,7)
+              !!if(m/=0) then
+              !!    do i=0,m-1
+              !!        ii=jst+i
+              !!        ind=indout+op%indexExpand(ii)-1
+              !!        lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii)
+              !!    end do
+              !!end if
+              !!do i=m,ldim-1,7
+              !!    ii=jst+i
+              !!    ind=indout+op%indexExpand(ii+0)-1
+              !!    lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+0)
+              !!    ind=indout+op%indexExpand(ii+1)-1
+              !!    lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+1)
+              !!    ind=indout+op%indexExpand(ii+2)-1
+              !!    lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+2)
+              !!    ind=indout+op%indexExpand(ii+3)-1
+              !!    lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+3)
+              !!    ind=indout+op%indexExpand(ii+4)-1
+              !!    lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+4)
+              !!    ind=indout+op%indexExpand(ii+5)-1
+              !!    lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+5)
+              !!    ind=indout+op%indexExpand(ii+6)-1
+              !!    lphi(ind)=lphi(ind)+tt*comon%recvBuf(ii+6)
+              !!end do
           end do
+          !!do i=0,gdim-1
+          !!    write(1000+iiorb,*) indout+i, lphi(indout+i)
+          !!end do
           indout=indout+gdim
           ilrold=ilr
+
       end do
+
+          
+
 end subroutine build_new_linear_combinations

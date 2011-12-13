@@ -1228,6 +1228,22 @@ subroutine deallocate_matrixLocalizationRegion(mlr, subname)
 end subroutine deallocate_matrixLocalizationRegion
 
 
+
+subroutine deallocate_expansionSegments(expseg, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(expansionSegments),intent(inout):: expseg
+  character(len=*),intent(in):: subname
+  
+  call checkAndDeallocatePointer(expseg%segborders, 'expseg%segborders', subname)
+
+end subroutine deallocate_expansionSegments
+
+
 subroutine deallocate_p2pCommsSumrho(comsr, subname)
   use module_base
   use module_types
@@ -1364,6 +1380,17 @@ subroutine deallocate_overlapParameters(op, subname)
   do i2=iis2,iie2
       do i1=iis1,iie1
           call deallocate_locreg_descriptors2(op%olr(i1,i2), subname)
+      end do
+  end do
+
+
+  iis1=lbound(op%expseg,1)
+  iie1=ubound(op%expseg,1)
+  iis2=lbound(op%expseg,2)
+  iie2=ubound(op%expseg,2)
+  do i2=iis2,iie2
+      do i1=iis1,iie1
+          call deallocate_expansionSegments(op%expseg(i1,i2), subname)
       end do
   end do
 
