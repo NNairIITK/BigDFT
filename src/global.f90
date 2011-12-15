@@ -40,7 +40,7 @@ program MINHOP
   character(len=41) :: filename
   character(len=4) :: fn4
   character(len=5) :: fn5
-  character(len=12) :: fn12
+  character(len=16) :: fn16
   character(len=50) :: comment
   real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
 
@@ -280,8 +280,8 @@ program MINHOP
 
   nconjgr=0
       do 
-        write(fn12,'(a8,i4.4)') "poslocm_",nconjgr
-        inquire(file=fn12,exist=exist_poslocm)
+        write(fn16,'(a8,i4.4,a4)') "poslocm_",nconjgr,".xyz"
+        inquire(file=fn16,exist=exist_poslocm)
         if (exist_poslocm) then
             nconjgr=nconjgr+1
         else
