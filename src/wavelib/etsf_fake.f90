@@ -197,4 +197,4 @@ subroutine readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
   logical, intent(out) :: lstat
 
   stop 'No ETSF support at compilation!'
-end subroutine readwavetoisf_etsf
+end subroutine readwavedescr_etsf
