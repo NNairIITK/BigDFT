@@ -521,6 +521,14 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       end if
    enddo
 
+      do i3=nl3,nu3 
+         do i2=nl2,nu2 
+            do i1=nl1,nu1
+               write(800,'(a,3i9,l)') 'i1, i2, i3, logrid(i1,i2,i3)', i1, i2, i3, logrid(i1,i2,i3)
+            enddo
+         enddo
+      enddo
+
 END SUBROUTINE fill_logrid
 
 

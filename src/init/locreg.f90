@@ -375,6 +375,11 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
 
   call make_bounds(n1,n2,n3,logrid_c,bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c)
   call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
+  do i_stat=0,n3
+    do i_all=0,n2
+      write(820,'(a,2i10,4x,2i9)') 'i3, i2, bounds%kb%ibyz_c(1,i2,i3), bounds%kb%ibyz_c(2,i2,i3)', i_stat, i_all, bounds%kb%ibyz_c(1,i_all,i_stat), bounds%kb%ibyz_c(2,i_all,i_stat)
+    end do
+  end do
 
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
@@ -409,12 +414,22 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   allocate(bounds%ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16+ndebug),stat=i_stat)
   call memocc(i_stat,bounds%ibyyzz_r,'bounds%ibyyzz_r',subname)
 
+  do i_stat=0,n3
+    do i_all=0,n2
+      write(830,'(a,2i10,4x,2i9)') 'i3, i2, bounds%kb%ibyz_c(1,i2,i3), bounds%kb%ibyz_c(2,i2,i3)', i_stat, i_all, bounds%kb%ibyz_c(1,i_all,i_stat), bounds%kb%ibyz_c(2,i_all,i_stat)
+    end do
+  end do
   call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        bounds%kb%ibxy_c,bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
        bounds%kb%ibxy_f,bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
        bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
        bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,&
        bounds%ibyyzz_r)
+  do i_stat=0,n3
+    do i_all=0,n2
+      write(840,'(a,2i10,4x,2i9)') 'i3, i2, bounds%kb%ibyz_c(1,i2,i3), bounds%kb%ibyz_c(2,i2,i3)', i_stat, i_all, bounds%kb%ibyz_c(1,i_all,i_stat), bounds%kb%ibyz_c(2,i_all,i_stat)
+    end do
+  end do
 
 END SUBROUTINE locreg_bounds
 

@@ -5340,15 +5340,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine unitary_optimization
 
 
-      subroutine build_new_linear_combinations(lzd, orbs, op, comon, lphiovrlp, omat, reset, lphi)
+      subroutine build_new_linear_combinations(lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
         use module_base
         use module_types
         implicit none
         type(local_zone_descriptors),intent(in):: lzd
         type(orbitals_data),intent(in):: orbs
         type(overlapParameters),intent(in):: op
-        type(p2pCommsOrthonormality),intent(in):: comon
-        real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
+        integer,intent(in):: nrecvbuf
+        real(8),dimension(nrecvbuf),intent(in):: recvbuf
         real(8),dimension(orbs%norb,orbs%norb),intent(in):: omat
         logical,intent(in):: reset
         real(8),dimension(orbs%npsidim),intent(out):: lphi

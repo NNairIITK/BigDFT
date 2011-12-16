@@ -1265,6 +1265,9 @@ real(gp) :: epot_p, epot
                        tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                            (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
                        tt=potentialPrefac*tt**order
+                       !!!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**4 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**4 + &
+                       !!!    (hzh*dble(i3+offsetz)-rxyzConfinement(3))**4
+                       !!!tt=potentialPrefac*tt
                        tt=tt*psir(i1,i2,i3,ispinor)
                        psir(i1,i2,i3,ispinor)=tt
                     end do

@@ -43,6 +43,12 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   !    for real space:
   integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
 
+  do i3=0,n3
+    do i2=0,n2
+      write(841,'(a,2i10,4x,2i9)') 'i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)', i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)
+    end do
+  end do
+
   allocate(logrid_big((2*n1+31)*(2*n2+31)*(2*n3+31)+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_big,'logrid_big',subname)
 
@@ -63,6 +69,11 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   call make_ib_inv(logrid_big, ibxy_c,ibzzx_c,ibyyzz_c,0,n1,0,n2,0,n3)
   call make_ib_inv(logrid_big,ibxy_ff,ibzzx_f,ibyyzz_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+  do i3=0,n3
+    do i2=0,n2
+      write(842,'(a,2i10,4x,2i9)') 'i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)', i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)
+    end do
+  end do
 
   !for realspace:
   !-14:2*n2+16,-14:2*n3+16
@@ -78,6 +89,11 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      enddo
   enddo
   call squares(ibyyzz_r,2*n2+30,2*n3+30)
+  do i3=0,n3
+    do i2=0,n2
+      write(843,'(a,2i10,4x,2i9)') 'i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)', i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)
+    end do
+  end do
 
   !    for grow:
 
@@ -87,12 +103,32 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      enddo
   enddo
 
+  do i3=0,n3
+    do i2=0,n2
+      write(844,'(a,2i10,4x,2i9)') 'i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)', i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)
+    end do
+  end do
   call make_ib_c(logrid_big,ibyz_c,ibzxx_c,ibxxyy_c,n1,n2,n3)
+  do i3=0,n3
+    do i2=0,n2
+      write(845,'(a,2i10,4x,2i9)') 'i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)', i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)
+    end do
+  end do
 
   call make_ib(logrid_big,ibyz_ff,ibzxx_f,ibxxyy_f,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+  do i3=0,n3
+    do i2=0,n2
+      write(846,'(a,2i10,4x,2i9)') 'i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)', i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)
+    end do
+  end do
 
   call squares_1d(ibxxyy_f,2*nfl1-14,2*nfu1+16,2*nfl2-14,2*nfu2+16)
+  do i3=0,n3
+    do i2=0,n2
+      write(847,'(a,2i10,4x,2i9)') 'i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)', i3, i2, ibyz_c(1,i2,i3), ibyz_c(2,i2,i3)
+    end do
+  end do
 
   i_all=-product(shape(logrid_big))*kind(logrid_big)
   deallocate(logrid_big,stat=i_stat)
@@ -374,6 +410,13 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
           'ERROR: problem in wfd_to_logrid(coarse)',nvctr_check,wfd%nvctr_c,wfd%nseg_c
      stop
   end if
+  !!do i3=0,n3
+  !!  do i2=0,n2
+  !!    do i1=0,n1
+  !!      write(700,'(a,3i9,l)') 'i1, i2, i3, logrid_c(i1,i2,i3)', i1, i2, i3, logrid_c(i1,i2,i3)
+  !!    end do
+  !!  end do
+  !!end do
 
   !fine part
   logrid_f(:,:,:)=.false.

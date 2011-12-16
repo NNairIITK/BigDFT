@@ -2778,7 +2778,7 @@ integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount
 real(8):: tt, dnrm2
 
 
-call build_new_linear_combinations(lzd, orbs, op, comon, lphiovrlp, ovrlp, .true., lphi)
+call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp, .true., lphi)
 
 ! Normalize
 ist=1
@@ -3054,14 +3054,14 @@ do iorb=1,orbs%norb
         ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
     end do
 end do
-call build_new_linear_combinations(lzd, orbs, op, comon, lphiovrlp, ovrlp2, .false., lhphi)
+call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp2, .false., lhphi)
 
 do iorb=1,orbs%norb
     do jorb=1,orbs%norb
         ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
     end do
 end do
-call build_new_linear_combinations(lzd, orbs, op, comon, lphiovrlp, ovrlp2, .false., lhphi)
+call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp2, .false., lhphi)
 
 !!call cpu_time(t1)
 !!ist=1
