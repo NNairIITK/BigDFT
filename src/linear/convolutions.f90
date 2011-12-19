@@ -4671,6 +4671,9 @@ integer:: it
   real(wp), dimension(-3+lowfil:lupfil+3) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
   real(wp), dimension(-3+lowfil:lupfil+3) :: beff0_2, beff1_2, beff2_2, beff3_2
   real(wp), dimension(-3+lowfil:lupfil+3) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
+  real(wp),dimension(:,:),allocatable:: aeff0array, beff0array, ceff0array, eeff0array
+  real(wp),dimension(:,:),allocatable:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
+  real(wp),dimension(:,:),allocatable:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
   real(wp), dimension(lowfil:lupfil) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
   real(wp),dimension(:,:,:),allocatable:: xa_c, xb_c, xc_c, xe_c, ya_c, yb_c, yc_c, ye_c
   real(wp),dimension(:,:,:,:),allocatable:: xa_f, xb_f, xc_f, xe_f, ya_f, yb_f, yc_f, ye_f
@@ -4688,6 +4691,38 @@ real(8):: tt40, tt41, tt42, tt43
 real(8):: tt50, tt51, tt52, tt53
 real(8):: tt60, tt61, tt62, tt63
 real(8):: tt70, tt71, tt72, tt73
+real(8):: tt0a0, tt0a1, tt0a2, tt0a3
+real(8):: tt0b0, tt0b1, tt0b2, tt0b3
+real(8):: tt0c0, tt0c1, tt0c2, tt0c3
+real(8):: tt0e0, tt0e1, tt0e2, tt0e3
+real(8):: tt1a0, tt1a1, tt1a2, tt1a3
+real(8):: tt1b0, tt1b1, tt1b2, tt1b3
+real(8):: tt1c0, tt1c1, tt1c2, tt1c3
+real(8):: tt1e0, tt1e1, tt1e2, tt1e3
+real(8):: tt2a0, tt2a1, tt2a2, tt2a3
+real(8):: tt2b0, tt2b1, tt2b2, tt2b3
+real(8):: tt2c0, tt2c1, tt2c2, tt2c3
+real(8):: tt2e0, tt2e1, tt2e2, tt2e3
+real(8):: tt3a0, tt3a1, tt3a2, tt3a3
+real(8):: tt3b0, tt3b1, tt3b2, tt3b3
+real(8):: tt3c0, tt3c1, tt3c2, tt3c3
+real(8):: tt3e0, tt3e1, tt3e2, tt3e3
+real(8):: tt4a0, tt4a1, tt4a2, tt4a3
+real(8):: tt4b0, tt4b1, tt4b2, tt4b3
+real(8):: tt4c0, tt4c1, tt4c2, tt4c3
+real(8):: tt4e0, tt4e1, tt4e2, tt4e3
+real(8):: tt5a0, tt5a1, tt5a2, tt5a3
+real(8):: tt5b0, tt5b1, tt5b2, tt5b3
+real(8):: tt5c0, tt5c1, tt5c2, tt5c3
+real(8):: tt5e0, tt5e1, tt5e2, tt5e3
+real(8):: tt6a0, tt6a1, tt6a2, tt6a3
+real(8):: tt6b0, tt6b1, tt6b2, tt6b3
+real(8):: tt6c0, tt6c1, tt6c2, tt6c3
+real(8):: tt6e0, tt6e1, tt6e2, tt6e3
+real(8):: tt7a0, tt7a1, tt7a2, tt7a3
+real(8):: tt7b0, tt7b1, tt7b2, tt7b3
+real(8):: tt7c0, tt7c1, tt7c2, tt7c3
+real(8):: tt7e0, tt7e1, tt7e2, tt7e3
 
 
   scale=-.5_wp/real(hgrid**2,wp)
@@ -4915,8 +4950,46 @@ real(8):: tt70, tt71, tt72, tt73
 !call system_clock(istart_test,count_rate_test,count_max_test)
 
 
+i=max(n1,n2,n3)
+allocate(aeff0array(-3+lowfil:lupfil+3,0:i), stat=istat)
+call memocc(istat, aeff0array, 'aeff0array', subname)
+allocate(beff0array(-3+lowfil:lupfil+3,0:i), stat=istat)
+call memocc(istat, beff0array, 'beff0array', subname)
+allocate(ceff0array(-3+lowfil:lupfil+3,0:i), stat=istat)
+call memocc(istat, ceff0array, 'ceff0array', subname)
+allocate(eeff0array(lowfil:lupfil,0:i), stat=istat)
+call memocc(istat, eeff0array, 'eeff0array', subname)
+aeff0array=0.d0
+beff0array=0.d0
+ceff0array=0.d0
+eeff0array=0.d0
+
+allocate(aeff0_2array(-3+lowfil:lupfil+3,0:i), stat=istat)
+call memocc(istat, aeff0_2array, 'aeff0_2array', subname)
+allocate(beff0_2array(-3+lowfil:lupfil+3,0:i), stat=istat)
+call memocc(istat, beff0_2array, 'beff0_2array', subname)
+allocate(ceff0_2array(-3+lowfil:lupfil+3,0:i), stat=istat)
+call memocc(istat, ceff0_2array, 'ceff0_2array', subname)
+allocate(eeff0_2array(lowfil:lupfil,0:i), stat=istat)
+call memocc(istat, eeff0_2array, 'eeff0_2array', subname)
+aeff0_2array=0.d0
+beff0_2array=0.d0
+ceff0_2array=0.d0
+eeff0_2array=0.d0
 
 
+allocate(aeff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
+call memocc(istat, aeff0_2auxarray, 'aeff0_2auxarray', subname)
+allocate(beff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
+call memocc(istat, beff0_2auxarray, 'beff0_2auxarray', subname)
+allocate(ceff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
+call memocc(istat, ceff0_2auxarray, 'ceff0_2auxarray', subname)
+allocate(eeff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
+call memocc(istat, eeff0_2auxarray, 'eeff0_2auxarray', subname)
+aeff0_2auxarray=0.d0
+beff0_2auxarray=0.d0
+ceff0_2auxarray=0.d0
+eeff0_2auxarray=0.d0
 
 
 allocate(xa_c(0:n1,0:n2,0:n3), stat=istat)
@@ -4973,37 +5046,12 @@ yb_f=0.d0
 yc_f=0.d0
 ye_f=0.d0
 
+! Build x^2 and y^2 convolutions and store them in xa_c, xb_c, xc_c, xe_c, ya_c, yb_c, yc_c, ye_c, xa_f, xb_f, xc_f, xe_f, ya_f, yb_f, yc_f, ye_f
+!!call auxiliary_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, offsetx, offsety, offsetz, &
+!!     hgrid, rxyzConf, potentialPrefac, ibyz_c, ibyz_f, ibxz_c, ibxz_f, ibxy_c, ibxy_f, &
+!!     x_c, x_f, &
+!!     xa_c, xb_c, xc_c, xe_c, ya_c, yb_c, yc_c, ye_c, xa_f, xb_f, xc_f, xe_f, ya_f, yb_f, yc_f, ye_f)
 
-! Build x^2 and y^2 convolutions and store them in xa_c, xb_c, xc_c, xe_c, ya_f, yb_f, yc_f, ye_f
-call auxiliary_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, offsetx, offsety, offsetz, &
-     hgrid, rxyzConf, potentialPrefac, ibyz_c, ibyz_f, ibxz_c, ibxz_f, ibxy_c, ibxy_f, &
-     x_c, x_f, &
-     xa_c, xb_c, xc_c, xe_c, ya_c, yb_c, yc_c, ye_c, xa_f, xb_f, xc_f, xe_f, ya_f, yb_f, yc_f, ye_f)
-
-
-     
-!write(5000+it,*) xa_c
-!write(5100+it,*) x_c
-!!!! debug
-!!x_c=0.d0
-!!x_f=0.d0
-
-!!xa_c=0.d0
-!!xb_c=0.d0
-!!xc_c=0.d0
-!!xe_c=0.d0
-!!ya_c=0.d0
-!!yb_c=0.d0
-!!yc_c=0.d0
-!!ye_c=0.d0
-!!xa_f=0.d0
-!!xb_f=0.d0
-!!xc_f=0.d0
-!!xe_f=0.d0
-!!ya_f=0.d0
-!!yb_f=0.d0
-!!yc_f=0.d0
-!!ye_f=0.d0
 
 
 
@@ -5023,6 +5071,20 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
   !!$!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
   !!$!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
     !!!$omp do  
+
+    do i1=0,n1
+        x0=hgrid*(i1+offsetx)-rxyzConf(1)
+        call getFilterQuartic(it, potentialPrefac, hgrid, x0, aeff0array(lowfil,i1), 'a')
+        call getFilterQuartic(it, potentialPrefac, hgrid, x0, beff0array(lowfil,i1), 'b')
+        call getFilterQuartic(it, potentialPrefac, hgrid, x0, ceff0array(lowfil,i1), 'c')
+        call getFilterQuartic(it, potentialPrefac, hgrid, x0, eeff0array(lowfil,i1), 'e')
+
+        call getFilterQuadratic(it, 1.d0, hgrid, x0, aeff0_2auxarray(lowfil,i1), 'a')
+        call getFilterQuadratic(it, 1.d0, hgrid, x0, beff0_2auxarray(lowfil,i1), 'b')
+        call getFilterQuadratic(it, 1.d0, hgrid, x0, ceff0_2auxarray(lowfil,i1), 'c')
+        call getFilterQuadratic(it, 1.d0, hgrid, x0, eeff0_2auxarray(lowfil,i1), 'e')
+    end do
+
     do i3=0,n3
        do i2=0,n2
           if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -5031,30 +5093,87 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                 dyi1=0.0_wp 
                 dyi2=0.0_wp 
                 dyi3=0.0_wp 
-                tt0=0.0_wp
-                tt1=0.0_wp
-                tt2=0.0_wp
-                tt3=0.0_wp
+
+                tt0a0=0.d0
+                tt0a1=0.d0
+                tt0a2=0.d0
+                tt0a3=0.d0
+
+                tt0b0=0.d0
+                tt0b1=0.d0
+                tt0b2=0.d0
+                tt0b3=0.d0
+
+                tt0c0=0.d0
+                tt0c1=0.d0
+                tt0c2=0.d0
+                tt0c3=0.d0
+
+                tt0e0=0.d0
+                tt0e1=0.d0
+                tt0e2=0.d0
+                tt0e3=0.d0
                 ! Get the effective a-filters for the x dimension
-                x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
-                x1=hgrid*(i1+offsetx+1)-rxyzConf(1)
-                x2=hgrid*(i1+offsetx+2)-rxyzConf(1)
-                x3=hgrid*(i1+offsetx+3)-rxyzConf(1)
-                call getFilterQuartic(it, potentialPrefac, hgrid, x0, aeff0(lowfil), 'a')
-                call getFilterQuartic(it, potentialPrefac, hgrid, x1, aeff1(lowfil), 'a')
-                call getFilterQuartic(it, potentialPrefac, hgrid, x2, aeff2(lowfil), 'a')
-                call getFilterQuartic(it, potentialPrefac, hgrid, x3, aeff3(lowfil), 'a')
+                !!x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
+                !!x1=hgrid*(i1+offsetx+1)-rxyzConf(1)
+                !!x2=hgrid*(i1+offsetx+2)-rxyzConf(1)
+                !!x3=hgrid*(i1+offsetx+3)-rxyzConf(1)
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x0, aeff0(lowfil), 'a')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x1, aeff1(lowfil), 'a')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x2, aeff2(lowfil), 'a')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x3, aeff3(lowfil), 'a')
   
                 do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-                   dyi0=dyi0 + x_c(t,i2,i3)*aeff0(t-i1-0)
-                   dyi1=dyi1 + x_c(t,i2,i3)*aeff1(t-i1-1)
-                   dyi2=dyi2 + x_c(t,i2,i3)*aeff2(t-i1-2)
-                   dyi3=dyi3 + x_c(t,i2,i3)*aeff3(t-i1-3)
+                   dyi0=dyi0 + x_c(t,i2,i3)*aeff0array(t-i1-0,i1+0)
+                   dyi1=dyi1 + x_c(t,i2,i3)*aeff0array(t-i1-1,i1+1)
+                   dyi2=dyi2 + x_c(t,i2,i3)*aeff0array(t-i1-2,i1+2)
+                   dyi3=dyi3 + x_c(t,i2,i3)*aeff0array(t-i1-3,i1+3)
+
+                   ! sss coefficients
+                   tt0a0=tt0a0 + x_c(t,i2,i3)*aeff0_2auxarray(t-i1-0,i1+0)
+                   tt0a1=tt0a1 + x_c(t,i2,i3)*aeff0_2auxarray(t-i1-1,i1+1)
+                   tt0a2=tt0a2 + x_c(t,i2,i3)*aeff0_2auxarray(t-i1-2,i1+2)
+                   tt0a3=tt0a3 + x_c(t,i2,i3)*aeff0_2auxarray(t-i1-3,i1+3)
+
+                   tt0b0=tt0b0 + x_c(t,i2,i3)*beff0_2auxarray(t-i1-0,i1+0)
+                   tt0b1=tt0b1 + x_c(t,i2,i3)*beff0_2auxarray(t-i1-1,i1+1)
+                   tt0b2=tt0b2 + x_c(t,i2,i3)*beff0_2auxarray(t-i1-2,i1+2)
+                   tt0b3=tt0b3 + x_c(t,i2,i3)*beff0_2auxarray(t-i1-3,i1+3)
+
+                   tt0c0=tt0c0 + x_c(t,i2,i3)*ceff0_2auxarray(t-i1-0,i1+0)
+                   tt0c1=tt0c1 + x_c(t,i2,i3)*ceff0_2auxarray(t-i1-1,i1+1)
+                   tt0c2=tt0c2 + x_c(t,i2,i3)*ceff0_2auxarray(t-i1-2,i1+2)
+                   tt0c3=tt0c3 + x_c(t,i2,i3)*ceff0_2auxarray(t-i1-3,i1+3)
+
+                   tt0e0=tt0e0 + x_c(t,i2,i3)*eeff0_2auxarray(t-i1-0,i1+0)
+                   tt0e1=tt0e1 + x_c(t,i2,i3)*eeff0_2auxarray(t-i1-1,i1+1)
+                   tt0e2=tt0e2 + x_c(t,i2,i3)*eeff0_2auxarray(t-i1-2,i1+2)
+                   tt0e3=tt0e3 + x_c(t,i2,i3)*eeff0_2auxarray(t-i1-3,i1+3)
                 enddo
                 y_c(i1+0,i2,i3)=dyi0!+cprecr*x_c(i1+0,i2,i3)
                 y_c(i1+1,i2,i3)=dyi1!+cprecr*x_c(i1+1,i2,i3)
                 y_c(i1+2,i2,i3)=dyi2!+cprecr*x_c(i1+2,i2,i3)
                 y_c(i1+3,i2,i3)=dyi3!+cprecr*x_c(i1+3,i2,i3)
+
+                xa_c(i1+0,i2,i3)=tt0a0
+                xa_c(i1+1,i2,i3)=tt0a1
+                xa_c(i1+2,i2,i3)=tt0a2
+                xa_c(i1+3,i2,i3)=tt0a3
+
+                xb_c(i1+0,i2,i3)=tt0b0
+                xb_c(i1+1,i2,i3)=tt0b1
+                xb_c(i1+2,i2,i3)=tt0b2
+                xb_c(i1+3,i2,i3)=tt0b3
+
+                xc_c(i1+0,i2,i3)=tt0c0
+                xc_c(i1+1,i2,i3)=tt0c1
+                xc_c(i1+2,i2,i3)=tt0c2
+                xc_c(i1+3,i2,i3)=tt0c3
+
+                xe_c(i1+0,i2,i3)=tt0e0
+                xe_c(i1+1,i2,i3)=tt0e1
+                xe_c(i1+2,i2,i3)=tt0e2
+                xe_c(i1+3,i2,i3)=tt0e3
              enddo
              icur=i1
           else
@@ -5063,13 +5182,26 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
   
           do i1=icur,ibyz_c(2,i2,i3)
              dyi=0.0_wp 
+             tt0a0=0.d0
+             tt0b0=0.d0
+             tt0c0=0.d0
+             tt0e0=0.d0
              ! Get the effective a-filters for the x dimension
-             x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
-             call getFilterQuartic(it, potentialPrefac, hgrid, x0, aeff0(lowfil), 'a')
+             !!x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, x0, aeff0(lowfil), 'a')
              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
-                dyi=dyi + x_c(t,i2,i3)*aeff0(t-i1)
+                dyi=dyi + x_c(t,i2,i3)*aeff0array(t-i1,i1)
+                ! sss coefficients
+                tt0a0=tt0a0 + x_c(t,i2,i3)*aeff0_2auxarray(t-i1,i1)
+                tt0b0=tt0b0 + x_c(t,i2,i3)*beff0_2auxarray(t-i1,i1)
+                tt0c0=tt0c0 + x_c(t,i2,i3)*ceff0_2auxarray(t-i1,i1)
+                tt0e0=tt0e0 + x_c(t,i2,i3)*eeff0_2auxarray(t-i1,i1)
              enddo
              y_c(i1,i2,i3)=dyi!+cprecr*x_c(i1,i2,i3)
+             xa_c(i1,i2,i3)=tt0a0
+             xb_c(i1,i2,i3)=tt0b0
+             xc_c(i1,i2,i3)=tt0c0
+             xe_c(i1,i2,i3)=tt0e0
           enddo
   
           istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
@@ -5082,19 +5214,19 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                 dyi2=0.0_wp
                 dyi3=0.0_wp
                 ! Get the effective b-filters for the x dimension
-                x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
-                x1=hgrid*(i1+offsetx+1)-rxyzConf(1)
-                x2=hgrid*(i1+offsetx+2)-rxyzConf(1)
-                x3=hgrid*(i1+offsetx+3)-rxyzConf(1)
-                call getFilterQuartic(it, potentialPrefac, hgrid, x0, beff0(lowfil), 'b')
-                call getFilterQuartic(it, potentialPrefac, hgrid, x1, beff1(lowfil), 'b')
-                call getFilterQuartic(it, potentialPrefac, hgrid, x2, beff2(lowfil), 'b')
-                call getFilterQuartic(it, potentialPrefac, hgrid, x3, beff3(lowfil), 'b')
+                !!x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
+                !!x1=hgrid*(i1+offsetx+1)-rxyzConf(1)
+                !!x2=hgrid*(i1+offsetx+2)-rxyzConf(1)
+                !!x3=hgrid*(i1+offsetx+3)-rxyzConf(1)
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x0, beff0(lowfil), 'b')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x1, beff1(lowfil), 'b')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x2, beff2(lowfil), 'b')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x3, beff3(lowfil), 'b')
                 do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_f(2,i2,i3))
-                   dyi0=dyi0 + x_f1(t,i2,i3)*beff0(t-i1-0)
-                   dyi1=dyi1 + x_f1(t,i2,i3)*beff1(t-i1-1)
-                   dyi2=dyi2 + x_f1(t,i2,i3)*beff2(t-i1-2)
-                   dyi3=dyi3 + x_f1(t,i2,i3)*beff3(t-i1-3)
+                   dyi0=dyi0 + x_f1(t,i2,i3)*beff0array(t-i1-0,i1+0)
+                   dyi1=dyi1 + x_f1(t,i2,i3)*beff0array(t-i1-1,i1+1)
+                   dyi2=dyi2 + x_f1(t,i2,i3)*beff0array(t-i1-2,i1+2)
+                   dyi3=dyi3 + x_f1(t,i2,i3)*beff0array(t-i1-3,i1+3)
                 enddo
                 y_c(i1+0,i2,i3)=y_c(i1+0,i2,i3)+dyi0
                 y_c(i1+1,i2,i3)=y_c(i1+1,i2,i3)+dyi1
@@ -5108,10 +5240,10 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
              dyi=0.0_wp
              tt0=0.0_wp
              ! Get the effective b-filters for the x dimension
-             x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
-             call getFilterQuartic(it, potentialPrefac, hgrid, x0, beff0(lowfil), 'b')
+             !!x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, x0, beff0(lowfil), 'b')
              do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_f(2,i2,i3))
-                dyi=dyi + x_f1(t,i2,i3)*beff0(t-i1)
+                dyi=dyi + x_f1(t,i2,i3)*beff0array(t-i1,i1)
              enddo
              y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
           enddo
@@ -5127,19 +5259,19 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
   !!              tt2=0.0_wp 
   !!              tt3=0.0_wp 
                 ! Get the effective c-filters for the x dimension
-                x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
-                x1=hgrid*(i1+offsetx+1)-rxyzConf(1)
-                x2=hgrid*(i1+offsetx+2)-rxyzConf(1)
-                x3=hgrid*(i1+offsetx+3)-rxyzConf(1)
-                call getFilterQuartic(it, potentialPrefac, hgrid, x0, ceff0(lowfil), 'c')
-                call getFilterQuartic(it, potentialPrefac, hgrid, x1, ceff1(lowfil), 'c')
-                call getFilterQuartic(it, potentialPrefac, hgrid, x2, ceff2(lowfil), 'c')
-                call getFilterQuartic(it, potentialPrefac, hgrid, x3, ceff3(lowfil), 'c')
+                !!x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
+                !!x1=hgrid*(i1+offsetx+1)-rxyzConf(1)
+                !!x2=hgrid*(i1+offsetx+2)-rxyzConf(1)
+                !!x3=hgrid*(i1+offsetx+3)-rxyzConf(1)
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x0, ceff0(lowfil), 'c')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x1, ceff1(lowfil), 'c')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x2, ceff2(lowfil), 'c')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, x3, ceff3(lowfil), 'c')
                 do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-                   dyi0=dyi0 + x_c(t,i2,i3)*ceff0(t-i1-0)
-                   dyi1=dyi1 + x_c(t,i2,i3)*ceff1(t-i1-1)
-                   dyi2=dyi2 + x_c(t,i2,i3)*ceff2(t-i1-2)
-                   dyi3=dyi3 + x_c(t,i2,i3)*ceff3(t-i1-3)
+                   dyi0=dyi0 + x_c(t,i2,i3)*ceff0array(t-i1-0,i1+0)
+                   dyi1=dyi1 + x_c(t,i2,i3)*ceff0array(t-i1-1,i1+1)
+                   dyi2=dyi2 + x_c(t,i2,i3)*ceff0array(t-i1-2,i1+2)
+                   dyi3=dyi3 + x_c(t,i2,i3)*ceff0array(t-i1-3,i1+3)
                 enddo
                 y_f(1,i1+0,i2,i3)=dyi0
                 y_f(1,i1+1,i2,i3)=dyi1
@@ -5154,10 +5286,10 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
              dyi=0.0_wp 
              tt0=0.0_wp 
              ! Get the effective c-filters for the x dimension
-             x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
-             call getFilterQuartic(it, potentialPrefac, hgrid, x0, ceff0(lowfil), 'c')
+             !!x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, x0, ceff0(lowfil), 'c')
              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
-                dyi=dyi + x_c(t,i2,i3)*ceff0(t-i1)
+                dyi=dyi + x_c(t,i2,i3)*ceff0array(t-i1,i1)
              enddo
              y_f(1,i1,i2,i3)=dyi
           enddo
@@ -5177,20 +5309,89 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
           do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
              t112=0.0_wp;t121=0.0_wp;t122=0.0_wp;t212=0.0_wp;t221=0.0_wp;t222=0.0_wp;t211=0.0_wp 
              tt112=0.0_wp;tt121=0.0_wp;tt122=0.0_wp;tt212=0.0_wp;tt221=0.0_wp;tt222=0.0_wp;tt211=0.0_wp 
+             tt1a0=0.d0
+             tt1b0=0.d0
+             tt1c0=0.d0
+             tt1e0=0.d0
+
+             tt2a0=0.d0
+             tt2b0=0.d0
+             tt2c0=0.d0
+             tt2e0=0.d0
+
+             tt3a0=0.d0
+             tt3b0=0.d0
+             tt3c0=0.d0
+             tt3e0=0.d0
+
+             tt4a0=0.d0
+             tt4b0=0.d0
+             tt4c0=0.d0
+             tt4e0=0.d0
+
+             tt5a0=0.d0
+             tt5b0=0.d0
+             tt5c0=0.d0
+             tt5e0=0.d0
+
+             tt6a0=0.d0
+             tt6b0=0.d0
+             tt6c0=0.d0
+             tt6e0=0.d0
+
+             tt7a0=0.d0
+             tt7b0=0.d0
+             tt7c0=0.d0
+             tt7e0=0.d0
              ! Get the effective filters for the x dimension
-             x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
-             call getFilterQuartic(it, potentialPrefac, hgrid, x0, aeff0(lowfil), 'a')
-             call getFilterQuartic(it, potentialPrefac, hgrid, x0, beff0(lowfil), 'b')
-             call getFilterQuartic(it, potentialPrefac, hgrid, x0, ceff0(lowfil), 'c')
-             call getFilterQuartic(it, potentialPrefac, hgrid, x0, eeff0(lowfil), 'e')
+             !!x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, x0, aeff0(lowfil), 'a')
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, x0, beff0(lowfil), 'b')
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, x0, ceff0(lowfil), 'c')
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, x0, eeff0(lowfil), 'e')
              do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
-                t112=t112 + x_f(4,i1+l,i2,i3)*aeff0(l) + x_f(5,i1+l,i2,i3)*beff0(l)
-                t121=t121 + x_f(2,i1+l,i2,i3)*aeff0(l) + x_f(3,i1+l,i2,i3)*beff0(l)
-                t122=t122 + x_f(6,i1+l,i2,i3)*aeff0(l) + x_f(7,i1+l,i2,i3)*beff0(l)
-                t212=t212 + x_f(4,i1+l,i2,i3)*ceff0(l) + x_f(5,i1+l,i2,i3)*eeff0(l)
-                t221=t221 + x_f(2,i1+l,i2,i3)*ceff0(l) + x_f(3,i1+l,i2,i3)*eeff0(l)
-                t222=t222 + x_f(6,i1+l,i2,i3)*ceff0(l) + x_f(7,i1+l,i2,i3)*eeff0(l)
-                t211=t211 + x_f(1,i1+l,i2,i3)*eeff0(l)
+                t112=t112 + x_f(4,i1+l,i2,i3)*aeff0array(l,i1) + x_f(5,i1+l,i2,i3)*beff0array(l,i1)
+                t121=t121 + x_f(2,i1+l,i2,i3)*aeff0array(l,i1) + x_f(3,i1+l,i2,i3)*beff0array(l,i1)
+                t122=t122 + x_f(6,i1+l,i2,i3)*aeff0array(l,i1) + x_f(7,i1+l,i2,i3)*beff0array(l,i1)
+                t212=t212 + x_f(4,i1+l,i2,i3)*ceff0array(l,i1) + x_f(5,i1+l,i2,i3)*eeff0array(l,i1)
+                t221=t221 + x_f(2,i1+l,i2,i3)*ceff0array(l,i1) + x_f(3,i1+l,i2,i3)*eeff0array(l,i1)
+                t222=t222 + x_f(6,i1+l,i2,i3)*ceff0array(l,i1) + x_f(7,i1+l,i2,i3)*eeff0array(l,i1)
+                t211=t211 + x_f(1,i1+l,i2,i3)*eeff0array(l,i1)
+                ! dss coefficients
+                tt1a0=tt1a0 + x_f(1,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
+                tt1b0=tt1b0 + x_f(1,i1+l,i2,i3)*beff0_2auxarray(l,i1)
+                tt1c0=tt1c0 + x_f(1,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
+                tt1e0=tt1e0 + x_f(1,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
+                ! sds coefficients
+                tt2a0=tt2a0 + x_f(2,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
+                tt2b0=tt2b0 + x_f(2,i1+l,i2,i3)*beff0_2auxarray(l,i1)
+                tt2c0=tt2c0 + x_f(2,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
+                tt2e0=tt2e0 + x_f(2,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
+                ! dds coefficients
+                tt3a0=tt3a0 + x_f(3,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
+                tt3b0=tt3b0 + x_f(3,i1+l,i2,i3)*beff0_2auxarray(l,i1)
+                tt3c0=tt3c0 + x_f(3,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
+                tt3e0=tt3e0 + x_f(3,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
+                ! ssd coefficients
+                tt4a0=tt4a0 + x_f(4,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
+                tt4b0=tt4b0 + x_f(4,i1+l,i2,i3)*beff0_2auxarray(l,i1)
+                tt4c0=tt4c0 + x_f(4,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
+                tt4e0=tt4e0 + x_f(4,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
+                ! dsd coefficients
+                tt5a0=tt5a0 + x_f(5,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
+                tt5b0=tt5b0 + x_f(5,i1+l,i2,i3)*beff0_2auxarray(l,i1)
+                tt5c0=tt5c0 + x_f(5,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
+                tt5e0=tt5e0 + x_f(5,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
+                ! sdd coefficients
+                tt6a0=tt6a0 + x_f(6,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
+                tt6b0=tt6b0 + x_f(6,i1+l,i2,i3)*beff0_2auxarray(l,i1)
+                tt6c0=tt6c0 + x_f(6,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
+                tt6e0=tt6e0 + x_f(6,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
+                ! ddd coefficients
+                tt7a0=tt7a0 + x_f(7,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
+                tt7b0=tt7b0 + x_f(7,i1+l,i2,i3)*beff0_2auxarray(l,i1)
+                tt7c0=tt7c0 + x_f(7,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
+                tt7e0=tt7e0 + x_f(7,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
              enddo
              y_f(4,i1,i2,i3)=t112!+cprecr*x_f(4,i1,i2,i3)
              y_f(2,i1,i2,i3)=t121!+cprecr*x_f(2,i1,i2,i3)
@@ -5199,6 +5400,41 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
              y_f(5,i1,i2,i3)=t212!+cprecr*x_f(5,i1,i2,i3)
              y_f(3,i1,i2,i3)=t221!+cprecr*x_f(3,i1,i2,i3)
              y_f(7,i1,i2,i3)=t222!+cprecr*x_f(7,i1,i2,i3)
+             ! dss coefficients
+             xa_f(1,i1,i2,i3)=tt1a0
+             xb_f(1,i1,i2,i3)=tt1b0
+             xc_f(1,i1,i2,i3)=tt1c0
+             xe_f(1,i1,i2,i3)=tt1e0
+             ! sds coefficients
+             xa_f(2,i1,i2,i3)=tt2a0
+             xb_f(2,i1,i2,i3)=tt2b0
+             xc_f(2,i1,i2,i3)=tt2c0
+             xe_f(2,i1,i2,i3)=tt2e0
+             ! dds coefficients
+             xa_f(3,i1,i2,i3)=tt3a0
+             xb_f(3,i1,i2,i3)=tt3b0
+             xc_f(3,i1,i2,i3)=tt3c0
+             xe_f(3,i1,i2,i3)=tt3e0
+             ! ssd coefficients
+             xa_f(4,i1,i2,i3)=tt4a0
+             xb_f(4,i1,i2,i3)=tt4b0
+             xc_f(4,i1,i2,i3)=tt4c0
+             xe_f(4,i1,i2,i3)=tt4e0
+             ! dsd coefficients
+             xa_f(5,i1,i2,i3)=tt5a0
+             xb_f(5,i1,i2,i3)=tt5b0
+             xc_f(5,i1,i2,i3)=tt5c0
+             xe_f(5,i1,i2,i3)=tt5e0
+             ! sdd coefficients
+             xa_f(6,i1,i2,i3)=tt6a0
+             xb_f(6,i1,i2,i3)=tt6b0
+             xc_f(6,i1,i2,i3)=tt6c0
+             xe_f(6,i1,i2,i3)=tt6e0
+             ! sdd coefficients
+             xa_f(7,i1,i2,i3)=tt7a0
+             xb_f(7,i1,i2,i3)=tt7b0
+             xc_f(7,i1,i2,i3)=tt7c0
+             xe_f(7,i1,i2,i3)=tt7e0
           enddo
        enddo
     enddo
@@ -5223,11 +5459,26 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
   
   
   
+
   
+    do i2=0,n2
+        y0=hgrid*(i2+offsety)-rxyzConf(2)
+        call getFilterQuartic(it, potentialPrefac, hgrid, y0, aeff0array(lowfil,i2), 'a')
+        call getFilterQuartic(it, potentialPrefac, hgrid, y0, beff0array(lowfil,i2), 'b')
+        call getFilterQuartic(it, potentialPrefac, hgrid, y0, ceff0array(lowfil,i2), 'c')
+        call getFilterQuartic(it, potentialPrefac, hgrid, y0, eeff0array(lowfil,i2), 'e')
+
+        call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2array(lowfil,i2), 'a')
+        call getFilterQuadratic(it, potentialPrefac, hgrid, y0, beff0_2array(lowfil,i2), 'b')
+        call getFilterQuadratic(it, potentialPrefac, hgrid, y0, ceff0_2array(lowfil,i2), 'c')
+        call getFilterQuadratic(it, potentialPrefac, hgrid, y0, eeff0_2array(lowfil,i2), 'e')
+
+        call getFilterQuadratic(it, 1.d0, hgrid, y0, aeff0_2auxarray(lowfil,i2), 'a')
+        call getFilterQuadratic(it, 1.d0, hgrid, y0, beff0_2auxarray(lowfil,i2), 'b')
+        call getFilterQuadratic(it, 1.d0, hgrid, y0, ceff0_2auxarray(lowfil,i2), 'c')
+        call getFilterQuadratic(it, 1.d0, hgrid, y0, eeff0_2auxarray(lowfil,i2), 'e')
+    end do
   
-  
-  
-    
     !  call system_clock(ncount1,ncount_rate,ncount_max)
     !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
     !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
@@ -5242,29 +5493,90 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                 dyi1=0.0_wp 
                 dyi2=0.0_wp 
                 dyi3=0.0_wp 
+
+                tt0a0=0.d0
+                tt0a1=0.d0
+                tt0a2=0.d0
+                tt0a3=0.d0
+
+                tt0b0=0.d0
+                tt0b1=0.d0
+                tt0b2=0.d0
+                tt0b3=0.d0
+
+                tt0c0=0.d0
+                tt0c1=0.d0
+                tt0c2=0.d0
+                tt0c3=0.d0
+
+                tt0e0=0.d0
+                tt0e1=0.d0
+                tt0e2=0.d0
+                tt0e3=0.d0
                 ! Get the effective a-filters for the y dimension
-                y0=hgrid*(i2+offsety+0)-rxyzConf(2)
-                y1=hgrid*(i2+offsety+1)-rxyzConf(2)
-                y2=hgrid*(i2+offsety+2)-rxyzConf(2)
-                y3=hgrid*(i2+offsety+3)-rxyzConf(2)
-                call getFilterQuartic(it, potentialPrefac, hgrid, y0, aeff0(lowfil), 'a')
-                call getFilterQuartic(it, potentialPrefac, hgrid, y1, aeff1(lowfil), 'a')
-                call getFilterQuartic(it, potentialPrefac, hgrid, y2, aeff2(lowfil), 'a')
-                call getFilterQuartic(it, potentialPrefac, hgrid, y3, aeff3(lowfil), 'a')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y1, aeff1_2(lowfil), 'a')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y2, aeff2_2(lowfil), 'a')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y3, aeff3_2(lowfil), 'a')
+                !!y0=hgrid*(i2+offsety+0)-rxyzConf(2)
+                !!y1=hgrid*(i2+offsety+1)-rxyzConf(2)
+                !!y2=hgrid*(i2+offsety+2)-rxyzConf(2)
+                !!y3=hgrid*(i2+offsety+3)-rxyzConf(2)
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y0, aeff0(lowfil), 'a')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y1, aeff1(lowfil), 'a')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y2, aeff2(lowfil), 'a')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y3, aeff3(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y1, aeff1_2(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y2, aeff2_2(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y3, aeff3_2(lowfil), 'a')
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-                   dyi0=dyi0 + x_c(i1,t,i3)*aeff0(t-i2-0) + 2.d0*xa_c(i1,t,i3)*aeff0_2(t-i2-0)
-                   dyi1=dyi1 + x_c(i1,t,i3)*aeff1(t-i2-1) + 2.d0*xa_c(i1,t,i3)*aeff1_2(t-i2-1)
-                   dyi2=dyi2 + x_c(i1,t,i3)*aeff2(t-i2-2) + 2.d0*xa_c(i1,t,i3)*aeff2_2(t-i2-2)
-                   dyi3=dyi3 + x_c(i1,t,i3)*aeff3(t-i2-3) + 2.d0*xa_c(i1,t,i3)*aeff3_2(t-i2-3)
+                   dyi0=dyi0 + x_c(i1,t,i3)*aeff0array(t-i2-0,i2+0) + 2.d0*xa_c(i1,t,i3)*aeff0_2array(t-i2-0,i2+0)
+                   dyi1=dyi1 + x_c(i1,t,i3)*aeff0array(t-i2-1,i2+1) + 2.d0*xa_c(i1,t,i3)*aeff0_2array(t-i2-1,i2+1)
+                   dyi2=dyi2 + x_c(i1,t,i3)*aeff0array(t-i2-2,i2+2) + 2.d0*xa_c(i1,t,i3)*aeff0_2array(t-i2-2,i2+2)
+                   dyi3=dyi3 + x_c(i1,t,i3)*aeff0array(t-i2-3,i2+3) + 2.d0*xa_c(i1,t,i3)*aeff0_2array(t-i2-3,i2+3)
+
+                   ! sss coefficients
+                   tt0a0=tt0a0 + x_c(i1,t,i3)*aeff0_2auxarray(t-i2-0,i2+0)
+                   tt0a1=tt0a1 + x_c(i1,t,i3)*aeff0_2auxarray(t-i2-1,i2+1)
+                   tt0a2=tt0a2 + x_c(i1,t,i3)*aeff0_2auxarray(t-i2-2,i2+2)
+                   tt0a3=tt0a3 + x_c(i1,t,i3)*aeff0_2auxarray(t-i2-3,i2+3)
+
+                   tt0b0=tt0b0 + x_c(i1,t,i3)*beff0_2auxarray(t-i2-0,i2+0)
+                   tt0b1=tt0b1 + x_c(i1,t,i3)*beff0_2auxarray(t-i2-1,i2+1)
+                   tt0b2=tt0b2 + x_c(i1,t,i3)*beff0_2auxarray(t-i2-2,i2+2)
+                   tt0b3=tt0b3 + x_c(i1,t,i3)*beff0_2auxarray(t-i2-3,i2+3)
+
+                   tt0c0=tt0c0 + x_c(i1,t,i3)*ceff0_2auxarray(t-i2-0,i2+0)
+                   tt0c1=tt0c1 + x_c(i1,t,i3)*ceff0_2auxarray(t-i2-1,i2+1)
+                   tt0c2=tt0c2 + x_c(i1,t,i3)*ceff0_2auxarray(t-i2-2,i2+2)
+                   tt0c3=tt0c3 + x_c(i1,t,i3)*ceff0_2auxarray(t-i2-3,i2+3)
+
+                   tt0e0=tt0e0 + x_c(i1,t,i3)*eeff0_2auxarray(t-i2-0,i2+0)
+                   tt0e1=tt0e1 + x_c(i1,t,i3)*eeff0_2auxarray(t-i2-1,i2+1)
+                   tt0e2=tt0e2 + x_c(i1,t,i3)*eeff0_2auxarray(t-i2-2,i2+2)
+                   tt0e3=tt0e3 + x_c(i1,t,i3)*eeff0_2auxarray(t-i2-3,i2+3)
                 enddo
                 y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
                 y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
                 y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
                 y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
+
+                ya_c(i1,i2+0,i3)=tt0a0
+                ya_c(i1,i2+1,i3)=tt0a1
+                ya_c(i1,i2+2,i3)=tt0a2
+                ya_c(i1,i2+3,i3)=tt0a3
+                          
+                yb_c(i1,i2+0,i3)=tt0b0
+                yb_c(i1,i2+1,i3)=tt0b1
+                yb_c(i1,i2+2,i3)=tt0b2
+                yb_c(i1,i2+3,i3)=tt0b3
+                          
+                yc_c(i1,i2+0,i3)=tt0c0
+                yc_c(i1,i2+1,i3)=tt0c1
+                yc_c(i1,i2+2,i3)=tt0c2
+                yc_c(i1,i2+3,i3)=tt0c3
+                          
+                ye_c(i1,i2+0,i3)=tt0e0
+                ye_c(i1,i2+1,i3)=tt0e1
+                ye_c(i1,i2+2,i3)=tt0e2
+                ye_c(i1,i2+3,i3)=tt0e3
              enddo
              icur=i2
           else
@@ -5273,14 +5585,26 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
   
           do i2=icur,ibxz_c(2,i1,i3)
              dyi=0.0_wp 
+             tt0a0=0.d0
+             tt0b0=0.d0
+             tt0c0=0.d0
+             tt0e0=0.d0
              ! Get the effective a-filters for the y dimension
-             y0=hgrid*(i2+offsety+0)-rxyzConf(2)
-             call getFilterQuartic(it, potentialPrefac, hgrid, y0, aeff0(lowfil), 'a')
-             call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
+             !!y0=hgrid*(i2+offsety+0)-rxyzConf(2)
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, y0, aeff0(lowfil), 'a')
+             !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
              do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
-                dyi=dyi + x_c(i1,t,i3)*aeff0(t-i2) + 2.d0*xa_c(i1,t,i3)*aeff0_2(t-i2)
+                dyi=dyi + x_c(i1,t,i3)*aeff0array(t-i2,i2) + 2.d0*xa_c(i1,t,i3)*aeff0_2array(t-i2,i2)
+                tt0a0=tt0a0 + x_c(i1,t,i3)*aeff0_2auxarray(t-i2-0,i2)
+                tt0b0=tt0b0 + x_c(i1,t,i3)*beff0_2auxarray(t-i2-0,i2)
+                tt0c0=tt0c0 + x_c(i1,t,i3)*ceff0_2auxarray(t-i2-0,i2)
+                tt0e0=tt0e0 + x_c(i1,t,i3)*eeff0_2auxarray(t-i2-0,i2)
              enddo
              y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+             ya_c(i1,i2+0,i3)=tt0a0
+             yb_c(i1,i2+0,i3)=tt0b0
+             yc_c(i1,i2+0,i3)=tt0c0
+             ye_c(i1,i2+0,i3)=tt0e0
           enddo
           istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
           iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
@@ -5292,27 +5616,27 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                 dyi2=0.0_wp
                 dyi3=0.0_wp
                 ! Get the effective b-filters for the y dimension
-                y0=hgrid*(i2+offsety+0)-rxyzConf(2)
-                y1=hgrid*(i2+offsety+1)-rxyzConf(2)
-                y2=hgrid*(i2+offsety+2)-rxyzConf(2)
-                y3=hgrid*(i2+offsety+3)-rxyzConf(2)
-                call getFilterQuartic(it, potentialPrefac, hgrid, y0, beff0(lowfil), 'b')
-                call getFilterQuartic(it, potentialPrefac, hgrid, y1, beff1(lowfil), 'b')
-                call getFilterQuartic(it, potentialPrefac, hgrid, y2, beff2(lowfil), 'b')
-                call getFilterQuartic(it, potentialPrefac, hgrid, y3, beff3(lowfil), 'b')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y1, aeff1_2(lowfil), 'a')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y2, aeff2_2(lowfil), 'a')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y3, aeff3_2(lowfil), 'a')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y0, beff0_2(lowfil), 'b')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y1, beff1_2(lowfil), 'b')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y2, beff2_2(lowfil), 'b')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y3, beff3_2(lowfil), 'b')
+                !!y0=hgrid*(i2+offsety+0)-rxyzConf(2)
+                !!y1=hgrid*(i2+offsety+1)-rxyzConf(2)
+                !!y2=hgrid*(i2+offsety+2)-rxyzConf(2)
+                !!y3=hgrid*(i2+offsety+3)-rxyzConf(2)
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y0, beff0(lowfil), 'b')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y1, beff1(lowfil), 'b')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y2, beff2(lowfil), 'b')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y3, beff3(lowfil), 'b')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y1, aeff1_2(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y2, aeff2_2(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y3, aeff3_2(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, beff0_2(lowfil), 'b')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y1, beff1_2(lowfil), 'b')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y2, beff2_2(lowfil), 'b')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y3, beff3_2(lowfil), 'b')
                 do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_f(2,i1,i3))
-                   dyi0=dyi0 + x_f2(t,i1,i3)*beff0(t-i2-0) + 2.d0*xb_f(1,i1,t,i3)*aeff0_2(t-i2-0) + 2.d0*(xa_f(2,i1,t,i3)+xb_f(3,i1,t,i3))*beff0_2(t-i2-0)
-                   dyi1=dyi1 + x_f2(t,i1,i3)*beff1(t-i2-1) + 2.d0*xb_f(1,i1,t,i3)*aeff1_2(t-i2-1) + 2.d0*(xa_f(2,i1,t,i3)+xb_f(3,i1,t,i3))*beff1_2(t-i2-1)
-                   dyi2=dyi2 + x_f2(t,i1,i3)*beff2(t-i2-2) + 2.d0*xb_f(1,i1,t,i3)*aeff2_2(t-i2-2) + 2.d0*(xa_f(2,i1,t,i3)+xb_f(3,i1,t,i3))*beff2_2(t-i2-2)
-                   dyi3=dyi3 + x_f2(t,i1,i3)*beff3(t-i2-3) + 2.d0*xb_f(1,i1,t,i3)*aeff3_2(t-i2-3) + 2.d0*(xa_f(2,i1,t,i3)+xb_f(3,i1,t,i3))*beff3_2(t-i2-3)
+                   dyi0=dyi0 + x_f2(t,i1,i3)*beff0array(t-i2-0,i2+0) + 2.d0*xb_f(1,i1,t,i3)*aeff0_2array(t-i2-0,i2+0) + 2.d0*(xa_f(2,i1,t,i3)+xb_f(3,i1,t,i3))*beff0_2array(t-i2-0,i2+0)
+                   dyi1=dyi1 + x_f2(t,i1,i3)*beff0array(t-i2-1,i2+1) + 2.d0*xb_f(1,i1,t,i3)*aeff0_2array(t-i2-1,i2+1) + 2.d0*(xa_f(2,i1,t,i3)+xb_f(3,i1,t,i3))*beff0_2array(t-i2-1,i2+1)
+                   dyi2=dyi2 + x_f2(t,i1,i3)*beff0array(t-i2-2,i2+2) + 2.d0*xb_f(1,i1,t,i3)*aeff0_2array(t-i2-2,i2+2) + 2.d0*(xa_f(2,i1,t,i3)+xb_f(3,i1,t,i3))*beff0_2array(t-i2-2,i2+2)
+                   dyi3=dyi3 + x_f2(t,i1,i3)*beff0array(t-i2-3,i2+3) + 2.d0*xb_f(1,i1,t,i3)*aeff0_2array(t-i2-3,i2+3) + 2.d0*(xa_f(2,i1,t,i3)+xb_f(3,i1,t,i3))*beff0_2array(t-i2-3,i2+3)
                 enddo
                 y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
                 y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
@@ -5325,12 +5649,12 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
           do i2=istart,iend
              dyi0=0.0_wp
              ! Get the effective b-filters for the y dimension
-             y0=hgrid*(i2+offsety+0)-rxyzConf(2)
-             call getFilterQuartic(it, potentialPrefac, hgrid, y0, beff0(lowfil), 'b')
-             call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
-             call getFilterQuadratic(it, potentialPrefac, hgrid, y0, beff0_2(lowfil), 'b')
+             !!y0=hgrid*(i2+offsety+0)-rxyzConf(2)
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, y0, beff0(lowfil), 'b')
+             !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
+             !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, beff0_2(lowfil), 'b')
              do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_f(2,i1,i3))
-                dyi0=dyi0 + x_f2(t,i1,i3)*beff0(t-i2-0) + 2.d0*xb_f(1,i1,t,i3)*aeff0_2(t-i2-0) + 2.d0*(xa_f(2,i1,t,i3)+xb_f(3,i1,t,i3))*beff0_2(t-i2-0)
+                dyi0=dyi0 + x_f2(t,i1,i3)*beff0array(t-i2-0,i2) + 2.d0*xb_f(1,i1,t,i3)*aeff0_2array(t-i2-0,i2) + 2.d0*(xa_f(2,i1,t,i3)+xb_f(3,i1,t,i3))*beff0_2array(t-i2-0,i2)
              enddo
              y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
           enddo
@@ -5354,44 +5678,44 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                 tt32=0.0_wp 
                 tt33=0.0_wp 
                 ! Get the effective c-filters for the y dimension
-                y0=hgrid*(i2+offsety+0)-rxyzConf(2)
-                y1=hgrid*(i2+offsety+1)-rxyzConf(2)
-                y2=hgrid*(i2+offsety+2)-rxyzConf(2)
-                y3=hgrid*(i2+offsety+3)-rxyzConf(2)
-                call getFilterQuartic(it, potentialPrefac, hgrid, y0, ceff0(lowfil), 'c')
-                call getFilterQuartic(it, potentialPrefac, hgrid, y1, ceff1(lowfil), 'c')
-                call getFilterQuartic(it, potentialPrefac, hgrid, y2, ceff2(lowfil), 'c')
-                call getFilterQuartic(it, potentialPrefac, hgrid, y3, ceff3(lowfil), 'c')
+                !!y0=hgrid*(i2+offsety+0)-rxyzConf(2)
+                !!y1=hgrid*(i2+offsety+1)-rxyzConf(2)
+                !!y2=hgrid*(i2+offsety+2)-rxyzConf(2)
+                !!y3=hgrid*(i2+offsety+3)-rxyzConf(2)
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y0, ceff0(lowfil), 'c')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y1, ceff1(lowfil), 'c')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y2, ceff2(lowfil), 'c')
+                !!call getFilterQuartic(it, potentialPrefac, hgrid, y3, ceff3(lowfil), 'c')
   
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y1, aeff1_2(lowfil), 'a')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y2, aeff2_2(lowfil), 'a')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y3, aeff3_2(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y1, aeff1_2(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y2, aeff2_2(lowfil), 'a')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y3, aeff3_2(lowfil), 'a')
   
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y0, ceff0_2(lowfil), 'c')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y1, ceff1_2(lowfil), 'c')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y2, ceff2_2(lowfil), 'c')
-                call getFilterQuadratic(it, potentialPrefac, hgrid, y3, ceff3_2(lowfil), 'c')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, ceff0_2(lowfil), 'c')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y1, ceff1_2(lowfil), 'c')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y2, ceff2_2(lowfil), 'c')
+                !!call getFilterQuadratic(it, potentialPrefac, hgrid, y3, ceff3_2(lowfil), 'c')
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-                   dyi0=dyi0 + x_c(i1,t,i3)*ceff0(t-i2-0)
-                   dyi1=dyi1 + x_c(i1,t,i3)*ceff1(t-i2-1)
-                   dyi2=dyi2 + x_c(i1,t,i3)*ceff2(t-i2-2)
-                   dyi3=dyi3 + x_c(i1,t,i3)*ceff3(t-i2-3)
+                   dyi0=dyi0 + x_c(i1,t,i3)*ceff0array(t-i2-0,i2+0)
+                   dyi1=dyi1 + x_c(i1,t,i3)*ceff0array(t-i2-1,i2+1)
+                   dyi2=dyi2 + x_c(i1,t,i3)*ceff0array(t-i2-2,i2+2)
+                   dyi3=dyi3 + x_c(i1,t,i3)*ceff0array(t-i2-3,i2+3)
   
-                   tt10=tt10 + 2.d0*xc_c(i1,t,i3)*aeff0_2(t-i2-0)
-                   tt11=tt11 + 2.d0*xc_c(i1,t,i3)*aeff1_2(t-i2-1)
-                   tt12=tt12 + 2.d0*xc_c(i1,t,i3)*aeff2_2(t-i2-2)
-                   tt13=tt13 + 2.d0*xc_c(i1,t,i3)*aeff3_2(t-i2-3)
+                   tt10=tt10 + 2.d0*xc_c(i1,t,i3)*aeff0_2array(t-i2-0,i2+0)
+                   tt11=tt11 + 2.d0*xc_c(i1,t,i3)*aeff0_2array(t-i2-1,i2+1)
+                   tt12=tt12 + 2.d0*xc_c(i1,t,i3)*aeff0_2array(t-i2-2,i2+2)
+                   tt13=tt13 + 2.d0*xc_c(i1,t,i3)*aeff0_2array(t-i2-3,i2+3)
   
-                   tt20=tt20 + 2.d0*xa_c(i1,t,i3)*ceff0_2(t-i2-0)
-                   tt21=tt21 + 2.d0*xa_c(i1,t,i3)*ceff1_2(t-i2-1)
-                   tt22=tt22 + 2.d0*xa_c(i1,t,i3)*ceff2_2(t-i2-2)
-                   tt23=tt23 + 2.d0*xa_c(i1,t,i3)*ceff3_2(t-i2-3)
+                   tt20=tt20 + 2.d0*xa_c(i1,t,i3)*ceff0_2array(t-i2-0,i2+0)
+                   tt21=tt21 + 2.d0*xa_c(i1,t,i3)*ceff0_2array(t-i2-1,i2+1)
+                   tt22=tt22 + 2.d0*xa_c(i1,t,i3)*ceff0_2array(t-i2-2,i2+2)
+                   tt23=tt23 + 2.d0*xa_c(i1,t,i3)*ceff0_2array(t-i2-3,i2+3)
   
-                   tt30=tt30 + 2.d0*xc_c(i1,t,i3)*ceff0_2(t-i2-0)
-                   tt31=tt31 + 2.d0*xc_c(i1,t,i3)*ceff1_2(t-i2-1)
-                   tt32=tt32 + 2.d0*xc_c(i1,t,i3)*ceff2_2(t-i2-2)
-                   tt33=tt33 + 2.d0*xc_c(i1,t,i3)*ceff3_2(t-i2-3)
+                   tt30=tt30 + 2.d0*xc_c(i1,t,i3)*ceff0_2array(t-i2-0,i2+0)
+                   tt31=tt31 + 2.d0*xc_c(i1,t,i3)*ceff0_2array(t-i2-1,i2+1)
+                   tt32=tt32 + 2.d0*xc_c(i1,t,i3)*ceff0_2array(t-i2-2,i2+2)
+                   tt33=tt33 + 2.d0*xc_c(i1,t,i3)*ceff0_2array(t-i2-3,i2+3)
                 enddo
                 y_f(2,i1,i2+0,i3)=y_f(2,i1,i2+0,i3)+dyi0
                 y_f(2,i1,i2+1,i3)=y_f(2,i1,i2+1,i3)+dyi1
@@ -5424,15 +5748,15 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
              tt20=0.0_wp 
              tt30=0.0_wp 
              ! Get the effective c-filters for the y dimension
-             y0=hgrid*(i2+offsety+0)-rxyzConf(2)
-             call getFilterQuartic(it, potentialPrefac, hgrid, y0, ceff0(lowfil), 'c')
-             call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
-             call getFilterQuadratic(it, potentialPrefac, hgrid, y0, ceff0_2(lowfil), 'c')
+             !!y0=hgrid*(i2+offsety+0)-rxyzConf(2)
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, y0, ceff0(lowfil), 'c')
+             !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
+             !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, ceff0_2(lowfil), 'c')
              do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
-                dyi0=dyi0 + x_c(i1,t,i3)*ceff0(t-i2-0)
-                tt10=tt10 + 2.d0*xc_c(i1,t,i3)*aeff0_2(t-i2-0)
-                tt20=tt20 + 2.d0*xa_c(i1,t,i3)*ceff0_2(t-i2-0)
-                tt30=tt30 + 2.d0*xc_c(i1,t,i3)*ceff0_2(t-i2-0)
+                dyi0=dyi0 + x_c(i1,t,i3)*ceff0array(t-i2-0,i2)
+                tt10=tt10 + 2.d0*xc_c(i1,t,i3)*aeff0_2array(t-i2-0,i2)
+                tt20=tt20 + 2.d0*xa_c(i1,t,i3)*ceff0_2array(t-i2-0,i2)
+                tt30=tt30 + 2.d0*xc_c(i1,t,i3)*ceff0_2array(t-i2-0,i2)
              enddo
              y_f(2,i1,i2+0,i3)=y_f(2,i1,i2+0,i3)+dyi0
              y_f(1,i1,i2+0,i3)=y_f(1,i1,i2+0,i3)+tt10
@@ -5458,29 +5782,100 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
              tt50 = 0.d0
              tt60 = 0.d0
              tt70 = 0.d0
-             y0=hgrid*(i2+offsety+0)-rxyzConf(2)
-             call getFilterQuartic(it, potentialPrefac, hgrid, y0, aeff0(lowfil), 'a')
-             call getFilterQuartic(it, potentialPrefac, hgrid, y0, beff0(lowfil), 'b')
-             call getFilterQuartic(it, potentialPrefac, hgrid, y0, ceff0(lowfil), 'c')
-             call getFilterQuartic(it, potentialPrefac, hgrid, y0, eeff0(lowfil), 'e')
-             call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
-             call getFilterQuadratic(it, potentialPrefac, hgrid, y0, beff0_2(lowfil), 'b')
-             call getFilterQuadratic(it, potentialPrefac, hgrid, y0, ceff0_2(lowfil), 'c')
-             call getFilterQuadratic(it, potentialPrefac, hgrid, y0, eeff0_2(lowfil), 'e')
+
+             tt1a0=0.d0
+             tt1b0=0.d0
+             tt1c0=0.d0
+             tt1e0=0.d0
+
+             tt2a0=0.d0
+             tt2b0=0.d0
+             tt2c0=0.d0
+             tt2e0=0.d0
+
+             tt3a0=0.d0
+             tt3b0=0.d0
+             tt3c0=0.d0
+             tt3e0=0.d0
+
+             tt4a0=0.d0
+             tt4b0=0.d0
+             tt4c0=0.d0
+             tt4e0=0.d0
+
+             tt5a0=0.d0
+             tt5b0=0.d0
+             tt5c0=0.d0
+             tt5e0=0.d0
+
+             tt6a0=0.d0
+             tt6b0=0.d0
+             tt6c0=0.d0
+             tt6e0=0.d0
+
+             tt7a0=0.d0
+             tt7b0=0.d0
+             tt7c0=0.d0
+             tt7e0=0.d0
+             !!y0=hgrid*(i2+offsety+0)-rxyzConf(2)
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, y0, aeff0(lowfil), 'a')
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, y0, beff0(lowfil), 'b')
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, y0, ceff0(lowfil), 'c')
+             !!call getFilterQuartic(it, potentialPrefac, hgrid, y0, eeff0(lowfil), 'e')
+             !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2(lowfil), 'a')
+             !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, beff0_2(lowfil), 'b')
+             !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, ceff0_2(lowfil), 'c')
+             !!call getFilterQuadratic(it, potentialPrefac, hgrid, y0, eeff0_2(lowfil), 'e')
              do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
-                tt10 = tt10 + x_f(1,i1,i2+l,i3)*aeff0(l) + x_f(3,i1,i2+l,i3)*beff0(l) + 2.d0*xe_f(1,i1,i2+l,i3)*aeff0_2(l) + 2.d0*(xc_f(2,i1,i2+l,i3)+xe_f(3,i1,i2+l,i3))*beff0_2(l)
+                tt10 = tt10 + x_f(1,i1,i2+l,i3)*aeff0array(l,i2) + x_f(3,i1,i2+l,i3)*beff0array(l,i2) + 2.d0*xe_f(1,i1,i2+l,i3)*aeff0_2array(l,i2) + 2.d0*(xc_f(2,i1,i2+l,i3)+xe_f(3,i1,i2+l,i3))*beff0_2array(l,i2)
   
-                tt20 = tt20 + x_f(2,i1,i2+l,i3)*eeff0(l) +                              2.d0*xb_f(1,i1,i2+l,i3)*ceff0_2(l) + 2.d0*(xa_f(2,i1,i2+l,i3)+xb_f(3,i1,i2+l,i3))*eeff0_2(l)
+                tt20 = tt20 + x_f(2,i1,i2+l,i3)*eeff0array(l,i2) +                                      2.d0*xb_f(1,i1,i2+l,i3)*ceff0_2array(l,i2) + 2.d0*(xa_f(2,i1,i2+l,i3)+xb_f(3,i1,i2+l,i3))*eeff0_2array(l,i2)
   
-                tt30 = tt30 + x_f(1,i1,i2+l,i3)*ceff0(l) + x_f(3,i1,i2+l,i3)*eeff0(l) + 2.d0*xe_f(1,i1,i2+l,i3)*ceff0_2(l) + 2.d0*(xc_f(2,i1,i2+l,i3)+xe_f(3,i1,i2+l,i3))*eeff0_2(l)
+                tt30 = tt30 + x_f(1,i1,i2+l,i3)*ceff0array(l,i2) + x_f(3,i1,i2+l,i3)*eeff0array(l,i2) + 2.d0*xe_f(1,i1,i2+l,i3)*ceff0_2array(l,i2) + 2.d0*(xc_f(2,i1,i2+l,i3)+xe_f(3,i1,i2+l,i3))*eeff0_2array(l,i2)
   
-                tt40 = tt40 + x_f(4,i1,i2+l,i3)*aeff0(l) + x_f(6,i1,i2+l,i3)*beff0(l) + 2.d0*(xa_f(4,i1,i2+l,i3)+xb_f(5,i1,i2+l,i3))*aeff0_2(l) + 2.d0*(xa_f(6,i1,i2+l,i3)+xb_f(7,i1,i2+l,i3))*beff0_2(l)
+                tt40 = tt40 + x_f(4,i1,i2+l,i3)*aeff0array(l,i2) + x_f(6,i1,i2+l,i3)*beff0array(l,i2) + 2.d0*(xa_f(4,i1,i2+l,i3)+xb_f(5,i1,i2+l,i3))*aeff0_2array(l,i2) + 2.d0*(xa_f(6,i1,i2+l,i3)+xb_f(7,i1,i2+l,i3))*beff0_2array(l,i2)
   
-                tt50 = tt50 + x_f(5,i1,i2+l,i3)*aeff0(l) + x_f(7,i1,i2+l,i3)*beff0(l) + 2.d0*(xc_f(4,i1,i2+l,i3)+xe_f(5,i1,i2+l,i3))*aeff0_2(l) + 2.d0*(xc_f(6,i1,i2+l,i3)+xe_f(7,i1,i2+l,i3))*beff0_2(l)
+                tt50 = tt50 + x_f(5,i1,i2+l,i3)*aeff0array(l,i2) + x_f(7,i1,i2+l,i3)*beff0array(l,i2) + 2.d0*(xc_f(4,i1,i2+l,i3)+xe_f(5,i1,i2+l,i3))*aeff0_2array(l,i2) + 2.d0*(xc_f(6,i1,i2+l,i3)+xe_f(7,i1,i2+l,i3))*beff0_2array(l,i2)
                 
-                tt60 = tt60 + x_f(4,i1,i2+l,i3)*ceff0(l) + x_f(6,i1,i2+l,i3)*eeff0(l) + 2.d0*(xa_f(4,i1,i2+l,i3)+xb_f(5,i1,i2+l,i3))*ceff0_2(l) + 2.d0*(xa_f(6,i1,i2+l,i3)+xb_f(7,i1,i2+l,i3))*eeff0_2(l)
+                tt60 = tt60 + x_f(4,i1,i2+l,i3)*ceff0array(l,i2) + x_f(6,i1,i2+l,i3)*eeff0array(l,i2) + 2.d0*(xa_f(4,i1,i2+l,i3)+xb_f(5,i1,i2+l,i3))*ceff0_2array(l,i2) + 2.d0*(xa_f(6,i1,i2+l,i3)+xb_f(7,i1,i2+l,i3))*eeff0_2array(l,i2)
   
-                tt70 = tt70 + x_f(5,i1,i2+l,i3)*ceff0(l) + x_f(7,i1,i2+l,i3)*eeff0(l) + 2.d0*(xc_f(4,i1,i2+l,i3)+xe_f(5,i1,i2+l,i3))*ceff0_2(l) + 2.d0*(xc_f(6,i1,i2+l,i3)+xe_f(7,i1,i2+l,i3))*eeff0_2(l)
+                tt70 = tt70 + x_f(5,i1,i2+l,i3)*ceff0array(l,i2) + x_f(7,i1,i2+l,i3)*eeff0array(l,i2) + 2.d0*(xc_f(4,i1,i2+l,i3)+xe_f(5,i1,i2+l,i3))*ceff0_2array(l,i2) + 2.d0*(xc_f(6,i1,i2+l,i3)+xe_f(7,i1,i2+l,i3))*eeff0_2array(l,i2)
+
+                ! dss coefficients
+                tt1a0=tt1a0 + x_f(1,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
+                tt1b0=tt1b0 + x_f(1,i1,i2+l,i3)*beff0_2auxarray(l,i2)
+                tt1c0=tt1c0 + x_f(1,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
+                tt1e0=tt1e0 + x_f(1,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
+                ! sds coefficients
+                tt2a0=tt2a0 + x_f(2,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
+                tt2b0=tt2b0 + x_f(2,i1,i2+l,i3)*beff0_2auxarray(l,i2)
+                tt2c0=tt2c0 + x_f(2,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
+                tt2e0=tt2e0 + x_f(2,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
+                ! dds coefficients
+                tt3a0=tt3a0 + x_f(3,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
+                tt3b0=tt3b0 + x_f(3,i1,i2+l,i3)*beff0_2auxarray(l,i2)
+                tt3c0=tt3c0 + x_f(3,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
+                tt3e0=tt3e0 + x_f(3,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
+                ! ssd coefficients
+                tt4a0=tt4a0 + x_f(4,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
+                tt4b0=tt4b0 + x_f(4,i1,i2+l,i3)*beff0_2auxarray(l,i2)
+                tt4c0=tt4c0 + x_f(4,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
+                tt4e0=tt4e0 + x_f(4,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
+                ! dsd coefficients
+                tt5a0=tt5a0 + x_f(5,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
+                tt5b0=tt5b0 + x_f(5,i1,i2+l,i3)*beff0_2auxarray(l,i2)
+                tt5c0=tt5c0 + x_f(5,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
+                tt5e0=tt5e0 + x_f(5,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
+                ! sdd coefficients
+                tt6a0=tt6a0 + x_f(6,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
+                tt6b0=tt6b0 + x_f(6,i1,i2+l,i3)*beff0_2auxarray(l,i2)
+                tt6c0=tt6c0 + x_f(6,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
+                tt6e0=tt6e0 + x_f(6,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
+                ! ddd coefficients
+                tt7a0=tt7a0 + x_f(7,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
+                tt7b0=tt7b0 + x_f(7,i1,i2+l,i3)*beff0_2auxarray(l,i2)
+                tt7c0=tt7c0 + x_f(7,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
+                tt7e0=tt7e0 + x_f(7,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
              enddo
              y_f(4,i1,i2,i3)=y_f(4,i1,i2,i3)+tt40
              y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+tt20
@@ -5489,6 +5884,42 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
              y_f(5,i1,i2,i3)=y_f(5,i1,i2,i3)+tt50
              y_f(3,i1,i2,i3)=y_f(3,i1,i2,i3)+tt30
              y_f(7,i1,i2,i3)=y_f(7,i1,i2,i3)+tt70
+
+             ! dss coefficients
+             ya_f(1,i1,i2,i3)=tt1a0
+             yb_f(1,i1,i2,i3)=tt1b0
+             yc_f(1,i1,i2,i3)=tt1c0
+             ye_f(1,i1,i2,i3)=tt1e0
+             ! sds coefficients
+             ya_f(2,i1,i2,i3)=tt2a0
+             yb_f(2,i1,i2,i3)=tt2b0
+             yc_f(2,i1,i2,i3)=tt2c0
+             ye_f(2,i1,i2,i3)=tt2e0
+             ! dds coefficients
+             ya_f(3,i1,i2,i3)=tt3a0
+             yb_f(3,i1,i2,i3)=tt3b0
+             yc_f(3,i1,i2,i3)=tt3c0
+             ye_f(3,i1,i2,i3)=tt3e0
+             ! ssd coefficients
+             ya_f(4,i1,i2,i3)=tt4a0
+             yb_f(4,i1,i2,i3)=tt4b0
+             yc_f(4,i1,i2,i3)=tt4c0
+             ye_f(4,i1,i2,i3)=tt4e0
+             ! dsd coefficients
+             ya_f(5,i1,i2,i3)=tt5a0
+             yb_f(5,i1,i2,i3)=tt5b0
+             yc_f(5,i1,i2,i3)=tt5c0
+             ye_f(5,i1,i2,i3)=tt5e0
+             ! sdd coefficients
+             ya_f(6,i1,i2,i3)=tt6a0
+             yb_f(6,i1,i2,i3)=tt6b0
+             yc_f(6,i1,i2,i3)=tt6c0
+             ye_f(6,i1,i2,i3)=tt6e0
+             ! sdd coefficients
+             ya_f(7,i1,i2,i3)=tt7a0
+             yb_f(7,i1,i2,i3)=tt7b0
+             yc_f(7,i1,i2,i3)=tt7c0
+             ye_f(7,i1,i2,i3)=tt7e0
           enddo
        enddo
     enddo
@@ -5498,6 +5929,18 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
 
 
 
+    do i3=0,n3
+        z0=hgrid*(i3+offsetz)-rxyzConf(3)
+        call getFilterQuartic(it, potentialPrefac, hgrid, z0, aeff0array(lowfil,i3), 'a')
+        call getFilterQuartic(it, potentialPrefac, hgrid, z0, beff0array(lowfil,i3), 'b')
+        call getFilterQuartic(it, potentialPrefac, hgrid, z0, ceff0array(lowfil,i3), 'c')
+        call getFilterQuartic(it, potentialPrefac, hgrid, z0, eeff0array(lowfil,i3), 'e')
+
+        call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2array(lowfil,i3), 'a')
+        call getFilterQuadratic(it, potentialPrefac, hgrid, z0, beff0_2array(lowfil,i3), 'b')
+        call getFilterQuadratic(it, potentialPrefac, hgrid, z0, ceff0_2array(lowfil,i3), 'c')
+        call getFilterQuadratic(it, potentialPrefac, hgrid, z0, eeff0_2array(lowfil,i3), 'e')
+    end do
 
   !  call system_clock(ncount2,ncount_rate,ncount_max)
   !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
@@ -5516,23 +5959,23 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
               dyi2=0.0_wp 
               dyi3=0.0_wp 
               ! Get the effective a-filters for the z dimension
-              z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
-              z1=hgrid*(i3+offsetz+1)-rxyzConf(3)
-              z2=hgrid*(i3+offsetz+2)-rxyzConf(3)
-              z3=hgrid*(i3+offsetz+3)-rxyzConf(3)
-              call getFilterQuartic(it, potentialPrefac, hgrid, z0, aeff0(lowfil), 'a')
-              call getFilterQuartic(it, potentialPrefac, hgrid, z1, aeff1(lowfil), 'a')
-              call getFilterQuartic(it, potentialPrefac, hgrid, z2, aeff2(lowfil), 'a')
-              call getFilterQuartic(it, potentialPrefac, hgrid, z3, aeff3(lowfil), 'a')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z1, aeff1_2(lowfil), 'a')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z2, aeff2_2(lowfil), 'a')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z3, aeff3_2(lowfil), 'a')
+              !!z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
+              !!z1=hgrid*(i3+offsetz+1)-rxyzConf(3)
+              !!z2=hgrid*(i3+offsetz+2)-rxyzConf(3)
+              !!z3=hgrid*(i3+offsetz+3)-rxyzConf(3)
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z0, aeff0(lowfil), 'a')
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z1, aeff1(lowfil), 'a')
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z2, aeff2(lowfil), 'a')
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z3, aeff3(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z1, aeff1_2(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z2, aeff2_2(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z3, aeff3_2(lowfil), 'a')
               do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
-                 dyi0=dyi0 + x_c(i1,i2,t)*aeff0(t-i3-0) + 2.d0*(xa_c(i1,i2,t)+ya_c(i1,i2,t))*aeff0_2(t-i3-0)
-                 dyi1=dyi1 + x_c(i1,i2,t)*aeff1(t-i3-1) + 2.d0*(xa_c(i1,i2,t)+ya_c(i1,i2,t))*aeff1_2(t-i3-1)
-                 dyi2=dyi2 + x_c(i1,i2,t)*aeff2(t-i3-2) + 2.d0*(xa_c(i1,i2,t)+ya_c(i1,i2,t))*aeff2_2(t-i3-2)
-                 dyi3=dyi3 + x_c(i1,i2,t)*aeff3(t-i3-3) + 2.d0*(xa_c(i1,i2,t)+ya_c(i1,i2,t))*aeff3_2(t-i3-3)
+                 dyi0=dyi0 + x_c(i1,i2,t)*aeff0array(t-i3-0,i3+0) + 2.d0*(xa_c(i1,i2,t)+ya_c(i1,i2,t))*aeff0_2array(t-i3-0,i3+0)
+                 dyi1=dyi1 + x_c(i1,i2,t)*aeff0array(t-i3-1,i3+1) + 2.d0*(xa_c(i1,i2,t)+ya_c(i1,i2,t))*aeff0_2array(t-i3-1,i3+1)
+                 dyi2=dyi2 + x_c(i1,i2,t)*aeff0array(t-i3-2,i3+2) + 2.d0*(xa_c(i1,i2,t)+ya_c(i1,i2,t))*aeff0_2array(t-i3-2,i3+2)
+                 dyi3=dyi3 + x_c(i1,i2,t)*aeff0array(t-i3-3,i3+3) + 2.d0*(xa_c(i1,i2,t)+ya_c(i1,i2,t))*aeff0_2array(t-i3-3,i3+3)
               enddo
               y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
               y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
@@ -5547,11 +5990,11 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
         do i3=icur,ibxy_c(2,i1,i2)
            dyi0=0.0_wp
            ! Get the effective a-filters for the y dimension
-           z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
-           call getFilterQuartic(it, potentialPrefac, hgrid, z0, aeff0(lowfil), 'a')
-           call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
+           !!z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
+           !!call getFilterQuartic(it, potentialPrefac, hgrid, z0, aeff0(lowfil), 'a')
+           !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
            do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
-              dyi0=dyi0 + x_c(i1,i2,t)*aeff0(t-i3-0) + 2.d0*(xa_c(i1,i2,t)+ya_c(i1,i2,t))*aeff0_2(t-i3-0)
+              dyi0=dyi0 + x_c(i1,i2,t)*aeff0array(t-i3-0,i3) + 2.d0*(xa_c(i1,i2,t)+ya_c(i1,i2,t))*aeff0_2array(t-i3-0,i3+0)
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi0
         enddo
@@ -5565,29 +6008,29 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
               dyi2=0.0_wp
               dyi3=0.0_wp
               ! Get the effective b-filters for the z dimension
-              z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
-              z1=hgrid*(i3+offsetz+1)-rxyzConf(3)
-              z2=hgrid*(i3+offsetz+2)-rxyzConf(3)
-              z3=hgrid*(i3+offsetz+3)-rxyzConf(3)
-              call getFilterQuartic(it, potentialPrefac, hgrid, z0, beff0(lowfil), 'b')
-              call getFilterQuartic(it, potentialPrefac, hgrid, z1, beff1(lowfil), 'b')
-              call getFilterQuartic(it, potentialPrefac, hgrid, z2, beff2(lowfil), 'b')
-              call getFilterQuartic(it, potentialPrefac, hgrid, z3, beff3(lowfil), 'b')
+              !!z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
+              !!z1=hgrid*(i3+offsetz+1)-rxyzConf(3)
+              !!z2=hgrid*(i3+offsetz+2)-rxyzConf(3)
+              !!z3=hgrid*(i3+offsetz+3)-rxyzConf(3)
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z0, beff0(lowfil), 'b')
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z1, beff1(lowfil), 'b')
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z2, beff2(lowfil), 'b')
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z3, beff3(lowfil), 'b')
 
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z1, aeff1_2(lowfil), 'a')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z2, aeff2_2(lowfil), 'a')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z3, aeff3_2(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z1, aeff1_2(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z2, aeff2_2(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z3, aeff3_2(lowfil), 'a')
 
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z0, beff0_2(lowfil), 'b')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z1, beff1_2(lowfil), 'b')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z2, beff2_2(lowfil), 'b')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z3, beff3_2(lowfil), 'b')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, beff0_2(lowfil), 'b')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z1, beff1_2(lowfil), 'b')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z2, beff2_2(lowfil), 'b')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z3, beff3_2(lowfil), 'b')
               do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_f(2,i1,i2))
-                 dyi0=dyi0 + x_f3(t,i1,i2)*beff0(t-i3-0) + 2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2(t-i3-0) + 2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2(t-i3-0)
-                 dyi1=dyi1 + x_f3(t,i1,i2)*beff1(t-i3-1) + 2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff1_2(t-i3-1) + 2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff1_2(t-i3-1)
-                 dyi2=dyi2 + x_f3(t,i1,i2)*beff2(t-i3-2) + 2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff2_2(t-i3-2) + 2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff2_2(t-i3-2)
-                 dyi3=dyi3 + x_f3(t,i1,i2)*beff3(t-i3-3) + 2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff3_2(t-i3-3) + 2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff3_2(t-i3-3)
+                 dyi0=dyi0 + x_f3(t,i1,i2)*beff0array(t-i3-0,i3+0) + 2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2array(t-i3-0,i3+0) + 2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2array(t-i3-0,i3+0)
+                 dyi1=dyi1 + x_f3(t,i1,i2)*beff0array(t-i3-1,i3+1) + 2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2array(t-i3-1,i3+1) + 2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2array(t-i3-1,i3+1)
+                 dyi2=dyi2 + x_f3(t,i1,i2)*beff0array(t-i3-2,i3+2) + 2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2array(t-i3-2,i3+2) + 2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2array(t-i3-2,i3+2)
+                 dyi3=dyi3 + x_f3(t,i1,i2)*beff0array(t-i3-3,i3+3) + 2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2array(t-i3-3,i3+3) + 2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2array(t-i3-3,i3+3)
               enddo
               y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
               y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
@@ -5602,12 +6045,12 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
            tt0=0.0_wp
            ! Get the effective b-filters for the y dimension
            !!z0=hgrid*(i3+0)-rxyzConf(3)
-           z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
-           call getFilterQuartic(it, potentialPrefac, hgrid, z0, beff0(lowfil), 'b')
-           call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
-           call getFilterQuadratic(it, potentialPrefac, hgrid, z0, beff0_2(lowfil), 'b')
+           !!z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
+           !!call getFilterQuartic(it, potentialPrefac, hgrid, z0, beff0(lowfil), 'b')
+           !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
+           !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, beff0_2(lowfil), 'b')
            do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_f(2,i1,i2))
-              dyi0=dyi0 + x_f3(t,i1,i2)*beff0(t-i3-0) + 2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2(t-i3-0) + 2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2(t-i3-0)
+              dyi0=dyi0 + x_f3(t,i1,i2)*beff0array(t-i3-0,i3) + 2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2array(t-i3-0,i3) + 2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2array(t-i3-0,i3)
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi0
         enddo
@@ -5639,59 +6082,59 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
               tt62 = 0.d0
               tt63 = 0.d0
               ! Get the effective c-filters for the z dimension
-              z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
-              z1=hgrid*(i3+offsetz+1)-rxyzConf(3)
-              z2=hgrid*(i3+offsetz+2)-rxyzConf(3)
-              z3=hgrid*(i3+offsetz+3)-rxyzConf(3)
-              call getFilterQuartic(it, potentialPrefac, hgrid, z0, ceff0(lowfil), 'c')
-              call getFilterQuartic(it, potentialPrefac, hgrid, z1, ceff1(lowfil), 'c')
-              call getFilterQuartic(it, potentialPrefac, hgrid, z2, ceff2(lowfil), 'c')
-              call getFilterQuartic(it, potentialPrefac, hgrid, z3, ceff3(lowfil), 'c')
+              !!z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
+              !!z1=hgrid*(i3+offsetz+1)-rxyzConf(3)
+              !!z2=hgrid*(i3+offsetz+2)-rxyzConf(3)
+              !!z3=hgrid*(i3+offsetz+3)-rxyzConf(3)
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z0, ceff0(lowfil), 'c')
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z1, ceff1(lowfil), 'c')
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z2, ceff2(lowfil), 'c')
+              !!call getFilterQuartic(it, potentialPrefac, hgrid, z3, ceff3(lowfil), 'c')
 
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z1, aeff1_2(lowfil), 'a')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z2, aeff2_2(lowfil), 'a')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z3, aeff3_2(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z1, aeff1_2(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z2, aeff2_2(lowfil), 'a')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z3, aeff3_2(lowfil), 'a')
 
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z0, ceff0_2(lowfil), 'c')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z1, ceff1_2(lowfil), 'c')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z2, ceff2_2(lowfil), 'c')
-              call getFilterQuadratic(it, potentialPrefac, hgrid, z3, ceff3_2(lowfil), 'c')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, ceff0_2(lowfil), 'c')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z1, ceff1_2(lowfil), 'c')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z2, ceff2_2(lowfil), 'c')
+              !!call getFilterQuadratic(it, potentialPrefac, hgrid, z3, ceff3_2(lowfil), 'c')
               do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
-                 dyi0=dyi0 + x_c(i1,i2,t)*ceff0(t-i3-0)
-                 dyi1=dyi1 + x_c(i1,i2,t)*ceff1(t-i3-1)
-                 dyi2=dyi2 + x_c(i1,i2,t)*ceff2(t-i3-2)
-                 dyi3=dyi3 + x_c(i1,i2,t)*ceff3(t-i3-3)
+                 dyi0=dyi0 + x_c(i1,i2,t)*ceff0array(t-i3-0,i3+0)
+                 dyi1=dyi1 + x_c(i1,i2,t)*ceff0array(t-i3-1,i3+1)
+                 dyi2=dyi2 + x_c(i1,i2,t)*ceff0array(t-i3-2,i3+2)
+                 dyi3=dyi3 + x_c(i1,i2,t)*ceff0array(t-i3-3,i3+3)
 
-                 tt10 = tt10 + 2.d0*xc_c(i1,i2,t)*aeff0_2(t-i3-0)
-                 tt11 = tt11 + 2.d0*xc_c(i1,i2,t)*aeff1_2(t-i3-1)
-                 tt12 = tt12 + 2.d0*xc_c(i1,i2,t)*aeff2_2(t-i3-2)
-                 tt13 = tt13 + 2.d0*xc_c(i1,i2,t)*aeff3_2(t-i3-3)
+                 tt10 = tt10 + 2.d0*xc_c(i1,i2,t)*aeff0_2array(t-i3-0,i3+0)
+                 tt11 = tt11 + 2.d0*xc_c(i1,i2,t)*aeff0_2array(t-i3-1,i3+1)
+                 tt12 = tt12 + 2.d0*xc_c(i1,i2,t)*aeff0_2array(t-i3-2,i3+2)
+                 tt13 = tt13 + 2.d0*xc_c(i1,i2,t)*aeff0_2array(t-i3-3,i3+3)
 
-                 tt40 = tt40 + 2.d0*xa_c(i1,i2,t)*ceff0_2(t-i3-0)
-                 tt41 = tt41 + 2.d0*xa_c(i1,i2,t)*ceff1_2(t-i3-1)
-                 tt42 = tt42 + 2.d0*xa_c(i1,i2,t)*ceff2_2(t-i3-2)
-                 tt43 = tt43 + 2.d0*xa_c(i1,i2,t)*ceff3_2(t-i3-3)
-                 
-                 tt50 = tt50 + 2.d0*xc_c(i1,i2,t)*ceff0_2(t-i3-0)
-                 tt51 = tt51 + 2.d0*xc_c(i1,i2,t)*ceff1_2(t-i3-1)
-                 tt52 = tt52 + 2.d0*xc_c(i1,i2,t)*ceff2_2(t-i3-2)
-                 tt53 = tt53 + 2.d0*xc_c(i1,i2,t)*ceff3_2(t-i3-3)
-                 
-                 tt20 = tt20 + 2.d0*yc_c(i1,i2,t)*aeff0_2(t-i3-0)
-                 tt21 = tt21 + 2.d0*yc_c(i1,i2,t)*aeff1_2(t-i3-1)
-                 tt22 = tt22 + 2.d0*yc_c(i1,i2,t)*aeff2_2(t-i3-2)
-                 tt23 = tt23 + 2.d0*yc_c(i1,i2,t)*aeff3_2(t-i3-3)
+                 tt40 = tt40 + 2.d0*xa_c(i1,i2,t)*ceff0_2array(t-i3-0,i3+0)
+                 tt41 = tt41 + 2.d0*xa_c(i1,i2,t)*ceff0_2array(t-i3-1,i3+1)
+                 tt42 = tt42 + 2.d0*xa_c(i1,i2,t)*ceff0_2array(t-i3-2,i3+2)
+                 tt43 = tt43 + 2.d0*xa_c(i1,i2,t)*ceff0_2array(t-i3-3,i3+3)
 
-                 tt40 = tt40 + 2.d0*ya_c(i1,i2,t)*ceff0_2(t-i3-0)
-                 tt41 = tt41 + 2.d0*ya_c(i1,i2,t)*ceff1_2(t-i3-1)
-                 tt42 = tt42 + 2.d0*ya_c(i1,i2,t)*ceff2_2(t-i3-2)
-                 tt43 = tt43 + 2.d0*ya_c(i1,i2,t)*ceff3_2(t-i3-3)
+                 tt50 = tt50 + 2.d0*xc_c(i1,i2,t)*ceff0_2array(t-i3-0,i3+0)
+                 tt51 = tt51 + 2.d0*xc_c(i1,i2,t)*ceff0_2array(t-i3-1,i3+1)
+                 tt52 = tt52 + 2.d0*xc_c(i1,i2,t)*ceff0_2array(t-i3-2,i3+2)
+                 tt53 = tt53 + 2.d0*xc_c(i1,i2,t)*ceff0_2array(t-i3-3,i3+3)
 
-                 tt60 = tt60 + 2.d0*yc_c(i1,i2,t)*ceff0_2(t-i3-0)
-                 tt61 = tt61 + 2.d0*yc_c(i1,i2,t)*ceff1_2(t-i3-1)
-                 tt62 = tt62 + 2.d0*yc_c(i1,i2,t)*ceff2_2(t-i3-2)
-                 tt63 = tt63 + 2.d0*yc_c(i1,i2,t)*ceff3_2(t-i3-3)
+                 tt20 = tt20 + 2.d0*yc_c(i1,i2,t)*aeff0_2array(t-i3-0,i3+0)
+                 tt21 = tt21 + 2.d0*yc_c(i1,i2,t)*aeff0_2array(t-i3-1,i3+1)
+                 tt22 = tt22 + 2.d0*yc_c(i1,i2,t)*aeff0_2array(t-i3-2,i3+2)
+                 tt23 = tt23 + 2.d0*yc_c(i1,i2,t)*aeff0_2array(t-i3-3,i3+3)
+
+                 tt40 = tt40 + 2.d0*ya_c(i1,i2,t)*ceff0_2array(t-i3-0,i3+0)
+                 tt41 = tt41 + 2.d0*ya_c(i1,i2,t)*ceff0_2array(t-i3-1,i3+1)
+                 tt42 = tt42 + 2.d0*ya_c(i1,i2,t)*ceff0_2array(t-i3-2,i3+2)
+                 tt43 = tt43 + 2.d0*ya_c(i1,i2,t)*ceff0_2array(t-i3-3,i3+3)
+
+                 tt60 = tt60 + 2.d0*yc_c(i1,i2,t)*ceff0_2array(t-i3-0,i3+0)
+                 tt61 = tt61 + 2.d0*yc_c(i1,i2,t)*ceff0_2array(t-i3-1,i3+1)
+                 tt62 = tt62 + 2.d0*yc_c(i1,i2,t)*ceff0_2array(t-i3-2,i3+2)
+                 tt63 = tt63 + 2.d0*yc_c(i1,i2,t)*ceff0_2array(t-i3-3,i3+3)
 
               enddo
               y_f(4,i1,i2,i3+0) = y_f(4,i1,i2,i3+0) + dyi0 + tt40
@@ -5732,18 +6175,18 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
            tt20 = 0.d0
            tt60 = 0.d0
            ! Get the effective c-filters for the z dimension
-           z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
-           call getFilterQuartic(it, potentialPrefac, hgrid, z0, ceff0(lowfil), 'c')
-           call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
-           call getFilterQuadratic(it, potentialPrefac, hgrid, z0, ceff0_2(lowfil), 'c')
+           !!z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
+           !!call getFilterQuartic(it, potentialPrefac, hgrid, z0, ceff0(lowfil), 'c')
+           !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
+           !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, ceff0_2(lowfil), 'c')
            do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
-              dyi0=dyi0 + x_c(i1,i2,t)*ceff0(t-i3-0)
-              tt10 = tt10 + 2.d0*xc_c(i1,i2,t)*aeff0_2(t-i3-0)
-              tt40 = tt40 + 2.d0*xa_c(i1,i2,t)*ceff0_2(t-i3-0)
-              tt50 = tt50 + 2.d0*xc_c(i1,i2,t)*ceff0_2(t-i3-0)
-              tt20 = tt20 + 2.d0*yc_c(i1,i2,t)*aeff0_2(t-i3-0)
-              tt40 = tt40 + 2.d0*ya_c(i1,i2,t)*ceff0_2(t-i3-0)
-              tt60 = tt60 + 2.d0*yc_c(i1,i2,t)*ceff0_2(t-i3-0)
+              dyi0=dyi0 + x_c(i1,i2,t)*ceff0array(t-i3-0,i3)
+              tt10 = tt10 + 2.d0*xc_c(i1,i2,t)*aeff0_2array(t-i3-0,i3)
+              tt40 = tt40 + 2.d0*xa_c(i1,i2,t)*ceff0_2array(t-i3-0,i3)
+              tt50 = tt50 + 2.d0*xc_c(i1,i2,t)*ceff0_2array(t-i3-0,i3)
+              tt20 = tt20 + 2.d0*yc_c(i1,i2,t)*aeff0_2array(t-i3-0,i3)
+              tt40 = tt40 + 2.d0*ya_c(i1,i2,t)*ceff0_2array(t-i3-0,i3)
+              tt60 = tt60 + 2.d0*yc_c(i1,i2,t)*ceff0_2array(t-i3-0,i3)
            enddo
            y_f(4,i1,i2,i3+0) = y_f(4,i1,i2,i3+0) + dyi0 + tt40
            y_f(1,i1,i2,i3+0) = y_f(1,i1,i2,i3+0) + tt10
@@ -5770,38 +6213,38 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
            tt60 = 0.d0
            tt70 = 0.d0
            ! Get the effective filters for the z dimension
-           z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
+           !!z0=hgrid*(i3+offsetz+0)-rxyzConf(3)
            !call getFilterQuartic(it,potentialPrefac,hgrid, z0, aeff0(lowfil), beff0(lowfil), ceff0(lowfil), eeff0(lowfil))
-           call getFilterQuartic(it, potentialPrefac, hgrid, z0, aeff0(lowfil), 'a')
-           call getFilterQuartic(it, potentialPrefac, hgrid, z0, beff0(lowfil), 'b')
-           call getFilterQuartic(it, potentialPrefac, hgrid, z0, ceff0(lowfil), 'c')
-           call getFilterQuartic(it, potentialPrefac, hgrid, z0, eeff0(lowfil), 'e')
-           call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
-           call getFilterQuadratic(it, potentialPrefac, hgrid, z0, beff0_2(lowfil), 'b')
-           call getFilterQuadratic(it, potentialPrefac, hgrid, z0, ceff0_2(lowfil), 'c')
-           call getFilterQuadratic(it, potentialPrefac, hgrid, z0, eeff0_2(lowfil), 'e')
+           !!call getFilterQuartic(it, potentialPrefac, hgrid, z0, aeff0(lowfil), 'a')
+           !!call getFilterQuartic(it, potentialPrefac, hgrid, z0, beff0(lowfil), 'b')
+           !!call getFilterQuartic(it, potentialPrefac, hgrid, z0, ceff0(lowfil), 'c')
+           !!call getFilterQuartic(it, potentialPrefac, hgrid, z0, eeff0(lowfil), 'e')
+           !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2(lowfil), 'a')
+           !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, beff0_2(lowfil), 'b')
+           !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, ceff0_2(lowfil), 'c')
+           !!call getFilterQuadratic(it, potentialPrefac, hgrid, z0, eeff0_2(lowfil), 'e')
            do l=max(nfl3-i3,lowfil),min(lupfil,nfu3-i3)
 
-              tt10 = tt10 + x_f(1,i1,i2,i3+l)*aeff0(l) + x_f(5,i1,i2,i3+l)*beff0(l) + 2.d0*                    xe_f(1,i1,i2,i3+l) *aeff0_2(l) + 2.d0*(xc_f(4,i1,i2,i3+l)+xe_f(5,i1,i2,i3+l))*beff0_2(l) &
-                                                                                    + 2.d0*(ya_f(1,i1,i2,i3+l)+yb_f(3,i1,i2,i3+l))*aeff0_2(l) + 2.d0*(ya_f(5,i1,i2,i3+l)+yb_f(7,i1,i2,i3+l))*beff0_2(l)
+              tt10 = tt10 + x_f(1,i1,i2,i3+l)*aeff0array(l,i3) + x_f(5,i1,i2,i3+l)*beff0array(l,i3) + 2.d0*                    xe_f(1,i1,i2,i3+l) *aeff0_2array(l,i3) + 2.d0*(xc_f(4,i1,i2,i3+l)+xe_f(5,i1,i2,i3+l))*beff0_2array(l,i3) &
+                                                                                    + 2.d0*(ya_f(1,i1,i2,i3+l)+yb_f(3,i1,i2,i3+l))*aeff0_2array(l,i3) + 2.d0*(ya_f(5,i1,i2,i3+l)+yb_f(7,i1,i2,i3+l))*beff0_2array(l,i3)
 
-              tt20 = tt20 + x_f(2,i1,i2,i3+l)*aeff0(l) + x_f(6,i1,i2,i3+l)*beff0(l) + 2.d0*(xa_f(2,i1,i2,i3+l)+xb_f(3,i1,i2,i3+l))*aeff0_2(l) + 2.d0*(xa_f(6,i1,i2,i3+l)+xb_f(7,i1,i2,i3+l))*beff0_2(l) &
-                                                                                    + 2.d0*                    ye_f(2,i1,i2,i3+l) *aeff0_2(l) + 2.d0*(yc_f(4,i1,i2,i3+l)+ye_f(6,i1,i2,i3+l))*beff0_2(l)
+              tt20 = tt20 + x_f(2,i1,i2,i3+l)*aeff0array(l,i3) + x_f(6,i1,i2,i3+l)*beff0array(l,i3) + 2.d0*(xa_f(2,i1,i2,i3+l)+xb_f(3,i1,i2,i3+l))*aeff0_2array(l,i3) + 2.d0*(xa_f(6,i1,i2,i3+l)+xb_f(7,i1,i2,i3+l))*beff0_2array(l,i3) &
+                                                                                    + 2.d0*                    ye_f(2,i1,i2,i3+l) *aeff0_2array(l,i3) + 2.d0*(yc_f(4,i1,i2,i3+l)+ye_f(6,i1,i2,i3+l))*beff0_2array(l,i3)
 
-              tt30 = tt30 + x_f(3,i1,i2,i3+l)*aeff0(l) + x_f(7,i1,i2,i3+l)*beff0(l) + 2.d0*(xc_f(2,i1,i2,i3+l)+xe_f(3,i1,i2,i3+l))*aeff0_2(l) + 2.d0*(xc_f(6,i1,i2,i3+l)+xe_f(7,i1,i2,i3+l))*beff0_2(l) &
-                                                                                    + 2.d0*(yc_f(1,i1,i2,i3+l)+ye_f(3,i1,i2,i3+l))*aeff0_2(l) + 2.d0*(yc_f(5,i1,i2,i3+l)+ye_f(7,i1,i2,i3+l))*beff0_2(l)
+              tt30 = tt30 + x_f(3,i1,i2,i3+l)*aeff0array(l,i3) + x_f(7,i1,i2,i3+l)*beff0array(l,i3) + 2.d0*(xc_f(2,i1,i2,i3+l)+xe_f(3,i1,i2,i3+l))*aeff0_2array(l,i3) + 2.d0*(xc_f(6,i1,i2,i3+l)+xe_f(7,i1,i2,i3+l))*beff0_2array(l,i3) &
+                                                                                    + 2.d0*(yc_f(1,i1,i2,i3+l)+ye_f(3,i1,i2,i3+l))*aeff0_2array(l,i3) + 2.d0*(yc_f(5,i1,i2,i3+l)+ye_f(7,i1,i2,i3+l))*beff0_2array(l,i3)
 
-              tt40 = tt40 + x_f(4,i1,i2,i3+l)*eeff0(l)                              + 2.d0*                    xb_f(1,i1,i2,i3+l) *ceff0_2(l) + 2.d0*(xa_f(4,i1,i2,i3+l)+xb_f(5,i1,i2,i3+l))*eeff0_2(l) &
-                                                                                    + 2.d0*                    yb_f(2,i1,i2,i3+l) *ceff0_2(l) + 2.d0*(ya_f(4,i1,i2,i3+l)+yb_f(6,i1,i2,i3+l))*eeff0_2(l)
+              tt40 = tt40 + x_f(4,i1,i2,i3+l)*eeff0array(l,i3)                                      + 2.d0*                    xb_f(1,i1,i2,i3+l) *ceff0_2array(l,i3) + 2.d0*(xa_f(4,i1,i2,i3+l)+xb_f(5,i1,i2,i3+l))*eeff0_2array(l,i3) &
+                                                                                    + 2.d0*                    yb_f(2,i1,i2,i3+l) *ceff0_2array(l,i3) + 2.d0*(ya_f(4,i1,i2,i3+l)+yb_f(6,i1,i2,i3+l))*eeff0_2array(l,i3)
 
-              tt50 = tt50 + x_f(1,i1,i2,i3+l)*ceff0(l) + x_f(5,i1,i2,i3+l)*eeff0(l) + 2.d0*                    xe_f(1,i1,i2,i3+l) *ceff0_2(l) + 2.d0*(xc_f(4,i1,i2,i3+l)+xe_f(5,i1,i2,i3+l))*eeff0_2(l) &
-                                                                                    + 2.d0*(ya_f(1,i1,i2,i3+l)+yb_f(3,i1,i2,i3+l))*ceff0_2(l) + 2.d0*(ya_f(5,i1,i2,i3+l)+yb_f(7,i1,i2,i3+l))*eeff0_2(l)
+              tt50 = tt50 + x_f(1,i1,i2,i3+l)*ceff0array(l,i3) + x_f(5,i1,i2,i3+l)*eeff0array(l,i3) + 2.d0*                    xe_f(1,i1,i2,i3+l) *ceff0_2array(l,i3) + 2.d0*(xc_f(4,i1,i2,i3+l)+xe_f(5,i1,i2,i3+l))*eeff0_2array(l,i3) &
+                                                                                    + 2.d0*(ya_f(1,i1,i2,i3+l)+yb_f(3,i1,i2,i3+l))*ceff0_2array(l,i3) + 2.d0*(ya_f(5,i1,i2,i3+l)+yb_f(7,i1,i2,i3+l))*eeff0_2array(l,i3)
 
-              tt60 = tt60 + x_f(2,i1,i2,i3+l)*ceff0(l) + x_f(6,i1,i2,i3+l)*eeff0(l) + 2.d0*(xa_f(2,i1,i2,i3+l)+xb_f(3,i1,i2,i3+l))*ceff0_2(l) + 2.d0*(xa_f(6,i1,i2,i3+l)+xb_f(7,i1,i2,i3+l))*eeff0_2(l) &
-                                                                                    + 2.d0*                    ye_f(2,i1,i2,i3+l) *ceff0_2(l) + 2.d0*(yc_f(4,i1,i2,i3+l)+ye_f(6,i1,i2,i3+l))*eeff0_2(l)
+              tt60 = tt60 + x_f(2,i1,i2,i3+l)*ceff0array(l,i3) + x_f(6,i1,i2,i3+l)*eeff0array(l,i3) + 2.d0*(xa_f(2,i1,i2,i3+l)+xb_f(3,i1,i2,i3+l))*ceff0_2array(l,i3) + 2.d0*(xa_f(6,i1,i2,i3+l)+xb_f(7,i1,i2,i3+l))*eeff0_2array(l,i3) &
+                                                                                    + 2.d0*                    ye_f(2,i1,i2,i3+l) *ceff0_2array(l,i3) + 2.d0*(yc_f(4,i1,i2,i3+l)+ye_f(6,i1,i2,i3+l))*eeff0_2array(l,i3)
 
-              tt70 = tt70 + x_f(3,i1,i2,i3+l)*ceff0(l) + x_f(7,i1,i2,i3+l)*eeff0(l) + 2.d0*(xc_f(2,i1,i2,i3+l)+xe_f(3,i1,i2,i3+l))*ceff0_2(l) + 2.d0*(xc_f(6,i1,i2,i3+l)+xe_f(7,i1,i2,i3+l))*eeff0_2(l) &
-                                                                                    + 2.d0*(yc_f(1,i1,i2,i3+l)+ye_f(3,i1,i2,i3+l))*ceff0_2(l) + 2.d0*(yc_f(5,i1,i2,i3+l)+ye_f(7,i1,i2,i3+l))*eeff0_2(l)
+              tt70 = tt70 + x_f(3,i1,i2,i3+l)*ceff0array(l,i3) + x_f(7,i1,i2,i3+l)*eeff0array(l,i3) + 2.d0*(xc_f(2,i1,i2,i3+l)+xe_f(3,i1,i2,i3+l))*ceff0_2array(l,i3) + 2.d0*(xc_f(6,i1,i2,i3+l)+xe_f(7,i1,i2,i3+l))*eeff0_2array(l,i3) &
+                                                                                    + 2.d0*(yc_f(1,i1,i2,i3+l)+ye_f(3,i1,i2,i3+l))*ceff0_2array(l,i3) + 2.d0*(yc_f(5,i1,i2,i3+l)+ye_f(7,i1,i2,i3+l))*eeff0_2array(l,i3)
            enddo
            y_f(4,i1,i2,i3)=y_f(4,i1,i2,i3)+tt40
            y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+tt20
@@ -5820,7 +6263,55 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
 
 
 
+  iall=-product(shape(aeff0array))*kind(aeff0array)
+  deallocate(aeff0array, stat=istat)
+  call memocc(istat, iall, 'aeff0array', subname)
 
+  iall=-product(shape(beff0array))*kind(beff0array)
+  deallocate(beff0array, stat=istat)
+  call memocc(istat, iall, 'beff0array', subname)
+
+  iall=-product(shape(ceff0array))*kind(ceff0array)
+  deallocate(ceff0array, stat=istat)
+  call memocc(istat, iall, 'ceff0array', subname)
+
+  iall=-product(shape(eeff0array))*kind(eeff0array)
+  deallocate(eeff0array, stat=istat)
+  call memocc(istat, iall, 'eeff0array', subname)
+
+
+  iall=-product(shape(aeff0_2array))*kind(aeff0_2array)
+  deallocate(aeff0_2array, stat=istat)
+  call memocc(istat, iall, 'aeff0_2array', subname)
+
+  iall=-product(shape(beff0_2array))*kind(beff0_2array)
+  deallocate(beff0_2array, stat=istat)
+  call memocc(istat, iall, 'beff0_2array', subname)
+
+  iall=-product(shape(ceff0_2array))*kind(ceff0_2array)
+  deallocate(ceff0_2array, stat=istat)
+  call memocc(istat, iall, 'ceff0_2array', subname)
+
+  iall=-product(shape(eeff0_2array))*kind(eeff0_2array)
+  deallocate(eeff0_2array, stat=istat)
+  call memocc(istat, iall, 'eeff0_2array', subname)
+
+
+  iall=-product(shape(aeff0_2auxarray))*kind(aeff0_2auxarray)
+  deallocate(aeff0_2auxarray, stat=istat)
+  call memocc(istat, iall, 'aeff0_2auxarray', subname)
+
+  iall=-product(shape(beff0_2auxarray))*kind(beff0_2auxarray)
+  deallocate(beff0_2auxarray, stat=istat)
+  call memocc(istat, iall, 'beff0_2auxarray', subname)
+
+  iall=-product(shape(ceff0_2auxarray))*kind(ceff0_2auxarray)
+  deallocate(ceff0_2auxarray, stat=istat)
+  call memocc(istat, iall, 'ceff0_2auxarray', subname)
+
+  iall=-product(shape(eeff0_2auxarray))*kind(eeff0_2auxarray)
+  deallocate(eeff0_2auxarray, stat=istat)
+  call memocc(istat, iall, 'eeff0_2auxarray', subname)
 
 
   iall=-product(shape(xa_c))*kind(xa_c)
@@ -6837,251 +7328,251 @@ ceff0=0.d0 ; ceff1=0.d0 ; ceff2=0.d0 ; ceff3=0.d0
 eeff0=0.d0 ; eeff1=0.d0 ; eeff2=0.d0 ; eeff3=0.d0
 
 
-  do i3=0,n3
-     do i2=0,n2
-        if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
-           do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)-4,4
-              tt0a0=0.d0
-              tt0a1=0.d0
-              tt0a2=0.d0
-              tt0a3=0.d0
-
-              tt0b0=0.d0
-              tt0b1=0.d0
-              tt0b2=0.d0
-              tt0b3=0.d0
-
-              tt0c0=0.d0
-              tt0c1=0.d0
-              tt0c2=0.d0
-              tt0c3=0.d0
-
-              tt0e0=0.d0
-              tt0e1=0.d0
-              tt0e2=0.d0
-              tt0e3=0.d0
-              ! Get the effective a-filters for the x dimension
-              x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
-              x1=hgrid*(i1+offsetx+1)-rxyzConf(1)
-              x2=hgrid*(i1+offsetx+2)-rxyzConf(1)
-              x3=hgrid*(i1+offsetx+3)-rxyzConf(1)
-
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x0, aeff0(lowfil), 'a')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x1, aeff1(lowfil), 'a')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x2, aeff2(lowfil), 'a')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x3, aeff3(lowfil), 'a')
-
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x0, beff0(lowfil), 'b')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x1, beff1(lowfil), 'b')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x2, beff2(lowfil), 'b')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x3, beff3(lowfil), 'b')
-
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x0, ceff0(lowfil), 'c')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x1, ceff1(lowfil), 'c')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x2, ceff2(lowfil), 'c')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x3, ceff3(lowfil), 'c')
-
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x0, eeff0(lowfil), 'e')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x1, eeff1(lowfil), 'e')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x2, eeff2(lowfil), 'e')
-              call getFilterQuadratic(it, fakePrefactor, hgrid, x3, eeff3(lowfil), 'e')
-              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-
-                 ! sss coefficients
-                 tt0a0=tt0a0 + x_c(t,i2,i3)*aeff0(t-i1-0)
-                 tt0a1=tt0a1 + x_c(t,i2,i3)*aeff1(t-i1-1)
-                 tt0a2=tt0a2 + x_c(t,i2,i3)*aeff2(t-i1-2)
-                 tt0a3=tt0a3 + x_c(t,i2,i3)*aeff3(t-i1-3)
-
-                 tt0b0=tt0b0 + x_c(t,i2,i3)*beff0(t-i1-0)
-                 tt0b1=tt0b1 + x_c(t,i2,i3)*beff1(t-i1-1)
-                 tt0b2=tt0b2 + x_c(t,i2,i3)*beff2(t-i1-2)
-                 tt0b3=tt0b3 + x_c(t,i2,i3)*beff3(t-i1-3)
-
-                 tt0c0=tt0c0 + x_c(t,i2,i3)*ceff0(t-i1-0)
-                 tt0c1=tt0c1 + x_c(t,i2,i3)*ceff1(t-i1-1)
-                 tt0c2=tt0c2 + x_c(t,i2,i3)*ceff2(t-i1-2)
-                 tt0c3=tt0c3 + x_c(t,i2,i3)*ceff3(t-i1-3)
-
-                 tt0e0=tt0e0 + x_c(t,i2,i3)*eeff0(t-i1-0)
-                 tt0e1=tt0e1 + x_c(t,i2,i3)*eeff1(t-i1-1)
-                 tt0e2=tt0e2 + x_c(t,i2,i3)*eeff2(t-i1-2)
-                 tt0e3=tt0e3 + x_c(t,i2,i3)*eeff3(t-i1-3)
-
-              enddo
-
-              xa_c(i1+0,i2,i3)=tt0a0
-              xa_c(i1+1,i2,i3)=tt0a1
-              xa_c(i1+2,i2,i3)=tt0a2
-              xa_c(i1+3,i2,i3)=tt0a3
-
-              xb_c(i1+0,i2,i3)=tt0b0
-              xb_c(i1+1,i2,i3)=tt0b1
-              xb_c(i1+2,i2,i3)=tt0b2
-              xb_c(i1+3,i2,i3)=tt0b3
-
-              xc_c(i1+0,i2,i3)=tt0c0
-              xc_c(i1+1,i2,i3)=tt0c1
-              xc_c(i1+2,i2,i3)=tt0c2
-              xc_c(i1+3,i2,i3)=tt0c3
-
-              xe_c(i1+0,i2,i3)=tt0e0
-              xe_c(i1+1,i2,i3)=tt0e1
-              xe_c(i1+2,i2,i3)=tt0e2
-              xe_c(i1+3,i2,i3)=tt0e3
-           end do
-           icur=i1
-        else
-           icur=ibyz_c(1,i2,i3)
-        end if
-
-        do i1=icur,ibyz_c(2,i2,i3)
-           tt0a0=0.d0
-           tt0b0=0.d0
-           tt0c0=0.d0
-           tt0e0=0.d0
-           ! Get the effective a-filters for the x dimension
-           x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
-           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, aeff0(lowfil), 'a')
-           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, beff0(lowfil), 'b')
-           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, ceff0(lowfil), 'c')
-           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, eeff0(lowfil), 'e')
-           do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
-              ! sss coefficients
-              tt0a0=tt0a0 + x_c(t,i2,i3)*aeff0(t-i1)
-              tt0b0=tt0b0 + x_c(t,i2,i3)*beff0(t-i1)
-              tt0c0=tt0c0 + x_c(t,i2,i3)*ceff0(t-i1)
-              tt0e0=tt0e0 + x_c(t,i2,i3)*eeff0(t-i1)
-           enddo
-           xa_c(i1,i2,i3)=tt0a0
-           xb_c(i1,i2,i3)=tt0b0
-           xc_c(i1,i2,i3)=tt0c0
-           xe_c(i1,i2,i3)=tt0e0
-        end do
-     end do
-  end do
-  
-
-
-  ! fine part
-  do i3=nfl3,nfu3
-     do i2=nfl2,nfu2
-        do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
-           tt1a0=0.d0
-           tt1b0=0.d0
-           tt1c0=0.d0
-           tt1e0=0.d0
-
-           tt2a0=0.d0
-           tt2b0=0.d0
-           tt2c0=0.d0
-           tt2e0=0.d0
-
-           tt3a0=0.d0
-           tt3b0=0.d0
-           tt3c0=0.d0
-           tt3e0=0.d0
-
-           tt4a0=0.d0
-           tt4b0=0.d0
-           tt4c0=0.d0
-           tt4e0=0.d0
-
-           tt5a0=0.d0
-           tt5b0=0.d0
-           tt5c0=0.d0
-           tt5e0=0.d0
-
-           tt6a0=0.d0
-           tt6b0=0.d0
-           tt6c0=0.d0
-           tt6e0=0.d0
-
-           tt7a0=0.d0
-           tt7b0=0.d0
-           tt7c0=0.d0
-           tt7e0=0.d0
-
-           x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
-           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, aeff0(lowfil), 'a')
-           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, beff0(lowfil), 'b')
-           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, ceff0(lowfil), 'c')
-           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, eeff0(lowfil), 'e')
-           do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
-              ! dss coefficients
-              tt1a0=tt1a0 + x_f(1,i1+l,i2,i3)*aeff0(l)
-              tt1b0=tt1b0 + x_f(1,i1+l,i2,i3)*beff0(l)
-              tt1c0=tt1c0 + x_f(1,i1+l,i2,i3)*ceff0(l)
-              tt1e0=tt1e0 + x_f(1,i1+l,i2,i3)*eeff0(l)
-              ! sds coefficients
-              tt2a0=tt2a0 + x_f(2,i1+l,i2,i3)*aeff0(l)
-              tt2b0=tt2b0 + x_f(2,i1+l,i2,i3)*beff0(l)
-              tt2c0=tt2c0 + x_f(2,i1+l,i2,i3)*ceff0(l)
-              tt2e0=tt2e0 + x_f(2,i1+l,i2,i3)*eeff0(l)
-              ! dds coefficients
-              tt3a0=tt3a0 + x_f(3,i1+l,i2,i3)*aeff0(l)
-              tt3b0=tt3b0 + x_f(3,i1+l,i2,i3)*beff0(l)
-              tt3c0=tt3c0 + x_f(3,i1+l,i2,i3)*ceff0(l)
-              tt3e0=tt3e0 + x_f(3,i1+l,i2,i3)*eeff0(l)
-              ! ssd coefficients
-              tt4a0=tt4a0 + x_f(4,i1+l,i2,i3)*aeff0(l)
-              tt4b0=tt4b0 + x_f(4,i1+l,i2,i3)*beff0(l)
-              tt4c0=tt4c0 + x_f(4,i1+l,i2,i3)*ceff0(l)
-              tt4e0=tt4e0 + x_f(4,i1+l,i2,i3)*eeff0(l)
-              ! dsd coefficients
-              tt5a0=tt5a0 + x_f(5,i1+l,i2,i3)*aeff0(l)
-              tt5b0=tt5b0 + x_f(5,i1+l,i2,i3)*beff0(l)
-              tt5c0=tt5c0 + x_f(5,i1+l,i2,i3)*ceff0(l)
-              tt5e0=tt5e0 + x_f(5,i1+l,i2,i3)*eeff0(l)
-              ! sdd coefficients
-              tt6a0=tt6a0 + x_f(6,i1+l,i2,i3)*aeff0(l)
-              tt6b0=tt6b0 + x_f(6,i1+l,i2,i3)*beff0(l)
-              tt6c0=tt6c0 + x_f(6,i1+l,i2,i3)*ceff0(l)
-              tt6e0=tt6e0 + x_f(6,i1+l,i2,i3)*eeff0(l)
-              ! ddd coefficients
-              tt7a0=tt7a0 + x_f(7,i1+l,i2,i3)*aeff0(l)
-              tt7b0=tt7b0 + x_f(7,i1+l,i2,i3)*beff0(l)
-              tt7c0=tt7c0 + x_f(7,i1+l,i2,i3)*ceff0(l)
-              tt7e0=tt7e0 + x_f(7,i1+l,i2,i3)*eeff0(l)
-           end do
-           ! dss coefficients
-           xa_f(1,i1,i2,i3)=tt1a0
-           xb_f(1,i1,i2,i3)=tt1b0
-           xc_f(1,i1,i2,i3)=tt1c0
-           xe_f(1,i1,i2,i3)=tt1e0
-           ! sds coefficients
-           xa_f(2,i1,i2,i3)=tt2a0
-           xb_f(2,i1,i2,i3)=tt2b0
-           xc_f(2,i1,i2,i3)=tt2c0
-           xe_f(2,i1,i2,i3)=tt2e0
-           ! dds coefficients
-           xa_f(3,i1,i2,i3)=tt3a0
-           xb_f(3,i1,i2,i3)=tt3b0
-           xc_f(3,i1,i2,i3)=tt3c0
-           xe_f(3,i1,i2,i3)=tt3e0
-           ! ssd coefficients
-           xa_f(4,i1,i2,i3)=tt4a0
-           xb_f(4,i1,i2,i3)=tt4b0
-           xc_f(4,i1,i2,i3)=tt4c0
-           xe_f(4,i1,i2,i3)=tt4e0
-           ! dsd coefficients
-           xa_f(5,i1,i2,i3)=tt5a0
-           xb_f(5,i1,i2,i3)=tt5b0
-           xc_f(5,i1,i2,i3)=tt5c0
-           xe_f(5,i1,i2,i3)=tt5e0
-           ! sdd coefficients
-           xa_f(6,i1,i2,i3)=tt6a0
-           xb_f(6,i1,i2,i3)=tt6b0
-           xc_f(6,i1,i2,i3)=tt6c0
-           xe_f(6,i1,i2,i3)=tt6e0
-           ! sdd coefficients
-           xa_f(7,i1,i2,i3)=tt7a0
-           xb_f(7,i1,i2,i3)=tt7b0
-           xc_f(7,i1,i2,i3)=tt7c0
-           xe_f(7,i1,i2,i3)=tt7e0
-        end do
-     end do
-  end do
+!!  do i3=0,n3
+!!     do i2=0,n2
+!!        if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
+!!           do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)-4,4
+!!              tt0a0=0.d0
+!!              tt0a1=0.d0
+!!              tt0a2=0.d0
+!!              tt0a3=0.d0
+!!
+!!              tt0b0=0.d0
+!!              tt0b1=0.d0
+!!              tt0b2=0.d0
+!!              tt0b3=0.d0
+!!
+!!              tt0c0=0.d0
+!!              tt0c1=0.d0
+!!              tt0c2=0.d0
+!!              tt0c3=0.d0
+!!
+!!              tt0e0=0.d0
+!!              tt0e1=0.d0
+!!              tt0e2=0.d0
+!!              tt0e3=0.d0
+!!              ! Get the effective a-filters for the x dimension
+!!              x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
+!!              x1=hgrid*(i1+offsetx+1)-rxyzConf(1)
+!!              x2=hgrid*(i1+offsetx+2)-rxyzConf(1)
+!!              x3=hgrid*(i1+offsetx+3)-rxyzConf(1)
+!!
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x0, aeff0(lowfil), 'a')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x1, aeff1(lowfil), 'a')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x2, aeff2(lowfil), 'a')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x3, aeff3(lowfil), 'a')
+!!
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x0, beff0(lowfil), 'b')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x1, beff1(lowfil), 'b')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x2, beff2(lowfil), 'b')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x3, beff3(lowfil), 'b')
+!!
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x0, ceff0(lowfil), 'c')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x1, ceff1(lowfil), 'c')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x2, ceff2(lowfil), 'c')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x3, ceff3(lowfil), 'c')
+!!
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x0, eeff0(lowfil), 'e')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x1, eeff1(lowfil), 'e')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x2, eeff2(lowfil), 'e')
+!!              call getFilterQuadratic(it, fakePrefactor, hgrid, x3, eeff3(lowfil), 'e')
+!!              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
+!!
+!!                 ! sss coefficients
+!!                 tt0a0=tt0a0 + x_c(t,i2,i3)*aeff0(t-i1-0)
+!!                 tt0a1=tt0a1 + x_c(t,i2,i3)*aeff1(t-i1-1)
+!!                 tt0a2=tt0a2 + x_c(t,i2,i3)*aeff2(t-i1-2)
+!!                 tt0a3=tt0a3 + x_c(t,i2,i3)*aeff3(t-i1-3)
+!!
+!!                 tt0b0=tt0b0 + x_c(t,i2,i3)*beff0(t-i1-0)
+!!                 tt0b1=tt0b1 + x_c(t,i2,i3)*beff1(t-i1-1)
+!!                 tt0b2=tt0b2 + x_c(t,i2,i3)*beff2(t-i1-2)
+!!                 tt0b3=tt0b3 + x_c(t,i2,i3)*beff3(t-i1-3)
+!!
+!!                 tt0c0=tt0c0 + x_c(t,i2,i3)*ceff0(t-i1-0)
+!!                 tt0c1=tt0c1 + x_c(t,i2,i3)*ceff1(t-i1-1)
+!!                 tt0c2=tt0c2 + x_c(t,i2,i3)*ceff2(t-i1-2)
+!!                 tt0c3=tt0c3 + x_c(t,i2,i3)*ceff3(t-i1-3)
+!!
+!!                 tt0e0=tt0e0 + x_c(t,i2,i3)*eeff0(t-i1-0)
+!!                 tt0e1=tt0e1 + x_c(t,i2,i3)*eeff1(t-i1-1)
+!!                 tt0e2=tt0e2 + x_c(t,i2,i3)*eeff2(t-i1-2)
+!!                 tt0e3=tt0e3 + x_c(t,i2,i3)*eeff3(t-i1-3)
+!!
+!!              enddo
+!!
+!!              xa_c(i1+0,i2,i3)=tt0a0
+!!              xa_c(i1+1,i2,i3)=tt0a1
+!!              xa_c(i1+2,i2,i3)=tt0a2
+!!              xa_c(i1+3,i2,i3)=tt0a3
+!!
+!!              xb_c(i1+0,i2,i3)=tt0b0
+!!              xb_c(i1+1,i2,i3)=tt0b1
+!!              xb_c(i1+2,i2,i3)=tt0b2
+!!              xb_c(i1+3,i2,i3)=tt0b3
+!!
+!!              xc_c(i1+0,i2,i3)=tt0c0
+!!              xc_c(i1+1,i2,i3)=tt0c1
+!!              xc_c(i1+2,i2,i3)=tt0c2
+!!              xc_c(i1+3,i2,i3)=tt0c3
+!!
+!!              xe_c(i1+0,i2,i3)=tt0e0
+!!              xe_c(i1+1,i2,i3)=tt0e1
+!!              xe_c(i1+2,i2,i3)=tt0e2
+!!              xe_c(i1+3,i2,i3)=tt0e3
+!!           end do
+!!           icur=i1
+!!        else
+!!           icur=ibyz_c(1,i2,i3)
+!!        end if
+!!
+!!        do i1=icur,ibyz_c(2,i2,i3)
+!!           tt0a0=0.d0
+!!           tt0b0=0.d0
+!!           tt0c0=0.d0
+!!           tt0e0=0.d0
+!!           ! Get the effective a-filters for the x dimension
+!!           x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
+!!           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, aeff0(lowfil), 'a')
+!!           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, beff0(lowfil), 'b')
+!!           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, ceff0(lowfil), 'c')
+!!           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, eeff0(lowfil), 'e')
+!!           do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
+!!              ! sss coefficients
+!!              tt0a0=tt0a0 + x_c(t,i2,i3)*aeff0(t-i1)
+!!              tt0b0=tt0b0 + x_c(t,i2,i3)*beff0(t-i1)
+!!              tt0c0=tt0c0 + x_c(t,i2,i3)*ceff0(t-i1)
+!!              tt0e0=tt0e0 + x_c(t,i2,i3)*eeff0(t-i1)
+!!           enddo
+!!           xa_c(i1,i2,i3)=tt0a0
+!!           xb_c(i1,i2,i3)=tt0b0
+!!           xc_c(i1,i2,i3)=tt0c0
+!!           xe_c(i1,i2,i3)=tt0e0
+!!        end do
+!!     end do
+!!  end do
+!!  
+!!
+!!
+!!  ! fine part
+!!  do i3=nfl3,nfu3
+!!     do i2=nfl2,nfu2
+!!        do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
+!!           tt1a0=0.d0
+!!           tt1b0=0.d0
+!!           tt1c0=0.d0
+!!           tt1e0=0.d0
+!!
+!!           tt2a0=0.d0
+!!           tt2b0=0.d0
+!!           tt2c0=0.d0
+!!           tt2e0=0.d0
+!!
+!!           tt3a0=0.d0
+!!           tt3b0=0.d0
+!!           tt3c0=0.d0
+!!           tt3e0=0.d0
+!!
+!!           tt4a0=0.d0
+!!           tt4b0=0.d0
+!!           tt4c0=0.d0
+!!           tt4e0=0.d0
+!!
+!!           tt5a0=0.d0
+!!           tt5b0=0.d0
+!!           tt5c0=0.d0
+!!           tt5e0=0.d0
+!!
+!!           tt6a0=0.d0
+!!           tt6b0=0.d0
+!!           tt6c0=0.d0
+!!           tt6e0=0.d0
+!!
+!!           tt7a0=0.d0
+!!           tt7b0=0.d0
+!!           tt7c0=0.d0
+!!           tt7e0=0.d0
+!!
+!!           x0=hgrid*(i1+offsetx+0)-rxyzConf(1)
+!!           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, aeff0(lowfil), 'a')
+!!           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, beff0(lowfil), 'b')
+!!           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, ceff0(lowfil), 'c')
+!!           call getFilterQuadratic(it, fakePrefactor, hgrid, x0, eeff0(lowfil), 'e')
+!!           do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
+!!              ! dss coefficients
+!!              tt1a0=tt1a0 + x_f(1,i1+l,i2,i3)*aeff0(l)
+!!              tt1b0=tt1b0 + x_f(1,i1+l,i2,i3)*beff0(l)
+!!              tt1c0=tt1c0 + x_f(1,i1+l,i2,i3)*ceff0(l)
+!!              tt1e0=tt1e0 + x_f(1,i1+l,i2,i3)*eeff0(l)
+!!              ! sds coefficients
+!!              tt2a0=tt2a0 + x_f(2,i1+l,i2,i3)*aeff0(l)
+!!              tt2b0=tt2b0 + x_f(2,i1+l,i2,i3)*beff0(l)
+!!              tt2c0=tt2c0 + x_f(2,i1+l,i2,i3)*ceff0(l)
+!!              tt2e0=tt2e0 + x_f(2,i1+l,i2,i3)*eeff0(l)
+!!              ! dds coefficients
+!!              tt3a0=tt3a0 + x_f(3,i1+l,i2,i3)*aeff0(l)
+!!              tt3b0=tt3b0 + x_f(3,i1+l,i2,i3)*beff0(l)
+!!              tt3c0=tt3c0 + x_f(3,i1+l,i2,i3)*ceff0(l)
+!!              tt3e0=tt3e0 + x_f(3,i1+l,i2,i3)*eeff0(l)
+!!              ! ssd coefficients
+!!              tt4a0=tt4a0 + x_f(4,i1+l,i2,i3)*aeff0(l)
+!!              tt4b0=tt4b0 + x_f(4,i1+l,i2,i3)*beff0(l)
+!!              tt4c0=tt4c0 + x_f(4,i1+l,i2,i3)*ceff0(l)
+!!              tt4e0=tt4e0 + x_f(4,i1+l,i2,i3)*eeff0(l)
+!!              ! dsd coefficients
+!!              tt5a0=tt5a0 + x_f(5,i1+l,i2,i3)*aeff0(l)
+!!              tt5b0=tt5b0 + x_f(5,i1+l,i2,i3)*beff0(l)
+!!              tt5c0=tt5c0 + x_f(5,i1+l,i2,i3)*ceff0(l)
+!!              tt5e0=tt5e0 + x_f(5,i1+l,i2,i3)*eeff0(l)
+!!              ! sdd coefficients
+!!              tt6a0=tt6a0 + x_f(6,i1+l,i2,i3)*aeff0(l)
+!!              tt6b0=tt6b0 + x_f(6,i1+l,i2,i3)*beff0(l)
+!!              tt6c0=tt6c0 + x_f(6,i1+l,i2,i3)*ceff0(l)
+!!              tt6e0=tt6e0 + x_f(6,i1+l,i2,i3)*eeff0(l)
+!!              ! ddd coefficients
+!!              tt7a0=tt7a0 + x_f(7,i1+l,i2,i3)*aeff0(l)
+!!              tt7b0=tt7b0 + x_f(7,i1+l,i2,i3)*beff0(l)
+!!              tt7c0=tt7c0 + x_f(7,i1+l,i2,i3)*ceff0(l)
+!!              tt7e0=tt7e0 + x_f(7,i1+l,i2,i3)*eeff0(l)
+!!           end do
+!!           ! dss coefficients
+!!           xa_f(1,i1,i2,i3)=tt1a0
+!!           xb_f(1,i1,i2,i3)=tt1b0
+!!           xc_f(1,i1,i2,i3)=tt1c0
+!!           xe_f(1,i1,i2,i3)=tt1e0
+!!           ! sds coefficients
+!!           xa_f(2,i1,i2,i3)=tt2a0
+!!           xb_f(2,i1,i2,i3)=tt2b0
+!!           xc_f(2,i1,i2,i3)=tt2c0
+!!           xe_f(2,i1,i2,i3)=tt2e0
+!!           ! dds coefficients
+!!           xa_f(3,i1,i2,i3)=tt3a0
+!!           xb_f(3,i1,i2,i3)=tt3b0
+!!           xc_f(3,i1,i2,i3)=tt3c0
+!!           xe_f(3,i1,i2,i3)=tt3e0
+!!           ! ssd coefficients
+!!           xa_f(4,i1,i2,i3)=tt4a0
+!!           xb_f(4,i1,i2,i3)=tt4b0
+!!           xc_f(4,i1,i2,i3)=tt4c0
+!!           xe_f(4,i1,i2,i3)=tt4e0
+!!           ! dsd coefficients
+!!           xa_f(5,i1,i2,i3)=tt5a0
+!!           xb_f(5,i1,i2,i3)=tt5b0
+!!           xc_f(5,i1,i2,i3)=tt5c0
+!!           xe_f(5,i1,i2,i3)=tt5e0
+!!           ! sdd coefficients
+!!           xa_f(6,i1,i2,i3)=tt6a0
+!!           xb_f(6,i1,i2,i3)=tt6b0
+!!           xc_f(6,i1,i2,i3)=tt6c0
+!!           xe_f(6,i1,i2,i3)=tt6e0
+!!           ! sdd coefficients
+!!           xa_f(7,i1,i2,i3)=tt7a0
+!!           xb_f(7,i1,i2,i3)=tt7b0
+!!           xc_f(7,i1,i2,i3)=tt7c0
+!!           xe_f(7,i1,i2,i3)=tt7e0
+!!        end do
+!!     end do
+!!  end do
 
 
 
@@ -7265,7 +7756,7 @@ eeff0=0.d0 ; eeff1=0.d0 ; eeff2=0.d0 ; eeff3=0.d0
               tt2a0=tt2a0 + x_f(2,i1,i2+l,i3)*aeff0(l)
               tt2b0=tt2b0 + x_f(2,i1,i2+l,i3)*beff0(l)
               tt2c0=tt2c0 + x_f(2,i1,i2+l,i3)*ceff0(l)
-              tt2e0=tt2e0 + x_f(2,i1,i2+l,i3)*eeff3(l)
+              tt2e0=tt2e0 + x_f(2,i1,i2+l,i3)*eeff0(l)
               ! dds coefficients
               tt3a0=tt3a0 + x_f(3,i1,i2+l,i3)*aeff0(l)
               tt3b0=tt3b0 + x_f(3,i1,i2+l,i3)*beff0(l)
@@ -7291,6 +7782,7 @@ eeff0=0.d0 ; eeff1=0.d0 ; eeff2=0.d0 ; eeff3=0.d0
               tt7b0=tt7b0 + x_f(7,i1,i2+l,i3)*beff0(l)
               tt7c0=tt7c0 + x_f(7,i1,i2+l,i3)*ceff0(l)
               tt7e0=tt7e0 + x_f(7,i1,i2+l,i3)*eeff0(l)
+              write(5000+it,'(3es16.7)') x_f(2,i1,i2+l,i3), eeff3(l), tt2e0
            enddo
            ! dss coefficients
            ya_f(1,i1,i2,i3)=tt1a0

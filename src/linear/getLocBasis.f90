@@ -1789,24 +1789,24 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       end if
 
 
-      ! plot the orbitals -- EXPERIMENTAL ##################################################
-      allocate(lvphiovrlp(lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f))
-      ist=1
-      write(comment,'(i3.3)') it
-      do iorb=1,lin%orbs%norbp
-          iiorb=iorb+lin%orbs%isorb
-          ilr=lin%orbs%inwhichlocreg(iiorb)
-          write(orbname,'(i3.3)') iiorb
-          write(*,'(a,i0)') 'plotting orbital ',iiorb
-          lvphiovrlp=0.d0
-          call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
-               lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
-               lin%lzd%Glr, lin%lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
-          call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lin%lzd%glr, input%hx, input%hy, input%hz, rxyz, lvphiovrlp(1))
-          ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      end do
-      deallocate(lvphiovrlp)
-      ! ####################################################################################
+      !!!! plot the orbitals -- EXPERIMENTAL ##################################################
+      !!!allocate(lvphiovrlp(lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f))
+      !!!ist=1
+      !!!write(comment,'(i3.3)') it
+      !!!do iorb=1,lin%orbs%norbp
+      !!!    iiorb=iorb+lin%orbs%isorb
+      !!!    ilr=lin%orbs%inwhichlocreg(iiorb)
+      !!!    write(orbname,'(i3.3)') iiorb
+      !!!    write(*,'(a,i0)') 'plotting orbital ',iiorb
+      !!!    lvphiovrlp=0.d0
+      !!!    call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
+      !!!         lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
+      !!!         lin%lzd%Glr, lin%lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
+      !!!    call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lin%lzd%glr, input%hx, input%hy, input%hz, rxyz, lvphiovrlp(1))
+      !!!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!!end do
+      !!!deallocate(lvphiovrlp)
+      !!!! ####################################################################################
 
 
 
@@ -4236,14 +4236,9 @@ real(8),dimension(0:3),parameter:: scal=1.d0
 
 
 
-
-
-
   vpsi=0.d0
-  oidx = 0
   ist_c=1
   ist_f=1
-  !psi=1.d0
   do iorb=1,orbs%norbp
      iiorb=iorb+orbs%isorb
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
@@ -4261,19 +4256,14 @@ real(8),dimension(0:3),parameter:: scal=1.d0
      ist_f=ist_f+lzd%llr(ilr)%wfd%nvctr_c
 
      call allocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, 1, lzd%llr(ilr)%d, work)
+
+     ! Not sure whether these work arrays really have to be set to zero
      work%xpsig_c=0.d0
      work%xpsig_f=0.d0
      work%x_f1=0.d0
      work%x_f2=0.d0
      work%x_f3=0.d0
-      write(1300+iproc,*) work%xpsig_c
-      write(1310+iproc,*) work%xpsig_f
-      write(1320+iproc,*) work%x_f1
-      write(1330+iproc,*) work%x_f2
-      write(1340+iproc,*) work%x_f3
 
-      write(*,*) 'ilr, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3', ilr, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3
-      psi(ist_f:ist_f+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
 
      call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
@@ -4286,16 +4276,7 @@ real(8),dimension(0:3),parameter:: scal=1.d0
           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
           scal, psi(ist_c), psi(ist_f), work%xpsig_c, work%xpsig_f, &
           work%x_f1, work%x_f2, work%x_f3)
-      write(1200+iproc,*) work%xpsig_c
-      write(1210+iproc,*) work%xpsig_f
-      write(1220+iproc,*) work%x_f1
-      write(1230+iproc,*) work%x_f2
-      write(1240+iproc,*) work%x_f3
 
-      work%ypsig_c=0.d0
-      work%ypsig_f=0.d0
-      !!work%ypsig_c=work%xpsig_c
-      !!work%ypsig_f=work%xpsig_f
 
       call ConvolQuartic3(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
            lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
@@ -4306,10 +4287,6 @@ real(8),dimension(0:3),parameter:: scal=1.d0
            lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
            work%xpsig_c, work%xpsig_f, work%ypsig_c, work%ypsig_f, &
            work%x_f1, work%x_f2, work%x_f3, rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), iiorb)
-      write(1100+iproc,*) work%ypsig_c
-      write(1110+iproc,*) work%ypsig_f
-
-
 
 
      call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
@@ -4322,7 +4299,6 @@ real(8),dimension(0:3),parameter:: scal=1.d0
           lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
           scal, work%ypsig_c, work%ypsig_f, vpsi(ist_c), vpsi(ist_f))
-     write(*,'(a,2i9,es16.7)') 'debug: iproc, iorb, ddot', iproc, iorb, ddot(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f, psi(ist_c), 1, vpsi(ist_c), 1)
 
 
      call deallocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, 1, work)
@@ -4331,131 +4307,6 @@ real(8),dimension(0:3),parameter:: scal=1.d0
      ist_c = ist_c + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
 
   enddo
-
-
-
-
-  !!allocate(psir(lin%orbs%norbp*(lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f),1))
-  !!allocate(vpsir(lin%orbs%norbp*(lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f),1))
-  !!ist=1
-  !!iall=1
-  !!psir=0.d0
-  !!do iorb=1,lin%orbs%norbp
-  !!    iiorb=iorb+lin%orbs%isorb
-  !!    ilr=lin%orbs%inwhichlocreg(iiorb)
-  !!    call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
-  !!         lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
-  !!         lin%lzd%Glr, lin%lzd%Llr(ilr), psi(ist), psir(iall,1))
-  !!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-  !!    iall=iall+lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f
-  !!end do
-
-  !!vpsi=0.d0
-  !!oidx = 0
-  !!ist_c=1
-  !!ist_f=1
-  !!!psi=1.d0
-  !!do iorb=1,orbs%norbp
-  !!   ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-  !!
-  !!   !icenter=confinementCenter(iorb)
-  !!   icenter=lin%orbs%inWhichLocregp(iorb)
-  !!   !components of the potential
-  !!   npot=orbs%nspinor
-  !!   if (orbs%nspinor == 2) npot=1
-
-
-  !!   ist_f=ist_f+lzd%glr%wfd%nvctr_c
-
-  !!   call allocate_work_arrays(lzd%glr%geocode, lzd%glr%hybrid_on, 1, lzd%glr%d, work)
-  !!   work%xpsig_c=0.d0
-  !!   work%xpsig_f=0.d0
-  !!   work%x_f1=0.d0
-  !!   work%x_f2=0.d0
-  !!   work%x_f3=0.d0
-  !!    write(1300+iproc,*) work%xpsig_c
-  !!    write(1310+iproc,*) work%xpsig_f
-  !!    write(1320+iproc,*) work%x_f1
-  !!    write(1330+iproc,*) work%x_f2
-  !!    write(1340+iproc,*) work%x_f3
-
-
-  !!   call uncompress_forstandard(lzd%glr%d%n1, lzd%glr%d%n2, lzd%glr%d%n3, &
-  !!        lzd%glr%d%nfl1, lzd%glr%d%nfu1, &
-  !!        lzd%glr%d%nfl2, lzd%glr%d%nfu2, &
-  !!        lzd%glr%d%nfl3, lzd%glr%d%nfu3, &
-  !!        lzd%glr%wfd%nseg_c, lzd%glr%wfd%nvctr_c, &
-  !!        lzd%glr%wfd%keyg, lzd%glr%wfd%keyv,  & 
-  !!        lzd%glr%wfd%nseg_f, lzd%glr%wfd%nvctr_f, &
-  !!        lzd%glr%wfd%keyg(1,lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)), &
-  !!        lzd%glr%wfd%keyv(lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)),  & 
-  !!        scal, psir(ist_c,1), psir(ist_f,1), work%xpsig_c, work%xpsig_f, &
-  !!        work%x_f1, work%x_f2, work%x_f3)
-
-  !!    work%ypsig_c=0.d0
-  !!    work%ypsig_f=0.d0
-  !!    !!work%ypsig_c=work%xpsig_c
-  !!    !!work%ypsig_f=work%xpsig_f
-
-  !!    call ConvolQuartic(lzd%glr%d%n1, lzd%glr%d%n2, lzd%glr%d%n3, &
-  !!         lzd%glr%d%nfl1, lzd%glr%d%nfu1, &
-  !!         lzd%glr%d%nfl2, lzd%glr%d%nfu2, &
-  !!         lzd%glr%d%nfl3, lzd%glr%d%nfu3, & 
-  !!         0.d0, input%hx, &
-  !!         lzd%glr%bounds%kb%ibyz_c, lzd%glr%bounds%kb%ibxz_c, lzd%glr%bounds%kb%ibxy_c, &
-  !!         lzd%glr%bounds%kb%ibyz_f, lzd%glr%bounds%kb%ibxz_f, lzd%glr%bounds%kb%ibxy_f, &
-  !!         work%xpsig_c, work%xpsig_f, work%ypsig_c, work%ypsig_f, &
-  !!         work%x_f1, work%x_f2, work%x_f3, rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), 1)
-
-
-
-
-  !!   call compress_forstandard(lzd%glr%d%n1, lzd%glr%d%n2, lzd%glr%d%n3, &
-  !!        lzd%glr%d%nfl1, lzd%glr%d%nfu1, &
-  !!        lzd%glr%d%nfl2, lzd%glr%d%nfu2, &
-  !!        lzd%glr%d%nfl3, lzd%glr%d%nfu3, &
-  !!        lzd%glr%wfd%nseg_c, lzd%glr%wfd%nvctr_c, &
-  !!        lzd%glr%wfd%keyg, lzd%glr%wfd%keyv,  & 
-  !!        lzd%glr%wfd%nseg_f, lzd%glr%wfd%nvctr_f, &
-  !!        lzd%glr%wfd%keyg(1,lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)), &
-  !!        lzd%glr%wfd%keyv(lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)),  & 
-  !!        scal, work%ypsig_c, work%ypsig_f, vpsir(ist_c,1), vpsir(ist_f,1))
-
-
-  !!   call deallocate_work_arrays(lzd%glr%geocode, lzd%glr%hybrid_on, 1, work)
-
-  !!   ist_f = ist_f + 7*lzd%glr%wfd%nvctr_f
-  !!   ist_c = ist_c + lzd%glr%wfd%nvctr_c + 7*lzd%glr%wfd%nvctr_f
-  !!   
-
-  !!enddo
-
-  !! tt=ddot(size(psir), psir, 1, vpsir, 1)
-  !! write(*,*) 'debug: ddot', ddot(size(psir), psir, 1, vpsir, 1)
-  !! call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-  !! write(*,*) 'total:',tt
-
-  !!do i_all=1,lzd%lpsidimtot
-  !!    write(1000+iproc,'(i10,2es20.10,es12.3)') i_all, psi(i_all), vpsi(i_all), vpsi(i_all)/psi(i_all)
-  !!end do
-  !!deallocate(psir)
-  !!deallocate(vpsir)
-
-
-  ! plot the orbitals -- EXPERIMENTAL ##################################################
-  allocate(psir(lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f,1))
-  ist=1
-  do iorb=1,lin%orbs%norbp
-      iiorb=iorb+lin%orbs%isorb
-      ilr=lin%orbs%inwhichlocreg(iiorb)
-      psir=0.d0
-      call Lpsi_to_global2(iproc, nproc, lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, &
-           lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f, lin%orbs%norb, lin%orbs%nspinor, input%nspin, &
-           lin%lzd%Glr, lin%lzd%Llr(ilr), vpsi(ist), psir)
-      call plotOrbitals(iproc, orbs, lin%lzd%Glr, psir, at%nat, rxyz, lin%orbs%inwhichlocreg, .5d0*input%hx, .5d0*input%hy, .5d0*input%hz, 1)
-      ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-  end do
-  deallocate(psir)
 
 
 
@@ -4831,7 +4682,7 @@ call memocc(istat, Kmat, 'Kmat', subname)
       call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
       energyconf_0=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
       call mpiallred(energyconf_0, 1, mpi_sum, mpi_comm_world, ierr)
-      if(iproc==0) write(*,'(a,i6,2es17.7,2es14.3)') 'it, energyconf_0, energyvonf_trial, lstep, lstep_optimal', &
+      if(iproc==0) write(*,'(a,i6,2es20.10,2es17.7)') 'it, energyconf_0, energyvonf_trial, lstep, lstep_optimal', &
                    it, energyconf_0, energyconf_trial, lstep, lstep_optimal
 
       allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
