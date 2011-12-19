@@ -273,7 +273,7 @@ integer:: confPotOrder, it
   if (lr%geocode == 'F') then
      do idx=1,ncplx
         call applyOperator(lr%d%n1,lr%d%n2,lr%d%n3,&
-             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, lr%ns1, lr%ns2, lr%ns3, &
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg,lr%wfd%keyv,&
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
              lr%wfd%keyg(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
@@ -333,7 +333,7 @@ END SUBROUTINE differentiateBetweenBoundaryConditions
 
 
 
-subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, &
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
      xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
@@ -349,7 +349,7 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f,confPotOrder
   real(wp), intent(in) :: cprecr
   real(gp), intent(in) :: hgrid
@@ -385,9 +385,21 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
   if(confPotOrder==4) then
-      call ConvolkineticQuartic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-           cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
-           xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
+      !!call ConvolkineticQuartic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+      !!     cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
+      !!     xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
+
+      call ConvolQuartic3(n1, n2, n3, &
+           nfl1, nfu1, &
+           nfl2, nfu2, &
+           nfl3, nfu3, &
+           hgrid, ns1, ns2, ns3, &
+           ibyz_c, ibxz_c, ibxy_c, &
+           ibyz_f, ibxz_f, ibxy_f, &
+           xpsig_c, xpsig_f, ypsig_c, ypsig_f, &
+           x_f1, x_f2, x_f3, rxyzParab(1), parabPrefac, it, &
+           .true., cprecr)
+
   else if(confPotOrder==6) then
       call ConvolkineticSextic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
            cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&

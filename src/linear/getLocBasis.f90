@@ -4286,7 +4286,8 @@ real(8),dimension(0:3),parameter:: scal=1.d0
            lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
            lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
            work%xpsig_c, work%xpsig_f, work%ypsig_c, work%ypsig_f, &
-           work%x_f1, work%x_f2, work%x_f3, rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), iiorb)
+           work%x_f1, work%x_f2, work%x_f3, rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), iiorb, &
+           .false., 0.d0)
 
 
      call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &

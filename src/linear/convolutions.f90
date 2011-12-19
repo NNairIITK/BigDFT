@@ -28,8 +28,8 @@ character(len=*):: filterCode
 integer:: i
 real(8):: fac, fac2, prefac1, prefac2a, hgrid2, hgrid3, x02, x03
 real(8):: scale
-!scale=1.d0
-scale=1.d-1
+scale=1.d0
+!scale=1.d-1
 !scale=0.d-1
 !scale=5.d-2
 prefac1=-.5d0/hgrid**2
@@ -109,8 +109,8 @@ integer:: i
 real(8):: fac, fac2, prefac1, prefac2a, hgrid2, hgrid3, hgrid4, hgrid5, x02, x03, x04, x05
 real(8):: scale
 
-!scale=1.d0
-scale=5.d-2
+scale=1.d0
+!scale=5.d-2
 
 prefac1=-.5d0/hgrid**2
 !fac=dble(max(100-int(dble(it)/2.d0),1))*parabPrefac
@@ -4628,7 +4628,7 @@ subroutine ConvolQuartic3(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid, offsetx, offsety, offsetz, &
      ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,x_f1,x_f2,x_f3, &
-     rxyzConf, potentialPrefac, it)
+     rxyzConf, potentialPrefac, it, withKinetic, cprecr)
   use module_base
   implicit none
 
@@ -4651,8 +4651,9 @@ subroutine ConvolQuartic3(n1,n2,n3, &
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
 real(8),dimension(3):: rxyzConf
-real(8):: potentialPrefac
+real(8):: potentialPrefac, cprecr
 integer:: it
+logical,intent(in):: withKinetic
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
   !logical :: firstcall=.true. 
@@ -5074,10 +5075,17 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
 
     do i1=0,n1
         x0=hgrid*(i1+offsetx)-rxyzConf(1)
-        call getFilterQuartic(it, potentialPrefac, hgrid, x0, aeff0array(lowfil,i1), 'a')
-        call getFilterQuartic(it, potentialPrefac, hgrid, x0, beff0array(lowfil,i1), 'b')
-        call getFilterQuartic(it, potentialPrefac, hgrid, x0, ceff0array(lowfil,i1), 'c')
-        call getFilterQuartic(it, potentialPrefac, hgrid, x0, eeff0array(lowfil,i1), 'e')
+        if(.not. WithKinetic) then
+            call getFilterQuartic(it, potentialPrefac, hgrid, x0, aeff0array(lowfil,i1), 'a')
+            call getFilterQuartic(it, potentialPrefac, hgrid, x0, beff0array(lowfil,i1), 'b')
+            call getFilterQuartic(it, potentialPrefac, hgrid, x0, ceff0array(lowfil,i1), 'c')
+            call getFilterQuartic(it, potentialPrefac, hgrid, x0, eeff0array(lowfil,i1), 'e')
+        else
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, x0, aeff0array(lowfil,i1), 'a')
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, x0, beff0array(lowfil,i1), 'b')
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, x0, ceff0array(lowfil,i1), 'c')
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, x0, eeff0array(lowfil,i1), 'e')
+        end if
 
         call getFilterQuadratic(it, 1.d0, hgrid, x0, aeff0_2auxarray(lowfil,i1), 'a')
         call getFilterQuadratic(it, 1.d0, hgrid, x0, beff0_2auxarray(lowfil,i1), 'b')
@@ -5150,10 +5158,10 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                    tt0e2=tt0e2 + x_c(t,i2,i3)*eeff0_2auxarray(t-i1-2,i1+2)
                    tt0e3=tt0e3 + x_c(t,i2,i3)*eeff0_2auxarray(t-i1-3,i1+3)
                 enddo
-                y_c(i1+0,i2,i3)=dyi0!+cprecr*x_c(i1+0,i2,i3)
-                y_c(i1+1,i2,i3)=dyi1!+cprecr*x_c(i1+1,i2,i3)
-                y_c(i1+2,i2,i3)=dyi2!+cprecr*x_c(i1+2,i2,i3)
-                y_c(i1+3,i2,i3)=dyi3!+cprecr*x_c(i1+3,i2,i3)
+                y_c(i1+0,i2,i3)=dyi0+cprecr*x_c(i1+0,i2,i3)
+                y_c(i1+1,i2,i3)=dyi1+cprecr*x_c(i1+1,i2,i3)
+                y_c(i1+2,i2,i3)=dyi2+cprecr*x_c(i1+2,i2,i3)
+                y_c(i1+3,i2,i3)=dyi3+cprecr*x_c(i1+3,i2,i3)
 
                 xa_c(i1+0,i2,i3)=tt0a0
                 xa_c(i1+1,i2,i3)=tt0a1
@@ -5197,7 +5205,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                 tt0c0=tt0c0 + x_c(t,i2,i3)*ceff0_2auxarray(t-i1,i1)
                 tt0e0=tt0e0 + x_c(t,i2,i3)*eeff0_2auxarray(t-i1,i1)
              enddo
-             y_c(i1,i2,i3)=dyi!+cprecr*x_c(i1,i2,i3)
+             y_c(i1,i2,i3)=dyi+cprecr*x_c(i1,i2,i3)
              xa_c(i1,i2,i3)=tt0a0
              xb_c(i1,i2,i3)=tt0b0
              xc_c(i1,i2,i3)=tt0c0
@@ -5393,13 +5401,13 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                 tt7c0=tt7c0 + x_f(7,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
                 tt7e0=tt7e0 + x_f(7,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
              enddo
-             y_f(4,i1,i2,i3)=t112!+cprecr*x_f(4,i1,i2,i3)
-             y_f(2,i1,i2,i3)=t121!+cprecr*x_f(2,i1,i2,i3)
-             y_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+t211!+cprecr*x_f(1,i1,i2,i3)
-             y_f(6,i1,i2,i3)=t122!+cprecr*x_f(6,i1,i2,i3)
-             y_f(5,i1,i2,i3)=t212!+cprecr*x_f(5,i1,i2,i3)
-             y_f(3,i1,i2,i3)=t221!+cprecr*x_f(3,i1,i2,i3)
-             y_f(7,i1,i2,i3)=t222!+cprecr*x_f(7,i1,i2,i3)
+             y_f(4,i1,i2,i3)=t112+cprecr*x_f(4,i1,i2,i3)
+             y_f(2,i1,i2,i3)=t121+cprecr*x_f(2,i1,i2,i3)
+             y_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+t211+cprecr*x_f(1,i1,i2,i3)
+             y_f(6,i1,i2,i3)=t122+cprecr*x_f(6,i1,i2,i3)
+             y_f(5,i1,i2,i3)=t212+cprecr*x_f(5,i1,i2,i3)
+             y_f(3,i1,i2,i3)=t221+cprecr*x_f(3,i1,i2,i3)
+             y_f(7,i1,i2,i3)=t222+cprecr*x_f(7,i1,i2,i3)
              ! dss coefficients
              xa_f(1,i1,i2,i3)=tt1a0
              xb_f(1,i1,i2,i3)=tt1b0
@@ -5463,10 +5471,17 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
   
     do i2=0,n2
         y0=hgrid*(i2+offsety)-rxyzConf(2)
-        call getFilterQuartic(it, potentialPrefac, hgrid, y0, aeff0array(lowfil,i2), 'a')
-        call getFilterQuartic(it, potentialPrefac, hgrid, y0, beff0array(lowfil,i2), 'b')
-        call getFilterQuartic(it, potentialPrefac, hgrid, y0, ceff0array(lowfil,i2), 'c')
-        call getFilterQuartic(it, potentialPrefac, hgrid, y0, eeff0array(lowfil,i2), 'e')
+        if(.not. withKinetic) then
+            call getFilterQuartic(it, potentialPrefac, hgrid, y0, aeff0array(lowfil,i2), 'a')
+            call getFilterQuartic(it, potentialPrefac, hgrid, y0, beff0array(lowfil,i2), 'b')
+            call getFilterQuartic(it, potentialPrefac, hgrid, y0, ceff0array(lowfil,i2), 'c')
+            call getFilterQuartic(it, potentialPrefac, hgrid, y0, eeff0array(lowfil,i2), 'e')
+        else
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, y0, aeff0array(lowfil,i2), 'a')
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, y0, beff0array(lowfil,i2), 'b')
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, y0, ceff0array(lowfil,i2), 'c')
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, y0, eeff0array(lowfil,i2), 'e')
+        end if
 
         call getFilterQuadratic(it, potentialPrefac, hgrid, y0, aeff0_2array(lowfil,i2), 'a')
         call getFilterQuadratic(it, potentialPrefac, hgrid, y0, beff0_2array(lowfil,i2), 'b')
@@ -5931,10 +5946,17 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
 
     do i3=0,n3
         z0=hgrid*(i3+offsetz)-rxyzConf(3)
-        call getFilterQuartic(it, potentialPrefac, hgrid, z0, aeff0array(lowfil,i3), 'a')
-        call getFilterQuartic(it, potentialPrefac, hgrid, z0, beff0array(lowfil,i3), 'b')
-        call getFilterQuartic(it, potentialPrefac, hgrid, z0, ceff0array(lowfil,i3), 'c')
-        call getFilterQuartic(it, potentialPrefac, hgrid, z0, eeff0array(lowfil,i3), 'e')
+        if(.not. withKinetic) then
+            call getFilterQuartic(it, potentialPrefac, hgrid, z0, aeff0array(lowfil,i3), 'a')
+            call getFilterQuartic(it, potentialPrefac, hgrid, z0, beff0array(lowfil,i3), 'b')
+            call getFilterQuartic(it, potentialPrefac, hgrid, z0, ceff0array(lowfil,i3), 'c')
+            call getFilterQuartic(it, potentialPrefac, hgrid, z0, eeff0array(lowfil,i3), 'e')
+        else
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, z0, aeff0array(lowfil,i3), 'a')
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, z0, beff0array(lowfil,i3), 'b')
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, z0, ceff0array(lowfil,i3), 'c')
+            call getEffectiveFilterQuartic(it, potentialPrefac, hgrid, z0, eeff0array(lowfil,i3), 'e')
+        end if
 
         call getFilterQuadratic(it, potentialPrefac, hgrid, z0, aeff0_2array(lowfil,i3), 'a')
         call getFilterQuadratic(it, potentialPrefac, hgrid, z0, beff0_2array(lowfil,i3), 'b')
