@@ -279,6 +279,7 @@ high_level = cluster.f90 \
 #objects which can be compiled only with module_base
 low_level = \
 	$(PS_SOURCES) \
+	init/atoms.f90 \
 	init/projectors.f90  \
 	init/ionicpot.f90 \
 	init/gridmanipulation.f90 \

@@ -316,7 +316,6 @@ program oneatom
   call deallocate_lr(Glr,subname)
   call deallocate_comms(comms,subname)
   call deallocate_orbs(orbs,subname)
-  call deallocate_atoms_scf(atoms,subname) 
   call deallocate_proj_descr(nlpspd,subname)
 
   if (dokernel) then

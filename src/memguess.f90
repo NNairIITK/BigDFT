@@ -524,7 +524,6 @@ program memguess
    call memocc(i_stat,i_all,'logrid',subname)
 
    call deallocate_proj_descr(nlpspd,subname)
-   call deallocate_atoms_scf(atoms,subname) 
 
    call MemoryEstimator(nproc,in%idsx,Glr,&
       &   atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&

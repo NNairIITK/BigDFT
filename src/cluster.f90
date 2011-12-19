@@ -1805,7 +1805,6 @@ subroutine deallocate_before_exiting
    call deallocate_comms(comms,subname)
 
    call deallocate_orbs(orbs,subname)
-   call deallocate_atoms_scf(atoms,subname) 
 
    i_all=-product(shape(radii_cf))*kind(radii_cf)
    deallocate(radii_cf,stat=i_stat)

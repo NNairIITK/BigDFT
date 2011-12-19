@@ -1434,8 +1434,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call deallocate_orbs(orbs,subname)
       call deallocate_orbs(orbsAO,subname)
 
-      call deallocate_atoms_scf(atoms,subname) 
-
 
       i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
       deallocate(nlpspd%nboxp_c,stat=i_stat)

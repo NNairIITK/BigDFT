@@ -204,7 +204,6 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
       nfu3=n3/2
    end if
 
-
    if (iproc == 0) then
       write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
       do iat=1,atoms%nat

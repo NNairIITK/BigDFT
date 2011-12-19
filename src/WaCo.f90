@@ -809,7 +809,6 @@ stop
    call deallocate_orbs(orbsv,subname)
    call deallocate_orbs(orbsw,subname)
    call deallocate_comms(commsw,subname)
-   call deallocate_atoms_scf(atoms,subname)
    call deallocate_atoms(atoms,subname)
    call free_input_variables(input)
 
