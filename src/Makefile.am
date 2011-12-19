@@ -309,6 +309,7 @@ low_level = \
 	lib/fft/fft2d.f90 \
 	lib/lbfgs.f90 \
 	lib/bindings.c \
+	lib/bindingsf.f90 \
 	$(flush_files) \
 	$(etsf_files) \
 	wavelib/transwaves.f90 \

@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 
   bigdft_free_wave_to_isf(psiscf);
 
-  __m_profiling_MOD_memocc_report();
+  FC_FUNC_(memocc_report, MEMOCC_REPORT)();
 
   return 0;
 }

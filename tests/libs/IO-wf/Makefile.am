@@ -29,7 +29,7 @@ report:
 check_PROGRAMS = check_lib check_lib_c
 
 check_lib_SOURCES = check_lib.f90
-check_lib_FCFLAGS = -I$(top_builddir)/src/modules
+check_lib_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
 check_lib_LDADD = @LIBS_DEPENDENCIES@
 
 check_lib_c_SOURCES = check_lib_c.c
@@ -96,7 +96,7 @@ write_binary.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz wri
 	$(MAKE) clean.in
 
 
-read_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft 
+read_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft write_etsf.out
 	$(MAKE) in
 	@cp read.dft etsf.dft
 	@cp input.kpt etsf.kpt
@@ -105,7 +105,7 @@ read_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.d
 	@rm -f etsf.dft etsf.kpt etsf.xyz
 	$(MAKE) clean.in
 
-read_plain.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft 
+read_plain.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft write_plain.out
 	$(MAKE) in
 	@cp read.dft plain.dft
 	@cp input.kpt plain.kpt
@@ -114,7 +114,7 @@ read_plain.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.
 	@rm -f plain.dft plain.kpt plain.xyz
 	$(MAKE) clean.in
 
-read_binary.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft 
+read_binary.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft write_binary.out
 	$(MAKE) in
 	@cp read.dft binary.dft
 	@cp input.kpt binary.kpt
