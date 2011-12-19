@@ -4197,6 +4197,8 @@ real(8),dimension(0:3),parameter:: scal=1.d0
   !!   !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
   !!   !the psir wavefunction is given in the spinorial form
 
+  !!   psi(1+oidx+lzd%llr(ilr)%wfd%nvctr_c:1+oidx+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
+
   !!   call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
   !!   !apply the potential to the psir wavefunction and calculate potential energy
   !!   hxh=.5d0*input%hx
@@ -4243,6 +4245,7 @@ real(8),dimension(0:3),parameter:: scal=1.d0
   ist_f=1
   !psi=1.d0
   do iorb=1,orbs%norbp
+     iiorb=iorb+orbs%isorb
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
   
      hxh=.5d0*input%hx
@@ -4270,6 +4273,7 @@ real(8),dimension(0:3),parameter:: scal=1.d0
       write(1340+iproc,*) work%x_f3
 
       write(*,*) 'ilr, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3', ilr, lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3
+      psi(ist_f:ist_f+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
 
      call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
@@ -4301,7 +4305,7 @@ real(8),dimension(0:3),parameter:: scal=1.d0
            lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
            lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
            work%xpsig_c, work%xpsig_f, work%ypsig_c, work%ypsig_f, &
-           work%x_f1, work%x_f2, work%x_f3, rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), 1)
+           work%x_f1, work%x_f2, work%x_f3, rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), iiorb)
       write(1100+iproc,*) work%ypsig_c
       write(1110+iproc,*) work%ypsig_f
 
