@@ -3567,7 +3567,8 @@ do iorb=1,orbs%norb
             call countExpansionSegments(ldim, op%indexExtract(indovrlp), op%extseg(lorb,korb)%nseg)
             allocate(op%extseg(lorb,korb)%segborders(2,op%extseg(lorb,korb)%nseg), stat=istat)
             call memocc(istat, op%extseg(lorb,korb)%segborders, 'op%extseg(lorb,korb)%segborders', subname)
-            call determineExpansionSegments(ldim, op%indexExtract(indovrlp), op%extseg(lorb,korb)%nseg, op%extseg(lorb,korb)%segborders)
+            call determineExpansionSegments(ldim, op%indexExtract(indovrlp), op%extseg(lorb,korb)%nseg, &
+                 op%extseg(lorb,korb)%segborders)
 
             op%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
             indovrlp=indovrlp+op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
