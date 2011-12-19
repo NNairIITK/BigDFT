@@ -4758,7 +4758,8 @@ call memocc(istat, Kmat, 'Kmat', subname)
               tempmat3(jorb,iorb,1)=real(omatc(jorb,iorb))
           end do
       end do
-      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon%nrecvbuf, lin%comon%recvbuf, tempmat3(1,1,1), .true., lphi)
+      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon%nrecvbuf, &
+           lin%comon%recvbuf, tempmat3(1,1,1), .true., lphi)
       call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
 
       energyconf_trial=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
@@ -4808,7 +4809,8 @@ call memocc(istat, Kmat, 'Kmat', subname)
               tempmat3(jorb,iorb,1)=real(omatc(jorb,iorb))
           end do
       end do
-      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon%nrecvbuf, lin%comon%recvbuf, tempmat3(1,1,1), .true., lphi)
+      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon%nrecvbuf, &
+           lin%comon%recvbuf, tempmat3(1,1,1), .true., lphi)
 
 
       if(it<nit) then
