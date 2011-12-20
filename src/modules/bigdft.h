@@ -12,7 +12,7 @@
 #define gchar char
 #endif
 
-#define F90_POINTER_SIZE 16
+#define F90_POINTER_SIZE 18
 
 typedef struct f90_pointer_double_
 {
