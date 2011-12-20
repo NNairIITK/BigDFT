@@ -2762,6 +2762,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   !local variables
   character(len=*), parameter :: subname='processor_id_per_node'
   integer :: ierr,namelen,i_stat,i_all,jproc
+  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
 
   if (nproc == 1) then
@@ -2776,10 +2777,10 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
         nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
      end do
 
-     call MPI_GET_PROCESSOR_NAME(nodename(iproc),namelen,ierr)
+     call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
 
      !gather the result between all the process
-     call MPI_ALLGATHER(nodename(iproc),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+     call MPI_ALLGATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
           nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
           MPI_COMM_WORLD,ierr)
 
