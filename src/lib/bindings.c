@@ -89,6 +89,8 @@ void FC_FUNC_(atoms_get_iatype, ATOMS_GET_IATYPE)(f90_pointer_atoms *atoms,
                                                   f90_pointer_int *iatype);
 void FC_FUNC_(atoms_get_name, ATOMS_GET_NAME)(f90_pointer_atoms *atoms, int *ityp,
                                               gchar *name, int *ln);
+void FC_FUNC_(atoms_get_alat, ATOMS_GET_ALAT)(f90_pointer_atoms *atoms, double *alat1,
+                                              double *alat2, double *alat3);
 void FC_FUNC_(atoms_new_from_file, ATOMS_NEW_FROM_FILE)(int *lstat, f90_pointer_atoms *atoms,
                                                         f90_pointer_double *rxyz,
                                                         const gchar *filename, int *ln);
@@ -176,6 +178,7 @@ BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
           memcpy(atoms->atomnames[i], str, sizeof(gchar) * ln);
           atoms->atomnames[i][ln] = '\0';
         }
+      FC_FUNC_(atoms_get_alat, ATOMS_GET_ALAT)(atoms->data->atoms, atoms->alat, atoms->alat + 1, atoms->alat + 2);
       GET_ATTR_INT(iatype,IATYPE);
     }
 
@@ -248,7 +251,7 @@ BigDFT_Glr* bigdft_glr_new(BigDFT_Atoms *atoms, double *radii, double h[3],
                            double crmult, double frmult)
 {
   BigDFT_Glr *glr;
-  int iproc = 0;
+  int iproc = 1;
 
   glr = bigdft_glr_init();
   FC_FUNC_(glr_new, GLR_NEW)(glr->data);
@@ -258,7 +261,8 @@ BigDFT_Glr* bigdft_glr_new(BigDFT_Atoms *atoms, double *radii, double h[3],
   glr->h[0] = h[0];
   glr->h[1] = h[1];
   glr->h[2] = h[2];
-  FC_FUNC_(glr_get_n, GLR_GET_N)(glr->data->glr, glr->n);
+  FC_FUNC_(glr_get_n, GLR_GET_N)(glr->data->glr, (int*)glr->n);
+  FC_FUNC_(atoms_get_alat, ATOMS_GET_ALAT)(atoms->data->atoms, atoms->alat, atoms->alat + 1, atoms->alat + 2);
   
   return glr;
 }

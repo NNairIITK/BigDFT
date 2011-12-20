@@ -237,7 +237,11 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
      write(*,*) "Error: unexpected end of file."
      stop
   end if
-  read(line,*) iat,atoms%units
+  read(line,*, iostat = ierrsfx) iat,atoms%units
+  if (ierrsfx /= 0) then
+     read(line,*, iostat = ierrsfx) iat
+     write(atoms%units, "(A)") "bohr"
+  end if
 
   allocate(rxyz(3,iat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
@@ -1108,3 +1112,13 @@ subroutine atoms_get_name(atoms, ityp, name, ln)
   name = atoms%atomnames(ityp)
   ln = len(trim(name))
 END SUBROUTINE atoms_get_name
+subroutine atoms_get_alat(atoms, alat1, alat2, alat3)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(out) :: alat1, alat2, alat3
+
+  alat1 = atoms%alat1
+  alat2 = atoms%alat2
+  alat3 = atoms%alat3
+END SUBROUTINE atoms_get_alat

@@ -34,12 +34,15 @@ int main(int argc, char **argv)
             atoms->rxyz.data[3 * i + 2], atoms->iatype[i]);
   for (i = 0; i < atoms->ntypes; i++)
     fprintf(stderr, "%d %f %f %f\n", i, radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
+  fprintf(stderr, "Box is in %f %f %f\n", atoms->alat[0], atoms->alat[1], atoms->alat[2]);
   
   glr = bigdft_glr_new(atoms, radii, h, CRMULT, FRMULT);
   for (i = 0; i  < atoms->nat; i++)
     fprintf(stderr, "%f %f %f '%s' %d\n", atoms->rxyz.data[3 * i], atoms->rxyz.data[3 * i + 1],
             atoms->rxyz.data[3 * i + 2], atoms->atomnames[atoms->iatype[i] - 1], atoms->iatype[i]);
   fprintf(stderr, "Grid is in %d %d %d\n", glr->n[0], glr->n[1], glr->n[2]);
+  fprintf(stderr, "Box is in %f %f %f\n", atoms->alat[0], atoms->alat[1], atoms->alat[2]);
+  fprintf(stderr, "Shift is %f %f %f\n", atoms->shift[0], atoms->shift[1], atoms->shift[2]);
 
   cgrid = bigdft_fill_logrid(atoms, glr->n, radii, CRMULT, h);
   for (i = 0, n = 0; i < (glr->n[0] + 1) * (glr->n[1] + 1) * (glr->n[2] + 1); i++)

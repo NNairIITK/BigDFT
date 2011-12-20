@@ -40,6 +40,7 @@ typedef struct BigDFT_Atoms_
   guint  ntypes, nat;
   guint *iatype;
   gchar **atomnames;
+  double alat[3];
 
   /* Coordinates. */
   f90_pointer_double rxyz;
@@ -61,7 +62,7 @@ typedef struct f90_pointer_glr_ f90_pointer_glr;
 typedef struct BigDFT_glr_
 {
   double h[3];
-  int n[3];
+  guint n[3];
   
   /* TODO: bindings to values... */
 
