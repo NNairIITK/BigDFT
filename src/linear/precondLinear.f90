@@ -283,8 +283,9 @@ integer:: confPotOrder, it
              lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
              x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
              y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
+             rxyzParab, lr, parabPrefac, confPotOrder, &
              w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
-             w%x_f1,w%x_f2,w%x_f3, rxyzParab, orbs, lr, parabPrefac, confPotOrder, it)
+             w%x_f1,w%x_f2,w%x_f3)
      end do
   else if (lr%geocode == 'P') then
      if (lr%hybrid_on) then
@@ -337,10 +338,12 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
      xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
-     xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab, orbs, lr, parabPrefac, confPotOrder, it)
+     rxyzParab, lr, parabPrefac, confPotOrder, &
+     xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
 !
 ! Purpose:
 ! ========
+!   WRONG DESCRIPTION
 !   This subroutine uncompresses the wave function, applies the operators on it, 
 !   and compresses it again. The operators are: kinetic energy + cprec*Id + r^4.
 !   Here cprecr is a constant and r^4 is the confinement potential of the form
@@ -348,10 +351,11 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
 !
   use module_base
   use module_types
+  use module_interfaces
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f,confPotOrder
-  real(wp), intent(in) :: cprecr
+  real(wp), intent(inout) :: cprecr
   real(gp), intent(in) :: hgrid
   integer, dimension(nseg_c), intent(in) :: keyv_c
   integer, dimension(nseg_f), intent(in) :: keyv_f
@@ -365,23 +369,37 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
   real(wp), dimension(7,nvctr_f), intent(in) :: xpsi_f
   real(wp), dimension(nvctr_c), intent(out) :: ypsi_c
   real(wp), dimension(7,nvctr_f), intent(out) :: ypsi_f
+  real(8),dimension(3),intent(in):: rxyzParab
+  type(locreg_descriptors), intent(in) :: lr
+  real(8):: parabPrefac
+
   real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: xpsig_c,ypsig_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: xpsig_f,ypsig_f
   real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: x_f1
   real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(inout) :: x_f2
   real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(inout) :: x_f3
-  real(8),dimension(3),intent(in):: rxyzParab
-  type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: lr
-  real(8):: parabPrefac
-  integer:: it
+
+
+  ! Local variables
+  type(workarrays_quartic_convolutions):: work_conv
+  character(len=*),parameter:: subname='applyOperator'
+
+
+  call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
 
 
   ! Uncompress the wavefunction.
-  call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-       nseg_c,nvctr_c,keyg_c,keyv_c,  & 
-       nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-       scal,xpsi_c,xpsi_f,xpsig_c,xpsig_f,x_f1,x_f2,x_f3)
+  !!call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+  !!     nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+  !!     nseg_f,nvctr_f,keyg_f,keyv_f,  & 
+  !!     scal,xpsi_c,xpsi_f,xpsig_c,xpsig_f,x_f1,x_f2,x_f3)
+
+  call uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
+       nseg_c, nvctr_c, keyg_c, keyv_c, nseg_f, nvctr_f,  keyg_f, keyv_f, &
+       scal, xpsi_c, xpsi_f, &
+       work_conv)
+
+
 
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
   if(confPotOrder==4) then
@@ -389,29 +407,55 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
       !!     cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
       !!     xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
 
-      call ConvolQuartic3(n1, n2, n3, &
+      !!call ConvolQuartic3(n1, n2, n3, &
+      !!     nfl1, nfu1, &
+      !!     nfl2, nfu2, &
+      !!     nfl3, nfu3, &
+      !!     hgrid, ns1, ns2, ns3, &
+      !!     ibyz_c, ibxz_c, ibxy_c, &
+      !!     ibyz_f, ibxz_f, ibxy_f, &
+      !!     xpsig_c, xpsig_f, ypsig_c, ypsig_f, &
+      !!     x_f1, x_f2, x_f3, rxyzParab(1), parabPrefac, 1, &
+      !!     .true., cprecr)
+
+      call ConvolQuartic4(n1, n2, n3, &
            nfl1, nfu1, &
            nfl2, nfu2, &
            nfl3, nfu3, &
            hgrid, ns1, ns2, ns3, &
            ibyz_c, ibxz_c, ibxy_c, &
            ibyz_f, ibxz_f, ibxy_f, &
-           xpsig_c, xpsig_f, ypsig_c, ypsig_f, &
-           x_f1, x_f2, x_f3, rxyzParab(1), parabPrefac, it, &
-           .true., cprecr)
+           rxyzParab, parabPrefac, .true., cprecr, &
+           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f2, work_conv%xx_f3, &
+           work_conv%xx_f4, work_conv%xx_f5, work_conv%xx_f6, work_conv%xx_f7, work_conv%xx_f, &
+           work_conv%xy_c, work_conv%xy_f1, work_conv%xy_f2, work_conv%xy_f3, &
+           work_conv%xy_f4, work_conv%xy_f5, work_conv%xy_f6, work_conv%xy_f7, work_conv%xy_f, &
+           work_conv%xz_c, work_conv%xz_f1, work_conv%xz_f2, work_conv%xz_f3, &
+           work_conv%xz_f4, work_conv%xz_f5, work_conv%xz_f6, work_conv%xz_f7, work_conv%xz_f, &
+           work_conv%y_c, work_conv%y_f)
+
 
   else if(confPotOrder==6) then
-      call ConvolkineticSextic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-           cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
-           xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
+      stop 'preconditioner for sextic potential not implemented'
+      !!call ConvolkineticSextic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+      !!     cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
+      !!     xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
   end if
 
   ! Compress the wavefunctions.
   call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-       scal,ypsig_c,ypsig_f,ypsi_c,ypsi_f)
+       scal,work_conv%y_c,work_conv%y_f,ypsi_c,ypsi_f)
 
+  !!call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+  !!     nseg_c,nvctr_c,keyg_c,keyv_c,  &
+  !!     nseg_f,nvctr_f,keyg_f,keyv_f,  &
+  !!     scal,ypsig_c,ypsig_f,ypsi_c,ypsi_f)
+
+
+
+  call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
 
 END SUBROUTINE applyOperator
 

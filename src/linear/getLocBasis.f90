@@ -4173,7 +4173,7 @@ real(8),dimension(lzd%lpsidimtot),intent(out):: vpsi
 
 ! Local variables
 integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, ist_c, ist_f, ist, iiorb, iall, ierr
-real(8):: hxh, hyh, hzh, ddot, tt
+real(8):: hxh, hyh, hzh, ddot, tt, t1, t2, time
 type(workarr_sumrho):: work_sr
 real(8),dimension(:,:),allocatable:: psir, vpsir
 type(workarr_precond) :: work
@@ -4256,28 +4256,29 @@ real(8),dimension(0:3),parameter:: scal=1.d0
 
      ist_f=ist_f+lzd%llr(ilr)%wfd%nvctr_c
 
-     call allocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, 1, lzd%llr(ilr)%d, work)
+     !!call allocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, 1, lzd%llr(ilr)%d, work)
      call allocate_workarrays_quartic_convolutions(lzd%llr(ilr), subname, work_conv)
 
      ! Not sure whether these work arrays really have to be set to zero
-     work%xpsig_c=0.d0
-     work%xpsig_f=0.d0
-     work%x_f1=0.d0
-     work%x_f2=0.d0
-     work%x_f3=0.d0
+     !!work%xpsig_c=0.d0
+     !!work%xpsig_f=0.d0
+     !!work%x_f1=0.d0
+     !!work%x_f2=0.d0
+     !!work%x_f3=0.d0
 
 
-     call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-          lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-          lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-          lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
-          lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
-          lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv,  & 
-          lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
-          lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-          lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
-          scal, psi(ist_c), psi(ist_f), work%xpsig_c, work%xpsig_f, &
-          work%x_f1, work%x_f2, work%x_f3)
+     !!call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+     !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+     !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+     !!     lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+     !!     lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
+     !!     lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv,  & 
+     !!     lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+     !!     lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+     !!     lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
+     !!     scal, psi(ist_c), psi(ist_f), work%xpsig_c, work%xpsig_f, &
+     !!     work%x_f1, work%x_f2, work%x_f3)
+     !!t1=mpi_wtime()
      call uncompress_for_quartic_convolutions(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
           lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
@@ -4287,10 +4288,15 @@ real(8),dimension(0:3),parameter:: scal=1.d0
           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
           lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
-          scal, psi(ist_c), psi(ist_f), work%xpsig_c, work%xpsig_f, &
+          scal, psi(ist_c), psi(ist_f), &
           work_conv)
+     !!t2=mpi_wtime()
+     !!time=t2-t1
+     !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+     !!if(iproc==0) write(*,*) 'time for uncompress:',time
 
 
+     !!t1=mpi_wtime()
       call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
            lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
            lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
@@ -4298,9 +4304,34 @@ real(8),dimension(0:3),parameter:: scal=1.d0
            input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
            lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
            lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
-           work%xpsig_c, work%xpsig_f, work%ypsig_c, work%ypsig_f, &
-           work%x_f1, work%x_f2, work%x_f3, rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), iiorb, &
-           .false., 0.d0, work_conv)
+           rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
+           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f2, work_conv%xx_f3, &
+           work_conv%xx_f4, work_conv%xx_f5, work_conv%xx_f6, work_conv%xx_f7, work_conv%xx_f, &
+           work_conv%xy_c, work_conv%xy_f1, work_conv%xy_f2, work_conv%xy_f3, &
+           work_conv%xy_f4, work_conv%xy_f5, work_conv%xy_f6, work_conv%xy_f7, work_conv%xy_f, &
+           work_conv%xz_c, work_conv%xz_f1, work_conv%xz_f2, work_conv%xz_f3, &
+           work_conv%xz_f4, work_conv%xz_f5, work_conv%xz_f6, work_conv%xz_f7, work_conv%xz_f, &
+           work_conv%y_c, work_conv%y_f)
+
+
+
+      !!call ConvolQuartic3(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+      !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+      !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+      !!     lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
+      !!     input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+      !!     lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+      !!     lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+      !!     work%xpsig_c, work%xpsig_f, work%ypsig_c, work%ypsig_f, &
+      !!     work%x_f1, work%x_f2, work%x_f3, rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), 1, &
+      !!     .false., 0.d0)
+
+
+
+     !!t2=mpi_wtime()
+     !!time=t2-t1
+     !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+     !!if(iproc==0) write(*,*) 'time for convolution:',time
 
 
      call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
@@ -4312,10 +4343,20 @@ real(8),dimension(0:3),parameter:: scal=1.d0
           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
           lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
-          scal, work%ypsig_c, work%ypsig_f, vpsi(ist_c), vpsi(ist_f))
+          scal, work_conv%y_c, work_conv%y_f, vpsi(ist_c), vpsi(ist_f))
+     !!call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+     !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+     !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+     !!     lzd%llr(Ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+     !!     lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
+     !!     lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv,  & 
+     !!     lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+     !!     lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+     !!     lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
+     !!     scal, work%ypsig_c, work%ypsig_f, vpsi(ist_c), vpsi(ist_f))
 
 
-     call deallocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, 1, work)
+     !!call deallocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, 1, work)
      call deallocate_workarrays_quartic_convolutions(lzd%llr(ilr), subname, work_conv)
 
      ist_f = ist_f + 7*lzd%llr(ilr)%wfd%nvctr_f
@@ -4331,24 +4372,22 @@ end subroutine apply_orbitaldependent_potential
 
 
 !> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
-subroutine uncompress_for_quartic_convolutions(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-     mseg_c,mvctr_c,keyg_c,keyv_c,  & 
-     mseg_f,mvctr_f,keyg_f,keyv_f,  & 
-     scal,psi_c,psi_f,psig_c,psig_f,&
+subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  & 
+     mseg_c, mvctr_c, keyg_c, keyv_c,  & 
+     mseg_f, mvctr_f, keyg_f, keyv_f,  & 
+     scal, psi_c, psi_f, &
      work)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,mseg_c,mvctr_c,mseg_f,mvctr_f
-  integer, dimension(mseg_c), intent(in) :: keyv_c
-  integer, dimension(mseg_f), intent(in) :: keyv_f
-  integer, dimension(2,mseg_c), intent(in) :: keyg_c
-  integer, dimension(2,mseg_f), intent(in) :: keyg_f
-  real(wp), dimension(0:3), intent(in) :: scal
-  real(wp), dimension(mvctr_c), intent(in) :: psi_c
-  real(wp), dimension(7,mvctr_f), intent(in) :: psi_f
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: psig_c
-  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: psig_f
+  integer,intent(in):: n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, mseg_c, mvctr_c, mseg_f, mvctr_f
+  integer,dimension(mseg_c),intent(in):: keyv_c
+  integer,dimension(mseg_f),intent(in):: keyv_f
+  integer,dimension(2,mseg_c),intent(in):: keyg_c
+  integer,dimension(2,mseg_f),intent(in):: keyg_f
+  real(wp),dimension(0:3),intent(in):: scal
+  real(wp),dimension(mvctr_c),intent(in):: psi_c
+  real(wp),dimension(7,mvctr_f),intent(in):: psi_f
   type(workarrays_quartic_convolutions),intent(out):: work
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
@@ -4369,11 +4408,9 @@ subroutine uncompress_for_quartic_convolutions(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-        psig_c(i,i2,i3)=psi_c(i-i0+jj)*scal(0)
-
-        work%xx_c(i,i2,i3)=psig_c(i,i2,i3)
-        work%xy_c(i2,i,i3)=psig_c(i,i2,i3)
-        work%xz_c(i3,i,i2)=psig_c(i,i2,i3)
+        work%xx_c(i,i2,i3)=psi_c(i-i0+jj)*scal(0)
+        work%xy_c(i2,i,i3)=psi_c(i-i0+jj)*scal(0)
+        work%xz_c(i3,i,i2)=psi_c(i-i0+jj)*scal(0)
      enddo
   enddo
   !!!$omp enddo
@@ -4390,40 +4427,54 @@ subroutine uncompress_for_quartic_convolutions(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-        psig_f(1,i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
-        work%xx_f1(i,i2,i3)=psig_f(1,i,i2,i3)
-        work%xy_f1(i2,i,i3)=psig_f(1,i,i2,i3)
-        work%xz_f1(i3,i,i2)=psig_f(1,i,i2,i3)
-        
-        psig_f(2,i,i2,i3)=psi_f(2,i-i0+jj)*scal(1)
-        work%xx_f2(i,i2,i3)=psig_f(2,i,i2,i3)
-        work%xy_f2(i2,i,i3)=psig_f(2,i,i2,i3)
-        work%xz_f2(i3,i,i2)=psig_f(2,i,i2,i3)
-        
-        psig_f(3,i,i2,i3)=psi_f(3,i-i0+jj)*scal(2)
-        work%xx_f3(i,i2,i3)=psig_f(3,i,i2,i3)
-        work%xy_f3(i2,i,i3)=psig_f(3,i,i2,i3)
-        work%xz_f3(i3,i,i2)=psig_f(3,i,i2,i3)
+        work%xx_f1(i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
+        work%xy_f1(i2,i,i3)=psi_f(1,i-i0+jj)*scal(1)
+        work%xz_f1(i3,i,i2)=psi_f(1,i-i0+jj)*scal(1)
+        work%xx_f(1,i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
+        work%xy_f(1,i2,i,i3)=psi_f(1,i-i0+jj)*scal(1)
+        work%xz_f(1,i3,i,i2)=psi_f(1,i-i0+jj)*scal(1)
 
-        psig_f(4,i,i2,i3)=psi_f(4,i-i0+jj)*scal(1)
-        work%xx_f4(i,i2,i3)=psig_f(4,i,i2,i3)
-        work%xy_f4(i2,i,i3)=psig_f(4,i,i2,i3)
-        work%xz_f4(i3,i,i2)=psig_f(4,i,i2,i3)
-        
-        psig_f(5,i,i2,i3)=psi_f(5,i-i0+jj)*scal(2)
-        work%xx_f5(i,i2,i3)=psig_f(5,i,i2,i3)
-        work%xy_f5(i2,i,i3)=psig_f(5,i,i2,i3)
-        work%xz_f5(i3,i,i2)=psig_f(5,i,i2,i3)
+        work%xx_f2(i,i2,i3)=psi_f(2,i-i0+jj)*scal(1)
+        work%xy_f2(i2,i,i3)=psi_f(2,i-i0+jj)*scal(1)
+        work%xz_f2(i3,i,i2)=psi_f(2,i-i0+jj)*scal(1)
+        work%xx_f(2,i,i2,i3)=psi_f(2,i-i0+jj)*scal(1)
+        work%xy_f(2,i2,i,i3)=psi_f(2,i-i0+jj)*scal(1)
+        work%xz_f(2,i3,i,i2)=psi_f(2,i-i0+jj)*scal(1)
 
-        psig_f(6,i,i2,i3)=psi_f(6,i-i0+jj)*scal(2)
-        work%xx_f6(i,i2,i3)=psig_f(6,i,i2,i3)
-        work%xy_f6(i2,i,i3)=psig_f(6,i,i2,i3)
-        work%xz_f6(i3,i,i2)=psig_f(6,i,i2,i3)
+        work%xx_f3(i,i2,i3)=psi_f(3,i-i0+jj)*scal(2)
+        work%xy_f3(i2,i,i3)=psi_f(3,i-i0+jj)*scal(2)
+        work%xz_f3(i3,i,i2)=psi_f(3,i-i0+jj)*scal(2)
+        work%xx_f(3,i,i2,i3)=psi_f(3,i-i0+jj)*scal(2)
+        work%xy_f(3,i2,i,i3)=psi_f(3,i-i0+jj)*scal(2)
+        work%xz_f(3,i3,i,i2)=psi_f(3,i-i0+jj)*scal(2)
 
-        psig_f(7,i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
-        work%xx_f7(i,i2,i3)=psig_f(7,i,i2,i3)
-        work%xy_f7(i2,i,i3)=psig_f(7,i,i2,i3)
-        work%xz_f7(i3,i,i2)=psig_f(7,i,i2,i3)
+        work%xx_f4(i,i2,i3)=psi_f(4,i-i0+jj)*scal(1)
+        work%xy_f4(i2,i,i3)=psi_f(4,i-i0+jj)*scal(1)
+        work%xz_f4(i3,i,i2)=psi_f(4,i-i0+jj)*scal(1)
+        work%xx_f(4,i,i2,i3)=psi_f(4,i-i0+jj)*scal(1)
+        work%xy_f(4,i2,i,i3)=psi_f(4,i-i0+jj)*scal(1)
+        work%xz_f(4,i3,i,i2)=psi_f(4,i-i0+jj)*scal(1)
+
+        work%xx_f5(i,i2,i3)=psi_f(5,i-i0+jj)*scal(2)
+        work%xy_f5(i2,i,i3)=psi_f(5,i-i0+jj)*scal(2)
+        work%xz_f5(i3,i,i2)=psi_f(5,i-i0+jj)*scal(2)
+        work%xx_f(5,i,i2,i3)=psi_f(5,i-i0+jj)*scal(2)
+        work%xy_f(5,i2,i,i3)=psi_f(5,i-i0+jj)*scal(2)
+        work%xz_f(5,i3,i,i2)=psi_f(5,i-i0+jj)*scal(2)
+
+        work%xx_f6(i,i2,i3)=psi_f(6,i-i0+jj)*scal(2)
+        work%xy_f6(i2,i,i3)=psi_f(6,i-i0+jj)*scal(2)
+        work%xz_f6(i3,i,i2)=psi_f(6,i-i0+jj)*scal(2)
+        work%xx_f(6,i,i2,i3)=psi_f(6,i-i0+jj)*scal(2)
+        work%xy_f(6,i2,i,i3)=psi_f(6,i-i0+jj)*scal(2)
+        work%xz_f(6,i3,i,i2)=psi_f(6,i-i0+jj)*scal(2)
+
+        work%xx_f7(i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
+        work%xy_f7(i2,i,i3)=psi_f(7,i-i0+jj)*scal(3)
+        work%xz_f7(i3,i,i2)=psi_f(7,i-i0+jj)*scal(3)
+        work%xx_f(7,i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
+        work%xy_f(7,i2,i,i3)=psi_f(7,i-i0+jj)*scal(3)
+        work%xz_f(7,i3,i,i2)=psi_f(7,i-i0+jj)*scal(3)
      enddo
   enddo
  !!!$omp enddo
