@@ -6502,9 +6502,9 @@ subroutine ConvolQuartic4(n1, n2, n3, &
      hgrid, offsetx, offsety, offsetz, &
      ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
      rxyzConf, potentialPrefac, withKinetic, cprecr, &
-     xx_c, xx_f1, xx_f2, xx_f3, xx_f4, xx_f5, xx_f6, xx_f7, xx_f, &
-     xy_c, xy_f1, xy_f2, xy_f3, xy_f4, xy_f5, xy_f6, xy_f7, xy_f, &
-     xz_c, xz_f1, xz_f2, xz_f3, xz_f4, xz_f5, xz_f6, xz_f7, xz_f, &
+     xx_c, xx_f1, xx_f, &
+     xy_c, xy_f2, xy_f, &
+     xz_c, xz_f4, xz_f, &
      y_c, y_f)
 
   use module_base
@@ -6520,13 +6520,13 @@ subroutine ConvolQuartic4(n1, n2, n3, &
   integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
   integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
   real(wp),dimension(0:n1,0:n2,0:n3),intent(in):: xx_c
-  real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f1, xx_f2, xx_f3, xx_f4, xx_f5, xx_f6, xx_f7
+  real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f1
   real(wp),dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f
   real(wp),dimension(0:n2,0:n1,0:n3),intent(in):: xy_c
-  real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f1, xy_f2, xy_f3, xy_f4, xy_f5, xy_f6, xy_f7
+  real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f2
   real(wp),dimension(7,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f
   real(wp),dimension(0:n3,0:n1,0:n2),intent(in):: xz_c
-  real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f1, xz_f2, xz_f3, xz_f4, xz_f5, xz_f6, xz_f7
+  real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f4
   real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
@@ -8404,7 +8404,7 @@ t1=mpi_wtime()
                 !!!tt10 = tt10 + x_f(1,i1,i2+l,i3)*aeff0array(l,i2) + x_f(3,i1,i2+l,i3)*beff0array(l,i2) + &
                 !!!              2.d0*xye_f1(i2+l,i1,i3)*aeff0_2array(l,i2) + &
                 !!!              2.d0*(xyc_f2(i2+l,i1,i3)+xye_f3(i2+l,i1,i3))*beff0_2array(l,i2)
-                tt10 = tt10 + xy_f1(i2+l,i1,i3)*aeff0array(l,i2) + xy_f3(i2+l,i1,i3)*beff0array(l,i2) + &
+                tt10 = tt10 + xy_f(1,i2+l,i1,i3)*aeff0array(l,i2) + xy_f(3,i2+l,i1,i3)*beff0array(l,i2) + &
                               2.d0*xye_f(1,i2+l,i1,i3)*aeff0_2array(l,i2) + &
                               2.d0*(xyc_f(1,i2+l,i1,i3)+xye_f(2,i2+l,i1,i3))*beff0_2array(l,i2)
   
@@ -8417,7 +8417,7 @@ t1=mpi_wtime()
                 !!!!tt20 = tt20 + xy_f2(i2+l,i1,i3)*eeff0array(l,i2) +                                      &
                 !!!!              2.d0*xyb_f1(i2+l,i1,i3)*ceff0_2array(l,i2) + &
                 !!!!              2.d0*(xya_f2(i2+l,i1,i3)+xyb_f3(i2+l,i1,i3))*eeff0_2array(l,i2)
-                tt20 = tt20 + xy_f2(i2+l,i1,i3)*eeff0array(l,i2) +                                      &
+                tt20 = tt20 + xy_f(2,i2+l,i1,i3)*eeff0array(l,i2) +                                      &
                               2.d0*xyb_f(1,i2+l,i1,i3)*ceff0_2array(l,i2) + &
                               2.d0*(xya_f(1,i2+l,i1,i3)+xyb_f(2,i2+l,i1,i3))*eeff0_2array(l,i2)
   
@@ -8427,7 +8427,7 @@ t1=mpi_wtime()
                 !!!tt30 = tt30 + x_f(1,i1,i2+l,i3)*ceff0array(l,i2) + x_f(3,i1,i2+l,i3)*eeff0array(l,i2) + &
                 !!!              2.d0*xye_f1(i2+l,i1,i3)*ceff0_2array(l,i2) + &
                 !!!              2.d0*(xyc_f2(i2+l,i1,i3)+xye_f3(i2+l,i1,i3))*eeff0_2array(l,i2)
-                tt30 = tt30 + xy_f1(i2+l,i1,i3)*ceff0array(l,i2) + xy_f3(i2+l,i1,i3)*eeff0array(l,i2) + &
+                tt30 = tt30 + xy_f(1,i2+l,i1,i3)*ceff0array(l,i2) + xy_f(3,i2+l,i1,i3)*eeff0array(l,i2) + &
                               2.d0*xye_f(1,i2+l,i1,i3)*ceff0_2array(l,i2) + &
                               2.d0*(xyc_f(1,i2+l,i1,i3)+xye_f(2,i2+l,i1,i3))*eeff0_2array(l,i2)
   
@@ -8440,7 +8440,7 @@ t1=mpi_wtime()
                 !!!!tt40 = tt40 + xy_f4(i2+l,i1,i3)*aeff0array(l,i2) + xy_f6(i2+l,i1,i3)*beff0array(l,i2) + &
                 !!!!              2.d0*(xya_f4(i2+l,i1,i3)+xyb_f5(i2+l,i1,i3))*aeff0_2array(l,i2) + &
                 !!!!              2.d0*(xya_f6(i2+l,i1,i3)+xyb_f7(i2+l,i1,i3))*beff0_2array(l,i2)
-                tt40 = tt40 + xy_f4(i2+l,i1,i3)*aeff0array(l,i2) + xy_f6(i2+l,i1,i3)*beff0array(l,i2) + &
+                tt40 = tt40 + xy_f(4,i2+l,i1,i3)*aeff0array(l,i2) + xy_f(6,i2+l,i1,i3)*beff0array(l,i2) + &
                               2.d0*(xya_f(2,i2+l,i1,i3)+xyb_f(3,i2+l,i1,i3))*aeff0_2array(l,i2) + &
                               2.d0*(xya_f(3,i2+l,i1,i3)+xyb_f(4,i2+l,i1,i3))*beff0_2array(l,i2)
   
@@ -8450,7 +8450,7 @@ t1=mpi_wtime()
                 !!!tt50 = tt50 + x_f(5,i1,i2+l,i3)*aeff0array(l,i2) + x_f(7,i1,i2+l,i3)*beff0array(l,i2) + &
                 !!!              2.d0*(xyc_f4(i2+l,i1,i3)+xye_f5(i2+l,i1,i3))*aeff0_2array(l,i2) + &
                 !!!              2.d0*(xyc_f6(i2+l,i1,i3)+xye_f7(i2+l,i1,i3))*beff0_2array(l,i2)
-                tt50 = tt50 + xy_f5(i2+l,i1,i3)*aeff0array(l,i2) + xy_f7(i2+l,i1,i3)*beff0array(l,i2) + &
+                tt50 = tt50 + xy_f(5,i2+l,i1,i3)*aeff0array(l,i2) + xy_f(7,i2+l,i1,i3)*beff0array(l,i2) + &
                               2.d0*(xyc_f(2,i2+l,i1,i3)+xye_f(3,i2+l,i1,i3))*aeff0_2array(l,i2) + &
                               2.d0*(xyc_f(3,i2+l,i1,i3)+xye_f(4,i2+l,i1,i3))*beff0_2array(l,i2)
                 
@@ -8463,7 +8463,7 @@ t1=mpi_wtime()
                 !!!!tt60 = tt60 + xy_f4(i2+l,i1,i3)*ceff0array(l,i2) + xy_f6(i2+l,i1,i3)*eeff0array(l,i2) + &
                 !!!!              2.d0*(xya_f4(i2+l,i1,i3)+xyb_f5(i2+l,i1,i3))*ceff0_2array(l,i2) + &
                 !!!!              2.d0*(xya_f6(i2+l,i1,i3)+xyb_f7(i2+l,i1,i3))*eeff0_2array(l,i2)
-                tt60 = tt60 + xy_f4(i2+l,i1,i3)*ceff0array(l,i2) + xy_f6(i2+l,i1,i3)*eeff0array(l,i2) + &
+                tt60 = tt60 + xy_f(4,i2+l,i1,i3)*ceff0array(l,i2) + xy_f(6,i2+l,i1,i3)*eeff0array(l,i2) + &
                               2.d0*(xya_f(2,i2+l,i1,i3)+xyb_f(3,i2+l,i1,i3))*ceff0_2array(l,i2) + &
                               2.d0*(xya_f(3,i2+l,i1,i3)+xyb_f(4,i2+l,i1,i3))*eeff0_2array(l,i2)
   
@@ -8473,7 +8473,7 @@ t1=mpi_wtime()
                 !!!tt70 = tt70 + x_f(5,i1,i2+l,i3)*ceff0array(l,i2) + x_f(7,i1,i2+l,i3)*eeff0array(l,i2) + &
                 !!!              2.d0*(xyc_f4(i2+l,i1,i3)+xye_f5(i2+l,i1,i3))*ceff0_2array(l,i2) + &
                 !!!              2.d0*(xyc_f6(i2+l,i1,i3)+xye_f7(i2+l,i1,i3))*eeff0_2array(l,i2)
-                tt70 = tt70 + xy_f5(i2+l,i1,i3)*ceff0array(l,i2) + xy_f7(i2+l,i1,i3)*eeff0array(l,i2) + &
+                tt70 = tt70 + xy_f(5,i2+l,i1,i3)*ceff0array(l,i2) + xy_f(7,i2+l,i1,i3)*eeff0array(l,i2) + &
                               2.d0*(xyc_f(2,i2+l,i1,i3)+xye_f(3,i2+l,i1,i3))*ceff0_2array(l,i2) + &
                               2.d0*(xyc_f(3,i2+l,i1,i3)+xye_f(4,i2+l,i1,i3))*eeff0_2array(l,i2)
 
@@ -8482,9 +8482,9 @@ t1=mpi_wtime()
                 !!tt1b0=tt1b0 + x_f(1,i1,i2+l,i3)*beff0_2auxarray(l,i2)
                 !!tt1c0=tt1c0 + x_f(1,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt1e0=tt1e0 + x_f(1,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
-                tt1a0=tt1a0 + xy_f1(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
+                tt1a0=tt1a0 + xy_f(1,i2+l,i1,i3)*aeff0_2auxarray(l,i2)
                 !tt1b0=tt1b0 + xy_f1(i2+l,i1,i3)*beff0_2auxarray(l,i2)
-                tt1c0=tt1c0 + xy_f1(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
+                tt1c0=tt1c0 + xy_f(1,i2+l,i1,i3)*ceff0_2auxarray(l,i2)
                 !tt1e0=tt1e0 + xy_f1(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! sds coefficients
                 !!tt2a0=tt2a0 + x_f(2,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
@@ -8492,35 +8492,35 @@ t1=mpi_wtime()
                 !!tt2c0=tt2c0 + x_f(2,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt2e0=tt2e0 + x_f(2,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
                 !tt2a0=tt2a0 + xy_f2(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
-                tt2b0=tt2b0 + xy_f2(i2+l,i1,i3)*beff0_2auxarray(l,i2)
+                tt2b0=tt2b0 + xy_f(2,i2+l,i1,i3)*beff0_2auxarray(l,i2)
                 !tt2c0=tt2c0 + xy_f2(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
-                tt2e0=tt2e0 + xy_f2(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
+                tt2e0=tt2e0 + xy_f(2,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! dds coefficients
                 !!tt3a0=tt3a0 + x_f(3,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
                 !!tt3b0=tt3b0 + x_f(3,i1,i2+l,i3)*beff0_2auxarray(l,i2)
                 !!tt3c0=tt3c0 + x_f(3,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt3e0=tt3e0 + x_f(3,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
                 !tt3a0=tt3a0 + xy_f3(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
-                tt3b0=tt3b0 + xy_f3(i2+l,i1,i3)*beff0_2auxarray(l,i2)
+                tt3b0=tt3b0 + xy_f(3,i2+l,i1,i3)*beff0_2auxarray(l,i2)
                 !tt3c0=tt3c0 + xy_f3(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
-                tt3e0=tt3e0 + xy_f3(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
+                tt3e0=tt3e0 + xy_f(3,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! ssd coefficients
                 !!tt4a0=tt4a0 + x_f(4,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
                 !!tt4b0=tt4b0 + x_f(4,i1,i2+l,i3)*beff0_2auxarray(l,i2)
                 !!tt4c0=tt4c0 + x_f(4,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt4e0=tt4e0 + x_f(4,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
-                tt4a0=tt4a0 + xy_f4(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
+                tt4a0=tt4a0 + xy_f(4,i2+l,i1,i3)*aeff0_2auxarray(l,i2)
                 !tt4b0=tt4b0 + xy_f4(i2+l,i1,i3)*beff0_2auxarray(l,i2)
-                tt4c0=tt4c0 + xy_f4(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
+                tt4c0=tt4c0 + xy_f(4,i2+l,i1,i3)*ceff0_2auxarray(l,i2)
                 !tt4e0=tt4e0 + xy_f4(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! dsd coefficients
                 !!tt5a0=tt5a0 + x_f(5,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
                 !!tt5b0=tt5b0 + x_f(5,i1,i2+l,i3)*beff0_2auxarray(l,i2)
                 !!tt5c0=tt5c0 + x_f(5,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt5e0=tt5e0 + x_f(5,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
-                tt5a0=tt5a0 + xy_f5(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
+                tt5a0=tt5a0 + xy_f(5,i2+l,i1,i3)*aeff0_2auxarray(l,i2)
                 !tt5b0=tt5b0 + xy_f5(i2+l,i1,i3)*beff0_2auxarray(l,i2)
-                tt5c0=tt5c0 + xy_f5(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
+                tt5c0=tt5c0 + xy_f(5,i2+l,i1,i3)*ceff0_2auxarray(l,i2)
                 !tt5e0=tt5e0 + xy_f5(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! sdd coefficients
                 !!tt6a0=tt6a0 + x_f(6,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
@@ -8528,18 +8528,18 @@ t1=mpi_wtime()
                 !!tt6c0=tt6c0 + x_f(6,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt6e0=tt6e0 + x_f(6,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
                 !tt6a0=tt6a0 + xy_f6(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
-                tt6b0=tt6b0 + xy_f6(i2+l,i1,i3)*beff0_2auxarray(l,i2)
+                tt6b0=tt6b0 + xy_f(6,i2+l,i1,i3)*beff0_2auxarray(l,i2)
                 !tt6c0=tt6c0 + xy_f6(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
-                tt6e0=tt6e0 + xy_f6(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
+                tt6e0=tt6e0 + xy_f(6,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! ddd coefficients
                 !!tt7a0=tt7a0 + x_f(7,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
                 !!tt7b0=tt7b0 + x_f(7,i1,i2+l,i3)*beff0_2auxarray(l,i2)
                 !!tt7c0=tt7c0 + x_f(7,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt7e0=tt7e0 + x_f(7,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
                 !tt7a0=tt7a0 + xy_f7(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
-                tt7b0=tt7b0 + xy_f7(i2+l,i1,i3)*beff0_2auxarray(l,i2)
+                tt7b0=tt7b0 + xy_f(7,i2+l,i1,i3)*beff0_2auxarray(l,i2)
                 !tt7c0=tt7c0 + xy_f7(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
-                tt7e0=tt7e0 + xy_f7(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
+                tt7e0=tt7e0 + xy_f(7,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
              enddo
              y_f(4,i1,i2,i3)=y_f(4,i1,i2,i3)+tt40
              y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+tt20
@@ -8986,7 +8986,7 @@ t1=mpi_wtime()
               !!!              2.d0*(xzc_f4(i3+l,i1,i2)+xze_f5(i3+l,i1,i2))*beff0_2array(l,i3) + &
               !!!              2.d0*(yza_f1(i3+l,i1,i2)+yzb_f3(i3+l,i1,i2))*aeff0_2array(l,i3) + &
               !!!              2.d0*(yza_f5(i3+l,i1,i2)+yzb_f7(i3+l,i1,i2))*beff0_2array(l,i3)
-              tt10 = tt10 + xz_f1(i3+l,i1,i2)*aeff0array(l,i3) + xz_f5(i3+l,i1,i2)*beff0array(l,i3) + &
+              tt10 = tt10 + xz_f(1,i3+l,i1,i2)*aeff0array(l,i3) + xz_f(5,i3+l,i1,i2)*beff0array(l,i3) + &
                             2.d0*                    xze_f(1,i3+l,i1,i2) *aeff0_2array(l,i3) + &
                             2.d0*(xzc_f(2,i3+l,i1,i2)+xze_f(3,i3+l,i1,i2))*beff0_2array(l,i3) + &
                             2.d0*(yza_f(1,i3+l,i1,i2)+yzb_f(2,i3+l,i1,i2))*aeff0_2array(l,i3) + &
@@ -9002,7 +9002,7 @@ t1=mpi_wtime()
               !!!              2.d0*(xza_f6(i3+l,i1,i2)+xzb_f7(i3+l,i1,i2))*beff0_2array(l,i3) + &
               !!!              2.d0*                    yze_f2(i3+l,i1,i2) *aeff0_2array(l,i3) + &
               !!!              2.d0*(yzc_f4(i3+l,i1,i2)+yze_f6(i3+l,i1,i2))*beff0_2array(l,i3)
-              tt20 = tt20 + xz_f2(i3+l,i1,i2)*aeff0array(l,i3) + xz_f6(i3+l,i1,i2)*beff0array(l,i3) + &
+              tt20 = tt20 + xz_f(2,i3+l,i1,i2)*aeff0array(l,i3) + xz_f(6,i3+l,i1,i2)*beff0array(l,i3) + &
                             2.d0*(xza_f(1,i3+l,i1,i2)+xzb_f(2,i3+l,i1,i2))*aeff0_2array(l,i3) + &
                             2.d0*(xza_f(3,i3+l,i1,i2)+xzb_f(4,i3+l,i1,i2))*beff0_2array(l,i3) + &
                             2.d0*                    yze_f(1,i3+l,i1,i2) *aeff0_2array(l,i3) + &
@@ -9018,7 +9018,7 @@ t1=mpi_wtime()
               !!!              2.d0*(xzc_f6(i3+l,i1,i2)+xze_f7(i3+l,i1,i2))*beff0_2array(l,i3) + &
               !!!              2.d0*(yzc_f1(i3+l,i1,i2)+yze_f3(i3+l,i1,i2))*aeff0_2array(l,i3) + &
               !!!              2.d0*(yzc_f5(i3+l,i1,i2)+yze_f7(i3+l,i1,i2))*beff0_2array(l,i3)
-              tt30 = tt30 + xz_f3(i3+l,i1,i2)*aeff0array(l,i3) + xz_f7(i3+l,i1,i2)*beff0array(l,i3) + &
+              tt30 = tt30 + xz_f(3,i3+l,i1,i2)*aeff0array(l,i3) + xz_f(7,i3+l,i1,i2)*beff0array(l,i3) + &
                             2.d0*(xzc_f(1,i3+l,i1,i2)+xze_f(2,i3+l,i1,i2))*aeff0_2array(l,i3) + &
                             2.d0*(xzc_f(3,i3+l,i1,i2)+xze_f(4,i3+l,i1,i2))*beff0_2array(l,i3) + &
                             2.d0*(yzc_f(1,i3+l,i1,i2)+yze_f(2,i3+l,i1,i2))*aeff0_2array(l,i3) + &
@@ -9034,7 +9034,7 @@ t1=mpi_wtime()
               !!!              2.d0*(xza_f4(i3+l,i1,i2)+xzb_f5(i3+l,i1,i2))*eeff0_2array(l,i3) + &
               !!!              2.d0*                    yzb_f2(i3+l,i1,i2) *ceff0_2array(l,i3) + &
               !!!              2.d0*(yza_f4(i3+l,i1,i2)+yzb_f6(i3+l,i1,i2))*eeff0_2array(l,i3)
-              tt40 = tt40 + xz_f4(i3+l,i1,i2)*eeff0array(l,i3)                                      + &
+              tt40 = tt40 + xz_f(4,i3+l,i1,i2)*eeff0array(l,i3)                                      + &
                             2.d0*                    xzb_f(1,i3+l,i1,i2) *ceff0_2array(l,i3) + &
                             2.d0*(xza_f(2,i3+l,i1,i2)+xzb_f(3,i3+l,i1,i2))*eeff0_2array(l,i3) + &
                             2.d0*                    yzb_f(1,i3+l,i1,i2) *ceff0_2array(l,i3) + &
@@ -9050,7 +9050,7 @@ t1=mpi_wtime()
               !!!              2.d0*(xzc_f4(i3+l,i1,i2)+xze_f5(i3+l,i1,i2))*eeff0_2array(l,i3) + &
               !!!              2.d0*(yza_f1(i3+l,i1,i2)+yzb_f3(i3+l,i1,i2))*ceff0_2array(l,i3) + &
               !!!              2.d0*(yza_f5(i3+l,i1,i2)+yzb_f7(i3+l,i1,i2))*eeff0_2array(l,i3)
-              tt50 = tt50 + xz_f1(i3+l,i1,i2)*ceff0array(l,i3) + xz_f5(i3+l,i1,i2)*eeff0array(l,i3) + &
+              tt50 = tt50 + xz_f(1,i3+l,i1,i2)*ceff0array(l,i3) + xz_f(5,i3+l,i1,i2)*eeff0array(l,i3) + &
                             2.d0*                    xze_f(1,i3+l,i1,i2) *ceff0_2array(l,i3) + &
                             2.d0*(xzc_f(2,i3+l,i1,i2)+xze_f(3,i3+l,i1,i2))*eeff0_2array(l,i3) + &
                             2.d0*(yza_f(1,i3+l,i1,i2)+yzb_f(2,i3+l,i1,i2))*ceff0_2array(l,i3) + &
@@ -9066,7 +9066,7 @@ t1=mpi_wtime()
               !!!              2.d0*(xza_f6(i3+l,i1,i2)+xzb_f7(i3+l,i1,i2))*eeff0_2array(l,i3) + &
               !!!              2.d0*                    yze_f2(i3+l,i1,i2) *ceff0_2array(l,i3) + &
               !!!              2.d0*(yzc_f4(i3+l,i1,i2)+yze_f6(i3+l,i1,i2))*eeff0_2array(l,i3)
-              tt60 = tt60 + xz_f2(i3+l,i1,i2)*ceff0array(l,i3) + xz_f6(i3+l,i1,i2)*eeff0array(l,i3) + &
+              tt60 = tt60 + xz_f(2,i3+l,i1,i2)*ceff0array(l,i3) + xz_f(6,i3+l,i1,i2)*eeff0array(l,i3) + &
                             2.d0*(xza_f(1,i3+l,i1,i2)+xzb_f(2,i3+l,i1,i2))*ceff0_2array(l,i3) + &
                             2.d0*(xza_f(3,i3+l,i1,i2)+xzb_f(4,i3+l,i1,i2))*eeff0_2array(l,i3) + &
                             2.d0*                    yze_f(1,i3+l,i1,i2) *ceff0_2array(l,i3) + &
@@ -9082,7 +9082,7 @@ t1=mpi_wtime()
               !!!              2.d0*(xzc_f6(i3+l,i1,i2)+xze_f7(i3+l,i1,i2))*eeff0_2array(l,i3) + &
               !!!              2.d0*(yzc_f1(i3+l,i1,i2)+yze_f3(i3+l,i1,i2))*ceff0_2array(l,i3) + &
               !!!              2.d0*(yzc_f5(i3+l,i1,i2)+yze_f7(i3+l,i1,i2))*eeff0_2array(l,i3)
-              tt70 = tt70 + xz_f3(i3+l,i1,i2)*ceff0array(l,i3) + xz_f7(i3+l,i1,i2)*eeff0array(l,i3) + &
+              tt70 = tt70 + xz_f(3,i3+l,i1,i2)*ceff0array(l,i3) + xz_f(7,i3+l,i1,i2)*eeff0array(l,i3) + &
                             2.d0*(xzc_f(1,i3+l,i1,i2)+xze_f(2,i3+l,i1,i2))*ceff0_2array(l,i3) + &
                             2.d0*(xzc_f(3,i3+l,i1,i2)+xze_f(4,i3+l,i1,i2))*eeff0_2array(l,i3) + &
                             2.d0*(yzc_f(1,i3+l,i1,i2)+yze_f(2,i3+l,i1,i2))*ceff0_2array(l,i3) + &
@@ -11120,77 +11120,77 @@ work%xz_c=0.d0
 
 allocate(work%xx_f1(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
 call memocc(istat, work%xx_f1, 'work%xx_f1', subname)
-allocate(work%xx_f2(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xx_f2, 'work%xx_f2', subname)
-allocate(work%xx_f3(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xx_f3, 'work%xx_f3', subname)
-allocate(work%xx_f4(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xx_f4, 'work%xx_f4', subname)
-allocate(work%xx_f5(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xx_f5, 'work%xx_f5', subname)
-allocate(work%xx_f6(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xx_f6, 'work%xx_f6', subname)
-allocate(work%xx_f7(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xx_f7, 'work%xx_f7', subname)
+!allocate(work%xx_f2(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xx_f2, 'work%xx_f2', subname)
+!allocate(work%xx_f3(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xx_f3, 'work%xx_f3', subname)
+!allocate(work%xx_f4(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xx_f4, 'work%xx_f4', subname)
+!allocate(work%xx_f5(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xx_f5, 'work%xx_f5', subname)
+!allocate(work%xx_f6(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xx_f6, 'work%xx_f6', subname)
+!allocate(work%xx_f7(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xx_f7, 'work%xx_f7', subname)
 work%xx_f1=0.d0
-work%xx_f2=0.d0
-work%xx_f3=0.d0
-work%xx_f4=0.d0
-work%xx_f5=0.d0
-work%xx_f6=0.d0
-work%xx_f7=0.d0
+!work%xx_f2=0.d0
+!work%xx_f3=0.d0
+!work%xx_f4=0.d0
+!work%xx_f5=0.d0
+!work%xx_f6=0.d0
+!work%xx_f7=0.d0
 allocate(work%xx_f(7,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
 call memocc(istat, work%xx_f, 'work%xx_f', subname)
 work%xx_f=0.d0
 
 
-allocate(work%xy_f1(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xy_f1, 'work%xy_f1', subname)
+!allocate(work%xy_f1(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xy_f1, 'work%xy_f1', subname)
 allocate(work%xy_f2(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
 call memocc(istat, work%xy_f2, 'work%xy_f2', subname)
-allocate(work%xy_f3(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xy_f3, 'work%xy_f3', subname)
-allocate(work%xy_f4(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xy_f4, 'work%xy_f4', subname)
-allocate(work%xy_f5(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xy_f5, 'work%xy_f5', subname)
-allocate(work%xy_f6(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xy_f6, 'work%xy_f6', subname)
-allocate(work%xy_f7(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
-call memocc(istat, work%xy_f7, 'work%xy_f7', subname)
-work%xy_f1=0.d0
+!allocate(work%xy_f3(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xy_f3, 'work%xy_f3', subname)
+!allocate(work%xy_f4(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xy_f4, 'work%xy_f4', subname)
+!allocate(work%xy_f5(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xy_f5, 'work%xy_f5', subname)
+!allocate(work%xy_f6(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xy_f6, 'work%xy_f6', subname)
+!allocate(work%xy_f7(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!call memocc(istat, work%xy_f7, 'work%xy_f7', subname)
+!work%xy_f1=0.d0
 work%xy_f2=0.d0
-work%xy_f3=0.d0
-work%xy_f4=0.d0
-work%xy_f5=0.d0
-work%xy_f6=0.d0
-work%xy_f7=0.d0
+!work%xy_f3=0.d0
+!work%xy_f4=0.d0
+!work%xy_f5=0.d0
+!work%xy_f6=0.d0
+!work%xy_f7=0.d0
 allocate(work%xy_f(7,lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
 call memocc(istat, work%xy_f, 'work%xy_f', subname)
 work%xy_f=0.d0
 
 
-allocate(work%xz_f1(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
-call memocc(istat, work%xz_f1, 'work%xz_f1', subname)
-allocate(work%xz_f2(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
-call memocc(istat, work%xz_f2, 'work%xz_f2', subname)
-allocate(work%xz_f3(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
-call memocc(istat, work%xz_f3, 'work%xz_f3', subname)
+!allocate(work%xz_f1(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
+!call memocc(istat, work%xz_f1, 'work%xz_f1', subname)
+!allocate(work%xz_f2(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
+!call memocc(istat, work%xz_f2, 'work%xz_f2', subname)
+!allocate(work%xz_f3(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
+!call memocc(istat, work%xz_f3, 'work%xz_f3', subname)
 allocate(work%xz_f4(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
 call memocc(istat, work%xz_f4, 'work%xz_f4', subname)
-allocate(work%xz_f5(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
-call memocc(istat, work%xz_f5, 'work%xz_f5', subname)
-allocate(work%xz_f6(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
-call memocc(istat, work%xz_f6, 'work%xz_f6', subname)
-allocate(work%xz_f7(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
-call memocc(istat, work%xz_f7, 'work%xz_f7', subname)
-work%xz_f1=0.d0
-work%xz_f2=0.d0
-work%xz_f3=0.d0
+!allocate(work%xz_f5(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
+!call memocc(istat, work%xz_f5, 'work%xz_f5', subname)
+!allocate(work%xz_f6(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
+!call memocc(istat, work%xz_f6, 'work%xz_f6', subname)
+!allocate(work%xz_f7(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
+!call memocc(istat, work%xz_f7, 'work%xz_f7', subname)
+!work%xz_f1=0.d0
+!work%xz_f2=0.d0
+!work%xz_f3=0.d0
 work%xz_f4=0.d0
-work%xz_f5=0.d0
-work%xz_f6=0.d0
-work%xz_f7=0.d0
+!work%xz_f5=0.d0
+!work%xz_f6=0.d0
+!work%xz_f7=0.d0
 allocate(work%xz_f(7,lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
 call memocc(istat, work%xz_f, 'work%xz_f', subname)
 work%xz_f=0.d0
@@ -11240,94 +11240,94 @@ integer:: iall, istat
   deallocate(work%xx_f1, stat=istat)
   call memocc(istat, iall, 'work%xx_f1', subname)
 
-  iall=-product(shape(work%xx_f2))*kind(work%xx_f2)
-  deallocate(work%xx_f2, stat=istat)
-  call memocc(istat, iall, 'work%xx_f2', subname)
+  !iall=-product(shape(work%xx_f2))*kind(work%xx_f2)
+  !deallocate(work%xx_f2, stat=istat)
+  !call memocc(istat, iall, 'work%xx_f2', subname)
 
-  iall=-product(shape(work%xx_f3))*kind(work%xx_f3)
-  deallocate(work%xx_f3, stat=istat)
-  call memocc(istat, iall, 'work%xx_f3', subname)
+  !iall=-product(shape(work%xx_f3))*kind(work%xx_f3)
+  !deallocate(work%xx_f3, stat=istat)
+  !call memocc(istat, iall, 'work%xx_f3', subname)
 
-  iall=-product(shape(work%xx_f4))*kind(work%xx_f4)
-  deallocate(work%xx_f4, stat=istat)
-  call memocc(istat, iall, 'work%xx_f4', subname)
+  !iall=-product(shape(work%xx_f4))*kind(work%xx_f4)
+  !deallocate(work%xx_f4, stat=istat)
+  !call memocc(istat, iall, 'work%xx_f4', subname)
 
-  iall=-product(shape(work%xx_f5))*kind(work%xx_f5)
-  deallocate(work%xx_f5, stat=istat)
-  call memocc(istat, iall, 'work%xx_f5', subname)
+  !iall=-product(shape(work%xx_f5))*kind(work%xx_f5)
+  !deallocate(work%xx_f5, stat=istat)
+  !call memocc(istat, iall, 'work%xx_f5', subname)
 
-  iall=-product(shape(work%xx_f6))*kind(work%xx_f6)
-  deallocate(work%xx_f6, stat=istat)
-  call memocc(istat, iall, 'work%xx_f6', subname)
+  !iall=-product(shape(work%xx_f6))*kind(work%xx_f6)
+  !deallocate(work%xx_f6, stat=istat)
+  !call memocc(istat, iall, 'work%xx_f6', subname)
 
-  iall=-product(shape(work%xx_f7))*kind(work%xx_f7)
-  deallocate(work%xx_f7, stat=istat)
-  call memocc(istat, iall, 'work%xx_f7', subname)
+  !iall=-product(shape(work%xx_f7))*kind(work%xx_f7)
+  !deallocate(work%xx_f7, stat=istat)
+  !call memocc(istat, iall, 'work%xx_f7', subname)
 
   iall=-product(shape(work%xx_f))*kind(work%xx_f)
   deallocate(work%xx_f, stat=istat)
   call memocc(istat, iall, 'work%xx_f', subname)
 
-  iall=-product(shape(work%xy_f1))*kind(work%xy_f1)
-  deallocate(work%xy_f1, stat=istat)
-  call memocc(istat, iall, 'work%xy_f1', subname)
+  !iall=-product(shape(work%xy_f1))*kind(work%xy_f1)
+  !deallocate(work%xy_f1, stat=istat)
+  !call memocc(istat, iall, 'work%xy_f1', subname)
 
   iall=-product(shape(work%xy_f2))*kind(work%xy_f2)
   deallocate(work%xy_f2, stat=istat)
   call memocc(istat, iall, 'work%xy_f2', subname)
 
-  iall=-product(shape(work%xy_f3))*kind(work%xy_f3)
-  deallocate(work%xy_f3, stat=istat)
-  call memocc(istat, iall, 'work%xy_f3', subname)
+  !iall=-product(shape(work%xy_f3))*kind(work%xy_f3)
+  !deallocate(work%xy_f3, stat=istat)
+  !call memocc(istat, iall, 'work%xy_f3', subname)
 
-  iall=-product(shape(work%xy_f4))*kind(work%xy_f4)
-  deallocate(work%xy_f4, stat=istat)
-  call memocc(istat, iall, 'work%xy_f4', subname)
+  !iall=-product(shape(work%xy_f4))*kind(work%xy_f4)
+  !deallocate(work%xy_f4, stat=istat)
+  !call memocc(istat, iall, 'work%xy_f4', subname)
 
-  iall=-product(shape(work%xy_f5))*kind(work%xy_f5)
-  deallocate(work%xy_f5, stat=istat)
-  call memocc(istat, iall, 'work%xy_f5', subname)
+  !iall=-product(shape(work%xy_f5))*kind(work%xy_f5)
+  !deallocate(work%xy_f5, stat=istat)
+  !call memocc(istat, iall, 'work%xy_f5', subname)
 
-  iall=-product(shape(work%xy_f6))*kind(work%xy_f6)
-  deallocate(work%xy_f6, stat=istat)
-  call memocc(istat, iall, 'work%xy_f6', subname)
+  !iall=-product(shape(work%xy_f6))*kind(work%xy_f6)
+  !deallocate(work%xy_f6, stat=istat)
+  !call memocc(istat, iall, 'work%xy_f6', subname)
 
-  iall=-product(shape(work%xy_f7))*kind(work%xy_f7)
-  deallocate(work%xy_f7, stat=istat)
-  call memocc(istat, iall, 'work%xy_f7', subname)
+  !iall=-product(shape(work%xy_f7))*kind(work%xy_f7)
+  !deallocate(work%xy_f7, stat=istat)
+  !call memocc(istat, iall, 'work%xy_f7', subname)
 
   iall=-product(shape(work%xy_f))*kind(work%xy_f)
   deallocate(work%xy_f, stat=istat)
   call memocc(istat, iall, 'work%xy_f', subname)
 
 
-  iall=-product(shape(work%xz_f1))*kind(work%xz_f1)
-  deallocate(work%xz_f1, stat=istat)
-  call memocc(istat, iall, 'work%xz_f1', subname)
+  !iall=-product(shape(work%xz_f1))*kind(work%xz_f1)
+  !deallocate(work%xz_f1, stat=istat)
+  !call memocc(istat, iall, 'work%xz_f1', subname)
 
-  iall=-product(shape(work%xz_f2))*kind(work%xz_f2)
-  deallocate(work%xz_f2, stat=istat)
-  call memocc(istat, iall, 'work%xz_f2', subname)
+  !iall=-product(shape(work%xz_f2))*kind(work%xz_f2)
+  !deallocate(work%xz_f2, stat=istat)
+  !call memocc(istat, iall, 'work%xz_f2', subname)
 
-  iall=-product(shape(work%xz_f3))*kind(work%xz_f3)
-  deallocate(work%xz_f3, stat=istat)
-  call memocc(istat, iall, 'work%xz_f3', subname)
+  !iall=-product(shape(work%xz_f3))*kind(work%xz_f3)
+  !deallocate(work%xz_f3, stat=istat)
+  !call memocc(istat, iall, 'work%xz_f3', subname)
 
   iall=-product(shape(work%xz_f4))*kind(work%xz_f4)
   deallocate(work%xz_f4, stat=istat)
   call memocc(istat, iall, 'work%xz_f4', subname)
 
-  iall=-product(shape(work%xz_f5))*kind(work%xz_f5)
-  deallocate(work%xz_f5, stat=istat)
-  call memocc(istat, iall, 'work%xz_f5', subname)
+  !iall=-product(shape(work%xz_f5))*kind(work%xz_f5)
+  !deallocate(work%xz_f5, stat=istat)
+  !call memocc(istat, iall, 'work%xz_f5', subname)
 
-  iall=-product(shape(work%xz_f6))*kind(work%xz_f6)
-  deallocate(work%xz_f6, stat=istat)
-  call memocc(istat, iall, 'work%xz_f6', subname)
+  !iall=-product(shape(work%xz_f6))*kind(work%xz_f6)
+  !deallocate(work%xz_f6, stat=istat)
+  !call memocc(istat, iall, 'work%xz_f6', subname)
 
-  iall=-product(shape(work%xz_f7))*kind(work%xz_f7)
-  deallocate(work%xz_f7, stat=istat)
-  call memocc(istat, iall, 'work%xz_f7', subname)
+  !iall=-product(shape(work%xz_f7))*kind(work%xz_f7)
+  !deallocate(work%xz_f7, stat=istat)
+  !call memocc(istat, iall, 'work%xz_f7', subname)
 
   iall=-product(shape(work%xz_f))*kind(work%xz_f)
   deallocate(work%xz_f, stat=istat)

@@ -5426,9 +5426,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
            hgrid, offsetx, offsety, offsetz, &
            ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
            rxyzConf, potentialPrefac,  withKinetic, cprecr, &
-           xx_c, xx_f1, xx_f2, xx_f3, xx_f4, xx_f5, xx_f6, xx_f7, xx_f, &
-           xy_c, xy_f1, xy_f2, xy_f3, xy_f4, xy_f5, xy_f6, xy_f7, xy_f, &
-           xz_c, xz_f1, xz_f2, xz_f3, xz_f4, xz_f5, xz_f6, xz_f7, xz_f, &
+           xx_c, xx_f1, xx_f, &
+           xy_c, xy_f2, xy_f, &
+           xz_c, xz_f4, xz_f, &
            y_c, y_f)
         use module_base
         use module_types
@@ -5441,13 +5441,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
         integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
         real(wp),dimension(0:n1,0:n2,0:n3),intent(in):: xx_c
-        real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f1, xx_f2, xx_f3, xx_f4, xx_f5, xx_f6, xx_f7
+        real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f1
         real(wp),dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f
         real(wp),dimension(0:n2,0:n1,0:n3),intent(in):: xy_c
-        real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f1, xy_f2, xy_f3, xy_f4, xy_f5, xy_f6, xy_f7
+        real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f2
         real(wp),dimension(7,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f
         real(wp),dimension(0:n3,0:n1,0:n2),intent(in):: xz_c
-        real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f1, xz_f2, xz_f3, xz_f4, xz_f5, xz_f6, xz_f7
+        real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f4
         real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f
         real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
         real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
