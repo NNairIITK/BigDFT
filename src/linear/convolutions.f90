@@ -4725,7 +4725,7 @@ real(8):: tt7b0, tt7b1, tt7b2, tt7b3
 real(8):: tt7c0, tt7c1, tt7c2, tt7c3
 real(8):: tt7e0, tt7e1, tt7e2, tt7e3
 
-real(8):: t1, t2, time
+real(8):: t1, t2, time, t3, t4
 
 
   scale=-.5_wp/real(hgrid**2,wp)
@@ -5095,6 +5095,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
         call getFilterQuadratic(it, 1.d0, hgrid, x0, eeff0_2auxarray(lowfil,i1), 'e')
     end do
 
+t1=mpi_wtime()
     do i3=0,n3
        do i2=0,n2
           if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -5307,13 +5308,15 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
     enddo
     !!!$omp enddo
   
+t3=mpi_wtime()
+time=t3-t1
+write(*,*) 'old: time for coarse part:', time
   
   
   
   
     ! wavelet part
   
-t1=mpi_wtime()
     !!!$omp do
     do i3=nfl3,nfu3
        do i2=nfl2,nfu2
@@ -5503,6 +5506,7 @@ write(*,*) 'old version: time for x part',time
     !  call system_clock(ncount1,ncount_rate,ncount_max)
     !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
     !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
+t1=mpi_wtime()
   
     ! + (1/2) d^2/dy^2
     !!!$omp do
@@ -5965,6 +5969,9 @@ write(*,*) 'old version: time for x part',time
     enddo
     !!!$omp enddo
 
+t2=mpi_wtime()
+time=t2-t1
+write(*,*) 'old version: time for y part',time
 
 
 
@@ -5994,6 +6001,7 @@ write(*,*) 'old version: time for x part',time
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:y',tel,1.d-6*mflop2/tel
 
   ! + (1/2) d^2/dz^2
+t1=mpi_wtime()
 
   !!!$omp do
   do i2=0,n2
@@ -6335,8 +6343,11 @@ write(*,*) 'old version: time for x part',time
      enddo
   enddo
   !!!$omp enddo
+  
 
-
+t2=mpi_wtime()
+time=t2-t1
+write(*,*) 'old version: time for z part',time
 
 
 
@@ -6605,7 +6616,7 @@ real(8):: tt7c0, tt7c1, tt7c2, tt7c3
 real(8):: tt7e0, tt7e1, tt7e2, tt7e3
 
 integer:: it=1!debug
-real(8):: t1, t2, time
+real(8):: t1, t2, time, t3, t4
 
 
   scale=-.5_wp/real(hgrid**2,wp)
@@ -7225,6 +7236,7 @@ xyb_f=0.d0
 xyc_f=0.d0
 xye_f=0.d0
 
+
 allocate(xza_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
 call memocc(istat, xza_f, 'xza_f', subname)
 allocate(xzb_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
@@ -7238,6 +7250,19 @@ xzb_f=0.d0
 xzc_f=0.d0
 xze_f=0.d0
 
+
+allocate(yza_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+call memocc(istat, yza_f, 'yza_f', subname)
+allocate(yzb_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+call memocc(istat, yzb_f, 'yzb_f', subname)
+allocate(yzc_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+call memocc(istat, yzc_f, 'yzc_f', subname)
+allocate(yze_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+call memocc(istat, yze_f, 'yze_f', subname)
+yza_f=0.d0
+yzb_f=0.d0
+yzc_f=0.d0
+yze_f=0.d0
 
 
 !!allocate(xa_c(0:n1,0:n2,0:n3), stat=istat)
@@ -7429,6 +7454,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
         call getFilterQuadratic(it, 1.d0, hgrid, x0, ceff0_2auxarray(lowfil,i1), 'c')
         call getFilterQuadratic(it, 1.d0, hgrid, x0, eeff0_2auxarray(lowfil,i1), 'e')
     end do
+t1=mpi_wtime()
     do i3=0,n3
        do i2=0,n2
           if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -7684,14 +7710,15 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
        enddo
     enddo
     !!!$omp enddo
-  
+ t3=mpi_wtime()
+time=t3-t1
+write(*,*) 'new: time for coarse part:', time
   
   
   
   
     ! wavelet part
   
-t1=mpi_wtime()
     !!!$omp do
     do i3=nfl3,nfu3
        do i2=nfl2,nfu2
@@ -7747,110 +7774,117 @@ t1=mpi_wtime()
                 t222=t222 + xx_f(6,i1+l,i2,i3)*ceff0array(l,i1) + xx_f(7,i1+l,i2,i3)*eeff0array(l,i1)
                 t211=t211 + xx_f(1,i1+l,i2,i3)*eeff0array(l,i1)
                 ! dss coefficients
-                tt1a0=tt1a0 + xx_f(1,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
+                !tt1a0=tt1a0 + xx_f(1,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
                 tt1b0=tt1b0 + xx_f(1,i1+l,i2,i3)*beff0_2auxarray(l,i1)
-                tt1c0=tt1c0 + xx_f(1,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
+                !tt1c0=tt1c0 + xx_f(1,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
                 tt1e0=tt1e0 + xx_f(1,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
                 ! sds coefficients
                 tt2a0=tt2a0 + xx_f(2,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
-                tt2b0=tt2b0 + xx_f(2,i1+l,i2,i3)*beff0_2auxarray(l,i1)
+                !tt2b0=tt2b0 + xx_f(2,i1+l,i2,i3)*beff0_2auxarray(l,i1)
                 tt2c0=tt2c0 + xx_f(2,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
-                tt2e0=tt2e0 + xx_f(2,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
+                !tt2e0=tt2e0 + xx_f(2,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
                 ! dds coefficients
-                tt3a0=tt3a0 + xx_f(3,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
+                !tt3a0=tt3a0 + xx_f(3,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
                 tt3b0=tt3b0 + xx_f(3,i1+l,i2,i3)*beff0_2auxarray(l,i1)
-                tt3c0=tt3c0 + xx_f(3,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
+                !tt3c0=tt3c0 + xx_f(3,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
                 tt3e0=tt3e0 + xx_f(3,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
                 ! ssd coefficients
                 tt4a0=tt4a0 + xx_f(4,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
-                tt4b0=tt4b0 + xx_f(4,i1+l,i2,i3)*beff0_2auxarray(l,i1)
+                !tt4b0=tt4b0 + xx_f(4,i1+l,i2,i3)*beff0_2auxarray(l,i1)
                 tt4c0=tt4c0 + xx_f(4,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
-                tt4e0=tt4e0 + xx_f(4,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
+                !tt4e0=tt4e0 + xx_f(4,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
                 ! dsd coefficients
-                tt5a0=tt5a0 + xx_f(5,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
+                !tt5a0=tt5a0 + xx_f(5,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
                 tt5b0=tt5b0 + xx_f(5,i1+l,i2,i3)*beff0_2auxarray(l,i1)
-                tt5c0=tt5c0 + xx_f(5,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
+                !tt5c0=tt5c0 + xx_f(5,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
                 tt5e0=tt5e0 + xx_f(5,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
                 ! sdd coefficients
                 tt6a0=tt6a0 + xx_f(6,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
-                tt6b0=tt6b0 + xx_f(6,i1+l,i2,i3)*beff0_2auxarray(l,i1)
+                !tt6b0=tt6b0 + xx_f(6,i1+l,i2,i3)*beff0_2auxarray(l,i1)
                 tt6c0=tt6c0 + xx_f(6,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
-                tt6e0=tt6e0 + xx_f(6,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
+                !tt6e0=tt6e0 + xx_f(6,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
                 ! ddd coefficients
-                tt7a0=tt7a0 + xx_f(7,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
+                !tt7a0=tt7a0 + xx_f(7,i1+l,i2,i3)*aeff0_2auxarray(l,i1)
                 tt7b0=tt7b0 + xx_f(7,i1+l,i2,i3)*beff0_2auxarray(l,i1)
-                tt7c0=tt7c0 + xx_f(7,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
+                !tt7c0=tt7c0 + xx_f(7,i1+l,i2,i3)*ceff0_2auxarray(l,i1)
                 tt7e0=tt7e0 + xx_f(7,i1+l,i2,i3)*eeff0_2auxarray(l,i1)
              enddo
-             y_f(4,i1,i2,i3)=t112+cprecr*xx_f4(i1,i2,i3)
-             y_f(2,i1,i2,i3)=t121+cprecr*xx_f2(i1,i2,i3)
-             y_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+t211+cprecr*xx_f1(i1,i2,i3)
-             y_f(6,i1,i2,i3)=t122+cprecr*xx_f6(i1,i2,i3)
-             y_f(5,i1,i2,i3)=t212+cprecr*xx_f5(i1,i2,i3)
-             y_f(3,i1,i2,i3)=t221+cprecr*xx_f3(i1,i2,i3)
-             y_f(7,i1,i2,i3)=t222+cprecr*xx_f7(i1,i2,i3)
+             !!y_f(4,i1,i2,i3)=t112+cprecr*xx_f4(i1,i2,i3)
+             !!y_f(2,i1,i2,i3)=t121+cprecr*xx_f2(i1,i2,i3)
+             !!y_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+t211+cprecr*xx_f1(i1,i2,i3)
+             !!y_f(6,i1,i2,i3)=t122+cprecr*xx_f6(i1,i2,i3)
+             !!y_f(5,i1,i2,i3)=t212+cprecr*xx_f5(i1,i2,i3)
+             !!y_f(3,i1,i2,i3)=t221+cprecr*xx_f3(i1,i2,i3)
+             !!y_f(7,i1,i2,i3)=t222+cprecr*xx_f7(i1,i2,i3)
+             y_f(4,i1,i2,i3)=t112+cprecr*xx_f(4,i1,i2,i3)
+             y_f(2,i1,i2,i3)=t121+cprecr*xx_f(2,i1,i2,i3)
+             y_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+t211+cprecr*xx_f(1,i1,i2,i3)
+             y_f(6,i1,i2,i3)=t122+cprecr*xx_f(6,i1,i2,i3)
+             y_f(5,i1,i2,i3)=t212+cprecr*xx_f(5,i1,i2,i3)
+             y_f(3,i1,i2,i3)=t221+cprecr*xx_f(3,i1,i2,i3)
+             y_f(7,i1,i2,i3)=t222+cprecr*xx_f(7,i1,i2,i3)
              ! dss coefficients
-             xyb_f1(i2,i1,i3)=tt1b0
+             !xyb_f1(i2,i1,i3)=tt1b0
              xyb_f(1,i2,i1,i3)=tt1b0
-             xye_f1(i2,i1,i3)=tt1e0
+             !xye_f1(i2,i1,i3)=tt1e0
              xye_f(1,i2,i1,i3)=tt1e0
-             xzb_f1(i3,i1,i2)=tt1b0
+             !xzb_f1(i3,i1,i2)=tt1b0
              xzb_f(1,i3,i1,i2)=tt1b0
-             xze_f1(i3,i1,i2)=tt1e0
+             !xze_f1(i3,i1,i2)=tt1e0
              xze_f(1,i3,i1,i2)=tt1e0
              ! sds coefficients
-             xya_f2(i2,i1,i3)=tt2a0
+             !xya_f2(i2,i1,i3)=tt2a0
              xya_f(1,i2,i1,i3)=tt2a0
-             xyc_f2(i2,i1,i3)=tt2c0
+             !xyc_f2(i2,i1,i3)=tt2c0
              xyc_f(1,i2,i1,i3)=tt2c0
-             xza_f2(i3,i1,i2)=tt2a0
+             !xza_f2(i3,i1,i2)=tt2a0
              xza_f(1,i3,i1,i2)=tt2a0
-             xzc_f2(i3,i1,i2)=tt2c0
+             !xzc_f2(i3,i1,i2)=tt2c0
              xzc_f(1,i3,i1,i2)=tt2c0
              ! dds coefficients
-             xyb_f3(i2,i1,i3)=tt3b0
+             !xyb_f3(i2,i1,i3)=tt3b0
              xyb_f(2,i2,i1,i3)=tt3b0
-             xye_f3(i2,i1,i3)=tt3e0
+             !xye_f3(i2,i1,i3)=tt3e0
              xye_f(2,i2,i1,i3)=tt3e0
-             xzb_f3(i3,i1,i2)=tt3b0
+             !xzb_f3(i3,i1,i2)=tt3b0
              xzb_f(2,i3,i1,i2)=tt3b0
-             xze_f3(i3,i1,i2)=tt3e0
+             !xze_f3(i3,i1,i2)=tt3e0
              xze_f(2,i3,i1,i2)=tt3e0
              ! ssd coefficients
-             xya_f4(i2,i1,i3)=tt4a0
+             !xya_f4(i2,i1,i3)=tt4a0
              xya_f(2,i2,i1,i3)=tt4a0
-             xyc_f4(i2,i1,i3)=tt4c0
+             !xyc_f4(i2,i1,i3)=tt4c0
              xyc_f(2,i2,i1,i3)=tt4c0
-             xza_f4(i3,i1,i2)=tt4a0
+             !xza_f4(i3,i1,i2)=tt4a0
              xza_f(2,i3,i1,i2)=tt4a0
-             xzc_f4(i3,i1,i2)=tt4c0
+             !xzc_f4(i3,i1,i2)=tt4c0
              xzc_f(2,i3,i1,i2)=tt4c0
              ! dsd coefficients
-             xyb_f5(i2,i1,i3)=tt5b0
+             !xyb_f5(i2,i1,i3)=tt5b0
              xyb_f(3,i2,i1,i3)=tt5b0
-             xye_f5(i2,i1,i3)=tt5e0
+             !xye_f5(i2,i1,i3)=tt5e0
              xye_f(3,i2,i1,i3)=tt5e0
-             xzb_f5(i3,i1,i2)=tt5b0
+             !xzb_f5(i3,i1,i2)=tt5b0
              xzb_f(3,i3,i1,i2)=tt5b0
-             xze_f5(i3,i1,i2)=tt5e0
+             !xze_f5(i3,i1,i2)=tt5e0
              xze_f(3,i3,i1,i2)=tt5e0
              ! sdd coefficients
-             xya_f6(i2,i1,i3)=tt6a0
+             !xya_f6(i2,i1,i3)=tt6a0
              xya_f(3,i2,i1,i3)=tt6a0
-             xyc_f6(i2,i1,i3)=tt6c0
+             !xyc_f6(i2,i1,i3)=tt6c0
              xyc_f(3,i2,i1,i3)=tt6c0
-             xza_f6(i3,i1,i2)=tt6a0
+             !xza_f6(i3,i1,i2)=tt6a0
              xza_f(3,i3,i1,i2)=tt6a0
-             xzc_f6(i3,i1,i2)=tt6c0
+             !xzc_f6(i3,i1,i2)=tt6c0
              xzc_f(3,i3,i1,i2)=tt6c0
              ! sdd coefficients
-             xyb_f7(i2,i1,i3)=tt7b0
+             !xyb_f7(i2,i1,i3)=tt7b0
              xyb_f(4,i2,i1,i3)=tt7b0
-             xye_f7(i2,i1,i3)=tt7e0
+             !xye_f7(i2,i1,i3)=tt7e0
              xye_f(4,i2,i1,i3)=tt7e0
-             xzb_f7(i3,i1,i2)=tt7b0
+             !xzb_f7(i3,i1,i2)=tt7b0
              xzb_f(4,i3,i1,i2)=tt7b0
-             xze_f7(i3,i1,i2)=tt7e0
+             !xze_f7(i3,i1,i2)=tt7e0
              xze_f(4,i3,i1,i2)=tt7e0
           enddo
        enddo
@@ -7909,6 +7943,8 @@ write(*,*) 'new version: time for x part',time
     !  call system_clock(ncount1,ncount_rate,ncount_max)
     !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
     !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
+
+t1=mpi_wtime()
   
     ! + (1/2) d^2/dy^2
     !!!$omp do
@@ -8447,26 +8483,26 @@ write(*,*) 'new version: time for x part',time
                 !!tt1c0=tt1c0 + x_f(1,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt1e0=tt1e0 + x_f(1,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
                 tt1a0=tt1a0 + xy_f1(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
-                tt1b0=tt1b0 + xy_f1(i2+l,i1,i3)*beff0_2auxarray(l,i2)
+                !tt1b0=tt1b0 + xy_f1(i2+l,i1,i3)*beff0_2auxarray(l,i2)
                 tt1c0=tt1c0 + xy_f1(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
-                tt1e0=tt1e0 + xy_f1(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
+                !tt1e0=tt1e0 + xy_f1(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! sds coefficients
                 !!tt2a0=tt2a0 + x_f(2,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
                 !!tt2b0=tt2b0 + x_f(2,i1,i2+l,i3)*beff0_2auxarray(l,i2)
                 !!tt2c0=tt2c0 + x_f(2,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt2e0=tt2e0 + x_f(2,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
-                tt2a0=tt2a0 + xy_f2(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
+                !tt2a0=tt2a0 + xy_f2(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
                 tt2b0=tt2b0 + xy_f2(i2+l,i1,i3)*beff0_2auxarray(l,i2)
-                tt2c0=tt2c0 + xy_f2(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
+                !tt2c0=tt2c0 + xy_f2(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
                 tt2e0=tt2e0 + xy_f2(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! dds coefficients
                 !!tt3a0=tt3a0 + x_f(3,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
                 !!tt3b0=tt3b0 + x_f(3,i1,i2+l,i3)*beff0_2auxarray(l,i2)
                 !!tt3c0=tt3c0 + x_f(3,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt3e0=tt3e0 + x_f(3,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
-                tt3a0=tt3a0 + xy_f3(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
+                !tt3a0=tt3a0 + xy_f3(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
                 tt3b0=tt3b0 + xy_f3(i2+l,i1,i3)*beff0_2auxarray(l,i2)
-                tt3c0=tt3c0 + xy_f3(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
+                !tt3c0=tt3c0 + xy_f3(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
                 tt3e0=tt3e0 + xy_f3(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! ssd coefficients
                 !!tt4a0=tt4a0 + x_f(4,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
@@ -8474,35 +8510,35 @@ write(*,*) 'new version: time for x part',time
                 !!tt4c0=tt4c0 + x_f(4,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt4e0=tt4e0 + x_f(4,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
                 tt4a0=tt4a0 + xy_f4(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
-                tt4b0=tt4b0 + xy_f4(i2+l,i1,i3)*beff0_2auxarray(l,i2)
+                !tt4b0=tt4b0 + xy_f4(i2+l,i1,i3)*beff0_2auxarray(l,i2)
                 tt4c0=tt4c0 + xy_f4(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
-                tt4e0=tt4e0 + xy_f4(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
+                !tt4e0=tt4e0 + xy_f4(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! dsd coefficients
                 !!tt5a0=tt5a0 + x_f(5,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
                 !!tt5b0=tt5b0 + x_f(5,i1,i2+l,i3)*beff0_2auxarray(l,i2)
                 !!tt5c0=tt5c0 + x_f(5,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt5e0=tt5e0 + x_f(5,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
                 tt5a0=tt5a0 + xy_f5(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
-                tt5b0=tt5b0 + xy_f5(i2+l,i1,i3)*beff0_2auxarray(l,i2)
+                !tt5b0=tt5b0 + xy_f5(i2+l,i1,i3)*beff0_2auxarray(l,i2)
                 tt5c0=tt5c0 + xy_f5(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
-                tt5e0=tt5e0 + xy_f5(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
+                !tt5e0=tt5e0 + xy_f5(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! sdd coefficients
                 !!tt6a0=tt6a0 + x_f(6,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
                 !!tt6b0=tt6b0 + x_f(6,i1,i2+l,i3)*beff0_2auxarray(l,i2)
                 !!tt6c0=tt6c0 + x_f(6,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt6e0=tt6e0 + x_f(6,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
-                tt6a0=tt6a0 + xy_f6(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
+                !tt6a0=tt6a0 + xy_f6(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
                 tt6b0=tt6b0 + xy_f6(i2+l,i1,i3)*beff0_2auxarray(l,i2)
-                tt6c0=tt6c0 + xy_f6(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
+                !tt6c0=tt6c0 + xy_f6(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
                 tt6e0=tt6e0 + xy_f6(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
                 ! ddd coefficients
                 !!tt7a0=tt7a0 + x_f(7,i1,i2+l,i3)*aeff0_2auxarray(l,i2)
                 !!tt7b0=tt7b0 + x_f(7,i1,i2+l,i3)*beff0_2auxarray(l,i2)
                 !!tt7c0=tt7c0 + x_f(7,i1,i2+l,i3)*ceff0_2auxarray(l,i2)
                 !!tt7e0=tt7e0 + x_f(7,i1,i2+l,i3)*eeff0_2auxarray(l,i2)
-                tt7a0=tt7a0 + xy_f7(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
+                !tt7a0=tt7a0 + xy_f7(i2+l,i1,i3)*aeff0_2auxarray(l,i2)
                 tt7b0=tt7b0 + xy_f7(i2+l,i1,i3)*beff0_2auxarray(l,i2)
-                tt7c0=tt7c0 + xy_f7(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
+                !tt7c0=tt7c0 + xy_f7(i2+l,i1,i3)*ceff0_2auxarray(l,i2)
                 tt7e0=tt7e0 + xy_f7(i2+l,i1,i3)*eeff0_2auxarray(l,i2)
              enddo
              y_f(4,i1,i2,i3)=y_f(4,i1,i2,i3)+tt40
@@ -8514,74 +8550,49 @@ write(*,*) 'new version: time for x part',time
              y_f(7,i1,i2,i3)=y_f(7,i1,i2,i3)+tt70
 
              ! dss coefficients
-             !!ya_f(1,i1,i2,i3)=tt1a0
-             !!yb_f(1,i1,i2,i3)=tt1b0
-             !!yc_f(1,i1,i2,i3)=tt1c0
-             !!ye_f(1,i1,i2,i3)=tt1e0
-             yza_f1(i3,i1,i2)=tt1a0
-             yzb_f1(i3,i1,i2)=tt1b0
-             yzc_f1(i3,i1,i2)=tt1c0
-             yze_f1(i3,i1,i2)=tt1e0
+             !yza_f1(i3,i1,i2)=tt1a0
+             yza_f(1,i3,i1,i2)=tt1a0
+             !yzc_f1(i3,i1,i2)=tt1c0
+             yzc_f(1,i3,i1,i2)=tt1c0
              ! sds coefficients
-             !!ya_f(2,i1,i2,i3)=tt2a0
-             !!yb_f(2,i1,i2,i3)=tt2b0
-             !!yc_f(2,i1,i2,i3)=tt2c0
-             !!ye_f(2,i1,i2,i3)=tt2e0
-             yza_f2(i3,i1,i2)=tt2a0
-             yzb_f2(i3,i1,i2)=tt2b0
-             yzc_f2(i3,i1,i2)=tt2c0
-             yze_f2(i3,i1,i2)=tt2e0
+             !yzb_f2(i3,i1,i2)=tt2b0
+             yzb_f(1,i3,i1,i2)=tt2b0
+             !yze_f2(i3,i1,i2)=tt2e0
+             yze_f(1,i3,i1,i2)=tt2e0
              ! dds coefficients
-             !!ya_f(3,i1,i2,i3)=tt3a0
-             !!yb_f(3,i1,i2,i3)=tt3b0
-             !!yc_f(3,i1,i2,i3)=tt3c0
-             !!ye_f(3,i1,i2,i3)=tt3e0
-             yza_f3(i3,i1,i2)=tt3a0
-             yzb_f3(i3,i1,i2)=tt3b0
-             yzc_f3(i3,i1,i2)=tt3c0
-             yze_f3(i3,i1,i2)=tt3e0
+             !yzb_f3(i3,i1,i2)=tt3b0
+             yzb_f(2,i3,i1,i2)=tt3b0
+             !yze_f3(i3,i1,i2)=tt3e0
+             yze_f(2,i3,i1,i2)=tt3e0
              ! ssd coefficients
-             !!ya_f(4,i1,i2,i3)=tt4a0
-             !!yb_f(4,i1,i2,i3)=tt4b0
-             !!yc_f(4,i1,i2,i3)=tt4c0
-             !!ye_f(4,i1,i2,i3)=tt4e0
-             yza_f4(i3,i1,i2)=tt4a0
-             yzb_f4(i3,i1,i2)=tt4b0
-             yzc_f4(i3,i1,i2)=tt4c0
-             yze_f4(i3,i1,i2)=tt4e0
+             !yza_f4(i3,i1,i2)=tt4a0
+             yza_f(2,i3,i1,i2)=tt4a0
+             !yzc_f4(i3,i1,i2)=tt4c0
+             yzc_f(2,i3,i1,i2)=tt4c0
              ! dsd coefficients
-             !!ya_f(5,i1,i2,i3)=tt5a0
-             !!yb_f(5,i1,i2,i3)=tt5b0
-             !!yc_f(5,i1,i2,i3)=tt5c0
-             !!ye_f(5,i1,i2,i3)=tt5e0
-             yza_f5(i3,i1,i2)=tt5a0
-             yzb_f5(i3,i1,i2)=tt5b0
-             yzc_f5(i3,i1,i2)=tt5c0
-             yze_f5(i3,i1,i2)=tt5e0
+             !yza_f5(i3,i1,i2)=tt5a0
+             yza_f(3,i3,i1,i2)=tt5a0
+             !yzc_f5(i3,i1,i2)=tt5c0
+             yzc_f(3,i3,i1,i2)=tt5c0
              ! sdd coefficients
-             !!ya_f(6,i1,i2,i3)=tt6a0
-             !!yb_f(6,i1,i2,i3)=tt6b0
-             !!yc_f(6,i1,i2,i3)=tt6c0
-             !!ye_f(6,i1,i2,i3)=tt6e0
-             yza_f6(i3,i1,i2)=tt6a0
-             yzb_f6(i3,i1,i2)=tt6b0
-             yzc_f6(i3,i1,i2)=tt6c0
-             yze_f6(i3,i1,i2)=tt6e0
+             !yzb_f6(i3,i1,i2)=tt6b0
+             yzb_f(3,i3,i1,i2)=tt6b0
+             !yze_f6(i3,i1,i2)=tt6e0
+             yze_f(3,i3,i1,i2)=tt6e0
              ! sdd coefficients
-             !!ya_f(7,i1,i2,i3)=tt7a0
-             !!yb_f(7,i1,i2,i3)=tt7b0
-             !!yc_f(7,i1,i2,i3)=tt7c0
-             !!ye_f(7,i1,i2,i3)=tt7e0
-             yza_f7(i3,i1,i2)=tt7a0
-             yzb_f7(i3,i1,i2)=tt7b0
-             yzc_f7(i3,i1,i2)=tt7c0
-             yze_f7(i3,i1,i2)=tt7e0
+             !yzb_f7(i3,i1,i2)=tt7b0
+             yzb_f(4,i3,i1,i2)=tt7b0
+             !yze_f7(i3,i1,i2)=tt7e0
+             yze_f(4,i3,i1,i2)=tt7e0
           enddo
        enddo
     enddo
     !!!$omp enddo
 
 
+t2=mpi_wtime()
+time=t2-t1
+write(*,*) 'new version: time for y part',time
 
 
 
@@ -8611,6 +8622,7 @@ write(*,*) 'new version: time for x part',time
 
   ! + (1/2) d^2/dz^2
 
+t1=mpi_wtime()
   !!!$omp do
   do i2=0,n2
      do i1=0,n1
@@ -8704,26 +8716,26 @@ write(*,*) 'new version: time for x part',time
                  !!              2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2array(t-i3-0,i3+0) + &
                  !!              2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2array(t-i3-0,i3+0)
                  dyi0 = dyi0 + xz_f4(t,i1,i2)*beff0array(t-i3-0,i3+0) + &
-                               2.d0*(xzb_f(1,t,i1,i2)+yzb_f2(t,i1,i2))*aeff0_2array(t-i3-0,i3+0) + &
-                               2.d0*(xza_f(2,t,i1,i2)+xzb_f(3,t,i1,i2)+yza_f4(t,i1,i2)+yzb_f6(t,i1,i2))*beff0_2array(t-i3-0,i3+0)
+                               2.d0*(xzb_f(1,t,i1,i2)+yzb_f(1,t,i1,i2))*aeff0_2array(t-i3-0,i3+0) + &
+                               2.d0*(xza_f(2,t,i1,i2)+xzb_f(3,t,i1,i2)+yza_f(2,t,i1,i2)+yzb_f(3,t,i1,i2))*beff0_2array(t-i3-0,i3+0)
                  !!dyi1 = dyi1 + x_f3(t,i1,i2)*beff0array(t-i3-1,i3+1) + &
                  !!              2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2array(t-i3-1,i3+1) + &
                  !!              2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2array(t-i3-1,i3+1)
                  dyi1 = dyi1 + xz_f4(t,i1,i2)*beff0array(t-i3-1,i3+1) + &
-                               2.d0*(xzb_f(1,t,i1,i2)+yzb_f2(t,i1,i2))*aeff0_2array(t-i3-1,i3+1) + &
-                               2.d0*(xza_f(2,t,i1,i2)+xzb_f(3,t,i1,i2)+yza_f4(t,i1,i2)+yzb_f6(t,i1,i2))*beff0_2array(t-i3-1,i3+1)
+                               2.d0*(xzb_f(1,t,i1,i2)+yzb_f(1,t,i1,i2))*aeff0_2array(t-i3-1,i3+1) + &
+                               2.d0*(xza_f(2,t,i1,i2)+xzb_f(3,t,i1,i2)+yza_f(2,t,i1,i2)+yzb_f(3,t,i1,i2))*beff0_2array(t-i3-1,i3+1)
                  !!dyi2 = dyi2 + x_f3(t,i1,i2)*beff0array(t-i3-2,i3+2) + &
                  !!              2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2array(t-i3-2,i3+2) + &
                  !!              2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2array(t-i3-2,i3+2)
                  dyi2 = dyi2 + xz_f4(t,i1,i2)*beff0array(t-i3-2,i3+2) + &
-                               2.d0*(xzb_f(1,t,i1,i2)+yzb_f2(t,i1,i2))*aeff0_2array(t-i3-2,i3+2) + &
-                               2.d0*(xza_f(2,t,i1,i2)+xzb_f(3,t,i1,i2)+yza_f4(t,i1,i2)+yzb_f6(t,i1,i2))*beff0_2array(t-i3-2,i3+2)
+                               2.d0*(xzb_f(1,t,i1,i2)+yzb_f(1,t,i1,i2))*aeff0_2array(t-i3-2,i3+2) + &
+                               2.d0*(xza_f(2,t,i1,i2)+xzb_f(3,t,i1,i2)+yza_f(2,t,i1,i2)+yzb_f(3,t,i1,i2))*beff0_2array(t-i3-2,i3+2)
                  !!dyi3 = dyi3 + x_f3(t,i1,i2)*beff0array(t-i3-3,i3+3) + &
                  !!              2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2array(t-i3-3,i3+3) + &
                  !!              2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2array(t-i3-3,i3+3)
                  dyi3 = dyi3 + xz_f4(t,i1,i2)*beff0array(t-i3-3,i3+3) + &
-                               2.d0*(xzb_f(1,t,i1,i2)+yzb_f2(t,i1,i2))*aeff0_2array(t-i3-3,i3+3) + &
-                               2.d0*(xza_f(2,t,i1,i2)+xzb_f(3,t,i1,i2)+yza_f4(t,i1,i2)+yzb_f6(t,i1,i2))*beff0_2array(t-i3-3,i3+3)
+                               2.d0*(xzb_f(1,t,i1,i2)+yzb_f(1,t,i1,i2))*aeff0_2array(t-i3-3,i3+3) + &
+                               2.d0*(xza_f(2,t,i1,i2)+xzb_f(3,t,i1,i2)+yza_f(2,t,i1,i2)+yzb_f(3,t,i1,i2))*beff0_2array(t-i3-3,i3+3)
               enddo
               y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
               y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
@@ -8747,8 +8759,8 @@ write(*,*) 'new version: time for x part',time
               !!            2.d0*(xb_f(1,i1,i2,t)+yb_f(2,i1,i2,t))*aeff0_2array(t-i3-0,i3) + &
               !!            2.d0*(xa_f(4,i1,i2,t)+xb_f(5,i1,i2,t)+ya_f(4,i1,i2,t)+yb_f(6,i1,i2,t))*beff0_2array(t-i3-0,i3)
               dyi0=dyi0 + xz_f4(t,i1,i2)*beff0array(t-i3-0,i3) + &
-                          2.d0*(xzb_f(1,t,i1,i2)+yzb_f2(t,i1,i2))*aeff0_2array(t-i3-0,i3) + &
-                          2.d0*(xza_f(2,t,i1,i2)+xzb_f(3,t,i1,i2)+yza_f4(t,i1,i2)+yzb_f6(t,i1,i2))*beff0_2array(t-i3-0,i3)
+                          2.d0*(xzb_f(1,t,i1,i2)+yzb_f(1,t,i1,i2))*aeff0_2array(t-i3-0,i3) + &
+                          2.d0*(xza_f(2,t,i1,i2)+xzb_f(3,t,i1,i2)+yza_f(2,t,i1,i2)+yzb_f(3,t,i1,i2))*beff0_2array(t-i3-0,i3)
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi0
         enddo
@@ -8977,8 +8989,8 @@ write(*,*) 'new version: time for x part',time
               tt10 = tt10 + xz_f1(i3+l,i1,i2)*aeff0array(l,i3) + xz_f5(i3+l,i1,i2)*beff0array(l,i3) + &
                             2.d0*                    xze_f(1,i3+l,i1,i2) *aeff0_2array(l,i3) + &
                             2.d0*(xzc_f(2,i3+l,i1,i2)+xze_f(3,i3+l,i1,i2))*beff0_2array(l,i3) + &
-                            2.d0*(yza_f1(i3+l,i1,i2)+yzb_f3(i3+l,i1,i2))*aeff0_2array(l,i3) + &
-                            2.d0*(yza_f5(i3+l,i1,i2)+yzb_f7(i3+l,i1,i2))*beff0_2array(l,i3)
+                            2.d0*(yza_f(1,i3+l,i1,i2)+yzb_f(2,i3+l,i1,i2))*aeff0_2array(l,i3) + &
+                            2.d0*(yza_f(3,i3+l,i1,i2)+yzb_f(4,i3+l,i1,i2))*beff0_2array(l,i3)
 
               !!tt20 = tt20 + x_f(2,i1,i2,i3+l)*aeff0array(l,i3) + x_f(6,i1,i2,i3+l)*beff0array(l,i3) + &
               !!              2.d0*(xa_f(2,i1,i2,i3+l)+xb_f(3,i1,i2,i3+l))*aeff0_2array(l,i3) + &
@@ -8993,8 +9005,8 @@ write(*,*) 'new version: time for x part',time
               tt20 = tt20 + xz_f2(i3+l,i1,i2)*aeff0array(l,i3) + xz_f6(i3+l,i1,i2)*beff0array(l,i3) + &
                             2.d0*(xza_f(1,i3+l,i1,i2)+xzb_f(2,i3+l,i1,i2))*aeff0_2array(l,i3) + &
                             2.d0*(xza_f(3,i3+l,i1,i2)+xzb_f(4,i3+l,i1,i2))*beff0_2array(l,i3) + &
-                            2.d0*                    yze_f2(i3+l,i1,i2) *aeff0_2array(l,i3) + &
-                            2.d0*(yzc_f4(i3+l,i1,i2)+yze_f6(i3+l,i1,i2))*beff0_2array(l,i3)
+                            2.d0*                    yze_f(1,i3+l,i1,i2) *aeff0_2array(l,i3) + &
+                            2.d0*(yzc_f(2,i3+l,i1,i2)+yze_f(3,i3+l,i1,i2))*beff0_2array(l,i3)
 
               !!tt30 = tt30 + x_f(3,i1,i2,i3+l)*aeff0array(l,i3) + x_f(7,i1,i2,i3+l)*beff0array(l,i3) + &
               !!              2.d0*(xc_f(2,i1,i2,i3+l)+xe_f(3,i1,i2,i3+l))*aeff0_2array(l,i3) + &
@@ -9009,8 +9021,8 @@ write(*,*) 'new version: time for x part',time
               tt30 = tt30 + xz_f3(i3+l,i1,i2)*aeff0array(l,i3) + xz_f7(i3+l,i1,i2)*beff0array(l,i3) + &
                             2.d0*(xzc_f(1,i3+l,i1,i2)+xze_f(2,i3+l,i1,i2))*aeff0_2array(l,i3) + &
                             2.d0*(xzc_f(3,i3+l,i1,i2)+xze_f(4,i3+l,i1,i2))*beff0_2array(l,i3) + &
-                            2.d0*(yzc_f1(i3+l,i1,i2)+yze_f3(i3+l,i1,i2))*aeff0_2array(l,i3) + &
-                            2.d0*(yzc_f5(i3+l,i1,i2)+yze_f7(i3+l,i1,i2))*beff0_2array(l,i3)
+                            2.d0*(yzc_f(1,i3+l,i1,i2)+yze_f(2,i3+l,i1,i2))*aeff0_2array(l,i3) + &
+                            2.d0*(yzc_f(3,i3+l,i1,i2)+yze_f(4,i3+l,i1,i2))*beff0_2array(l,i3)
 
               !!tt40 = tt40 + x_f(4,i1,i2,i3+l)*eeff0array(l,i3)                                      + &
               !!              2.d0*                    xb_f(1,i1,i2,i3+l) *ceff0_2array(l,i3) + &
@@ -9025,8 +9037,8 @@ write(*,*) 'new version: time for x part',time
               tt40 = tt40 + xz_f4(i3+l,i1,i2)*eeff0array(l,i3)                                      + &
                             2.d0*                    xzb_f(1,i3+l,i1,i2) *ceff0_2array(l,i3) + &
                             2.d0*(xza_f(2,i3+l,i1,i2)+xzb_f(3,i3+l,i1,i2))*eeff0_2array(l,i3) + &
-                            2.d0*                    yzb_f2(i3+l,i1,i2) *ceff0_2array(l,i3) + &
-                            2.d0*(yza_f4(i3+l,i1,i2)+yzb_f6(i3+l,i1,i2))*eeff0_2array(l,i3)
+                            2.d0*                    yzb_f(1,i3+l,i1,i2) *ceff0_2array(l,i3) + &
+                            2.d0*(yza_f(2,i3+l,i1,i2)+yzb_f(3,i3+l,i1,i2))*eeff0_2array(l,i3)
 
               !!tt50 = tt50 + x_f(1,i1,i2,i3+l)*ceff0array(l,i3) + x_f(5,i1,i2,i3+l)*eeff0array(l,i3) + &
               !!              2.d0*                    xe_f(1,i1,i2,i3+l) *ceff0_2array(l,i3) + &
@@ -9041,8 +9053,8 @@ write(*,*) 'new version: time for x part',time
               tt50 = tt50 + xz_f1(i3+l,i1,i2)*ceff0array(l,i3) + xz_f5(i3+l,i1,i2)*eeff0array(l,i3) + &
                             2.d0*                    xze_f(1,i3+l,i1,i2) *ceff0_2array(l,i3) + &
                             2.d0*(xzc_f(2,i3+l,i1,i2)+xze_f(3,i3+l,i1,i2))*eeff0_2array(l,i3) + &
-                            2.d0*(yza_f1(i3+l,i1,i2)+yzb_f3(i3+l,i1,i2))*ceff0_2array(l,i3) + &
-                            2.d0*(yza_f5(i3+l,i1,i2)+yzb_f7(i3+l,i1,i2))*eeff0_2array(l,i3)
+                            2.d0*(yza_f(1,i3+l,i1,i2)+yzb_f(2,i3+l,i1,i2))*ceff0_2array(l,i3) + &
+                            2.d0*(yza_f(3,i3+l,i1,i2)+yzb_f(4,i3+l,i1,i2))*eeff0_2array(l,i3)
 
               !!tt60 = tt60 + x_f(2,i1,i2,i3+l)*ceff0array(l,i3) + x_f(6,i1,i2,i3+l)*eeff0array(l,i3) + &
               !!              2.d0*(xa_f(2,i1,i2,i3+l)+xb_f(3,i1,i2,i3+l))*ceff0_2array(l,i3) + &
@@ -9057,8 +9069,8 @@ write(*,*) 'new version: time for x part',time
               tt60 = tt60 + xz_f2(i3+l,i1,i2)*ceff0array(l,i3) + xz_f6(i3+l,i1,i2)*eeff0array(l,i3) + &
                             2.d0*(xza_f(1,i3+l,i1,i2)+xzb_f(2,i3+l,i1,i2))*ceff0_2array(l,i3) + &
                             2.d0*(xza_f(3,i3+l,i1,i2)+xzb_f(4,i3+l,i1,i2))*eeff0_2array(l,i3) + &
-                            2.d0*                    yze_f2(i3+l,i1,i2) *ceff0_2array(l,i3) + &
-                            2.d0*(yzc_f4(i3+l,i1,i2)+yze_f6(i3+l,i1,i2))*eeff0_2array(l,i3)
+                            2.d0*                    yze_f(1,i3+l,i1,i2) *ceff0_2array(l,i3) + &
+                            2.d0*(yzc_f(2,i3+l,i1,i2)+yze_f(3,i3+l,i1,i2))*eeff0_2array(l,i3)
 
               !!tt70 = tt70 + x_f(3,i1,i2,i3+l)*ceff0array(l,i3) + x_f(7,i1,i2,i3+l)*eeff0array(l,i3) + &
               !!              2.d0*(xc_f(2,i1,i2,i3+l)+xe_f(3,i1,i2,i3+l))*ceff0_2array(l,i3) + &
@@ -9073,8 +9085,8 @@ write(*,*) 'new version: time for x part',time
               tt70 = tt70 + xz_f3(i3+l,i1,i2)*ceff0array(l,i3) + xz_f7(i3+l,i1,i2)*eeff0array(l,i3) + &
                             2.d0*(xzc_f(1,i3+l,i1,i2)+xze_f(2,i3+l,i1,i2))*ceff0_2array(l,i3) + &
                             2.d0*(xzc_f(3,i3+l,i1,i2)+xze_f(4,i3+l,i1,i2))*eeff0_2array(l,i3) + &
-                            2.d0*(yzc_f1(i3+l,i1,i2)+yze_f3(i3+l,i1,i2))*ceff0_2array(l,i3) + &
-                            2.d0*(yzc_f5(i3+l,i1,i2)+yze_f7(i3+l,i1,i2))*eeff0_2array(l,i3)
+                            2.d0*(yzc_f(1,i3+l,i1,i2)+yze_f(2,i3+l,i1,i2))*ceff0_2array(l,i3) + &
+                            2.d0*(yzc_f(3,i3+l,i1,i2)+yze_f(4,i3+l,i1,i2))*eeff0_2array(l,i3)
            enddo
            y_f(4,i1,i2,i3)=y_f(4,i1,i2,i3)+tt40
            y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+tt20
@@ -9089,6 +9101,9 @@ write(*,*) 'new version: time for x part',time
   !!!$omp enddo
 
 
+t2=mpi_wtime()
+time=t2-t1
+write(*,*) 'new version: time for z part',time
 
 
 
