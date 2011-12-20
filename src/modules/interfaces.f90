@@ -194,7 +194,7 @@ module module_interfaces
          type(input_variables), intent(inout) :: inputs
       END SUBROUTINE perf_input_variables
 
-      subroutine read_atomic_file(file,iproc,at,rxyz)
+      subroutine read_atomic_file(file,iproc,at,rxyz,status)
          !n(c) use module_base
          use module_types
          implicit none
@@ -202,6 +202,7 @@ module module_interfaces
          integer, intent(in) :: iproc
          type(atoms_data), intent(inout) :: at
          real(gp), dimension(:,:), pointer :: rxyz
+         integer, intent(out), optional :: status
       END SUBROUTINE read_atomic_file
 
       !> @author

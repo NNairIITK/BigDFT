@@ -1902,7 +1902,7 @@ module position_files
 end module position_files
 
 !> Read atomic file
-subroutine read_atomic_file(file,iproc,atoms,rxyz)
+subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    use module_base
    use module_types
    use module_interfaces, except_this_one => read_atomic_file
@@ -1913,6 +1913,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
    integer, intent(in) :: iproc
    type(atoms_data), intent(inout) :: atoms
    real(gp), dimension(:,:), pointer :: rxyz
+   integer, intent(out), optional :: status
    !Local variables
    !n(c) character(len=*), parameter :: subname='read_atomic_file'
    integer :: l, extract
@@ -1923,6 +1924,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
 
    file_exists = .false.
    archive = .false.
+   if (present(status)) status = 0
 
    ! Extract from archive
    if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
@@ -1936,7 +1938,12 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
          & trim(file), len(trim(file)), extract, ext)
          if (extract == 0) then
             write(*,*) "Can't find '", file, "' in archive."
-            stop
+            if (present(status)) then
+               status = 1
+               return
+            else
+               stop
+            end if
          end if
          archive = .true.
          write(filename, "(A)") file//'.'//trim(ext)
@@ -1975,7 +1982,12 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
          else
             write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
             write(*,*) " File should be *.ascii or *.xyz."
-            stop
+            if (present(status)) then
+               status = 1
+               return
+            else
+               stop
+            end if
          end if
          open(unit=99,file=trim(filename),status='old')
       end if
@@ -1984,7 +1996,12 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
    if (.not. file_exists) then
       write(*,*) "Atomic input file not found."
       write(*,*) " Files looked for were '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
-      stop 
+      if (present(status)) then
+         status = 1
+         return
+      else
+         stop 
+      end if
    end if
 
    if (atoms%format == "xyz") then

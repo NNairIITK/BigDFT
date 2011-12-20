@@ -1026,9 +1026,12 @@ subroutine atoms_new_from_file(lstat, atoms, rxyz, filename, ln)
    character(len = ln), intent(in) :: filename
    real(gp), dimension(:,:), pointer :: rxyz
 
+   integer :: status
+
    lstat = .true.
    allocate(atoms)
-   call read_atomic_file(filename, 0, atoms, rxyz)
+   call read_atomic_file(filename, 0, atoms, rxyz, status)
+   lstat = (status == 0)
 END SUBROUTINE atoms_new_from_file
 !> Deallocate a new atoms_data type, for bindings.
 subroutine atoms_free(atoms)

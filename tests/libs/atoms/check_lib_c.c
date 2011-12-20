@@ -21,6 +21,11 @@ int main(int argc, char **argv)
   bigdft_atoms_free(atoms);
 
   atoms = bigdft_atoms_new_from_file(argv[1]);
+  if (!atoms)
+    {
+      fprintf(stderr, "Problem with your file.\n");
+      return 1;
+    }
   bigdft_atoms_set_psp(atoms, 11);
   radii = bigdft_atoms_get_radii(atoms);
 
