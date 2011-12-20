@@ -371,13 +371,13 @@ subroutine read_radii_variables(atoms, radii_cf)
   use module_base
   use module_types
   implicit none
-  type(atoms_data), intent(inout) :: atoms
+  type(atoms_data), intent(in) :: atoms
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
 
   integer, parameter :: nelecmax=32,nmax=6,lmax=4
   character(len=2) :: symbol
   integer :: i,ityp,mxpl,mxchg,nsccode
-  real(gp) :: rcov,rprb,ehomo,radfine
+  real(gp) :: rcov,rprb,ehomo,radfine,amu
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
 
   ! Update radii_cf and occupation.
@@ -385,7 +385,7 @@ subroutine read_radii_variables(atoms, radii_cf)
      !see whether the atom is semicore or not
      !and consider the ground state electronic configuration
      call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-          neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
+          neleconf,nsccode,mxpl,mxchg,amu)
      if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
         !assigning the radii by calculating physical parameters
         radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
@@ -423,11 +423,12 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   character(len=*), parameter :: subname='read_system_variables'
   integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
   logical :: exists
+  character(len=2) :: symbol
   character(len=24) :: message
   character(len=50) :: format
   integer :: i,j,k,l,iat,nt,ntu,ntd,ityp,ierror,ispinsum,mxpl
   integer :: ispol,mxchg,ichg,ichgsum,nsccode,norbe,norbat,nspinor,nspin
-  real(gp) :: minrad,maxrad
+  real(gp) :: rcov,rprb,ehomo,minrad,maxrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
   !integer, dimension(nmax,0:lmax-1) :: neleconf
@@ -441,8 +442,39 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
           ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
   end if
   call read_radii_variables(atoms, radii_cf)
-  if (iproc==0) then
-     do ityp=1,atoms%ntypes
+  do ityp=1,atoms%ntypes
+     !control the hardest and the softest gaussian
+     minrad=1.e10_gp
+     maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
+     do i=0,4
+        !the maximum radii is useful only for projectors
+        if (i==1) maxrad=0.0_gp
+        if (atoms%psppar(i,0,ityp)/=0._gp) then
+           minrad=min(minrad,atoms%psppar(i,0,ityp))
+           maxrad=max(maxrad,atoms%psppar(i,0,ityp))
+        end if
+     end do
+     !control whether the grid spacing is too high
+     if (max(in%hx,in%hy,in%hz) > 2.5_gp*minrad .and. iproc == 0) then
+        write(*,'(1x,a)')&
+             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
+        write(*,'(1x,a,f5.2,a)')&
+             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
+             '. At your own risk!'
+     end if
+     !correct the coarse radius for projectors
+     !it is always multiplied by frmult
+     !NOTE this radius is chosen such as to make the projector be defined always on the same sphere
+     !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
+     !     and not for the gaussian decaying of the pseudopotential projector
+     !     add a proper variable in input.perf
+     if (maxrad == 0.0_gp) then
+        radii_cf(ityp,3)=0.0_gp
+     else
+        radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
+     end if
+
+     if (iproc==0) then
         if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
            message='         X              '
         else
@@ -451,39 +483,14 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
              trim(atoms%atomnames(ityp)),atoms%nelpsp(ityp),atoms%npspcode(ityp),&
              radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
+     end if
 
-        !control the hardest and the softest gaussian
-        minrad=1.e10_gp
-        maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
-        do i=0,4
-           !the maximum radii is useful only for projectors
-           if (i==1) maxrad=0.0_gp
-           if (atoms%psppar(i,0,ityp)/=0._gp) then
-              minrad=min(minrad,atoms%psppar(i,0,ityp))
-              maxrad=max(maxrad,atoms%psppar(i,0,ityp))
-           end if
-        end do
-        !control whether the grid spacing is too high
-        if (max(in%hx,in%hy,in%hz) > 2.5_gp*minrad) then
-           write(*,'(1x,a)')&
-                'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
-           write(*,'(1x,a,f5.2,a)')&
-                '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
-                '. At your own risk!'
-        end if
-        !correct the coarse radius for projectors
-        !it is always multiplied by frmult
-        !NOTE this radius is chosen such as to make the projector be defined always on the same sphere
-        !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
-        !     and not for the gaussian decaying of the pseudopotential projector
-        !     add a proper variable in input.perf
-        if (maxrad == 0.0_gp) then
-           radii_cf(ityp,3)=0.0_gp
-        else
-           radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
-        end if
-     end do
-  end if
+     ! We calculate atoms%aocc and atoms%amu here.
+     call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
+          neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
+     call atomic_occupation_numbers(fileocc,ityp,in%nspin,atoms,nmax,lmax,nelecmax,&
+          neleconf,nsccode,mxpl,mxchg)
+  end do
   !print *,'iatsctype',atOMS%iasctype(:)
 
   !print the pseudopotential matrices
@@ -585,11 +592,6 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         end if
      end do
   end if
-
-  do ityp=1,atoms%ntypes
-     call atomic_occupation_numbers(fileocc,ityp,nspin,atoms,nmax,lmax,nelecmax,&
-          neleconf,nsccode,mxpl,mxchg)
-  end do
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
