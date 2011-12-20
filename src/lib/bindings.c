@@ -87,6 +87,8 @@ void FC_FUNC_(atoms_get_nat, ATOMS_GET_NAT)(f90_pointer_atoms *atoms, int *nat);
 void FC_FUNC_(atoms_get_ntypes, ATOMS_GET_NTYPES)(f90_pointer_atoms *atoms, int *ntypes);
 void FC_FUNC_(atoms_get_iatype, ATOMS_GET_IATYPE)(f90_pointer_atoms *atoms,
                                                   f90_pointer_int *iatype);
+void FC_FUNC_(atoms_get_name, ATOMS_GET_NAME)(f90_pointer_atoms *atoms, int *ityp,
+                                              gchar *name, int *ln);
 void FC_FUNC_(atoms_new_from_file, ATOMS_NEW_FROM_FILE)(int *lstat, f90_pointer_atoms *atoms,
                                                         f90_pointer_double *rxyz,
                                                         const gchar *filename, int *ln);
@@ -116,8 +118,17 @@ BigDFT_Atoms* bigdft_atoms_init()
 }
 void bigdft_atoms_dispose(BigDFT_Atoms *atoms)
 {
+  guint i;
+
   g_free(atoms->data);
   FC_FUNC_(deallocate_double, DEALLOCATE_DOUBLE)(&atoms->rxyz);
+  if (atoms->atomnames)
+    {
+      for (i = 0; i < atoms->ntypes; i++)
+        if (atoms->atomnames[i])
+          g_free(atoms->atomnames[i]);
+      g_free(atoms->atomnames);
+    }
   g_free(atoms);
 }
 
@@ -138,7 +149,8 @@ void bigdft_atoms_free(BigDFT_Atoms *atoms)
 BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
 {
   BigDFT_Atoms *atoms;
-  guint lstat, ln;
+  guint lstat, ln, i, j;
+  gchar str[20];
 
   atoms = bigdft_atoms_init();
   ln = strlen(filename);
@@ -155,6 +167,15 @@ BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
       FC_FUNC_(atoms_get_geocode, ATOMS_GET_GEOCODE)(atoms->data->atoms, (gchar*)(&atoms->geocode));
       FC_FUNC_(atoms_get_nat, ATOMS_GET_NAT)(atoms->data->atoms, (int*)(&atoms->nat));
       FC_FUNC_(atoms_get_ntypes, ATOMS_GET_NTYPES)(atoms->data->atoms, (int*)(&atoms->ntypes));
+      atoms->atomnames = g_malloc(sizeof(gchar*) * atoms->ntypes);
+      for (i = 0; i < atoms->ntypes; i++)
+        {
+          j = i + 1;
+          FC_FUNC_(atoms_get_name, ATOMS_GET_NAME)(atoms->data->atoms, (int*)(&j), str, (int*)(&ln));
+          atoms->atomnames[i] = g_malloc(sizeof(gchar) * (ln + 1));
+          memcpy(atoms->atomnames[i], str, sizeof(gchar) * ln);
+          atoms->atomnames[i][ln] = '\0';
+        }
       GET_ATTR_INT(iatype,IATYPE);
     }
 
@@ -171,6 +192,8 @@ void bigdft_atoms_set_n_types(BigDFT_Atoms *atoms, guint ntypes)
 {
   FC_FUNC_(atoms_set_n_types, ATOMS_SET_N_TYPES)(atoms->data, (int*)(&ntypes));
   atoms->ntypes = ntypes;
+  atoms->atomnames = g_malloc(sizeof(gchar*) * ntypes);
+  memset(atoms->atomnames, 0, sizeof(gchar*) * ntypes);
 }
 
 void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc)

@@ -39,7 +39,7 @@ typedef struct BigDFT_Atoms_
   gchar geocode;
   guint  ntypes, nat;
   guint *iatype;
-  
+  gchar **atomnames;
 
   /* Coordinates. */
   f90_pointer_double rxyz;

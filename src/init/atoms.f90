@@ -1093,7 +1093,18 @@ subroutine atoms_get_geocode(atoms, geocode)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
-  character(len = 1) :: geocode
+  character(len = 1), intent(out) :: geocode
 
   geocode = atoms%geocode
 END SUBROUTINE atoms_get_geocode
+subroutine atoms_get_name(atoms, ityp, name, ln)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(in) :: ityp
+  character(len = 20), intent(out) :: name
+  integer, intent(out) :: ln
+
+  name = atoms%atomnames(ityp)
+  ln = len(trim(name))
+END SUBROUTINE atoms_get_name

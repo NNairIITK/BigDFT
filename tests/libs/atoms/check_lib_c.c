@@ -37,8 +37,8 @@ int main(int argc, char **argv)
   
   glr = bigdft_glr_new(atoms, radii, h, CRMULT, FRMULT);
   for (i = 0; i  < atoms->nat; i++)
-    fprintf(stderr, "%f %f %f %d\n", atoms->rxyz.data[3 * i], atoms->rxyz.data[3 * i + 1],
-            atoms->rxyz.data[3 * i + 2], atoms->iatype[i]);
+    fprintf(stderr, "%f %f %f '%s' %d\n", atoms->rxyz.data[3 * i], atoms->rxyz.data[3 * i + 1],
+            atoms->rxyz.data[3 * i + 2], atoms->atomnames[atoms->iatype[i] - 1], atoms->iatype[i]);
   fprintf(stderr, "Grid is in %d %d %d\n", glr->n[0], glr->n[1], glr->n[2]);
 
   cgrid = bigdft_fill_logrid(atoms, glr->n, radii, CRMULT, h);
