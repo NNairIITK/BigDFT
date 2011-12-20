@@ -629,6 +629,14 @@ type,public:: largeBasis
 end type largeBasis
 
 
+type,public:: workarrays_quartic_convolutions
+  real(wp),dimension(:,:,:),pointer:: xx_c, xy_c, xz_c
+  real(wp),dimension(:,:,:),pointer:: xx_f1, xx_f2, xx_f3, xx_f4, xx_f5, xx_f6, xx_f7
+  real(wp),dimension(:,:,:),pointer:: xy_f1, xy_f2, xy_f3, xy_f4, xy_f5, xy_f6, xy_f7
+  real(wp),dimension(:,:,:),pointer:: xz_f1, xz_f2, xz_f3, xz_f4, xz_f5, xz_f6, xz_f7
+end type workarrays_quartic_convolutions
+
+
 
   !> Contains the parameters for the parallel input guess for the O(N) version.
   type,public:: inguessParameters

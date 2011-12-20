@@ -5400,6 +5400,61 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(p2pCommsOrthonormality),intent(out):: comon
       end subroutine indicesForExtraction
 
+
+      subroutine allocate_workarrays_quartic_convolutions(lr, subname, work)
+        use module_base
+        use module_types
+        implicit none
+        type(locreg_descriptors),intent(in):: lr
+        character(len=*),intent(in):: subname
+        type(workarrays_quartic_convolutions),intent(out):: work
+      end subroutine allocate_workarrays_quartic_convolutions
+
+
+      subroutine deallocate_workarrays_quartic_convolutions(lr, subname, work)
+        use module_base
+        use module_types
+        implicit none
+        type(locreg_descriptors),intent(in):: lr
+        character(len=*),intent(in):: subname
+        type(workarrays_quartic_convolutions),intent(out):: work
+      end subroutine deallocate_workarrays_quartic_convolutions
+
+
+      subroutine ConvolQuartic4(n1,n2,n3, &
+           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+           hgrid, offsetx, offsety, offsetz, &
+           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,x_f1,x_f2,x_f3, &
+           rxyzConf, potentialPrefac, it, withKinetic, cprecr, work)
+        use module_base
+        use module_types
+        implicit none
+      
+        ! Calling arguments
+        integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
+        real(gp), intent(in) :: hgrid
+        integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+        integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+        integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+        !real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x_c
+        real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: x_c !debug
+        !real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f
+        !real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f1
+        !real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(in) :: x_f2
+        !real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(in) :: x_f3
+        real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: x_f !debug
+        real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: x_f1  !debug
+        real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(inout) :: x_f2  !debug
+        real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(inout) :: x_f3  !debug
+        real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
+        real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
+        real(8),dimension(3):: rxyzConf
+        real(8):: potentialPrefac, cprecr
+        integer:: it
+        logical,intent(in):: withKinetic
+        type(workarrays_quartic_convolutions),intent(in):: work
+      end subroutine ConvolQuartic4
+
    end interface
 
 END MODULE module_interfaces
