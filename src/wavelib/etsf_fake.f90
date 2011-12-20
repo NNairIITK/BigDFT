@@ -173,7 +173,8 @@ subroutine write_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
   stop 'No ETSF support at compilation!'
 end subroutine write_psi_compress_etsf
 
-subroutine read_wave_to_isf_etsf(filename, iorbp, hx, hy, hz, n1, n2, n3, nspinor, psiscf)
+subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
+     & n1, n2, n3, nspinor, psiscf)
   use module_base
   use module_types
   implicit none
@@ -182,14 +183,18 @@ subroutine read_wave_to_isf_etsf(filename, iorbp, hx, hy, hz, n1, n2, n3, nspino
   integer, intent(out) :: n1, n2, n3, nspinor
   real(gp), intent(out) :: hx, hy, hz
   real(wp), dimension(:,:,:,:), pointer :: psiscf
+  logical, intent(out) :: lstat
 
   stop 'No ETSF support at compilation!'
-end subroutine read_wave_to_isf_etsf
+end subroutine readwavetoisf_etsf
 
-subroutine free_wave_to_isf_etsf(psiscf)
+subroutine readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
   use module_base
+  use module_types
   implicit none
-  real(wp), dimension(:,:,:,:), pointer :: psiscf
+  character(len = *), intent(in) :: filename
+  integer, intent(out) :: norbu, norbd, nkpt, nspinor
+  logical, intent(out) :: lstat
 
   stop 'No ETSF support at compilation!'
-end subroutine free_wave_to_isf_etsf
+end subroutine readwavedescr_etsf
