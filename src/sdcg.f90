@@ -2,6 +2,7 @@
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   use module_base
   use module_types
+  use module_interfaces
   use minpar
   implicit none
   integer, intent(in) :: nproc,iproc
@@ -160,7 +161,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         if (iproc==0) then 
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
+           call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,rxyz,at,trim(comment),forces=fxyz)
         endif
 
 
@@ -300,6 +301,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
      fnrm,fnoise,in,forcemax_sw,nitsd,fluct)
   use module_base
   use module_types
+  use module_interfaces
   use minpar
   !use module_interfaces
   implicit none
@@ -444,7 +446,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
 !                & write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,sqrt(fnrm),etot,' GEOPT SD '
            write(fn4,'(i4.4)') ncount_bigdft 
            write(comment,'(a,1pe10.3)')'SD:fnrm= ',sqrt(fnrm)
-           call write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
+           call write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,rxyz,at,trim(comment),forces=ff)
 
            !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_bigdft,etot,sqrt(fnrm)
         end if
@@ -562,6 +564,7 @@ END SUBROUTINE steepdes
 subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   use module_base
   use module_types
+  use module_interfaces
   use minpar
   implicit none
   !Arguments
@@ -614,7 +617,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
      write(fn4,'(i4.4)') ncount_bigdft
      write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
-     call  write_atomic_file('posout_'//fn4,etotold,wpos,at,trim(comment))
+     call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etotold,wpos,at,trim(comment),forces=ffold)
 !     if (parmin%verbosity > 0) &
 !          & write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etotold,' GEOPT VSSD ',beta
   end if
@@ -693,7 +696,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         if (iproc == 0) then
            write(fn4,'(i4.4)') ncount_bigdft-1
            write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file('posout_'//fn4,etot,wpos,at,trim(comment))
+           call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,wpos,at,trim(comment),forces=ff)
         endif
 
         do iat=1,at%nat
@@ -746,7 +749,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
      end if
      write(fn4,'(i4.4)') ncount_bigdft-1
      write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-     call  write_atomic_file('posout_'//fn4,etot,wpos,at,trim(comment))
+     call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,wpos,at,trim(comment),forces=ff)
   endif
 
 

@@ -497,7 +497,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call razero(n1i*n2i*n3pi,pot_ion)
+  call to_zero(n1i*n2i*n3pi,pot_ion(1))
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')

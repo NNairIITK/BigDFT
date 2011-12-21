@@ -8,7 +8,7 @@ EXTRA_CLEAN =
 
 PPFILES = psppar.N
 
-CLEANFILES = TDDFT.out *.prc fort* fldiff.report *mon $(EXTRA_CLEAN) $(PPFILES)
+CLEANFILES = TDDFT.out *.prc fort* fldiff.report *mon $(EXTRA_CLEAN) $(PPFILES) default* td_spectra.txt
 
 #dependencies
 $(PPFILES):

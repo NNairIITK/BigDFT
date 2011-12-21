@@ -10,7 +10,7 @@ my_tests =
 EXTRA_PROGRAMS = op2p_check kpts_check
 
 if USE_CUDA_GPU
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas ../../src/CUDA/libGPU.a 
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas $(top_builddir)/src/CUDA/libGPU.a 
 else
 libs_cuda=
 endif
@@ -41,7 +41,8 @@ op2p_check_LDADD =  $(top_builddir)/src/libbigdft.a \
 kpts_check_SOURCES = kpts_check.f90
 kpts_check_LDADD =  $(top_builddir)/src/libbigdft.a \
 	$(top_builddir)/src/PSolver/libpoissonsolver.a \
-	$(libs_dgemmsy)
+	$(libs_dgemmsy) $(libs_cuda) $(libs_ocl)
+
 
 
 op2p_check.out: op2p_check

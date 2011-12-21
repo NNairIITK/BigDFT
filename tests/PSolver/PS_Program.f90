@@ -99,7 +99,7 @@ program PSolver_Program
   !we must choose properly a test case with a positive density
   itype_scf=16
 
-  call timing(iproc,'parallel      ','IN')
+  call timing(nproc,'time.prc','IN')
 
   call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,karray)
 
