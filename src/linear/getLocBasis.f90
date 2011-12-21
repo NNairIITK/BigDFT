@@ -759,14 +759,6 @@ integer :: norbTarget, nprocTemp, kk, jlrold, nlocregPerMPI, tag, jproc
 logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, immediateSwitchToSD
 
 
-  !!do iall=1,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)
-  !!    write(20000+iproc,*) rhopot(iall)
-  !!end do
-  !!do iall=1,size(lphi)
-  !!    write(21000+iproc,*) lphi(iall)
-  !!end do
-
-
 
 
   ! Allocate all local arrays.
@@ -796,49 +788,13 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
        lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
        lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
        input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
-  ! Prepare PSP
-  !call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
-  !call full_local_potential2(iproc, nproc, ndimpot, ndimgrid,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
 
   allocate(lphiold(size(lphi)), stat=istat)
   call memocc(istat, lphiold, 'lphiold', subname)
   allocate(W(lin%orbs%norb,lin%orbs%norb), stat=istat)
   call memocc(istat, W, 'W', subname)
-  allocate(Kmat(lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, Kmat, 'Kmat', subname)
-  allocate(Gmat(lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, Gmat, 'Gmat', subname)
-  allocate(Omat(2,lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, Omat, 'Omat', subname)
-  allocate(Gmatc(2,lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, Gmatc, 'Gmatc', subname)
-  allocate(expD_cmplx(lin%orbs%norb), stat=istat)
-  call memocc(istat, expD_cmplx, 'Gmatc', subname)
-  allocate(tempmat(2,lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, tempmat, 'tempmat', subname)
-  allocate(tempmat2(2,lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, tempmat2, 'tempmat2', subname)
-  allocate(tempmat3(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
-  call memocc(istat, tempmat3, 'tempmat3', subname)
-  allocate(omatr(lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, omatr, 'omatr', subname)
-  allocate(omatrtot(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
-  call memocc(istat, omatrtot, 'omatrtot', subname)
-  allocate(Umat(lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, Umat, 'Umat', subname)
   allocate(eval(lin%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
-  allocate(lvphi(lin%lzd%lpsidimtot), stat=istat)
-  call memocc(istat, lvphi, 'vphi', subname)
-  allocate(alpha2(lin%orbs%norbp), stat=istat)
-  call memocc(istat, alpha2, 'alpha2', subname)
-  allocate(lhpsiold(size(lin%lpsi)), stat=istat)
-  call memocc(istat, lhpsiold, 'lhpsiold', subname)
-  allocate(lphi2(size(lphi)), stat=istat)
-  call memocc(istat, lphi2, 'lhpsiold', subname)
-  allocate(omat2(lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, omat2, 'omat2', subname)
-  alpha2=1.d-3
 
   time=0.d0
   resetDIIS=.false.
@@ -862,14 +818,6 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       if(.not.ldiis%switchSD) call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
            lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
            input, lin%mad, lphi, ovrlp, 'new')
-      !!call orthonormalizeLocalized2(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
-      !!     lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%gorbs, lin%comms, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
-      !!     input, lin%mad, lphi, ovrlp)
-      !!do iorb=1,lin%orbs%norb
-      !!    do jorb=1,lin%orbs%norb
-      !!        if(iproc==0) write(5000,*) iorb, jorb, ovrlp(jorb,iorb)
-      !!    end do
-      !!end do
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1
 
@@ -896,12 +844,6 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       t1=mpi_wtime()
       !withConfinement=.false.
       withConfinement=.true.
-      !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
-      !!     input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-      !!     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, &
-      !!     withConfinement, .true., pkernel=pkernelseq)
-      ! New version ###############
-
       allocate(lin%lzd%doHamAppl(lin%orbs%norb), stat=istat)
       call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
       lin%lzd%doHamAppl=.true.
@@ -918,8 +860,6 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
       t2=mpi_wtime()
 
-      !! NEW VESRION
-      !call full_local_potential2(iproc, nproc, ndimpot, ndimgrid,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
 
       time(2)=time(2)+t2-t1
       if(iproc==0) then
@@ -935,14 +875,10 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
 
       ! Gather the messages and calculate the overlap matrix.
-      !call collectAndCalculateOverlap2(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
-      !      lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ovrlp, timecommunp2p, timecommuncoll, timeoverlap, timecompress)
       call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
            lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
       call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
            lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, lin%mad, ovrlp)
-      !call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
-      !     lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, lin%mad, ovrlp)
       call deallocateRecvBufferOrtho(lin%comon, subname)
       call deallocateSendBufferOrtho(lin%comon, subname)
 
@@ -985,13 +921,6 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       end if
       consecutive_rejections=0
 
-      !call applyOrthoconstraintNonorthogonalCubic(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%gorbs, lin%comms, lin%lzd, input, &
-      !     lin%op, ovrlp, lin%mad, lphi, lhphi, trH)
-      !!do iorb=1,lin%orbs%norb
-      !!    do jorb=1,lin%orbs%norb
-      !!        if(iproc==0) write(333,'(2i9,2es20.10)') iorb,jorb,W(jorb,iorb),ovrlp(jorb,iorb)
-      !!    end do
-      !!end do
 
       t2=mpi_wtime()
       time(3)=time(3)+t2-t1
@@ -1062,21 +991,13 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       gnrm=1.d3 ; gnrm_zero=1.d3
       t1=mpi_wtime()
 
-      !!evalmax=lin%orbs%eval(lin%orbs%isorb+1)
-      !!do iorb=1,lin%orbs%norbp
-      !!  evalmax=max(lin%orbs%eval(lin%orbs%isorb+iorb),evalmax)
-      !!enddo
-      !!call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-      !!     MPI_MAX,MPI_COMM_WORLD,ierr)
-
-      !!!if(it>20000) then
-          ind2=1
-          do iorb=1,lin%orbs%norbp
-              ilr = lin%orbs%inWhichLocregp(iorb)
-              call choosePreconditioner2(iproc, nproc, lin%orbs, lin, lin%lzd%Llr(ilr), input%hx, input%hy, input%hz, &
-                  lin%nItPrecond, lhphi(ind2), at%nat, rxyz, at, it, iorb, eval_zero)
-              ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
-          end do
+      ind2=1
+      do iorb=1,lin%orbs%norbp
+          ilr = lin%orbs%inWhichLocregp(iorb)
+          call choosePreconditioner2(iproc, nproc, lin%orbs, lin, lin%lzd%Llr(ilr), input%hx, input%hy, input%hz, &
+              lin%nItPrecond, lhphi(ind2), at%nat, rxyz, at, it, iorb, eval_zero)
+          ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
+      end do
       !!!end if
       !call preconditionall(iproc, nproc, lin%orbs, lin%lzd%glr, input%hx, input%hy, input%hz, lin%nItPrecond, lhphi, tt, tt2)
       t2=mpi_wtime()
@@ -1192,63 +1113,15 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   end do iterLoop
 
 
-  iall=-product(shape(omatr))*kind(omatr)
-  deallocate(omatr, stat=istat)
-  call memocc(istat, iall, 'omatr', subname)
-  iall=-product(shape(omatrtot))*kind(omatrtot)
-  deallocate(omatrtot, stat=istat)
-  call memocc(istat, iall, 'omatrtot', subname)
   iall=-product(shape(lphiold))*kind(lphiold)
   deallocate(lphiold, stat=istat)
   call memocc(istat, iall, 'lphiold', subname)
   iall=-product(shape(W))*kind(W)
   deallocate(W, stat=istat)
   call memocc(istat, iall, 'W', subname)
-  iall=-product(shape(Kmat))*kind(Kmat)
-  deallocate(Kmat, stat=istat)
-  call memocc(istat, iall, 'Kmat', subname)
-  iall=-product(shape(Gmat))*kind(Gmat)
-  deallocate(Gmat, stat=istat)
-  call memocc(istat, iall, 'Gmat', subname)
-  iall=-product(shape(Omat))*kind(Omat)
-  deallocate(Omat, stat=istat)
-  call memocc(istat, iall, 'Omat', subname)
-  iall=-product(shape(Gmatc))*kind(Gmatc)
-  deallocate(Gmatc, stat=istat)
-  call memocc(istat, iall, 'Gmatc', subname)
-  iall=-product(shape(expD_cmplx))*kind(expD_cmplx)
-  deallocate(expD_cmplx, stat=istat)
-  call memocc(istat, iall, 'expD_cmplx', subname)
-  iall=-product(shape(tempmat))*kind(tempmat)
-  deallocate(tempmat, stat=istat)
-  call memocc(istat, iall, 'tempmat2', subname)
-  iall=-product(shape(tempmat2))*kind(tempmat2)
-  deallocate(tempmat2, stat=istat)
-  call memocc(istat, iall, 'tempmat3', subname)
-  iall=-product(shape(tempmat3))*kind(tempmat3)
-  deallocate(tempmat3, stat=istat)
-  call memocc(istat, iall, 'tempmat', subname)
-  iall=-product(shape(Umat))*kind(Umat)
-  deallocate(Umat, stat=istat)
-  call memocc(istat, iall, 'Umat', subname)
   iall=-product(shape(eval))*kind(eval)
   deallocate(eval, stat=istat)
   call memocc(istat, iall, 'eval', subname)
-  iall=-product(shape(lvphi))*kind(lvphi)
-  deallocate(lvphi, stat=istat)
-  call memocc(istat, iall, 'lvphi', subname)
-  iall=-product(shape(alpha2))*kind(alpha2)
-  deallocate(alpha2, stat=istat)
-  call memocc(istat, iall, 'alpha2', subname)
-  iall=-product(shape(lhpsiold))*kind(lhpsiold)
-  deallocate(lhpsiold, stat=istat)
-  call memocc(istat, iall, 'lhpsiold', subname)
-  iall=-product(shape(lphi2))*kind(lphi2)
-  deallocate(lphi2, stat=istat)
-  call memocc(istat, iall, 'lphi2', subname)
-  iall=-product(shape(omat2))*kind(omat2)
-  deallocate(omat2, stat=istat)
-  call memocc(istat, iall, 'omat2', subname)
 
 
   iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
@@ -3741,7 +3614,7 @@ allocate(gmatc(orbs%norb,orbs%norb), stat=istat)
 allocate(omatc(orbs%norb,orbs%norb), stat=istat)
 !call memocc(istat, omatc, 'omatc', subname)
 allocate(tempmat3(orbs%norb,orbs%norb,3), stat=istat)
-call memocc(istat, gmat, 'gmat', subname)
+call memocc(istat, tempmat3, 'tempmat3', subname)
 allocate(eval(orbs%norb), stat=istat)
 call memocc(istat, eval, 'eval', subname)
 allocate(expD_cmplx(orbs%norb), stat=istat)
