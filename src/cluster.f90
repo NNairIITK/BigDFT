@@ -1127,7 +1127,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            end if
 
             call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,&
-                 Lzd%Glr,ngatherarr,potential,psi,hpsi,&
+                 Lzd,ngatherarr,potential,psi,hpsi,&
                  ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
 
             call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&

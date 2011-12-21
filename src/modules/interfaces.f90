@@ -564,28 +564,27 @@ module module_interfaces
       END SUBROUTINE rho_segkey
 
       subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
-           &   lr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
+           Lzd,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
         use module_base
         use module_types
-        use module_xc
         implicit none
         integer, intent(in) :: iproc,nproc
         real(gp), intent(in) :: hx,hy,hz
         type(atoms_data), intent(in) :: at
         type(orbitals_data), intent(in) :: orbs
-        type(locreg_descriptors), intent(in) :: lr 
+        type(local_zone_descriptors), intent(in) :: Lzd 
         type(SIC_data), intent(in) :: SIC
         integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-        real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+        real(wp), dimension((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
         real(wp), dimension(:), pointer :: pot
         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
         real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
-        real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+        real(wp), target, dimension((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
         type(GPU_pointers), intent(inout) :: GPU
         real(dp), dimension(:), pointer, optional :: pkernel
         type(orbitals_data), intent(in), optional :: orbsocc
         real(wp), dimension(:), pointer, optional :: psirocc
-      END SUBROUTINE LocalHamiltonianApplication
+      end subroutine LocalHamiltonianApplication
 
       subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
            proj,Lzd,psi,hpsi,eproj_sum)
@@ -1610,20 +1609,23 @@ module module_interfaces
         !v, that is psivirt, is transposed on input and direct on output
       end subroutine constrained_davidson
 
-      subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
-            &   ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc,ipotmethod,ixc
-         real(gp), intent(in) :: hx,hy,hz,alphaSIC
-         type(orbitals_data), intent(in) :: orbs
-         type(locreg_descriptors), intent(in) :: lr
-         real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
-         real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
-         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
-         real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
-         real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+      subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
+           ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
+        use module_base
+        use module_types
+        use module_xc
+        implicit none
+        integer, intent(in) :: iproc,ipotmethod,ixc
+        real(gp), intent(in) :: hx,hy,hz,alphaSIC
+        type(orbitals_data), intent(in) :: orbs
+        type(local_zone_descriptors), intent(in) :: Lzd
+        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
+        real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi !this dimension will be modified
+        real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
+        !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
+        real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
+        real(wp), dimension(Lzd%Lpsidimtot), intent(out) :: hpsi
+        real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
       END SUBROUTINE local_hamiltonian
 
       subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC,potandrho,wxdsave)
@@ -5389,7 +5391,31 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
        end subroutine minimize_in_subspace
 
+       subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,npot,psir,pot,epot,&
+            confdata,ibyyzz_r) !optional
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor,npot
+         integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
+         real(wp), dimension(n1i,n2i,n3i,nspinor), intent(inout) :: psir !< real-space wfn in lr
+         real(wp), dimension(n1ip,n2ip,n3ip,npot), intent(in) :: pot !< real-space pot in lrb
+         type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+         integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
+         real(gp), intent(out) :: epot
+       end subroutine apply_potential_lr
 
+       subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: npot,nspinor
+         type(locreg_descriptors), intent(in) :: lr !< localization region of the wavefunction
+         real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,npot), intent(in) :: pot
+         real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
+         real(gp), intent(out) :: epot
+         type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+       end subroutine psir_to_vpsi
 
    end interface
 

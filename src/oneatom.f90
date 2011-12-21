@@ -226,7 +226,7 @@ program oneatom
      endloop=endloop .or. ndiis_sd_sw > 2
 
      call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,&
-          Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
+          Lzd,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
 
      call NonLocalHamiltonianApplication(iproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
           proj,Lzd,psi,hpsi,eproj_sum)

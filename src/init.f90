@@ -1917,7 +1917,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
     if(.false.) then
 
    call LocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,&
-         Lzd%Glr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
+         Lzd,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
 
    call NonLocalHamiltonianApplication(iproc,at,orbse,hx,hy,hz,rxyz,&
         proj,Lzd,psi,hpsi,eproj_sum)

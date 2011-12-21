@@ -1037,7 +1037,7 @@ nullify(Qvect,dumQvect)
      !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
 
      call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%Lzd%Glr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+        &   ha%Lzd,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
         &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
      call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
@@ -1058,7 +1058,7 @@ nullify(Qvect,dumQvect)
      !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
      !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
      call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%Lzd%Glr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+        &   ha%Lzd,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
         &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
      call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
@@ -1166,7 +1166,7 @@ nullify(Qvect,dumQvect)
 
      call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,&
           ha%hx,ha%hy,ha%hz,&
-          ha%Lzd%Glr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,ha%ekin_sum,&
+          ha%Lzd,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,ha%ekin_sum,&
           ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
      call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,&

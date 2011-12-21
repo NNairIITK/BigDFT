@@ -262,7 +262,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
       !!$          pkernel,orbs,psirocc) ! optional arguments
 
       call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-         &   Lzd%Glr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+         &   Lzd,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
          &   pkernel,orbs,psirocc) ! optional arguments
 
       call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
@@ -624,7 +624,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !!$       pkernel,orbs,psirocc) ! optional arguments
 
    call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-      &   Lzd%Glr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+      &   Lzd,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
       &   pkernel,orbs,psirocc) ! optional arguments
 
    call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
@@ -907,7 +907,7 @@ subroutine davidson(iproc,nproc,in,at,&
       !!$          pkernel,orbs,psirocc) ! optional argument
 
       call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-         &   Lzd%Glr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+         &   Lzd,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
          &   pkernel,orbs,psirocc) ! optional arguments
 
       call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
@@ -1181,7 +1181,7 @@ subroutine davidson(iproc,nproc,in,at,&
       !!$          pkernel,orbs,psirocc) !optional arguments
 
       call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-         &   Lzd%Glr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+         &   Lzd,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
          &   pkernel,orbs,psirocc) ! optional arguments
 
       call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&

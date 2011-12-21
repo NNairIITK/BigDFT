@@ -574,34 +574,3 @@ subroutine psir_to_rhoi(fi,spinval,nspinrho,nspinor,lr,psir,rhoi)
 
 end subroutine psir_to_rhoi
 
-!> apply the potential to the psir wavefunction and calculate potential energy
-subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot)
-  use module_base
-  use module_types
-  use module_interfaces
-  implicit none
-  integer, intent(in) :: npot,nspinor
-  type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,npot), intent(in) :: pot
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
-  real(gp), intent(out) :: epot
-
-  epot=0.0_gp
-  select case(lr%geocode)
-  case('F')
-     call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,nspinor,npot,vpsir,&
-          pot,epot,&
-          lr%bounds%ibyyzz_r) !optional
-
-     case('P') 
-        !here the hybrid BC act the same way
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,nspinor,npot,vpsir,&
-             pot,epot)
-
-     case('S')
-
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,nspinor,npot,vpsir,&
-             pot,epot)
-     end select
-
-end subroutine psir_to_vpsi

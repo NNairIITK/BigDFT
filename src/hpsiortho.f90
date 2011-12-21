@@ -10,7 +10,7 @@
 
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
-      &   lr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
+     Lzd,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
    use module_base
    use module_types
    use module_xc
@@ -20,14 +20,14 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
-   type(locreg_descriptors), intent(in) :: lr 
+   type(local_zone_descriptors), intent(in) :: Lzd 
    type(SIC_data), intent(in) :: SIC
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+   real(wp), dimension((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
    real(wp), dimension(:), pointer :: pot
    real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
    real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
-   real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+   real(wp), target, dimension((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
    real(dp), dimension(:), pointer, optional :: pkernel
    type(orbitals_data), intent(in), optional :: orbsocc
@@ -35,13 +35,11 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
-   integer :: i_stat,n3p,ispot,ipotmethod
+   integer :: i_stat,n3p,ispot,ipotmethod,iorb
    real(gp) :: eSIC_DC_tmp
    real(dp), dimension(:), pointer :: pkernelSIC
-   !OCL  integer, dimension(3) :: periodic
-   !OCL  real(wp) :: maxdiff
-   !OCL  real(gp) :: eproj,ek_fake,ep_fake
-   !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
+   type(confpot_data), dimension(orbs%norbp) :: confdatarr
+
    ! local potential and kinetic energy for all orbitals belonging to iproc
    if (iproc==0 .and. verbose > 1) then
       write(*,'(1x,a)',advance='no')&
@@ -56,6 +54,13 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
       stop
    end if   
 
+   !initialize confdatarr to non-confining values
+   do iorb=1,orbs%norbp
+      confdatarr(iorb)%potorder=0
+      !the rest is not needed
+   end do
+   
+
    !initialise exact exchange energy 
    op2p=(eexctX == UNINITIALIZED(1.0_gp))
    eexctX=0.0_gp
@@ -64,7 +69,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
 
    exctX = xc_exctXfac() /= 0.0_gp
 
-   ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1
+   ispot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin+1
 
    !potential method
    !traditional case
@@ -94,24 +99,24 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
 
    !fill the rest of the potential with the exact-exchange terms
    if (ipotmethod==1) then
-      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
+      n3p=ngatherarr(iproc,1)/(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i)
       !exact exchange for virtual orbitals (needs psirocc)
 
       !here we have to add the round part
       if (present(psirocc) .and. present(orbsocc)) then
          call exact_exchange_potential_virt(iproc,nproc,at%geocode,orbs%nspin,&
-            &   lr,orbsocc,orbs,ngatherarr(0,1),n3p,&
+            &   Lzd%Glr,orbsocc,orbs,ngatherarr(0,1),n3p,&
          0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi,pot(ispot))
          eexctX = 0._gp
       else
          !here the condition for the scheme should be chosen
          if (.not. op2p) then
             call exact_exchange_potential(iproc,nproc,at%geocode,orbs%nspin,&
-               &   lr,orbs,ngatherarr(0,1),n3p,&
+               &   Lzd%Glr,orbs,ngatherarr(0,1),n3p,&
             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
          else
             !the psi should be transformed in real space
-            call exact_exchange_potential_round(iproc,nproc,at%geocode,orbs%nspin,lr,orbs,&
+            call exact_exchange_potential_round(iproc,nproc,at%geocode,orbs%nspin,Lzd%Glr,orbs,&
                &   0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
 
          end if
@@ -120,10 +125,10 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    else if (ipotmethod==3) then
       !put fref=1/2 for the moment
       if (present(orbsocc) .and. present(psirocc)) then
-         call NK_SIC_potential(lr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot:),eSIC_DC_tmp,&
+         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot:),eSIC_DC_tmp,&
             &   potandrho=psirocc)
       else
-         call NK_SIC_potential(lr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot:),eSIC_DC_tmp)
+         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot:),eSIC_DC_tmp)
       end if
    end if
 
@@ -141,24 +146,25 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    !pot=0.d0
    !psi=1.d0
    !switch between GPU/CPU treatment
-   !  do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+   !  do i=1,(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
    !       call random_number(psi(i))
    !  end do
    if(OCLconv .and. ASYNCconv) then
-      allocate(GPU%hpsi_ASYNC((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
+      allocate(GPU%hpsi_ASYNC((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
       call memocc(i_stat,GPU%hpsi_ASYNC,'GPU%hpsi_ASYNC',subname)
-      call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,hpsi(1))
+      call to_zero((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,hpsi(1))
    else if (OCLconv) then
       GPU%hpsi_ASYNC => hpsi
    end if
    if (GPUconv) then
-      call local_hamiltonian_GPU(orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
+      call local_hamiltonian_GPU(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
    else if (OCLconv) then
-      call local_hamiltonian_OCL(orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekin_sum,epot_sum,GPU)
+      call local_hamiltonian_OCL(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekin_sum,epot_sum,GPU)
    else
       !local hamiltonian application for different methods
       !print *,'here',ipotmethod,associated(pkernelSIC),ixcSIC
-      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,ipotmethod,pot,psi,hpsi,pkernelSIC,SIC%ixc,SIC%alpha,ekin_sum,epot_sum,eSIC_DC)
+      call local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+           SIC%ixc,SIC%alpha,ekin_sum,epot_sum,eSIC_DC)
       !sum the external and the BS double counting terms
       eSIC_DC=eSIC_DC-SIC%alpha*eSIC_DC_tmp
    end if
@@ -265,7 +271,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                      cycle
                   end if
                   istart_c=1
-                  call apply_atproj_iorb_new(iat,iorb,istart_c,Lzd%Lnlpspd(ilr)%nprojel,&
+                  call apply_atproj_iorb_new(iat,iorb,istart_c,&
+                       Lzd%Lnlpspd(ilr)%nprojel,&
                        at,orbs,Lzd%Llr(ilr)%wfd,Lzd%Lnlpspd(ilr)%plr(iat_proj),&
                        proj,psi(ispsi),hpsi(ispsi),eproj_sum)
                   !print *,'iorb,iat,eproj',iorb,iat,eproj_sum

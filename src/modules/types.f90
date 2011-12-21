@@ -693,11 +693,21 @@ end type largeBasis
 
 !> Contains the information needed for the preconditioner
   type, public :: precond_data
-    integer :: confPotOrder                                           !> The order of the algebraic expression for Confinement potential
-    integer :: ncong                                                  !> Number of CG iterations for the preconditioning equation
-    logical, dimension(:), pointer :: withConfPot                     !> Use confinement potentials
-    real(8), dimension(:), pointer :: potentialPrefac                 !> Prefactor for the potential: Prefac * f(r) 
+    integer :: confPotOrder                           !> The order of the algebraic expression for Confinement potential
+    integer :: ncong                                  !> Number of CG iterations for the preconditioning equation
+    logical, dimension(:), pointer :: withConfPot     !> Use confinement potentials
+    real(8), dimension(:), pointer :: potentialPrefac !> Prefactor for the potential: Prefac * f(r) 
   end type precond_data
+
+!> Information for the confining potential to be used in TMB scheme
+!! The potential is supposed to be defined as prefac*(r-rC)**potorder
+  type, public :: confpot_data
+     integer :: potorder !< order of the confining potential
+     integer, dimension(3) :: ioffset !< offset for the coordinates of potential lr in global region
+     real(gp) :: prefac !< prefactor
+     real(gp), dimension(3) :: hh !< grid spacings in ISF grid
+     real(gp), dimension(3) :: rxyzConf !< confining potential center in global coordinates
+  end type confpot_data
 
 contains
 

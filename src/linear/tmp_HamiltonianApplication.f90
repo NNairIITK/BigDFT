@@ -266,13 +266,16 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   character(len=*), parameter :: subname='HamiltonianApplication3'
   logical :: exctX,op2p
   integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat, ist, ilr
-  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
-!OCL  integer, dimension(3) :: periodic
-!OCL  real(wp) :: maxdiff
-!OCL  real(gp) :: eproj,ek_fake,ep_fake
+  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi,icenter
+  real(gp) :: esic_DC
   real(gp), dimension(3,2) :: wrkallred
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
  integer :: size_pot,size_potxc
+ type(confpot_data), dimension(orbs%norbp) :: confdatarr
+ real(dp), dimension(:), pointer :: pkernelSIC
+
+ !no SIC for this temporary wrapper
+ nullify(pkernelSIC)
 
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0 .and. verbose > 1) then
@@ -302,7 +305,8 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   size_potxc = 0
   if (exctX .and. .not.present(lin)) then
-     size_potxc = max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,ngatherarr(0,1)*orbs%norb),1)
+     size_potxc = max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,ngatherarr(0,1)&
+          *orbs%norb),1)
 
      ist=lzd%ndimpotisf-size_potxc+1
      if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
@@ -353,14 +357,38 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
              write(*,'(a,i0,a)') "ERROR on processes ",iproc,": 'confinementCenter' must be present when passing 'lin'!"
              stop
          end if
-         call local_hamiltonian3(iproc,exctx,orbs,lzd,hx,hy,hz,&
-              nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
-              withconfinement, at, rxyz, ist, lin, confinementCenter)
+         !initialize the confdatarr
+         do iorb=1,orbs%norbp
+            icenter=confinementCenter(iorb)
+            confdatarr(iorb)%potorder=lin%confpotorder
+            confdatarr(iorb)%prefac=lin%potentialprefac(at%iatype(icenter))
+            confdatarr(iorb)%hh(1)=.5_gp*hx
+            confdatarr(iorb)%hh(2)=.5_gp*hy
+            confdatarr(iorb)%hh(3)=.5_gp*hz
+            confdatarr(iorb)%rxyzConf(1:3)=rxyz(1:3,icenter)
+            confdatarr(iorb)%ioffset(1)=lzd%llr(ilr)%nsi1-15 !for free BC
+            confdatarr(iorb)%ioffset(2)=lzd%llr(ilr)%nsi2-15 !F
+            confdatarr(iorb)%ioffset(3)=lzd%llr(ilr)%nsi3-15 !F
+         end do
+
+!!$         call local_hamiltonian3(iproc,exctx,orbs,lzd,hx,hy,hz,&
+!!$              nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
+!!$              withconfinement, at, rxyz, ist, lin, confinementCenter)
      else
-         call local_hamiltonian3(iproc,exctx,orbs,lzd,hx,hy,hz,&
-              nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
-              withconfinement, at, rxyz, ist)
-     end if
+         !initialize the confdatarr
+         do iorb=1,orbs%norbp
+            confdatarr(iorb)%potorder=0
+            !the rest is not useful
+         end do
+
+!!$         call local_hamiltonian3(iproc,exctx,orbs,lzd,hx,hy,hz,&
+!!$              nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
+!!$              withconfinement, at, rxyz, ist)
+      end if
+      call local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,0,confdatarr,&
+           Lpot,psi,hpsi,pkernelSIC,&
+           0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+
   end if
 
   !test part to check the results wrt OCL convolutions
@@ -695,6 +723,7 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable,target :: psir
   real(8):: dsum
+  type(confpot_data) :: confdata
 
   if(withConfinement .and. .not.present(lin)) then
       stop "'lin' must be present when 'withConfinement' is true!"
@@ -737,26 +766,54 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
      select case(Lzd%Llr(ilr)%geocode)
      case('F')
         if(withConfinement) then
-            hxh=.5d0*hx
-            hyh=.5d0*hy
-            hzh=.5d0*hz
-            icenter=confinementCenter(iorb)
+           hxh=.5d0*hx
+           hyh=.5d0*hy
+           hzh=.5d0*hz
+           icenter=confinementCenter(iorb)
+
+
             !!call apply_potentialConfinement2(lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
             !!     Lpot(orbs%ispot(iorb)),epot, rxyz(1,ilr), hxh, hyh, hzh,&
             !!     lin%potentialprefac(at%iatype(ilr)),lin%confpotorder, &
             !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &
             !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
 
-            call apply_potentialConfinement2(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,&
-                 lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-                 Lpot(orbs%ispot(iorb)),epot, rxyz(1,icenter), hxh, hyh, hzh,&
-                 lin%potentialprefac(at%iatype(icenter)),lin%confpotorder, &
-                 lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &
-                 lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+           confdata%potorder=lin%confpotorder
+           confdata%prefac=lin%potentialprefac(at%iatype(icenter))
+           confdata%hh(1)=.5_gp*hx
+           confdata%hh(2)=.5_gp*hy
+           confdata%hh(3)=.5_gp*hz
+           confdata%rxyzConf(1:3)=rxyz(1:3,icenter)
+           confdata%ioffset(1)=lzd%llr(ilr)%nsi1-15 !for free BC
+           confdata%ioffset(2)=lzd%llr(ilr)%nsi2-15 !F
+           confdata%ioffset(3)=lzd%llr(ilr)%nsi3-15 !F
+
+           call apply_potential_lr(lzd%llr(ilr)%d%n1i,&
+                lzd%llr(ilr)%d%n2i,lzd%llr(ilr)%d%n3i,&
+                lzd%llr(ilr)%d%n1i,lzd%llr(ilr)%d%n2i,lzd%llr(ilr)%d%n3i,&
+                (/0,0,0/),lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,&
+                orbs%nspinor,npot,psir,Lpot(orbs%ispot(iorb)),epot,&
+                confdata,lzd%llr(ilr)%bounds%ibyyzz_r)
+!!$            call apply_potentialConfinement2(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,&
+!!$                 lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+!!$                 Lpot(orbs%ispot(iorb)),epot, rxyz(1,icenter), hxh, hyh, hzh,&
+!!$                 lin%potentialprefac(at%iatype(icenter)),lin%confpotorder, &
+!!$                 lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &
+!!$                 lzd%llr(ilr)%bounds%ibyyzz_r) !optional
 
         else
-            call apply_potential(Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-                 Lpot(orbs%ispot(iorb)),epot,Lzd%Llr(ilr)%bounds%ibyyzz_r)
+
+            call apply_potential_lr(lzd%llr(ilr)%d%n1i,&
+                lzd%llr(ilr)%d%n2i,lzd%llr(ilr)%d%n3i,&
+                lzd%llr(ilr)%d%n1i,lzd%llr(ilr)%d%n2i,lzd%llr(ilr)%d%n3i,&
+                (/0,0,0/),lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,&
+                orbs%nspinor,npot,psir,Lpot(orbs%ispot(iorb)),epot,&
+                ibyyzz_r=lzd%llr(ilr)%bounds%ibyyzz_r)
+
+!!$            call apply_potential(Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+!!$                 Lpot(orbs%ispot(iorb)),epot,Lzd%Llr(ilr)%bounds%ibyyzz_r)
+
+
         end if
      case('P')
         !here the hybrid BC act the same way
