@@ -389,11 +389,6 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
 
 
   ! Uncompress the wavefunction.
-  !!call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-  !!     nseg_c,nvctr_c,keyg_c,keyv_c,  & 
-  !!     nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-  !!     scal,xpsi_c,xpsi_f,xpsig_c,xpsig_f,x_f1,x_f2,x_f3)
-
   call uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
        nseg_c, nvctr_c, keyg_c, keyv_c, nseg_f, nvctr_f,  keyg_f, keyv_f, &
        scal, xpsi_c, xpsi_f, &
@@ -403,20 +398,6 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
 
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
   if(confPotOrder==4) then
-      !!call ConvolkineticQuartic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-      !!     cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
-      !!     xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
-
-      !!call ConvolQuartic3(n1, n2, n3, &
-      !!     nfl1, nfu1, &
-      !!     nfl2, nfu2, &
-      !!     nfl3, nfu3, &
-      !!     hgrid, ns1, ns2, ns3, &
-      !!     ibyz_c, ibxz_c, ibxy_c, &
-      !!     ibyz_f, ibxz_f, ibxy_f, &
-      !!     xpsig_c, xpsig_f, ypsig_c, ypsig_f, &
-      !!     x_f1, x_f2, x_f3, rxyzParab(1), parabPrefac, 1, &
-      !!     .true., cprecr)
 
       call ConvolQuartic4(n1, n2, n3, &
            nfl1, nfu1, &
@@ -444,13 +425,6 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,work_conv%y_c,work_conv%y_f,ypsi_c,ypsi_f)
-
-  !!call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-  !!     nseg_c,nvctr_c,keyg_c,keyv_c,  &
-  !!     nseg_f,nvctr_f,keyg_f,keyv_f,  &
-  !!     scal,ypsig_c,ypsig_f,ypsi_c,ypsi_f)
-
-
 
   call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
 
