@@ -3309,7 +3309,8 @@ subroutine print_dft_parameters(in,atoms)
        & "Output wf. policy=", in%output_wf_format, " (" // wf_format_names(in%output_wf_format) // ")"
   write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
        & "Output grid policy=", in%output_denspot, "   (" // output_denspot_names(in%output_denspot) // ")", "|", &
-       & "Output grid format=", in%output_denspot_format, "         (" // output_denspot_format_names(in%output_denspot_format) // ")"
+       & "Output grid format=", in%output_denspot_format, &
+       "         (" // output_denspot_format_names(in%output_denspot_format) // ")"
 
 END SUBROUTINE print_dft_parameters
 

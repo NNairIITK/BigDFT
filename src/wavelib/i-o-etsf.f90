@@ -563,7 +563,7 @@ contains
   END SUBROUTINE calc_displ
 END SUBROUTINE read_waves_from_list_etsf
 
-subroutine read_wave_descr_etsf(lstat, filename, ln, norbu, norbd, nkpt, nspinor)
+subroutine readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
   use module_base
   use module_types
   use etsf_io_low_level
@@ -572,8 +572,7 @@ subroutine read_wave_descr_etsf(lstat, filename, ln, norbu, norbd, nkpt, nspinor
 
   implicit none
 
-  integer, intent(in) :: ln
-  character(len = ln), intent(in) :: filename
+  character(len = *), intent(in) :: filename
   integer, intent(out) :: norbu, norbd, nkpt, nspinor
   logical, intent(out) :: lstat
 
@@ -617,9 +616,9 @@ subroutine read_wave_descr_etsf(lstat, filename, ln, norbu, norbd, nkpt, nspinor
   norbd   = orbsd%norbd
   nkpt    = orbsd%nkpts
   nspinor = orbsd%nspinor
-END SUBROUTINE read_wave_descr_etsf
+END SUBROUTINE readwavedescr_etsf
 
-subroutine read_wave_to_isf_etsf(lstat, filename, ln, iorbp, hx, hy, hz, &
+subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
   use module_base
   use module_types
@@ -629,8 +628,7 @@ subroutine read_wave_to_isf_etsf(lstat, filename, ln, iorbp, hx, hy, hz, &
 
   implicit none
 
-  integer, intent(in) :: ln
-  character(len = ln), intent(in) :: filename
+  character(len = *), intent(in) :: filename
   integer, intent(in) :: iorbp
   integer, intent(out) :: n1, n2, n3, nspinor
   real(gp), intent(out) :: hx, hy, hz
@@ -751,20 +749,7 @@ contains
     end if
     call deallocate_wfd(lr%wfd, subname)
   END SUBROUTINE deallocate_local
-END SUBROUTINE read_wave_to_isf_etsf
-
-subroutine free_wave_to_isf_etsf(psiscf)
-  use module_base
-  implicit none
-  real(wp), dimension(:,:,:,:), pointer :: psiscf
-
-  integer :: i_all, i_stat
-
-  i_all=-product(shape(psiscf))*kind(psiscf)
-  deallocate(psiscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psiscf',"free_wave_to_isf_etsf")
-END SUBROUTINE free_wave_to_isf_etsf
-
+END SUBROUTINE readwavetoisf_etsf
 
 !>   Read a ETSF (NETCDF) file containing wavefunctions.
 !!    coordinates_of_grid_points is used to store the geometric
@@ -935,7 +920,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
      call cpu_time(tr0)
      call system_clock(ncount1,ncount_rate,ncount_max)
 
-     call etsf_io_low_open_create(ncid, filename, 1.3, lstat, &
+     call etsf_io_low_open_create(ncid, filename // ".etsf", 1.3, lstat, &
           & title = "BigDFT wavefunctions", error_data = error, &
           & overwrite = .true., with_etsf_header = .true.)
      if (.not. lstat) call etsf_error(error)
@@ -956,7 +941,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
      do i = 0, iproc - 1, 1
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
      end do
-     call etsf_io_low_open_modify(ncid, filename, lstat, error_data = error)
+     call etsf_io_low_open_modify(ncid, filename // ".etsf", lstat, error_data = error)
      if (.not. lstat) call etsf_error(error)
 !!$  else
 !!$     call MPI_BARRIER(MPI_COMM_WORLD, ierr)

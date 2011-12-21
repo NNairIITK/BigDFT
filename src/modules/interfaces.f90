@@ -1411,6 +1411,15 @@ module module_interfaces
          type(gaussian_basis), intent(out) :: G  
       END SUBROUTINE gaussian_hermite_basis
 
+      subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: nproc
+        type(orbitals_data), intent(in) :: orbs
+        real(gp), dimension(:,:,:), intent(in), pointer :: mom_vec
+      end subroutine write_eigenvalues_data
+
       subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,output_wf_format)
          !n(c) use module_base
          use module_types
@@ -1546,12 +1555,12 @@ module module_interfaces
          real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin), intent(out), optional :: wxdsave 
       END SUBROUTINE NK_SIC_potential
 
-      subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+      subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
          wfd,psi,orblist)
          use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc,n1,n2,n3
+         integer, intent(in) :: iproc,n1,n2,n3, iformat
          real(gp), intent(in) :: hx,hy,hz
          type(wavefunctions_descriptors), intent(in) :: wfd
          type(orbitals_data), intent(inout) :: orbs
@@ -1588,7 +1597,32 @@ module module_interfaces
          integer,optional :: iiorb
       END SUBROUTINE filename_of_iorb
 
-      subroutine read_wave_to_isf_etsf(lstat, filename, ln, iorbp, hx, hy, hz, &
+      subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
+           & n1, n2, n3, nspinor, psiscf)
+        use module_base
+        use module_types
+        implicit none
+        character(len = *), intent(in) :: filename
+        logical, intent(in) :: formatted
+        integer, intent(out) :: n1, n2, n3, nspinor
+        real(gp), intent(out) :: hx, hy, hz
+        real(wp), dimension(:,:,:,:), pointer :: psiscf
+        logical, intent(out) :: lstat
+      END SUBROUTINE readwavetoisf
+      subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
+           & n1, n2, n3, nspinor, psiscf)
+        use module_base
+        use module_types
+        implicit none
+        character(len = *), intent(in) :: filename
+        integer, intent(in) :: iorbp
+        integer, intent(out) :: n1, n2, n3, nspinor
+        real(gp), intent(out) :: hx, hy, hz
+        real(wp), dimension(:,:,:,:), pointer :: psiscf
+        logical, intent(out) :: lstat
+      END SUBROUTINE readwavetoisf_etsf
+
+      subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
            & n1, n2, n3, nspinor, psiscf)
         use module_base
         use module_types
@@ -1600,13 +1634,12 @@ module module_interfaces
         real(gp), intent(out) :: hx, hy, hz
         real(wp), dimension(:,:,:,:), pointer :: psiscf
         logical, intent(out) :: lstat
-      end subroutine read_wave_to_isf_etsf
-
-      subroutine free_wave_to_isf_etsf(psiscf)
+      END SUBROUTINE read_wave_to_isf
+      subroutine free_wave_to_isf(psiscf)
         use module_base
         implicit none
         real(wp), dimension(:,:,:,:), pointer :: psiscf
-      end subroutine free_wave_to_isf_etsf
+      END SUBROUTINE free_wave_to_isf
 
       !subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
       !

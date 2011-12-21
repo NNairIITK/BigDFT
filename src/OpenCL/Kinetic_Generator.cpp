@@ -59,7 +59,7 @@ static void generate_kinetic1dKernel(std::stringstream &program, struct bigdft_d
   size_t buff_l = max_wgs / FILTER_WIDTH;
   if(buff_l > 16)
     buff_l = 16;
-  program<<"__kernel void kinetic1dKernel_d(uint n, uint ndat, double scale, __global const double *  restrict x_in, __global double *  restrict x_out, __global const double *  restrict y_in, __global double *  restrict y_out, __local double * tmp, __local double * tmp2) {\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<buff_l<<", 1))) void kinetic1dKernel_d(uint n, uint ndat, double scale, __global const double *  restrict x_in, __global double *  restrict x_out, __global const double *  restrict y_in, __global double *  restrict y_out, __local double * tmp, __local double * tmp2) {\n\
   size_t ig = get_global_id(0);\n\
   size_t jg = get_global_id(1);\n\
   const size_t i2 = get_local_id(0);\n\
@@ -100,7 +100,7 @@ static void generate_kinetic1d_fKernel(std::stringstream &program, struct bigdft
   size_t buff_l = max_wgs / FILTER_WIDTH;
   if(buff_l > 16)
     buff_l = 16;
-  program<<"__kernel void kinetic1d_fKernel_d(uint n, uint ndat, double scale, __global const double *  restrict x_in, __global double *  restrict x_out, __global const double *  restrict y_in, __global double *  restrict y_out, __local double * tmp, __local double * tmp2) {\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<buff_l<<", 1))) void kinetic1d_fKernel_d(uint n, uint ndat, double scale, __global const double *  restrict x_in, __global double *  restrict x_out, __global const double *  restrict y_in, __global double *  restrict y_out, __local double * tmp, __local double * tmp2) {\n\
   size_t ig = get_global_id(0);\n\
   size_t jg = get_global_id(1);\n\
   const size_t i2 = get_local_id(0);\n\

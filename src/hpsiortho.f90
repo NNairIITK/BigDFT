@@ -459,7 +459,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
    logical :: lcs
    integer :: ierr,ikpt,iorb,i_all,i_stat,k
    real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
-   real(wp), dimension(:,:,:), allocatable :: mom_vec
+   real(wp), dimension(:,:,:), pointer :: mom_vec
 
    !band structure energy calculated with occupation numbers
    energybs=ekin+epot+eproj !the potential energy contains also exctX
@@ -485,6 +485,8 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
 
       call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
          &   lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
+   else
+     nullify(mom_vec)   
    end if
 
 
@@ -929,7 +931,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
    logical :: keeppsit
    character(len=*), parameter :: subname='last_orthon'
    integer :: i_all,i_stat
-   real(wp), dimension(:,:,:), allocatable :: mom_vec
+   real(wp), dimension(:,:,:), pointer :: mom_vec
 
 
    if (present(opt_keeppsit)) then
@@ -972,6 +974,8 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
       call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,wfd%nvctr_c+7*wfd%nvctr_f,&
          &   orbs%nspinor,psi,mom_vec)
+   else
+      nullify(mom_vec)
    end if
 
    ! Send all eigenvalues to all procs.
@@ -999,7 +1003,7 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
   implicit none
   integer, intent(in) :: nproc
   type(orbitals_data), intent(in) :: orbs
-  real(gp), dimension(4,orbs%norb,min(nproc,2)), intent(in) :: mom_vec
+  real(gp), dimension(:,:,:), pointer :: mom_vec
   !local variables
   logical :: dowrite
   integer :: ikptw,iorb,ikpt,jorb,isorb,md
@@ -1044,7 +1048,7 @@ subroutine write_eigenvalues_data(nproc,orbs,mom_vec)
         spinsignw=UNINITIALIZED(1.0_gp)
         do iorb=1,orbs%norb
            dowrite =(iorb <= 5 .or. iorb >= orbs%norb-5) .or. verbose > 0
-           if (orbs%nspinor ==4) then
+           if (orbs%nspinor ==4 .and. associated(mom_vec)) then
               mx=(mom_vec(2,iorb,1)/mom_vec(1,iorb,1))
               my=(mom_vec(3,iorb,1)/mom_vec(1,iorb,1))
               mz=(mom_vec(4,iorb,1)/mom_vec(1,iorb,1))

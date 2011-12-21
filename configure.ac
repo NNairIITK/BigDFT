@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.13],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.14],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -19,7 +19,7 @@ AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE(-Wno-portability)
 
 dnl This is a hack for usage inside ABINIT.
 dnl if test -n "$FCFLAGS" ; then
@@ -763,7 +763,7 @@ tests/libs/OP2P/Makefile
 tests/libs/xc/Makefile
 tests/libs/OpenCL/Makefile
 tests/libs/CUDA/Makefile
-tests/libs/ETSF_IO/Makefile
+tests/libs/IO-wf/Makefile
 tests/DFT/Makefile
 tests/overDFT/Makefile
 tests/tutorials/Makefile
