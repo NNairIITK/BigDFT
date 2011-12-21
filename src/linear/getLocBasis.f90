@@ -2091,36 +2091,36 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
 
       ! Improve the orbitals, depending on the choice made above.
-      call improveOrbitals()
+      if(.not.ldiis%switchSD) call improveOrbitals()
 
 
       !! EXPERIMENTAL - flatten at the edges #############################################
       !! #################################################################################
 
 
-      ! Check the trace again (for debugging) #############################################
-      allocate(lin%lzd%doHamAppl(lin%orbs%norb), stat=istat)
-      call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
-      lin%lzd%doHamAppl=.true.
-      call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
-           proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
-           pkernel=pkernelseq, lin=lin, confinementCenter=lin%orbs%inWhichLocregp)
-      tt=0.d0
-      ist=1
-      do iorb=1,lin%orbs%norbp
-          iiorb=iorb+lin%orbs%isorb
-          ilr=lin%orbs%inwhichlocreg(iiorb)
-          ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-          tt=tt+ddot(ncount, lphi(ist), 1, lhphi(ist), 1)/ddot(ncount, lphi(ist), 1, lphi(ist), 1)
-          ist=ist+ncount
-      end do
-      call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-      if(iproc==0) write(*,*) 'after SD/DIIS', tt
-      iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
-      deallocate(lin%lzd%doHamAppl, stat=istat)
-      call memocc(istat, iall, 'lin%lzd%doHamAppl', subname)
-      ! ###################################################################################
+      !!! Check the trace again (for debugging) #############################################
+      !!allocate(lin%lzd%doHamAppl(lin%orbs%norb), stat=istat)
+      !!call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
+      !!lin%lzd%doHamAppl=.true.
+      !!call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
+      !!     proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
+      !!     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
+      !!     pkernel=pkernelseq, lin=lin, confinementCenter=lin%orbs%inWhichLocregp)
+      !!tt=0.d0
+      !!ist=1
+      !!do iorb=1,lin%orbs%norbp
+      !!    iiorb=iorb+lin%orbs%isorb
+      !!    ilr=lin%orbs%inwhichlocreg(iiorb)
+      !!    ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!    tt=tt+ddot(ncount, lphi(ist), 1, lhphi(ist), 1)/ddot(ncount, lphi(ist), 1, lphi(ist), 1)
+      !!    ist=ist+ncount
+      !!end do
+      !!call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+      !!if(iproc==0) write(*,*) 'after SD/DIIS', tt
+      !!iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
+      !!deallocate(lin%lzd%doHamAppl, stat=istat)
+      !!call memocc(istat, iall, 'lin%lzd%doHamAppl', subname)
+      !!! ###################################################################################
 
 
 
@@ -4256,15 +4256,15 @@ real(8),dimension(0:3),parameter:: scal=1.d0
 
      ist_f=ist_f+lzd%llr(ilr)%wfd%nvctr_c
 
-     call allocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, 1, lzd%llr(ilr)%d, work)
+     !!call allocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, 1, lzd%llr(ilr)%d, work)
      call allocate_workarrays_quartic_convolutions(lzd%llr(ilr), subname, work_conv)
 
      ! Not sure whether these work arrays really have to be set to zero
-     work%xpsig_c=0.d0
-     work%xpsig_f=0.d0
-     work%x_f1=0.d0
-     work%x_f2=0.d0
-     work%x_f3=0.d0
+     !!work%xpsig_c=0.d0
+     !!work%xpsig_f=0.d0
+     !!work%x_f1=0.d0
+     !!work%x_f2=0.d0
+     !!work%x_f3=0.d0
 
 
      !!call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
@@ -4353,7 +4353,7 @@ real(8),dimension(0:3),parameter:: scal=1.d0
      !!     scal, work%ypsig_c, work%ypsig_f, vpsi(ist_c), vpsi(ist_f))
 
 
-     call deallocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, 1, work)
+     !!call deallocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, 1, work)
      call deallocate_workarrays_quartic_convolutions(lzd%llr(ilr), subname, work_conv)
 
      ist_f = ist_f + 7*lzd%llr(ilr)%wfd%nvctr_f
