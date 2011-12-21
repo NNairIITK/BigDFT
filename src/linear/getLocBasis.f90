@@ -4267,19 +4267,7 @@ real(8),dimension(0:3),parameter:: scal=1.d0
      work%x_f3=0.d0
 
 
-     call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-          lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-          lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-          lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
-          lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
-          lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv,  & 
-          lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
-          lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-          lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
-          scal, psi(ist_c), psi(ist_f), work%xpsig_c, work%xpsig_f, &
-          work%x_f1, work%x_f2, work%x_f3)
-     !!t1=mpi_wtime()
-     !!call uncompress_for_quartic_convolutions(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+     !!call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
      !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
      !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
      !!     lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
@@ -4288,8 +4276,20 @@ real(8),dimension(0:3),parameter:: scal=1.d0
      !!     lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
      !!     lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
      !!     lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
-     !!     scal, psi(ist_c), psi(ist_f), &
-     !!     work_conv)
+     !!     scal, psi(ist_c), psi(ist_f), work%xpsig_c, work%xpsig_f, &
+     !!     work%x_f1, work%x_f2, work%x_f3)
+     !!t1=mpi_wtime()
+     call uncompress_for_quartic_convolutions(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+          lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+          lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+          lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+          lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
+          lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv,  & 
+          lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+          lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+          lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
+          scal, psi(ist_c), psi(ist_f), &
+          work_conv)
      !!t2=mpi_wtime()
      !!time=t2-t1
      !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
@@ -4297,34 +4297,31 @@ real(8),dimension(0:3),parameter:: scal=1.d0
 
 
      !!t1=mpi_wtime()
-      !!call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-      !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-      !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-      !!     lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
-      !!     input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
-      !!     lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
-      !!     lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
-      !!     rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
-      !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f2, work_conv%xx_f3, &
-      !!     work_conv%xx_f4, work_conv%xx_f5, work_conv%xx_f6, work_conv%xx_f7, work_conv%xx_f, &
-      !!     work_conv%xy_c, work_conv%xy_f1, work_conv%xy_f2, work_conv%xy_f3, &
-      !!     work_conv%xy_f4, work_conv%xy_f5, work_conv%xy_f6, work_conv%xy_f7, work_conv%xy_f, &
-      !!     work_conv%xz_c, work_conv%xz_f1, work_conv%xz_f2, work_conv%xz_f3, &
-      !!     work_conv%xz_f4, work_conv%xz_f5, work_conv%xz_f6, work_conv%xz_f7, work_conv%xz_f, &
-      !!     work_conv%y_c, work_conv%y_f)
-
-
-
-      call ConvolQuartic3(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+      call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
            lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
            lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
            lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
            input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
            lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
            lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
-           work%xpsig_c, work%xpsig_f, work%ypsig_c, work%ypsig_f, &
-           work%x_f1, work%x_f2, work%x_f3, rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), 1, &
-           .false., 0.d0)
+           rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
+           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+           work_conv%y_c, work_conv%y_f)
+
+
+
+      !!call ConvolQuartic3(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+      !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+      !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+      !!     lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
+      !!     input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+      !!     lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+      !!     lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+      !!     work%xpsig_c, work%xpsig_f, work%ypsig_c, work%ypsig_f, &
+      !!     work%x_f1, work%x_f2, work%x_f3, rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), 1, &
+      !!     .false., 0.d0)
 
 
 
@@ -4334,16 +4331,6 @@ real(8),dimension(0:3),parameter:: scal=1.d0
      !!if(iproc==0) write(*,*) 'time for convolution:',time
 
 
-     !!call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-     !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-     !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-     !!     lzd%llr(Ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
-     !!     lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
-     !!     lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv,  & 
-     !!     lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
-     !!     lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-     !!     lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
-     !!     scal, work_conv%y_c, work_conv%y_f, vpsi(ist_c), vpsi(ist_f))
      call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
           lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
@@ -4353,7 +4340,17 @@ real(8),dimension(0:3),parameter:: scal=1.d0
           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
           lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
-          scal, work%ypsig_c, work%ypsig_f, vpsi(ist_c), vpsi(ist_f))
+          scal, work_conv%y_c, work_conv%y_f, vpsi(ist_c), vpsi(ist_f))
+     !!call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+     !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+     !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+     !!     lzd%llr(Ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+     !!     lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
+     !!     lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv,  & 
+     !!     lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+     !!     lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+     !!     lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
+     !!     scal, work%ypsig_c, work%ypsig_f, vpsi(ist_c), vpsi(ist_f))
 
 
      call deallocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, 1, work)

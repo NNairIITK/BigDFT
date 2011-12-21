@@ -4725,7 +4725,7 @@ real(8):: tt7b0, tt7b1, tt7b2, tt7b3
 real(8):: tt7c0, tt7c1, tt7c2, tt7c3
 real(8):: tt7e0, tt7e1, tt7e2, tt7e3
 
-real(8):: t1, t2, time, t3, t4
+real(8):: t1, t2, time, t3, t4, ttt1, ttt2, time2
 
 
   scale=-.5_wp/real(hgrid**2,wp)
@@ -5095,7 +5095,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
         call getFilterQuadratic(it, 1.d0, hgrid, x0, eeff0_2auxarray(lowfil,i1), 'e')
     end do
 
-t1=mpi_wtime()
+!t1=mpi_wtime()
     do i3=0,n3
        do i2=0,n2
           if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -5308,9 +5308,9 @@ t1=mpi_wtime()
     enddo
     !!!$omp enddo
   
-t3=mpi_wtime()
-time=t3-t1
-write(*,*) 'old: time for coarse part:', time
+!t3=mpi_wtime()
+!time=t3-t1
+!write(*,*) 'old: time for coarse part:', time
   
   
   
@@ -5471,9 +5471,9 @@ write(*,*) 'old: time for coarse part:', time
   !!      end do
   !!  end do
   
-t2=mpi_wtime()
-time=t2-t1
-write(*,*) 'old version: time for x part',time
+!t2=mpi_wtime()
+!time=t2-t1
+!write(*,*) 'old version: time for x part',time
   
   
 
@@ -5506,7 +5506,7 @@ write(*,*) 'old version: time for x part',time
     !  call system_clock(ncount1,ncount_rate,ncount_max)
     !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
     !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
-t1=mpi_wtime()
+!t1=mpi_wtime()
   
     ! + (1/2) d^2/dy^2
     !!!$omp do
@@ -5969,9 +5969,9 @@ t1=mpi_wtime()
     enddo
     !!!$omp enddo
 
-t2=mpi_wtime()
-time=t2-t1
-write(*,*) 'old version: time for y part',time
+!t2=mpi_wtime()
+!time=t2-t1
+!write(*,*) 'old version: time for y part',time
 
 
 
@@ -6001,7 +6001,8 @@ write(*,*) 'old version: time for y part',time
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:y',tel,1.d-6*mflop2/tel
 
   ! + (1/2) d^2/dz^2
-t1=mpi_wtime()
+!t1=mpi_wtime()
+!time2=0.d0
 
   !!!$omp do
   do i2=0,n2
@@ -6053,8 +6054,10 @@ t1=mpi_wtime()
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi0
         enddo
+
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
         iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
+        !ttt1=mpi_wtime()
 
         if (istart-iend.ge.4) then
            do i3=istart,iend-4,4
@@ -6119,6 +6122,8 @@ t1=mpi_wtime()
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi0
         enddo
+        !ttt2=mpi_wtime()
+        !time2=time2+ttt2-ttt1
 
          if (ibxy_f(2,i1,i2)-ibxy_f(1,i1,i2).ge.4) then
            do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)-4,4
@@ -6262,6 +6267,9 @@ t1=mpi_wtime()
      enddo
   enddo
   !!!$omp enddo
+!t3=mpi_wtime()
+!time=t3-t1
+!write(*,*) 'old: time for coarse part z:',time, time2
 
 
   ! wavelet part
@@ -6345,9 +6353,9 @@ t1=mpi_wtime()
   !!!$omp enddo
   
 
-t2=mpi_wtime()
-time=t2-t1
-write(*,*) 'old version: time for z part',time
+!t2=mpi_wtime()
+!time=t2-t1
+!write(*,*) 'old version: time for z part',time
 
 
 
@@ -6616,7 +6624,7 @@ real(8):: tt7c0, tt7c1, tt7c2, tt7c3
 real(8):: tt7e0, tt7e1, tt7e2, tt7e3
 
 integer:: it=1!debug
-real(8):: t1, t2, time, t3, t4
+real(8):: t1, t2, time, t3, t4, ttt1, ttt2, time2
 
 
   scale=-.5_wp/real(hgrid**2,wp)
@@ -6898,96 +6906,96 @@ xyb_c=0.d0
 xyc_c=0.d0
 xye_c=0.d0
 
-allocate(xya_f1(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xya_f1, 'xya_f1', subname)
-allocate(xyb_f1(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyb_f1, 'xyb_f1', subname)
-allocate(xyc_f1(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyc_f1, 'xyc_f1', subname)
-allocate(xye_f1(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xye_f1, 'xye_f1', subname)
-xya_f1=0.d0
-xyb_f1=0.d0
-xyc_f1=0.d0
-xye_f1=0.d0
-
-allocate(xya_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xya_f2, 'xya_f2', subname)
-allocate(xyb_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyb_f2, 'xyb_f2', subname)
-allocate(xyc_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyc_f2, 'xyc_f2', subname)
-allocate(xye_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xye_f2, 'xye_f2', subname)
-xya_f2=0.d0
-xyb_f2=0.d0
-xyc_f2=0.d0
-xye_f2=0.d0
-
-allocate(xya_f3(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xya_f3, 'xya_f3', subname)
-allocate(xyb_f3(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyb_f3, 'xyb_f3', subname)
-allocate(xyc_f3(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyc_f3, 'xyc_f3', subname)
-allocate(xye_f3(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xye_f3, 'xye_f3', subname)
-xya_f3=0.d0
-xyb_f3=0.d0
-xyc_f3=0.d0
-xye_f3=0.d0
-
-allocate(xya_f4(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xya_f4, 'xya_f4', subname)
-allocate(xyb_f4(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyb_f4, 'xyb_f4', subname)
-allocate(xyc_f4(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyc_f4, 'xyc_f4', subname)
-allocate(xye_f4(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xye_f4, 'xye_f4', subname)
-xya_f4=0.d0
-xyb_f4=0.d0
-xyc_f4=0.d0
-xye_f4=0.d0
-
-allocate(xya_f5(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xya_f5, 'xya_f5', subname)
-allocate(xyb_f5(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyb_f5, 'xyb_f5', subname)
-allocate(xyc_f5(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyc_f5, 'xyc_f5', subname)
-allocate(xye_f5(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xye_f5, 'xye_f5', subname)
-xya_f5=0.d0
-xyb_f5=0.d0
-xyc_f5=0.d0
-xye_f5=0.d0
-
-allocate(xya_f6(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xya_f6, 'xya_f6', subname)
-allocate(xyb_f6(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyb_f6, 'xyb_f6', subname)
-allocate(xyc_f6(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyc_f6, 'xyc_f6', subname)
-allocate(xye_f6(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xye_f6, 'xye_f6', subname)
-xya_f6=0.d0
-xyb_f6=0.d0
-xyc_f6=0.d0
-xye_f6=0.d0
-
-allocate(xya_f7(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xya_f7, 'xya_f7', subname)
-allocate(xyb_f7(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyb_f7, 'xyb_f7', subname)
-allocate(xyc_f7(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xyc_f7, 'xyc_f7', subname)
-allocate(xye_f7(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-call memocc(istat, xye_f7, 'xye_f7', subname)
-xya_f7=0.d0
-xyb_f7=0.d0
-xyc_f7=0.d0
-xye_f7=0.d0
+!!!allocate(xya_f1(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xya_f1, 'xya_f1', subname)
+!!!allocate(xyb_f1(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyb_f1, 'xyb_f1', subname)
+!!!allocate(xyc_f1(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyc_f1, 'xyc_f1', subname)
+!!!allocate(xye_f1(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xye_f1, 'xye_f1', subname)
+!!!xya_f1=0.d0
+!!!xyb_f1=0.d0
+!!!xyc_f1=0.d0
+!!!xye_f1=0.d0
+!!!
+!!!allocate(xya_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xya_f2, 'xya_f2', subname)
+!!!allocate(xyb_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyb_f2, 'xyb_f2', subname)
+!!!allocate(xyc_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyc_f2, 'xyc_f2', subname)
+!!!allocate(xye_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xye_f2, 'xye_f2', subname)
+!!!xya_f2=0.d0
+!!!xyb_f2=0.d0
+!!!xyc_f2=0.d0
+!!!xye_f2=0.d0
+!!!
+!!!allocate(xya_f3(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xya_f3, 'xya_f3', subname)
+!!!allocate(xyb_f3(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyb_f3, 'xyb_f3', subname)
+!!!allocate(xyc_f3(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyc_f3, 'xyc_f3', subname)
+!!!allocate(xye_f3(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xye_f3, 'xye_f3', subname)
+!!!xya_f3=0.d0
+!!!xyb_f3=0.d0
+!!!xyc_f3=0.d0
+!!!xye_f3=0.d0
+!!!
+!!!allocate(xya_f4(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xya_f4, 'xya_f4', subname)
+!!!allocate(xyb_f4(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyb_f4, 'xyb_f4', subname)
+!!!allocate(xyc_f4(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyc_f4, 'xyc_f4', subname)
+!!!allocate(xye_f4(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xye_f4, 'xye_f4', subname)
+!!!xya_f4=0.d0
+!!!xyb_f4=0.d0
+!!!xyc_f4=0.d0
+!!!xye_f4=0.d0
+!!!
+!!!allocate(xya_f5(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xya_f5, 'xya_f5', subname)
+!!!allocate(xyb_f5(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyb_f5, 'xyb_f5', subname)
+!!!allocate(xyc_f5(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyc_f5, 'xyc_f5', subname)
+!!!allocate(xye_f5(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xye_f5, 'xye_f5', subname)
+!!!xya_f5=0.d0
+!!!xyb_f5=0.d0
+!!!xyc_f5=0.d0
+!!!xye_f5=0.d0
+!!!
+!!!allocate(xya_f6(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xya_f6, 'xya_f6', subname)
+!!!allocate(xyb_f6(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyb_f6, 'xyb_f6', subname)
+!!!allocate(xyc_f6(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyc_f6, 'xyc_f6', subname)
+!!!allocate(xye_f6(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xye_f6, 'xye_f6', subname)
+!!!xya_f6=0.d0
+!!!xyb_f6=0.d0
+!!!xyc_f6=0.d0
+!!!xye_f6=0.d0
+!!!
+!!!allocate(xya_f7(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xya_f7, 'xya_f7', subname)
+!!!allocate(xyb_f7(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyb_f7, 'xyb_f7', subname)
+!!!allocate(xyc_f7(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xyc_f7, 'xyc_f7', subname)
+!!!allocate(xye_f7(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
+!!!call memocc(istat, xye_f7, 'xye_f7', subname)
+!!!xya_f7=0.d0
+!!!xyb_f7=0.d0
+!!!xyc_f7=0.d0
+!!!xye_f7=0.d0
 
 
 
@@ -7009,96 +7017,96 @@ xzc_c=0.d0
 xze_c=0.d0
 
 
-allocate(xza_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xza_f1, 'xza_f1', subname)
-allocate(xzb_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzb_f1, 'xzb_f1', subname)
-allocate(xzc_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzc_f1, 'xzc_f1', subname)
-allocate(xze_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xze_f1, 'xze_f1', subname)
-xza_f1=0.d0
-xzb_f1=0.d0
-xzc_f1=0.d0
-xze_f1=0.d0
-
-allocate(xza_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xza_f2, 'xza_f2', subname)
-allocate(xzb_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzb_f2, 'xzb_f2', subname)
-allocate(xzc_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzc_f2, 'xzc_f2', subname)
-allocate(xze_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xze_f2, 'xze_f2', subname)
-xza_f2=0.d0
-xzb_f2=0.d0
-xzc_f2=0.d0
-xze_f2=0.d0
-
-allocate(xza_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xza_f3, 'xza_f3', subname)
-allocate(xzb_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzb_f3, 'xzb_f3', subname)
-allocate(xzc_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzc_f3, 'xzc_f3', subname)
-allocate(xze_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xze_f3, 'xze_f3', subname)
-xza_f3=0.d0
-xzb_f3=0.d0
-xzc_f3=0.d0
-xze_f3=0.d0
-
-allocate(xza_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xza_f4, 'xza_f4', subname)
-allocate(xzb_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzb_f4, 'xzb_f4', subname)
-allocate(xzc_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzc_f4, 'xzc_f4', subname)
-allocate(xze_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xze_f4, 'xze_f4', subname)
-xza_f4=0.d0
-xzb_f4=0.d0
-xzc_f4=0.d0
-xze_f4=0.d0
-
-allocate(xza_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xza_f5, 'xza_f5', subname)
-allocate(xzb_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzb_f5, 'xzb_f5', subname)
-allocate(xzc_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzc_f5, 'xzc_f5', subname)
-allocate(xze_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xze_f5, 'xze_f5', subname)
-xza_f5=0.d0
-xzb_f5=0.d0
-xzc_f5=0.d0
-xze_f5=0.d0
-
-allocate(xza_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xza_f6, 'xza_f6', subname)
-allocate(xzb_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzb_f6, 'xzb_f6', subname)
-allocate(xzc_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzc_f6, 'xzc_f6', subname)
-allocate(xze_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xze_f6, 'xze_f6', subname)
-xza_f6=0.d0
-xzb_f6=0.d0
-xzc_f6=0.d0
-xze_f6=0.d0
-
-allocate(xza_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xza_f7, 'xza_f7', subname)
-allocate(xzb_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzb_f7, 'xzb_f7', subname)
-allocate(xzc_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xzc_f7, 'xzc_f7', subname)
-allocate(xze_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, xze_f7, 'xze_f7', subname)
-xza_f7=0.d0
-xzb_f7=0.d0
-xzc_f7=0.d0
-xze_f7=0.d0
+!!allocate(xza_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xza_f1, 'xza_f1', subname)
+!!allocate(xzb_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzb_f1, 'xzb_f1', subname)
+!!allocate(xzc_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzc_f1, 'xzc_f1', subname)
+!!allocate(xze_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xze_f1, 'xze_f1', subname)
+!!xza_f1=0.d0
+!!xzb_f1=0.d0
+!!xzc_f1=0.d0
+!!xze_f1=0.d0
+!!
+!!allocate(xza_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xza_f2, 'xza_f2', subname)
+!!allocate(xzb_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzb_f2, 'xzb_f2', subname)
+!!allocate(xzc_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzc_f2, 'xzc_f2', subname)
+!!allocate(xze_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xze_f2, 'xze_f2', subname)
+!!xza_f2=0.d0
+!!xzb_f2=0.d0
+!!xzc_f2=0.d0
+!!xze_f2=0.d0
+!!
+!!allocate(xza_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xza_f3, 'xza_f3', subname)
+!!allocate(xzb_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzb_f3, 'xzb_f3', subname)
+!!allocate(xzc_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzc_f3, 'xzc_f3', subname)
+!!allocate(xze_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xze_f3, 'xze_f3', subname)
+!!xza_f3=0.d0
+!!xzb_f3=0.d0
+!!xzc_f3=0.d0
+!!xze_f3=0.d0
+!!
+!!allocate(xza_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xza_f4, 'xza_f4', subname)
+!!allocate(xzb_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzb_f4, 'xzb_f4', subname)
+!!allocate(xzc_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzc_f4, 'xzc_f4', subname)
+!!allocate(xze_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xze_f4, 'xze_f4', subname)
+!!xza_f4=0.d0
+!!xzb_f4=0.d0
+!!xzc_f4=0.d0
+!!xze_f4=0.d0
+!!
+!!allocate(xza_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xza_f5, 'xza_f5', subname)
+!!allocate(xzb_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzb_f5, 'xzb_f5', subname)
+!!allocate(xzc_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzc_f5, 'xzc_f5', subname)
+!!allocate(xze_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xze_f5, 'xze_f5', subname)
+!!xza_f5=0.d0
+!!xzb_f5=0.d0
+!!xzc_f5=0.d0
+!!xze_f5=0.d0
+!!
+!!allocate(xza_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xza_f6, 'xza_f6', subname)
+!!allocate(xzb_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzb_f6, 'xzb_f6', subname)
+!!allocate(xzc_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzc_f6, 'xzc_f6', subname)
+!!allocate(xze_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xze_f6, 'xze_f6', subname)
+!!xza_f6=0.d0
+!!xzb_f6=0.d0
+!!xzc_f6=0.d0
+!!xze_f6=0.d0
+!!
+!!allocate(xza_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xza_f7, 'xza_f7', subname)
+!!allocate(xzb_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzb_f7, 'xzb_f7', subname)
+!!allocate(xzc_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xzc_f7, 'xzc_f7', subname)
+!!allocate(xze_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, xze_f7, 'xze_f7', subname)
+!!xza_f7=0.d0
+!!xzb_f7=0.d0
+!!xzc_f7=0.d0
+!!xze_f7=0.d0
 
 
 
@@ -7125,101 +7133,101 @@ yze_c=0.d0
 !!call memocc(istat, yze_f, 'yze_f', subname)
 
 
-allocate(yza_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yza_f1, 'yza_f1', subname)
-allocate(yzb_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzb_f1, 'yzb_f1', subname)
-allocate(yzc_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzc_f1, 'yzc_f1', subname)
-allocate(yze_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yze_f1, 'yze_f1', subname)
-yza_f1=0.d0
-yzb_f1=0.d0
-yzc_f1=0.d0
-yze_f1=0.d0
-
-allocate(yza_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yza_f2, 'yza_f2', subname)
-allocate(yzb_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzb_f2, 'yzb_f2', subname)
-allocate(yzc_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzc_f2, 'yzc_f2', subname)
-allocate(yze_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yze_f2, 'yze_f2', subname)
-yza_f2=0.d0
-yzb_f2=0.d0
-yzc_f2=0.d0
-yze_f2=0.d0
-
-
-allocate(yza_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yza_f3, 'yza_f3', subname)
-allocate(yzb_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzb_f3, 'yzb_f3', subname)
-allocate(yzc_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzc_f3, 'yzc_f3', subname)
-allocate(yze_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yze_f3, 'yze_f3', subname)
-yza_f3=0.d0
-yzb_f3=0.d0
-yzc_f3=0.d0
-yze_f3=0.d0
-
-
-allocate(yza_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yza_f4, 'yza_f4', subname)
-allocate(yzb_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzb_f4, 'yzb_f4', subname)
-allocate(yzc_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzc_f4, 'yzc_f4', subname)
-allocate(yze_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yze_f4, 'yze_f4', subname)
-yza_f4=0.d0
-yzb_f4=0.d0
-yzc_f4=0.d0
-yze_f4=0.d0
-
-
-allocate(yza_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yza_f5, 'yza_f5', subname)
-allocate(yzb_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzb_f5, 'yzb_f5', subname)
-allocate(yzc_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzc_f5, 'yzc_f5', subname)
-allocate(yze_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yze_f5, 'yze_f5', subname)
-yza_f5=0.d0
-yzb_f5=0.d0
-yzc_f5=0.d0
-yze_f5=0.d0
-
-
-allocate(yza_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yza_f6, 'yza_f6', subname)
-allocate(yzb_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzb_f6, 'yzb_f6', subname)
-allocate(yzc_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzc_f6, 'yzc_f6', subname)
-allocate(yze_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yze_f6, 'yze_f6', subname)
-yza_f6=0.d0
-yzb_f6=0.d0
-yzc_f6=0.d0
-yze_f6=0.d0
-
-
-allocate(yza_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yza_f7, 'yza_f7', subname)
-allocate(yzb_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzb_f7, 'yzb_f7', subname)
-allocate(yzc_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yzc_f7, 'yzc_f7', subname)
-allocate(yze_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-call memocc(istat, yze_f7, 'yze_f7', subname)
-yza_f7=0.d0
-yzb_f7=0.d0
-yzc_f7=0.d0
-yze_f7=0.d0
+!!allocate(yza_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yza_f1, 'yza_f1', subname)
+!!allocate(yzb_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzb_f1, 'yzb_f1', subname)
+!!allocate(yzc_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzc_f1, 'yzc_f1', subname)
+!!allocate(yze_f1(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yze_f1, 'yze_f1', subname)
+!!yza_f1=0.d0
+!!yzb_f1=0.d0
+!!yzc_f1=0.d0
+!!yze_f1=0.d0
+!!
+!!allocate(yza_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yza_f2, 'yza_f2', subname)
+!!allocate(yzb_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzb_f2, 'yzb_f2', subname)
+!!allocate(yzc_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzc_f2, 'yzc_f2', subname)
+!!allocate(yze_f2(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yze_f2, 'yze_f2', subname)
+!!yza_f2=0.d0
+!!yzb_f2=0.d0
+!!yzc_f2=0.d0
+!!yze_f2=0.d0
+!!
+!!
+!!allocate(yza_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yza_f3, 'yza_f3', subname)
+!!allocate(yzb_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzb_f3, 'yzb_f3', subname)
+!!allocate(yzc_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzc_f3, 'yzc_f3', subname)
+!!allocate(yze_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yze_f3, 'yze_f3', subname)
+!!yza_f3=0.d0
+!!yzb_f3=0.d0
+!!yzc_f3=0.d0
+!!yze_f3=0.d0
+!!
+!!
+!!allocate(yza_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yza_f4, 'yza_f4', subname)
+!!allocate(yzb_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzb_f4, 'yzb_f4', subname)
+!!allocate(yzc_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzc_f4, 'yzc_f4', subname)
+!!allocate(yze_f4(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yze_f4, 'yze_f4', subname)
+!!yza_f4=0.d0
+!!yzb_f4=0.d0
+!!yzc_f4=0.d0
+!!yze_f4=0.d0
+!!
+!!
+!!allocate(yza_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yza_f5, 'yza_f5', subname)
+!!allocate(yzb_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzb_f5, 'yzb_f5', subname)
+!!allocate(yzc_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzc_f5, 'yzc_f5', subname)
+!!allocate(yze_f5(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yze_f5, 'yze_f5', subname)
+!!yza_f5=0.d0
+!!yzb_f5=0.d0
+!!yzc_f5=0.d0
+!!yze_f5=0.d0
+!!
+!!
+!!allocate(yza_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yza_f6, 'yza_f6', subname)
+!!allocate(yzb_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzb_f6, 'yzb_f6', subname)
+!!allocate(yzc_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzc_f6, 'yzc_f6', subname)
+!!allocate(yze_f6(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yze_f6, 'yze_f6', subname)
+!!yza_f6=0.d0
+!!yzb_f6=0.d0
+!!yzc_f6=0.d0
+!!yze_f6=0.d0
+!!
+!!
+!!allocate(yza_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yza_f7, 'yza_f7', subname)
+!!allocate(yzb_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzb_f7, 'yzb_f7', subname)
+!!allocate(yzc_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yzc_f7, 'yzc_f7', subname)
+!!allocate(yze_f7(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
+!!call memocc(istat, yze_f7, 'yze_f7', subname)
+!!yza_f7=0.d0
+!!yzb_f7=0.d0
+!!yzc_f7=0.d0
+!!yze_f7=0.d0
 
 
 
@@ -7273,7 +7281,7 @@ yze_f=0.d0
 !!call memocc(istat, xc_c, 'xc_c', subname)
 !!allocate(xe_c(0:n1,0:n2,0:n3), stat=istat)
 !!call memocc(istat, xe_c, 'xe_c', subname)
-!!
+
 !!allocate(xa_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), stat=istat)
 !!call memocc(istat, xa_f, 'xa_f', subname)
 !!allocate(xb_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), stat=istat)
@@ -7454,7 +7462,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
         call getFilterQuadratic(it, 1.d0, hgrid, x0, ceff0_2auxarray(lowfil,i1), 'c')
         call getFilterQuadratic(it, 1.d0, hgrid, x0, eeff0_2auxarray(lowfil,i1), 'e')
     end do
-t1=mpi_wtime()
+!t1=mpi_wtime()
     do i3=0,n3
        do i2=0,n2
           if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -7710,9 +7718,9 @@ t1=mpi_wtime()
        enddo
     enddo
     !!!$omp enddo
- t3=mpi_wtime()
-time=t3-t1
-write(*,*) 'new: time for coarse part:', time
+!t3=mpi_wtime()
+!time=t3-t1
+!write(*,*) 'new: time for coarse part:', time
   
   
   
@@ -7826,8 +7834,10 @@ write(*,*) 'new: time for coarse part:', time
              ! dss coefficients
              !xyb_f1(i2,i1,i3)=tt1b0
              xyb_f(1,i2,i1,i3)=tt1b0
+             !xb_f(1,i1,i2,i3)=tt1b0
              !xye_f1(i2,i1,i3)=tt1e0
              xye_f(1,i2,i1,i3)=tt1e0
+             !xe_f(1,i1,i2,i3)=tt1e0
              !xzb_f1(i3,i1,i2)=tt1b0
              xzb_f(1,i3,i1,i2)=tt1b0
              !xze_f1(i3,i1,i2)=tt1e0
@@ -7835,8 +7845,10 @@ write(*,*) 'new: time for coarse part:', time
              ! sds coefficients
              !xya_f2(i2,i1,i3)=tt2a0
              xya_f(1,i2,i1,i3)=tt2a0
+             !xa_f(1,i1,i2,i3)=tt2a0
              !xyc_f2(i2,i1,i3)=tt2c0
              xyc_f(1,i2,i1,i3)=tt2c0
+             !xc_f(1,i1,i2,i3)=tt2c0
              !xza_f2(i3,i1,i2)=tt2a0
              xza_f(1,i3,i1,i2)=tt2a0
              !xzc_f2(i3,i1,i2)=tt2c0
@@ -7844,8 +7856,10 @@ write(*,*) 'new: time for coarse part:', time
              ! dds coefficients
              !xyb_f3(i2,i1,i3)=tt3b0
              xyb_f(2,i2,i1,i3)=tt3b0
+             !xb_f(2,i1,i2,i3)=tt3b0
              !xye_f3(i2,i1,i3)=tt3e0
              xye_f(2,i2,i1,i3)=tt3e0
+             !xe_f(2,i1,i2,i3)=tt3e0
              !xzb_f3(i3,i1,i2)=tt3b0
              xzb_f(2,i3,i1,i2)=tt3b0
              !xze_f3(i3,i1,i2)=tt3e0
@@ -7853,8 +7867,10 @@ write(*,*) 'new: time for coarse part:', time
              ! ssd coefficients
              !xya_f4(i2,i1,i3)=tt4a0
              xya_f(2,i2,i1,i3)=tt4a0
+             !xa_f(2,i1,i2,i3)=tt4a0
              !xyc_f4(i2,i1,i3)=tt4c0
              xyc_f(2,i2,i1,i3)=tt4c0
+             !xc_f(2,i1,i2,i3)=tt4c0
              !xza_f4(i3,i1,i2)=tt4a0
              xza_f(2,i3,i1,i2)=tt4a0
              !xzc_f4(i3,i1,i2)=tt4c0
@@ -7862,8 +7878,10 @@ write(*,*) 'new: time for coarse part:', time
              ! dsd coefficients
              !xyb_f5(i2,i1,i3)=tt5b0
              xyb_f(3,i2,i1,i3)=tt5b0
+             !xb_f(3,i1,i2,i3)=tt5b0
              !xye_f5(i2,i1,i3)=tt5e0
              xye_f(3,i2,i1,i3)=tt5e0
+             !xe_f(3,i1,i2,i3)=tt5e0
              !xzb_f5(i3,i1,i2)=tt5b0
              xzb_f(3,i3,i1,i2)=tt5b0
              !xze_f5(i3,i1,i2)=tt5e0
@@ -7871,8 +7889,10 @@ write(*,*) 'new: time for coarse part:', time
              ! sdd coefficients
              !xya_f6(i2,i1,i3)=tt6a0
              xya_f(3,i2,i1,i3)=tt6a0
+             !xa_f(3,i1,i2,i3)=tt6a0
              !xyc_f6(i2,i1,i3)=tt6c0
              xyc_f(3,i2,i1,i3)=tt6c0
+             !xc_f(3,i1,i2,i3)=tt6c0
              !xza_f6(i3,i1,i2)=tt6a0
              xza_f(3,i3,i1,i2)=tt6a0
              !xzc_f6(i3,i1,i2)=tt6c0
@@ -7880,8 +7900,10 @@ write(*,*) 'new: time for coarse part:', time
              ! sdd coefficients
              !xyb_f7(i2,i1,i3)=tt7b0
              xyb_f(4,i2,i1,i3)=tt7b0
+             !xb_f(4,i1,i2,i3)=tt7b0
              !xye_f7(i2,i1,i3)=tt7e0
              xye_f(4,i2,i1,i3)=tt7e0
+             !xe_f(4,i1,i2,i3)=tt7e0
              !xzb_f7(i3,i1,i2)=tt7b0
              xzb_f(4,i3,i1,i2)=tt7b0
              !xze_f7(i3,i1,i2)=tt7e0
@@ -7890,6 +7912,78 @@ write(*,*) 'new: time for coarse part:', time
        enddo
     enddo
     !!!$omp enddo
+
+
+    !!! Rearrange for better memory access
+    !!do i3=nfl3,nfu3
+    !!    do i2=nfl2,nfu2
+    !!        do i1=nfl1,nfu1
+
+    !!         xya_f(1,i2,i1,i3)=xa_f(1,i1,i2,i3)
+    !!         xya_f(2,i2,i1,i3)=xa_f(1,i1,i2,i3)
+    !!         xya_f(3,i2,i1,i3)=xa_f(3,i1,i2,i3)
+
+    !!         xyb_f(1,i2,i1,i3)=xb_f(1,i1,i2,i3)
+    !!         xyb_f(2,i2,i1,i3)=xb_f(2,i1,i2,i3)
+    !!         xyb_f(3,i2,i1,i3)=xb_f(3,i1,i2,i3)
+    !!         xyb_f(4,i2,i1,i3)=xb_f(4,i1,i2,i3)
+
+    !!         xyc_f(1,i2,i1,i3)=xc_f(1,i1,i2,i3)
+    !!         xyc_f(2,i2,i1,i3)=xc_f(2,i1,i2,i3)
+    !!         xyc_f(3,i2,i1,i3)=xc_f(3,i1,i2,i3)
+
+    !!         xye_f(1,i2,i1,i3)=xe_f(1,i1,i2,i3)
+    !!         xye_f(2,i2,i1,i3)=xe_f(2,i1,i2,i3)
+    !!         xye_f(3,i2,i1,i3)=xe_f(3,i1,i2,i3)
+    !!         xye_f(4,i2,i1,i3)=xe_f(4,i1,i2,i3)
+
+
+    !!         xza_f(1,i3,i1,i2)=xa_f(1,i1,i2,i3)
+    !!         xza_f(2,i3,i1,i2)=xa_f(1,i1,i2,i3)
+    !!         xza_f(3,i3,i1,i2)=xa_f(3,i1,i2,i3)
+
+    !!         xzb_f(1,i3,i1,i2)=xb_f(1,i1,i2,i3)
+    !!         xzb_f(2,i3,i1,i2)=xb_f(2,i1,i2,i3)
+    !!         xzb_f(3,i3,i1,i2)=xb_f(3,i1,i2,i3)
+    !!         xzb_f(4,i3,i1,i2)=xb_f(4,i1,i2,i3)
+
+    !!         xzc_f(1,i3,i1,i2)=xc_f(1,i1,i2,i3)
+    !!         xzc_f(2,i3,i1,i2)=xc_f(2,i1,i2,i3)
+    !!         xzc_f(3,i3,i1,i2)=xc_f(3,i1,i2,i3)
+
+    !!         xze_f(1,i3,i1,i2)=xe_f(1,i1,i2,i3)
+    !!         xze_f(2,i3,i1,i2)=xe_f(2,i1,i2,i3)
+    !!         xze_f(3,i3,i1,i2)=xe_f(3,i1,i2,i3)
+    !!         xze_f(4,i3,i1,i2)=xe_f(4,i1,i2,i3)
+    !!        end do
+    !!    end do
+    !!end do
+
+
+    !!do i3=nfl3,nfu3
+    !!    do i2=nfl2,nfu2
+    !!        do i1=,fl1,nfu1
+
+    !!         xya_f(1,i2,i1,i3)=xa_f(1,i1,i2,i3)
+    !!         xya_f(2,i2,i1,i3)=xa_f(1,i1,i2,i3)
+    !!         xya_f(3,i2,i1,i3)=xa_f(3,i1,i2,i3)
+
+    !!         xyb_f(1,i2,i1,i3)=xb_f(1,i1,i2,i3)
+    !!         xyb_f(2,i2,i1,i3)=xb_f(2,i1,i2,i3)
+    !!         xyb_f(3,i2,i1,i3)=xb_f(3,i1,i2,i3)
+    !!         xyb_f(4,i2,i1,i3)=xb_f(4,i1,i2,i3)
+
+    !!         xyc_f(1,i2,i1,i3)=xc_f(1,i1,i2,i3)
+    !!         xyc_f(2,i2,i1,i3)=xc_f(2,i1,i2,i3)
+    !!         xyc_f(3,i2,i1,i3)=xc_f(3,i1,i2,i3)
+
+    !!         xye_f(1,i2,i1,i3)=xe_f(1,i1,i2,i3)
+    !!         xye_f(2,i2,i1,i3)=xe_f(2,i1,i2,i3)
+    !!         xye_f(3,i2,i1,i3)=xe_f(3,i1,i2,i3)
+    !!         xye_f(4,i2,i1,i3)=xe_f(4,i1,i2,i3)
+    !!        end do
+    !!    end do
+    !!end do
   
     !  call system_clock(ncount4,ncount_rate,ncount_max)
     !  tel=dble(ncount4-ncount3)/dble(ncount_rate)
@@ -7907,9 +8001,9 @@ write(*,*) 'new: time for coarse part:', time
   !!          end do
   !!      end do
   !!  end do
-t2=mpi_wtime()
-time=t2-t1
-write(*,*) 'new version: time for x part',time
+!t2=mpi_wtime()
+!time=t2-t1
+!write(*,*) 'new version: time for x part',time
   
   
   
@@ -7944,7 +8038,7 @@ write(*,*) 'new version: time for x part',time
     !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
     !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
 
-t1=mpi_wtime()
+!t1=mpi_wtime()
   
     ! + (1/2) d^2/dy^2
     !!!$omp do
@@ -8590,9 +8684,9 @@ t1=mpi_wtime()
     !!!$omp enddo
 
 
-t2=mpi_wtime()
-time=t2-t1
-write(*,*) 'new version: time for y part',time
+!t2=mpi_wtime()
+!time=t2-t1
+!write(*,*) 'new version: time for y part',time
 
 
 
@@ -8622,7 +8716,8 @@ write(*,*) 'new version: time for y part',time
 
   ! + (1/2) d^2/dz^2
 
-t1=mpi_wtime()
+!time2=0.d0
+!t1=mpi_wtime()
   !!!$omp do
   do i2=0,n2
      do i1=0,n1
@@ -8683,9 +8778,11 @@ t1=mpi_wtime()
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi0
         enddo
+
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
         iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 
+        !ttt1=mpi_wtime()
         if (istart-iend.ge.4) then
            do i3=istart,iend-4,4
               dyi0=0.0_wp
@@ -8764,6 +8861,8 @@ t1=mpi_wtime()
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi0
         enddo
+        !ttt2=mpi_wtime()
+        !time2=time2+ttt2-ttt1
 
          if (ibxy_f(2,i1,i2)-ibxy_f(1,i1,i2).ge.4) then
            do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)-4,4
@@ -8949,6 +9048,9 @@ t1=mpi_wtime()
   enddo
   !!!$omp enddo
 
+!t3=mpi_wtime()
+!time=t3-t1
+!write(*,*) 'new: time for coarse part z:',time, time2
 
   ! wavelet part
 
@@ -9101,9 +9203,9 @@ t1=mpi_wtime()
   !!!$omp enddo
 
 
-t2=mpi_wtime()
-time=t2-t1
-write(*,*) 'new version: time for z part',time
+!t2=mpi_wtime()
+!time=t2-t1
+!write(*,*) 'new version: time for z part',time
 
 
 
@@ -9176,96 +9278,96 @@ write(*,*) 'new version: time for z part',time
   call memocc(istat, iall, 'xye_c', subname)
 
 
-  iall=-product(shape(xya_f1))*kind(xya_f1)
-  deallocate(xya_f1, stat=istat)
-  call memocc(istat, iall, 'xya_f1', subname)
-  iall=-product(shape(xyb_f1))*kind(xyb_f1)
-  deallocate(xyb_f1, stat=istat)
-  call memocc(istat, iall, 'xyb_f1', subname)
-  iall=-product(shape(xyc_f1))*kind(xyc_f1)
-  deallocate(xyc_f1, stat=istat)
-  call memocc(istat, iall, 'xyc_f1', subname)
-  iall=-product(shape(xye_f1))*kind(xye_f1)
-  deallocate(xye_f1, stat=istat)
-  call memocc(istat, iall, 'xye_f1', subname)
+  !!iall=-product(shape(xya_f1))*kind(xya_f1)
+  !!deallocate(xya_f1, stat=istat)
+  !!call memocc(istat, iall, 'xya_f1', subname)
+  !!iall=-product(shape(xyb_f1))*kind(xyb_f1)
+  !!deallocate(xyb_f1, stat=istat)
+  !!call memocc(istat, iall, 'xyb_f1', subname)
+  !!iall=-product(shape(xyc_f1))*kind(xyc_f1)
+  !!deallocate(xyc_f1, stat=istat)
+  !!call memocc(istat, iall, 'xyc_f1', subname)
+  !!iall=-product(shape(xye_f1))*kind(xye_f1)
+  !!deallocate(xye_f1, stat=istat)
+  !!call memocc(istat, iall, 'xye_f1', subname)
 
-  iall=-product(shape(xya_f2))*kind(xya_f2)
-  deallocate(xya_f2, stat=istat)
-  call memocc(istat, iall, 'xya_f2', subname)
-  iall=-product(shape(xyb_f2))*kind(xyb_f2)
-  deallocate(xyb_f2, stat=istat)
-  call memocc(istat, iall, 'xyb_f2', subname)
-  iall=-product(shape(xyc_f2))*kind(xyc_f2)
-  deallocate(xyc_f2, stat=istat)
-  call memocc(istat, iall, 'xyc_f2', subname)
-  iall=-product(shape(xye_f2))*kind(xye_f2)
-  deallocate(xye_f2, stat=istat)
-  call memocc(istat, iall, 'xye_f2', subname)
+  !!iall=-product(shape(xya_f2))*kind(xya_f2)
+  !!deallocate(xya_f2, stat=istat)
+  !!call memocc(istat, iall, 'xya_f2', subname)
+  !!iall=-product(shape(xyb_f2))*kind(xyb_f2)
+  !!deallocate(xyb_f2, stat=istat)
+  !!call memocc(istat, iall, 'xyb_f2', subname)
+  !!iall=-product(shape(xyc_f2))*kind(xyc_f2)
+  !!deallocate(xyc_f2, stat=istat)
+  !!call memocc(istat, iall, 'xyc_f2', subname)
+  !!iall=-product(shape(xye_f2))*kind(xye_f2)
+  !!deallocate(xye_f2, stat=istat)
+  !!call memocc(istat, iall, 'xye_f2', subname)
 
-  iall=-product(shape(xya_f3))*kind(xya_f3)
-  deallocate(xya_f3, stat=istat)
-  call memocc(istat, iall, 'xya_f3', subname)
-  iall=-product(shape(xyb_f3))*kind(xyb_f3)
-  deallocate(xyb_f3, stat=istat)
-  call memocc(istat, iall, 'xyb_f3', subname)
-  iall=-product(shape(xyc_f3))*kind(xyc_f3)
-  deallocate(xyc_f3, stat=istat)
-  call memocc(istat, iall, 'xyc_f3', subname)
-  iall=-product(shape(xye_f3))*kind(xye_f3)
-  deallocate(xye_f3, stat=istat)
-  call memocc(istat, iall, 'xye_f3', subname)
+  !!iall=-product(shape(xya_f3))*kind(xya_f3)
+  !!deallocate(xya_f3, stat=istat)
+  !!call memocc(istat, iall, 'xya_f3', subname)
+  !!iall=-product(shape(xyb_f3))*kind(xyb_f3)
+  !!deallocate(xyb_f3, stat=istat)
+  !!call memocc(istat, iall, 'xyb_f3', subname)
+  !!iall=-product(shape(xyc_f3))*kind(xyc_f3)
+  !!deallocate(xyc_f3, stat=istat)
+  !!call memocc(istat, iall, 'xyc_f3', subname)
+  !!iall=-product(shape(xye_f3))*kind(xye_f3)
+  !!deallocate(xye_f3, stat=istat)
+  !!call memocc(istat, iall, 'xye_f3', subname)
 
-  iall=-product(shape(xya_f4))*kind(xya_f4)
-  deallocate(xya_f4, stat=istat)
-  call memocc(istat, iall, 'xya_f4', subname)
-  iall=-product(shape(xyb_f4))*kind(xyb_f4)
-  deallocate(xyb_f4, stat=istat)
-  call memocc(istat, iall, 'xyb_f4', subname)
-  iall=-product(shape(xyc_f4))*kind(xyc_f4)
-  deallocate(xyc_f4, stat=istat)
-  call memocc(istat, iall, 'xyc_f4', subname)
-  iall=-product(shape(xye_f4))*kind(xye_f4)
-  deallocate(xye_f4, stat=istat)
-  call memocc(istat, iall, 'xye_f4', subname)
+  !!iall=-product(shape(xya_f4))*kind(xya_f4)
+  !!deallocate(xya_f4, stat=istat)
+  !!call memocc(istat, iall, 'xya_f4', subname)
+  !!iall=-product(shape(xyb_f4))*kind(xyb_f4)
+  !!deallocate(xyb_f4, stat=istat)
+  !!call memocc(istat, iall, 'xyb_f4', subname)
+  !!iall=-product(shape(xyc_f4))*kind(xyc_f4)
+  !!deallocate(xyc_f4, stat=istat)
+  !!call memocc(istat, iall, 'xyc_f4', subname)
+  !!iall=-product(shape(xye_f4))*kind(xye_f4)
+  !!deallocate(xye_f4, stat=istat)
+  !!call memocc(istat, iall, 'xye_f4', subname)
 
-  iall=-product(shape(xya_f5))*kind(xya_f5)
-  deallocate(xya_f5, stat=istat)
-  call memocc(istat, iall, 'xya_f5', subname)
-  iall=-product(shape(xyb_f5))*kind(xyb_f5)
-  deallocate(xyb_f5, stat=istat)
-  call memocc(istat, iall, 'xyb_f5', subname)
-  iall=-product(shape(xyc_f5))*kind(xyc_f5)
-  deallocate(xyc_f5, stat=istat)
-  call memocc(istat, iall, 'xyc_f5', subname)
-  iall=-product(shape(xye_f5))*kind(xye_f5)
-  deallocate(xye_f5, stat=istat)
-  call memocc(istat, iall, 'xye_f5', subname)
+  !!iall=-product(shape(xya_f5))*kind(xya_f5)
+  !!deallocate(xya_f5, stat=istat)
+  !!call memocc(istat, iall, 'xya_f5', subname)
+  !!iall=-product(shape(xyb_f5))*kind(xyb_f5)
+  !!deallocate(xyb_f5, stat=istat)
+  !!call memocc(istat, iall, 'xyb_f5', subname)
+  !!iall=-product(shape(xyc_f5))*kind(xyc_f5)
+  !!deallocate(xyc_f5, stat=istat)
+  !!call memocc(istat, iall, 'xyc_f5', subname)
+  !!iall=-product(shape(xye_f5))*kind(xye_f5)
+  !!deallocate(xye_f5, stat=istat)
+  !!call memocc(istat, iall, 'xye_f5', subname)
 
-  iall=-product(shape(xya_f6))*kind(xya_f6)
-  deallocate(xya_f6, stat=istat)
-  call memocc(istat, iall, 'xya_f6', subname)
-  iall=-product(shape(xyb_f6))*kind(xyb_f6)
-  deallocate(xyb_f6, stat=istat)
-  call memocc(istat, iall, 'xyb_f6', subname)
-  iall=-product(shape(xyc_f6))*kind(xyc_f6)
-  deallocate(xyc_f6, stat=istat)
-  call memocc(istat, iall, 'xyc_f6', subname)
-  iall=-product(shape(xye_f6))*kind(xye_f6)
-  deallocate(xye_f6, stat=istat)
-  call memocc(istat, iall, 'xye_f6', subname)
+  !!iall=-product(shape(xya_f6))*kind(xya_f6)
+  !!deallocate(xya_f6, stat=istat)
+  !!call memocc(istat, iall, 'xya_f6', subname)
+  !!iall=-product(shape(xyb_f6))*kind(xyb_f6)
+  !!deallocate(xyb_f6, stat=istat)
+  !!call memocc(istat, iall, 'xyb_f6', subname)
+  !!iall=-product(shape(xyc_f6))*kind(xyc_f6)
+  !!deallocate(xyc_f6, stat=istat)
+  !!call memocc(istat, iall, 'xyc_f6', subname)
+  !!iall=-product(shape(xye_f6))*kind(xye_f6)
+  !!deallocate(xye_f6, stat=istat)
+  !!call memocc(istat, iall, 'xye_f6', subname)
 
-  iall=-product(shape(xya_f7))*kind(xya_f7)
-  deallocate(xya_f7, stat=istat)
-  call memocc(istat, iall, 'xya_f7', subname)
-  iall=-product(shape(xyb_f7))*kind(xyb_f7)
-  deallocate(xyb_f7, stat=istat)
-  call memocc(istat, iall, 'xyb_f7', subname)
-  iall=-product(shape(xyc_f7))*kind(xyc_f7)
-  deallocate(xyc_f7, stat=istat)
-  call memocc(istat, iall, 'xyc_f7', subname)
-  iall=-product(shape(xye_f7))*kind(xye_f7)
-  deallocate(xye_f7, stat=istat)
-  call memocc(istat, iall, 'xye_f7', subname)
+  !!iall=-product(shape(xya_f7))*kind(xya_f7)
+  !!deallocate(xya_f7, stat=istat)
+  !!call memocc(istat, iall, 'xya_f7', subname)
+  !!iall=-product(shape(xyb_f7))*kind(xyb_f7)
+  !!deallocate(xyb_f7, stat=istat)
+  !!call memocc(istat, iall, 'xyb_f7', subname)
+  !!iall=-product(shape(xyc_f7))*kind(xyc_f7)
+  !!deallocate(xyc_f7, stat=istat)
+  !!call memocc(istat, iall, 'xyc_f7', subname)
+  !!iall=-product(shape(xye_f7))*kind(xye_f7)
+  !!deallocate(xye_f7, stat=istat)
+  !!call memocc(istat, iall, 'xye_f7', subname)
 
 
 
@@ -9299,96 +9401,96 @@ write(*,*) 'new version: time for z part',time
   !!call memocc(istat, iall, 'xze_f', subname)
 
 
-  iall=-product(shape(xza_f1))*kind(xza_f1)
-  deallocate(xza_f1, stat=istat)
-  call memocc(istat, iall, 'xza_f1', subname)
-  iall=-product(shape(xzb_f1))*kind(xzb_f1)
-  deallocate(xzb_f1, stat=istat)
-  call memocc(istat, iall, 'xzb_f1', subname)
-  iall=-product(shape(xzc_f1))*kind(xzc_f1)
-  deallocate(xzc_f1, stat=istat)
-  call memocc(istat, iall, 'xzc_f1', subname)
-  iall=-product(shape(xze_f1))*kind(xze_f1)
-  deallocate(xze_f1, stat=istat)
-  call memocc(istat, iall, 'xze_f1', subname)
+  !!iall=-product(shape(xza_f1))*kind(xza_f1)
+  !!deallocate(xza_f1, stat=istat)
+  !!call memocc(istat, iall, 'xza_f1', subname)
+  !!iall=-product(shape(xzb_f1))*kind(xzb_f1)
+  !!deallocate(xzb_f1, stat=istat)
+  !!call memocc(istat, iall, 'xzb_f1', subname)
+  !!iall=-product(shape(xzc_f1))*kind(xzc_f1)
+  !!deallocate(xzc_f1, stat=istat)
+  !!call memocc(istat, iall, 'xzc_f1', subname)
+  !!iall=-product(shape(xze_f1))*kind(xze_f1)
+  !!deallocate(xze_f1, stat=istat)
+  !!call memocc(istat, iall, 'xze_f1', subname)
 
-  iall=-product(shape(xza_f2))*kind(xza_f2)
-  deallocate(xza_f2, stat=istat)
-  call memocc(istat, iall, 'xza_f2', subname)
-  iall=-product(shape(xzb_f2))*kind(xzb_f2)
-  deallocate(xzb_f2, stat=istat)
-  call memocc(istat, iall, 'xzb_f2', subname)
-  iall=-product(shape(xzc_f2))*kind(xzc_f2)
-  deallocate(xzc_f2, stat=istat)
-  call memocc(istat, iall, 'xzc_f2', subname)
-  iall=-product(shape(xze_f2))*kind(xze_f2)
-  deallocate(xze_f2, stat=istat)
-  call memocc(istat, iall, 'xze_f2', subname)
+  !!iall=-product(shape(xza_f2))*kind(xza_f2)
+  !!deallocate(xza_f2, stat=istat)
+  !!call memocc(istat, iall, 'xza_f2', subname)
+  !!iall=-product(shape(xzb_f2))*kind(xzb_f2)
+  !!deallocate(xzb_f2, stat=istat)
+  !!call memocc(istat, iall, 'xzb_f2', subname)
+  !!iall=-product(shape(xzc_f2))*kind(xzc_f2)
+  !!deallocate(xzc_f2, stat=istat)
+  !!call memocc(istat, iall, 'xzc_f2', subname)
+  !!iall=-product(shape(xze_f2))*kind(xze_f2)
+  !!deallocate(xze_f2, stat=istat)
+  !!call memocc(istat, iall, 'xze_f2', subname)
 
-  iall=-product(shape(xza_f3))*kind(xza_f3)
-  deallocate(xza_f3, stat=istat)
-  call memocc(istat, iall, 'xza_f3', subname)
-  iall=-product(shape(xzb_f3))*kind(xzb_f3)
-  deallocate(xzb_f3, stat=istat)
-  call memocc(istat, iall, 'xzb_f3', subname)
-  iall=-product(shape(xzc_f3))*kind(xzc_f3)
-  deallocate(xzc_f3, stat=istat)
-  call memocc(istat, iall, 'xzc_f3', subname)
-  iall=-product(shape(xze_f3))*kind(xze_f3)
-  deallocate(xze_f3, stat=istat)
-  call memocc(istat, iall, 'xze_f3', subname)
+  !!iall=-product(shape(xza_f3))*kind(xza_f3)
+  !!deallocate(xza_f3, stat=istat)
+  !!call memocc(istat, iall, 'xza_f3', subname)
+  !!iall=-product(shape(xzb_f3))*kind(xzb_f3)
+  !!deallocate(xzb_f3, stat=istat)
+  !!call memocc(istat, iall, 'xzb_f3', subname)
+  !!iall=-product(shape(xzc_f3))*kind(xzc_f3)
+  !!deallocate(xzc_f3, stat=istat)
+  !!call memocc(istat, iall, 'xzc_f3', subname)
+  !!iall=-product(shape(xze_f3))*kind(xze_f3)
+  !!deallocate(xze_f3, stat=istat)
+  !!call memocc(istat, iall, 'xze_f3', subname)
 
-  iall=-product(shape(xza_f4))*kind(xza_f4)
-  deallocate(xza_f4, stat=istat)
-  call memocc(istat, iall, 'xza_f4', subname)
-  iall=-product(shape(xzb_f4))*kind(xzb_f4)
-  deallocate(xzb_f4, stat=istat)
-  call memocc(istat, iall, 'xzb_f4', subname)
-  iall=-product(shape(xzc_f4))*kind(xzc_f4)
-  deallocate(xzc_f4, stat=istat)
-  call memocc(istat, iall, 'xzc_f4', subname)
-  iall=-product(shape(xze_f4))*kind(xze_f4)
-  deallocate(xze_f4, stat=istat)
-  call memocc(istat, iall, 'xze_f4', subname)
+  !!iall=-product(shape(xza_f4))*kind(xza_f4)
+  !!deallocate(xza_f4, stat=istat)
+  !!call memocc(istat, iall, 'xza_f4', subname)
+  !!iall=-product(shape(xzb_f4))*kind(xzb_f4)
+  !!deallocate(xzb_f4, stat=istat)
+  !!call memocc(istat, iall, 'xzb_f4', subname)
+  !!iall=-product(shape(xzc_f4))*kind(xzc_f4)
+  !!deallocate(xzc_f4, stat=istat)
+  !!call memocc(istat, iall, 'xzc_f4', subname)
+  !!iall=-product(shape(xze_f4))*kind(xze_f4)
+  !!deallocate(xze_f4, stat=istat)
+  !!call memocc(istat, iall, 'xze_f4', subname)
 
-  iall=-product(shape(xza_f5))*kind(xza_f5)
-  deallocate(xza_f5, stat=istat)
-  call memocc(istat, iall, 'xza_f5', subname)
-  iall=-product(shape(xzb_f5))*kind(xzb_f5)
-  deallocate(xzb_f5, stat=istat)
-  call memocc(istat, iall, 'xzb_f5', subname)
-  iall=-product(shape(xzc_f5))*kind(xzc_f5)
-  deallocate(xzc_f5, stat=istat)
-  call memocc(istat, iall, 'xzc_f5', subname)
-  iall=-product(shape(xze_f5))*kind(xze_f5)
-  deallocate(xze_f5, stat=istat)
-  call memocc(istat, iall, 'xze_f5', subname)
+  !!iall=-product(shape(xza_f5))*kind(xza_f5)
+  !!deallocate(xza_f5, stat=istat)
+  !!call memocc(istat, iall, 'xza_f5', subname)
+  !!iall=-product(shape(xzb_f5))*kind(xzb_f5)
+  !!deallocate(xzb_f5, stat=istat)
+  !!call memocc(istat, iall, 'xzb_f5', subname)
+  !!iall=-product(shape(xzc_f5))*kind(xzc_f5)
+  !!deallocate(xzc_f5, stat=istat)
+  !!call memocc(istat, iall, 'xzc_f5', subname)
+  !!iall=-product(shape(xze_f5))*kind(xze_f5)
+  !!deallocate(xze_f5, stat=istat)
+  !!call memocc(istat, iall, 'xze_f5', subname)
 
-  iall=-product(shape(xza_f6))*kind(xza_f6)
-  deallocate(xza_f6, stat=istat)
-  call memocc(istat, iall, 'xza_f6', subname)
-  iall=-product(shape(xzb_f6))*kind(xzb_f6)
-  deallocate(xzb_f6, stat=istat)
-  call memocc(istat, iall, 'xzb_f6', subname)
-  iall=-product(shape(xzc_f6))*kind(xzc_f6)
-  deallocate(xzc_f6, stat=istat)
-  call memocc(istat, iall, 'xzc_f6', subname)
-  iall=-product(shape(xze_f6))*kind(xze_f6)
-  deallocate(xze_f6, stat=istat)
-  call memocc(istat, iall, 'xze_f6', subname)
+  !!iall=-product(shape(xza_f6))*kind(xza_f6)
+  !!deallocate(xza_f6, stat=istat)
+  !!call memocc(istat, iall, 'xza_f6', subname)
+  !!iall=-product(shape(xzb_f6))*kind(xzb_f6)
+  !!deallocate(xzb_f6, stat=istat)
+  !!call memocc(istat, iall, 'xzb_f6', subname)
+  !!iall=-product(shape(xzc_f6))*kind(xzc_f6)
+  !!deallocate(xzc_f6, stat=istat)
+  !!call memocc(istat, iall, 'xzc_f6', subname)
+  !!iall=-product(shape(xze_f6))*kind(xze_f6)
+  !!deallocate(xze_f6, stat=istat)
+  !!call memocc(istat, iall, 'xze_f6', subname)
 
-  iall=-product(shape(xza_f7))*kind(xza_f7)
-  deallocate(xza_f7, stat=istat)
-  call memocc(istat, iall, 'xza_f7', subname)
-  iall=-product(shape(xzb_f7))*kind(xzb_f7)
-  deallocate(xzb_f7, stat=istat)
-  call memocc(istat, iall, 'xzb_f7', subname)
-  iall=-product(shape(xzc_f7))*kind(xzc_f7)
-  deallocate(xzc_f7, stat=istat)
-  call memocc(istat, iall, 'xzc_f7', subname)
-  iall=-product(shape(xze_f7))*kind(xze_f7)
-  deallocate(xze_f7, stat=istat)
-  call memocc(istat, iall, 'xze_f7', subname)
+  !!iall=-product(shape(xza_f7))*kind(xza_f7)
+  !!deallocate(xza_f7, stat=istat)
+  !!call memocc(istat, iall, 'xza_f7', subname)
+  !!iall=-product(shape(xzb_f7))*kind(xzb_f7)
+  !!deallocate(xzb_f7, stat=istat)
+  !!call memocc(istat, iall, 'xzb_f7', subname)
+  !!iall=-product(shape(xzc_f7))*kind(xzc_f7)
+  !!deallocate(xzc_f7, stat=istat)
+  !!call memocc(istat, iall, 'xzc_f7', subname)
+  !!iall=-product(shape(xze_f7))*kind(xze_f7)
+  !!deallocate(xze_f7, stat=istat)
+  !!call memocc(istat, iall, 'xze_f7', subname)
 
 
 
@@ -9408,96 +9510,96 @@ write(*,*) 'new version: time for z part',time
   deallocate(yze_c, stat=istat)
   call memocc(istat, iall, 'yze_c', subname)
 
-  iall=-product(shape(yza_f1))*kind(yza_f1)
-  deallocate(yza_f1, stat=istat)
-  call memocc(istat, iall, 'yza_f1', subname)
-  iall=-product(shape(yzb_f1))*kind(yzb_f1)
-  deallocate(yzb_f1, stat=istat)
-  call memocc(istat, iall, 'yzb_f1', subname)
-  iall=-product(shape(yzc_f1))*kind(yzc_f1)
-  deallocate(yzc_f1, stat=istat)
-  call memocc(istat, iall, 'yzc_f1', subname)
-  iall=-product(shape(yze_f1))*kind(yze_f1)
-  deallocate(yze_f1, stat=istat)
-  call memocc(istat, iall, 'yze_f1', subname)
+  !!iall=-product(shape(yza_f1))*kind(yza_f1)
+  !!deallocate(yza_f1, stat=istat)
+  !!call memocc(istat, iall, 'yza_f1', subname)
+  !!iall=-product(shape(yzb_f1))*kind(yzb_f1)
+  !!deallocate(yzb_f1, stat=istat)
+  !!call memocc(istat, iall, 'yzb_f1', subname)
+  !!iall=-product(shape(yzc_f1))*kind(yzc_f1)
+  !!deallocate(yzc_f1, stat=istat)
+  !!call memocc(istat, iall, 'yzc_f1', subname)
+  !!iall=-product(shape(yze_f1))*kind(yze_f1)
+  !!deallocate(yze_f1, stat=istat)
+  !!call memocc(istat, iall, 'yze_f1', subname)
 
-  iall=-product(shape(yza_f2))*kind(yza_f2)
-  deallocate(yza_f2, stat=istat)
-  call memocc(istat, iall, 'yza_f2', subname)
-  iall=-product(shape(yzb_f2))*kind(yzb_f2)
-  deallocate(yzb_f2, stat=istat)
-  call memocc(istat, iall, 'yzb_f2', subname)
-  iall=-product(shape(yzc_f2))*kind(yzc_f2)
-  deallocate(yzc_f2, stat=istat)
-  call memocc(istat, iall, 'yzc_f2', subname)
-  iall=-product(shape(yze_f2))*kind(yze_f2)
-  deallocate(yze_f2, stat=istat)
-  call memocc(istat, iall, 'yze_f2', subname)
+  !!iall=-product(shape(yza_f2))*kind(yza_f2)
+  !!deallocate(yza_f2, stat=istat)
+  !!call memocc(istat, iall, 'yza_f2', subname)
+  !!iall=-product(shape(yzb_f2))*kind(yzb_f2)
+  !!deallocate(yzb_f2, stat=istat)
+  !!call memocc(istat, iall, 'yzb_f2', subname)
+  !!iall=-product(shape(yzc_f2))*kind(yzc_f2)
+  !!deallocate(yzc_f2, stat=istat)
+  !!call memocc(istat, iall, 'yzc_f2', subname)
+  !!iall=-product(shape(yze_f2))*kind(yze_f2)
+  !!deallocate(yze_f2, stat=istat)
+  !!call memocc(istat, iall, 'yze_f2', subname)
 
-  iall=-product(shape(yza_f3))*kind(yza_f3)
-  deallocate(yza_f3, stat=istat)
-  call memocc(istat, iall, 'yza_f3', subname)
-  iall=-product(shape(yzb_f3))*kind(yzb_f3)
-  deallocate(yzb_f3, stat=istat)
-  call memocc(istat, iall, 'yzb_f3', subname)
-  iall=-product(shape(yzc_f3))*kind(yzc_f3)
-  deallocate(yzc_f3, stat=istat)
-  call memocc(istat, iall, 'yzc_f3', subname)
-  iall=-product(shape(yze_f3))*kind(yze_f3)
-  deallocate(yze_f3, stat=istat)
-  call memocc(istat, iall, 'yze_f3', subname)
+  !!iall=-product(shape(yza_f3))*kind(yza_f3)
+  !!deallocate(yza_f3, stat=istat)
+  !!call memocc(istat, iall, 'yza_f3', subname)
+  !!iall=-product(shape(yzb_f3))*kind(yzb_f3)
+  !!deallocate(yzb_f3, stat=istat)
+  !!call memocc(istat, iall, 'yzb_f3', subname)
+  !!iall=-product(shape(yzc_f3))*kind(yzc_f3)
+  !!deallocate(yzc_f3, stat=istat)
+  !!call memocc(istat, iall, 'yzc_f3', subname)
+  !!iall=-product(shape(yze_f3))*kind(yze_f3)
+  !!deallocate(yze_f3, stat=istat)
+  !!call memocc(istat, iall, 'yze_f3', subname)
 
-  iall=-product(shape(yza_f4))*kind(yza_f4)
-  deallocate(yza_f4, stat=istat)
-  call memocc(istat, iall, 'yza_f4', subname)
-  iall=-product(shape(yzb_f4))*kind(yzb_f4)
-  deallocate(yzb_f4, stat=istat)
-  call memocc(istat, iall, 'yzb_f4', subname)
-  iall=-product(shape(yzc_f4))*kind(yzc_f4)
-  deallocate(yzc_f4, stat=istat)
-  call memocc(istat, iall, 'yzc_f4', subname)
-  iall=-product(shape(yze_f4))*kind(yze_f4)
-  deallocate(yze_f4, stat=istat)
-  call memocc(istat, iall, 'yze_f4', subname)
+  !!iall=-product(shape(yza_f4))*kind(yza_f4)
+  !!deallocate(yza_f4, stat=istat)
+  !!call memocc(istat, iall, 'yza_f4', subname)
+  !!iall=-product(shape(yzb_f4))*kind(yzb_f4)
+  !!deallocate(yzb_f4, stat=istat)
+  !!call memocc(istat, iall, 'yzb_f4', subname)
+  !!iall=-product(shape(yzc_f4))*kind(yzc_f4)
+  !!deallocate(yzc_f4, stat=istat)
+  !!call memocc(istat, iall, 'yzc_f4', subname)
+  !!iall=-product(shape(yze_f4))*kind(yze_f4)
+  !!deallocate(yze_f4, stat=istat)
+  !!call memocc(istat, iall, 'yze_f4', subname)
 
-  iall=-product(shape(yza_f5))*kind(yza_f5)
-  deallocate(yza_f5, stat=istat)
-  call memocc(istat, iall, 'yza_f5', subname)
-  iall=-product(shape(yzb_f5))*kind(yzb_f5)
-  deallocate(yzb_f5, stat=istat)
-  call memocc(istat, iall, 'yzb_f5', subname)
-  iall=-product(shape(yzc_f5))*kind(yzc_f5)
-  deallocate(yzc_f5, stat=istat)
-  call memocc(istat, iall, 'yzc_f5', subname)
-  iall=-product(shape(yze_f5))*kind(yze_f5)
-  deallocate(yze_f5, stat=istat)
-  call memocc(istat, iall, 'yze_f5', subname)
+  !!iall=-product(shape(yza_f5))*kind(yza_f5)
+  !!deallocate(yza_f5, stat=istat)
+  !!call memocc(istat, iall, 'yza_f5', subname)
+  !!iall=-product(shape(yzb_f5))*kind(yzb_f5)
+  !!deallocate(yzb_f5, stat=istat)
+  !!call memocc(istat, iall, 'yzb_f5', subname)
+  !!iall=-product(shape(yzc_f5))*kind(yzc_f5)
+  !!deallocate(yzc_f5, stat=istat)
+  !!call memocc(istat, iall, 'yzc_f5', subname)
+  !!iall=-product(shape(yze_f5))*kind(yze_f5)
+  !!deallocate(yze_f5, stat=istat)
+  !!call memocc(istat, iall, 'yze_f5', subname)
 
-  iall=-product(shape(yza_f6))*kind(yza_f6)
-  deallocate(yza_f6, stat=istat)
-  call memocc(istat, iall, 'yza_f6', subname)
-  iall=-product(shape(yzb_f6))*kind(yzb_f6)
-  deallocate(yzb_f6, stat=istat)
-  call memocc(istat, iall, 'yzb_f6', subname)
-  iall=-product(shape(yzc_f6))*kind(yzc_f6)
-  deallocate(yzc_f6, stat=istat)
-  call memocc(istat, iall, 'yzc_f6', subname)
-  iall=-product(shape(yze_f6))*kind(yze_f6)
-  deallocate(yze_f6, stat=istat)
-  call memocc(istat, iall, 'yze_f6', subname)
+  !!iall=-product(shape(yza_f6))*kind(yza_f6)
+  !!deallocate(yza_f6, stat=istat)
+  !!call memocc(istat, iall, 'yza_f6', subname)
+  !!iall=-product(shape(yzb_f6))*kind(yzb_f6)
+  !!deallocate(yzb_f6, stat=istat)
+  !!call memocc(istat, iall, 'yzb_f6', subname)
+  !!iall=-product(shape(yzc_f6))*kind(yzc_f6)
+  !!deallocate(yzc_f6, stat=istat)
+  !!call memocc(istat, iall, 'yzc_f6', subname)
+  !!iall=-product(shape(yze_f6))*kind(yze_f6)
+  !!deallocate(yze_f6, stat=istat)
+  !!call memocc(istat, iall, 'yze_f6', subname)
 
-  iall=-product(shape(yza_f7))*kind(yza_f7)
-  deallocate(yza_f7, stat=istat)
-  call memocc(istat, iall, 'yza_f7', subname)
-  iall=-product(shape(yzb_f7))*kind(yzb_f7)
-  deallocate(yzb_f7, stat=istat)
-  call memocc(istat, iall, 'yzb_f7', subname)
-  iall=-product(shape(yzc_f7))*kind(yzc_f7)
-  deallocate(yzc_f7, stat=istat)
-  call memocc(istat, iall, 'yzc_f7', subname)
-  iall=-product(shape(yze_f7))*kind(yze_f7)
-  deallocate(yze_f7, stat=istat)
-  call memocc(istat, iall, 'yze_f7', subname)
+  !!iall=-product(shape(yza_f7))*kind(yza_f7)
+  !!deallocate(yza_f7, stat=istat)
+  !!call memocc(istat, iall, 'yza_f7', subname)
+  !!iall=-product(shape(yzb_f7))*kind(yzb_f7)
+  !!deallocate(yzb_f7, stat=istat)
+  !!call memocc(istat, iall, 'yzb_f7', subname)
+  !!iall=-product(shape(yzc_f7))*kind(yzc_f7)
+  !!deallocate(yzc_f7, stat=istat)
+  !!call memocc(istat, iall, 'yzc_f7', subname)
+  !!iall=-product(shape(yze_f7))*kind(yze_f7)
+  !!deallocate(yze_f7, stat=istat)
+  !!call memocc(istat, iall, 'yze_f7', subname)
 
 
   iall=-product(shape(xya_f))*kind(xya_f)
