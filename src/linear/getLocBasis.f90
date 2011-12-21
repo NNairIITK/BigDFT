@@ -731,7 +731,7 @@ real(8) :: t2tot, timetot, tt1, tt2, tt3, tt4, tt5, lstep, dfactorial
 real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
 real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress, energyconf_0, energyconf_trial
 real(8):: energyconf_der0, lstep_optimal, trHold
-integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, itinner
+integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, itinner, consecutive_rejections
 integer :: icountDIISFailureCons, itBest, info, lwork, ndim_lchi, ndim_lhchi
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb, i, ist, jst, iiorb, jjorb, ilrold, k
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
@@ -859,7 +859,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
           write(*,'(1x,a)') 'Orthonormalization... '
       end if
       t1=mpi_wtime()
-      call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
+      if(.not.ldiis%switchSD) call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
            lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
            input, lin%mad, lphi, ovrlp, 'new')
       !!call orthonormalizeLocalized2(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
@@ -872,6 +872,12 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       !!end do
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1
+
+
+      !!! NEW #########################################################
+      if(.not.ldiis%switchSD) call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
+      !!!call unitary_optimization2(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
+      !!! #############################################################
 
       ! Post the sends again to calculate the overlap matrix (will be needed for the orthoconstraint).
       call allocateSendBufferOrtho(lin%comon, subname)
@@ -942,6 +948,43 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
       t1=mpi_wtime()
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH, W, eval)
+
+      ! Cycle if the trace increased (steepest descent only)
+      if(iproc==0) write(*,*) 'ldiis%switchSD, ldiis%isx', ldiis%switchSD, ldiis%isx
+      if(.not. ldiis%switchSD .and. ldiis%isx==0) then
+           if(iproc==0) write(*,*) 'trH, trHold', trH, trHold
+           if(trH>trHold) then
+               consecutive_rejections=consecutive_rejections+1
+               if(consecutive_rejections==3) then
+                   if(fnrmMax<lin%convCrit .or. it>=nit) then
+                       if(it>=nit) then
+                           if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
+                               ' iterations! Exiting loop due to consective failures of SD.'
+                           if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trHold
+                           infoBasisFunctions=-1
+                       else
+                           if(iproc==0) then
+                               write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
+                               write (*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trHold
+                           end if
+                           infoBasisFunctions=it
+                       end if
+                       if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
+                       !!if(lin%plotBasisFunctions) then
+                       !!    call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+                       !!        .5d0*input%hy, .5d0*input%hz, 1)
+                       !!end if
+                       exit iterLoop
+                   end if
+               end if
+               alpha=alpha*.5d0
+               call dcopy(size(lphi), lphiold, 1, lphi, 1)
+               if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and cycle'
+               cycle iterLoop
+           end if
+      end if
+      consecutive_rejections=0
+
       !call applyOrthoconstraintNonorthogonalCubic(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%gorbs, lin%comms, lin%lzd, input, &
       !     lin%op, ovrlp, lin%mad, lphi, lhphi, trH)
       !!do iorb=1,lin%orbs%norb
@@ -960,10 +1003,10 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
 
 
-      !!! NEW #########################################################
-      call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
-      !!!call unitary_optimization2(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
-      !!! #############################################################
+      !!!!! NEW #########################################################
+      !!call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
+      !!!!!call unitary_optimization2(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
+      !!!!! #############################################################
 
 
 
@@ -1113,7 +1156,11 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
 
       ! Improve the orbitals, depending on the choice made above.
-      if(.not.ldiis%switchSD) call improveOrbitals()
+      if(.not.ldiis%switchSD) then
+          call improveOrbitals()
+      else
+          if(iproc==0) write(*,'(x,a)') 'no improvement of the orbitals, recalculate gradient'
+      end if
 
 
 
@@ -1362,6 +1409,7 @@ contains
                      istsource=offset+ii*ncount+1
                      !write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
                      call dcopy(ncount, ldiis%phiHist(istsource), 1, lphi(istdest), 1)
+                     call dcopy(ncount, ldiis%phiHist(istsource), 1, lphiold(istdest), 1)
                      offset=offset+ldiis%isx*ncount
                      istdest=istdest+ncount
                  end do
