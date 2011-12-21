@@ -373,12 +373,15 @@ subroutine nullify_nonlocal_psp_descriptors(nlpspd)
   ! Calling arguments
   type(nonlocal_psp_descriptors),intent(out):: nlpspd
 
-  nullify(nlpspd%nvctr_p)
-  nullify(nlpspd%nseg_p)
-  nullify(nlpspd%keyv_p)
-  nullify(nlpspd%keyg_p)
-  nullify(nlpspd%nboxp_c)
-  nullify(nlpspd%nboxp_f)
+  nlpspd%natoms=0
+  nullify(nlpspd%plr)
+
+!!$  nullify(nlpspd%nvctr_p)
+!!$  nullify(nlpspd%nseg_p)
+!!$  nullify(nlpspd%keyv_p)
+!!$  nullify(nlpspd%keyg_p)
+!!$  nullify(nlpspd%nboxp_c)
+!!$  nullify(nlpspd%nboxp_f)
 
 end subroutine nullify_nonlocal_psp_descriptors
 

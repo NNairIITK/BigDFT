@@ -45,7 +45,7 @@ defs.o : $(mpi_include)
 
 art.o: defs.o random.o art_lanczos.o
 
-bigdft_forces.o: ../modules/BigDFT_API.o
+bigdft_forces.o: ../modules/BigDFT_API.o defs.o
 
 bayes.o: defs.o random.o
 

@@ -684,6 +684,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   !of course it must be substituted with an alternative XC calculation
   npts=m1*m3*nwb
 
+  !do a separate calculation of the grid to allow for OMP parallelisation
   ! Do the calculation.
   if (abs(order) == 1) then
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr)
@@ -691,7 +692,6 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr,dvxci)
   
   end if
-
   if (use_gradient) then
      !do not calculate the White-Bird term in the Leeuwen Baerends XC case
      if (ixc/=13) then

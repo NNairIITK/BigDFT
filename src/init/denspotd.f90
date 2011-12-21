@@ -65,12 +65,13 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
   ngatherarr(:,1)=gdim%n1i*gdim%n2i*nscatterarr(:,2)
   ngatherarr(:,2)=gdim%n1i*gdim%n2i*nscatterarr(:,3)
 
+!write (*,*) 'hxh,hyh,hzh',hxh,hyh,hzh
   !create rhopot descriptors
     !allocate rho_descriptors if the density repartition is activated
   !decide rho communication strategy
   if (rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1) .and. xc_isgga()) then
      call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
-          gdim%n1,gdim%n2,gdim%n3,gdim%n1i,gdim%n2i,gdim%n3i,&
+          gdim%n1i,gdim%n2i,gdim%n3i,&
           hxh,hyh,hzh,nspin,rhodsc,.false.)
      rhodsc%icomm=2
   else
@@ -86,6 +87,15 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
      endif
   end if
 
+  !calculate dimensions of the complete array to be allocated before the reduction procedure
+  if (rhodsc%icomm==1) then
+     rhodsc%nrhotot=0
+     do jproc=0,nproc-1
+        rhodsc%nrhotot=rhodsc%nrhotot+nscatterarr(jproc,1)
+     end do
+  else
+     rhodsc%nrhotot=gdim%n3i
+  end if
 
 END SUBROUTINE createDensPotDescriptors
 
@@ -322,7 +332,8 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
      end if
      jkpte=min((jsorb+orbs%norb_par(jproc,0)-1)/orbs%norb+1,orbs%nkpts)
      if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc,0) /=0) then
-        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution ends after the components one'
+        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,&
+             ' the orbital k-points distribution ends after the components one'
         print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
         stop
      end if

@@ -1194,11 +1194,15 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%HLgap = UNINITIALIZED(orbs%HLgap)
 
   ! allocate inwhichlocreg
-
   allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
-  ! default for inwhichlocreg
+  ! default for inwhichlocreg (any orbital is sit on the same function)
   orbs%inwhichlocreg = 1
+
+  !initialize the starting point of the potential for each orbital (to be removed?)
+  allocate(orbs%ispot(orbs%norbp),stat=i_stat)
+  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
+
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
@@ -1418,6 +1422,10 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
 
+  !initialize the starting point of the potential for each orbital (to be removed?)
+  allocate(orbs%ispot(orbs%norbp),stat=i_stat)
+  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
+
 
   ! Define two new arrays:
   ! - orbs%isorb_par is the same as orbs%isorb, but every process also knows
@@ -1465,10 +1473,10 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
 
   !decide the naive number of objects which should go to each processor.
   robjp=real(nobj,gp)*real(nkpts,gp)/real(nproc,gp)
-
+  !print *,'hereweare',robjp,nobj   
   !maximum number of objects which has to go to each processor per k-point
   nobjp_max_kpt=ceiling(modulo(robjp-epsilon(1.0_gp),real(nobj,gp)))
-  !print *,'hereweare',nobjp_max_kpt,robjp,nobj
+
 
 !see the conditions for the integer repartition of k-points
   if (nobjp_max_kpt == nobj .or. (nobjp_max_kpt==1 .and. robjp < 1.0_gp)) then

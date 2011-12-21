@@ -14,8 +14,18 @@ EXTRA_CLEAN = wavefunction.etsf
 
 PPFILES = psppar.O
 
-CLEANFILES = write.out read.out *.prc fldiff.*.report geopt.mon default.* input.dft \
-	$(EXTRA_CLEAN) $(PPFILES)
+CLEANFILES = write.out write_plain.out read.out *.prc fldiff.*.report geopt.mon default.* input.dft \
+	wf_etsf.cube wf_plain.cube exportwf.etsf.log exportwf.plain.log $(EXTRA_CLEAN) $(PPFILES)
+
+check_PROGRAMS = check_lib check_lib_c
+
+check_lib_SOURCES = check_lib.f90
+check_lib_FCFLAGS = -I$(top_builddir)/src/modules
+check_lib_LDADD = @LIBS_DEPENDENCIES@
+
+check_lib_c_SOURCES = check_lib_c.c
+check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules
+check_lib_c_LDADD = @LIBS_DEPENDENCIES@ @FCLIBS@
 
 clean-local: 
 	rm -rf data
@@ -49,6 +59,32 @@ write.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz write.dft
 	@rm -f input.dft
 	$(MAKE) clean.in
 
+write_plain.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz write.dft 
+	$(MAKE) in
+	@cp write.dft input.dft
+	sed -i "s/^0 3 0/0 1 0/g" input.dft
+	$(run_parallel) $(top_builddir)/src/bigdft > $@
+	@rm -f input.dft
+	$(MAKE) clean.in
+
+wf_etsf.cube: write.out $(top_builddir)/src/bigdft-tool $(PPFILES) input.kpt posinp.xyz read.dft
+	$(MAKE) in
+	@cp read.dft input.dft
+	$(top_builddir)/src/bigdft-tool -a export-wf data/wavefunction.etsf --i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 > exportwf.etsf.log
+	mv wavefunction-k002-DI.b0003.cube $@
+	@rm -f wavefunction-k002-DI.b0003_avg_*
+	@rm -f input.dft
+	$(MAKE) clean.in
+
+wf_plain.cube: write_plain.out $(top_builddir)/src/bigdft-tool $(PPFILES) input.kpt posinp.xyz read.dft
+	$(MAKE) in
+	@cp read.dft input.dft
+	$(top_builddir)/src/bigdft-tool -a export-wf data/wavefunction-k002-DI.b0003 > exportwf.plain.log
+	mv wavefunction-k002-DI.b0003.cube $@
+	@rm -f wavefunction-k002-DI.b0003_avg_*
+	@rm -f input.dft
+	$(MAKE) clean.in
+
 read.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft 
 	$(MAKE) in
 	@cp read.dft input.dft
@@ -56,8 +92,23 @@ read.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft
 	@rm -f input.dft
 	$(MAKE) clean.in
 
-check : write.out write.out.ref read.out read.out.ref
+check_lib.out: check_lib
+	./check_lib > $@
+
+fldiff.write.report: write.out write.out.ref
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft write.out \
-		$(srcdir)/write.out.ref | tee fldiff.write.report
+		$(srcdir)/write.out.ref | tee $@
+
+fldiff.read.report: read.out read.out.ref
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft read.out \
-		$(srcdir)/read.out.ref | tee fldiff.read.report
+		$(srcdir)/read.out.ref | tee $@
+
+fldiff.exportwf.report: wf_etsf.cube wf_plain.cube
+	python $(top_srcdir)/tests/fldiff.py wf_etsf.cube \
+		wf_plain.cube | tee $@
+
+fldiff.check_lib.report: check_lib.out.ref check_lib.out
+	python $(top_srcdir)/tests/fldiff.py check_lib.out \
+		$(srcdir)/check_lib.out.ref | tee $@
+
+check: fldiff.write.report fldiff.read.report fldiff.exportwf.report fldiff.check_lib.report

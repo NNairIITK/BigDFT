@@ -1,6 +1,7 @@
-subroutine linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, at, input, rhodsc, lin, rxyz, fion, fdisp,&
-    radii_cf, nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, pkernel, pot_ion, rhocore, potxc,&
-    PSquiet, eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
+subroutine linearScaling(iproc,nproc,n3d,n3p,n3pi,i3s,i3xcsh,Glr,orbs,comms,at,input,&
+     rhodsc,lin,rxyz,fion,fdisp,radii_cf,nscatterarr,ngatherarr,nlpspd,proj,rhopot,GPU,&
+     pkernelseq,irrzon,phnons,pkernel,pot_ion,rhocore,potxc,&
+     PSquiet,eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
 !
 ! Purpose:
 ! ========
@@ -65,7 +66,7 @@ type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(inout):: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(inout):: at
-type(linearParameters),intent(in out):: lin
+type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
 type(rho_descriptors),intent(in) :: rhodsc
 real(8),dimension(3,at%nat),intent(inout):: rxyz
@@ -95,8 +96,6 @@ real(8),intent(out):: energy
 real(8),dimension(3,at%nat),intent(out):: fxyz
 !real(8),intent(out):: fnoise
 real(8):: fnoise
-
-
 
 ! Local variables
 integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot, ist, istr, ilr, tag, itout
@@ -169,7 +168,6 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
   !allocate(lphiold(size(lphi)), stat=istat)
   !call memocc(istat, lphiold, 'lphiold', subname)
-
 
   call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
 
@@ -302,7 +300,6 @@ real(8),dimension(:,:),allocatable:: ovrlp
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call allocateCommunicationsBuffersPotential(lin%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
   if(lin%useDerivativeBasisFunctions) then
@@ -338,6 +335,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
           if(itSCC>1 .and. pnrm<lin%fixBasis .or. itSCC==lin%nitSCCWhenOptimizing) updatePhi=.false.
           !if(pnrm<lin%fixBasis) updatePhi=.false.
           ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
+
           call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
               infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &

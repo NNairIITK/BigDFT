@@ -158,7 +158,10 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Read sic variables
   call sic_input_variables_new(iproc,trim(inputs%file_sic),inputs)
   ! Read linear variables
+  if(inputs%inputpsiid==100) DistProjApply=.true.
   if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') then
+     !only on the fly calculation
+     DistProjApply=.true.
      call lin_input_variables_new(iproc,trim(inputs%file_lin),inputs,atoms)
   end if
   ! Shake atoms if required.

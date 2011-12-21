@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
-     logrid,at,orbs,nlpspd)
+subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
+     radii_cf,logrid,at,orbs,nlpspd)
   use module_base
   use module_types
   implicit none
@@ -34,8 +34,8 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
           'Type','Name','Number of atoms','Number of projectors'
   end if
   
-  nlpspd%nseg_p(0)=0 
-  nlpspd%nvctr_p(0)=0 
+!!$  nlpspd%nseg_p(0)=0 
+!!$  nlpspd%nvctr_p(0)=0 
 
   istart=1
   nlpspd%nproj=0
@@ -64,23 +64,38 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
         nlpspd%nproj=nlpspd%nproj+mproj
 
         ! coarse grid quantities
-        call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
-             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+        call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),&
+             cpmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
-        nlpspd%nboxp_c(1,1,iat)=nl1
-        nlpspd%nboxp_c(1,2,iat)=nl2       
-        nlpspd%nboxp_c(1,3,iat)=nl3       
+        call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
+             nl1,nl2,nl3,nu1,nu2,nu3)
 
-        nlpspd%nboxp_c(2,1,iat)=nu1
-        nlpspd%nboxp_c(2,2,iat)=nu2
-        nlpspd%nboxp_c(2,3,iat)=nu3
+!!$        nlpspd%plr(iat)%ns1=nl1     
+!!$        nlpspd%plr(iat)%ns2=nl2       
+!!$        nlpspd%plr(iat)%ns3=nl3       
+!!$                                    
+!!$        nlpspd%plr(iat)%d%n1=nu1-nl1
+!!$        nlpspd%plr(iat)%d%n2=nu2-nl2
+!!$        nlpspd%plr(iat)%d%n3=nu3-nl3
 
-        call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
+!!$        nlpspd%nboxp_c(1,1,iat)=nl1
+!!$        nlpspd%nboxp_c(1,2,iat)=nl2       
+!!$        nlpspd%nboxp_c(1,3,iat)=nl3       
+!!$
+!!$        nlpspd%nboxp_c(2,1,iat)=nu1
+!!$        nlpspd%nboxp_c(2,2,iat)=nu2
+!!$        nlpspd%nboxp_c(2,3,iat)=nu3
+
+        call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,&
+             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
+             cpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 
-        nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) + mseg
-        nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) + mvctr
+        nlpspd%plr(iat)%wfd%nseg_c=mseg
+        nlpspd%plr(iat)%wfd%nvctr_c=mvctr
+        
+!!$        nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) + mseg
+!!$        nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) + mvctr
         istart=istart+mvctr*mproj
 
         nprojelat=mvctr*mproj
@@ -91,20 +106,35 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
         call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
-        nlpspd%nboxp_f(1,1,iat)=nl1
-        nlpspd%nboxp_f(1,2,iat)=nl2
-        nlpspd%nboxp_f(1,3,iat)=nl3
+        call bounds_to_plr_limits(.true.,2,nlpspd%plr(iat),&
+             nl1,nl2,nl3,nu1,nu2,nu3)
 
-        nlpspd%nboxp_f(2,1,iat)=nu1
-        nlpspd%nboxp_f(2,2,iat)=nu2
-        nlpspd%nboxp_f(2,3,iat)=nu3
+!!$        nlpspd%plr(iat)%d%nfl1=nl1-nlpspd%plr(iat)%ns1
+!!$        nlpspd%plr(iat)%d%nfl2=nl2-nlpspd%plr(iat)%ns2       
+!!$        nlpspd%plr(iat)%d%nfl3=nl3-nlpspd%plr(iat)%ns3
+!!$                                                      
+!!$        nlpspd%plr(iat)%d%nfu1=nu1-nlpspd%plr(iat)%ns1
+!!$        nlpspd%plr(iat)%d%nfu2=nu2-nlpspd%plr(iat)%ns2
+!!$        nlpspd%plr(iat)%d%nfu3=nu3-nlpspd%plr(iat)%ns3
+
+!!$        nlpspd%nboxp_f(1,1,iat)=nl1
+!!$        nlpspd%nboxp_f(1,2,iat)=nl2
+!!$        nlpspd%nboxp_f(1,3,iat)=nl3
+!!$
+!!$        nlpspd%nboxp_f(2,1,iat)=nu1
+!!$        nlpspd%nboxp_f(2,2,iat)=nu2
+!!$        nlpspd%nboxp_f(2,3,iat)=nu3
 
         call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
-        nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) + mseg
-        nlpspd%nvctr_p(2*iat)=nlpspd%nvctr_p(2*iat-1) + mvctr
+
+        nlpspd%plr(iat)%wfd%nseg_f=mseg
+        nlpspd%plr(iat)%wfd%nvctr_f=mvctr
+
+!!$        nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) + mseg
+!!$        nlpspd%nvctr_p(2*iat)=nlpspd%nvctr_p(2*iat-1) + mvctr
 
         istart=istart+7*mvctr*mproj
         nprojelat=nprojelat+7*mvctr*mproj
@@ -113,36 +143,66 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
         !print *,'iat,nprojelat',iat,nprojelat,mvctr,mseg
 
      else  !(atom has no nonlocal PSP, e.g. H)
-        nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) 
-        nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) 
-        nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) 
-        nlpspd%nvctr_p(2*iat)=nlpspd%nvctr_p(2*iat-1) 
+
+        nlpspd%plr(iat)%wfd%nseg_c=0
+        nlpspd%plr(iat)%wfd%nvctr_c=0
+        nlpspd%plr(iat)%wfd%nseg_f=0
+        nlpspd%plr(iat)%wfd%nvctr_f=0
+
+!!$        nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) 
+!!$        nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) 
+!!$        nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) 
+!!$        nlpspd%nvctr_p(2*iat)=nlpspd%nvctr_p(2*iat-1) 
 
         !! the following is necessary to the creation of preconditioning projectors
         !! coarse grid quantities ( when used preconditioners are applied to all atoms
         !! even H if present )
-        call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
+        call pregion_size(at%geocode,rxyz(1,iat),&
+             radii_cf(at%iatype(iat),3),cpmult, &
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
-        nlpspd%nboxp_c(1,1,iat)=nl1
-        nlpspd%nboxp_c(1,2,iat)=nl2       
-        nlpspd%nboxp_c(1,3,iat)=nl3       
+        call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
+             nl1,nl2,nl3,nu1,nu2,nu3)
 
-        nlpspd%nboxp_c(2,1,iat)=nu1
-        nlpspd%nboxp_c(2,2,iat)=nu2
-        nlpspd%nboxp_c(2,3,iat)=nu3
+!!$        nlpspd%plr(iat)%ns1=nl1     
+!!$        nlpspd%plr(iat)%ns2=nl2       
+!!$        nlpspd%plr(iat)%ns3=nl3       
+!!$                                    
+!!$        nlpspd%plr(iat)%d%n1=nu1-nl1
+!!$        nlpspd%plr(iat)%d%n2=nu2-nl2
+!!$        nlpspd%plr(iat)%d%n3=nu3-nl3
+
+!!$        nlpspd%nboxp_c(1,1,iat)=nl1
+!!$        nlpspd%nboxp_c(1,2,iat)=nl2       
+!!$        nlpspd%nboxp_c(1,3,iat)=nl3       
+!!$
+!!$        nlpspd%nboxp_c(2,1,iat)=nu1
+!!$        nlpspd%nboxp_c(2,2,iat)=nu2
+!!$        nlpspd%nboxp_c(2,3,iat)=nu3
 
         ! fine grid quantities
         call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
-        nlpspd%nboxp_f(1,1,iat)=nl1
-        nlpspd%nboxp_f(1,2,iat)=nl2
-        nlpspd%nboxp_f(1,3,iat)=nl3
+        call bounds_to_plr_limits(.true.,2,nlpspd%plr(iat),&
+             nl1,nl2,nl3,nu1,nu2,nu3)
 
-        nlpspd%nboxp_f(2,1,iat)=nu1
-        nlpspd%nboxp_f(2,2,iat)=nu2
-        nlpspd%nboxp_f(2,3,iat)=nu3
+!!$
+!!$        nlpspd%plr(iat)%d%nfl1=nl1-nlpspd%plr(iat)%ns1
+!!$        nlpspd%plr(iat)%d%nfl2=nl2-nlpspd%plr(iat)%ns2       
+!!$        nlpspd%plr(iat)%d%nfl3=nl3-nlpspd%plr(iat)%ns3
+!!$                                                      
+!!$        nlpspd%plr(iat)%d%nfu1=nu1-nlpspd%plr(iat)%ns1
+!!$        nlpspd%plr(iat)%d%nfu2=nu2-nlpspd%plr(iat)%ns2
+!!$        nlpspd%plr(iat)%d%nfu3=nu3-nlpspd%plr(iat)%ns3
+
+!!$        nlpspd%nboxp_f(1,1,iat)=nl1
+!!$        nlpspd%nboxp_f(1,2,iat)=nl2
+!!$        nlpspd%nboxp_f(1,3,iat)=nl3
+!!$
+!!$        nlpspd%nboxp_f(2,1,iat)=nu1
+!!$        nlpspd%nboxp_f(2,2,iat)=nu2
+!!$        nlpspd%nboxp_f(2,3,iat)=nu3
 
 
      endif
@@ -262,7 +322,8 @@ subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   !n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
 
-  if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) write(*,'(1x,a)',advance='no') &
+  if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0)&
+       write(*,'(1x,a)',advance='no') &
        'Calculating wavelets expansion of projectors...'
   !warnings related to the projectors norm
   nwarnings=0
@@ -283,8 +344,8 @@ subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
      iproj=0
      do iat=1,at%nat
         !this routine is defined to uniformise the call for on-the-fly application
-        call atom_projector(ikpt,iat,idir,istart_c,iproj,&
-             lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+        call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
+             lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings)
      enddo
      if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
      ! projector part finished
@@ -305,20 +366,20 @@ subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
 END SUBROUTINE fill_projectors
 
 
-subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
-     lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
+     lr,hx,hy,hz,rxyz,at,orbs,plr,proj,nwarnings)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iat,idir,ikpt
+  integer, intent(in) :: iat,idir,ikpt,nprojel
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(locreg_descriptors), intent(in) :: plr
   type(locreg_descriptors),intent(in) :: lr
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3), intent(in) :: rxyz
   integer, intent(inout) :: istart_c,iproj,nwarnings
-  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+  real(wp), dimension(nprojel), intent(inout) :: proj
   !Local variables
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,ncplx
   real(gp) :: kx,ky,kz
@@ -336,25 +397,34 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
   end if
 
   ityp=at%iatype(iat)
-  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-  mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
 
-  mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-  mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-  jseg_c=nlpspd%nseg_p(2*iat-2)+1
+  call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+!!$  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+!!$  mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
+!!$
+!!$  mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+!!$  mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
+!!$  jseg_c=nlpspd%nseg_p(2*iat-2)+1
   !decide the loop bounds
   do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
      do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
         if (at%psppar(l,i,ityp) /= 0.0_gp) then
+!!$           call projector(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
+!!$                at%psppar(l,0,ityp),rxyz(1,iat),lr,&
+!!$                hx,hy,hz,kx,ky,kz,ncplx,&
+!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
+!!$                proj(istart_c),nwarnings)
            call projector(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
-                at%psppar(l,0,ityp),rxyz(1,iat),lr,&
+                at%psppar(l,0,ityp),rxyz(1),lr,&
                 hx,hy,hz,kx,ky,kz,ncplx,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),nwarnings)
+                plr%wfd%keyv,plr%wfd%keyg,&
+                proj(istart_c),nwarnings)
            iproj=iproj+2*l-1
            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
            !print *,'iproc,istart_c,nlpspd%nprojel',istart_c,nlpspd%nprojel,ncplx, kx, ky, kz, ikpt
-           if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
+           if (istart_c > nprojel+1) stop 'istart_c > nprojel+1'
         endif
      enddo
   enddo
@@ -367,26 +437,34 @@ subroutine deallocate_proj_descr(nlpspd,subname)
   implicit none
   character(len=*), intent(in) :: subname
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
+  !local variables
+  integer :: i_all, i_stat,iat
 
-  integer :: i_all, i_stat
-  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
-  deallocate(nlpspd%nboxp_c,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_c',subname)
-  i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
-  deallocate(nlpspd%nboxp_f,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_f',subname)
-  i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
-  deallocate(nlpspd%keyg_p,stat=i_stat)
-  call memocc(i_stat,i_all,'keyg_p',subname)
-  i_all=-product(shape(nlpspd%keyv_p))*kind(nlpspd%keyv_p)
-  deallocate(nlpspd%keyv_p,stat=i_stat)
-  call memocc(i_stat,i_all,'keyv_p',subname)
-  i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
-  deallocate(nlpspd%nvctr_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr_p',subname)
-  i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
-  deallocate(nlpspd%nseg_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nseg_p',subname)
+  do iat=1,nlpspd%natoms
+     call deallocate_wfd(nlpspd%plr(iat)%wfd,subname)
+  end do
+  deallocate(nlpspd%plr,stat=i_stat)
+  nullify(nlpspd%plr)
+  
+!!$  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
+!!$  deallocate(nlpspd%nboxp_c,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'nboxp_c',subname)
+!!$  i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
+!!$  deallocate(nlpspd%nboxp_f,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'nboxp_f',subname)
+!!$  i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
+!!$  deallocate(nlpspd%keyg_p,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'keyg_p',subname)
+!!$  i_all=-product(shape(nlpspd%keyv_p))*kind(nlpspd%keyv_p)
+!!$  deallocate(nlpspd%keyv_p,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'keyv_p',subname)
+!!$  i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
+!!$  deallocate(nlpspd%nvctr_p,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'nvctr_p',subname)
+!!$  i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
+!!$  deallocate(nlpspd%nseg_p,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'nseg_p',subname)
+
 END SUBROUTINE deallocate_proj_descr
 
 
@@ -468,7 +546,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
                  write(*,'(1x,a)')&
                       'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
               !end if
-              stop
+                 !stop commented for the moment
            else
 !!!              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
 !!!                   'The norm of the nonlocal PSP for atom n=',iat,&
@@ -572,7 +650,6 @@ subroutine crtproj(geocode,nterm,lr, &
   perx=(geocode /= 'F')
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
-
   ! make sure that the coefficients returned by CALL GAUSS_TO_DAUB are zero outside [ml:mr] 
   !n(c) err_norm=0.0_gp 
   do iterm=1,nterm
@@ -1670,7 +1747,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
 
   !Local variables
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
-  integer :: ikpt,nkptsproj,ikptp
+  integer :: ikpt,nkptsproj,ikptp,i_stat
   real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
   integer :: natpaw
 
@@ -1681,8 +1758,8 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
           'Type','Name','Number of atoms','Number of paw projectors per atom'
   end if
   
-  PAWD%paw_nlpspd%nseg_p(0)=0 
-  PAWD%paw_nlpspd%nvctr_p(0)=0 
+!!$  PAWD%paw_nlpspd%nseg_p(0)=0 
+!!$  PAWD%paw_nlpspd%nvctr_p(0)=0 
 
   istart=1
   PAWD%paw_nlpspd%nproj=0
@@ -1693,7 +1770,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
      do ityp=1,at%ntypes
         natyp=0
         mproj=0
-        if(  at%paw_NofL(ityp).gt.0) then
+        if(at%paw_NofL(ityp).gt.0) then
            do iat=1,at%nat
               if (at%iatype(iat) == ityp) then
                  if(natyp.eq.0) then
@@ -1708,8 +1785,20 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
      end do
   end if
 
+  !count number of PAW projectors
   natpaw=0
+  do iat=1,at%nat
+     if(  at%paw_NofL(at%iatype(iat)).gt.0) then
+        call numb_proj_paw(at%iatype(iat),mproj)
+        if (mproj /= 0) then 
+           natpaw=natpaw+1
+        end if
+     end if
+  end do
+  PAWD%paw_nlpspd%natoms=natpaw
+  allocate(PAWD%paw_nlpspd%plr(PAWD%paw_nlpspd%natoms),stat=i_stat)
 
+  natpaw=0
   do iat=1,at%nat
 
      if(  at%paw_NofL(at%iatype(iat)).gt.0) then
@@ -1726,23 +1815,36 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
                 hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
-           PAWD%paw_nlpspd%nboxp_c(1,1,natpaw)=nl1
-           PAWD%paw_nlpspd%nboxp_c(1,2,natpaw)=nl2       
-           PAWD%paw_nlpspd%nboxp_c(1,3,natpaw)=nl3       
+           PAWD%paw_nlpspd%plr(natpaw)%ns1=nl1     
+           PAWD%paw_nlpspd%plr(natpaw)%ns2=nl2                                   
+           PAWD%paw_nlpspd%plr(natpaw)%ns3=nl3                                   
+                                                
+           PAWD%paw_nlpspd%plr(natpaw)%d%n1=nu1-nl1
+           PAWD%paw_nlpspd%plr(natpaw)%d%n2=nu2-nl2
+           PAWD%paw_nlpspd%plr(natpaw)%d%n3=nu3-nl3
 
-           PAWD%paw_nlpspd%nboxp_c(2,1,natpaw)=nu1
-           PAWD%paw_nlpspd%nboxp_c(2,2,natpaw)=nu2
-           PAWD%paw_nlpspd%nboxp_c(2,3,natpaw)=nu3
+
+!!$           PAWD%paw_nlpspd%nboxp_c(1,1,natpaw)=nl1
+!!$           PAWD%paw_nlpspd%nboxp_c(1,2,natpaw)=nl2       
+!!$           PAWD%paw_nlpspd%nboxp_c(1,3,natpaw)=nl3       
+!!$
+!!$           PAWD%paw_nlpspd%nboxp_c(2,1,natpaw)=nu1
+!!$           PAWD%paw_nlpspd%nboxp_c(2,2,natpaw)=nu2
+!!$           PAWD%paw_nlpspd%nboxp_c(2,3,natpaw)=nu3
 
            call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
                 at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
            call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 
-           PAWD%paw_nlpspd%nseg_p (2*natpaw-1)=PAWD%paw_nlpspd%nseg_p (2*natpaw-2) + mseg
-           PAWD%paw_nlpspd%nvctr_p(2*natpaw-1)=PAWD%paw_nlpspd%nvctr_p(2*natpaw-2) + mvctr
-           istart=istart+mvctr*mproj
- 
+           PAWD%paw_nlpspd%plr(natpaw)%wfd%nseg_c=mseg
+           PAWD%paw_nlpspd%plr(natpaw)%wfd%nvctr_c=mvctr
 
+!!$           PAWD%paw_nlpspd%nseg_p (2*natpaw-1)=&
+!!$                PAWD%paw_nlpspd%nseg_p (2*natpaw-2) + mseg
+!!$           PAWD%paw_nlpspd%nvctr_p(2*natpaw-1)=&
+!!$                PAWD%paw_nlpspd%nvctr_p(2*natpaw-2) + mvctr
+
+           istart=istart+mvctr*mproj
 
            nprojelat=mvctr*mproj
 
@@ -1750,67 +1852,113 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
 
            ! fine grid quantities
 
-
-           call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
+           call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),&
+                fpmult,&
                 hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
-           PAWD%paw_nlpspd%nboxp_f(1,1,natpaw)=nl1
-           PAWD%paw_nlpspd%nboxp_f(1,2,natpaw)=nl2
-           PAWD%paw_nlpspd%nboxp_f(1,3,natpaw)=nl3
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfl1=nl1-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns1
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfl2=nl2-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns2
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfl3=nl3-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns3
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfu1=nu1-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns1
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfu2=nu2-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns2
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfu3=nu3-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns3
+           
 
-           PAWD%paw_nlpspd%nboxp_f(2,1,natpaw)=nu1
-           PAWD%paw_nlpspd%nboxp_f(2,2,natpaw)=nu2
-           PAWD%paw_nlpspd%nboxp_f(2,3,natpaw)=nu3
+
+!!$           PAWD%paw_nlpspd%nboxp_f(1,1,natpaw)=nl1
+!!$           PAWD%paw_nlpspd%nboxp_f(1,2,natpaw)=nl2
+!!$           PAWD%paw_nlpspd%nboxp_f(1,3,natpaw)=nl3
+!!$
+!!$           PAWD%paw_nlpspd%nboxp_f(2,1,natpaw)=nu1
+!!$           PAWD%paw_nlpspd%nboxp_f(2,2,natpaw)=nu2
+!!$           PAWD%paw_nlpspd%nboxp_f(2,3,natpaw)=nu3
 
            call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
                 at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
            call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
            !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
-           PAWD%paw_nlpspd%nseg_p (2*natpaw)=PAWD%paw_nlpspd%nseg_p (2*natpaw-1) + mseg
-           PAWD%paw_nlpspd%nvctr_p(2*natpaw)=PAWD%paw_nlpspd%nvctr_p(2*natpaw-1) + mvctr
+           PAWD%paw_nlpspd%plr(natpaw)%wfd%nseg_f=mseg
+           PAWD%paw_nlpspd%plr(natpaw)%wfd%nvctr_f=mvctr
 
-
+!!$           PAWD%paw_nlpspd%nseg_p (2*natpaw)=&
+!!$                PAWD%paw_nlpspd%nseg_p (2*natpaw-1) + mseg
+!!$           PAWD%paw_nlpspd%nvctr_p(2*natpaw)=&
+!!$                PAWD%paw_nlpspd%nvctr_p(2*natpaw-1) + mvctr
 
            istart=istart+7*mvctr*mproj
            nprojelat=nprojelat+7*mvctr*mproj
-
-
 
            PAWD%paw_nlpspd%nprojel=max(PAWD%paw_nlpspd%nprojel,nprojelat)
 
            !print *,'iat,nprojelat',iat,nprojelat,mvctr,mseg
 
         else  !(atom has no nonlocal PSP, e.g. H)
-           PAWD%paw_nlpspd%nseg_p(2*natpaw-1)=PAWD%paw_nlpspd%nseg_p(2*natpaw-2) 
-           PAWD%paw_nlpspd%nvctr_p(2*natpaw-1)=PAWD%paw_nlpspd%nvctr_p(2*natpaw-2) 
-           PAWD%paw_nlpspd%nseg_p(2*natpaw)=PAWD%paw_nlpspd%nseg_p(2*natpaw-1) 
-           PAWD%paw_nlpspd%nvctr_p(2*natpaw)=PAWD%paw_nlpspd%nvctr_p(2*natpaw-1) 
+
+           PAWD%paw_nlpspd%plr(natpaw)%wfd%nseg_c=0
+           PAWD%paw_nlpspd%plr(natpaw)%wfd%nvctr_c=0
+           PAWD%paw_nlpspd%plr(natpaw)%wfd%nseg_f=0
+           PAWD%paw_nlpspd%plr(natpaw)%wfd%nvctr_f=0
+
+
+!!$           PAWD%paw_nlpspd%nseg_p(2*natpaw-1)=PAWD%paw_nlpspd%nseg_p(2*natpaw-2) 
+!!$           PAWD%paw_nlpspd%nvctr_p(2*natpaw-1)=PAWD%paw_nlpspd%nvctr_p(2*natpaw-2) 
+!!$           PAWD%paw_nlpspd%nseg_p(2*natpaw)=PAWD%paw_nlpspd%nseg_p(2*natpaw-1) 
+!!$           PAWD%paw_nlpspd%nvctr_p(2*natpaw)=PAWD%paw_nlpspd%nvctr_p(2*natpaw-1) 
 
            !! the following is necessary to the creati of preconditioning projectors
 
            ! coarse grid quantities
            call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
                 hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+           
+           PAWD%paw_nlpspd%plr(natpaw)%ns1=nl1     
+           PAWD%paw_nlpspd%plr(natpaw)%ns2=nl2                                   
+           PAWD%paw_nlpspd%plr(natpaw)%ns3=nl3                                   
 
-           PAWD%paw_nlpspd%nboxp_c(1,1,natpaw)=nl1
-           PAWD%paw_nlpspd%nboxp_c(1,2,natpaw)=nl2       
-           PAWD%paw_nlpspd%nboxp_c(1,3,natpaw)=nl3       
+           PAWD%paw_nlpspd%plr(natpaw)%d%n1=nu1-nl1
+           PAWD%paw_nlpspd%plr(natpaw)%d%n2=nu2-nl2
+           PAWD%paw_nlpspd%plr(natpaw)%d%n3=nu3-nl3
 
-           PAWD%paw_nlpspd%nboxp_c(2,1,natpaw)=nu1
-           PAWD%paw_nlpspd%nboxp_c(2,2,natpaw)=nu2
-           PAWD%paw_nlpspd%nboxp_c(2,3,natpaw)=nu3
+
+!!$           PAWD%paw_nlpspd%nboxp_c(1,1,natpaw)=nl1
+!!$           PAWD%paw_nlpspd%nboxp_c(1,2,natpaw)=nl2       
+!!$           PAWD%paw_nlpspd%nboxp_c(1,3,natpaw)=nl3       
+!!$
+!!$           PAWD%paw_nlpspd%nboxp_c(2,1,natpaw)=nu1
+!!$           PAWD%paw_nlpspd%nboxp_c(2,2,natpaw)=nu2
+!!$           PAWD%paw_nlpspd%nboxp_c(2,3,natpaw)=nu3
 
            ! fine grid quantities
            call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
                 hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
-           PAWD%paw_nlpspd%nboxp_f(1,1,natpaw)=nl1
-           PAWD%paw_nlpspd%nboxp_f(1,2,natpaw)=nl2
-           PAWD%paw_nlpspd%nboxp_f(1,3,natpaw)=nl3
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfl1=nl1-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns1
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfl2=nl2-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns2
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfl3=nl3-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns3
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfu1=nu1-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns1
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfu2=nu2-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns2
+           PAWD%paw_nlpspd%plr(natpaw)%d%nfu3=nu3-&
+                PAWD%paw_nlpspd%plr(natpaw)%ns3
 
-           PAWD%paw_nlpspd%nboxp_f(2,1,natpaw)=nu1
-           PAWD%paw_nlpspd%nboxp_f(2,2,natpaw)=nu2
-           PAWD%paw_nlpspd%nboxp_f(2,3,natpaw)=nu3
+
+!!$           PAWD%paw_nlpspd%nboxp_f(1,1,natpaw)=nl1
+!!$           PAWD%paw_nlpspd%nboxp_f(1,2,natpaw)=nl2
+!!$           PAWD%paw_nlpspd%nboxp_f(1,3,natpaw)=nl3
+!!$
+!!$           PAWD%paw_nlpspd%nboxp_f(2,1,natpaw)=nu1
+!!$           PAWD%paw_nlpspd%nboxp_f(2,2,natpaw)=nu2
+!!$           PAWD%paw_nlpspd%nboxp_f(2,3,natpaw)=nu3
 
         endif
      endif
@@ -1935,4 +2083,71 @@ end subroutine numb_proj_paw
 
 END subroutine localize_projectors_paw
 
+subroutine bounds_to_plr_limits(thatway,icoarse,plr,nl1,nl2,nl3,nu1,nu2,nu3)
+  use module_base
+  use module_types
+  implicit none
+  logical :: thatway
+  integer, intent(in) :: icoarse
+  type(locreg_descriptors), intent(inout) :: plr
+  integer, intent(inout) :: nl1,nl2,nl3,nu1,nu2,nu3
+  !local variables
+  
+  if (thatway) then
+     if (icoarse==1) then !coarse limits (to be done first)
+        plr%ns1=nl1     
+        plr%ns2=nl2       
+        plr%ns3=nl3       
+
+        plr%d%n1=nu1-nl1
+        plr%d%n2=nu2-nl2
+        plr%d%n3=nu3-nl3
+     else if (icoarse == 2) then
+        plr%d%nfl1=nl1-plr%ns1
+        plr%d%nfl2=nl2-plr%ns2       
+        plr%d%nfl3=nl3-plr%ns3
+
+        plr%d%nfu1=nu1-plr%ns1
+        plr%d%nfu2=nu2-plr%ns2
+        plr%d%nfu3=nu3-plr%ns3
+     else
+        stop 'WRONG icoarse' 
+     end if     
+  else
+     if (icoarse==1) then !coarse limits
+        nl1=plr%ns1
+        nl2=plr%ns2
+        nl3=plr%ns3
+            
+        nu1=plr%d%n1+plr%ns1
+        nu2=plr%d%n2+plr%ns2
+        nu3=plr%d%n3+plr%ns3
+     else if (icoarse == 2) then
+        nl1=plr%d%nfl1+plr%ns1
+        nl2=plr%d%nfl2+plr%ns2
+        nl3=plr%d%nfl3+plr%ns3
+            
+        nu1=plr%d%nfu1+plr%ns1
+        nu2=plr%d%nfu2+plr%ns2
+        nu3=plr%d%nfu3+plr%ns3
+     else
+        stop 'WRONG icoarse, false case' 
+     end if
+  end if
+end subroutine bounds_to_plr_limits
+
+subroutine plr_segs_and_vctrs(plr,nseg_c,nseg_f,nvctr_c,nvctr_f)
+  use module_base
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(in) :: plr
+  integer, intent(out) :: nseg_c,nseg_f,nvctr_c,nvctr_f
+  !local variables
+  
+  nseg_c=plr%wfd%nseg_c
+  nseg_f=plr%wfd%nseg_f
+  nvctr_c=plr%wfd%nvctr_c
+  nvctr_f=plr%wfd%nvctr_f
+
+end subroutine plr_segs_and_vctrs
 

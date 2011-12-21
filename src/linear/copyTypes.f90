@@ -591,126 +591,170 @@ end subroutine copy_grow_bounds
 
 
 
+
 subroutine copy_nonlocal_psp_descriptors(nlpspin, nlpspout, subname)
-use module_base
-use module_types
-implicit none
+  use module_base
+  use module_types
+  implicit none
 
-! Calling arguments
-type(nonlocal_psp_descriptors),intent(in):: nlpspin
-type(nonlocal_psp_descriptors),intent(out):: nlpspout
-character(len=*),intent(in):: subname
+  ! Calling arguments
+  type(nonlocal_psp_descriptors),intent(in):: nlpspin
+  type(nonlocal_psp_descriptors),intent(out):: nlpspout
+  character(len=*),intent(in):: subname
 
-! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
-
-
-nlpspout%nproj = nlpspin%nproj
-nlpspout%nprojel = nlpspin%nprojel
+  ! Local variables
+  integer:: iis1,iie1,iis2,iie2,iis3,iie3,i1,i2,i3,istat,iall,iat
 
 
-if(associated(nlpspout%nvctr_p)) then
-    iall=-product(shape(nlpspout%nvctr_p))*kind(nlpspout%nvctr_p)
-    deallocate(nlpspout%nvctr_p, stat=istat)
-    call memocc(istat, iall, 'nlpspout%nvctr_p', subname)
-end if
-iis1=lbound(nlpspin%nvctr_p,1)
-iie1=ubound(nlpspin%nvctr_p,1)
-allocate(nlpspout%nvctr_p(iis1:iie1), stat=istat)
-call memocc(istat, nlpspout%nvctr_p, 'nlpspout%nvctr_p', subname)
-do i1=iis1,iie1
-    nlpspout%nvctr_p(i1) = nlpspin%nvctr_p(i1)
-end do
+  nlpspout%nproj = nlpspin%nproj
+  nlpspout%nprojel = nlpspin%nprojel
+
+  nlpspout%natoms=nlpspin%natoms
+  
+  !allocate the array and copy wavefunction descriptors
+  allocate(nlpspout%plr(nlpspout%natoms),stat=istat)
+  if (istat /= 0) stop 'allocation error, nlpspout' 
+
+  do iat=1,nlpspout%natoms
+
+     !copy dimensions which are relevant for the moment
+     nlpspout%plr(iat)%ns1=nlpspin%plr(iat)%ns1
+     nlpspout%plr(iat)%ns2=nlpspin%plr(iat)%ns2
+     nlpspout%plr(iat)%ns3=nlpspin%plr(iat)%ns3
+
+     nlpspout%plr(iat)%d%n1=nlpspin%plr(iat)%d%n1
+     nlpspout%plr(iat)%d%n2=nlpspin%plr(iat)%d%n2
+     nlpspout%plr(iat)%d%n3=nlpspin%plr(iat)%d%n3
+
+     nlpspout%plr(iat)%d%nfl1=nlpspin%plr(iat)%d%nfl1
+     nlpspout%plr(iat)%d%nfl2=nlpspin%plr(iat)%d%nfl2
+     nlpspout%plr(iat)%d%nfl3=nlpspin%plr(iat)%d%nfl3
+     nlpspout%plr(iat)%d%nfu1=nlpspin%plr(iat)%d%nfu1
+     nlpspout%plr(iat)%d%nfu2=nlpspin%plr(iat)%d%nfu2
+     nlpspout%plr(iat)%d%nfu3=nlpspin%plr(iat)%d%nfu3
+
+     nlpspout%plr(iat)%wfd%nseg_c =nlpspin%plr(iat)%wfd%nseg_c 
+     nlpspout%plr(iat)%wfd%nseg_f =nlpspin%plr(iat)%wfd%nseg_f 
+     nlpspout%plr(iat)%wfd%nvctr_c=nlpspin%plr(iat)%wfd%nvctr_c
+     nlpspout%plr(iat)%wfd%nvctr_f=nlpspin%plr(iat)%wfd%nvctr_f
+
+     call allocate_wfd(nlpspout%plr(iat)%wfd,subname)
+ 
+     if (nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f > 0) then
+        call vcopy(nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f,&
+             nlpspin%plr(iat)%wfd%keyv(1),1,&
+             nlpspout%plr(iat)%wfd%keyv(1),1)
+        call vcopy(2*(nlpspout%plr(iat)%wfd%nseg_c+&
+             nlpspout%plr(iat)%wfd%nseg_f),&
+             nlpspin%plr(iat)%wfd%keyg(1,1),1,&
+             nlpspout%plr(iat)%wfd%keyg(1,1),1)
+     end if
+  end do
+  
 
 
-if(associated(nlpspout%nseg_p)) then
-    iall=-product(shape(nlpspout%nseg_p))*kind(nlpspout%nseg_p)
-    deallocate(nlpspout%nseg_p, stat=istat)
-    call memocc(istat, iall, 'nlpspout%nseg_p', subname)
-end if
-iis1=lbound(nlpspin%nseg_p,1)
-iie1=ubound(nlpspin%nseg_p,1)
-allocate(nlpspout%nseg_p(iis1:iie1), stat=istat)
-call memocc(istat, nlpspout%nseg_p, 'nlpspout%nseg_p', subname)
-do i1=iis1,iie1
-    nlpspout%nseg_p(i1) = nlpspin%nseg_p(i1)
-end do
-
-
-if(associated(nlpspout%keyv_p)) then
-    iall=-product(shape(nlpspout%keyv_p))*kind(nlpspout%keyv_p)
-    deallocate(nlpspout%keyv_p, stat=istat)
-    call memocc(istat, iall, 'nlpspout%keyv_p', subname)
-end if
-iis1=lbound(nlpspin%keyv_p,1)
-iie1=ubound(nlpspin%keyv_p,1)
-allocate(nlpspout%keyv_p(iis1:iie1), stat=istat)
-call memocc(istat, nlpspout%keyv_p, 'nlpspout%keyv_p', subname)
-do i1=iis1,iie1
-    nlpspout%keyv_p(i1) = nlpspin%keyv_p(i1)
-end do
-
-
-if(associated(nlpspout%keyg_p)) then
-    iall=-product(shape(nlpspout%keyg_p))*kind(nlpspout%keyg_p)
-    deallocate(nlpspout%keyg_p, stat=istat)
-    call memocc(istat, iall, 'nlpspout%keyg_p', subname)
-end if
-iis1=lbound(nlpspin%keyg_p,1)
-iie1=ubound(nlpspin%keyg_p,1)
-iis2=lbound(nlpspin%keyg_p,2)
-iie2=ubound(nlpspin%keyg_p,2)
-allocate(nlpspout%keyg_p(iis1:iie1,iis2:iie2), stat=istat)
-call memocc(istat, nlpspin%keyg_p, 'nlpspin%keyg_p', subname)
-do i2=iis2,iie2
-    do i1=iis1,iie1
-        nlpspout%keyg_p(i1,i2) = nlpspin%keyg_p(i1,i2)
-    end do
-end do
-
-
-if(associated(nlpspout%nboxp_c)) then
-    iall=-product(shape(nlpspout%nboxp_c))*kind(nlpspout%nboxp_c)
-    deallocate(nlpspout%nboxp_c, stat=istat)
-    call memocc(istat, iall, 'nlpspout%nboxp_c', subname)
-end if
-iis1=lbound(nlpspin%nboxp_c,1)
-iie1=ubound(nlpspin%nboxp_c,1)
-iis2=lbound(nlpspin%nboxp_c,2)
-iie2=ubound(nlpspin%nboxp_c,2)
-iis3=lbound(nlpspin%nboxp_c,3)
-iie3=ubound(nlpspin%nboxp_c,3)
-allocate(nlpspout%nboxp_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-call memocc(istat, nlpspout%nboxp_c, 'nlpspout%nboxp_c', subname)
-do i3=iis3,iie3
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            nlpspout%nboxp_c(i1,i2,i3) = nlpspin%nboxp_c(i1,i2,i3)
-        end do
-    end do
-end do
-
-
-if(associated(nlpspout%nboxp_f)) then
-    iall=-product(shape(nlpspout%nboxp_f))*kind(nlpspout%nboxp_f)
-    deallocate(nlpspout%nboxp_f, stat=istat)
-    call memocc(istat, iall, 'nlpspout%nboxp_f', subname)
-end if
-iis1=lbound(nlpspin%nboxp_f,1)
-iie1=ubound(nlpspin%nboxp_f,1)
-iis2=lbound(nlpspin%nboxp_f,2)
-iie2=ubound(nlpspin%nboxp_f,2)
-iis3=lbound(nlpspin%nboxp_f,3)
-iie3=ubound(nlpspin%nboxp_f,3)
-allocate(nlpspout%nboxp_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-call memocc(istat, nlpspout%nboxp_f, 'nlpspout%nboxp_f', subname)
-do i3=iis3,iie3
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            nlpspout%nboxp_f(i1,i2,i3) = nlpspin%nboxp_f(i1,i2,i3)
-        end do
-    end do
-end do
+!!$  if(associated(nlpspout%nvctr_p)) then
+!!$     iall=-product(shape(nlpspout%nvctr_p))*kind(nlpspout%nvctr_p)
+!!$     deallocate(nlpspout%nvctr_p, stat=istat)
+!!$     call memocc(istat, iall, 'nlpspout%nvctr_p', subname)
+!!$  end if
+!!$  iis1=lbound(nlpspin%nvctr_p,1)
+!!$  iie1=ubound(nlpspin%nvctr_p,1)
+!!$  allocate(nlpspout%nvctr_p(iis1:iie1), stat=istat)
+!!$  call memocc(istat, nlpspout%nvctr_p, 'nlpspout%nvctr_p', subname)
+!!$  do i1=iis1,iie1
+!!$     nlpspout%nvctr_p(i1) = nlpspin%nvctr_p(i1)
+!!$  end do
+!!$
+!!$
+!!$  if(associated(nlpspout%nseg_p)) then
+!!$     iall=-product(shape(nlpspout%nseg_p))*kind(nlpspout%nseg_p)
+!!$     deallocate(nlpspout%nseg_p, stat=istat)
+!!$     call memocc(istat, iall, 'nlpspout%nseg_p', subname)
+!!$  end if
+!!$  iis1=lbound(nlpspin%nseg_p,1)
+!!$  iie1=ubound(nlpspin%nseg_p,1)
+!!$  allocate(nlpspout%nseg_p(iis1:iie1), stat=istat)
+!!$  call memocc(istat, nlpspout%nseg_p, 'nlpspout%nseg_p', subname)
+!!$  do i1=iis1,iie1
+!!$     nlpspout%nseg_p(i1) = nlpspin%nseg_p(i1)
+!!$  end do
+!!$
+!!$
+!!$  if(associated(nlpspout%keyv_p)) then
+!!$     iall=-product(shape(nlpspout%keyv_p))*kind(nlpspout%keyv_p)
+!!$     deallocate(nlpspout%keyv_p, stat=istat)
+!!$     call memocc(istat, iall, 'nlpspout%keyv_p', subname)
+!!$  end if
+!!$  iis1=lbound(nlpspin%keyv_p,1)
+!!$  iie1=ubound(nlpspin%keyv_p,1)
+!!$  allocate(nlpspout%keyv_p(iis1:iie1), stat=istat)
+!!$  call memocc(istat, nlpspout%keyv_p, 'nlpspout%keyv_p', subname)
+!!$  do i1=iis1,iie1
+!!$     nlpspout%keyv_p(i1) = nlpspin%keyv_p(i1)
+!!$  end do
+!!$
+!!$
+!!$  if(associated(nlpspout%keyg_p)) then
+!!$     iall=-product(shape(nlpspout%keyg_p))*kind(nlpspout%keyg_p)
+!!$     deallocate(nlpspout%keyg_p, stat=istat)
+!!$     call memocc(istat, iall, 'nlpspout%keyg_p', subname)
+!!$  end if
+!!$  iis1=lbound(nlpspin%keyg_p,1)
+!!$  iie1=ubound(nlpspin%keyg_p,1)
+!!$  iis2=lbound(nlpspin%keyg_p,2)
+!!$  iie2=ubound(nlpspin%keyg_p,2)
+!!$  allocate(nlpspout%keyg_p(iis1:iie1,iis2:iie2), stat=istat)
+!!$  call memocc(istat, nlpspin%keyg_p, 'nlpspin%keyg_p', subname)
+!!$  do i2=iis2,iie2
+!!$     do i1=iis1,iie1
+!!$        nlpspout%keyg_p(i1,i2) = nlpspin%keyg_p(i1,i2)
+!!$     end do
+!!$  end do
+!!$
+!!$
+!!$  if(associated(nlpspout%nboxp_c)) then
+!!$     iall=-product(shape(nlpspout%nboxp_c))*kind(nlpspout%nboxp_c)
+!!$     deallocate(nlpspout%nboxp_c, stat=istat)
+!!$     call memocc(istat, iall, 'nlpspout%nboxp_c', subname)
+!!$  end if
+!!$  iis1=lbound(nlpspin%nboxp_c,1)
+!!$  iie1=ubound(nlpspin%nboxp_c,1)
+!!$  iis2=lbound(nlpspin%nboxp_c,2)
+!!$  iie2=ubound(nlpspin%nboxp_c,2)
+!!$  iis3=lbound(nlpspin%nboxp_c,3)
+!!$  iie3=ubound(nlpspin%nboxp_c,3)
+!!$  allocate(nlpspout%nboxp_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
+!!$  call memocc(istat, nlpspout%nboxp_c, 'nlpspout%nboxp_c', subname)
+!!$  do i3=iis3,iie3
+!!$     do i2=iis2,iie2
+!!$        do i1=iis1,iie1
+!!$           nlpspout%nboxp_c(i1,i2,i3) = nlpspin%nboxp_c(i1,i2,i3)
+!!$        end do
+!!$     end do
+!!$  end do
+!!$
+!!$
+!!$  if(associated(nlpspout%nboxp_f)) then
+!!$     iall=-product(shape(nlpspout%nboxp_f))*kind(nlpspout%nboxp_f)
+!!$     deallocate(nlpspout%nboxp_f, stat=istat)
+!!$     call memocc(istat, iall, 'nlpspout%nboxp_f', subname)
+!!$  end if
+!!$  iis1=lbound(nlpspin%nboxp_f,1)
+!!$  iie1=ubound(nlpspin%nboxp_f,1)
+!!$  iis2=lbound(nlpspin%nboxp_f,2)
+!!$  iie2=ubound(nlpspin%nboxp_f,2)
+!!$  iis3=lbound(nlpspin%nboxp_f,3)
+!!$  iie3=ubound(nlpspin%nboxp_f,3)
+!!$  allocate(nlpspout%nboxp_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
+!!$  call memocc(istat, nlpspout%nboxp_f, 'nlpspout%nboxp_f', subname)
+!!$  do i3=iis3,iie3
+!!$     do i2=iis2,iie2
+!!$        do i1=iis1,iie1
+!!$           nlpspout%nboxp_f(i1,i2,i3) = nlpspin%nboxp_f(i1,i2,i3)
+!!$        end do
+!!$     end do
+!!$  end do
 
 
 end subroutine copy_nonlocal_psp_descriptors

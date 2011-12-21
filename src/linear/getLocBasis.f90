@@ -212,15 +212,35 @@ real(8),dimension(:),pointer:: lpot
   if(lin%useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lin%lb%comgp)
 
   if(.not.lin%useDerivativeBasisFunctions) then
-      call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
-           input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
+
+!!$      call full_local_potential2(iproc,nproc,&
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
+!!$           input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
+
+     call local_potential_dimensions(lin%Lzd,lin%orbs,ngatherarr(0,1))
+
+      call full_local_potential(iproc,nproc,&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2),&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,input%nspin,&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
+           lin%orbs,lin%Lzd,2,ngatherarr,rhopot,lpot,lin%comgp)
   else
-      call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
-           input%nspin, lin%lb%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%lb%comgp)
+!!$      call full_local_potential2(iproc,nproc,&
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
+!!$           input%nspin, lin%lb%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%lb%comgp)
+
+     call local_potential_dimensions(lin%Lzd,lin%lb%orbs,ngatherarr(0,1))
+      
+      call full_local_potential(iproc,nproc,&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2),&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,input%nspin,&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
+           lin%lb%orbs,lin%Lzd,2,ngatherarr,rhopot,lpot,lin%lb%comgp)
+
   end if
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
@@ -296,15 +316,16 @@ real(8),dimension(:),pointer:: lpot
   deallocate(lin%lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'lin%lzd%doHamAppl', subname)
 
-  if(.not.lin%useDerivativeBasisFunctions)then
-     iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
-     deallocate(lin%orbs%ispot, stat=istat)
-     call memocc(istat, iall, 'lin%orbs%ispot', subname)
-  else
-     iall=-product(shape(lin%lb%orbs%ispot))*kind(lin%lb%orbs%ispot) 
-     deallocate(lin%lb%orbs%ispot, stat=istat)
-     call memocc(istat, iall, 'lin%lb%orbs%ispot', subname)
-  end if
+  !these deallocations should probably be removed
+!!$  if(.not.lin%useDerivativeBasisFunctions)then
+!!$     iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
+!!$     deallocate(lin%orbs%ispot, stat=istat)
+!!$     call memocc(istat, iall, 'lin%orbs%ispot', subname)
+!!$  else
+!!$     iall=-product(shape(lin%lb%orbs%ispot))*kind(lin%lb%orbs%ispot) 
+!!$     deallocate(lin%lb%orbs%ispot, stat=istat)
+!!$     call memocc(istat, iall, 'lin%lb%orbs%ispot', subname)
+!!$  end if
 
 
   iall=-product(shape(lpot))*kind(lpot)
@@ -492,13 +513,6 @@ real(8),dimension(:),pointer:: lpot
 
 end subroutine getLinearPsi
 
-
-
-
-
-
-
-
 subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
     itScc, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj)
@@ -642,10 +656,20 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   call gatherPotential(iproc, nproc, lin%comgp)
 
   ! Build the required potential
-  call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
-       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
-       input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
+!!$  call full_local_potential2(iproc, nproc,&
+!!$       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
+!!$       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
+!!$       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
+!!$       input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
+
+  call local_potential_dimensions(lin%lzd,lin%orbs,ngatherarr(0,1))
+
+  call full_local_potential(iproc,nproc,&
+       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2),&
+       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,input%nspin,&
+       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
+       lin%orbs,lin%Lzd,2,ngatherarr,rhopot,lpot,lin%comgp)
+
   ! Prepare PSP
   !call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
   !call full_local_potential2(iproc, nproc, ndimpot, ndimgrid,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
@@ -1739,9 +1763,10 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   call memocc(istat, iall, 'lhpsiold', subname)
 
 
-  iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
-  deallocate(lin%orbs%ispot, stat=istat)
-  call memocc(istat, iall, 'lin%orbs%ispot', subname)
+!!$  iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
+!!$  deallocate(lin%orbs%ispot, stat=istat)
+!!$  call memocc(istat, iall, 'lin%orbs%ispot', subname)
+
   ! Deallocate potential
   iall=-product(shape(lpot))*kind(lpot)
   deallocate(lpot, stat=istat)
@@ -3529,18 +3554,16 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, 
       end do
       if (.not. calc) cycle !calculate only for the locreg on this processor, without repeating for same locreg.
       ! allocate projflg
-      allocate(Lzd%Llr(ilr)%projflg(at%nat), stat=istat)
-      call memocc(istat, Lzd%Llr(ilr)%projflg, 'Lzd%Llr(ilr)%projflg', subname)
+      allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=istat)
+      call memocc(istat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
 
-      call nlpspd_to_locreg(input, iproc, Lzd%Glr, Lzd%Llr(ilr), rxyz, at, orbs, &
-           radii_cf, input%frmult, input%frmult, input%hx, input%hy, input%hz, locregShape, lzd%Gnlpspd, &
-           Lzd%Lnlpspd(ilr), Lzd%Llr(ilr)%projflg)
-
+      call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,orbs,&
+           radii_cf,input%frmult,input%frmult,&
+           input%hx,input%hy,input%hz,locregShape,lzd%Gnlpspd,&
+           Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
   end do
 
 end subroutine prepare_lnlpspd
-
-
 
 
 subroutine free_lnlpspd(orbs, lzd)
@@ -3575,6 +3598,9 @@ subroutine free_lnlpspd(orbs, lzd)
 
       call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(ilr), subname)
   end do
+
+!!$  deallocate(lzd%lnlpspd)
+!!$  nullify(lzd%lnlpspd)
 
 end subroutine free_lnlpspd
 

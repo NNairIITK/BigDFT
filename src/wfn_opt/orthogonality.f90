@@ -420,16 +420,16 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   allocate(psiw(npsiw+ndebug),stat=i_stat)
   call memocc(i_stat,psiw,'psiw',subname)
 
-  if(iproc==0) then
-      ierr=0
-      do i_all=1,norb
-          do i_stat=1,norb
-              ierr=ierr+1
-              write(13000+iproc,*) i_all, i_stat, hamks(ierr,1)
-          end do
-      end do
-      write(13000+iproc,*) '=============================='
-  end if
+!!$  if(iproc==0) then
+!!$      ierr=0
+!!$      do i_all=1,norb
+!!$          do i_stat=1,norb
+!!$              ierr=ierr+1
+!!$              write(13000+iproc,*) i_all, i_stat, hamks(ierr,1)
+!!$          end do
+!!$      end do
+!!$      write(13000+iproc,*) '=============================='
+!!$  end if
 
   !for each k-point now reorthogonalise wavefunctions
   ispsi=1
