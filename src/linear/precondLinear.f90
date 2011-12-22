@@ -387,14 +387,11 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
 
   call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
 
-
   ! Uncompress the wavefunction.
   call uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
        nseg_c, nvctr_c, keyg_c, keyv_c, nseg_f, nvctr_f,  keyg_f, keyv_f, &
        scal, xpsi_c, xpsi_f, &
        work_conv)
-
-
 
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
   if(confPotOrder==4) then
@@ -412,12 +409,13 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
            work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
            work_conv%y_c, work_conv%y_f)
 
-
   else if(confPotOrder==6) then
+
       stop 'preconditioner for sextic potential not implemented'
       !!call ConvolkineticSextic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
       !!     cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
       !!     xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
+
   end if
 
   ! Compress the wavefunctions.
