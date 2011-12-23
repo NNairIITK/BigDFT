@@ -3707,10 +3707,14 @@ subroutine ConvolSextic(n1, n2, n3, &
   real(wp),dimension(:,:),allocatable:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
   real(wp),dimension(:,:),allocatable:: aeff0_4auxarray, beff0_4auxarray, ceff0_4auxarray, eeff0_4auxarray
   real(wp), dimension(lowfil:lupfil) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
-  real(wp),dimension(:,:,:),allocatable:: x2ya_c, x2yb_c, x2yc_c, x2ye_c, x2za_c, x2zb_c, x2zc_c, x2ze_c, y2za_c, y2zb_c, y2zc_c, y2ze_c
-  real(wp),dimension(:,:,:),allocatable:: x4ya_c, x4yb_c, x4yc_c, x4ye_c, x4za_c, x4zb_c, x4zc_c, x4ze_c, y4za_c, y4zb_c, y4zc_c, y4ze_c
-  real(wp),dimension(:,:,:,:),allocatable:: x2ya_f, x2yb_f, x2yc_f, x2ye_f, x2za_f, x2zb_f, x2zc_f, x2ze_f, y2za_f, y2zb_f, y2zc_f, y2ze_f
-  real(wp),dimension(:,:,:,:),allocatable:: x4ya_f, x4yb_f, x4yc_f, x4ye_f, x4za_f, x4zb_f, x4zc_f, x4ze_f, y4za_f, y4zb_f, y4zc_f, y4ze_f
+  real(wp),dimension(:,:,:),allocatable:: x2ya_c, x2yb_c, x2yc_c, x2ye_c, x2za_c, x2zb_c, x2zc_c, x2ze_c, &
+                                          y2za_c, y2zb_c, y2zc_c, y2ze_c
+  real(wp),dimension(:,:,:),allocatable:: x4ya_c, x4yb_c, x4yc_c, x4ye_c, x4za_c, x4zb_c, x4zc_c, x4ze_c, &
+                                          y4za_c, y4zb_c, y4zc_c, y4ze_c
+  real(wp),dimension(:,:,:,:),allocatable:: x2ya_f, x2yb_f, x2yc_f, x2ye_f, x2za_f, x2zb_f, x2zc_f, x2ze_f, &
+                                            y2za_f, y2zb_f, y2zc_f, y2ze_f
+  real(wp),dimension(:,:,:,:),allocatable:: x4ya_f, x4yb_f, x4yc_f, x4ye_f, x4za_f, x4zb_f, x4zc_f, x4ze_f, &
+                                            y4za_f, y4zb_f, y4zc_f, y4ze_f
   real(wp),dimension(:,:,:,:),allocatable:: x2ya_f2, x2yb_f2, x2yc_f2, x2ye_f2
   real(wp),dimension(:,:,:),allocatable:: x2y2aa_c, x2y2ab_c, x2y2ac_c, x2y2ae_c
   real(wp),dimension(:,:,:),allocatable:: x2y2ba_c, x2y2bb_c, x2y2bc_c, x2y2be_c
@@ -4906,10 +4910,14 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
 
                    
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-                   dyi0=dyi0 + xy_c(t,i1,i3)*aeff0array(t-i2-0,i2+0) + 3.d0*x4ya_c(t,i1,i3)*aeff0_2array(t-i2-0,i2+0) + 3.d0*x2ya_c(t,i1,i3)*aeff0_4array(t-i2-0,i2+0)
-                   dyi1=dyi1 + xy_c(t,i1,i3)*aeff0array(t-i2-1,i2+1) + 3.d0*x4ya_c(t,i1,i3)*aeff0_2array(t-i2-1,i2+1) + 3.d0*x2ya_c(t,i1,i3)*aeff0_4array(t-i2-1,i2+1)
-                   dyi2=dyi2 + xy_c(t,i1,i3)*aeff0array(t-i2-2,i2+2) + 3.d0*x4ya_c(t,i1,i3)*aeff0_2array(t-i2-2,i2+2) + 3.d0*x2ya_c(t,i1,i3)*aeff0_4array(t-i2-2,i2+2)
-                   dyi3=dyi3 + xy_c(t,i1,i3)*aeff0array(t-i2-3,i2+3) + 3.d0*x4ya_c(t,i1,i3)*aeff0_2array(t-i2-3,i2+3) + 3.d0*x2ya_c(t,i1,i3)*aeff0_4array(t-i2-3,i2+3)
+                   dyi0=dyi0 + xy_c(t,i1,i3)*aeff0array(t-i2-0,i2+0) + 3.d0*x4ya_c(t,i1,i3)*aeff0_2array(t-i2-0,i2+0) + &
+                               3.d0*x2ya_c(t,i1,i3)*aeff0_4array(t-i2-0,i2+0)
+                   dyi1=dyi1 + xy_c(t,i1,i3)*aeff0array(t-i2-1,i2+1) + 3.d0*x4ya_c(t,i1,i3)*aeff0_2array(t-i2-1,i2+1) + &
+                               3.d0*x2ya_c(t,i1,i3)*aeff0_4array(t-i2-1,i2+1)
+                   dyi2=dyi2 + xy_c(t,i1,i3)*aeff0array(t-i2-2,i2+2) + 3.d0*x4ya_c(t,i1,i3)*aeff0_2array(t-i2-2,i2+2) + &
+                               3.d0*x2ya_c(t,i1,i3)*aeff0_4array(t-i2-2,i2+2)
+                   dyi3=dyi3 + xy_c(t,i1,i3)*aeff0array(t-i2-3,i2+3) + 3.d0*x4ya_c(t,i1,i3)*aeff0_2array(t-i2-3,i2+3) + &
+                               3.d0*x2ya_c(t,i1,i3)*aeff0_4array(t-i2-3,i2+3)
 
                    ! sss coefficients
                    tt0a0_2=tt0a0_2 + xy_c(t,i1,i3)*aeff0_2auxarray(t-i2-0,i2+0)
@@ -5189,7 +5197,8 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
 
              ttae0=0.d0 ; ttbe0=0.d0 ; ttce0=0.d0 ; ttee0=0.d0
              do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
-                dyi=dyi + xy_c(t,i1,i3)*aeff0array(t-i2-0,i2+0) + 3.d0*x4ya_c(t,i1,i3)*aeff0_2array(t-i2-0,i2+0) + 3.d0*x2ya_c(t,i1,i3)*aeff0_4array(t-i2-0,i2+0)
+                dyi=dyi + xy_c(t,i1,i3)*aeff0array(t-i2-0,i2+0) + 3.d0*x4ya_c(t,i1,i3)*aeff0_2array(t-i2-0,i2+0) + &
+                          3.d0*x2ya_c(t,i1,i3)*aeff0_4array(t-i2-0,i2+0)
 
                 ! sss coefficients
                 tt0a0_2=tt0a0_2 + xy_c(t,i1,i3)*aeff0_2auxarray(t-i2-0,i2+0)
@@ -5956,13 +5965,21 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
               dyi2=0.0_wp 
               dyi3=0.0_wp 
               do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
-                 dyi0=dyi0 + xz_c(t,i1,i2)*aeff0array(t-i3-0,i3+0) + 3.d0*( (x4za_c(t,i1,i2)+y4za_c(t,i1,i2))*aeff0_2array(t-i3-0,i3+0) + (x2za_c(t,i1,i2)+y2za_c(t,i1,i2))*aeff0_4array(t-i3-0,i3+0) ) + &
+                 dyi0=dyi0 + xz_c(t,i1,i2)*aeff0array(t-i3-0,i3+0) + &
+                             3.d0*( (x4za_c(t,i1,i2)+y4za_c(t,i1,i2))*aeff0_2array(t-i3-0,i3+0) + &
+                             (x2za_c(t,i1,i2)+y2za_c(t,i1,i2))*aeff0_4array(t-i3-0,i3+0) ) + &
                              6.d0*x2y2aa_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
-                 dyi1=dyi1 + xz_c(t,i1,i2)*aeff0array(t-i3-1,i3+1) + 3.d0*( (x4za_c(t,i1,i2)+y4za_c(t,i1,i2))*aeff0_2array(t-i3-1,i3+1) + (x2za_c(t,i1,i2)+y2za_c(t,i1,i2))*aeff0_4array(t-i3-1,i3+1) ) + &
+                 dyi1=dyi1 + xz_c(t,i1,i2)*aeff0array(t-i3-1,i3+1) + &
+                             3.d0*( (x4za_c(t,i1,i2)+y4za_c(t,i1,i2))*aeff0_2array(t-i3-1,i3+1) + &
+                             (x2za_c(t,i1,i2)+y2za_c(t,i1,i2))*aeff0_4array(t-i3-1,i3+1) ) + &
                              6.d0*x2y2aa_c(t,i1,i2)*aeff0_2array(t-i3-1,i3+1)
-                 dyi2=dyi2 + xz_c(t,i1,i2)*aeff0array(t-i3-2,i3+2) + 3.d0*( (x4za_c(t,i1,i2)+y4za_c(t,i1,i2))*aeff0_2array(t-i3-2,i3+2) + (x2za_c(t,i1,i2)+y2za_c(t,i1,i2))*aeff0_4array(t-i3-2,i3+2) ) + &
+                 dyi2=dyi2 + xz_c(t,i1,i2)*aeff0array(t-i3-2,i3+2) + &
+                             3.d0*( (x4za_c(t,i1,i2)+y4za_c(t,i1,i2))*aeff0_2array(t-i3-2,i3+2) + &
+                             (x2za_c(t,i1,i2)+y2za_c(t,i1,i2))*aeff0_4array(t-i3-2,i3+2) ) + &
                              6.d0*x2y2aa_c(t,i1,i2)*aeff0_2array(t-i3-2,i3+2)
-                 dyi3=dyi3 + xz_c(t,i1,i2)*aeff0array(t-i3-3,i3+3) + 3.d0*( (x4za_c(t,i1,i2)+y4za_c(t,i1,i2))*aeff0_2array(t-i3-3,i3+3) + (x2za_c(t,i1,i2)+y2za_c(t,i1,i2))*aeff0_4array(t-i3-3,i3+3) ) + &
+                 dyi3=dyi3 + xz_c(t,i1,i2)*aeff0array(t-i3-3,i3+3) + &
+                             3.d0*( (x4za_c(t,i1,i2)+y4za_c(t,i1,i2))*aeff0_2array(t-i3-3,i3+3) + &
+                             (x2za_c(t,i1,i2)+y2za_c(t,i1,i2))*aeff0_4array(t-i3-3,i3+3) ) + &
                              6.d0*x2y2aa_c(t,i1,i2)*aeff0_2array(t-i3-3,i3+3)
               enddo
               y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
@@ -5978,7 +5995,9 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
         do i3=icur,ibxy_c(2,i1,i2)
            dyi0=0.0_wp
            do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
-              dyi0=dyi0 + xz_c(t,i1,i2)*aeff0array(t-i3-0,i3+0) + 3.d0*( (x4za_c(t,i1,i2)+y4za_c(t,i1,i2))*aeff0_2array(t-i3-0,i3+0) + (x2za_c(t,i1,i2)+y2za_c(t,i1,i2))*aeff0_4array(t-i3-0,i3+0) ) + & 
+              dyi0=dyi0 + xz_c(t,i1,i2)*aeff0array(t-i3-0,i3+0) + &
+                          3.d0*( (x4za_c(t,i1,i2)+y4za_c(t,i1,i2))*aeff0_2array(t-i3-0,i3+0) + &
+                          (x2za_c(t,i1,i2)+y2za_c(t,i1,i2))*aeff0_4array(t-i3-0,i3+0) ) + & 
                           6.d0*x2y2aa_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi0
@@ -5995,33 +6014,57 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
               dyi3=0.0_wp
               do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_f(2,i1,i2))
                  dyi0 = dyi0 + xz_f4(t,i1,i2)*beff0array(t-i3-0,i3+0) + &
-                               3.d0*(x4zb_f(1,t,i1,i2)+y4zb_f(1,t,i1,i2)                                    )*aeff0_2array(t-i3-0,i3+0) + &
-                               3.d0*(x4za_f(2,t,i1,i2)+x4zb_f(3,t,i1,i2)+y4za_f(2,t,i1,i2)+y4zb_f(3,t,i1,i2))*beff0_2array(t-i3-0,i3+0) + &
-                               3.d0*(x2zb_f(1,t,i1,i2)+y2zb_f(1,t,i1,i2)                                    )*aeff0_4array(t-i3-0,i3+0) + &
-                               3.d0*(x2za_f(2,t,i1,i2)+x2zb_f(3,t,i1,i2)+y2za_f(2,t,i1,i2)+y2zb_f(3,t,i1,i2))*beff0_4array(t-i3-0,i3+0) + &
-                               6.d0*(                    x2y2ba_f(1,t,i1,i2)+x2y2ab_f(2,t,i1,i2)+x2y2bb_f(3,t,i1,i2))*aeff0_2array(t-i3-0,i3+0) + &
-                               6.d0*(x2y2aa_f(4,t,i1,i2)+x2y2ba_f(5,t,i1,i2)+x2y2ab_f(6,t,i1,i2)+x2y2bb_f(7,t,i1,i2))*beff0_2array(t-i3-0,i3+0)
+                               3.d0*(x4zb_f(1,t,i1,i2)+y4zb_f(1,t,i1,i2)                                    )* &
+                                 aeff0_2array(t-i3-0,i3+0) + &
+                               3.d0*(x4za_f(2,t,i1,i2)+x4zb_f(3,t,i1,i2)+y4za_f(2,t,i1,i2)+y4zb_f(3,t,i1,i2))* &
+                                 beff0_2array(t-i3-0,i3+0) + &
+                               3.d0*(x2zb_f(1,t,i1,i2)+y2zb_f(1,t,i1,i2)                                    )* &
+                                 aeff0_4array(t-i3-0,i3+0) + &
+                               3.d0*(x2za_f(2,t,i1,i2)+x2zb_f(3,t,i1,i2)+y2za_f(2,t,i1,i2)+y2zb_f(3,t,i1,i2))* &
+                                 beff0_4array(t-i3-0,i3+0) + &
+                               6.d0*(                    x2y2ba_f(1,t,i1,i2)+x2y2ab_f(2,t,i1,i2)+x2y2bb_f(3,t,i1,i2))* &
+                                 aeff0_2array(t-i3-0,i3+0) + &
+                               6.d0*(x2y2aa_f(4,t,i1,i2)+x2y2ba_f(5,t,i1,i2)+x2y2ab_f(6,t,i1,i2)+x2y2bb_f(7,t,i1,i2))* &
+                                 beff0_2array(t-i3-0,i3+0)
                  dyi1 = dyi1 + xz_f4(t,i1,i2)*beff0array(t-i3-1,i3+1) + &
-                               3.d0*(x4zb_f(1,t,i1,i2)+y4zb_f(1,t,i1,i2)                                    )*aeff0_2array(t-i3-1,i3+1) + &
-                               3.d0*(x4za_f(2,t,i1,i2)+x4zb_f(3,t,i1,i2)+y4za_f(2,t,i1,i2)+y4zb_f(3,t,i1,i2))*beff0_2array(t-i3-1,i3+1) + &
-                               3.d0*(x2zb_f(1,t,i1,i2)+y2zb_f(1,t,i1,i2)                                    )*aeff0_4array(t-i3-1,i3+1) + &
-                               3.d0*(x2za_f(2,t,i1,i2)+x2zb_f(3,t,i1,i2)+y2za_f(2,t,i1,i2)+y2zb_f(3,t,i1,i2))*beff0_4array(t-i3-1,i3+1) + &
-                               6.d0*(                    x2y2ba_f(1,t,i1,i2)+x2y2ab_f(2,t,i1,i2)+x2y2bb_f(3,t,i1,i2))*aeff0_2array(t-i3-1,i3+1) + &
-                               6.d0*(x2y2aa_f(4,t,i1,i2)+x2y2ba_f(5,t,i1,i2)+x2y2ab_f(6,t,i1,i2)+x2y2bb_f(7,t,i1,i2))*beff0_2array(t-i3-1,i3+1)
+                               3.d0*(x4zb_f(1,t,i1,i2)+y4zb_f(1,t,i1,i2)                                    )* &
+                                 aeff0_2array(t-i3-1,i3+1) + &
+                               3.d0*(x4za_f(2,t,i1,i2)+x4zb_f(3,t,i1,i2)+y4za_f(2,t,i1,i2)+y4zb_f(3,t,i1,i2))* &
+                                 beff0_2array(t-i3-1,i3+1) + &
+                               3.d0*(x2zb_f(1,t,i1,i2)+y2zb_f(1,t,i1,i2)                                    )* &
+                                 aeff0_4array(t-i3-1,i3+1) + &
+                               3.d0*(x2za_f(2,t,i1,i2)+x2zb_f(3,t,i1,i2)+y2za_f(2,t,i1,i2)+y2zb_f(3,t,i1,i2))* &
+                                 beff0_4array(t-i3-1,i3+1) + &
+                               6.d0*(                    x2y2ba_f(1,t,i1,i2)+x2y2ab_f(2,t,i1,i2)+x2y2bb_f(3,t,i1,i2))* &
+                                 aeff0_2array(t-i3-1,i3+1) + &
+                               6.d0*(x2y2aa_f(4,t,i1,i2)+x2y2ba_f(5,t,i1,i2)+x2y2ab_f(6,t,i1,i2)+x2y2bb_f(7,t,i1,i2))* &
+                                 beff0_2array(t-i3-1,i3+1)
                  dyi2 = dyi2 + xz_f4(t,i1,i2)*beff0array(t-i3-2,i3+2) + &
-                               3.d0*(x4zb_f(1,t,i1,i2)+y4zb_f(1,t,i1,i2)                                    )*aeff0_2array(t-i3-2,i3+2) + &
-                               3.d0*(x4za_f(2,t,i1,i2)+x4zb_f(3,t,i1,i2)+y4za_f(2,t,i1,i2)+y4zb_f(3,t,i1,i2))*beff0_2array(t-i3-2,i3+2) + &
-                               3.d0*(x2zb_f(1,t,i1,i2)+y2zb_f(1,t,i1,i2)                                    )*aeff0_4array(t-i3-2,i3+2) + &
-                               3.d0*(x2za_f(2,t,i1,i2)+x2zb_f(3,t,i1,i2)+y2za_f(2,t,i1,i2)+y2zb_f(3,t,i1,i2))*beff0_4array(t-i3-2,i3+2) + &
-                               6.d0*(                    x2y2ba_f(1,t,i1,i2)+x2y2ab_f(2,t,i1,i2)+x2y2bb_f(3,t,i1,i2))*aeff0_2array(t-i3-2,i3+2) + &
-                               6.d0*(x2y2aa_f(4,t,i1,i2)+x2y2ba_f(5,t,i1,i2)+x2y2ab_f(6,t,i1,i2)+x2y2bb_f(7,t,i1,i2))*beff0_2array(t-i3-2,i3+2)
+                               3.d0*(x4zb_f(1,t,i1,i2)+y4zb_f(1,t,i1,i2)                                    )* &
+                                 aeff0_2array(t-i3-2,i3+2) + &
+                               3.d0*(x4za_f(2,t,i1,i2)+x4zb_f(3,t,i1,i2)+y4za_f(2,t,i1,i2)+y4zb_f(3,t,i1,i2))* &
+                                 beff0_2array(t-i3-2,i3+2) + &
+                               3.d0*(x2zb_f(1,t,i1,i2)+y2zb_f(1,t,i1,i2)                                    )* &
+                                 aeff0_4array(t-i3-2,i3+2) + &
+                               3.d0*(x2za_f(2,t,i1,i2)+x2zb_f(3,t,i1,i2)+y2za_f(2,t,i1,i2)+y2zb_f(3,t,i1,i2))* &
+                                 beff0_4array(t-i3-2,i3+2) + &
+                               6.d0*(                    x2y2ba_f(1,t,i1,i2)+x2y2ab_f(2,t,i1,i2)+x2y2bb_f(3,t,i1,i2))* &
+                                 aeff0_2array(t-i3-2,i3+2) + &
+                               6.d0*(x2y2aa_f(4,t,i1,i2)+x2y2ba_f(5,t,i1,i2)+x2y2ab_f(6,t,i1,i2)+x2y2bb_f(7,t,i1,i2))* &
+                                 beff0_2array(t-i3-2,i3+2)
                  dyi3 = dyi3 + xz_f4(t,i1,i2)*beff0array(t-i3-3,i3+3) + &
-                               3.d0*(x4zb_f(1,t,i1,i2)+y4zb_f(1,t,i1,i2)                                    )*aeff0_2array(t-i3-3,i3+3) + &
-                               3.d0*(x4za_f(2,t,i1,i2)+x4zb_f(3,t,i1,i2)+y4za_f(2,t,i1,i2)+y4zb_f(3,t,i1,i2))*beff0_2array(t-i3-3,i3+3) + &
-                               3.d0*(x2zb_f(1,t,i1,i2)+y2zb_f(1,t,i1,i2)                                    )*aeff0_4array(t-i3-3,i3+3) + &
-                               3.d0*(x2za_f(2,t,i1,i2)+x2zb_f(3,t,i1,i2)+y2za_f(2,t,i1,i2)+y2zb_f(3,t,i1,i2))*beff0_4array(t-i3-3,i3+3) + &
-                               6.d0*(                    x2y2ba_f(1,t,i1,i2)+x2y2ab_f(2,t,i1,i2)+x2y2bb_f(3,t,i1,i2))*aeff0_2array(t-i3-3,i3+3) + &
-                               6.d0*(x2y2aa_f(4,t,i1,i2)+x2y2ba_f(5,t,i1,i2)+x2y2ab_f(6,t,i1,i2)+x2y2bb_f(7,t,i1,i2))*beff0_2array(t-i3-3,i3+3)
+                               3.d0*(x4zb_f(1,t,i1,i2)+y4zb_f(1,t,i1,i2)                                    )* &
+                                 aeff0_2array(t-i3-3,i3+3) + &
+                               3.d0*(x4za_f(2,t,i1,i2)+x4zb_f(3,t,i1,i2)+y4za_f(2,t,i1,i2)+y4zb_f(3,t,i1,i2))* &
+                                 beff0_2array(t-i3-3,i3+3) + &
+                               3.d0*(x2zb_f(1,t,i1,i2)+y2zb_f(1,t,i1,i2)                                    )* &
+                                 aeff0_4array(t-i3-3,i3+3) + &
+                               3.d0*(x2za_f(2,t,i1,i2)+x2zb_f(3,t,i1,i2)+y2za_f(2,t,i1,i2)+y2zb_f(3,t,i1,i2))* &
+                                 beff0_4array(t-i3-3,i3+3) + &
+                               6.d0*(                    x2y2ba_f(1,t,i1,i2)+x2y2ab_f(2,t,i1,i2)+x2y2bb_f(3,t,i1,i2))* &
+                                 aeff0_2array(t-i3-3,i3+3) + &
+                               6.d0*(x2y2aa_f(4,t,i1,i2)+x2y2ba_f(5,t,i1,i2)+x2y2ab_f(6,t,i1,i2)+x2y2bb_f(7,t,i1,i2))* &
+                                 beff0_2array(t-i3-3,i3+3)
               enddo
               y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
               y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
@@ -6036,12 +6079,18 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
            tt0=0.0_wp
            do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_f(2,i1,i2))
               dyi0 = dyi0 + xz_f4(t,i1,i2)*beff0array(t-i3-0,i3+0) + &
-                            3.d0*(x4zb_f(1,t,i1,i2)+y4zb_f(1,t,i1,i2)                                    )*aeff0_2array(t-i3-0,i3+0) + &
-                            3.d0*(x4za_f(2,t,i1,i2)+x4zb_f(3,t,i1,i2)+y4za_f(2,t,i1,i2)+y4zb_f(3,t,i1,i2))*beff0_2array(t-i3-0,i3+0) + &
-                            3.d0*(x2zb_f(1,t,i1,i2)+y2zb_f(1,t,i1,i2)                                    )*aeff0_4array(t-i3-0,i3+0) + &
-                            3.d0*(x2za_f(2,t,i1,i2)+x2zb_f(3,t,i1,i2)+y2za_f(2,t,i1,i2)+y2zb_f(3,t,i1,i2))*beff0_4array(t-i3-0,i3+0) + &
-                            6.d0*(                    x2y2ba_f(1,t,i1,i2)+x2y2ab_f(2,t,i1,i2)+x2y2bb_f(3,t,i1,i2))*aeff0_2array(t-i3-0,i3+0) + &
-                            6.d0*(x2y2aa_f(4,t,i1,i2)+x2y2ba_f(5,t,i1,i2)+x2y2ab_f(6,t,i1,i2)+x2y2bb_f(7,t,i1,i2))*beff0_2array(t-i3-0,i3+0)
+                            3.d0*(x4zb_f(1,t,i1,i2)+y4zb_f(1,t,i1,i2)                                    )* &
+                              aeff0_2array(t-i3-0,i3+0) + &
+                            3.d0*(x4za_f(2,t,i1,i2)+x4zb_f(3,t,i1,i2)+y4za_f(2,t,i1,i2)+y4zb_f(3,t,i1,i2))* &
+                              beff0_2array(t-i3-0,i3+0) + &
+                            3.d0*(x2zb_f(1,t,i1,i2)+y2zb_f(1,t,i1,i2)                                    )* &
+                              aeff0_4array(t-i3-0,i3+0) + &
+                            3.d0*(x2za_f(2,t,i1,i2)+x2zb_f(3,t,i1,i2)+y2za_f(2,t,i1,i2)+y2zb_f(3,t,i1,i2))* &
+                              beff0_4array(t-i3-0,i3+0) + &
+                            6.d0*(                    x2y2ba_f(1,t,i1,i2)+x2y2ab_f(2,t,i1,i2)+x2y2bb_f(3,t,i1,i2))* &
+                              aeff0_2array(t-i3-0,i3+0) + &
+                            6.d0*(x2y2aa_f(4,t,i1,i2)+x2y2ba_f(5,t,i1,i2)+x2y2ab_f(6,t,i1,i2)+x2y2bb_f(7,t,i1,i2))* &
+                              beff0_2array(t-i3-0,i3+0)
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi0
         enddo
@@ -6086,35 +6135,55 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                  dyi2=dyi2 + xz_c(t,i1,i2)*ceff0array(t-i3-2,i3+2)
                  dyi3=dyi3 + xz_c(t,i1,i2)*ceff0array(t-i3-3,i3+3)
 
-                 tt10 = tt10 + 3.d0*( x4zc_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0) + x2zc_c(t,i1,i2)*aeff0_4array(t-i3-0,i3+0) ) + 6.d0*x2y2ca_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
-                 tt11 = tt11 + 3.d0*( x4zc_c(t,i1,i2)*aeff0_2array(t-i3-1,i3+1) + x2zc_c(t,i1,i2)*aeff0_4array(t-i3-1,i3+1) ) + 6.d0*x2y2ca_c(t,i1,i2)*aeff0_2array(t-i3-1,i3+1)
-                 tt12 = tt12 + 3.d0*( x4zc_c(t,i1,i2)*aeff0_2array(t-i3-2,i3+2) + x2zc_c(t,i1,i2)*aeff0_4array(t-i3-2,i3+2) ) + 6.d0*x2y2ca_c(t,i1,i2)*aeff0_2array(t-i3-2,i3+2)
-                 tt13 = tt13 + 3.d0*( x4zc_c(t,i1,i2)*aeff0_2array(t-i3-3,i3+3) + x2zc_c(t,i1,i2)*aeff0_4array(t-i3-3,i3+3) ) + 6.d0*x2y2ca_c(t,i1,i2)*aeff0_2array(t-i3-3,i3+3)
+                 tt10 = tt10 + 3.d0*( x4zc_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0) + x2zc_c(t,i1,i2)*aeff0_4array(t-i3-0,i3+0) ) + &
+                   6.d0*x2y2ca_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
+                 tt11 = tt11 + 3.d0*( x4zc_c(t,i1,i2)*aeff0_2array(t-i3-1,i3+1) + x2zc_c(t,i1,i2)*aeff0_4array(t-i3-1,i3+1) ) + &
+                   6.d0*x2y2ca_c(t,i1,i2)*aeff0_2array(t-i3-1,i3+1)
+                 tt12 = tt12 + 3.d0*( x4zc_c(t,i1,i2)*aeff0_2array(t-i3-2,i3+2) + x2zc_c(t,i1,i2)*aeff0_4array(t-i3-2,i3+2) ) + &
+                   6.d0*x2y2ca_c(t,i1,i2)*aeff0_2array(t-i3-2,i3+2)
+                 tt13 = tt13 + 3.d0*( x4zc_c(t,i1,i2)*aeff0_2array(t-i3-3,i3+3) + x2zc_c(t,i1,i2)*aeff0_4array(t-i3-3,i3+3) ) + &
+                   6.d0*x2y2ca_c(t,i1,i2)*aeff0_2array(t-i3-3,i3+3)
 
-                 tt40 = tt40 + 3.d0*( x4za_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + x2za_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + 6.d0*x2y2aa_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
-                 tt41 = tt41 + 3.d0*( x4za_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1) + x2za_c(t,i1,i2)*ceff0_4array(t-i3-1,i3+1) ) + 6.d0*x2y2aa_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1)
-                 tt42 = tt42 + 3.d0*( x4za_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2) + x2za_c(t,i1,i2)*ceff0_4array(t-i3-2,i3+2) ) + 6.d0*x2y2aa_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2)
-                 tt43 = tt43 + 3.d0*( x4za_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3) + x2za_c(t,i1,i2)*ceff0_4array(t-i3-3,i3+3) ) + 6.d0*x2y2aa_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3)
+                 tt40 = tt40 + 3.d0*( x4za_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + x2za_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + &
+                   6.d0*x2y2aa_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
+                 tt41 = tt41 + 3.d0*( x4za_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1) + x2za_c(t,i1,i2)*ceff0_4array(t-i3-1,i3+1) ) + &
+                   6.d0*x2y2aa_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1)
+                 tt42 = tt42 + 3.d0*( x4za_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2) + x2za_c(t,i1,i2)*ceff0_4array(t-i3-2,i3+2) ) + &
+                   6.d0*x2y2aa_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2)
+                 tt43 = tt43 + 3.d0*( x4za_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3) + x2za_c(t,i1,i2)*ceff0_4array(t-i3-3,i3+3) ) + &
+                   6.d0*x2y2aa_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3)
 
-                 tt50 = tt50 + 3.d0*( x4zc_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + x2zc_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + 6.d0*x2y2ca_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
-                 tt51 = tt51 + 3.d0*( x4zc_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1) + x2zc_c(t,i1,i2)*ceff0_4array(t-i3-1,i3+1) ) + 6.d0*x2y2ca_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1)
-                 tt52 = tt52 + 3.d0*( x4zc_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2) + x2zc_c(t,i1,i2)*ceff0_4array(t-i3-2,i3+2) ) + 6.d0*x2y2ca_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2)
-                 tt53 = tt53 + 3.d0*( x4zc_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3) + x2zc_c(t,i1,i2)*ceff0_4array(t-i3-3,i3+3) ) + 6.d0*x2y2ca_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3)
+                 tt50 = tt50 + 3.d0*( x4zc_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + x2zc_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + &
+                   6.d0*x2y2ca_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
+                 tt51 = tt51 + 3.d0*( x4zc_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1) + x2zc_c(t,i1,i2)*ceff0_4array(t-i3-1,i3+1) ) + &
+                   6.d0*x2y2ca_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1)
+                 tt52 = tt52 + 3.d0*( x4zc_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2) + x2zc_c(t,i1,i2)*ceff0_4array(t-i3-2,i3+2) ) + &
+                   6.d0*x2y2ca_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2)
+                 tt53 = tt53 + 3.d0*( x4zc_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3) + x2zc_c(t,i1,i2)*ceff0_4array(t-i3-3,i3+3) ) + &
+                   6.d0*x2y2ca_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3)
 
-                 tt20 = tt20 + 3.d0*( y4zc_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0) + y2zc_c(t,i1,i2)*aeff0_4array(t-i3-0,i3+0) ) + 6.d0*x2y2ac_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
-                 tt21 = tt21 + 3.d0*( y4zc_c(t,i1,i2)*aeff0_2array(t-i3-1,i3+1) + y2zc_c(t,i1,i2)*aeff0_4array(t-i3-1,i3+1) ) + 6.d0*x2y2ac_c(t,i1,i2)*aeff0_2array(t-i3-1,i3+1)
-                 tt22 = tt22 + 3.d0*( y4zc_c(t,i1,i2)*aeff0_2array(t-i3-2,i3+2) + y2zc_c(t,i1,i2)*aeff0_4array(t-i3-2,i3+2) ) + 6.d0*x2y2ac_c(t,i1,i2)*aeff0_2array(t-i3-2,i3+2)
-                 tt23 = tt23 + 3.d0*( y4zc_c(t,i1,i2)*aeff0_2array(t-i3-3,i3+3) + y2zc_c(t,i1,i2)*aeff0_4array(t-i3-3,i3+3) ) + 6.d0*x2y2ac_c(t,i1,i2)*aeff0_2array(t-i3-3,i3+3)
+                 tt20 = tt20 + 3.d0*( y4zc_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0) + y2zc_c(t,i1,i2)*aeff0_4array(t-i3-0,i3+0) ) + &
+                   6.d0*x2y2ac_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
+                 tt21 = tt21 + 3.d0*( y4zc_c(t,i1,i2)*aeff0_2array(t-i3-1,i3+1) + y2zc_c(t,i1,i2)*aeff0_4array(t-i3-1,i3+1) ) + &
+                   6.d0*x2y2ac_c(t,i1,i2)*aeff0_2array(t-i3-1,i3+1)
+                 tt22 = tt22 + 3.d0*( y4zc_c(t,i1,i2)*aeff0_2array(t-i3-2,i3+2) + y2zc_c(t,i1,i2)*aeff0_4array(t-i3-2,i3+2) ) + &
+                   6.d0*x2y2ac_c(t,i1,i2)*aeff0_2array(t-i3-2,i3+2)
+                 tt23 = tt23 + 3.d0*( y4zc_c(t,i1,i2)*aeff0_2array(t-i3-3,i3+3) + y2zc_c(t,i1,i2)*aeff0_4array(t-i3-3,i3+3) ) + &
+                   6.d0*x2y2ac_c(t,i1,i2)*aeff0_2array(t-i3-3,i3+3)
 
                  tt40 = tt40 + 3.d0*( y4za_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + y2za_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) )
                  tt41 = tt41 + 3.d0*( y4za_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1) + y2za_c(t,i1,i2)*ceff0_4array(t-i3-1,i3+1) )
                  tt42 = tt42 + 3.d0*( y4za_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2) + y2za_c(t,i1,i2)*ceff0_4array(t-i3-2,i3+2) )
                  tt43 = tt43 + 3.d0*( y4za_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3) + y2za_c(t,i1,i2)*ceff0_4array(t-i3-3,i3+3) )
 
-                 tt60 = tt60 + 3.d0*( y4zc_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + y2zc_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + 6.d0*x2y2ac_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
-                 tt61 = tt61 + 3.d0*( y4zc_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1) + y2zc_c(t,i1,i2)*ceff0_4array(t-i3-1,i3+1) ) + 6.d0*x2y2ac_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1)
-                 tt62 = tt62 + 3.d0*( y4zc_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2) + y2zc_c(t,i1,i2)*ceff0_4array(t-i3-2,i3+2) ) + 6.d0*x2y2ac_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2)
-                 tt63 = tt63 + 3.d0*( y4zc_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3) + y2zc_c(t,i1,i2)*ceff0_4array(t-i3-3,i3+3) ) + 6.d0*x2y2ac_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3)
+                 tt60 = tt60 + 3.d0*( y4zc_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + y2zc_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + &
+                   6.d0*x2y2ac_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
+                 tt61 = tt61 + 3.d0*( y4zc_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1) + y2zc_c(t,i1,i2)*ceff0_4array(t-i3-1,i3+1) ) + &
+                   6.d0*x2y2ac_c(t,i1,i2)*ceff0_2array(t-i3-1,i3+1)
+                 tt62 = tt62 + 3.d0*( y4zc_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2) + y2zc_c(t,i1,i2)*ceff0_4array(t-i3-2,i3+2) ) + &
+                   6.d0*x2y2ac_c(t,i1,i2)*ceff0_2array(t-i3-2,i3+2)
+                 tt63 = tt63 + 3.d0*( y4zc_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3) + y2zc_c(t,i1,i2)*ceff0_4array(t-i3-3,i3+3) ) + &
+                   6.d0*x2y2ac_c(t,i1,i2)*ceff0_2array(t-i3-3,i3+3)
 
                  tt30 = tt30 + 6.d0*x2y2cc_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
                  tt31 = tt31 + 6.d0*x2y2cc_c(t,i1,i2)*aeff0_2array(t-i3-1,i3+1)
@@ -6177,17 +6246,22 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
            do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
               dyi0=dyi0 + xz_c(t,i1,i2)*ceff0array(t-i3-0,i3)
 
-              tt10 = tt10 + 3.d0*( x4zc_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0) + x2zc_c(t,i1,i2)*aeff0_4array(t-i3-0,i3+0) ) + 6.d0*x2y2ca_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
+              tt10 = tt10 + 3.d0*( x4zc_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0) + x2zc_c(t,i1,i2)*aeff0_4array(t-i3-0,i3+0) ) + &
+                6.d0*x2y2ca_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
 
-              tt40 = tt40 + 3.d0*( x4za_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + x2za_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + 6.d0*x2y2aa_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
+              tt40 = tt40 + 3.d0*( x4za_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + x2za_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + &
+                6.d0*x2y2aa_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
 
-              tt50 = tt50 + 3.d0*( x4zc_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + x2zc_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + 6.d0*x2y2ca_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
+              tt50 = tt50 + 3.d0*( x4zc_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + x2zc_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + &
+                6.d0*x2y2ca_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
 
-              tt20 = tt20 + 3.d0*( y4zc_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0) + y2zc_c(t,i1,i2)*aeff0_4array(t-i3-0,i3+0) ) + 6.d0*x2y2ac_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
+              tt20 = tt20 + 3.d0*( y4zc_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0) + y2zc_c(t,i1,i2)*aeff0_4array(t-i3-0,i3+0) ) + &
+                6.d0*x2y2ac_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
 
               tt40 = tt40 + 3.d0*( y4za_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + y2za_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) )
 
-              tt60 = tt60 + 3.d0*( y4zc_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + y2zc_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + 6.d0*x2y2ac_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
+              tt60 = tt60 + 3.d0*( y4zc_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0) + y2zc_c(t,i1,i2)*ceff0_4array(t-i3-0,i3+0) ) + &
+                6.d0*x2y2ac_c(t,i1,i2)*ceff0_2array(t-i3-0,i3+0)
 
               tt30 = tt30 + 6.d0*x2y2cc_c(t,i1,i2)*aeff0_2array(t-i3-0,i3+0)
 
@@ -6231,8 +6305,10 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                             3.d0*(y2za_f(1,i3+l,i1,i2)+y2zb_f(2,i3+l,i1,i2))*aeff0_4array(l,i3) + &
                             3.d0*(y4za_f(3,i3+l,i1,i2)+y4zb_f(4,i3+l,i1,i2))*beff0_2array(l,i3) + &
                             3.d0*(y2za_f(3,i3+l,i1,i2)+y2zb_f(4,i3+l,i1,i2))*beff0_4array(l,i3) + &
-                            6.d0*(                       x2y2ea_f(1,i3+l,i1,i2)+x2y2cb_f(1,i3+l,i1,i2)+x2y2eb_f(1,i3+l,i1,i2))*aeff0_2array(l,i3) + &
-                            6.d0*(x2y2ca_f(4,i3+l,i1,i2)+x2y2ea_f(5,i3+l,i1,i2)+x2y2cb_f(6,i3+l,i1,i2)+x2y2eb_f(7,i3+l,i1,i2))*beff0_2array(l,i3) 
+                            6.d0*(                       x2y2ea_f(1,i3+l,i1,i2)+x2y2cb_f(1,i3+l,i1,i2)+x2y2eb_f(1,i3+l,i1,i2))* &
+                              aeff0_2array(l,i3) + &
+                            6.d0*(x2y2ca_f(4,i3+l,i1,i2)+x2y2ea_f(5,i3+l,i1,i2)+x2y2cb_f(6,i3+l,i1,i2)+x2y2eb_f(7,i3+l,i1,i2))* &
+                              beff0_2array(l,i3) 
 
               tt20 = tt20 + xz_f(2,i3+l,i1,i2)*aeff0array(l,i3) + xz_f(6,i3+l,i1,i2)*beff0array(l,i3) + &
                             3.d0*(x4za_f(1,i3+l,i1,i2)+x4zb_f(2,i3+l,i1,i2))*aeff0_2array(l,i3) + &
@@ -6243,8 +6319,10 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                             3.d0*                      y2ze_f(1,i3+l,i1,i2) *aeff0_4array(l,i3) + &
                             3.d0*(y4zc_f(2,i3+l,i1,i2)+y4ze_f(3,i3+l,i1,i2))*beff0_2array(l,i3) + &
                             3.d0*(y2zc_f(2,i3+l,i1,i2)+y2ze_f(3,i3+l,i1,i2))*beff0_4array(l,i3) + &
-                            6.d0*(                       x2y2bc_f(1,i3+l,i1,i2)+x2y2ae_f(1,i3+l,i1,i2)+x2y2be_f(1,i3+l,i1,i2))*aeff0_2array(l,i3) + &
-                            6.d0*(x2y2ac_f(4,i3+l,i1,i2)+x2y2bc_f(5,i3+l,i1,i2)+x2y2ae_f(6,i3+l,i1,i2)+x2y2be_f(7,i3+l,i1,i2))*beff0_2array(l,i3) 
+                            6.d0*(                       x2y2bc_f(1,i3+l,i1,i2)+x2y2ae_f(1,i3+l,i1,i2)+x2y2be_f(1,i3+l,i1,i2))* &
+                              aeff0_2array(l,i3) + &
+                            6.d0*(x2y2ac_f(4,i3+l,i1,i2)+x2y2bc_f(5,i3+l,i1,i2)+x2y2ae_f(6,i3+l,i1,i2)+x2y2be_f(7,i3+l,i1,i2))* &
+                              beff0_2array(l,i3) 
 
               tt30 = tt30 + xz_f(3,i3+l,i1,i2)*aeff0array(l,i3) + xz_f(7,i3+l,i1,i2)*beff0array(l,i3) + &
                             3.d0*(x4zc_f(1,i3+l,i1,i2)+x4ze_f(2,i3+l,i1,i2))*aeff0_2array(l,i3) + &
@@ -6255,8 +6333,10 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                             3.d0*(y2zc_f(1,i3+l,i1,i2)+y2ze_f(2,i3+l,i1,i2))*aeff0_4array(l,i3) + &
                             3.d0*(y4zc_f(3,i3+l,i1,i2)+y4ze_f(4,i3+l,i1,i2))*beff0_2array(l,i3) + &
                             3.d0*(y2zc_f(3,i3+l,i1,i2)+y2ze_f(4,i3+l,i1,i2))*beff0_4array(l,i3) + &
-                            6.d0*(                       x2y2ec_f(1,i3+l,i1,i2)+x2y2ce_f(1,i3+l,i1,i2)+x2y2ee_f(1,i3+l,i1,i2))*aeff0_2array(l,i3) + &
-                            6.d0*(x2y2cc_f(4,i3+l,i1,i2)+x2y2ec_f(5,i3+l,i1,i2)+x2y2ce_f(6,i3+l,i1,i2)+x2y2ee_f(7,i3+l,i1,i2))*beff0_2array(l,i3) 
+                            6.d0*(                       x2y2ec_f(1,i3+l,i1,i2)+x2y2ce_f(1,i3+l,i1,i2)+x2y2ee_f(1,i3+l,i1,i2))* &
+                              aeff0_2array(l,i3) + &
+                            6.d0*(x2y2cc_f(4,i3+l,i1,i2)+x2y2ec_f(5,i3+l,i1,i2)+x2y2ce_f(6,i3+l,i1,i2)+x2y2ee_f(7,i3+l,i1,i2))* &
+                              beff0_2array(l,i3) 
 
               tt40 = tt40 + xz_f(4,i3+l,i1,i2)*eeff0array(l,i3)                                      + &
                             3.d0*                      x4zb_f(1,i3+l,i1,i2) *ceff0_2array(l,i3) + &
@@ -6267,8 +6347,10 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                             3.d0*                      y2zb_f(1,i3+l,i1,i2) *ceff0_4array(l,i3) + &
                             3.d0*(y4za_f(2,i3+l,i1,i2)+y4zb_f(3,i3+l,i1,i2))*eeff0_2array(l,i3) + &
                             3.d0*(y2za_f(2,i3+l,i1,i2)+y2zb_f(3,i3+l,i1,i2))*eeff0_4array(l,i3) + &
-                            6.d0*(                       x2y2ba_f(1,i3+l,i1,i2)+x2y2ab_f(1,i3+l,i1,i2)+x2y2bb_f(1,i3+l,i1,i2))*ceff0_2array(l,i3) + &
-                            6.d0*(x2y2aa_f(4,i3+l,i1,i2)+x2y2ba_f(5,i3+l,i1,i2)+x2y2ab_f(6,i3+l,i1,i2)+x2y2bb_f(7,i3+l,i1,i2))*eeff0_2array(l,i3) 
+                            6.d0*(                       x2y2ba_f(1,i3+l,i1,i2)+x2y2ab_f(1,i3+l,i1,i2)+x2y2bb_f(1,i3+l,i1,i2))* &
+                              ceff0_2array(l,i3) + &
+                            6.d0*(x2y2aa_f(4,i3+l,i1,i2)+x2y2ba_f(5,i3+l,i1,i2)+x2y2ab_f(6,i3+l,i1,i2)+x2y2bb_f(7,i3+l,i1,i2))* &
+                              eeff0_2array(l,i3) 
 
               tt50 = tt50 + xz_f(1,i3+l,i1,i2)*ceff0array(l,i3) + xz_f(5,i3+l,i1,i2)*eeff0array(l,i3) + &
                             3.d0*                      x4ze_f(1,i3+l,i1,i2) *ceff0_2array(l,i3) + &
@@ -6279,8 +6361,10 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                             3.d0*(y2za_f(1,i3+l,i1,i2)+y2zb_f(2,i3+l,i1,i2))*ceff0_4array(l,i3) + &
                             3.d0*(y4za_f(3,i3+l,i1,i2)+y4zb_f(4,i3+l,i1,i2))*eeff0_2array(l,i3) + &
                             3.d0*(y2za_f(3,i3+l,i1,i2)+y2zb_f(4,i3+l,i1,i2))*eeff0_4array(l,i3) + &
-                            6.d0*(                       x2y2ea_f(1,i3+l,i1,i2)+x2y2cb_f(1,i3+l,i1,i2)+x2y2eb_f(1,i3+l,i1,i2))*ceff0_2array(l,i3) + &
-                            6.d0*(x2y2ca_f(4,i3+l,i1,i2)+x2y2ea_f(5,i3+l,i1,i2)+x2y2cb_f(6,i3+l,i1,i2)+x2y2eb_f(7,i3+l,i1,i2))*eeff0_2array(l,i3) 
+                            6.d0*(                       x2y2ea_f(1,i3+l,i1,i2)+x2y2cb_f(1,i3+l,i1,i2)+x2y2eb_f(1,i3+l,i1,i2))* &
+                              ceff0_2array(l,i3) + &
+                            6.d0*(x2y2ca_f(4,i3+l,i1,i2)+x2y2ea_f(5,i3+l,i1,i2)+x2y2cb_f(6,i3+l,i1,i2)+x2y2eb_f(7,i3+l,i1,i2))* &
+                              eeff0_2array(l,i3) 
 
               tt60 = tt60 + xz_f(2,i3+l,i1,i2)*ceff0array(l,i3) + xz_f(6,i3+l,i1,i2)*eeff0array(l,i3) + &
                             3.d0*(x4za_f(1,i3+l,i1,i2)+x4zb_f(2,i3+l,i1,i2))*ceff0_2array(l,i3) + &
@@ -6291,8 +6375,10 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                             3.d0*                      y2ze_f(1,i3+l,i1,i2) *ceff0_4array(l,i3) + &
                             3.d0*(y4zc_f(2,i3+l,i1,i2)+y4ze_f(3,i3+l,i1,i2))*eeff0_2array(l,i3) + &
                             3.d0*(y2zc_f(2,i3+l,i1,i2)+y2ze_f(3,i3+l,i1,i2))*eeff0_4array(l,i3) + &
-                            6.d0*(                       x2y2bc_f(1,i3+l,i1,i2)+x2y2ae_f(1,i3+l,i1,i2)+x2y2be_f(1,i3+l,i1,i2))*ceff0_2array(l,i3) + &
-                            6.d0*(x2y2ac_f(4,i3+l,i1,i2)+x2y2bc_f(5,i3+l,i1,i2)+x2y2ae_f(6,i3+l,i1,i2)+x2y2be_f(7,i3+l,i1,i2))*eeff0_2array(l,i3) 
+                            6.d0*(                       x2y2bc_f(1,i3+l,i1,i2)+x2y2ae_f(1,i3+l,i1,i2)+x2y2be_f(1,i3+l,i1,i2))* &
+                              ceff0_2array(l,i3) + &
+                            6.d0*(x2y2ac_f(4,i3+l,i1,i2)+x2y2bc_f(5,i3+l,i1,i2)+x2y2ae_f(6,i3+l,i1,i2)+x2y2be_f(7,i3+l,i1,i2))* &
+                              eeff0_2array(l,i3) 
 
               tt70 = tt70 + xz_f(3,i3+l,i1,i2)*ceff0array(l,i3) + xz_f(7,i3+l,i1,i2)*eeff0array(l,i3) + &
                             3.d0*(x4zc_f(1,i3+l,i1,i2)+x4ze_f(2,i3+l,i1,i2))*ceff0_2array(l,i3) + &
@@ -6303,8 +6389,10 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                             3.d0*(y2zc_f(1,i3+l,i1,i2)+y2ze_f(2,i3+l,i1,i2))*ceff0_4array(l,i3) + &
                             3.d0*(y4zc_f(3,i3+l,i1,i2)+y4ze_f(4,i3+l,i1,i2))*eeff0_2array(l,i3) + &
                             3.d0*(y2zc_f(3,i3+l,i1,i2)+y2ze_f(4,i3+l,i1,i2))*eeff0_4array(l,i3) + &
-                            6.d0*(                       x2y2ec_f(1,i3+l,i1,i2)+x2y2ce_f(1,i3+l,i1,i2)+x2y2ee_f(1,i3+l,i1,i2))*ceff0_2array(l,i3) + &
-                            6.d0*(x2y2cc_f(4,i3+l,i1,i2)+x2y2ec_f(5,i3+l,i1,i2)+x2y2ce_f(6,i3+l,i1,i2)+x2y2ee_f(7,i3+l,i1,i2))*eeff0_2array(l,i3) 
+                            6.d0*(                       x2y2ec_f(1,i3+l,i1,i2)+x2y2ce_f(1,i3+l,i1,i2)+x2y2ee_f(1,i3+l,i1,i2))* &
+                              ceff0_2array(l,i3) + &
+                            6.d0*(x2y2cc_f(4,i3+l,i1,i2)+x2y2ec_f(5,i3+l,i1,i2)+x2y2ce_f(6,i3+l,i1,i2)+x2y2ee_f(7,i3+l,i1,i2))* &
+                              eeff0_2array(l,i3) 
            enddo
            y_f(4,i1,i2,i3)=y_f(4,i1,i2,i3)+tt40
            y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+tt20
