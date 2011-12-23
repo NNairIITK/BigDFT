@@ -331,11 +331,11 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
 
   do itout=1,lin%nItOuterSCC
-      if(itout==2) then
-          lin%confpotorder=6
-          lin%potentialPrefac=.01d0*lin%potentialPrefac
-          if(iproc==0) write(*,*) 'SWITCH TO SEXTIC POTENTIAL'
-      end if
+      !!if(itout==2) then
+      !!    lin%confpotorder=6
+      !!    lin%potentialPrefac=.01d0*lin%potentialPrefac
+      !!    if(iproc==0) write(*,*) 'SWITCH TO SEXTIC POTENTIAL'
+      !!end if
       updatePhi=.true.
       if(reduceConvergenceTolerance) lin%fixBasis=max(lin%fixBasis*lin%factorFixBasis,lin%minimalFixBasis)
       selfConsistent=max(lin%convCritMix,5.d-3*lin%fixBasis)
