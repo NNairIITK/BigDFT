@@ -155,9 +155,12 @@ real(gp) :: epot_p
                     do i1=i1s,i1e
                        !the local potential is always real
                        ! Add the quartic confinement potential to the potential.
+                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                       !!    (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!tt=potentialPrefac*tt**order
                        tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                            (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
-                       tt=potentialPrefac*tt**order
+                       tt=.5d0*potentialPrefac*tt**2+.5d0*.01d0*potentialPrefac*tt**3
                        tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
                        tt=tt*psir(i1,i2,i3,ispinor)
                        epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)

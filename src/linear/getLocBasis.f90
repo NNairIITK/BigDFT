@@ -3099,6 +3099,8 @@ type(workarr_precond) :: work
 type(workarrays_quartic_convolutions):: work_conv
 character(len=*),parameter:: subname='apply_orbitaldependent_potential'
 real(8),dimension(0:3),parameter:: scal=1.d0
+real(8),dimension(:,:,:),allocatable:: ypsitemp_c
+real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
 
 
 
@@ -3185,7 +3187,26 @@ real(8),dimension(0:3),parameter:: scal=1.d0
           scal, psi(ist_c), psi(ist_f), &
           work_conv)
 
+      allocate(ypsitemp_c(0:lzd%llr(ilr)%d%n1, 0:lzd%llr(ilr)%d%n2, 0:lzd%llr(ilr)%d%n3))
+      allocate(ypsitemp_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2,lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3))
+
       call ConvolSextic(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+           lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+           lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
+           input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+           lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+           lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+           rxyz(1,ilr), .01d0*lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
+           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+           work_conv%y_c, work_conv%y_f)
+     ypsitemp_c=work_conv%y_c
+     ypsitemp_f=work_conv%y_f
+
+
+      call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
            lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
            lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
            lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
@@ -3198,18 +3219,11 @@ real(8),dimension(0:3),parameter:: scal=1.d0
            work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
            work_conv%y_c, work_conv%y_f)
 
-      !!call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-      !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-      !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-      !!     lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
-      !!     input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
-      !!     lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
-      !!     lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
-      !!     rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
-      !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-      !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-      !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-      !!     work_conv%y_c, work_conv%y_f)
+     work_conv%y_c=.5d0*work_conv%y_c+.5d0*ypsitemp_c
+     work_conv%y_f=.5d0*work_conv%y_f+.5d0*ypsitemp_f
+
+      deallocate(ypsitemp_c)
+      deallocate(ypsitemp_f)
 
      call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
