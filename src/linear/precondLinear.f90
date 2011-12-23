@@ -398,8 +398,8 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
 
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
   if(confPotOrder==4) then
-      allocate(ypsitemp_c(0:n1, 0:n2, 0:n3))
-      allocate(ypsitemp_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3))
+      !!allocate(ypsitemp_c(0:n1, 0:n2, 0:n3))
+      !!allocate(ypsitemp_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3))
 
       call ConvolQuartic4(n1, n2, n3, &
            nfl1, nfu1, &
@@ -414,26 +414,26 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
            work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
            work_conv%y_c, work_conv%y_f)
 
-     ypsitemp_c=work_conv%y_c
-     ypsitemp_f=work_conv%y_f
+     !!ypsitemp_c=work_conv%y_c
+     !!ypsitemp_f=work_conv%y_f
 
-      call ConvolSextic(n1, n2, n3, &
-           nfl1, nfu1, &
-           nfl2, nfu2, &
-           nfl3, nfu3, &
-           hgrid, ns1, ns2, ns3, &
-           ibyz_c, ibxz_c, ibxy_c, &
-           ibyz_f, ibxz_f, ibxy_f, &
-           rxyzParab, .01d0*parabPrefac, .true., cprecr, &
-           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-           work_conv%y_c, work_conv%y_f)
-     work_conv%y_c=.5d0*work_conv%y_c+.5d0*ypsitemp_c
-     work_conv%y_f=.5d0*work_conv%y_f+.5d0*ypsitemp_f
+      !!call ConvolSextic(n1, n2, n3, &
+      !!     nfl1, nfu1, &
+      !!     nfl2, nfu2, &
+      !!     nfl3, nfu3, &
+      !!     hgrid, ns1, ns2, ns3, &
+      !!     ibyz_c, ibxz_c, ibxy_c, &
+      !!     ibyz_f, ibxz_f, ibxy_f, &
+      !!     rxyzParab, .01d0*parabPrefac, .true., cprecr, &
+      !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+      !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+      !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+      !!     work_conv%y_c, work_conv%y_f)
+     !!work_conv%y_c=.5d0*work_conv%y_c+.5d0*ypsitemp_c
+     !!work_conv%y_f=.5d0*work_conv%y_f+.5d0*ypsitemp_f
 
-      deallocate(ypsitemp_c)
-      deallocate(ypsitemp_f)
+      !!deallocate(ypsitemp_c)
+      !!deallocate(ypsitemp_f)
 
   else if(confPotOrder==6) then
 
