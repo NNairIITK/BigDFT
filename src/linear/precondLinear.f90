@@ -411,7 +411,18 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
 
   else if(confPotOrder==6) then
 
-      stop 'preconditioner for sextic potential not implemented'
+      call ConvolSextic(n1, n2, n3, &
+           nfl1, nfu1, &
+           nfl2, nfu2, &
+           nfl3, nfu3, &
+           hgrid, ns1, ns2, ns3, &
+           ibyz_c, ibxz_c, ibxy_c, &
+           ibyz_f, ibxz_f, ibxy_f, &
+           rxyzParab, parabPrefac, .true., cprecr, &
+           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+           work_conv%y_c, work_conv%y_f)
       !!call ConvolkineticSextic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
       !!     cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
       !!     xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
