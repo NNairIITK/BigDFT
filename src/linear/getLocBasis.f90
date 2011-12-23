@@ -815,15 +815,16 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
           write(*,'(1x,a)') 'Orthonormalization... '
       end if
       t1=mpi_wtime()
-      if(.not.ldiis%switchSD) call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
-           lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
-           input, lin%mad, lphi, ovrlp, 'new')
+      if(.not.ldiis%switchSD) call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, &
+           lin%blocksize_pdsyev, lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, &
+           lin%convCritOrtho, input, lin%mad, lphi, ovrlp, 'new')
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1
 
 
       !!! NEW #########################################################
-      if(.not.ldiis%switchSD) call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
+      if(.not.ldiis%switchSD) call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, &
+                                    lin%comon, rxyz, lin%nItInnerLoop, lphi)
       !!!call unitary_optimization2(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
       !!! #############################################################
 
@@ -896,16 +897,19 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
                        if(it>=nit) then
                            if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                                ' iterations! Exiting loop due to consective failures of SD.'
-                           if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trHold
+                           if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', &
+                                        fnrm, fnrmMax, trHold
                            infoBasisFunctions=-1
                        else
                            if(iproc==0) then
                                write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
-                               write (*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trHold
+                               write (*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', &
+                               fnrm, fnrmMax, trHold
                            end if
                            infoBasisFunctions=it
                        end if
-                       if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
+                       if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. &
+                                    &============================='
                        !!if(lin%plotBasisFunctions) then
                        !!    call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
                        !!        .5d0*input%hy, .5d0*input%hz, 1)
