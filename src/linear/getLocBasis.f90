@@ -3104,175 +3104,175 @@ real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
 
 
 
-  !!!!psi=1.d0
-  !!vpsi=0.d0
-  !!oidx = 0
-  !!do iorb=1,orbs%norbp
-  !!   ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-  !!
-  !!   !initialise the work arrays
-  !!   call initialize_work_arrays_sumrho(lzd%llr(ilr), work_sr)
-
-  !!   ! Wavefunction in real space
-  !!   allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-  !!   call memocc(i_stat,psir,'psir',subname)
-  !!   call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
-
-  !!   !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
-  !!   !the psir wavefunction is given in the spinorial form
-
-  !!   psi(1+oidx+lzd%llr(ilr)%wfd%nvctr_c:1+oidx+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
-
-  !!   call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
-  !!   !apply the potential to the psir wavefunction and calculate potential energy
-  !!   hxh=.5d0*input%hx
-  !!   hyh=.5d0*input%hy
-  !!   hzh=.5d0*input%hz
-  !!   !icenter=confinementCenter(iorb)
-  !!   icenter=lin%orbs%inWhichLocregp(iorb)
-  !!   !components of the potential
-  !!   npot=orbs%nspinor
-  !!   if (orbs%nspinor == 2) npot=1
-
-  !!   call apply_confinement(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
-  !!        rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
-  !!        lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3,  &
-  !!        lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-  !!   !!call apply_confinement(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
-  !!   !!     rxyz(1,icenter), hxh, hyh, hzh, .01d0*lin%potentialprefac(at%iatype(icenter)), 6, &
-  !!   !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3,  &
-  !!   !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-
-
-  !!   call isf_to_daub(lzd%llr(ilr), work_sr, psir, vpsi(1+oidx))
-
-  !!   i_all=-product(shape(psir))*kind(psir)
-  !!   deallocate(psir,stat=i_stat)
-  !!   call memocc(i_stat,i_all,'psir',subname)
-
-  !!   call deallocate_work_arrays_sumrho(work_sr)
-
-  !!   oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-
-  !!enddo
-
-
-
+  !!psi=1.d0
   vpsi=0.d0
-  ist_c=1
-  ist_f=1
+  oidx = 0
   do iorb=1,orbs%norbp
-     iiorb=iorb+orbs%isorb
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
   
+     !initialise the work arrays
+     call initialize_work_arrays_sumrho(lzd%llr(ilr), work_sr)
+
+     ! Wavefunction in real space
+     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,psir,'psir',subname)
+     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
+
+     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
+     !the psir wavefunction is given in the spinorial form
+
+     psi(1+oidx+lzd%llr(ilr)%wfd%nvctr_c:1+oidx+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
+
+     call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
+     !apply the potential to the psir wavefunction and calculate potential energy
+     hxh=.5d0*input%hx
+     hyh=.5d0*input%hy
+     hzh=.5d0*input%hz
+     !icenter=confinementCenter(iorb)
      icenter=lin%orbs%inWhichLocregp(iorb)
      !components of the potential
      npot=orbs%nspinor
      if (orbs%nspinor == 2) npot=1
 
-
-     ist_f=ist_f+lzd%llr(ilr)%wfd%nvctr_c
-
-     call allocate_workarrays_quartic_convolutions(lzd%llr(ilr), subname, work_conv)
-
-         call uncompress_for_quartic_convolutions(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-              lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-              lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-              lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
-              lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
-              lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv,  & 
-              lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
-              lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-              lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
-              scal, psi(ist_c), psi(ist_f), &
-              work_conv)
-
-     if(lin%confpotorder==4) then
-      !!call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-      !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-      !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-      !!     lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
-      !!     input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
-      !!     lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
-      !!     lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
-      !!     rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
-      !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-      !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-      !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-      !!     work_conv%y_c, work_conv%y_f)
-      call ConvolQuarticShifted(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-           lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-           lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
-           input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
-           lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
-           lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
-           rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, 2.d0,  &
-           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-           work_conv%y_c, work_conv%y_f)
-      else if(lin%confpotorder==6) then
-      !!allocate(ypsitemp_c(0:lzd%llr(ilr)%d%n1, 0:lzd%llr(ilr)%d%n2, 0:lzd%llr(ilr)%d%n3))
-      !!allocate(ypsitemp_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2,lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3))
-
-      call ConvolSextic(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-           lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-           lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
-           input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
-           lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
-           lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
-           rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
-           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-           work_conv%y_c, work_conv%y_f)
-
-       else
-           stop 'wronf conf pot'
-
-       end if
-     !!ypsitemp_c=work_conv%y_c
-     !!ypsitemp_f=work_conv%y_f
+     call apply_confinement(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
+          rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
+          lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3,  &
+          lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+     !!call apply_confinement(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
+     !!     rxyz(1,icenter), hxh, hyh, hzh, .01d0*lin%potentialprefac(at%iatype(icenter)), 6, &
+     !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3,  &
+     !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
 
 
-     !! call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-     !!      lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-     !!      lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-     !!      lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
-     !!      input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
-     !!      lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
-     !!      lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
-     !!      rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
-     !!      work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-     !!      work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-     !!      work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-     !!      work_conv%y_c, work_conv%y_f)
+     call isf_to_daub(lzd%llr(ilr), work_sr, psir, vpsi(1+oidx))
 
-     !!work_conv%y_c=.5d0*work_conv%y_c+.5d0*ypsitemp_c
-     !!work_conv%y_f=.5d0*work_conv%y_f+.5d0*ypsitemp_f
+     i_all=-product(shape(psir))*kind(psir)
+     deallocate(psir,stat=i_stat)
+     call memocc(i_stat,i_all,'psir',subname)
 
-      !!deallocate(ypsitemp_c)
-      !!deallocate(ypsitemp_f)
+     call deallocate_work_arrays_sumrho(work_sr)
 
-     call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-          lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-          lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-          lzd%llr(Ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
-          lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
-          lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv,  & 
-          lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
-          lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-          lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
-          scal, work_conv%y_c, work_conv%y_f, vpsi(ist_c), vpsi(ist_f))
-
-     call deallocate_workarrays_quartic_convolutions(lzd%llr(ilr), subname, work_conv)
-
-     ist_f = ist_f + 7*lzd%llr(ilr)%wfd%nvctr_f
-     ist_c = ist_c + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+     oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
 
   enddo
+
+
+
+  !!vpsi=0.d0
+  !!ist_c=1
+  !!ist_f=1
+  !!do iorb=1,orbs%norbp
+  !!   iiorb=iorb+orbs%isorb
+  !!   ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+  !!
+  !!   icenter=lin%orbs%inWhichLocregp(iorb)
+  !!   !components of the potential
+  !!   npot=orbs%nspinor
+  !!   if (orbs%nspinor == 2) npot=1
+
+
+  !!   ist_f=ist_f+lzd%llr(ilr)%wfd%nvctr_c
+
+  !!   call allocate_workarrays_quartic_convolutions(lzd%llr(ilr), subname, work_conv)
+
+  !!       call uncompress_for_quartic_convolutions(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+  !!            lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+  !!            lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+  !!            lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+  !!            lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
+  !!            lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv,  & 
+  !!            lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+  !!            lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+  !!            lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
+  !!            scal, psi(ist_c), psi(ist_f), &
+  !!            work_conv)
+
+  !!   if(lin%confpotorder==4) then
+  !!    !!call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+  !!    !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+  !!    !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+  !!    !!     lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
+  !!    !!     input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+  !!    !!     lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+  !!    !!     lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+  !!    !!     rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
+  !!    !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+  !!    !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+  !!    !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+  !!    !!     work_conv%y_c, work_conv%y_f)
+  !!    call ConvolQuarticShifted(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+  !!         lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+  !!         lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+  !!         lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
+  !!         input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+  !!         lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+  !!         lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+  !!         rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, 2.d0,  &
+  !!         work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+  !!         work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+  !!         work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+  !!         work_conv%y_c, work_conv%y_f)
+  !!    else if(lin%confpotorder==6) then
+  !!    !!allocate(ypsitemp_c(0:lzd%llr(ilr)%d%n1, 0:lzd%llr(ilr)%d%n2, 0:lzd%llr(ilr)%d%n3))
+  !!    !!allocate(ypsitemp_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2,lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3))
+
+  !!    call ConvolSextic(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+  !!         lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+  !!         lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+  !!         lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
+  !!         input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+  !!         lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+  !!         lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+  !!         rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
+  !!         work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+  !!         work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+  !!         work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+  !!         work_conv%y_c, work_conv%y_f)
+
+  !!     else
+  !!         stop 'wronf conf pot'
+
+  !!     end if
+  !!   !!ypsitemp_c=work_conv%y_c
+  !!   !!ypsitemp_f=work_conv%y_f
+
+
+  !!   !! call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+  !!   !!      lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+  !!   !!      lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+  !!   !!      lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
+  !!   !!      input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+  !!   !!      lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+  !!   !!      lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+  !!   !!      rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
+  !!   !!      work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+  !!   !!      work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+  !!   !!      work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+  !!   !!      work_conv%y_c, work_conv%y_f)
+
+  !!   !!work_conv%y_c=.5d0*work_conv%y_c+.5d0*ypsitemp_c
+  !!   !!work_conv%y_f=.5d0*work_conv%y_f+.5d0*ypsitemp_f
+
+  !!    !!deallocate(ypsitemp_c)
+  !!    !!deallocate(ypsitemp_f)
+
+  !!   call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+  !!        lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+  !!        lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+  !!        lzd%llr(Ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+  !!        lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
+  !!        lzd%llr(ilr)%wfd%keyg, lzd%llr(ilr)%wfd%keyv,  & 
+  !!        lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+  !!        lzd%llr(ilr)%wfd%keyg(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+  !!        lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
+  !!        scal, work_conv%y_c, work_conv%y_f, vpsi(ist_c), vpsi(ist_f))
+
+  !!   call deallocate_workarrays_quartic_convolutions(lzd%llr(ilr), subname, work_conv)
+
+  !!   ist_f = ist_f + 7*lzd%llr(ilr)%wfd%nvctr_f
+  !!   ist_c = ist_c + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+
+  !!enddo
 
 
 
