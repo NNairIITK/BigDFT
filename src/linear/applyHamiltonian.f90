@@ -1265,6 +1265,14 @@ real(gp) :: epot_p, epot
                        ! #################################################################################
                        !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                        !!   (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**4 - 2.d0*2.d0*(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + 2.d0**2
+                       !!tt=tt*potentialPrefac
+                       !!if((hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2 > 2.d0) then
+                       !!else
+                       !!    tt=0.d0
+                       !!end if
+                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                       !!   (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
                        !!tt=potentialPrefac*tt**3
                        !!tt = (hxh*dble(i1+offsetx)-rxyzConfinement(1))**6 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**6 + &
                        !!     3.d0*(hxh*dble(i1+offsetx)-rxyzConfinement(1))**4*(hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
