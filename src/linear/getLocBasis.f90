@@ -3121,7 +3121,7 @@ real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
      !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
      !the psir wavefunction is given in the spinorial form
 
-     psi(1+oidx+lzd%llr(ilr)%wfd%nvctr_c:1+oidx+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
+     !psi(1+oidx+lzd%llr(ilr)%wfd%nvctr_c:1+oidx+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
 
      call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
      !apply the potential to the psir wavefunction and calculate potential energy
@@ -3188,30 +3188,30 @@ real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
   !!            work_conv)
 
   !!   if(lin%confpotorder==4) then
-  !!    !!call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-  !!    !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
-  !!    !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
-  !!    !!     lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
-  !!    !!     input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
-  !!    !!     lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
-  !!    !!     lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
-  !!    !!     rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
-  !!    !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-  !!    !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-  !!    !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-  !!    !!     work_conv%y_c, work_conv%y_f)
-  !!    call ConvolQuarticShifted(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+  !!    call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
   !!         lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
   !!         lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
   !!         lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
   !!         input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
   !!         lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
   !!         lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
-  !!         rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, 2.d0,  &
+  !!         rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
   !!         work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
   !!         work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
   !!         work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
   !!         work_conv%y_c, work_conv%y_f)
+  !!    !!call ConvolQuarticShifted(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+  !!    !!     lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+  !!    !!     lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+  !!    !!     lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
+  !!    !!     input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+  !!    !!     lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+  !!    !!     lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+  !!    !!     rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, 2.d0,  &
+  !!    !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+  !!    !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+  !!    !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+  !!    !!     work_conv%y_c, work_conv%y_f)
   !!    else if(lin%confpotorder==6) then
   !!    !!allocate(ypsitemp_c(0:lzd%llr(ilr)%d%n1, 0:lzd%llr(ilr)%d%n2, 0:lzd%llr(ilr)%d%n3))
   !!    !!allocate(ypsitemp_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2,lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3))
