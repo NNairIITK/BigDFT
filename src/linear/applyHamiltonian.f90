@@ -157,6 +157,9 @@ real(gp) :: epot_p
                        ! Add the quartic confinement potential to the potential.
                        tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                            (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!! EXPERIMENTAL ########################
+                       tt=max(tt-9.d0,0.d0)
+                       !########################################
                        tt=potentialPrefac*tt**order
                        !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                        !!    (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
@@ -1261,6 +1264,9 @@ real(gp) :: epot_p, epot
                        ! THIS IS CORRECT #################################################################
                        tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                           (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!! EXPERIMENTAL ########################
+                       tt=max(tt-9.d0,0.d0)
+                       !########################################
                        tt=potentialPrefac*tt**order
                        ! #################################################################################
                        !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
