@@ -497,7 +497,7 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, 
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,work_conv%y_c,work_conv%y_f,ypsi_c,ypsi_f)
 
-  if(confPotOrder==6) then
+  if(confPotOrder==4) then
       ! add confinemenet on real space grid
      !initialise the work arrays
      call initialize_work_arrays_sumrho(lr, work_sr)
