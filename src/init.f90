@@ -1274,6 +1274,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    real(wp), dimension(:), pointer :: pot,pot1
    real(dp), dimension(:,:), pointer :: rho_p
    real(wp), dimension(:,:,:), pointer :: psigau
+   type(confpot_data), dimension(:), allocatable :: confdatarr
 ! #### Linear Scaling Variables
   integer :: ilr,ityp
   logical :: calc                           
@@ -1399,9 +1400,9 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      !!call timing(iproc,'create_nlpspd ','OF')
 
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(Lpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
+     allocate(Lpsi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
      call memocc(i_stat,Lpsi,'Lpsi',subname)
-     call razero(Lzd%Lpsidimtot,Lpsi)
+     call razero(max(orbse%npsidim_orbs,orbse%npsidim_comp),Lpsi)
 
     ! Construct wavefunction inside the locregs (the orbitals are ordered by locreg)
      call timing(iproc,'wavefunction  ','ON')
@@ -1560,8 +1561,10 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
          orbse, Lzd,1,&
          ngatherarr, rhopot, Lpot)
 
+    allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
+
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-    allocate(Lhpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
+    allocate(Lhpsi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
     call memocc(i_stat,Lhpsi,'Lhpsi',subname)
 
     ! the loop on locreg is inside LinearHamiltonianApplication
@@ -1571,10 +1574,15 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
 
     withConfinement=.false.
-    call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
-         proj, lzd, ngatherarr, Lpot, lpsi, lhpsi, &
-         ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
+!!$    call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
+!!$         proj, lzd, ngatherarr, Lpot, lpsi, lhpsi, &
+!!$         ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
+!!$         pkernel=pkernelseq)
+    call HamiltonianApplication3(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+         proj,Lzd,confdatarr,ngatherarr,Lpot,lpsi,lhpsi,&
+         ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
          pkernel=pkernelseq)
+    deallocate(confdatarr)
 
     !restore the value
     call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
@@ -1665,7 +1673,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    call wavefunction_dimension(Lzd,orbse)
 
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(psi(orbse%npsidim+ndebug),stat=i_stat)
+     allocate(psi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
      !allocate arrays for the GPU if a card is present
@@ -1889,7 +1897,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    end if
    
      !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
+     allocate(hpsi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi,'hpsi',subname)
    
      !call dcopy(orbse%npsidim,psi,1,hpsi,1)
@@ -1906,41 +1914,54 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!$        nspin, orbse, Lzd, ngatherarr, rhopot, pot, 0)
 
     !change temporarily value of Lzd%npotddim
-    call local_potential_dimensions(Lzd,orbse,ngatherarr(0,1))
-
+   allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
+   call local_potential_dimensions(Lzd,orbse,ngatherarr(0,1))
+   
+   call default_confinement_data(confdatarr,orbse%norbp)
 
    call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,&
         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
         i3rho_add,orbse,Lzd,0,ngatherarr,rhopot,pot)
 
-    if(.false.) then
+   call default_confinement_data(confdatarr,orbse%norbp)
 
-   call LocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,&
-         Lzd,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
+   if(.false.) then
 
-   call NonLocalHamiltonianApplication(iproc,at,orbse,hx,hy,hz,rxyz,&
-        proj,Lzd,psi,hpsi,eproj_sum)
+      call LocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,&
+           Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+           ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
 
-        call SynchronizeHamiltonianApplication(nproc,orbse,Lzd%Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
-    end if
+      call NonLocalHamiltonianApplication(iproc,at,orbse,hx,hy,hz,rxyz,&
+           proj,Lzd,psi,hpsi,eproj_sum)
+
+      call SynchronizeHamiltonianApplication(nproc,orbse,Lzd,GPU,hpsi,&
+           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+   end if
     
-    withConfinement=.false.
-
-    call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
-         proj, lzd, ngatherarr, pot, psi, hpsi, &
-         ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
-         pkernel=pkernel)
-
+!!$    withConfinement=.false.
+!!$
+!!$    call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
+!!$         proj, lzd, ngatherarr, pot, psi, hpsi, &
+!!$         ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, &
+!!$         withConfinement, .true., &
+!!$         pkernel=pkernel)
+    call HamiltonianApplication3(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+         proj,Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+         ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+         pkernel=pkernelseq)
     !restore the good value
     call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
  
      !deallocate potential
      call free_full_potential(nproc,pot,subname)
-     i_all = -product(shape(orbse%ispot))*kind(orbse%ispot)
+
+     i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
      deallocate(orbse%ispot,stat=i_stat)
      call memocc(i_stat,i_all,'orbse%ispot',subname)
+
+     deallocate(confdatarr)
  
    !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
    !!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
@@ -2033,8 +2054,6 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   call wavefunction_dimension(Lzd,orbs)
 
    if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
-
-
      
       !clean the array of the IG eigenvalues
       call to_zero(orbse%norb*orbse%nkpts,orbse%eval(1))

@@ -141,11 +141,11 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   type(local_zone_descriptors) :: Lzd
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(Lzd%Lpsidimtot), intent(inout) :: psi
+  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: psi
   real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep
   type(orbitals_data), intent(in) :: linorbs                         
-  real(8),dimension(linorbs%npsidim),intent(in),optional:: phi                !optional for Trace Minimizing orbitals
+  real(8),dimension(linorbs%npsidim_orbs),intent(in),optional:: phi                !optional for Trace Minimizing orbitals
   real(8),dimension(linorbs%norb,orbs%norb),intent(in),optional:: coeff       !optional for Trace Minimizing orbitals
   !local variables--------------
   character(len=*), parameter :: subname='Linearnonlocal_forces'

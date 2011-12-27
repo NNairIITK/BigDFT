@@ -45,6 +45,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    real(gp) :: energy,energybs,evsum !n(c) energy_old
    type(diis_objects) :: diis
    real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt,pot
+   type(confpot_data), dimension(:), allocatable :: confdatarr
 
    !supplementary messages
    msg=.false.
@@ -126,7 +127,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    if (occorbs) then
       !disassociate work array for transposition in serial
       if (nproc > 1) then
-         allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
+         allocate(psiw(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
          call memocc(i_stat,psiw,'psiw',subname)
       else
          psiw => null()
@@ -170,7 +171,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    !retranspose v
    if(nproc > 1)then
       !reallocate the work array with the good size
-      allocate(psiw(orbsv%npsidim+ndebug),stat=i_stat)
+      allocate(psiw(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,psiw,'psiw',subname)
    end if
 
@@ -179,10 +180,10 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    ! 1st Hamilton application on psivirt
    if(iproc==0)write(*,'(1x,a)')"done."
 
-   allocate(hpsivirt(orbsv%npsidim+ndebug),stat=i_stat)
+   allocate(hpsivirt(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,hpsivirt,'hpsivirt',subname)
    if (nproc > 1) then
-      allocate(psitvirt(orbsv%npsidim+ndebug),stat=i_stat)
+      allocate(psitvirt(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,psitvirt,'psitvirt',subname)
       !transpose the psivirt 
       call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,psivirt,work=psiw,outadd=psitvirt(1))
@@ -195,6 +196,11 @@ subroutine direct_minimization(iproc,nproc,in,at,&
         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
         in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
         orbsv,Lzd,0,ngatherarr,rhopot,pot)
+
+   call local_potential_dimensions(Lzd,orbsv,ngatherarr(0,1))
+   allocate(confdatarr(orbsv%norbp))
+   call default_confinement_data(confdatarr,orbsv%norbp)
+
 
 !!$   call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
 !!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,in%nspin,&
@@ -262,13 +268,14 @@ subroutine direct_minimization(iproc,nproc,in,at,&
       !!$          pkernel,orbs,psirocc) ! optional arguments
 
       call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-         &   Lzd,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
-         &   pkernel,orbs,psirocc) ! optional arguments
+           Lzd,confdatarr,ngatherarr,pot,psivirt,hpsivirt,&
+           ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+           pkernel,orbs,psirocc) ! optional arguments
 
       call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
            proj,Lzd,psivirt,hpsivirt,eproj_sum)
 
-      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd%Glr,GPU,hpsivirt,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hpsivirt,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
       energybs=ekin_sum+epot_sum+eproj_sum
       !n(c) energy_old=energy
@@ -293,9 +300,10 @@ subroutine direct_minimization(iproc,nproc,in,at,&
 
       !evaluate the functional of the wavefucntions and put it into the diis structure
       !the energy values should be printed out here
-     call calculate_energy_and_gradient(iter,iproc,nproc,orbsv,commsv,GPU,Lzd,hx,hy,hz,in%ncong,in%iscf,&
-         &   ekin_sum,epot_sum,eproj_sum,eSIC_DC,0.0_gp,0.0_gp,0.0_gp,eexctX,0.0_gp,0.0_gp,&
-         &   psivirt,psitvirt,hpsivirt,gnrm,gnrm_zero,diis%energy)
+     call calculate_energy_and_gradient(iter,iproc,nproc,orbsv,commsv,GPU,Lzd,hx,hy,hz,&
+          in%ncong,in%iscf,&
+          ekin_sum,epot_sum,eproj_sum,eSIC_DC,0.0_gp,0.0_gp,0.0_gp,eexctX,0.0_gp,0.0_gp,&
+          psivirt,psitvirt,hpsivirt,gnrm,gnrm_zero,diis%energy)
 
       !control the previous value of idsx_actual
       idsx_actual_before=diis%idsx
@@ -338,7 +346,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
       deallocate(psiw,stat=i_stat)
       call memocc(i_stat,i_all,'psiw',subname)
 
-      allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
+      allocate(psiw(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,psiw,'psiw',subname)
    end if
 
@@ -351,6 +359,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    end if
    !!!!! end point of the direct minimisation procedure
 
+   deallocate(confdatarr)
 
    !deallocate potential
    call free_full_potential(nproc,pot,subname)
@@ -367,7 +376,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,hx,hy,hz,&
         at,rxyz,Lzd%Glr,orbs,orbsv,psi,psivirt,in%output_wf_format)
 
-END SUBROUTINE direct_minimization
+ END SUBROUTINE direct_minimization
 
 
 !> Davidsons method for iterative diagonalization of virtual Kohn Sham orbitals
@@ -449,6 +458,7 @@ subroutine davidson(iproc,nproc,in,at,&
    real(wp), dimension(:), allocatable :: hv,g,hg,ew
    real(wp), dimension(:,:,:), allocatable :: e
    real(wp), dimension(:), pointer :: psiw,psirocc,pot
+   type(confpot_data), dimension(:), allocatable :: confdatarr
 
    !logical flag which control to othogonalise wrt the occupied orbitals or not
    if (orbs%nkpts /= orbsv%nkpts) then
@@ -532,7 +542,7 @@ subroutine davidson(iproc,nproc,in,at,&
    if (occorbs) then
       !disassociate work array for transposition in serial
       if (nproc > 1) then
-         allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
+         allocate(psiw(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
          call memocc(i_stat,psiw,'psiw',subname)
       else
          psiw => null()
@@ -575,7 +585,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !retranspose v
    if(nproc > 1)then
       !reallocate the work array with the good size
-      allocate(psiw(orbsv%npsidim+ndebug),stat=i_stat)
+      allocate(psiw(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,psiw,'psiw',subname)
    end if
 
@@ -584,7 +594,7 @@ subroutine davidson(iproc,nproc,in,at,&
    ! 1st Hamilton application on psivirt
    if(iproc==0)write(*,'(1x,a)',advance="no")"done. first "
 
-   allocate(hv(orbsv%npsidim+ndebug),stat=i_stat)
+   allocate(hv(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,hv,'hv',subname)
 
    !allocate the potential in the full box
@@ -596,6 +606,10 @@ subroutine davidson(iproc,nproc,in,at,&
         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
         in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
         orbsv,Lzd,0,ngatherarr,rhopot,pot)
+
+   call local_potential_dimensions(Lzd,orbsv,ngatherarr(0,1))
+   allocate(confdatarr(orbsv%norbp))
+   call default_confinement_data(confdatarr,orbsv%norbp)
 
 
    !in the case of NK SIC, put the total density in the psirocc pointer, so that it could be reused for building the 
@@ -624,13 +638,13 @@ subroutine davidson(iproc,nproc,in,at,&
    !!$       pkernel,orbs,psirocc) ! optional arguments
 
    call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-      &   Lzd,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
-      &   pkernel,orbs,psirocc) ! optional arguments
+        Lzd,confdatarr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+        pkernel,orbs,psirocc) ! optional arguments
 
    call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
         proj,Lzd,v,hv,eproj_sum)
 
-   call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd%Glr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+   call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
 
    !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -735,10 +749,10 @@ subroutine davidson(iproc,nproc,in,at,&
       if(iproc==0) write( *,'(1x,a,i0)') repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
       if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
 
-      allocate(g(orbsv%npsidim+ndebug),stat=i_stat)
+      allocate(g(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,g,'g',subname)
 
-      call dcopy(orbsv%npsidim,hv,1,g,1)! don't overwrite hv
+      call dcopy(max(orbsv%npsidim_orbs,orbsv%npsidim_comp),hv,1,g,1)! don't overwrite hv
 
       call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
       !also these operations are presumably GEMMs
@@ -899,7 +913,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(iproc==0)write(*,'(1x,a)')"done."
 
-      allocate(hg(orbsv%npsidim+ndebug),stat=i_stat)
+      allocate(hg(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,hg,'hg',subname)
 
       !!$     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
@@ -907,13 +921,13 @@ subroutine davidson(iproc,nproc,in,at,&
       !!$          pkernel,orbs,psirocc) ! optional argument
 
       call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-         &   Lzd,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
-         &   pkernel,orbs,psirocc) ! optional arguments
+           Lzd,confdatarr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+           pkernel,orbs,psirocc) ! optional arguments
 
       call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
            proj,Lzd,g,hg,eproj_sum)
 
-      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd%Glr,GPU,hg,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hg,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
 
       !transpose  g and hg
@@ -1181,13 +1195,14 @@ subroutine davidson(iproc,nproc,in,at,&
       !!$          pkernel,orbs,psirocc) !optional arguments
 
       call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-         &   Lzd,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
-         &   pkernel,orbs,psirocc) ! optional arguments
+           Lzd,confdatarr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+           pkernel,orbs,psirocc) ! optional arguments
 
       call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
            proj,Lzd,v,hv,eproj_sum)
 
-      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd%Glr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hv,&
+           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
 
       !transpose  v and hv
@@ -1253,7 +1268,7 @@ subroutine davidson(iproc,nproc,in,at,&
       deallocate(psiw,stat=i_stat)
       call memocc(i_stat,i_all,'psiw',subname)
 
-      allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
+      allocate(psiw(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,psiw,'psiw',subname)
    end if
 
@@ -1287,6 +1302,8 @@ subroutine davidson(iproc,nproc,in,at,&
 
    !write the results on the screen
    call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,Lzd%Glr,orbs,orbsv,psi,v,in%output_wf_format)
+
+   deallocate(confdatarr)
 
    if (GPUconv) then
       call free_gpu(GPU,orbsv%norbp)
@@ -1478,7 +1495,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
    type(locreg_descriptors), intent(in) :: lr
    type(communications_arrays), intent(in) :: comms
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(orbs%npsidim), intent(out) :: psivirt
+   real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psivirt
    !local variables
    character(len=*), parameter :: subname='psivirt_from_gaussians'
    logical ::  randinp
@@ -1693,7 +1710,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
    !transpose v
    if(nproc > 1)then
       !reallocate the work array with the good size
-      allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
+      allocate(psiw(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,psiw,'psiw',subname)
    end if
 

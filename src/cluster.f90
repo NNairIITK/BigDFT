@@ -258,14 +258,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    integer, dimension(:,:,:), allocatable :: irrzon
    real(dp), dimension(:,:,:), allocatable :: phnons
    ! Variables for the virtual orbitals and band diagram.
-  integer :: nkptv, nvirtu, nvirtd, linflag
-   real(gp), allocatable :: wkptv(:)
+   integer :: nkptv, nvirtu, nvirtd, linflag
+   real(gp), dimension(:), allocatable :: wkptv
    type(rho_descriptors) :: rhodsc
-  type(linearParameters):: lin
-  !new
-  real(8),dimension(:),pointer:: psiwork
-  real(8):: E0, El, stepsize, derivative
-  stepsize=-1.d0
+   type(linearParameters):: lin
+   type(confpot_data), dimension(:), allocatable :: confdatarr
+   !new
+   real(8),dimension(:),pointer:: psiwork
+   real(8):: E0, El, stepsize, derivative
+   stepsize=-1.d0
 
    ! ----------------------------------
 
@@ -457,6 +458,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
+  allocate(confdatarr(orbs%norbp))
+
+  call default_confinement_data(confdatarr,orbs%norbp)
+
    !calculate the irreductible zone, if necessary.
    if (atoms%symObj >= 0) then
       call symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
@@ -607,7 +612,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
   if (inputpsi /= 0 .and. inputpsi/=100) then
-      allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+      allocate(psi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
       call memocc(i_stat,psi,'psi',subname)
    end if
 
@@ -615,10 +620,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    select case(inputpsi)
    case(INPUT_PSI_EMPTY)
       !allocate fake psit and hpsi
-      allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+      allocate(hpsi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
       call memocc(i_stat,hpsi,'hpsi',subname)
       if (nproc > 1) then
-         allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
+         allocate(psit(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
          call memocc(i_stat,psit,'psit',subname)
       else
          psit => psi
@@ -670,7 +675,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
       psi=0.0d0
       ttsum=0.0d0
-      do i=1,orbs%npsidim
+      do i=1,max(orbs%npsidim_comp,orbs%npsidim_orbs)
          do j=0,iproc-1
             call random_number(tt)
          end do
@@ -1120,20 +1125,25 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !Must change this to fit new three routine scheme
            if(.false.) then
            withConfinement=.false.
-           call HamiltonianApplication3(iproc, nproc, atoms, orbs, hx, hy, hz, rxyz, &
-                proj, Lzd, ngatherarr, potential, psi, hpsi, &                                                                                                                                                              
-                ekin_sum, epot_sum, eexctX, eproj_sum, in%nspin, GPU, withConfinement, .true., &
+!!$           call HamiltonianApplication3(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+!!$                proj,Lzd,ngatherarr,potential,psi,hpsi,&
+!!$                ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+!!$                withConfinement,.true.,&
+!!$                pkernel=pkernelseq)
+           call HamiltonianApplication3(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                proj,Lzd,confdatarr,ngatherarr,potential,psi,hpsi,&
+                ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
                 pkernel=pkernelseq)
            end if
 
             call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,&
-                 Lzd,ngatherarr,potential,psi,hpsi,&
+                 Lzd,confdatarr,ngatherarr,potential,psi,hpsi,&
                  ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
 
             call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
                  proj,Lzd,psi,hpsi,eproj_sum)
             
-            call SynchronizeHamiltonianApplication(nproc,orbs,Lzd%Glr,GPU,hpsi,&
+            call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
                 ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
             !deallocate potential
@@ -1612,7 +1622,7 @@ if (DoDavidson) then
       end if
 
       !allocate psivirt pointer (note the orbs dimension)
-      allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
+      allocate(psivirt(max(orbsv%npsidim_comp,orbsv%npsidim_orbs)+ndebug),stat=i_stat)
       call memocc(i_stat,psivirt,'psivirt',subname)
 
       if (in%norbv < 0) then
@@ -1958,6 +1968,8 @@ subroutine deallocate_before_exiting
 
    call deallocate_orbs(orbs,subname)
    call deallocate_atoms_scf(atoms,subname) 
+
+   deallocate(confdatarr)
 
    i_all=-product(shape(radii_cf))*kind(radii_cf)
    deallocate(radii_cf,stat=i_stat)

@@ -26,7 +26,7 @@ subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
   !Subroutine Array Arguments
   !########################################
   type(locreg_descriptors), dimension(nlr), intent(in) :: Olr  ! Localization grid descriptors 
-  real(wp),dimension(orbs%npsidim),intent(in) :: psi       !Wavefunction (compressed format)
+  real(wp),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%norbp*orbs%nspinor),intent(in) :: psi       !Wavefunction (compressed format)
   real(wp),dimension(ldim),intent(inout) :: lpsi !Wavefunction in localization region
   !#############################################
   !local variables
@@ -52,7 +52,7 @@ subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
   icheck = 0
 
 ! Initialize loc_psi
-  call razero(lincrement*orbs%norbp*orbs%nspinor,lpsi)
+  if (ldim > 0) call to_zero(lincrement*orbs%norbp*orbs%nspinor,lpsi(1))
 
 ! Get the keymask: shift for every segment of Llr (with respect to Glr)
   allocate(keymask(2,nseg),stat=i_stat)
@@ -579,7 +579,7 @@ subroutine overlap_matrix_for_locreg(ilr,nlr,nspin,psidim1,psishift1,npsidim,at,
             ! Project the wavefunctions inside the overlap region (first for Llr(ilr)and second for Llr(ilr2))
             ! Spin pas bien ordonnee (doit mettre tout les spin up, ensuite tout les spins down)
             orbs%norbp = Localnorb(ilr) 
-            orbs%npsidim = psidim1
+            !orbs%npsidim = psidim1 !always from Glr
             do ispin = 1, nspin
                call psi_to_locreg(Llr(ilr),iolr,ldim1,Olr(iolr),&
                          Lopsi(1+(ispin-1)*(ldim1+ldim2):ispin*ldim1+(ispin-1)*ldim2),isovrlp,orbs,&
@@ -590,7 +590,7 @@ subroutine overlap_matrix_for_locreg(ilr,nlr,nspin,psidim1,psishift1,npsidim,at,
             end do
             !second region
             orbs%norbp = Localnorb(ilr2)
-            orbs%npsidim = psidim2
+            !orbs%npsidim = psidim2 !always from Glr
             do ispin = 1, nspin
                call psi_to_locreg(Llr(ilr2),iolr,ldim2,Olr(iolr),&
                         Lopsi(1+ldim1+(ispin-1)*(ldim1+ldim2):ispin*(ldim1+ldim2)),&
@@ -718,190 +718,190 @@ subroutine overlap_matrix_for_locreg(ilr,nlr,nspin,psidim1,psishift1,npsidim,at,
 END SUBROUTINE overlap_matrix_for_locreg
 !%***
 
-!#############################################################################################################################################
-!!****f* BigDFT/overlap_matrix_between_locreg
-!#############################################################################################################################################
-!! FUNCTION: 
-!!
-!! WARNING: 
-!!
-!! SOURCE:
-!!
-subroutine overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nspin,orbscToAtom,psidim1,psidim2,psishift1,psishift2,&
-           Lzd,orbs,Lpsi,Lhpsi,dim_Lhamovr,Lhamovr)
-
-  use module_base
-  use module_types
-
- implicit none
-
-  !#######################################
-  ! Subroutine Scalar Arguments
-  !#######################################
-  integer,intent(in) :: ilr,ilr2                     ! index of current locregs
-  integer,intent(in) :: isovrlp                      ! number of overlaps(because of periodicity)
-  integer,intent(in) :: nspin                        ! number of spins
-  integer,intent(in) :: psidim1                      ! dimension of the wavefunctions in locreg(ilr)
-  integer,intent(in) :: psidim2                      ! dimension of the wavefunctions in locreg(ilr2)
-  integer,intent(in) :: psishift1                    ! starting index of the first orbital of locreg(ilr)
-  integer,intent(in) :: psishift2                    ! starting index of the first orbital of locreg(ilr2)
-  integer,intent(in) :: dim_Lhamovr                  ! dimension of the Local Hamiltonian/Overlap Matrix
-  type(local_zone_descriptors), intent(in) :: Lzd   ! Descriptors of regions for linear scaling
-  type(orbitals_data),intent(in) :: orbs
-  !########################################
-  !Subroutine Array Arguments
-  !########################################
-  integer , dimension(Lzd%nlr,nspin),intent(in) :: orbscToAtom
-  real(wp),dimension(Lzd%Lpsidimtot),intent(in) :: Lpsi       ! Wavefunction (compressed format)
-  real(wp),dimension(Lzd%Lpsidimtot),intent(in) :: Lhpsi      ! Wavefunction in localization region
-  real(wp),dimension(nspin*dim_Lhamovr,2,orbs%nkpts),intent(out) :: Lhamovr           ! Local Hamiltonian/Overlap matrix
-  !########################################
-  ! Local Variables
-  !########################################
-  integer :: iolr,i_all,i_stat
-  integer :: ldim,ldim1,ldim2
-  integer :: i1,i2,i3,ispin
-  integer :: norb1,norb2
-  integer :: spinshift,iorbst,iorbst2,imatrst
-  type(locreg_descriptors),dimension(:), allocatable :: Olr  ! Localization grid descriptors 
-  real(wp), dimension(:,:,:), allocatable :: Ahamovr  !hamiltonian/overlap matrices for intersection region
-  real(wp),dimension(:),pointer:: Lopsi1,Lopsi2,Lohpsi
-  character(len=*), parameter :: subname='overlap_matrix_for_locreg'
-  type(orbitals_data) :: orbsu      ! orbital descriptor   
-
-  orbsu = orbs
-  norb1 = Lzd%Llr(ilr)%Localnorb / orbs%nspin
-  norb2 = Lzd%LLr(ilr2)%Localnorb / orbs%nspin
- 
-  !Calculate the number of overlap regions between two logregs (can be more then one because
-  ! of periodicity). The number of overlap regions is stored in the isvorlp integer.
-  if (ilr .ne. ilr2) then
-     !allocate the overlap regions (memocc not used because it is a type) 
-    allocate(Olr(isovrlp),stat=i_stat)
- 
-    ! Now allocate the total overlap matrix for the overlap region [Lohamovr]
-    ! and a temporary overlap matrix [Ahamovr] for each zone (Olr fractured because of periodicity)
-    ! It has dimensions: Lohamovr(nspin*norb**2,2,nkpt). The second dimension is:
-    ! 1: Hamiltonian Matrix =  <Obr(iorb1)|H|Orb(iorb2)>
-    ! 2: Overlap Matrix = <Obr(iorb1)|Orb(iorb2)>
-    allocate(Ahamovr(nspin*dim_Lhamovr,2,orbs%nkpts+ndebug),stat=i_stat)    !temporary
-    call memocc(i_stat,Ahamovr,'Ahamovr',subname)
- 
-    !since Lhamovr is an accumulator
-    call razero(nspin*dim_Lhamovr*2*(orbs%nkpts+ndebug),Lhamovr)
-
-    ! Construct the overlap region descriptors
-    call get_overlap_region_periodic(ilr,ilr2,Lzd%Glr,isovrlp,Lzd%Llr,Lzd%nlr,Olr)
- 
-    ! Third, transform the wavefunction to overlap regions (assuming same for all spin)
-    do iolr=1,isovrlp
-       ldim  =  Olr(iolr)%wfd%nvctr_c+7*Olr(iolr)%wfd%nvctr_f
-       ldim1 = ldim * (norb1-orbscToAtom(ilr,1)) * orbs%nspinor
-       ldim2 = ldim * (norb2-orbscToAtom(ilr2,1))* orbs%nspinor
- 
-       ! Allocate the local wavefunction (in one overlap region)
-       allocate(Lopsi1(ldim1*nspin+ndebug), stat=i_stat)
-       call memocc(i_stat,Lopsi1,'Lopsi1',subname)
-       allocate(Lopsi2(ldim2*nspin+ndebug), stat=i_stat)
-       call memocc(i_stat,Lopsi2,'Lopsi2',subname)
-       allocate(Lohpsi(ldim2*nspin+ndebug), stat=i_stat)
-       call memocc(i_stat,Lohpsi,'Lohpsi',subname)
-
-       ! Project the wavefunctions inside the overlap region (first for Llr(ilr)and second for Llr(ilr2))
-       orbsu%npsidim = psidim1
-       do ispin = 1, nspin
-          orbsu%norbp = norb1-orbscToAtom(ilr,ispin)
-          call psi_to_locreg(Lzd%Llr(ilr),iolr,ldim1,Olr(iolr),&
-                    Lopsi1(1+(ispin-1)*ldim1:ispin*ldim1),isovrlp,orbs,&
-                    Lpsi(psishift1+(ispin-1)*psidim1:psishift1+ispin*psidim1-1))
-!          call psi_to_locreg(Llr(ilr),iolr,ldim1,Olr(iolr),&
-!                   Lohpsi(1+(ispin-1)*(ldim1+ldim2):ispin*ldim1+(ispin-1)*ldim2),isovrlp,orbs,&
-!                   Lhpsi(psishift1+(ispin-1)*psidim1:psishift1+ispin*psidim1-1))
-       end do
-       !second region
-       orbsu%npsidim = psidim2
-       do ispin = 1, nspin
-          orbsu%norbp = norb2-orbscToAtom(ilr2,ispin)
-          call psi_to_locreg(Lzd%Llr(ilr2),iolr,ldim2,Olr(iolr),&
-                   Lopsi2(1+(ispin-1)*ldim2:ispin*ldim2),&
-                   isovrlp,orbs,Lpsi(psishift2+(ispin-1)*psidim2:psishift2+ispin*psidim2-1))
-          call psi_to_locreg(Lzd%Llr(ilr2),iolr,ldim2,Olr(iolr),&
-                   Lohpsi(1+(ispin-1)*ldim2:ispin*ldim2),&
-                   isovrlp,orbs,Lhpsi(psishift2+(ispin-1)*psidim2:psishift2+ispin*psidim2-1))
-       end do
-
-      ! Now we can build the overlap matrix of the intersection region
-!      ispsi=1                                                     !TO DO: K-points and parallelization
-!      do ikptp=1,orbs%nkptsp
-!         ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
-!      
-!         nvctrp=commu%nvctr_par(iproc,ikptp)
-!         if (nvctrp == 0) cycle
-       iorbst =1
-       iorbst2=1
-       imatrst=1
-       do ispin=1,nspin !this construct assumes that the semicore is identical for both the spins
-  
-          call local_overlap_matrices((norb1+norb2-orbscToAtom(ilr,1)-orbscToAtom(ilr2,1))*nspin,&
-             norb1-orbscToAtom(ilr,1),norb2-orbscToAtom(ilr2,1),ldim,nspin,orbs%nspinor,dim_Lhamovr,&
-             Ahamovr(1,1,1),Lopsi1(1),Lopsi2,Lohpsi(1),iorbst,iorbst2,imatrst)  
-          iorbst =iorbst + norb1-orbscToAtom(ilr,1)
-          iorbst2=iorbst2+ norb2-orbscToAtom(ilr2,1)
-       end do
-
-!      ispsi=ispsi+nvctrp*norbtot*orbs%nspinor
-!      end do
-
-       ! The overlap matrix should be accumulated for each intersection region 
-       do i1=1,size(Ahamovr,1)
-          do i2=1,size(Ahamovr,2)
-             do i3=1,size(Ahamovr,3)
-                Lhamovr(i1,i2,i3) = Lhamovr(i1,i2,i3) + Ahamovr(i1,i2,i3) !Careful how we accumulate (orbital ordering)                
-              end do
-          end do
-       end do
-
-       ! deallocate the arrays depending on Olr
-       i_all=-product(shape(Lopsi1))*kind(Lopsi1)
-       deallocate(Lopsi1,stat=i_stat)
-       call memocc(i_stat,i_all,'Lopsi1',subname)
-
-       i_all=-product(shape(Lopsi2))*kind(Lopsi2)
-       deallocate(Lopsi2,stat=i_stat)
-       call memocc(i_stat,i_all,'Lopsi2',subname)
-
-       i_all=-product(shape(Lohpsi))*kind(Lohpsi)
-       deallocate(Lohpsi,stat=i_stat)
-       call memocc(i_stat,i_all,'Lohpsi',subname)
-    end do
-
-    ! deallocate Olr
-    deallocate(Olr,stat=i_stat)
-
-  else if (ilr == ilr2) then
-     ldim1 = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f) * orbs%nspinor
-
-     imatrst=1
-     spinshift = 0
-     do ispin=1,nspin !this construct assumes that the semicore is identical for both the spins
-        call local_overlap_matrices((norb1-orbscToAtom(ilr,1)),&
-          norb1-orbscToAtom(ilr,1),norb2-orbscToAtom(ilr2,1),ldim1,&
-          nspin,orbs%nspinor,dim_Lhamovr,Lhamovr(1,1,1),Lpsi(psishift1+spinshift:psishift1+spinshift+psidim1-1),&
-          Lpsi(psishift2+spinshift:psishift2+spinshift+psidim2-1),&
-          Lhpsi(psishift2+spinshift:psishift2+spinshift+psidim2-1),1,1,imatrst)
-        spinshift = spinshift + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f) * orbs%nspinor * norb1 
-     end do
-  end if
-
-  !deallocate the arrays depending on ilr2 (if they are allocated)
-  if(allocated(Ahamovr)) then
-     i_all=-product(shape(Ahamovr))*kind(Ahamovr)
-     deallocate(Ahamovr,stat=i_stat)
-     call memocc(i_stat,i_all,'Ahamovr',subname)
-  end if
-
-END SUBROUTINE overlap_matrix_between_locreg
-!%***
+!!$!#############################################################################################################################################
+!!$!!****f* BigDFT/overlap_matrix_between_locreg
+!!$!#############################################################################################################################################
+!!$!! FUNCTION: 
+!!$!!
+!!$!! WARNING: 
+!!$!!
+!!$!! SOURCE:
+!!$!!
+!!$subroutine overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nspin,orbscToAtom,psidim1,psidim2,psishift1,psishift2,&
+!!$           Lzd,orbs,Lpsi,Lhpsi,dim_Lhamovr,Lhamovr)
+!!$
+!!$  use module_base
+!!$  use module_types
+!!$
+!!$ implicit none
+!!$
+!!$  !#######################################
+!!$  ! Subroutine Scalar Arguments
+!!$  !#######################################
+!!$  integer,intent(in) :: ilr,ilr2                     ! index of current locregs
+!!$  integer,intent(in) :: isovrlp                      ! number of overlaps(because of periodicity)
+!!$  integer,intent(in) :: nspin                        ! number of spins
+!!$  integer,intent(in) :: psidim1                      ! dimension of the wavefunctions in locreg(ilr)
+!!$  integer,intent(in) :: psidim2                      ! dimension of the wavefunctions in locreg(ilr2)
+!!$  integer,intent(in) :: psishift1                    ! starting index of the first orbital of locreg(ilr)
+!!$  integer,intent(in) :: psishift2                    ! starting index of the first orbital of locreg(ilr2)
+!!$  integer,intent(in) :: dim_Lhamovr                  ! dimension of the Local Hamiltonian/Overlap Matrix
+!!$  type(local_zone_descriptors), intent(in) :: Lzd   ! Descriptors of regions for linear scaling
+!!$  type(orbitals_data),intent(in) :: orbs
+!!$  !########################################
+!!$  !Subroutine Array Arguments
+!!$  !########################################
+!!$  integer , dimension(Lzd%nlr,nspin),intent(in) :: orbscToAtom
+!!$  real(wp),dimension(Lzd%Lpsidimtot),intent(in) :: Lpsi       ! Wavefunction (compressed format)
+!!$  real(wp),dimension(Lzd%Lpsidimtot),intent(in) :: Lhpsi      ! Wavefunction in localization region
+!!$  real(wp),dimension(nspin*dim_Lhamovr,2,orbs%nkpts),intent(out) :: Lhamovr           ! Local Hamiltonian/Overlap matrix
+!!$  !########################################
+!!$  ! Local Variables
+!!$  !########################################
+!!$  integer :: iolr,i_all,i_stat
+!!$  integer :: ldim,ldim1,ldim2
+!!$  integer :: i1,i2,i3,ispin
+!!$  integer :: norb1,norb2
+!!$  integer :: spinshift,iorbst,iorbst2,imatrst
+!!$  type(locreg_descriptors),dimension(:), allocatable :: Olr  ! Localization grid descriptors 
+!!$  real(wp), dimension(:,:,:), allocatable :: Ahamovr  !hamiltonian/overlap matrices for intersection region
+!!$  real(wp),dimension(:),pointer:: Lopsi1,Lopsi2,Lohpsi
+!!$  character(len=*), parameter :: subname='overlap_matrix_for_locreg'
+!!$  type(orbitals_data) :: orbsu      ! orbital descriptor   
+!!$
+!!$  orbsu = orbs
+!!$  norb1 = Lzd%Llr(ilr)%Localnorb / orbs%nspin
+!!$  norb2 = Lzd%LLr(ilr2)%Localnorb / orbs%nspin
+!!$ 
+!!$  !Calculate the number of overlap regions between two logregs (can be more then one because
+!!$  ! of periodicity). The number of overlap regions is stored in the isvorlp integer.
+!!$  if (ilr .ne. ilr2) then
+!!$     !allocate the overlap regions (memocc not used because it is a type) 
+!!$    allocate(Olr(isovrlp),stat=i_stat)
+!!$ 
+!!$    ! Now allocate the total overlap matrix for the overlap region [Lohamovr]
+!!$    ! and a temporary overlap matrix [Ahamovr] for each zone (Olr fractured because of periodicity)
+!!$    ! It has dimensions: Lohamovr(nspin*norb**2,2,nkpt). The second dimension is:
+!!$    ! 1: Hamiltonian Matrix =  <Obr(iorb1)|H|Orb(iorb2)>
+!!$    ! 2: Overlap Matrix = <Obr(iorb1)|Orb(iorb2)>
+!!$    allocate(Ahamovr(nspin*dim_Lhamovr,2,orbs%nkpts+ndebug),stat=i_stat)    !temporary
+!!$    call memocc(i_stat,Ahamovr,'Ahamovr',subname)
+!!$ 
+!!$    !since Lhamovr is an accumulator
+!!$    call razero(nspin*dim_Lhamovr*2*(orbs%nkpts+ndebug),Lhamovr)
+!!$
+!!$    ! Construct the overlap region descriptors
+!!$    call get_overlap_region_periodic(ilr,ilr2,Lzd%Glr,isovrlp,Lzd%Llr,Lzd%nlr,Olr)
+!!$ 
+!!$    ! Third, transform the wavefunction to overlap regions (assuming same for all spin)
+!!$    do iolr=1,isovrlp
+!!$       ldim  =  Olr(iolr)%wfd%nvctr_c+7*Olr(iolr)%wfd%nvctr_f
+!!$       ldim1 = ldim * (norb1-orbscToAtom(ilr,1)) * orbs%nspinor
+!!$       ldim2 = ldim * (norb2-orbscToAtom(ilr2,1))* orbs%nspinor
+!!$ 
+!!$       ! Allocate the local wavefunction (in one overlap region)
+!!$       allocate(Lopsi1(ldim1*nspin+ndebug), stat=i_stat)
+!!$       call memocc(i_stat,Lopsi1,'Lopsi1',subname)
+!!$       allocate(Lopsi2(ldim2*nspin+ndebug), stat=i_stat)
+!!$       call memocc(i_stat,Lopsi2,'Lopsi2',subname)
+!!$       allocate(Lohpsi(ldim2*nspin+ndebug), stat=i_stat)
+!!$       call memocc(i_stat,Lohpsi,'Lohpsi',subname)
+!!$
+!!$       ! Project the wavefunctions inside the overlap region (first for Llr(ilr)and second for Llr(ilr2))
+!!$       orbsu%npsidim = psidim1
+!!$       do ispin = 1, nspin
+!!$          orbsu%norbp = norb1-orbscToAtom(ilr,ispin)
+!!$          call psi_to_locreg(Lzd%Llr(ilr),iolr,ldim1,Olr(iolr),&
+!!$                    Lopsi1(1+(ispin-1)*ldim1:ispin*ldim1),isovrlp,orbs,&
+!!$                    Lpsi(psishift1+(ispin-1)*psidim1:psishift1+ispin*psidim1-1))
+!!$!          call psi_to_locreg(Llr(ilr),iolr,ldim1,Olr(iolr),&
+!!$!                   Lohpsi(1+(ispin-1)*(ldim1+ldim2):ispin*ldim1+(ispin-1)*ldim2),isovrlp,orbs,&
+!!$!                   Lhpsi(psishift1+(ispin-1)*psidim1:psishift1+ispin*psidim1-1))
+!!$       end do
+!!$       !second region
+!!$       orbsu%npsidim = psidim2
+!!$       do ispin = 1, nspin
+!!$          orbsu%norbp = norb2-orbscToAtom(ilr2,ispin)
+!!$          call psi_to_locreg(Lzd%Llr(ilr2),iolr,ldim2,Olr(iolr),&
+!!$                   Lopsi2(1+(ispin-1)*ldim2:ispin*ldim2),&
+!!$                   isovrlp,orbs,Lpsi(psishift2+(ispin-1)*psidim2:psishift2+ispin*psidim2-1))
+!!$          call psi_to_locreg(Lzd%Llr(ilr2),iolr,ldim2,Olr(iolr),&
+!!$                   Lohpsi(1+(ispin-1)*ldim2:ispin*ldim2),&
+!!$                   isovrlp,orbs,Lhpsi(psishift2+(ispin-1)*psidim2:psishift2+ispin*psidim2-1))
+!!$       end do
+!!$
+!!$      ! Now we can build the overlap matrix of the intersection region
+!!$!      ispsi=1                                                     !TO DO: K-points and parallelization
+!!$!      do ikptp=1,orbs%nkptsp
+!!$!         ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
+!!$!      
+!!$!         nvctrp=commu%nvctr_par(iproc,ikptp)
+!!$!         if (nvctrp == 0) cycle
+!!$       iorbst =1
+!!$       iorbst2=1
+!!$       imatrst=1
+!!$       do ispin=1,nspin !this construct assumes that the semicore is identical for both the spins
+!!$  
+!!$          call local_overlap_matrices((norb1+norb2-orbscToAtom(ilr,1)-orbscToAtom(ilr2,1))*nspin,&
+!!$             norb1-orbscToAtom(ilr,1),norb2-orbscToAtom(ilr2,1),ldim,nspin,orbs%nspinor,dim_Lhamovr,&
+!!$             Ahamovr(1,1,1),Lopsi1(1),Lopsi2,Lohpsi(1),iorbst,iorbst2,imatrst)  
+!!$          iorbst =iorbst + norb1-orbscToAtom(ilr,1)
+!!$          iorbst2=iorbst2+ norb2-orbscToAtom(ilr2,1)
+!!$       end do
+!!$
+!!$!      ispsi=ispsi+nvctrp*norbtot*orbs%nspinor
+!!$!      end do
+!!$
+!!$       ! The overlap matrix should be accumulated for each intersection region 
+!!$       do i1=1,size(Ahamovr,1)
+!!$          do i2=1,size(Ahamovr,2)
+!!$             do i3=1,size(Ahamovr,3)
+!!$                Lhamovr(i1,i2,i3) = Lhamovr(i1,i2,i3) + Ahamovr(i1,i2,i3) !Careful how we accumulate (orbital ordering)                
+!!$              end do
+!!$          end do
+!!$       end do
+!!$
+!!$       ! deallocate the arrays depending on Olr
+!!$       i_all=-product(shape(Lopsi1))*kind(Lopsi1)
+!!$       deallocate(Lopsi1,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'Lopsi1',subname)
+!!$
+!!$       i_all=-product(shape(Lopsi2))*kind(Lopsi2)
+!!$       deallocate(Lopsi2,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'Lopsi2',subname)
+!!$
+!!$       i_all=-product(shape(Lohpsi))*kind(Lohpsi)
+!!$       deallocate(Lohpsi,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'Lohpsi',subname)
+!!$    end do
+!!$
+!!$    ! deallocate Olr
+!!$    deallocate(Olr,stat=i_stat)
+!!$
+!!$  else if (ilr == ilr2) then
+!!$     ldim1 = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f) * orbs%nspinor
+!!$
+!!$     imatrst=1
+!!$     spinshift = 0
+!!$     do ispin=1,nspin !this construct assumes that the semicore is identical for both the spins
+!!$        call local_overlap_matrices((norb1-orbscToAtom(ilr,1)),&
+!!$          norb1-orbscToAtom(ilr,1),norb2-orbscToAtom(ilr2,1),ldim1,&
+!!$          nspin,orbs%nspinor,dim_Lhamovr,Lhamovr(1,1,1),Lpsi(psishift1+spinshift:psishift1+spinshift+psidim1-1),&
+!!$          Lpsi(psishift2+spinshift:psishift2+spinshift+psidim2-1),&
+!!$          Lhpsi(psishift2+spinshift:psishift2+spinshift+psidim2-1),1,1,imatrst)
+!!$        spinshift = spinshift + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f) * orbs%nspinor * norb1 
+!!$     end do
+!!$  end if
+!!$
+!!$  !deallocate the arrays depending on ilr2 (if they are allocated)
+!!$  if(allocated(Ahamovr)) then
+!!$     i_all=-product(shape(Ahamovr))*kind(Ahamovr)
+!!$     deallocate(Ahamovr,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'Ahamovr',subname)
+!!$  end if
+!!$
+!!$END SUBROUTINE overlap_matrix_between_locreg
+!!$!%***
 
 subroutine local_overlap_matrices(norbe,norb1,norb2,nvctrp,nspin,nspinor,ndim_hamovr,hamovr,psi,psi2,hpsi,&
                                   iorbst,iorbst2,imatrst)
@@ -949,110 +949,110 @@ subroutine local_overlap_matrices(norbe,norb1,norb2,nvctrp,nspin,nspinor,ndim_ha
 
 END SUBROUTINE local_overlap_matrices
 
-subroutine semicore_overlap_matrices(ilr,nspin,nspinor,norbtot,Lzd,orbs,orbscToAtom,ndim_hamovr,hamovr,scstr,psi,hpsi)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: ilr         ! localization region
-  integer, intent(in) :: ndim_hamovr,nspinor,nspin,scstr,norbtot
-  type(local_zone_descriptors),intent(in) :: Lzd
-  type(orbitals_data) :: orbs
-  integer, dimension(Lzd%nlr,nspin),intent(in) :: orbscToAtom 
-  real(wp), dimension(nspin*ndim_hamovr,2,orbs%nkpts+ndebug), intent(inout) :: hamovr
-  real(wp), dimension(orbs%npsidim), intent(in) :: psi,hpsi
-  !local variables
-  integer :: ncomp,ncplx,pos,ii,ispsi,ikptp,ikpt,i_all
-  integer :: ispin,norbe,nvctrp,ndim_hamsc,start,iel
-  integer :: i_stat,jj,kk
-  real(wp),allocatable :: psitmp(:,:),hpsitmp(:,:)
-  character(len=*), parameter :: subname='semicore_overlap_matrices'
-  real(wp), allocatable :: hamsc(:,:)
-  !WARNING: here nspin=1 for nspinor=4
-  if(nspinor == 1) then
-     ncplx=1
-  elseif(nspinor == 2) then
-     ncplx=2
-     ncomp=1
-  else if (nspinor == 4) then
-     ncplx=2
-     ncomp=2
-  end if
-
-!WARNING: What about the kpoints? Does this work? Not parallel, because nvctrp not distributed
-  ispsi=0
-  do ikptp=1,orbs%nkptsp
-     ikpt = orbs%iskpts+ikptp!orbsu%ikptsp(ikptp)
-
-     do ispin=1,nspin
-        norbe = orbscToAtom(ilr,ispin)
-        nvctrp = Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
-        ndim_hamsc = norbe**2
-        start  = scstr + (ispin-1)*nvctrp*Lzd%Llr(ilr)%Localnorb/nspin + ispsi
-        iel = start-1 + nvctrp
-
-        allocate(hamsc(ndim_hamsc,2),stat=i_stat)
-        call memocc(i_stat,hamsc,'hamsc',subname)
-        allocate(psitmp(nvctrp*nspinor,norbe))
-        call memocc(i_stat,psitmp,'psitmp',subname)
-        allocate(hpsitmp(nvctrp*nspinor,norbe))
-        call memocc(i_stat,hpsitmp,'hpsitmp',subname)
-
-        kk=0 
-        do jj=1,norbe
-           do ii=1,nvctrp*nspinor
-              psitmp(ii,jj)=psi(start+kk)
-              hpsitmp(ii,jj)=hpsi(start+kk)
-              kk=kk+1
-           end do
-        end do
-
-        !calculate the overlap matrix for each group of the semicore atoms
-        !       hamovr(jorb,iorb,1)=+psit(k,jorb)*hpsit(k,iorb)
-        !       hamovr(jorb,iorb,2)=+psit(k,jorb)* psit(k,iorb)
-        if (nspinor ==1) then
-           call gemm('T','N',norbe,norbe,nvctrp,1.0_wp,psitmp(1,1),max(1,nvctrp),&
-                hpsitmp(1,1),max(1,nvctrp),0.0_wp,hamsc(1,1),norbe)
-           !here probably dsyrk can be used
-           call gemm('T','N',norbe,norbe,nvctrp,1.0_wp,psitmp(1,1),max(1,nvctrp),&
-                psitmp(1,1),max(1,nvctrp),0.0_wp,hamsc(1,2),norbe)
-        else
-           call c_gemm('C','N',norbe,norbe,ncomp*nvctrp,(1.0_wp,0.0_wp),psitmp(1,1),&
-                max(1,ncomp*nvctrp),hpsitmp(1,1),max(1,ncomp*nvctrp),&
-                (0.0_wp,0.0_wp),hamsc(1,1),norbe)
-           !here probably zherk can be used
-           call c_gemm('C','N',norbe,norbe,ncomp*nvctrp,(1.0_wp,0.0_wp),psitmp(1,1),&
-                max(1,ncomp*nvctrp),psitmp(1,1),max(1,ncomp*nvctrp),&
-                (0.0_wp,0.0_wp),hamsc(1,2),norbe)
-        end if
-
-        ! Calculate the starting position of hamsc in hamovr   
-        pos = 0
-        do ii=1,ilr-1
-           pos = pos + orbscToAtom(ii,ispin)**2
-        end do
-
-        ! Put into the correct order in hamovr
-        do ii=1,ndim_hamsc
-           hamovr(ii+pos+(ispin-1)*ndim_hamovr,:,ikpt) = hamsc(ii,:)
-        end do
-
-        ! deallocations
-        i_all = -product(shape(hamsc))*kind(hamsc)
-        deallocate(hamsc,stat=i_stat)
-        call memocc(i_stat,i_all,'hamsc',subname)
-        i_all = -product(shape(psitmp))*kind(psitmp)
-        deallocate(psitmp,stat=i_stat)
-        call memocc(i_stat,i_all,'psitmp',subname)
-        i_all = -product(shape(hpsitmp))*kind(hpsitmp)
-        deallocate(hpsitmp,stat=i_stat)
-        call memocc(i_stat,i_all,'hpsitmp',subname)
-
-
-     end do
-     ispsi=ispsi+nvctrp*norbtot*nspinor
-  end do
-
-END SUBROUTINE semicore_overlap_matrices
+!!$subroutine semicore_overlap_matrices(ilr,nspin,nspinor,norbtot,Lzd,orbs,orbscToAtom,ndim_hamovr,hamovr,scstr,psi,hpsi)
+!!$  use module_base
+!!$  use module_types
+!!$  implicit none
+!!$  integer, intent(in) :: ilr         ! localization region
+!!$  integer, intent(in) :: ndim_hamovr,nspinor,nspin,scstr,norbtot
+!!$  type(local_zone_descriptors),intent(in) :: Lzd
+!!$  type(orbitals_data) :: orbs
+!!$  integer, dimension(Lzd%nlr,nspin),intent(in) :: orbscToAtom 
+!!$  real(wp), dimension(nspin*ndim_hamovr,2,orbs%nkpts+ndebug), intent(inout) :: hamovr
+!!$  real(wp), dimension(orbs%npsidim), intent(in) :: psi,hpsi
+!!$  !local variables
+!!$  integer :: ncomp,ncplx,pos,ii,ispsi,ikptp,ikpt,i_all
+!!$  integer :: ispin,norbe,nvctrp,ndim_hamsc,start,iel
+!!$  integer :: i_stat,jj,kk
+!!$  real(wp),allocatable :: psitmp(:,:),hpsitmp(:,:)
+!!$  character(len=*), parameter :: subname='semicore_overlap_matrices'
+!!$  real(wp), allocatable :: hamsc(:,:)
+!!$  !WARNING: here nspin=1 for nspinor=4
+!!$  if(nspinor == 1) then
+!!$     ncplx=1
+!!$  elseif(nspinor == 2) then
+!!$     ncplx=2
+!!$     ncomp=1
+!!$  else if (nspinor == 4) then
+!!$     ncplx=2
+!!$     ncomp=2
+!!$  end if
+!!$
+!!$!WARNING: What about the kpoints? Does this work? Not parallel, because nvctrp not distributed
+!!$  ispsi=0
+!!$  do ikptp=1,orbs%nkptsp
+!!$     ikpt = orbs%iskpts+ikptp!orbsu%ikptsp(ikptp)
+!!$
+!!$     do ispin=1,nspin
+!!$        norbe = orbscToAtom(ilr,ispin)
+!!$        nvctrp = Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
+!!$        ndim_hamsc = norbe**2
+!!$        start  = scstr + (ispin-1)*nvctrp*Lzd%Llr(ilr)%Localnorb/nspin + ispsi
+!!$        iel = start-1 + nvctrp
+!!$
+!!$        allocate(hamsc(ndim_hamsc,2),stat=i_stat)
+!!$        call memocc(i_stat,hamsc,'hamsc',subname)
+!!$        allocate(psitmp(nvctrp*nspinor,norbe))
+!!$        call memocc(i_stat,psitmp,'psitmp',subname)
+!!$        allocate(hpsitmp(nvctrp*nspinor,norbe))
+!!$        call memocc(i_stat,hpsitmp,'hpsitmp',subname)
+!!$
+!!$        kk=0 
+!!$        do jj=1,norbe
+!!$           do ii=1,nvctrp*nspinor
+!!$              psitmp(ii,jj)=psi(start+kk)
+!!$              hpsitmp(ii,jj)=hpsi(start+kk)
+!!$              kk=kk+1
+!!$           end do
+!!$        end do
+!!$
+!!$        !calculate the overlap matrix for each group of the semicore atoms
+!!$        !       hamovr(jorb,iorb,1)=+psit(k,jorb)*hpsit(k,iorb)
+!!$        !       hamovr(jorb,iorb,2)=+psit(k,jorb)* psit(k,iorb)
+!!$        if (nspinor ==1) then
+!!$           call gemm('T','N',norbe,norbe,nvctrp,1.0_wp,psitmp(1,1),max(1,nvctrp),&
+!!$                hpsitmp(1,1),max(1,nvctrp),0.0_wp,hamsc(1,1),norbe)
+!!$           !here probably dsyrk can be used
+!!$           call gemm('T','N',norbe,norbe,nvctrp,1.0_wp,psitmp(1,1),max(1,nvctrp),&
+!!$                psitmp(1,1),max(1,nvctrp),0.0_wp,hamsc(1,2),norbe)
+!!$        else
+!!$           call c_gemm('C','N',norbe,norbe,ncomp*nvctrp,(1.0_wp,0.0_wp),psitmp(1,1),&
+!!$                max(1,ncomp*nvctrp),hpsitmp(1,1),max(1,ncomp*nvctrp),&
+!!$                (0.0_wp,0.0_wp),hamsc(1,1),norbe)
+!!$           !here probably zherk can be used
+!!$           call c_gemm('C','N',norbe,norbe,ncomp*nvctrp,(1.0_wp,0.0_wp),psitmp(1,1),&
+!!$                max(1,ncomp*nvctrp),psitmp(1,1),max(1,ncomp*nvctrp),&
+!!$                (0.0_wp,0.0_wp),hamsc(1,2),norbe)
+!!$        end if
+!!$
+!!$        ! Calculate the starting position of hamsc in hamovr   
+!!$        pos = 0
+!!$        do ii=1,ilr-1
+!!$           pos = pos + orbscToAtom(ii,ispin)**2
+!!$        end do
+!!$
+!!$        ! Put into the correct order in hamovr
+!!$        do ii=1,ndim_hamsc
+!!$           hamovr(ii+pos+(ispin-1)*ndim_hamovr,:,ikpt) = hamsc(ii,:)
+!!$        end do
+!!$
+!!$        ! deallocations
+!!$        i_all = -product(shape(hamsc))*kind(hamsc)
+!!$        deallocate(hamsc,stat=i_stat)
+!!$        call memocc(i_stat,i_all,'hamsc',subname)
+!!$        i_all = -product(shape(psitmp))*kind(psitmp)
+!!$        deallocate(psitmp,stat=i_stat)
+!!$        call memocc(i_stat,i_all,'psitmp',subname)
+!!$        i_all = -product(shape(hpsitmp))*kind(hpsitmp)
+!!$        deallocate(hpsitmp,stat=i_stat)
+!!$        call memocc(i_stat,i_all,'hpsitmp',subname)
+!!$
+!!$
+!!$     end do
+!!$     ispsi=ispsi+nvctrp*norbtot*nspinor
+!!$  end do
+!!$
+!!$END SUBROUTINE semicore_overlap_matrices
 
 
 

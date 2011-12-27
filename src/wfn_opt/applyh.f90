@@ -27,11 +27,11 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
-  real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi !this dimension will be modified
+  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi !this dimension will be modified
   real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
-  real(wp), dimension(Lzd%Lpsidimtot), intent(out) :: hpsi
+  real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
   real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'

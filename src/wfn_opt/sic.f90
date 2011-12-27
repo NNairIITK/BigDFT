@@ -350,7 +350,8 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
              deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,fxci)
 
         !copy the relevant part of Vxc[rhoref] in the potential
-        if (.not. savewxd) call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,vxci(1,ispin),1,poti(1,iorb),1)
+        if (.not. savewxd) &
+             call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,vxci(1,ispin),1,poti(1,iorb),1)
 
         !start the definition of the wxd term, in the diagonal part
         !calculate the contribution to the Double Counting energy
@@ -385,7 +386,8 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
 
         !put the term in the potential
         !poti=Vxc[rhoref]+fref ni fxc[rhoref]
-        if (.not. savewxd) call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,fac2,deltarho(1,ispin),1,poti(1,iorb),1)
+        if (.not. savewxd) &
+             call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,fac2,deltarho(1,ispin),1,poti(1,iorb),1)
 
         !start accumulating the contribution to the wxd array in the fxci array
         if (fi /= 0.0_gp) then

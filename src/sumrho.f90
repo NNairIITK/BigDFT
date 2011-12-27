@@ -73,7 +73,7 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
 
       !for each of the orbitals treated by the processor build the partial densities
       call local_partial_density(nproc,(rhodsc%icomm==1),nscatterarr,&
-         &   rhodsc%nrhotot,Lzd%Glr,hxh,hyh,hzh,orbs%nspin,orbs,psi,rho_p)
+           rhodsc%nrhotot,Lzd%Glr,hxh,hyh,hzh,orbs%nspin,orbs,psi,rho_p)
    end if
 
    !after validation this point can be deplaced after the allreduce such as to reduce the number of operations

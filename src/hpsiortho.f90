@@ -10,7 +10,8 @@
 
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
-     Lzd,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
+     Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+     ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
    use module_base
    use module_types
    use module_xc
@@ -23,11 +24,13 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    type(local_zone_descriptors), intent(in) :: Lzd 
    type(SIC_data), intent(in) :: SIC
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-   real(wp), dimension((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
-   real(wp), dimension(:), pointer :: pot
+   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+   type(confpot_data), dimension(orbs%norbp) :: confdatarr
+   !real(wp), dimension(:), pointer :: pot
+   real(wp), dimension(*) :: pot
    real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
    real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
-   real(wp), target, dimension((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+   real(wp), target, dimension(orbs%npsidim_orbs), intent(out) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
    real(dp), dimension(:), pointer, optional :: pkernel
    type(orbitals_data), intent(in), optional :: orbsocc
@@ -38,7 +41,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    integer :: i_stat,n3p,ispot,ipotmethod,iorb
    real(gp) :: eSIC_DC_tmp
    real(dp), dimension(:), pointer :: pkernelSIC
-   type(confpot_data), dimension(orbs%norbp) :: confdatarr
+
 
    ! local potential and kinetic energy for all orbitals belonging to iproc
    if (iproc==0 .and. verbose > 1) then
@@ -47,19 +50,12 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    end if
 
    !check if the potential has been associated
-   if (.not. associated(pot)) then
-      if (iproc ==0) then
-         write(*,*)' ERROR, HamiltonianApplication, potential not associated!'
-      end if
-      stop
-   end if   
-
-   !initialize confdatarr to non-confining values
-   do iorb=1,orbs%norbp
-      confdatarr(iorb)%potorder=0
-      !the rest is not needed
-   end do
-   
+!   if (.not. associated(pot)) then
+!      if (iproc==0) then
+!         write(*,*)' ERROR, HamiltonianApplication, potential not associated!'
+!      end if
+!      stop
+!   end if   
 
    !initialise exact exchange energy 
    op2p=(eexctX == UNINITIALIZED(1.0_gp))
@@ -125,10 +121,10 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    else if (ipotmethod==3) then
       !put fref=1/2 for the moment
       if (present(orbsocc) .and. present(psirocc)) then
-         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot:),eSIC_DC_tmp,&
+         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),eSIC_DC_tmp,&
             &   potandrho=psirocc)
       else
-         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot:),eSIC_DC_tmp)
+         call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),eSIC_DC_tmp)
       end if
    end if
 
@@ -193,8 +189,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
    !type(nonlocal_psp_descriptors), intent(in) :: nlpspd !should be put back in
    real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
-   real(wp), dimension(Lzd%Lpsidimtot), intent(inout) :: hpsi
+   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
    real(gp), intent(out) :: eproj_sum
    !local variables
    logical :: dosome
@@ -345,27 +341,33 @@ END SUBROUTINE NonLocalHamiltonianApplication
 
 !> routine which puts a barrier to ensure that both local and nonlocal hamiltonians have been applied
 !! in the GPU case puts a barrier to end the overlapped Local and nonlocal applications
-subroutine SynchronizeHamiltonianApplication(nproc,orbs,lr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
    use module_base
    use module_types
    use module_xc
    implicit none
    integer, intent(in) :: nproc
    type(orbitals_data),  intent(in) :: orbs
-   type(locreg_descriptors), intent(in) :: lr 
+   type(local_zone_descriptors), intent(in) :: Lzd
    type(GPU_pointers), intent(inout) :: GPU
    real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
-   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
+   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
    !local variables
    character(len=*), parameter :: subname='SynchronizeHamiltonianApplication'
    logical :: exctX
-   integer :: i_all,i_stat,ierr
+   integer :: i_all,i_stat,ierr,iorb,ispsi,ilr
    real(gp), dimension(4) :: wrkallred
 
    if(OCLconv .and. ASYNCconv) then
       call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
-      call axpy((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,1.0_wp,GPU%hpsi_ASYNC(1),1,hpsi(1),1)
-
+      ispsi=1
+      do iorb=1,orbs%norbp
+         ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
+         call axpy((Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor,&
+              1.0_wp,GPU%hpsi_ASYNC(ispsi),1,hpsi(ispsi),1)
+         ispsi=ispsi+&
+             (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+      end do
       i_all=-product(shape(GPU%hpsi_ASYNC))*kind(GPU%hpsi_ASYNC)
       deallocate(GPU%hpsi_ASYNC,stat=i_stat)
       call memocc(i_stat,i_all,'GPU%hpsi_ASYNC',subname)
@@ -1012,7 +1014,7 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
    type(locreg_descriptors), intent(in) :: Glr
    type(communications_arrays), intent(in) :: comms
    logical, dimension(orbs%norb*orbs%nkpts), intent(in) :: mask_array
-   real(wp), dimension(orbs%npsidim), intent(in) :: psi
+   real(wp), dimension(orbs%npsidim_comp), intent(in) :: psi
    type(orbitals_data), intent(out) :: orbs_as
    type(communications_arrays), intent(out) :: comms_as
    real(wp), dimension(:), pointer :: psi_as
@@ -1064,7 +1066,7 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
    end do
    if (icnt/=orbs_as%norb*orbs_as%nkpts) stop 'ERROR(select_active_space): icnt/=orbs_as%norb*orbs_as%nkpts'
 
-   allocate(psi_as(orbs_as%npsidim+ndebug),stat=i_stat)
+   allocate(psi_as(orbs_as%npsidim_comp+ndebug),stat=i_stat)
    call memocc(i_stat,psi_as,'psi_as',subname)
 
    ispsi=1
@@ -1118,10 +1120,10 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar)
       !allocate hpsi array (used also as transposed)
       !allocated in the transposed way such as 
       !it can also be used as the transposed hpsi
-      allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+      allocate(hpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,hpsi,'hpsi',subname)
       !allocate transposed principal wavefunction
-      allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
+      allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,psit,'psit',subname)
    else
       psit => psi
@@ -1141,7 +1143,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar)
    if (nproc == 1) then
       nullify(psit)
       !allocate hpsi array
-      allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+      allocate(hpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,hpsi,'hpsi',subname)
    end if
 
@@ -1771,9 +1773,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    logical :: abort
 
    !allocate the "wavefunction" amd fill it, and also the workspace
-   allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+   allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,psi,'psi',subname)
-   allocate(pwork(orbs%npsidim+ndebug),stat=i_stat)
+   allocate(pwork(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,pwork,'pwork',subname)
 
    do iorb=1,orbs%norbp
@@ -2015,8 +2017,8 @@ implicit none
   !real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
   real(8),intent(in):: E0, El
   real(8),intent(inout):: stepsize 
-  real(wp), dimension(orbs%npsidim), intent(inout) :: hpsi
-  real(wp), dimension(orbs%npsidim), intent(inout) :: psi
+  real(wp), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(inout) :: hpsi
+  real(wp), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(inout) :: psi
   real(8),intent(out):: derivative
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
@@ -2033,7 +2035,7 @@ implicit none
   real(8),dimension(:),pointer:: psiwork
   real(8),dimension(:,:),allocatable:: omat
 
-  write(*,*) 'iproc, orbs%npsidim',iproc, orbs%npsidim
+  write(*,*) 'iproc, orbs%npsidim',iproc,max(orbs%npsidim_orbs,orbs%npsidim_comp)
 
   !separate the orthogonalisation procedure for up and down orbitals 
   !and for different k-points

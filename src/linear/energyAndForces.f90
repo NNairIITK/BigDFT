@@ -64,7 +64,7 @@ real(8),dimension(3,atoms%nat),intent(in):: rxyz, fion, fdisp
 real(8),dimension(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)),intent(in):: rhopot
 real(8),dimension(3,atoms%nat),intent(out):: fxyz
 real(8),intent(out):: fnoise
-real(8),dimension(lin%lzd%Lpsidimtot),intent(inout):: phi
+real(8),dimension(max(lin%gorbs%npsidim_orbs,lin%gorbs%npsidim_comp)),intent(inout):: phi
 !real(8),dimension(lin%gorbs%npsidim),intent(inout):: phi
 real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
 real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
@@ -1559,7 +1559,7 @@ type(orbitals_data):: orbs
 type(atoms_data):: atoms
 type(input_variables):: in
 type(linearParameters):: lin
-real(8),dimension(lin%lb%orbs%npsidim):: phi
+real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)):: phi
 real(dp), dimension(lin%as%size_rhopot) :: rhopot
 integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(dp), dimension(lin%as%size_pkernel):: pkernel
@@ -1658,7 +1658,7 @@ real(8),dimension(3,atoms%nat),intent(in):: rxyz, fion, fdisp
 real(8),dimension(3,atoms%nat),intent(out):: fxyz
 real(8),intent(out):: fnoise
 real(8),dimension(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)),intent(in):: rho
-real(8),dimension(orbs%npsidim),intent(inout):: psi
+real(8),dimension(orbs%npsidim_orbs),intent(inout):: psi
 
 ! Local variables
 integer:: jproc, i_stat, i_all, iat, ierr, j

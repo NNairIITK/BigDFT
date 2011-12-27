@@ -375,10 +375,10 @@ module module_types
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb
-     integer :: npsidim,nkpts,nkptsp,iskpts
+     integer :: npsidim_orbs,nkpts,nkptsp,iskpts,npsidim_comp
      real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
-     integer, dimension(:), pointer :: inwhichlocreg, inWhichLocregP,onWhichMPI
+     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,inwhichlocregP
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -423,7 +423,7 @@ module module_types
   type,public:: local_zone_descriptors
     logical :: linear                         !< if true, use linear part of the code
     integer :: nlr                            !< Number of localization regions 
-    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
+!    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
     integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
     integer :: Lnprojel                       !< Total number of projector elements
     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
@@ -575,7 +575,6 @@ module module_types
       integer,dimension(:),pointer:: indexInGlobal
   end type matrixLocalizationRegion
 
-
   type,public:: p2pCommsOrthonormalityMatrix
       integer:: nrecvBuf, nsendBuf, nrecv, nsend
       integer,dimension(:),pointer:: noverlap, noverlapProc
@@ -586,7 +585,6 @@ module module_types
       type(matrixLocalizationRegion),dimension(:,:),pointer:: olr
   end type p2pCommsOrthonormalityMatrix
 
-
   type,public:: matrixMinimization
     type(matrixLocalizationRegion),dimension(:),pointer:: mlr
     integer:: norbmax ! maximal matrix size handled by a given process
@@ -596,13 +594,13 @@ module module_types
     integer,dimension(:),pointer:: indexInLocreg
   end type matrixMinimization
 
-
   type,public:: matrixDescriptors
       integer:: nvctr, nseg, nvctrmatmul, nsegmatmul, nseglinemax
       integer,dimension(:),pointer:: keyv, keyvmatmul, nsegline
       integer,dimension(:,:),pointer:: keyg, keygmatmul
       integer,dimension(:,:,:),pointer:: keygline
   end type matrixDescriptors
+
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
 !! minimizing orbitals, this basis may be larger than only the trace minimizing
@@ -650,8 +648,6 @@ end type largeBasis
       type(p2pCommsGatherPot):: comgp
       type(matrixDescriptors):: mad
   end type linearInputGuess
-
-
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
