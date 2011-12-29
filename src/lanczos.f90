@@ -70,6 +70,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    !call allocate_comms(nproc,ha%comms,subname)
    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
+   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
+
    allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
 
@@ -242,6 +244,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    orbs%eval(1:orbs%norb*orbs%nkpts )=1.0_gp
 
    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
+
+   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
    if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
    else
@@ -496,6 +500,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    orbs%eval(1:orbs%norb)=1.0_gp
    !call allocate_comms(nproc,ha%comms,subname)
    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
+
+   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
    allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)

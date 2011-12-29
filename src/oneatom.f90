@@ -132,9 +132,9 @@ program oneatom
      call memocc(i_stat,pot_ion,'pot_ion',subname)
   end if
 
-  allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+  allocate(psi(orbs%npsidim_orbs+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
-  allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+  allocate(hpsi(orbs%npsidim_orbs+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
   if (nproc == 1) then
      nullify(psit)
@@ -743,7 +743,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(orbs%npsidim), intent(out) :: psi
+  real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='psi_from_gaussians'
   logical ::  randinp

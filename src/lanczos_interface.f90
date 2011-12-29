@@ -1036,7 +1036,7 @@ nullify(Qvect,dumQvect)
      !!$         ha%nlpspd,ha%proj,ha%Lzd%Glr,ha%ngatherarr,            &
      !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
      !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
-
+print *,' ciao1!!!'
      call default_confinement_data(confdatarr,ha%orbs%norbp)
 
      call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&

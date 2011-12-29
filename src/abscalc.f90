@@ -738,7 +738,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
          print *, " ============== TESTING PC_PROJECTORS =========== "
-         allocate(hpsi(orbsAO%npsidim+ndebug),stat=i_stat)
+         allocate(hpsi(max(orbsAO%npsidim_orbs,orbsAO%npsidim_comp)+ndebug),stat=i_stat)
          hpsi=0.0_wp
          PPD%iproj_to_factor(1:PPD%mprojtot) = 2.0_gp
         call applyPCprojectors(orbsAO,atoms,hx,hy,hz,Lzd%Glr,PPD,psi,hpsi, .true.)
