@@ -955,14 +955,19 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
          !write(*,*) 'i1',i1
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
      end do
+     deallocate(lzd%llr)
+     nullify(lzd%llr)
   end if
 
   if(associated(lzd%lnlpspd)) then
      iis1=lbound(lzd%lnlpspd,1)
      iie1=ubound(lzd%lnlpspd,1)
+     !write(*,*) 'iis1AAA,iie1AAA',iis1,iie1
      do i1=iis1,iie1
          call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-     end do
+      end do
+      deallocate(lzd%lnlpspd)
+      nullify(lzd%lnlpspd)
   end if
 end subroutine deallocate_Lzd_except_Glr
 
@@ -1028,6 +1033,7 @@ subroutine deallocate_locreg_descriptors(lr, subname)
   call checkAndDeallocatePointer(lr%projflg, 'lr%projflg', subname)
 
   call deallocate_wavefunctions_descriptors(lr%wfd, subname)
+
   call deallocate_convolutions_bounds(lr%bounds, subname)
   
   
@@ -1122,6 +1128,7 @@ subroutine deallocate_kinetic_bounds(kb, subname)
   !end if
   call checkAndDeallocatePointer(kb%ibyz_f, 'kb%ibyz_f', subname)
   call checkAndDeallocatePointer(kb%ibxz_f, 'kb%ibxz_f', subname)
+
   call checkAndDeallocatePointer(kb%ibxy_f, 'kb%ibxy_f', subname)
 
 end subroutine deallocate_kinetic_bounds
@@ -1183,9 +1190,8 @@ subroutine deallocate_nonlocal_psp_descriptors(nlpspd, subname)
      deallocate(nlpspd%plr,stat=i_stat)
      if (i_stat /= 0) stop 'plr deallocation error'
      nlpspd%natoms=0
-  else
-     nullify(nlpspd%plr)
   end if
+  nullify(nlpspd%plr)
 
 !!$  call checkAndDeallocatePointer(nlpspd%nvctr_p, 'nlpspd%nvctr_p', subname)
 !!$  call checkAndDeallocatePointer(nlpspd%nseg_p, 'nlpspd%nseg_p', subname)

@@ -1461,33 +1461,28 @@ END SUBROUTINE deallocate_orbs
        i_all=-product(shape(  pawproj_data% paw_proj ))*kind( pawproj_data% paw_proj  )
        deallocate(pawproj_data%  paw_proj  ,stat=i_stat)
        call memocc(i_stat,i_all,'paw_proj',subname)
-       
+
        i_all=-product(shape( pawproj_data%ilr_to_mproj   ))*kind(pawproj_data% ilr_to_mproj   )
        deallocate( pawproj_data% ilr_to_mproj  ,stat=i_stat)
        call memocc(i_stat,i_all,'ilr_to_mproj',subname)
-   
-  
-       
+
        i_all=-product(shape( pawproj_data% iproj_to_l  ))*kind( pawproj_data% iproj_to_l  )
        deallocate(pawproj_data%  iproj_to_l  ,stat=i_stat)
        call memocc(i_stat,i_all,'iproj_to_l',subname)
 
-
        i_all=-product(shape( pawproj_data% iproj_to_paw_nchannels  ))*kind( pawproj_data% iproj_to_paw_nchannels  )
        deallocate(pawproj_data%  iproj_to_paw_nchannels  ,stat=i_stat)
        call memocc(i_stat,i_all,'iproj_to_paw_nchannels',subname)
-       
+
        i_all=-product(shape( pawproj_data% iprojto_imatrixbeg  ))*kind( pawproj_data% iprojto_imatrixbeg  )
        deallocate(pawproj_data%  iprojto_imatrixbeg  ,stat=i_stat)
        call memocc(i_stat,i_all,'iorbto_imatrixbeg',subname)
-       
 
        i_all=-product(shape( pawproj_data% iorbtolr   ))*kind( pawproj_data% iorbtolr  )
        deallocate(pawproj_data%  iorbtolr  ,stat=i_stat)
        call memocc(i_stat,i_all,'iorbtolr',subname)
-       
-       call deallocate_proj_descr(pawproj_data%paw_nlpspd,subname)
 
+       call deallocate_proj_descr(pawproj_data%paw_nlpspd,subname)
 !!$       i_all=-product(shape(pawproj_data%paw_nlpspd%nboxp_c))*kind(pawproj_data%paw_nlpspd%nboxp_c)
 !!$       deallocate(pawproj_data%paw_nlpspd%nboxp_c,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'nboxp_c',subname)
@@ -1510,8 +1505,7 @@ END SUBROUTINE deallocate_orbs
        if(pawproj_data%DistProjApply) then
           call deallocate_gwf_c(pawproj_data%G,subname)
        endif
-
-
+       nullify(pawproj_data%paw_proj)
     end if
   END SUBROUTINE deallocate_pawproj_data
 

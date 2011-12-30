@@ -1132,8 +1132,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
    call compare_data_and_gflops(CPUtime,GPUtime,&
-      &   real(orbs%norbp*(orbs%norbp+1),kind=8)*real(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,kind=8),overlap(1,1,1),overlap(1,1,2),&
-   orbs%norbp**2,ntimes,.false.,Rsyrk)
+        real(orbs%norbp*(orbs%norbp+1),kind=8)*&
+        real(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,kind=8),overlap(1,1,1),overlap(1,1,2),&
+        orbs%norbp**2,ntimes,.false.,Rsyrk)
 
    i_all=-product(shape(overlap))*kind(overlap)
    deallocate(overlap,stat=i_stat)

@@ -388,9 +388,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         else
            call applyprojectorsone(at%ntypes,at%nat,at%iatype,&
                 at%psppar,at%npspcode, &
-                nlpspd%nprojel,nlpspd%nproj,nlpspd,&
+                nlpspd%nprojel,nlpspd%nproj,proj,nlpspd,&
                 !nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,&
-                proj,&
+                !proj,&
                 nsegb_c,nsegb_f,keyg,keyv,nvctrb_c,nvctrb_f,  & 
                 psib,hpsib,eproj)
            !write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail

@@ -1912,11 +1912,11 @@ subroutine applyPAWprojectors(orbs,at,&
 !!$                                 &   PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
                                    PAWD%paw_nlpspd%plr(iat)%wfd%keyv(jseg_c),&
                                    PAWD%paw_nlpspd%plr(iat)%wfd%keyg(1,jseg_c),&
-                                 &   PAWD%paw_proj(istart_c),&
-                                 &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
-                                 &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
-                                 &   hpsi(ispsi+(ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  )&
-                                 &   )
+                                   PAWD%paw_proj(istart_c),&
+                                   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
+                                   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
+                                   hpsi(ispsi+(ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  )&
+                                   )
 
 
                               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx

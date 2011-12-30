@@ -3469,13 +3469,14 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
      !for now, always true because we want to calculate the hamiltonians for all locregs
      if(.not. Lzd%linear) then
         !copy Glr to Llr(1)
+
         call nullify_locreg_descriptors(Lzd%Llr(1))
         call copy_locreg_descriptors(Lzd%Glr,Lzd%Llr(1),subname)
         !copy dimensions of wavefunction and projectors
 !        Lzd%Lpsidimtot=orbs%npsidim
         Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
         ! copy nlpspd to Lnlpspd(1)  NOTE: NOT NEEDED!
-        allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)
+        allocate(Lzd%Lnlpspd(Lzd%nlr))!,stat=i_stat)
         call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(1))
         call copy_nonlocal_psp_descriptors(Lzd%Gnlpspd,Lzd%Lnlpspd(1),subname)
 

@@ -62,7 +62,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
       &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
 
-   call wfd_from_grids(logrid_c, logrid_f, Glr)
+   call wfd_from_grids(logrid_c,logrid_f,Glr)
 
    if (iproc == 0) write(*,'(2(1x,a,i10))') &
       &   'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
@@ -982,7 +982,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    !---------
 
    PAWD%paw_nlpspd%natoms=PAWD%G%nat
-   allocate(PAWD%paw_nlpspd%plr(PAWD%paw_nlpspd%natoms),stat=i_stat)
+   allocate(PAWD%paw_nlpspd%plr(PAWD%paw_nlpspd%natoms))
 
 
 !!$   allocate(PAWD%paw_nlpspd%nseg_p(0:2*PAWD%G%nat+ndebug),stat=i_stat)
@@ -1342,7 +1342,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!experimental part for building the localisation regions
 ! ###################################################################
 
-  call check_linear_and_create_Lzd(iproc,nproc,input,Lzd,at,orbse,rxyz,radii_cf)
+   if(potshortcut<=0) call check_linear_and_create_Lzd(iproc,nproc,input,Lzd,at,orbse,rxyz,radii_cf)
 
   if (Lzd%linear) then
 
@@ -1668,7 +1668,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !####################################################################################################################################################
 ! END EXPERIMENTAL
 !####################################################################################################################################################
-  else
+ else
    ! determine the wavefunction dimension
    call wavefunction_dimension(Lzd,orbse)
 

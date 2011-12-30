@@ -11,7 +11,7 @@ character(len=*),intent(in):: subname
 
 ! Local variables
 integer:: iis, iie, istat, i, iall
-  
+
 glrout%geocode = glrin%geocode
 glrout%hybrid_on = glrin%hybrid_on
 glrout%ns1 = glrin%ns1
@@ -540,8 +540,6 @@ do i3=iis3,iie3
         end do
     end do
 end do
-
-
 
 if(associated(gbout%ibzxx_f)) then
     iall=-product(shape(gbout%ibzxx_f))*kind(gbout%ibzxx_f)

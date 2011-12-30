@@ -443,8 +443,11 @@ subroutine deallocate_proj_descr(nlpspd,subname)
   do iat=1,nlpspd%natoms
      call deallocate_wfd(nlpspd%plr(iat)%wfd,subname)
   end do
-  deallocate(nlpspd%plr,stat=i_stat)
+  if (associated(nlpspd%plr)) then
+     deallocate(nlpspd%plr)
+  end if
   nullify(nlpspd%plr)
+  nlpspd%natoms=0
   
 !!$  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
 !!$  deallocate(nlpspd%nboxp_c,stat=i_stat)
