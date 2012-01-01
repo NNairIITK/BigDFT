@@ -370,7 +370,7 @@ program memguess
 
    ! Build and print the communicator scheme.
    call createWavefunctionsDescriptors(0,hx,hy,hz,&
-      &   atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
+      &   atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_denspot = (output_grid > 0))
    call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
    if (exportwf) then
@@ -530,7 +530,6 @@ program memguess
    call memocc(i_stat,i_all,'logrid',subname)
 
    !call deallocate_proj_descr(nlpspd,subname)
-   call deallocate_atoms_scf(atoms,subname) 
 
    call MemoryEstimator(nproc,in%idsx,Glr,&
       &   atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
@@ -1311,7 +1310,6 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       read(filename(i+1:i+1),*) code
       if (code == "R") ispinor = 1
       if (code == "I") ispinor = 2
-
       if (iformat == WF_FORMAT_BINARY) then
          open(unit=99,file=trim(filename),status='unknown',form="unformatted")
       else

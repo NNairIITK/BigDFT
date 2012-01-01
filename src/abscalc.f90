@@ -449,10 +449,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    hz=in%hz
 
    write(gridformat, "(A)") ""
-   select case (in%output_grid_format)
-   case (OUTPUT_GRID_FORMAT_ETSF)
+   select case (in%output_denspot_format)
+   case (output_denspot_FORMAT_ETSF)
       write(gridformat, "(A)") ".etsf"
-   case (OUTPUT_GRID_FORMAT_CUBE)
+   case (output_denspot_FORMAT_CUBE)
       write(gridformat, "(A)") ".bin"
    end select
 
@@ -863,8 +863,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !!$
       !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
-      if (in%output_grid == OUTPUT_GRID_DENSPOT) then
-         if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
+      if (in%output_denspot == output_denspot_DENSPOT) then
+         if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
 
             call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
@@ -1394,8 +1394,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call deallocate_orbs(orbs,subname)
       call deallocate_orbs(orbsAO,subname)
-
-      call deallocate_atoms_scf(atoms,subname) 
 
       call deallocate_proj_descr(Lzd%Gnlpspd,subname)
 

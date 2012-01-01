@@ -2827,10 +2827,12 @@ end do
 call cpu_time(t2)
 time_daxpy=t2-t1
 
-call mpiallred(time_dsymm, 1, mpi_sum, mpi_comm_world, ierr)
-call mpiallred(time_daxpy, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(a,es15.6)') 'time for dsymm',time_dsymm/dble(nproc)
-if(iproc==0) write(*,'(a,es15.6)') 'time for daxpy',time_daxpy/dble(nproc)
+if (verbose > 2) then
+   call mpiallred(time_dsymm, 1, mpi_sum, mpi_comm_world, ierr)
+   call mpiallred(time_daxpy, 1, mpi_sum, mpi_comm_world, ierr)
+   if(iproc==0) write(*,'(a,es15.6)') 'time for dsymm',time_dsymm/dble(nproc)
+   if(iproc==0) write(*,'(a,es15.6)') 'time for daxpy',time_daxpy/dble(nproc)
+end if
 
 
 iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)

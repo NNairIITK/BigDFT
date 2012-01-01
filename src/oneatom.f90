@@ -40,6 +40,7 @@ program oneatom
   real(wp), dimension(:), pointer :: hpsi,psit,psi,proj,pot
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
+  type(confpot_data), dimension(:), allocatable :: confdatarr
   character(len=60) :: radical
 
   !for the moment no need to have parallelism
@@ -210,6 +211,9 @@ program oneatom
        Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,0,&
        orbs,Lzd,0,ngatherarr,pot_ion,pot)
   
+  allocate(confdatarr(orbs%norbp))
+  call default_confinement_data(confdatarr,orbs%norbp)
+
   wfn_loop: do iter=1,in%itermax
 
      if (iproc == 0 .and. verbose > 0) then 
@@ -225,13 +229,17 @@ program oneatom
      !terminate SCF loop if forced to switch more than once from DIIS to SD
      endloop=endloop .or. ndiis_sd_sw > 2
 
-     call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,&
-          Lzd,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
+     call FullHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
+          proj,Lzd,confdatarr,ngatherarr,pot_ion,psi,hpsi,&
+          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU)
 
-     call NonLocalHamiltonianApplication(iproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          proj,Lzd,psi,hpsi,eproj_sum)
-
-     call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+!!$     call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,&
+!!$          Lzd,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
+!!$
+!!$     call NonLocalHamiltonianApplication(iproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
+!!$          proj,Lzd,psi,hpsi,eproj_sum)
+!!$
+!!$     call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
 
      energybs=ekin_sum+epot_sum+eproj_sum
@@ -321,7 +329,6 @@ program oneatom
   call deallocate_lr(Glr,subname)
   call deallocate_comms(comms,subname)
   call deallocate_orbs(orbs,subname)
-  call deallocate_atoms_scf(atoms,subname) 
   call deallocate_proj_descr(nlpspd,subname)
 
   if (dokernel) then
@@ -344,7 +351,7 @@ program oneatom
   call free_input_variables(in)
 
   call deallocate_rho_descriptors(rhodsc,subname)
-
+  deallocate(confdatarr)
   !finalize memory counting
   call memocc(0,0,'count','stop')
 

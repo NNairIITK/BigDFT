@@ -846,6 +846,7 @@ subroutine deallocate_linearParameters(lin, subname)
   call deallocate_p2pCommsSumrho(lin%comsr, subname)
   call deallocate_p2pCommsGatherPot(lin%comgp, subname)
   call deallocate_largeBasis(lin%lb, subname)
+  call deallocate_nonlocal_psp_descriptors(lin%lzd%Gnlpspd, subname)
   call deallocate_local_zone_descriptors(lin%lzd, subname)
   call deallocate_p2pCommsOrthonormality(lin%comon, subname)
   call deallocate_overlapParameters(lin%op, subname)
@@ -986,7 +987,7 @@ subroutine deallocate_orbitals_data(orbs, subname)
   call checkAndDeallocatePointer(orbs%iokpt, 'orbs%iokpt', subname)
   call checkAndDeallocatePointer(orbs%ikptproc, 'orbs%ikptproc', subname)
   call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg', subname)
-!  call checkAndDeallocatePointer(orbs%inWhichLocregP, 'orbs%inWhichLocreg', subname)
+  call checkAndDeallocatePointer(orbs%inWhichLocregP, 'orbs%inWhichLocregP', subname)
   call checkAndDeallocatePointer(orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
   call checkAndDeallocatePointer(orbs%isorb_par, 'orbs%isorb_par', subname)
   call checkAndDeallocatePointer(orbs%eval, 'orbs%eval', subname)
@@ -1223,6 +1224,8 @@ subroutine deallocate_matrixMinimization(matmin, subname)
   do i1=iis1,iie1
       call deallocate_matrixLocalizationRegion(matmin%mlr(i1), subname)
   end do
+  deallocate(matmin%mlr)
+  nullify(matmin%mlr)
   
   call checkAndDeallocatePointer(matmin%inWhichLocregExtracted, 'matmin%inWhichLocregExtracted', subname)
   
@@ -1455,6 +1458,8 @@ subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
           call deallocate_matrixLocalizationRegion(comom%olr(i1,i2), subname)
       end do
   end do
+  deallocate(comom%olr)
+  nullify(comom%olr)
 
 end subroutine deallocate_p2pCommsOrthonormalityMatrix
 

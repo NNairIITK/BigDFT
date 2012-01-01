@@ -1229,6 +1229,12 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  l1=m1
  l2=m2
  l3=m3 !beware of the half dimension
+
+ !initialize the n dimension to solve Cray compiler bug
+ n1=l1
+ n2=l2
+ n3=l3
+
     call fourier_dim(l1,n1)
     if (n1 == m1) then
     else
@@ -1323,6 +1329,12 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  l1=m1
  l2=m2
  l3=m3 !beware of the half dimension
+
+ !initialize the n dimension to solve Cray compiler bug
+ n1=l1
+ n2=l2
+ n3=l3
+
     call fourier_dim(l1,n1)
     if (n1 == m1) then
     else
@@ -1418,6 +1430,10 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  l1=2*m1
  l2=2*m2
  l3=m3 !beware of the half dimension
+ !initialize the n dimension to solve Cray compiler bug
+ n1=l1
+ n2=l2
+ n3=l3
  do
     call fourier_dim(l1,n1)
     if (modulo(n1,2) == 0) then

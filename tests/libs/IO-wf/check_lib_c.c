@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#define WAVEFILE "data/wavefunction.etsf"
+#define WAVEFILE "data/wavefunction-k001-UR.bin.b0001"
 #define IORBP 23
 
 int main(int argc, char **argv)
@@ -11,7 +11,8 @@ int main(int argc, char **argv)
   char *filename;
   f90_pointer_double *psiscf;
   int n[3], nspinor;
-  int i, j, k, ind, ntot, norb, nspin, nkpt;
+  int i, j, k, ind, ntot, norbu, norbd, nkpt;
+  int iorb, ispin, ikpt, ispinor;
   double h[3], nrm;
 
   if (argc > 1)
@@ -21,13 +22,16 @@ int main(int argc, char **argv)
 
   fprintf(stdout, " --- Test read_wave_to_isf_etsf() from %s ---\n", filename);
 
-  if (bigdft_read_wave_descr_etsf(filename, &norb, &nspin, &nkpt, &nspinor))
-    fprintf(stdout, " ETSF wavefunction file (no, ns, nk, sp):  %d %d %d %d\n",
-            norb, nspin, nkpt, nspinor);
+  if (bigdft_read_wave_descr(filename, &norbu, &norbd, &nkpt, &nspinor,
+                             &iorb, &ispin, &ikpt, &ispinor))
+    fprintf(stdout, " ETSF wavefunction file (nou, nod, nk, sp):   %6d %6d %6d %6d\n",
+            norbu, norbd, nkpt, nspinor);
   else
     return 1;
 
-  psiscf = bigdft_read_wave_to_isf_etsf(filename, IORBP, h, n, &nspinor);
+  psiscf = bigdft_read_wave_to_isf(filename, IORBP, h, n, &nspinor);
+  if (!psiscf)
+    return 1;
   /* for (i = 0; i < F90_POINTER_SIZE; i++) */
   /*   fprintf(stdout, "%d %p\n", i, psiscf->info[i]); */
 
@@ -50,9 +54,9 @@ int main(int argc, char **argv)
         }
   fprintf(stdout, " norm of orbital %d:                      %12.8f\n", IORBP, nrm);
 
-  bigdft_free_wave_to_isf_etsf(psiscf);
+  bigdft_free_wave_to_isf(psiscf);
 
-  __m_profiling_MOD_memocc_report();
+  FC_FUNC_(memocc_report, MEMOCC_REPORT)();
 
   return 0;
 }

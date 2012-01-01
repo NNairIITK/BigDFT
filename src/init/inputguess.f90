@@ -125,8 +125,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
 
    !fill just the interesting part of the orbital
    call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
-      &   psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
-      &   iorbtolr)
+        psigau(1,1,min(orbse%isorb+1,orbse%norb)),iorbtolr)
 
    i_all=-product(shape(scorb))*kind(scorb)
    deallocate(scorb,stat=i_stat)

@@ -332,7 +332,7 @@ in cases where one has near degeneracy between the HOMO and LUMO orbitals. $50$~
 \item {\bf dispersion}:  A non-zero values activates an  empirical add-on treatment of dispersion effects.
       The values~1, 2~and 3~specify different switching on functions using the convention of 
       Q. Hill and C.-K. Skylaris.  Proc. R. Soc. A 465  (2009) 669
-\item {\bf InputPsiId }, {\bf  output\_wf},  {\bf output\_density }: 
+\item {\bf InputPsiId }, {\bf  output\_wf},  {\bf output\_denspot }: 
       {\bf InputPsiId } specifies how the input guess wavefunction is generated:
       \begin{itemize}
       \item {\bf InputPsiId } = -2: Random numbers are used as input guess. This is of course a poor input guess which will 
@@ -369,13 +369,13 @@ in cases where one has near degeneracy between the HOMO and LUMO orbitals. $50$~
             into Fortran binary files. This format is not portable between compilers and machines. 
        \item {\bf output\_wf} = 3, The output wavefunctions are written at the end of the wavefunction optimization 
             into ETSF binary files. This format is portable between compilers and machines since based on NetCDF. Parallel IO are taken into account.
-       \item {\bf output\_density} = 0, No output density is written.
-       \item {\bf output\_density} = 1, Output electronic density is written in the .pot format of V\_Sim into the file 'electronic\_density.pot' (Deprecated, use 11 instead).
-       \item {\bf output\_density} = 2, In addition to the electronic density, the potential ('local\_potential.pot') and its components ('ionic\_potential.pot' and 'Hartree\_potential.pot') are also output in plain text '.pot' files (Deprecated, use 12 instead).
-       \item {\bf output\_density} = 11, Same as {\bf output\_density} = 1, but files are writtent in ETSF file format (portable binary format based on NetCDF).
-       \item {\bf output\_density} = 12, Same as {\bf output\_density} = 2, but files are writtent in ETSF file format (portable binary format based on NetCDF).
-       \item {\bf output\_density} = 21, Same as {\bf output\_density} = 1, but files are writtent in '.cube' file format (plain text).
-       \item {\bf output\_density} = 22, Same as {\bf output\_density} = 2, but files are writtent in '.cube' file format (plain text).
+       \item {\bf output\_denspot} = 0, No output density is written.
+       \item {\bf output\_denspot} = 1, Output electronic density is written in the .pot format of V\_Sim into the file 'electronic\_density.pot' (Deprecated, use 11 instead).
+       \item {\bf output\_denspot} = 2, In addition to the electronic density, the potential ('local\_potential.pot') and its components ('ionic\_potential.pot' and 'Hartree\_potential.pot') are also output in plain text '.pot' files (Deprecated, use 12 instead).
+       \item {\bf output\_denspot} = 11, Same as {\bf output\_denspot} = 1, but files are writtent in ETSF file format (portable binary format based on NetCDF).
+       \item {\bf output\_denspot} = 12, Same as {\bf output\_denspot} = 2, but files are writtent in ETSF file format (portable binary format based on NetCDF).
+       \item {\bf output\_denspot} = 21, Same as {\bf output\_denspot} = 1, but files are writtent in '.cube' file format (plain text).
+       \item {\bf output\_denspot} = 22, Same as {\bf output\_denspot} = 2, but files are writtent in '.cube' file format (plain text).
 %  %       \item {\bf output\_denpot} = 0, No output density or potential is written.
 %  %       \item {\bf output\_denpot} = 1, Output electronic density and electrostatic potential are written in the .cube format, respectively,  into the files 'electronic\_density.cube' and 'electrostatic\_potential.cube' (Deprecated, use 11 instead).
 %  %       \item {\bf output\_denpot} = 2, In addition to the electronic density and the electrostatic potential the components of the potential                ('external\_potential.cube' which has contributions both from ions and electric field, 'Hartree\_potential.cube' and 'XC\_potental.cube') 

@@ -12,7 +12,7 @@
 !!  Conceived only for isolated Boundary Conditions, no SIC correction
 subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      Glr,nlpspd,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
-     proj,psi,output_grid,ekin_sum,epot_sum,eproj_sum)
+     proj,psi,output_denspot,ekin_sum,epot_sum,eproj_sum)
   use module_base
   use module_types
   use module_interfaces, except_this_one => CalculateTailCorrection
@@ -22,7 +22,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   type(locreg_descriptors), intent(in) :: Glr
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
   integer, intent(in) :: iproc,nproc,ncongt,nspin
-  logical, intent(in) :: output_grid
+  logical, intent(in) :: output_denspot
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
   real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
@@ -217,7 +217,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call make_bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
 ! Create the file grid.xyz to visualize the grid of functions
-  if (iproc ==0 .and. output_grid) then
+  if (iproc ==0 .and. output_denspot) then
      write(*,'(1x,a)')&
           'Writing the file describing the new atomic positions of the effective system'
      open(unit=22,file='grid_tail.xyz',status='unknown')

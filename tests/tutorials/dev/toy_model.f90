@@ -67,7 +67,7 @@ program wvl
   call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
   allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)))
   allocate(rxyz_old(3, atoms%nat))
-  call readmywaves(iproc,"data/wavefunction", orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
+  call readmywaves(iproc,"data/wavefunction",WF_FORMAT_PLAIN,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & inputs%hx,inputs%hy,inputs%hz,atoms,rxyz_old,rxyz,Lzd%Glr%wfd,psi)
   call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
@@ -226,7 +226,6 @@ program wvl
   deallocate(Lzd%Glr%projflg)
 
   call deallocate_orbs(orbs,"main")
-  call deallocate_atoms_scf(atoms,"main") 
 
   deallocate(rxyz)
   call deallocate_atoms(atoms,"main") 

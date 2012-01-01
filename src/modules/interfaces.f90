@@ -194,7 +194,7 @@ module module_interfaces
          type(input_variables), intent(inout) :: inputs
       END SUBROUTINE perf_input_variables
 
-      subroutine read_atomic_file(file,iproc,at,rxyz)
+      subroutine read_atomic_file(file,iproc,at,rxyz,status)
          !n(c) use module_base
          use module_types
          implicit none
@@ -202,6 +202,7 @@ module module_interfaces
          integer, intent(in) :: iproc
          type(atoms_data), intent(inout) :: at
          real(gp), dimension(:,:), pointer :: rxyz
+         integer, intent(out), optional :: status
       END SUBROUTINE read_atomic_file
 
       !> @author
@@ -314,7 +315,7 @@ module module_interfaces
      END SUBROUTINE orbitals_descriptors_forLinear
 
       subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-            &   crmult,frmult,Glr,output_grid)
+            &   crmult,frmult,Glr,output_denspot)
          !n(c) use module_base
          use module_types
          implicit none
@@ -325,7 +326,7 @@ module module_interfaces
          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
          real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
          type(locreg_descriptors), intent(inout) :: Glr
-         logical, intent(in), optional :: output_grid
+         logical, intent(in), optional :: output_denspot
       END SUBROUTINE createWavefunctionsDescriptors
 
      subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
@@ -707,7 +708,7 @@ module module_interfaces
 
       subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
             &   Glr,nlpspd,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
-         proj,psi,output_grid,ekin_sum,epot_sum,eproj_sum)
+         proj,psi,output_denspot,ekin_sum,epot_sum,eproj_sum)
          !n(c) use module_base
          use module_types
          implicit none
@@ -716,7 +717,7 @@ module module_interfaces
          type(locreg_descriptors), intent(in) :: Glr
          type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
          integer, intent(in) :: iproc,nproc,ncongt,nspin
-         logical, intent(in) :: output_grid
+         logical, intent(in) :: output_denspot
          real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
          real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
          real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
@@ -1649,6 +1650,24 @@ module module_interfaces
          real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin), intent(out), optional :: wxdsave 
       END SUBROUTINE NK_SIC_potential
 
+      subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+         wfd,psi,orblist)
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc,n1,n2,n3, iformat
+         real(gp), intent(in) :: hx,hy,hz
+         type(wavefunctions_descriptors), intent(in) :: wfd
+         type(orbitals_data), intent(inout) :: orbs
+         type(atoms_data), intent(in) :: at
+         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         integer, dimension(orbs%norb), optional :: orblist
+         real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+         real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
+         character(len=*), intent(in) :: filename
+      END SUBROUTINE readmywaves
+
+      
       subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iiorb)
          use module_base
          use module_types
@@ -1674,7 +1693,32 @@ module module_interfaces
          integer,optional :: iiorb
       END SUBROUTINE filename_of_iorb
 
-      subroutine read_wave_to_isf_etsf(lstat, filename, ln, iorbp, hx, hy, hz, &
+      subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
+           & n1, n2, n3, nspinor, psiscf)
+        use module_base
+        use module_types
+        implicit none
+        character(len = *), intent(in) :: filename
+        logical, intent(in) :: formatted
+        integer, intent(out) :: n1, n2, n3, nspinor
+        real(gp), intent(out) :: hx, hy, hz
+        real(wp), dimension(:,:,:,:), pointer :: psiscf
+        logical, intent(out) :: lstat
+      END SUBROUTINE readwavetoisf
+      subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
+           & n1, n2, n3, nspinor, psiscf)
+        use module_base
+        use module_types
+        implicit none
+        character(len = *), intent(in) :: filename
+        integer, intent(in) :: iorbp
+        integer, intent(out) :: n1, n2, n3, nspinor
+        real(gp), intent(out) :: hx, hy, hz
+        real(wp), dimension(:,:,:,:), pointer :: psiscf
+        logical, intent(out) :: lstat
+      END SUBROUTINE readwavetoisf_etsf
+
+      subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
            & n1, n2, n3, nspinor, psiscf)
         use module_base
         use module_types
@@ -1686,13 +1730,12 @@ module module_interfaces
         real(gp), intent(out) :: hx, hy, hz
         real(wp), dimension(:,:,:,:), pointer :: psiscf
         logical, intent(out) :: lstat
-      end subroutine read_wave_to_isf_etsf
-
-      subroutine free_wave_to_isf_etsf(psiscf)
+      END SUBROUTINE read_wave_to_isf
+      subroutine free_wave_to_isf(psiscf)
         use module_base
         implicit none
         real(wp), dimension(:,:,:,:), pointer :: psiscf
-      end subroutine free_wave_to_isf_etsf
+      END SUBROUTINE free_wave_to_isf
 
 
       !subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
@@ -1714,22 +1757,22 @@ module module_interfaces
       !  integer, dimension(nat,maxnei),intent(in) :: nei 
       !END SUBROUTINE SWcalczone
 
-    subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
-         wfd,psi,orblist)
-      use module_base
-      use module_types
-      implicit none
-      integer, intent(in) :: iproc,n1,n2,n3
-      real(gp), intent(in) :: hx,hy,hz
-      type(wavefunctions_descriptors), intent(in) :: wfd
-      type(orbitals_data), intent(inout) :: orbs
-      type(atoms_data), intent(in) :: at
-      real(gp), dimension(3,at%nat), intent(in) :: rxyz
-      integer, dimension(orbs%norb), optional :: orblist
-      real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
-      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
-      character(len=*), intent(in) :: filename
-     end subroutine readmywaves
+!!$    subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+!!$         wfd,psi,orblist)
+!!$      use module_base
+!!$      use module_types
+!!$      implicit none
+!!$      integer, intent(in) :: iproc,n1,n2,n3
+!!$      real(gp), intent(in) :: hx,hy,hz
+!!$      type(wavefunctions_descriptors), intent(in) :: wfd
+!!$      type(orbitals_data), intent(inout) :: orbs
+!!$      type(atoms_data), intent(in) :: at
+!!$      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!!$      integer, dimension(orbs%norb), optional :: orblist
+!!$      real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+!!$      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
+!!$      character(len=*), intent(in) :: filename
+!!$     end subroutine readmywaves
     
   subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
@@ -4887,6 +4930,35 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
      end subroutine HamiltonianApplication3
+
+     subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
+          proj,Lzd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
+          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
+          pkernel,orbsocc,psirocc)
+       use module_base
+       use module_types
+       use module_xc
+       implicit none
+       integer, intent(in) :: iproc,nproc!,nspin
+       real(gp), intent(in) :: hx,hy,hz
+       type(atoms_data), intent(in) :: at
+       type(orbitals_data), intent(in) :: orbs
+       type(local_zone_descriptors),intent(in) :: Lzd
+       type(SIC_data), intent(in) :: SIC
+       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(wp), dimension(Lzd%Lnprojel), intent(in) :: proj
+       real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+       type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
+       real(wp), dimension(lzd%ndimpotisf) :: Lpot
+       real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
+       real(wp), target, dimension(orbs%npsidim_orbs), intent(out) :: hpsi
+       type(GPU_pointers), intent(inout) :: GPU
+       real(dp), dimension(:), pointer, optional :: pkernel
+       type(orbitals_data), intent(in), optional :: orbsocc
+       real(wp), dimension(:), pointer, optional :: psirocc
+     end subroutine FullHamiltonianApplication
+
 
 !!$     subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !!$          proj,Lzd,ngatherarr,Lpot,psi,hpsi,&

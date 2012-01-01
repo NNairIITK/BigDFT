@@ -439,6 +439,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Deallocate lin%lig%lzdGauss since it is not  needed anymore.
+  call deallocate_nonlocal_psp_descriptors(lin%lig%lzdGauss%Gnlpspd, subname)
   call deallocate_local_zone_descriptors(lin%lig%lzdGauss, subname)
 
   !-- if spectra calculation uses a energy dependent potential
@@ -824,6 +825,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Deallocate all local arrays.
 
   ! Deallocate all types that are not needed any longer.
+  call deallocate_nonlocal_psp_descriptors(lin%lig%lzdig%Gnlpspd, subname)
   call deallocate_local_zone_descriptors(lin%lig%lzdig, subname)
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
   call deallocate_matrixDescriptors(lin%lig%mad, subname)

@@ -12,7 +12,7 @@
 !!   Calculates also the bounds arrays needed for convolutions
 !!   Refers this information to the global localisation region descriptor
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-      &   crmult,frmult,Glr,output_grid)
+      &   crmult,frmult,Glr,output_denspot)
    use module_base
    use module_types
    implicit none
@@ -23,12 +23,12 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
    real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
    type(locreg_descriptors), intent(inout) :: Glr
-   logical, intent(in), optional :: output_grid
+   logical, intent(in), optional :: output_denspot
    !local variables
    character(len=*), parameter :: subname='createWavefunctionsDescriptors'
    integer :: i_all,i_stat,i1,i2,i3,iat
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-   logical :: my_output_grid
+   logical :: my_output_denspot
    logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
    if (iproc == 0) then
@@ -90,9 +90,9 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    '  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
 
    ! Create the file grid.xyz to visualize the grid of functions
-   my_output_grid = .false.
-   if (present(output_grid)) my_output_grid = output_grid
-   if (my_output_grid) then
+   my_output_denspot = .false.
+   if (present(output_denspot)) my_output_denspot = output_denspot
+   if (my_output_denspot) then
       open(unit=22,file='grid.xyz',status='unknown')
       write(22,*) Glr%wfd%nvctr_c+Glr%wfd%nvctr_f+atoms%nat,' atomic'
       if (atoms%geocode=='F') then
@@ -1300,7 +1300,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
       write(*,'(1x,a)')&
          &   '------------------------------------------------------- Input Wavefunctions Creation'
       !yaml_output
-      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
+!      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
       yaml_indent=yaml_indent+2 !list element
    end if
    !spin for inputguess orbitals
@@ -1991,8 +1991,11 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!$   endif
 
    if (iproc==0) then
+      !call write_energies(0,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,0.0_gp,0.0_gp,0.0_gp,0.0_gp,'Input Guess')
+      !yaml output
         write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
              ekin_sum,epot_sum,eproj_sum
+!      write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
         write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
      endif
   

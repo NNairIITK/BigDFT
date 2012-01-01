@@ -313,7 +313,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !lphiold=lphi
 
 
-  if(nproc==1) allocate(psit(size(psi)))
+  !if(nproc==1) allocate(psit(size(psi)))
   nitSCC=lin%nitSCCWhenOptimizing+lin%nitSCCWhenFixed
   ! Flag that indicates that the basis functions shall be improved in the following.
   updatePhi=.true.
@@ -726,10 +726,7 @@ end do
 
 end subroutine cancelCommunicationPotential
 
-
-
-
-subroutine transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
+subroutine transformToGlobal(iproc,nproc,lin,orbs,comms,input,coeff,lphi,psi,psit)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => transformToGlobal
@@ -742,7 +739,8 @@ type(orbitals_data),intent(in):: orbs
 type(communications_arrays):: comms
 type(input_variables),intent(in):: input
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
-real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(inout):: lphi
+!real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(inout):: lphi
+real(8),dimension(*),intent(inout):: lphi
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
 
 ! Local variables
@@ -769,8 +767,8 @@ character(len=*),parameter:: subname='transformToGlobal'
       ilr = lin%lb%orbs%inWhichLocregp(iorb)
       ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       gdim=lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
-      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, lin%lzd%Glr,&
-           lin%lzd%Llr(ilr), lphi(ind2), phi(ind1))
+      call Lpsi_to_global2(iproc,nproc,ldim,gdim,lin%lb%orbs%norb,lin%lb%orbs%nspinor,input%nspin,lin%lzd%Glr,&
+           lin%lzd%Llr(ilr),lphi(ind2),phi(ind1))
       ind1=ind1+lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
       ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
   end do

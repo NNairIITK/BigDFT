@@ -211,7 +211,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !local variables
    character(len=*), parameter :: subname='cluster'
    character(len=3) :: PSquiet
-   character(len=5) :: gridformat, wfformat,wfformat_read, final_out
+   character(len=5) :: gridformat, wfformat, final_out
    character(len=500) :: errmess
   logical :: endloop,endlooprp,onefile,refill_proj,potential_from_disk=.false.,withConfinement
    logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
@@ -289,10 +289,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    ncongt=in%ncongt
    nspin=in%nspin
    write(gridformat, "(A)") ""
-   select case (in%output_grid_format)
-   case (OUTPUT_GRID_FORMAT_ETSF)
+   select case (in%output_denspot_format)
+   case (output_denspot_FORMAT_ETSF)
       write(gridformat, "(A)") ".etsf"
-   case (OUTPUT_GRID_FORMAT_CUBE)
+   case (output_denspot_FORMAT_CUBE)
       write(gridformat, "(A)") ".cube"
    end select
    write(wfformat, "(A)") ""
@@ -574,7 +574,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !start the optimization
    !yaml output
    if (iproc==0) then
-      write(70,'(a,a)')repeat(' ',yaml_indent),'Electronic Ground State: '
+!      write(70,'(a,a)')repeat(' ',yaml_indent),'Electronic Ground State: '
       yaml_indent=yaml_indent+1 !hash table element
    end if
 
@@ -583,27 +583,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !for the inputPsiId==2 case, check 
    !if the wavefunctions are all present
    !otherwise switch to normal input guess
-   if (in%inputPsiId ==2) then
+   if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
       ! Test ETSF file.
       inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
-      if (onefile) input_wf_format=3
-
-      if (.not. onefile) then
+      if (onefile) then
+         input_wf_format= WF_FORMAT_ETSF
+      else
          call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
       end if
-
-      !assign the input_wf_format
-      write(wfformat_read, "(A)") ""
-      select case (input_wf_format)
-      case (WF_FORMAT_NONE)
-         if (iproc == 0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-         inputpsi = 0
-      case (WF_FORMAT_ETSF)
-         write(wfformat_read, "(A)") ".etsf"
-      case (WF_FORMAT_BINARY)
-         write(wfformat_read, "(A)") ".bin"
-      end select
-
+      if (input_wf_format == WF_FORMAT_NONE .and. iproc == 0) &
+           & write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
    end if
 
    !all the input formats need to allocate psi except the LCAO input_guess
@@ -819,7 +808,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       !since each processor read only few eigenvalues, initialise them to zero for all
       call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
 
-      call readmywaves(iproc,trim(in%dir_output) // "wavefunction" // trim(wfformat_read), &
+      call readmywaves(iproc,trim(in%dir_output) // "wavefunction", input_wf_format, &
           & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Lzd%Glr%wfd,psi)
 
       !reduce the value for all the eigenvectors
@@ -970,7 +959,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    rhopot_loop: do itrp=1,in%itrpmax
       !yaml output 
       if (iproc==0) then
-         write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Hamiltonian Optimization: &itrp',itrp
+!         write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Hamiltonian Optimization: &itrp',itrp
          yaml_indent=yaml_indent+2 !list element
       end if
 
@@ -979,7 +968,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       subd_loop : do icycle=1,in%nrepmax
          !yaml output 
          if (iproc==0) then
-            write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Subspace Optimization: &itrep',icycle
+!            write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Subspace Optimization: &itrep',icycle
             yaml_indent=yaml_indent+3 !list element
          end if
 
@@ -988,7 +977,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
          !yaml output
          if (iproc==0) then
-            write(70,'(a,a)')repeat(' ',yaml_indent),'Wavefunctions Iterations: '
+!            write(70,'(a,a)')repeat(' ',yaml_indent),'Wavefunctions Iterations: '
             yaml_indent=yaml_indent+1 !Hash table element
          end if
          wfn_loop: do iter=1,in%itermax
@@ -1001,9 +990,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                   &   repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
                !test for yaml output
                if (endloop) then
-                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
+!                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
                else
-                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',iter
+!                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',iter
                end if
 
             endif
@@ -1042,7 +1031,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                         write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
                         &   'DENSITY iteration,Delta : (Norm 2/Volume)',itrp,rpnrm
                         !yaml output
-                        write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
+!                        write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
                      end if
                      endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
                      ! xc_init_rho should be put in the mixing routines
@@ -1097,7 +1086,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                      write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
                           &   'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
                      !yaml output
-                     write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
+!                     write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
                   end if
                   endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
                end if
@@ -1202,7 +1191,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          !flush all writings on standart output
          if (iproc==0) then
             !yaml output
-            write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
+!            write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
             call bigdft_utils_flush(unit=6)
          end if
       end do wfn_loop
@@ -1225,7 +1214,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          end if
          call write_energies(iter,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,energy,0.0_gp,gnrm,gnrm_zero,final_out)
          !yaml output
-         write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
+!         write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
          yaml_indent=yaml_indent-1 !end hash table element
 
          !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
@@ -1274,7 +1263,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
       if (iproc==0) then
          !yaml output
-         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',icycle
+!         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',icycle
          yaml_indent=yaml_indent-3 !end list element
       end if
    end do subd_loop
@@ -1298,8 +1287,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       !yaml output
       yaml_indent=yaml_indent-2 !end list element
       !reassume the key elements in the itrp element
-      if (itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
-      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End itrp:',itrp
+!      if (itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
+!      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End itrp:',itrp
    end if
 
 end do rhopot_loop
@@ -1419,19 +1408,19 @@ if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
       nullify(gbd%rxyz)
 
    else
-      call  writemywaves(iproc,trim(in%dir_output) // "wavefunction" // trim(wfformat), &
+      call  writemywaves(iproc,trim(in%dir_output) // "wavefunction", in%output_wf_format, &
              & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Lzd%Glr%wfd,psi)
    end if
 end if
 
-!plot the ionic potential, if required by output_grid
-if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+!plot the ionic potential, if required by output_denspot
+if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
    if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
    call plot_density(trim(in%dir_output)//'external_potential' // gridformat,iproc,nproc,&
       &   n1,n2,n3,n1i,n2i,n3i,n3p,&
    1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
 end if
-if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
    if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
    call plot_density(trim(in%dir_output)//'local_potential' // gridformat,iproc,nproc,&
       &   n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1489,7 +1478,7 @@ if (inputpsi /= -1000) then
 
    !plot the density on the cube file
    !to be done either for post-processing or if a restart is to be done with mixing enabled
-   if (((in%output_grid >= OUTPUT_GRID_DENSITY)) .and. DoLastRunThings) then
+   if (((in%output_denspot >= output_denspot_DENSITY)) .and. DoLastRunThings) then
       if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
 
       call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
@@ -1521,7 +1510,7 @@ if (inputpsi /= -1000) then
       &   n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.)
 
    !plot also the electrostatic potential
-   if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+   if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
       if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
       call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
          &   iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1530,7 +1519,7 @@ if (inputpsi /= -1000) then
 
 
    !     !plot also the electrostatic potential
-   !     if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+   !     if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
    !        if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
    !        call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
    !             & iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1644,13 +1633,13 @@ if (DoDavidson) then
 
         ! Write virtual wavefunctions in ETSF format: WORKS ONLY FOR ONE KPOINT 
         if(in%output_wf_format == 3 .and. abs(in%norbv) > 0) then
-           call  writemywaves(iproc,"virtuals" // trim(wfformat), &
+           call  writemywaves(iproc,trim(in%dir_output) // "virtuals" // trim(wfformat),in%output_wf_format, &
             & orbsv,n1,n2,n3,hx,hy,hz,atoms,rxyz,Lzd%Glr%wfd,psivirt)
       end if
 
       ! Write virtual wavefunctions in ETSF format
       if (in%output_wf_format /= WF_FORMAT_NONE  .and. abs(in%norbv) > 0) then
-         call  writemywaves(iproc,trim(in%dir_output) // "virtuals" // trim(wfformat), &
+         call  writemywaves(iproc,trim(in%dir_output) // "virtuals", in%output_wf_format, &
              & orbsv,n1,n2,n3,hx,hy,hz,atoms,rxyz,Lzd%Glr%wfd,psivirt)
       end if
 
@@ -1813,7 +1802,7 @@ if ((in%rbuf > 0.0_gp) .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
    !pass hx instead of hgrid since we are only in free BC
    call CalculateTailCorrection(iproc,nproc,atoms,rbuf,orbs,&
       &   Lzd%Glr,Lzd%Gnlpspd,ncongt,pot,hx,rxyz,radii_cf,crmult,frmult,in%nspin,&
-   proj,psi,(in%output_grid /= 0),ekin_sum,epot_sum,eproj_sum)
+   proj,psi,(in%output_denspot /= 0),ekin_sum,epot_sum,eproj_sum)
 
    i_all=-product(shape(pot))*kind(pot)
    deallocate(pot,stat=i_stat)
@@ -1967,7 +1956,6 @@ subroutine deallocate_before_exiting
    call deallocate_comms(comms,subname)
 
    call deallocate_orbs(orbs,subname)
-   call deallocate_atoms_scf(atoms,subname) 
 
    deallocate(confdatarr)
 
@@ -2098,7 +2086,7 @@ END SUBROUTINE deallocate_before_exiting
     call deallocate_comms(comms,subname)
 
     call deallocate_orbs(orbs,subname)
-    call deallocate_atoms_scf(atoms,subname) 
+    !call deallocate_atoms(atoms,subname) 
 
     i_all=-product(shape(radii_cf))*kind(radii_cf)
     deallocate(radii_cf,stat=i_stat)

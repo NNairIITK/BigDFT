@@ -178,7 +178,7 @@ out[i]=a+b;\n\
 }
 
 static void generate_transposeKernel(std::stringstream &program){
-  program<<"__kernel void transposeKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double *tmp ) {\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<FILTER_WIDTH<<", 1))) void transposeKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double *tmp ) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -198,7 +198,7 @@ out[(jg*n+ig)]=tmp[j2 * (FILTER_WIDTH + 1) + i2];\n\
 }
 
 static void generate_notransposeKernel(std::stringstream &program){
-  program<<"__kernel void notransposeKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double *tmp ) {\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<FILTER_WIDTH<<", 1))) void notransposeKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double *tmp ) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
