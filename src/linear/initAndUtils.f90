@@ -3707,3 +3707,43 @@ integer function optimalLength(totalLength, value)
   optimalLength=totalLength-ceiling(log10(dble(value+1)+1.d-10))
 
 end function optimalLength
+
+
+
+
+
+subroutine initCollectiveComms(iproc, nproc, lzd, orbs, collcomms)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(local_zone_descriptors),intent(in):: lzd
+type(orbitals_data),intent(in):: orbs
+type(collectiveComms),intent(out):: collcomms
+
+! Local variables
+integer:: istat
+character(len=*),parameter:: subname='initCollectiveComms'
+
+! Allocate all arrays
+allocate(collComms%nvctr_par(orbs%norb,0:nproc-1), stat=istat)
+call memocc(istat, collComms%nvctr_par, 'collComms%nvctr_par', subname)
+
+allocate(collComms%sendcnts(0:nproc-1), stat=istat)
+call memocc(istat, collComms%sendcnts, 'collComms%sendcnts', subname)
+
+allocate(collComms%senddspls(0:nproc-1), stat=istat)
+call memocc(istat, collComms%senddspls, 'collComms%senddspls', subname)
+
+allocate(collComms%recvcnts(0:nproc-1), stat=istat)
+call memocc(istat, collComms%recvcnts, 'collComms%recvcnts', subname)
+
+allocate(collComms%recvdspls(0:nproc-1), stat=istat)
+call memocc(istat, collComms%recvdspls, 'collComms%recvdspls', subname)
+
+
+
+
+end subroutine initCollectiveComms

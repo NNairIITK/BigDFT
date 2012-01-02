@@ -671,6 +671,12 @@ end type workarrays_quartic_convolutions
       type(matrixDescriptors):: mad
   end type linearInputGuess
 
+  !> Contains arrays for collective communications
+  type,public:: collectiveComms
+      integer,dimension(:,:),pointer:: nvctr_par
+      integer,dimension(:),pointer:: sendcnts, senddspls, recvcnts, recvdspls
+  end type collectiveComms
+
 
 
 !> Contains all parameters related to the linear scaling version.
@@ -700,6 +706,7 @@ end type workarrays_quartic_convolutions
     type(linearInputGuess):: lig
     type(matrixDescriptors):: mad
     character(len=1):: locregShape
+    type(collectiveComms):: collComms
   end type linearParameters
 
 !> Contains the arguments needed for the diis procedure

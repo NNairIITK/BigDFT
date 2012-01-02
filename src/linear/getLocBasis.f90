@@ -730,7 +730,7 @@ real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot
 real(8) :: t2tot, timetot, tt1, tt2, tt3, tt4, tt5, lstep, dfactorial
 real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
 real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress, energyconf_0, energyconf_trial
-real(8):: energyconf_der0, lstep_optimal, trHold
+real(8):: trHold
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, itinner, consecutive_rejections
 integer :: icountDIISFailureCons, itBest, info, lwork, ndim_lchi, ndim_lhchi
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb, i, ist, jst, iiorb, jjorb, ilrold, k
@@ -744,7 +744,7 @@ logical:: quiet, allowDIIS, startWithSD, withConfinement, calc
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(localizedDIISParameters):: ldiis
-real(8),dimension(4):: time
+real(8),dimension(5):: time
 real(8),dimension(:),pointer:: potential
 real(8),dimension(:),pointer:: phiWork
 real(8),dimension(:),pointer:: lpot
@@ -799,7 +799,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   time=0.d0
   resetDIIS=.false.
   immediateSwitchToSD=.false.
-  call cpu_time(t1tot)
+  t1tot=mpi_wtime()
   iterLoop: do it=1,nit
       fnrmMax=0.d0
       fnrm=0.d0
@@ -807,6 +807,10 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       if (iproc==0) then
           write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       endif
+
+
+      ! Flatten at the edges -  EXPERIMENTAL
+      call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
 
   
       ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
@@ -823,8 +827,11 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
 
       !!! NEW #########################################################
+      t1=mpi_wtime()
       if(.not.ldiis%switchSD) call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, &
                                     lin%comon, rxyz, lin%nItInnerLoop, lphi)
+      t2=mpi_wtime()
+      time(5)=time(5)+t2-t1
       !!!call unitary_optimization2(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
       !!! #############################################################
 
@@ -1139,11 +1146,11 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   ! Deallocate PSP stuff
   !call free_lnlpspd(lin%orbs, lin%lzd)
 
-  call cpu_time(t2tot)
+  t2tot=mpi_wtime()
   timetot=t2tot-t1tot
 
   ! Sum up the timings.
-  call mpiallred(time(1), 4, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(time(1), 5, mpi_sum, mpi_comm_world, ierr)
   call mpiallred(timetot, 1, mpi_sum, mpi_comm_world, ierr)
   time=time/dble(nproc)
   timetot=timetot/dble(nproc)
@@ -1154,7 +1161,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       write(*,'(5x,a,es10.3,a,f4.1,a)') '- Hamiltonian application:', time(2),  '=', 100.d0*time(2)/timetot, '%'
       write(*,'(5x,a,es10.3,a,f4.1,a)') '- orthoconstraint:', time(3),  '=', 100.d0*time(3)/timetot, '%'
       write(*,'(5x,a,es10.3,a,f4.1,a)') '- preconditioning:', time(4),  '=', 100.d0*time(4)/timetot, '%'
-      tt=time(1)+time(2)+time(3)+time(4)
+      write(*,'(5x,a,es10.3,a,f4.1,a)') '- unitary optimization:', time(5),  '=', 100.d0*time(5)/timetot, '%'
+      tt=time(1)+time(2)+time(3)+time(4)+time(5)
       tt=timetot-tt
       write(*,'(5x,a,es10.3,a,f4.1,a)') '- other:', tt,  '=', 100.d0*tt/timetot, '%'
   end if
@@ -3695,6 +3703,9 @@ real(8),dimension(orbs%npsidim),intent(inout):: lphi
 integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr
 real(8):: trace, lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
 real(8):: tt1, tt2, tt3, tt4, tt5
+real(8):: t1, t2, t1_tot, t2_tot
+real(8):: time_convol, time_commun, time_lincomb, time_linalg, time_matrixmodification, time_exponential, time_tot
+real(8):: time_matrixelements
 complex(8):: ttc
 real(8),dimension(:,:),allocatable:: gmat, hamtrans, ttmat, Kmat
 complex(8),dimension(:,:),allocatable:: gmatc, omatc
@@ -3741,41 +3752,65 @@ call memocc(istat, Kmat, 'Kmat', subname)
   lstep=0.d0 !just to initialize this variable and make the compiler happy
   lstep_optimal=0.d0 !just to initialize this variable and make the compiler happy
 
+  time_convol=0.d0
+  time_lincomb=0.d0
+  time_commun=0.d0
+  time_linalg=0.d0
+  time_exponential=0.d0
+  time_matrixmodification=0.d0
+  time_matrixElements=0.d0
+  t1_tot=mpi_wtime()
   innerLoop: do it=1,nit
 
 
+      t1=mpi_wtime()
       call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
+      t2=mpi_wtime()
+      time_convol=time_convol+t2-t1
       energyconf_0=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
       call mpiallred(energyconf_0, 1, mpi_sum, mpi_comm_world, ierr)
       if(iproc==0) write(*,'(a,i6,2es20.10,2es17.7)') 'it, energyconf_0, energyvonf_trial, lstep, lstep_optimal', &
                    it, energyconf_0, energyconf_trial, lstep, lstep_optimal
 
+      t1=mpi_wtime()
       allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
       call collectnew(iproc, nproc, lin%comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
            lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ttmat, tt3, tt4, tt5)
       deallocate(ttmat)
+      t2=mpi_wtime()
+      time_commun=time_commun+t2-t1
 
+      t1=mpi_wtime()
       call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lvphi, lin%mad, Kmat)
+      t2=mpi_wtime()
+      time_matrixElements=time_matrixElements+t2-t1
 
 
+      t1=mpi_wtime()
       ! Construct antisymmtric matrix Gmat
       do iorb=1,orbs%norb
           do jorb=1,orbs%norb
               gmat(jorb,iorb)=2.d0*(Kmat(jorb,iorb)-Kmat(iorb,jorb))
           end do
       end do 
+      t2=mpi_wtime()
+      time_matrixmodification=time_matrixmodification+t2-t1
 
 
+      t1=mpi_wtime()
       !Build the complex matrix -iGmat
       do iorb=1,orbs%norb
           do jorb=1,orbs%norb
               gmatc(jorb,iorb)=cmplx(0.d0,-gmat(jorb,iorb),kind=8)
           end do
       end do 
+      t2=mpi_wtime()
+      time_matrixmodification=time_matrixmodification+t2-t1
 
 
 
       ! Diagonalize Gmatc
+      t1=mpi_wtime()
       lwork=10*orbs%norb
       allocate(work(lwork), stat=istat) ! factor of 2 since it is assumed to be complex
       allocate(rwork(lwork), stat=istat)
@@ -3783,6 +3818,8 @@ call memocc(istat, Kmat, 'Kmat', subname)
       if(info/=0) stop 'ERROR in zheev'
       deallocate(work)
       deallocate(rwork)
+      t2=mpi_wtime()
+      time_linalg=time_linalg+t2-t1
 
 
       ! Calculate step size
@@ -3792,6 +3829,7 @@ call memocc(istat, Kmat, 'Kmat', subname)
           lstep=2.d0*lstep_optimal
       end if
 
+      t1=mpi_wtime()
       ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
       ! This is also a diagonal matrix, so only calculate the diagonal part.
       do iorb=1,orbs%norb
@@ -3801,7 +3839,10 @@ call memocc(istat, Kmat, 'Kmat', subname)
               expD_cmplx(iorb)=expD_cmplx(iorb)+ttc**k/dfactorial(k)
           end do
       end do
+      t2=mpi_wtime()
+      time_exponential=time_exponential+t2-t1
 
+      t1=mpi_wtime()
       do iorb=1,orbs%norb
           do jorb=1,orbs%norb
               if(iorb==jorb) then
@@ -3811,20 +3852,37 @@ call memocc(istat, Kmat, 'Kmat', subname)
               end if
           end do
       end do
+      t2=mpi_wtime()
+      time_matrixmodification=time_matrixmodification+t2-t1
+
+      t1=mpi_wtime()
       call zgemm('n', 'c', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), tempmatc(1,1,1), orbs%norb, &
            gmatc(1,1), orbs%norb, (0.d0,0.d0), tempmatc(1,1,2), orbs%norb)
       call zgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), gmatc(1,1), orbs%norb, &
            tempmatc(1,1,2), orbs%norb, (0.d0,0.d0), omatc(1,1), orbs%norb)
+      t2=mpi_wtime()
+      time_linalg=time_linalg+t2-t1
 
+      t1=mpi_wtime()
       ! Build new lphi
       do iorb=1,orbs%norb
           do jorb=1,orbs%norb
               tempmat3(jorb,iorb,1)=real(omatc(jorb,iorb))
           end do
       end do
+      t2=mpi_wtime()
+      time_matrixmodification=time_matrixmodification+t2-t1
+
+      t1=mpi_wtime()
       call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon%nrecvbuf, &
            lin%comon%recvbuf, tempmat3(1,1,1), .true., lphi)
+      t2=mpi_wtime()
+      time_lincomb=time_lincomb+t2-t1
+
+      t1=mpi_wtime()
       call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
+      t2=mpi_wtime()
+      time_convol=time_convol+t2-t1
 
       energyconf_trial=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
       call mpiallred(energyconf_trial, 1, mpi_sum, mpi_comm_world, ierr)
@@ -3842,6 +3900,7 @@ call memocc(istat, Kmat, 'Kmat', subname)
       lstep_optimal = -energyconf_der0*lstep**2/(2.d0*(energyconf_trial-energyconf_0-lstep*energyconf_der0))
       lstep_optimal=min(lstep_optimal,lstep)
 
+      t1=mpi_wtime()
       ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
       ! This is also a diagonal matrix, so only calculate the diagonal part.
       do iorb=1,orbs%norb
@@ -3851,7 +3910,10 @@ call memocc(istat, Kmat, 'Kmat', subname)
               expD_cmplx(iorb)=expD_cmplx(iorb)+ttc**k/dfactorial(k)
           end do
       end do
+      t2=mpi_wtime()
+      time_exponential=time_exponential+t2-t1
 
+      t1=mpi_wtime()
       do iorb=1,orbs%norb
           do jorb=1,orbs%norb
               if(iorb==jorb) then
@@ -3861,10 +3923,16 @@ call memocc(istat, Kmat, 'Kmat', subname)
               end if
           end do
       end do
+      t2=mpi_wtime()
+      time_matrixmodification=time_matrixmodification+t2-t1
+
+      t1=mpi_wtime()
       call zgemm('n', 'c', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), tempmatc(1,1,1), orbs%norb, &
            gmatc(1,1), orbs%norb, (0.d0,0.d0), tempmatc(1,1,2), orbs%norb)
       call zgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), gmatc(1,1), orbs%norb, &
            tempmatc(1,1,2), orbs%norb, (0.d0,0.d0), omatc(1,1), orbs%norb)
+      t2=mpi_wtime()
+      time_linalg=time_linalg+t2-t1
 
 
       ! Build new lphi
@@ -3873,8 +3941,11 @@ call memocc(istat, Kmat, 'Kmat', subname)
               tempmat3(jorb,iorb,1)=real(omatc(jorb,iorb))
           end do
       end do
+      t1=mpi_wtime()
       call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon%nrecvbuf, &
            lin%comon%recvbuf, tempmat3(1,1,1), .true., lphi)
+      t2=mpi_wtime()
+      time_lincomb=time_lincomb+t2-t1
 
 
       if(it<nit) then
@@ -3884,6 +3955,35 @@ call memocc(istat, Kmat, 'Kmat', subname)
 
 
   end do innerLoop
+
+  t2_tot=mpi_wtime()
+  time_tot=t2_tot-t1_tot
+  call mpiallred(time_convol, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(time_commun, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(time_lincomb, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(time_linalg, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(time_matrixmodification, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(time_exponential, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(time_matrixelements, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(time_tot, 1, mpi_max, mpi_comm_world, ierr)
+  !time_convol=time_convol/dble(nproc)
+  !time_commun=time_commun/dble(nproc)
+  !time_lincomb=time_lincomb/dble(nproc)
+  !time_linalg=time_linalg/dble(nproc)
+  !time_matrixmodification=time_matrixmodification/dble(nproc)
+  !time_exponential_=time_exponential/dble(nproc)
+  !time_tot=time_tot/dble(nproc)
+  if(iproc==0) then
+      write(*,'(a,es16.6)') 'total time: ',time_tot
+      write(*,'(a,es15.7,a,f5.2,a)') 'convolutions: ',time_convol,' (',time_convol/time_tot*100.d0,'%)'
+      write(*,'(a,es15.7,a,f5.2,a)') 'linear combinations: ',time_lincomb,' (',time_lincomb/time_tot*100.d0,'%)'
+      write(*,'(a,es15.7,a,f5.2,a)') 'communication: ',time_commun,' (',time_commun/time_tot*100.d0,'%)'
+      write(*,'(a,es15.7,a,f5.2,a)') 'linear algebra: ',time_linalg,' (',time_linalg/time_tot*100.d0,'%)'
+      write(*,'(a,es15.7,a,f5.2,a)') 'matrix modification: ',time_matrixmodification,' (',time_matrixmodification/time_tot*100.d0,'%)'
+      write(*,'(a,es15.7,a,f5.2,a)') 'building exponential: ',time_exponential,' (',time_exponential/time_tot*100.d0,'%)'
+      write(*,'(a,es15.7,a,f5.2,a)') 'matrix elements ',time_matrixelements,' (',time_matrixelements/time_tot*100.d0,'%)'
+  end if
+
 
   iall=-product(shape(gmat))*kind(gmat)
   deallocate(gmat, stat=istat)
@@ -3985,3 +4085,196 @@ real(8):: tt
           
 
 end subroutine build_new_linear_combinations
+
+
+
+
+subroutine flatten_at_edges(iproc, nproc, lin, at, input, orbs, lzd, rxyz, psi)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(in):: lin
+type(atoms_data),intent(in):: at
+type(input_variables),intent(in):: input
+type(orbitals_data),intent(in):: orbs
+type(local_zone_descriptors),intent(in):: lzd
+real(8),dimension(3,at%nat),intent(in):: rxyz
+real(8),dimension(lzd%lpsidimtot),intent(inout):: psi
+
+! Local variables
+integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all
+real(8):: hxh, hyh, hzh, alpha
+type(workarr_sumrho):: work_sr
+real(8),dimension(:,:),allocatable:: psir
+character(len=*),parameter:: subname='flatten_at_edges'
+
+
+
+  oidx = 0
+  do iorb=1,orbs%norbp
+     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+  
+     !initialise the work arrays
+     call initialize_work_arrays_sumrho(lzd%llr(ilr), work_sr)
+
+     ! Wavefunction in real space
+     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,psir,'psir',subname)
+     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
+
+     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
+     !the psir wavefunction is given in the spinorial form
+
+     call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
+     !apply the potential to the psir wavefunction and calculate potential energy
+     hxh=.5d0*input%hx
+     hyh=.5d0*input%hy
+     hzh=.5d0*input%hz
+     !icenter=confinementCenter(iorb)
+     icenter=lin%orbs%inWhichLocregp(iorb)
+     !components of the potential
+     npot=orbs%nspinor
+     if (orbs%nspinor == 2) npot=1
+
+     alpha=-log(1.d-10)/(1.d0-.8d0*lin%locrad(icenter))**2
+     !write(*,*) 'iproc, iorb, alpha', iproc, iorb, alpha
+     call flatten(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
+          rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
+          lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, .8d0*lin%locrad(icenter), alpha, &
+          lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+
+
+
+     call isf_to_daub(lzd%llr(ilr), work_sr, psir, psi(1+oidx))
+
+     i_all=-product(shape(psir))*kind(psir)
+     deallocate(psir,stat=i_stat)
+     call memocc(i_stat,i_all,'psir',subname)
+
+     call deallocate_work_arrays_sumrho(work_sr)
+
+     oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+
+  enddo
+
+
+end subroutine flatten_at_edges
+
+
+subroutine flatten(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
+     rxyzConfinement, hxh, hyh, hzh, potentialPrefac, confPotOrder, offsetx, offsety, offsetz, cut, alpha, &
+     ibyyzz_r) !optional
+use module_base
+implicit none
+integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor, confPotOrder, offsetx, offsety, offsetz
+real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+real(8),dimension(3),intent(in):: rxyzConfinement
+real(8),intent(in):: hxh, hyh, hzh, potentialPrefac, cut, alpha
+!local variables
+integer :: i1,i2,i3,i1s,i1e,ispinor, order
+real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
+real(gp) :: epot_p, epot, values, valuesold
+
+
+  !the Tail treatment is allowed only in the Free BC case
+  if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
+
+  ! The order of the cofinement potential (we take order divided by two, 
+  ! since later we calculate (r**2)**order.
+  if(confPotOrder==2) then
+      ! parabolic potential
+      order=1
+  else if(confPotOrder==4) then
+      ! quartic potential
+      order=2
+  else if(confPotOrder==6) then
+      ! sextic potential
+      order=3
+  end if
+  
+  values=0.d0
+  valuesold=0.d0
+
+!!!$omp parallel default(private)&
+!!!$omp shared(psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
+  !case without bounds
+  i1s=-14*nl1
+  i1e=2*n1+1+15*nl1
+  !epot_p=0._gp
+!!!$omp do
+  do i3=-14*nl3,2*n3+1+15*nl3
+     if (i3 >= -14+2*nbuf .and. i3 <= 2*n3+16-2*nbuf) then !check for the nbuf case
+        do i2=-14*nl2,2*n2+1+15*nl2
+           if (i2 >= -14+2*nbuf .and. i2 <= 2*n2+16-2*nbuf) then !check for the nbuf case
+              !this if statement is inserted here for avoiding code duplication
+              !it is to be seen whether the code results to be too much unoptimised
+              if (present(ibyyzz_r)) then
+                 !in this case we are surely in Free BC
+                 !the min is to avoid to calculate for no bounds
+                 do i1=-14+2*nbuf,min(ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3))-14-1
+                    psir(i1,i2,i3,:)=0.0_wp
+                 enddo
+                 i1s=max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf)
+                 i1e=min(ibyyzz_r(2,i2,i3)-14,2*n1+16-2*nbuf)
+              end if
+              !write(*,'(a,5i8)') 'iproc, i1, i2, i1s, i1e', iproc, i1, i2, i1s, i1e
+              
+              !here we put the branchments wrt to the spin
+              if (nspinor == 4) then
+                 stop 'this part is not yet implemented'
+              else
+                 do ispinor=1,nspinor
+                    do i1=i1s,i1e
+                       tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                          (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       tt=sqrt(tt)
+                       tt=tt-cut
+
+                       if(tt>0.d0) then
+                           tt=exp(-alpha*tt**2)
+                       else
+                           tt=1.d0
+                       end if
+                       values=values+tt*abs(psir(i1,i2,i3,ispinor))
+                       valuesold=valuesold+abs(psir(i1,i2,i3,ispinor))
+     
+                       tt=tt*psir(i1,i2,i3,ispinor)
+                       psir(i1,i2,i3,ispinor)=tt
+                    end do
+                 end do
+              end if
+              
+              if (present(ibyyzz_r)) then
+                 !the max is to avoid the calculation for no bounds
+                 do i1=max(ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3))-14+1,2*n1+16-2*nbuf
+                    psir(i1,i2,i3,:)=0.0_wp
+                 enddo
+              end if
+
+           else
+              do i1=-14,2*n1+16
+                 psir(i1,i2,i3,:)=0.0_wp
+              enddo
+           endif
+        enddo
+     else
+        do i2=-14,2*n2+16
+           do i1=-14,2*n1+16
+              psir(i1,i2,i3,:)=0.0_wp
+           enddo
+        enddo
+     endif
+  enddo
+!!!$omp end do
+
+!!!$omp end parallel
+
+write(*,*) 'values',values/valuesold
+
+END SUBROUTINE flatten
+!!***

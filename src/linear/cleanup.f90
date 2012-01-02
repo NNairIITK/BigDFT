@@ -850,6 +850,7 @@ subroutine deallocate_linearParameters(lin, subname)
   call deallocate_p2pCommsOrthonormality(lin%comon, subname)
   call deallocate_overlapParameters(lin%op, subname)
   call deallocate_matrixDescriptors(lin%mad, subname)
+  call deallocate_collectiveComms(lin%collComms, subname)
 
 end subroutine deallocate_linearParameters
 
@@ -1496,3 +1497,26 @@ subroutine deallocate_matrixDescriptors(mad, subname)
   call checkAndDeallocatePointer(mad%keygline, 'mad%keygline', subname)
 
 end subroutine deallocate_matrixDescriptors
+
+
+
+subroutine deallocate_collectiveComms(collComms, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_collectiveComms
+  implicit none
+  
+  ! Calling arguments
+  type(collectiveComms),intent(inout):: collComms
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+
+  call checkAndDeallocatePointer(collComms%nvctr_par, 'collComms%nvctr_par', subname)
+  call checkAndDeallocatePointer(collComms%sendcnts, 'collComms%sendcnts,', subname)
+  call checkAndDeallocatePointer(collComms%senddspls, 'collComms%senddspls,', subname)
+  call checkAndDeallocatePointer(collComms%recvcnts, 'collComms%recvcnts,', subname)
+  call checkAndDeallocatePointer(collComms%recvdspls, 'collComms%recvdspls,', subname)
+
+end subroutine deallocate_collectiveComms

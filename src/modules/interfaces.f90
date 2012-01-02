@@ -5453,6 +5453,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
       end subroutine ConvolQuartic4
 
+
+      subroutine deallocate_collectiveComms(collComms, subname)
+        use module_base
+        use module_types
+        implicit none
+        type(collectiveComms),intent(inout):: collComms
+        character(len=*),intent(in):: subname
+      end subroutine deallocate_collectiveComms
+
+
+
+
+
    end interface
 
 END MODULE module_interfaces
