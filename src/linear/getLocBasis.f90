@@ -824,8 +824,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
            lin%convCritOrtho, input, lin%mad, lphi, ovrlp, 'new')
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1
-      ! Flatten at the edges -  EXPERIMENTAL
-      call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
+      !!! Flatten at the edges -  EXPERIMENTAL
+      !!call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
 
 
       !!! NEW #########################################################
@@ -833,8 +833,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       if(.not.ldiis%switchSD) then
           call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, &
                                     lin%comon, rxyz, lin%nItInnerLoop, lphi)
-          ! Flatten at the edges -  EXPERIMENTAL
-          call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
+          !!! Flatten at the edges -  EXPERIMENTAL
+          !!call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
       end if
       t2=mpi_wtime()
       time(5)=time(5)+t2-t1
@@ -897,7 +897,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       call deallocateSendBufferOrtho(lin%comon, subname)
 
       t1=mpi_wtime()
-      call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lhphi)
+      !!call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lhphi)
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH, W, eval)
 
       !!! Test: only diagonal part for orthoconstraint
@@ -912,7 +912,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       !!end do
 
       ! Flatten at the edges -  EXPERIMENTAL
-      call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lhphi)
+      !!call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lhphi)
 
       ! Cycle if the trace increased (steepest descent only)
       if(iproc==0) write(*,*) 'ldiis%switchSD, ldiis%isx', ldiis%switchSD, ldiis%isx

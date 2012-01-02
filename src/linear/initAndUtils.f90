@@ -199,24 +199,24 @@ allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
 
 
-! TEST #################################################################################
-call random_number(lphi)
-do iall=1,lin%orbs%npsidim
-    write(1000+iproc,*) lphi(iall)
-end do
-!call switch_waves_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, phi)
-call transpose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, &
-           phi) !optional
-do iall=1,lin%orbs%npsidim
-    write(1100+iproc,*) phi(iall)
-end do
-call untranspose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, &
-           phi) !optional
-!call unswitch_waves_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, phi, lphi)
-do iall=1,lin%orbs%npsidim
-    write(1200+iproc,*) lphi(iall)
-end do
-! END TEST #############################################################################
+!!! TEST #################################################################################
+!!call random_number(lphi)
+!!do iall=1,lin%orbs%npsidim
+!!    write(1000+iproc,*) lphi(iall)
+!!end do
+!!!call switch_waves_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, phi)
+!!call transpose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, &
+!!           phi) !optional
+!!do iall=1,lin%orbs%npsidim
+!!    write(1100+iproc,*) phi(iall)
+!!end do
+!!call untranspose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, &
+!!           phi) !optional
+!!!call unswitch_waves_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, phi, lphi)
+!!do iall=1,lin%orbs%npsidim
+!!    write(1200+iproc,*) lphi(iall)
+!!end do
+!!! END TEST #############################################################################
 
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'

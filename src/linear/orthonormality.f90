@@ -1,3 +1,27 @@
+!!!subroutine orthonormalize_linear
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!
+!!!! Transpose lphi
+!!!call transpose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, work)
+!!!
+!!!! Calculate overlap matrix
+!!!do iorb=1,orbs%norbp
+!!!    iiorb=orbs%isorb+iorb
+!!!
+!!!end do
+!!!
+!!!
+!!!call untranspose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, work)
+!!!
+!!!
+!!!
+!!!end subroutine orthonormalize_linear
+
+
+
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
            blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, mad, lphi, ovrlp, method)
 use module_base
