@@ -1309,6 +1309,7 @@ subroutine deallocate_largeBasis(lb, subname)
   call deallocate_overlapParameters(lb%op, subname)
   call deallocate_p2pCommsGatherPot(lb%comgp, subname)
   call deallocate_matrixDescriptors(lb%mad, subname)
+  call deallocate_collectiveComms(lb%collComms, subname)
 
 
 end subroutine deallocate_largeBasis

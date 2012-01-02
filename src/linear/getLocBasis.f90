@@ -809,8 +809,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       endif
 
 
-      ! Flatten at the edges -  EXPERIMENTAL
-      call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
+      !! Flatten at the edges -  EXPERIMENTAL
+      !call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
 
   
       ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
@@ -824,12 +824,18 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
            lin%convCritOrtho, input, lin%mad, lphi, ovrlp, 'new')
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1
+      ! Flatten at the edges -  EXPERIMENTAL
+      call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
 
 
       !!! NEW #########################################################
       t1=mpi_wtime()
-      if(.not.ldiis%switchSD) call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, &
+      if(.not.ldiis%switchSD) then
+          call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, &
                                     lin%comon, rxyz, lin%nItInnerLoop, lphi)
+          ! Flatten at the edges -  EXPERIMENTAL
+          call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
+      end if
       t2=mpi_wtime()
       time(5)=time(5)+t2-t1
       !!!call unitary_optimization2(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
@@ -891,7 +897,22 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       call deallocateSendBufferOrtho(lin%comon, subname)
 
       t1=mpi_wtime()
+      call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lhphi)
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH, W, eval)
+
+      !!! Test: only diagonal part for orthoconstraint
+      !!ist=1
+      !!do iorb=1,lin%orbs%norbp
+      !!    iiorb=lin%orbs%isorb+iorb
+      !!    ilr=lin%orbs%inwhichlocreg(iiorb)
+      !!    ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!    tt=ddot(ncount, lphi(ist), 1, lhphi(ist), 1)
+      !!    call daxpy(ncount, -tt, lphi(ist), 1, lhphi(ist), 1)
+      !!    ist=ist+ncount
+      !!end do
+
+      ! Flatten at the edges -  EXPERIMENTAL
+      call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lhphi)
 
       ! Cycle if the trace increased (steepest descent only)
       if(iproc==0) write(*,*) 'ldiis%switchSD, ldiis%isx', ldiis%switchSD, ldiis%isx
@@ -4141,11 +4162,11 @@ character(len=*),parameter:: subname='flatten_at_edges'
      npot=orbs%nspinor
      if (orbs%nspinor == 2) npot=1
 
-     alpha=-log(1.d-10)/(1.d0-.8d0*lin%locrad(icenter))**2
+     alpha=-log(1.d-5)/(1.d0-.7d0*lin%locrad(icenter))**2
      !write(*,*) 'iproc, iorb, alpha', iproc, iorb, alpha
      call flatten(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
           rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
-          lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, .8d0*lin%locrad(icenter), alpha, &
+          lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, .7d0*lin%locrad(icenter), alpha, &
           lzd%llr(ilr)%bounds%ibyyzz_r) !optional
 
 

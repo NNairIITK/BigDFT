@@ -612,6 +612,16 @@ module module_types
       integer,dimension(:,:),pointer:: keyg, keygmatmul
       integer,dimension(:,:,:),pointer:: keygline
   end type matrixDescriptors
+
+
+  !> Contains arrays for collective communications
+  type,public:: collectiveComms
+      integer,dimension(:,:),pointer:: nvctr_par
+      integer,dimension(:),pointer:: sendcnts, senddspls, recvcnts, recvdspls
+  end type collectiveComms
+
+
+
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
 !! minimizing orbitals, this basis may be larger than only the trace minimizing
@@ -626,6 +636,7 @@ type,public:: largeBasis
     type(overlapParameters):: op
     type(p2pCommsGatherPot):: comgp
     type(matrixDescriptors):: mad
+    type(collectiveComms):: collComms
 end type largeBasis
 
 
@@ -670,12 +681,6 @@ end type workarrays_quartic_convolutions
       type(p2pCommsGatherPot):: comgp
       type(matrixDescriptors):: mad
   end type linearInputGuess
-
-  !> Contains arrays for collective communications
-  type,public:: collectiveComms
-      integer,dimension(:,:),pointer:: nvctr_par
-      integer,dimension(:),pointer:: sendcnts, senddspls, recvcnts, recvdspls
-  end type collectiveComms
 
 
 

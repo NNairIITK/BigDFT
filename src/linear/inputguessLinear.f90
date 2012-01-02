@@ -3494,8 +3494,12 @@ do iorb=1,orbs%norbp
 
 end do
 
-if(ist/=orbs%npsidim+1) then
-    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ist/=orbsig%npsidim+1',ist,orbsig%npsidim+1
+!!if(ist/=orbs%npsidim+1) then
+!!    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ist/=orbs%npsidim+1',ist,orbs%npsidim+1
+!!    stop
+!!end if
+if(ist>orbs%npsidim+1) then
+    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ist/=orbs%npsidim+1',ist,orbs%npsidim+1
     stop
 end if
 

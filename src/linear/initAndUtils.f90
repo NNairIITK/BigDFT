@@ -181,14 +181,42 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%lb%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
+
+
 ! Initialize the localization regions.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
 t1=mpi_wtime()
 call initLocregs(iproc, at%nat, rxyz, lin, input, Glr)
+
+
+! Initialize collective communications
+call initCollectiveComms(iproc, nproc, lin%lzd, lin%orbs, lin%collcomms)
+call initCollectiveComms(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%collcomms)
+
 allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
 allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
+
+
+! TEST #################################################################################
+call random_number(lphi)
+do iall=1,lin%orbs%npsidim
+    write(1000+iproc,*) lphi(iall)
+end do
+!call switch_waves_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, phi)
+call transpose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, &
+           phi) !optional
+do iall=1,lin%orbs%npsidim
+    write(1100+iproc,*) phi(iall)
+end do
+call untranspose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, &
+           phi) !optional
+!call unswitch_waves_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, phi, lphi)
+do iall=1,lin%orbs%npsidim
+    write(1200+iproc,*) lphi(iall)
+end do
+! END TEST #############################################################################
 
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
@@ -198,6 +226,7 @@ do iorb=1,lin%orbs%norbp
  npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
 end do
 lin%lzd%Lpsidimtot = max(npsidim,1)
+lin%lzd%Lpsidimtot = lin%orbs%npsidim
 
 ! The same for the lb type, i.e. with the derivatives.
 npsidim = 0
@@ -206,6 +235,7 @@ do iorb=1,lin%lb%orbs%norbp
  npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
 end do
 lin%lzd%Lpsidimtot_der = max(npsidim,1)
+lin%lzd%Lpsidimtot_der = lin%lb%orbs%npsidim
 
 
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
@@ -328,6 +358,8 @@ call initMatrixCompression(iproc, nproc, lin%lb%orbs, lin%lb%op, lin%lb%mad)
 call initCompressedMatmul3(lin%lb%orbs%norb, lin%lb%mad)
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
+
+
 !!if(iproc==0) then
 !!    do iall=1,lin%mad%nsegmatmul
 !!        write(*,'(a,4i8)') 'iall, lin%mad%keyvmatmul(iall), lin%mad%keygmatmul(1,iall), lin%mad%keygmatmul(2,iall)', iall, lin%mad%keyvmatmul(iall), lin%mad%keygmatmul(1,iall), lin%mad%keygmatmul(2,iall)
@@ -3720,11 +3752,11 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: orbs
+type(orbitals_data),intent(inout):: orbs
 type(collectiveComms),intent(out):: collcomms
 
 ! Local variables
-integer:: istat
+integer:: iorb, ilr, kproc, jproc, ii, ncount, iiorb, istat
 character(len=*),parameter:: subname='initCollectiveComms'
 
 ! Allocate all arrays
@@ -3742,6 +3774,66 @@ call memocc(istat, collComms%recvcnts, 'collComms%recvcnts', subname)
 
 allocate(collComms%recvdspls(0:nproc-1), stat=istat)
 call memocc(istat, collComms%recvdspls, 'collComms%recvdspls', subname)
+
+
+! Distribute the orbitals among the processes.
+do iorb=1,orbs%norb
+    ilr=orbs%inwhichlocreg(iorb)
+    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+    ! All processes get ii elements
+    ii=ncount/nproc
+    do jproc=0,nproc-1
+        collComms%nvctr_par(iorb,jproc)=ii
+    end do
+    ! Process from 0 to kproc get one additional element
+    kproc=mod(ncount,nproc)-1
+    do jproc=0,kproc
+        collComms%nvctr_par(iorb,jproc)=collComms%nvctr_par(iorb,jproc)+1
+    end do
+    !write(*,'(a,3i6,i12)') 'iorb, iproc, ncount, collComms%nvctr_par(iorb,iproc)', iorb, iproc, ncount, collComms%nvctr_par(iorb,iproc)
+end do
+
+! Determine the amount of data that has has to be sent to each process
+collComms%sendcnts=0
+do jproc=0,nproc-1
+    do iorb=1,orbs%norbp
+        iiorb=orbs%isorb+iorb
+        collComms%sendcnts(jproc) = collComms%sendcnts(jproc) + collComms%nvctr_par(iiorb,jproc)
+    end do
+    !write(*,'(a,2i6,i12)') 'jproc, iproc, collComms%sendcnts(jproc)', jproc, iproc, collComms%sendcnts(jproc)
+end do
+
+! Determine the displacements for the send operation
+collComms%senddspls(0)=0
+do jproc=1,nproc-1
+    collComms%senddspls(jproc) = collComms%senddspls(jproc-1) + collComms%sendcnts(jproc-1)
+    !write(*,'(a,2i6,i12)') 'jproc, iproc, collComms%senddspls(jproc)', jproc, iproc, collComms%senddspls(jproc)
+end do
+
+! Determine the amount of data that each process receives
+collComms%recvcnts=0
+do jproc=0,nproc-1
+    do iorb=1,orbs%norb_par(jproc,0)
+        iiorb=orbs%isorb_par(jproc)+iorb
+        collComms%recvcnts(jproc) = collComms%recvcnts(jproc) + collComms%nvctr_par(iiorb,iproc)
+    end do
+    !write(*,'(a,2i6,i12)') 'jproc, iproc, collComms%recvcnts(jproc)', jproc, iproc, collComms%recvcnts(jproc)
+end do
+
+! Determine the displacements for the receive operation
+collComms%recvdspls(0)=0
+do jproc=1,nproc-1
+   collComms%recvdspls(jproc) = collComms%recvdspls(jproc-1) + collComms%recvcnts(jproc-1)
+    !write(*,'(a,2i6,i12)') 'jproc, iproc, collComms%recvdspls(jproc)', jproc, iproc, collComms%recvdspls(jproc)
+end do
+
+! Modify orbs%npsidim, if required
+ii=0
+do jproc=0,nproc-1
+    ii=ii+collComms%recvcnts(jproc)
+end do
+orbs%npsidim=max(orbs%npsidim,ii)
+
 
 
 
