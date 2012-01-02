@@ -3979,7 +3979,8 @@ call memocc(istat, Kmat, 'Kmat', subname)
       write(*,'(a,es15.7,a,f5.2,a)') 'linear combinations: ',time_lincomb,' (',time_lincomb/time_tot*100.d0,'%)'
       write(*,'(a,es15.7,a,f5.2,a)') 'communication: ',time_commun,' (',time_commun/time_tot*100.d0,'%)'
       write(*,'(a,es15.7,a,f5.2,a)') 'linear algebra: ',time_linalg,' (',time_linalg/time_tot*100.d0,'%)'
-      write(*,'(a,es15.7,a,f5.2,a)') 'matrix modification: ',time_matrixmodification,' (',time_matrixmodification/time_tot*100.d0,'%)'
+      write(*,'(a,es15.7,a,f5.2,a)') 'matrix modification: ',time_matrixmodification, &
+                                     ' (',time_matrixmodification/time_tot*100.d0,'%)'
       write(*,'(a,es15.7,a,f5.2,a)') 'building exponential: ',time_exponential,' (',time_exponential/time_tot*100.d0,'%)'
       write(*,'(a,es15.7,a,f5.2,a)') 'matrix elements ',time_matrixelements,' (',time_matrixelements/time_tot*100.d0,'%)'
   end if
@@ -4092,6 +4093,7 @@ end subroutine build_new_linear_combinations
 subroutine flatten_at_edges(iproc, nproc, lin, at, input, orbs, lzd, rxyz, psi)
 use module_base
 use module_types
+use module_interfaces
 implicit none
 
 ! Calling arguments
