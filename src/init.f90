@@ -12,7 +12,7 @@
 !!   Calculates also the bounds arrays needed for convolutions
 !!   Refers this information to the global localisation region descriptor
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-      &   crmult,frmult,Glr,output_grid)
+      &   crmult,frmult,Glr,output_denspot)
    use module_base
    use module_types
    implicit none
@@ -23,13 +23,18 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
    real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
    type(locreg_descriptors), intent(inout) :: Glr
-   logical, intent(in), optional :: output_grid
+   logical, intent(in), optional :: output_denspot
    !local variables
    character(len=*), parameter :: subname='createWavefunctionsDescriptors'
    integer :: i_all,i_stat,i1,i2,i3,iat
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-   logical :: my_output_grid
+   logical :: my_output_denspot
    logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+
+   if (iproc == 0) then
+      write(*,'(1x,a)')&
+         &   '------------------------------------------------- Wavefunctions Descriptors Creation'
+   end if
 
    !assign the dimensions to improve (a little) readability
    n1=Glr%d%n1
@@ -42,26 +47,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    nfu2=Glr%d%nfu2
    nfu3=Glr%d%nfu3
 
-   !allocate kinetic bounds, only for free BC
-   if (atoms%geocode == 'F') then
-      allocate(Glr%bounds%kb%ibyz_c(2,0:n2,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibyz_c,'Glr%bounds%kb%ibyz_c',subname)
-      allocate(Glr%bounds%kb%ibxz_c(2,0:n1,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxz_c,'Glr%bounds%kb%ibxz_c',subname)
-      allocate(Glr%bounds%kb%ibxy_c(2,0:n1,0:n2+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxy_c,'Glr%bounds%kb%ibxy_c',subname)
-      allocate(Glr%bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibyz_f,'Glr%bounds%kb%ibyz_f',subname)
-      allocate(Glr%bounds%kb%ibxz_f(2,0:n1,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxz_f,'Glr%bounds%kb%ibxz_f',subname)
-      allocate(Glr%bounds%kb%ibxy_f(2,0:n1,0:n2+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxy_f,'Glr%bounds%kb%ibxy_f',subname)
-   end if
-
-   if (iproc == 0) then
-      write(*,'(1x,a)')&
-         &   '------------------------------------------------- Wavefunctions Descriptors Creation'
-   end if
+   !assign geocode and the starting points
+   Glr%geocode=atoms%geocode
 
    ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
    allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
@@ -69,16 +56,16 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid_f,'logrid_f',subname)
 
-   ! coarse grid quantities
+   ! coarse/fine grid quantities
    call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
       &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
-   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%nvctr_c)
+   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
+      &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
+
+   call wfd_from_grids(logrid_c, logrid_f, Glr)
+
    if (iproc == 0) write(*,'(2(1x,a,i10))') &
       &   'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
-
-   if (atoms%geocode == 'F') then
-      call make_bounds(n1,n2,n3,logrid_c,Glr%bounds%kb%ibyz_c,Glr%bounds%kb%ibxz_c,Glr%bounds%kb%ibxy_c)
-   end if
 
    if (atoms%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
       if (iproc ==0)then
@@ -99,32 +86,13 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       end if
    end if
 
-   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
-      &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
-   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f,Glr%wfd%nvctr_f)
    if (iproc == 0) write(*,'(2(1x,a,i10))') & 
    '  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
-   if (atoms%geocode == 'F') then
-      call make_bounds(n1,n2,n3,logrid_f,Glr%bounds%kb%ibyz_f,Glr%bounds%kb%ibxz_f,Glr%bounds%kb%ibxy_f)
-   end if
-
-   ! allocations for arrays holding the wavefunctions and their data descriptors
-   call allocate_wfd(Glr%wfd,subname)
-
-   ! now fill the wavefunction descriptor arrays
-   ! coarse grid quantities
-   call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1))
-
-   ! fine grid quantities
-   if (Glr%wfd%nseg_f > 0) then
-      call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f,Glr%wfd%keyg(1,Glr%wfd%nseg_c+1), &
-         &   Glr%wfd%keyv(Glr%wfd%nseg_c+1))
-   end if
 
    ! Create the file grid.xyz to visualize the grid of functions
-   my_output_grid = .false.
-   if (present(output_grid)) my_output_grid = output_grid
-   if (my_output_grid) then
+   my_output_denspot = .false.
+   if (present(output_denspot)) my_output_denspot = output_denspot
+   if (my_output_denspot) then
       open(unit=22,file='grid.xyz',status='unknown')
       write(22,*) Glr%wfd%nvctr_c+Glr%wfd%nvctr_f+atoms%nat,' atomic'
       if (atoms%geocode=='F') then
@@ -165,10 +133,74 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    i_all=-product(shape(logrid_f))*kind(logrid_f)
    deallocate(logrid_f,stat=i_stat)
    call memocc(i_stat,i_all,'logrid_f',subname)
+END SUBROUTINE createWavefunctionsDescriptors
+
+subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
+   use module_base
+   use module_types
+   implicit none
+   !Arguments
+   type(locreg_descriptors), intent(inout) :: Glr
+   logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid_c,logrid_f
+   !local variables
+   character(len=*), parameter :: subname='wfd_from_grids'
+   integer :: i_stat
+   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+
+   !assign the dimensions to improve (a little) readability
+   n1=Glr%d%n1
+   n2=Glr%d%n2
+   n3=Glr%d%n3
+   nfl1=Glr%d%nfl1
+   nfl2=Glr%d%nfl2
+   nfl3=Glr%d%nfl3
+   nfu1=Glr%d%nfu1
+   nfu2=Glr%d%nfu2
+   nfu3=Glr%d%nfu3
+
+   !allocate kinetic bounds, only for free BC
+   if (Glr%geocode == 'F') then
+      allocate(Glr%bounds%kb%ibyz_c(2,0:n2,0:n3+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibyz_c,'Glr%bounds%kb%ibyz_c',subname)
+      allocate(Glr%bounds%kb%ibxz_c(2,0:n1,0:n3+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibxz_c,'Glr%bounds%kb%ibxz_c',subname)
+      allocate(Glr%bounds%kb%ibxy_c(2,0:n1,0:n2+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibxy_c,'Glr%bounds%kb%ibxy_c',subname)
+      allocate(Glr%bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibyz_f,'Glr%bounds%kb%ibyz_f',subname)
+      allocate(Glr%bounds%kb%ibxz_f(2,0:n1,0:n3+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibxz_f,'Glr%bounds%kb%ibxz_f',subname)
+      allocate(Glr%bounds%kb%ibxy_f(2,0:n1,0:n2+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibxy_f,'Glr%bounds%kb%ibxy_f',subname)
+   end if
+
+   ! Do the coarse region.
+   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%nvctr_c)
+   if (Glr%geocode == 'F') then
+      call make_bounds(n1,n2,n3,logrid_c,Glr%bounds%kb%ibyz_c,Glr%bounds%kb%ibxz_c,Glr%bounds%kb%ibxy_c)
+   end if
+
+   ! Do the fine region.
+   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f,Glr%wfd%nvctr_f)
+   if (Glr%geocode == 'F') then
+      call make_bounds(n1,n2,n3,logrid_f,Glr%bounds%kb%ibyz_f,Glr%bounds%kb%ibxz_f,Glr%bounds%kb%ibxy_f)
+   end if
+
+   ! allocations for arrays holding the wavefunctions and their data descriptors
+   call allocate_wfd(Glr%wfd,subname)
+
+   ! now fill the wavefunction descriptor arrays
+   ! coarse grid quantities
+   call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c, &
+        & Glr%wfd%keyg(1,1),Glr%wfd%keyv(1))
+   ! fine grid quantities
+   if (Glr%wfd%nseg_f > 0) then
+      call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f, &
+           & Glr%wfd%keyg(1,Glr%wfd%nseg_c+1), Glr%wfd%keyv(Glr%wfd%nseg_c+1))
+   end if
 
    !for free BC admits the bounds arrays
-   if (atoms%geocode == 'F') then
-
+   if (Glr%geocode == 'F') then
       !allocate grow, shrink and real bounds
       allocate(Glr%bounds%gb%ibzxx_c(2,0:n3,-14:2*n1+16+ndebug),stat=i_stat)
       call memocc(i_stat,Glr%bounds%gb%ibzxx_c,'Glr%bounds%gb%ibzxx_c',subname)
@@ -204,17 +236,13 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 
    end if
 
-   if ( atoms%geocode == 'P' .and. Glr%hybrid_on) then
+   if (Glr%geocode == 'P' .and. Glr%hybrid_on) then
       call make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,Glr%bounds,Glr%wfd)
       call make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
          &   Glr%bounds%kb%ibxy_f,Glr%bounds%sb%ibxy_ff,Glr%bounds%sb%ibzzx_f,Glr%bounds%sb%ibyyzz_f,&
          &   Glr%bounds%kb%ibyz_f,Glr%bounds%gb%ibyz_ff,Glr%bounds%gb%ibzxx_f,Glr%bounds%gb%ibxxyy_f)
    endif
-
-   !assign geocode and the starting points
-   Glr%geocode=atoms%geocode
-
-END SUBROUTINE createWavefunctionsDescriptors
+end subroutine wfd_from_grids
 
 
 !>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
@@ -1128,7 +1156,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    type(communications_arrays) :: commse
    integer, dimension(:,:), allocatable :: norbsc_arr
    real(wp), dimension(:), allocatable :: potxc,passmat
-   real(wp), dimension(:,:,:), allocatable :: mom_vec
+   !real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
    type(locreg_descriptors), dimension(:), allocatable :: Llr
    real(wp), dimension(:), pointer :: pot
@@ -1143,7 +1171,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
       write(*,'(1x,a)')&
          &   '------------------------------------------------------- Input Wavefunctions Creation'
       !yaml_output
-      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
+!      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
       yaml_indent=yaml_indent+2 !list element
    end if
    !spin for inputguess orbitals
@@ -1473,7 +1501,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    if (iproc==0) then
       call write_energies(0,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,0.0_gp,0.0_gp,0.0_gp,0.0_gp,'Input Guess')
       !yaml output
-      write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
+!      write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
    end if
 
    !!!  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&

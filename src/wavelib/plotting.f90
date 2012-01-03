@@ -983,17 +983,30 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
   type(atoms_data), intent(in) :: at
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(dp), dimension(n1i,n2i,n3p,nspin), target, intent(in) :: rho
+  real(dp), dimension(n1i,n2i,max(n3p, 1),nspin), target, intent(in) :: rho
   character(len=*), parameter :: subname='calc_dipole'
   integer :: i_all,i_stat,ierr
   real(gp) :: dipole_el(3) , dipole_cores(3), tmpdip(3),q,qtot
   integer  :: iat,i1,i2,i3,nbx,nby,nbz, nl1,nl2,nl3, ispin
-  real(dp), dimension(:,:,:,:), pointer :: ele_rho
+  real(dp), dimension(:,:,:,:), pointer :: ele_rho,rho_buf
   
   if (nproc > 1) then
      !allocate full density in pot_ion array
      allocate(ele_rho(n1i,n2i,n3i,nspin),stat=i_stat)
      call memocc(i_stat,ele_rho,'ele_rho',subname)
+
+!Commented out, it is enough to allocate the rho at 1
+!!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
+!!$     ! some procs which makes MPI_ALLGATHERV failed.
+!!$     if (n3p.eq.0) then
+!!$       allocate(rho_buf(n1i,n2i,n3p+1,nspin),stat=i_stat)
+!!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
+!!$       rho_buf = 0.0_dp
+!!$     else
+!!$       allocate(rho_buf(n1i,n2i,n3p,nspin),stat=i_stat)
+!!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
+!!$       rho_buf = rho
+!!$     endif  
 
      do ispin=1,nspin
         call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
@@ -1072,8 +1085,12 @@ subroutine calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin, &
      i_all=-product(shape(ele_rho))*kind(ele_rho)
      deallocate(ele_rho,stat=i_stat)
      call memocc(i_stat,i_all,'ele_rho',subname)
+!!$     i_all=-product(shape(rho_buf))*kind(rho_buf)
+!!$     deallocate(rho_buf,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'rho_buf',subname)
   else
      nullify(ele_rho)
+!!$     nullify(rho_buf)
   end if
 
 END SUBROUTINE calc_dipole

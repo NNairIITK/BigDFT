@@ -19,8 +19,7 @@ SUBDIRS = modules \
 	art \
 	$(sub_dirs_cuda) \
 	$(sub_dirs_ocl) \
-	tools \
-	tools/bader
+	$(sub_dirs_bin)
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
@@ -66,10 +65,12 @@ if BUILD_BINARIES
 binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
+sub_dirs_bin = tools tools/bader
 else
 binaries_sources = 
 local_binaries =
 scripts_sources = 
+sub_dirs_bin =
 endif
 
 # Additional sources.
@@ -153,6 +154,12 @@ else
 DGEMMSY_SOURCES = dgemmsy/interface_dgemmsy_fake.f90
 endif
 
+if USE_LIBXC
+LIBXC_MODULES =
+else
+LIBXC_MODULES = modules/libxc_fake.f90
+endif
+
 if HAVE_LIBCONFIG
 sub_dirs_libconfig=convolutions-c
 else
@@ -164,6 +171,12 @@ etsf_files = wavelib/plotting-etsf.f90 \
 	wavelib/i-o-etsf.f90
 else
 etsf_files = wavelib/etsf_fake.f90
+endif
+
+if HAVE_FC_FLUSH
+flush_files = lib/flush.f90
+else
+flush_files = lib/flush_fake.f90
 endif
 
 if HAVE_FC_GET_COMMAND_ARGUMENT
@@ -189,7 +202,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	-I$(srcdir)/PSolver -I$(srcdir)/wavelib -I$(srcdir)/convolutions \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
-AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules
 AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
 
 if USE_MPI
@@ -236,6 +249,7 @@ modules_source = modules/base.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
 	$(CUDA_MODULES) \
+	$(LIBXC_MODULES) \
 	$(PS_MODULES)
 modules_objects = $(modules_source:.f90=.o)
 
@@ -265,6 +279,7 @@ high_level = cluster.f90 \
 #objects which can be compiled only with module_base
 low_level = \
 	$(PS_SOURCES) \
+	init/atoms.f90 \
 	init/projectors.f90  \
 	init/ionicpot.f90 \
 	init/gridmanipulation.f90 \
@@ -294,6 +309,9 @@ low_level = \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
 	lib/lbfgs.f90 \
+	lib/bindings.c \
+	lib/bindingsf.f90 \
+	$(flush_files) \
 	$(etsf_files) \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
@@ -386,4 +404,3 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 $(modules_objects) : $(mpi_include)
-

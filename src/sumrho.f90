@@ -47,6 +47,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
    !integer :: ncount0,ncount1,ncount2,ncount3,ncountmpi0,ncountmpi1,ncount_max,ncount_rate
    real(gp),dimension(:,:),allocatable :: dprho_comp
    real(4) ,dimension(:,:),allocatable :: sprho_comp
+   real(8) :: rhotot_dbl
+   integer :: irho
 
    call timing(iproc,'Rho_comput    ','ON')
 
@@ -64,10 +66,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
 
    !flag for toggling the REDUCE_SCATTER stategy (deprecated, icomm used instead of ixc value)
    !rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
-   !     & (ixc < 0 .and. module_xc_isgga()))
+         !     & (ixc < 0 .and. module_xc_isgga()))
 
    !  write(*,*) 'RSFLAG stuffs ',(ixc >= 11 .and. ixc <= 16),&
-   !             (ixc < 0 .and. module_xc_isgga()), have_mpi2,rsflag
+         !             (ixc < 0 .and. module_xc_isgga()), have_mpi2,rsflag
 
    !calculate dimensions of the complete array to be allocated before the reduction procedure
    if (rhodsc%icomm==1) then
@@ -160,6 +162,16 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
 
          ! splitted single-double precision communication (icomm=2)
       else if (rhodsc%icomm==2) then
+       !if (verbose >= 1) then
+         rhotot_dbl=0.0d0
+         do ispin=1,nspin
+           do irho=1,lr%d%n1i*lr%d%n2i*nrhotot
+             rhotot_dbl=rhotot_dbl+rho_p(irho,ispin)*hxh*hyh*hzh
+           enddo
+         enddo
+         call mpiallred(rhotot_dbl,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+         !write(*,*) 'RHOTOT_DBL:',rhotot_dbl
+       !endif
          !        if (rho_compress .and. rhodsc%geocode.eq.'F') then
          !if (rhodsc%geocode == 'F') then
          !call system_clock(ncount0,ncount_rate,ncount_max)
@@ -279,10 +291,15 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
       write(*,'(1x,a,f21.12)')&
          &   'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
       !yaml output
-      write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
+!      write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
       if(nspin == 4 .and. tt > 0._dp)&
          &   write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
          &   (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
+     if (rhodsc%icomm==2) then
+       write(*,'(1x,a,f21.12)') &
+         'Electronic charge changed by rho compression =                 ',&
+          rhotot_dbl-real(charge,gp)*hxh*hyh*hzh
+     endif
    end if
 
    i_all=-product(shape(tmred))*kind(tmred)
@@ -358,7 +375,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
             end do
 
             !print *,'iorb,nrm',iorb,&
-            !nrm2(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir(1,1),1)
+                  !nrm2(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir(1,1),1)
 
             select case(lr%geocode)
             case('F')
@@ -1036,6 +1053,8 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    rhodsc%geocode=at%geocode
    nat=at%nat
 
+!write (*,*) 'hxh,hyh,hzh',hxh,hyh,hzh
+
    !parameter to adjust the single precision and double precision regions
    spadd=10.0_gp
    dpmult=1.0_gp
@@ -1071,20 +1090,21 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
          &   hyh,hzh,spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,&
          &   i1cmin(iat),i1cmax(iat),i2cmin(iat),i2cmax(iat),i3cmin(iat),i3cmax(iat),&
          &   i1fmin(iat),i1fmax(iat),i2fmin(iat),i2fmax(iat),i3fmin(iat),i3fmax(iat))
+
       dsq_cr(iat)=(radii_cf(at%iatype(iat),1)*crmult+hxh*spadd)**2
       dsq_fr(iat)=(radii_cf(at%iatype(iat),2)*frmult*dpmult)**2
    enddo
 
-   !$omp parallel default(none)&
-   !$omp private(iat,irho,dsq,i1,i2,i3)&
-   !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
-   !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
-   !$omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
-   !$omp do schedule(static,1)
+!   !$omp parallel default(none)&
+!   !$omp private(iat,irho,dsq,i1,i2,i3)&
+!   !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
+!   !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
+!   !$omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
+!   !$omp do schedule(static,1)
    do iat=1,nat
-      do i1=i1cmin(iat),i1cmax(iat)
+      do i3=i3cmin(iat),i3cmax(iat)
          do i2=i2cmin(iat),i2cmax(iat)
-            do i3=i3cmin(iat),i3cmax(iat)
+             do i1=i1cmin(iat),i1cmax(iat)
                dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
                   &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
                   &   (rxyz(3,iat)-(i3-corz)*hzh)**2
@@ -1096,16 +1116,16 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
          enddo
       enddo
    enddo
-   !$omp enddo
-   !$omp end parallel
+!   !$omp enddo
+!   !$omp end parallel
 
    !call system_clock(ncount2,ncount_rate,ncount_max)
    !write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
 
    do iat=1,at%nat
-      do i1=i1fmin(iat),i1fmax(iat)
+      do i3=i3fmin(iat),i3fmax(iat)
          do i2=i2fmin(iat),i2fmax(iat)
-            do i3=i3fmin(iat),i3fmax(iat)
+            do i1=i1fmin(iat),i1fmax(iat)
                dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
                   &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
                   &   (rxyz(3,iat)-(i3-corz)*hzh)**2          
@@ -1322,16 +1342,23 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
    i1max=1
    i2max=1
    i3max=1
+
+!   write(*,*) 'i1min,i2min:',i1min,i2min,i3min,i1max,i2max,i3max
+
+!write (*,*) 'hxh,hyh,hzh',hxh,hyh,hzh
+
    ! setup up the cubes that determines the single and double precision segments
    do iat=1,at%nat
       sprad=radii_cf(at%iatype(iat),1)*crmult+hxh*spadd
-      dprad=dpmult*frmult*radii_cf(at%iatype(iat),2)
+      dprad=radii_cf(at%iatype(iat),2)*frmult*dpmult
       crbound(iat,1)=floor((rxyz(1,iat)-sprad)/hxh)+corx
+!write(*,*) 'crbound(iat,1)',crbound(iat,1)
       crbound(iat,2)=floor((rxyz(1,iat)+sprad)/hxh)+corx
       crbound(iat,3)=floor((rxyz(2,iat)-sprad)/hyh)+cory
       crbound(iat,4)=floor((rxyz(2,iat)+sprad)/hyh)+cory
       crbound(iat,5)=floor((rxyz(3,iat)-sprad)/hzh)+corz
       crbound(iat,6)=floor((rxyz(3,iat)+sprad)/hzh)+corz
+
       frbound(iat,1)=floor((rxyz(1,iat)-dprad)/hxh)+corx
       frbound(iat,2)=floor((rxyz(1,iat)+dprad)/hxh)+corx
       frbound(iat,3)=floor((rxyz(2,iat)-dprad)/hyh)+cory
@@ -1359,6 +1386,7 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
       i1max=max(i1max,crbound(iat,2))
       i2max=max(i2max,crbound(iat,4))
       i3max=max(i3max,crbound(iat,6))
+!write(*,*) 'iat=',iat,i1min,i1max,i2min,i2max,i3min,i3max
    enddo
 END SUBROUTINE get_boxbound
 
@@ -1383,19 +1411,19 @@ subroutine get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,&
    sprad=radii_cf(at%iatype(iat),1)*crmult+hxh*spadd
    dprad=dpmult*frmult*radii_cf(at%iatype(iat),2)
 
-   i1cmin=floor((rxyz(1,iat)-sprad)/hxh)+corx
-   i1cmax=floor((rxyz(1,iat)+sprad)/hxh)+corx
-   i2cmin=floor((rxyz(2,iat)-sprad)/hyh)+cory
-   i2cmax=floor((rxyz(2,iat)+sprad)/hyh)+cory
-   i3cmin=floor((rxyz(3,iat)-sprad)/hzh)+corz
-   i3cmax=floor((rxyz(3,iat)+sprad)/hzh)+corz
+   i1cmin=floor((rxyz(1,iat)-sprad)/hxh)+corx+1
+   i1cmax=floor((rxyz(1,iat)+sprad)/hxh)+corx-1
+   i2cmin=floor((rxyz(2,iat)-sprad)/hyh)+cory+1
+   i2cmax=floor((rxyz(2,iat)+sprad)/hyh)+cory-1
+   i3cmin=floor((rxyz(3,iat)-sprad)/hzh)+corz+1
+   i3cmax=floor((rxyz(3,iat)+sprad)/hzh)+corz-1
 
-   i1fmin=floor((rxyz(1,iat)-dprad)/hxh)+corx
-   i1fmax=floor((rxyz(1,iat)+dprad)/hxh)+corx
-   i2fmin=floor((rxyz(2,iat)-dprad)/hyh)+cory
-   i2fmax=floor((rxyz(2,iat)+dprad)/hyh)+cory
-   i3fmin=floor((rxyz(3,iat)-dprad)/hzh)+corz
-   i3fmax=floor((rxyz(3,iat)+dprad)/hzh)+corz
+   i1fmin=floor((rxyz(1,iat)-dprad)/hxh)+corx+1
+   i1fmax=floor((rxyz(1,iat)+dprad)/hxh)+corx-1
+   i2fmin=floor((rxyz(2,iat)-dprad)/hyh)+cory+1
+   i2fmax=floor((rxyz(2,iat)+dprad)/hyh)+cory-1
+   i3fmin=floor((rxyz(3,iat)-dprad)/hzh)+corz+1
+   i3fmax=floor((rxyz(3,iat)+dprad)/hzh)+corz-1
 
    i1cmin=max(i1cmin,1)
    i2cmin=max(i2cmin,1)

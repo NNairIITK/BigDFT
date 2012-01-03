@@ -23,7 +23,7 @@ module module_defs
   include 'configure.inc' !< Include variables set from configure.
 
   integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
-  integer :: yaml_indent=0 !<Blank spaces indentations for Yaml output level identification
+  integer :: yaml_indent=1 !<Blank spaces indentations for Yaml output level identification
 
   ! General precision, density and the wavefunctions types
   integer, parameter :: gp=kind(1.0d0)  !< general-type precision
@@ -175,6 +175,12 @@ module module_defs
   end interface
   interface c_axpy
      module procedure c_axpy_simple,c_axpy_double
+  end interface
+
+  interface
+     subroutine bigdft_utils_flush(unit)
+       integer, intent(in) :: unit
+     end subroutine bigdft_utils_flush
   end interface
 
   contains

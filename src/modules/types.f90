@@ -40,15 +40,15 @@ module module_types
        & (/ "none        ", "plain text  ", "Fortran bin.", "ETSF        " /)
 
   !> Output grid parameters.
-  integer, parameter :: OUTPUT_GRID_NONE    = 0
-  integer, parameter :: OUTPUT_GRID_DENSITY = 1
-  integer, parameter :: OUTPUT_GRID_DENSPOT = 2
-  character(len = 12), dimension(0:2), parameter :: output_grid_names = &
+  integer, parameter :: OUTPUT_DENSPOT_NONE    = 0
+  integer, parameter :: OUTPUT_DENSPOT_DENSITY = 1
+  integer, parameter :: OUTPUT_DENSPOT_DENSPOT = 2
+  character(len = 12), dimension(0:2), parameter :: OUTPUT_DENSPOT_names = &
        & (/ "none        ", "density     ", "dens. + pot." /)
-  integer, parameter :: OUTPUT_GRID_FORMAT_TEXT = 0
-  integer, parameter :: OUTPUT_GRID_FORMAT_ETSF = 1
-  integer, parameter :: OUTPUT_GRID_FORMAT_CUBE = 2
-  character(len = 4), dimension(0:2), parameter :: output_grid_format_names = &
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_TEXT = 0
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_ETSF = 1
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_CUBE = 2
+  character(len = 4), dimension(0:2), parameter :: OUTPUT_DENSPOT_format_names = &
        & (/ "text", "ETSF", "cube" /)
 
   !> SCF mixing parameters. (mixing parameters to be added)
@@ -110,7 +110,7 @@ module module_types
      logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty, occopt
-     integer :: output_grid, dispersion,last_run,output_wf_format,output_grid_format
+     integer :: OUTPUT_DENSPOT,dispersion,last_run,output_wf_format,OUTPUT_DENSPOT_format
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel, alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: verbosity
@@ -477,82 +477,6 @@ module module_types
 
 
 contains
-
-
-
-!>   De-Allocate paw data contained in atom_data object
-
-  subroutine deallocate_atomdatapaw(atoms,subname)
-    use module_base
-    implicit none
-    character(len=*), intent(in) :: subname
-    type(atoms_data), intent(inout) :: atoms
-    !local variables
-    integer :: i_all,i_stat
-
-    if(associated(atoms%paw_l)) then
-       i_all=-product(shape(atoms%paw_l ))*kind(atoms%paw_l )
-       deallocate(atoms%paw_l,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_l',subname)
-    end if
-
-    if(associated(atoms%paw_NofL)) then
-       i_all=-product(shape(  atoms%paw_NofL ))*kind(atoms%paw_NofL )
-       deallocate(atoms%paw_NofL,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_NofL',subname)
-    end if
-
-    if(associated(atoms%paw_nofchannels)) then
-       i_all=-product(shape(  atoms%paw_nofchannels ))*kind(atoms%paw_nofchannels )
-       deallocate(atoms%paw_nofchannels,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_nofchannels',subname)
-    end if
-
-    if(associated(atoms%paw_nofgaussians)) then
-       i_all=-product(shape(  atoms%paw_nofgaussians ))*kind(atoms%paw_nofgaussians )
-       deallocate(atoms%paw_nofgaussians,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_nofgaussians',subname)
-    end if
-
-    if(associated(atoms%paw_Greal)) then
-       i_all=-product(shape(  atoms%paw_Greal ))*kind(atoms%paw_Greal )
-       deallocate(atoms%paw_Greal,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Greal',subname)
-    end if
-
-    if(associated(atoms%paw_Gimag)) then
-       i_all=-product(shape(  atoms%paw_Gimag ))*kind(atoms%paw_Gimag )
-       deallocate(atoms%paw_Gimag,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Gimag',subname)
-    end if
-
-    if(associated(atoms%paw_Gcoeffs)) then
-       i_all=-product(shape(  atoms%paw_Gcoeffs ))*kind(atoms%paw_Gcoeffs )
-       deallocate(atoms%paw_Gcoeffs,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Gcoeffs',subname)
-    end if
-
-    if(associated(atoms%paw_H_matrices)) then
-       i_all=-product(shape(  atoms%paw_H_matrices ))*kind(atoms%paw_H_matrices )
-       deallocate(atoms%paw_H_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_H_matrices',subname)
-    end if
-
-    if(associated(atoms%paw_S_matrices)) then
-       i_all=-product(shape(  atoms%paw_S_matrices ))*kind(atoms%paw_S_matrices )
-       deallocate(atoms%paw_S_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_S_matrices',subname)
-    end if
-    
-    if(associated(atoms%paw_Sm1_matrices)) then
-       i_all=-product(shape(  atoms%paw_Sm1_matrices ))*kind(atoms%paw_Sm1_matrices )
-       deallocate(atoms%paw_Sm1_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Sm1_matrices',subname)
-    end if
-
-
-  END SUBROUTINE deallocate_atomdatapaw
-
 
 
 !> Allocate diis objects
@@ -1127,31 +1051,31 @@ END SUBROUTINE deallocate_orbs
     output_wf_format_validate = (id >= 0 .and. id < size(wf_format_names))
   end function output_wf_format_validate
 
-  subroutine output_grid_help()
+  subroutine output_denspot_help()
     integer :: i, j
 
-    write(*, "(1x,A)") "Available values of output_grid are:"
-    do i = 0, size(output_grid_format_names) - 1
-       do j = 0, size(output_grid_names) - 1
+    write(*, "(1x,A)") "Available values of output_denspot are:"
+    do i = 0, size(output_denspot_format_names) - 1
+       do j = 0, size(output_denspot_names) - 1
           if (j == 0 .and. i == 0) then
              write(*, "(1x,A,I5,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_grid_names(j)), "."
+                  & " - ", trim(output_denspot_names(j)), "."
           else if (j /= 0) then
              write(*, "(1x,A,I5,A,A,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_grid_names(j)), &
-                  & " in ", trim(output_grid_format_names(i)), " format."
+                  & " - ", trim(output_denspot_names(j)), &
+                  & " in ", trim(output_denspot_format_names(i)), " format."
           end if
        end do
     end do
-  end subroutine output_grid_help
+  end subroutine output_denspot_help
 
-  function output_grid_validate(id, fid)
+  function output_denspot_validate(id, fid)
     integer, intent(in) :: id, fid
-    logical :: output_grid_validate
+    logical :: output_denspot_validate
 
-    output_grid_validate = (id >= 0 .and. id < size(output_grid_names)) .and. &
-         & (fid >= 0 .and. fid < size(output_grid_format_names))
-  end function output_grid_validate
+    output_denspot_validate = (id >= 0 .and. id < size(output_denspot_names)) .and. &
+         & (fid >= 0 .and. fid < size(output_denspot_format_names))
+  end function output_denspot_validate
 
 
 !!

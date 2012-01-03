@@ -232,7 +232,7 @@ subroutine check_for_data_writing_directory(iproc,in)
 
   shouldwrite=shouldwrite .or. &
        in%output_wf_format /= WF_FORMAT_NONE .or. & !write wavefunctions
-       in%output_grid /= OUTPUT_GRID_NONE .or. &    !write output density
+       in%output_denspot /= output_denspot_NONE .or. &    !write output density
        in%ncount_cluster_x > 1 .or. &               !write posouts or posmds
        in%inputPsiId == 2 .or. &                    !have wavefunctions to read
        in%inputPsiId == 12 .or.  &                    !read in gaussian basis
@@ -272,7 +272,7 @@ subroutine default_input_variables(inputs)
 
   ! Default values.
   inputs%output_wf_format = WF_FORMAT_NONE
-  inputs%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
+  inputs%output_denspot_format = output_denspot_FORMAT_CUBE
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)
@@ -372,8 +372,8 @@ subroutine dft_input_variables_new(iproc,filename,in)
      call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
-  call input_var(in%output_grid,'0',exclusive=(/0,1,2/),&
-       comment='InputPsiId, output_wf, output_grid')
+  call input_var(in%output_denspot,'0',exclusive=(/0,1,2/),&
+       comment='InputPsiId, output_wf, output_denspot')
 
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10)
@@ -384,13 +384,13 @@ subroutine dft_input_variables_new(iproc,filename,in)
      in%inputPsiId=0
   end if
   ! Setup out grid parameters.
-  if (in%output_grid >= 0) then
-     in%output_grid_format = in%output_grid / 10
+  if (in%output_denspot >= 0) then
+     in%output_denspot_format = in%output_denspot / 10
   else
-     in%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
-     in%output_grid = abs(in%output_grid)
+     in%output_denspot_format = output_denspot_FORMAT_CUBE
+     in%output_denspot = abs(in%output_denspot)
   end if
-  in%output_grid = modulo(in%output_grid, 10)
+  in%output_denspot = modulo(in%output_denspot, 10)
 
   ! Tail treatment.
   call input_var(in%rbuf,'0.0',ranges=(/0.0_gp,10.0_gp/))
@@ -414,7 +414,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   !define whether there should be a last_run after geometry optimization
   !also the mulliken charge population should be inserted
   if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. &
-       in%output_grid /= OUTPUT_GRID_NONE .or. in%norbv /= 0) then
+       in%output_denspot /= output_denspot_NONE .or. in%norbv /= 0) then
      in%last_run=-1 !last run to be done depending of the external conditions
   else
      in%last_run=0
@@ -1099,7 +1099,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
            in%itermax=0
            in%itrpmax=0
            in%inputPsiId=-1000 !allocate empty wavefunctions
-           in%output_grid=0
+           in%output_denspot=0
         end if
      end if
   end if
@@ -1293,7 +1293,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         in%itermax=0
         in%itrpmax=0
         in%inputPsiId=-1000 !allocate empty wavefunctions
-        in%output_grid=0
+        in%output_denspot=0
      end if
   end if
   close(unit=1,iostat=ierror)
@@ -1902,7 +1902,7 @@ module position_files
 end module position_files
 
 !> Read atomic file
-subroutine read_atomic_file(file,iproc,atoms,rxyz)
+subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    use module_base
    use module_types
    use module_interfaces, except_this_one => read_atomic_file
@@ -1913,6 +1913,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
    integer, intent(in) :: iproc
    type(atoms_data), intent(inout) :: atoms
    real(gp), dimension(:,:), pointer :: rxyz
+   integer, intent(out), optional :: status
    !Local variables
    !n(c) character(len=*), parameter :: subname='read_atomic_file'
    integer :: l, extract
@@ -1923,6 +1924,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
 
    file_exists = .false.
    archive = .false.
+   if (present(status)) status = 0
 
    ! Extract from archive
    if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
@@ -1936,7 +1938,12 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
          & trim(file), len(trim(file)), extract, ext)
          if (extract == 0) then
             write(*,*) "Can't find '", file, "' in archive."
-            stop
+            if (present(status)) then
+               status = 1
+               return
+            else
+               stop
+            end if
          end if
          archive = .true.
          write(filename, "(A)") file//'.'//trim(ext)
@@ -1975,7 +1982,12 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
          else
             write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
             write(*,*) " File should be *.ascii or *.xyz."
-            stop
+            if (present(status)) then
+               status = 1
+               return
+            else
+               stop
+            end if
          end if
          open(unit=99,file=trim(filename),status='old')
       end if
@@ -1984,7 +1996,12 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
    if (.not. file_exists) then
       write(*,*) "Atomic input file not found."
       write(*,*) " Files looked for were '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
-      stop 
+      if (present(status)) then
+         status = 1
+         return
+      else
+         stop 
+      end if
    end if
 
    if (atoms%format == "xyz") then
@@ -2018,307 +2035,6 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
 END SUBROUTINE read_atomic_file
 
 
-!> Deallocate the structure atoms_data.
-subroutine deallocate_atoms(atoms,subname) 
-  use module_base
-  use module_types
-  use m_ab6_symmetry
-  implicit none
-  character(len=*), intent(in) :: subname
-  type(atoms_data), intent(inout) :: atoms
-  !local variables
-  integer :: i_stat, i_all
-
-  !deallocations
-  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
-  deallocate(atoms%ifrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
-  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
-  deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%iatype',subname)
-  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
-  deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%natpol',subname)
-  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
-  deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%atomnames',subname)
-  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-  deallocate(atoms%amu,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%amu',subname)
-  if (atoms%symObj >= 0) then
-     call symmetry_free(atoms%symObj)
-  end if
-  ! Deallocations related to pseudos.
-  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-  deallocate(atoms%nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nzatom',subname)
-  i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-  deallocate(atoms%psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%psppar',subname)
-  i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-  deallocate(atoms%nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nelpsp',subname)
-  i_all=-product(shape(atoms%ixcpsp))*kind(atoms%ixcpsp)
-  deallocate(atoms%ixcpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%ixcpsp',subname)
-  i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-  deallocate(atoms%npspcode,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%npspcode',subname)
-  i_all=-product(shape(atoms%nlcc_ngv))*kind(atoms%nlcc_ngv)
-  deallocate(atoms%nlcc_ngv,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nlcc_ngv',subname)
-  i_all=-product(shape(atoms%nlcc_ngc))*kind(atoms%nlcc_ngc)
-  deallocate(atoms%nlcc_ngc,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nlcc_ngc',subname)
-  i_all=-product(shape(atoms%nlccpar))*kind(atoms%nlccpar)
-  deallocate(atoms%nlccpar,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nlccpar',subname)
-  i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
-  deallocate(atoms%radii_cf,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%radii_cf',subname)
-
-  
-  !  Free data for pawpatch
-  call deallocate_atomdatapaw(atoms,subname)
-
-
-END SUBROUTINE deallocate_atoms
-
-
-!> Deallocate the structure atoms_data after scf loop.
-subroutine deallocate_atoms_scf(atoms,subname) 
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: subname
-  type(atoms_data), intent(inout) :: atoms
-  !local variables
-  integer :: i_stat, i_all
-  !semicores useful only for the input guess
-  i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-  deallocate(atoms%iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%iasctype',subname)
-  i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
-  deallocate(atoms%aocc,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%aocc',subname)
-END SUBROUTINE deallocate_atoms_scf
-
-
-!> Read atomic positions
-subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,ifile
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
-  !Routine as argument
-  interface
-     subroutine getline(line,ifile,eof)
-       integer, intent(in) :: ifile
-       character(len=150), intent(out) :: line
-       logical, intent(out) :: eof
-     END SUBROUTINE getline
-  end interface
-  !local variables
-  character(len=*), parameter :: subname='read_atomic_positions'
-  character(len=20) :: symbol
-  character(len=20) :: tatonam
-  character(len=50) :: extra
-  character(len=150) :: line
-  logical :: lpsdbl, eof
-  integer :: iat,ityp,i,ierrsfx,i_stat
-! To read the file posinp (avoid differences between compilers)
-  real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
-! case for which the atomic positions are given whithin general precision
-  real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
-  character(len=20), dimension(100) :: atomnames
-
-  call getLine(line, ifile, eof)
-  if (eof) then
-     write(*,*) "Error: unexpected end of file."
-     stop
-  end if
-  read(line,*) atoms%nat,atoms%units
-
-  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
-
-  allocate(atoms%iatype(atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%iatype,'atoms%iatype',subname)
-  allocate(atoms%ifrztyp(atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%ifrztyp,'atoms%ifrztyp',subname)
-  allocate(atoms%natpol(atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%natpol,'atoms%natpol',subname)
-  allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
-
-  !controls if the positions are provided with machine precision
-  if (atoms%units == 'angstroemd0' .or. atoms%units== 'atomicd0' .or. &
-       atoms%units== 'bohrd0' .or. atoms%units=='reduced') then
-     lpsdbl=.true.
-  else
-     lpsdbl=.false.
-  end if
-
-  !this array is useful for frozen atoms
-  !no atom is frozen by default
-  atoms%ifrztyp(:)=0
-  !also the spin polarisation and the charge are is fixed to zero by default
-  !this corresponds to the value of 100
-  !RULE natpol=charge*1000 + 100 + spinpol
-  atoms%natpol(:)=100
-
-  !read from positions of .xyz format, but accepts also the old .ascii format
-  call getLine(line, ifile, eof)
-  if (eof) then
-     write(*,*) "Error: unexpected end of file."
-     stop
-  end if
-
-!!!  !old format, still here for backward compatibility
-!!!  !admits only simple precision calculation
-!!!  read(line,*,iostat=ierror) rx,ry,rz,tatonam
-
-!!!  !in case of old format, put geocode to F and alat to 0.
-!!!  if (ierror == 0) then
-!!!     atoms%geocode='F'
-!!!     alat1d0=0.0_gp
-!!!     alat2d0=0.0_gp
-!!!     alat3d0=0.0_gp
-!!!  else
-  if (lpsdbl) then
-     read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
-  else
-     read(line,*,iostat=ierrsfx) tatonam,alat1,alat2,alat3
-  end if
-  if (ierrsfx == 0) then
-     if (trim(tatonam)=='periodic') then
-        atoms%geocode='P'
-     else if (trim(tatonam)=='surface') then 
-        atoms%geocode='S'
-        atoms%alat2=0.0_gp
-     else !otherwise free bc
-        atoms%geocode='F'
-        atoms%alat1=0.0_gp
-        atoms%alat2=0.0_gp
-        atoms%alat3=0.0_gp
-     end if
-     if (.not. lpsdbl) then
-        alat1d0=real(alat1,gp)
-        alat2d0=real(alat2,gp)
-        alat3d0=real(alat3,gp)
-     end if
-  else
-     atoms%geocode='F'
-     alat1d0=0.0_gp
-     alat2d0=0.0_gp
-     alat3d0=0.0_gp
-  end if
-!!!  end if
-
-  !reduced coordinates are possible only with periodic units
-  if (atoms%units == 'reduced' .and. atoms%geocode == 'F') then
-     if (iproc==0) write(*,'(1x,a)')&
-          'ERROR: Reduced coordinates are not allowed with isolated BC'
-  end if
-
-  !convert the values of the cell sizes in bohr
-  if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
-     ! if Angstroem convert to Bohr
-     atoms%alat1=alat1d0/bohr2ang
-     atoms%alat2=alat2d0/bohr2ang
-     atoms%alat3=alat3d0/bohr2ang
-  else if  (atoms%units=='atomic' .or. atoms%units=='bohr'  .or.&
-       atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
-     atoms%alat1=alat1d0
-     atoms%alat2=alat2d0
-     atoms%alat3=alat3d0
-  else if (atoms%units == 'reduced') then
-     !assume that for reduced coordinates cell size is in bohr
-     atoms%alat1=alat1d0
-     atoms%alat2=alat2d0
-     atoms%alat3=alat3d0
-  else
-     write(*,*) 'length units in input file unrecognized'
-     write(*,*) 'recognized units are angstroem or atomic = bohr'
-     stop 
-  endif
-
-  atoms%ntypes=0
-  do iat=1,atoms%nat
-     !xyz input file, allow extra information
-     call getLine(line, ifile, eof)
-     if (eof) then
-        write(*,*) "Error: unexpected end of file."
-        stop
-     end if
-     if (lpsdbl) then
-        read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,extra
-     else
-        read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
-     end if
-     !print *,'extra',iat,extra
-     call find_extra_info(line,extra)
-     !print *,'then',iat,extra
-     call parse_extra_info(iat,extra,atoms)
-
-     tatonam=trim(symbol)
-!!!     end if
-     if (lpsdbl) then
-        rxyz(1,iat)=rxd0
-        rxyz(2,iat)=ryd0
-        rxyz(3,iat)=rzd0
-     else
-        rxyz(1,iat)=real(rx,gp)
-        rxyz(2,iat)=real(ry,gp)
-        rxyz(3,iat)=real(rz,gp)
-     end if
-
-     
-
-     if (atoms%units == 'reduced') then !add treatment for reduced coordinates
-        rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
-        if (atoms%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
-        rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
-     else if (atoms%geocode == 'P') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
-        rxyz(2,iat)=modulo(rxyz(2,iat),alat2d0)
-        rxyz(3,iat)=modulo(rxyz(3,iat),alat3d0)
-     else if (atoms%geocode == 'S') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
-        rxyz(3,iat)=modulo(rxyz(3,iat),alat3d0)
-     end if
- 
-     do ityp=1,atoms%ntypes
-        if (tatonam == atomnames(ityp)) then
-           atoms%iatype(iat)=ityp
-           goto 200
-        endif
-     enddo
-     atoms%ntypes=atoms%ntypes+1
-     if (atoms%ntypes > 100) stop 'more than 100 atomnames not permitted'
-     atomnames(ityp)=tatonam
-     atoms%iatype(iat)=atoms%ntypes
-200  continue
-
-     if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
-        ! if Angstroem convert to Bohr
-        do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
-        enddo
-     else if (atoms%units == 'reduced') then 
-        rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
-        if (atoms%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
-        rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
-     endif
-  enddo
-
-  !now that ntypes is determined allocate atoms%atomnames and copy the values
-  allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
-  atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
-END SUBROUTINE read_xyz_positions
 
 
 !> Check the position of atoms
@@ -2375,363 +2091,6 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
 END SUBROUTINE check_atoms_positions
 
 
-!> Find extra information
-subroutine find_extra_info(line,extra)
-  implicit none
-  character(len=150), intent(in) :: line
-  character(len=50), intent(out) :: extra
-  !local variables
-  logical :: space
-  integer :: i,nspace
-  i=1
-  space=.true.
-  nspace=-1
-  !print *,'line',line
-  find_space : do
-     !toggle the space value for each time
-     if ((line(i:i) == ' ' .or. line(i:i) == char(9)) .neqv. space) then
-        nspace=nspace+1
-        space=.not. space
-     end if
-     !print *,line(i:i),nspace
-     if (nspace==8) then
-        extra=line(i:min(150,i+49))
-        exit find_space
-     end if
-     if (i==150) then
-        !print *,'AAA',extra
-        extra='nothing'
-        exit find_space
-     end if
-     i=i+1
-  end do find_space
-END SUBROUTINE find_extra_info
-
-
-!> Parse extra information
-subroutine parse_extra_info(iat,extra,atoms)
-  use module_types
-  implicit none
-  !Arguments
-  integer, intent(in) :: iat
-  character(len=50), intent(in) :: extra
-  type(atoms_data), intent(inout) :: atoms
-  !Local variables
-  character(len=4) :: suffix
-  logical :: go
-  integer :: ierr,ierr1,ierr2,nspol,nchrg,nsgn
-  !case with all the information
-  !print *,iat,'ex'//trim(extra)//'ex'
-  read(extra,*,iostat=ierr)nspol,nchrg,suffix
-  if (extra == 'nothing') then !case with empty information
-     nspol=0
-     nchrg=0
-     suffix='    '
-  else if (ierr /= 0) then !case with partial information
-     read(extra,*,iostat=ierr1)nspol,suffix
-     if (ierr1 /=0) then
-        call valid_frzchain(trim(extra),go)
-        if (go) then
-           suffix=trim(extra)
-           nspol=0
-           nchrg=0
-        else
-           read(extra,*,iostat=ierr2)nspol
-           if (ierr2 /=0) then
-              call error
-           end if
-           suffix='    '
-           nchrg=0
-        end if
-     else
-        nchrg=0
-        call valid_frzchain(trim(suffix),go)
-        if (.not. go) then
-           read(suffix,*,iostat=ierr2)nchrg
-           if (ierr2 /= 0) then
-              call error
-           else
-              suffix='    '
-           end if
-        else
-
-        end if
-     end if
-  end if
-
-  !now assign the array, following the rule
-  if(nchrg>=0) then
-     nsgn=1
-  else
-     nsgn=-1
-  end if
-  atoms%natpol(iat)=1000*nchrg+nsgn*100+nspol
-
-  !print *,'natpol atomic',iat,atoms%natpol(iat),suffix
-
-  !convert the suffix into ifrztyp
-  call frozen_ftoi(suffix,atoms%ifrztyp(iat))
-
-!!!  if (trim(suffix) == 'f') then
-!!!     !the atom is considered as blocked
-!!!     atoms%ifrztyp(iat)=1
-!!!  end if
-
-contains
-
- subroutine error
-   !if (iproc == 0) then
-      print *,extra
-      write(*,'(1x,a,i0,a)')&
-           'ERROR in input file for atom number ',iat,&
-           ': after 4th column you can put the input polarisation(s) or the frzchain: f,fxz,fy'
-   !end if
-   stop
- END SUBROUTINE error
-  
-END SUBROUTINE parse_extra_info
-
-
-!> Read atomic positions of ascii files.
-subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,ifile
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
-  interface
-     subroutine getline(line,ifile,eof)
-       integer, intent(in) :: ifile
-       character(len=150), intent(out) :: line
-       logical, intent(out) :: eof
-     END SUBROUTINE getline
-  end interface
-  !local variables
-  character(len=*), parameter :: subname='read_ascii_positions'
-  character(len=20) :: symbol
-  character(len=20) :: tatonam
-  character(len=50) :: extra
-  character(len=150) :: line
-  logical :: lpsdbl, reduced, eof
-  integer :: iat,ityp,i,i_stat,j,nlines
-! To read the file posinp (avoid differences between compilers)
-  real(kind=4) :: rx,ry,rz,alat1,alat2,alat3,alat4,alat5,alat6
-! case for which the atomic positions are given whithin general precision
-  real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0,alat4d0,alat5d0,alat6d0
-  character(len=20), dimension(100) :: atomnames
-  ! Store the file.
-  character(len = 150), dimension(5000) :: lines
-
-  ! First pass to store the file in a string buffer.
-  nlines = 1
-  do
-     call getline(lines(nlines), ifile, eof)
-     if (eof) then
-        exit
-     end if
-     nlines = nlines + 1
-     if (nlines > 5000) then
-        if (iproc==0) write(*,*) 'Atomic input file too long (> 5000 lines).'
-        stop 
-     end if
-  end do
-  nlines = nlines - 1
-
-  if (nlines < 4) then
-     if (iproc==0) write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
-     stop 
-  end if
-
-  ! Try to determine the number atoms and the keywords.
-  write(atoms%units, "(A)") "bohr"
-  reduced = .false.
-  atoms%geocode = 'P'
-  atoms%nat     = 0
-  do i = 4, nlines, 1
-     write(line, "(a150)") adjustl(lines(i))
-     if (line(1:1) /= '#' .and. line(1:1) /= '!' .and. len(trim(line)) /= 0) then
-        atoms%nat = atoms%nat + 1
-     else if (line(1:8) == "#keyword" .or. line(1:8) == "!keyword") then
-        if (index(line, 'bohr') > 0)        write(atoms%units, "(A)") "bohr"
-        if (index(line, 'bohrd0') > 0)      write(atoms%units, "(A)") "bohrd0"
-        if (index(line, 'atomic') > 0)      write(atoms%units, "(A)") "atomicd0"
-        if (index(line, 'angstroem') > 0)   write(atoms%units, "(A)") "angstroem"
-        if (index(line, 'angstroemd0') > 0) write(atoms%units, "(A)") "angstroemd0"
-        if (index(line, 'reduced') > 0)     reduced = .true.
-        if (index(line, 'periodic') > 0) atoms%geocode = 'P'
-        if (index(line, 'surface') > 0)  atoms%geocode = 'S'
-        if (index(line, 'freeBC') > 0)   atoms%geocode = 'F'
-     end if
-  end do
-
-  allocate(atoms%iatype(atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%iatype,'atoms%iatype',subname)
-  allocate(atoms%ifrztyp(atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%ifrztyp,'atoms%ifrztyp',subname)
-  allocate(atoms%natpol(atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%natpol,'atoms%natpol',subname)
-  allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
-  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
-
-  !controls if the positions are provided within machine precision
-  if (index(atoms%units, 'd0') > 0 .or. reduced) then
-     lpsdbl=.true.
-  else
-     lpsdbl=.false.
-  end if
-
-  !this array is useful for frozen atoms
-  !no atom is frozen by default
-  atoms%ifrztyp(:)=0
-  !also the spin polarisation and the charge are is fixed to zero by default
-  !this corresponds to the value of 100
-  !RULE natpol=charge*1000 + 100 + spinpol
-  atoms%natpol(:)=100
-
-  ! Read the box definition
-  atoms%alat1 = 0.0_gp
-  atoms%alat2 = 0.0_gp
-  atoms%alat3 = 0.0_gp
-  if (lpsdbl) then
-     read(lines(2),*) alat1d0,alat2d0,alat3d0
-     read(lines(3),*) alat4d0,alat5d0,alat6d0
-     if (alat2d0 /= 0.d0 .or. alat4d0 /= 0.d0 .or. alat5d0 /= 0.d0) then
-        !if (iproc==0) 
-        write(*,*) 'Only orthorombic boxes are possible.'
-        stop 
-     end if
-     atoms%alat1 = real(alat1d0,gp)
-     atoms%alat2 = real(alat3d0,gp)
-     atoms%alat3 = real(alat6d0,gp)
-  else
-     read(lines(2),*) alat1,alat2,alat3
-     read(lines(3),*) alat4,alat5,alat6
-     if (alat2 /= 0. .or. alat4 /= 0. .or. alat5 /= 0.) then
-        !if (iproc==0) 
-           write(*,*) 'Only orthorombic boxes are possible.'
-        !if (iproc==0) 
-           write(*,*) ' but alat2, alat4 and alat5 = ', alat2, alat4, alat5
-        stop 
-     end if
-     atoms%alat1 = real(alat1,gp)
-     atoms%alat2 = real(alat3,gp)
-     atoms%alat3 = real(alat6,gp)
-  end if
-  
-  !Convert the values of the cell sizes in bohr
-  if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
-     ! if Angstroem convert to Bohr
-     atoms%alat1 = atoms%alat1 / bohr2ang
-     atoms%alat2 = atoms%alat2 / bohr2ang
-     atoms%alat3 = atoms%alat3 / bohr2ang
-  endif
-
-  atoms%ntypes=0
-  iat = 1
-  do i = 4, nlines, 1
-     write(line, "(a150)") adjustl(lines(i))
-     if (line(1:1) /= '#' .and. line(1:1) /= '!' .and. len(trim(line)) /= 0) then
-        write(extra, "(A)") "nothing"
-        if (lpsdbl) then
-           read(line,*, iostat = i_stat) rxd0,ryd0,rzd0,symbol,extra
-           if (i_stat /= 0) read(line,*) rxd0,ryd0,rzd0,symbol
-        else
-           read(line,*, iostat = i_stat) rx,ry,rz,symbol,extra
-           if (i_stat /= 0) read(line,*) rx,ry,rz,symbol
-        end if
-        call find_extra_info(line,extra)
-        call parse_extra_info(iat,extra,atoms)
-
-        tatonam=trim(symbol)
-
-        if (lpsdbl) then
-           rxyz(1,iat)=rxd0
-           rxyz(2,iat)=ryd0
-           rxyz(3,iat)=rzd0
-        else
-           rxyz(1,iat)=real(rx,gp)
-           rxyz(2,iat)=real(ry,gp)
-           rxyz(3,iat)=real(rz,gp)
-        end if
-
-        if (reduced) then !add treatment for reduced coordinates
-           rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
-           rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
-           rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
-        else if (atoms%geocode == 'P') then
-           rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-           rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
-           rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-        else if (atoms%geocode == 'S') then
-           rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-           rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-        end if
-
-        do ityp=1,atoms%ntypes
-           if (tatonam == atomnames(ityp)) then
-              atoms%iatype(iat)=ityp
-              goto 200
-           endif
-        enddo
-        atoms%ntypes=atoms%ntypes+1
-        if (atoms%ntypes > 100) stop 'more than 100 atomnames not permitted'
-        atomnames(ityp)=tatonam
-        atoms%iatype(iat)=atoms%ntypes
-200     continue
-
-        if (reduced) then
-           rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
-           rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
-           rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
-        else if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
-           ! if Angstroem convert to Bohr
-           do j=1,3 
-              rxyz(j,iat)=rxyz(j,iat) / bohr2ang
-           enddo
-        endif
-        iat = iat + 1
-     end if
-  enddo
-
-  if (atoms%geocode == 'S') then
-     atoms%alat2 = 0.0_gp
-  else if (atoms%geocode == 'F') then
-     atoms%alat1 = 0.0_gp
-     atoms%alat2 = 0.0_gp
-     atoms%alat3 = 0.0_gp
-  end if
-
-  !now that ntypes is determined allocate atoms%atomnames and copy the values
-  allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
-  atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
-END SUBROUTINE read_ascii_positions
-
-
-!>Calculate the charge and the spin polarisation to be placed on a given atom
-!!   RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
-subroutine charge_and_spol(natpol,nchrg,nspol)
-  implicit none
-  integer, intent(in) :: natpol
-  integer, intent(out) :: nchrg,nspol
-  !local variables
-  integer :: nsgn
-
-  nchrg=natpol/1000
-  if (nchrg>=0) then
-     nsgn=1
-  else
-     nsgn=-1
-  end if
-
-  nspol=natpol-1000*nchrg-nsgn*100
-
-END SUBROUTINE charge_and_spol
-
-
 !> Write an atomic file
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   use module_base
@@ -2769,270 +2128,6 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
           & len(trim(filename)//'.'//trim(atoms%format)))
   end if
 END SUBROUTINE write_atomic_file
-
-
-!>Write xyz atomic file.
-subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iunit
-  character(len=*), intent(in) :: comment
-  type(atoms_data), intent(in) :: atoms
-  real(gp), intent(in) :: energy
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  !local variables
-  character(len=20) :: symbol
-  character(len=10) :: name
-  character(len=11) :: units
-  character(len=50) :: extra
-  integer :: iat,j
-  real(gp) :: xmax,ymax,zmax,factor
-
-  xmax=0.0_gp
-  ymax=0.0_gp
-  zmax=0.0_gp
-
-  do iat=1,atoms%nat
-     xmax=max(rxyz(1,iat),xmax)
-     ymax=max(rxyz(2,iat),ymax)
-     zmax=max(rxyz(3,iat),zmax)
-  enddo
-  if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr2ang
-     units='angstroemd0'
-  else
-     factor=1.0_gp
-     units='atomicd0'
-  end if
-
-  write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),energy,comment
-
-  if (atoms%geocode == 'P') then
-     write(iunit,'(a,3(1x,1pe24.17))')'periodic',&
-          atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
-  else if (atoms%geocode == 'S') then
-     write(iunit,'(a,3(1x,1pe24.17))')'surface',&
-          atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
-  else
-     write(iunit,*)'free'
-  end if
-  do iat=1,atoms%nat
-     name=trim(atoms%atomnames(atoms%iatype(iat)))
-     if (name(3:3)=='_') then
-        symbol=name(1:2)
-     else if (name(2:2)=='_') then
-        symbol=name(1:1)
-     else
-        symbol=name(1:min(len(name),5))
-     end if
-
-     call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))
-
-     write(iunit,'(a5,1x,3(1x,1pe24.17),2x,a50)')symbol,(rxyz(j,iat)*factor,j=1,3),extra
-  enddo
-
-END SUBROUTINE wtxyz
-
-!> Add the forces in the position file for the xyz system
-subroutine wtxyz_forces(iunit,fxyz,at)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iunit
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: fxyz
-  !local variables
-  integer :: iat,j
-  character(len=20) :: symbol
-  character(len=10) :: name
-
-  write(iunit,*)'forces'
-  
-  do iat=1,at%nat
-     name=trim(at%atomnames(at%iatype(iat)))
-     if (name(3:3)=='_') then
-        symbol=name(1:2)
-     else if (name(2:2)=='_') then
-        symbol=name(1:1)
-     else
-        symbol=name(1:min(len(name),5))
-     end if
-
-     write(iunit,'(a5,1x,3(1x,1pe24.17))')symbol,(fxyz(j,iat),j=1,3)
-  end do
-  
-end subroutine wtxyz_forces
-
-!>Write ascii file (atomic position). 
-subroutine wtascii(iunit,energy,rxyz,atoms,comment)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iunit
-  character(len=*), intent(in) :: comment
-  type(atoms_data), intent(in) :: atoms
-  real(gp), intent(in) :: energy
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  !local variables
-  character(len=2) :: symbol
-  character(len=50) :: extra
-  character(len=10) :: name
-  integer :: iat,j
-  real(gp) :: xmax,ymax,zmax,factor
-
-  xmax=0.0_gp
-  ymax=0.0_gp
-  zmax=0.0_gp
-
-  do iat=1,atoms%nat
-     xmax=max(rxyz(1,iat),xmax)
-     ymax=max(rxyz(2,iat),ymax)
-     zmax=max(rxyz(3,iat),zmax)
-  enddo
-  if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr2ang
-  else
-     factor=1.0_gp
-  end if
-
-  write(iunit, "(A,A)") "# BigDFT file - ", trim(comment)
-  write(iunit, "(3e24.17)") atoms%alat1*factor, 0.d0, atoms%alat2*factor
-  write(iunit, "(3e24.17)") 0.d0,               0.d0, atoms%alat3*factor
-
-  write(iunit, "(A,A)") "#keyword: ", trim(atoms%units)
-  if (atoms%geocode == 'P') write(iunit, "(A)") "#keyword: periodic"
-  if (atoms%geocode == 'S') write(iunit, "(A)") "#keyword: surface"
-  if (atoms%geocode == 'F') write(iunit, "(A)") "#keyword: freeBC"
-  if (energy /= 0.d0) then
-     write(iunit, "(A,e24.17,A)") "#metaData: totalEnergy=", energy, "Ht"
-  end if
-
-  do iat=1,atoms%nat
-     name=trim(atoms%atomnames(atoms%iatype(iat)))
-     if (name(3:3)=='_') then
-        symbol=name(1:2)
-     else if (name(2:2)=='_') then
-        symbol=name(1:1)
-     else
-        symbol=name(1:2)
-     end if
-
-     call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))     
-
-     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor,j=1,3),symbol,extra
-  end do
-
-
-END SUBROUTINE wtascii
-
-subroutine wtascii_forces(iunit,fxyz,at)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iunit
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: fxyz
-  !local variables
-  integer :: iat,j
-  character(len=1) :: endline
-  
-  if (at%nat ==0) return
-  !write the first position
-  iat=1
-  if (at%nat==iat) then
-     endline=']'
-  else
-     endline=char(92)
-  end if
-
-  write(iunit, "(A,3(1pe25.17,A),a)") "#metaData: forces=[",(fxyz(j,iat), ";",j=1,3),' '//endline
-  !then the rest until the second-last
-  do iat=2,at%nat
-     if (at%nat==iat) then
-        endline=']'
-     else
-        endline=char(92)
-     end if
-     write(iunit, "(A,3(1pe25.17,A),a)") "# ",(fxyz(j,iat), ";",j=1,3),' '//endline
-  end do
-end subroutine wtascii_forces
-
-!>Write the extra info necessary for the output file
-subroutine write_extra_info(extra,natpol,ifrztyp)
-  use module_base
-  implicit none 
-  integer, intent(in) :: natpol,ifrztyp
-  character(len=50), intent(out) :: extra
-  !local variables
-  character(len=4) :: frzchain
-  integer :: ispol,ichg
-
-  call charge_and_spol(natpol,ichg,ispol)
-
-  call frozen_itof(ifrztyp,frzchain)
-  
-  !takes into account the blocked atoms and the input polarisation
-  if (ispol == 0 .and. ichg == 0 ) then
-     write(extra,'(2x,a4)')frzchain
-  else if (ispol /= 0 .and. ichg == 0) then
-     write(extra,'(i7,2x,a4)')ispol,frzchain
-  else if (ichg /= 0) then
-     write(extra,'(2(i7),2x,a4)')ispol,ichg,frzchain
-  else
-     write(extra,'(2x,a4)') ''
-  end if
-  
-END SUBROUTINE write_extra_info
-
-
-subroutine frozen_itof(ifrztyp,frzchain)
-  implicit none
-  integer, intent(in) :: ifrztyp
-  character(len=4), intent(out) :: frzchain
-
-  if (ifrztyp == 0) then
-     frzchain='    '
-  else if (ifrztyp == 1) then
-     frzchain='   f'
-  else if (ifrztyp == 2) then
-     frzchain='  fy'
-  else if (ifrztyp == 3) then
-     frzchain=' fxz'
-  end if
-        
-END SUBROUTINE frozen_itof
-
-
-subroutine valid_frzchain(frzchain,go)
-  implicit none
-  character(len=*), intent(in) :: frzchain
-  logical, intent(out) :: go
-
-  go= trim(frzchain) == 'f' .or. &
-       trim(frzchain) == 'fy' .or. &
-       trim(frzchain) == 'fxz'
-  
-END SUBROUTINE valid_frzchain
-
-
-subroutine frozen_ftoi(frzchain,ifrztyp)
-  implicit none
-  character(len=4), intent(in) :: frzchain
-  integer, intent(out) :: ifrztyp
-
-  if (trim(frzchain)=='') then
-     ifrztyp = 0
-  else if (trim(frzchain)=='f') then
-     ifrztyp = 1
-  else if (trim(frzchain)=='fy') then
-     ifrztyp = 2
-  else if (trim(frzchain)=='fxz') then
-     ifrztyp = 3
-  end if
-        
-END SUBROUTINE frozen_ftoi
-
 
 !>Calculate the coefficient for moving atoms following the ifrztyp
 subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
@@ -3308,8 +2403,9 @@ subroutine print_dft_parameters(in,atoms)
        & "Input wf. policy=", in%inputPsiId, " (" // input_psi_names(in%inputPsiId) // ")", "|", &
        & "Output wf. policy=", in%output_wf_format, " (" // wf_format_names(in%output_wf_format) // ")"
   write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
-       & "Output grid policy=", in%output_grid, "   (" // output_grid_names(in%output_grid) // ")", "|", &
-       & "Output grid format=", in%output_grid_format, "         (" // output_grid_format_names(in%output_grid_format) // ")"
+       & "Output grid policy=", in%output_denspot, "   (" // output_denspot_names(in%output_denspot) // ")", "|", &
+       & "Output grid format=", in%output_denspot_format, &
+       "         (" // output_denspot_format_names(in%output_denspot_format) // ")"
 
 END SUBROUTINE print_dft_parameters
 
@@ -3322,43 +2418,43 @@ subroutine write_input_parameters(in,atoms)
   !local variables
   character(len = 11) :: potden
   !start yaml output
-  write(70,'(a)')repeat(' ',yaml_indent)//'Physical System Parameters:'
+!  write(70,'(a)')repeat(' ',yaml_indent)//'Physical System Parameters:'
   yaml_indent=yaml_indent+3
-  write(70,'(a,t55,a)')repeat(' ',yaml_indent)//'Boundary Conditions:',atoms%geocode
-  if (atoms%geocode /= 'F')write(70,'(a,t55,a,3(1x,f5.3,a))')&
-       repeat(' ',yaml_indent)//'Box Sizes (a0):','[',atoms%alat1,',',atoms%alat2,',',atoms%alat3,' ]'
-  if (in%ncharge > 0) write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Net Charge of the System (Ions-Electrons):',in%ncharge
-  if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) write(70,'(a,t55,a,3(1x,1pe7.1,a))')&
-       repeat(' ',yaml_indent)//'External Electric Field (Ha/a0):',&
-       '[',in%elecfield(1),',',in%elecfield(2),',',in%elecfield(3),' ]'
+!  write(70,'(a,t55,a)')repeat(' ',yaml_indent)//'Boundary Conditions:',atoms%geocode
+!  if (atoms%geocode /= 'F')write(70,'(a,t55,a,3(1x,f5.3,a))')&
+!       repeat(' ',yaml_indent)//'Box Sizes (a0):','[',atoms%alat1,',',atoms%alat2,',',atoms%alat3,' ]'
+!  if (in%ncharge > 0) write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Net Charge of the System (Ions-Electrons):',in%ncharge
+!  if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) write(70,'(a,t55,a,3(1x,1pe7.1,a))')&
+!       repeat(' ',yaml_indent)//'External Electric Field (Ha/a0):',&
+!       '[',in%elecfield(1),',',in%elecfield(2),',',in%elecfield(3),' ]'
   yaml_indent=yaml_indent-3
-  write(70,'(a)')repeat(' ',yaml_indent)//'DFT Approximations Parameters:'
+!  write(70,'(a)')repeat(' ',yaml_indent)//'DFT Approximations Parameters:'
   yaml_indent=yaml_indent+3
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Exchange-Correlation ID:',in%ixc
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Exchange-Correlation ID:',in%ixc
   yaml_indent=yaml_indent-3
-  write(70,'(a)')repeat(' ',yaml_indent)//'Basis Set Parameters:'
+!  write(70,'(a)')repeat(' ',yaml_indent)//'Basis Set Parameters:'
   yaml_indent=yaml_indent+3
-  write(70,'(a,t55,a,3(1x,f5.3,a))')repeat(' ',yaml_indent)//'Input Grid Spacings (a0):','[',in%hx,',',in%hy,',',in%hz,' ]'
-  write(70,'(a,t55,a,2(1x,f4.1,a))')repeat(' ',yaml_indent)//'Coarse and Fine Radii Multipliers:','[',in%crmult,',',in%frmult,' ]'
+!  write(70,'(a,t55,a,3(1x,f5.3,a))')repeat(' ',yaml_indent)//'Input Grid Spacings (a0):','[',in%hx,',',in%hy,',',in%hz,' ]'
+!  write(70,'(a,t55,a,2(1x,f4.1,a))')repeat(' ',yaml_indent)//'Coarse and Fine Radii Multipliers:','[',in%crmult,',',in%frmult,' ]'
   yaml_indent=yaml_indent-3
-  write(70,'(a)')repeat(' ',yaml_indent)//'Wavefunction Optimization Parameters:'
+!  write(70,'(a)')repeat(' ',yaml_indent)//'Wavefunction Optimization Parameters:'
   yaml_indent=yaml_indent+3
-  write(70,'(a,t55,1pe8.1)')repeat(' ',yaml_indent)//'Gradient Norm Convergence Criterion:',in%gnrm_cv
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Iterations:',in%itermax
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Subspace Diagonalizations:',in%nrepmax
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Density/Potential Optimisations:',in%itrpmax
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'CG Steps for Preconditioning Equation:',in%ncong
-  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'DIIS History length:',in%idsx
+!  write(70,'(a,t55,1pe8.1)')repeat(' ',yaml_indent)//'Gradient Norm Convergence Criterion:',in%gnrm_cv
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Iterations:',in%itermax
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Subspace Diagonalizations:',in%nrepmax
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'Maximum Number of Density/Potential Optimisations:',in%itrpmax
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'CG Steps for Preconditioning Equation:',in%ncong
+!  write(70,'(a,t55,i8)')repeat(' ',yaml_indent)//'DIIS History length:',in%idsx
   if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-     write(70,'(a)')repeat(' ',yaml_indent)//'Mixing Parameters:'
+!     write(70,'(a)')repeat(' ',yaml_indent)//'Mixing Parameters:'
      yaml_indent=yaml_indent+3
        if (in%iscf < 10) then
         write(potden, "(A)") "potential"
      else
         write(potden, "(A)") "density"
      end if
-     write(70,'(a,t55,a)')'Target:',potden
-     write(70,'(a,t55,I12)')'Scheme:',modulo(in%iscf, 10)
+!     write(70,'(a,t55,a)')'Target:',potden
+!     write(70,'(a,t55,I12)')'Scheme:',modulo(in%iscf, 10)
 !!$     write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
 !!$          & "     Target=", potden,        "|", &
 !!$          & " Add. bands=", input%norbsempty, "|", &
@@ -3380,13 +2476,13 @@ subroutine write_input_parameters(in,atoms)
      yaml_indent=yaml_indent-3
   end if
   yaml_indent=yaml_indent-3
-  write(70,'(a)')repeat(' ',yaml_indent)//'Post Optimization Treatments:'
+!  write(70,'(a)')repeat(' ',yaml_indent)//'Post Optimization Treatments:'
   yaml_indent=yaml_indent+3
   if (in%rbuf > 0.0_gp) then
-     write(70,'(a)')repeat(' ',yaml_indent)//'Finite-Size Correction Estimation:'
+!     write(70,'(a)')repeat(' ',yaml_indent)//'Finite-Size Correction Estimation:'
      yaml_indent=yaml_indent+3
-     write(70,'(a,t55,f4.1)')repeat(' ',yaml_indent)//'Radius (a0):',in%rbuf
-     write(70,'(a,t55,i4)')repeat(' ',yaml_indent)//'CG Steps for the FS Correction:',in%ncongt
+!     write(70,'(a,t55,f4.1)')repeat(' ',yaml_indent)//'Radius (a0):',in%rbuf
+!     write(70,'(a,t55,i4)')repeat(' ',yaml_indent)//'CG Steps for the FS Correction:',in%ncongt
      yaml_indent=yaml_indent-3
   end if
   yaml_indent=yaml_indent-3
@@ -3666,6 +2762,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   !local variables
   character(len=*), parameter :: subname='processor_id_per_node'
   integer :: ierr,namelen,i_stat,i_all,jproc
+  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
 
   if (nproc == 1) then
@@ -3680,10 +2777,10 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
         nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
      end do
 
-     call MPI_GET_PROCESSOR_NAME(nodename(iproc),namelen,ierr)
+     call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
 
      !gather the result between all the process
-     call MPI_ALLGATHER(nodename(iproc),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+     call MPI_ALLGATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
           nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
           MPI_COMM_WORLD,ierr)
 

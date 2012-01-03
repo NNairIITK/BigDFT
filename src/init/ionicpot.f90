@@ -1383,7 +1383,6 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
   !deallocations
   call deallocate_atoms(at,subname) 
-  call deallocate_atoms_scf(at,subname) 
 
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
