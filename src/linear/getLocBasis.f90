@@ -905,16 +905,6 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lhphi)
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH, W, eval)
 
-      !!! Test: only diagonal part for orthoconstraint
-      !!ist=1
-      !!do iorb=1,lin%orbs%norbp
-      !!    iiorb=lin%orbs%isorb+iorb
-      !!    ilr=lin%orbs%inwhichlocreg(iiorb)
-      !!    ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      !!    tt=ddot(ncount, lphi(ist), 1, lhphi(ist), 1)
-      !!    call daxpy(ncount, -tt, lphi(ist), 1, lhphi(ist), 1)
-      !!    ist=ist+ncount
-      !!end do
 
       ! Flatten at the edges -  EXPERIMENTAL
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lhphi)
@@ -965,15 +955,6 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
           write(*,'(a)', advance='no') 'done. '
       end if
       if(iproc==0) write(*,*) 'trH',trH
-
-
-
-
-      !!!!! NEW #########################################################
-      !!call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
-      !!!!!call unitary_optimization2(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
-      !!!!! #############################################################
-
 
 
   
