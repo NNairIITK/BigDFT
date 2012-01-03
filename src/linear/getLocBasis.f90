@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
-    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj)
+    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi)
 !
 ! Purpose:
 ! ========
@@ -86,6 +86,7 @@ real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: lphi
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
+logical,intent(in):: communicate_lphi
 
 ! Local variables 
 integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount, jlr, ii
@@ -181,34 +182,36 @@ real(8),dimension(:),pointer:: lpot
   !end do
   !if(iproc==0) write(*,*) 'zero comp, total', ierr, lin%orbs%norb**2
 
-  ! Allocate the communication buffers for the calculation of the charge density.
-  call allocateCommunicationbufferSumrho(lin%comsr, subname)
-  ! Transform all orbitals to real space.
-  ist=1
-  istr=1
-  do iorb=1,lin%lb%orbs%norbp
-      ilr=lin%lb%orbs%inWhichLocregp(iorb)
-      call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
-      !call daub_to_isf(lin%lzd%llr(ilr), w, lphi(ist), lphir(istr))
-      call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%comsr%sendBuf(istr))
-      call deallocate_work_arrays_sumrho(w)
-      ist = ist + lin%lzd%Llr(ilr)%wfd%nvctr_c + 7*lin%lzd%Llr(ilr)%wfd%nvctr_f
-      istr = istr + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
-  end do
-  !!do iall=1,size(lin%comsr%sendBuf)
-  !!    write(5100+iproc,*) lin%comsr%sendBuf(iall)
-  !!end do
-  !!call mpi_barrier(mpi_comm_world, ierr)
-  !!stop
-  if(istr/=lin%comsr%nsendBuf+1) then
-      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=lin%comsr%nsendBuf+1'
-      stop
+  if(communicate_lphi) then
+      ! Allocate the communication buffers for the calculation of the charge density.
+      !call allocateCommunicationbufferSumrho(iproc, lin%comsr, subname)
+      ! Transform all orbitals to real space.
+      ist=1
+      istr=1
+      do iorb=1,lin%lb%orbs%norbp
+          ilr=lin%lb%orbs%inWhichLocregp(iorb)
+          call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
+          !call daub_to_isf(lin%lzd%llr(ilr), w, lphi(ist), lphir(istr))
+          call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%comsr%sendBuf(istr))
+          call deallocate_work_arrays_sumrho(w)
+          ist = ist + lin%lzd%Llr(ilr)%wfd%nvctr_c + 7*lin%lzd%Llr(ilr)%wfd%nvctr_f
+          istr = istr + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
+      end do
+      !!do iall=1,size(lin%comsr%sendBuf)
+      !!    write(5100+iproc,*) lin%comsr%sendBuf(iall)
+      !!end do
+      !!call mpi_barrier(mpi_comm_world, ierr)
+      !!stop
+      if(istr/=lin%comsr%nsendBuf+1) then
+          write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=lin%comsr%nsendBuf+1'
+          stop
+      end if
+      
+      ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
+      ! to point communication, the program will continue immediately. The messages will be gathered
+      ! in the subroutine sumrhoForLocalizedBasis2.
+      call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
   end if
-  
-  ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
-  ! to point communication, the program will continue immediately. The messages will be gathered
-  ! in the subroutine sumrhoForLocalizedBasis2.
-  call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
   
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
@@ -335,11 +338,13 @@ real(8),dimension(:),pointer:: lpot
   !!    write(25000+iproc,*) iall, lhphi(iall)
   !!end do
   !call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
+  call allocateCommuncationBuffersOrtho(lin%lb%comon, subname)
   if(.not. lin%useDerivativeBasisFunctions) then
       call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%mad, matrixElements)
   else
       call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%lb%mad, matrixElements)
   end if
+  call deallocateCommuncationBuffersOrtho(lin%lb%comon, subname)
 
   tt=0.d0
   do iall=1,lin%lb%orbs%norb
@@ -1319,6 +1324,9 @@ contains
                      offset=offset+ldiis%isx*ncount
                      istdest=istdest+ncount
                  end do
+             else
+                 ! else copy the orbitals of the last iteration to lphiold
+                 call dcopy(size(lphi), lphi(1), 1, lphiold(1), 1)
               end if
               call deallocateDIIS(ldiis)
               ldiis%isx=0
@@ -3037,7 +3045,9 @@ call memocc(istat, displs, 'displs', subname)
 
 
 ! Calculate the matrices Q=<phi|phiold>
+call allocateCommuncationBuffersOrtho(lin%lb%comon, subname)
 call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lin%lphiold, lin%mad, Q)
+call deallocateCommuncationBuffersOrtho(lin%lb%comon, subname)
 
 ! Calculate the right hand sides for all physical orbitals handled by this process.
 do iorb=1,orbs%norbp
@@ -3735,6 +3745,7 @@ complex(8),dimension(:),allocatable:: work, expD_cmplx
 real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi
 real(8),dimension(:,:,:),allocatable:: tempmat3
 character(len=*),parameter:: subname='unitary_optimization'
+type(p2pCommsOrthonormality):: comon_local
 
 allocate(gmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, gmat, 'gmat', subname)
@@ -3783,6 +3794,7 @@ call memocc(istat, Kmat, 'Kmat', subname)
   t1_tot=mpi_wtime()
   innerLoop: do it=1,nit
 
+  !write(*,*) '1: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
 
       t1=mpi_wtime()
       call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
@@ -3795,14 +3807,21 @@ call memocc(istat, Kmat, 'Kmat', subname)
 
       t1=mpi_wtime()
       allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
-      call collectnew(iproc, nproc, lin%comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
-           lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ttmat, tt3, tt4, tt5)
+      call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
+           comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
       deallocate(ttmat)
+      !write(*,*) '2: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
       t2=mpi_wtime()
       time_commun=time_commun+t2-t1
 
       t1=mpi_wtime()
-      call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lvphi, lin%mad, Kmat)
+      !call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lvphi, lin%mad, Kmat)
+      !call deallocateRecvBufferOrtho(comon, subname)
+      !call deallocateSendBufferOrtho(comon, subname)
+      call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, lphi, lvphi, lin%mad, Kmat)
+      !call allocateSendBufferOrtho(comon, subname)
+      !call allocateRecvBufferOrtho(comon, subname)
+      !write(*,*) '3: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
       t2=mpi_wtime()
       time_matrixElements=time_matrixElements+t2-t1
 
@@ -3895,8 +3914,9 @@ call memocc(istat, Kmat, 'Kmat', subname)
       time_matrixmodification=time_matrixmodification+t2-t1
 
       t1=mpi_wtime()
-      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon%nrecvbuf, &
-           lin%comon%recvbuf, tempmat3(1,1,1), .true., lphi)
+      !write(*,*) '5: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
+      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, comon%nrecvbuf, &
+           comon%recvbuf, tempmat3(1,1,1), .true., lphi)
       t2=mpi_wtime()
       time_lincomb=time_lincomb+t2-t1
 
@@ -3963,8 +3983,8 @@ call memocc(istat, Kmat, 'Kmat', subname)
           end do
       end do
       t1=mpi_wtime()
-      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon%nrecvbuf, &
-           lin%comon%recvbuf, tempmat3(1,1,1), .true., lphi)
+      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, comon%nrecvbuf, &
+           comon%recvbuf, tempmat3(1,1,1), .true., lphi)
       t2=mpi_wtime()
       time_lincomb=time_lincomb+t2-t1
 
@@ -4041,8 +4061,8 @@ call memocc(istat, Kmat, 'Kmat', subname)
   deallocate(Kmat, stat=istat)
   call memocc(istat, iall, 'Kmat', subname)
 
-  call deallocateRecvBufferOrtho(lin%comon, subname)
-  call deallocateSendBufferOrtho(lin%comon, subname)
+  call deallocateRecvBufferOrtho(comon, subname)
+  call deallocateSendBufferOrtho(comon, subname)
 
 end subroutine unitary_optimization
 

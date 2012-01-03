@@ -3642,7 +3642,7 @@ type(input_variables):: input
 
 
 
-  call allocateCommuncationBuffersOrtho(comon_lb, subname)
+  !!call allocateCommuncationBuffersOrtho(comon_lb, subname)
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
   !call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lphi, comon_lb)
   call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lphi, comon_lb%nsendBuf, comon_lb%sendBuf)
@@ -3667,7 +3667,7 @@ type(input_variables):: input
   !!    end do
   !!    write(27000+iproc,*) '=============================='
   !!end if
-  call deallocateCommuncationBuffersOrtho(comon_lb, subname)
+  !!call deallocateCommuncationBuffersOrtho(comon_lb, subname)
 
   !!if(iproc==0) then
   !!    do iall=1,orbs%norb

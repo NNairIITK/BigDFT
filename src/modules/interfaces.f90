@@ -1867,7 +1867,7 @@ module module_interfaces
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
-        i3s, i3xcsh, ebsMod, coeff, lphi, radii_cf, nlpspd, proj)
+        i3s, i3xcsh, ebsMod, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi)
       use module_base
       use module_types
       implicit none
@@ -1896,6 +1896,7 @@ module module_interfaces
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
+      logical,intent(in):: communicate_lphi
     end subroutine getLinearPsi
 
 
@@ -3602,10 +3603,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine deallocateMixrhopotDIIS
 
 
-     subroutine allocateCommunicationbufferSumrho(comsr, subname)
+     subroutine allocateCommunicationbufferSumrho(iproc, comsr, subname)
        use module_base
        use module_types
        implicit none
+       integer,intent(in):: iproc
        type(p2pCommsSumrho),intent(inout):: comsr
        character(len=*),intent(in):: subname
      end subroutine allocateCommunicationbufferSumrho
@@ -5474,6 +5476,40 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(3),intent(in):: rxyzConfinement
         real(8),intent(in):: hxh, hyh, hzh, potentialPrefac, cut, alpha
       end subroutine flatten
+
+
+      subroutine sumrholinear_auxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, phi, at, nscatterarr)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc
+        type(orbitals_data),intent(in):: orbs
+        type(locreg_descriptors),intent(in):: Glr
+        type(input_variables),intent(in):: input
+        type(linearParameters),intent(inout):: lin
+        real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
+        real(8),dimension(lin%lb%orbs%npsidim),intent(in):: phi
+        type(atoms_data),intent(in):: at
+        integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+      end subroutine sumrholinear_auxiliary
+
+
+      subroutine sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, nrho, rho, at, nscatterarr)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, nrho
+        type(orbitals_data),intent(in):: orbs
+        type(locreg_descriptors),intent(in):: Glr
+        type(input_variables),intent(in):: input
+        type(linearParameters),intent(inout):: lin
+        real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
+        real(8),dimension(nrho),intent(out),target:: rho
+        type(atoms_data),intent(in):: at
+        integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+      end subroutine sumrholinear_withauxiliary
+
+
 
 
 

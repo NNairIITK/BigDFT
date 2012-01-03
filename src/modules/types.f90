@@ -525,8 +525,9 @@ module module_types
     integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
     real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf
+    integer:: nsendBuf, nrecvBuf, maxsize_auxarray
     logical,dimension(:,:),pointer:: communComplete, computComplete
+    real(8),dimension(:,:,:),pointer:: auxarray
   end type p2pCommsSumrho
 
 !> Contains the parameters neeed for the point to point communications

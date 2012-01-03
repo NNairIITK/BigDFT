@@ -1364,7 +1364,8 @@ type(linearParameters),intent(inout):: lin
 integer,intent(inout):: tag
 
 ! Local variables
-integer:: istat, jproc, is, ie, ioverlap, i3s, i3e, ilr, iorb, is3ovrlp, n3ovrlp
+integer:: istat, jproc, is, ie, ioverlap, iorb, is3ovrlp, n3ovrlp, iiorb, istri, istrj, jorb, jjorb
+integer:: i1s, i1e, i2s, i2e, i3s, i3e, ii, ilr, jlr
 character(len=*),parameter:: subname='initializeCommsSumrho'
 
 
@@ -1459,16 +1460,52 @@ end do
 !!call memocc(istat, lin%comsr%recvBuf, 'lin%comsr%recvBuf', subname)
 !!call razero(lin%comsr%nrecvBuf, lin%comsr%recvBuf)
 
+
+! Determine the size of the auxiliary array
+
+! Bounds of the slice in global coordinates.
+lin%comsr%maxsize_auxarray=0
+is=nscatterarr(iproc,3)-14
+ie=is+nscatterarr(iproc,1)-1
+
+do iorb=1,lin%comsr%noverlaps(iproc)
+    iiorb=lin%comsr%overlaps(iorb) !global index of orbital iorb
+    ilr=lin%comsr%comarr(4,iorb,iproc) !localization region of orbital iorb
+    istri=lin%comsr%comarr(6,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
+    do jorb=1,lin%comsr%noverlaps(iproc)
+        jjorb=lin%comsr%overlaps(jorb) !global indes of orbital jorb
+        jlr=lin%comsr%comarr(4,jorb,iproc) !localization region of orbital jorb
+        istrj=lin%comsr%comarr(6,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
+        ! Bounds of the overlap of orbital iorb and jorb in global coordinates.
+        i1s=max(2*lin%lzd%llr(ilr)%ns1-14,2*lin%lzd%llr(jlr)%ns1-14)
+        i1e=min(2*lin%lzd%llr(ilr)%ns1-14+lin%lzd%llr(ilr)%d%n1i-1,2*lin%lzd%llr(jlr)%ns1-14+lin%lzd%llr(jlr)%d%n1i-1)
+        i2s=max(2*lin%lzd%llr(ilr)%ns2-14,2*lin%lzd%llr(jlr)%ns2-14)
+        i2e=min(2*lin%lzd%llr(ilr)%ns2-14+lin%lzd%llr(ilr)%d%n2i-1,2*lin%lzd%llr(jlr)%ns2-14+lin%lzd%llr(jlr)%d%n2i-1)
+        i3s=max(2*lin%lzd%llr(ilr)%ns3-14,2*lin%lzd%llr(jlr)%ns3-14,is)
+        i3e=min(2*lin%lzd%llr(ilr)%ns3-14+lin%lzd%llr(ilr)%d%n3i-1,2*lin%lzd%llr(jlr)%ns3-14+lin%lzd%llr(jlr)%d%n3i-1,ie)
+
+        ii=(i1e-i1s+1)*(i2e-i2s+1)*(i3e-i3s+1)
+        if(ii>lin%comsr%maxsize_auxarray) then
+            lin%comsr%maxsize_auxarray=ii
+        end if
+    end do
+end do
+
+
+
+
+
 end subroutine initializeCommsSumrho2
 
 
 
-subroutine allocateCommunicationbufferSumrho(comsr, subname)
+subroutine allocateCommunicationbufferSumrho(iproc, comsr, subname)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
+integer,intent(in):: iproc
 type(p2pCommsSumrho),intent(inout):: comsr
 character(len=*),intent(in):: subname
 
@@ -1482,6 +1519,11 @@ call razero(comsr%nSendBuf, comsr%sendBuf)
 allocate(comsr%recvBuf(comsr%nrecvBuf), stat=istat)
 call memocc(istat, comsr%recvBuf, 'comsr%recvBuf', subname)
 call razero(comsr%nrecvBuf, comsr%recvBuf)
+
+allocate(comsr%auxarray(comsr%maxsize_auxarray,comsr%noverlaps(iproc),comsr%noverlaps(iproc)), stat=istat)
+call memocc(istat, comsr%auxarray, 'comsr%auxarray', subname)
+call razero(comsr%maxsize_auxarray*comsr%noverlaps(iproc)*comsr%noverlaps(iproc), comsr%auxarray)
+
 
 end subroutine allocateCommunicationbufferSumrho
 
@@ -1506,6 +1548,9 @@ iall=-product(shape(comsr%recvBuf))*kind(comsr%recvBuf)
 deallocate(comsr%recvBuf, stat=istat)
 call memocc(istat, iall, 'comsr%recvBuf', subname)
 
+iall=-product(shape(comsr%auxarray))*kind(comsr%auxarray)
+deallocate(comsr%auxarray, stat=istat)
+call memocc(istat, iall, 'comsr%auxarray', subname)
 
 end subroutine deallocateCommunicationbufferSumrho
 
