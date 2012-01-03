@@ -6,6 +6,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef HAVE_DEBUG
+#define DBG_MEM(A, T) {int i__; for (i__ = 0; i__ < sizeof(T) / sizeof(void*); i__++) \
+                                  fprintf(stderr, "DBG (%2d) -> %p\n", i__, ((void**)A)[i__]); }
+#else
+#define DBG_MEM(A, T)
+#endif
+
 void FC_FUNC_(deallocate_double, DEALLOCATE_DOUBLE)(f90_pointer_double *array);
 
 void FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
@@ -26,7 +33,7 @@ f90_pointer_double* bigdft_read_wave_to_isf(const char *filename, int iorbp,
 
   psiscf = g_malloc(sizeof(f90_pointer_double));
   memset(psiscf, 0, sizeof(f90_pointer_double));
-
+  
   ln = strlen(filename);
   FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
     (&lstat, filename, &ln, &iorbp, h, h + 1, h + 2, n, n + 1, n + 2, nspinor, psiscf);
@@ -35,6 +42,8 @@ f90_pointer_double* bigdft_read_wave_to_isf(const char *filename, int iorbp,
       g_free(psiscf);
       psiscf = (f90_pointer_double*)0;
     }
+
+  DBG_MEM(psiscf, f90_pointer_double);
 
   return psiscf;
 }

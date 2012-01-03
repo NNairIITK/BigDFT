@@ -1,6 +1,8 @@
 #ifndef BIGDFT_H
 #define BIGDFT_H
 
+#include <config.h>
+
 #ifndef GLIB_MAJOR_VERSION
 #include <stdlib.h>
 #define TRUE 1
@@ -14,13 +16,23 @@
 
 #define F90_POINTER_SIZE 18
 
+#ifndef POINTER_SHIFT_SIZE
+#define POINTER_SHIFT_SIZE 1
+#endif
+
 typedef struct f90_pointer_double_
 {
+#ifdef HAVE_POINTER_SHIFT
+  void *shift[POINTER_SHIFT_SIZE];
+#endif
   double *data;
   void *info[F90_POINTER_SIZE];
 } f90_pointer_double;
 typedef struct f90_pointer_int_
 {
+#ifdef HAVE_POINTER_SHIFT
+  void *shift[POINTER_SHIFT_SIZE];
+#endif
   int *data;
   void *info[F90_POINTER_SIZE];
 } f90_pointer_int;

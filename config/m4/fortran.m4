@@ -650,7 +650,7 @@ end program test],
 
 AC_DEFUN([AX_FC_MOD],
 [
-  AC_MSG_CHECKING([for module output in Fortran.])
+  AC_MSG_CHECKING([for module output in Fortran])
 
   AC_LANG_PUSH(Fortran)
   AC_REQUIRE([AC_PROG_FC])
@@ -695,4 +695,88 @@ end module modtest
     fi  
   fi
   AC_MSG_RESULT([$ax_fc_mod_name.$ax_fc_mod_ext])
+])
+
+# Define a macro to test the C binding of a Fortran pointer.
+#
+# Copyright (c) 2012-2012 BigDFT Group (Damien Caliste)
+# All rights reserved.
+#
+# This file is part of the BigDFT software package. For license information,
+# please see the COPYING file in the top-level directory of the BigDFT source
+# distribution.
+AC_DEFUN([AX_FC_POINTER],
+[
+  AC_MSG_CHECKING([for pointer structure shift in Fortran])
+
+  AC_LANG_PUSH(Fortran)
+  AC_REQUIRE([AC_PROG_FC])
+
+  cat >pttest.f90 <<EOF
+subroutine test_allo(pt_dbl)
+  double precision, dimension(:), pointer :: pt_dbl
+
+  allocate(pt_dbl(10))
+  pt_dbl(:) = 999.d0
+end subroutine test_allo
+EOF
+  ac_try='$FC $FCFLAGS -c pttest.f90 1>&AC_FD_CC'
+  if AC_TRY_EVAL(ac_try); then
+    ac_try=""
+  else
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat intsizetest.f90 >&AC_FD_CC
+    AC_MSG_FAILURE(Fortran compiler cannot compile subroutine.)
+  fi
+
+  AC_LANG_PUSH(C)
+  AC_REQUIRE([AC_PROG_CC])
+  
+  LIBS_SVG="$LIBS"
+  LIBS="pttest.o $LIBS $FCLIBS"
+  AC_FC_FUNC([test_allo])
+  AC_RUN_IFELSE([
+#include <stdio.h>
+
+typedef struct f90_pointer_double_
+{
+  void *data[[20]];
+} f90_pointer_double;
+
+int main(int argc, const char **argv)
+{
+  f90_pointer_double pt;
+  int i;
+
+  for (i = 0; i < sizeof(f90_pointer_double); i++)
+    ((char*)(&pt))[[i]] = '\0';
+
+  $test_allo(&pt);
+
+  if (((double*)pt.data[[0]])[[0]] == 999. && ((double*)pt.data[[0]])[[9]] == 999.)
+    {
+      fprintf(stdout, "0\n");
+      return 0;
+    }
+  if (((double*)pt.data[[1]])[[0]] == 999. && ((double*)pt.data[[1]])[[9]] == 999.)
+    {
+      fprintf(stdout, "1\n");
+      return 0;
+    }
+  return 1;
+}
+], [ax_fc_run=`./conftest$EXEEXT`],
+ [AC_MSG_WARN(C compiler cannot link Fortran and C or cannot find the pointer shift value.)
+  ax_fc_run="0"])
+  LIBS="$LIBS_SVG"
+  rm -f pttest.o
+
+  if test x$ax_fc_run != x"0" ; then
+    AC_DEFINE([HAVE_POINTER_SHIFT], [1], [Define this macro if the Fortran compiler has a shift in pointer structure definition.])
+    AC_DEFINE_UNQUOTED([POINTER_SHIFT_SIZE], [$ax_fc_run], [Size of the shift for the data in a pointer structure in Fortran.])
+  fi
+
+  AC_LANG_POP(C)
+
+  AC_LANG_POP(Fortran)
 ])
