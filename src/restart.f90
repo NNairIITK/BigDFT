@@ -34,8 +34,10 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   call allocate_wfd(wfd_old,subname)
 
   do iseg=1,wfd_old%nseg_c+wfd_old%nseg_f
-     wfd_old%keyg(1,iseg)    = wfd%keyg(1,iseg)
-     wfd_old%keyg(2,iseg)    = wfd%keyg(2,iseg)
+     wfd_old%keyglob(1,iseg)    = wfd%keyglob(1,iseg) 
+     wfd_old%keyglob(2,iseg)    = wfd%keyglob(2,iseg)
+     wfd_old%keygloc(1,iseg)    = wfd%keygloc(1,iseg)
+     wfd_old%keygloc(2,iseg)    = wfd%keygloc(2,iseg)
      wfd_old%keyv(iseg)      = wfd%keyv(iseg)
   enddo
   !deallocation
@@ -216,8 +218,8 @@ subroutine reformatmywaves(iproc,orbs,at,&
         ! coarse part
         do iseg=1,wfd_old%nseg_c
            jj=wfd_old%keyv(iseg)
-           j0=wfd_old%keyg(1,iseg)
-           j1=wfd_old%keyg(2,iseg)
+           j0=wfd_old%keygloc(1,iseg)
+           j1=wfd_old%keygloc(2,iseg)
            ii=j0-1
            i3=ii/((n1_old+1)*(n2_old+1))
            ii=ii-i3*(n1_old+1)*(n2_old+1)
@@ -232,8 +234,8 @@ subroutine reformatmywaves(iproc,orbs,at,&
         ! fine part
         do iseg=1,wfd_old%nseg_f
            jj=wfd_old%keyv(wfd_old%nseg_c + iseg)
-           j0=wfd_old%keyg(1,wfd_old%nseg_c + iseg)
-           j1=wfd_old%keyg(2,wfd_old%nseg_c + iseg)
+           j0=wfd_old%keygloc(1,wfd_old%nseg_c + iseg)
+           j1=wfd_old%keygloc(2,wfd_old%nseg_c + iseg)
            ii=j0-1
            i3=ii/((n1_old+1)*(n2_old+1))
            ii=ii-i3*(n1_old+1)*(n2_old+1)
@@ -611,8 +613,8 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
         do ispinor=1,orbs%nspinor
            call open_filename_of_iorb(99,(isuffix > 0),filename,orbs,iorb,ispinor,iorb_out)           
            call writeonewave(99,(isuffix <= 0),iorb_out,n1,n2,n3,hx,hy,hz,at%nat,rxyz,  & 
-                wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
-                wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
+                wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyv(1),  & 
+                wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
                 psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
                 orbs%eval(iorb+orbs%isorb))
            close(99)

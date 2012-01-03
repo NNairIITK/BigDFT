@@ -355,8 +355,8 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   !control variable
   nvctr_check=0
   do iseg=1,wfd%nseg_c
-     j0=wfd%keyg(1,iseg)
-     j1=wfd%keyg(2,iseg)
+     j0=wfd%keygloc(1,iseg)
+     j1=wfd%keygloc(2,iseg)
      ii=j0-1
      i3=ii/((n1+1)*(n2+1))
      ii=ii-i3*(n1+1)*(n2+1)
@@ -380,8 +380,8 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   !control variable
   nvctr_check=0
   do iseg=wfd%nseg_c+1,wfd%nseg_c+wfd%nseg_f
-     j0=wfd%keyg(1,iseg)
-     j1=wfd%keyg(2,iseg)
+     j0=wfd%keygloc(1,iseg)
+     j1=wfd%keygloc(2,iseg)
      ii=j0-1
      i3=ii/((n1+1)*(n2+1))
      ii=ii-i3*(n1+1)*(n2+1)

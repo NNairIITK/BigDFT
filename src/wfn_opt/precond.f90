@@ -94,12 +94,12 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
               case('S')
                  call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
                       lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                      lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                      lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
                       cprecr,hx,hy,hz,hpsi(1,inds,iorb))
               case('P')
                  call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
                       lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                      lr%wfd%keyg,lr%wfd%keyv, &
+                      lr%wfd%keygloc,lr%wfd%keyv, &
                       cprecr,hx,hy,hz,hpsi(1,inds,iorb))
               end select
 
@@ -204,12 +204,12 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
               case('S')
                  call prec_fft_slab(Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3, &
                       Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nseg_f,&
-                      Lzd%Llr(ilr)%wfd%nvctr_f,Lzd%Llr(ilr)%wfd%keyg,Lzd%Llr(ilr)%wfd%keyv, &
+                      Lzd%Llr(ilr)%wfd%nvctr_f,Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyv, &
                       cprecr,hx,hy,hz,hpsi(1+ist))
               case('P')
                  call prec_fft(Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3, &
                       Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
-                      Lzd%Llr(ilr)%wfd%keyg,Lzd%Llr(ilr)%wfd%keyv, &
+                      Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyv, &
                       cprecr,hx,hy,hz,hpsi(1+ist))
               end select
 
@@ -449,7 +449,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
            call prec_diag(lr%d%n1,lr%d%n2,lr%d%n3,hx,lr%wfd%nseg_c,&
                 lr%wfd%nvctr_c,lr%wfd%nvctr_f,&
-                lr%wfd%keyg,lr%wfd%keyv,&
+                lr%wfd%keygloc,lr%wfd%keyv,&
                 x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),cprecr,scal,a2,b2)
 
         else
@@ -495,7 +495,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
            
            call prec_fft_fast(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg,lr%wfd%keyv, &
+                lr%wfd%keygloc,lr%wfd%keyv, &
                 cprecr,hx,hy,hz,x(1,idx),&
                 w%kern_k1,w%kern_k2,w%kern_k3,w%z1,w%z3,w%x_c,&
                 nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
@@ -520,7 +520,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
               fac=1.0_gp/scal(0)**2
               call prec_fft_c(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,&
                    lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keyg,lr%wfd%keyv, &
+                   lr%wfd%keygloc,lr%wfd%keyv, &
                    cprecr,hx,hy,hz,x(1,idx),&
                    w%psifscf(1),w%psifscf(lr%d%n1+2),&
                    w%psifscf(lr%d%n1+lr%d%n2+3),w%ww(1),w%ww(nd1b*nd2*nd3*4+1),&
@@ -556,7 +556,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
         !	compute the input guess x via a Fourier transform in a cubic box.
         !	Arrays psifscf and ww serve as work arrays for the Fourier
         call prec_fft_slab_fast(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-             lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
              cprecr,hx,hy,hz,x(1,idx),&
              w%psifscf(1),w%psifscf(lr%d%n1+2),w%ww(1),&
              w%ww(2*((lr%d%n1+1)/2+1)*(lr%d%n2+1)*(lr%d%n3+1)+1))
@@ -891,9 +891,9 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
      do idx=1,ncplx
         call calc_grad_reza(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
-             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg,lr%wfd%keyv,&
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keygloc,lr%wfd%keyv,&
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
+             lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
              lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
              scal,cprecr,hx,&
              lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
@@ -910,7 +910,7 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
         do idx=1,ncplx
            call apply_hp_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg,lr%wfd%keyv, &
+                lr%wfd%keygloc,lr%wfd%keyv, &
                 cprecr,hx,hy,hz,x(1,idx),y(1,idx),&
                 w%x_f,w%x_c,w%x_f1,w%x_f2,w%x_f3,w%y_f,w%ypsig_c,&
                 lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3,nf,&
@@ -920,13 +920,13 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
         if (ncplx == 1) then
            call apply_hp_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
                 cprecr,x,y,w%psifscf,w%ww,w%modul1,w%modul2,w%modul3,&
                 w%af,w%bf,w%cf,w%ef,scal) 
         else
            call apply_hp_per_k(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
                 !cprecr,hx,hy,hz,0.0_gp,0.0_gp,0.0_gp,x,y,w%psifscf,w%ww,scal) 
                 cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
         end if
@@ -935,13 +935,13 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
      if (ncplx == 1) then
         call apply_hp_slab_sd_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-             lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
              cprecr,x,y,w%psifscf,w%ww,w%modul1,w%modul3,&
              w%af,w%bf,w%cf,w%ef,scal)
      else
         call apply_hp_slab_k(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-             lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
              cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
 
      end if

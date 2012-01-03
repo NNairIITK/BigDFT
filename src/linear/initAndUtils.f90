@@ -3271,8 +3271,8 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
     jjj=0
     do iseg=1,glr%wfd%nseg_c
        jj=glr%wfd%keyv(iseg)
-       j0=glr%wfd%keyg(1,iseg)
-       j1=glr%wfd%keyg(2,iseg)
+       j0=glr%wfd%keygloc(1,iseg)
+       j1=glr%wfd%keygloc(2,iseg)
        ii=j0-1
        i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
        ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
@@ -3293,8 +3293,8 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
     !$omp do
     do iseg=1,glr%wfd%nseg_f
        jj=glr%wfd%keyv(ishift+iseg)
-       j0=glr%wfd%keyg(1,ishift+iseg)
-       j1=glr%wfd%keyg(2,ishift+iseg)
+       j0=glr%wfd%keygloc(1,ishift+iseg)
+       j1=glr%wfd%keygloc(2,ishift+iseg)
        ii=j0-1
        i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
        ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
@@ -3737,7 +3737,8 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
      !nullify all pointers
      do ilr=1,Lzd%nlr
         nullify(Lzd%Llr(ilr)%projflg)
-        nullify(Lzd%Llr(ilr)%wfd%keyg)
+        nullify(Lzd%Llr(ilr)%wfd%keygloc)
+        nullify(Lzd%Llr(ilr)%wfd%keyglob)
         nullify(Lzd%Llr(ilr)%wfd%keyv)
         nullify(Lzd%Llr(ilr)%bounds%ibyyzz_r) 
         nullify(Lzd%Llr(ilr)%bounds%kb%ibyz_c)

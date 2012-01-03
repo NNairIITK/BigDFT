@@ -281,7 +281,8 @@ subroutine nullify_wavefunctions_descriptors(wfd)
   type(wavefunctions_descriptors),intent(out):: wfd
 
   !if(associated(wfd%keyg)) then
-     nullify(wfd%keyg)
+     nullify(wfd%keygloc)
+     nullify(wfd%keyglob)
      nullify(wfd%keyv)
   !end if
 end subroutine nullify_wavefunctions_descriptors

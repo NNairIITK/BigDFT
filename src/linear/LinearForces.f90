@@ -342,12 +342,12 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                                 call wpdot_wrap(ncplx,&
                                      Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,&
                                      Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nseg_f,&
-                                     Lzd%Llr(ilr)%wfd%keyv,Lzd%Llr(ilr)%wfd%keyg,phi(ispsi),&
+                                     Lzd%Llr(ilr)%wfd%keyv,Lzd%Llr(ilr)%wfd%keygloc,phi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                        Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),&
 !!$                                        Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&   !must define jseg_c
                                      Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyv(jseg_c),&
-                                     Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyg(1,jseg_c),& !jseg_c=1
+                                     Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keygloc(1,jseg_c),& !jseg_c=1
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
                                 !write(*,'(a,7i7,es15.7)') 'iproc, iat, jorb, idir, m, i, l, value', iproc, iat, jorb, idir, m, i, l, scalprod(1,idir,m,i,l,iat,jorb)
@@ -495,11 +495,11 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                                    call wpdot_wrap(ncplx,&
                                         Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,&
                                         Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nseg_f,&
-                                        Lzd%Llr(ilr)%wfd%keyv,Lzd%Llr(ilr)%wfd%keyg,psi(ispsi),&
+                                        Lzd%Llr(ilr)%wfd%keyv,Lzd%Llr(ilr)%wfd%keygloc,psi(ispsi),&
                                         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                        Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&        !must define jseg_c
                                         Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyv(jseg_c),&
-                                        Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyg(1,jseg_c),&!jseg_c=1
+                                        Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keygloc(1,jseg_c),&!jseg_c=1
                                         proj(istart_c),&
                                         scalprod(1,idir,m,i,l,iat,jorb))
                                    istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -578,12 +578,12 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                                 call wpdot_wrap(ncplx,&
                                      Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,&
                                      Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
-                                     Lzd%Glr%wfd%keyv,Lzd%Glr%wfd%keyg,psi(ispsi),&
+                                     Lzd%Glr%wfd%keyv,Lzd%Glr%wfd%keygloc,psi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                     Lzd%Gnlpspd%keyv_p(jseg_c),&
 !!$                                     Lzd%Gnlpspd%keyg_p(1,jseg_c),&
                                      Lzd%Gnlpspd%plr(iat)%wfd%keyv(jseg_c),&
-                                     Lzd%Gnlpspd%plr(iat)%wfd%keyg(1,jseg_c),&
+                                     Lzd%Gnlpspd%plr(iat)%wfd%keygloc(1,jseg_c),&
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -655,12 +655,12 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                                 call wpdot_wrap(ncplx,&
                                      Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,&
                                      Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
-                                     Lzd%Glr%wfd%keyv,Lzd%Glr%wfd%keyg,psi(ispsi),  &
+                                     Lzd%Glr%wfd%keyv,Lzd%Glr%wfd%keygloc,psi(ispsi),  &
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                     Lzd%Gnlpspd%keyv_p(jseg_c),&
 !!$                                     Lzd%Gnlpspd%keyg_p(1,jseg_c),&
                                      Lzd%Gnlpspd%plr(iat)%wfd%keyv(jseg_c),&
-                                     Lzd%Gnlpspd%plr(iat)%wfd%keyg(1,jseg_c),&
+                                     Lzd%Gnlpspd%plr(iat)%wfd%keygloc(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                              end do

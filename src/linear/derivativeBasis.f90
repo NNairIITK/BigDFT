@@ -82,9 +82,9 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
       call uncompress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, &
            lin%lzd%llr(ilr)%d%nfl1, lin%lzd%llr(ilr)%d%nfu1, & 
            lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3, lin%lzd%llr(ilr)%d%nfu3,  &
-           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keyg, lin%lzd%llr(ilr)%wfd%keyv,  &
+           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keygloc, lin%lzd%llr(ilr)%wfd%keyv,  &
            lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f, &
-           lin%lzd%llr(ilr)%wfd%keyg(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
+           lin%lzd%llr(ilr)%wfd%keygloc(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
            lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phi(ist1_c), phi(ist1_f), w_c, w_f, w_f1, w_f2, w_f3)
 
@@ -105,9 +105,9 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
       call compress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, &
            lin%lzd%llr(ilr)%d%nfl1, lin%lzd%llr(ilr)%d%nfu1, &
            lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3, lin%lzd%llr(ilr)%d%nfu3, &
-           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keyg, lin%lzd%llr(ilr)%wfd%keyv, &
+           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keygloc, lin%lzd%llr(ilr)%wfd%keyv, &
            lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f, &
-           lin%lzd%llr(ilr)%wfd%keyg(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
+           lin%lzd%llr(ilr)%wfd%keygloc(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
            lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phix_c, phix_f, phiLoc(istx_c), phiLoc(istx_f))
       if(iorb<lin%orbs%norbp) then
@@ -120,9 +120,9 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
       call compress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, &
            lin%lzd%llr(ilr)%d%nfl1, lin%lzd%llr(ilr)%d%nfu1, &
            lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3, lin%lzd%llr(ilr)%d%nfu3, &
-           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keyg, lin%lzd%llr(ilr)%wfd%keyv, &
+           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keygloc, lin%lzd%llr(ilr)%wfd%keyv, &
            lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f, &
-           lin%lzd%llr(ilr)%wfd%keyg(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
+           lin%lzd%llr(ilr)%wfd%keygloc(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
            lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phiy_c, phiy_f, phiLoc(isty_c), phiLoc(isty_f))
       if(iorb<lin%orbs%norbp) then
@@ -135,9 +135,9 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
       call compress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, &
            lin%lzd%llr(ilr)%d%nfl1, lin%lzd%llr(ilr)%d%nfu1, &
            lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3, lin%lzd%llr(ilr)%d%nfu3, &
-           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keyg, lin%lzd%llr(ilr)%wfd%keyv, &
+           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keygloc, lin%lzd%llr(ilr)%wfd%keyv, &
            lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f, &
-           lin%lzd%llr(ilr)%wfd%keyg(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
+           lin%lzd%llr(ilr)%wfd%keygloc(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
            lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phiz_c, phiz_f, phiLoc(istz_c), phiLoc(istz_f))
       if(iorb<lin%orbs%norbp) then

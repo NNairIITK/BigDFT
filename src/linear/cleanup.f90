@@ -1065,7 +1065,8 @@ subroutine deallocate_wavefunctions_descriptors(wfd, subname)
   type(wavefunctions_descriptors),intent(inout):: wfd
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(wfd%keyg, 'wfd%keyg', subname)
+  call checkAndDeallocatePointer(wfd%keygloc, 'wfd%keygloc', subname)
+  call checkAndDeallocatePointer(wfd%keyglob, 'wfd%keyglob', subname)
   call checkAndDeallocatePointer(wfd%keyv, 'wfd%keyv', subname)
 
 end subroutine deallocate_wavefunctions_descriptors

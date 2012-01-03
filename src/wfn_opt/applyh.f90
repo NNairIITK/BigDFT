@@ -922,11 +922,11 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
               do ispinor=1,orbs%nspinor,ncplx
                  call wpdot_wrap(ncplx,  &
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                      wfd%keyv,wfd%keyg,&
+                      wfd%keyv,wfd%keygloc,&
                       psi(1,ispinor), &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                       plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
-                      plr%wfd%keyg,&!nlpspd%keyg_p(1,jseg_c),&
+                      plr%wfd%keygloc,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c_i),&
                       cproj(ispinor,m,i,l))
               end do
@@ -972,10 +972,10 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                  call waxpy_wrap(ncplx,dproj(ispinor,m,i,l),&
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                       plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
-                      plr%wfd%keyg,&!nlpspd%keyg_p(1,jseg_c),&
+                      plr%wfd%keygloc,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c),&
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                      wfd%keyv,wfd%keyg,&
+                      wfd%keyv,wfd%keygloc,&
                       hpsi(1,ispinor))
               end do
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
