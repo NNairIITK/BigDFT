@@ -78,6 +78,7 @@ subroutine standard_inputfile_names(inputs, radical)
   inputs%file_mix=trim(rad) // '.mix'
   inputs%file_sic=trim(rad) // '.sic'
   inputs%file_occnum=trim(rad) // '.occ'
+  inputs%file_igpop=trim(rad) // '.occup'
 
   if (trim(rad) == "input") then
      inputs%dir_output="data"

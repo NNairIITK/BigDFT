@@ -1,0 +1,503 @@
+                             TTTT         F       DDDDD    
+                            T    T               D         
+                           T     T        F     D          
+                           T    T         F     D        D 
+                           TTTTT          F     D         D
+                           T    T         F     D         D
+                           T     T        F     D         D
+                           T      T       F     D         D
+                           T     T     FFFF     D         D
+                           T TTTT         F      D        D
+                           T             F        D      D 
+                       TTTTTTTTT    FFFFF          DDDDDD  
+                         gggggg          iiiii    BBBBBBBBB
+                        g      g        i             B    
+                       g        g      i         BBBB B    
+                       g         g     iiii     B     B    
+                       g         g     i       B      B    
+                       g         g     i        B     B    
+                       g         g     i         B    B    
+                       g         g     i          BBBBB    
+                        g        g     i         B    B    
+                                 g     i        B     B    
+                                g               B    B     
+                           ggggg       i         BBBB                (Ver 1.6-dev.14)
+ ------------------------------------------------------------------------------------
+ |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
+ ------------------------------------------------------------------------------------
+                                   The Journal of Chemical Physics 129, 014109 (2008)
+
+ |... (file:input.perf.. not present)............................Performance Options 
+ |debug F                    Debug option
+ |fftcache 8192              Cache size for the FFT
+ |accel NO                   Acceleration (NO, CUDAGPU, OCLGPU)
+ |blas F                     CUBLAS acceleration
+ |projrad  1.50E+01          Radius of the projector as a function of the maxrad
+ |exctxpar BC                Exact exchange parallelisation scheme
+ |ig_diag T                  Input guess: (T:Direct, F:Iterative) diag. of Ham.
+ |ig_norbp 5                 Input guess: Orbitals per process for iterative diag.
+ |ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
+ |ig_tol  1.00E-04           Input guess: Tolerance criterion
+ |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+ |rho_commun DBL             Density communication scheme
+ |verbosity 2                verbosity of the output 0=low, 2=high
+ |psp_onfly T                Calculate pseudopotential projectors on the fly
+ |... (file:input.dft).....................................DFT Calculation Parameters
+ |0.40 0.40 0.40  hx,hy,hz: grid spacing in the three directions                     
+ |6.0  9.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+ |1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                  
+ |0 0.0 0. 0.    charge of the system, Electric field (Ex,Ey,Ez)                     
+ |1  0           nspin=1 non-spin polarization, mpol=total magnetic moment           
+ |1.E-05         gnrm_cv: convergence criterion gradient                             
+ |1 1            itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs     
+ |5  1           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history 
+ |0              dispersion correction potential (values 1,2,3), 0=none              
+ |0  0           InputPsiId, output_wf, output_denspot                               
+ |0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations          
+ |0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs           
+ |T              disable the symmetry detection                                      
+ |... (file:input.kpt.. not present)..............Brillouin Zone Sampling Parameters 
+ |manual         K-point sampling method                                             
+ |1              Number of K-points                                                  
+ |0. 0. 0. 1.    K-pt coords, K-pt weigth                                            
+ |... (file:input.mix.. not present)...............................Mixing Parameters 
+ |0              Mixing parameters                                                   
+ |1              Maximum number of diagonalisation iterations                        
+ |1.e-4          Stop criterion on the residue of potential or density               
+ |0 0.0 1        No. of additional bands, elec. temperature, smearing method         
+ |0.0 2.0        Multiplying factors for the mixing and the electronic DIIS          
+ |... (file:input.geopt.. not present)...........................Geometry Parameters 
+ |BFGS           Geometry optimisation method                                        
+ |1              Maximum number of force evaluations                                 
+ |1.0 0.0        fract_fluct,forcemax                                                
+ |0.0            random displacement amplitude                                       
+ |4.0            Stepsize for the geometry optimisation                              
+ |... (file:input.tddft.. not present).............................TD-DFT Parameters 
+ |NONE           TDDFT Method                                                        
+ |... (file:input.sic).................................................SIC Parameters
+ |PZ             SIC method: NONE, PZ, NK                                            
+ |1.0            SIC downscaling parameter                                           
+ |0.0            Reference occupation fref (NK case only)                            
+ |----------------------------------------------------------------------------------
+ |  Data Writing directory:    data/
+ --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
+   Atomic system                  Fixed positions           Additional data
+ Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
+ N. types =     4         |                          | Sp. group = free BC     
+ N. atoms =    44         |                          | Virt. orb.= none        
+ Types    = 'C', 'N',     |                          | Plot dens.= none        
+            'O', 'H'      |                          | Spin pol. = no          
+ --- (file: input.geopt) ------------------------------------- Geopt Input Parameters
+       Generic param.              Geo. optim.                MD param.
+       Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
+        algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
+ random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
+
+ Number of MPI processes 2
+ Number of maximal OpenMP threads per MPI process 2
+ No material acceleration (iproc=0)
+
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
+ --- (file: input.dft) --------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+   Max. hgrid=  0.400 |  Coarse Wfs.= 6.00 | Wavefns Conv.= 1.0E-05 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 9.00 | Max. N. Iter.=    1x 1 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       5 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       1
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    2   (dens. + pot.) | Output grid format=     0         (text)
+ Exchange-corr. ref.                                                   (XC: Teter 93)
+                                                    XC functional provided by ABINIT.
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      C          4       3            1.58437  0.23268  0.50759         X              
+      N          5       3            1.37026  0.25661  0.45022         X              
+      O          6       3            1.21558  0.22179  0.42805         X              
+      H          1       3            1.46342  0.20000  0.00000         X              
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        C   0.34883  -8.51377   1.22843
+     l=0      rl        h1j       h2j       h3j 
+            0.30455   9.52284
+ Atom Name    rloc      C1        C2        C3        C4  
+        N   0.28918 -12.23482   1.76641
+     l=0      rl        h1j       h2j       h3j 
+            0.25661  13.55224
+ Atom Name    rloc      C1        C2        C3        C4  
+        O   0.24762 -16.58032   2.39570
+     l=0      rl        h1j       h2j       h3j 
+            0.22179  18.26692
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.18024   0.72508
+ Total Number of Electrons      114
+ Processes from 0 to 0 treat 29 orbitals 
+ Processes from 1 to 1 treat 28 orbitals 
+ Total Number of Orbitals        57
+ occup(1:57)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      C  1.27493E+01  2.19079E+01  1.21582E+01       31.873    54.770    30.396
+     2      C  1.27493E+01  2.19079E+01  1.48410E+01       31.873    54.770    37.102
+     3      C  1.51113E+01  2.19079E+01  1.61694E+01       37.778    54.770    40.424
+     4      C  1.73855E+01  2.19079E+01  1.47350E+01       43.464    54.770    36.837
+     5      C  1.73187E+01  2.19068E+01  1.21317E+01       43.297    54.767    30.329
+     6      C  1.49843E+01  2.19055E+01  1.08296E+01       37.461    54.764    27.074
+     7      N  1.04582E+01  2.19112E+01  1.60348E+01       26.145    54.778    40.087
+     8      C  1.04710E+01  2.19229E+01  1.85212E+01       26.177    54.807    46.303
+     9      C  1.26875E+01  2.19343E+01  2.00194E+01       31.719    54.836    50.048
+    10      C  1.50271E+01  2.19222E+01  1.88753E+01       37.568    54.805    47.188
+    11      C  1.74370E+01  2.19227E+01  2.04499E+01       43.593    54.807    51.125
+    12      O  1.69777E+01  2.27982E+01  2.29621E+01       42.444    56.996    57.405
+    13      C  1.86585E+01  1.92645E+01  2.05716E+01       46.646    48.161    51.429
+    14      N  2.14271E+01  1.94276E+01  2.09598E+01       53.568    48.569    52.400
+    15      C  2.20625E+01  2.01495E+01  2.35835E+01       55.156    50.374    58.959
+    16      C  2.09547E+01  1.82342E+01  2.55302E+01       52.387    45.585    63.825
+    17      C  1.95373E+01  1.61604E+01  2.40558E+01       48.843    40.401    60.139
+    18      C  1.74115E+01  1.74353E+01  2.25191E+01       43.529    43.588    56.298
+    19      C  2.14688E+01  1.48259E+01  2.22853E+01       53.672    37.065    55.713
+    20      C  2.25104E+01  1.69182E+01  2.04450E+01       56.276    42.296    51.113
+    21      C  2.03934E+01  1.25971E+01  2.08904E+01       50.983    31.493    52.226
+    22      C  2.11499E+01  1.02086E+01  2.11657E+01       52.875    25.521    52.914
+    23      H  8.63124E+00  2.19236E+01  1.94464E+01       21.578    54.809    48.616
+    24      H  1.25461E+01  2.19553E+01  2.20632E+01       31.365    54.888    55.158
+    25      H  1.91978E+01  2.19013E+01  1.56937E+01       47.995    54.753    39.234
+    26      H  1.90744E+01  2.19085E+01  1.10691E+01       47.686    54.771    27.673
+    27      H  1.49653E+01  2.19053E+01  8.77745E+00       37.413    54.763    21.944
+    28      H  1.09269E+01  2.19090E+01  1.12189E+01       27.317    54.773    28.047
+    29      H  1.63921E+01  2.45246E+01  2.28461E+01       40.980    61.311    57.115
+    30      H  1.84402E+01  1.84695E+01  1.86742E+01       46.101    46.174    46.685
+    31      H  2.13403E+01  2.20473E+01  2.39316E+01       53.351    55.118    59.829
+    32      H  2.41271E+01  2.02335E+01  2.37060E+01       60.318    50.584    59.265
+    33      H  1.96485E+01  1.91868E+01  2.68225E+01       49.121    47.967    67.056
+    34      H  2.24529E+01  1.73889E+01  2.66853E+01       56.132    43.472    66.713
+    35      H  2.30193E+01  1.41338E+01  2.34764E+01       57.548    35.334    58.691
+    36      H  1.88918E+01  1.30065E+01  1.95375E+01       47.229    32.516    48.844
+    37      H  2.03043E+01  8.67544E+00  2.00952E+01       50.761    21.689    50.238
+    38      H  2.26486E+01  9.69804E+00  2.24766E+01       56.622    24.245    56.191
+    39      H  1.87292E+01  1.47726E+01  2.53610E+01       46.823    36.931    63.402
+    40      H  1.62377E+01  1.60317E+01  2.15543E+01       40.594    40.079    53.886
+    41      H  1.61806E+01  1.84719E+01  2.38152E+01       40.452    46.180    59.538
+    42      H  2.45688E+01  1.70588E+01  2.06065E+01       61.422    42.647    51.516
+    43      H  2.20918E+01  1.64240E+01  1.84778E+01       55.229    41.060    46.194
+    44      H  1.88369E+01  2.31532E+01  1.95362E+01       47.092    57.883    48.841
+    Shift of=  1.27493E+01  2.19079E+01  1.21582E+01 H grids=  0.4000  0.4000  0.4000
+   Box Sizes=  3.32000E+01  3.32000E+01  3.56000E+01           83        83        89
+       Extremes for the high resolution grid points:        18<65     18<65     18<71
+ wavelet localization is ON
+ ------------------------------------------------------------ Poisson Kernel Creation
+ Calculating Poisson solver kernel, free BC...done.
+ Memory occ. per proc. (Bytes):  Density=33600000  Kernel=34268088
+                                 Full Grid Arrays=64888648
+ Load Balancing for Poisson Solver related operations:
+ LB_density        : processors   0  -  1 work at 100%
+  LB_kernel        : processors   0  -  0 work at 100%
+                     processor       1   works at  99%
+ Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=       5154 points=    245189
+   Fine resolution grid: Number of segments=       1657 points=     16498
+ Wavefunctions memory occupation for root processor (Bytes): 83676600
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       C              19                    1
+    2       N               2                    1
+    3       O               1                    1
+    4       H              22                    0
+                                            ------  On-the-fly projectors application
+ Total number of projectors =                   22
+ Total number of components =                10479
+ Percent of zero components =                    0
+ ------------------------------------------------------------------ Memory Estimation
+ Number of atoms=   44 Number of orbitals=    57 Sim. Box Dimensions=    83   83   89
+ Estimation performed for 2 processors.
+ Memory occupation for principal arrays:
+               Poisson Solver Kernel (K):    32 MB   697 KB
+              Poisson Solver Density (D):    32 MB    45 KB
+     Single Wavefunction for one orbital:     2 MB   770 KB
+    All Wavefunctions for each processor:   239 MB   411 KB
+       Wavefunctions + DIIS per proc (W):   399 MB     3 KB
+     Nonlocal Pseudopotential Arrays (P):     0 MB    82 KB
+    Arrays of full uncompressed grid (U):    61 MB   904 KB
+ Estimation of Memory requirements for principal code sections:
+  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
+       ~19*K         |   W+~3*U+~ 3*D+K+P   |   ~12*D+K+W+P  |   W+~3*U+~ 3*D+K+P 
+       620MB         |       701MB          |      816MB     |           715MB
+ The overall memory requirement needed for this calculation is thus: 816 MB
+ By reducing the DIIS history and/or increasing the number of processors the amount of
+  memory can be reduced but for this system it will never be less than 268 MB
+ ion-ion interaction energy  9.31286361740593E+02
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge          -113.999999960757   0.000E+00
+ PSolver, free  BC, dimensions:   197  197  209   proc    2 ... done.
+ ------------------------------------------------------- Input Wavefunctions Creation
+ Generating 110 Atomic Input Orbitals
+ Processes from 0 to 0 treat 56 inguess orbitals 
+ Processes from 1 to 1 treat 54 inguess orbitals 
+ Calculating AIO wavefunctions: 
+ Generation of input wavefunction data for atom      C: 
+   Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
+ Generation of input wavefunction data for atom      N: 
+   Elec. Configuration: s 2.00 , p 1.00 1.00 1.00 , ... done.
+ Generation of input wavefunction data for atom      O: 
+   Elec. Configuration: s 2.00 , p 4/3 4/3 4/3 , ... done.
+ Generation of input wavefunction data for atom      H: 
+   Elec. Configuration: s 1.00 , ... done.
+ Wavefunctions memory occupation for root processor (Bytes): 161582400
+ Writing wavefunctions in wavelet form... done.
+ Deviation from normalization of the imported orbitals    6.42E-06
+ Calculation of charge density... done. Total electronic charge=     113.999998037982
+ PSolver, free  BC, dimensions:   197  197  209   proc    2 ... done.
+ Hamiltonian application... done. ekin_sum,eks:     113.4892060540     113.4841346519
+ ekin_sum,epot_sum,eproj_sum  1.13489206054E+02 -2.42087728398E+02  1.99737275619E+01
+    ehart,   eexcu,    vexcu  1.04249473103E+03 -4.82333320884E+01 -6.31030525438E+01
+ Input Wavefunctions Orthogonalization:
+ Overlap Matrix... Direct diagonalization...
+ evale(1)= -2.09457629143987E+00
+ evale(2)= -2.01844627827815E+00
+ evale(3)= -1.97031430748125E+00
+ evale(4)= -1.91335194638540E+00
+ evale(5)= -1.88294963127987E+00
+ evale(6)= -1.77556443121953E+00
+ evale(7)= -1.68346933309117E+00
+ evale(8)= -1.66313214460676E+00
+ evale(9)= -1.60627206029770E+00
+ evale(10)= -1.59439730222298E+00
+ evale(11)= -1.57510977560473E+00
+ evale(12)= -1.54827306774130E+00
+ evale(13)= -1.53213417452585E+00
+ evale(14)= -1.49066757264648E+00
+ evale(15)= -1.47487452850975E+00
+ evale(16)= -1.46715581230290E+00
+ evale(17)= -1.44808263516101E+00
+ evale(18)= -1.42833957749527E+00
+ evale(19)= -1.39342249458583E+00
+ evale(20)= -1.37056003086546E+00
+ evale(21)= -1.33077454402044E+00
+ evale(22)= -1.31821793183053E+00
+ evale(23)= -1.04497890495085E+00
+ evale(24)= -9.93834627963783E-01
+ evale(25)= -9.53874691854433E-01
+ evale(26)= -7.70845155301692E-01
+ evale(27)= -7.65967197161629E-01
+ evale(28)= -7.42461307091584E-01
+ evale(29)= -7.40208982468870E-01
+ evale(30)= -7.30655986323000E-01
+ evale(31)= -7.25722469791668E-01
+ evale(32)= -7.12335642001179E-01
+ evale(33)= -7.07283239554647E-01
+ evale(34)= -7.01354516595536E-01
+ evale(35)= -6.95904162013329E-01
+ evale(36)= -6.91202918809596E-01
+ evale(37)= -6.89766042867043E-01
+ evale(38)= -6.87802922480165E-01
+ evale(39)= -6.82694289018244E-01
+ evale(40)= -6.76447862060928E-01
+ evale(41)= -6.75140371940014E-01
+ evale(42)= -6.73725324413358E-01
+ evale(43)= -6.67324903477059E-01
+ evale(44)= -6.58262826146904E-01
+ evale(45)= -6.56439487281384E-01
+ evale(46)= -6.48973849254456E-01
+ evale(47)= -6.47605630262476E-01
+ evale(48)= -6.37113063367430E-01
+ evale(49)= -6.35310995560324E-01
+ evale(50)= -6.03493025651105E-01
+ evale(51)= -5.93922322768669E-01
+ evale(52)= -5.64830488593977E-01 <-
+ evale(53)= -5.16262988311374E-01 <-
+ evale(54)= -4.98607534370540E-01 <-
+ evale(55)= -4.77827467199020E-01 <-
+ evale(56)= -4.49204751769286E-01 <-
+ evale(57)= -4.26151008688476E-01 <- Last InputGuess eval, H-L IG gap:   0.2603 eV
+ evale(58)= -4.16583964778040E-01 <- First virtual eval
+ evale(59)= -4.06901686837300E-01 <-
+ evale(60)= -3.74024904097057E-01 <-
+ evale(61)= -3.69021131085376E-01 <-
+ evale(62)= -3.49514199583717E-01 <-
+ evale(63)= -3.30545600865815E-01
+ evale(64)= -3.01812049091558E-01
+ evale(65)= -2.98059142100071E-01
+ evale(66)= -2.90371323494110E-01
+ evale(67)= -2.58832098150874E-01
+ evale(68)= -2.35346542225428E-01
+ evale(69)= -2.16465738824453E-01
+ evale(70)= -2.13633495763832E-01
+ evale(71)= -2.07308879588923E-01
+ evale(72)= -1.87636322155414E-01
+ evale(73)= -1.66813739909350E-01
+ evale(74)= -1.59626507351631E-01
+ evale(75)= -1.44236453285285E-01
+ evale(76)= -1.23152737164865E-01
+ evale(77)= -1.20948028209450E-01
+ evale(78)= -1.00082651317029E-01
+ evale(79)= -5.21465198796129E-02
+ evale(80)= -4.37084493674167E-02
+ evale(81)= -2.79359358747345E-02
+ evale(82)=  2.48729816543391E-02
+ evale(83)=  7.35202749075324E-02
+ evale(84)=  8.68995423361594E-02
+ evale(85)=  1.47507577646087E-01
+ evale(86)=  1.91214134455699E-01
+ evale(87)=  2.42393935535065E-01
+ evale(88)=  2.77442375675485E-01
+ evale(89)=  2.87545020467420E-01
+ evale(90)=  3.16197525118433E-01
+ evale(91)=  3.56626678813610E-01
+ evale(92)=  3.61870678761346E-01
+ evale(93)=  3.74393949651247E-01
+ evale(94)=  3.98040853373759E-01
+ evale(95)=  4.16749950853248E-01
+ evale(96)=  4.33913156301108E-01
+ evale(97)=  4.46516713717794E-01
+ evale(98)=  4.53531865381849E-01
+ evale(99)=  4.62966419400730E-01
+ evale(100)=  4.76277301558169E-01
+ evale(101)=  4.94447060092732E-01
+ evale(102)=  5.97948568214710E-01
+ evale(103)=  6.19852733258893E-01
+ evale(104)=  6.59451559223840E-01
+ evale(105)=  7.05160415909802E-01
+ evale(106)=  7.40595238663922E-01
+ evale(107)=  8.12325724696122E-01
+ evale(108)=  8.91105199920188E-01
+ evale(109)=  1.13108220101105E+00
+ evale(110)=  1.22690790586447E+00
+ Building orthogonal Wavefunctions... done.
+ expected accuracy in energy  5.07E-03
+ expected accuracy in energy per orbital  8.90E-05
+ ---------------------------------------------------------------------------- iter= 1
+ Calculation of charge density... done. Total electronic charge=     113.999997223104
+ PSolver, free  BC, dimensions:   197  197  209   proc    2 ... done.
+ Hamiltonian application... done. 1 minimization iterations required
+ --------------------------------------------------- End of Wavefunction Optimisation
+ ekin_sum,epot_sum,eproj_sum  1.35958278026E+02 -2.35685252323E+02  1.72297946132E+01
+    ehart,   eexcu,    vexcu  1.04093766187E+03 -4.99444001927E+01 -6.53659077029E+01
+ FINAL iter,total energy,gnrm     1  -1.47945542929493286E+02  1.00E+10
+ No convergence within the allowed number of minimization steps
+ --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+ e(   1)= -2.03733970162114E+00 2.0000
+ e(   2)= -1.73214874742095E+00 2.0000
+ e(   3)= -1.62809542593931E+00 2.0000
+ e(   4)= -1.59882900241443E+00 2.0000
+ e(   5)= -1.54184389186446E+00 2.0000
+ e(   6)= -1.53448396241402E+00 2.0000
+ e(   7)= -1.49967427216923E+00 2.0000
+ e(   8)= -1.47764976193598E+00 2.0000
+ e(   9)= -1.36674498801596E+00 2.0000
+ e(  10)= -1.30102372897811E+00 2.0000
+ e(  11)= -1.25375379878348E+00 2.0000
+ e(  12)= -1.22556473692850E+00 2.0000
+ e(  13)= -1.13383442264365E+00 2.0000
+ e(  14)= -1.10625447353985E+00 2.0000
+ e(  15)= -1.09413035998958E+00 2.0000
+ e(  16)= -1.06148058108211E+00 2.0000
+ e(  17)= -1.05420972653593E+00 2.0000
+ e(  18)= -1.04131165059964E+00 2.0000
+ e(  19)= -1.03788692599694E+00 2.0000
+ e(  20)= -9.63639942578894E-01 2.0000
+ e(  21)= -9.33686120488205E-01 2.0000
+ e(  22)= -9.09909326706549E-01 2.0000
+ e(  23)= -8.78914324221660E-01 2.0000
+ e(  24)= -8.60592072990616E-01 2.0000
+ e(  25)= -8.21288902886904E-01 2.0000
+ e(  26)= -7.88747860314235E-01 2.0000
+ e(  27)= -7.58991874783977E-01 2.0000
+ e(  28)= -7.34396746402599E-01 2.0000
+ e(  29)= -6.92786676046108E-01 2.0000
+ e(  30)= -6.82039370024299E-01 2.0000
+ e(  31)= -6.34111107960416E-01 2.0000
+ e(  32)= -5.79321262682143E-01 2.0000
+ e(  33)= -5.69675752658195E-01 2.0000
+ e(  34)= -5.40026512504157E-01 2.0000
+ e(  35)= -5.03017644994947E-01 2.0000
+ e(  36)= -4.83720860734884E-01 2.0000
+ e(  37)= -4.63202629286908E-01 2.0000
+ e(  38)= -4.42474647757928E-01 2.0000
+ e(  39)= -4.12137252663665E-01 2.0000
+ e(  40)= -4.04973760929854E-01 2.0000
+ e(  41)= -3.83548635167768E-01 2.0000
+ e(  42)= -3.60953209849439E-01 2.0000
+ e(  43)= -3.25384113309687E-01 2.0000
+ e(  44)= -2.83094463937327E-01 2.0000
+ e(  45)= -2.29519120147486E-01 2.0000
+ e(  46)= -2.14257085745865E-01 2.0000
+ e(  47)= -1.93101542230244E-01 2.0000
+ e(  48)= -1.77766463918211E-01 2.0000
+ e(  49)= -1.38246272922888E-01 2.0000
+ e(  50)= -1.10146104330731E-01 2.0000
+ e(  51)= -9.77892046794117E-02 2.0000
+ e(  52)= -6.15985429952439E-02 2.0000
+ e(  53)=  1.09444646104470E-02 2.0000
+ e(  54)=  1.40076921578070E-01 2.0000
+ e(  55)=  1.99331995648773E-01 2.0000
+ e(  56)=  2.22192082549938E-01 2.0000
+ e(  57)=  5.38184261651731E-01 2.0000
+  WARNING: Wavefunctions not converged after cycle           1
+ writing external_potential     
+ writing local_potential     
+ ----------------------------------------------------------------- Forces Calculation
+ Calculation of charge density... done. Total electronic charge=     113.999997223104
+ ------------------------------------------------------------- Electric Dipole Moment
+  |P| =   2.676906E+01 (AU)       (Px,Py,Pz)=   -1.9288E+01   1.3736E+01  -1.2486E+01
+  |P| =   6.804017E+01 (Debye)    (Px,Py,Pz)=   -4.9025E+01   3.4913E+01  -3.1735E+01
+ writing electronic_density     
+ PSolver, free  BC, dimensions:   197  197  209   proc    2 ... done.
+ writing hartree_potential     
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ Calculate nonlocal forces... done.
+ average noise along x direction:   2.63261373E-01
+ average noise along y direction:  -1.63939160E-01
+ average noise along z direction:  -2.51217457E-03
+ total average noise            :   3.10143369E-01
+ clean forces norm (Ha/Bohr): maxval=  2.084803642887E+00  fnrm2=  2.327317223058E+01
+ raw forces:                  maxval=  2.120037672590E+00  fnrm2=  2.342265379720E+01
+ CPU time/ELAPSED time for root process     0       604.23      1044.55
+  WARNING: Self-consistent cycle did not meet convergence criteria
+ Final values of the Forces for each atom
+     1      C -5.76475E-01  6.91648E-03 -1.21133E+00
+     2      C -6.79048E-01 -9.81777E-04 -1.02171E-01
+     3      C  2.60135E-01 -3.58749E-02  4.24338E-01
+     4      C  9.41692E-01 -5.27031E-02  4.64997E-01
+     5      C  6.17225E-01 -3.08014E-02 -9.65766E-01
+     6      C  1.85855E-01 -1.03350E-02 -1.16251E+00
+     7      N -1.79669E+00  1.01093E-02 -9.16154E-01
+     8      C -9.45654E-01  1.90180E-02 -3.38947E-03
+     9      C -1.97949E-02 -2.08498E-02  1.09565E+00
+    10      C  3.07193E-01 -6.59889E-02  4.34929E-01
+    11      C  4.26628E-01  2.70756E-01  5.20868E-01
+    12      O  4.49182E-01 -9.91082E-01  1.77831E+00
+    13      C  5.16561E-01 -3.52204E-01  4.20966E-02
+    14      N  9.02833E-01  3.35335E-01 -4.58591E-01
+    15      C  1.68542E-01  2.67133E-01 -6.51162E-01
+    16      C  1.72689E-01  4.01070E-01  3.83479E-01
+    17      C -5.58545E-01 -6.50524E-02  2.13553E-01
+    18      C -3.57687E-01 -2.03836E-02  5.40792E-02
+    19      C  4.03699E-01  2.88025E-02 -3.59784E-02
+    20      C  1.08417E-01  4.88115E-01 -2.52683E-01
+    21      C -4.08094E-01  3.17490E-01 -1.83107E-01
+    22      C  9.10733E-02 -4.54674E-01  6.99380E-02
+    23      H -3.16200E-01  6.45996E-02  1.62963E-01
+    24      H  4.06463E-02  3.76527E-02  3.45416E-01
+    25      H  4.08225E-01 -1.84037E-02  1.27094E-01
+    26      H  2.14520E-01 -1.37483E-02 -2.43493E-01
+    27      H  7.03675E-03  4.32976E-03 -1.94217E-01
+    28      H -3.94733E-01  3.23810E-02 -2.92268E-01
+    29      H  5.48075E-02 -6.74327E-02  9.20626E-02
+    30      H  6.43606E-02 -1.70701E-01 -1.47629E-01
+    31      H -1.10486E-01  2.57511E-01  5.14724E-02
+    32      H  1.98661E-01  1.75531E-02  4.70420E-03
+    33      H -2.40901E-01  1.43452E-01  1.91941E-01
+    34      H  1.25323E-01 -1.01189E-01  1.93351E-01
+    35      H  1.91622E-01 -9.63171E-02  1.37392E-01
+    36      H -2.31413E-01  6.78035E-03 -1.49296E-01
+    37      H -1.41579E-01 -1.57221E-01 -4.05686E-02
+    38      H  5.07782E-02 -7.78141E-02  1.46464E-01
+    39      H -2.30247E-01 -1.75931E-01  1.54984E-01
+    40      H -1.38609E-01 -4.60970E-02 -1.25414E-02
+    41      H -1.38178E-01  9.27701E-02  9.23774E-02
+    42      H  7.95054E-02  5.29527E-02 -1.00841E-02
+    43      H -3.04822E-02 -1.50745E-03 -1.14335E-01
+    44      H  3.27611E-01  1.72566E-01 -3.51895E-02
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 5227 allocations and 5227 deallocations, remaining memory(B): 0
+ memory occupation peak: 1287 MB
+ for the array  zt in the routine G_Poisson_Solver

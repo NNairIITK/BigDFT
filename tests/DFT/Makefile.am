@@ -12,7 +12,8 @@ TESTDIRS = C \
 	  TiMix \
 	  TiSmear \
 	  O2-Spin \
-	  TDDFT
+	  TDDFT \
+	  SIC
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -53,7 +54,10 @@ GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 TDDFT.psp: psppar.N
-
+SIC.psp: HGH/psppar.H \
+	HGH/psppar.C \
+	HGH/psppar.O \
+	HGH/psppar.N
 
 # Define the precision for specific directories.
 %.report: %.ref
