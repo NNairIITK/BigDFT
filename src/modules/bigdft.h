@@ -86,7 +86,39 @@ BigDFT_Glr* bigdft_glr_new(BigDFT_Atoms *atoms, double *radii, double h[3],
                            double crmult, double frmult);
 void bigdft_glr_free(BigDFT_Glr *glr);
 
+typedef struct f90_pointer_inputs_ f90_pointer_inputs;
+typedef struct BigDFT_Inputs_
+{
+  /* TODO: bindings to values... */
+  int files;
+  int ixc, ncharge, nspin, mpol, itermax, nrepmax, ncong, idsx,
+    dispersion, inputPsiId, output_wf_format, output_grid, ncongt, norbv, nvirt,
+    nplot, disableSym;
+  double crmult, frmult, gnrm_cv, rbuf;
+  double h[3], elecfield[3];
+
+  /* Private. */
+  f90_pointer_inputs *data;
+} BigDFT_Inputs;
+
+#define BIGDFT_INPUTS_NONE    0
+#define BIGDFT_INPUTS_DFT     1
+#define BIGDFT_INPUTS_GEOPT   2
+#define BIGDFT_INPUTS_PERF    4
+#define BIGDFT_INPUTS_KPT     8
+#define BIGDFT_INPUTS_MIX    16
+#define BIGDFT_INPUTS_TDDFT  32
+#define BIGDFT_INPUTS_SIC    64
+#define BIGDFT_INPUTS_FREQ  128
+
+BigDFT_Inputs* bigdft_inputs_new(const gchar *radical);
+void bigdft_inputs_free(BigDFT_Inputs *in);
+
+
 guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
                           double mult, double h[3]);
+
+
+
 
 #endif

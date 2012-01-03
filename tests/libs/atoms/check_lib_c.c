@@ -13,6 +13,7 @@ int main(int argc, char **argv)
   int *cgrid, *fgrid;
 #define CRMULT 5.
 #define FRMULT 8.
+  BigDFT_Inputs *in;
 
   atoms = bigdft_atoms_new();
   bigdft_atoms_set_n_atoms(atoms, 3);
@@ -61,6 +62,12 @@ int main(int argc, char **argv)
   bigdft_glr_free(glr);
 
   bigdft_atoms_free(atoms);
+
+  in = bigdft_inputs_new("test");
+  fprintf(stderr, "Read 'test.dft' file : %d\n", (in->files & BIGDFT_INPUTS_DFT));
+  fprintf(stderr, "Input variables are %f %f %f  -  %f %f  -  %d\n",
+          in->h[0], in->h[1], in->h[2], in->crmult, in->frmult, in->ixc);
+  bigdft_inputs_free(in);
 
   FC_FUNC_(memocc_report, MEMOCC_REPORT)();
 
