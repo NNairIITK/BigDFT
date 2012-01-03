@@ -1265,6 +1265,7 @@ subroutine deallocate_p2pCommsSumrho(comsr, subname)
   call checkAndDeallocatePointer(comsr%communComplete, 'comsr%communComplete', subname)
   call checkAndDeallocatePointer(comsr%computComplete, 'comsr%computComplete', subname)
   call checkAndDeallocatePointer(comsr%auxarray, 'comsr%auxarray', subname)
+  call checkAndDeallocatePointer(comsr%startingindex, 'comsr%startingindex', subname)
 
 end subroutine deallocate_p2pCommsSumrho
 

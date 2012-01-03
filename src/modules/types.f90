@@ -523,11 +523,11 @@ module module_types
 !! for sumrho in the linear scaling version.
   type,public:: p2pCommsSumrho
     integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
-    real(8),dimension(:),pointer:: sendBuf, recvBuf
+    real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf, maxsize_auxarray
+    integer:: nsendBuf, nrecvBuf, nauxarray
     logical,dimension(:,:),pointer:: communComplete, computComplete
-    real(8),dimension(:,:,:),pointer:: auxarray
+    integer,dimension(:,:),pointer:: startingindex
   end type p2pCommsSumrho
 
 !> Contains the parameters neeed for the point to point communications
@@ -701,7 +701,7 @@ end type workarrays_quartic_convolutions
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
-    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions, transformToGlobal
+    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions, transformToGlobal, sumrho_fast
     character(len=4):: getCoeff, mixingMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp

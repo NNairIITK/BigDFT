@@ -3603,11 +3603,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine deallocateMixrhopotDIIS
 
 
-     subroutine allocateCommunicationbufferSumrho(iproc, comsr, subname)
+     subroutine allocateCommunicationbufferSumrho(iproc, with_auxarray, comsr, subname)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc
+       logical,intent(in):: with_auxarray
        type(p2pCommsSumrho),intent(inout):: comsr
        character(len=*),intent(in):: subname
      end subroutine allocateCommunicationbufferSumrho

@@ -1027,11 +1027,13 @@ is=nscatterarr(iproc,3)-14
 ie=is+nscatterarr(iproc,1)-1
 
 totalCharge=0.d0
+ind=1
 do iorb=1,lin%comsr%noverlaps(iproc)
     iiorb=lin%comsr%overlaps(iorb) !global index of orbital iorb
     ilr=lin%comsr%comarr(4,iorb,iproc) !localization region of orbital iorb
     istri=lin%comsr%comarr(6,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
-    do jorb=1,lin%comsr%noverlaps(iproc)
+    !do jorb=1,lin%comsr%noverlaps(iproc)
+    do jorb=iorb,lin%comsr%noverlaps(iproc)
         jjorb=lin%comsr%overlaps(jorb) !global indes of orbital jorb
         jlr=lin%comsr%comarr(4,jorb,iproc) !localization region of orbital jorb
         istrj=lin%comsr%comarr(6,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
@@ -1044,7 +1046,6 @@ do iorb=1,lin%comsr%noverlaps(iproc)
         i3e=min(2*lin%lzd%llr(ilr)%ns3-14+lin%lzd%llr(ilr)%d%n3i-1,2*lin%lzd%llr(jlr)%ns3-14+lin%lzd%llr(jlr)%d%n3i-1,ie)
         !factorTimesDensKern = factor*densKern(iiorb,jjorb)
         ! Now loop over all points in the box in which the orbitals overlap.
-        ind=1
         do i3=i3s,i3e !bounds in z direction
             !!i3d=i3-i3s+1 !z coordinate of orbital iorb with respect to the overlap box
             !!j3d=i3-i3s+1 !z coordinate of orbital jorb with respect to the overlap box
@@ -1088,10 +1089,11 @@ do iorb=1,lin%comsr%noverlaps(iproc)
                         indrj = indrj0 + j1d !index of orbital jorb in the 1-dim receive buffer
                         indLarge = indLarge0 + i1 !index for which the charge density is beeing calculated
                         !tt = factorTimesDensKern*lin%comsr%recvBuf(indri)*lin%comsr%recvBuf(indrj)
-                        lin%comsr%auxarray(ind,jorb,iorb)=lin%comsr%recvBuf(indri)*lin%comsr%recvBuf(indrj)
+                        lin%comsr%auxarray(ind)=lin%comsr%recvBuf(indri)*lin%comsr%recvBuf(indrj)
                         !rho(indLarge) = rho(indLarge) + tt !update the charge density at point indLarge
                         !totalCharge = totalCharge + tt !add the contribution to the total charge
                         ind=ind+1
+                        !write(5000+iproc,*) indri, indrj
                     end do
                 end if
                 ! This is the same again, this time with unrolled loops.
@@ -1111,16 +1113,20 @@ do iorb=1,lin%comsr%noverlaps(iproc)
                         !tt1 = factorTimesDensKern*lin%comsr%recvBuf(indri+1)*lin%comsr%recvBuf(indrj+1)
                         !tt2 = factorTimesDensKern*lin%comsr%recvBuf(indri+2)*lin%comsr%recvBuf(indrj+2)
                         !tt3 = factorTimesDensKern*lin%comsr%recvBuf(indri+3)*lin%comsr%recvBuf(indrj+3)
-                        lin%comsr%auxarray(ind  ,jorb,iorb)=lin%comsr%recvBuf(indri  )*lin%comsr%recvBuf(indrj  )
-                        lin%comsr%auxarray(ind+1,jorb,iorb)=lin%comsr%recvBuf(indri+1)*lin%comsr%recvBuf(indrj+1)
-                        lin%comsr%auxarray(ind+2,jorb,iorb)=lin%comsr%recvBuf(indri+2)*lin%comsr%recvBuf(indrj+2)
-                        lin%comsr%auxarray(ind+3,jorb,iorb)=lin%comsr%recvBuf(indri+3)*lin%comsr%recvBuf(indrj+3)
+                        lin%comsr%auxarray(ind  )=lin%comsr%recvBuf(indri  )*lin%comsr%recvBuf(indrj  )
+                        lin%comsr%auxarray(ind+1)=lin%comsr%recvBuf(indri+1)*lin%comsr%recvBuf(indrj+1)
+                        lin%comsr%auxarray(ind+2)=lin%comsr%recvBuf(indri+2)*lin%comsr%recvBuf(indrj+2)
+                        lin%comsr%auxarray(ind+3)=lin%comsr%recvBuf(indri+3)*lin%comsr%recvBuf(indrj+3)
                         !rho(indLarge  ) = rho(indLarge  ) + tt0
                         !rho(indLarge+1) = rho(indLarge+1) + tt1
                         !rho(indLarge+2) = rho(indLarge+2) + tt2
                         !rho(indLarge+3) = rho(indLarge+3) + tt3
                         !totalCharge = totalCharge + tt0 + tt1 + tt2 + tt3
                         ind=ind+4
+                        !write(5000+iproc,*) indri, indrj
+                        !write(5000+iproc,*) indri+1, indrj+1
+                        !write(5000+iproc,*) indri+2, indrj+2
+                        !write(5000+iproc,*) indri+3, indrj+3
                     end do
                 end if
             end do
@@ -1336,7 +1342,11 @@ do iorb=1,lin%comsr%noverlaps(iproc)
         i3e=min(2*lin%lzd%llr(ilr)%ns3-14+lin%lzd%llr(ilr)%d%n3i-1,2*lin%lzd%llr(jlr)%ns3-14+lin%lzd%llr(jlr)%d%n3i-1,ie)
         factorTimesDensKern = factor*densKern(iiorb,jjorb)
         ! Now loop over all points in the box in which the orbitals overlap.
-        ind=1
+        if(jorb>=iorb) then
+            ind=lin%comsr%startingindex(jorb,iorb)
+        else
+            ind=lin%comsr%startingindex(iorb,jorb)
+        end if
         do i3=i3s,i3e !bounds in z direction
             !!i3d=i3-i3s+1 !z coordinate of orbital iorb with respect to the overlap box
             !!j3d=i3-i3s+1 !z coordinate of orbital jorb with respect to the overlap box
@@ -1380,7 +1390,7 @@ do iorb=1,lin%comsr%noverlaps(iproc)
                         !indrj = indrj0 + j1d !index of orbital jorb in the 1-dim receive buffer
                         indLarge = indLarge0 + i1 !index for which the charge density is beeing calculated
                         !tt = factorTimesDensKern*lin%comsr%recvBuf(indri)*lin%comsr%recvBuf(indrj)
-                        tt = factorTimesDensKern*lin%comsr%auxarray(ind,jorb,iorb)
+                        tt = factorTimesDensKern*lin%comsr%auxarray(ind)
                         rho(indLarge) = rho(indLarge) + tt !update the charge density at point indLarge
                         totalCharge = totalCharge + tt !add the contribution to the total charge
                         ind=ind+1
@@ -1403,10 +1413,10 @@ do iorb=1,lin%comsr%noverlaps(iproc)
                         !!tt1 = factorTimesDensKern*lin%comsr%recvBuf(indri+1)*lin%comsr%recvBuf(indrj+1)
                         !!tt2 = factorTimesDensKern*lin%comsr%recvBuf(indri+2)*lin%comsr%recvBuf(indrj+2)
                         !!tt3 = factorTimesDensKern*lin%comsr%recvBuf(indri+3)*lin%comsr%recvBuf(indrj+3)
-                        tt0 = factorTimesDensKern*lin%comsr%auxarray(ind  ,jorb,iorb)
-                        tt1 = factorTimesDensKern*lin%comsr%auxarray(ind+1,jorb,iorb)
-                        tt2 = factorTimesDensKern*lin%comsr%auxarray(ind+2,jorb,iorb)
-                        tt3 = factorTimesDensKern*lin%comsr%auxarray(ind+3,jorb,iorb)
+                        tt0 = factorTimesDensKern*lin%comsr%auxarray(ind  )
+                        tt1 = factorTimesDensKern*lin%comsr%auxarray(ind+1)
+                        tt2 = factorTimesDensKern*lin%comsr%auxarray(ind+2)
+                        tt3 = factorTimesDensKern*lin%comsr%auxarray(ind+3)
                         rho(indLarge  ) = rho(indLarge  ) + tt0
                         rho(indLarge+1) = rho(indLarge+1) + tt1
                         rho(indLarge+2) = rho(indLarge+2) + tt2
