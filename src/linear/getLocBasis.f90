@@ -284,9 +284,17 @@ real(8),dimension(:),pointer:: lpot
 
   !!!! TEST ########################################################
   !!call transpose_linear(iproc, 0, nproc-1, lin%lb%orbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
-  !!call calculate_overlap_matrix(iproc, lin%lb%orbs, lin%lb%collComms, lphi, matrixElements(1,1,2))
+  !!call transpose_linear(iproc, 0, nproc-1, lin%lb%orbs, lin%lb%collComms, lhphi, mpi_comm_world, phiWork)
+  !!call calculate_overlap_matrix(iproc, lin%lb%orbs, lin%lb%collComms, lphi, lhphi, matrixElements(1,1,2))
+  !!call untranspose_linear(iproc, 0, nproc-1,  lin%lb%orbs, lin%lb%collComms, lhphi, mpi_comm_world, phiWork)
   !!call untranspose_linear(iproc, 0, nproc-1,  lin%lb%orbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
   !!!! END TEST ####################################################
+  !!do iorb=1,lin%lb%orbs%norb
+  !!    do jorb=1,lin%lb%orbs%norb
+  !!        write(400+iproc,*) iorb, jorb, matrixElements(jorb,iorb,1)
+  !!        write(410+iproc,*) iorb, jorb, matrixElements(jorb,iorb,2)
+  !!    end do
+  !!end do
 
   tt=0.d0
   do iall=1,lin%lb%orbs%norb

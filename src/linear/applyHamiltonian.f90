@@ -162,16 +162,16 @@ real(gp) :: epot_p
                         !########################################
 
 
-                       ! New trial
-                       tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
-                          (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
-                       tt=sqrt(tt)
-                       tt=tt/5.d0
-                       tt=tt**2
-                       tt=5.d-2*(exp(tt)-1.d0)
+                       !!! New trial
+                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                       !!   (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!tt=sqrt(tt)
+                       !!tt=tt/5.d0
+                       !!tt=tt**2
+                       !!tt=5.d-2*(exp(tt)-1.d0)
 
 
-                       !tt=potentialPrefac*tt**order
+                       tt=potentialPrefac*tt**order
 
 
                        !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
@@ -1274,21 +1274,21 @@ real(gp) :: epot_p, epot
               else
                  do ispinor=1,nspinor
                     do i1=i1s,i1e
-                       !!! THIS IS CORRECT #################################################################
-                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
-                       !!   (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
-                       !!!!! EXPERIMENTAL ########################
-                       !!!!tt=max(tt-9.d0,0.d0)
-                       !!!!########################################
-                       !!tt=potentialPrefac*tt**order
-
-                       ! New trial
+                       ! THIS IS CORRECT #################################################################
                        tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                           (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
-                       tt=sqrt(tt)
-                       tt=tt/5.d0
-                       tt=tt**2
-                       tt=5.d-2*(exp(tt)-1.d0)
+                       !!! EXPERIMENTAL ########################
+                       !!tt=max(tt-9.d0,0.d0)
+                       !!########################################
+                       tt=potentialPrefac*tt**order
+
+                       !!! New trial
+                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                       !!   (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!tt=sqrt(tt)
+                       !!tt=tt/5.d0
+                       !!tt=tt**2
+                       !!tt=5.d-2*(exp(tt)-1.d0)
 
 
 

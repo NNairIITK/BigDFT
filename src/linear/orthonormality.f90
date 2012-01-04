@@ -5994,7 +5994,7 @@ end subroutine applyOrthoconstraintlocal
 
 
 
-subroutine calculate_overlap_matrix(iproc, orbs, collComms, psi, ovrlp)
+subroutine calculate_overlap_matrix(iproc, orbs, collComms, psi_i, psi_j, ovrlp)
 use module_base
 use module_types
 implicit none
@@ -6003,7 +6003,7 @@ implicit none
 integer,intent(in):: iproc
 type(orbitals_data),intent(in):: orbs
 type(collectiveComms),intent(in):: collComms
-real(8),dimension(orbs%npsidim),intent(in):: psi
+real(8),dimension(orbs%npsidim),intent(in):: psi_i, psi_j
 real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 
 ! Local variables
@@ -6025,24 +6025,26 @@ do iorb=1,orbs%norb
        tt=0.d0
        ist=iist
        jst=jjst
-       do i=1,max(ncnt_iorb,ncnt_jorb)
+       !do i=1,max(ncnt_iorb,ncnt_jorb)
+       do
            iloc=collComms%indexarray(ist)  
            jloc=collComms%indexarray(jst)  
            if(iloc==jloc) then
-               tt=tt+psi(ist)*psi(jst)
+               tt=tt+psi_i(ist)*psi_j(jst)
                ist=ist+1
                jst=jst+1
                ii=ii+1
                jj=jj+1
-           else if(iloc<jloc .or. jstop) then
+           else if((iloc<jloc .or. jstop) .and. .not.istop) then
                ist=ist+1
                ii=ii+1
-           else if(jloc<iloc .or. istop) then
+           else if((jloc<iloc .or. istop) .and. .not.jstop) then
                jst=jst+1
                jj=jj+1
            end if
            if(ii==ncnt_iorb) istop=.true.
            if(jj==ncnt_jorb) jstop=.true.
+           if(istop .and. jstop) exit
        end do
 
        ovrlp(jorb,iorb)=tt
