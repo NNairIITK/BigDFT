@@ -6026,10 +6026,15 @@ do iorb=1,orbs%norb
        ist=iist
        jst=jjst
        !do i=1,max(ncnt_iorb,ncnt_jorb)
+       !write(*,'(a,2i8,i10,2i12,2l)') 'iproc, jorb, jst, ncnt_jorb, orbs%npsidim, istop, jstop', iproc, jorb, jst, ncnt_jorb, orbs%npsidim, istop, jstop
        do
-           iloc=collComms%indexarray(ist)  
-           jloc=collComms%indexarray(jst)  
+           !if(jstop .and. jst>orbs%npsidim) write(*,'(a,5i12,2l)') 'iproc, jj, ncnt_jorb, jst, orbs%npsidim, istop, jstop', iproc, jj, ncnt_jorb, jst, orbs%npsidim, istop, jstop
+           write(600+iproc,'(a,2i5,2i12,3x,2i12)') 'iorb, jorb, ist, jst, iloc, jloc', iorb, jorb, ist, jst, iloc, jloc
+           if(.not.istop) iloc=collComms%indexarray(ist)  
+           if(.not.jstop) jloc=collComms%indexarray(jst)  
            if(iloc==jloc) then
+               !if(istop) write(*,*) 'STRANGE: istop is true...'
+               !if(jstop) write(*,*) 'STRANGE: jstop is true...'
                tt=tt+psi_i(ist)*psi_j(jst)
                ist=ist+1
                jst=jst+1
