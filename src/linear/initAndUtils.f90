@@ -3817,7 +3817,7 @@ type(collectiveComms),intent(out):: collcomms
 ! Local variables
 integer:: iorb, ilr, kproc, jproc, ii, ncount, iiorb, istat, gdim, ldim, ist
 integer:: n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3, ind, i, is, ie
-integer:: transform_index, iseg
+integer:: transform_index, iseg, offset
 character(len=*),parameter:: subname='initCollectiveComms'
 
 ! Allocate all arrays
@@ -3929,17 +3929,20 @@ do iorb=1,orbs%norbp
         end do
     end do
 
+    offset=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
     do iseg=1,lzd%llr(ilr)%wfd%nseg_f
         is=lzd%llr(ilr)%wfd%keyg(1,iseg+lzd%llr(ilr)%wfd%nseg_c)
         ie=lzd%llr(ilr)%wfd%keyg(2,iseg+lzd%llr(ilr)%wfd%nseg_c)
         do i=is,ie
-            collComms%indexarray(ind)=transform_index(i, n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3)
-            collComms%indexarray(ind+1)=collComms%indexarray(ind)
-            collComms%indexarray(ind+2)=collComms%indexarray(ind)
-            collComms%indexarray(ind+3)=collComms%indexarray(ind)
-            collComms%indexarray(ind+4)=collComms%indexarray(ind)
-            collComms%indexarray(ind+5)=collComms%indexarray(ind)
-            collComms%indexarray(ind+6)=collComms%indexarray(ind)
+            ii=transform_index(i, n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3)
+
+            collComms%indexarray(ind  ) = offset + 7*(ii-1)+1
+            collComms%indexarray(ind+1) = offset + 7*(ii-1)+2
+            collComms%indexarray(ind+2) = offset + 7*(ii-1)+3
+            collComms%indexarray(ind+3) = offset + 7*(ii-1)+4
+            collComms%indexarray(ind+4) = offset + 7*(ii-1)+5
+            collComms%indexarray(ind+5) = offset + 7*(ii-1)+6
+            collComms%indexarray(ind+6) = offset + 7*(ii-1)+7
             ind=ind+7
         end do
     end do
