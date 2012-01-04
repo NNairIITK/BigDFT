@@ -224,6 +224,14 @@ module module_types
      integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
 
+!> Contains arguments needed for \rho_local for WVL+PAW
+
+  type, public :: rholoc_objects
+    integer ,dimension(:)    ,pointer:: msz ! mesh size for local rho
+    real(gp),dimension(:,:,:),pointer::d! local rho and derivatives
+    real(gp),dimension(:,:)  ,pointer::rad!radial mesh for local rho
+  end type rholoc_objects
+  
 !>  Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors
      integer :: nproj,nprojel                     !< Number of projectors and number of elements

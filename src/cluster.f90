@@ -260,6 +260,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nkptv, nvirtu, nvirtd
   real(gp), allocatable :: wkptv(:)
   type(rho_descriptors) :: rhodsc
+  type(rholoc_objects)::rholoc_tmp
+
 
   ! ----------------------------------
 
@@ -477,7 +479,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,&
-       0,.false.)
+       0,.false.,rholoc_tmp)
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)

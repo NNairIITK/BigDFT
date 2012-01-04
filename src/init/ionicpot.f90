@@ -455,7 +455,7 @@ END SUBROUTINE IonicEnergyandForces
 
 subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
-     correct_offset)
+     correct_offset,rholoc)
   use module_base
   use module_types
 !  use module_interfaces, except_this_one => createIonicPotential
@@ -470,12 +470,15 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
+  type(rholoc_objects),intent(in)::rholoc
+
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
+  real(gp) :: raux,rr
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz,offset
   real(wp) :: maxdiff
   real(gp) :: ehart
@@ -528,28 +531,68 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
         iey=ceiling((ry+cutoff)/hyh)
         iez=ceiling((rz+cutoff)/hzh)
 
-        do i3=isz,iez
-           z=real(i3,kind=8)*hzh-rz
-           call ind_positions(perz,i3,n3,j3,goz) 
-           j3=j3+nbl3+1
-           do i2=isy,iey
-              y=real(i2,kind=8)*hyh-ry
-              call ind_positions(pery,i2,n2,j2,goy)
-              do i1=isx,iex
-                 x=real(i1,kind=8)*hxh-rx
-                 call ind_positions(perx,i1,n1,j1,gox)
-                 r2=x**2+y**2+z**2
-                 arg=r2/rloc**2
-                 xp=exp(-.5d0*arg)
-                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                    ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                    pot_ion(ind)=pot_ion(ind)-xp*charge
-                 else if (.not. goz ) then
-                    rholeaked=rholeaked+xp*charge
-                 endif
+!       Calculate Ionic Density
+!       using HGH parameters.
+!       Eq. 1.104, T. Deutsch and L. Genovese, JDN. 12, 2011
+        if( at%npspcode(iat) .ne.7) then
+
+           do i3=isz,iez
+              z=real(i3,kind=8)*hzh-rz
+              call ind_positions(perz,i3,n3,j3,goz) 
+              j3=j3+nbl3+1
+              do i2=isy,iey
+                 y=real(i2,kind=8)*hyh-ry
+                 call ind_positions(pery,i2,n2,j2,goy)
+                 do i1=isx,iex
+                    x=real(i1,kind=8)*hxh-rx
+                    call ind_positions(perx,i1,n1,j1,gox)
+                    r2=x**2+y**2+z**2
+                    arg=r2/rloc**2
+                    xp=exp(-.5d0*arg)
+                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                       pot_ion(ind)=pot_ion(ind)-xp*charge
+                    else if (.not. goz ) then
+                       rholeaked=rholeaked+xp*charge
+                    endif
+                 enddo
               enddo
            enddo
-        enddo
+
+!       Calculate Ionic Density using splines, 
+!       PAW case
+        else
+
+           do i3=isz,iez
+              z=real(i3,kind=8)*hzh-rz
+              call ind_positions(perz,i3,n3,j3,goz)
+              j3=j3+nbl3+1
+              do i2=isy,iey
+                 y=real(i2,kind=8)*hyh-ry
+                 call ind_positions(pery,i2,n2,j2,goy)
+                 do i1=isx,iex
+                    x=real(i1,kind=8)*hxh-rx
+                    call ind_positions(perx,i1,n1,j1,gox)
+                    r2=x**2+y**2+z**2
+                    rr=sqrt(r2)
+
+                    call splint(rholoc%msz(ityp),rholoc%rad(:,ityp),&
+&                    rholoc%d(:,1,ityp),rholoc%d(:,2,ityp),1,rr,raux)
+
+                    write(500,*)rr,raux
+                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                       pot_ion(ind)=pot_ion(ind)+raux
+                    else if (.not. goz ) then
+                       rholeaked=rholeaked-raux
+                    endif
+                 enddo
+              enddo
+           enddo
+
+        end if
+
+
 
      enddo
 

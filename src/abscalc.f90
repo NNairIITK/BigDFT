@@ -341,6 +341,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   type(communications_arrays) :: comms
   type(gaussian_basis) :: Gvirt
   type(rho_descriptors)  :: rhodsc
+  type(rholoc_objects)::rholoc_tmp
+
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:,:), allocatable :: radii_cf,fion
@@ -608,7 +610,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,0,&
-       .false.)
+       .false.,rholoc_tmp)
 
   !this can be inserted inside the IonicEnergyandForces routine
   !(after insertion of the non-regression test)
