@@ -11,7 +11,7 @@ character(len=*),intent(in):: subname
 
 ! Local variables
 integer:: iis, iie, istat, i, iall
-  
+
 glrout%geocode = glrin%geocode
 glrout%hybrid_on = glrin%hybrid_on
 glrout%ns1 = glrin%ns1
@@ -558,8 +558,6 @@ do i3=iis3,iie3
     end do
 end do
 
-
-
 if(associated(gbout%ibzxx_f)) then
     iall=-product(shape(gbout%ibzxx_f))*kind(gbout%ibzxx_f)
     deallocate(gbout%ibzxx_f, stat=istat)
@@ -802,7 +800,8 @@ orbsout%norbd = orbsin%norbd
 orbsout%nspin = orbsin%nspin
 orbsout%nspinor = orbsin%nspinor
 orbsout%isorb = orbsin%isorb
-orbsout%npsidim = orbsin%npsidim
+orbsout%npsidim_orbs = orbsin%npsidim_orbs
+orbsout%npsidim_comp = orbsin%npsidim_comp
 orbsout%nkpts = orbsin%nkpts
 orbsout%nkptsp = orbsin%nkptsp
 orbsout%iskpts = orbsin%iskpts

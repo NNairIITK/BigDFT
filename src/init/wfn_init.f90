@@ -312,13 +312,13 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
       norbtot=orbse%norb !beware that norbe is equal both for spin up and down
       commu => commse
       orbsu => orbse
-      npsidim=orbse%npsidim
+      npsidim=max(orbse%npsidim_orbs,orbse%npsidim_comp)
       nspinor=orbse%nspinor
    else
       norbtot=orbs%norb
       commu => comms
       orbsu => orbs
-      npsidim=orbs%npsidim
+      npsidim=max(orbs%npsidim_orbs,orbs%npsidim_comp)
       nspinor=orbs%nspinor
    end if
    if (nproc > 1) then
@@ -467,7 +467,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    !otherwise do it only in parallel
    if (.not. associated(psit)) then
       if (minimal .or. nproc > 1) then
-         allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
+         allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
          call memocc(i_stat,psit,'psit',subname)
       else
          psit => hpsi
@@ -527,7 +527,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
       !allocate the pointer for virtual orbitals
       if(present(orbsv) .and. present(psivirt)) then
          if (orbsv%norb > 0) then
-            allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
+            allocate(psivirt(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
             call memocc(i_stat,psivirt,'psivirt',subname)
          end if
       else if(present(psivirt)) then
@@ -614,12 +614,12 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
       call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
    end if
    if (minimal) then
-      allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+      allocate(hpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,hpsi,'hpsi',subname)
       !     hpsi=0.0d0
       if (nproc > 1) then
          !allocate the direct wavefunction
-         allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+         allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
          call memocc(i_stat,psi,'psi',subname)
       else
          psi => psit
@@ -695,13 +695,13 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
      norbtot=orbse%norb !beware that norbe is equal both for spin up and down
      commu => commse
      orbsu => orbse
-     npsidim=orbse%npsidim
+     npsidim=max(orbse%npsidim_orbs,orbse%npsidim_comp)
      nspinor=orbse%nspinor
   else
      norbtot=orbs%norb
      commu => comms
      orbsu => orbs
-     npsidim=orbs%npsidim
+     npsidim=max(orbs%npsidim_orbs,orbs%npsidim_comp)
      nspinor=orbs%nspinor
   end if
 
@@ -854,7 +854,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   !otherwise do it only in parallel
   if(.not. associated(psit)) then
      if (minimal .or. nproc > 1) then
-        allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
+        allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
         call memocc(i_stat,psit,'psit',subname)
      else
         psit => hpsi
@@ -913,7 +913,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
       !allocate the pointer for virtual orbitals
   if(present(orbsv) .and. present(psivirt)) then
      if (orbsv%norb > 0) then
-        allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
+        allocate(psivirt(max(orbsv%npsidim_comp,orbsv%npsidim_orbs)+ndebug),stat=i_stat)
         call memocc(i_stat,psivirt,'psivirt',subname)
      end if
   else if(present(psivirt)) then
@@ -1001,12 +1001,12 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   end if
 
   if (minimal) then
-     allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+     allocate(hpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi,'hpsi',subname)
 !     hpsi=0.0d0
      if (nproc > 1) then
         !allocate the direct wavefunction
-        allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+        allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
         call memocc(i_stat,psi,'psi',subname)
      else
         psi => psit
@@ -1669,7 +1669,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    !real(kind=8),dimension(norbtot*norbtot*nspinor,nspin,2,orbs%nkpts),intent(in):: hamovr
    real(kind=8),dimension(ndim_hamovr,nspin,2,orbs%nkpts),intent(inout):: hamovr
    real(kind=8),dimension(sizePsi),intent(in):: psi
-   real(kind=8),dimension(orbs%npsidim),intent(out):: psiGuessWavelet
+   real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psiGuessWavelet
    type(orthon_data),intent(inout):: orthpar
    type(communications_arrays), intent(in):: comms
 

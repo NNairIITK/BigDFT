@@ -65,16 +65,16 @@ program wvl
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))
   call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
-  allocate(psi(orbs%npsidim))
+  allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)))
   allocate(rxyz_old(3, atoms%nat))
-  call readmywaves(iproc,"data/wavefunction", orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
+  call readmywaves(iproc,"data/wavefunction",WF_FORMAT_PLAIN,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & inputs%hx,inputs%hy,inputs%hz,atoms,rxyz_old,rxyz,Lzd%Glr%wfd,psi)
   call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
 
 
   ! Some analysis.
-  write(*,*) "Proc", iproc, " allocates psi to", orbs%npsidim
+  write(*,*) "Proc", iproc, " allocates psi to",max(orbs%npsidim_orbs,orbs%npsidim_comp)
   call flush(6)
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
@@ -99,7 +99,7 @@ program wvl
   !---------------------------!
   ! The component repartition !
   !---------------------------!
-  allocate(w(orbs%npsidim))
+  allocate(w(max(orbs%npsidim_orbs,orbs%npsidim_comp)))
   ! Transpose the psi wavefunction
   call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi, work=w)
   write(*,*) "Proc", iproc, " treats ", comms%nvctr_par(iproc, 0) * orbs%norb, "components of all orbitals."
@@ -226,7 +226,6 @@ program wvl
   deallocate(Lzd%Glr%projflg)
 
   call deallocate_orbs(orbs,"main")
-  call deallocate_atoms_scf(atoms,"main") 
 
   deallocate(rxyz)
   call deallocate_atoms(atoms,"main") 

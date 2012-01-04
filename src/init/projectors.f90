@@ -419,7 +419,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
                 at%psppar(l,0,ityp),rxyz(1),lr,&
                 hx,hy,hz,kx,ky,kz,ncplx,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                plr%wfd%keyv,plr%wfd%keygloc,&
+                plr%wfd%keyv,plr%wfd%keyglob,&
                 proj(istart_c),nwarnings)
            iproj=iproj+2*l-1
            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
@@ -443,8 +443,11 @@ subroutine deallocate_proj_descr(nlpspd,subname)
   do iat=1,nlpspd%natoms
      call deallocate_wfd(nlpspd%plr(iat)%wfd,subname)
   end do
-  deallocate(nlpspd%plr,stat=i_stat)
+  if (associated(nlpspd%plr)) then
+     deallocate(nlpspd%plr)
+  end if
   nullify(nlpspd%plr)
+  nlpspd%natoms=0
   
 !!$  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
 !!$  deallocate(nlpspd%nboxp_c,stat=i_stat)

@@ -209,10 +209,10 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$                 Lnlpspd%nseg_p(2*iat-1),Lnlpspd%nvctr_p(2*iat-1),&
 !!$                 Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
            call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-                Gseg,nlpspd%plr(iatom)%wfd%keygloc(1,jseg),&
+                Gseg,nlpspd%plr(iatom)%wfd%keyglob(1,jseg),&
                 nlpspd%plr(iatom)%wfd%keyv(jseg),&
                 Lnlpspd%plr(iat)%wfd%nseg_c,Lnlpspd%plr(iat)%wfd%nvctr_c,&
-                Lnlpspd%plr(iat)%wfd%keygloc(1,iseg),&
+                Lnlpspd%plr(iat)%wfd%keyglob(1,iseg),&
                 Lnlpspd%plr(iat)%wfd%keyv(iseg))
 
         else if(locregShape=='s') then
@@ -223,11 +223,11 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$                Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
             call segkeys_locSphere(Glr%d%n1,Glr%d%n2,Glr%d%n3,&
                  isx,iex,isy,iey,isz,iez,&
-                 Gseg,Gvctr,nlpspd%plr(iatom)%wfd%keygloc(1,jseg),&
+                 Gseg,Gvctr,nlpspd%plr(iatom)%wfd%keyglob(1,jseg),&
                  nlpspd%plr(iatom)%wfd%keyv(jseg),&
                  hx, hy, hz, llr%locrad, llr%locregCenter, &
                  Lnlpspd%plr(iat)%wfd%nseg_c,Lnlpspd%plr(iat)%wfd%nvctr_c,&
-                 Lnlpspd%plr(iat)%wfd%keygloc(1,iseg),&
+                 Lnlpspd%plr(iat)%wfd%keyglob(1,iseg),&
                  Lnlpspd%plr(iat)%wfd%keyv(iseg))
         end if
      end if
@@ -253,9 +253,9 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$                 Lnlpspd%nseg_p(2*iat),Lnlpspd%nvctr_p(2*iat),&
 !!$                 Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
            call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-                Gseg,nlpspd%plr(iatom)%wfd%keygloc(1,jseg),nlpspd%plr(iatom)%wfd%keyv(jseg),&
+                Gseg,nlpspd%plr(iatom)%wfd%keyglob(1,jseg),nlpspd%plr(iatom)%wfd%keyv(jseg),&
                 Lnlpspd%plr(iat)%wfd%nseg_f,Lnlpspd%plr(iat)%wfd%nvctr_f,&
-                Lnlpspd%plr(iat)%wfd%keygloc(1,iseg),Lnlpspd%plr(iat)%wfd%keyv(iseg))
+                Lnlpspd%plr(iat)%wfd%keyglob(1,iseg),Lnlpspd%plr(iat)%wfd%keyv(iseg))
 
         else if(locregShape=='s') then
 !!$            call segkeys_locSphere(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
@@ -264,10 +264,10 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$                 Lnlpspd%nseg_p(2*iat),Lnlpspd%nvctr_p(2*iat),&
 !!$                 Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
            call segkeys_locSphere(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-                Gseg,Gvctr,nlpspd%plr(iatom)%wfd%keygloc(1,jseg),nlpspd%plr(iatom)%wfd%keyv(jseg),&
+                Gseg,Gvctr,nlpspd%plr(iatom)%wfd%keyglob(1,jseg),nlpspd%plr(iatom)%wfd%keyv(jseg),&
                 hx, hy, hz, llr%locrad, llr%locregCenter, &
                 Lnlpspd%plr(iat)%wfd%nseg_f,Lnlpspd%plr(iat)%wfd%nvctr_f,&
-                Lnlpspd%plr(iat)%wfd%keygloc(1,iseg),Lnlpspd%plr(iat)%wfd%keyv(iseg))
+                Lnlpspd%plr(iat)%wfd%keyglob(1,iseg),Lnlpspd%plr(iat)%wfd%keyv(iseg))
         end if
 !!$        iseg = iseg + Lnlpspd%nseg_p(2*iat)
      end if 
@@ -1583,252 +1583,252 @@ END SUBROUTINE local_projector
 !!$END SUBROUTINE apply_local_projectors2
 
 
-subroutine ApplyProjectorsLinear(iproc,hx,hy,hz,atoms,Lzd,orbs,rxyz,psi,hpsi,eproj)
-
-  use module_base
-  use module_types
-  !use module_interfaces, exceptThisOne => apply_local_projectors
-
-  implicit none
-
-  !#######################################
-  ! Subroutine Scalar Arguments
-  !#######################################
-  integer, intent(in) :: iproc
-  real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data),intent(in) :: atoms
-  type(local_zone_descriptors),intent(in) :: Lzd
-  type(orbitals_data),intent(in) :: orbs
-  real(gp), intent(inout) :: eproj
-  !#######################################
-  ! Subroutine Array Arguments
-  !#######################################
-  real(wp),dimension(Lzd%Lpsidimtot),intent(in) :: psi  !local wavefunction
-  real(wp),dimension(Lzd%Lpsidimtot),intent(inout):: hpsi ! H|Psi> + |p><p|Psi>
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  !#######################################
-  ! Local Variables 
-  !#######################################
-  logical :: newvalue
-  integer :: ikpt,istart_c,ncplx,jseg_c,iproj,iat,ityp,l,i,nwarnings
-  integer :: isorb,ieorb,nspinor,istart_o,ispinor
-  integer :: nels,ipsi,ii,iatom,iel,i_all,i_stat
-  integer :: jj,kk,orbtot,ispin,ind,ispsi
-  integer :: iorb,iorb2,ilr,ilr2,nilr
-  integer,allocatable,dimension(:) :: ilrtable 
-  real(gp) :: kx,ky,kz,eproj_spinor
-  real(wp),allocatable,dimension(:,:) :: psi_tmp
-  real(wp),allocatable,dimension(:,:) :: hpsi_tmp
-  real(wp),allocatable,dimension(:):: Lproj  !local projectors
-  character(len=*), parameter :: subname='ApplyProjectorsLinear'
-
-  ! Create table of the different localization regions
-  allocate(ilrtable(orbs%norbp),stat=i_stat)
-  call memocc(i_stat,ilrtable,'ilrtable',subname)
-  ilrtable = 0
-  ii=0
-  nels = 0.0
-  do iorb=1,orbs%norbp
-     newvalue=.true.
-     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-     nels = max(nels,&
-          (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor)
-     loop_iorb2: do iorb2=1,orbs%norbp
-        if(ilrtable(iorb2) == ilr) then
-           newvalue=.false.
-           exit loop_iorb2
-        end if
-     end do loop_iorb2
-     if (newvalue) then
-       ii = ii + 1
-       ilrtable(ii)=ilr
-     end if
-  end do
-  nilr = ii
-
-  ! Allocate arrays
-  allocate(psi_tmp(nels,orbs%norbp),stat=i_stat)
-  call memocc(i_stat,psi_tmp,'psi_tmp',subname)
-  allocate(hpsi_tmp(nels,orbs%norbp),stat=i_stat)
-  call memocc(i_stat,hpsi_tmp,'hpsi_tmp',subname)
-  call razero(nels*orbs%norbp,psi_tmp)
-  call razero(nels*orbs%norbp,hpsi_tmp)
-
-  ! reshape the wavefunction (in principle this is not needed)
-  ii=0
-  do iorb=1,orbs%norbp
-      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-      nels = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-      !do ispinor=1,orbs%nspinor
-      do iel=1,nels
-         ii=ii+1
-         psi_tmp(iel,iorb)=psi(ii)
-         hpsi_tmp(iel,iorb)=hpsi(ii)
-      end do
-      !end do
-  end do
-
-  do kk = 1,nilr
-     ilr = ilrtable(kk)
-  
-     allocate(Lproj(Lzd%Lnlpspd(ilr)%nprojel),stat=i_stat)
-     call memocc(i_stat,Lproj,'Lproj',subname)
-  
-     ieorb = orbs%norbp   ! give an initial value because could skip whole loop on atoms (i.e. Li+ test)
-     ikpt=orbs%iokpt(1)
-     loop_kpt: do
-!!$        !features of the k-point ikpt
-!!$        kx=orbs%kpts(1,ikpt)
-!!$        ky=orbs%kpts(2,ikpt)
-!!$        kz=orbs%kpts(3,ikpt)
-!!$  
-!!$        !evaluate the complexity of the k-point
-!!$        if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
-!!$           ncplx=1
-!!$        else
-!!$           ncplx=2
-!!$        end if
-  
-        ieorb = orbs%norbp  !initialize value in case no atoms have projectors
-        jseg_c = 1
-        iproj = 0
-        iatom = 0
-        do iat = 1,atoms%nat
-           if(Lzd%Llr(ilr)%projflg(iat) == 0) cycle
-           iatom = iatom +1
-           istart_c = 1
-
-!!$           ityp=atoms%iatype(iat)
-!!$           do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
-!!$              do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
-!!$                 if (atoms%psppar(l,i,ityp) /= 0.0_gp) then
-!!$  
-!!$                    ! Second fill the projectors
-!!$                    ! NOTE : idir was set to 0 because we don't care for derivatives
-!!$                    call local_projector(atoms%geocode,atoms%atomnames(ityp),&
-!!$                         iat,0,l,i,&
-!!$                         atoms%psppar(l,0,ityp),rxyz(1,iat),Lzd%Llr(ilr),&
-!!$                         hx,hy,hz,kx,ky,kz,ncplx,&
-!!$                         Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1),&
-!!$                         Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom),&
-!!$                         Lzd%Lnlpspd(ilr)%nseg_p(2*iatom-1),&
-!!$                         Lzd%Lnlpspd(ilr)%nseg_p(2*iatom),&
-!!$                         Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),&
-!!$                         Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&
-!!$                         Lproj(istart_c),nwarnings)
-!!$                    iproj=iproj+2*l-1
-!!$                    istart_c=istart_c+&
-!!$                         (Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1)+&
-!!$                         7*Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom))*&
-!!$                         (2*l-1)*ncplx
-!!$                    if (istart_c > Lzd%Lnlpspd(ilr)%nprojel+1) stop 'istart_c > nprojel+1'
-!!$                    if (iproj > Lzd%Lnlpspd(ilr)%nproj) stop 'iproj > nproj'
-!!$                 endif
-!!$              enddo
-!!$           enddo
-
-           !use the routine which is provided from the cubic code
-            call atom_projector(ikpt,iat,0,istart_c,iproj,&
-                 Lzd%Lnlpspd(ilr)%nprojel,&
-                 Lzd%Llr(ilr),hx,hy,hz,rxyz(1,iat),atoms,orbs,&
-                 Lzd%Lnlpspd(ilr)%plr(iatom),Lproj,nwarnings)
-
-           if (iproj > Lzd%Lnlpspd(ilr)%nproj) stop 'iproj > nproj'
-  
-           ! Apply them on the wavefunctions in the overlap region
-           ! hpsi contains the new wavefunctions
-           call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
-  
-           do iorb=isorb,ieorb
-              if (orbs%inwhichlocreg(iorb+orbs%isorb) /= ilr) cycle
-              !! These two lines are new #################
-              ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-              if(.not.lzd%doHamAppl(ilr)) then
-                  cycle
-              end if
-              istart_o=1
-
-              call apply_atproj_iorb_new(iat,iorb,istart_o,&
-                   Lzd%Lnlpspd(ilr)%nprojel,atoms,orbs,Lzd%Llr(ilr)%wfd,&
-                   Lzd%Lnlpspd(ilr)%plr(iatom),Lproj,&
-                   psi_tmp(1,iorb),hpsi_tmp(1,iorb),eproj)
-
-              !! #########################################
-
-!!$              do ispinor=1,nspinor,ncplx
-!!$                 eproj_spinor = 0.0_gp
-!!$                 if (ispinor >= 2) istart_o=1
-!!$  
-!!$                 !GTH and HGH pseudopotentials
-!!$                 do l=1,4
-!!$                    do i=1,3
-!!$                       if (atoms%psppar(l,i,ityp) /= 0.0_gp) then
-!!$                          call applyprojector(ncplx,l,i,atoms%psppar(0,0,ityp),&
-!!$                               atoms%npspcode(ityp),&
-!!$                               Lzd%Llr(ilr)%wfd%nvctr_c,&
-!!$                               Lzd%Llr(ilr)%wfd%nvctr_f,Lzd%Llr(ilr)%wfd%nseg_c,&
-!!$                               Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%keyv,&
-!!$                               Lzd%Llr(ilr)%wfd%keyg,&
-!!$                               Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1),&
-!!$                               Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom),&
-!!$                               Lzd%Lnlpspd(ilr)%nseg_p(2*iatom-1),&
-!!$                               Lzd%Lnlpspd(ilr)%nseg_p(2*iatom),&
-!!$                               Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),&
-!!$                               Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&
-!!$                               Lproj(istart_o),&
-!!$                               psi_tmp(1,ispinor,iorb),hpsi_tmp(1,ispinor,iorb),&
-!!$                               eproj_spinor)
-!!$  
-!!$                          istart_o=istart_o+&
-!!$                               (Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1)+&
-!!$                               7*Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom))*(2*l-1)*ncplx
-!!$                       end if
-!!$                    enddo
-!!$                 enddo
-!!$                 eproj=eproj+orbs%kwgts(orbs%iokpt(iorb))*&
-!!$                      orbs%occup(iorb+orbs%isorb)*eproj_spinor
-!!$              end do
-           end do
-!!$           jseg_c = jseg_c + Lzd%Lnlpspd(ilr)%nseg_p(2*iatom - 1)+ Lzd%Lnlpspd(ilr)%nseg_p(2*iatom)
-        end do  !on iat
-        if (iproj /= Lzd%Lnlpspd(ilr)%nproj) stop 'incorrect number of projectors created'
-        if (ieorb == orbs%norbp) exit loop_kpt
-        ikpt=ikpt+1
-     end do loop_kpt
-
-     !deallocate arrays
-     i_all = -product(shape(Lproj))*kind(Lproj)
-     deallocate(Lproj,stat=i_stat)
-     call memocc(i_stat,i_all,'Lproj',subname)
-  end do
-
-  i_all = -product(shape(ilrtable))*kind(ilrtable)
-  deallocate(ilrtable,stat=i_stat)
-  call memocc(i_stat,i_all,'ilrtable',subname)
-
-
-  !reshape hpsi (indices are contiguous here, so why not to use dcopy?)
-  kk=0
-  do iorb=1,orbs%norbp
-     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-     nels = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-     !do ispinor=1,orbs%nspinor
-        do jj=1,nels
-           kk=kk+1
-           hpsi(kk) = hpsi_tmp(jj,iorb)
-        end do
-     !end do
-  end do
-
-  i_all = -product(shape(psi_tmp))*kind(psi_tmp)
-  deallocate(psi_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_tmp',subname)
-  i_all = -product(shape(hpsi_tmp))*kind(hpsi_tmp)
-  deallocate(hpsi_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi_tmp',subname)
-
-end subroutine ApplyProjectorsLinear
-
+!subroutine ApplyProjectorsLinear(iproc,hx,hy,hz,atoms,Lzd,orbs,rxyz,psi,hpsi,eproj)
+!
+!  use module_base
+!  use module_types
+!  !use module_interfaces, exceptThisOne => apply_local_projectors
+!
+!  implicit none
+!
+!  !#######################################
+!  ! Subroutine Scalar Arguments
+!  !#######################################
+!  integer, intent(in) :: iproc
+!  real(gp), intent(in) :: hx,hy,hz
+!  type(atoms_data),intent(in) :: atoms
+!  type(local_zone_descriptors),intent(in) :: Lzd
+!  type(orbitals_data),intent(in) :: orbs
+!  real(gp), intent(inout) :: eproj
+!  !#######################################
+!  ! Subroutine Array Arguments
+!  !#######################################
+!  real(wp),dimension(Lzd%Lpsidimtot),intent(in) :: psi  !local wavefunction
+!  real(wp),dimension(Lzd%Lpsidimtot),intent(inout):: hpsi ! H|Psi> + |p><p|Psi>
+!  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+!  !#######################################
+!  ! Local Variables 
+!  !#######################################
+!  logical :: newvalue
+!  integer :: ikpt,istart_c,ncplx,jseg_c,iproj,iat,ityp,l,i,nwarnings
+!  integer :: isorb,ieorb,nspinor,istart_o,ispinor
+!  integer :: nels,ipsi,ii,iatom,iel,i_all,i_stat
+!  integer :: jj,kk,orbtot,ispin,ind,ispsi
+!  integer :: iorb,iorb2,ilr,ilr2,nilr
+!  integer,allocatable,dimension(:) :: ilrtable 
+!  real(gp) :: kx,ky,kz,eproj_spinor
+!  real(wp),allocatable,dimension(:,:) :: psi_tmp
+!  real(wp),allocatable,dimension(:,:) :: hpsi_tmp
+!  real(wp),allocatable,dimension(:):: Lproj  !local projectors
+!  character(len=*), parameter :: subname='ApplyProjectorsLinear'
+!
+!  ! Create table of the different localization regions
+!  allocate(ilrtable(orbs%norbp),stat=i_stat)
+!  call memocc(i_stat,ilrtable,'ilrtable',subname)
+!  ilrtable = 0
+!  ii=0
+!  nels = 0.0
+!  do iorb=1,orbs%norbp
+!     newvalue=.true.
+!     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!     nels = max(nels,&
+!          (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor)
+!     loop_iorb2: do iorb2=1,orbs%norbp
+!        if(ilrtable(iorb2) == ilr) then
+!           newvalue=.false.
+!           exit loop_iorb2
+!        end if
+!     end do loop_iorb2
+!     if (newvalue) then
+!       ii = ii + 1
+!       ilrtable(ii)=ilr
+!     end if
+!  end do
+!  nilr = ii
+!
+!  ! Allocate arrays
+!  allocate(psi_tmp(nels,orbs%norbp),stat=i_stat)
+!  call memocc(i_stat,psi_tmp,'psi_tmp',subname)
+!  allocate(hpsi_tmp(nels,orbs%norbp),stat=i_stat)
+!  call memocc(i_stat,hpsi_tmp,'hpsi_tmp',subname)
+!  call razero(nels*orbs%norbp,psi_tmp)
+!  call razero(nels*orbs%norbp,hpsi_tmp)
+!
+!  ! reshape the wavefunction (in principle this is not needed)
+!  ii=0
+!  do iorb=1,orbs%norbp
+!      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!      nels = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+!      !do ispinor=1,orbs%nspinor
+!      do iel=1,nels
+!         ii=ii+1
+!         psi_tmp(iel,iorb)=psi(ii)
+!         hpsi_tmp(iel,iorb)=hpsi(ii)
+!      end do
+!      !end do
+!  end do
+!
+!  do kk = 1,nilr
+!     ilr = ilrtable(kk)
+!  
+!     allocate(Lproj(Lzd%Lnlpspd(ilr)%nprojel),stat=i_stat)
+!     call memocc(i_stat,Lproj,'Lproj',subname)
+!  
+!     ieorb = orbs%norbp   ! give an initial value because could skip whole loop on atoms (i.e. Li+ test)
+!     ikpt=orbs%iokpt(1)
+!     loop_kpt: do
+!!!$        !features of the k-point ikpt
+!!!$        kx=orbs%kpts(1,ikpt)
+!!!$        ky=orbs%kpts(2,ikpt)
+!!!$        kz=orbs%kpts(3,ikpt)
+!!!$  
+!!!$        !evaluate the complexity of the k-point
+!!!$        if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+!!!$           ncplx=1
+!!!$        else
+!!!$           ncplx=2
+!!!$        end if
+!  
+!        ieorb = orbs%norbp  !initialize value in case no atoms have projectors
+!        jseg_c = 1
+!        iproj = 0
+!        iatom = 0
+!        do iat = 1,atoms%nat
+!           if(Lzd%Llr(ilr)%projflg(iat) == 0) cycle
+!           iatom = iatom +1
+!           istart_c = 1
+!
+!!!$           ityp=atoms%iatype(iat)
+!!!$           do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+!!!$              do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+!!!$                 if (atoms%psppar(l,i,ityp) /= 0.0_gp) then
+!!!$  
+!!!$                    ! Second fill the projectors
+!!!$                    ! NOTE : idir was set to 0 because we don't care for derivatives
+!!!$                    call local_projector(atoms%geocode,atoms%atomnames(ityp),&
+!!!$                         iat,0,l,i,&
+!!!$                         atoms%psppar(l,0,ityp),rxyz(1,iat),Lzd%Llr(ilr),&
+!!!$                         hx,hy,hz,kx,ky,kz,ncplx,&
+!!!$                         Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1),&
+!!!$                         Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom),&
+!!!$                         Lzd%Lnlpspd(ilr)%nseg_p(2*iatom-1),&
+!!!$                         Lzd%Lnlpspd(ilr)%nseg_p(2*iatom),&
+!!!$                         Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),&
+!!!$                         Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&
+!!!$                         Lproj(istart_c),nwarnings)
+!!!$                    iproj=iproj+2*l-1
+!!!$                    istart_c=istart_c+&
+!!!$                         (Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1)+&
+!!!$                         7*Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom))*&
+!!!$                         (2*l-1)*ncplx
+!!!$                    if (istart_c > Lzd%Lnlpspd(ilr)%nprojel+1) stop 'istart_c > nprojel+1'
+!!!$                    if (iproj > Lzd%Lnlpspd(ilr)%nproj) stop 'iproj > nproj'
+!!!$                 endif
+!!!$              enddo
+!!!$           enddo
+!
+!           !use the routine which is provided from the cubic code
+!            call atom_projector(ikpt,iat,0,istart_c,iproj,&
+!                 Lzd%Lnlpspd(ilr)%nprojel,&
+!                 Lzd%Llr(ilr),hx,hy,hz,rxyz(1,iat),atoms,orbs,&
+!                 Lzd%Lnlpspd(ilr)%plr(iatom),Lproj,nwarnings)
+!
+!           if (iproj > Lzd%Lnlpspd(ilr)%nproj) stop 'iproj > nproj'
+!  
+!           ! Apply them on the wavefunctions in the overlap region
+!           ! hpsi contains the new wavefunctions
+!           call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+!  
+!           do iorb=isorb,ieorb
+!              if (orbs%inwhichlocreg(iorb+orbs%isorb) /= ilr) cycle
+!              !! These two lines are new #################
+!              ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!              if(.not.lzd%doHamAppl(ilr)) then
+!                  cycle
+!              end if
+!              istart_o=1
+!
+!              call apply_atproj_iorb_new(iat,iorb,istart_o,&
+!                   Lzd%Lnlpspd(ilr)%nprojel,atoms,orbs,Lzd%Llr(ilr)%wfd,&
+!                   Lzd%Lnlpspd(ilr)%plr(iatom),Lproj,&
+!                   psi_tmp(1,iorb),hpsi_tmp(1,iorb),eproj)
+!
+!              !! #########################################
+!
+!!!$              do ispinor=1,nspinor,ncplx
+!!!$                 eproj_spinor = 0.0_gp
+!!!$                 if (ispinor >= 2) istart_o=1
+!!!$  
+!!!$                 !GTH and HGH pseudopotentials
+!!!$                 do l=1,4
+!!!$                    do i=1,3
+!!!$                       if (atoms%psppar(l,i,ityp) /= 0.0_gp) then
+!!!$                          call applyprojector(ncplx,l,i,atoms%psppar(0,0,ityp),&
+!!!$                               atoms%npspcode(ityp),&
+!!!$                               Lzd%Llr(ilr)%wfd%nvctr_c,&
+!!!$                               Lzd%Llr(ilr)%wfd%nvctr_f,Lzd%Llr(ilr)%wfd%nseg_c,&
+!!!$                               Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%keyv,&
+!!!$                               Lzd%Llr(ilr)%wfd%keyg,&
+!!!$                               Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1),&
+!!!$                               Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom),&
+!!!$                               Lzd%Lnlpspd(ilr)%nseg_p(2*iatom-1),&
+!!!$                               Lzd%Lnlpspd(ilr)%nseg_p(2*iatom),&
+!!!$                               Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),&
+!!!$                               Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&
+!!!$                               Lproj(istart_o),&
+!!!$                               psi_tmp(1,ispinor,iorb),hpsi_tmp(1,ispinor,iorb),&
+!!!$                               eproj_spinor)
+!!!$  
+!!!$                          istart_o=istart_o+&
+!!!$                               (Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1)+&
+!!!$                               7*Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom))*(2*l-1)*ncplx
+!!!$                       end if
+!!!$                    enddo
+!!!$                 enddo
+!!!$                 eproj=eproj+orbs%kwgts(orbs%iokpt(iorb))*&
+!!!$                      orbs%occup(iorb+orbs%isorb)*eproj_spinor
+!!!$              end do
+!           end do
+!!!$           jseg_c = jseg_c + Lzd%Lnlpspd(ilr)%nseg_p(2*iatom - 1)+ Lzd%Lnlpspd(ilr)%nseg_p(2*iatom)
+!        end do  !on iat
+!        if (iproj /= Lzd%Lnlpspd(ilr)%nproj) stop 'incorrect number of projectors created'
+!        if (ieorb == orbs%norbp) exit loop_kpt
+!        ikpt=ikpt+1
+!     end do loop_kpt
+!
+!     !deallocate arrays
+!     i_all = -product(shape(Lproj))*kind(Lproj)
+!     deallocate(Lproj,stat=i_stat)
+!     call memocc(i_stat,i_all,'Lproj',subname)
+!  end do
+!
+!  i_all = -product(shape(ilrtable))*kind(ilrtable)
+!  deallocate(ilrtable,stat=i_stat)
+!  call memocc(i_stat,i_all,'ilrtable',subname)
+!
+!
+!  !reshape hpsi (indices are contiguous here, so why not to use dcopy?)
+!  kk=0
+!  do iorb=1,orbs%norbp
+!     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!     nels = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+!     !do ispinor=1,orbs%nspinor
+!        do jj=1,nels
+!           kk=kk+1
+!           hpsi(kk) = hpsi_tmp(jj,iorb)
+!        end do
+!     !end do
+!  end do
+!
+!  i_all = -product(shape(psi_tmp))*kind(psi_tmp)
+!  deallocate(psi_tmp,stat=i_stat)
+!  call memocc(i_stat,i_all,'psi_tmp',subname)
+!  i_all = -product(shape(hpsi_tmp))*kind(hpsi_tmp)
+!  deallocate(hpsi_tmp,stat=i_stat)
+!  call memocc(i_stat,i_all,'hpsi_tmp',subname)
+!
+!end subroutine ApplyProjectorsLinear
+!
 
 
 subroutine segkeys_locSphere(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&

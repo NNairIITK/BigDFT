@@ -42,15 +42,15 @@ module module_types
        & (/ "none        ", "plain text  ", "Fortran bin.", "ETSF        " /)
 
   !> Output grid parameters.
-  integer, parameter :: OUTPUT_GRID_NONE    = 0
-  integer, parameter :: OUTPUT_GRID_DENSITY = 1
-  integer, parameter :: OUTPUT_GRID_DENSPOT = 2
-  character(len = 12), dimension(0:2), parameter :: output_grid_names = &
+  integer, parameter :: OUTPUT_DENSPOT_NONE    = 0
+  integer, parameter :: OUTPUT_DENSPOT_DENSITY = 1
+  integer, parameter :: OUTPUT_DENSPOT_DENSPOT = 2
+  character(len = 12), dimension(0:2), parameter :: OUTPUT_DENSPOT_names = &
        & (/ "none        ", "density     ", "dens. + pot." /)
-  integer, parameter :: OUTPUT_GRID_FORMAT_TEXT = 0
-  integer, parameter :: OUTPUT_GRID_FORMAT_ETSF = 1
-  integer, parameter :: OUTPUT_GRID_FORMAT_CUBE = 2
-  character(len = 4), dimension(0:2), parameter :: output_grid_format_names = &
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_TEXT = 0
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_ETSF = 1
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_CUBE = 2
+  character(len = 4), dimension(0:2), parameter :: OUTPUT_DENSPOT_format_names = &
        & (/ "text", "ETSF", "cube" /)
 
   !> SCF mixing parameters. (mixing parameters to be added)
@@ -124,7 +124,7 @@ module module_types
      logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty, occopt
-     integer :: output_grid, dispersion,last_run,output_wf_format,output_grid_format
+     integer :: OUTPUT_DENSPOT,dispersion,last_run,output_wf_format,OUTPUT_DENSPOT_format
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel, alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: verbosity
@@ -377,10 +377,10 @@ module module_types
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb
-     integer :: npsidim,nkpts,nkptsp,iskpts
+     integer :: npsidim_orbs,nkpts,nkptsp,iskpts,npsidim_comp
      real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
-     integer, dimension(:), pointer :: inwhichlocreg, inWhichLocregP,onWhichMPI
+     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,inwhichlocregP
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -425,7 +425,7 @@ module module_types
   type,public:: local_zone_descriptors
     logical :: linear                         !< if true, use linear part of the code
     integer :: nlr                            !< Number of localization regions 
-    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
+!    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
     integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
     integer :: Lnprojel                       !< Total number of projector elements
     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
@@ -577,7 +577,6 @@ module module_types
       integer,dimension(:),pointer:: indexInGlobal
   end type matrixLocalizationRegion
 
-
   type,public:: p2pCommsOrthonormalityMatrix
       integer:: nrecvBuf, nsendBuf, nrecv, nsend
       integer,dimension(:),pointer:: noverlap, noverlapProc
@@ -588,7 +587,6 @@ module module_types
       type(matrixLocalizationRegion),dimension(:,:),pointer:: olr
   end type p2pCommsOrthonormalityMatrix
 
-
   type,public:: matrixMinimization
     type(matrixLocalizationRegion),dimension(:),pointer:: mlr
     integer:: norbmax ! maximal matrix size handled by a given process
@@ -598,13 +596,13 @@ module module_types
     integer,dimension(:),pointer:: indexInLocreg
   end type matrixMinimization
 
-
   type,public:: matrixDescriptors
       integer:: nvctr, nseg, nvctrmatmul, nsegmatmul, nseglinemax
       integer,dimension(:),pointer:: keyv, keyvmatmul, nsegline
       integer,dimension(:,:),pointer:: keyg, keygmatmul
       integer,dimension(:,:,:),pointer:: keygline
   end type matrixDescriptors
+
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
 !! minimizing orbitals, this basis may be larger than only the trace minimizing
@@ -653,8 +651,6 @@ end type largeBasis
       type(matrixDescriptors):: mad
   end type linearInputGuess
 
-
-
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff 
@@ -695,89 +691,23 @@ end type largeBasis
 
 !> Contains the information needed for the preconditioner
   type, public :: precond_data
-    integer :: confPotOrder                                           !> The order of the algebraic expression for Confinement potential
-    integer :: ncong                                                  !> Number of CG iterations for the preconditioning equation
-    logical, dimension(:), pointer :: withConfPot                     !> Use confinement potentials
-    real(8), dimension(:), pointer :: potentialPrefac                 !> Prefactor for the potential: Prefac * f(r) 
+    integer :: confPotOrder                           !> The order of the algebraic expression for Confinement potential
+    integer :: ncong                                  !> Number of CG iterations for the preconditioning equation
+    logical, dimension(:), pointer :: withConfPot     !> Use confinement potentials
+    real(8), dimension(:), pointer :: potentialPrefac !> Prefactor for the potential: Prefac * f(r) 
   end type precond_data
 
+!> Information for the confining potential to be used in TMB scheme
+!! The potential is supposed to be defined as prefac*(r-rC)**potorder
+  type, public :: confpot_data
+     integer :: potorder !< order of the confining potential
+     integer, dimension(3) :: ioffset !< offset for the coordinates of potential lr in global region
+     real(gp) :: prefac !< prefactor
+     real(gp), dimension(3) :: hh !< grid spacings in ISF grid
+     real(gp), dimension(3) :: rxyzConf !< confining potential center in global coordinates
+  end type confpot_data
+
 contains
-
-
-
-!>   De-Allocate paw data contained in atom_data object
-
-  subroutine deallocate_atomdatapaw(atoms,subname)
-    use module_base
-    implicit none
-    character(len=*), intent(in) :: subname
-    type(atoms_data), intent(inout) :: atoms
-    !local variables
-    integer :: i_all,i_stat
-
-    if(associated(atoms%paw_l)) then
-       i_all=-product(shape(atoms%paw_l ))*kind(atoms%paw_l )
-       deallocate(atoms%paw_l,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_l',subname)
-    end if
-
-    if(associated(atoms%paw_NofL)) then
-       i_all=-product(shape(  atoms%paw_NofL ))*kind(atoms%paw_NofL )
-       deallocate(atoms%paw_NofL,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_NofL',subname)
-    end if
-
-    if(associated(atoms%paw_nofchannels)) then
-       i_all=-product(shape(  atoms%paw_nofchannels ))*kind(atoms%paw_nofchannels )
-       deallocate(atoms%paw_nofchannels,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_nofchannels',subname)
-    end if
-
-    if(associated(atoms%paw_nofgaussians)) then
-       i_all=-product(shape(  atoms%paw_nofgaussians ))*kind(atoms%paw_nofgaussians )
-       deallocate(atoms%paw_nofgaussians,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_nofgaussians',subname)
-    end if
-
-    if(associated(atoms%paw_Greal)) then
-       i_all=-product(shape(  atoms%paw_Greal ))*kind(atoms%paw_Greal )
-       deallocate(atoms%paw_Greal,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Greal',subname)
-    end if
-
-    if(associated(atoms%paw_Gimag)) then
-       i_all=-product(shape(  atoms%paw_Gimag ))*kind(atoms%paw_Gimag )
-       deallocate(atoms%paw_Gimag,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Gimag',subname)
-    end if
-
-    if(associated(atoms%paw_Gcoeffs)) then
-       i_all=-product(shape(  atoms%paw_Gcoeffs ))*kind(atoms%paw_Gcoeffs )
-       deallocate(atoms%paw_Gcoeffs,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Gcoeffs',subname)
-    end if
-
-    if(associated(atoms%paw_H_matrices)) then
-       i_all=-product(shape(  atoms%paw_H_matrices ))*kind(atoms%paw_H_matrices )
-       deallocate(atoms%paw_H_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_H_matrices',subname)
-    end if
-
-    if(associated(atoms%paw_S_matrices)) then
-       i_all=-product(shape(  atoms%paw_S_matrices ))*kind(atoms%paw_S_matrices )
-       deallocate(atoms%paw_S_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_S_matrices',subname)
-    end if
-    
-    if(associated(atoms%paw_Sm1_matrices)) then
-       i_all=-product(shape(  atoms%paw_Sm1_matrices ))*kind(atoms%paw_Sm1_matrices )
-       deallocate(atoms%paw_Sm1_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Sm1_matrices',subname)
-    end if
-
-
-  END SUBROUTINE deallocate_atomdatapaw
-
 
 
 !> Allocate diis objects
@@ -953,6 +883,11 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
     deallocate(orbs%inwhichlocreg,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
+!    if (associated(orbs%inwhichlocregP)) then
+!       i_all=-product(shape(orbs%inwhichlocregP))*kind(orbs%inwhichlocregP)
+!       deallocate(orbs%inwhichlocregP,stat=i_stat)
+!       call memocc(i_stat,i_all,'orbs%inwhichlocregP',subname)
+!    end if
     i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
     deallocate(orbs%isorb_par,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%isorb_par',subname)
@@ -1428,31 +1363,31 @@ END SUBROUTINE deallocate_orbs
     output_wf_format_validate = (id >= 0 .and. id < size(wf_format_names))
   end function output_wf_format_validate
 
-  subroutine output_grid_help()
+  subroutine output_denspot_help()
     integer :: i, j
 
-    write(*, "(1x,A)") "Available values of output_grid are:"
-    do i = 0, size(output_grid_format_names) - 1
-       do j = 0, size(output_grid_names) - 1
+    write(*, "(1x,A)") "Available values of output_denspot are:"
+    do i = 0, size(output_denspot_format_names) - 1
+       do j = 0, size(output_denspot_names) - 1
           if (j == 0 .and. i == 0) then
              write(*, "(1x,A,I5,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_grid_names(j)), "."
+                  & " - ", trim(output_denspot_names(j)), "."
           else if (j /= 0) then
              write(*, "(1x,A,I5,A,A,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_grid_names(j)), &
-                  & " in ", trim(output_grid_format_names(i)), " format."
+                  & " - ", trim(output_denspot_names(j)), &
+                  & " in ", trim(output_denspot_format_names(i)), " format."
           end if
        end do
     end do
-  end subroutine output_grid_help
+  end subroutine output_denspot_help
 
-  function output_grid_validate(id, fid)
+  function output_denspot_validate(id, fid)
     integer, intent(in) :: id, fid
-    logical :: output_grid_validate
+    logical :: output_denspot_validate
 
-    output_grid_validate = (id >= 0 .and. id < size(output_grid_names)) .and. &
-         & (fid >= 0 .and. fid < size(output_grid_format_names))
-  end function output_grid_validate
+    output_denspot_validate = (id >= 0 .and. id < size(output_denspot_names)) .and. &
+         & (fid >= 0 .and. fid < size(output_denspot_format_names))
+  end function output_denspot_validate
 !!
   subroutine deallocate_pawproj_data(pawproj_data,subname)
     use module_base
@@ -1466,33 +1401,28 @@ END SUBROUTINE deallocate_orbs
        i_all=-product(shape(  pawproj_data% paw_proj ))*kind( pawproj_data% paw_proj  )
        deallocate(pawproj_data%  paw_proj  ,stat=i_stat)
        call memocc(i_stat,i_all,'paw_proj',subname)
-       
+
        i_all=-product(shape( pawproj_data%ilr_to_mproj   ))*kind(pawproj_data% ilr_to_mproj   )
        deallocate( pawproj_data% ilr_to_mproj  ,stat=i_stat)
        call memocc(i_stat,i_all,'ilr_to_mproj',subname)
-   
-  
-       
+
        i_all=-product(shape( pawproj_data% iproj_to_l  ))*kind( pawproj_data% iproj_to_l  )
        deallocate(pawproj_data%  iproj_to_l  ,stat=i_stat)
        call memocc(i_stat,i_all,'iproj_to_l',subname)
 
-
        i_all=-product(shape( pawproj_data% iproj_to_paw_nchannels  ))*kind( pawproj_data% iproj_to_paw_nchannels  )
        deallocate(pawproj_data%  iproj_to_paw_nchannels  ,stat=i_stat)
        call memocc(i_stat,i_all,'iproj_to_paw_nchannels',subname)
-       
+
        i_all=-product(shape( pawproj_data% iprojto_imatrixbeg  ))*kind( pawproj_data% iprojto_imatrixbeg  )
        deallocate(pawproj_data%  iprojto_imatrixbeg  ,stat=i_stat)
        call memocc(i_stat,i_all,'iorbto_imatrixbeg',subname)
-       
 
        i_all=-product(shape( pawproj_data% iorbtolr   ))*kind( pawproj_data% iorbtolr  )
        deallocate(pawproj_data%  iorbtolr  ,stat=i_stat)
        call memocc(i_stat,i_all,'iorbtolr',subname)
-       
-       call deallocate_proj_descr(pawproj_data%paw_nlpspd,subname)
 
+       call deallocate_proj_descr(pawproj_data%paw_nlpspd,subname)
 !!$       i_all=-product(shape(pawproj_data%paw_nlpspd%nboxp_c))*kind(pawproj_data%paw_nlpspd%nboxp_c)
 !!$       deallocate(pawproj_data%paw_nlpspd%nboxp_c,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'nboxp_c',subname)
@@ -1515,8 +1445,7 @@ END SUBROUTINE deallocate_orbs
        if(pawproj_data%DistProjApply) then
           call deallocate_gwf_c(pawproj_data%G,subname)
        endif
-
-
+       nullify(pawproj_data%paw_proj)
     end if
   END SUBROUTINE deallocate_pawproj_data
 

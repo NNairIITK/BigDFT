@@ -141,11 +141,11 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   type(local_zone_descriptors) :: Lzd
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(Lzd%Lpsidimtot), intent(inout) :: psi
+  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: psi
   real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep
   type(orbitals_data), intent(in) :: linorbs                         
-  real(8),dimension(linorbs%npsidim),intent(in),optional:: phi                !optional for Trace Minimizing orbitals
+  real(8),dimension(linorbs%npsidim_orbs),intent(in),optional:: phi                !optional for Trace Minimizing orbitals
   real(8),dimension(linorbs%norb,orbs%norb),intent(in),optional:: coeff       !optional for Trace Minimizing orbitals
   !local variables--------------
   character(len=*), parameter :: subname='Linearnonlocal_forces'
@@ -347,7 +347,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
 !!$                                        Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),&
 !!$                                        Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&   !must define jseg_c
                                      Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyv(jseg_c),&
-                                     Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keygloc(1,jseg_c),& !jseg_c=1
+                                     Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyglob(1,jseg_c),& !jseg_c=1
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
                                 !write(*,'(a,7i7,es15.7)') 'iproc, iat, jorb, idir, m, i, l, value', iproc, iat, jorb, idir, m, i, l, scalprod(1,idir,m,i,l,iat,jorb)
@@ -499,7 +499,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                                         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                        Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&        !must define jseg_c
                                         Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyv(jseg_c),&
-                                        Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keygloc(1,jseg_c),&!jseg_c=1
+                                        Lzd%Lnlpspd(ilr)%plr(iatom)%wfd%keyglob(1,jseg_c),&!jseg_c=1
                                         proj(istart_c),&
                                         scalprod(1,idir,m,i,l,iat,jorb))
                                    istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -583,7 +583,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
 !!$                                     Lzd%Gnlpspd%keyv_p(jseg_c),&
 !!$                                     Lzd%Gnlpspd%keyg_p(1,jseg_c),&
                                      Lzd%Gnlpspd%plr(iat)%wfd%keyv(jseg_c),&
-                                     Lzd%Gnlpspd%plr(iat)%wfd%keygloc(1,jseg_c),&
+                                     Lzd%Gnlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -660,7 +660,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
 !!$                                     Lzd%Gnlpspd%keyv_p(jseg_c),&
 !!$                                     Lzd%Gnlpspd%keyg_p(1,jseg_c),&
                                      Lzd%Gnlpspd%plr(iat)%wfd%keyv(jseg_c),&
-                                     Lzd%Gnlpspd%plr(iat)%wfd%keygloc(1,jseg_c),&
+                                     Lzd%Gnlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                              end do

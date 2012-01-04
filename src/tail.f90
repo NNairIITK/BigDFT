@@ -12,7 +12,7 @@
 !!  Conceived only for isolated Boundary Conditions, no SIC correction
 subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      Glr,nlpspd,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
-     proj,psi,output_grid,ekin_sum,epot_sum,eproj_sum)
+     proj,psi,output_denspot,ekin_sum,epot_sum,eproj_sum)
   use module_base
   use module_types
   use module_interfaces, except_this_one => CalculateTailCorrection
@@ -22,7 +22,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   type(locreg_descriptors), intent(in) :: Glr
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
   integer, intent(in) :: iproc,nproc,ncongt,nspin
-  logical, intent(in) :: output_grid
+  logical, intent(in) :: output_denspot
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
   real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
@@ -102,8 +102,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   do iat=1,at%nat
      do iseg=1,nlpspd%plr(iat)%wfd%nseg_c+nlpspd%plr(iat)%wfd%nseg_f
-        j0=nlpspd%plr(iat)%wfd%keygloc(1,iseg)
-        j1=nlpspd%plr(iat)%wfd%keygloc(2,iseg)
+        j0=nlpspd%plr(iat)%wfd%keyglob(1,iseg)
+        j1=nlpspd%plr(iat)%wfd%keyglob(2,iseg)
         !do iseg=1,nlpspd%nseg_p(2*at%nat)
         !j0=nlpspd%keyg_p(1,iseg)
         !j1=nlpspd%keyg_p(2,iseg)
@@ -119,8 +119,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         i0=i0+nbuf
         j0=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i0+1
         j1=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i1+1
-        nlpspd%plr(iat)%wfd%keygloc(1,iseg)=j0
-        nlpspd%plr(iat)%wfd%keygloc(2,iseg)=j1
+        nlpspd%plr(iat)%wfd%keyglob(1,iseg)=j0
+        nlpspd%plr(iat)%wfd%keyglob(2,iseg)=j1
 !!$        nlpspd%keyg_p(1,iseg)=j0
 !!$        nlpspd%keyg_p(2,iseg)=j1
      end do
@@ -217,7 +217,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call make_bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
 ! Create the file grid.xyz to visualize the grid of functions
-  if (iproc ==0 .and. output_grid) then
+  if (iproc ==0 .and. output_denspot) then
      write(*,'(1x,a)')&
           'Writing the file describing the new atomic positions of the effective system'
      open(unit=22,file='grid_tail.xyz',status='unknown')
@@ -389,9 +389,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         else
            call applyprojectorsone(at%ntypes,at%nat,at%iatype,&
                 at%psppar,at%npspcode, &
-                nlpspd%nprojel,nlpspd%nproj,nlpspd,&
+                nlpspd%nprojel,nlpspd%nproj,proj,nlpspd,&
                 !nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,&
-                proj,&
+                !proj,&
                 nsegb_c,nsegb_f,keyg,keyv,nvctrb_c,nvctrb_f,  & 
                 psib,hpsib,eproj)
            !write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail
@@ -969,7 +969,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
                    nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
                    mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                    nlpspd%plr(iat)%wfd%keyv(jseg_c),&
-                   nlpspd%plr(iat)%wfd%keygloc(1,jseg_c),&
+                   nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
 !!$                   keyv_p(jseg_c),keyg_p(1,jseg_c),&
                    proj(istart_c),psi,hpsi,eproj)
               iproj=iproj+2*l-1

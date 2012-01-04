@@ -350,7 +350,8 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
              deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,fxci)
 
         !copy the relevant part of Vxc[rhoref] in the potential
-        if (.not. savewxd) call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,vxci(1,ispin),1,poti(1,iorb),1)
+        if (.not. savewxd) &
+             call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,vxci(1,ispin),1,poti(1,iorb),1)
 
         !start the definition of the wxd term, in the diagonal part
         !calculate the contribution to the Double Counting energy
@@ -385,7 +386,8 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
 
         !put the term in the potential
         !poti=Vxc[rhoref]+fref ni fxc[rhoref]
-        if (.not. savewxd) call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,fac2,deltarho(1,ispin),1,poti(1,iorb),1)
+        if (.not. savewxd) &
+             call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,fac2,deltarho(1,ispin),1,poti(1,iorb),1)
 
         !start accumulating the contribution to the wxd array in the fxci array
         if (fi /= 0.0_gp) then
@@ -574,34 +576,3 @@ subroutine psir_to_rhoi(fi,spinval,nspinrho,nspinor,lr,psir,rhoi)
 
 end subroutine psir_to_rhoi
 
-!> apply the potential to the psir wavefunction and calculate potential energy
-subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot)
-  use module_base
-  use module_types
-  use module_interfaces
-  implicit none
-  integer, intent(in) :: npot,nspinor
-  type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,npot), intent(in) :: pot
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
-  real(gp), intent(out) :: epot
-
-  epot=0.0_gp
-  select case(lr%geocode)
-  case('F')
-     call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,nspinor,npot,vpsir,&
-          pot,epot,&
-          lr%bounds%ibyyzz_r) !optional
-
-     case('P') 
-        !here the hybrid BC act the same way
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,nspinor,npot,vpsir,&
-             pot,epot)
-
-     case('S')
-
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,nspinor,npot,vpsir,&
-             pot,epot)
-     end select
-
-end subroutine psir_to_vpsi

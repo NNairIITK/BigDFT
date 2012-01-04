@@ -48,10 +48,10 @@ program rism
   call standard_inputfile_names(in,radical)
   call read_input_variables(iproc,'posinp',in,atoms,rxyz)
   write(gridformat, "(A)") ""
-  select case (in%output_grid_format)
-     case (OUTPUT_GRID_FORMAT_ETSF)
+  select case (in%output_denspot_format)
+     case (output_denspot_FORMAT_ETSF)
         write(gridformat, "(A)") ".etsf"
-     case (OUTPUT_GRID_FORMAT_CUBE)
+     case (output_denspot_FORMAT_CUBE)
         write(gridformat, "(A)") ".bin"
   end select
 
@@ -141,7 +141,6 @@ program rism
   call deallocate_lr(Glr,subname)
   
   call deallocate_orbs(orbs,subname)
-  call deallocate_atoms_scf(atoms,subname) 
 
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)

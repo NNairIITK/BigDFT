@@ -117,14 +117,20 @@ program BigDFT
          ! geometry optimization
          call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
          close(16)
-         filename=trim('final_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
       end if
 
       !if there is a last run to be performed do it now before stopping
       if (inputs%last_run == -1) then
          inputs%last_run = 1
          call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
+      end if
+
+      if (inputs%ncount_cluster_x > 1) then
+         filename=trim('final_'//trim(arr_posinp(iconfig)))
+         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
+      else
+         filename=trim('forces_'//trim(arr_posinp(iconfig)))
+         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
       end if
 
       if (iproc == 0) then

@@ -23,7 +23,7 @@ module module_defs
   include 'configure.inc' !< Include variables set from configure.
 
   integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
-  integer :: yaml_indent=0 !<Blank spaces indentations for Yaml output level identification
+  integer :: yaml_indent=1 !<Blank spaces indentations for Yaml output level identification
 
   ! General precision, density and the wavefunctions types
   integer, parameter :: gp=kind(1.0d0)  !< general-type precision

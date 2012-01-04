@@ -17,14 +17,14 @@ module lanczos_interface
    private
 
    !calculate the allocation dimensions
-   public :: EP_inizializza,EP_initialize_start,EP_allocate_for_eigenprob, &
-        get_EP_dim, set_EP_shift,&
-      &   EP_mat_mult,EP_make_dummy_vectors,  EP_normalizza,EP_copy,EP_scalare,&
-      EP_copia_per_prova, &
-      &   EP_set_all_random, EP_GramSchmidt, EP_add_from_vect_with_fact,&
-      EP_Moltiplica,  &
-      &   EP_free,   EP_norma2_initialized_state , EP_store_occupied_orbitals, EP_occprojections,&
-      &   EP_multbyfact, EP_precondition, EP_Moltiplica4spectra, EP_ApplySinv, EP_ApplyS, &
+   public :: EP_inizializza,EP_initialize_start,EP_allocate_for_eigenprob,&
+        get_EP_dim,set_EP_shift,&
+      &   EP_mat_mult,EP_make_dummy_vectors, EP_normalizza,EP_copy,EP_scalare,&
+      EP_copia_per_prova,&
+      &   EP_set_all_random,EP_GramSchmidt,EP_add_from_vect_with_fact,&
+      EP_Moltiplica, &
+      &   EP_free,  EP_norma2_initialized_state ,EP_store_occupied_orbitals,EP_occprojections,&
+      &   EP_multbyfact,EP_precondition,EP_Moltiplica4spectra,EP_ApplySinv,EP_ApplyS,&
       &   EP_scalare_multik
 
 
@@ -1008,6 +1008,7 @@ nullify(Qvect,dumQvect)
      real(gp) :: ene, gamma
      !Local variables
      integer :: k
+     type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
 
      if( ha%nproc > 1) then
         if(i>=0) then
@@ -1035,15 +1036,17 @@ nullify(Qvect,dumQvect)
      !!$         ha%nlpspd,ha%proj,ha%Lzd%Glr,ha%ngatherarr,            &
      !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
      !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+print *,' ciao1!!!'
+     call default_confinement_data(confdatarr,ha%orbs%norbp)
 
      call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%Lzd%Glr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+        &   ha%Lzd,confdatarr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
         &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
      call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
         &   ha%rxyz,ha%proj,ha%Lzd,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
 
-     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd%Glr,ha%GPU,wrk,&
+     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd,ha%GPU,wrk,&
         &   ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
 
 
@@ -1058,13 +1061,13 @@ nullify(Qvect,dumQvect)
      !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
      !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
      call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        &   ha%Lzd%Glr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+        &   ha%Lzd,confdatarr,ha%ngatherarr,ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
         &   ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
      call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
         &   ha%rxyz,ha%proj,ha%Lzd,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
 
-     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd%Glr,ha%GPU,wrk,&
+     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd,ha%GPU,wrk,&
         &   ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
@@ -1132,6 +1135,7 @@ nullify(Qvect,dumQvect)
      integer, intent(in) :: p,i
      !Local variables
      integer :: k
+     type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
 
      if( ha%nproc > 1) then
         if(i>=0) then
@@ -1164,16 +1168,18 @@ nullify(Qvect,dumQvect)
      !!$         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
      !!$         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
 
+     call default_confinement_data(confdatarr,ha%orbs%norbp)
+
      call LocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,&
           ha%hx,ha%hy,ha%hz,&
-          ha%Lzd%Glr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,ha%ekin_sum,&
+          ha%Lzd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,ha%ekin_sum,&
           ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
      call NonLocalHamiltonianApplication(ha%iproc,ha%at,ha%orbs,&
           ha%hx,ha%hy,ha%hz,&
           ha%rxyz,ha%proj,ha%Lzd,Qvect_tmp,wrk,ha%eproj_sum)
 
-     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd%Glr,&
+     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%Lzd,&
           ha%GPU,wrk,&
           ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
 
@@ -1807,12 +1813,12 @@ subroutine applyPAWprojectors(orbs,at,&
                                       Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
                                       Glr%wfd%keyv(1),Glr%wfd%keygloc(1,1),&
                                       psi(ispsi+&
-                                      (ispinor-1)*(orbs%npsidim/orbs%nspinor)),&
+                                      (ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)),&
                                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                      PAWD%paw_nlpspd%keyv_p(jseg_c),&
 !!$                                      PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
                                       PAWD%paw_nlpspd%plr(iat)%wfd%keyv(jseg_c),&
-                                      PAWD%paw_nlpspd%plr(iat)%wfd%keygloc(1,jseg_c),&
+                                      PAWD%paw_nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                       PAWD%paw_proj(istart_c),&
                                       dotbuffer( ibuffer ) )
                               end if
@@ -1905,12 +1911,12 @@ subroutine applyPAWprojectors(orbs,at,&
                                    mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                 &   PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
                                    PAWD%paw_nlpspd%plr(iat)%wfd%keyv(jseg_c),&
-                                   PAWD%paw_nlpspd%plr(iat)%wfd%keygloc(1,jseg_c),&
-                                 &   PAWD%paw_proj(istart_c),&
-                                 &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
-                                 &   Glr%wfd%keyv(1),Glr%wfd%keygloc(1,1),&
-                                 &   hpsi(ispsi+(ispinor-1)*(orbs%npsidim/orbs%nspinor)  )&
-                                 &   )
+                                   PAWD%paw_nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+                                   PAWD%paw_proj(istart_c),&
+                                   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
+                                   Glr%wfd%keyv(1),Glr%wfd%keygloc(1,1),&
+                                   hpsi(ispsi+(ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  )&
+                                   )
 
 
                               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -2058,11 +2064,11 @@ subroutine applyPCprojectors(orbs,at,&
                        Glr%wfd%keyv(1),Glr%wfd%keygloc(1,1),&
                        mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                        PPD%pc_nlpspd%plr(iat)%wfd%keyv(jseg_c),&
-                       PPD%pc_nlpspd%plr(iat)%wfd%keygloc(1,jseg_c),&
+                       PPD%pc_nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
 !!$                       PPD%pc_nlpspd%keyv_p(jseg_c),PPD%pc_nlpspd%keyg_p(1,jseg_c),&
                        PPD%pc_proj(istart_c),&
-                       psi(ispsi+ (ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),&
-                       hpsi(ispsi+(ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),&
+                       psi(ispsi+ (ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  ),&
+                       hpsi(ispsi+(ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  ),&
                        eproj_spinor)
 
 

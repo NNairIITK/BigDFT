@@ -301,13 +301,13 @@ end function wave_format_from_filename
 
 !>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !!  have changed
-subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi,orblist)
   use module_base
   use module_types
   use module_interfaces, except_this_one => readmywaves
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3
+  integer, intent(in) :: iproc,n1,n2,n3, iformat
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(inout) :: orbs
@@ -321,7 +321,6 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   character(len=*), parameter :: subname='readmywaves'
   logical :: perx,pery,perz
   integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor
-  integer :: wave_format_from_filename,iformat
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
@@ -330,7 +329,6 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
-  iformat = wave_format_from_filename(iproc, filename)
   if (iformat == WF_FORMAT_ETSF) then
      !construct the orblist or use the one in argument
      do nb1 = 1, orbs%norb
@@ -338,7 +336,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
      if(present(orblist)) orblist2(nb1) = orblist(nb1) 
      end do
 
-     call read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+     call read_waves_etsf(iproc,filename // ".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
           wfd,psi)
   else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
      !conditions for periodicity in the three directions
@@ -439,7 +437,7 @@ subroutine verify_file_presence(filerad,orbs,iformat)
      allfiles = .true.
      loop_binary: do iorb=1,orbs%norbp
         do ispinor=1,orbs%nspinor
-           call filename_of_iorb(.true.,trim(filerad) // ".bin",orbs,iorb,ispinor,filename,iorb_out)
+           call filename_of_iorb(.true.,trim(filerad),orbs,iorb,ispinor,filename,iorb_out)
 
            inquire(file=filename,exist=onefile)
            allfiles=allfiles .and. onefile
@@ -487,6 +485,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   !calculate k-point
   ikpt=orbs%iokpt(iorb)
   write(f3,'(a1,i3.3)') "k", ikpt !not more than 999 kpts
+
   !see if the wavefunction is real or imaginary
   if(modulo(ispinor,2)==0) then
      realimag='I'
@@ -563,12 +562,12 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
 end subroutine open_filename_of_iorb
 
 !>   Write all my wavefunctions in files by calling writeonewave
-subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
   use module_base
   use module_interfaces, except_this_one => writeonewave
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3
+  integer, intent(in) :: iproc,n1,n2,n3,iformat
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -577,52 +576,29 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   character(len=*), intent(in) :: filename
   !Local variables
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,isuffix,iorb_out,ispinor
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
   if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
-  isuffix = index(filename, ".etsf", back = .true.)
-  if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
-  if (isuffix > 0) then
+  if (iformat == WF_FORMAT_ETSF) then
      call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   else
      call cpu_time(tr0)
      call system_clock(ncount1,ncount_rate,ncount_max)
 
-     isuffix = index(filename, ".bin", back = .true.)
-
      ! Plain BigDFT files.
-     do iorb=1,orbs%norbp!*orbs%nspinor
-
-!!$        write(f4,'(i4.4)')  iorb+orbs%isorb*orbs%nspinor
-!!$        filename_ = trim(filename)//"."//f4
-!!$        if (verbose > 2) write(*,*) 'opening ',filename_
-!!$        if (isuffix <= 0) then
-!!$           open(unit=99,file=filename_,status='unknown')
-!!$        else
-!!$           open(unit=99,file=trim(filename_),status='unknown',form="unformatted")
-!!$        end if
-!!$        call writeonewave(99,(isuffix <= 0),iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,at%nat,rxyz,  & 
-!!$             wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
-!!$             wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
-!!$             psi(1,iorb),psi(wfd%nvctr_c+1,iorb), &
-!!$             orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb))
-!!$        close(99)
-
+     do iorb=1,orbs%norbp
         do ispinor=1,orbs%nspinor
-           call open_filename_of_iorb(99,(isuffix > 0),filename,orbs,iorb,ispinor,iorb_out)           
-           call writeonewave(99,(isuffix <= 0),iorb_out,n1,n2,n3,hx,hy,hz,at%nat,rxyz,  & 
-                wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyv(1),  & 
+           call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+                & orbs,iorb,ispinor,iorb_out)           
+           call writeonewave(99,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
+                & at%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyv(1),  & 
                 wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
                 psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
                 orbs%eval(iorb+orbs%isorb))
            close(99)
         end do
-
-
-
-
      enddo
 
      call cpu_time(tr1)
@@ -633,3 +609,77 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   end if
 
 END SUBROUTINE writemywaves
+
+subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
+     & n1, n2, n3, nspinor, psiscf)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => read_wave_to_isf
+
+  implicit none
+
+  integer, intent(in) :: ln
+  character(len = ln), intent(in) :: filename
+  integer, intent(in) :: iorbp
+  integer, intent(out) :: n1, n2, n3, nspinor
+  real(gp), intent(out) :: hx, hy, hz
+  real(wp), dimension(:,:,:,:), pointer :: psiscf
+  logical, intent(out) :: lstat
+
+  integer :: wave_format_from_filename, iformat
+  
+  ! Find format from name.
+  iformat = wave_format_from_filename(1, filename)
+
+  ! Call proper wraping routine.
+  if (iformat == WF_FORMAT_ETSF) then
+     call readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
+          & n1, n2, n3, nspinor, psiscf)
+  else
+     call readwavetoisf(lstat, filename, (iformat == WF_FORMAT_PLAIN), hx, hy, hz, &
+          & n1, n2, n3, nspinor, psiscf)
+  end if
+END SUBROUTINE read_wave_to_isf
+
+subroutine free_wave_to_isf(psiscf)
+  use module_base
+  implicit none
+  real(wp), dimension(:,:,:,:), pointer :: psiscf
+
+  integer :: i_all, i_stat
+
+  i_all=-product(shape(psiscf))*kind(psiscf)
+  deallocate(psiscf,stat=i_stat)
+  call memocc(i_stat,i_all,'psiscf',"free_wave_to_isf_etsf")
+END SUBROUTINE free_wave_to_isf
+
+subroutine read_wave_descr(lstat, filename, ln, &
+     & norbu, norbd, iorbs, ispins, nkpt, ikpts, nspinor, ispinor)
+  use module_types
+  implicit none
+  integer, intent(in) :: ln
+  character(len = ln), intent(in) :: filename
+  integer, intent(out) :: norbu, norbd, nkpt, nspinor
+  integer, intent(out) :: iorbs, ispins, ikpts, ispinor
+  logical, intent(out) :: lstat
+
+  integer :: wave_format_from_filename, iformat
+  character(len = 1024) :: testf
+  
+  ! Find format from name.
+  iformat = wave_format_from_filename(1, filename)
+
+  ! Call proper wraping routine.
+  if (iformat == WF_FORMAT_ETSF) then
+     call readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
+     iorbs = 1
+     ispins = 1
+     ikpts = 1
+     ispinor = 1
+  else
+     call readwavedescr(lstat, filename, iorbs, ispins, ikpts, ispinor, nspinor, testf)
+     norbu = 0
+     norbd = 0
+     nkpt = 0
+  end if
+END SUBROUTINE read_wave_descr

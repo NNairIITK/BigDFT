@@ -245,8 +245,8 @@ end subroutine assignToLocreg
 subroutine wavefunction_dimension(Lzd,orbs)
   use module_types
   implicit none
-  type(local_zone_descriptors),intent(inout) :: Lzd
-  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: Lzd
+  type(orbitals_data),intent(inout) :: orbs
   !local variables
   integer :: dimtot,iorb,ilr,npsidim
 
@@ -258,9 +258,10 @@ subroutine wavefunction_dimension(Lzd,orbs)
         dimtot = dimtot + npsidim
      end do
   else if (orbs%norbp == 0) then
-       dimtot = orbs%npsidim
+       dimtot = orbs%npsidim_orbs
   end if
-  Lzd%Lpsidimtot = dimtot
+  !Lzd%Lpsidimtot = dimtot
+  orbs%npsidim_orbs=dimtot
 end subroutine wavefunction_dimension
 
 

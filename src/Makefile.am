@@ -287,6 +287,7 @@ high_level = cluster.f90 \
 #objects which can be compiled only with module_base
 low_level = \
 	$(PS_SOURCES) \
+	init/atoms.f90 \
 	init/projectors.f90  \
 	init/ionicpot.f90 \
 	init/gridmanipulation.f90 \
@@ -317,6 +318,7 @@ low_level = \
 	lib/fft/fft2d.f90 \
 	lib/lbfgs.f90 \
 	lib/bindings.c \
+	lib/bindingsf.f90 \
 	$(flush_files) \
 	$(etsf_files) \
 	wavelib/transwaves.f90 \
@@ -439,4 +441,3 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 $(modules_objects) : $(mpi_include)
-

@@ -160,7 +160,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   !allocate the work array for transpositions
   if(nproc > 1)then
-     allocate(psiw(max(orbs%npsidim,orbsv%npsidim)+ndebug),stat=i_stat)
+     allocate(psiw(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   else
      psiw => null()
@@ -193,7 +193,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   
   ! **********************************************
   ! some memory work memory 
-  allocate(hv(orbsv%npsidim+ndebug),stat=i_stat)
+  allocate(hv(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
   call memocc(i_stat,hv,'hv',subname)
 
   allocate(e(orbsv%norb,orbsv%nkpts,2+ndebug),stat=i_stat)
@@ -233,10 +233,10 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   allocate(ew(2*orbsv%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ew,'ew',subname)
 
-  allocate(g(orbsv%npsidim+ndebug),stat=i_stat)
+  allocate(g(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
   call memocc(i_stat,g,'g',subname)
 
-  allocate(hg(orbsv%npsidim+ndebug),stat=i_stat)
+  allocate(hg(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
   call memocc(i_stat,hg,'hg',subname)
   ! end memory work memory 
   ! **********************************************
@@ -411,7 +411,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! copy hv => g, as we keep hv for later
      !
-     call dcopy(orbsv%npsidim,hv,1,g,1)  
+     call dcopy(max(orbsv%npsidim_orbs,orbsv%npsidim_comp),hv,1,g,1)  
      !
      ! substract g = g - v*<v|H|v>/<v|P|v>
      !

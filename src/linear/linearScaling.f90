@@ -149,11 +149,12 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
   if(.not.lin%transformToGlobal) then
       ! psi and psit will not be calculated, so only allocate them with size 1
-      orbs%npsidim=1
+      orbs%npsidim_orbs=1
+      orbs%npsidim_comp=1
   end if
-  allocate(psi(orbs%npsidim), stat=istat)
+  allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
   call memocc(istat, psi, 'psi', subname)
-  allocate(psit(orbs%npsidim), stat=istat)
+  allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
   call memocc(istat, psit, 'psit', subname)
   allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold, 'rhopotold', subname)
@@ -312,7 +313,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !lphiold=lphi
 
 
-  if(nproc==1) allocate(psit(size(psi)))
+  !if(nproc==1) allocate(psit(size(psi)))
   nitSCC=lin%nitSCCWhenOptimizing+lin%nitSCCWhenFixed
   ! Flag that indicates that the basis functions shall be improved in the following.
   updatePhi=.true.
@@ -725,10 +726,7 @@ end do
 
 end subroutine cancelCommunicationPotential
 
-
-
-
-subroutine transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
+subroutine transformToGlobal(iproc,nproc,lin,orbs,comms,input,coeff,lphi,psi,psit)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => transformToGlobal
@@ -741,8 +739,9 @@ type(orbitals_data),intent(in):: orbs
 type(communications_arrays):: comms
 type(input_variables),intent(in):: input
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
-real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: lphi
-real(8),dimension(orbs%npsidim),intent(out):: psi, psit
+!real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(inout):: lphi
+real(8),dimension(*),intent(inout):: lphi
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
 
 ! Local variables
 integer:: ind1, ind2, istat, iall, iorb, ilr, ldim, gdim, nvctrp
@@ -753,20 +752,23 @@ character(len=*),parameter:: subname='transformToGlobal'
   !    write(*,'(a,i5,4i12)') 'START transformToGlobal: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
   !end do
 
-  allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
+  allocate(phi(max(lin%lb%gorbs%npsidim_orbs,lin%lb%gorbs%npsidim_comp)+ndebug), stat=istat)
   call memocc(istat, phi, 'phi', subname)
   allocate(phiWork(max(size(phi),size(psi))), stat=istat)
   call memocc(istat, phiWork, 'phiWork', subname)
 
   ind1=1
   ind2=1
-  phi=0.d0
+!  phi=0.d0
+  if (max(lin%lb%gorbs%npsidim_orbs,lin%lb%gorbs%npsidim_comp) > 0) &
+       call to_zero(max(lin%lb%gorbs%npsidim_orbs,lin%lb%gorbs%npsidim_comp),phi(1))
+
   do iorb=1,lin%lb%orbs%norbp
       ilr = lin%lb%orbs%inWhichLocregp(iorb)
       ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       gdim=lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
-      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, lin%lzd%Glr,&
-           lin%lzd%Llr(ilr), lphi(ind2), phi(ind1))
+      call Lpsi_to_global2(iproc,nproc,ldim,gdim,lin%lb%orbs%norb,lin%lb%orbs%nspinor,input%nspin,lin%lzd%Glr,&
+           lin%lzd%Llr(ilr),lphi(ind2),phi(ind1))
       ind1=ind1+lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
       ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
   end do
@@ -802,7 +804,7 @@ character(len=*),parameter:: subname='transformToGlobal'
   !end do
 
 
-  call dcopy(orbs%npsidim, psi, 1, psit, 1)
+  call dcopy(orbs%npsidim_comp, psi, 1, psit, 1)
 
   call untranspose_v(iproc, nproc, lin%lb%orbs, lin%lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
 !  do iall=0,nproc-1

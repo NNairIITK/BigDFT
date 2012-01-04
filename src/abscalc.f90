@@ -140,7 +140,7 @@ program abscalc_main
       !De-allocations
       call deallocate_abscalc_input(inputs, subname)
       call deallocate_atoms(atoms,subname) 
-      call deallocate_local_zone_descriptors(rst%Lzd, subname)
+!      call deallocate_local_zone_descriptors(rst%Lzd, subname)
 
       call free_restart_objects(rst,subname)
 
@@ -449,10 +449,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    hz=in%hz
 
    write(gridformat, "(A)") ""
-   select case (in%output_grid_format)
-   case (OUTPUT_GRID_FORMAT_ETSF)
+   select case (in%output_denspot_format)
+   case (output_denspot_FORMAT_ETSF)
       write(gridformat, "(A)") ".etsf"
-   case (OUTPUT_GRID_FORMAT_CUBE)
+   case (output_denspot_FORMAT_CUBE)
       write(gridformat, "(A)") ".bin"
    end select
 
@@ -736,9 +736,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
           Lzd%Gnlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in,radii_cf)
 
+      !Check if we must use linear scaling for total SCF
+      !change the Lzd structure accordingly, also orbs%inwhichlocreg
+      call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms_clone,orbsAO,rxyz,radii_cf) 
+
+
       if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
          print *, " ============== TESTING PC_PROJECTORS =========== "
-         allocate(hpsi(orbsAO%npsidim+ndebug),stat=i_stat)
+         allocate(hpsi(max(orbsAO%npsidim_orbs,orbsAO%npsidim_comp)+ndebug),stat=i_stat)
          hpsi=0.0_wp
          PPD%iproj_to_factor(1:PPD%mprojtot) = 2.0_gp
         call applyPCprojectors(orbsAO,atoms,hx,hy,hz,Lzd%Glr,PPD,psi,hpsi, .true.)
@@ -816,6 +821,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
           Lzd%Gnlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin,in%potshortcut,-1,irrzon,phnons,GPU,in,radii_cf)
 
+      !Check if we must use linear scaling for total SCF
+      !change the Lzd structure accordingly, also orbs%inwhichlocreg
+      call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms,orbsAO,rxyz,radii_cf) 
+
       i_all=-product(shape(psi))*kind(psi)
       deallocate(psi,stat=i_stat)
       call memocc(i_stat,i_all,'psi',subname)
@@ -854,8 +863,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !!$
       !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
-      if (in%output_grid == OUTPUT_GRID_DENSPOT) then
-         if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
+      if (in%output_denspot == output_denspot_DENSPOT) then
+         if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
 
             call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
@@ -1248,8 +1257,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,Lzd%Gnlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
-            &   rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-            &   , in%iat_absorber  , in , PAWD, orbs)
+             rhopot(1,1,1,1),ekin_sum,epot_sum,eproj_sum,in%nspin,GPU,&
+             in%iat_absorber,in,PAWD,orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
@@ -1271,7 +1280,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
    call deallocate_before_exiting
-   call deallocate_local_zone_descriptors(lzd, subname)
+!   call deallocate_local_zone_descriptors(lzd, subname)
 
    contains
 
@@ -1329,20 +1338,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          deallocate(rhopot,stat=i_stat)
          call memocc(i_stat,i_all,'rhopot',subname)
 
-
          if(  iand( in%potshortcut, 2)  > 0 ) then
             i_all=-product(shape(rhopotTOTO))*kind(rhopotTOTO)
             deallocate(rhopotTOTO,stat=i_stat)
             call memocc(i_stat,i_all,'rhopotTOTO',subname)
          endif
 
-
          i_all=-product(shape(rhoXanes))*kind(rhoXanes)
          deallocate(rhoXanes,stat=i_stat)
          call memocc(i_stat,i_all,'rhoXanes',subname)
-
-
-
 
          !!$       if (in%read_ref_den) then
          !!$          i_all=-product(shape(rhoref))*kind(rhoref)
@@ -1353,7 +1357,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          i_all=-product(shape(nscatterarr))*kind(nscatterarr)
          deallocate(nscatterarr,stat=i_stat)
          call memocc(i_stat,i_all,'nscatterarr',subname)
-
 
          i_all=-product(shape(ngatherarr))*kind(ngatherarr)
          deallocate(ngatherarr,stat=i_stat)
@@ -1379,7 +1382,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          call memocc(i_stat,i_all,'psivirt',subname)
       end if
 
-
       !De-allocations
       call deallocate_bounds(atoms%geocode,Lzd%Glr%hybrid_on,&
            Lzd%Glr%bounds,subname)
@@ -1392,8 +1394,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call deallocate_orbs(orbs,subname)
       call deallocate_orbs(orbsAO,subname)
-
-      call deallocate_atoms_scf(atoms,subname) 
 
       call deallocate_proj_descr(Lzd%Gnlpspd,subname)
 
@@ -1415,7 +1415,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       endif
       !! this is included in deallocate_atomdatapaw
       !! call deallocate_atomdatapaw(atoms,subname)
-
      
       ! Free the libXC stuff if necessary.
       call xc_end()

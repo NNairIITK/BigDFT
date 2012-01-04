@@ -18,7 +18,7 @@ program WaCo
    real(gp) :: dist
    integer :: iproc, nproc, nproctiming, i_stat, nelec, ind, ierr, npsidim, npsidim2
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,nrpts
-   integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3,iat
+   integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3,iat,iformat
    integer :: int1, int2, int3, iwann, iiwann, iband, nwann, nband, plotwann
    integer :: ix, iy, iz, iw1, iw2, rem, ntot, isplotwann, plotwannp, jproc, ifile
    integer :: iter, nbuf,nsprd,ndiag
@@ -32,7 +32,6 @@ program WaCo
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:),Uham(:),evectors(:,:),evalues(:),work(:),iwork(:)
    real(wp), allocatable :: diag(:)
    character(len=60) :: radical, filename
-   character(len=5) :: wfformat_read
    character(len=8) :: string
    logical :: perx, pery, perz, commented, same
    integer, dimension(:), allocatable :: plotwann_par,isplotwann_par
@@ -600,12 +599,12 @@ stop
    call timing(iproc,'CrtProjectors ','ON')
 
    ! assign the input_wf_format
-   write(wfformat_read, "(A)") "" 
+   iformat = WF_FORMAT_NONE
    select case (filetype)
    case ("ETSF","etsf")
-      write(wfformat_read, "(A)") ".etsf"
+      iformat = WF_FORMAT_ETSF
    case ("BIN","bin")
-      write(wfformat_read, "(A)") ".bin"
+      iformat = WF_FORMAT_BINARY
    case default
       if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
       stop
@@ -634,8 +633,8 @@ stop
       if(associated(orbs%eval)) nullify(orbs%eval)
       allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
       call memocc(i_stat,orbs%eval,'orbs%eval',subname)
-      filename=trim(input%dir_output) // 'wavefunction'// trim(wfformat_read)
-      call readmywaves(iproc,filename,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+      filename=trim(input%dir_output) // 'wavefunction'
+      call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
          Glr%wfd,psi(1,1))
       i_all = -product(shape(orbs%eval))*kind(orbs%eval)
       deallocate(orbs%eval,stat=i_stat)
@@ -660,11 +659,11 @@ stop
 
    ! read unoccupied wavefunctions
    if(orbsv%norbp > 0) then
-      filename=trim(input%dir_output) // 'virtuals'// trim(wfformat_read)
+      filename=trim(input%dir_output) // 'virtuals'
       if(associated(orbsv%eval)) nullify(orbsv%eval)
       allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
       call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
-      call readmywaves(iproc,filename,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+      call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
          Glr%wfd,psi(1,1+orbs%norbp),virt_list)
       i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
       deallocate(orbsv%eval,stat=i_stat)
@@ -810,7 +809,6 @@ stop
    call deallocate_orbs(orbsv,subname)
    call deallocate_orbs(orbsw,subname)
    call deallocate_comms(commsw,subname)
-   call deallocate_atoms_scf(atoms,subname)
    call deallocate_atoms(atoms,subname)
    call free_input_variables(input)
 

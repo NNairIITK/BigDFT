@@ -130,7 +130,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data), intent(in) :: orbs
   real(dp), intent(out) :: gnrm,gnrm_zero
-  real(wp), dimension(Lzd%Lpsidimtot), intent(inout) :: hpsi
+  real(wp), dimension(orbs%npsidim_comp), intent(inout) :: hpsi
   !local variables
   integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr
   real(wp) :: cprecr,scpr,evalmax,eval_zero

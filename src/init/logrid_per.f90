@@ -17,7 +17,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
   logical,allocatable,dimension(:,:,:) :: logrid
-  character(len=*), parameter :: subname='make_bounds'
+  character(len=*), parameter :: subname='make_bounds_per'
   integer :: i_stat,i_all,nseg_c
 
   allocate(bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)

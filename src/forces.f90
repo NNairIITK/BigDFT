@@ -767,7 +767,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 !!$                                     nlpspd%keyv_p(jseg_c),&
 !!$                                     nlpspd%keyg_p(1,jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyv(jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keygloc(1,jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -840,7 +840,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 !!$                                     nlpspd%keyv_p(jseg_c),&
 !!$                                     nlpspd%keyg_p(1,jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyv(jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keygloc(1,jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                              end do
