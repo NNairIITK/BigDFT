@@ -95,7 +95,7 @@ program frequencies
       if(nproc/=0)   call MPI_FINALIZE(ierr)
       stop
    end if
-   call frequencies_input_variables_new(iproc,'input.freq',inputs)
+   call frequencies_input_variables_new(iproc,.true.,'input.freq',inputs)
 
    !Order of the finite difference scheme
    order = inputs%freq_order
