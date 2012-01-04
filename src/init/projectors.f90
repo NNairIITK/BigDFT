@@ -465,7 +465,9 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
                  write(*,'(1x,a)')&
                       'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
               !end if
-              stop
+              !stop commented out
+              !restore the norm of the projector
+              !call wscal_wrap(mbvctr_c,mbvctr_f,1.0_gp/sqrt(scpr),proj(istart_c))
            else
 !!!              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
 !!!                   'The norm of the nonlocal PSP for atom n=',iat,&

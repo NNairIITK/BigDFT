@@ -1398,7 +1398,7 @@ if (inputpsi /= -1000) then
    refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
 
    call calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s+i3xcsh,n3p,in%nspin,refill_proj,&
-      &   rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise)
+        rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise)
 
    i_all=-product(shape(rho))*kind(rho)
    deallocate(rho,stat=i_stat)
@@ -1605,11 +1605,12 @@ i_all=-product(shape(pkernel))*kind(pkernel)
 deallocate(pkernel,stat=i_stat)
 call memocc(i_stat,i_all,'kernel',subname)
 
-if ((in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
+if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
+     .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
    i_all=-product(shape(pkernelseq))*kind(pkernelseq)
    deallocate(pkernelseq,stat=i_stat)
    call memocc(i_stat,i_all,'kernelseq',subname)
-else if(nproc == 1) then
+else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
    nullify(pkernelseq)
 end if
 

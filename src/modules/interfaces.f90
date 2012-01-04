@@ -149,51 +149,6 @@ module module_interfaces
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE read_input_parameters
 
-      subroutine dft_input_variables(iproc,filename,in)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         integer, intent(in) :: iproc
-         type(input_variables), intent(out) :: in
-      END SUBROUTINE dft_input_variables
-
-      subroutine geopt_input_variables(filename,in)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         type(input_variables), intent(inout) :: in
-      END SUBROUTINE geopt_input_variables
-
-      subroutine tddft_input_variables(filename,in)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         type(input_variables), intent(inout) :: in
-      END SUBROUTINE tddft_input_variables
-
-
-      subroutine kpt_input_variables(iproc,filename,in,atoms)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         integer, intent(in) :: iproc
-         type(input_variables), intent(inout) :: in
-         type(atoms_data), intent(in) :: atoms
-      END SUBROUTINE kpt_input_variables
-
-      subroutine perf_input_variables(iproc,filename,inputs)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         integer, intent(in) :: iproc
-         type(input_variables), intent(inout) :: inputs
-      END SUBROUTINE perf_input_variables
-
       subroutine read_atomic_file(file,iproc,at,rxyz,status)
          !n(c) use module_base
          use module_types

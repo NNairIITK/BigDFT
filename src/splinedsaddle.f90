@@ -358,8 +358,8 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     call standard_inputfile_names(ll_inputs,'input')
     call default_input_variables(ll_inputs)
     if(trim(pnow%hybrid)=='yes') then
-        call perf_input_variables(iproc,'ll_input.perf',ll_inputs)
-        call dft_input_variables_new(iproc,'ll_input.dft',ll_inputs)
+        call perf_input_variables(iproc,.true.,'ll_input.perf',ll_inputs)
+        call dft_input_variables_new(iproc,.true.,'ll_input.dft',ll_inputs)
     else
         ll_inputs=inputs
     endif
