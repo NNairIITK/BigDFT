@@ -189,9 +189,16 @@ t1=mpi_wtime()
 call initLocregs(iproc, at%nat, rxyz, lin, input, Glr)
 
 
+! Copy Glr to lin%lzd
+call nullify_locreg_descriptors(lin%lzd%Glr)
+call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
+!call nullify_locreg_descriptors(lin%lb%lzd%Glr)
+!call copy_locreg_descriptors(Glr, lin%lb%lzd%Glr, subname)
+
+
 ! Initialize collective communications
-call initCollectiveComms(iproc, nproc, lin%lzd, lin%orbs, lin%collcomms)
-call initCollectiveComms(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%collcomms)
+call initCollectiveComms(iproc, nproc, lin%lzd, input, lin%orbs, lin%collcomms)
+call initCollectiveComms(iproc, nproc, lin%lzd, input, lin%lb%orbs, lin%lb%collcomms)
 
 allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
@@ -258,11 +265,6 @@ t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 !call allocateCommunicationbufferSumrho(lin%comsr, subname)
 
-! Copy Glr to lin%lzd
-call nullify_locreg_descriptors(lin%lzd%Glr)
-call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
-!call nullify_locreg_descriptors(lin%lb%lzd%Glr)
-!call copy_locreg_descriptors(Glr, lin%lb%lzd%Glr, subname)
 
 ! Copy nlpspd to lin%lzd
 call nullify_nonlocal_psp_descriptors(lin%lzd%Gnlpspd)
@@ -3800,7 +3802,7 @@ end function optimalLength
 
 
 
-subroutine initCollectiveComms(iproc, nproc, lzd, orbs, collcomms)
+subroutine initCollectiveComms(iproc, nproc, lzd, input, orbs, collcomms)
 use module_base
 use module_types
 implicit none
@@ -3808,11 +3810,14 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(local_zone_descriptors),intent(in):: lzd
+type(input_variables),intent(in):: input
 type(orbitals_data),intent(inout):: orbs
 type(collectiveComms),intent(out):: collcomms
 
 ! Local variables
-integer:: iorb, ilr, kproc, jproc, ii, ncount, iiorb, istat
+integer:: iorb, ilr, kproc, jproc, ii, ncount, iiorb, istat, gdim, ldim, ist
+integer:: n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3, ind, i, is, ie
+integer:: transform_index, iseg
 character(len=*),parameter:: subname='initCollectiveComms'
 
 ! Allocate all arrays
@@ -3889,6 +3894,63 @@ do jproc=0,nproc-1
     ii=ii+collComms%recvcnts(jproc)
 end do
 orbs%npsidim=max(orbs%npsidim,ii)
+
+
+
+! Get the global indices of all elements
+allocate(collComms%indexarray(orbs%npsidim), stat=istat)
+call memocc(istat, collComms%indexarray, 'collComms%indexarray', subname)
+ist=1
+ind=1
+do iorb=1,orbs%norbp
+    iiorb=orbs%isorb+iorb
+    ilr=orbs%inwhichlocreg(iiorb)
+    ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+    !!!gdim=lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
+    !!!call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, &
+    !!!     lzd%glr, lzd%llr(ilr), collComms%indexarray(ist))
+    n1l=lzd%llr(ilr)%d%n1
+    n2l=lzd%llr(ilr)%d%n2
+    n3l=lzd%llr(ilr)%d%n3
+    n1g=lzd%glr%d%n1
+    n2g=lzd%glr%d%n2
+    n3g=lzd%glr%d%n3
+    !write(*,'(a,i8,6i9)') 'ilr, n1l, n2l, n3l, n1g, n2g, n3g', ilr, n1l, n2l, n3l, n1g, n2g, n3g
+    nshift1=lzd%llr(ilr)%ns1-lzd%glr%ns1
+    nshift2=lzd%llr(ilr)%ns2-lzd%glr%ns2
+    nshift3=lzd%llr(ilr)%ns3-lzd%glr%ns3
+
+    do iseg=1,lzd%llr(ilr)%wfd%nseg_c
+        is=lzd%llr(ilr)%wfd%keyg(1,iseg)
+        ie=lzd%llr(ilr)%wfd%keyg(2,iseg)
+        do i=is,ie
+            collComms%indexarray(ind)=transform_index(i, n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3)
+            ind=ind+1
+        end do
+    end do
+
+    do iseg=1,lzd%llr(ilr)%wfd%nseg_f
+        is=lzd%llr(ilr)%wfd%keyg(1,iseg+lzd%llr(ilr)%wfd%nseg_c)
+        ie=lzd%llr(ilr)%wfd%keyg(2,iseg+lzd%llr(ilr)%wfd%nseg_c)
+        do i=is,ie
+            collComms%indexarray(ind)=transform_index(i, n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3)
+            collComms%indexarray(ind+1)=collComms%indexarray(ind)
+            collComms%indexarray(ind+2)=collComms%indexarray(ind)
+            collComms%indexarray(ind+3)=collComms%indexarray(ind)
+            collComms%indexarray(ind+4)=collComms%indexarray(ind)
+            collComms%indexarray(ind+5)=collComms%indexarray(ind)
+            collComms%indexarray(ind+6)=collComms%indexarray(ind)
+            ind=ind+7
+        end do
+    end do
+
+    do istat=0,ldim-1
+        write(200+iproc,*) ist+istat, collComms%indexarray(ist+istat)
+    end do
+
+    ist=ist+ldim
+end do
+
 
 
 

@@ -135,52 +135,15 @@ real(8),dimension(:),pointer:: lpot
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
       call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
       if(iproc==0) write(*,'(a)') 'done.'
-
-      !! Normalize the derivative basis functions. Normalize all of them (i.e. also the trace minimizing
-      !! orbitals) to keep it easy.
-      !! Do not orthogonalize them, since the 'normal' phis are not exactly orthogonal either.
-      !ist=1
-      !do iorb=1,lin%lb%orbs%norbp
-      !    ilr=lin%lb%orbs%inWhichLocregp(iorb)
-      !    ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      !    tt=dnrm2(ncount, lphi(ist), 1)
-      !    call dscal(ncount, 1/tt, lphi(ist), 1)
-      !    ist=ist+ncount
-      !end do
-
-      !!! Orthonormalize
-      !!call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
-      !!     lin%blocksize_pdgemm, lin%lb%orbs, lin%lb%op, lin%lb%comon, lin%lzd, lin%lb%orbs%inWhichLocreg, lin%convCritOrtho, &
-      !!     input, lin%lb%mad, lphi, ovrlp)
   end if
 
   ! Get the overlap matrix.
-  !if(.not.updatePhi .and. .not.lin%useDerivativeBasisFunctions) then
   if(.not.lin%useDerivativeBasisFunctions) then
-      !call getOverlapMatrix(iproc, nproc, lin, input, lphi, lin%mad, ovrlp)
       call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%orbs, lin%comon, lin%op, lphi, lin%mad, ovrlp)
-  end if
-  if(lin%useDerivativeBasisFunctions) then
-      !call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
+  else
       call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, lin%lb%mad, ovrlp)
-      !!do iorb=1,lin%lb%orbs%norb
-      !!    do jorb=1,lin%lb%orbs%norb
-      !!        write(200+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-      !!    end do
-      !!end do
   end if
 
-  !ierr=0
-  !do iorb=1,lin%orbs%norb
-  !    do jorb=1,lin%orbs%norb
-  !        if(ovrlp(jorb,iorb)==0.d0) then
-  !            ierr=ierr+1
-  !        else
-  !            if(iproc==0) write(350,*) iorb,jorb
-  !        end if
-  !    end do
-  !end do
-  !if(iproc==0) write(*,*) 'zero comp, total', ierr, lin%orbs%norb**2
 
   if(communicate_lphi) then
       ! Allocate the communication buffers for the calculation of the charge density.
@@ -191,17 +154,11 @@ real(8),dimension(:),pointer:: lpot
       do iorb=1,lin%lb%orbs%norbp
           ilr=lin%lb%orbs%inWhichLocregp(iorb)
           call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
-          !call daub_to_isf(lin%lzd%llr(ilr), w, lphi(ist), lphir(istr))
           call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%comsr%sendBuf(istr))
           call deallocate_work_arrays_sumrho(w)
           ist = ist + lin%lzd%Llr(ilr)%wfd%nvctr_c + 7*lin%lzd%Llr(ilr)%wfd%nvctr_f
           istr = istr + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
       end do
-      !!do iall=1,size(lin%comsr%sendBuf)
-      !!    write(5100+iproc,*) lin%comsr%sendBuf(iall)
-      !!end do
-      !!call mpi_barrier(mpi_comm_world, ierr)
-      !!stop
       if(istr/=lin%comsr%nsendBuf+1) then
           write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=lin%comsr%nsendBuf+1'
           stop
@@ -246,25 +203,10 @@ real(8),dimension(:),pointer:: lpot
   call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
   lin%lzd%doHamAppl=.true.
   if(.not.lin%useDerivativeBasisFunctions) then
-      !call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
-      !     input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, ekin_sum, epot_sum, eexctX, &
-      !     eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
-      !     pkernel=pkernelseq)
       call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
            proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq)
   else
-      !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
-      !!     ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
-      !!     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
-      !!     pkernel=pkernelseq)
-      !call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lb%orbs, lin, input%hx, input%hy, &
-      !     input%hz, rxyz, ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, ekin_sum, epot_sum, eexctX, &
-      !     eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%lb%orbs%inWhichLocregp, withConfinement, .true., &
-      !     pkernel=pkernelseq)
-      !call HamiltonianApplication3(iproc, nproc, at, lin%lb%orbs, input%hx, input%hy, input%hz, rxyz, &
-      !     proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
-      !     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq, lin=lin)
       !! ATTENTION NEW!!
       ! Modify the value of lzd%lnpsidimtot to take into account the derivatives
       ii=lin%lzd%lpsidimtot
@@ -331,13 +273,6 @@ real(8),dimension(:),pointer:: lpot
   if(lin%useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
 
   ! Calculate the matrix elements <phi|H|phi>.
-  !!do iall=1,size(lphi)
-  !!    write(24000+iproc,*) iall, lphi(iall)
-  !!end do
-  !!do iall=1,size(lhphi)
-  !!    write(25000+iproc,*) iall, lhphi(iall)
-  !!end do
-  !call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
   call allocateCommuncationBuffersOrtho(lin%lb%comon, subname)
   if(.not. lin%useDerivativeBasisFunctions) then
       call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%mad, matrixElements)
@@ -351,16 +286,6 @@ real(8),dimension(:),pointer:: lpot
        tt=tt+matrixElements(iall,iall,1)
   end do
   if(iproc==0) write(*,*) 'trace of H without confinement:',tt
-  !!if(iproc==0) then
-  !!   ierr=0
-  !!   do iall=1,lin%lb%orbs%norb
-  !!       do istat=1,lin%lb%orbs%norb
-  !!           ierr=ierr+1
-  !!           write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
-  !!       end do
-  !!   end do
-  !!   write(23000+iproc,*) '=============================='
-  !!end if
 
 
   allocate(overlapmatrix(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
@@ -377,22 +302,17 @@ real(8),dimension(:),pointer:: lpot
       ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
       ! are still needed later.
       call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      !if(trim(lin%diagMethod)=='seq') then
       if(lin%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
           call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
-      !else if(trim(lin%diagMethod)=='par') then
       else
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
-          !call diagonalizeHamiltonianParallel(iproc, nproc, lin%lb%orbs%norb, matrixElements(1,1,2), ovrlp, eval)
           call dsygv_parallel(iproc, nproc, lin%blocksize_pdsyev, lin%nproc_pdsyev, mpi_comm_world, 1, 'v', 'l', lin%lb%orbs%norb,&
                matrixElements(1,1,2), lin%lb%orbs%norb, ovrlp, lin%lb%orbs%norb, eval, info)
       end if
       if(iproc==0) write(*,'(a)') 'done.'
-      !if(.not.updatePhi) call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       if(.not.updatePhi) call dcopy(lin%lb%orbs%norb*(orbs%norb+lin%norbvirt), matrixElements(1,1,2), 1, lin%coeffall(1,1), 1)
-      !call dcopy(lin%lb%orbs%norb*(orbs%norb+lin%norbvirt), matrixElements(1,1,2), 1, lin%coeffall(1,1), 1)
       infoCoeff=0
 
       ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
@@ -416,133 +336,6 @@ real(8),dimension(:),pointer:: lpot
   call cpu_time(t2)
   time=t2-t1
   if(iproc==0) write(*,'(1x,a,es10.3)') 'time for diagonalizing the Hamiltonian:',time
-  !!do iorb=1,lin%lb%orbs%norb
-  !!    write(2000+iproc,'(100es9.2)') (coeff(iorb,jorb), jorb=1,orbs%norb)
-  !!end do
-
-  !!!!! EXPERIMENTAL ##################################################################
-  !!!!norbtot=orbs%norb+lin%norbvirt
-  !!!!allocate(lambda(norbtot,norbtot), stat=istat)
-  !!!!call memocc(istat, lambda, 'lambda', subname)
-
-  !!!!!! ATTENTION: modify lin%coeffall
-  !!!!! use lambda array
-  !!!!do iorb=1,norbtot
-  !!!!    do jorb=1,norbtot
-  !!!!        lambda(jorb,iorb)=0.d0
-  !!!!        do k=1,lin%lb%orbs%norb
-  !!!!            do l=1,lin%lb%orbs%norb
-  !!!!                lambda(jorb,iorb)=lambda(jorb,iorb)+lin%coeffall(k,iorb)*lin%coeffall(l,jorb)*matrixElements(l,k,1)
-  !!!!            end do
-  !!!!        end do
-  !!!!    end do
-  !!!!end do
-  !!!!! use coeffold as work array
-  !!!!allocate(coeffold(lin%lb%orbs%norb,norbtot), stat=istat)
-  !!!!call memocc(istat, coeffold, 'coeffold', subname)
-  !!!!coeffold=lin%coeffall
-  !!!!do iorb=1,norbtot
-  !!!!    do korb=1,lin%lb%orbs%norb
-  !!!!        lin%coeffall(korb,iorb)=coeffold(korb,iorb)
-  !!!!        do jorb=1,lin%lb%orbs%norb
-  !!!!            lin%coeffall(korb,iorb)=lin%coeffall(korb,iorb)-&
-  !!!!                                    matrixElements(jorb,korb,1)*coeffold(jorb,iorb) + &
-  !!!!                                    coeffold(korb,jorb)*lambda(jorb,iorb)
-  !!!!        end do
-  !!!!        !!do jorb=1,norbtot
-  !!!!        !!    do k=1,lin%lb%orbs%norb
-  !!!!        !!        do l=1,lin%lb%orbs%norb
-  !!!!        !!            lin%coeffall(korb,iorb)=lin%coeffall(korb,iorb)+matrixElements(l,k,1)*coeffold(k,iorb)*coeffold(l,jorb)*coeffold(korb,jorb)
-  !!!!        !!        end do
-  !!!!        !!    end do
-  !!!!        !!end do
-  !!!!    end do
-  !!!!end do
-
-  !!!!! orthonormalize lin%coeffall
-  !!!!do iorb=1,norbtot
-  !!!!    do jorb=1,iorb-1
-  !!!!        tt=ddot(lin%lb%orbs%norb, lin%coeffall(1,iorb), 1, lin%coeffall(1,jorb), 1)
-  !!!!        lin%coeffall(:,iorb)=lin%coeffall(:,iorb)-tt*lin%coeffall(:,jorb)
-  !!!!    end do
-  !!!!    tt=dnrm2(lin%lb%orbs%norb, lin%coeffall(1,iorb), 1)
-  !!!!    lin%coeffall(:,iorb)=lin%coeffall(:,iorb)/tt
-  !!!!end do
-
-  !!!!do iorb=1,norbtot
-  !!!!    do jorb=1,norbtot
-  !!!!        tt=0.d0
-  !!!!        do korb=1,lin%lb%orbs%norb
-  !!!!            do lorb=1,lin%lb%orbs%norb
-  !!!!                tt=tt+lin%coeffall(korb,iorb)*overlapmatrix(korb,lorb)*lin%coeffall(lorb,jorb)
-  !!!!            end do
-  !!!!        end do
-  !!!!        write(500+iproc,*) iorb, jorb, tt
-  !!!!    end do
-  !!!!end do
-
-  !!!!do iorb=1,norbtot
-  !!!!    do jorb=1,norbtot
-  !!!!        lambda(jorb,iorb)=0.d0
-  !!!!        do korb=1,lin%lb%orbs%norb
-  !!!!            do lorb=1,lin%lb%orbs%norb
-  !!!!                !lambda(jorb,iorb) = lambda(jorb,iorb) + coeff(korb,iorb)*coeff(lorb,jorb)*overlapmatrix(lorb,korb)
-  !!!!                !lambda(jorb,iorb) = lambda(jorb,iorb) + coeff(korb,iorb)*coeff(lorb,jorb)*matrixElements(lorb,korb,1)
-  !!!!                !lambda(jorb,iorb) = lambda(jorb,iorb) + &
-  !!!!                !    matrixElements(korb,iorb,2)*matrixElements(lorb,jorb,2)*matrixElements(lorb,korb,1)
-  !!!!                lambda(jorb,iorb) = lambda(jorb,iorb) + &
-  !!!!                    lin%coeffall(korb,iorb)*lin%coeffall(lorb,jorb)*matrixElements(lorb,korb,1)*overlapmatrix(jorb,iorb)
-  !!!!            end do
-  !!!!            !lambda(jorb,iorb) = lambda(jorb,iorb) + lin%coeffall(korb,iorb)*lin%coeffall(korb,jorb)*overlapmatrix(jorb,iorb)*eval(jorb)
-  !!!!        end do
-  !!!!    end do
-  !!!!end do
-  !!!!!!do iorb=1,norbtot
-  !!!!!!    do jorb=1,norbtot
-  !!!!!!        write(380+iproc,'(2i7,2es20.8)') iorb, jorb, lambda(jorb,iorb), matrixElements(jorb,iorb,2)
-  !!!!!!    end do
-  !!!!!!end do
-
-  !!!!lwork=100*orbs%norb
-  !!!!allocate(work(lwork), stat=istat)
-  !!!!call memocc(istat, work, 'work', subname)
-  !!!!call dsyev('v', 'l', norbtot, lambda(1,1), norbtot, eval, work, lwork, info)
-  !!!!iall=-product(shape(work))*kind(work)
-  !!!!deallocate(work, stat=istat)
-  !!!!call memocc(istat, iall, 'work', subname)
-  !!!!do iorb=1,norbtot
-  !!!!    do jorb=1,norbtot
-  !!!!        tt=0.d0
-  !!!!        do lorb=1,norbtot
-  !!!!            tt=tt+lin%coeffall(lorb,jorb)*matrixElements(lorb,iorb,2)
-  !!!!        end do
-  !!!!        !!write(390+iproc,'(2i7,2es20.8)') iorb, jorb, lambda(jorb,iorb), tt
-  !!!!    end do
-  !!!!end do
-
-  !!!!
-  !!!!!call dcopy(lin%orbs%norb*norbtot, matrixElements(1,1,2), 1, coeffold(1,1), 1)
-  !!!!call dcopy(lin%lb%orbs%norb*norbtot, lin%coeffall(1,1), 1, coeffold(1,1), 1)
-  !!!!!coeffold=matrixElements(:,:,2)
-  !!!!do iorb=1,orbs%norb
-  !!!!    do jorb=1,lin%lb%orbs%norb
-  !!!!        coeff(jorb,iorb)=0.d0
-  !!!!        do korb=1,norbtot
-  !!!!            coeff(jorb,iorb) = coeff(jorb,iorb) + lambda(korb,iorb)*coeffold(jorb,korb)
-  !!!!        end do
-  !!!!        !!write(400+iproc,'(2i7,3es20.8)') iorb, jorb, coeffold(jorb,iorb), coeff(jorb,iorb), matrixElements(jorb,iorb,2)
-  !!!!    end do
-  !!!!end do
-  !!!!iall=-product(shape(coeffold))*kind(coeffold)
-  !!!!deallocate(coeffold, stat=istat)
-  !!!!call memocc(istat, iall, 'coeffold', subname)
-
-  !!!!iall=-product(shape(lambda))*kind(lambda)
-  !!!!deallocate(lambda, stat=istat)
-  !!!!call memocc(istat, iall, 'lambda', subname)
-
-  !!!!
-  !!!!! END EXPERIMENTAL ##############################################################
 
 
   ! Calculate the band structure energy with matrixElements.
@@ -557,55 +350,6 @@ real(8),dimension(:),pointer:: lpot
   ! If closed shell multiply by two.
   if(input%nspin==1) ebs=2.d0*ebs
   
-
-  !!ind1=1
-  !!ind2=1
-  !!phi=0.d0
-  !!do iorb=1,lin%lb%orbs%norbp
-  !!    ilr = lin%lb%orbs%inWhichLocregp(iorb)
-  !!    ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
-  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr,&
-  !!         lin%lzd%Llr(ilr), lphi(ind2), phi(ind1))
-  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
-  !!end do
-  !!call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-
-  
-  !!if(iproc==0) then
-  !!    write(*,'(1x,a)', advance='no') '------------------------------------- Building linear combinations... '
-  !!end if
-  !!! Build the extended orbital psi as a linear combination of localized basis functions phi. for real O(N)
-  !!! this has to replaced, but at the moment it is still needed.
-  !!call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%orbs, comms, lin%lb%comms, phi, psi, coeff)
-
-
-  !!call dcopy(orbs%npsidim, psi, 1, psit, 1)
-  !!if(iproc==0) write(*,'(a)') 'done.'
-  
-  
-  !!if(.not.lin%useDerivativeBasisFunctions) then
-  !!    call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-  !!    call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
-  !!else
-  !!    ! The first one was commented..?
-  !!    call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-  !!    call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
-  !!end if
-
-
-
-
-  !! Copy phi.
-  !call dcopy(lin%lb%orbs%npsidim, lphi, 1, lin%lphiold, 1)
-
-  !! Copy lhphi.
-  !call dcopy(lin%lb%orbs%npsidim, lhphi, 1, lin%lhphiold, 1)
-
-  !! Copy the Hamiltonian
-  !call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
-
 
   ! Copy the basis functions for the next iterations
   call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiold(1), 1)

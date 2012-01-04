@@ -1517,9 +1517,10 @@ subroutine deallocate_collectiveComms(collComms, subname)
   ! Local variables
 
   call checkAndDeallocatePointer(collComms%nvctr_par, 'collComms%nvctr_par', subname)
-  call checkAndDeallocatePointer(collComms%sendcnts, 'collComms%sendcnts,', subname)
-  call checkAndDeallocatePointer(collComms%senddspls, 'collComms%senddspls,', subname)
-  call checkAndDeallocatePointer(collComms%recvcnts, 'collComms%recvcnts,', subname)
-  call checkAndDeallocatePointer(collComms%recvdspls, 'collComms%recvdspls,', subname)
+  call checkAndDeallocatePointer(collComms%sendcnts, 'collComms%sendcnts', subname)
+  call checkAndDeallocatePointer(collComms%senddspls, 'collComms%senddspls', subname)
+  call checkAndDeallocatePointer(collComms%recvcnts, 'collComms%recvcnts', subname)
+  call checkAndDeallocatePointer(collComms%recvdspls, 'collComms%recvdspls', subname)
+  call checkAndDeallocatePointer(collComms%indexarray, 'collComms%indexarray', subname)
 
 end subroutine deallocate_collectiveComms

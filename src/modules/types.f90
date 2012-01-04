@@ -618,7 +618,7 @@ module module_types
   !> Contains arrays for collective communications
   type,public:: collectiveComms
       integer,dimension(:,:),pointer:: nvctr_par
-      integer,dimension(:),pointer:: sendcnts, senddspls, recvcnts, recvdspls
+      integer,dimension(:),pointer:: sendcnts, senddspls, recvcnts, recvdspls, indexarray
   end type collectiveComms
 
 
