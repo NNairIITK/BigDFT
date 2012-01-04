@@ -305,6 +305,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call repartitionOrbitals(iproc, nproc, lin%lig%orbsig%norb, lin%lig%orbsig%norb_par, &
        lin%lig%orbsig%norbp, lin%lig%orbsig%isorb_par, lin%lig%orbsig%isorb, lin%lig%orbsig%onWhichMPI)
 
+  ! Maybe this could be moved to another subroutine? Or be omitted at all?
+  allocate(lin%lig%orbsig%eval(lin%orbs%norb), stat=istat)
+  call memocc(istat, lin%lig%orbsig%eval, 'lin%lig%orbsig%eval', subname)
+  lin%lig%orbsig%eval=-.5d0
+
   ! lin%lig%orbsig%inWhichLocreg has been allocated in inputguess_gaussian_orbitals. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
   iall=-product(shape(lin%lig%orbsig%inWhichLocreg))*kind(lin%lig%orbsig%inWhichLocreg)
