@@ -579,7 +579,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
                     call splint(rholoc%msz(ityp),rholoc%rad(:,ityp),&
 &                    rholoc%d(:,1,ityp),rholoc%d(:,2,ityp),1,rr,raux)
 
-                    write(500,*)rr,raux
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                        ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                        pot_ion(ind)=pot_ion(ind)+raux
@@ -704,64 +703,70 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 !!!  print *,'previous offset',tt_tot*hxh*hyh*hzh
 
   if (n3pi > 0) then
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
+     if( at%npspcode(iat) .ne.7) then
+!    Add the remaining local terms of Eq. (9)
+!    in JCP 129, 014109(2008)
+!    Only for HGH pseudos
+        do iat=1,at%nat
+           ityp=at%iatype(iat)
 
-        rx=rxyz(1,iat)
-        ry=rxyz(2,iat)
-        rz=rxyz(3,iat)
+           rx=rxyz(1,iat)
+           ry=rxyz(2,iat)
+           rz=rxyz(3,iat)
 
-        ! determine number of local terms
-        nloc=0
-        do iloc=1,4
-           if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
+           ! determine number of local terms
+           nloc=0
+           do iloc=1,4
+              if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
+           enddo
+           rloc=at%psppar(0,0,ityp)
+           cutoff=10.d0*rloc
+
+           isx=floor((rx-cutoff)/hxh)
+           isy=floor((ry-cutoff)/hyh)
+           isz=floor((rz-cutoff)/hzh)
+
+           iex=ceiling((rx+cutoff)/hxh)
+           iey=ceiling((ry+cutoff)/hyh)
+           iez=ceiling((rz+cutoff)/hzh)
+           
+           !do not add the local part for the vacancy
+           if (nloc /= 0) then
+
+              do i3=isz,iez
+                 z=real(i3,kind=8)*hzh-rz
+                 call ind_positions(perz,i3,n3,j3,goz) 
+                 j3=j3+nbl3+1
+                 if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
+                    do i2=isy,iey
+                       y=real(i2,kind=8)*hyh-ry
+                       call ind_positions(pery,i2,n2,j2,goy)
+                       if (goy) then
+                          do i1=isx,iex
+                             x=real(i1,kind=8)*hxh-rx
+                             call ind_positions(perx,i1,n1,j1,gox)
+                             if (gox) then
+                                r2=x**2+y**2+z**2
+                                arg=r2/rloc**2
+                                xp=exp(-.5d0*arg)
+                                tt=at%psppar(0,nloc,ityp)
+                                do iloc=nloc-1,1,-1
+                                   tt=arg*tt+at%psppar(0,iloc,ityp)
+                                enddo
+                                ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                                pot_ion(ind)=pot_ion(ind)+xp*tt
+                             end if
+                          enddo
+                       end if
+                    enddo
+                 end if
+              end do
+
+           end if
+
         enddo
-        rloc=at%psppar(0,0,ityp)
-        cutoff=10.d0*rloc
+     end if  ! at%npspcode(iat) .ne.7
 
-        isx=floor((rx-cutoff)/hxh)
-        isy=floor((ry-cutoff)/hyh)
-        isz=floor((rz-cutoff)/hzh)
-
-        iex=ceiling((rx+cutoff)/hxh)
-        iey=ceiling((ry+cutoff)/hyh)
-        iez=ceiling((rz+cutoff)/hzh)
-        
-        !do not add the local part for the vacancy
-        if (nloc /= 0) then
-
-           do i3=isz,iez
-              z=real(i3,kind=8)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
-              j3=j3+nbl3+1
-              if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
-                 do i2=isy,iey
-                    y=real(i2,kind=8)*hyh-ry
-                    call ind_positions(pery,i2,n2,j2,goy)
-                    if (goy) then
-                       do i1=isx,iex
-                          x=real(i1,kind=8)*hxh-rx
-                          call ind_positions(perx,i1,n1,j1,gox)
-                          if (gox) then
-                             r2=x**2+y**2+z**2
-                             arg=r2/rloc**2
-                             xp=exp(-.5d0*arg)
-                             tt=at%psppar(0,nloc,ityp)
-                             do iloc=nloc-1,1,-1
-                                tt=arg*tt+at%psppar(0,iloc,ityp)
-                             enddo
-                             ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                             pot_ion(ind)=pot_ion(ind)+xp*tt
-                          end if
-                       enddo
-                    end if
-                 enddo
-              end if
-           end do
-
-        end if
-
-     enddo
 
      if (htoobig) then
         !add to pot_ion an explicit error function to correct in the case of big grid spacing

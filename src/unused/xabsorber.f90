@@ -3765,14 +3765,14 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber , atoms, rxyz, nproc, iproc,&
 !!$  allocate(Gabsorber%psiat(Gabsorber%nexpo+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,Gabsorber%psiat , 'Gabsorber%psiat',subname)
 !!$
-!!$  allocate(Gabsorber%xp(Gabsorber%nexpo+ndebug),stat=i_stat)
+!!$  allocate(Gabsorber%xp(ncplx_xp,Gabsorber%nexpo+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,Gabsorber%xp    , 'Gabsorber%xp',subname)
 !!$
 !!$  iexpo=0
 !!$  do ig=1,Gabsorber%ndoc(1)
 !!$     iexpo=iexpo+1
 !!$     Gabsorber%psiat(iexpo)=gcoeffs (ig-1)
-!!$     Gabsorber%xp(iexpo)=expo_fine(ig)
+!!$     Gabsorber%xp(1,iexpo)=expo_fine(ig)
 !!$  end do
 !!$
 !!$  print *,"writing gaussian form of the projected initial wave on file " , filename

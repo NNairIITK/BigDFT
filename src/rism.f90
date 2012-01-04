@@ -708,6 +708,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   character(len=*), parameter :: subname='gaussian_psp_basis'
   real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
   integer :: iat,nshell,iexpo,l,ishell,i_stat
+  integer :: ncplx_xp
 
   G%nat=nat
   G%rxyz => rxyz
@@ -743,7 +744,8 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   end do
 
   !allocate and assign the exponents and the coefficients
-  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+  ncplx_xp=1 !only 2 for PAW and XANES
+  allocate(G%xp(ncplx_xp,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%xp,'G%xp',subname)
   allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
@@ -756,7 +758,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
            ishell=ishell+1
            iexpo=iexpo+1
            G%psiat(iexpo)=-oneo2pi3halves/radii(iat)**3
-           G%xp(iexpo)=radii(iat)
+           G%xp(1,iexpo)=radii(iat)
         end if
      end do
   end do

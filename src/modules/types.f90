@@ -291,7 +291,8 @@ module module_types
   type, public :: gaussian_basis
      integer :: nat,ncoeff,nshltot,nexpo
      integer, dimension(:), pointer :: nshell,ndoc,nam
-     real(gp), dimension(:), pointer :: xp,psiat
+     real(gp), dimension(:), pointer :: psiat
+     real(gp), dimension(:,:), pointer :: xp
      real(gp), dimension(:,:), pointer :: rxyz
   end type gaussian_basis
 
