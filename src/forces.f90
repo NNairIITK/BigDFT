@@ -331,18 +331,18 @@ locstrten(1:3)=locstrten(1:3)+charge*psoffset&
 /real(0.5_gp*hx*0.5_gp*hy*0.5_gp*hz,gp)**2.0_gp/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)**2.0_gp
 end if
 
-  if (iproc == 0 .and. verbose > 1 .and. atoms%geocode=='P') then
-write(*,*) 'STRESS TENSOR: LOCAL PART (Ha/bohr**3)'
-write(*,*) locstrten(1),locstrten(2),locstrten(3)
-write(*,*) locstrten(4),locstrten(5),locstrten(6)
-write(*,*)
-call symm_stress(iproc,locstrten,atoms)
-write(*,*) 'STRESS TENSOR: NON-LOCAL PART (Ha/bohr**3)'
-write(*,*) strten(1),strten(2),strten(3)
-write(*,*) strten(4),strten(5),strten(6)
-write(*,*)
-call symm_stress(iproc,strten,atoms)
- end if
+if (iproc == 0 .and. verbose > 1 .and. atoms%geocode=='P') then
+ write(*,*) 'STRESS TENSOR: LOCAL SR PART (Ha/bohr**3)'
+ write(*,*) locstrten(1),locstrten(2),locstrten(3)
+ write(*,*) locstrten(4),locstrten(5),locstrten(6)
+ write(*,*)
+ call symm_stress(iproc,locstrten,atoms)
+ write(*,*) 'STRESS TENSOR: NON-LOCAL PART (Ha/bohr**3)'
+ write(*,*) strten(1),strten(2),strten(3)
+ write(*,*) strten(4),strten(5),strten(6)
+ write(*,*)
+ call symm_stress(iproc,strten,atoms)
+end if
 
 !!$  if (iproc == 0) then
 !!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
@@ -3723,7 +3723,7 @@ tens(5)=symtens(1,3)
 tens(6)=symtens(2,3)
 
 if (iproc == 0) then
-write(*,*) '=== SYMMETRIZED ==='
+write(*,*) '=== SYMMETRISED ==='
 write(*,*) tens(:)
 end if
 

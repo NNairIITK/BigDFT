@@ -92,7 +92,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      !calculate ewald energy and forces + stress
      call ewald(eion,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,&
           xred,real(at%nelpsp,kind=8))
-ewaldstr=0.0_dp
+     ewaldstr=0.0_dp
      call ewald2(gmet,at%nat,at%ntypes,rmet,rprimd,ewaldstr,at%iatype,&
      ucvol,xred,real(at%nelpsp,kind=8))
 
@@ -140,7 +140,7 @@ ewaldstr=0.0_dp
      eion=eion+charge/ucvol*(psoffset+shortlength)
 
 !PSP core correction of the stress tensor (diag.)
-ewaldstr(1:3)=ewaldstr(1:3)-charge*(psoffset+shortlength)/ucvol/ucvol
+  ewaldstr(1:3)=ewaldstr(1:3)-charge*(psoffset+shortlength)/ucvol/ucvol
 
  if (iproc == 0) then
   write(*,*) 'STRESS TENSOR: EWALD + PSP-CORE'

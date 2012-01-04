@@ -1424,19 +1424,17 @@ if (inputpsi /= -1000) then
 
 if (atoms%geocode == 'P') then
   call erf_stress(atoms,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,erfstr)
-if (iproc == 0) call symm_stress(iproc,erfstr,atoms)
+  if (iproc == 0) call symm_stress(iproc,erfstr,atoms)
   call local_hamiltonian_stress(iproc,orbs,Glr,hx,hy,hz,psi,kinstr)
-  if (nproc > 1) then
-     call mpiallred(kinstr(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
-  end if
-end if
+  if (nproc > 1) call mpiallred(kinstr(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-if (iproc == 0 .and. verbose > 1) then
-write(*,*)'--------------------------------------------------------------------'
-write(*,*) 'STRESS TENSOR: KINETIC PART'
-write(*,*) kinstr(1),kinstr(2),kinstr(3)
-write(*,*)
-call symm_stress(iproc,kinstr,atoms)
+  if (iproc == 0) then
+  write(*,*)'--------------------------------------------------------------------'
+  write(*,*) 'STRESS TENSOR: KINETIC PART'
+  write(*,*) kinstr(1),kinstr(2),kinstr(3)
+  write(*,*)
+  call symm_stress(iproc,kinstr,atoms)
+  end if
 end if
 
    i_all=-product(shape(rho))*kind(rho)
