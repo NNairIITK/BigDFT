@@ -168,7 +168,7 @@ real(gp) :: epot_p
                        tt=sqrt(tt)
                        tt=tt/6.d0
                        tt=tt**2
-                       tt=.1d0*(exp(tt)-1.d0)
+                       tt=.4d0*(exp(tt)-1.d0)
 
 
                        !tt=potentialPrefac*tt**order
@@ -1288,7 +1288,7 @@ real(gp) :: epot_p, epot
                        tt=sqrt(tt)
                        tt=tt/6.d0
                        tt=tt**2
-                       tt=.1d0*(exp(tt)-1.d0)
+                       tt=.4d0*(exp(tt)-1.d0)
 
 
 
