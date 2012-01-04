@@ -1,27 +1,3 @@
-!!!subroutine orthonormalize_linear
-!!!use module_base
-!!!use module_types
-!!!implicit none
-!!!
-!!!
-!!!! Transpose lphi
-!!!call transpose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, work)
-!!!
-!!!! Calculate overlap matrix
-!!!do iorb=1,orbs%norbp
-!!!    iiorb=orbs%isorb+iorb
-!!!
-!!!end do
-!!!
-!!!
-!!!call untranspose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, work)
-!!!
-!!!
-!!!
-!!!end subroutine orthonormalize_linear
-
-
-
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
            blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, mad, lphi, ovrlp, method)
 use module_base
@@ -6014,3 +5990,70 @@ if(iproc==0) write(*,'(a,es15.6)') 'time for daxpy',time_daxpy/dble(nproc)
 
 
 end subroutine applyOrthoconstraintlocal
+
+
+
+
+subroutine calculate_overlap_matrix(iproc, orbs, collComms, psi, ovrlp)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc
+type(orbitals_data),intent(in):: orbs
+type(collectiveComms),intent(in):: collComms
+real(8),dimension(orbs%npsidim),intent(in):: psi
+real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+
+! Local variables
+integer:: iorb, jorb, ist, jst, ncnt_iorb, ncnt_jorb, iloc, jloc, i, ii, jj, ierr, iist, jjst
+logical:: istop, jstop
+real(8):: tt
+
+iist=1
+do iorb=1,orbs%norb
+    jjst=1
+    do jorb=1,orbs%norb
+       ncnt_iorb=collComms%nvctr_par(iorb,iproc) 
+       ncnt_jorb=collComms%nvctr_par(jorb,iproc) 
+
+       ii=0
+       jj=0
+       istop=.false.
+       jstop=.false.
+       tt=0.d0
+       ist=iist
+       jst=jjst
+       do i=1,max(ncnt_iorb,ncnt_jorb)
+           iloc=collComms%indexarray(ist)  
+           jloc=collComms%indexarray(jst)  
+           if(iloc==jloc) then
+               tt=tt+psi(ist)*psi(jst)
+               ist=ist+1
+               jst=jst+1
+               ii=ii+1
+               jj=jj+1
+           else if(iloc<jloc .or. jstop) then
+               ist=ist+1
+               ii=ii+1
+           else if(jloc<iloc .or. istop) then
+               jst=jst+1
+               jj=jj+1
+           end if
+           if(ii==ncnt_iorb) istop=.true.
+           if(jj==ncnt_jorb) jstop=.true.
+       end do
+
+       ovrlp(jorb,iorb)=tt
+       jjst=jjst+ncnt_jorb
+
+    end do
+    iist=iist+ncnt_iorb
+end do
+
+
+call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+
+
+end subroutine calculate_overlap_matrix

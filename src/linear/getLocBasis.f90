@@ -281,6 +281,13 @@ real(8),dimension(:),pointer:: lpot
   end if
   call deallocateCommuncationBuffersOrtho(lin%lb%comon, subname)
 
+
+  !!!! TEST ########################################################
+  !!call transpose_linear(iproc, 0, nproc-1, lin%lb%orbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
+  !!call calculate_overlap_matrix(iproc, lin%lb%orbs, lin%lb%collComms, lphi, matrixElements(1,1,2))
+  !!call untranspose_linear(iproc, 0, nproc-1,  lin%lb%orbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
+  !!!! END TEST ####################################################
+
   tt=0.d0
   do iall=1,lin%lb%orbs%norb
        tt=tt+matrixElements(iall,iall,1)

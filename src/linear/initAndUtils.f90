@@ -3817,7 +3817,8 @@ type(collectiveComms),intent(out):: collcomms
 ! Local variables
 integer:: iorb, ilr, kproc, jproc, ii, ncount, iiorb, istat, gdim, ldim, ist
 integer:: n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3, ind, i, is, ie
-integer:: transform_index, iseg, offset
+integer:: transform_index, iseg, offset, iall
+integer,dimension(:),allocatable:: work_int
 character(len=*),parameter:: subname='initCollectiveComms'
 
 ! Allocate all arrays
@@ -3954,6 +3955,16 @@ do iorb=1,orbs%norbp
     ist=ist+ldim
 end do
 
+! Transpose the index array
+allocate(work_int(orbs%npsidim), stat=istat)
+call memocc(istat, work_int, 'work_int', subname)
+call transpose_linear_int(iproc, 0, nproc-1, orbs, collComms, collComms%indexarray, mpi_comm_world, work_int)
+iall=-product(shape(work_int))*kind(work_int)
+deallocate(work_int, stat=istat)
+call memocc(istat, iall, 'work_int', subname)
+do istat=1,orbs%npsidim
+    write(300+iproc,*) istat, collComms%indexarray(istat)
+end do
 
 
 

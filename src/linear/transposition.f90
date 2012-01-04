@@ -473,7 +473,7 @@ integer :: ierr, nproc
   
      ! Rearrange the orbitals on the current process such that they can be communicated
      ! more easily.
-     call switch_waves_linear(iproc, lproc, uproc, orbs, collComms, psi, work)
+     call switch_waves_linear_int(iproc, lproc, uproc, orbs, collComms, psi, work)
 
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
@@ -561,7 +561,7 @@ integer :: ierr, nproc
      !if (present(outadd)) then
      !   call unswitch_waves_linear(iproc, lproc, uproc, orbs, collComms, work, outadd)
      !else
-        call unswitch_waves_linear(iproc, lproc, uproc, orbs, collComms, work, psi)
+        call unswitch_waves_linear_int(iproc, lproc, uproc, orbs, collComms, work, psi)
      !end if
   else
      write(*,*) 'ERROR: untranspose_vLIN not yet implemented for nproc==1'
