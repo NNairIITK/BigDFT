@@ -310,7 +310,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
 
   !dft parameters, needed for the SCF part
-  call input_set_file(iproc,trim(filename),exists,'DFT Calculation Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'DFT Calculation Parameters')  
   if (exists) in%files = in%files + INPUTS_DFT
   !call the variable, its default value, the line ends if there is a comment
 
@@ -465,7 +465,7 @@ subroutine mix_input_variables_new(iproc,dump,filename,in)
   logical :: exists
 
   !Mix parameters, needed for the SCF poart with Davidson
-  call input_set_file(iproc,trim(filename),exists,'Mixing Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Mixing Parameters')  
   if (exists) in%files = in%files + INPUTS_MIX
   !call the variable, its default value, the line ends if there is a comment
 
@@ -535,7 +535,7 @@ subroutine geopt_input_variables_new(iproc,dump,filename,in)
   in%strtarget(:)=0.0_gp
 
   !geometry input parameters
-  call input_set_file(iproc,trim(filename),exists,'Geometry Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Geometry Parameters')  
   if (exists) in%files = in%files + INPUTS_GEOPT
   !call the variable, its default value, the line ends if there is a comment
 !  if (.not. exists) then
@@ -751,7 +751,7 @@ subroutine sic_input_variables_new(iproc,dump,filename,in)
   !n(c) character(len=*), parameter :: subname='sic_input_variables'
 
   !Self-Interaction Correction input parameters
-  call input_set_file(iproc,trim(filename),exists,'SIC Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'SIC Parameters')  
   if (exists) in%files = in%files + INPUTS_SIC
 
   call input_var(in%SIC%approach,'NONE',exclusive=(/'NONE','PZ  ','NK  '/),comment='SIC method: NONE, PZ, NK')
@@ -789,7 +789,7 @@ subroutine tddft_input_variables_new(iproc,dump,filename,in)
   !n(c) character(len=*), parameter :: subname='tddft_input_variables'
 
   !TD-DFT parameters
-  call input_set_file(iproc,trim(filename),exists,'TD-DFT Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'TD-DFT Parameters')  
   if (exists) in%files = in%files + INPUTS_TDDFT
   !call the variable, its default value, the line ends if there is a comment
 
@@ -959,7 +959,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   nullify(in%nkptsv_group)
 
   !dft parameters, needed for the SCF part
-  call input_set_file(iproc,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
+  call input_set_file(iproc,.true.,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
   if (exists) in%files = in%files + INPUTS_KPT
   !call the variable, its default value, the line ends if there is a comment
 
@@ -1349,7 +1349,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   logical :: exists
   integer :: iline,ierror,ierr,blocks(2)
 
-  call input_set_file(iproc, filename, exists,'Performance Options')
+  call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
 
   call input_var("debug", .false., "Debug option", inputs%debug)
@@ -1604,7 +1604,7 @@ subroutine frequencies_input_variables_new(iproc,dump,filename,in)
   !n(c) integer, parameter :: iunit=111
 
   !Frequencies parameters
-  call input_set_file(iproc,trim(filename),exists,'Frequencies Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Frequencies Parameters')  
   if (exists) in%files = in%files + INPUTS_FREQ
   !call the variable, its default value, the line ends if there is a comment
 
