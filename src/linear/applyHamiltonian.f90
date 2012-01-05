@@ -158,7 +158,9 @@ real(gp) :: epot_p
                         tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                             (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
                         !!! EXPERIMENTAL ########################
-                        !!tt=max(tt-9.d0,0.d0)
+                        tt=sqrt(tt)
+                        tt=max(tt-3.d0,0.d0)
+                        tt=tt**2
                         !########################################
 
 
@@ -1278,7 +1280,9 @@ real(gp) :: epot_p, epot
                        tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                           (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
                        !!! EXPERIMENTAL ########################
-                       !!tt=max(tt-9.d0,0.d0)
+                       tt=sqrt(tt)
+                       tt=max(tt-3.d0,0.d0)
+                       tt=tt**2
                        !!########################################
                        tt=potentialPrefac*tt**order
 
