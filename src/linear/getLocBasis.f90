@@ -114,6 +114,18 @@ real(8),dimension(:),pointer:: lpot
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
 
+  !!!!!! TEST
+  !!!write(*,*) 'ATTENTION TEST!!!'
+  !!!ist=1
+  !!!do iorb=1,lin%lb%orbs%norbp
+  !!!    iiorb=lin%lb%orbs%isorb+iorb
+  !!!    ilr=lin%lb%orbs%inwhichlocreg(iiorb)
+  !!!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c
+  !!!    lphi(ist:ist+7*lin%lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
+  !!!    ist=ist+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+  !!!end do
+
+
   ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then
       ! If we use the derivative basis functions, the trace minimizing orbitals of the last iteration are
@@ -273,16 +285,16 @@ real(8),dimension(:),pointer:: lpot
   if(lin%useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
 
 
-  !!!!! TEST
-  !!write(*,*) 'ATTENTION TEST!!!'
-  !!ist=1
-  !!do iorb=1,lin%lb%orbs%norbp
-  !!    iiorb=lin%lb%orbs%isorb+iorb
-  !!    ilr=lin%lb%orbs%inwhichlocreg(iiorb)
-  !!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c
-  !!    lphi(ist:ist+7*lin%lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
-  !!    ist=ist+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-  !!end do
+  !!!! TEST
+  !write(*,*) 'ATTENTION TEST!!!'
+  !ist=1
+  !do iorb=1,lin%lb%orbs%norbp
+  !    iiorb=lin%lb%orbs%isorb+iorb
+  !    ilr=lin%lb%orbs%inwhichlocreg(iiorb)
+  !    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c
+  !    lphi(ist:ist+7*lin%lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
+  !    ist=ist+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+  !end do
 
   ! Calculate the matrix elements <phi|H|phi>.
   call allocateCommuncationBuffersOrtho(lin%lb%comon, subname)
@@ -294,19 +306,19 @@ real(8),dimension(:),pointer:: lpot
   call deallocateCommuncationBuffersOrtho(lin%lb%comon, subname)
 
 
-  !!!! TEST ########################################################
-  !!call transpose_linear(iproc, 0, nproc-1, lin%lb%orbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
-  !!call transpose_linear(iproc, 0, nproc-1, lin%lb%orbs, lin%lb%collComms, lhphi, mpi_comm_world, phiWork)
-  !!call calculate_overlap_matrix(iproc, lin%lb%orbs, lin%lb%collComms, lphi, lhphi, matrixElements(1,1,2))
-  !!call untranspose_linear(iproc, 0, nproc-1,  lin%lb%orbs, lin%lb%collComms, lhphi, mpi_comm_world, phiWork)
-  !!call untranspose_linear(iproc, 0, nproc-1,  lin%lb%orbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
-  !!!! END TEST ####################################################
-  !!do iorb=1,lin%lb%orbs%norb
-  !!    do jorb=1,lin%lb%orbs%norb
-  !!        write(400+iproc,*) iorb, jorb, matrixElements(jorb,iorb,1)
-  !!        write(410+iproc,*) iorb, jorb, matrixElements(jorb,iorb,2)
-  !!    end do
-  !!end do
+  !!! TEST ########################################################
+  !call transpose_linear(iproc, 0, nproc-1, lin%lb%orbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
+  !call transpose_linear(iproc, 0, nproc-1, lin%lb%orbs, lin%lb%collComms, lhphi, mpi_comm_world, phiWork)
+  !call calculate_overlap_matrix(iproc, lin%lb%orbs, lin%lb%collComms, lphi, lhphi, matrixElements(1,1,2))
+  !call untranspose_linear(iproc, 0, nproc-1,  lin%lb%orbs, lin%lb%collComms, lhphi, mpi_comm_world, phiWork)
+  !call untranspose_linear(iproc, 0, nproc-1,  lin%lb%orbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
+  !!! END TEST ####################################################
+  !do iorb=1,lin%lb%orbs%norb
+  !    do jorb=1,lin%lb%orbs%norb
+  !        write(400+iproc,*) iorb, jorb, matrixElements(jorb,iorb,1)
+  !        write(410+iproc,*) iorb, jorb, matrixElements(jorb,iorb,2)
+  !    end do
+  !end do
 
   tt=0.d0
   do iall=1,lin%lb%orbs%norb

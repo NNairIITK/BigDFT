@@ -3924,13 +3924,13 @@ do iorb=1,orbs%norbp
     do iseg=1,lzd%llr(ilr)%wfd%nseg_c
         is=lzd%llr(ilr)%wfd%keyg(1,iseg)
         ie=lzd%llr(ilr)%wfd%keyg(2,iseg)
-        write(800+iiorb,'(a,i9,3i12,6i7)') 'ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3', &
-              ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3
+        !write(800+iiorb,'(a,i9,3i12,6i7)') 'ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3', &
+        !      ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3
         do i=is,ie
             collComms%indexarray(ind)=transform_index(i, n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3)
-            write(900+iiorb,'(a,i9,3i12,6i7,i10)') 'ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, &
-                &nshift2, nshift3, collComms%indexarray(ind)', &
-                ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3, collComms%indexarray(ind)
+            !write(900+iiorb,'(a,i9,3i12,6i7,i10)') 'ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, &
+            !    &nshift2, nshift3, collComms%indexarray(ind)', &
+            !    ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3, collComms%indexarray(ind)
             ind=ind+1
         end do
     end do
@@ -3953,9 +3953,9 @@ do iorb=1,orbs%norbp
         end do
     end do
 
-    do istat=0,ldim-1
-        write(200+iproc,*) ist+istat, collComms%indexarray(ist+istat)
-    end do
+    !do istat=0,ldim-1
+    !    write(200+iproc,*) ist+istat, collComms%indexarray(ist+istat)
+    !end do
 
     ist=ist+ldim
 end do
@@ -3967,9 +3967,9 @@ call transpose_linear_int(iproc, 0, nproc-1, orbs, collComms, collComms%indexarr
 iall=-product(shape(work_int))*kind(work_int)
 deallocate(work_int, stat=istat)
 call memocc(istat, iall, 'work_int', subname)
-do istat=1,orbs%npsidim
-    write(300+iproc,*) istat, collComms%indexarray(istat)
-end do
+!!do istat=1,orbs%npsidim
+!!    write(300+iproc,*) istat, collComms%indexarray(istat)
+!!end do
 
 
 
