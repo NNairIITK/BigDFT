@@ -1374,7 +1374,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      !!$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! Other terms: fine projector components
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
