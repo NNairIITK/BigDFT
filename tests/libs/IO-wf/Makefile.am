@@ -191,10 +191,10 @@ read_etsf.report: read_etsf.out $(srcdir)/read.out.ref
 
 # Bigdft-tool exportation
 exportwf.report: wf_binary.cube wf_plain.cube
-	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-9 $^ | tee $@
 
 exportwf_etsf.report: wf_binary.cube wf_etsf.cube
-	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-9 $^ | tee $@
 
 # Library in Fortran
 check_lib_plain.report: $(srcdir)/check_lib.out.ref check_lib_plain.out

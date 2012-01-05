@@ -742,6 +742,7 @@ config/Doxyfile
 src/bigdft-tool
 src/Makefile
 src/modules/Makefile
+src/modules/bigdft_cst.h
 src/modules/configure.inc
 src/PSolver/Makefile
 src/CUDA/Makefile
