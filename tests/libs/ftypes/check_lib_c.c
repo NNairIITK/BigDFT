@@ -2,6 +2,7 @@
 #include <bigdft.h>
 
 #include <stdio.h>
+#include <unistd.h>
 
 int main(int argc, char **argv)
 {
@@ -15,6 +16,9 @@ int main(int argc, char **argv)
 #define FRMULT 8.
   BigDFT_Inputs *in;
 
+  if (argc > 1)
+    chdir(argv[1]);
+
   fprintf(stdout, "Test BigDFT_Atoms structure creation.\n");
   atoms = bigdft_atoms_new();
   bigdft_atoms_set_n_atoms(atoms, 3);
@@ -23,7 +27,7 @@ int main(int argc, char **argv)
   bigdft_atoms_free(atoms);
 
   fprintf(stdout, "Test BigDFT_Atoms structure creation from file.\n");
-  atoms = bigdft_atoms_new_from_file(argv[1]);
+  atoms = bigdft_atoms_new_from_file("posinp.ascii");
   if (!atoms)
     {
       fprintf(stdout, "Problem with your file.\n");

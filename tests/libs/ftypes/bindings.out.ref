@@ -1,0 +1,37 @@
+Test BigDFT_Atoms structure creation.
+ Atom 0 -> type 1
+ Atom 1 -> type 2
+ Atom 2 -> type 3
+Test BigDFT_Atoms structure creation from file.
+ Atom 0, coord. 1.620000 1.620000 1.620000, type 1
+ Atom 1, coord. 3.240000 3.240000 3.240000, type 2
+ Atom 2, coord. 0.000000 0.000000 3.240000, type 2
+ Atom 3, coord. 3.240000 0.000000 0.000000, type 2
+ Atom 4, coord. 0.000000 3.240000 0.000000, type 2
+ Box [F], is in 0.000000 0.000000 0.000000
+Test BigDFT_Atoms pseudo-potential evaluation.
+ Type 0, radii 1.806025 0.435634 0.435634
+ Type 1, radii 1.463418 0.200000 0.200000
+Test BigDFT_Glr structure creation.
+ Atoms 0, coord.   9.000000   9.000000   9.000000 'Si', type 1
+ Atoms 1, coord.  10.620000  10.620000  10.620000 ' H', type 2
+ Atoms 2, coord.   7.380000   7.380000  10.620000 ' H', type 2
+ Atoms 3, coord.  10.620000   7.380000   7.380000 ' H', type 2
+ Atoms 4, coord.   7.380000  10.620000   7.380000 ' H', type 2
+ Box is in 18.000000 18.000000 18.000000
+ Shift is  -7.380000 -7.380000 -7.380000
+ Grid is          40        40        40
+Test calculation of grid points.
+ Coarse grid has 37617 points.
+ Coarse grid has 2143 points.
+Test BigDFT_Glr free.
+ Ok
+Test BigDFT_Atoms free.
+ Ok
+Test BigDFT_Inputs structure creation.
+ Read 'test.dft' file: 1
+ Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 21 allocations and 21 deallocations, remaining memory(B): 0
+ memory occupation peak: 0 MB
+ for the array  atoms%nlccpar in the routine init_atomic_values
