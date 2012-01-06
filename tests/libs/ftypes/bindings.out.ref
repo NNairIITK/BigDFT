@@ -22,8 +22,8 @@ Test BigDFT_Glr structure creation.
  Shift is  -7.380000 -7.380000 -7.380000
  Grid is          40        40        40
 Test calculation of grid points.
- Coarse grid has 37617 points.
- Coarse grid has 2143 points.
+ Coarse grid has   37617 points.
+ Fine grid has      2143 points.
 Test BigDFT_Glr free.
  Ok
 Test BigDFT_Atoms free.
