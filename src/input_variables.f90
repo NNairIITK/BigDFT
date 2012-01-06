@@ -839,10 +839,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
   in%nkpt=1
   in%nkptv=0
   in%ngroups_kptv=1
-  nullify(in%kpt)
-  nullify(in%wkpt)
-  nullify(in%kptv)
-  nullify(in%nkptsv_group)
+  call free_kpt_variables(in)
 
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,dump,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
@@ -1300,20 +1297,14 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   end if
 END SUBROUTINE perf_input_variables
 
-
-!>  Free all dynamically allocated memory from the input variable structure.
-subroutine free_input_variables(in)
+!>  Free all dynamically allocated memory from the kpt input file.
+subroutine free_kpt_variables(in)
   use module_base
   use module_types
   implicit none
   type(input_variables), intent(inout) :: in
-  character(len=*), parameter :: subname='free_input_variables'
+  character(len=*), parameter :: subname='free_kpt_variables'
   integer :: i_stat, i_all
-  if (associated(in%qmass)) then
-     i_all=-product(shape(in%qmass))*kind(in%qmass)
-     deallocate(in%qmass,stat=i_stat)
-     call memocc(i_stat,i_all,'in%qmass',subname)
-  end if
   if (associated(in%kpt)) then
      i_all=-product(shape(in%kpt))*kind(in%kpt)
      deallocate(in%kpt,stat=i_stat)
@@ -1334,6 +1325,26 @@ subroutine free_input_variables(in)
      deallocate(in%nkptsv_group,stat=i_stat)
      call memocc(i_stat,i_all,'in%nkptsv_group',subname)
   end if
+  nullify(in%kpt)
+  nullify(in%wkpt)
+  nullify(in%kptv)
+  nullify(in%nkptsv_group)
+end subroutine free_kpt_variables
+
+!>  Free all dynamically allocated memory from the input variable structure.
+subroutine free_input_variables(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  character(len=*), parameter :: subname='free_input_variables'
+  integer :: i_stat, i_all
+  if (associated(in%qmass)) then
+     i_all=-product(shape(in%qmass))*kind(in%qmass)
+     deallocate(in%qmass,stat=i_stat)
+     call memocc(i_stat,i_all,'in%qmass',subname)
+  end if
+  call free_kpt_variables(in)
 
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
@@ -1356,9 +1367,6 @@ subroutine abscalc_input_variables_default(in)
   in%abscalc_bottomshift=0
   in%abscalc_S_do_cg=.false.
   in%abscalc_Sinv_do_cg=.false.
-
-
-
 END SUBROUTINE abscalc_input_variables_default
 
 

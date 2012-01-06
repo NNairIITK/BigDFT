@@ -107,8 +107,8 @@ void FC_FUNC_(init_atomic_values, INIT_ATOMIC_VALUES)(int *iproc, f90_pointer_at
                                                       int *ixc);
 void FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(f90_pointer_atoms *atoms,
                                                           double *radii_cf);
-void FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(void *atoms, int *disable,
-                                                          double *elecfield);
+void FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(void *atoms, double *rxyz,
+                                                          int *disable, double *elecfield);
 void FC_FUNC_(atoms_set_displacement, ATOMS_SET_DISPLACEMENT)(void *atoms, double *randdis);
 
 
@@ -223,7 +223,8 @@ void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active, double el
   int disable;
 
   disable = (!active);
-  FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(atoms->data->atoms, &disable, elecfield);
+  FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(atoms->data->atoms, atoms->rxyz.data,
+                                                       &disable, elecfield);
 }
 
 void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
@@ -255,11 +256,10 @@ void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, f90_pointer_atoms *atoms, do
                                         f90_pointer_glr *glr, double *shift);
 void FC_FUNC_(glr_get_n, GLR_GET_N)(f90_pointer_glr *glr, int *n);
 void FC_FUNC_(glr_free, GLR_FREE)(f90_pointer_glr *glr);
-void FC_FUNC(createwavefunctionsdescriptors,
-             CREATEWAVEFUNCTIONSDESCRIPTORS)(int *iproc, double *hx, double *hy,
-                                             double *hz, void *atoms, double *rxyz,
-                                             double *radii, double *crmult, double *frmult,
-                                             void *glr);
+void FC_FUNC(glr_set_wave_descriptors,
+             GLR_SET_WAVE_DESCRIPTORS)(int *iproc, double *hx, double *hy,
+                                       double *hz, void *atoms, double *rxyz, double *radii,
+                                       double *crmult, double *frmult, void *glr);
 
 BigDFT_Glr* bigdft_glr_init(BigDFT_Atoms *atoms, double *radii, double h[3],
                             double crmult, double frmult)
@@ -319,10 +319,10 @@ void bigdft_glr_set_wave_descriptors(BigDFT_Glr *glr, BigDFT_Atoms *atoms, doubl
 {
   int iproc = 1;
 
-  FC_FUNC(createwavefunctionsdescriptors,
-          CREATEWAVEFUNCTIONSDESCRIPTORS)(&iproc, glr->h, glr->h + 1, glr->h + 2,
-                                          atoms->data->atoms, atoms->rxyz.data, radii,
-                                          &crmult, &frmult, glr->data->glr);
+  FC_FUNC(glr_set_wave_descriptors,
+          GLR_SET_WAVE_DESCRIPTORS)(&iproc, glr->h, glr->h + 1, glr->h + 2,
+                                    atoms->data->atoms, atoms->rxyz.data, radii,
+                                    &crmult, &frmult, glr->data->glr);
 }
 
 void FC_FUNC_(fill_logrid, FILL_LOGRID)(char *geocode, int *n1, int *n2, int *n3,

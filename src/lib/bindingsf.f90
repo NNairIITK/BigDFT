@@ -48,6 +48,23 @@ subroutine glr_get_n(glr, n)
   n(2) = glr%d%n2
   n(3) = glr%d%n3
 end subroutine glr_get_n
+subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
+      &   crmult,frmult,Glr)
+   use module_base
+   use module_types
+   use module_interfaces
+   implicit none
+   !Arguments
+   type(atoms_data), intent(in) :: atoms
+   integer, intent(in) :: iproc
+   real(gp), intent(in) :: hx,hy,hz,crmult,frmult
+   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+   type(locreg_descriptors), intent(inout) :: Glr
+
+   call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
+      &   crmult,frmult,Glr)
+end subroutine glr_set_wave_descriptors
 
 subroutine inputs_new(in)
   use module_types

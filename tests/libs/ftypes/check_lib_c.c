@@ -3,8 +3,12 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define MAX_FORTRAN_OUTPUT 4096
+
+static int redirect_init(int out_pipe[2]);
+static void redirect_dump(int out_pipe[2], int stdout_fileno_old);
 
 int main(int argc, char **argv)
 {
@@ -20,8 +24,6 @@ int main(int argc, char **argv)
   BigDFT_Orbs *orbs;
 
   int out_pipe[2], stdout_fileno_old;
-  gchar foutput[MAX_FORTRAN_OUTPUT];
-  ssize_t ncount;
 
   if (argc > 1)
     chdir(argv[1]);
@@ -91,11 +93,13 @@ int main(int argc, char **argv)
 
   fprintf(stdout, "Test BigDFT_Orbs structure creation.\n");
   orbs = bigdft_orbs_new(atoms, in, 0, 1, &nelec);
-  fprintf(stderr, " System has %d electrons.\n", nelec);
+  fprintf(stdout, " System has %d electrons.\n", nelec);
 
   fprintf(stdout, "Test memory estimation.\n");
+  stdout_fileno_old = redirect_init(out_pipe);
   peak = bigdft_memory_peak(4, glr, in, orbs);
-  fprintf(stderr, " Memory peak will reach %f octets.\n", peak);
+  redirect_dump(out_pipe, stdout_fileno_old);
+  fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
 
   fprintf(stdout, "Test BigDFT_Orbs free.\n");
   bigdft_orbs_free(orbs);
@@ -113,6 +117,18 @@ int main(int argc, char **argv)
   bigdft_atoms_free(atoms);
   fprintf(stdout, " Ok\n");
 
+  stdout_fileno_old = redirect_init(out_pipe);
+  FC_FUNC_(memocc_report, MEMOCC_REPORT)();
+  redirect_dump(out_pipe, stdout_fileno_old);
+
+  return 0;
+}
+
+static int redirect_init(int out_pipe[2])
+{
+  int stdout_fileno_old;
+
+  /* Flush before redirecting. */
   fflush(stdout);
 
   /* Make a pipe to redirect stdout. */
@@ -120,11 +136,25 @@ int main(int argc, char **argv)
   pipe(out_pipe);
   dup2(out_pipe[1], STDOUT_FILENO);
 
-  FC_FUNC_(memocc_report, MEMOCC_REPORT)();
-  fflush(stdout);
+  return stdout_fileno_old;
+}
 
+static void redirect_dump(int out_pipe[2], int stdout_fileno_old)
+{
+  gchar foutput[MAX_FORTRAN_OUTPUT];
+  ssize_t ncount;
+  guint i;
+  long flags;
+
+  /* Flush before reconnecting. */
+  fflush(stdout);
   /* Reconnect stdout. */
   dup2(stdout_fileno_old, STDOUT_FILENO);
+
+  /* Make the reading pipe non blocking. */
+  flags = fcntl(out_pipe[0], F_GETFL);
+  flags |= O_NONBLOCK;
+  fcntl(out_pipe[0], F_SETFL, flags);
 
   /* Write Fortran output with prefix... */
   foutput[0] = '\0';
@@ -141,6 +171,4 @@ int main(int argc, char **argv)
   /* Close the pipes. */
   close(out_pipe[0]);
   close(out_pipe[1]);
-
-  return 0;
 }
