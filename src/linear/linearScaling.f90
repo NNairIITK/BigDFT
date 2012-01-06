@@ -358,7 +358,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
       end if
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
 
-      if(itout==15) then
+      if(itout==lin%nit_lowaccuracy) then
            lin%potentialPrefac = 5.d-3*lin%potentialPrefac
            lin%nItBasisFirst = 10*lin%nItBasisFirst
            lin%nItBasis = 10*lin%nItBasis

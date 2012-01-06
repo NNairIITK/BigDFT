@@ -473,6 +473,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
       stop
   end if
   open(unit=99, file='input.lin')
+  read(99,*) lin%nit_lowaccuracy, lin%nit_highaccuracy, lin%reducePrefactor
   read(99,*) lin%nItBasisFirst, lin%nItBasis, lin%fixBasis
   read(99,*) lin%nItInnerLoop, lin%convCrit
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
@@ -674,6 +675,8 @@ write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a,a,i0,4x,a)') '|',repeat('
     repeat(' ', 8-ceiling(log10(dble(abs(lin%memoryForCommunOverlapIG)+1)+1.d-10))),lin%memoryForCommunOverlapIG, '|'
 write(*,'(1x,a,a)') 'lin%locregShape:',lin%locregShape
 write(*,'(1x,a,l)') 'lin%sumrho_fast:',lin%sumrho_fast
+write(*,'(1x,a,2i6,es9.2)') 'nit low accur, nit high accur, reduce prefactor', &
+                      lin%nit_lowaccuracy, lin%nit_highaccuracy, lin%reducePrefactor
 
 
 written=.false.
