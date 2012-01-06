@@ -33,7 +33,7 @@ check_lib_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
 check_lib_LDADD = @LIBS_DEPENDENCIES@
 
 check_lib_c_SOURCES = check_lib_c.c
-check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules
+check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules
 check_lib_c_LDADD = @LIBS_DEPENDENCIES@ @FCLIBS@
 
 clean-local: 

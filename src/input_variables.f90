@@ -150,7 +150,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   call inputs_parse_add(inputs, atoms, iproc, .true.)
 
   ! Shake atoms, if required.
-  call atoms_set_displacement(atoms, inputs%randdis)
+  call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
