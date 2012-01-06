@@ -908,6 +908,9 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
          call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
      end do
   end if
+
+  call checkAndDeallocatePointer(lzd%cutoffweight, 'cutoffweight', subname)
+
 end subroutine deallocate_local_zone_descriptors
 
 subroutine deallocate_Lzd_except_Glr(lzd, subname)

@@ -98,8 +98,12 @@ real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
 type(workarr_sumrho):: w
-integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l
+integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt
 real(8),dimension(:),pointer:: lpot
+
+
+
+
 
   ! Allocate the local arrays.  
   allocate(matrixElements(lin%lb%orbs%norb,lin%lb%orbs%norb,2), stat=istat)
@@ -306,9 +310,15 @@ real(8),dimension(:),pointer:: lpot
   call deallocateCommuncationBuffersOrtho(lin%lb%comon, subname)
 
 
+
   !!!! TEST ########################################################
   !!call transpose_linear(iproc, 0, nproc-1, lin%lb%orbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
   !!call transpose_linear(iproc, 0, nproc-1, lin%lb%orbs, lin%lb%collComms, lhphi, mpi_comm_world, phiWork)
+  !!if(iproc==0) then
+  !!    do ierr=1,orbs%npsidim
+  !!        write(53,*) ierr, lin%lb%collComms%indexarray(ierr)
+  !!    end do
+  !!end if
   !!call calculate_overlap_matrix(iproc, lin%lb%orbs, lin%lb%collComms, lphi, lhphi, matrixElements(1,1,2))
   !!call untranspose_linear(iproc, 0, nproc-1,  lin%lb%orbs, lin%lb%collComms, lhphi, mpi_comm_world, phiWork)
   !!call untranspose_linear(iproc, 0, nproc-1,  lin%lb%orbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
@@ -543,7 +553,7 @@ character(len=3):: orbname, comment
 integer,dimension(:),allocatable:: onwhichatomtemp, norb_parTemp, onWhichMPITemp
 logical,dimension(:),allocatable:: doNotCalculate, skip
 integer:: iat, is1, ie1, is2, ie2, is3, ie3, jlr, js1, je1, js2, je2, js3, je3
-integer :: norbTarget, nprocTemp, kk, jlrold, nlocregPerMPI, tag, jproc
+integer :: norbTarget, nprocTemp, kk, jlrold, nlocregPerMPI, tag, jproc, ncnt
 logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, immediateSwitchToSD
 
 
@@ -687,6 +697,21 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       t1=mpi_wtime()
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lhphi)
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH, W, eval)
+
+      !!!! TEST: use only diagonal part of orthoconstraint
+      !!ist=1
+      !!trH=0.d0
+      !!do iorb=1,lin%orbs%norbp
+      !!    iiorb=lin%orbs%isorb+iorb
+      !!    ilr=lin%orbs%inwhichlocreg(iiorb)
+      !!    ncnt = lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!    tt=ddot(ncnt, lphi(ist), 1, lhphi(ist), 1)
+      !!    trH=trH+tt
+      !!    call daxpy(ncnt, -tt, lphi(ist), 1, lhphi(ist), 1)
+      !!    ist = ist + ncnt
+      !!end do
+      !!call mpiallred(trH, 1, mpi_sum, mpi_comm_world, ierr)
+
 
 
       ! Flatten at the edges -  EXPERIMENTAL
@@ -3875,6 +3900,7 @@ real(8):: tt
               jst=op%indexInRecvBuf(iorbref,jjorb)
               ldim=op%olr(jorb,iorbref)%wfd%nvctr_c+7*op%olr(jorb,iorbref)%wfd%nvctr_f
               tt=omat(jjorb,iiorb)
+              tt=tt*lzd%cutoffweight(jjorb,iiorb)
               do iseg=1,op%expseg(jorb,iorbref)%nseg
                   istart=op%expseg(jorb,iorbref)%segborders(1,iseg)
                   iend=op%expseg(jorb,iorbref)%segborders(2,iseg)

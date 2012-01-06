@@ -6029,12 +6029,12 @@ do iorb=1,orbs%norb
        !write(*,'(a,2i8,i10,2i12,2l)') 'iproc, jorb, jst, ncnt_jorb, orbs%npsidim, istop, jstop', iproc, jorb, jst, ncnt_jorb, orbs%npsidim, istop, jstop
        if(iproc==0 .and. iorb==1) then
            do istat=iist,iist+ncnt_iorb
-               write(110,*) collComms%indexarray(istat)
+               write(110,*) istat, collComms%indexarray(istat)
            end do
        end if
        if(iproc==0 .and. jorb==5) then
            do istat=jjst,jjst+ncnt_jorb
-               write(510,*) collComms%indexarray(istat)
+               write(510,*) istat, collComms%indexarray(istat)
            end do
        end if
 

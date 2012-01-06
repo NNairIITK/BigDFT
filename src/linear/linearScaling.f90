@@ -116,10 +116,16 @@ real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2ini
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
-integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot, iiorb, ncount
+integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot, iiorb, ncount, ncnt
 type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
 real(8),dimension(:,:),allocatable:: ovrlp
+
+
+
+
+
+
 
 
   if(iproc==0) then
@@ -135,6 +141,30 @@ real(8),dimension(:,:),allocatable:: ovrlp
   t1init=mpi_wtime()
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
        input, rxyz, nscatterarr, tag, coeff, lphi)
+
+!!! Determine lin%cutoffweight
+!!ist=1
+!!lphi=1.d0
+!!do iorb=1,lin%orbs%norbp
+!!    iiorb=lin%orbs%isorb+iorb
+!!    ilr=lin%orbs%inwhichlocreg(iiorb)
+!!    ncnt = lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f
+!!    tt=sqrt(dble(ncnt))
+!!    call dscal(ncnt, 1/tt, lphi(ist), 1)
+!!    ist = ist + ncnt
+!!end do
+!!allocate(lin%lzd%cutoffweight(orbs%norb,orbs%norb), stat=istat)
+!!call memocc(istat, lin%lzd%cutoffweight, 'lin%lzd%cutoffweight', subname)
+!!call allocateCommuncationBuffersOrtho(lin%comon, subname)
+!!call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, lin%comon, lphi, lphi, lin%mad, lin%lzd%cutoffweight)
+!!call deallocateCommuncationBuffersOrtho(lin%comon, subname)
+!!!!call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%orbs, lin%comon, lin%op, lphi, lin%mad, lin%lzd%cutoffweight)
+!!do iorb=1,lin%orbs%norb
+!!    do iiorb=1,lin%orbs%norb
+!!        write(90+iproc,*) iorb, iiorb, lin%lzd%cutoffweight(iiorb,iorb)
+!!    end do
+!!end do
+
   call mpi_barrier(mpi_comm_world, ierr)
   t2init=mpi_wtime()
   timeinit=t2init-t1init
@@ -327,6 +357,12 @@ real(8),dimension(:,:),allocatable:: ovrlp
           with_auxarray=.false.
       end if
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
+
+      if(itout==10) then
+           lin%potentialPrefac = 1.d-2*lin%potentialPrefac
+           lin%nItBasisFirst = 10*lin%nItBasisFirst
+           lin%nItBasis = 10*lin%nItBasis
+      end if
 
       do itSCC=1,nitSCC
           if(itSCC>1 .and. pnrm<lin%fixBasis .or. itSCC==lin%nitSCCWhenOptimizing) updatePhi=.false.

@@ -474,6 +474,9 @@ integer :: ierr, nproc
      ! Rearrange the orbitals on the current process such that they can be communicated
      ! more easily.
      call switch_waves_linear_int(iproc, lproc, uproc, orbs, collComms, psi, work)
+     do ierr=1,orbs%npsidim
+         write(50,*) ierr, work(ierr)
+     end do
 
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
@@ -493,6 +496,11 @@ integer :: ierr, nproc
      !!   !for only one processor there is no need to transform this
      !!   call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.true.)
      !!end if
+  end if
+  if(iproc==0) then
+      do ierr=1,orbs%npsidim
+          write(51,*) ierr, psi(ierr)
+      end do
   end if
 
   call timing(iproc,'Un-TransSwitch','OF')
@@ -691,6 +699,11 @@ integer:: k, ii
                  do i=1,collComms%nvctr_par(iiorb,j)
                      it=ind+i
                      psiw(it)=psi(ij)
+                     if(iiorb==1) then
+                         write(120,*) it, psiw(it)
+                     else if(iiorb==5) then
+                         write(520,*) it, psiw(it)
+                     end if
                      ij=ij+1
                  enddo
                  ! Update the ijproc counter.

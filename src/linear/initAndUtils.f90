@@ -41,11 +41,11 @@ real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
 
 ! Local variables
-integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb, ii, jproc
+integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb, ii, jproc, ist, ncnt
 integer,dimension(:),allocatable:: norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
-real(8):: t1, t2
+real(8):: t1, t2, tt, tt1, tt2, tt3, tt4, tt5
 integer :: npsidim
 
 
@@ -206,6 +206,8 @@ allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
 
 
+
+
 !!! TEST #################################################################################
 !!call random_number(lphi)
 !!do iall=1,lin%orbs%npsidim
@@ -360,6 +362,61 @@ call initMatrixCompression(iproc, nproc, lin%lb%orbs, lin%lb%op, lin%lb%mad)
 call initCompressedMatmul3(lin%lb%orbs%norb, lin%lb%mad)
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
+
+
+
+! Determine lin%cutoffweight
+ist=1
+lphi=1.d0
+do iorb=1,lin%orbs%norbp
+    iiorb=lin%orbs%isorb+iorb
+    ilr=lin%orbs%inwhichlocreg(iiorb)
+    ncnt = lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f
+    tt=sqrt(dble(ncnt))
+    call dscal(ncnt, 1/tt, lphi(ist), 1)
+    ist = ist + ncnt
+end do
+allocate(lin%lzd%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
+call memocc(istat, lin%lzd%cutoffweight, 'lin%lzd%cutoffweight', subname)
+!!call allocateCommuncationBuffersOrtho(lin%comon, subname)
+!!call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, lin%comon, lphi, lphi, lin%mad, lin%lzd%cutoffweight)
+!!call deallocateCommuncationBuffersOrtho(lin%comon, subname)
+!!call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%orbs, lin%comon, lin%op, lphi, lin%mad, lin%lzd%cutoffweight)
+
+call allocateSendBufferOrtho(lin%comon, subname)
+call allocateRecvBufferOrtho(lin%comon, subname)
+call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, tt1, tt2)
+call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
+     lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, lin%lzd%cutoffweight, tt3, tt4, tt5)
+call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, lin%comon, lphi, lphi, lin%mad, lin%lzd%cutoffweight)
+call deallocateRecvBufferOrtho(lin%comon, subname)
+call deallocateSendBufferOrtho(lin%comon, subname)
+
+
+
+do iorb=1,lin%orbs%norb
+    do iiorb=1,lin%orbs%norb
+        lin%lzd%cutoffweight(iiorb,iorb) = lin%lzd%cutoffweight(iiorb,iorb)**2
+        lin%lzd%cutoffweight(iiorb,iorb) = 1.d0
+        write(90+iproc,*) iorb, iiorb, lin%lzd%cutoffweight(iiorb,iorb)
+    end do
+end do
+
+! not ideal place here for this...
+if(lin%orbs%norb/=lin%lig%orbsig%norb) then
+    write(*,*) 'ERROR: lin%orbs%norb/=lin%lig%orbsig%norb not implemented!'
+    stop
+end if
+allocate(lin%lig%lzdig%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
+call memocc(istat, lin%lig%lzdig%cutoffweight, 'lin%lig%lzdig%cutoffweight', subname)
+allocate(lin%lig%lzdGauss%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
+call memocc(istat, lin%lig%lzdGauss%cutoffweight, 'lin%lig%lzdGauss%cutoffweight', subname)
+call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdig%cutoffweight, 1)
+call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdGauss%cutoffweight, 1)
+
+
+
 
 
 !!if(iproc==0) then

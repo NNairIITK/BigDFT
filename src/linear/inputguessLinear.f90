@@ -147,6 +147,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
   call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
 
+
   ! Deallocate the local arrays.
   iall=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=istat)
