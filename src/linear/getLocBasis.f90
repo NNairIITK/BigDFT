@@ -721,7 +721,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       if(iproc==0) write(*,*) 'ldiis%switchSD, ldiis%isx', ldiis%switchSD, ldiis%isx
       if(.not. ldiis%switchSD .and. ldiis%isx==0) then
            if(iproc==0) write(*,*) 'trH, trHold', trH, trHold
-           if(trH>trHold) then
+           !if(trH>trHold) then
+           if(trH > trHold + 1.d-5*abs(trHold)) then
                consecutive_rejections=consecutive_rejections+1
                if(consecutive_rejections==300000) then
                    if(fnrmMax<lin%convCrit .or. it>=nit) then
@@ -748,13 +749,17 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
                        exit iterLoop
                    end if
                end if
-               alpha=alpha*.5d0
-               call dcopy(size(lphi), lphiold, 1, lphi, 1)
-               if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and cycle'
-               cycle iterLoop
+               if(consecutive_rejections<=3) then
+                   alpha=alpha*.5d0
+                   call dcopy(size(lphi), lphiold, 1, lphi, 1)
+                   if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and cycle'
+                   cycle iterLoop
+               else
+                   consecutive_rejections=0
+               end if
            end if
       end if
-      consecutive_rejections=0
+      !consecutive_rejections=0
 
 
       t2=mpi_wtime()

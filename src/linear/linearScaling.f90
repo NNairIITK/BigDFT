@@ -358,8 +358,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
       end if
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
 
-      if(itout==10) then
-           lin%potentialPrefac = 1.d-2*lin%potentialPrefac
+      if(itout==15) then
+           lin%potentialPrefac = 5.d-3*lin%potentialPrefac
            lin%nItBasisFirst = 10*lin%nItBasisFirst
            lin%nItBasis = 10*lin%nItBasis
       end if
