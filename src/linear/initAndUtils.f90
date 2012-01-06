@@ -399,7 +399,7 @@ do iorb=1,lin%orbs%norb
     do iiorb=1,lin%orbs%norb
         lin%lzd%cutoffweight(iiorb,iorb) = lin%lzd%cutoffweight(iiorb,iorb)**2
         lin%lzd%cutoffweight(iiorb,iorb) = 1.d0
-        write(90+iproc,*) iorb, iiorb, lin%lzd%cutoffweight(iiorb,iorb)
+        !write(90+iproc,*) iorb, iiorb, lin%lzd%cutoffweight(iiorb,iorb)
     end do
 end do
 
@@ -3999,12 +3999,9 @@ do iorb=1,orbs%norbp
             !!!! DEBUG !!
             !!collComms%indexarray(ind)=iiorb
             !!!! DEBUG !!
-            write(900+iiorb,'(a,i9,3i12,6i7,i10)') 'ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, &
-                &nshift2, nshift3, collComms%indexarray(ind)', &
-                ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3, collComms%indexarray(ind)
-                if(iproc==0 .and. ind==55769) then
-                    write(*,'(a,2i8)') 'WRITING TO ELEMENT 55769!: iorb, iiorb', iorb, iiorb
-                end if
+            !!write(900+iiorb,'(a,i9,3i12,6i7,i10)') 'ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, &
+            !!    &nshift2, nshift3, collComms%indexarray(ind)', &
+            !!    ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3, collComms%indexarray(ind)
             ind=ind+1
         end do
     end do
