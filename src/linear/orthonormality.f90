@@ -6007,7 +6007,7 @@ real(8),dimension(orbs%npsidim),intent(in):: psi_i, psi_j
 real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 
 ! Local variables
-integer:: iorb, jorb, ist, jst, ncnt_iorb, ncnt_jorb, iloc, jloc, i, ii, jj, ierr, iist, jjst
+integer:: iorb, jorb, ist, jst, ncnt_iorb, ncnt_jorb, iloc, jloc, i, ii, jj, ierr, iist, jjst, istat
 logical:: istop, jstop
 real(8):: tt
 
@@ -6027,20 +6027,43 @@ do iorb=1,orbs%norb
        jst=jjst
        !do i=1,max(ncnt_iorb,ncnt_jorb)
        !write(*,'(a,2i8,i10,2i12,2l)') 'iproc, jorb, jst, ncnt_jorb, orbs%npsidim, istop, jstop', iproc, jorb, jst, ncnt_jorb, orbs%npsidim, istop, jstop
+       if(iproc==0 .and. iorb==1) then
+           do istat=iist,iist+ncnt_iorb
+               write(110,*) collComms%indexarray(istat)
+           end do
+       end if
+       if(iproc==0 .and. jorb==5) then
+           do istat=jjst,jjst+ncnt_jorb
+               write(510,*) collComms%indexarray(istat)
+           end do
+       end if
+
        do
            !if(jstop .and. jst>orbs%npsidim) write(*,'(a,5i12,2l)') 'iproc, jj, ncnt_jorb, jst, orbs%npsidim, istop, jstop', iproc, jj, ncnt_jorb, jst, orbs%npsidim, istop, jstop
            if(.not.istop) iloc=collComms%indexarray(ist)  
            if(.not.jstop) jloc=collComms%indexarray(jst)  
            write(1000*(iproc+1)+700+jorb,'(a,2i5,2i12,3x,2i12)') 'iorb, jorb, ist, jst, iloc, jloc', &
                iorb, jorb, ist, jst, iloc, jloc
+           if(iorb==1 .and. jorb==5) then
+               write(980+iproc,'(2i9,4x,2i12,2l4,2i9)') ist, jst, collComms%indexarray(ist), collComms%indexarray(jst), istop, jstop, ncnt_iorb, ncnt_jorb
+           end if
            if(iloc==jloc) then
+               !if(iorb==1 .and. jorb==5) then
+               !    write(980+iproc,'(a,2i9,4x,2i12,2l4,2i9)') 'HERE1: ',ist, jst, collComms%indexarray(ist), collComms%indexarray(jst), istop, jstop, ncnt_iorb, ncnt_jorb
+               !end if
                !if(istop) write(*,*) 'STRANGE: istop is true...'
                !if(jstop) write(*,*) 'STRANGE: jstop is true...'
+               if(iorb==1 .and. jorb==5) then
+                   write(iproc*1000+999,*) iloc
+               end if
                tt=tt+psi_i(ist)*psi_j(jst)
                ist=ist+1
                jst=jst+1
                ii=ii+1
                jj=jj+1
+               !if(iorb==1 .and. jorb==5) then
+               !    write(980+iproc,'(a,2i9,4x,2i12,2l4,2i9)') 'HERE2: ',ist, jst, collComms%indexarray(ist), collComms%indexarray(jst), istop, jstop, ncnt_iorb, ncnt_jorb
+               !end if
            else if((iloc<jloc .or. jstop) .and. .not.istop) then
                ist=ist+1
                ii=ii+1
@@ -6050,7 +6073,10 @@ do iorb=1,orbs%norb
            end if
            if(ii==ncnt_iorb) istop=.true.
            if(jj==ncnt_jorb) jstop=.true.
-           if(istop .and. jstop) exit
+           if(istop .and. jstop) then
+               if(iorb==1 .and. jorb==5) write(980+iproc,'(a)') 'exit since both stops are true...'
+               exit
+           end if
        end do
 
        ovrlp(jorb,iorb)=tt

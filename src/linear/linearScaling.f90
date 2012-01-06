@@ -198,6 +198,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
       ! This subroutine will also post the point to point messages needed for the calculation
       ! of the charge density.
       updatePhi=.false.
+      !communicate_lphi=.true.
       communicate_lphi=.true.
       with_auxarray=.false.
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
@@ -208,8 +209,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
       ! Calculate the charge density.
       call cpu_time(t1)
-      call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, lphi, Glr%d%n1i*Glr%d%n2i*n3d, &
-           rhopot, at, nscatterarr)
+      !call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, lphi, Glr%d%n1i*Glr%d%n2i*n3d, &
+      !     rhopot, at, nscatterarr)
       !do istat=1,Glr%d%n1i*Glr%d%n2i*n3d
       !    write(1200+iproc,*) istat, rhopot(istat)
       !end do
@@ -228,30 +229,31 @@ real(8),dimension(:,:),allocatable:: ovrlp
       if(iproc==0) write(*,'(1x,a,es12.4)') 'time for sumrho:',time
 
       if(trim(lin%mixingMethod)=='dens') then
-          if(lin%mixHist==0) then
-              !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
-              call mixPotential(iproc, n3p, Glr, input, lin%alphaMixWhenFixed, rhopotOld, rhopot, pnrm)
-          else 
-              ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-              ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
-              mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-              mixdiis%is=mixdiis%is+1
-              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMixWhenFixed, 1, pnrm)
-          end if
-          rhopotold_out=rhopot
+          !if(lin%mixHist==0) then
+          !    !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+          !    call mixPotential(iproc, n3p, Glr, input, lin%alphaMixWhenFixed, rhopotOld, rhopot, pnrm)
+          !else 
+          !    ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+          !    ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+          !    mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+          !    mixdiis%is=mixdiis%is+1
+          !    call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMixWhenFixed, 1, pnrm)
+          !end if
+          !rhopotold_out=rhopot
+          rhopotold_out=rhopotold
       end if
 
       ! if we mix the density, copy the current charge density.
       !allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
       !call memocc(istat, rhopotold, 'rhopotold', subname)
-      if(trim(lin%mixingmethod)=='dens') then
-          call dcopy(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotold(1), 1)
-      end if
+      !if(trim(lin%mixingmethod)=='dens') then
+      !    call dcopy(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotold(1), 1)
+      !end if
 
-      ! Calculate the potential we get with the current chareg density.
-      call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
-          rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-          coeff, ehart, eexcu, vexcu)
+      !! Calculate the potential we get with the current chareg density.
+      !call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
+      !    rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      !    coeff, ehart, eexcu, vexcu)
 
       if(trim(lin%mixingMethod)=='pot') then
           if(lin%mixHist==0) then

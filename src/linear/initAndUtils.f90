@@ -3820,6 +3820,8 @@ integer:: n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3, ind, i, is, i
 integer:: transform_index, iseg, offset, iall
 integer,dimension(:),allocatable:: work_int
 character(len=*),parameter:: subname='initCollectiveComms'
+integer:: ii1s, ii1e, ii5s, ii5e, i1, i5
+logical:: stop1, stop5
 
 ! Allocate all arrays
 allocate(collComms%nvctr_par(orbs%norb,0:nproc-1), stat=istat)
@@ -3897,6 +3899,10 @@ end do
 orbs%npsidim=max(orbs%npsidim,ii)
 
 
+ii1s=0
+ii5s=0
+ii1e=0
+ii5e=0
 
 ! Get the global indices of all elements
 allocate(collComms%indexarray(orbs%npsidim), stat=istat)
@@ -3921,6 +3927,11 @@ do iorb=1,orbs%norbp
     nshift2=lzd%llr(ilr)%ns2-lzd%glr%ns2
     nshift3=lzd%llr(ilr)%ns3-lzd%glr%ns3
 
+    if(iiorb==1) then
+        ii1s=ind
+    else if(iiorb==5) then
+        ii5s=ind
+    end if
     do iseg=1,lzd%llr(ilr)%wfd%nseg_c
         is=lzd%llr(ilr)%wfd%keyg(1,iseg)
         ie=lzd%llr(ilr)%wfd%keyg(2,iseg)
@@ -3928,12 +3939,24 @@ do iorb=1,orbs%norbp
         !      ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3
         do i=is,ie
             collComms%indexarray(ind)=transform_index(i, n1l, n2l, n3l, n1g, n2g, n3g, nshift1, nshift2, nshift3)
-            !write(900+iiorb,'(a,i9,3i12,6i7,i10)') 'ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, &
-            !    &nshift2, nshift3, collComms%indexarray(ind)', &
-            !    ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3, collComms%indexarray(ind)
+            !!!! DEBUG !!
+            !!collComms%indexarray(ind)=iiorb
+            !!!! DEBUG !!
+            write(900+iiorb,'(a,i9,3i12,6i7,i10)') 'ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, &
+                &nshift2, nshift3, collComms%indexarray(ind)', &
+                ilr, iseg, is, ie, n1l, n2l, n3l, nshift1, nshift2, nshift3, collComms%indexarray(ind)
+                if(iproc==0 .and. ind==55769) then
+                    write(*,'(a,2i8)') 'WRITING TO ELEMENT 55769!: iorb, iiorb', iorb, iiorb
+                end if
             ind=ind+1
         end do
     end do
+    !if(iiorb==1) then
+    !    ii1e=ind-1
+    !else if(iiorb==5) then
+    !    ii5e=ind-1
+    !end if
+
 
     offset=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
     do iseg=1,lzd%llr(ilr)%wfd%nseg_f
@@ -3952,6 +3975,11 @@ do iorb=1,orbs%norbp
             ind=ind+7
         end do
     end do
+    if(iiorb==1) then
+        ii1e=ind-1
+    else if(iiorb==5) then
+        ii5e=ind-1
+    end if
 
     !do istat=0,ldim-1
     !    write(200+iproc,*) ist+istat, collComms%indexarray(ist+istat)
@@ -3959,6 +3987,36 @@ do iorb=1,orbs%norbp
 
     ist=ist+ldim
 end do
+
+
+
+!if(iproc==0) then
+!    do istat=ii1s,ii1e
+!        write(100,*) istat, collComms%indexarray(istat)
+!    end do
+!    do istat=ii5s,ii5e
+!        write(500,*) istat, collComms%indexarray(istat)
+!    end do
+!    i1=ii1s
+!    i5=ii5s
+!    stop1=.false.
+!    stop5=.false.
+!    do
+!        write(880,'(2i9,4x,2i12,2l4,2i9)') i1, i5, collComms%indexarray(i1), collComms%indexarray(i5), stop1, stop5, ii1e-ii1s+1, ii5e-ii5s+1
+!        if(collComms%indexarray(i1)==collComms%indexarray(i5)) then
+!            write(888,*) collComms%indexarray(i1)
+!            i1=i1+1
+!            i5=i5+1
+!        else if((collComms%indexarray(i1)<collComms%indexarray(i5) .or. stop5 ) .and. .not.stop1) then
+!            i1=i1+1
+!        else if((collComms%indexarray(i5)<collComms%indexarray(i1) .or. stop1 ) .and. .not.stop5) then
+!            i5=i5+1
+!        end if
+!        if(i1==ii1e) stop1=.true.
+!        if(i5==ii5e) stop5=.true.
+!        if(stop1 .and. stop5) exit
+!    end do
+!end if
 
 ! Transpose the index array
 allocate(work_int(orbs%npsidim), stat=istat)
@@ -3970,8 +4028,6 @@ call memocc(istat, iall, 'work_int', subname)
 !!do istat=1,orbs%npsidim
 !!    write(300+iproc,*) istat, collComms%indexarray(istat)
 !!end do
-
-
 
 
 
