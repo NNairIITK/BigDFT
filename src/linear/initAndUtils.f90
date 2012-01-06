@@ -385,7 +385,8 @@ call memocc(istat, lin%lzd%cutoffweight, 'lin%lzd%cutoffweight', subname)
 
 call allocateSendBufferOrtho(lin%comon, subname)
 call allocateRecvBufferOrtho(lin%comon, subname)
-call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, &
+     lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
 call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, tt1, tt2)
 call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
      lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, lin%lzd%cutoffweight, tt3, tt4, tt5)
