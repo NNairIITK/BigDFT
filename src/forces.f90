@@ -324,6 +324,8 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   call nonlocal_forces(iproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,atoms,rxyz,&
        orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
 
+  if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
+
   if (atoms%geocode == 'P') then
      call local_hamiltonian_stress(iproc,orbs,Glr,hx,hy,hz,psi,strtens(1,3))
 
