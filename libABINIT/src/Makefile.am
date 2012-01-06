@@ -154,6 +154,7 @@ libabinit_a_SOURCES = \
 	56_xc/xcwign.F90 \
 	56_xc/xcxalp.F90 \
 	67_common/ewald.F90 \
+        67_common/ewald2.F90 \
 	67_common/fconv.F90 \
 	67_common/prtxvf.F90 \
 	72_geomoptim/ab6_moldyn.F90 \

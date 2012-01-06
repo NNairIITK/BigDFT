@@ -362,7 +362,7 @@ END SUBROUTINE prepare_sdc
 
 subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-     hgrid,x_c,x_f,y_c,y_f,ekinout,x_f1,x_f2,x_f3,ibyz,ibxz,ibxy)
+     hgrid,x_c,x_f,y_c,y_f,kstrten,x_f1,x_f2,x_f3,ibyz,ibxz,ibxy)
   !   y = y+(kinetic energy operator)x 
   use module_base
   implicit none
@@ -374,7 +374,8 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f1
   real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(in) :: x_f2
   real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(in) :: x_f3
-  real(gp), intent(out) :: ekinout
+  !real(gp), intent(out) :: ekinout
+  real(gp), dimension(6), intent(out) :: kstrten
   real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: y_f
   !local variables
@@ -394,9 +395,10 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   integer :: mod_arr2(lowfil:n2+lupfil)
   integer :: mod_arr3(lowfil:n3+lupfil)
 
-  ekinout=0._gp
+  !ekinout=0._gp
+  kstrten=0._gp
 !$omp parallel default(private) shared(mod_arr1,mod_arr2,mod_arr3,n1,n2,n3,hgrid,x_c,x_f,x_f1,x_f2,x_f3) &
-!$omp shared(ekinout,y_c,y_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ibyz,ibxz,ibxy)
+!$omp shared(kstrten,y_c,y_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ibyz,ibxz,ibxy)
         !n(c) ic=1
    call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
    call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
@@ -695,7 +697,11 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   enddo
 !$omp enddo
 !$omp critical
-  ekinout=ekinout+ekin1+ekin2+ekin3+ekin4+ekin5+ekin6+ekin7+ekin8+ekin9
+  !accumulate for multithread
+  kstrten(1)=kstrten(1)+ekin1+ekin4+ekin7
+  kstrten(2)=kstrten(2)+ekin2+ekin5+ekin8
+  kstrten(3)=kstrten(3)+ekin3+ekin6+ekin9
+  !ekinout=ekinout+ekin1+ekin2+ekin3+ekin4+ekin5+ekin6+ekin7+ekin8+ekin9
 !$omp end critical
 !$omp end parallel
 END SUBROUTINE convolut_kinetic_hyb_T

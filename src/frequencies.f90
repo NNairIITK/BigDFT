@@ -57,6 +57,7 @@ program frequencies
    real(gp), dimension(:,:), allocatable :: energies
    real(gp), dimension(:,:,:), allocatable :: forces
    real(gp), dimension(3) :: freq_step
+   real(gp), dimension(6) :: strten
    character(len=60) :: radical
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
    real(gp) :: tel
@@ -160,7 +161,7 @@ program frequencies
       fxyz = forces(:,1,0)
       infocode=0
    else
-      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
+      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
       call frequencies_write_restart(iproc,0,0,0,rxyz,etot,fxyz,&
          &   n_order=n_order,freq_step=freq_step,amu=atoms%amu)
       moves(:,0) = .true.
@@ -234,7 +235,8 @@ program frequencies
             else
                rpos(i,iat)=rxyz(i,iat)+dd
             end if
-            call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot,fpos(:,km),fnoise,rst,infocode)
+            call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot,fpos(:,km),strten,fnoise,&
+                 rst,infocode)
             call frequencies_write_restart(iproc,km,i,iat,rpos,etot,fpos(:,km))
             moves(km,ii) = .true.
             call restart_inputs(inputs)

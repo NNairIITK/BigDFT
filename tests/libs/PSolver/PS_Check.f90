@@ -598,7 +598,8 @@ program PS_Check
       real(kind=8) :: x1,x2,x3,length,denval,pi,a2,derf_tt,factor,r,r2
       real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt
 
-      if (trim(geocode) == 'P') then
+    if (trim(geocode) == 'P' .or. trim(geocode)=='W') then
+
          !parameters for the test functions
          length=acell
          a=0.5d0/a_gauss**2

@@ -984,7 +984,10 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
    !print the found eigenvalues
    if (iproc == 0) then
+if (orbs%nspinor /= 4) allocate(mom_vec(1,1,1))
       call write_eigenvalues_data(nproc,orbs,mom_vec)
+if (orbs%nspinor /= 4) deallocate(mom_vec)
+
    end if
 
    if (orbs%nspinor ==4) then

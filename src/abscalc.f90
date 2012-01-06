@@ -387,7 +387,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(gp) :: rpot_a,spot_a,hpot_a,espo,harmo,r,rx,ry,rz,minr  
    real(gp), pointer :: radpot(:,:)
    integer :: radpotcount, igrid
-
+   real(gp), dimension(6) :: ewaldstr
    real(gp), dimension(:,:), pointer :: rxyz_b2B
    integer, dimension(:), pointer :: iatype_b2B, znucl_b2B
    real(gp) :: shift_b2B(3)
@@ -608,12 +608,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    if (iproc == 0) write(*,*) "IonicEnergyandForces  " 
 
-   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
-      &   psoffset,0,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
+   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,ewaldstr,&
+        psoffset,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
    call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-      &   in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,0,&
-      &   .false.)
+        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
 
    !this can be inserted inside the IonicEnergyandForces routine
    !(after insertion of the non-regression test)

@@ -92,6 +92,8 @@ module timeData
          end do
       endif
       if (iproc == 0) then
+        
+
          !regroup the data for each category in any processor
          do icls=1,ncls
             timecls(icls,0:nproc)=0.d0 

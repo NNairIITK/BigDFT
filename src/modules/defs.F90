@@ -66,16 +66,17 @@ module module_defs
 
 
   !> Physical constants.
-  real(gp), parameter :: bohr2ang = 0.5291772108_gp                     ! 1 AU in angstroem
-  real(gp), parameter :: ha2ev = 27.21138386_gp                         ! 1 Ha in eV
-  real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
-  real(gp), parameter :: Ha_eV=27.21138386_gp                           ! 1 Hartree, in eV
-  real(gp), parameter :: Ha_K=315774.65_gp                              ! 1Hartree, in Kelvin
-  real(gp), parameter :: Ha_THz=6579.683920722_gp                       ! 1 Hartree, in THz
-  real(gp), parameter :: Ha_J=4.35974394d-18                            ! 1 Hartree, in J
-  real(gp), parameter :: e_Cb=1.602176487d-19                           ! minus the electron charge, in Coulomb
-  real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       ! Boltzmann constant in Ha/K
-  real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp ! 1 atomic mass unit, in electronic mass
+  real(gp), parameter :: bohr2ang = 0.5291772108_gp                     !> 1 AU in angstroem
+  real(gp), parameter :: ha2ev = 27.21138386_gp                         !> 1 Ha in eV
+  real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      !> 1 Hartree, in cm^-1 (from abinit 5.7.x)
+  real(gp), parameter :: Ha_eV=27.21138386_gp                           !> 1 Hartree, in eV
+  real(gp), parameter :: Ha_K=315774.65_gp                              !> 1Hartree, in Kelvin
+  real(gp), parameter :: Ha_THz=6579.683920722_gp                       !> 1 Hartree, in THz
+  real(gp), parameter :: Ha_J=4.35974394d-18                            !> 1 Hartree, in J
+  real(gp), parameter :: e_Cb=1.602176487d-19                           !> minus the electron charge, in Coulomb
+  real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       !> Boltzmann constant in Ha/K
+  real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp !> 1 atomic mass unit, in electronic mass
+  real(gp), parameter :: GPaoAU=29421.010901602753                       !> 1Ha/Bohr^3 in GPa
 
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
