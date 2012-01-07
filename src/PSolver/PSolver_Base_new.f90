@@ -27,8 +27,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   character(len=*), parameter :: subname='G_Poisson_Solver'
   logical :: perx,pery,perz,halffty,cplx
   !Maximum number of points for FFT (should be same number in fft3d routine)
-  integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
-  integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat,n1dim,n2dim,n3dim,ntrig
+  integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf,omp_get_num_threads
+  integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat,n1dim,n2dim,n3dim,ntrig,nthread,ithread,omp_get_thread_num
   real(kind=8) :: twopion
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
@@ -42,12 +42,17 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
        ftrig1,ftrig2,ftrig3,cosinarr
   integer, dimension(:), allocatable :: after1,now1,before1, & 
        after2,now2,before2,after3,now3,before3
+  real(gp), dimension(6) :: strten_omp
   !integer :: ncount0,ncount1,ncount_max,ncount_rate
 
   !call system_clock(ncount0,ncount_rate,ncount_max)
 
   !initialize stress tensor no matter of the BC
   call to_zero(6,strten(1))
+
+  nthread=1
+  ithread=0
+
 
 !strten=0.d0
 
@@ -281,8 +286,13 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   !now each process perform complete convolution of its planes
 
   !$omp parallel default(shared)&
-  !$omp private(nfft,Jp2stb,J2stb,Jp2stf,J2stf,ma,mb,inzee,zt,zw,lot,i3)
+  !$omp private(nfft,Jp2stb,J2stb,Jp2stf,J2stf,ma,mb,inzee,zt,zw,lot,i3,strten_omp)
+  !$  ithread=0!omp_get_thread_num()
+  !$  nthread=1!omp_get_num_threads()
   !$omp critical
+  !allocate(strten_omp(6,nthread+ndebug),stat=i_stat)
+  !  call memocc(i_stat,strten_omp,'strten_omp',subname)
+  strten_omp=0
     allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
     call memocc(i_stat,zw,'zw',subname)
     allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
@@ -373,7 +383,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            i3=iproc*(nd3/nproc)+j3
            if (geocode == 'P') then
               call P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee),&
-                   i3,hx,hy,hz,offset,scal,strten)
+                   i3,hx,hy,hz,offset,scal,strten_omp)
            else
               call multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee))
            end if
@@ -428,6 +438,12 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   end do
   !$omp enddo
   !$omp critical
+    do j=1,6
+       strten(j)=strten(j)+strten_omp(j)
+    end do
+    !i_all=-product(shape(strten_omp))*kind(strten_omp)
+    !deallocate(strten_omp,stat=i_stat)
+    !call memocc(i_stat,i_all,'strten_omp',subname)
     i_all=-product(shape(zw))*kind(zw)
     deallocate(zw,stat=i_stat)
     call memocc(i_stat,i_all,'zw',subname)

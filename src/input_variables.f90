@@ -1613,9 +1613,11 @@ subroutine frequencies_input_variables_new(iproc,dump,filename,in)
   call input_var(in%freq_alpha,'1/64',ranges=(/0.0_gp,1.0_gp/),&
        comment="Step size factor (alpha*hgrid)")
   !Read the order of finite difference scheme
+
   call input_var(in%freq_order,'2',exclusive=(/-1,1,2,3/),&
        comment="Order of the difference scheme")
   !Read the index of the method
+
   call input_var(in%freq_method,'1',exclusive=(/1/),&
        comment="Method used (only possible value=1)")
   call input_free((iproc == 0) .and. dump)

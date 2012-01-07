@@ -1770,10 +1770,13 @@ subroutine deallocate_before_exiting
          call memocc(i_stat,i_all,'counter_ions',subname)
       end if
 
-      if (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp) then
+      if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
+           .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
          i_all=-product(shape(pkernelseq))*kind(pkernelseq)
          deallocate(pkernelseq,stat=i_stat)
          call memocc(i_stat,i_all,'kernelseq',subname)
+      else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
+         nullify(pkernelseq)
       end if
 
       i_all=-product(shape(pkernel))*kind(pkernel)

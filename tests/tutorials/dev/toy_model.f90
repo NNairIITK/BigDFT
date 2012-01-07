@@ -180,7 +180,7 @@ program wvl
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Glr%d%n1,Glr%d%n2,Glr%d%n3, &
        & n3pi,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i, &
-       & pkernel,pot_ion,psoffset,0,.false.)
+       & pkernel,pot_ion,psoffset)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p, &
        & Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,inputs%nspin, &
