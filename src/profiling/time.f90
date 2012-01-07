@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=33,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=34,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -34,6 +34,7 @@ module timeData
        'Precondition  ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Precondtioning
        'Rho_comput    ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Calculation of charge density (sumrho) computation
        'Rho_commun    ','Communications' ,'AllReduce grid' ,  &  !< Calculation of charge density (sumrho) communication
+       'Pot_commun    ','Communications' ,'AllGathrv grid' ,  &  !< Communication of potential
        'Un-TransSwitch','Other         ' ,'RMA pattern   ' ,  &  !< Transposition of wavefunction, computation
        'Un-TransComm  ','Communications' ,'ALLtoALLV     ' ,  &  !< Transposition of wavefunction, communication
        'GramS_comput  ','Linear Algebra' ,'DPOTRF        ' ,  &  !< Gram Schmidt computation        
@@ -180,7 +181,9 @@ subroutine timing(iproc,category,action)
   !real :: total,total0,time,time0
   real(kind=8) :: pc,t1
   real(kind=8), dimension(ncounters,0:nproc) :: timecnt !< useful only at the very end
+  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   character(len=MPI_MAX_PROCESSOR_NAME), dimension(0:nproc-1) :: nodename
+
 !$ integer :: omp_get_max_threads
 
   !first of all, read the time
@@ -257,10 +260,10 @@ subroutine timing(iproc,category,action)
                  nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
               end do
               
-              call MPI_GET_PROCESSOR_NAME(nodename(iproc),namelen,ierr)
+              call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
               
               !gather the result between all the process
-              call MPI_GATHER(nodename(iproc),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+              call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
                    nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
                    MPI_COMM_WORLD,ierr)
            end if

@@ -10,18 +10,18 @@ CLASSES = [ "Communications",
 #    "Finalization",   
     "Total"] 
 
-# Subcategories 
-CATEGORIES = []#["ApplyProj"]
+# Subcategories (example)
+CATEGORIES = ["Rho_commun","Rho_comput","Pot_commun"]
 
 #print the legend of the results
 print "#ncores nproc nthds" 
 CLASSES.each { |cls|
   printf(" %#{cls.length<9 ? 9 : cls.length}s", cls)
 }
+print ' | References: Time, Procs'
 CATEGORIES.each { |cat|
   printf(" %#{cat.length<9 ? 9 : cat.length}s", cat)
 }
-print ' | References: Time, Procs'
 puts
 
 
@@ -36,17 +36,19 @@ nthdsref=docs.first["SUMMARY"]["CPU Parallelism"]["OMP thrds"]
 timeref= docs.first["WFN_OPT"]["Classes"]["Total"][1]
 
 
-
 nproc = docs.first["SUMMARY"]["CPU Parallelism"]["MPI procs"]
 nthds = docs.first["SUMMARY"]["CPU Parallelism"]["OMP thrds"]
 printf( " %#{'ncores'.length}d %#{'nproc'.length}d %#{'nthds'.length}d",(nthds==0 ? nproc : nthds*nproc),nproc, nthds)
 CLASSES.each { |cls|
   printf( " %#{cls.length<9 ? 9 : cls.length}.2e",docs.first["WFN_OPT"]["Classes"][cls][1])
 }
-CATEGORIES.each { |cls|
-  printf( " %#{cls.length<9 ? 9 : cls.length}.2e",docs.first["WFN_OPT"]["Categories"][cls]["Data"][1])
-}
 printf( " %#{'| Ref.: Time '.length}.2e %5d %5d",timeref, nprocref,nthdsref)
+CATEGORIES.each { |cls|
+      datas=docs.first["WFN_OPT"]["Categories"][cls]
+      data=0.0
+      data=datas["Data"][1] if datas
+      printf( " %#{cls.length<9 ? 9 : cls.length}.2e",data)
+}
 puts
 ##end of reference file writing
 
@@ -67,11 +69,14 @@ ARGV.each { |arg|
     CLASSES.each { |cls|
       printf( " %#{cls.length<9 ? 9 : cls.length}.2e",doc["WFN_OPT"]["Classes"][cls][1])
     }
-    CATEGORIES.each { |cls|
-      printf( " %#{cls.length<9 ? 9 : cls.length}.2e",doc["WFN_OPT"]["Categories"][cls]["Data"][1])
-    }
     printf( " %#{'| Ref.: Time '.length}.2e %5d %5d",timeref, nprocref,nthdsref)
-    puts
+    CATEGORIES.each { |cls|
+      datas=doc["WFN_OPT"]["Categories"][cls]
+      data=0.0
+      data=datas["Data"][1] if datas
+      printf( " %#{cls.length<9 ? 9 : cls.length}.2e",data)
+    }
+   puts
 
 
     #write the hostname associated to the iproc=0

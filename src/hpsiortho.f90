@@ -352,7 +352,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3
    logical :: odp !orbital dependent potential
    integer :: npot,ispot,ispotential,ispin,ierr,i_stat
 
-   call timing(iproc,'Rho_commun    ','ON')
+   call timing(iproc,'Pot_commun    ','ON')
 
    odp = (xc_exctXfac() /= 0.0_gp .or. (i3rho_add /= 0 .and. norbp > 0))
    !determine the dimension of the potential array
@@ -408,7 +408,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3
       end if
    end if
 
-   call timing(iproc,'Rho_commun    ','OF') 
+   call timing(iproc,'Pot_commun    ','OF') 
 
 END SUBROUTINE full_local_potential
 

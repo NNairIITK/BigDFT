@@ -141,7 +141,6 @@ program rism
   call deallocate_lr(Glr,subname)
   
   call deallocate_orbs(orbs,subname)
-  call deallocate_atoms_scf(atoms,subname) 
 
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)

@@ -117,7 +117,6 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,lr,orbs,orbsv,psi,psiv
 
    !deallocate the auxiliary structures for the calculations
    !call deallocate_atoms(atc,subname) 
-   !call deallocate_atoms_scf(atc,subname) 
    !call free_input_variables(inc)
    i_all=-product(shape(radii_cf_fake))*kind(radii_cf_fake)
    deallocate(radii_cf_fake,stat=i_stat)

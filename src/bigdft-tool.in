@@ -119,7 +119,7 @@ if __name__ == "__main__":
     if len(args) < 1:
       parser.print_help()
       raise ValueError("Action '%s' requires one mandatory argument" % actions[3])
-    command = "%s 1 dd exportwf %s %d %d %d %d" % (memguess, args[0], options.i_band, options.i_spin, options.i_kpt, options.i_complex)
+    command = "%s 1 %s dd exportwf %s %d %d %d %d" % (memguess, options.name, args[0], options.i_band, options.i_spin, options.i_kpt, options.i_complex)
   if options.action == actions[4]:
     command = "%s 1 %s dd y" % (memguess, options.name)
   if options.action == actions[5]:
