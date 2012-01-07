@@ -54,7 +54,6 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
        proj,Lzd,psi,hpsi,eproj_sum)
 
-
   call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
        ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
