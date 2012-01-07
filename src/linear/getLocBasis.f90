@@ -598,6 +598,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   resetDIIS=.false.
   immediateSwitchToSD=.false.
   t1tot=mpi_wtime()
+  consecutive_rejections=0
   iterLoop: do it=1,nit
       fnrmMax=0.d0
       fnrm=0.d0
@@ -757,6 +758,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
                else
                    consecutive_rejections=0
                end if
+           else
+                   consecutive_rejections=0
            end if
       end if
       !consecutive_rejections=0
