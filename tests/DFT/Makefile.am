@@ -13,6 +13,7 @@ TESTDIRS = C \
 	  TiSmear \
 	  O2-Spin \
 	  TDDFT \
+	  SIC \
 	  Linear
 
 #This will run the automatic tests also for GPU
@@ -55,7 +56,10 @@ OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 TDDFT.psp: psppar.N
 Linear.psp Linear_withder.psp: HGH/psppar.C extra/psppar.H
-
+SIC.psp: HGH/psppar.H \
+	HGH/psppar.C \
+	HGH/psppar.O \
+	HGH/psppar.N
 
 # Define the precision for specific directories.
 %.report: %.ref

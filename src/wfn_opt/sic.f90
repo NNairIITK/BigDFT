@@ -208,13 +208,14 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
   !local variables
   character(len=*), parameter :: subname='NK_SIC_potential' 
   logical :: virtual,savewxd
-  integer :: npot,i_all,i_stat,ispin,i,jspin,ierr,iorb,ispinor,i1,i2,i3
+  integer :: npot,i_all,i_stat,ispin,i,jspin,ierr,iorb,ispinor,i1,i2,i3,nproc
   real(gp) :: spinval,fi,oneoh,vexi,eexi,ehi,eexu,vexu,eSIC_DCi,fac1,fac2,rnorboccp,constadd
   type(workarr_sumrho) :: w
   real(dp), dimension(:,:), allocatable :: ni,deltarho,vxci,rho,psir,wxd
   real(dp), dimension(:,:,:,:), allocatable :: fxci
   real(dp), dimension(:), pointer :: rhocore_fake
 
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
  
   !stop for non-collinear case (lacking of unified XC routine)
   if (orbs%nspinor==4) stop 'SIC not available for non-collinear case'
@@ -341,6 +342,8 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
                 deltarho(1,1),1)
            end if
         call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,fref-fi,ni(1,1),1,deltarho(1,1),1)
+
+        !call xc_clean_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,deltarho,1)
 
         !if (savewxd) call xc_clean_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,deltarho,1)
 
@@ -471,7 +474,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
 
   if (.not. virtual) then
      !sum up the results of the off diagonal term
-     call mpiallred(wxd(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
+     if (nproc >1) call mpiallred(wxd(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
 
      if (.not. savewxd) then
         !add to the potential orbital per orbital

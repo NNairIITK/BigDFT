@@ -81,6 +81,7 @@ module module_input
       inquire(file=trim(input_file),exist=exists)
       if (exists) then
          !only the root processor parse the file
+         nlines = 0
          if (iproc==0) then
             open(unit = 1, file = trim(filename), status = 'old')
             i=0
@@ -160,20 +161,19 @@ module module_input
       !!$               trim(comment_file_usage)
       !!$       end if
       !!$    end if
-
    END SUBROUTINE input_set_file
 
 
-   subroutine input_free(iproc)
+   subroutine input_free(dump)
       implicit none
-      integer, intent(in), optional :: iproc
+      logical, intent(in), optional :: dump
       !Local variables
       integer, parameter :: iunit=11
       integer :: ierr,iline
 
-      if (present(iproc)) then !case for compulsory variables
+      if (present(dump)) then !case for compulsory variables
          !if (iline_written==1) iline_written=2
-         if (iproc ==0) then
+         if (dump) then
             if (iline_parsed==0) then !the file does not exist
                !add the writing of the file in the given unit
                open(unit=iunit,file='default.' // trim(input_type), status ='unknown')

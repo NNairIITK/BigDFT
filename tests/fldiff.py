@@ -120,6 +120,7 @@ if bigdft:
             or "READING WAVES" in line \
             or "average CG stepsize" in line \
             or "GPU data" in line \
+            or "Exact exchange calculation" in line \
             or "time for" in line \
             or "orthonormalization:" in line \
             or "Hamiltonian application:" in line \
