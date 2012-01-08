@@ -361,7 +361,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
       if(itout==lin%nit_lowaccuracy) then
            lin%potentialPrefac = 5.d-3*lin%potentialPrefac
            lin%nItBasisFirst = 10*lin%nItBasisFirst
-           lin%nItBasis = 10*lin%nItBasis
+           lin%nItBasis = 30*lin%nItBasis
       end if
 
       do itSCC=1,nitSCC
