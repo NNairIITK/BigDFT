@@ -324,7 +324,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                        Lzd%Lnlpspd(ilr)%nprojel,&
                        at,orbs,Lzd%Llr(ilr)%wfd,Lzd%Lnlpspd(ilr)%plr(iat_proj),&
                        proj,psi(ispsi),hpsi(ispsi),eproj_sum)
-                  !print *,'iorb,iat,eproj',iorb,iat,eproj_sum
+                  !print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum
                   ispsi=ispsi+&
                        (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
                end do
@@ -353,7 +353,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                   if(Lzd%Llr(ilr)%projflg(iat) == 0) stop 'ERROR all atoms should be in global'
                   call apply_atproj_iorb_new(iat,iorb,istart_c,Lzd%Lnlpspd(ilr)%nprojel,&
                        at,orbs,Lzd%Llr(ilr)%wfd,Lzd%Lnlpspd(ilr)%plr(iat),&
-                       proj,psi(ispsi),hpsi(ispsi),eproj_sum)           
+                       proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+                  print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum
                end do
                ispsi=ispsi+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
             end do

@@ -559,6 +559,7 @@ end if
      if (idir == 0) then
         !here the norm should be done with the complex components
         call wnrm_wrap(ncplx,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
+        !print *,'iat,l,m,scpr',iat,l,m,scpr
         if (abs(1.d0-scpr) > 1.d-2) then
            if (abs(1.d0-scpr) > 1.d-1) then
               !if (iproc == 0) then

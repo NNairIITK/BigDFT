@@ -3772,6 +3772,7 @@ END SUBROUTINE clean_forces
 
 subroutine symm_stress(iproc,tens,at)
   use defs_basis
+  use module_base, only: verbose,gp
   use m_ab6_symmetry
   use module_types
 

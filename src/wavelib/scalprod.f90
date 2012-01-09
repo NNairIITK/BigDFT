@@ -349,14 +349,14 @@ subroutine wpdot(  &
      !warning: hunt is assuming that the variable is always found
      !if it is not, iaseg0 is put to maseg + 1 so that the loop is disabled
      call hunt1(.true.,keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
-
+     !print *,'huntexit',iaseg0,maseg_c,keyag_c_lin(iaseg0),keybg_c(1,ibseg)
      !now pass through all the wavefunction segments until the end of the segment is 
      !still contained in projector segment
      nonconvex_loop_c: do while(iaseg0 <= maseg_c)
         !length = jb1-jb0
         !iaoff = jb0-keyag_c_lin(iaseg0)!jb0-ja0
 
-        ja0=keyag_c_lin(iaseg0) !still doubts about copying in automatic array
+        ja0=keyag_c_lin(iaseg0)
         ja1=min(jb1,keyag_c(2,iaseg0)) 
         length = ja1-jb0
         iaoff = max(jb0-ja0,0) !no offset if we are already inside
@@ -365,14 +365,18 @@ subroutine wpdot(  &
         do i=0,length
            scpr0=scpr0+real(apsi_c(jaj+iaoff+i),dp)*real(bpsi_c(jbj+i),dp)
         enddo
-
+        !print *,'ibseg,mbseg_c,iaseg0,maseg_c',ibseg,mbseg_c,iaseg0,maseg_c
+        !print '(a,6(i8),1pe25.17)','ja0,ja1t,ja1,jb0,jb1',&
+        !     ibseg,ja0,keyag_c(2,iaseg0),ja1,jb0,jb1,scpr0
         if (ja1==jb1) exit nonconvex_loop_c !segment is finished
         iaseg0=iaseg0+1
      end do nonconvex_loop_c
      !disable loop if the end is reached
-     if (iaseg0 == maseg_c) iaseg0=iaseg0+1
+     if (iaseg0 == maseg_c .and. keybg_c(1,ibseg)> keyag_c_lin(maseg_c)) iaseg0=iaseg0+1
+
 
    enddo
+!stop
 !$omp end do nowait
 
 ! fine part
@@ -411,7 +415,7 @@ iaseg0=1
         iaseg0=iaseg0+1
      end do nonconvex_loop_f
      !disable loop if the end is reached
-     if (iaseg0 == maseg_f) iaseg0=iaseg0+1
+     if (iaseg0 == maseg_f .and. keybg_f(1,ibseg)> keyag_f_lin(maseg_f)) iaseg0=iaseg0+1
 
    enddo
 !$omp end do !!!implicit barrier 
@@ -593,7 +597,7 @@ iaseg0=1
         iaseg0=iaseg0+1
      end do nonconvex_loop_c
      !disable loop if the end is reached
-     if (iaseg0 == maseg_c) iaseg0=iaseg0+1
+     if (iaseg0 == maseg_c .and. keybg_c(1,ibseg)> keyag_c_lin(maseg_c)) iaseg0=iaseg0+1
 
    enddo
 !$omp end do nowait
@@ -640,7 +644,7 @@ iaseg0=1
          iaseg0=iaseg0+1
       end do nonconvex_loop_f
       !disable loop if the end is reached
-      if (iaseg0 == maseg_f) iaseg0=iaseg0+1
+      if (iaseg0 == maseg_f .and. keybg_f(1,ibseg)> keyag_f_lin(maseg_f)) iaseg0=iaseg0+1
 
 
    enddo
@@ -667,20 +671,23 @@ subroutine hunt1(ascnd,xx,n,x,jlo)
                                 ! warning: if jlo is outside range, routine is disabled
   !local variables
   integer :: inc,jhi,jm
-  
+
+!  print *,'jlo,n,xx(n),x',jlo,n,xx(n),x
+
   !check array extremes
   if (ascnd) then
      if (jlo > n) return
-     if (x > xx(n)) then
-        jlo=n+1
-        return
-     end if
+     !if (x > xx(n)) then
+     !   print *,'that is the last'
+     !   jlo=n+1
+     !   return
+     !end if
   else
      if (jlo < 1) return
-     if (x < xx(1)) then
-        jlo=n+1
-        return
-     end if
+     !if (x < xx(1)) then
+     !   jlo=n+1
+     !   return
+     !end if
   end if
 
   !start searching
@@ -692,6 +699,8 @@ subroutine hunt1(ascnd,xx,n,x,jlo)
      jlo=n
      return
   end if
+
+!  print *,'quickreturn'
  
   !check if the order is ascending (the sense of the ordering)
   !ascnd=xx(n) >= xx(1) now passed as an argument
@@ -758,5 +767,7 @@ subroutine hunt1(ascnd,xx,n,x,jlo)
         jhi=jm
      endif
   end do binary_search
+
+  !print *,'good,jm:',jm,jlo,jhi
 
 END SUBROUTINE hunt1
