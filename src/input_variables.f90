@@ -1587,12 +1587,13 @@ END SUBROUTINE frequencies_input_variables
 
 !> Fill the arrays occup and spinsgn
 !! if iunit /=0 this means that the file 'input.occ' does exist and it opens
-subroutine occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
+subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
   use module_base
   use module_input
   implicit none
   ! Arguments
-  integer, intent(in) :: nelec,nspin,iproc,norb,norbu,iunit,norbuempty,norbdempty
+  logical, intent(in) :: verb
+  integer, intent(in) :: nelec,nspin,norb,norbu,iunit,norbuempty,norbdempty
   real(gp), dimension(norb), intent(out) :: occup,spinsgn
   ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1,i
@@ -1705,7 +1706,7 @@ subroutine occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,no
            end if
         end if
      end do
-     if (iproc==0) then
+     if (verb) then
         write(*,'(1x,a,i0,a)') &
              'The occupation numbers are read from the file "input.occ" (',nt,' lines read)'
      end if
@@ -1731,7 +1732,7 @@ subroutine occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,no
         end do
      end if
   end if
-  if (iproc==0) then 
+  if (verb) then 
      write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
      iorb1=1
      rocc=occup(1)

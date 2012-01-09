@@ -95,11 +95,11 @@ int main(int argc, char **argv)
   orbs = bigdft_orbs_new(atoms, in, 0, 1, &nelec);
   fprintf(stdout, " System has %d electrons.\n", nelec);
 
-  fprintf(stdout, "Test memory estimation.\n");
-  stdout_fileno_old = redirect_init(out_pipe);
-  peak = bigdft_memory_peak(4, glr, in, orbs);
-  redirect_dump(out_pipe, stdout_fileno_old);
-  fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
+  /* fprintf(stdout, "Test memory estimation.\n"); */
+  /* stdout_fileno_old = redirect_init(out_pipe); */
+  /* peak = bigdft_memory_peak(4, glr, in, orbs); */
+  /* redirect_dump(out_pipe, stdout_fileno_old); */
+  /* fprintf(stdout, " Memory peak will reach %f octets.\n", peak); */
 
   fprintf(stdout, "Test BigDFT_Orbs free.\n");
   bigdft_orbs_free(orbs);
@@ -117,9 +117,9 @@ int main(int argc, char **argv)
   bigdft_atoms_free(atoms);
   fprintf(stdout, " Ok\n");
 
-  stdout_fileno_old = redirect_init(out_pipe);
-  FC_FUNC_(memocc_report, MEMOCC_REPORT)();
-  redirect_dump(out_pipe, stdout_fileno_old);
+  /* stdout_fileno_old = redirect_init(out_pipe); */
+  /* FC_FUNC_(memocc_report, MEMOCC_REPORT)(); */
+  /* redirect_dump(out_pipe, stdout_fileno_old); */
 
   return 0;
 }

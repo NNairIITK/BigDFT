@@ -24,7 +24,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   !n(c) character(len=*), parameter :: subname='system_properties'
 
   call read_atomic_variables('input.occup',iproc,in,atoms,radii_cf)
-  call read_orbital_variables(iproc,nproc,in,atoms,orbs,nelec)
+  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
 END SUBROUTINE system_properties
 
 
@@ -367,13 +367,14 @@ subroutine read_radii_variables(atoms, radii_cf)
   enddo
 END SUBROUTINE read_radii_variables
 
-subroutine read_orbital_variables(iproc,nproc,in,atoms,orbs,nelec)
+subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   use module_base
   use module_types
   use module_interfaces
   implicit none
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
+  logical, intent(in) :: verb
   type(atoms_data), intent(in) :: atoms
   integer, intent(out) :: nelec
   type(orbitals_data), intent(inout) :: orbs
@@ -396,7 +397,7 @@ subroutine read_orbital_variables(iproc,nproc,in,atoms,orbs,nelec)
      nelec=nelec+atoms%nelpsp(ityp)
   enddo
   nelec=nelec-in%ncharge
-  if (iproc == 0) then
+  if (verb) then
      write(*,'(1x,a,t28,i8)') 'Total Number of Electrons',nelec
   end if
 
@@ -405,16 +406,16 @@ subroutine read_orbital_variables(iproc,nproc,in,atoms,orbs,nelec)
      norb=(nelec+1)/2
      norbu=norb
      norbd=0
-     if (mod(nelec,2).ne.0 .and. iproc==0) then
+     if (mod(nelec,2).ne.0 .and. verb) then
         write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
      end if
   else if(in%nspin==4) then
-     if (iproc==0) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
+     if (verb) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
      norb=nelec
      norbu=norb
      norbd=0
   else 
-     if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
+     if (verb) write(*,'(1x,a)') 'Spin-polarized calculation'
      norb=nelec
      if (mod(norb+in%mpol,2) /=0) then
         write(*,*)'ERROR: the mpol polarization should have the same parity of the number of electrons'
@@ -578,7 +579,7 @@ subroutine read_orbital_variables(iproc,nproc,in,atoms,orbs,nelec)
 
   !distribution of wavefunction arrays between processors
   !tuned for the moment only on the cubic distribution
-  if (iproc == 0 .and. nproc > 1) then
+  if (verb .and. nproc > 1) then
      jpst=0
      do jproc=0,nproc-1
         norbme=orbs%norb_par(jproc,0)
@@ -596,7 +597,7 @@ subroutine read_orbital_variables(iproc,nproc,in,atoms,orbs,nelec)
 
   !assign to each k-point the same occupation number
   do ikpts=1,orbs%nkpts
-     call occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
+     call occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
 end subroutine read_orbital_variables

@@ -462,7 +462,7 @@ struct f90_pointer_orbs_
 void FC_FUNC_(orbs_new, ORBS_NEW)(f90_pointer_orbs *orbs);
 void FC_FUNC_(orbs_free, ORBS_FREE)(f90_pointer_orbs *orbs);
 void FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(int *iproc, int *nproc,
-                                                              void *in, void *atoms,
+                                                              int *verb, void *in, void *atoms,
                                                               void *orbs, int *nelec);
 void FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(void *orbs, int *norb,
                                                         int *norbp, int *norbu,
@@ -492,11 +492,11 @@ BigDFT_Orbs* bigdft_orbs_new(const BigDFT_Atoms *atoms, const BigDFT_Inputs *in,
                              int iproc, int nproc, guint *nelec)
 {
   BigDFT_Orbs *orbs;
-  int nelec_;
+  int nelec_, verb = 0;
 
   orbs = bigdft_orbs_init();
   FC_FUNC_(orbs_new, ORBS_NEW)(orbs->data);
-  FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(&iproc, &nproc, in->data->in,
+  FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(&iproc, &nproc, &verb, in->data->in,
                                                            atoms->data->atoms,
                                                            orbs->data->orbs, &nelec_);
   if (nelec)
