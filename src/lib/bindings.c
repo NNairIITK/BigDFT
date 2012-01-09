@@ -109,7 +109,8 @@ void FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(f90_pointer_atoms *ato
                                                           double *radii_cf);
 void FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(void *atoms, double *rxyz,
                                                           int *disable, double *elecfield);
-void FC_FUNC_(atoms_set_displacement, ATOMS_SET_DISPLACEMENT)(void *atoms, double *randdis);
+void FC_FUNC_(atoms_set_displacement, ATOMS_SET_DISPLACEMENT)(void *atoms, double *rxyz,
+                                                              double *randdis);
 
 
 #define GET_ATTR_INT(name,NAME) { \
@@ -229,7 +230,7 @@ void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active, double el
 
 void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
 {
-  FC_FUNC_(atoms_set_displacement, ATOMS_SET_DISPLACEMENT)(atoms->data->atoms, &randdis);
+  FC_FUNC_(atoms_set_displacement, ATOMS_SET_DISPLACEMENT)(atoms->data->atoms, atoms->rxyz.data, &randdis);
 }
 
 double* bigdft_atoms_get_radii(const BigDFT_Atoms *atoms)
@@ -363,6 +364,12 @@ void FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(void *in, int *iscf, int *itrpmax,
                                               int *norbsempty, int *occopt, double *alphamix,
                                               double *rpnrm_cv, double *gnrm_startmix,
                                               double *Tel, double *alphadiis);
+void FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(void *in, char *geopt_approach,
+                                                  int *ncount_cluster_x, double *frac_fluct,
+                                                  double *forcemax, double *randdis,
+                                                  double *betax, int *history, int *ionmov,
+                                                  double *dtion, double *strtarget,
+                                                  f90_pointer_double *qmass);
 void FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(f90_pointer_inputs *in,
                                                         int *iproc, int *dump);
 void FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(const f90_pointer_inputs *in, int *files);
@@ -377,6 +384,7 @@ BigDFT_Inputs* bigdft_inputs_init()
   memset(in, 0, sizeof(BigDFT_Inputs));
   in->data = g_malloc(sizeof(f90_pointer_inputs));
   memset(in->data, 0, sizeof(f90_pointer_inputs));
+  memset(&in->qmass, 0, sizeof(f90_pointer_double));
 
   return in;
 }
@@ -419,7 +427,11 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
                                            &in->norbsempty, (int*)(&in->occopt), &in->alphamix,
                                            &in->rpnrm_cv, &in->gnrm_startmix, &in->Tel,
                                            &in->alphadiis);
-  /* FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(); */
+  FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(in->data->in, in->geopt_approach,
+                                               &in->ncount_cluster_x, &in->frac_fluct,
+                                               &in->forcemax, &in->randdis, &in->betax,
+                                               &in->history, &in->ionmov, &in->dtion,
+                                               in->strtarget, &in->qmass);
   /* FC_FUNC_(inputs_get_sic, INPUTS_GET_SIC)(); */
   /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
   

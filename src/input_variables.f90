@@ -143,14 +143,14 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Parse all input files, independent from atoms.
   call inputs_parse_params(inputs, iproc, .true.)
 
+  ! Shake atoms, if required.
+  call atoms_set_displacement(atoms, rxyz, inputs%randdis)
+
   ! Update atoms with symmetry information
   call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%elecfield)
 
   ! Parse input files depending on atoms.
   call inputs_parse_add(inputs, atoms, iproc, .true.)
-
-  ! Shake atoms, if required.
-  call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then

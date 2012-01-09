@@ -95,6 +95,12 @@ typedef struct BigDFT_Inputs_
   BigDFT_Smearing occopt;
   double alphamix, rpnrm_cv, gnrm_startmix, Tel, alphadiis;
 
+  /* GEOPT file variables. */
+  char geopt_approach[10];
+  int ncount_cluster_x, history, ionmov;
+  double frac_fluct, forcemax, randdis, betax, dtion;
+  double strtarget[6];
+  f90_pointer_double qmass;
 
   /* Private. */
   f90_pointer_inputs *data;
