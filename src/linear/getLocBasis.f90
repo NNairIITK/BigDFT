@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
-    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi)
+    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 !
 ! Purpose:
 ! ========
@@ -87,18 +87,19 @@ real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 logical,intent(in):: communicate_lphi
+real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff_proj
 
 ! Local variables 
 integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount, jlr, ii
 real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold, hphiold, eps, temparr, work
-real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, ovrlpold, hamold, overlapmatrix, lambda, coeffold
+real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, hamold, overlapmatrix, lambda, coeffold
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork
 real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
 type(workarr_sumrho):: w
-integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt
+integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt, inc, jjorb
 real(8),dimension(:),pointer:: lpot
 
 
@@ -139,10 +140,11 @@ real(8),dimension(:),pointer:: lpot
           call dcopy(lin%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
       end if
 
+
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
           nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trace, rxyzParab, &
-          itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj, coeff)
+          itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj, coeff_proj)
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
@@ -398,6 +400,28 @@ real(8),dimension(:),pointer:: lpot
   end do
   ! If closed shell multiply by two.
   if(input%nspin==1) ebs=2.d0*ebs
+
+
+
+  ! Project the lb coefficients on the smaller subset
+  if(lin%useDerivativeBasisFunctions) then
+      inc=4
+  else
+      inc=1
+  end if
+  do iorb=1,orbs%norb
+      jjorb=1
+      do jorb=1,lin%lb%orbs%norb,inc
+          tt=0.d0
+          do korb=1,lin%lb%orbs%norb
+              tt = tt + coeff(korb,iorb)*overlapmatrix(korb,jorb)
+          end do
+          coeff_proj(jjorb,iorb)=tt
+          if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  coeff_proj(jjorb,iorb), coeff(jorb,iorb)
+          jjorb=jjorb+1
+      end do
+  end do
+
   
 
   ! Copy the basis functions for the next iterations
@@ -522,7 +546,7 @@ real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
+real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
 
 ! Local variables
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot
@@ -648,7 +672,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       t1=mpi_wtime()
       if(.not.ldiis%switchSD) then
           call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, &
-                                    lin%comon, rxyz, lin%nItInnerLoop, lphi)
+                                    lin%comon, rxyz, lin%nItInnerLoop, kernel, lphi)
           !!! Flatten at the edges -  EXPERIMENTAL
           !!call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
       end if
@@ -750,8 +774,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       ! Calculate modified trace
       tt=0.d0
       do iorb=1,orbs%norb
-          do jorb=1,lin%lb%orbs%norb
-              do korb=1,lin%lb%orbs%norb
+          do jorb=1,lin%orbs%norb
+              do korb=1,lin%orbs%norb
                   tt = tt + coeff(jorb,iorb)*coeff(korb,iorb)*W(korb,jorb)
               end do
           end do
@@ -3573,7 +3597,7 @@ end subroutine minimize_in_subspace
 
 
 
-subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, nit, lphi)
+subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, nit, kernel, lphi)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => unitary_optimization
@@ -3589,12 +3613,13 @@ type(input_variables),intent(in):: input
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
 real(8),dimension(3,at%nat),intent(in):: rxyz
+real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
 real(8),dimension(orbs%npsidim),intent(inout):: lphi
 
 ! Local variables
-integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr
+integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, lorb
 real(8):: trace, lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
-real(8):: tt1, tt2, tt3, tt4, tt5
+real(8):: tt1, tt2, tt3, tt4, tt5, tt
 real(8):: t1, t2, t1_tot, t2_tot
 real(8):: time_convol, time_commun, time_lincomb, time_linalg, time_matrixmodification, time_exponential, time_tot
 real(8):: time_matrixelements
@@ -3603,7 +3628,7 @@ real(8),dimension(:,:),allocatable:: gmat, hamtrans, ttmat, Kmat
 complex(8),dimension(:,:),allocatable:: gmatc, omatc
 complex(8),dimension(:,:,:),allocatable:: tempmatc
 complex(8),dimension(:),allocatable:: work, expD_cmplx
-real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi
+real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi, recvbuf
 real(8),dimension(:,:,:),allocatable:: tempmat3
 character(len=*),parameter:: subname='unitary_optimization'
 type(p2pCommsOrthonormality):: comon_local
@@ -3630,6 +3655,8 @@ allocate(lvphi(orbs%npsidim), stat=istat)
 call memocc(istat, lvphi, 'lvphi', subname)
 allocate(Kmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, Kmat, 'Kmat', subname)
+allocate(recvbuf(comon%nrecvbuf), stat=istat)
+call memocc(istat, recvbuf, 'recvbuf', subname)
 
 
 
@@ -3661,10 +3688,6 @@ call memocc(istat, Kmat, 'Kmat', subname)
       call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
       t2=mpi_wtime()
       time_convol=time_convol+t2-t1
-      energyconf_0=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
-      call mpiallred(energyconf_0, 1, mpi_sum, mpi_comm_world, ierr)
-      if(iproc==0) write(*,'(a,i6,2es20.10,2es17.7)') 'it, energyconf_0, energyvonf_trial, lstep, lstep_optimal', &
-                   it, energyconf_0, energyconf_trial, lstep, lstep_optimal
 
       t1=mpi_wtime()
       allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
@@ -3686,14 +3709,46 @@ call memocc(istat, Kmat, 'Kmat', subname)
       t2=mpi_wtime()
       time_matrixElements=time_matrixElements+t2-t1
 
+      if(.not.lin%newgradient) then
+          !energyconf_0=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
+          !call mpiallred(energyconf_0, 1, mpi_sum, mpi_comm_world, ierr)
+          energyconf_0=0.d0
+          do iorb=1,orbs%norb
+              energyconf_0 = energyconf_0 + Kmat(iorb,iorb)
+          end do
+      else
+          energyconf_0=0.d0
+          do iorb=1,orbs%norb
+              do jorb=1,orbs%norb
+                  energyconf_0 = energyconf_0 + kernel(jorb,iorb)*Kmat(jorb,iorb)
+                  !energyconf_0 = energyconf_0 + kernel(jorb,iorb)*Kmat(iorb,jorb)
+              end do
+          end do
+      end if
+      if(iproc==0) write(*,'(a,i6,3es20.10,2es17.7)') &
+                   'it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal', &
+                   it, energyconf_0, energyconf_trial, energyconf_der0, lstep, lstep_optimal
 
       t1=mpi_wtime()
-      ! Construct antisymmtric matrix Gmat
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              gmat(jorb,iorb)=2.d0*(Kmat(jorb,iorb)-Kmat(iorb,jorb))
-          end do
-      end do 
+      if(.not.lin%newgradient) then
+          ! Construct antisymmtric matrix Gmat
+          do iorb=1,orbs%norb
+              do jorb=1,orbs%norb
+                  gmat(jorb,iorb)=2.d0*(Kmat(jorb,iorb)-Kmat(iorb,jorb))
+              end do
+          end do 
+      else
+          do iorb=1,orbs%norb
+              do jorb=1,orbs%norb
+                  tt=0.d0
+                  do lorb=1,orbs%norb
+                      tt = tt + kernel(jorb,lorb)*Kmat(iorb,lorb) - kernel(iorb,lorb)*Kmat(jorb,lorb)
+                      !tt = tt + kernel(jorb,lorb)*Kmat(lorb,iorb) - kernel(iorb,lorb)*Kmat(lorb,jorb)
+                  end do
+                  gmat(jorb,iorb)=-2.d0*tt
+              end do
+          end do 
+      end if
       t2=mpi_wtime()
       time_matrixmodification=time_matrixmodification+t2-t1
 
@@ -3725,7 +3780,11 @@ call memocc(istat, Kmat, 'Kmat', subname)
 
       ! Calculate step size
       if(it==1) then
-          lstep=5.d-2/(maxval(eval))
+          if(.not.lin%newgradient) then
+              lstep=5.d-2/(maxval(eval))
+          else
+              lstep=5.d-2/(maxval(eval))
+          end if
       else
           lstep=2.d0*lstep_optimal
       end if
@@ -3786,8 +3845,29 @@ call memocc(istat, Kmat, 'Kmat', subname)
       t2=mpi_wtime()
       time_convol=time_convol+t2-t1
 
-      energyconf_trial=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
-      call mpiallred(energyconf_trial, 1, mpi_sum, mpi_comm_world, ierr)
+      if(.not.lin%newgradient) then
+          energyconf_trial=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
+          call mpiallred(energyconf_trial, 1, mpi_sum, mpi_comm_world, ierr)
+      else
+
+          call dcopy(comon%nrecvbuf, comon%recvbuf, 1, recvbuf, 1)
+          call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+          call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
+          allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+          call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
+               comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
+          deallocate(ttmat)
+          call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, lphi, lvphi, lin%mad, Kmat)
+          call dcopy(comon%nrecvbuf, recvbuf, 1, comon%recvbuf, 1)
+
+          energyconf_trial=0.d0
+          do iorb=1,orbs%norb
+              do jorb=1,orbs%norb
+                  energyconf_trial = energyconf_trial + kernel(jorb,iorb)*Kmat(jorb,iorb)
+                  !energyconf_trial = energyconf_trial + kernel(jorb,iorb)*Kmat(iorb,jorb)
+              end do
+          end do
+      end if
 
       ! Calculate the gradient of the confinement
       energyconf_der0=0.d0
@@ -3800,7 +3880,15 @@ call memocc(istat, Kmat, 'Kmat', subname)
 
       ! Calculate optimal step size
       lstep_optimal = -energyconf_der0*lstep**2/(2.d0*(energyconf_trial-energyconf_0-lstep*energyconf_der0))
-      lstep_optimal=min(lstep_optimal,lstep)
+      if(.not.lin%newgradient) then
+          lstep_optimal=min(lstep_optimal,lstep)
+      else
+          if(lstep_optimal<0) then
+              lstep_optimal=lstep
+          else
+              lstep_optimal=min(lstep_optimal,lstep)
+          end if
+      end if
 
       t1=mpi_wtime()
       ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
@@ -3921,6 +4009,9 @@ call memocc(istat, Kmat, 'Kmat', subname)
   iall=-product(shape(Kmat))*kind(Kmat)
   deallocate(Kmat, stat=istat)
   call memocc(istat, iall, 'Kmat', subname)
+  iall=-product(shape(recvbuf))*kind(recvbuf)
+  deallocate(recvbuf, stat=istat)
+  call memocc(istat, iall, 'recvbuf', subname)
 
   call deallocateRecvBufferOrtho(comon, subname)
   call deallocateSendBufferOrtho(comon, subname)

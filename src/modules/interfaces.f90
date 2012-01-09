@@ -1667,7 +1667,7 @@ module module_interfaces
       real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-      real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
+      real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
     end subroutine getLocalizedBasis
 
 
@@ -1868,7 +1868,7 @@ module module_interfaces
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
-        i3s, i3xcsh, ebsMod, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi)
+        i3s, i3xcsh, ebsMod, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
       use module_base
       use module_types
       implicit none
@@ -1898,6 +1898,7 @@ module module_interfaces
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       logical,intent(in):: communicate_lphi
+      real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff_proj
     end subroutine getLinearPsi
 
 
@@ -5327,7 +5328,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine applyOrthoconstraintlocal
 
 
-       subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, nit, lphi)
+       subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, nit, kernel, lphi)
          use module_base
          use module_types
          implicit none
@@ -5340,6 +5341,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(overlapParameters),intent(inout):: op
          type(p2pCommsOrthonormality),intent(inout):: comon
          real(8),dimension(3,at%nat),intent(in):: rxyz
+         real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
          real(8),dimension(orbs%npsidim),intent(inout):: lphi
        end subroutine unitary_optimization
 

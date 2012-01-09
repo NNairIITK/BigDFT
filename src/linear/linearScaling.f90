@@ -119,7 +119,7 @@ character(len=10):: comment, procName, orbNumber
 integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot, iiorb, ncount, ncnt
 type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
-real(8),dimension(:,:),allocatable:: ovrlp
+real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
 
 
@@ -186,6 +186,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
   allocate(lin%coeffall(lin%lb%orbs%norb,orbs%norb+lin%norbvirt), stat=istat)
   call memocc(istat, lin%coeffall, 'lin%coeffall', subname)
 
+  allocate(coeff_proj(lin%orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, coeff_proj, 'coeff_proj', subname)
+
 
   call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
 
@@ -235,7 +238,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
           nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
           infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
-          i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi)
+          i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 
       ! Calculate the charge density.
       call cpu_time(t1)
@@ -377,7 +380,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
           call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
               infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi)
+              i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 
 
           ! Potential from electronic charge density
@@ -596,6 +599,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
   deallocate(lin%coeffall, stat=istat)
   call memocc(istat, iall, 'lin%coeffall', subname)
 
+  iall=-product(shape(coeff_proj))*kind(coeff_proj)
+  deallocate(coeff_proj, stat=istat)
+  call memocc(istat, iall, 'coeff_proj', subname)
 
 
 
