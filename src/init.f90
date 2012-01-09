@@ -144,7 +144,7 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid_c,logrid_f
    !local variables
    character(len=*), parameter :: subname='wfd_from_grids'
-   integer :: i_stat
+   integer :: i_stat, i_all, i,j
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
    !assign the dimensions to improve (a little) readability
@@ -192,12 +192,23 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    ! now fill the wavefunction descriptor arrays
    ! coarse grid quantities
    call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c, &
-        & Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1))
+        & Glr%wfd%keyglob(1,1),Glr%wfd%keyv(1))
    ! fine grid quantities
    if (Glr%wfd%nseg_f > 0) then
       call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f, &
-           & Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1), Glr%wfd%keyv(Glr%wfd%nseg_c+1))
+           & Glr%wfd%keyglob(1,Glr%wfd%nseg_c+1), Glr%wfd%keyv(Glr%wfd%nseg_c+1))
    end if
+   i_all = -product(shape(Glr%wfd%keygloc))*kind(Glr%wfd%keygloc)
+   deallocate(Glr%wfd%keygloc,stat=i_stat)
+   call memocc(i_stat,i_all,'Glr%wfd%keygloc',subname)
+   Glr%wfd%keygloc => Glr%wfd%keyglob
+ 
+   ! Copy the information of keyglob to keygloc for Glr (just pointing leads to problem during the deallocation of wfd)
+!!$   do i = lbound(Glr%wfd%keyglob,1),ubound(Glr%wfd%keyglob,1)
+!!$      do j = lbound(Glr%wfd%keyglob,2),ubound(Glr%wfd%keyglob,2)
+!!$         Glr%wfd%keygloc(i,j) = Glr%wfd%keyglob(i,j)
+!!$      end do
+!!$   end do
 
    !for free BC admits the bounds arrays
    if (Glr%geocode == 'F') then
@@ -343,6 +354,9 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
               nlpspd%plr(iat)%wfd%nseg_c,&
               nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keyv(1))
 
+        call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),nlpspd%plr(iat)%wfd%nseg_c,&
+             nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keygloc(1,1))
+
 !!$         call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
 !!$         logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
 
@@ -382,6 +396,9 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
             call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                  logrid,mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
                  nlpspd%plr(iat)%wfd%keyv(iseg))
+
+            call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
+                 nlpspd%plr(iat)%wfd%keygloc(1,iseg)) 
          end if
       endif
    enddo
@@ -1579,7 +1596,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!$         ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
 !!$         pkernel=pkernelseq)
     call HamiltonianApplication3(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-         proj,Lzd,confdatarr,ngatherarr,Lpot,lpsi,lhpsi,&
+         proj,Lzd,nlpspd,confdatarr,ngatherarr,Lpot,lpsi,lhpsi,&
          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
          pkernel=pkernelseq)
     deallocate(confdatarr)
@@ -1933,7 +1950,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
            ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
 
       call NonLocalHamiltonianApplication(iproc,at,orbse,hx,hy,hz,rxyz,&
-           proj,Lzd,psi,hpsi,eproj_sum)
+           proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
 
       call SynchronizeHamiltonianApplication(nproc,orbse,Lzd,GPU,hpsi,&
            ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
@@ -1947,7 +1964,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!$         withConfinement, .true., &
 !!$         pkernel=pkernel)
     call HamiltonianApplication3(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-         proj,Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+         proj,Lzd,nlpspd,confdatarr,ngatherarr,pot,psi,hpsi,&
          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
          pkernel=pkernelseq)
     !restore the good value

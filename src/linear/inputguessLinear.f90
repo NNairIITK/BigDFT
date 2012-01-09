@@ -439,7 +439,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Deallocate lin%lig%lzdGauss since it is not  needed anymore.
-  call deallocate_nonlocal_psp_descriptors(lin%lig%lzdGauss%Gnlpspd, subname)
+!!$  call deallocate_nonlocal_psp_descriptors(lin%lig%lzdGauss%Gnlpspd, subname)
   call deallocate_local_zone_descriptors(lin%lig%lzdGauss, subname)
 
   !-- if spectra calculation uses a energy dependent potential
@@ -509,7 +509,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Copy nlpspd to lin%lig%lzdig%Gnlpspd.
-  call copy_nonlocal_psp_descriptors(nlpspd, lin%lig%lzdig%Gnlpspd, subname)
+!!$  call copy_nonlocal_psp_descriptors(nlpspd, lin%lig%lzdig%Gnlpspd, subname)
   
   ! Set localnorb, i.e. the number of orbitals a given process has in a specific loalization region.
   do ilr=1,lin%lig%lzdig%nlr
@@ -595,8 +595,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
   call mpi_barrier(mpi_comm_world,ierr)
   call cpu_time(t1)
-  call prepare_lnlpspd(iproc,at,input,lin%lig%orbsig,rxyz,radii_cf,&
-       lin%locregShape,lin%lig%lzdig)
+!  call prepare_lnlpspd(iproc,at,input,lin%lig%orbsig,rxyz,radii_cf,&
+!       lin%locregShape,lin%lig%lzdig)
 
 !!$  call full_local_potential2(iproc, nproc, &
 !!$       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2), &
@@ -675,7 +675,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
              call NonLocalHamiltonianApplication(iproc,at,lin%lig%orbsig,&
                   input%hx,input%hy,input%hz,rxyz,&
-                  proj,lin%lig%lzdig,lchi,lhchi(1,ii),eproj_sum)
+                  proj,lin%lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
              deallocate(confdatarr)
           end if
 
@@ -825,7 +825,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Deallocate all local arrays.
 
   ! Deallocate all types that are not needed any longer.
-  call deallocate_nonlocal_psp_descriptors(lin%lig%lzdig%Gnlpspd, subname)
+!!$  call deallocate_nonlocal_psp_descriptors(lin%lig%lzdig%Gnlpspd, subname)
   call deallocate_local_zone_descriptors(lin%lig%lzdig, subname)
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
   call deallocate_matrixDescriptors(lin%lig%mad, subname)

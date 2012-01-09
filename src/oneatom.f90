@@ -230,14 +230,14 @@ program oneatom
      endloop=endloop .or. ndiis_sd_sw > 2
 
      call FullHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          proj,Lzd,confdatarr,ngatherarr,pot_ion,psi,hpsi,&
+          proj,Lzd,nlpspd,confdatarr,ngatherarr,pot_ion,psi,hpsi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU)
 
 !!$     call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,&
 !!$          Lzd,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
 !!$
 !!$     call NonLocalHamiltonianApplication(iproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-!!$          proj,Lzd,psi,hpsi,eproj_sum)
+!!$          proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
 !!$
 !!$     call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 

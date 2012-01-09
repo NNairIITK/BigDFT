@@ -229,7 +229,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    real(kind=8) :: ttsum
    real(gp) :: edisp ! Dispersion energy
    type(wavefunctions_descriptors) :: wfd_old
-!  type(nonlocal_psp_descriptors) :: nlpspd
+   type(nonlocal_psp_descriptors) :: nlpspd
    type(communications_arrays) :: comms, commsv
    type(orbitals_data) :: orbsv
    type(gaussian_basis) :: Gvirt
@@ -425,7 +425,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    ! Calculate all projectors, or allocate array for on-the-fly calculation
    call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-       radii_cf,cpmult,fpmult,hx,hy,hz,Lzd%Gnlpspd,proj)
+       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
    call timing(iproc,'CrtProjectors ','OF')
   ! See if linear scaling should be activated and build the correct Lzd 
   ! There is a copy of this inside the LCAO input guess because the norbs changes
@@ -438,7 +438,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !memory estimation
    if (iproc==0 .and. verbose > 0) then
      call MemoryEstimator(nproc,idsx,Lzd%Glr,&
-          atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,Lzd%Gnlpspd%nprojel,&
+          atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
       in%nspin,in%itrpmax,in%iscf,peakmem)
    end if
 
@@ -718,7 +718,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
       call input_wf_diag(iproc,nproc, atoms,rhodsc,&
           orbs,norbv,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          Lzd%Gnlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
+          nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in,radii_cf)
 
       if (nvirt > norbv) then
@@ -762,7 +762,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call linearScaling(iproc,nproc,n3d,n3p,n3pi,i3s,i3xcsh,Lzd%Glr,&
           orbs,comms,atoms,in,rhodsc,lin,&
           rxyz,fion,fdisp,radii_cf,nscatterarr,ngatherarr,&
-          Lzd%Gnlpspd,proj,rhopot,GPU,pkernelseq,&
+          nlpspd,proj,rhopot,GPU,pkernelseq,&
           irrzon,phnons,pkernel,pot_ion,rhocore,potxc,PSquiet,eion,edisp,eexctX,scpot,psi,psit,&
           energy,fxyz)
 
@@ -1120,7 +1120,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!$                withConfinement,.true.,&
 !!$                pkernel=pkernelseq)
            call HamiltonianApplication3(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-                proj,Lzd,confdatarr,ngatherarr,potential,psi,hpsi,&
+                proj,Lzd,nlpspd,confdatarr,ngatherarr,potential,psi,hpsi,&
                 ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
                 pkernel=pkernelseq)
            end if
@@ -1130,7 +1130,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                  ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
 
             call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
-                 proj,Lzd,psi,hpsi,eproj_sum)
+                 proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
             
             call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
                 ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
@@ -1530,7 +1530,7 @@ if (inputpsi /= -1000) then
    !refill projectors for tails, davidson
    refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
 
-     call calculate_forces(iproc,nproc,Lzd%Glr,atoms,orbs,Lzd%Gnlpspd,rxyz,hx,hy,hz,proj,i3s+i3xcsh,n3p,in%nspin,refill_proj,&
+     call calculate_forces(iproc,nproc,Lzd%Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s+i3xcsh,n3p,in%nspin,refill_proj,&
       &   rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise)
 
    i_all=-product(shape(rho))*kind(rho)
@@ -1590,7 +1590,7 @@ if (DoDavidson) then
          call memocc(i_stat,i_all,'wkptv',subname)
 
          !recreate the memory space for the projectors 
-         call deallocate_proj_descr(Lzd%Gnlpspd,subname)  
+         call deallocate_proj_descr(nlpspd,subname)  
          i_all=-product(shape(proj))*kind(proj)
          deallocate(proj,stat=i_stat)
          call memocc(i_stat,i_all,'proj',subname)
@@ -1598,7 +1598,7 @@ if (DoDavidson) then
          ! Calculate all projectors, or allocate array for on-the-fly calculation
          call timing(iproc,'CrtProjectors ','ON')
            call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbsv,&
-                radii_cf,cpmult,fpmult,hx,hy,hz,Lzd%Gnlpspd,proj) 
+                radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj) 
          call timing(iproc,'CrtProjectors ','OF') 
 
       else
@@ -1617,16 +1617,16 @@ if (DoDavidson) then
       if (in%norbv < 0) then
          call direct_minimization(iproc,nproc,in,atoms,& 
                 orbs,orbsv,nvirt,Lzd,comms,commsv,&
-                hx,hy,hz,rxyz,rhopot,Lzd%Gnlpspd,proj, &
+                hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
                 pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
       else if (in%norbv > 0) then
          call davidson(iproc,nproc,in,atoms,& 
                 orbs,orbsv,in%nvirt,Lzd,comms,commsv,&
-                hx,hy,hz,rxyz,rhopot,Lzd%Gnlpspd,proj, &
+                hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
                 pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
          !!$           call constrained_davidson(iproc,nproc,in,atoms,&
 !!$                orbs,orbsv,in%nvirt,Lzd%Glr,comms,commsv,&
-!!$                hx,hy,hz,rxyz,rhopot,Lzd%Gnlpspd,proj, &
+!!$                hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
          !!$                psi,psivirt,nscatterarr,ngatherarr,GPU)
             
         end if
@@ -1801,7 +1801,7 @@ if ((in%rbuf > 0.0_gp) .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
 
    !pass hx instead of hgrid since we are only in free BC
    call CalculateTailCorrection(iproc,nproc,atoms,rbuf,orbs,&
-      &   Lzd%Glr,Lzd%Gnlpspd,ncongt,pot,hx,rxyz,radii_cf,crmult,frmult,in%nspin,&
+      &   Lzd%Glr,nlpspd,ncongt,pot,hx,rxyz,radii_cf,crmult,frmult,in%nspin,&
    proj,psi,(in%output_denspot /= 0),ekin_sum,epot_sum,eproj_sum)
 
    i_all=-product(shape(pot))*kind(pot)
@@ -1963,7 +1963,7 @@ subroutine deallocate_before_exiting
    deallocate(radii_cf,stat=i_stat)
    call memocc(i_stat,i_all,'radii_cf',subname)
 
-!    call deallocate_proj_descr(Lzd%Gnlpspd,subname)
+    call deallocate_proj_descr(nlpspd,subname)
 
    !free the rhodsc pointers if they were allocated
    call deallocate_rho_descriptors(rhodsc,subname)
@@ -2093,7 +2093,7 @@ END SUBROUTINE deallocate_before_exiting
     call memocc(i_stat,i_all,'radii_cf',subname)
 
     call deallocate_Lzd_except_Glr(Lzd,subname)
-!    call deallocate_proj_descr(Lzd%Gnlpspd,subname)
+    call deallocate_proj_descr(nlpspd,subname)
 
     i_all=-product(shape(proj))*kind(proj)
     deallocate(proj,stat=i_stat)

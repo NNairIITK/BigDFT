@@ -367,7 +367,7 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
         isdir(2),iedir(2),isdir(3),iedir(3),&
         Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),&
         Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c,&
-        Llr(ilr)%wfd%keygloc(1,1),Llr(ilr)%wfd%keyv(1),Llr(ilr)%outofzone(:))
+        Llr(ilr)%wfd%keygloc(1,1),Llr(ilr)%wfd%keyglob(1,1),Llr(ilr)%wfd%keyv(1),Llr(ilr)%outofzone(:))
 
    !fine part
    call segkeys_periodic(Glr%d%n1,Glr%d%n2,Glr%d%n3,isdir(1),iedir(1),&
@@ -376,6 +376,7 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
         Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
         Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f,&
         Llr(ilr)%wfd%keygloc(1,Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
+        Llr(ilr)%wfd%keyglob(1,Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
         Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),Llr(ilr)%outofzone(:))
 
 END SUBROUTINE determine_wfd_periodicity
@@ -985,7 +986,7 @@ END SUBROUTINE determine_boxbounds_sphere
 
 
 subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-     nseg_loc,nvctr_loc,keyg_loc,keyv_loc,outofzone)
+     nseg_loc,nvctr_loc,keyg_loc,keyg_glob,keyv_loc,outofzone)
   implicit none
   integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
   integer, dimension(nseg), intent(in) :: keyv
@@ -993,10 +994,11 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   integer, dimension(3), intent(in) :: outofzone
   integer, dimension(nseg_loc), intent(out) :: keyv_loc
   integer, dimension(2,nseg_loc), intent(out) :: keyg_loc
+  integer, dimension(2,nseg_loc), intent(out) :: keyg_glob
   !local variables
   logical :: go1,go2,go3,lseg
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
-  integer :: ngridp
+  integer :: ngridp,ngridlob
 
   !dimensions of the localisation region (O:nIl)
   ! must be smaller or equal to simulation box dimensions
@@ -1040,12 +1042,14 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
           i3l=i3-i3sc
           if(outofzone(3) > 0 .and. i3 <= outofzone(3))i3l = i3 - i3sc + n3 + 1
           ngridp=i3l*((n1l+1)*(n2l+1)) + i2l*(n1l+1) + i1l+1
+          ngridlob = i3 * ((n1+1)*(n2+1)) + i2 * (n1+1) + i1 + 1
 
           nvctr_check=nvctr_check+1
           if (.not. lseg) then
 !             print *,'         check:',i,i2,i3,i1l,i2l,i3l,ngridp
              nsrt=nsrt+1
              keyg_loc(1,nsrt)=ngridp
+             keyg_glob(1,nsrt)=ngridlob
              keyv_loc(nsrt)=nvctr_check
           end if
           lseg=.true.
@@ -1054,6 +1058,7 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
 !              print *,'in        else:',i,i2,i3,i1l,i2l,i3l,ngridp
               nend=nend+1
               keyg_loc(2,nend)=ngridp
+              keyg_glob(2,nend)=ngridlob
               lseg=.false.
            end if
         end if
@@ -1062,6 +1067,7 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
 !        print *,'in second else:',i,i2,i3,i1l,i2l,i3l,ngridp
         nend=nend+1
         keyg_loc(2,nend)=ngridp
+        keyg_glob(2,nend)=ngridlob
      end if
   end do
 
@@ -3364,3 +3370,82 @@ integer:: n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ov
       check_whether_locregs_overlap=.false.
   end if
 end function check_whether_locregs_overlap
+
+subroutine check_overlap(Llr_i, Llr_j, Glr, overlap)
+use module_base
+use module_types
+use module_interfaces
+implicit none
+
+! Calling arguments
+type(locreg_descriptors),intent(in):: Llr_i, Llr_j, Glr
+logical, intent(out) :: overlap
+
+! Local variables
+integer:: n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ovrlp
+logical:: go1, go2, go3
+  
+  ! Begin by checking if the boxes overlap
+  overlap = .false.
+  go1 = (Llr_i%ns1 < (Llr_j%ns1 + Llr_j%d%n1)) .and. ((Llr_i%ns1 + Llr_i%d%n1) > Llr_j%ns1 )
+  go2 = (Llr_i%ns2 < (Llr_j%ns2 + Llr_j%d%n2)) .and. ((Llr_i%ns2 + Llr_i%d%n2) > Llr_j%ns2 )
+  go3 = (Llr_i%ns3 < (Llr_j%ns3 + Llr_j%d%n3)) .and. ((Llr_i%ns3 + Llr_i%d%n3) > Llr_j%ns3 )
+  if(go1 .and. go2 .and. go3) overlap = .true.
+
+  ! If so, check if the descriptors overlap
+  if (overlap) then
+     ! Check whether there is an overlap by comparing the descriptors.
+     call overlapbox_from_descriptors(Llr_i%d%n1, Llr_i%d%n2, Llr_i%d%n3, &
+          Llr_j%d%n1, Llr_j%d%n2, Llr_j%d%n3, &
+          Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+          Llr_i%ns1, Llr_i%ns2, Llr_i%ns3, &
+          Llr_j%ns1, Llr_j%ns2, Llr_j%ns3, &
+          Glr%ns1, Glr%ns2, Glr%ns3, &
+          Llr_i%wfd%nseg_c, Llr_j%wfd%nseg_c, &
+          Llr_i%wfd%keygloc, Llr_i%wfd%keyv, Llr_j%wfd%keygloc, Llr_j%wfd%keyv, &
+          n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ovrlp)
+
+     ! n1_ovrlp, n2_ovrlp, n3_ovrlp are the dimensions of the overlap localization regions.
+     if(n1_ovrlp>0 .and. n2_ovrlp>0 .and. n3_ovrlp>0) then
+         ! There is an overlap
+         overlap=.true.
+     else
+         ! There is no overlap
+         overlap=.false.
+     end if
+  end if
+
+end subroutine check_overlap
+
+subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
+use module_base
+use module_types
+use module_interfaces
+implicit none
+type(locreg_descriptors),intent(in):: Glr, Llr
+integer, intent(in) :: nseg
+integer, dimension(2,nseg),intent(in) :: keyglob
+integer, dimension(2,nseg),intent(out) :: keygloc
+!local variables
+integer :: i, j, j0, ii, iz, iy, ix
+do i = 1 , 2
+   do j = 1, nseg
+      ! Writing keyglob in cartesian coordinates
+      j0 = keyglob(i,j)
+      ii = j0-1
+      iz = ii/((Glr%d%n1+1)*(Glr%d%n2+1))
+      ii = ii-iz*(Glr%d%n1+1)*(Glr%d%n2+1)
+      iy = ii/(Glr%d%n1+1)
+      ix = ii-iy*(Glr%d%n1+1)
+
+      ! Checking consistency
+      if(iz < Llr%ns3 .or. iy < Llr%ns2 .or. ix < Llr%ns1) stop 'transform_keyglob_to_keygloc : minimum overflow'
+      if(iz > Llr%ns3+Llr%d%n3 .or. iy > Llr%ns2+Llr%d%n2 .or. ix > Llr%ns1+Llr%d%n1)&
+         stop 'transform_keyglob_to_keygloc : maximum overflow'
+
+      ! Using coordinates to write keygloc      
+      keygloc(i,j) = (iz-Llr%ns3)*(Llr%d%n1+1)*(Llr%d%n2+1) + (iy-Llr%ns2)*(Llr%d%n1+1) + (ix-Llr%ns1) + 1
+   end do
+end do
+
+end subroutine transform_keyglob_to_keygloc

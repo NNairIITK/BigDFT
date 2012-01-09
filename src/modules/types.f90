@@ -431,9 +431,9 @@ module module_types
     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
     logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
     type(locreg_descriptors) :: Glr           !< Global region descriptors
-    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
+!    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
-    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
+!    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
   end type
 
 !>  Used to restart a new DFT calculation or to save information 
@@ -1026,15 +1026,24 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_all,i_stat
 
-    if (associated(wfd%keyglob)) then
+    if (associated(wfd%keyglob, target = wfd%keygloc)) then
        i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
        deallocate(wfd%keyglob,stat=i_stat)
        call memocc(i_stat,i_all,'wfd%keyglob',subname)
-    end if
-    if (associated(wfd%keygloc)) then
-       i_all=-product(shape(wfd%keygloc))*kind(wfd%keygloc)
-       deallocate(wfd%keygloc,stat=i_stat)
-       call memocc(i_stat,i_all,'wfd%keygloc',subname)
+       nullify(wfd%keyglob)
+    else
+       if(associated(wfd%keygloc)) then
+          i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
+          deallocate(wfd%keyglob,stat=i_stat)
+          call memocc(i_stat,i_all,'wfd%keyglob',subname)
+          nullify(wfd%keyglob)
+       end if
+       if(associated(wfd%keygloc)) then 
+          i_all=-product(shape(wfd%keygloc))*kind(wfd%keygloc)
+          deallocate(wfd%keygloc,stat=i_stat)
+          call memocc(i_stat,i_all,'wfd%keygloc',subname)
+          nullify(wfd%keygloc)
+       end if
     end if
     if (associated(wfd%keyv)) then
        i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
@@ -1274,7 +1283,7 @@ END SUBROUTINE deallocate_orbs
    nullify(Lzd%Glr%wfd%keyv)
 
 ! nullify the Gnlpspd
-   call deallocate_proj_descr(Lzd%Gnlpspd,subname)
+!   call deallocate_proj_descr(Lzd%Gnlpspd,subname)
 !!$   nullify(Lzd%Gnlpspd%nvctr_p)
 !!$   nullify(Lzd%Gnlpspd%nseg_p)
 !!$   nullify(Lzd%Gnlpspd%keyv_p)
@@ -1285,10 +1294,10 @@ END SUBROUTINE deallocate_orbs
 !Now destroy the Llr
     do ilr = 1, Lzd%nlr 
        call deallocate_lr(Lzd%Llr(ilr),subname)
-       call deallocate_Lnlpspd(Lzd%Lnlpspd(ilr),subname)
+!       call deallocate_Lnlpspd(Lzd%Lnlpspd(ilr),subname)
     end do
      nullify(Lzd%Llr)
-     nullify(Lzd%Lnlpspd)
+!     nullify(Lzd%Lnlpspd)
 
   END SUBROUTINE deallocate_Lzd
 

@@ -263,7 +263,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
      call default_confinement_data(confdatarr,lin%orbs%norbp)
      call HamiltonianApplication3(iproc,nproc,at,lin%orbs,&
           input%hx,input%hy,input%hz,rxyz,&
-          proj,lin%Lzd,confdatarr,ngatherarr,Lpot,lphi,lhphi,&
+          proj,lin%Lzd,nlpspd,confdatarr,ngatherarr,Lpot,lphi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
           pkernel=pkernelseq)
      deallocate(confdatarr)
@@ -292,25 +292,25 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 !!$     lin%lzd%lpsidimtot=lin%lzd%lpsidimtot_der
 
      ! Deallocate old PSP structures and rebuild them for the derivatives.
-     do ilr=1,lin%lzd%nlr
-        call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr),subname)
-        if(associated(lin%lzd%llr(ilr)%projflg)) then
-           if(size(lin%lzd%llr(ilr)%projflg)>0) then
-              iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
-              deallocate(lin%lzd%llr(ilr)%projflg,stat=istat)
-              call memocc(istat,iall,'lin%lzd%llr(ilr)%projflg',subname)
-           else
-              nullify(lin%lzd%llr(ilr)%projflg)
-           end if
-        end if
-     end do
-     call prepare_lnlpspd(iproc,at,input,lin%lb%orbs,rxyz,radii_cf,lin%locregShape,lin%lzd)
+!!$     do ilr=1,lin%lzd%nlr
+!!$        call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr),subname)
+!!$        if(associated(lin%lzd%llr(ilr)%projflg)) then
+!!$           if(size(lin%lzd%llr(ilr)%projflg)>0) then
+!!$              iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
+!!$              deallocate(lin%lzd%llr(ilr)%projflg,stat=istat)
+!!$              call memocc(istat,iall,'lin%lzd%llr(ilr)%projflg',subname)
+!!$           else
+!!$              nullify(lin%lzd%llr(ilr)%projflg)
+!!$           end if
+!!$        end if
+!!$     end do
+!!$     call prepare_lnlpspd(iproc,at,input,lin%lb%orbs,rxyz,radii_cf,lin%locregShape,lin%lzd)
 
      allocate(confdatarr(lin%lb%orbs%norbp))
      call default_confinement_data(confdatarr,lin%lb%orbs%norbp)
      call HamiltonianApplication3(iproc,nproc,at,lin%lb%orbs,&
           input%hx,input%hy,input%hz,rxyz,&
-          proj,lin%lzd,confdatarr,ngatherarr,lpot,lphi,lhphi,&
+          proj,lin%lzd,nlpspd,confdatarr,ngatherarr,lpot,lphi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
           pkernel=pkernelseq)
      deallocate(confdatarr)
@@ -321,20 +321,20 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 !!$          withConfinement,.true.,pkernel=pkernelseq)
 !!$     lin%lzd%lpsidimtot=ii
 
-     ! Deallocate the derivative PSP structures and rebuild them for the standard case (i.e. without derivatives)
-     do ilr=1,lin%lzd%nlr
-        call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr),subname)
-        if(associated(lin%lzd%llr(ilr)%projflg)) then
-           if(size(lin%lzd%llr(ilr)%projflg)>0) then
-              iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
-              deallocate(lin%lzd%llr(ilr)%projflg,stat=istat)
-              call memocc(istat,iall,'lin%lzd%llr(ilr)%projflg',subname)
-           else
-              nullify(lin%lzd%llr(ilr)%projflg)
-           end if
-        end if
-     end do
-     call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
+!!$     ! Deallocate the derivative PSP structures and rebuild them for the standard case (i.e. without derivatives)
+!!$     do ilr=1,lin%lzd%nlr
+!!$        call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr),subname)
+!!$        if(associated(lin%lzd%llr(ilr)%projflg)) then
+!!$           if(size(lin%lzd%llr(ilr)%projflg)>0) then
+!!$              iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
+!!$              deallocate(lin%lzd%llr(ilr)%projflg,stat=istat)
+!!$              call memocc(istat,iall,'lin%lzd%llr(ilr)%projflg',subname)
+!!$           else
+!!$              nullify(lin%lzd%llr(ilr)%projflg)
+!!$           end if
+!!$        end if
+!!$     end do
+!!$     call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
   end if
   iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
   deallocate(lin%lzd%doHamAppl, stat=istat)
@@ -794,7 +794,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
           input%hx,input%hy,input%hz,lin,lin%Lzd,lin%orbs%inWhichLocregp)
       call HamiltonianApplication3(iproc,nproc,at,lin%orbs,&
            input%hx,input%hy,input%hz,rxyz,&
-           proj,lin%lzd,confdatarr,ngatherarr,lpot,lphi,lhphi,&
+           proj,lin%lzd,nlpspd,confdatarr,ngatherarr,lpot,lphi,lhphi,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
            pkernel=pkernelseq)
       deallocate(confdatarr)
@@ -3552,91 +3552,91 @@ end subroutine gatherPotential
 
 
 
-subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, lzd)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => prepare_lnlpspd
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in):: iproc
-  type(atoms_data),intent(in):: at
-  type(input_variables),intent(in):: input
-  type(orbitals_data),intent(in):: orbs
-  real(8),dimension(3,at%nat),intent(in):: rxyz
-  real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-  character(len=1),intent(in):: locregShape
-  type(local_zone_descriptors),intent(inout):: lzd
-  
-  ! Local variables
-  integer:: ilr, istat, iorb
-  logical:: calc
-  character(len=*),parameter:: subname='prepare_lnlpspd'
+!!$subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, lzd)
+!!$  use module_base
+!!$  use module_types
+!!$  use module_interfaces, exceptThisOne => prepare_lnlpspd
+!!$  implicit none
+!!$  
+!!$  ! Calling arguments
+!!$  integer,intent(in):: iproc
+!!$  type(atoms_data),intent(in):: at
+!!$  type(input_variables),intent(in):: input
+!!$  type(orbitals_data),intent(in):: orbs
+!!$  real(8),dimension(3,at%nat),intent(in):: rxyz
+!!$  real(8),dimension(at%ntypes,3),intent(in):: radii_cf
+!!$  character(len=1),intent(in):: locregShape
+!!$  type(local_zone_descriptors),intent(inout):: lzd
+!!$  
+!!$  ! Local variables
+!!$  integer:: ilr, istat, iorb
+!!$  logical:: calc
+!!$  character(len=*),parameter:: subname='prepare_lnlpspd'
+!!$
+!!$
+!!$  allocate(Lzd%Lnlpspd(Lzd%nlr), stat=istat)
+!!$  do ilr=1,Lzd%nlr
+!!$      call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(ilr))
+!!$  end do
+!!$
+!!$  do ilr=1,Lzd%nlr
+!!$
+!!$      nullify(Lzd%Llr(ilr)%projflg) !to avoid problems when deallocating
+!!$      calc=.false.
+!!$      do iorb=1,orbs%norbp
+!!$          if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) calc=.true.
+!!$      end do
+!!$      if (.not. calc) cycle !calculate only for the locreg on this processor, without repeating for same locreg.
+!!$      ! allocate projflg
+!!$      allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=istat)
+!!$      call memocc(istat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
+!!$
+!!$      call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,orbs,&
+!!$           radii_cf,input%frmult,input%frmult,&
+!!$           input%hx,input%hy,input%hz,locregShape,lzd%Gnlpspd,&
+!!$           Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
+!!$  end do
+!!$
+!!$end subroutine prepare_lnlpspd
 
 
-  allocate(Lzd%Lnlpspd(Lzd%nlr), stat=istat)
-  do ilr=1,Lzd%nlr
-      call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(ilr))
-  end do
-
-  do ilr=1,Lzd%nlr
-
-      nullify(Lzd%Llr(ilr)%projflg) !to avoid problems when deallocating
-      calc=.false.
-      do iorb=1,orbs%norbp
-          if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) calc=.true.
-      end do
-      if (.not. calc) cycle !calculate only for the locreg on this processor, without repeating for same locreg.
-      ! allocate projflg
-      allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=istat)
-      call memocc(istat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
-
-      call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,orbs,&
-           radii_cf,input%frmult,input%frmult,&
-           input%hx,input%hy,input%hz,locregShape,lzd%Gnlpspd,&
-           Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
-  end do
-
-end subroutine prepare_lnlpspd
-
-
-subroutine free_lnlpspd(orbs, lzd)
-  use module_base
-  use module_types
-  !use deallocatePointers
-  use module_interfaces, exceptThisOne => free_lnlpspd
-  implicit none
-  
-  ! Calling arguments
-  type(orbitals_data),intent(in):: orbs
-  type(local_zone_descriptors),intent(inout):: lzd
-
-  ! Local variables
-  integer:: ilr, iorb, istat, iall
-  logical:: go
-  character(len=*),parameter:: subname='free_lnlpspd'
-
-  do ilr=1,lzd%nlr
-
-      go=.false.
-      do iorb=1,orbs%norbp
-         if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) go=.true.
-      end do
-      if (.not. go) cycle !deallocate only for the locreg on this processor, without repeating for same locreg.
-
-      ! Deallocate projflg.
-      !call checkAndDeallocatePointer(lzd%llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
-      iall=-product(shape(lzd%llr(ilr)%projflg))*kind(lzd%llr(ilr)%projflg)
-      deallocate(lzd%llr(ilr)%projflg, stat=istat)
-      call memocc(istat, iall, 'lzd%llr(ilr)%projflg', subname)
-
-      call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(ilr), subname)
-  end do
-
-!!$  deallocate(lzd%lnlpspd)
-!!$  nullify(lzd%lnlpspd)
-
-end subroutine free_lnlpspd
+!!$subroutine free_lnlpspd(orbs, lzd)
+!!$  use module_base
+!!$  use module_types
+!!$  !use deallocatePointers
+!!$  use module_interfaces, exceptThisOne => free_lnlpspd
+!!$  implicit none
+!!$  
+!!$  ! Calling arguments
+!!$  type(orbitals_data),intent(in):: orbs
+!!$  type(local_zone_descriptors),intent(inout):: lzd
+!!$
+!!$  ! Local variables
+!!$  integer:: ilr, iorb, istat, iall
+!!$  logical:: go
+!!$  character(len=*),parameter:: subname='free_lnlpspd'
+!!$
+!!$  do ilr=1,lzd%nlr
+!!$
+!!$      go=.false.
+!!$      do iorb=1,orbs%norbp
+!!$         if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) go=.true.
+!!$      end do
+!!$      if (.not. go) cycle !deallocate only for the locreg on this processor, without repeating for same locreg.
+!!$
+!!$      ! Deallocate projflg.
+!!$      !call checkAndDeallocatePointer(lzd%llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
+!!$      iall=-product(shape(lzd%llr(ilr)%projflg))*kind(lzd%llr(ilr)%projflg)
+!!$      deallocate(lzd%llr(ilr)%projflg, stat=istat)
+!!$      call memocc(istat, iall, 'lzd%llr(ilr)%projflg', subname)
+!!$
+!!$      call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(ilr), subname)
+!!$  end do
+!!$
+!!$!!$  deallocate(lzd%lnlpspd)
+!!$!!$  nullify(lzd%lnlpspd)
+!!$
+!!$end subroutine free_lnlpspd
 
 
 
@@ -3970,7 +3970,7 @@ subroutine minimize_in_subspace(iproc, nproc, lin, at, input, lpot, GPU, ngather
 
            call NonLocalHamiltonianApplication(iproc,at,lin%orbs,&
                 input%hx,input%hy,input%hz,rxyz,&
-                proj,lin%lzd,lchi,lhchi(1,ii),eproj_sum)
+                proj,lin%lzd,nlpspd,lchi,lhchi(1,ii),eproj_sum)
            deallocate(confdatarr)
         end if
 

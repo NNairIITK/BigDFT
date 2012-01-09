@@ -229,8 +229,8 @@ call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
 !call copy_locreg_descriptors(Glr, lin%lb%lzd%Glr, subname)
 
 ! Copy nlpspd to lin%lzd
-call nullify_nonlocal_psp_descriptors(lin%lzd%Gnlpspd)
-call copy_nonlocal_psp_descriptors(nlpspd, lin%lzd%Gnlpspd, subname)
+!call nullify_nonlocal_psp_descriptors(lin%lzd%Gnlpspd)
+!call copy_nonlocal_psp_descriptors(nlpspd, lin%lzd%Gnlpspd, subname)
 !call nullify_nonlocal_psp_descriptors(lin%lb%lzd%Gnlpspd)
 !call copy_nonlocal_psp_descriptors(nlpspd, lin%lb%lzd%Gnlpspd, subname)
 
@@ -3474,11 +3474,11 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
         call copy_locreg_descriptors(Lzd%Glr,Lzd%Llr(1),subname)
         !copy dimensions of wavefunction and projectors
 !        Lzd%Lpsidimtot=orbs%npsidim
-        Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
+!        Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
         ! copy nlpspd to Lnlpspd(1)  NOTE: NOT NEEDED!
-        allocate(Lzd%Lnlpspd(Lzd%nlr))!,stat=i_stat)
-        call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(1))
-        call copy_nonlocal_psp_descriptors(Lzd%Gnlpspd,Lzd%Lnlpspd(1),subname)
+!        allocate(Lzd%Lnlpspd(Lzd%nlr))!,stat=i_stat)
+!        call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(1))
+!        call copy_nonlocal_psp_descriptors(Lzd%Gnlpspd,Lzd%Lnlpspd(1),subname)
 
         !call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
      else 
@@ -3504,7 +3504,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
         call wavefunction_dimension(Lzd,orbs)
 
         !determine the Local nlpspd
-        call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf,'c', Lzd)
+!        call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf,'c', Lzd)
      end if
   end if
 
@@ -3710,7 +3710,7 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
      Lzd%linear = .false.
      Lzd%nlr = 1
 !     Lzd%Lpsidimtot=orbs%npsidim
-     Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
+!     Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
      call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg',subname)
      call checkAndDeallocatePointer(Lzd%doHamAppl, 'lzd%doHamAppl', subname)
      if(associated(lzd%llr)) then
@@ -3725,13 +3725,13 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
             call deallocate_locreg_descriptors(lzd%llr(i1), subname)
         end do
      end if
-     if(associated(lzd%lnlpspd)) then
-        iis1=lbound(lzd%lnlpspd,1)
-        iie1=ubound(lzd%lnlpspd,1)
-        do i1=iis1,iie1
-            call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-        end do
-     end if
+!!$     if(associated(lzd%lnlpspd)) then
+!!$        iis1=lbound(lzd%lnlpspd,1)
+!!$        iie1=ubound(lzd%lnlpspd,1)
+!!$        do i1=iis1,iie1
+!!$            call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
+!!$        end do
+!!$     end if
      call nullify_locreg_descriptors(Lzd%Llr(1))
      
      !Copy the Glr to the Llr(1)
@@ -3805,7 +3805,7 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
      call wavefunction_dimension(Lzd,orbs)
 
      !determine the Local nlpspd
-     call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf, Lzd)
+!     call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf, Lzd)
   end if
 end subroutine reinitialize_Lzd_after_LIG
 

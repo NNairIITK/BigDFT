@@ -33,7 +33,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   !local variables
   type(locreg_descriptors) :: lr
   character(len=*), parameter :: subname='CalculateTailCorrection'
-  integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
+  integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,j,ierr,i_all,i_stat,nbuf,ispin
   integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3
   integer :: n1,n2,n3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
   real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail !n(c) eproj1 epot1,ekin1
@@ -279,7 +279,17 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      wfdb%nseg_f=nsegb_f
      wfdb%keyv => keyv
      wfdb%keygloc => keyg
-     wfdb%keyglob => null()
+     wfdb%keyglob => keyg
+!!$     allocate(wfdb%keygloc(2,nsegb_c+nsegb_f+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,wfdb%keygloc,'wfdb%keygloc',subname)
+!!$     allocate(wfdb%keyglob(2,nsegb_c+nsegb_f+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,wfdb%keyglob,'wfdb%keyglob',subname)
+!!$     do i = 1, 2
+!!$        do j = 1, nsegb_c+nsegb_f
+!!$           wfdb%keygloc(i,j) = keyg(i,j)
+!!$           wfdb%keyglob(i,j) = keyg(i,j)
+!!$         end do
+!!$     end do
   end if
 
 

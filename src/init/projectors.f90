@@ -57,6 +57,8 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   do iat=1,at%nat
 
      call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
+     if (mproj == 0) call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
+                          0,0,0,0,0,0)
      if (mproj /= 0) then 
 
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&

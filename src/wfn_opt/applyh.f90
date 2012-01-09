@@ -1229,7 +1229,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
               do ispinor=1,orbs%nspinor,ncplx
                  call wpdot_wrap(ncplx,  &
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                      wfd%keyv,wfd%keygloc,&
+                      wfd%keyv,wfd%keyglob,&
                       psi(1,ispinor), &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                       plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
@@ -1282,7 +1282,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                       plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c),&
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                      wfd%keyv,wfd%keygloc,&
+                      wfd%keyv,wfd%keyglob,&
                       hpsi(1,ispinor))
               end do
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -1292,6 +1292,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   end do
 !!$  call nanosec(itsc1)
 !!$  print *,'normal time',real(itsc1-itsc0,gp)*1.e-9_gp
+
   eproj=eproj+&
        orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_i
 !!$  istart_c=istart_c_i
