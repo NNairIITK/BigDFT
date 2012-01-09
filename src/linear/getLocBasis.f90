@@ -142,7 +142,7 @@ real(8),dimension(:),pointer:: lpot
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
           nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trace, rxyzParab, &
-          itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj)
+          itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj, coeff)
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
@@ -448,7 +448,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
-    itScc, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj)
+    itScc, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj, coeff)
 !
 ! Purpose:
 ! ========
@@ -522,6 +522,7 @@ real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
+real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
 
 ! Local variables
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot
@@ -537,6 +538,7 @@ real(8),dimension(:),allocatable:: alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
 real(8),dimension(:),allocatable:: eval, lvphi, lvphiovrlp, alpha2, lhpsiold, work, rwork, lphiold, lphiovrlporig, lphi2
 real(8),dimension(:),allocatable:: lchi, lphidebug
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr, W, ttmat, Kmat, Gmat, Umat, lhchi, omatr, omat2
+real(8),dimension(:,:),allocatable:: kernel
 real(8),dimension(:,:,:),allocatable:: Gmatc, tempmat, Omat, tempmat2, ham3, tempmat3, omatrtot
 logical:: quiet, allowDIIS, startWithSD, withConfinement, calc
 character(len=*),parameter:: subname='getLocalizedBasis'
@@ -553,7 +555,7 @@ character(len=3):: orbname, comment
 integer,dimension(:),allocatable:: onwhichatomtemp, norb_parTemp, onWhichMPITemp
 logical,dimension(:),allocatable:: doNotCalculate, skip
 integer:: iat, is1, ie1, is2, ie2, is3, ie3, jlr, js1, je1, js2, je2, js3, je3
-integer :: norbTarget, nprocTemp, kk, jlrold, nlocregPerMPI, tag, jproc, ncnt
+integer :: norbTarget, nprocTemp, kk, jlrold, nlocregPerMPI, tag, jproc, ncnt, korb
 logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, immediateSwitchToSD
 
 
@@ -561,6 +563,21 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
   ! Allocate all local arrays.
   call allocateLocalArrays()
+
+  allocate(kernel(lin%orbs%norb,lin%orbs%norb), stat=istat)
+  call memocc(istat, kernel, 'kernel', subname)
+
+  ! Calculate kernel (can be optimized)
+  do jorb=1,lin%orbs%norb
+      do korb=1,lin%orbs%norb
+          tt=0.d0
+          do iorb=1,orbs%norb
+              tt=tt+coeff(korb,iorb)*coeff(jorb,iorb)
+          end do
+          !kernel(korb,jorb)=tt
+          kernel(jorb,korb)=tt
+      end do
+  end do
   
   
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
@@ -640,14 +657,14 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       !!!call unitary_optimization2(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
       !!! #############################################################
 
-      ! Post the sends again to calculate the overlap matrix (will be needed for the orthoconstraint).
-      call allocateSendBufferOrtho(lin%comon, subname)
-      call allocateRecvBufferOrtho(lin%comon, subname)
-      ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-      call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, &
-           lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
-      ! Post the send messages.
-      call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
+      !!! Post the sends again to calculate the overlap matrix (will be needed for the orthoconstraint).
+      !!call allocateSendBufferOrtho(lin%comon, subname)
+      !!call allocateRecvBufferOrtho(lin%comon, subname)
+      !!! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+      !!call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, &
+      !!     lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+      !!! Post the send messages.
+      !!call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
 
   
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
@@ -671,7 +688,38 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       deallocate(lin%lzd%doHamAppl, stat=istat)
       call memocc(istat, iall, 'lin%lzd%doHamAppl', subname)
 
+   
+
+
+      if(lin%newgradient) then
+          ! NEW: modify gradient
+          call allocateSendBufferOrtho(lin%comon, subname)
+          call allocateRecvBufferOrtho(lin%comon, subname)
+          ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+          call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
+               lhphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+          call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lhphi, lin%comon, tt1, tt2)
+          allocate(ttmat(lin%orbs%norb,lin%orbs%norb), stat=istat)
+          call collectnew(iproc, nproc, lin%comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
+               lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ttmat, tt3, tt4, tt5)
+          deallocate(ttmat, stat=istat)
+          call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, lin%comon%nrecvbuf, &
+               lin%comon%recvbuf, kernel, .true., lhphi)
+          call deallocateRecvBufferOrtho(lin%comon, subname)
+          call deallocateSendBufferOrtho(lin%comon, subname)
+      end if
+
+
       t2=mpi_wtime()
+
+      ! Post the sends again to calculate the overlap matrix (will be needed for the orthoconstraint).
+      call allocateSendBufferOrtho(lin%comon, subname)
+      call allocateRecvBufferOrtho(lin%comon, subname)
+      ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+      call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, &
+           lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+      ! Post the send messages.
+      call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
 
 
       time(2)=time(2)+t2-t1
@@ -698,6 +746,17 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       t1=mpi_wtime()
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lhphi)
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH, W, eval)
+
+      ! Calculate modified trace
+      tt=0.d0
+      do iorb=1,orbs%norb
+          do jorb=1,lin%lb%orbs%norb
+              do korb=1,lin%lb%orbs%norb
+                  tt = tt + coeff(jorb,iorb)*coeff(korb,iorb)*W(korb,jorb)
+              end do
+          end do
+      end do
+      if(iproc==0) write(*,*) 'new trace',tt
 
       !!!! TEST: use only diagonal part of orthoconstraint
       !!ist=1
@@ -996,6 +1055,11 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
   ! Deallocate all local arrays.
   call deallocateLocalArrays()
+
+  iall=-product(shape(kernel))*kind(kernel)
+  deallocate(kernel, stat=istat)
+  call memocc(istat, iall, 'kernel', subname)
+
 
 contains
 

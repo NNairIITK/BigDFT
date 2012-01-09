@@ -703,6 +703,7 @@ end type workarrays_quartic_convolutions
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions, transformToGlobal, sumrho_fast
+    logical:: newgradient
     character(len=4):: getCoeff, mixingMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp

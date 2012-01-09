@@ -340,6 +340,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !if(iproc==0) write(*,'(a,es9.2)') 'dampingForMixing',dampingForMixing
 
 
+  lin%newgradient=.false.
 
   do itout=1,lin%nItOuterSCC
 
@@ -362,6 +363,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
            lin%potentialPrefac = 5.d-3*lin%potentialPrefac
            lin%nItBasisFirst = 10*lin%nItBasisFirst
            lin%nItBasis = 30*lin%nItBasis
+           lin%newgradient=.true.
       end if
 
       do itSCC=1,nitSCC

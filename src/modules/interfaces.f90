@@ -1643,7 +1643,7 @@ module module_interfaces
     
   subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
-        itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj)
+        itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj, coeff)
       use module_base
       use module_types
       implicit none
@@ -1667,6 +1667,7 @@ module module_interfaces
       real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
+      real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
     end subroutine getLocalizedBasis
 
 
