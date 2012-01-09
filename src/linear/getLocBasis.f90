@@ -602,6 +602,13 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
           kernel(jorb,korb)=tt
       end do
   end do
+  if(iproc==0) then
+       do iorb=1,lin%orbs%norb
+           do jorb=1,lin%orbs%norb
+               write(88,*) iorb, jorb, kernel(jorb,iorb)
+           end do
+       end do
+  end if
   
   
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
@@ -670,6 +677,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
       !!! NEW #########################################################
       t1=mpi_wtime()
+      !if(.not.ldiis%switchSD .and. .not.lin%newgradient) then
       if(.not.ldiis%switchSD) then
           call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, &
                                     lin%comon, rxyz, lin%nItInnerLoop, kernel, lphi)
@@ -703,6 +711,11 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       lin%lzd%doHamAppl=.true.
 
 
+      !if(.not.lin%newgradient) then
+      !    withConfinement=.true.
+      !else
+      !    withConfinement=.false.
+      !end if
       call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
            proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
@@ -2996,14 +3009,14 @@ end subroutine getCoefficients_new
 
 
 
-subroutine apply_orbitaldependent_potential(iproc, nproc, lin, at, input, orbs, lzd, rxyz, psi, vpsi)
+subroutine apply_orbitaldependent_potential(iproc, nproc, lin, at, input, orbs, lzd, rxyz, psi, centralLocreg, vpsi)
 use module_base
 use module_types
 use module_interfaces
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, centralLocreg
 type(linearParameters),intent(in):: lin
 type(atoms_data),intent(in):: at
 type(input_variables),intent(in):: input
@@ -3089,7 +3102,11 @@ real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
      iiorb=iorb+orbs%isorb
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
   
-     icenter=lin%orbs%inWhichLocregp(iorb)
+     if(centralLocreg<0) then
+         icenter=lin%orbs%inWhichLocregp(iorb)
+     else
+         icenter=centralLocreg
+     end if
      !components of the potential
      npot=orbs%nspinor
      if (orbs%nspinor == 2) npot=1
@@ -3617,7 +3634,7 @@ real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
 real(8),dimension(orbs%npsidim),intent(inout):: lphi
 
 ! Local variables
-integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, lorb
+integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, lorb, jlr
 real(8):: trace, lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
 real(8):: tt1, tt2, tt3, tt4, tt5, tt
 real(8):: t1, t2, t1_tot, t2_tot
@@ -3625,6 +3642,7 @@ real(8):: time_convol, time_commun, time_lincomb, time_linalg, time_matrixmodifi
 real(8):: time_matrixelements
 complex(8):: ttc
 real(8),dimension(:,:),allocatable:: gmat, hamtrans, ttmat, Kmat
+real(8),dimension(:,:,:),allocatable:: potmat
 complex(8),dimension(:,:),allocatable:: gmatc, omatc
 complex(8),dimension(:,:,:),allocatable:: tempmatc
 complex(8),dimension(:),allocatable:: work, expD_cmplx
@@ -3658,6 +3676,9 @@ call memocc(istat, Kmat, 'Kmat', subname)
 allocate(recvbuf(comon%nrecvbuf), stat=istat)
 call memocc(istat, recvbuf, 'recvbuf', subname)
 
+allocate(potmat(orbs%norb,orbs%norb,at%nat), stat=istat)
+call memocc(istat, potmat, 'potmat', subname)
+
 
 
   call allocateSendBufferOrtho(comon, subname)
@@ -3671,6 +3692,7 @@ call memocc(istat, recvbuf, 'recvbuf', subname)
   energyconf_trial=0.d0 !just to initialize this variable and make the compiler happy
   lstep=0.d0 !just to initialize this variable and make the compiler happy
   lstep_optimal=0.d0 !just to initialize this variable and make the compiler happy
+  energyconf_der0=0.d0 !just to initialize this variable and make the compiler happy
 
   time_convol=0.d0
   time_lincomb=0.d0
@@ -3685,7 +3707,7 @@ call memocc(istat, recvbuf, 'recvbuf', subname)
   !write(*,*) '1: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
 
       t1=mpi_wtime()
-      call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
+      call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, -1, lvphi)
       t2=mpi_wtime()
       time_convol=time_convol+t2-t1
 
@@ -3708,6 +3730,12 @@ call memocc(istat, recvbuf, 'recvbuf', subname)
       !write(*,*) '3: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
       t2=mpi_wtime()
       time_matrixElements=time_matrixElements+t2-t1
+
+
+      if(lin%newgradient) then
+          call get_potential_matrices(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, lphi, potmat)
+      end if
+
 
       if(.not.lin%newgradient) then
           !energyconf_0=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
@@ -3739,13 +3767,20 @@ call memocc(istat, recvbuf, 'recvbuf', subname)
           end do 
       else
           do iorb=1,orbs%norb
+              ilr=orbs%inwhichlocreg(iorb)
               do jorb=1,orbs%norb
+                  jlr=orbs%inwhichlocreg(jorb)
                   tt=0.d0
                   do lorb=1,orbs%norb
-                      tt = tt + kernel(jorb,lorb)*Kmat(iorb,lorb) - kernel(iorb,lorb)*Kmat(jorb,lorb)
+                      !!tt = tt + kernel(jorb,lorb)*Kmat(iorb,lorb) - kernel(iorb,lorb)*Kmat(jorb,lorb)
+                      !!tt = tt + kernel(jorb,lorb)*Kmat(lorb,iorb) - kernel(iorb,lorb)*Kmat(lorb,jorb)
                       !tt = tt + kernel(jorb,lorb)*Kmat(lorb,iorb) - kernel(iorb,lorb)*Kmat(lorb,jorb)
+
+                      tt = tt + kernel(jorb,lorb)*Kmat(lorb,iorb) - kernel(iorb,lorb)*Kmat(lorb,jorb) + &
+                                kernel(jorb,lorb)*potmat(lorb,iorb,jlr) - kernel(iorb,lorb)*potmat(lorb,jorb,ilr)
                   end do
-                  gmat(jorb,iorb)=-2.d0*tt
+                  !gmat(jorb,iorb)=-2.d0*tt
+                  gmat(jorb,iorb)=-tt
               end do
           end do 
       end if
@@ -3783,7 +3818,7 @@ call memocc(istat, recvbuf, 'recvbuf', subname)
           if(.not.lin%newgradient) then
               lstep=5.d-2/(maxval(eval))
           else
-              lstep=5.d-2/(maxval(eval))
+              lstep=1.d-3/(maxval(eval))
           end if
       else
           lstep=2.d0*lstep_optimal
@@ -3841,7 +3876,7 @@ call memocc(istat, recvbuf, 'recvbuf', subname)
       time_lincomb=time_lincomb+t2-t1
 
       t1=mpi_wtime()
-      call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, lvphi)
+      call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi, -1, lvphi)
       t2=mpi_wtime()
       time_convol=time_convol+t2-t1
 
@@ -4012,6 +4047,10 @@ call memocc(istat, recvbuf, 'recvbuf', subname)
   iall=-product(shape(recvbuf))*kind(recvbuf)
   deallocate(recvbuf, stat=istat)
   call memocc(istat, iall, 'recvbuf', subname)
+
+  iall=-product(shape(potmat))*kind(potmat)
+  deallocate(potmat, stat=istat)
+  call memocc(istat, iall, 'potmat', subname)
 
   call deallocateRecvBufferOrtho(comon, subname)
   call deallocateSendBufferOrtho(comon, subname)
@@ -4274,3 +4313,61 @@ write(*,*) 'values',values/valuesold
 
 END SUBROUTINE flatten
 !!***
+
+
+
+
+
+subroutine get_potential_matrices(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, psi, potmat)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(in):: lin
+type(atoms_data),intent(in):: at
+type(input_variables),intent(in):: input
+type(orbitals_data),intent(in):: orbs
+type(local_zone_descriptors),intent(in):: lzd
+type(overlapParameters),intent(inout):: op
+type(p2pCommsOrthonormality),intent(inout):: comon
+real(8),dimension(3,at%nat),intent(in):: rxyz
+real(8),dimension(lzd%lpsidimtot),intent(inout):: psi
+real(8),dimension(orbs%norb,orbs%norb,at%nat),intent(out):: potmat
+
+! Local variables
+integer:: iorb, ilr, ilrold, istat, iall
+real(8),dimension(:,:),allocatable:: ttmat
+real(8):: tt1, tt2, tt3, tt4, tt5
+real(8),dimension(:),allocatable:: vpsi
+character(len=*),parameter:: subname='get_potential_matrices'
+
+allocate(vpsi(lzd%lpsidimtot), stat=istat)
+call memocc(istat, vpsi, 'vpsi', subname)
+
+
+ilrold=-1
+do iorb=1,orbs%norb
+    ilr=orbs%inwhichlocreg(iorb)
+    if(ilr==ilrold) cycle
+    call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, psi, ilr, vpsi)
+
+    call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, psi, comon%nsendBuf, comon%sendBuf)
+    call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, psi, comon, tt1, tt2)
+    allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+    call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
+         comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
+    deallocate(ttmat)
+    call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, psi, vpsi, lin%mad, potmat(1,1,ilr))
+    ilrold=ilr
+    
+end do
+
+iall=-product(shape(vpsi))*kind(vpsi)
+deallocate(vpsi, stat=istat)
+call memocc(istat, iall, 'vpsi', subname)
+
+
+
+end subroutine get_potential_matrices

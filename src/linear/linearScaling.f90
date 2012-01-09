@@ -364,7 +364,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
       if(itout==lin%nit_lowaccuracy) then
            lin%potentialPrefac = 5.d-3*lin%potentialPrefac
-           lin%nItBasisFirst = 10*lin%nItBasisFirst
+           lin%nItBasisFirst = 5*lin%nItBasisFirst
            lin%nItBasis = 30*lin%nItBasis
            lin%newgradient=.true.
       end if
