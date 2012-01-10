@@ -77,12 +77,12 @@ type(GPU_pointers),intent(inout):: GPU
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
 logical,intent(in):: updatePhi
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
-real(8),dimension(lin%lb%gorbs%npsidim),intent(inout):: phi
-real(8),dimension(orbs%npsidim),intent(out):: psi, psit
+real(8),dimension(max(lin%lb%gorbs%npsidim_orbs,lin%lb%gorbs%npsidim_comp)),intent(inout):: phi
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
-real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: lphi
+real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),intent(inout):: lphi
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -95,12 +95,13 @@ real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold,
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, hamold, overlapmatrix, lambda, coeffold
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork
-real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time
+real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time,eSIC_DC
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
 type(workarr_sumrho):: w
 integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt, inc, jjorb
 real(8),dimension(:),pointer:: lpot
+type(confpot_data), dimension(:), allocatable :: confdatarr
 
 
 
@@ -137,25 +138,26 @@ real(8),dimension(:),pointer:: lpot
       ! stored in lin%lphiRestart.
       ! WARNING: Will probably not work if we use the random input guess
       if(lin%useDerivativeBasisFunctions) then
-          call dcopy(lin%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
+          call dcopy(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp),lin%lphiRestart(1),1,lphi(1),1)
       end if
 
 
       ! Improve the trace minimizing orbitals.
-      call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
-          nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trace, rxyzParab, &
+      call getLocalizedBasis(iproc,nproc,at,orbs,Glr,input,lin,rxyz,nspin,&
+          nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,rxyzParab,&
           itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj, coeff_proj)
   end if
 
   if(updatePhi .or. itSCC==0) then
-      call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
+      call dcopy(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), lphi(1), 1, lin%lphiRestart(1), 1)
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   if(lin%useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
-      call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
+      call dcopy(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
-      call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
+      call getDerivativeBasisFunctions2(iproc,nproc,input%hx,Glr,lin,&
+           max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp),lin%lphiRestart,lphi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if
 
@@ -204,20 +206,40 @@ real(8),dimension(:),pointer:: lpot
   if(lin%useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lin%lb%comgp)
 
   if(.not.lin%useDerivativeBasisFunctions) then
-      call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
-           input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
+
+!!$      call full_local_potential2(iproc,nproc,&
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
+!!$           input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
+
+     call local_potential_dimensions(lin%Lzd,lin%orbs,ngatherarr(0,1))
+
+      call full_local_potential(iproc,nproc,&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2),&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,input%nspin,&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
+           lin%orbs,lin%Lzd,2,ngatherarr,rhopot,lpot,lin%comgp)
   else
-      call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
-           input%nspin, lin%lb%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%lb%comgp)
+!!$      call full_local_potential2(iproc,nproc,&
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
+!!$           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
+!!$           input%nspin, lin%lb%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%lb%comgp)
+
+     call local_potential_dimensions(lin%Lzd,lin%lb%orbs,ngatherarr(0,1))
+      
+      call full_local_potential(iproc,nproc,&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2),&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,input%nspin,&
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
+           lin%lb%orbs,lin%Lzd,2,ngatherarr,rhopot,lpot,lin%lb%comgp)
+
   end if
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
-  allocate(lhphi(lin%lb%orbs%npsidim), stat=istat)
+  allocate(lhphi(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
   if(iproc==0) write(*,'(1x,a)',advance='no') 'Hamiltonian application...'
@@ -225,63 +247,86 @@ real(8),dimension(:),pointer:: lpot
   call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
   lin%lzd%doHamAppl=.true.
   if(.not.lin%useDerivativeBasisFunctions) then
-      call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
-           proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq)
+     allocate(confdatarr(lin%orbs%norbp))
+     call default_confinement_data(confdatarr,lin%orbs%norbp)
+     call HamiltonianApplication3(iproc,nproc,at,lin%orbs,&
+          input%hx,input%hy,input%hz,rxyz,&
+          proj,lin%Lzd,confdatarr,ngatherarr,Lpot,lphi,lhphi,&
+          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+          pkernel=pkernelseq)
+     deallocate(confdatarr)
+!!$     call HamiltonianApplication3(iproc,nproc,at,lin%orbs,&
+!!$          input%hx,input%hy,input%hz,rxyz,&
+!!$          proj,lin%lzd,ngatherarr,lpot,lphi,lhphi,&
+!!$          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,&
+!!$          withConfinement,.true.,pkernel=pkernelseq)
+
   else
-      !! ATTENTION NEW!!
-      ! Modify the value of lzd%lnpsidimtot to take into account the derivatives
-      ii=lin%lzd%lpsidimtot
-      lin%lzd%lpsidimtot=lin%lzd%lpsidimtot_der
+     !! ATTENTION NEW!!
+     ! Modify the value of lzd%lnpsidimtot to take into account the derivatives
+     !(should not be necessary anymore - lpsidimtot_der is becoming lb%orbs%npsidim_*)
+!!$     ii=lin%lzd%lpsidimtot
+!!$     lin%lzd%lpsidimtot=lin%lzd%lpsidimtot_der
 
-      ! Deallocate old PSP structures and rebuild them for the derivatives.
-      do ilr=1,lin%lzd%nlr
-          call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr), subname)
-          if(associated(lin%lzd%llr(ilr)%projflg)) then
-              if(size(lin%lzd%llr(ilr)%projflg)>0) then
-                  iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
-                  deallocate(lin%lzd%llr(ilr)%projflg, stat=istat)
-                  call memocc(istat, iall, 'lin%lzd%llr(ilr)%projflg', subname)
-              else
-                  nullify(lin%lzd%llr(ilr)%projflg)
-              end if
-          end if
-      end do
-      call prepare_lnlpspd(iproc, at, input, lin%lb%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
+     ! Deallocate old PSP structures and rebuild them for the derivatives.
+     do ilr=1,lin%lzd%nlr
+        call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr),subname)
+        if(associated(lin%lzd%llr(ilr)%projflg)) then
+           if(size(lin%lzd%llr(ilr)%projflg)>0) then
+              iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
+              deallocate(lin%lzd%llr(ilr)%projflg,stat=istat)
+              call memocc(istat,iall,'lin%lzd%llr(ilr)%projflg',subname)
+           else
+              nullify(lin%lzd%llr(ilr)%projflg)
+           end if
+        end if
+     end do
+     call prepare_lnlpspd(iproc,at,input,lin%lb%orbs,rxyz,radii_cf,lin%locregShape,lin%lzd)
 
-      call HamiltonianApplication3(iproc, nproc, at, lin%lb%orbs, input%hx, input%hy, input%hz, rxyz, &
-           proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq)
-      lin%lzd%lpsidimtot=ii
-      
-      ! Deallocate the derivative PSP structures and rebuild them for the standard case (i.e. without derivatives)
-      do ilr=1,lin%lzd%nlr
-          call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr), subname)
-          if(associated(lin%lzd%llr(ilr)%projflg)) then
-              if(size(lin%lzd%llr(ilr)%projflg)>0) then
-                  iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
-                  deallocate(lin%lzd%llr(ilr)%projflg, stat=istat)
-                  call memocc(istat, iall, 'lin%lzd%llr(ilr)%projflg', subname)
-              else
-                  nullify(lin%lzd%llr(ilr)%projflg)
-              end if
-          end if
-      end do
-      call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
+     allocate(confdatarr(lin%lb%orbs%norbp))
+     call default_confinement_data(confdatarr,lin%lb%orbs%norbp)
+     call HamiltonianApplication3(iproc,nproc,at,lin%lb%orbs,&
+          input%hx,input%hy,input%hz,rxyz,&
+          proj,lin%lzd,confdatarr,ngatherarr,lpot,lphi,lhphi,&
+          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+          pkernel=pkernelseq)
+     deallocate(confdatarr)
+!!$     call HamiltonianApplication3(iproc,nproc,at,lin%lb%orbs,&
+!!$          input%hx,input%hy,input%hz,rxyz,&
+!!$          proj,lin%lzd,ngatherarr,lpot,lphi,lhphi,&
+!!$          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,&
+!!$          withConfinement,.true.,pkernel=pkernelseq)
+!!$     lin%lzd%lpsidimtot=ii
+
+     ! Deallocate the derivative PSP structures and rebuild them for the standard case (i.e. without derivatives)
+     do ilr=1,lin%lzd%nlr
+        call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr),subname)
+        if(associated(lin%lzd%llr(ilr)%projflg)) then
+           if(size(lin%lzd%llr(ilr)%projflg)>0) then
+              iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
+              deallocate(lin%lzd%llr(ilr)%projflg,stat=istat)
+              call memocc(istat,iall,'lin%lzd%llr(ilr)%projflg',subname)
+           else
+              nullify(lin%lzd%llr(ilr)%projflg)
+           end if
+        end if
+     end do
+     call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
   end if
   iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
   deallocate(lin%lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'lin%lzd%doHamAppl', subname)
 
-  if(.not.lin%useDerivativeBasisFunctions)then
-     iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
-     deallocate(lin%orbs%ispot, stat=istat)
-     call memocc(istat, iall, 'lin%orbs%ispot', subname)
-  else
-     iall=-product(shape(lin%lb%orbs%ispot))*kind(lin%lb%orbs%ispot) 
-     deallocate(lin%lb%orbs%ispot, stat=istat)
-     call memocc(istat, iall, 'lin%lb%orbs%ispot', subname)
-  end if
+  !these deallocations should probably be removed
+!!$  if(.not.lin%useDerivativeBasisFunctions)then
+!!$     iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
+!!$     deallocate(lin%orbs%ispot, stat=istat)
+!!$     call memocc(istat, iall, 'lin%orbs%ispot', subname)
+!!$  else
+!!$     iall=-product(shape(lin%lb%orbs%ispot))*kind(lin%lb%orbs%ispot) 
+!!$     deallocate(lin%lb%orbs%ispot, stat=istat)
+!!$     call memocc(istat, iall, 'lin%lb%orbs%ispot', subname)
+!!$  end if
 
 
   iall=-product(shape(lpot))*kind(lpot)
@@ -429,7 +474,7 @@ real(8),dimension(:),pointer:: lpot
   
 
   ! Copy the basis functions for the next iterations
-  call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiold(1), 1)
+  call dcopy(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), lphi(1), 1, lin%lphiold(1), 1)
 
   ! Copy the Hamiltonian matrix for the next iteration
   call dcopy(lin%orbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
@@ -466,13 +511,6 @@ real(8),dimension(:),pointer:: lpot
 
 
 end subroutine getLinearPsi
-
-
-
-
-
-
-
 
 subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
@@ -544,7 +582,7 @@ integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
 real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(lin%orbs%npsidim):: lphi
+real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)):: lphi
 real(8):: trH
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
@@ -553,22 +591,22 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
 
 ! Local variables
-real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot
-real(8) :: t2tot, timetot, tt1, tt2, tt3, tt4, tt5, lstep, dfactorial
-real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
+real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,evalmax,eval_zero,t1tot,eSIC_DC
+real(8) :: t2tot,timetot,tt1,tt2,tt3,tt4,tt5,lstep,dfactorial
+real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha,gnrm,gnrm_zero,gnrmMax,t1,t2
 real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress, energyconf_0, energyconf_trial
 real(8):: trHold
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, itinner, consecutive_rejections
-integer :: icountDIISFailureCons, itBest, info, lwork, ndim_lchi, ndim_lhchi
-integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb, i, ist, jst, iiorb, jjorb, ilrold, k
-integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
-real(8),dimension(:),allocatable:: alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
+integer :: icountDIISFailureCons,itBest,info,lwork,ndim_lchi,ndim_lhchi
+integer:: istat,istart,ierr,ii,it,iall,nit,ind1,ind2,jorb,i,ist,jst,iiorb,jjorb,ilrold,k
+integer:: ldim,gdim,ilr,ncount,offset,istsource,istdest
+real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS,lhphi,lhphiold
 real(8),dimension(:),allocatable:: eval, lvphi, lvphiovrlp, alpha2, lhpsiold, work, rwork, lphiold, lphiovrlporig, lphi2
 real(8),dimension(:),allocatable:: lchi, lphidebug
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr, W, ttmat, Kmat, Gmat, Umat, lhchi, omatr, omat2
 real(8),dimension(:,:),allocatable:: kernel
 real(8),dimension(:,:,:),allocatable:: Gmatc, tempmat, Omat, tempmat2, ham3, tempmat3, omatrtot
-logical:: quiet, allowDIIS, startWithSD, withConfinement, calc
+logical:: quiet,allowDIIS,startWithSD,withConfinement,calc
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(localizedDIISParameters):: ldiis
@@ -576,12 +614,13 @@ real(8),dimension(5):: time
 real(8),dimension(:),pointer:: potential
 real(8),dimension(:),pointer:: phiWork
 real(8),dimension(:),pointer:: lpot
-real(8), external :: mpi_wtime1
-complex(8):: ttc, ttc2, ttc3, zdotu
+real(8),external :: mpi_wtime1
+complex(8):: ttc,ttc2, ttc3, zdotu
 complex(8),dimension(:),allocatable:: Gmat_c, expD_cmplx
 character(len=3):: orbname, comment
 integer,dimension(:),allocatable:: onwhichatomtemp, norb_parTemp, onWhichMPITemp
 logical,dimension(:),allocatable:: doNotCalculate, skip
+type(confpot_data), dimension(:), allocatable :: confdatarr
 integer:: iat, is1, ie1, is2, ie2, is3, ie3, jlr, js1, je1, js2, je2, js3, je3
 integer :: norbTarget, nprocTemp, kk, jlrold, nlocregPerMPI, tag, jproc, ncnt, korb
 logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, immediateSwitchToSD
@@ -634,10 +673,20 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   call gatherPotential(iproc, nproc, lin%comgp)
 
   ! Build the required potential
-  call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
-       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
-       input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
+!!$  call full_local_potential2(iproc, nproc,&
+!!$       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
+!!$       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,&
+!!$       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,&
+!!$       input%nspin, lin%orbs,lin%lzd, ngatherarr, rhopot, lpot, 2, lin%comgp)
+
+  call local_potential_dimensions(lin%lzd,lin%orbs,ngatherarr(0,1))
+
+  call full_local_potential(iproc,nproc,&
+       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2),&
+       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i,input%nspin,&
+       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
+       lin%orbs,lin%Lzd,2,ngatherarr,rhopot,lpot,lin%comgp)
+
 
   allocate(lphiold(size(lphi)), stat=istat)
   call memocc(istat, lphiold, 'lphiold', subname)
@@ -714,20 +763,24 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
       lin%lzd%doHamAppl=.true.
 
-
-      !if(.not.lin%newgradient) then
-      !    withConfinement=.true.
-      !else
-      !    withConfinement=.false.
-      !end if
-      call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
-           proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
-           pkernel=pkernelseq, lin=lin, confinementCenter=lin%orbs%inWhichLocregp)
+     allocate(confdatarr(lin%orbs%norbp))
+     call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
+          input%hx,input%hy,input%hz,lin,lin%Lzd,lin%orbs%inWhichLocregp)
+      call HamiltonianApplication3(iproc,nproc,at,lin%orbs,&
+           input%hx,input%hy,input%hz,rxyz,&
+           proj,lin%lzd,confdatarr,ngatherarr,lpot,lphi,lhphi,&
+           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+           pkernel=pkernelseq)
+      deallocate(confdatarr)
+!!$      call HamiltonianApplication3(iproc,nproc,at,lin%orbs,&
+!!$           input%hx,input%hy,input%hz,rxyz,&
+!!$           proj,lin%lzd,ngatherarr,lpot,lphi,lhphi,&
+!!$           ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,withConfinement,.true.,&
+!!$           pkernel=pkernelseq,lin=lin,confinementCenter=lin%orbs%inWhichLocregp)
 
       iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
-      deallocate(lin%lzd%doHamAppl, stat=istat)
-      call memocc(istat, iall, 'lin%lzd%doHamAppl', subname)
+      deallocate(lin%lzd%doHamAppl,stat=istat)
+      call memocc(istat,iall,'lin%lzd%doHamAppl',subname)
 
    
 
@@ -737,7 +790,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
           call allocateSendBufferOrtho(lin%comon, subname)
           call allocateRecvBufferOrtho(lin%comon, subname)
           ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-          call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
+          call extractOrbital3(iproc, nproc, lin%orbs, max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
+               lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
                lhphi, lin%comon%nsendBuf, lin%comon%sendBuf)
           call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lhphi, lin%comon, tt1, tt2)
           allocate(ttmat(lin%orbs%norb,lin%orbs%norb), stat=istat)
@@ -757,7 +811,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       call allocateSendBufferOrtho(lin%comon, subname)
       call allocateRecvBufferOrtho(lin%comon, subname)
       ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-      call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, &
+      call extractOrbital3(iproc, nproc, lin%orbs, max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), lin%orbs%inWhichLocreg, &
            lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
       ! Post the send messages.
       call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
@@ -914,7 +968,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       fnrm=sqrt(fnrm/dble(lin%orbs%norb))
       fnrmMax=sqrt(fnrmMax)
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
-      call dcopy(lin%orbs%npsidim, lhphi, 1, lhphiold, 1)
+      call dcopy(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), lhphi, 1, lhphiold, 1)
       trHold=trH
   
 
@@ -1058,9 +1112,10 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   call memocc(istat, iall, 'eval', subname)
 
 
-  iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
-  deallocate(lin%orbs%ispot, stat=istat)
-  call memocc(istat, iall, 'lin%orbs%ispot', subname)
+!!$  iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
+!!$  deallocate(lin%orbs%ispot, stat=istat)
+!!$  call memocc(istat, iall, 'lin%orbs%ispot', subname)
+
   ! Deallocate potential
   iall=-product(shape(lpot))*kind(lpot)
   deallocate(lpot, stat=istat)
@@ -1270,7 +1325,7 @@ contains
         ! DIIS
         if(lin%alphaDIIS/=0.d0) then
             !call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi, 1)
-            call dscal(lin%orbs%npsidim, lin%alphaDIIS, lhphi, 1)
+            call dscal(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), lin%alphaDIIS, lhphi, 1)
         end if
         call optimizeDIIS(iproc, nproc, lin%orbs, lin%orbs, lin%lzd, lin%orbs%inWhichLocregp, lhphi, lphi, ldiis, it)
     end if
@@ -1300,11 +1355,11 @@ contains
       call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
 
       !allocate(lhphi(lin%Lorbs%npsidim), stat=istat)
-      allocate(lhphi(lin%orbs%npsidim), stat=istat)
+      allocate(lhphi(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
       call memocc(istat, lhphi, 'lhphi', subname)
     
       !allocate(lhphiold(lin%Lorbs%npsidim), stat=istat)
-      allocate(lhphiold(lin%orbs%npsidim), stat=istat)
+      allocate(lhphiold(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
 
     end subroutine allocateLocalArrays
@@ -1681,85 +1736,85 @@ integer:: nvctrp
 end subroutine buildWavefunctionModified
 
 
-subroutine getMatrixElements(iproc, nproc, Glr, orbs, comms, phi, hphi, matrixElements)
-!
-! Purpose:
-! ========
-!
-! Calling arguments:
-! ==================
-!
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => getMatrixElements
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(locreg_descriptors),intent(in):: Glr
-type(orbitals_data),intent(in):: orbs
-type(communications_arrays),intent(in):: comms
-real(8),dimension(orbs%npsidim),intent(inout):: phi, hphi
-real(8),dimension(orbs%norb,orbs%norb,2),intent(out):: matrixElements
-
-! Local variables
-integer:: istart, jstart, nvctrp, iorb, jorb, istat, iall, ierr
-real(8):: ddot
-real(8),dimension(:),pointer:: phiWork
-character(len=*),parameter:: subname='getMatrixELements'
-real(8),dimension(:),allocatable:: phi2, hphi2
-
-
-
-  allocate(phi2(orbs%npsidim), stat=istat)
-  call memocc(istat, phi2, 'phi2', subname)
-  allocate(hphi2(orbs%npsidim), stat=istat)
-  call memocc(istat, hphi2, 'hphi2', subname)
-  allocate(phiWork(orbs%npsidim), stat=istat)
-  call memocc(istat, phiWork, 'phiWork', subname)
-  phiWork=0.d0
-  call dcopy(orbs%npsidim, phi(1), 1, phi2(1), 1)
-  call dcopy(orbs%npsidim, hphi(1), 1, hphi2(1), 1)
-
-  call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, phi2, work=phiWork)
-  call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, hphi2, work=phiWork)
-
-  matrixElements=0.d0
-
-  ! Calculate <phi_i|H_j|phi_j>
-  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-  jstart=1
-  do jorb=1,orbs%norb
-      istart=1
-      do iorb=1,orbs%norb
-          matrixElements(iorb,jorb,2)=ddot(nvctrp, phi2(istart), 1, hphi2(jstart), 1)
-          !write(*,'(a,3i7,3es16.7)') 'iorb, jorb, iproc, ddot', iorb, jorb, iproc,  matrixElements(iorb,jorb,2), phi2(istart), hphi2(jstart)
-          istart=istart+nvctrp
-      end do
-      jstart=jstart+nvctrp
-  end do
-  call mpi_allreduce(matrixElements(1,1,2), matrixElements(1,1,1), orbs%norb**2, &
-      mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-
-  call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, phi2, work=phiWork)
-  call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, hphi2, work=phiWork)
-
-
-
-  iall=-product(shape(phiWork))*kind(phiWork)
-  deallocate(phiWork, stat=istat)
-  call memocc(istat, iall, 'phiWork', subname)
-
-  iall=-product(shape(phi2))*kind(phi2)
-  deallocate(phi2, stat=istat)
-  call memocc(istat, iall, 'phi2', subname)
-
-  iall=-product(shape(hphi2))*kind(hphi2)
-  deallocate(hphi2, stat=istat)
-  call memocc(istat, iall, 'hphi2', subname)
-
-
-end subroutine getMatrixElements
+!!$subroutine getMatrixElements(iproc, nproc, Glr, orbs, comms, phi, hphi, matrixElements)
+!!$!
+!!$! Purpose:
+!!$! ========
+!!$!
+!!$! Calling arguments:
+!!$! ==================
+!!$!
+!!$use module_base
+!!$use module_types
+!!$use module_interfaces, exceptThisOne => getMatrixElements
+!!$implicit none
+!!$
+!!$! Calling arguments
+!!$integer,intent(in):: iproc, nproc
+!!$type(locreg_descriptors),intent(in):: Glr
+!!$type(orbitals_data),intent(in):: orbs
+!!$type(communications_arrays),intent(in):: comms
+!!$real(8),dimension(orbs%npsidim),intent(inout):: phi, hphi
+!!$real(8),dimension(orbs%norb,orbs%norb,2),intent(out):: matrixElements
+!!$
+!!$! Local variables
+!!$integer:: istart, jstart, nvctrp, iorb, jorb, istat, iall, ierr
+!!$real(8):: ddot
+!!$real(8),dimension(:),pointer:: phiWork
+!!$character(len=*),parameter:: subname='getMatrixELements'
+!!$real(8),dimension(:),allocatable:: phi2, hphi2
+!!$
+!!$
+!!$
+!!$  allocate(phi2(orbs%npsidim), stat=istat)
+!!$  call memocc(istat, phi2, 'phi2', subname)
+!!$  allocate(hphi2(orbs%npsidim), stat=istat)
+!!$  call memocc(istat, hphi2, 'hphi2', subname)
+!!$  allocate(phiWork(orbs%npsidim), stat=istat)
+!!$  call memocc(istat, phiWork, 'phiWork', subname)
+!!$  phiWork=0.d0
+!!$  call vcopy(orbs%npsidim, phi(1), 1, phi2(1), 1)
+!!$  call vcopy(orbs%npsidim, hphi(1), 1, hphi2(1), 1)
+!!$
+!!$  call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, phi2, work=phiWork)
+!!$  call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, hphi2, work=phiWork)
+!!$
+!!$  matrixElements=0.d0
+!!$
+!!$  ! Calculate <phi_i|H_j|phi_j>
+!!$  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+!!$  jstart=1
+!!$  do jorb=1,orbs%norb
+!!$      istart=1
+!!$      do iorb=1,orbs%norb
+!!$          matrixElements(iorb,jorb,2)=ddot(nvctrp, phi2(istart), 1, hphi2(jstart), 1)
+!!$          !write(*,'(a,3i7,3es16.7)') 'iorb, jorb, iproc, ddot', iorb, jorb, iproc,  matrixElements(iorb,jorb,2), phi2(istart), hphi2(jstart)
+!!$          istart=istart+nvctrp
+!!$      end do
+!!$      jstart=jstart+nvctrp
+!!$  end do
+!!$  call mpi_allreduce(matrixElements(1,1,2), matrixElements(1,1,1), orbs%norb**2, &
+!!$      mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!$
+!!$  call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, phi2, work=phiWork)
+!!$  call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, hphi2, work=phiWork)
+!!$
+!!$
+!!$
+!!$  iall=-product(shape(phiWork))*kind(phiWork)
+!!$  deallocate(phiWork, stat=istat)
+!!$  call memocc(istat, iall, 'phiWork', subname)
+!!$
+!!$  iall=-product(shape(phi2))*kind(phi2)
+!!$  deallocate(phi2, stat=istat)
+!!$  call memocc(istat, iall, 'phi2', subname)
+!!$
+!!$  iall=-product(shape(hphi2))*kind(hphi2)
+!!$  deallocate(hphi2, stat=istat)
+!!$  call memocc(istat, iall, 'hphi2', subname)
+!!$
+!!$
+!!$end subroutine getMatrixElements
 
 
 
@@ -2859,18 +2914,16 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, 
       end do
       if (.not. calc) cycle !calculate only for the locreg on this processor, without repeating for same locreg.
       ! allocate projflg
-      allocate(Lzd%Llr(ilr)%projflg(at%nat), stat=istat)
-      call memocc(istat, Lzd%Llr(ilr)%projflg, 'Lzd%Llr(ilr)%projflg', subname)
+      allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=istat)
+      call memocc(istat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
 
-      call nlpspd_to_locreg(input, iproc, Lzd%Glr, Lzd%Llr(ilr), rxyz, at, orbs, &
-           radii_cf, input%frmult, input%frmult, input%hx, input%hy, input%hz, locregShape, lzd%Gnlpspd, &
-           Lzd%Lnlpspd(ilr), Lzd%Llr(ilr)%projflg)
-
+      call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,orbs,&
+           radii_cf,input%frmult,input%frmult,&
+           input%hx,input%hy,input%hz,locregShape,lzd%Gnlpspd,&
+           Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
   end do
 
 end subroutine prepare_lnlpspd
-
-
 
 
 subroutine free_lnlpspd(orbs, lzd)
@@ -2906,6 +2959,9 @@ subroutine free_lnlpspd(orbs, lzd)
       call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(ilr), subname)
   end do
 
+!!$  deallocate(lzd%lnlpspd)
+!!$  nullify(lzd%lnlpspd)
+
 end subroutine free_lnlpspd
 
 
@@ -2922,7 +2978,7 @@ integer,intent(in):: iproc, nproc
 type(linearParameters),intent(inout):: lin
 type(orbitals_data),intent(in):: orbs
 real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: hamold
-real(8),dimension(lin%lzd%lpsidimtot),intent(in):: lphi
+real(8),dimension(lin%orbs%npsidim_orbs),intent(in):: lphi
 real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(inout):: ovrlp
 real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff
 
@@ -3028,20 +3084,20 @@ type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(3,at%nat),intent(in):: rxyz
 !real(8),dimension(lzd%lpsidimtot),intent(in):: psi  !!!! ATENTION, intent should be in !
-real(8),dimension(lzd%lpsidimtot),intent(inout):: psi
-real(8),dimension(lzd%lpsidimtot),intent(out):: vpsi
+!real(8),dimension(lzd%lpsidimtot),intent(inout):: psi
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: vpsi
 
 ! Local variables
 integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, ist_c, ist_f, ist, iiorb, iall, ierr
 real(8):: hxh, hyh, hzh, ddot, tt, t1, t2, time
-type(workarr_sumrho):: work_sr
 real(8),dimension(:,:),allocatable:: psir, vpsir
 type(workarr_precond) :: work
 type(workarrays_quartic_convolutions):: work_conv
-character(len=*),parameter:: subname='apply_orbitaldependent_potential'
 real(8),dimension(0:3),parameter:: scal=1.d0
 real(8),dimension(:,:,:),allocatable:: ypsitemp_c
 real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
+character(len=*),parameter:: subname='apply_orbitaldependent_potential'
 
 
 
@@ -3098,14 +3154,12 @@ real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
   !!enddo
 
 
-
   vpsi=0.d0
   ist_c=1
   ist_f=1
   do iorb=1,orbs%norbp
      iiorb=iorb+orbs%isorb
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-  
      if(centralLocreg<0) then
          icenter=lin%orbs%inWhichLocregp(iorb)
      else
@@ -3114,10 +3168,7 @@ real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
      !components of the potential
      npot=orbs%nspinor
      if (orbs%nspinor == 2) npot=1
-
-
      ist_f=ist_f+lzd%llr(ilr)%wfd%nvctr_c
-
      call allocate_workarrays_quartic_convolutions(lzd%llr(ilr), subname, work_conv)
 
          call uncompress_for_quartic_convolutions(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
@@ -3271,15 +3322,8 @@ real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
      else
          icenter=centralLocreg
      end if
-     !components of the potential
-     npot=orbs%nspinor
-     if (orbs%nspinor == 2) npot=1
-
-
      ist_f=ist_f+lr%wfd%nvctr_c
-
      call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
-
      call uncompress_for_quartic_convolutions(lr%d%n1, lr%d%n2, lr%d%n3, &
           lr%d%nfl1, lr%d%nfu1, &
           lr%d%nfl2, lr%d%nfu2, &
@@ -3337,9 +3381,6 @@ real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
           scal, work_conv%y_c, work_conv%y_f, vpsi(ist_c), vpsi(ist_f))
 
      call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
-
-
-
 
 
 end subroutine apply_orbitaldependent_potential_foronelocreg
@@ -3452,8 +3493,6 @@ END SUBROUTINE uncompress_for_quartic_convolutions
 
 
 
-
-
 function dfactorial(n)
 implicit none
 
@@ -3471,270 +3510,274 @@ integer:: i
 
 end function dfactorial
 
-
-
-
-
-
-
-
 subroutine minimize_in_subspace(iproc, nproc, lin, at, input, lpot, GPU, ngatherarr, proj, rxyz, pkernelseq, nlpspd, lphi)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => minimize_in_subspace
-implicit none
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => minimize_in_subspace
+  implicit none
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(linearParameters),intent(inout):: lin
+  type(atoms_data),intent(in):: at
+  type(input_variables),intent(in):: input
+  real(8),dimension(lin%lzd%ndimpotisf),intent(in):: lpot
+  type(GPU_pointers),intent(inout):: GPU
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+  type(nonlocal_psp_descriptors),intent(in):: nlpspd
+  real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
+  real(8),dimension(3,at%nat),intent(in):: rxyz
+  real(dp), dimension(:), pointer :: pkernelseq
+  real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(inout):: lphi
 
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(linearParameters),intent(inout):: lin
-type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input
-real(8),dimension(lin%lzd%ndimpotisf),intent(in):: lpot
-type(GPU_pointers),intent(inout):: GPU
-integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-type(nonlocal_psp_descriptors),intent(in):: nlpspd
-real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-real(8),dimension(3,at%nat),intent(in):: rxyz
-real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
+  ! Local variables
+  integer:: ndim_lhchi,jorb,jjorb,jlr,ii,istat,iall,jproc,iiorb,kk,iorb,norbTarget,nprocTemp
+  integer:: is1,ie1,is2,ie2,is3,ie3,js1,je1,js2,je2,js3,je3,iat,ilr,ierr,tag,jlrold,nlocregPerMPI
+  integer,dimension(:),allocatable:: onWhichAtomTemp,norb_parTemp,onWhichMPITemp
+  logical,dimension(:),allocatable:: skip,doNotCalculate
+  logical:: ovrlpx,ovrlpy,ovrlpz,check_whether_locregs_overlap,withConfinement
+  real(8),dimension(:),allocatable:: lchi
+  real(8),dimension(:,:),allocatable:: lhchi
+  real(8):: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,t1,t2,time,tt,tt1,tt2,tt3
+  real(8),dimension(:,:,:),allocatable:: ham3
+  character(len=*),parameter:: subname='minimize_in_subspace'
+  type(confpot_data),dimension(:),allocatable :: confdatarr
 
-! Local variables
-integer:: ndim_lhchi, jorb, jjorb, jlr, ii, istat, iall, jproc, iiorb, kk, iorb, norbTarget, nprocTemp
-integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, iat, ilr, ierr, tag, jlrold, nlocregPerMPI
-integer,dimension(:),allocatable:: onWhichAtomTemp, norb_parTemp, onWhichMPITemp
-logical,dimension(:),allocatable:: skip, doNotCalculate
-logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, withConfinement
-real(8),dimension(:),allocatable:: lchi
-real(8),dimension(:,:),allocatable:: lhchi
-real(8):: ekin_sum, epot_sum, eexctX, eproj_sum, t1, t2, time, tt, tt1, tt2, tt3
-real(8),dimension(:,:,:),allocatable:: ham3
-character(len=*),parameter:: subname='minimize_in_subspace'
-
-
-
-
-           !resetDIIS=.true.
-           ! Apply the Hamiltonian for each atom.
-           ! onWhichAtomTemp indicates that all orbitals feel the confining potential
-           ! centered on atom iat.
-           allocate(onWhichAtomTemp(lin%orbs%norbp), stat=istat)
-           call memocc(istat,onWhichAtomTemp,'onWhichAtomTemp',subname)
-           allocate(doNotCalculate(lin%lzd%nlr), stat=istat)
-           call memocc(istat, doNotCalculate, 'doNotCalculate', subname)
-           allocate(skip(lin%lzd%nlr), stat=istat)
-           call memocc(istat, skip, 'skip', subname)
-           !allocate(skipGlobal(lin%lig%lzdig%nlr,0:nproc-1), stat=istat)
-           !call memocc(istat, skipGlobal, 'skipGlobal', subname)
+  !resetDIIS=.true.
+  ! Apply the Hamiltonian for each atom.
+  ! onWhichAtomTemp indicates that all orbitals feel the confining potential
+  ! centered on atom iat.
+  allocate(onWhichAtomTemp(lin%orbs%norbp),stat=istat)
+  call memocc(istat,onWhichAtomTemp,'onWhichAtomTemp',subname)
+  allocate(doNotCalculate(lin%lzd%nlr),stat=istat)
+  call memocc(istat,doNotCalculate,'doNotCalculate',subname)
+  allocate(skip(lin%lzd%nlr), stat=istat)
+  call memocc(istat, skip, 'skip', subname)
+  !allocate(skipGlobal(lin%lig%lzdig%nlr,0:nproc-1), stat=istat)
+  !call memocc(istat, skipGlobal, 'skipGlobal', subname)
 
 
-           ! Determine for how many localization regions we need a Hamiltonian application.
-           ndim_lhchi=0
-           do iat=1,at%nat
-               call getIndices(lin%lzd%llr(iat), is1, ie1, is2, ie2, is3, ie3)
-               skip(iat)=.true.
-               do jorb=1,lin%orbs%norbp
-                  jjorb=jorb+lin%orbs%isorb
-                   onWhichAtomTemp(jorb)=iat
-                   jlr=lin%orbs%inWhichLocreg(jjorb)
-                   if(lin%orbs%inWhichlocreg(jorb+lin%orbs%isorb)/=jlr) stop 'this should not happen'
-                   call getIndices(lin%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-                   ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-                   ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-                   ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-                   if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-                       if(check_whether_locregs_overlap(lin%lzd%llr(iat), lin%lzd%llr(jlr), lin%lzd%glr)) then
-                           skip(iat)=.false.
-                       end if
-                   end if
-               end do
-               if(.not.skip(iat)) then
-                   ndim_lhchi=ndim_lhchi+1
-               end if
-           end do
-
-
-           allocate(lhchi(lin%orbs%npsidim,ndim_lhchi),stat=istat)
-           call memocc(istat, lhchi, 'lhchi', subname)
-           lhchi=0.d0
-
-
-           if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
-           call mpi_barrier(mpi_comm_world, ierr)
-           call cpu_time(t1)
-           !!call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%locregShape, lin%lig%lzdig)
-           !!call full_local_potential2(iproc, nproc, lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2), &
-           !!     lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*lin%lig%lzdig%glr%d%n3i,&
-           !!     lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,1)*input%nspin, input%nspin, lin%lig%orbsig,&
-           !!     lin%lig%lzdig, ngatherarr, rhopot, lpot, 2, lin%lig%comgp)
-
-           allocate(lin%lzd%doHamAppl(lin%lzd%nlr), stat=istat)
-           call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
-           withConfinement=.true.
-           ii=0
-           allocate(lchi(size(lphi)), stat=istat)
-           call memocc(istat, lchi, 'lchi', subname)
-           lchi=lphi
-           do iat=1,at%nat
-               doNotCalculate=.true.
-               lin%lzd%doHamAppl=.false.
-               !!call mpi_barrier(mpi_comm_world, ierr)
-               call getIndices(lin%lzd%llr(iat), is1, ie1, is2, ie2, is3, ie3)
-               skip(iat)=.true.
-               do jorb=1,lin%orbs%norbp
-                   onWhichAtomTemp(jorb)=iat
-                   !jlr=onWhichAtomp(jorb)
-                   jlr=lin%orbs%inWhichLocregp(jorb)
-                   call getIndices(lin%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-                   ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-                   ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-                   ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-                   if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-                       doNotCalculate(jlr)=.false.
-                       lin%lzd%doHamAppl(jlr)=.true.
-                       skip(iat)=.false.
-                   else
-                       doNotCalculate(jlr)=.true.
-                       lin%lzd%doHamAppl(jlr)=.false.
-                   end if
-               end do
-               !write(*,'(a,2i4,4x,100l4)') 'iat, iproc, doNotCalculate', iat, iproc, doNotCalculate
-               if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
-               if(.not.skip(iat)) then
-                   ii=ii+1
-                   if(lin%nItInguess>0) then
-                       call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
-                            proj, lin%lzd, ngatherarr, lpot, lchi, lhchi(1,ii), &
-                            ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, withConfinement, .false., &
-                            pkernel=pkernelseq, lin=lin, confinementCenter=onWhichAtomTemp)
-                   end if
-
-               else
-               end if
-
-
-               if(iproc==0) write(*,'(a)') 'done.'
-           end do
-
-
-           !!iall=-product(shape(lpot))*kind(lpot)
-           !!deallocate(lpot, stat=istat)
-           !!call memocc(istat, iall, 'lpot', subname)
-            if(ii/=ndim_lhchi) then
-               write(*,'(a,i0,a,2(a2,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
-               stop
+  ! Determine for how many localization regions we need a Hamiltonian application.
+  ndim_lhchi=0
+  do iat=1,at%nat
+     call getIndices(lin%lzd%llr(iat), is1, ie1, is2, ie2, is3, ie3)
+     skip(iat)=.true.
+     do jorb=1,lin%orbs%norbp
+        jjorb=jorb+lin%orbs%isorb
+        onWhichAtomTemp(jorb)=iat
+        jlr=lin%orbs%inWhichLocreg(jjorb)
+        if(lin%orbs%inWhichlocreg(jorb+lin%orbs%isorb)/=jlr) stop 'this should not happen'
+        call getIndices(lin%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+        ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+        ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+        ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+        if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+           if(check_whether_locregs_overlap(lin%lzd%llr(iat), lin%lzd%llr(jlr), lin%lzd%glr)) then
+              skip(iat)=.false.
            end if
-           call mpi_barrier(mpi_comm_world, ierr)
-           call cpu_time(t2)
-           time=t2-t1
-           if(iproc==0) write(*,'(1x,a,es10.3)') 'time for applying potential:', time
+        end if
+     end do
+     if(.not.skip(iat)) then
+        ndim_lhchi=ndim_lhchi+1
+     end if
+  end do
+
+  allocate(lhchi(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp),ndim_lhchi),stat=istat)
+  call memocc(istat, lhchi, 'lhchi', subname)
+  lhchi=0.d0
+
+  if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
+  call mpi_barrier(mpi_comm_world, ierr)
+  call cpu_time(t1)
+  !!call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%locregShape, lin%lig%lzdig)
+  !!call full_local_potential2(iproc, nproc, lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2), &
+  !!     lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*lin%lig%lzdig%glr%d%n3i,&
+  !!     lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,1)*input%nspin, input%nspin, lin%lig%orbsig,&
+  !!     lin%lig%lzdig, ngatherarr, rhopot, lpot, 2, lin%lig%comgp)
+
+  allocate(lin%lzd%doHamAppl(lin%lzd%nlr), stat=istat)
+  call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
+  withConfinement=.true.
+  ii=0
+  allocate(lchi(size(lphi)), stat=istat)
+  call memocc(istat, lchi, 'lchi', subname)
+  lchi=lphi
+  do iat=1,at%nat
+     doNotCalculate=.true.
+     lin%lzd%doHamAppl=.false.
+     !!call mpi_barrier(mpi_comm_world, ierr)
+     call getIndices(lin%lzd%llr(iat), is1, ie1, is2, ie2, is3, ie3)
+     skip(iat)=.true.
+     do jorb=1,lin%orbs%norbp
+        onWhichAtomTemp(jorb)=iat
+        !jlr=onWhichAtomp(jorb)
+        jlr=lin%orbs%inWhichLocregp(jorb)
+        call getIndices(lin%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+        ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+        ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+        ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+        if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+           doNotCalculate(jlr)=.false.
+           lin%lzd%doHamAppl(jlr)=.true.
+           skip(iat)=.false.
+        else
+           doNotCalculate(jlr)=.true.
+           lin%lzd%doHamAppl(jlr)=.false.
+        end if
+     end do
+     !write(*,'(a,2i4,4x,100l4)') 'iat, iproc, doNotCalculate', iat, iproc, doNotCalculate
+     if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
+     if(.not.skip(iat)) then
+        ii=ii+1
+        if(lin%nItInguess>0) then
+!!$           call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
+!!$                proj, lin%lzd, ngatherarr, lpot, lchi, lhchi(1,ii), &
+!!$                ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, withConfinement, .false., &
+!!$                pkernel=pkernelseq, lin=lin, confinementCenter=onWhichAtomTemp)
+        
+           !confdatarr to be initialized
+           allocate(confdatarr(lin%orbs%norbp))
+           call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
+                input%hx,input%hy,input%hz,lin,lin%Lzd,onWhichAtomTemp)
+
+           call LocalHamiltonianApplication(iproc,nproc,at,lin%orbs,&
+                input%hx,input%hy,input%hz,&
+                lin%lzd,confdatarr,ngatherarr,Lpot,lchi,lhchi(1,ii),&
+                ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,&
+                pkernel=pkernelseq)
+
+           call NonLocalHamiltonianApplication(iproc,at,lin%orbs,&
+                input%hx,input%hy,input%hz,rxyz,&
+                proj,lin%lzd,lchi,lhchi(1,ii),eproj_sum)
+           deallocate(confdatarr)
+        end if
+
+     else
+     end if
+
+
+     if(iproc==0) write(*,'(a)') 'done.'
+  end do
+
+
+  !!iall=-product(shape(lpot))*kind(lpot)
+  !!deallocate(lpot, stat=istat)
+  !!call memocc(istat, iall, 'lpot', subname)
+  if(ii/=ndim_lhchi) then
+     write(*,'(a,i0,a,2(a2,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
+     stop
+  end if
+  call mpi_barrier(mpi_comm_world, ierr)
+  call cpu_time(t2)
+  time=t2-t1
+  if(iproc==0) write(*,'(1x,a,es10.3)') 'time for applying potential:', time
 
 
 
-           ! The input guess is possibly performed only with a subset of all processes.
-           if(lin%norbsPerProcIG>lin%orbs%norb) then
-               norbTarget=lin%orbs%norb
-           else
-              norbTarget=lin%norbsperProcIG
-           end if
-           nprocTemp=ceiling(dble(lin%orbs%norb)/dble(norbTarget))
-           nprocTemp=min(nprocTemp,nproc)
-           if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', nprocTemp, ' processes.'
+  ! The input guess is possibly performed only with a subset of all processes.
+  if(lin%norbsPerProcIG>lin%orbs%norb) then
+     norbTarget=lin%orbs%norb
+  else
+     norbTarget=lin%norbsperProcIG
+  end if
+  nprocTemp=ceiling(dble(lin%orbs%norb)/dble(norbTarget))
+  nprocTemp=min(nprocTemp,nproc)
+  if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', nprocTemp, ' processes.'
 
-           ! Create temporary norb_parTemp, onWhichMPITemp
-           allocate(norb_parTemp(0:nprocTemp-1), stat=istat)
-           call memocc(istat, norb_parTemp, 'norb_parTemp', subname)
-           norb_parTemp=0
-           tt=dble(lin%orbs%norb)/dble(nprocTemp)
-           ii=floor(tt)
-           ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
-           norb_parTemp(0:nprocTemp-1)=ii
-           kk=lin%orbs%norb-nprocTemp*ii
-           norb_parTemp(0:kk-1)=ii+1
+  ! Create temporary norb_parTemp, onWhichMPITemp
+  allocate(norb_parTemp(0:nprocTemp-1), stat=istat)
+  call memocc(istat, norb_parTemp, 'norb_parTemp', subname)
+  norb_parTemp=0
+  tt=dble(lin%orbs%norb)/dble(nprocTemp)
+  ii=floor(tt)
+  ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
+  norb_parTemp(0:nprocTemp-1)=ii
+  kk=lin%orbs%norb-nprocTemp*ii
+  norb_parTemp(0:kk-1)=ii+1
 
-           allocate(onWhichMPITemp(lin%orbs%norb), stat=istat)
-           call memocc(istat, onWhichMPITemp, 'onWhichMPITemp', subname)
-           iiorb=0
-           do jproc=0,nprocTemp-1
-               do iorb=1,norb_parTemp(jproc)
-                   iiorb=iiorb+1
-                   onWhichMPITemp(iiorb)=jproc
-               end do
-           end do
+  allocate(onWhichMPITemp(lin%orbs%norb), stat=istat)
+  call memocc(istat, onWhichMPITemp, 'onWhichMPITemp', subname)
+  iiorb=0
+  do jproc=0,nprocTemp-1
+     do iorb=1,norb_parTemp(jproc)
+        iiorb=iiorb+1
+        onWhichMPITemp(iiorb)=jproc
+     end do
+  end do
 
-           ! Calculate the number of different matrices that have to be stored on a given MPI process.
-           jlrold=0
-           nlocregPerMPI=0
-           do jorb=1,lin%orbs%norb
-               jlr=lin%orbs%inWhichLocreg(jorb)
-               !jproc=lin%orbs%onWhichMPI(jorb)
-               jproc=onWhichMPITemp(jorb)
-               !if(iproc==0) write(*,'(a,5i7)') 'jorb, jlr, jlrold, jproc, nlocregPerMPI', jorb, jlr, jlrold, jproc, nlocregPerMPI
-               if(iproc==jproc) then
-                   if(jlr/=jlrold) then
-                       nlocregPerMPI=nlocregPerMPI+1
-                       jlrold=jlr
-                   end if
-               end if
-           end do
-
-
-
-           ! Calculate the Hamiltonian matrix.
-           call cpu_time(t1)
-           allocate(ham3(lin%orbs%norb,lin%orbs%norb,nlocregPerMPI), stat=istat)
-           call memocc(istat,ham3,'ham3',subname)
-           if(lin%nItInguess>0) then
-               if(iproc==0) write(*,*) 'calling getHamiltonianMatrix6'
-               call getHamiltonianMatrix6(iproc, nproc, nprocTemp, lin%lzd, lin%orbs, lin%orbs, &
-                    onWhichMPITemp, input, lin%orbs%inWhichLocreg, ndim_lhchi, &
-                    nlocregPerMPI, lchi, lhchi, skip, lin%mad, &
-                    lin%memoryForCommunOverlapIG, lin%locregShape, tag, ham3)
-           end if
-
-           iall=-product(shape(lhchi))*kind(lhchi)
-           deallocate(lhchi, stat=istat)
-           call memocc(istat, iall, 'lhchi',subname)
+  ! Calculate the number of different matrices that have to be stored on a given MPI process.
+  jlrold=0
+  nlocregPerMPI=0
+  do jorb=1,lin%orbs%norb
+     jlr=lin%orbs%inWhichLocreg(jorb)
+     !jproc=lin%orbs%onWhichMPI(jorb)
+     jproc=onWhichMPITemp(jorb)
+     !if(iproc==0) write(*,'(a,5i7)') 'jorb, jlr, jlrold, jproc, nlocregPerMPI', jorb, jlr, jlrold, jproc, nlocregPerMPI
+     if(iproc==jproc) then
+        if(jlr/=jlrold) then
+           nlocregPerMPI=nlocregPerMPI+1
+           jlrold=jlr
+        end if
+     end if
+  end do
 
 
-           ! Build the orbitals phi as linear combinations of the atomic orbitals.
-           if(iproc==0) write(*,*) 'calling buildLinearCombinationsLocalized3'
-           call buildLinearCombinationsLocalized3(iproc, nproc, lin%orbs, lin%orbs, lin%comms,&
-                at, lin%lzd%Glr, input, lin%norbsPerType, &
-                lin%orbs%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, &
-                lin, lin%lzd, nlocregPerMPI, tag, ham3)
 
-           iall=-product(shape(lchi))*kind(lchi)
-           deallocate(lchi, stat=istat)
-           call memocc(istat, iall, 'lchi',subname)
+  ! Calculate the Hamiltonian matrix.
+  call cpu_time(t1)
+  allocate(ham3(lin%orbs%norb,lin%orbs%norb,nlocregPerMPI), stat=istat)
+  call memocc(istat,ham3,'ham3',subname)
+  if(lin%nItInguess>0) then
+     if(iproc==0) write(*,*) 'calling getHamiltonianMatrix6'
+     call getHamiltonianMatrix6(iproc, nproc, nprocTemp, lin%lzd, lin%orbs, lin%orbs, &
+          onWhichMPITemp, input, lin%orbs%inWhichLocreg, ndim_lhchi, &
+          nlocregPerMPI, lchi, lhchi, skip, lin%mad, &
+          lin%memoryForCommunOverlapIG, lin%locregShape, tag, ham3)
+  end if
 
-           iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
-           deallocate(lin%lzd%doHamAppl, stat=istat)
-           call memocc(istat, iall, 'lin%lzd%doHamAppl',subname)
+  iall=-product(shape(lhchi))*kind(lhchi)
+  deallocate(lhchi, stat=istat)
+  call memocc(istat, iall, 'lhchi',subname)
 
-           iall=-product(shape(norb_parTemp))*kind(norb_parTemp)
-           deallocate(norb_parTemp, stat=istat)
-           call memocc(istat, iall, 'norb_parTemp',subname)
 
-           iall=-product(shape(ham3))*kind(ham3)
-           deallocate(ham3, stat=istat)
-           call memocc(istat, iall, 'ham3',subname)
+  ! Build the orbitals phi as linear combinations of the atomic orbitals.
+  if(iproc==0) write(*,*) 'calling buildLinearCombinationsLocalized3'
+  call buildLinearCombinationsLocalized3(iproc, nproc, lin%orbs, lin%orbs, lin%comms,&
+       at, lin%lzd%Glr, input, lin%norbsPerType, &
+       lin%orbs%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, &
+       lin, lin%lzd, nlocregPerMPI, tag, ham3)
 
-           ! Deallocate all remaining local arrays.
-           iall=-product(shape(onWhichAtomTemp))*kind(onWhichAtomTemp)
-           deallocate(onWhichAtomTemp, stat=istat)
-           call memocc(istat, iall, 'onWhichAtomTemp',subname)
+  iall=-product(shape(lchi))*kind(lchi)
+  deallocate(lchi, stat=istat)
+  call memocc(istat, iall, 'lchi',subname)
 
-           iall=-product(shape(doNotCalculate))*kind(doNotCalculate)
-           deallocate(doNotCalculate, stat=istat)
-           call memocc(istat, iall, 'doNotCalculate',subname)
+  iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
+  deallocate(lin%lzd%doHamAppl, stat=istat)
+  call memocc(istat, iall, 'lin%lzd%doHamAppl',subname)
 
-           iall=-product(shape(skip))*kind(skip)
-           deallocate(skip, stat=istat)
-           call memocc(istat, iall, 'skip',subname)
+  iall=-product(shape(norb_parTemp))*kind(norb_parTemp)
+  deallocate(norb_parTemp, stat=istat)
+  call memocc(istat, iall, 'norb_parTemp',subname)
 
-           iall=-product(shape(onWhichMPITemp))*kind(onWhichMPITemp)
-           deallocate(onWhichMPITemp, stat=istat)
-           call memocc(istat, iall, 'onWhichMPITemp',subname)
+  iall=-product(shape(ham3))*kind(ham3)
+  deallocate(ham3, stat=istat)
+  call memocc(istat, iall, 'ham3',subname)
+
+  ! Deallocate all remaining local arrays.
+  iall=-product(shape(onWhichAtomTemp))*kind(onWhichAtomTemp)
+  deallocate(onWhichAtomTemp, stat=istat)
+  call memocc(istat, iall, 'onWhichAtomTemp',subname)
+
+  iall=-product(shape(doNotCalculate))*kind(doNotCalculate)
+  deallocate(doNotCalculate, stat=istat)
+  call memocc(istat, iall, 'doNotCalculate',subname)
+
+  iall=-product(shape(skip))*kind(skip)
+  deallocate(skip, stat=istat)
+  call memocc(istat, iall, 'skip',subname)
+
+  iall=-product(shape(onWhichMPITemp))*kind(onWhichMPITemp)
+  deallocate(onWhichMPITemp, stat=istat)
+  call memocc(istat, iall, 'onWhichMPITemp',subname)
 
 
 end subroutine minimize_in_subspace
@@ -3764,7 +3807,7 @@ type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
-real(8),dimension(orbs%npsidim),intent(inout):: lphi
+real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),intent(inout):: lphi
 
 ! Local variables
 integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, lorb, jlr
@@ -3803,7 +3846,7 @@ allocate(tempmatc(orbs%norb,orbs%norb,2), stat=istat)
 !call memocc(istat, tempmatc, 'tempmatc', subname)
 allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-allocate(lvphi(orbs%npsidim), stat=istat)
+allocate(lvphi(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)), stat=istat)
 call memocc(istat, lvphi, 'lvphi', subname)
 allocate(Kmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, Kmat, 'Kmat', subname)
@@ -4088,7 +4131,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       time_convol=time_convol+t2-t1
 
       if(.not.lin%newgradient) then
-          energyconf_trial=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
+          energyconf_trial=ddot(max(orbs%npsidim_orbs,orbs%npsidim_comp), lphi(1), 1, lvphi(1), 1)
           call mpiallred(energyconf_trial, 1, mpi_sum, mpi_comm_world, ierr)
       else
 
@@ -4285,7 +4328,7 @@ integer,intent(in):: nrecvbuf
 real(8),dimension(nrecvbuf),intent(in):: recvbuf
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: omat
 logical,intent(in):: reset
-real(8),dimension(orbs%npsidim),intent(out):: lphi
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: lphi
 
 ! Local variables
 integer:: ist, jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, i, ldim, ind, indout, gdim, iorbref, m, ii
@@ -4347,7 +4390,7 @@ type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(lzd%lpsidimtot),intent(inout):: psi
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
 
 ! Local variables
 integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all
@@ -4544,7 +4587,7 @@ type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
 real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(lzd%lpsidimtot),intent(inout):: psi
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
 real(8),dimension(orbs%norb,orbs%norb,at%nat),intent(out):: potmat
 
 ! Local variables
@@ -4554,7 +4597,7 @@ real(8):: tt1, tt2, tt3, tt4, tt5
 real(8),dimension(:),allocatable:: vpsi
 character(len=*),parameter:: subname='get_potential_matrices'
 
-allocate(vpsi(lzd%lpsidimtot), stat=istat)
+allocate(vpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
 call memocc(istat, vpsi, 'vpsi', subname)
 
 
@@ -4683,7 +4726,7 @@ type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
 real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(lzd%lpsidimtot),intent(inout):: psi
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
 real(8),dimension(orbs%norb,orbs%norb,nlocregOnMPI),intent(out):: potmat
 
 ! Local variables
@@ -4700,7 +4743,8 @@ integer,dimensioN(:),allocatable:: sendcounts, displs
 allocate(vpsi(comon%nrecvbuf), stat=istat)
 call memocc(istat, vpsi, 'vpsi', subname)
 
-call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, psi, comon%nsendBuf, comon%sendBuf)
+call extractOrbital3(iproc, nproc, orbs, max(orbs%npsidim_orbs,orbs%npsidim_comp), orbs%inWhichLocreg, &
+     lzd, op, psi, comon%nsendBuf, comon%sendBuf)
 call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, psi, comon, tt1, tt2)
 allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
 call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &

@@ -31,8 +31,8 @@ implicit none
 integer,intent(in):: iproc, lproc, uproc, newComm
 type(orbitals_data),intent(in):: orbs
 type(collectiveComms),intent(in):: collComms
-real(8),dimension(orbs%npsidim), intent(in out):: psi
-real(wp),dimension(orbs%npsidim):: work
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(in out):: psi
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)):: work
 !real(wp),dimension(*),intent(out),optional:: outadd
 
 ! Local variables
@@ -113,9 +113,9 @@ implicit none
 integer,intent(in):: iproc,lproc, uproc, newComm
 type(orbitals_data),intent(in):: orbs
 type(collectiveComms),intent(in):: collComms
-real(8),dimension(orbs%npsidim),intent(in out):: psi
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in out):: psi
 !real(wp),dimension(:),pointer,optional :: work
-real(wp),dimension(orbs%npsidim):: work
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)):: work
 !real(wp),dimension(*),intent(out),optional :: outadd
 
 ! Local variables
@@ -217,8 +217,8 @@ implicit none
 integer,intent(in):: iproc, lproc, uproc
 type(collectiveComms), intent(in) :: collComms
 type(orbitals_data),intent(in):: orbs
-real(wp),dimension(orbs%npsidim),intent(in):: psi
-real(wp),dimension(orbs%npsidim),intent(out):: psiw
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psi
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psiw
 
 ! Local variables
 integer :: iorb, i, j, ij, ijproc, ind, it, it1, it2, it3, it4, ikptsp, nproc
@@ -331,8 +331,8 @@ implicit none
 integer,intent(in):: iproc, lproc, uproc
 type(orbitals_data),intent(in) :: orbs
 type(collectiveComms),intent(in) :: collComms
-real(wp),dimension(orbs%npsidim),intent(in):: psiw
-real(wp),dimension(orbs%npsidim),intent(out):: psi
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psiw
+real(wp),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi
 
 ! Local variables
 integer:: iorb, i, j, ij, ijproc, ind, it, it1, it2, it3, it4, ikptsp, nproc, jproc
@@ -451,8 +451,8 @@ implicit none
 integer,intent(in):: iproc, lproc, uproc, newComm
 type(orbitals_data),intent(in):: orbs
 type(collectiveComms),intent(in):: collComms
-integer,dimension(orbs%npsidim), intent(in out):: psi
-integer,dimension(orbs%npsidim):: work
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(in out):: psi
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)):: work
 !real(wp),dimension(*),intent(out),optional:: outadd
 
 ! Local variables
@@ -541,8 +541,8 @@ implicit none
 integer,intent(in):: iproc,lproc, uproc, newComm
 type(orbitals_data),intent(in):: orbs
 type(collectiveComms),intent(in):: collComms
-integer,dimension(orbs%npsidim),intent(in out):: psi
-integer,dimension(orbs%npsidim):: work
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in out):: psi
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)):: work
 
 ! Local variables
 integer :: ierr, nproc
@@ -643,8 +643,8 @@ implicit none
 integer,intent(in):: iproc, lproc, uproc
 type(collectiveComms), intent(in) :: collComms
 type(orbitals_data),intent(in):: orbs
-integer,dimension(orbs%npsidim),intent(in):: psi
-integer,dimension(orbs%npsidim),intent(out):: psiw
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psi
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psiw
 
 ! Local variables
 integer :: iorb, i, j, ij, ijproc, ind, it, it1, it2, it3, it4, ikptsp, nproc
@@ -762,8 +762,8 @@ implicit none
 integer,intent(in):: iproc, lproc, uproc
 type(orbitals_data),intent(in) :: orbs
 type(collectiveComms),intent(in) :: collComms
-integer,dimension(orbs%npsidim),intent(in):: psiw
-integer,dimension(orbs%npsidim),intent(out):: psi
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psiw
+integer,dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi
 
 ! Local variables
 integer:: iorb, i, j, ij, ijproc, ind, it, it1, it2, it3, it4, ikptsp, nproc, jproc

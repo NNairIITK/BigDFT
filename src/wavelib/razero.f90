@@ -129,6 +129,26 @@ subroutine dscopy(n,dx,incx,dy,incy)
   end do
 
 end subroutine dscopy
+
+subroutine icopy(n,dx,incx,dy,incy)
+  implicit none
+  integer, intent(in) :: n,incx,incy
+  integer, dimension(*), intent(in) :: dx
+  integer, dimension(*), intent(out) :: dy
+  !local variables
+  integer :: i,ix,iy
+  
+  ix=0
+  iy=0
+  do i=1,n
+     ix=ix+incx
+     iy=iy+incy
+     dy(iy)=dx(ix)
+  end do
+
+end subroutine icopy
+
+
 !>   To be used in the following function.
 module randomData
   implicit none

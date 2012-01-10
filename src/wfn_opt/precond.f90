@@ -130,7 +130,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data), intent(in) :: orbs
   real(dp), intent(out) :: gnrm,gnrm_zero
-  real(wp), dimension(Lzd%Lpsidimtot), intent(inout) :: hpsi
+  real(wp), dimension(orbs%npsidim_comp), intent(inout) :: hpsi
   !local variables
   integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr
   real(wp) :: cprecr,scpr,evalmax,eval_zero
@@ -155,7 +155,6 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-
      !if it is the first orbital or the k-point has changed calculate the max
      if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
         !the eval array contains all the values

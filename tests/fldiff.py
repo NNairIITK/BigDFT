@@ -120,6 +120,7 @@ if bigdft:
             or "READING WAVES" in line \
             or "average CG stepsize" in line \
             or "GPU data" in line \
+            or "Exact exchange calculation" in line \
             or "time for" in line \
             or "orthonormalization:" in line \
             or "Hamiltonian application:" in line \
@@ -253,7 +254,6 @@ for line in original1:
                     time = float(line.split()[-2])
                 else:
                     time += float(line.split()[-2])
-                print "toto",time,line
             #Test if memory remaining is 0
             if "remaining memory" in line:
                 memory = int(line.split()[-1])

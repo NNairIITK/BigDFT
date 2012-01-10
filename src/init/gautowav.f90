@@ -643,7 +643,7 @@ subroutine gaussians_to_wavelets_new2(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,ps
   type(orbitals_data), intent(in) :: orbs
   type(gaussian_basis), intent(in) :: G
   real(wp), dimension(G%ncoeff,orbs%nspinor,orbs%norbp), intent(in) :: wfn_gau
-  real(wp), dimension(Lzd%Lpsidimtot), intent(out) :: psi
+  real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi
 
   !local variables
   integer :: iorb,ierr,ispinor,ncplx,ind,ind2,ilr

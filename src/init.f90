@@ -12,7 +12,7 @@
 !!   Calculates also the bounds arrays needed for convolutions
 !!   Refers this information to the global localisation region descriptor
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-      &   crmult,frmult,Glr,output_grid)
+      &   crmult,frmult,Glr,output_denspot)
    use module_base
    use module_types
    implicit none
@@ -23,13 +23,18 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
    real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
    type(locreg_descriptors), intent(inout) :: Glr
-   logical, intent(in), optional :: output_grid
+   logical, intent(in), optional :: output_denspot
    !local variables
    character(len=*), parameter :: subname='createWavefunctionsDescriptors'
    integer :: i_all,i_stat,i1,i2,i3,iat
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-   logical :: my_output_grid
+   logical :: my_output_denspot
    logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+
+   if (iproc == 0) then
+      write(*,'(1x,a)')&
+         &   '------------------------------------------------- Wavefunctions Descriptors Creation'
+   end if
 
    !assign the dimensions to improve (a little) readability
    n1=Glr%d%n1
@@ -42,26 +47,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    nfu2=Glr%d%nfu2
    nfu3=Glr%d%nfu3
 
-   !allocate kinetic bounds, only for free BC
-   if (atoms%geocode == 'F') then
-      allocate(Glr%bounds%kb%ibyz_c(2,0:n2,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibyz_c,'Glr%bounds%kb%ibyz_c',subname)
-      allocate(Glr%bounds%kb%ibxz_c(2,0:n1,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxz_c,'Glr%bounds%kb%ibxz_c',subname)
-      allocate(Glr%bounds%kb%ibxy_c(2,0:n1,0:n2+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxy_c,'Glr%bounds%kb%ibxy_c',subname)
-      allocate(Glr%bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibyz_f,'Glr%bounds%kb%ibyz_f',subname)
-      allocate(Glr%bounds%kb%ibxz_f(2,0:n1,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxz_f,'Glr%bounds%kb%ibxz_f',subname)
-      allocate(Glr%bounds%kb%ibxy_f(2,0:n1,0:n2+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxy_f,'Glr%bounds%kb%ibxy_f',subname)
-   end if
-
-   if (iproc == 0) then
-      write(*,'(1x,a)')&
-         &   '------------------------------------------------- Wavefunctions Descriptors Creation'
-   end if
+   !assign geocode and the starting points
+   Glr%geocode=atoms%geocode
 
    ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
    allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
@@ -69,16 +56,16 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid_f,'logrid_f',subname)
 
-   ! coarse grid quantities
+   ! coarse/fine grid quantities
    call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
       &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
-   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%nvctr_c)
+   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
+      &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
+
+   call wfd_from_grids(logrid_c,logrid_f,Glr)
+
    if (iproc == 0) write(*,'(2(1x,a,i10))') &
       &   'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
-
-   if (atoms%geocode == 'F') then
-      call make_bounds(n1,n2,n3,logrid_c,Glr%bounds%kb%ibyz_c,Glr%bounds%kb%ibxz_c,Glr%bounds%kb%ibxy_c)
-   end if
 
    if (atoms%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
       if (iproc ==0)then
@@ -99,32 +86,13 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       end if
    end if
 
-   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
-      &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
-   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f,Glr%wfd%nvctr_f)
    if (iproc == 0) write(*,'(2(1x,a,i10))') & 
    '  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
-   if (atoms%geocode == 'F') then
-      call make_bounds(n1,n2,n3,logrid_f,Glr%bounds%kb%ibyz_f,Glr%bounds%kb%ibxz_f,Glr%bounds%kb%ibxy_f)
-   end if
-
-   ! allocations for arrays holding the wavefunctions and their data descriptors
-   call allocate_wfd(Glr%wfd,subname)
-
-   ! now fill the wavefunction descriptor arrays
-   ! coarse grid quantities
-   call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1))
-
-   ! fine grid quantities
-   if (Glr%wfd%nseg_f > 0) then
-      call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f,Glr%wfd%keyg(1,Glr%wfd%nseg_c+1), &
-         &   Glr%wfd%keyv(Glr%wfd%nseg_c+1))
-   end if
 
    ! Create the file grid.xyz to visualize the grid of functions
-   my_output_grid = .false.
-   if (present(output_grid)) my_output_grid = output_grid
-   if (my_output_grid) then
+   my_output_denspot = .false.
+   if (present(output_denspot)) my_output_denspot = output_denspot
+   if (my_output_denspot) then
       open(unit=22,file='grid.xyz',status='unknown')
       write(22,*) Glr%wfd%nvctr_c+Glr%wfd%nvctr_f+atoms%nat,' atomic'
       if (atoms%geocode=='F') then
@@ -165,10 +133,74 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    i_all=-product(shape(logrid_f))*kind(logrid_f)
    deallocate(logrid_f,stat=i_stat)
    call memocc(i_stat,i_all,'logrid_f',subname)
+END SUBROUTINE createWavefunctionsDescriptors
+
+subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
+   use module_base
+   use module_types
+   implicit none
+   !Arguments
+   type(locreg_descriptors), intent(inout) :: Glr
+   logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid_c,logrid_f
+   !local variables
+   character(len=*), parameter :: subname='wfd_from_grids'
+   integer :: i_stat
+   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+
+   !assign the dimensions to improve (a little) readability
+   n1=Glr%d%n1
+   n2=Glr%d%n2
+   n3=Glr%d%n3
+   nfl1=Glr%d%nfl1
+   nfl2=Glr%d%nfl2
+   nfl3=Glr%d%nfl3
+   nfu1=Glr%d%nfu1
+   nfu2=Glr%d%nfu2
+   nfu3=Glr%d%nfu3
+
+   !allocate kinetic bounds, only for free BC
+   if (Glr%geocode == 'F') then
+      allocate(Glr%bounds%kb%ibyz_c(2,0:n2,0:n3+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibyz_c,'Glr%bounds%kb%ibyz_c',subname)
+      allocate(Glr%bounds%kb%ibxz_c(2,0:n1,0:n3+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibxz_c,'Glr%bounds%kb%ibxz_c',subname)
+      allocate(Glr%bounds%kb%ibxy_c(2,0:n1,0:n2+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibxy_c,'Glr%bounds%kb%ibxy_c',subname)
+      allocate(Glr%bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibyz_f,'Glr%bounds%kb%ibyz_f',subname)
+      allocate(Glr%bounds%kb%ibxz_f(2,0:n1,0:n3+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibxz_f,'Glr%bounds%kb%ibxz_f',subname)
+      allocate(Glr%bounds%kb%ibxy_f(2,0:n1,0:n2+ndebug),stat=i_stat)
+      call memocc(i_stat,Glr%bounds%kb%ibxy_f,'Glr%bounds%kb%ibxy_f',subname)
+   end if
+
+   ! Do the coarse region.
+   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%nvctr_c)
+   if (Glr%geocode == 'F') then
+      call make_bounds(n1,n2,n3,logrid_c,Glr%bounds%kb%ibyz_c,Glr%bounds%kb%ibxz_c,Glr%bounds%kb%ibxy_c)
+   end if
+
+   ! Do the fine region.
+   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f,Glr%wfd%nvctr_f)
+   if (Glr%geocode == 'F') then
+      call make_bounds(n1,n2,n3,logrid_f,Glr%bounds%kb%ibyz_f,Glr%bounds%kb%ibxz_f,Glr%bounds%kb%ibxy_f)
+   end if
+
+   ! allocations for arrays holding the wavefunctions and their data descriptors
+   call allocate_wfd(Glr%wfd,subname)
+
+   ! now fill the wavefunction descriptor arrays
+   ! coarse grid quantities
+   call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c, &
+        & Glr%wfd%keyg(1,1),Glr%wfd%keyv(1))
+   ! fine grid quantities
+   if (Glr%wfd%nseg_f > 0) then
+      call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f, &
+           & Glr%wfd%keyg(1,Glr%wfd%nseg_c+1), Glr%wfd%keyv(Glr%wfd%nseg_c+1))
+   end if
 
    !for free BC admits the bounds arrays
-   if (atoms%geocode == 'F') then
-
+   if (Glr%geocode == 'F') then
       !allocate grow, shrink and real bounds
       allocate(Glr%bounds%gb%ibzxx_c(2,0:n3,-14:2*n1+16+ndebug),stat=i_stat)
       call memocc(i_stat,Glr%bounds%gb%ibzxx_c,'Glr%bounds%gb%ibzxx_c',subname)
@@ -204,17 +236,13 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 
    end if
 
-   if ( atoms%geocode == 'P' .and. Glr%hybrid_on) then
+   if (Glr%geocode == 'P' .and. Glr%hybrid_on) then
       call make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,Glr%bounds,Glr%wfd)
       call make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
          &   Glr%bounds%kb%ibxy_f,Glr%bounds%sb%ibxy_ff,Glr%bounds%sb%ibzzx_f,Glr%bounds%sb%ibyyzz_f,&
          &   Glr%bounds%kb%ibyz_f,Glr%bounds%gb%ibyz_ff,Glr%bounds%gb%ibzxx_f,Glr%bounds%gb%ibxxyy_f)
    endif
-
-   !assign geocode and the starting points
-   Glr%geocode=atoms%geocode
-
-END SUBROUTINE createWavefunctionsDescriptors
+end subroutine wfd_from_grids
 
 
 !>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
@@ -223,9 +251,9 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    use module_base
    use module_types
    implicit none
-  integer, intent(in) :: iproc
+   integer, intent(in) :: iproc
    real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
-  type(locreg_descriptors),intent(in) :: lr
+   type(locreg_descriptors),intent(in) :: lr
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -234,18 +262,23 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    real(wp), dimension(:), pointer :: proj
    !local variables
    character(len=*), parameter :: subname='createProjectorsArrays'
-  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
+   integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
    integer :: iat,i_stat,i_all,iseg
    logical, dimension(:,:,:), allocatable :: logrid
 
-   allocate(nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nseg_p,'nlpspd%nseg_p',subname)
-   allocate(nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nvctr_p,'nlpspd%nvctr_p',subname)
-   allocate(nlpspd%nboxp_c(2,3,at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nboxp_c,'nlpspd%nboxp_c',subname)
-   allocate(nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nboxp_f,'nlpspd%nboxp_f',subname)
+   !allocate the different localization regions of the projectors
+   nlpspd%natoms=at%nat
+   allocate(nlpspd%plr(at%nat),stat=i_stat)
+   
+
+!!$   allocate(nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nseg_p,'nlpspd%nseg_p',subname)
+!!$   allocate(nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nvctr_p,'nlpspd%nvctr_p',subname)
+!!$   allocate(nlpspd%nboxp_c(2,3,at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nboxp_c,'nlpspd%nboxp_c',subname)
+!!$   allocate(nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nboxp_f,'nlpspd%nboxp_f',subname)
 
 
   ! define the region dimensions
@@ -257,14 +290,21 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
    allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid,'logrid',subname)
 
-   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
-      &   logrid,at,orbs,nlpspd)
+   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
+        rxyz,radii_cf,logrid,at,orbs,nlpspd)
 
-   ! allocations for arrays holding the projectors and their data descriptors
-   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
-   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
+   !here the allocation is possible
+   do iat=1,nlpspd%natoms
+      !for the moments the bounds are not needed for projectors
+      call allocate_wfd(nlpspd%plr(iat)%wfd,subname)
+   end do
+
+!!$   ! allocations for arrays holding the projectors and their data descriptors
+!!$   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
+!!$   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
+
    allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
    call memocc(i_stat,proj,'proj',subname)
 
@@ -273,40 +313,75 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
       call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
       if (mproj.ne.0) then 
 
-         ! coarse grid quantities
-         nl1=nlpspd%nboxp_c(1,1,iat) 
-         nl2=nlpspd%nboxp_c(1,2,iat) 
-         nl3=nlpspd%nboxp_c(1,3,iat) 
+         call bounds_to_plr_limits(.false.,1,nlpspd%plr(iat),&
+              nl1,nl2,nl3,nu1,nu2,nu3)         
+!!$         nl1=nlpspd%plr(iat)%ns1
+!!$         nl2=nlpspd%plr(iat)%ns2
+!!$         nl3=nlpspd%plr(iat)%ns3
+!!$             
+!!$         nu1=nlpspd%plr(iat)%d%n1+nl1
+!!$         nu2=nlpspd%plr(iat)%d%n2+nl2
+!!$         nu3=nlpspd%plr(iat)%d%n3+nl3
 
-         nu1=nlpspd%nboxp_c(2,1,iat)
-         nu2=nlpspd%nboxp_c(2,2,iat)
-         nu3=nlpspd%nboxp_c(2,3,iat)
+!!$         ! coarse grid quantities
+!!$         nl1=nlpspd%nboxp_c(1,1,iat) 
+!!$         nl2=nlpspd%nboxp_c(1,2,iat) 
+!!$         nl3=nlpspd%nboxp_c(1,3,iat) 
+!!$
+!!$         nu1=nlpspd%nboxp_c(2,1,iat)
+!!$         nu2=nlpspd%nboxp_c(2,2,iat)
+!!$         nu3=nlpspd%nboxp_c(2,3,iat)
 
          call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
+            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
+            cpmult,hx,hy,hz,logrid)
 
-         iseg=nlpspd%nseg_p(2*iat-2)+1
-         mseg=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+!!$         iseg=nlpspd%nseg_p(2*iat-2)+1
+!!$         mseg=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
 
-         call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-         logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
+         call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,&
+              nlpspd%plr(iat)%wfd%nseg_c,&
+              nlpspd%plr(iat)%wfd%keyg(1,1),nlpspd%plr(iat)%wfd%keyv(1))
+
+!!$         call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+!!$         logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
+
 
          ! fine grid quantities
-         nl1=nlpspd%nboxp_f(1,1,iat)
-         nl2=nlpspd%nboxp_f(1,2,iat)
-         nl3=nlpspd%nboxp_f(1,3,iat)
+         call bounds_to_plr_limits(.false.,2,nlpspd%plr(iat),&
+              nl1,nl2,nl3,nu1,nu2,nu3)         
 
-         nu1=nlpspd%nboxp_f(2,1,iat)
-         nu2=nlpspd%nboxp_f(2,2,iat)
-         nu3=nlpspd%nboxp_f(2,3,iat)
+!!$         nl1=nlpspd%plr(iat)%d%nfl1+nlpspd%plr(iat)%ns1
+!!$         nl2=nlpspd%plr(iat)%d%nfl2+nlpspd%plr(iat)%ns2
+!!$         nl3=nlpspd%plr(iat)%d%nfl3+nlpspd%plr(iat)%ns3
+!!$                                  
+!!$         nu1=nlpspd%plr(iat)%d%nfu1+nlpspd%plr(iat)%ns1
+!!$         nu2=nlpspd%plr(iat)%d%nfu2+nlpspd%plr(iat)%ns2
+!!$         nu3=nlpspd%plr(iat)%d%nfu3+nlpspd%plr(iat)%ns3
+
+!!$         nl1=nlpspd%nboxp_f(1,1,iat)
+!!$         nl2=nlpspd%nboxp_f(1,2,iat)
+!!$         nl3=nlpspd%nboxp_f(1,3,iat)
+!!$
+!!$         nu1=nlpspd%nboxp_f(2,1,iat)
+!!$         nu2=nlpspd%nboxp_f(2,2,iat)
+!!$         nu3=nlpspd%nboxp_f(2,3,iat)
 
          call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
-         iseg=nlpspd%nseg_p(2*iat-1)+1
-         mseg=nlpspd%nseg_p(2*iat)-nlpspd%nseg_p(2*iat-1)
+            &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),&
+            fpmult,hx,hy,hz,logrid)
+
+         mseg=nlpspd%plr(iat)%wfd%nseg_f
+         iseg=nlpspd%plr(iat)%wfd%nseg_c+1
+
+!!$         iseg=nlpspd%nseg_p(2*iat-1)+1
+!!$         mseg=nlpspd%nseg_p(2*iat)-nlpspd%nseg_p(2*iat-1)
          if (mseg > 0) then
+!!$            call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+!!$            logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
             call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-            logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
+                 logrid,mseg,nlpspd%plr(iat)%wfd%keyg(1,iseg),&
+                 nlpspd%plr(iat)%wfd%keyv(iseg))
          end if
       endif
    enddo
@@ -353,16 +428,24 @@ subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   i
    Plr%geocode = at%geocode
 
 
-   Plr%wfd%nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-   Plr%wfd%nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
-   Plr%wfd%nseg_c   =PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
-   Plr%wfd%nseg_f   =PPD%pc_nlpspd%nseg_p(2*iat  )-PPD%pc_nlpspd%nseg_p(2*iat-1)
+   call plr_segs_and_vctrs(PPD%pc_nlpspd%plr(iat),&
+        Plr%wfd%nseg_c,Plr%wfd%nseg_f,Plr%wfd%nvctr_c,Plr%wfd%nvctr_f)
+!!$   Plr%wfd%nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+!!$   Plr%wfd%nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+!!$   Plr%wfd%nseg_c   =PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
+!!$   Plr%wfd%nseg_f   =PPD%pc_nlpspd%nseg_p(2*iat  )-PPD%pc_nlpspd%nseg_p(2*iat-1)
 
    call allocate_wfd(Plr%wfd,subname)
 
+   call vcopy(Plr%wfd%nseg_c+Plr%wfd%nseg_f,&
+        PPD%pc_nlpspd%plr(iat)%wfd%keyv(1),1,Plr%wfd%keyv(1),1)
+   call vcopy(2*(Plr%wfd%nseg_c+Plr%wfd%nseg_f),&
+        PPD%pc_nlpspd%plr(iat)%wfd%keyg(1,1),1,Plr%wfd%keyg(1,1),1)
 
-   Plr%wfd%keyv(:)  = PPD%pc_nlpspd%keyv_p(  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:  PPD%pc_nlpspd%nseg_p(2*iat)   )
-   Plr%wfd%keyg(1:2, :)  = PPD%pc_nlpspd%keyg_p( 1:2,  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:  PPD%pc_nlpspd%nseg_p(2*iat)   )
+!!$   Plr%wfd%keyv(:)  = &
+!!$        PPD%pc_nlpspd%keyv_p(  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:  PPD%pc_nlpspd%nseg_p(2*iat)   )
+!!$   Plr%wfd%keyg(1:2, :)  = &
+!!$        PPD%pc_nlpspd%keyg_p( 1:2,  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:  PPD%pc_nlpspd%nseg_p(2*iat)   )
 
    kx=0.0_gp
    ky=0.0_gp
@@ -372,14 +455,13 @@ subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   i
 
    jorb=startjorb
 
-   do while( jorb<=PPD%G%ncoeff         .and. PPD%iorbtolr(jorb)== iat) 
+   do while( jorb<=PPD%G%ncoeff .and. PPD%iorbtolr(jorb)== iat) 
       if( PPD%gaenes(jorb)<ecut_pc) then
 
          Gocc(jorb)=1.0_wp
-
          ncplx=1
          call gaussians_to_wavelets_orb(ncplx,Plr,hx,hy,hz,kx,ky,kz,PPD%G,&
-            &   Gocc(1),  PPD%pc_proj(istart_c)  )
+              Gocc(1),PPD%pc_proj(istart_c))
          Gocc(jorb)=0.0_wp
 
 
@@ -439,15 +521,23 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
    Plr%d%n3 = Glr%d%n3
    Plr%geocode = geocode
 
-   Plr%wfd%nvctr_c  =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
-   Plr%wfd%nvctr_f  =PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
-   Plr%wfd%nseg_c   =PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
-   Plr%wfd%nseg_f   =PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
+   call plr_segs_and_vctrs(PAWD%paw_nlpspd%plr(iat),&
+        Plr%wfd%nseg_c,Plr%wfd%nseg_f,Plr%wfd%nvctr_c,Plr%wfd%nvctr_f)
+
+!!$   Plr%wfd%nvctr_c  =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
+!!$   Plr%wfd%nvctr_f  =PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
+!!$   Plr%wfd%nseg_c   =PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
+!!$   Plr%wfd%nseg_f   =PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
 
    call allocate_wfd(Plr%wfd,subname)
 
-   Plr%wfd%keyv(:)  = PAWD%paw_nlpspd%keyv_p(  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:  PAWD%paw_nlpspd%nseg_p(2*iat)   )
-   Plr%wfd%keyg(1:2, :)  = PAWD%paw_nlpspd%keyg_p( 1:2,  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:  PAWD%paw_nlpspd%nseg_p(2*iat)   )
+   call vcopy(Plr%wfd%nseg_c+Plr%wfd%nseg_f,&
+        PAWD%paw_nlpspd%plr(iat)%wfd%keyv(1),1,Plr%wfd%keyv(1),1)
+   call vcopy(2*(Plr%wfd%nseg_c+Plr%wfd%nseg_f),&
+        PAWD%paw_nlpspd%plr(iat)%wfd%keyg(1,1),1,Plr%wfd%keyg(1,1),1)
+
+!!$   Plr%wfd%keyv(:)  = PAWD%paw_nlpspd%keyv_p(  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:  PAWD%paw_nlpspd%nseg_p(2*iat)   )
+!!$   Plr%wfd%keyg(1:2, :)  = PAWD%paw_nlpspd%keyg_p( 1:2,  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:  PAWD%paw_nlpspd%nseg_p(2*iat)   )
 
    if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
       ncplx=1
@@ -555,16 +645,18 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    !!$ ========================================================================================
 
 
-   !---------
 
-   allocate(PPD%pc_nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%nseg_p,'pc_nlpspd%nseg_p',subname)
-   allocate(PPD%pc_nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%nvctr_p,'pc_nlpspd%nvctr_p',subname)
-   allocate(PPD%pc_nlpspd%nboxp_c(2,3,at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%nboxp_c,'pc_nlpspd%nboxp_c',subname)
-   allocate(PPD%pc_nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%nboxp_f,'pc_nlpspd%nboxp_f',subname)
+   PPD%pc_nlpspd%natoms=at%nat
+   allocate(PPD%pc_nlpspd%plr(at%nat),stat=i_stat)
+
+!!$   allocate(PPD%pc_nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%nseg_p,'pc_nlpspd%nseg_p',subname)
+!!$   allocate(PPD%pc_nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%nvctr_p,'pc_nlpspd%nvctr_p',subname)
+!!$   allocate(PPD%pc_nlpspd%nboxp_c(2,3,at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%nboxp_c,'pc_nlpspd%nboxp_c',subname)
+!!$   allocate(PPD%pc_nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%nboxp_f,'pc_nlpspd%nboxp_f',subname)
 
    allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid,'logrid',subname)
@@ -578,14 +670,18 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    !-------------------
 
    ! allocations for arrays holding the projectors and their data descriptors
+   !here the allocation is possible
+   do iat=1,PPD%pc_nlpspd%natoms
+      !for the moments the bounds are not needed for projectors
+      call allocate_wfd(PPD%pc_nlpspd%plr(iat)%wfd,subname)
+   end do
 
-
-   allocate(PPD%pc_nlpspd%keyg_p(2,PPD%pc_nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%keyg_p,'pc_nlpspd%keyg_p',subname)
-
-
-   allocate(PPD%pc_nlpspd%keyv_p(PPD%pc_nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,PPD%pc_nlpspd%keyv_p,'pc_nlpspd%keyv_p',subname)
+!!$   allocate(PPD%pc_nlpspd%keyg_p(2,PPD%pc_nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%keyg_p,'pc_nlpspd%keyg_p',subname)
+!!$
+!!$
+!!$   allocate(PPD%pc_nlpspd%keyv_p(PPD%pc_nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PPD%pc_nlpspd%keyv_p,'pc_nlpspd%keyv_p',subname)
 
 
 
@@ -625,46 +721,56 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
          nprojel_tmp=0
 
-         ! coarse grid quantities
-         nl1=PPD%pc_nlpspd%nboxp_c(1,1,iat) 
-         nl2=PPD%pc_nlpspd%nboxp_c(1,2,iat) 
-         nl3=PPD%pc_nlpspd%nboxp_c(1,3,iat) 
-
-         nu1=PPD%pc_nlpspd%nboxp_c(2,1,iat)
-         nu2=PPD%pc_nlpspd%nboxp_c(2,2,iat)
-         nu3=PPD%pc_nlpspd%nboxp_c(2,3,iat)
+         call bounds_to_plr_limits(.false.,1,PPD%pc_nlpspd%plr(iat),nl1,nl2,nl3,nu1,nu2,nu3)
+!!$         ! coarse grid quantities
+!!$         nl1=PPD%pc_nlpspd%nboxp_c(1,1,iat) 
+!!$         nl2=PPD%pc_nlpspd%nboxp_c(1,2,iat) 
+!!$         nl3=PPD%pc_nlpspd%nboxp_c(1,3,iat) 
+!!$
+!!$         nu1=PPD%pc_nlpspd%nboxp_c(2,1,iat)
+!!$         nu2=PPD%pc_nlpspd%nboxp_c(2,2,iat)
+!!$         nu3=PPD%pc_nlpspd%nboxp_c(2,3,iat)
 
          call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
             &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),Pcpmult,hx,hy,hz,logrid)
 
-         iseg=PPD%pc_nlpspd%nseg_p(2*iat-2)+1
-         mseg=PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
+!!$         iseg=PPD%pc_nlpspd%nseg_p(2*iat-2)+1
+!!$         mseg=PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
+         mseg=PPD%pc_nlpspd%plr(iat)%wfd%nseg_c
 
          call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-         logrid,mseg,PPD%pc_nlpspd%keyg_p(1,iseg),PPD%pc_nlpspd%keyv_p(iseg))
+!!$         logrid,mseg,PPD%pc_nlpspd%keyg_p(1,iseg),PPD%pc_nlpspd%keyv_p(iseg))
+         logrid,mseg,PPD%pc_nlpspd%plr(iat)%wfd%keyg(1,1),PPD%pc_nlpspd%plr(iat)%wfd%keyv(1))
 
-         mvctr =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-
+!!$         mvctr =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+         mvctr =PPD%pc_nlpspd%plr(iat)%wfd%nvctr_c
 
          nprojel_tmp =nprojel_tmp +mproj*mvctr
 
-         ! fine grid quantities
-         nl1=PPD%pc_nlpspd%nboxp_f(1,1,iat)
-         nl2=PPD%pc_nlpspd%nboxp_f(1,2,iat)
-         nl3=PPD%pc_nlpspd%nboxp_f(1,3,iat)
-
-         nu1=PPD%pc_nlpspd%nboxp_f(2,1,iat)
-         nu2=PPD%pc_nlpspd%nboxp_f(2,2,iat)
-         nu3=PPD%pc_nlpspd%nboxp_f(2,3,iat)
+         call bounds_to_plr_limits(.false.,2,PPD%pc_nlpspd%plr(iat),nl1,nl2,nl3,nu1,nu2,nu3)
+!!$         ! fine grid quantities
+!!$         nl1=PPD%pc_nlpspd%nboxp_f(1,1,iat)
+!!$         nl2=PPD%pc_nlpspd%nboxp_f(1,2,iat)
+!!$         nl3=PPD%pc_nlpspd%nboxp_f(1,3,iat)
+!!$
+!!$         nu1=PPD%pc_nlpspd%nboxp_f(2,1,iat)
+!!$         nu2=PPD%pc_nlpspd%nboxp_f(2,2,iat)
+!!$         nu3=PPD%pc_nlpspd%nboxp_f(2,3,iat)
          call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
             &   at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
-         iseg=PPD%pc_nlpspd%nseg_p(2*iat-1)+1
-         mseg=PPD%pc_nlpspd%nseg_p(2*iat)-PPD%pc_nlpspd%nseg_p(2*iat-1)
+!!$         iseg=PPD%pc_nlpspd%nseg_p(2*iat-1)+1
+!!$         mseg=PPD%pc_nlpspd%nseg_p(2*iat)-PPD%pc_nlpspd%nseg_p(2*iat-1)
+         iseg=PPD%pc_nlpspd%plr(iat)%wfd%nseg_c+1
+         mseg=PPD%pc_nlpspd%plr(iat)%wfd%nseg_f
+
          if (mseg > 0) then
             call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-            logrid,mseg,PPD%pc_nlpspd%keyg_p(1,iseg),PPD%pc_nlpspd%keyv_p(iseg))
+                 logrid,mseg,&
+!!$                 PPD%pc_nlpspd%keyg_p(1,iseg),PPD%pc_nlpspd%keyv_p(iseg))
+                 PPD%pc_nlpspd%plr(iat)%wfd%keyg(1,iseg),&
+                 PPD%pc_nlpspd%plr(iat)%wfd%keyv(iseg))
 
-            mvctr =PPD%pc_nlpspd%nvctr_p(2*iat)-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+            mvctr =PPD%pc_nlpspd%plr(iat)%wfd%nvctr_f!PPD%pc_nlpspd%nvctr_p(2*iat)-PPD%pc_nlpspd%nvctr_p(2*iat-1)
 
             nprojel_tmp=nprojel_tmp+mproj*mvctr*7
 
@@ -720,8 +826,8 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
       PPD%ilr_to_mproj(iat)=mproj
       if( mproj>0) then
-         nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-         nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+         nvctr_c  =PPD%pc_nlpspd%plr(iat)%wfd%nvctr_c!PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+         nvctr_f  =PPD%pc_nlpspd%plr(iat)%wfd%nvctr_f!PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
 
          jorb=startjorb
          do while( jorb<=PPD%G%ncoeff         .and. PPD%iorbtolr(jorb)== iat) 
@@ -875,14 +981,18 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    !!$ ========================================================================================
    !---------
 
-   allocate(PAWD%paw_nlpspd%nseg_p(0:2*PAWD%G%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%nseg_p,'pc_nlpspd%nseg_p',subname)
-   allocate(PAWD%paw_nlpspd%nvctr_p(0:2*PAWD%G%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%nvctr_p,'pc_nlpspd%nvctr_p',subname)
-   allocate(PAWD%paw_nlpspd%nboxp_c(2,3,PAWD%G%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%nboxp_c,'pc_nlpspd%nboxp_c',subname)
-   allocate(PAWD%paw_nlpspd%nboxp_f(2,3,PAWD%G%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%nboxp_f,'pc_nlpspd%nboxp_f',subname)
+   PAWD%paw_nlpspd%natoms=PAWD%G%nat
+   allocate(PAWD%paw_nlpspd%plr(PAWD%paw_nlpspd%natoms))
+
+
+!!$   allocate(PAWD%paw_nlpspd%nseg_p(0:2*PAWD%G%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%nseg_p,'pc_nlpspd%nseg_p',subname)
+!!$   allocate(PAWD%paw_nlpspd%nvctr_p(0:2*PAWD%G%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%nvctr_p,'pc_nlpspd%nvctr_p',subname)
+!!$   allocate(PAWD%paw_nlpspd%nboxp_c(2,3,PAWD%G%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%nboxp_c,'pc_nlpspd%nboxp_c',subname)
+!!$   allocate(PAWD%paw_nlpspd%nboxp_f(2,3,PAWD%G%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%nboxp_f,'pc_nlpspd%nboxp_f',subname)
 
    allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid,'logrid',subname)
@@ -895,12 +1005,16 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    !-------------------
 
    ! allocations for arrays holding the projectors and their data descriptors
+   do iat=1,PAWD%paw_nlpspd%natoms
+      !for the moments the bounds are not needed for projectors
+      call allocate_wfd(PAWD%paw_nlpspd%plr(iat)%wfd,subname)
+   end do
 
-   allocate(PAWD%paw_nlpspd%keyg_p(2,PAWD%paw_nlpspd%nseg_p(2*PAWD%G%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%keyg_p,'pc_nlpspd%keyg_p',subname)
-
-   allocate(PAWD%paw_nlpspd%keyv_p(PAWD%paw_nlpspd%nseg_p(2*PAWD%G%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,PAWD%paw_nlpspd%keyv_p,'pc_nlpspd%keyv_p',subname)
+!!$   allocate(PAWD%paw_nlpspd%keyg_p(2,PAWD%paw_nlpspd%nseg_p(2*PAWD%G%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%keyg_p,'pc_nlpspd%keyg_p',subname)
+!!$
+!!$   allocate(PAWD%paw_nlpspd%keyv_p(PAWD%paw_nlpspd%nseg_p(2*PAWD%G%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,PAWD%paw_nlpspd%keyv_p,'pc_nlpspd%keyv_p',subname)
 
    !!$  -- this one delayed, waiting for the correct pc_nlpspd%nprojel, pc_nlpspd%nproj
    !!$  --
@@ -936,41 +1050,57 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
          PAWD%paw_nlpspd%nproj=PAWD%paw_nlpspd%nproj+mproj
          if (mproj.ne.0) then 
 
-            ! coarse grid quantities
-            nl1=PAWD%paw_nlpspd%nboxp_c(1,1,iat) 
-            nl2=PAWD%paw_nlpspd%nboxp_c(1,2,iat) 
-            nl3=PAWD%paw_nlpspd%nboxp_c(1,3,iat) 
-
-            nu1=PAWD%paw_nlpspd%nboxp_c(2,1,iat)
-            nu2=PAWD%paw_nlpspd%nboxp_c(2,2,iat)
-            nu3=PAWD%paw_nlpspd%nboxp_c(2,3,iat)
+            call bounds_to_plr_limits(.false.,1,PAWD%paw_nlpspd%plr(iat),nl1,nl2,nl3,nu1,nu2,nu3)
+!!$            ! coarse grid quantities
+!!$            nl1=PAWD%paw_nlpspd%nboxp_c(1,1,iat) 
+!!$            nl2=PAWD%paw_nlpspd%nboxp_c(1,2,iat) 
+!!$            nl3=PAWD%paw_nlpspd%nboxp_c(1,3,iat) 
+!!$
+!!$            nu1=PAWD%paw_nlpspd%nboxp_c(2,1,iat)
+!!$            nu2=PAWD%paw_nlpspd%nboxp_c(2,2,iat)
+!!$            nu3=PAWD%paw_nlpspd%nboxp_c(2,3,iat)
 
             call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
                &   at%ntypes,at%iatype(iatat),rxyz(1,iatat),radii_cf(1,3),Pcpmult,hx,hy,hz,logrid)
 
-            iseg=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
-            mseg=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
+!!$            iseg=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
+!!$            mseg=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
+            mseg=PAWD%paw_nlpspd%plr(iat)%wfd%nseg_c
 
             call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-            logrid,mseg,PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
-            mvctr =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
+                 logrid,mseg,&
+!!$                 PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
+                 PAWD%paw_nlpspd%plr(iat)%wfd%keyg(1,1),&
+                 PAWD%paw_nlpspd%plr(iat)%wfd%keyv(1))
 
-            ! fine grid quantities
-            nl1=PAWD%paw_nlpspd%nboxp_f(1,1,iat)
-            nl2=PAWD%paw_nlpspd%nboxp_f(1,2,iat)
-            nl3=PAWD%paw_nlpspd%nboxp_f(1,3,iat)
+            mvctr =PAWD%paw_nlpspd%plr(iat)%wfd%nvctr_c!PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
 
-            nu1=PAWD%paw_nlpspd%nboxp_f(2,1,iat)
-            nu2=PAWD%paw_nlpspd%nboxp_f(2,2,iat)
-            nu3=PAWD%paw_nlpspd%nboxp_f(2,3,iat)
+            call bounds_to_plr_limits(.false.,2,PAWD%paw_nlpspd%plr(iat),&
+                 nl1,nl2,nl3,nu1,nu2,nu3)
+!!$            ! fine grid quantities
+!!$            nl1=PAWD%paw_nlpspd%nboxp_f(1,1,iat)
+!!$            nl2=PAWD%paw_nlpspd%nboxp_f(1,2,iat)
+!!$            nl3=PAWD%paw_nlpspd%nboxp_f(1,3,iat)
+!!$
+!!$            nu1=PAWD%paw_nlpspd%nboxp_f(2,1,iat)
+!!$            nu2=PAWD%paw_nlpspd%nboxp_f(2,2,iat)
+!!$            nu3=PAWD%paw_nlpspd%nboxp_f(2,3,iat)
             call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
                &   at%ntypes,at%iatype(iatat),rxyz(1,iatat),radii_cf(1,2),1*fpmult,hx,hy,hz,logrid)
-            iseg=PAWD%paw_nlpspd%nseg_p(2*iat-1)+1
-            mseg=PAWD%paw_nlpspd%nseg_p(2*iat)-PAWD%paw_nlpspd%nseg_p(2*iat-1)
+            
+!!$            iseg=PAWD%paw_nlpspd%nseg_p(2*iat-1)+1
+!!$            mseg=PAWD%paw_nlpspd%nseg_p(2*iat)-PAWD%paw_nlpspd%nseg_p(2*iat-1)
+            iseg=PAWD%paw_nlpspd%plr(iat)%wfd%nseg_c+1
+            mseg=PAWD%paw_nlpspd%plr(iat)%wfd%nseg_f
+
             if (mseg > 0) then
                call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-               logrid,mseg,PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
-               mvctr =PAWD%paw_nlpspd%nvctr_p(2*iat)-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
+                    logrid,mseg,&
+!!$               PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
+                    PAWD%paw_nlpspd%plr(iat)%wfd%keyg(1,iseg),&
+                    PAWD%paw_nlpspd%plr(iat)%wfd%keyv(iseg))
+               
+               mvctr =PAWD%paw_nlpspd%plr(iat)%wfd%nvctr_f!PAWD%paw_nlpspd%nvctr_p(2*iat)-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
             end if
 
 
@@ -1019,8 +1149,8 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
             PAWD%ilr_to_mproj(iat)=mproj
             if( mproj>0) then
-               nvctr_c  =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
-               nvctr_f  =PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
+               nvctr_c  =PAWD%paw_nlpspd%plr(iat)%wfd%nvctr_c!PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
+               nvctr_f  =PAWD%paw_nlpspd%plr(iat)%wfd%nvctr_f!PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
 
                jorb=startjorb
                do while( jorb<=PAWD%G%ncoeff  .and. PAWD%iorbtolr(jorb)== iat) 
@@ -1139,10 +1269,12 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    type(communications_arrays) :: commse
    integer, dimension(:,:), allocatable :: norbsc_arr
    real(wp), dimension(:), allocatable :: potxc,passmat
-   real(wp), dimension(:,:,:), allocatable :: mom_vec
+   !real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
-  real(wp), dimension(:), pointer :: pot,pot1
+   real(wp), dimension(:), pointer :: pot,pot1
+   real(dp), dimension(:,:), pointer :: rho_p
    real(wp), dimension(:,:,:), pointer :: psigau
+   type(confpot_data), dimension(:), allocatable :: confdatarr
 ! #### Linear Scaling Variables
   integer :: ilr,ityp
   logical :: calc                           
@@ -1168,7 +1300,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
       write(*,'(1x,a)')&
          &   '------------------------------------------------------- Input Wavefunctions Creation'
       !yaml_output
-      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
+!      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
       yaml_indent=yaml_indent+2 !list element
    end if
    !spin for inputguess orbitals
@@ -1210,7 +1342,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!experimental part for building the localisation regions
 ! ###################################################################
 
-  call check_linear_and_create_Lzd(iproc,nproc,input,Lzd,at,orbse,rxyz,radii_cf)
+   if(potshortcut<=0) call check_linear_and_create_Lzd(iproc,nproc,input,Lzd,at,orbse,rxyz,radii_cf)
 
   if (Lzd%linear) then
 
@@ -1268,9 +1400,9 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      !!call timing(iproc,'create_nlpspd ','OF')
 
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(Lpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
+     allocate(Lpsi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
      call memocc(i_stat,Lpsi,'Lpsi',subname)
-     call razero(Lzd%Lpsidimtot,Lpsi)
+     call razero(max(orbse%npsidim_orbs,orbse%npsidim_comp),Lpsi)
 
     ! Construct wavefunction inside the locregs (the orbitals are ordered by locreg)
      call timing(iproc,'wavefunction  ','ON')
@@ -1346,7 +1478,13 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      !close(44)
 !END DEBUG
 
-     call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,Lpsi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)    
+     !call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,Lpsi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)    
+     !spin adaptation for the IG in the spinorial case
+     orbse%nspin=nspin
+     call sumrho(iproc,nproc,orbse,Lzd,hxh,hyh,hzh,nscatterarr,&
+          GPU,symObj,irrzon,phnons,rhodsc,Lpsi,rho_p)
+     call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rhopot)
+     orbse%nspin=nspin_ig
 
 
      if(orbs%nspinor==4) then
@@ -1410,12 +1548,23 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
     end if
 
     ! Create local potential
-    call full_local_potential2(iproc, nproc, lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
-         lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,nspin, orbse, lzd, &
-         ngatherarr, rhopot, Lpot, 1)
+!!$    call full_local_potential2(iproc, nproc, lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
+!!$         lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,nspin, orbse, lzd, &
+!!$         ngatherarr, rhopot, Lpot, 1)
+    !change temporarily value of Lzd%npotddim
+    call local_potential_dimensions(Lzd,orbse,ngatherarr(0,1))
+
+    call full_local_potential(iproc, nproc, &
+         lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
+         lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
+         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add, &
+         orbse, Lzd,1,&
+         ngatherarr, rhopot, Lpot)
+
+    allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
 
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-    allocate(Lhpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
+    allocate(Lhpsi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
     call memocc(i_stat,Lhpsi,'Lhpsi',subname)
 
     ! the loop on locreg is inside LinearHamiltonianApplication
@@ -1425,10 +1574,18 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
 
     withConfinement=.false.
-    call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
-         proj, lzd, ngatherarr, Lpot, lpsi, lhpsi, &
-         ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
+!!$    call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
+!!$         proj, lzd, ngatherarr, Lpot, lpsi, lhpsi, &
+!!$         ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
+!!$         pkernel=pkernelseq)
+    call HamiltonianApplication3(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+         proj,Lzd,confdatarr,ngatherarr,Lpot,lpsi,lhpsi,&
+         ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
          pkernel=pkernelseq)
+    deallocate(confdatarr)
+
+    !restore the value
+    call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
     ! Deallocate local potential
     i_all=-product(shape(Lpot))*kind(Lpot)
@@ -1511,12 +1668,12 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !####################################################################################################################################################
 ! END EXPERIMENTAL
 !####################################################################################################################################################
-  else
+ else
    ! determine the wavefunction dimension
    call wavefunction_dimension(Lzd,orbse)
 
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(psi(orbse%npsidim+ndebug),stat=i_stat)
+     allocate(psi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
      !allocate arrays for the GPU if a card is present
@@ -1556,13 +1713,20 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    end if
 
    !application of the hamiltonian for gaussian based treatment
-  if(.false.) then
-     call sumrho(iproc,nproc,orbse,Lzd%Glr,hxh,hyh,hzh,psi,rhopot,&
-         nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
-  end if
+   !if(.false.) then
+   !   call sumrho(iproc,nproc,orbse,Lzd%Glr,hxh,hyh,hzh,psi,rhopot,&
+   !        nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
+   !end if
 
   ! test merging of the cubic and linear code
-  call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,psi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)    
+  !call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,psi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)    
+
+   !spin adaptation for the IG in the spinorial case
+   orbse%nspin=nspin
+   call sumrho(iproc,nproc,orbse,Lzd,hxh,hyh,hzh,nscatterarr,&
+        GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+   call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rhopot)
+   orbse%nspin=nspin_ig
 
    !-- if spectra calculation uses a energy dependent potential
    !    input_wf_diag will write (to be used in abscalc)
@@ -1733,7 +1897,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    end if
    
      !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
+     allocate(hpsi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi,'hpsi',subname)
    
      !call dcopy(orbse%npsidim,psi,1,hpsi,1)
@@ -1743,36 +1907,61 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
       eexctX=0.0_gp
    end if
 
-    if(.false.) then
-        call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-          Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
-          i3rho_add,orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)
+   ! Create local potential
+!!$   call full_local_potential2(iproc, nproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2), &    
+!!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
+!!$        nspin, orbse, Lzd, ngatherarr, rhopot, pot, 0)
 
-   call LocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,&
-         Lzd%Glr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
+    !change temporarily value of Lzd%npotddim
+   allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
+   call local_potential_dimensions(Lzd,orbse,ngatherarr(0,1))
+   
+   call default_confinement_data(confdatarr,orbse%norbp)
 
-   call NonLocalHamiltonianApplication(iproc,at,orbse,hx,hy,hz,rxyz,&
-         nlpspd,proj,Lzd%Glr,psi,hpsi,eproj_sum)
+   call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
+        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,&
+        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
+        i3rho_add,orbse,Lzd,0,ngatherarr,rhopot,pot)
 
-        call SynchronizeHamiltonianApplication(nproc,orbse,Lzd%Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
-    end if
+   call default_confinement_data(confdatarr,orbse%norbp)
+
+   if(.false.) then
+
+      call LocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,&
+           Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+           ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
+
+      call NonLocalHamiltonianApplication(iproc,at,orbse,hx,hy,hz,rxyz,&
+           proj,Lzd,psi,hpsi,eproj_sum)
+
+      call SynchronizeHamiltonianApplication(nproc,orbse,Lzd,GPU,hpsi,&
+           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+   end if
     
-    ! Create local potential
-    call full_local_potential2(iproc, nproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2), &    
-         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
-         nspin, orbse, Lzd, ngatherarr, rhopot, pot, 0)
+!!$    withConfinement=.false.
+!!$
+!!$    call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
+!!$         proj, lzd, ngatherarr, pot, psi, hpsi, &
+!!$         ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, &
+!!$         withConfinement, .true., &
+!!$         pkernel=pkernel)
+    call HamiltonianApplication3(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+         proj,Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
+         ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+         pkernel=pkernelseq)
+    !restore the good value
+    call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
-    withConfinement=.false.
-    call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
-         proj, lzd, ngatherarr, pot, psi, hpsi, &
-         ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
-         pkernel=pkernel)
  
      !deallocate potential
      call free_full_potential(nproc,pot,subname)
-     i_all = -product(shape(orbse%ispot))*kind(orbse%ispot)
+
+     i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
      deallocate(orbse%ispot,stat=i_stat)
      call memocc(i_stat,i_all,'orbse%ispot',subname)
+
+     deallocate(confdatarr)
  
    !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
    !!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
@@ -1802,8 +1991,11 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!$   endif
 
    if (iproc==0) then
+      !call write_energies(0,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,0.0_gp,0.0_gp,0.0_gp,0.0_gp,'Input Guess')
+      !yaml output
         write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
              ekin_sum,epot_sum,eproj_sum
+!      write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
         write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
      endif
   
@@ -1865,8 +2057,6 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   call wavefunction_dimension(Lzd,orbs)
 
    if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
-
-
      
       !clean the array of the IG eigenvalues
       call to_zero(orbse%norb*orbse%nkpts,orbse%eval(1))

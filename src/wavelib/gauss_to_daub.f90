@@ -313,9 +313,9 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
      !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
      !we limit however the folding to one cell on each side 
      !!(commented out)
-     !!     lefts( 0)=max(i0-right_t,-nmax)
-     !!     rights(0)=min(i0+right_t,2*nmax)
-
+     !     lefts( 0)=max(i0-right_t,-nmax)
+     !     rights(0)=min(i0+right_t,2*nmax)
+ 
      lefts( 0)=i0-right_t
      rights(0)=i0+right_t
      

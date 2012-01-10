@@ -303,11 +303,11 @@ subroutine wpdot(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f
   real(dp), intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
-  integer, dimension(maseg_c) :: keyag_c_lin!linear version of second inidces of keyag_c
-  integer, dimension(maseg_f) :: keyag_f_lin!linear version of second inidces of keyag_f
+  integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
+  integer, dimension(maseg_f) :: keyag_f_lin !>linear version of second indices of keyag_f
 !!!    integer :: ncount0,ncount2,ncount_rate,ncount_max
 !!!    real(gp) :: tel
 
@@ -337,26 +337,47 @@ subroutine wpdot(  &
 
   iaseg0=1 
 
-!coarse part
+!coarse part. Loop on the projectors segments
 
 !$omp do schedule(static)
    do ibseg=1,mbseg_c
      jbj=keybv_c(ibseg)
-     jb0=keybg_c(1,ibseg)
-     jb1=keybg_c(2,ibseg)
+     jb0=keybg_c(1,ibseg) !starting point of projector segment
+     jb1=keybg_c(2,ibseg) !ending point of projector segment
     
-     call hunt1(keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
-     
-     jaj=keyav_c(iaseg0)
-     length = jb1-jb0
-     iaoff = jb0-keyag_c_lin(iaseg0)!jb0-ja0
+     !find the starting point of the wavefunction segment
+     !warning: hunt is assuming that the variable is always found
+     !if it is not, iaseg0 is put to maseg + 1 so that the loop is disabled
+     call hunt1(.true.,keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
+     !print *,'huntexit',iaseg0,maseg_c,keyag_c_lin(iaseg0),keybg_c(1,ibseg)
+     !now pass through all the wavefunction segments until the end of the segment is 
+     !still contained in projector segment
+     nonconvex_loop_c: do while(iaseg0 <= maseg_c)
+        !length = jb1-jb0
+        !iaoff = jb0-keyag_c_lin(iaseg0)!jb0-ja0
+
+        ja0=keyag_c_lin(iaseg0)
+        ja1=min(jb1,keyag_c(2,iaseg0)) 
+        length = ja1-jb0
+        iaoff = max(jb0-ja0,0) !no offset if we are already inside
+
+        jaj=keyav_c(iaseg0)
         do i=0,length
            scpr0=scpr0+real(apsi_c(jaj+iaoff+i),dp)*real(bpsi_c(jbj+i),dp)
         enddo
+        !print *,'ibseg,mbseg_c,iaseg0,maseg_c',ibseg,mbseg_c,iaseg0,maseg_c
+        !print '(a,6(i8),1pe25.17)','ja0,ja1t,ja1,jb0,jb1',&
+        !     ibseg,ja0,keyag_c(2,iaseg0),ja1,jb0,jb1,scpr0
+        if (ja1==jb1) exit nonconvex_loop_c !segment is finished
+        iaseg0=iaseg0+1
+     end do nonconvex_loop_c
+     !disable loop if the end is reached
+     if (iaseg0 == maseg_c .and. keybg_c(1,ibseg)> keyag_c_lin(maseg_c)) iaseg0=iaseg0+1
+
 
    enddo
+!stop
 !$omp end do nowait
-
 
 ! fine part
 
@@ -368,21 +389,33 @@ iaseg0=1
      jb0=keybg_f(1,ibseg)
      jb1=keybg_f(2,ibseg)
 
-
-     call hunt1(keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
+     call hunt1(.true.,keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
      
-     jaj=keyav_f(iaseg0)
-     length = jb1-jb0
-     iaoff = jb0-keyag_f_lin(iaseg0)
-     do i=0,length
-        scpr1=scpr1+real(apsi_f(1,jaj+iaoff+i),dp)*real(bpsi_f(1,jbj+i),dp)
-        scpr2=scpr2+real(apsi_f(2,jaj+iaoff+i),dp)*real(bpsi_f(2,jbj+i),dp)
-        scpr3=scpr3+real(apsi_f(3,jaj+iaoff+i),dp)*real(bpsi_f(3,jbj+i),dp)
-        scpr4=scpr4+real(apsi_f(4,jaj+iaoff+i),dp)*real(bpsi_f(4,jbj+i),dp)
-        scpr5=scpr5+real(apsi_f(5,jaj+iaoff+i),dp)*real(bpsi_f(5,jbj+i),dp)
-        scpr6=scpr6+real(apsi_f(6,jaj+iaoff+i),dp)*real(bpsi_f(6,jbj+i),dp)
-        scpr7=scpr7+real(apsi_f(7,jaj+iaoff+i),dp)*real(bpsi_f(7,jbj+i),dp)
-     enddo
+     nonconvex_loop_f: do while(iaseg0 <= maseg_f)
+!!$     length = jb1-jb0
+!!$     iaoff = jb0-keyag_f_lin(iaseg0)
+
+        ja0=keyag_f_lin(iaseg0) !still doubts about copying in automatic array
+        ja1=min(jb1,keyag_f(2,iaseg0)) 
+        length = ja1-jb0
+        iaoff = max(jb0-ja0,0) !no offset if we are already inside
+
+        jaj=keyav_f(iaseg0)
+        do i=0,length
+           scpr1=scpr1+real(apsi_f(1,jaj+iaoff+i),dp)*real(bpsi_f(1,jbj+i),dp)
+           scpr2=scpr2+real(apsi_f(2,jaj+iaoff+i),dp)*real(bpsi_f(2,jbj+i),dp)
+           scpr3=scpr3+real(apsi_f(3,jaj+iaoff+i),dp)*real(bpsi_f(3,jbj+i),dp)
+           scpr4=scpr4+real(apsi_f(4,jaj+iaoff+i),dp)*real(bpsi_f(4,jbj+i),dp)
+           scpr5=scpr5+real(apsi_f(5,jaj+iaoff+i),dp)*real(bpsi_f(5,jbj+i),dp)
+           scpr6=scpr6+real(apsi_f(6,jaj+iaoff+i),dp)*real(bpsi_f(6,jbj+i),dp)
+           scpr7=scpr7+real(apsi_f(7,jaj+iaoff+i),dp)*real(bpsi_f(7,jbj+i),dp)
+        enddo
+
+        if (ja1==jb1) exit nonconvex_loop_f !segment is finished
+        iaseg0=iaseg0+1
+     end do nonconvex_loop_f
+     !disable loop if the end is reached
+     if (iaseg0 == maseg_f .and. keybg_f(1,ibseg)> keyag_f_lin(maseg_f)) iaseg0=iaseg0+1
 
    enddo
 !$omp end do !!!implicit barrier 
@@ -509,7 +542,7 @@ subroutine waxpy(  &
   real(wp), dimension(mavctr_c), intent(inout) :: apsi_c
   real(wp), dimension(7,mavctr_f), intent(inout) :: apsi_f
   !local variables
-  integer :: ibseg,iaseg0,jaj,jb1,jb0,jbj,iaoff,length,i
+  integer :: ibseg,iaseg0,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
   real(wp) :: scprwp
   integer, dimension(maseg_c) :: keyag_c_lin!linear version of second inidces of keyag_c
   integer, dimension(maseg_f) :: keyag_f_lin!linear version of second inidces of keyag_f
@@ -542,15 +575,30 @@ iaseg0=1
      jb0=keybg_c(1,ibseg)
      jb1=keybg_c(2,ibseg)
     
-     call hunt1(keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
+     call hunt1(.true.,keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
 
-     jaj=keyav_c(iaseg0)
-     length = jb1-jb0
-     iaoff = jb0-keyag_c_lin(iaseg0)
+     !now pass through all the wavefunction segments until the end of the segment is 
+     !still contained in projector segment
+     nonconvex_loop_c: do while(iaseg0 <= maseg_c)
+        !length = jb1-jb0
+        !iaoff = jb0-keyag_c_lin(iaseg0)!jb0-ja0
+
+        ja0=keyag_c_lin(iaseg0) !still doubts about copying in automatic array
+        ja1=min(jb1,keyag_c(2,iaseg0)) 
+        length = ja1-jb0
+        iaoff = max(jb0-ja0,0) !no offset if we are already inside
+
+        jaj=keyav_c(iaseg0)
 
         do i=0,length
            apsi_c(jaj+iaoff+i)=apsi_c(jaj+iaoff+i)+scprwp*bpsi_c(jbj+i)
         enddo
+        if (ja1==jb1) exit nonconvex_loop_c !segment is finished
+        iaseg0=iaseg0+1
+     end do nonconvex_loop_c
+     !disable loop if the end is reached
+     if (iaseg0 == maseg_c .and. keybg_c(1,ibseg)> keyag_c_lin(maseg_c)) iaseg0=iaseg0+1
+
    enddo
 !$omp end do nowait
 
@@ -559,26 +607,47 @@ iaseg0=1
    iaseg0=1
 
 !$omp do schedule(static)
-          do ibseg=1,mbseg_f
-             jbj=keybv_f(ibseg)
-             jb0=keybg_f(1,ibseg)
-             jb1=keybg_f(2,ibseg)
-        
-             call hunt1(keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
-             
-             jaj=keyav_f(iaseg0)
-             length = jb1-jb0
-             iaoff = jb0-keyag_f_lin(iaseg0)
-             do i=0,length
-                apsi_f(1,jaj+iaoff+i)=apsi_f(1,jaj+iaoff+i)+scprwp*bpsi_f(1,jbj+i)
-                apsi_f(2,jaj+iaoff+i)=apsi_f(2,jaj+iaoff+i)+scprwp*bpsi_f(2,jbj+i)
-                apsi_f(3,jaj+iaoff+i)=apsi_f(3,jaj+iaoff+i)+scprwp*bpsi_f(3,jbj+i)
-                apsi_f(4,jaj+iaoff+i)=apsi_f(4,jaj+iaoff+i)+scprwp*bpsi_f(4,jbj+i)
-                apsi_f(5,jaj+iaoff+i)=apsi_f(5,jaj+iaoff+i)+scprwp*bpsi_f(5,jbj+i)
-                apsi_f(6,jaj+iaoff+i)=apsi_f(6,jaj+iaoff+i)+scprwp*bpsi_f(6,jbj+i)
-                apsi_f(7,jaj+iaoff+i)=apsi_f(7,jaj+iaoff+i)+scprwp*bpsi_f(7,jbj+i)
-             enddo
-          enddo 
+   do ibseg=1,mbseg_f
+      jbj=keybv_f(ibseg)
+      jb0=keybg_f(1,ibseg)
+      jb1=keybg_f(2,ibseg)
+
+      call hunt1(.true.,keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
+
+      nonconvex_loop_f: do while(iaseg0 <= maseg_f)
+!!$     length = jb1-jb0
+!!$     iaoff = jb0-keyag_f_lin(iaseg0)
+
+         ja0=keyag_f_lin(iaseg0) !still doubts about copying in automatic array
+         ja1=min(jb1,keyag_f(2,iaseg0)) 
+         length = ja1-jb0
+         iaoff = max(jb0-ja0,0) !no offset if we are already inside
+
+         jaj=keyav_f(iaseg0)
+         do i=0,length
+            apsi_f(1,jaj+iaoff+i)=apsi_f(1,jaj+iaoff+i)+&
+                 scprwp*bpsi_f(1,jbj+i)
+            apsi_f(2,jaj+iaoff+i)=apsi_f(2,jaj+iaoff+i)+&
+                 scprwp*bpsi_f(2,jbj+i)
+            apsi_f(3,jaj+iaoff+i)=apsi_f(3,jaj+iaoff+i)+&
+                 scprwp*bpsi_f(3,jbj+i)
+            apsi_f(4,jaj+iaoff+i)=apsi_f(4,jaj+iaoff+i)+&
+                 scprwp*bpsi_f(4,jbj+i)
+            apsi_f(5,jaj+iaoff+i)=apsi_f(5,jaj+iaoff+i)+&
+                 scprwp*bpsi_f(5,jbj+i)
+            apsi_f(6,jaj+iaoff+i)=apsi_f(6,jaj+iaoff+i)+&
+                 scprwp*bpsi_f(6,jbj+i)
+            apsi_f(7,jaj+iaoff+i)=apsi_f(7,jaj+iaoff+i)+&
+                 scprwp*bpsi_f(7,jbj+i)
+         enddo
+         if (ja1==jb1) exit nonconvex_loop_f !segment is finished
+         iaseg0=iaseg0+1
+      end do nonconvex_loop_f
+      !disable loop if the end is reached
+      if (iaseg0 == maseg_f .and. keybg_f(1,ibseg)> keyag_f_lin(maseg_f)) iaseg0=iaseg0+1
+
+
+   enddo
 !$omp end do
 !$omp end parallel
 
@@ -589,53 +658,116 @@ iaseg0=1
 
 END SUBROUTINE waxpy
 
+!> Search the segments which intersect each other
+!! @todo modify this routine to have also the end as result
+subroutine hunt1(ascnd,xx,n,x,jlo)
+  implicit none
+  logical, intent(in) :: ascnd
+  integer, intent(in) :: x !<starting point in grid coordinates
+  integer, intent(in) :: n !<number of segments
+  integer, dimension(n), intent(in) :: xx !<array of segment starting points
+  integer, intent(inout) :: jlo !<input: starting segment, 
+                                ! output: closest segment corresponding to x
+                                ! warning: if jlo is outside range, routine is disabled
+  !local variables
+  integer :: inc,jhi,jm
 
-SUBROUTINE hunt1(xx,n,x,jlo)
-      implicit none
-      integer :: jlo,n
-      integer :: x,xx(n)
-      integer :: inc,jhi,jm
-      logical :: ascnd
-      ascnd=xx(n).ge.xx(1)
-      if(jlo.le.0.or.jlo.gt.n)then
-        jlo=0
-        jhi=n+1
-        goto 3
-      endif
-      inc=1
-      if(x.ge.xx(jlo).eqv.ascnd)then
-1       continue
+!  print *,'jlo,n,xx(n),x',jlo,n,xx(n),x
+
+  !check array extremes
+  if (ascnd) then
+     if (jlo > n) return
+     !if (x > xx(n)) then
+     !   print *,'that is the last'
+     !   jlo=n+1
+     !   return
+     !end if
+  else
+     if (jlo < 1) return
+     !if (x < xx(1)) then
+     !   jlo=n+1
+     !   return
+     !end if
+  end if
+
+  !start searching
+  if(x == xx(1))then
+     jlo=1
+     return
+  end if
+  if(x == xx(n)) then 
+     jlo=n
+     return
+  end if
+
+!  print *,'quickreturn'
+ 
+  !check if the order is ascending (the sense of the ordering)
+  !ascnd=xx(n) >= xx(1) now passed as an argument
+  
+  !the starting point is external to the array, complete search (commented out)
+!!$  if(jlo <= 0 .or. jlo > n)then
+!!$     jlo=0
+!!$     jhi=n+1
+!!$     goto 3
+!!$  endif
+
+  !increment of the segment
+  inc=1
+  !target is above starting point
+  if ((x >= xx(jlo)) .eqv. ascnd) then
+     guess_end: do
         jhi=jlo+inc
-        if(jhi.gt.n)then
-          jhi=n+1
-        else if(x.ge.xx(jhi).eqv.ascnd)then
-          jlo=jhi
-          inc=inc+inc
-          goto 1
+        !number of segments is over
+        if(jhi > n)then
+           jhi=n+1
+           exit guess_end
+        !increase until the target is below
+        else if((x >= xx(jhi)) .eqv. ascnd)then
+           jlo=jhi
+           inc=inc+inc
+        else
+           exit guess_end
         endif
-      else
-        jhi=jlo
-2       continue
+     end do guess_end
+  else
+     !target is below, invert start and end
+     jhi=jlo
+     guess_start: do
         jlo=jhi-inc
-        if(jlo.lt.1)then
-          jlo=0
-        else if(x.lt.xx(jlo).eqv.ascnd)then
-          jhi=jlo
-          inc=inc+inc
-          goto 2
+        !segment are over (from below)
+        if (jlo < 1) then
+           jlo=0
+           exit guess_start
+        !decrease until the target is above
+        else if((x < xx(jlo)) .eqv. ascnd)then
+           jhi=jlo
+           inc=inc+inc
+        else
+           exit guess_start
         endif
-      endif
-3     continue
-      if(jhi-jlo.eq.1)then
-        if(x.eq.xx(n))jlo=n
-        if(x.eq.xx(1))jlo=1
-        return
-      endif
-      jm=(jhi+jlo)/2
-      if(x.ge.xx(jm).eqv.ascnd)then
+     end do guess_start
+  endif
+
+!3 continue
+  binary_search: do
+     !the end and the beginning are contiguous: segment number has been found
+     if (jhi-jlo == 1) then
+        !comment: this condition is known from the beginning, moving it
+        !if(x == xx(n))jlo=n
+        !if(x == xx(1))jlo=1
+        exit binary_search
+     endif
+     !mean point (integer division, rounded towards jhi)
+     jm=(jhi+jlo)/2
+     !restrict search from the bottom of from the top
+     if ((x >= xx(jm)) .eqv. ascnd) then
         jlo=jm
-      else
+     else
         jhi=jm
-      endif
-      goto 3
+     endif
+  end do binary_search
+
+  !print *,'good,jm:',jm,jlo,jhi
+
 END SUBROUTINE hunt1

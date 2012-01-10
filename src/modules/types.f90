@@ -42,15 +42,15 @@ module module_types
        & (/ "none        ", "plain text  ", "Fortran bin.", "ETSF        " /)
 
   !> Output grid parameters.
-  integer, parameter :: OUTPUT_GRID_NONE    = 0
-  integer, parameter :: OUTPUT_GRID_DENSITY = 1
-  integer, parameter :: OUTPUT_GRID_DENSPOT = 2
-  character(len = 12), dimension(0:2), parameter :: output_grid_names = &
+  integer, parameter :: OUTPUT_DENSPOT_NONE    = 0
+  integer, parameter :: OUTPUT_DENSPOT_DENSITY = 1
+  integer, parameter :: OUTPUT_DENSPOT_DENSPOT = 2
+  character(len = 12), dimension(0:2), parameter :: OUTPUT_DENSPOT_names = &
        & (/ "none        ", "density     ", "dens. + pot." /)
-  integer, parameter :: OUTPUT_GRID_FORMAT_TEXT = 0
-  integer, parameter :: OUTPUT_GRID_FORMAT_ETSF = 1
-  integer, parameter :: OUTPUT_GRID_FORMAT_CUBE = 2
-  character(len = 4), dimension(0:2), parameter :: output_grid_format_names = &
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_TEXT = 0
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_ETSF = 1
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_CUBE = 2
+  character(len = 4), dimension(0:2), parameter :: OUTPUT_DENSPOT_format_names = &
        & (/ "text", "ETSF", "cube" /)
 
   !> SCF mixing parameters. (mixing parameters to be added)
@@ -103,6 +103,17 @@ module module_types
      real(gp) :: fref !< reference occupation (for alphaNK case)
   end type SIC_data
 
+  !> Flags for the input files.
+  integer, parameter, public :: INPUTS_NONE  =   0
+  integer, parameter, public :: INPUTS_DFT   =   1
+  integer, parameter, public :: INPUTS_GEOPT =   2
+  integer, parameter, public :: INPUTS_PERF  =   4
+  integer, parameter, public :: INPUTS_KPT   =   8
+  integer, parameter, public :: INPUTS_MIX   =  16
+  integer, parameter, public :: INPUTS_TDDFT =  32
+  integer, parameter, public :: INPUTS_SIC   =  64
+  integer, parameter, public :: INPUTS_FREQ  = 128
+
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
@@ -119,12 +130,13 @@ module module_types
   type, public :: input_variables
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-          & file_mix,file_sic,file_occnum, file_lin, dir_output
+          & file_mix,file_sic,file_occnum,file_igpop,file_lin, dir_output
+     integer :: files ! existing files.
      !miscellaneous variables
      logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty, occopt
-     integer :: output_grid, dispersion,last_run,output_wf_format,output_grid_format
+     integer :: OUTPUT_DENSPOT,dispersion,last_run,output_wf_format,OUTPUT_DENSPOT_format
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel, alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: verbosity
@@ -236,7 +248,6 @@ module module_types
      integer, dimension(:,:,:), pointer :: ibyyzz_r !< real space border
   end type convolutions_bounds
 
-
 !>  Used for lookup table for compressed wavefunctions
   type, public :: wavefunctions_descriptors
      integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
@@ -244,25 +255,49 @@ module module_types
      integer, dimension(:), pointer :: keyv
   end type wavefunctions_descriptors
 
+!>  Grid dimensions in old different wavelet basis
+  type, public :: grid_dimensions
+     integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
+  end type grid_dimensions
+
+!> Contains the information needed for describing completely a
+!! wavefunction localisation region
+  type, public :: locreg_descriptors
+     character(len=1) :: geocode
+     logical :: hybrid_on   !< interesting for global, periodic, localisation regions
+     integer :: ns1,ns2,ns3 !< starting point of the localisation region in global coordinates
+     integer :: nsi1,nsi2,nsi3  !< starting point of locreg for interpolating grid
+     integer :: Localnorb              !< number of orbitals contained in locreg
+     integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
+     integer,dimension(:), pointer :: projflg    !< atoms contributing nlpsp projectors to locreg
+     type(grid_dimensions) :: d
+     type(wavefunctions_descriptors) :: wfd
+     type(convolutions_bounds) :: bounds
+     real(8),dimension(3):: locregCenter !< center of the locreg 
+     real(8):: locrad !< cutoff radius of the localization region
+  end type locreg_descriptors
+
+!>  Non local pseudopotential descriptors
+  type, public :: nonlocal_psp_descriptors
+     integer :: nproj,nprojel,natoms                  !< Number of projectors and number of elements
+     type(locreg_descriptors), dimension(:), pointer :: plr !< pointer which indicates the different localization region per processor
+     !> Projector segments on real space grid
+!!$     integer, dimension(:), pointer :: nvctr_p,nseg_p,keyv_p
+!!$     integer, dimension(:,:), pointer :: keyg_p 
+!!$     !> Parameters for the boxes containing the projectors
+!!$     integer, dimension(:,:,:), pointer :: nboxp_c,nboxp_f
+  end type nonlocal_psp_descriptors
+
+
 !> Used to split between points to be treated in simple or in double precision
   type, public :: rho_descriptors
      character(len=1) :: geocode
      integer :: icomm !< method for communicating the density
+     integer :: nrhotot !< dimension of the partial density array before communication
      integer :: n_csegs,n_fsegs,dp_size,sp_size
      integer, dimension(:,:), pointer :: spkey,dpkey
      integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
-
-!>  Non local pseudopotential descriptors
-  type, public :: nonlocal_psp_descriptors
-     integer :: nproj,nprojel                     !< Number of projectors and number of elements
-     !> Projector segments on real space grid
-     integer, dimension(:), pointer :: nvctr_p,nseg_p,keyv_p
-     integer, dimension(:,:), pointer :: keyg_p 
-     !> Parameters for the boxes containing the projectors
-     integer, dimension(:,:,:), pointer :: nboxp_c,nboxp_f
-  end type nonlocal_psp_descriptors
-
 
 !>  Atomic data (name, polarisation, ...)
   type, public :: atoms_data
@@ -300,13 +335,6 @@ module module_types
      integer :: iat_absorber 
 
   end type atoms_data
-
-
-!>  Grid dimensions in old different wavelet basis
-  type, public :: grid_dimensions
-     integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
-  end type grid_dimensions
-
 
 !>  Structures of basis of gaussian functions
   type, public :: gaussian_basis
@@ -358,33 +386,16 @@ module module_types
 !> All the parameters which are important for describing the orbitals
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
+     integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb
+     integer :: npsidim_orbs,nkpts,nkptsp,iskpts,npsidim_comp
      real(gp) :: efermi,HLgap, eTS
-     integer, dimension(:), pointer :: iokpt,ikptproc,inwhichlocreg, inWhichLocregP, onWhichMPI, isorb_par, ispot
+     integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
+     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,inwhichlocregP
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
   end type orbitals_data
-
-
-!> Contains the information needed for describing completely a
-!! wavefunction localisation region
-  type, public :: locreg_descriptors
-     character(len=1) :: geocode
-     logical :: hybrid_on               !< interesting for global, periodic, localisation regions
-     integer :: ns1,ns2,ns3             !< starting point of the localisation region in global coordinates
-     integer :: nsi1,nsi2,nsi3          !< starting point of locreg for interpolating grid
-     integer :: Localnorb               !< number of orbitals contained in locreg
-     integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
-     integer,dimension(:),pointer :: projflg    !< atoms contributing nlpsp projectors to locreg
-     type(grid_dimensions) :: d
-     type(wavefunctions_descriptors) :: wfd
-     type(convolutions_bounds) :: bounds
-     real(8),dimension(3):: locregCenter !< center of the locreg (used for O(N) versions)
-     real(8):: locrad !< cutoff radius of the localization region (used for O(N) versions)
-  end type locreg_descriptors
-
 
 !> Contains the information needed for communicating the wavefunctions
 !! between processors for the transposition
@@ -420,19 +431,19 @@ module module_types
      real(wp), dimension(:), pointer :: hpsi_ASYNC !<pointer to the wavefunction allocated in the case of asyncronous local_hamiltonian
   end type GPU_pointers
 
-!!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
+!> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: local_zone_descriptors
-    logical :: linear                                           !> if true, use linear part of the code
-    integer :: nlr                                              !> Number of localization regions 
-    integer :: Lpsidimtot, lpsidimtot_der                       !> Total dimension of the wavefunctions in the locregs, the same including the derivatives
-    integer:: ndimpotisf                                        !> total dimension of potential in isf (including exctX)
-    integer :: Lnprojel                                         !> Total number of projector elements
-    real(gp), dimension(:,:),pointer :: rxyz                    !> Centers for the locregs
-    logical,dimension(:),pointer:: doHamAppl                    !> if entry i is true, apply the Hamiltonian to orbitals in locreg i
-    type(locreg_descriptors) :: Glr                             !> Global region descriptors
-    type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
-    type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
-    type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
+    logical :: linear                         !< if true, use linear part of the code
+    integer :: nlr                            !< Number of localization regions 
+!    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
+    integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
+    integer :: Lnprojel                       !< Total number of projector elements
+    real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
+    logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
+    type(locreg_descriptors) :: Glr           !< Global region descriptors
+    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
+    type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
+    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
     real(8),dimension(:,:),pointer:: cutoffweight
   end type
 
@@ -492,7 +503,7 @@ module module_types
      type(orbitals_data), pointer :: orbs
      type(communications_arrays) :: comms
      type(nonlocal_psp_descriptors), pointer :: nlpspd
-     type(locreg_descriptors), pointer :: lr 
+     type(local_zone_descriptors), pointer :: Lzd
      type(gaussian_basis), pointer :: Gabsorber    
      type(SIC_data), pointer :: SIC
      integer, dimension(:,:), pointer :: ngatherarr 
@@ -586,7 +597,6 @@ module module_types
       integer,dimension(:),pointer:: indexInGlobal
   end type matrixLocalizationRegion
 
-
   type,public:: p2pCommsOrthonormalityMatrix
       integer:: nrecvBuf, nsendBuf, nrecv, nsend
       integer,dimension(:),pointer:: noverlap, noverlapProc
@@ -597,7 +607,6 @@ module module_types
       type(matrixLocalizationRegion),dimension(:,:),pointer:: olr
   end type p2pCommsOrthonormalityMatrix
 
-
   type,public:: matrixMinimization
     type(matrixLocalizationRegion),dimension(:),pointer:: mlr
     integer:: norbmax ! maximal matrix size handled by a given process
@@ -606,7 +615,6 @@ module module_types
     integer,dimension(:),pointer:: inWhichLocregOnMPI
     integer,dimension(:),pointer:: indexInLocreg
   end type matrixMinimization
-
 
   type,public:: matrixDescriptors
       integer:: nvctr, nseg, nvctrmatmul, nsegmatmul, nseglinemax
@@ -684,8 +692,6 @@ end type workarrays_quartic_convolutions
       type(matrixDescriptors):: mad
   end type linearInputGuess
 
-
-
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff 
@@ -697,6 +703,7 @@ end type workarrays_quartic_convolutions
     real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho, fixBasis
     real(8):: FactorFixBasis, convCritMixOut, minimalFixBasis
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lxi, transmat, lpsi, lhpsi
+    real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     real(8),dimension(:,:),pointer:: hamold, coeffall
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
@@ -729,89 +736,23 @@ end type workarrays_quartic_convolutions
 
 !> Contains the information needed for the preconditioner
   type, public :: precond_data
-    integer :: confPotOrder                                           !> The order of the algebraic expression for Confinement potential
-    integer :: ncong                                                  !> Number of CG iterations for the preconditioning equation
-    logical, dimension(:), pointer :: withConfPot                     !> Use confinement potentials
-    real(8), dimension(:), pointer :: potentialPrefac                 !> Prefactor for the potential: Prefac * f(r) 
+    integer :: confPotOrder                           !> The order of the algebraic expression for Confinement potential
+    integer :: ncong                                  !> Number of CG iterations for the preconditioning equation
+    logical, dimension(:), pointer :: withConfPot     !> Use confinement potentials
+    real(8), dimension(:), pointer :: potentialPrefac !> Prefactor for the potential: Prefac * f(r) 
   end type precond_data
 
+!> Information for the confining potential to be used in TMB scheme
+!! The potential is supposed to be defined as prefac*(r-rC)**potorder
+  type, public :: confpot_data
+     integer :: potorder !< order of the confining potential
+     integer, dimension(3) :: ioffset !< offset for the coordinates of potential lr in global region
+     real(gp) :: prefac !< prefactor
+     real(gp), dimension(3) :: hh !< grid spacings in ISF grid
+     real(gp), dimension(3) :: rxyzConf !< confining potential center in global coordinates
+  end type confpot_data
+
 contains
-
-
-
-!>   De-Allocate paw data contained in atom_data object
-
-  subroutine deallocate_atomdatapaw(atoms,subname)
-    use module_base
-    implicit none
-    character(len=*), intent(in) :: subname
-    type(atoms_data), intent(inout) :: atoms
-    !local variables
-    integer :: i_all,i_stat
-
-    if(associated(atoms%paw_l)) then
-       i_all=-product(shape(atoms%paw_l ))*kind(atoms%paw_l )
-       deallocate(atoms%paw_l,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_l',subname)
-    end if
-
-    if(associated(atoms%paw_NofL)) then
-       i_all=-product(shape(  atoms%paw_NofL ))*kind(atoms%paw_NofL )
-       deallocate(atoms%paw_NofL,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_NofL',subname)
-    end if
-
-    if(associated(atoms%paw_nofchannels)) then
-       i_all=-product(shape(  atoms%paw_nofchannels ))*kind(atoms%paw_nofchannels )
-       deallocate(atoms%paw_nofchannels,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_nofchannels',subname)
-    end if
-
-    if(associated(atoms%paw_nofgaussians)) then
-       i_all=-product(shape(  atoms%paw_nofgaussians ))*kind(atoms%paw_nofgaussians )
-       deallocate(atoms%paw_nofgaussians,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_nofgaussians',subname)
-    end if
-
-    if(associated(atoms%paw_Greal)) then
-       i_all=-product(shape(  atoms%paw_Greal ))*kind(atoms%paw_Greal )
-       deallocate(atoms%paw_Greal,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Greal',subname)
-    end if
-
-    if(associated(atoms%paw_Gimag)) then
-       i_all=-product(shape(  atoms%paw_Gimag ))*kind(atoms%paw_Gimag )
-       deallocate(atoms%paw_Gimag,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Gimag',subname)
-    end if
-
-    if(associated(atoms%paw_Gcoeffs)) then
-       i_all=-product(shape(  atoms%paw_Gcoeffs ))*kind(atoms%paw_Gcoeffs )
-       deallocate(atoms%paw_Gcoeffs,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Gcoeffs',subname)
-    end if
-
-    if(associated(atoms%paw_H_matrices)) then
-       i_all=-product(shape(  atoms%paw_H_matrices ))*kind(atoms%paw_H_matrices )
-       deallocate(atoms%paw_H_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_H_matrices',subname)
-    end if
-
-    if(associated(atoms%paw_S_matrices)) then
-       i_all=-product(shape(  atoms%paw_S_matrices ))*kind(atoms%paw_S_matrices )
-       deallocate(atoms%paw_S_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_S_matrices',subname)
-    end if
-    
-    if(associated(atoms%paw_Sm1_matrices)) then
-       i_all=-product(shape(  atoms%paw_Sm1_matrices ))*kind(atoms%paw_Sm1_matrices )
-       deallocate(atoms%paw_Sm1_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Sm1_matrices',subname)
-    end if
-
-
-  END SUBROUTINE deallocate_atomdatapaw
-
 
 
 !> Allocate diis objects
@@ -987,18 +928,22 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
     deallocate(orbs%inwhichlocreg,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
+!    if (associated(orbs%inwhichlocregP)) then
+!       i_all=-product(shape(orbs%inwhichlocregP))*kind(orbs%inwhichlocregP)
+!       deallocate(orbs%inwhichlocregP,stat=i_stat)
+!       call memocc(i_stat,i_all,'orbs%inwhichlocregP',subname)
+!    end if
     i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
     deallocate(orbs%isorb_par,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%isorb_par',subname)
     i_all=-product(shape(orbs%onWhichMPI))*kind(orbs%onWhichMPI)
     deallocate(orbs%onWhichMPI,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%onWhichMPI',subname)
-
-    !contradictory: needed for component distribution and allocated for
-    !               orbital distribution. Better to deal with scalars
-    !i_all=-product(shape(orbs%ikptsp))*kind(orbs%ikptsp)
-    !deallocate(orbs%ikptsp,stat=i_stat)
-    !call memocc(i_stat,i_all,'orbs%ikptsp',subname)
+    if (associated(orbs%ispot)) then
+       i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
+       deallocate(orbs%ispot,stat=i_stat)
+       call memocc(i_stat,i_all,'orbs%ispot',subname)
+    end if
 
 END SUBROUTINE deallocate_orbs
 
@@ -1110,6 +1055,7 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,wfd%keyg,'keyg',subname)
     allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyv,'keyv',subname)
+
   END SUBROUTINE allocate_wfd
 
 
@@ -1364,12 +1310,13 @@ END SUBROUTINE deallocate_orbs
    nullify(Lzd%Glr%wfd%keyv)
 
 ! nullify the Gnlpspd
-   nullify(Lzd%Gnlpspd%nvctr_p)
-   nullify(Lzd%Gnlpspd%nseg_p)
-   nullify(Lzd%Gnlpspd%keyv_p)
-   nullify(Lzd%Gnlpspd%keyg_p)
-   nullify(Lzd%Gnlpspd%nboxp_c)
-   nullify(Lzd%Gnlpspd%nboxp_f)
+   call deallocate_proj_descr(Lzd%Gnlpspd,subname)
+!!$   nullify(Lzd%Gnlpspd%nvctr_p)
+!!$   nullify(Lzd%Gnlpspd%nseg_p)
+!!$   nullify(Lzd%Gnlpspd%keyv_p)
+!!$   nullify(Lzd%Gnlpspd%keyg_p)
+!!$   nullify(Lzd%Gnlpspd%nboxp_c)
+!!$   nullify(Lzd%Gnlpspd%nboxp_f)
  
 !Now destroy the Llr
     do ilr = 1, Lzd%nlr 
@@ -1452,33 +1399,31 @@ END SUBROUTINE deallocate_orbs
     output_wf_format_validate = (id >= 0 .and. id < size(wf_format_names))
   end function output_wf_format_validate
 
-  subroutine output_grid_help()
+  subroutine output_denspot_help()
     integer :: i, j
 
-    write(*, "(1x,A)") "Available values of output_grid are:"
-    do i = 0, size(output_grid_format_names) - 1
-       do j = 0, size(output_grid_names) - 1
+    write(*, "(1x,A)") "Available values of output_denspot are:"
+    do i = 0, size(output_denspot_format_names) - 1
+       do j = 0, size(output_denspot_names) - 1
           if (j == 0 .and. i == 0) then
              write(*, "(1x,A,I5,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_grid_names(j)), "."
+                  & " - ", trim(output_denspot_names(j)), "."
           else if (j /= 0) then
              write(*, "(1x,A,I5,A,A,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_grid_names(j)), &
-                  & " in ", trim(output_grid_format_names(i)), " format."
+                  & " - ", trim(output_denspot_names(j)), &
+                  & " in ", trim(output_denspot_format_names(i)), " format."
           end if
        end do
     end do
-  end subroutine output_grid_help
+  end subroutine output_denspot_help
 
-  function output_grid_validate(id, fid)
+  function output_denspot_validate(id, fid)
     integer, intent(in) :: id, fid
-    logical :: output_grid_validate
+    logical :: output_denspot_validate
 
-    output_grid_validate = (id >= 0 .and. id < size(output_grid_names)) .and. &
-         & (fid >= 0 .and. fid < size(output_grid_format_names))
-  end function output_grid_validate
-
-
+    output_denspot_validate = (id >= 0 .and. id < size(output_denspot_names)) .and. &
+         & (fid >= 0 .and. fid < size(output_denspot_format_names))
+  end function output_denspot_validate
 !!
   subroutine deallocate_pawproj_data(pawproj_data,subname)
     use module_base
@@ -1492,58 +1437,51 @@ END SUBROUTINE deallocate_orbs
        i_all=-product(shape(  pawproj_data% paw_proj ))*kind( pawproj_data% paw_proj  )
        deallocate(pawproj_data%  paw_proj  ,stat=i_stat)
        call memocc(i_stat,i_all,'paw_proj',subname)
-       
+
        i_all=-product(shape( pawproj_data%ilr_to_mproj   ))*kind(pawproj_data% ilr_to_mproj   )
        deallocate( pawproj_data% ilr_to_mproj  ,stat=i_stat)
        call memocc(i_stat,i_all,'ilr_to_mproj',subname)
-   
-  
-       
+
        i_all=-product(shape( pawproj_data% iproj_to_l  ))*kind( pawproj_data% iproj_to_l  )
        deallocate(pawproj_data%  iproj_to_l  ,stat=i_stat)
        call memocc(i_stat,i_all,'iproj_to_l',subname)
 
-
        i_all=-product(shape( pawproj_data% iproj_to_paw_nchannels  ))*kind( pawproj_data% iproj_to_paw_nchannels  )
        deallocate(pawproj_data%  iproj_to_paw_nchannels  ,stat=i_stat)
        call memocc(i_stat,i_all,'iproj_to_paw_nchannels',subname)
-       
+
        i_all=-product(shape( pawproj_data% iprojto_imatrixbeg  ))*kind( pawproj_data% iprojto_imatrixbeg  )
        deallocate(pawproj_data%  iprojto_imatrixbeg  ,stat=i_stat)
        call memocc(i_stat,i_all,'iorbto_imatrixbeg',subname)
-       
 
        i_all=-product(shape( pawproj_data% iorbtolr   ))*kind( pawproj_data% iorbtolr  )
        deallocate(pawproj_data%  iorbtolr  ,stat=i_stat)
        call memocc(i_stat,i_all,'iorbtolr',subname)
-       
 
-
-
-       i_all=-product(shape(pawproj_data%paw_nlpspd%nboxp_c))*kind(pawproj_data%paw_nlpspd%nboxp_c)
-       deallocate(pawproj_data%paw_nlpspd%nboxp_c,stat=i_stat)
-       call memocc(i_stat,i_all,'nboxp_c',subname)
-       i_all=-product(shape(pawproj_data%paw_nlpspd%nboxp_f))*kind(pawproj_data%paw_nlpspd%nboxp_f)
-       deallocate(pawproj_data%paw_nlpspd%nboxp_f,stat=i_stat)
-       call memocc(i_stat,i_all,'nboxp_f',subname)
-       i_all=-product(shape(pawproj_data%paw_nlpspd%keyg_p))*kind(pawproj_data%paw_nlpspd%keyg_p)
-       deallocate(pawproj_data%paw_nlpspd%keyg_p,stat=i_stat)
-       call memocc(i_stat,i_all,'keyg_p',subname)
-       i_all=-product(shape(pawproj_data%paw_nlpspd%keyv_p))*kind(pawproj_data%paw_nlpspd%keyv_p)
-       deallocate(pawproj_data%paw_nlpspd%keyv_p,stat=i_stat)
-       call memocc(i_stat,i_all,'keyv_p',subname)
-       i_all=-product(shape(pawproj_data%paw_nlpspd%nvctr_p))*kind(pawproj_data%paw_nlpspd%nvctr_p)
-       deallocate(pawproj_data%paw_nlpspd%nvctr_p,stat=i_stat)
-       call memocc(i_stat,i_all,'nvctr_p',subname)
-       i_all=-product(shape(pawproj_data%paw_nlpspd%nseg_p))*kind(pawproj_data%paw_nlpspd%nseg_p)
-       deallocate(pawproj_data%paw_nlpspd%nseg_p,stat=i_stat)
-       call memocc(i_stat,i_all,'nseg_p',subname)
+       call deallocate_proj_descr(pawproj_data%paw_nlpspd,subname)
+!!$       i_all=-product(shape(pawproj_data%paw_nlpspd%nboxp_c))*kind(pawproj_data%paw_nlpspd%nboxp_c)
+!!$       deallocate(pawproj_data%paw_nlpspd%nboxp_c,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'nboxp_c',subname)
+!!$       i_all=-product(shape(pawproj_data%paw_nlpspd%nboxp_f))*kind(pawproj_data%paw_nlpspd%nboxp_f)
+!!$       deallocate(pawproj_data%paw_nlpspd%nboxp_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'nboxp_f',subname)
+!!$       i_all=-product(shape(pawproj_data%paw_nlpspd%keyg_p))*kind(pawproj_data%paw_nlpspd%keyg_p)
+!!$       deallocate(pawproj_data%paw_nlpspd%keyg_p,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'keyg_p',subname)
+!!$       i_all=-product(shape(pawproj_data%paw_nlpspd%keyv_p))*kind(pawproj_data%paw_nlpspd%keyv_p)
+!!$       deallocate(pawproj_data%paw_nlpspd%keyv_p,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'keyv_p',subname)
+!!$       i_all=-product(shape(pawproj_data%paw_nlpspd%nvctr_p))*kind(pawproj_data%paw_nlpspd%nvctr_p)
+!!$       deallocate(pawproj_data%paw_nlpspd%nvctr_p,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'nvctr_p',subname)
+!!$       i_all=-product(shape(pawproj_data%paw_nlpspd%nseg_p))*kind(pawproj_data%paw_nlpspd%nseg_p)
+!!$       deallocate(pawproj_data%paw_nlpspd%nseg_p,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'nseg_p',subname)
 
        if(pawproj_data%DistProjApply) then
           call deallocate_gwf_c(pawproj_data%G,subname)
        endif
-
-
+       nullify(pawproj_data%paw_proj)
     end if
   END SUBROUTINE deallocate_pawproj_data
 
@@ -1587,26 +1525,26 @@ END SUBROUTINE deallocate_orbs
        call memocc(i_stat,i_all,'gaenes',subname)
        
 
+       call deallocate_proj_descr(pcproj_data%pc_nlpspd,subname)
 
-
-       i_all=-product(shape(pcproj_data%pc_nlpspd%nboxp_c))*kind(pcproj_data%pc_nlpspd%nboxp_c)
-       deallocate(pcproj_data%pc_nlpspd%nboxp_c,stat=i_stat)
-       call memocc(i_stat,i_all,'nboxp_c',subname)
-       i_all=-product(shape(pcproj_data%pc_nlpspd%nboxp_f))*kind(pcproj_data%pc_nlpspd%nboxp_f)
-       deallocate(pcproj_data%pc_nlpspd%nboxp_f,stat=i_stat)
-       call memocc(i_stat,i_all,'nboxp_f',subname)
-       i_all=-product(shape(pcproj_data%pc_nlpspd%keyg_p))*kind(pcproj_data%pc_nlpspd%keyg_p)
-       deallocate(pcproj_data%pc_nlpspd%keyg_p,stat=i_stat)
-       call memocc(i_stat,i_all,'keyg_p',subname)
-       i_all=-product(shape(pcproj_data%pc_nlpspd%keyv_p))*kind(pcproj_data%pc_nlpspd%keyv_p)
-       deallocate(pcproj_data%pc_nlpspd%keyv_p,stat=i_stat)
-       call memocc(i_stat,i_all,'keyv_p',subname)
-       i_all=-product(shape(pcproj_data%pc_nlpspd%nvctr_p))*kind(pcproj_data%pc_nlpspd%nvctr_p)
-       deallocate(pcproj_data%pc_nlpspd%nvctr_p,stat=i_stat)
-       call memocc(i_stat,i_all,'nvctr_p',subname)
-       i_all=-product(shape(pcproj_data%pc_nlpspd%nseg_p))*kind(pcproj_data%pc_nlpspd%nseg_p)
-       deallocate(pcproj_data%pc_nlpspd%nseg_p,stat=i_stat)
-       call memocc(i_stat,i_all,'nseg_p',subname)
+!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%nboxp_c))*kind(pcproj_data%pc_nlpspd%nboxp_c)
+!!$       deallocate(pcproj_data%pc_nlpspd%nboxp_c,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'nboxp_c',subname)
+!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%nboxp_f))*kind(pcproj_data%pc_nlpspd%nboxp_f)
+!!$       deallocate(pcproj_data%pc_nlpspd%nboxp_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'nboxp_f',subname)
+!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%keyg_p))*kind(pcproj_data%pc_nlpspd%keyg_p)
+!!$       deallocate(pcproj_data%pc_nlpspd%keyg_p,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'keyg_p',subname)
+!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%keyv_p))*kind(pcproj_data%pc_nlpspd%keyv_p)
+!!$       deallocate(pcproj_data%pc_nlpspd%keyv_p,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'keyv_p',subname)
+!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%nvctr_p))*kind(pcproj_data%pc_nlpspd%nvctr_p)
+!!$       deallocate(pcproj_data%pc_nlpspd%nvctr_p,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'nvctr_p',subname)
+!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%nseg_p))*kind(pcproj_data%pc_nlpspd%nseg_p)
+!!$       deallocate(pcproj_data%pc_nlpspd%nseg_p,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'nseg_p',subname)
 
 
        if(pcproj_data%DistProjApply) then

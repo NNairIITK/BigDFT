@@ -10,17 +10,19 @@
 
 !>    Calculte the ionic contribution to the energy and the forces
 subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
-     rxyz,eion,fion,psoffset,nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+     rxyz,eion,fion,ewaldstr,psoffset,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
   use module_base
   use module_types
   use Poisson_Solver
   implicit none
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,nvacancy
-  real(gp), intent(in) :: hxh,hyh,hzh,elecfield(3)
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi
+  real(gp), intent(in) :: hxh,hyh,hzh
+  real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
   real(gp), intent(out) :: eion,psoffset
+  real(dp), dimension(6),intent(out) :: ewaldstr
   real(gp), dimension(3,at%nat), intent(out) :: fion
   real(dp), dimension(*), intent(out) :: pot_ion
   !local variables
@@ -40,6 +42,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
   pi=4.d0*datan(1.d0)
   psoffset=0.0_gp
+  ewaldstr=0.0_gp
   if (at%geocode == 'P') then
      !here we insert the calculation of the ewald forces
      allocate(fewald(3,at%nat+ndebug),stat=i_stat)
@@ -63,34 +66,17 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
            xred(ii,iat)= gprimd(1,ii)*rxyz(1,iat)+gprimd(2,ii)*rxyz(2,iat)+&
                 gprimd(3,ii)*rxyz(3,iat)
         end do
-
-        !in the case of a vacancy calculate the hartree energy by *not* extending 
-        !results outside supercell, to compensate the electronic part
-        if (iat == nvacancy) then
-           rx=rxyz(1,iat) 
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
-           ityp=at%iatype(iat)
-           evacancy=0.0_gp
-           do jat=1,iat-1
-              dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-              jtyp=at%iatype(jat)
-              chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
-              evacancy=evacancy+chgprod/dist
-           enddo
-           do jat=iat+1,at%nat
-              dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-              jtyp=at%iatype(jat)
-              chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
-              evacancy=evacancy+chgprod/dist
-           end do
-           if (iproc == 0) write(*,*)'Ionic energy of the vacancy, to be subtracted:',evacancy
-        end if
      end do
 
-     !calculate ewald energy and forces
+     !calculate ewald energy and forces + stress
      call ewald(eion,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,&
           xred,real(at%nelpsp,kind=8))
+     ewaldstr=0.0_dp
+     call ewald2(gmet,at%nat,at%ntypes,rmet,rprimd,ewaldstr,at%iatype,&
+     ucvol,xred,real(at%nelpsp,kind=8))
+
+! our sequence of strten elements : 11 22 33 12 13 23
+! abinit output                   : 11 22 33 23 13 12
 
      !make forces dimensional
      do iat=1,at%nat
@@ -131,6 +117,17 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      !if (iproc ==0) print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
      !correct ionic energy taking into account the PSP core correction
      eion=eion+charge/ucvol*(psoffset+shortlength)
+
+     !symmetrization of ewald stress (probably not needed)
+     if (at%symObj >= 0) call symm_stress(iproc,ewaldstr,at)
+     !PSP core correction of the stress tensor (diag.)
+     ewaldstr(1:3)=ewaldstr(1:3)-charge*(psoffset+shortlength)/ucvol/ucvol
+
+!!$     if (iproc == 0) then
+!!$        write(*,*) 'STRESS TENSOR: EWALD + PSP-CORE'
+!!$        write(*,*) ewaldstr(1:3)
+!!$        write(*,*) ewaldstr(6),ewaldstr(5),ewaldstr(4)
+!!$     end if
 
 !!!     !in the surfaces case, correct the energy term following (J.Chem.Phys. 111(7)-3155, 1999)
 !!!     if (at%geocode == 'S') then
@@ -266,26 +263,6 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
         !calculate the self energy of the isolated bc
         eself=eself+real(at%nelpsp(ityp),gp)**2/rloc
-
-        !in the case of a vacancy calculate the hartree energy by *not* extending 
-        !results outside supercell, to compensate the electronic part
-        if (iat == nvacancy) then
-           evacancy=0.0_gp
-           do jat=1,iat-1
-              dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-              jtyp=at%iatype(jat)
-              chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
-              evacancy=evacancy+chgprod/dist
-           enddo
-           do jat=iat+1,at%nat
-              dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-              jtyp=at%iatype(jat)
-              chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
-              evacancy=evacancy+chgprod/dist
-           end do
-           print *,'Ionic energy of the vacancy, to be subtracted:',0.5_gp*evacancy
-        end if
-
      enddo
 
      eself=0.5_gp/sqrt(pi)*eself
@@ -449,29 +426,21 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      else 
            write(*,'(1x,a,1pe22.14)') 'ion-ion and ion-electric field interaction energy',eion
      endif
-     if (nvacancy /= 0) then
-        open(unit=22,file='eion_corr.tmp',status='unknown')
-        write(22,*)eion-0.5_gp*evacancy,psoffset
-        close(unit=22)
-     end if
   end if
 END SUBROUTINE IonicEnergyandForces
 
-
 subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
-     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
-     correct_offset)
+     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base
   use module_types
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver
   implicit none
   character(len=1), intent(in) :: geocode
-  logical,intent(in) :: correct_offset
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nvacancy
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: elecfield(3)
+  real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
@@ -596,6 +565,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      call timing(iproc,'CrtLocPot     ','OF')
      !here the value of the datacode must be kept fixed
      !n(c) nspin=1
+
+     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
      call H_potential(geocode,'D',iproc,nproc,&
           n1i,n2i,n3i,hxh,hyh,hzh,&
@@ -743,244 +714,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      end if
      
   end if
-  
-  if (nvacancy /= 0) then
-     !for a vacancy reference calculation, save the ionic potential to be used
-     !in the following run
-
-     !first calculate the kernel in isolated BC
-     call timing(iproc,'CrtLocPot     ','OF')
-     call createKernel(iproc,nproc,'F',n1i,n2i,n3i,hxh,hyh,hzh,16,pkernel_ref)
-     call timing(iproc,'CrtLocPot     ','ON')
-
-
-     !calculate the ionic potential correction in the global data distribution
-     allocate(potion_corr(n1i*n2i*n3i+ndebug),stat=i_stat)
-     call memocc(i_stat,potion_corr,'potion_corr',subname)
-
-     call razero(n1i*n2i*n3i,potion_corr)
-
-     iat=nvacancy
-     ityp=at%iatype(iat)
-     rx=rxyz(1,iat) 
-     ry=rxyz(2,iat)
-     rz=rxyz(3,iat)
-
-     rloc=at%psppar(0,0,ityp)
-     charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
-     cutoff=10.d0*rloc
-
-     isx=floor((rx-cutoff)/hxh)
-     isy=floor((ry-cutoff)/hyh)
-     isz=floor((rz-cutoff)/hzh)
-
-     iex=ceiling((rx+cutoff)/hxh)
-     iey=ceiling((ry+cutoff)/hyh)
-     iez=ceiling((rz+cutoff)/hzh)
-
-     do i3=isz,iez
-        z=real(i3,kind=8)*hzh-rz
-        call ind_positions(perz,i3,n3,j3,goz) 
-        j3=j3+nbl3+1
-        do i2=isy,iey
-           y=real(i2,kind=8)*hyh-ry
-           call ind_positions(pery,i2,n2,j2,goy)
-           do i1=isx,iex
-              x=real(i1,kind=8)*hxh-rx
-              call ind_positions(perx,i1,n1,j1,gox)
-              r2=x**2+y**2+z**2
-              arg=r2/rloc**2
-              xp=exp(-.5d0*arg)
-              if (goz  .and. goy  .and. gox ) then
-                 ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-1)*n1i*n2i
-                 potion_corr(ind)=xp*charge !the sign is inverted here
-              endif
-           enddo
-        enddo
-     enddo
-
-!!$     !plot the ionic potential in a .pot file
-!!$     !allocate the arrays for plotting
-!!$     !its values are ignored in the datacode='G' case
-!!$     allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,nscatterarr,'nscatterarr',subname)
-!!$     allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,ngatherarr,'ngatherarr',subname)
-!!$     !create the descriptors for the density and the potential
-!!$     !these descriptors should take into account the localisation regions
-!!$     call createDensPotDescriptors(iproc,nproc,at%geocode,'D',n1i,n2i,n3i,0,&
-!!$          n3d_fake,n3p_fake,n3pi_fake,i3xcsh_fake,i3s_fake,nscatterarr,ngatherarr)
-!!$
-!!$     i_all=-product(shape(nscatterarr))*kind(nscatterarr)
-!!$     deallocate(nscatterarr,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'nscatterarr',subname)
-!!$
-!!$
-!!$     call plot_density(at%geocode,'gaupotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
-!!$          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
-
-
-
-     call timing(iproc,'CrtLocPot     ','OF')
-     !here the value of the datacode must be kept fixed
-     call H_potential('F','G',iproc,nproc,&
-          n1i,n2i,n3i,hxh,hyh,hzh,&
-          potion_corr,pkernel_ref,potion_corr,ehart,0.0_gp,.false.)
-
-!!$     call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-!!$          potion_corr,pkernel_ref,potion_corr,ehart,eexcu,vexcu,0.0_gp,.false.,1)
-     call timing(iproc,'CrtLocPot     ','ON')
-
-
-     i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
-     deallocate(pkernel_ref,stat=i_stat)
-     call memocc(i_stat,i_all,'pkernel_ref',subname)
-
-
-!!!     call plot_density(at%geocode,'deltapotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
-!!!          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
-
-
-     iat=nvacancy
-     ityp=at%iatype(iat)
-
-     rx=rxyz(1,iat)
-     ry=rxyz(2,iat)
-     rz=rxyz(3,iat)
-
-     ! determine number of local terms
-     nloc=0
-     do iloc=1,4
-        if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
-     enddo
-     rloc=at%psppar(0,0,ityp)
-     cutoff=10.d0*rloc
-
-     isx=floor((rx-cutoff)/hxh)
-     isy=floor((ry-cutoff)/hyh)
-     isz=floor((rz-cutoff)/hzh)
-
-     iex=ceiling((rx+cutoff)/hxh)
-     iey=ceiling((ry+cutoff)/hyh)
-     iez=ceiling((rz+cutoff)/hzh)
-
-     !do not add the local part for the vacancy
-     if (nloc /= 0) then
-
-        do i3=isz,iez
-           z=real(i3,kind=8)*hzh-rz
-           call ind_positions(perz,i3,n3,j3,goz) 
-           j3=j3+nbl3+1
-           if (goz) then
-              do i2=isy,iey
-                 y=real(i2,kind=8)*hyh-ry
-                 call ind_positions(pery,i2,n2,j2,goy)
-                 if (goy) then
-                    do i1=isx,iex
-                       x=real(i1,kind=8)*hxh-rx
-                       call ind_positions(perx,i1,n1,j1,gox)
-                       if (gox) then
-                          r2=x**2+y**2+z**2
-                          arg=r2/rloc**2
-                          xp=exp(-.5d0*arg)
-                          tt=at%psppar(0,nloc,ityp)
-                          do iloc=nloc-1,1,-1
-                             tt=arg*tt+at%psppar(0,iloc,ityp)
-                          enddo
-                          ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-1)*n1i*n2i
-                          potion_corr(ind)=&
-                               potion_corr(ind)-xp*tt ! the sign has changed here
-                       end if
-                    enddo
-                 end if
-              enddo
-           end if
-        end do
-
-     end if
-
-
-     !call plot_density(at%geocode,'deltapotion_final.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
-     !     at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
-
-     !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-     !add the periodic pot_ion
-     ind=1+(i3s-1)*n1i*n2i
-     call axpy(n1i*n2i*n3pi,1.0_dp,pot_ion(1),1,potion_corr(ind),1)
-
-     if (correct_offset) then
-        !calculate the offset
-        tt=0.d0
-        do i1=1,n3pi*n2i*n1i
-           tt=tt+potion_corr(ind-1+i1)
-        enddo
-        !tt=tt*hxh*hyh*hzh
-        if (nproc > 1) then
-           call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-                MPI_SUM,MPI_COMM_WORLD,ierr)
-        else
-           offset=tt
-        end if
-
-        if (iproc==0) print *,'offset for potion',offset
-
-        !now potion_corr has zero integral
-        potion_corr=potion_corr-offset/real(n1i*n2i*n3i,dp)
-
-        !calculate the offset
-        tt=0.d0
-        do i1=1,n3pi*n2i*n1i
-           tt=tt+potion_corr(ind-1+i1)
-        enddo
-        !tt=tt*hxh*hyh*hzh
-        if (nproc > 1) then
-           call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-                MPI_SUM,MPI_COMM_WORLD,ierr)
-        else
-           offset=tt
-        end if
-
-        if (iproc==0) print *,'offset recheck',offset
-     end if
-
-     !here put nproc=1 
-     call plot_density('potion_corr.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
-          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr(ind))
-
-
-
-!!!     !reread file from disk
-!!!     !overwrite pot_ion with the potential previously created
-!!!     call read_potfile(at%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,i3s,1,potion_corr)
-!!!
-!!!     !calculate the offset
-!!!     tt=0.d0
-!!!     do ind=1,n3pi*n2i*n1i
-!!!        tt=tt+potion_corr(ind)
-!!!     enddo
-!!!     !tt=tt*hxh*hyh*hzh
-!!!     if (nproc > 1) then
-!!!        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-!!!             MPI_SUM,MPI_COMM_WORLD,ierr)
-!!!     else
-!!!        offset=tt
-!!!     end if
-!!!
-!!!     if (iproc==0) print *,'offset reread',offset
-!!!
-!!!     call plot_density(at%geocode,'potion_corr_2.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,&
-!!!          n3pi,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
-          
-
-     i_all=-product(shape(ngatherarr))*kind(ngatherarr)
-     deallocate(ngatherarr,stat=i_stat)
-     call memocc(i_stat,i_all,'ngatherarr',subname)
-     i_all=-product(shape(potion_corr))*kind(potion_corr)
-     deallocate(potion_corr,stat=i_stat)
-     call memocc(i_stat,i_all,'potion_corr',subname)
-
-
-  end if
+ 
 
 !!!  !calculate the value of the offset to be put
 !!!  tt_tot=0.d0
@@ -1383,7 +1117,6 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
   !deallocations
   call deallocate_atoms(at,subname) 
-  call deallocate_atoms_scf(at,subname) 
 
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)

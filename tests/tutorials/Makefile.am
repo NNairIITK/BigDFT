@@ -45,10 +45,11 @@ N2.post-in :
 
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
-dev/toy_model: $(srcdir)/dev/toy_model.f90
-	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 $(LDFLAGS) @LIBS_DEPENDENCIES@ $(LIBS)
-toy_model.dat.out: dev-N2.out.out toy_model
+dev/toy_model: 
+	$(FC) -o $(srcdir)/dev/toy_model.f90 $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 $(LDFLAGS) @LIBS_DEPENDENCIES@ $(LIBS)
+toy_model.dat.out: dev-N2.out.out toy_model 
 	./toy_model > toy_model.dat.out
+toy_model.dat.report: toy_model.dat.out
 dev.post-clean:
 	rm -f toy_model
 

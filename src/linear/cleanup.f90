@@ -831,6 +831,8 @@ subroutine deallocate_linearParameters(lin, subname)
   integer:: ierr
 
   call checkAndDeallocatePointer(lin%potentialPrefac, 'lin%potentialPrefac', subname)
+  call checkAndDeallocatePointer(lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
+  call checkAndDeallocatePointer(lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
   call checkAndDeallocatePointer(lin%locrad, 'lin%locrad', subname)
   call checkAndDeallocatePointer(lin%lphiRestart, 'lin%lphiold', subname)
   call checkAndDeallocatePointer(lin%lphiold, 'lin%lphiold', subname)
@@ -846,6 +848,7 @@ subroutine deallocate_linearParameters(lin, subname)
   call deallocate_p2pCommsSumrho(lin%comsr, subname)
   call deallocate_p2pCommsGatherPot(lin%comgp, subname)
   call deallocate_largeBasis(lin%lb, subname)
+  call deallocate_nonlocal_psp_descriptors(lin%lzd%Gnlpspd, subname)
   call deallocate_local_zone_descriptors(lin%lzd, subname)
   call deallocate_p2pCommsOrthonormality(lin%comon, subname)
   call deallocate_overlapParameters(lin%op, subname)
@@ -880,12 +883,12 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
 !  end do
   
 !  call deallocate_communications_arrays(lzd%comms, subname)
-  
+
   call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
 
-  call deallocate_nonlocal_psp_descriptors(lzd%Gnlpspd, subname)
+  !call deallocate_nonlocal_psp_descriptors(lzd%Gnlpspd, subname)
 
   if(associated(lzd%llr)) then  
      iis1=lbound(lzd%llr,1)
@@ -899,14 +902,17 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
          !write(*,*) 'i1',i1
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
      end do
+     deallocate(lzd%llr)
+     nullify(lzd%llr)
   end if
-
   if(associated(lzd%lnlpspd)) then 
      iis1=lbound(lzd%lnlpspd,1)
      iie1=ubound(lzd%lnlpspd,1)
      do i1=iis1,iie1
-         call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
+        call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
      end do
+     deallocate(lzd%lnlpspd)
+     nullify(lzd%lnlpspd)
   end if
 
   call checkAndDeallocatePointer(lzd%cutoffweight, 'cutoffweight', subname)
@@ -956,14 +962,19 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
          !write(*,*) 'i1',i1
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
      end do
+     deallocate(lzd%llr)
+     nullify(lzd%llr)
   end if
 
   if(associated(lzd%lnlpspd)) then
      iis1=lbound(lzd%lnlpspd,1)
      iie1=ubound(lzd%lnlpspd,1)
+     !write(*,*) 'iis1AAA,iie1AAA',iis1,iie1
      do i1=iis1,iie1
          call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-     end do
+      end do
+      deallocate(lzd%lnlpspd)
+      nullify(lzd%lnlpspd)
   end if
 end subroutine deallocate_Lzd_except_Glr
 
@@ -982,7 +993,7 @@ subroutine deallocate_orbitals_data(orbs, subname)
   call checkAndDeallocatePointer(orbs%iokpt, 'orbs%iokpt', subname)
   call checkAndDeallocatePointer(orbs%ikptproc, 'orbs%ikptproc', subname)
   call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg', subname)
-  call checkAndDeallocatePointer(orbs%inWhichLocregP, 'orbs%inWhichLocreg', subname)
+  call checkAndDeallocatePointer(orbs%inWhichLocregP, 'orbs%inWhichLocregP', subname)
   call checkAndDeallocatePointer(orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
   call checkAndDeallocatePointer(orbs%isorb_par, 'orbs%isorb_par', subname)
   call checkAndDeallocatePointer(orbs%eval, 'orbs%eval', subname)
@@ -1029,6 +1040,7 @@ subroutine deallocate_locreg_descriptors(lr, subname)
   call checkAndDeallocatePointer(lr%projflg, 'lr%projflg', subname)
 
   call deallocate_wavefunctions_descriptors(lr%wfd, subname)
+
   call deallocate_convolutions_bounds(lr%bounds, subname)
   
   
@@ -1123,6 +1135,7 @@ subroutine deallocate_kinetic_bounds(kb, subname)
   !end if
   call checkAndDeallocatePointer(kb%ibyz_f, 'kb%ibyz_f', subname)
   call checkAndDeallocatePointer(kb%ibxz_f, 'kb%ibxz_f', subname)
+
   call checkAndDeallocatePointer(kb%ibxy_f, 'kb%ibxy_f', subname)
 
 end subroutine deallocate_kinetic_bounds
@@ -1175,13 +1188,24 @@ subroutine deallocate_nonlocal_psp_descriptors(nlpspd, subname)
   ! Calling arguments
   type(nonlocal_psp_descriptors),intent(inout):: nlpspd
   character(len=*),intent(in):: subname
+  integer :: i_stat,iat
 
-  call checkAndDeallocatePointer(nlpspd%nvctr_p, 'nlpspd%nvctr_p', subname)
-  call checkAndDeallocatePointer(nlpspd%nseg_p, 'nlpspd%nseg_p', subname)
-  call checkAndDeallocatePointer(nlpspd%keyv_p, 'nlpspd%keyv_p', subname)
-  call checkAndDeallocatePointer(nlpspd%keyg_p, 'nlpspd%keyg_p', subname)
-  call checkAndDeallocatePointer(nlpspd%nboxp_c, 'nlpspd%nboxp_c', subname)
-  call checkAndDeallocatePointer(nlpspd%nboxp_f, 'nlpspd%nboxp_f', subname)
+  do iat=1,nlpspd%natoms
+     call deallocate_wfd(nlpspd%plr(iat)%wfd,subname)
+  end do
+  if (nlpspd%natoms /=0) then
+     deallocate(nlpspd%plr,stat=i_stat)
+     if (i_stat /= 0) stop 'plr deallocation error'
+     nlpspd%natoms=0
+  end if
+  nullify(nlpspd%plr)
+
+!!$  call checkAndDeallocatePointer(nlpspd%nvctr_p, 'nlpspd%nvctr_p', subname)
+!!$  call checkAndDeallocatePointer(nlpspd%nseg_p, 'nlpspd%nseg_p', subname)
+!!$  call checkAndDeallocatePointer(nlpspd%keyv_p, 'nlpspd%keyv_p', subname)
+!!$  call checkAndDeallocatePointer(nlpspd%keyg_p, 'nlpspd%keyg_p', subname)
+!!$  call checkAndDeallocatePointer(nlpspd%nboxp_c, 'nlpspd%nboxp_c', subname)
+!!$  call checkAndDeallocatePointer(nlpspd%nboxp_f, 'nlpspd%nboxp_f', subname)
 
 end subroutine deallocate_nonlocal_psp_descriptors
 
@@ -1206,6 +1230,8 @@ subroutine deallocate_matrixMinimization(matmin, subname)
   do i1=iis1,iie1
       call deallocate_matrixLocalizationRegion(matmin%mlr(i1), subname)
   end do
+  deallocate(matmin%mlr)
+  nullify(matmin%mlr)
   
   call checkAndDeallocatePointer(matmin%inWhichLocregExtracted, 'matmin%inWhichLocregExtracted', subname)
   
@@ -1389,6 +1415,8 @@ subroutine deallocate_overlapParameters(op, subname)
           call deallocate_locreg_descriptors2(op%olr(i1,i2), subname)
       end do
   end do
+  deallocate(op%olr)
+  nullify(op%olr)
 
 
   iis1=lbound(op%expseg,1)
@@ -1477,6 +1505,8 @@ subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
           call deallocate_matrixLocalizationRegion(comom%olr(i1,i2), subname)
       end do
   end do
+  deallocate(comom%olr)
+  nullify(comom%olr)
 
 end subroutine deallocate_p2pCommsOrthonormalityMatrix
 

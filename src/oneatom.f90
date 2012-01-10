@@ -27,6 +27,7 @@ program oneatom
   type(input_variables) :: in
   type(orbitals_data) :: orbs
   type(locreg_descriptors) :: Glr
+  type(local_zone_descriptors) :: Lzd
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
   type(GPU_pointers) :: GPU
@@ -39,6 +40,7 @@ program oneatom
   real(wp), dimension(:), pointer :: hpsi,psit,psi,proj,pot
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
+  type(confpot_data), dimension(:), allocatable :: confdatarr
   character(len=60) :: radical
 
   !for the moment no need to have parallelism
@@ -101,6 +103,8 @@ program oneatom
   !allocate communications arrays
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
+  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
+
   allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
   call memocc(i_stat,nscatterarr,'nscatterarr',subname)
   allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
@@ -110,6 +114,7 @@ program oneatom
        rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',0,in%rho_commun,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
+  call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
   !commented out, to be used in the future
   if (dokernel) then
      ndegree_ip=16 !default value 
@@ -128,9 +133,9 @@ program oneatom
      call memocc(i_stat,pot_ion,'pot_ion',subname)
   end if
 
-  allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+  allocate(psi(orbs%npsidim_orbs+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
-  allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+  allocate(hpsi(orbs%npsidim_orbs+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
   if (nproc == 1) then
      nullify(psit)
@@ -201,10 +206,14 @@ program oneatom
   idsx_actual_before=diis%idsx
 
   !allocate the potential in the full box
-  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,&
+       in%nspin,&
        Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,0,&
-       orbs%norb,orbs%norbp,ngatherarr,pot_ion,pot)
+       orbs,Lzd,0,ngatherarr,pot_ion,pot)
   
+  allocate(confdatarr(orbs%norbp))
+  call default_confinement_data(confdatarr,orbs%norbp)
+
   wfn_loop: do iter=1,in%itermax
 
      if (iproc == 0 .and. verbose > 0) then 
@@ -220,13 +229,17 @@ program oneatom
      !terminate SCF loop if forced to switch more than once from DIIS to SD
      endloop=endloop .or. ndiis_sd_sw > 2
 
-     call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,&
-          Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
+     call FullHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
+          proj,Lzd,confdatarr,ngatherarr,pot_ion,psi,hpsi,&
+          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU)
 
-     call NonLocalHamiltonianApplication(iproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          nlpspd,proj,Glr,psi,hpsi,eproj_sum)
-
-     call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+!!$     call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,&
+!!$          Lzd,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
+!!$
+!!$     call NonLocalHamiltonianApplication(iproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
+!!$          proj,Lzd,psi,hpsi,eproj_sum)
+!!$
+!!$     call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
 
      energybs=ekin_sum+epot_sum+eproj_sum
@@ -316,7 +329,6 @@ program oneatom
   call deallocate_lr(Glr,subname)
   call deallocate_comms(comms,subname)
   call deallocate_orbs(orbs,subname)
-  call deallocate_atoms_scf(atoms,subname) 
   call deallocate_proj_descr(nlpspd,subname)
 
   if (dokernel) then
@@ -339,7 +351,7 @@ program oneatom
   call free_input_variables(in)
 
   call deallocate_rho_descriptors(rhodsc,subname)
-
+  deallocate(confdatarr)
   !finalize memory counting
   call memocc(0,0,'count','stop')
 
@@ -738,7 +750,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(orbs%npsidim), intent(out) :: psi
+  real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='psi_from_gaussians'
   logical ::  randinp

@@ -10,7 +10,7 @@ real(8),intent(in):: hgrid
 type(locreg_descriptors),intent(in):: Glr
 type(linearParameters),intent(inout):: lin
 real(8),dimension(nphi),intent(in):: phi
-real(8),dimension(lin%lb%orbs%npsidim),target,intent(out):: phid
+real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),target,intent(out):: phid
 
 ! Local variables
 integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc, ierr
@@ -44,7 +44,7 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
 
 
   if(repartition) then
-      allocate(phiLoc(4*lin%orbs%npsidim), stat=istat)
+      allocate(phiLoc(4*max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
       call memocc(istat, phiLoc, 'phiLoc', subname)
   else
       phiLoc => phid

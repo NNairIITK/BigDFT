@@ -140,7 +140,7 @@ program abscalc_main
       !De-allocations
       call deallocate_abscalc_input(inputs, subname)
       call deallocate_atoms(atoms,subname) 
-     call deallocate_local_zone_descriptors(rst%Lzd, subname)
+      call deallocate_local_zone_descriptors(rst%Lzd, subname)
 
       call free_restart_objects(rst,subname)
 
@@ -351,7 +351,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum
    real(kind=8) :: tel,psoffset
    real(gp) :: edisp ! Dispersion energy
-   type(nonlocal_psp_descriptors) :: nlpspd
+   !type(nonlocal_psp_descriptors) :: nlpspd
    type(communications_arrays) :: comms
    type(gaussian_basis) :: Gvirt
    type(rho_descriptors)  :: rhodsc
@@ -389,7 +389,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(gp) :: rpot_a,spot_a,hpot_a,espo,harmo,r,rx,ry,rz,minr  
    real(gp), pointer :: radpot(:,:)
    integer :: radpotcount, igrid
-
+   real(gp), dimension(6) :: ewaldstr
    real(gp), dimension(:,:), pointer :: rxyz_b2B
    integer, dimension(:), pointer :: iatype_b2B, znucl_b2B
    real(gp) :: shift_b2B(3)
@@ -449,10 +449,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    hz=in%hz
 
    write(gridformat, "(A)") ""
-   select case (in%output_grid_format)
-   case (OUTPUT_GRID_FORMAT_ETSF)
+   select case (in%output_denspot_format)
+   case (output_denspot_FORMAT_ETSF)
       write(gridformat, "(A)") ".etsf"
-   case (OUTPUT_GRID_FORMAT_CUBE)
+   case (output_denspot_FORMAT_CUBE)
       write(gridformat, "(A)") ".bin"
    end select
 
@@ -479,7 +479,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call timing(nproc,trim(in%dir_output)//'time.prc','IN')
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max)
-
+ 
    if(nspin/=1 .and. nspin/=2 .and. nspin/=4) nspin=1
 
    ! grid spacing (same in x,y and z direction)
@@ -509,13 +509,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    hxh=0.5d0*hx
    hyh=0.5d0*hy
    hzh=0.5d0*hz
-  n1i=Lzd%Glr%d%n1i
-  n2i=Lzd%Glr%d%n2i
-  n3i=Lzd%Glr%d%n3i
+   n1i=Lzd%Glr%d%n1i
+   n2i=Lzd%Glr%d%n2i
+   n3i=Lzd%Glr%d%n3i
 
-  n1=Lzd%Glr%d%n1
-  n2=Lzd%Glr%d%n2
-  n3=Lzd%Glr%d%n3
+   n1=Lzd%Glr%d%n1
+   n2=Lzd%Glr%d%n2
+   n3=Lzd%Glr%d%n3
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call timing(iproc,'CrtDescriptors','ON')
@@ -537,8 +537,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-      &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+      &   radii_cf,cpmult,fpmult,hx,hy,hz,Lzd%Gnlpspd,proj)
    call timing(iproc,'CrtProjectors ','OF')
+
+!   if (in%inputPsiId /= 0 .and. in%inputPsiId /= 10) then
+   call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
+!   end if
 
    if(sum(atoms%paw_NofL).gt.0) then
       ! Calculate all paw_projectors, or allocate array for on-the-fly calculation
@@ -565,12 +569,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call timing(iproc,'CrtPcProjects ','OF')
    endif
 
-
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
    if (iproc==0 .and. verbose > 0) then
      call MemoryEstimator(nproc,idsx,Lzd%Glr,&
-         &   atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+         &   atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,Lzd%Gnlpspd%nprojel,&
          &   in%nspin,in%itrpmax,in%iscf,peakmem)
    end if
 
@@ -609,14 +612,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel,&
       &   quiet=PSquiet)
 
-   if (iproc == 0) write(*,*) "IonicEnergyandForces  " 
-
-   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
-      &   psoffset,0,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
+   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,ewaldstr,&
+        psoffset,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
    call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-      &   in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,0,&
-      &   .false.)
+        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
 
    !this can be inserted inside the IonicEnergyandForces routine
    !(after insertion of the non-regression test)
@@ -702,16 +702,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          stop
       end select
 
-
       print *, " Going to create extra potential for orbital "
       print *, in%extraOrbital
       print *, "using hard-coded parameters "
       print *, "noccmax, nelecmax,lmax ", noccmax, nelecmax,lmax
 
-
       call read_eleconf(in%extraOrbital ,nsp,nspinor,noccmax, nelecmax,lmax, &
          &   atoms_clone%aocc(1,iat), atoms_clone%iasctype(iat))
-
 
       nspin=in%nspin
 
@@ -735,32 +732,34 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
           orbsAO,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
-         &   nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          Lzd%Gnlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in,radii_cf)
 
+      !Check if we must use linear scaling for total SCF
+      !change the Lzd structure accordingly, also orbs%inwhichlocreg
+      call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms_clone,orbsAO,rxyz,radii_cf) 
 
 
       if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
          print *, " ============== TESTING PC_PROJECTORS =========== "
-         allocate(hpsi(orbsAO%npsidim+ndebug),stat=i_stat)
+         allocate(hpsi(max(orbsAO%npsidim_orbs,orbsAO%npsidim_comp)+ndebug),stat=i_stat)
          hpsi=0.0_wp
          PPD%iproj_to_factor(1:PPD%mprojtot) = 2.0_gp
         call applyPCprojectors(orbsAO,atoms,hx,hy,hz,Lzd%Glr,PPD,psi,hpsi, .true.)
          deallocate(hpsi)
       end if
 
-
-
       if( iand( in%potshortcut,16)>0) then
 
          if(iproc==0) write(*,*) "re-reading electronic_density for Xanes energy dependent potential "
          STOP " this part has to be rearranged to keep into account distributed potentials "
-         call read_density_cube_old("electronic_density", n1i,n2i,n3i,1, hx ,hy ,hz, atoms%nat, rxyz_b2B, pot_bB )
+         call read_density_cube_old("electronic_density",&
+              n1i,n2i,n3i,1, hx ,hy ,hz, atoms%nat, rxyz_b2B, pot_bB)
          rhoXanes=0.0_gp
          do iz = 1,n3i
             do iy=1,n2i
                do ix=1,n1i
-                  rhopottmp(ix,iy,iz +i3xcsh,1) =  pot_bB(ix  + (iy-1)*n1i  + (iz-1)*n1i*n2i,1)  
+                  rhopottmp(ix,iy,iz +i3xcsh,1) =  pot_bB(ix+ (iy-1)*n1i  + (iz-1)*n1i*n2i,1)  
                enddo
             enddo
          enddo
@@ -818,8 +817,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
       call input_wf_diag(iproc,nproc,atoms,rhodsc,&
           orbsAO,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-         &   nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in, radii_cf)
+          Lzd%Gnlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          nscatterarr,ngatherarr,nspin,in%potshortcut,-1,irrzon,phnons,GPU,in,radii_cf)
+
+      !Check if we must use linear scaling for total SCF
+      !change the Lzd structure accordingly, also orbs%inwhichlocreg
+      call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms,orbsAO,rxyz,radii_cf) 
 
       i_all=-product(shape(psi))*kind(psi)
       deallocate(psi,stat=i_stat)
@@ -859,8 +862,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !!$
       !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
-      if (in%output_grid == OUTPUT_GRID_DENSPOT) then
-         if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
+      if (in%output_denspot == output_denspot_DENSPOT) then
+         if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
 
             call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
@@ -1252,26 +1255,23 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,Lzd%Glr,ngatherarr,n1i*n2i*n3p,&
-            &   rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-            &   , in%iat_absorber  , in , PAWD, orbs)
+             radii_cf,Lzd%Gnlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
+             rhopot(1,1,1,1),ekin_sum,epot_sum,eproj_sum,in%nspin,GPU,&
+             in%iat_absorber,in,PAWD,orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,Lzd%Glr,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,Lzd%Gnlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
             &   rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
             &   , in%iat_absorber, in, PAWD, orbs)
       else if (in%iabscalc_type==3) then
          call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,Lzd%Glr,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,Lzd%Gnlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
             &   rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
             &   , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
       else
          if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
       endif
-
-
-
 
    end if
 
@@ -1279,7 +1279,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
    call deallocate_before_exiting
-  call deallocate_local_zone_descriptors(lzd, subname)
+   call deallocate_local_zone_descriptors(lzd, subname)
 
    contains
 
@@ -1337,20 +1337,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          deallocate(rhopot,stat=i_stat)
          call memocc(i_stat,i_all,'rhopot',subname)
 
-
          if(  iand( in%potshortcut, 2)  > 0 ) then
             i_all=-product(shape(rhopotTOTO))*kind(rhopotTOTO)
             deallocate(rhopotTOTO,stat=i_stat)
             call memocc(i_stat,i_all,'rhopotTOTO',subname)
          endif
 
-
          i_all=-product(shape(rhoXanes))*kind(rhoXanes)
          deallocate(rhoXanes,stat=i_stat)
          call memocc(i_stat,i_all,'rhoXanes',subname)
-
-
-
 
          !!$       if (in%read_ref_den) then
          !!$          i_all=-product(shape(rhoref))*kind(rhoref)
@@ -1361,7 +1356,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          i_all=-product(shape(nscatterarr))*kind(nscatterarr)
          deallocate(nscatterarr,stat=i_stat)
          call memocc(i_stat,i_all,'nscatterarr',subname)
-
 
          i_all=-product(shape(ngatherarr))*kind(ngatherarr)
          deallocate(ngatherarr,stat=i_stat)
@@ -1387,39 +1381,20 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          call memocc(i_stat,i_all,'psivirt',subname)
       end if
 
-
       !De-allocations
-    call deallocate_bounds(atoms%geocode,Lzd%Glr%hybrid_on,  Lzd%Glr%bounds,subname)
-    i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
-    deallocate(Lzd%Glr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
+      call deallocate_bounds(atoms%geocode,Lzd%Glr%hybrid_on,&
+           Lzd%Glr%bounds,subname)
+      call deallocate_Lzd_except_Glr(Lzd, subname)
+      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
+      deallocate(Lzd%Glr%projflg,stat=i_stat)
+      call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
 
       call deallocate_comms(comms,subname)
 
       call deallocate_orbs(orbs,subname)
       call deallocate_orbs(orbsAO,subname)
 
-      call deallocate_atoms_scf(atoms,subname) 
-
-
-      i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
-      deallocate(nlpspd%nboxp_c,stat=i_stat)
-      call memocc(i_stat,i_all,'nboxp_c',subname)
-      i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
-      deallocate(nlpspd%nboxp_f,stat=i_stat)
-      call memocc(i_stat,i_all,'nboxp_f',subname)
-      i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
-      deallocate(nlpspd%keyg_p,stat=i_stat)
-      call memocc(i_stat,i_all,'keyg_p',subname)
-      i_all=-product(shape(nlpspd%keyv_p))*kind(nlpspd%keyv_p)
-      deallocate(nlpspd%keyv_p,stat=i_stat)
-      call memocc(i_stat,i_all,'keyv_p',subname)
-      i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
-      deallocate(nlpspd%nvctr_p,stat=i_stat)
-      call memocc(i_stat,i_all,'nvctr_p',subname)
-      i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
-      deallocate(nlpspd%nseg_p,stat=i_stat)
-      call memocc(i_stat,i_all,'nseg_p',subname)
+      call deallocate_proj_descr(Lzd%Gnlpspd,subname)
 
       i_all=-product(shape(proj))*kind(proj)
       deallocate(proj,stat=i_stat)
@@ -1439,7 +1414,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       endif
       !! this is included in deallocate_atomdatapaw
       !! call deallocate_atomdatapaw(atoms,subname)
-
+     
       ! Free the libXC stuff if necessary.
       call xc_end()
 

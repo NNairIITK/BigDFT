@@ -123,3 +123,8 @@ src/init/pspconf.f90
 doc/*.pdf
 MYTHINGS
 doc/tests.xml
+NK.dft
+NK.occup
+NK.out.ref
+NK.sic
+NK.xyz

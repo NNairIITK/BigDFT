@@ -11,6 +11,7 @@
 #include "OpenCL_wrappers.h"
 
 #define FILTER_WIDTH 32
+#define BUFFER_WIDTH 8
 static void generate_header(std::stringstream &program){
   program<<"#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
@@ -84,7 +85,11 @@ tt = mad(tmp[2* 1] - tmp[2* -1], FILT2_1,  tt);\n";
 }
 
 static void generate_kinetic_k1dKernel(std::stringstream &program){
-  program<<"__kernel void kinetic_k1dKernel_d(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in, __global double *  restrict x, __global const double *  restrict y_in, __global double *  restrict y, __local double * tmp, __local double * tmp_y ) {\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<BUFFER_WIDTH<<", 1))) void kinetic_k1dKernel_d(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in, __global double *  restrict x, __global const double *  restrict y_in, __global double *  restrict y) {\n\
+__local double tmp_r["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
+__local double tmp_i["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
+__local double tmp_y_r["<<BUFFER_WIDTH<<"*("<<FILTER_WIDTH<<"+1)];\n\
+__local double tmp_y_i["<<BUFFER_WIDTH<<"*("<<FILTER_WIDTH<<"+1)];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -98,41 +103,76 @@ jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
 ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
 igt = ig - i2 + j2t;\n\
 jgt = jg - j2 + i2t;\n\
-tmp_y[i2t * (2 * FILTER_WIDTH + 1) + 2 * j2t] = y_in[2*jgt+2*igt*ndat];\n\
-tmp_y[i2t * (2 * FILTER_WIDTH + 1) + 2 * j2t + 1] = y_in[2*jgt+2*igt*ndat+1];\n\
+tmp_y_r[i2t * (FILTER_WIDTH + 1) + j2t] = y_in[2*jgt+2*igt*ndat];\n\
+tmp_y_i[i2t * (FILTER_WIDTH + 1) + j2t] = y_in[2*jgt+2*igt*ndat+1];\n\
 igt -= FILTER_WIDTH/2;\n\
 if ( igt < 0 ) {\n\
-  tmp[i2t * (4 * FILTER_WIDTH + 1) + 2 * j2t] = x_in[2*jgt + 2 * ( n + igt ) * ndat];\n\
-  tmp[i2t * (4 * FILTER_WIDTH + 1) + 2 * j2t + 1] = x_in[2*jgt + 2 * ( n + igt ) * ndat + 1];\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in[2*jgt + 2 * ( n + igt ) * ndat];\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in[2*jgt + 2 * ( n + igt ) * ndat + 1];\n\
 } else {\n\
-  tmp[i2t * (4 * FILTER_WIDTH + 1) + 2 * j2t] = x_in[2*jgt + 2 * igt * ndat];\n\
-  tmp[i2t * (4 * FILTER_WIDTH + 1) + 2 * j2t + 1] = x_in[2*jgt + 2 * igt * ndat+1];\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in[2*jgt + 2 * igt * ndat];\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in[2*jgt + 2 * igt * ndat+1];\n\
 }\n\
 igt += FILTER_WIDTH;\n\
 if ( igt >= n ) {\n\
-  tmp[i2t * (4 * FILTER_WIDTH + 1) + 2 * j2t + 2 * FILTER_WIDTH] = x_in[2*jgt + 2 * ( igt - n ) * ndat];\n\
-  tmp[i2t * (4 * FILTER_WIDTH + 1) + 2 * j2t + 2 * FILTER_WIDTH + 1] = x_in[2*jgt + 2 * ( igt - n ) * ndat + 1];\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in[2*jgt + 2 * ( igt - n ) * ndat];\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in[2*jgt + 2 * ( igt - n ) * ndat + 1];\n\
 } else {\n\
-  tmp[i2t * (4 * FILTER_WIDTH + 1) + 2 * j2t + 2 * FILTER_WIDTH] = x_in[2*jgt +  2 * igt * ndat];\n\
-  tmp[i2t * (4 * FILTER_WIDTH + 1) + 2 * j2t + 2 * FILTER_WIDTH + 1] = x_in[2*jgt +  2 * igt * ndat + 1];\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in[2*jgt +  2 * igt * ndat];\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in[2*jgt +  2 * igt * ndat + 1];\n\
 }\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
-__local double * tmp_o = tmp + j2*(4 * FILTER_WIDTH + 1) + FILTER_WIDTH + 2*i2;\n\
+__local const double * restrict tmp_o_r = tmp_r + j2*(2 * FILTER_WIDTH + 1) + FILTER_WIDTH/2 + i2;\n\
+__local const double * restrict tmp_o_i = tmp_i + j2*(2 * FILTER_WIDTH + 1) + FILTER_WIDTH/2 + i2;\n\
 double tt1_1=0.0;\n\
-filter1(tt1_1,tmp_o);\n\
-double tt2_1=0.0;\n\
-filter2(tt2_1,tmp_o);\n\
-double tt1_2=0.0;\n\
-tmp_o++;\n\
-filter1(tt1_2,tmp_o);\n\
+filter1(tt1_1,tmp_o_r);\n\
 double tt2_2=0.0;\n\
-filter2(tt2_2,tmp_o);\n\
-tmp_o--;\n\
-y[jg*2*n + 2*ig] = tmp_y[j2*(2*FILTER_WIDTH+1) + 2*i2] + tt1_1 * scale_1 - tt2_2 * scale_2;\n\
-y[jg*2*n + 2*ig + 1] = tmp_y[j2*(2*FILTER_WIDTH+1) + 2*i2 + 1] + tt1_2 * scale_1 + tt2_1 * scale_2;\n\
-x[jg*2*n + 2*ig] = tmp_o[0];\n\
-x[jg*2*n + 2*ig + 1] = tmp_o[1];\n\
+filter2(tt2_2,tmp_o_i);\n\
+double tt1_2=0.0;\n\
+filter1(tt1_2,tmp_o_i);\n\
+double tt2_1=0.0;\n\
+filter2(tt2_1,tmp_o_r);\n\
+y[jg*2*n + 2*ig] = tmp_y_r[j2*(FILTER_WIDTH+1) + i2] + tt1_1 * scale_1 - tt2_2 * scale_2;\n\
+y[jg*2*n + 2*ig + 1] = tmp_y_i[j2*(FILTER_WIDTH+1) + i2] + tt1_2 * scale_1 + tt2_1 * scale_2;\n\
+x[jg*2*n + 2*ig] = tmp_o_r[0];\n\
+x[jg*2*n + 2*ig + 1] = tmp_o_i[0];\n\
 }\n";
+}
+
+static void generate_filters_nomad(std::stringstream &program){
+  program<<"#undef filter1\n\
+#define filter1(tt,tmp) \
+tt += (tmp[14] + tmp[-14])*FILT1_14;\
+tt += (tmp[13] + tmp[-13])*FILT1_13;\
+tt += (tmp[12] + tmp[-12])*FILT1_12;\
+tt += (tmp[11] + tmp[-11])*FILT1_11;\
+tt += (tmp[10] + tmp[-10])*FILT1_10;\
+tt += (tmp[ 9] + tmp[ -9])*FILT1_9;\
+tt += (tmp[ 8] + tmp[ -8])*FILT1_8;\
+tt += (tmp[ 7] + tmp[ -7])*FILT1_7;\
+tt += (tmp[ 6] + tmp[ -6])*FILT1_6;\
+tt += (tmp[ 5] + tmp[ -5])*FILT1_5;\
+tt += (tmp[ 4] + tmp[ -4])*FILT1_4;\
+tt += (tmp[ 3] + tmp[ -3])*FILT1_3;\
+tt += (tmp[ 2] + tmp[ -2])*FILT1_2;\
+tt += (tmp[ 1] + tmp[ -1])*FILT1_1;\
+tt += (tmp[ 0]           )*FILT1_0;\n\
+#undef filter2\n\
+#define filter2(tt,tmp) \
+tt += (tmp[14] - tmp[-14])*FILT2_14;\
+tt += (tmp[13] - tmp[-13])*FILT2_13;\
+tt += (tmp[12] - tmp[-12])*FILT2_12;\
+tt += (tmp[11] - tmp[-11])*FILT2_11;\
+tt += (tmp[10] - tmp[-10])*FILT2_10;\
+tt += (tmp[ 9] - tmp[ -9])*FILT2_9;\
+tt += (tmp[ 8] - tmp[ -8])*FILT2_8;\
+tt += (tmp[ 7] - tmp[ -7])*FILT2_7;\
+tt += (tmp[ 6] - tmp[ -6])*FILT2_6;\
+tt += (tmp[ 5] - tmp[ -5])*FILT2_5;\
+tt += (tmp[ 4] - tmp[ -4])*FILT2_4;\
+tt += (tmp[ 3] - tmp[ -3])*FILT2_3;\
+tt += (tmp[ 2] - tmp[ -2])*FILT2_2;\
+tt += (tmp[ 1] - tmp[ -1])*FILT2_1;\n";
 }
 
 static void generate_filters(std::stringstream &program){
@@ -172,7 +212,11 @@ tt = mad(tmp[ 1] - tmp[ -1], FILT2_1,  tt);\n";
 }
 
 static void generate_kinetic_k1dKernel_2(std::stringstream &program){
-  program<<"__kernel void kinetic_k1dKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in_r, __global const double *  restrict x_in_i, __global double *  restrict x_r, __global double *  restrict x_i, __global const double *  restrict y_in_r, __global const double *  restrict y_in_i, __global double *  restrict y_r, __global double *  restrict y_i, __local double * tmp_r, __local double * tmp_i, __local double * tmp_y_r, __local double * tmp_y_i ) {\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<BUFFER_WIDTH<<", 1))) void kinetic_k1dKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in_r, __global const double *  restrict x_in_i, __global double *  restrict x_r, __global double *  restrict x_i, __global const double *  restrict y_in_r, __global const double *  restrict y_in_i, __global double *  restrict y_r, __global double *  restrict y_i ) {\n\
+__local double tmp_r["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
+__local double tmp_i["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
+__local double tmp_y_r["<<BUFFER_WIDTH<<"*("<<FILTER_WIDTH<<"+1)];\n\
+__local double tmp_y_i["<<BUFFER_WIDTH<<"*("<<FILTER_WIDTH<<"+1)];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -223,7 +267,11 @@ x_i[jg*n + ig] = tmp_o_i[0];\n\
 }
 
 static void generate_kinetic_k1d_fKernel_2(std::stringstream &program){
-  program<<"__kernel void kinetic_k1d_fKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in_r, __global const double *  restrict x_in_i, __global double *  restrict x_r, __global double *  restrict x_i, __global const double *  restrict y_in_r, __global const double *  restrict y_in_i, __global double *  restrict y_r, __global double *  restrict y_i, __local double * tmp_r, __local double * tmp_i, __local double * tmp_y_r, __local double * tmp_y_i ) {\n\
+  program<<"__kernel __attribute__((reqd_work_group_size("<<FILTER_WIDTH<<","<<BUFFER_WIDTH<<", 1))) void kinetic_k1d_fKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in_r, __global const double *  restrict x_in_i, __global double *  restrict x_r, __global double *  restrict x_i, __global const double *  restrict y_in_r, __global const double *  restrict y_in_i, __global double *  restrict y_r, __global double *  restrict y_i ) {\n\
+__local double tmp_r["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
+__local double tmp_i["<<BUFFER_WIDTH<<"*(2*"<<FILTER_WIDTH<<"+1)];\n\
+__local double tmp_y_r["<<BUFFER_WIDTH<<"*("<<FILTER_WIDTH<<"+1)];\n\
+__local double tmp_y_i["<<BUFFER_WIDTH<<"*("<<FILTER_WIDTH<<"+1)];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -281,9 +329,8 @@ extern "C" char* generate_kinetic_k_program(struct bigdft_device_infos * infos){
   std::stringstream program;
 
   generate_header(program);
-  generate_interleaved_filters(program);
-  generate_kinetic_k1dKernel(program);
   generate_filters(program);
+  generate_kinetic_k1dKernel(program);
   generate_kinetic_k1dKernel_2(program);
   generate_kinetic_k1d_fKernel_2(program);
 
