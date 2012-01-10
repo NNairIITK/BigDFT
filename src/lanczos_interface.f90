@@ -1433,7 +1433,7 @@ END SUBROUTINE EP_set_random_interna
 
    if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
 
-   icplx_xp =1 !2 only for PAW and XANES
+   icplx_xp =1 !2 only for PAW 
    allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
    call memocc(i_stat,tpsi,'tpsi',subname)
 
@@ -1485,7 +1485,7 @@ END SUBROUTINE EP_set_random_interna
             end do loop_calc
             if (maycalc) then
                call crtonewave(geocode,grid%n1,grid%n2,grid%n3,ng,nterm,lx,ly,lz,fac_arr,&
-                    G%xp(icplx_xp,iexpo),G%psiat(iexpo),&
+                    G%xp(icplx_xp,iexpo),G%psiat(icplx_xp,iexpo),&
                     rx,ry,rz,hx,hy,hz,&
                     0,grid%n1,0,grid%n2,0,grid%n3,&
                     grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 

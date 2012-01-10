@@ -90,7 +90,7 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
                     do kg=1,ngk
                        tt=combine_exponents(G%xp(1,jexpo+jg-1),G%xp(1,kexpo+kg-1))
                        scalprod=scalprod+&
-                            G%psiat(jexpo+jg-1)*G%psiat(kexpo+kg-1)*tt**3
+                            G%psiat(1,jexpo+jg-1)*G%psiat(1,kexpo+kg-1)*tt**3
                     end do
                  end do
                  !restore the correct normalisation
@@ -115,11 +115,11 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
            irexpo=0
            do jg=1,ngj
               irexpo=irexpo+1
-              rhocoeff(irexpo,l)=rhocoeff(irexpo,l)+occ*G%psiat(jexpo+jg-1)**2
+              rhocoeff(irexpo,l)=rhocoeff(irexpo,l)+occ*G%psiat(1,jexpo+jg-1)**2
               do kg=jg+1,ngj
                  irexpo=irexpo+1
                  rhocoeff(irexpo,l)=rhocoeff(irexpo,l)+&
-                      2.0_gp*occ*G%psiat(jexpo+jg-1)*G%psiat(jexpo+kg-1)
+                      2.0_gp*occ*G%psiat(1,jexpo+jg-1)*G%psiat(1,jexpo+kg-1)
               end do
            end do
            jexpo=jexpo+ngj
@@ -148,7 +148,7 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
               end do
               do ig=1,ng
                  shells(jsat)=shells(jsat)+&
-                      G%psiat(jexpo)*exp(-0.5_gp/(G%xp(1,jexpo)**2)*x**2)
+                      G%psiat(1,jexpo)*exp(-0.5_gp/(G%xp(1,jexpo)**2)*x**2)
                  jexpo=jexpo+1
               end do
               if (l>1) shells(jsat)=x**(l-1)*shells(jsat)
@@ -476,8 +476,8 @@ subroutine gaussian_overlap(A,B,ovrlp)
                     jovrlp=jovrlp+1
                     !if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
                     !     A%ncoeff /= B%ncoeff ) then
-                       call gbasovrlp(A%xp(1,iexpo),A%psiat(iexpo),&
-                            B%xp(1,jexpo),B%psiat(jexpo),&
+                       call gbasovrlp(A%xp(1,iexpo),A%psiat(1,iexpo),&
+                            B%xp(1,jexpo),B%psiat(1,jexpo),&
                             ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                             niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                     !end if
@@ -585,8 +585,8 @@ subroutine kinetic_overlap(A,B,ovrlp)
                     jovrlp=jovrlp+1
                     if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff .or. &
                          A%ncoeff /= B%ncoeff ) then
-                       call kineticovrlp(A%xp(1,iexpo),A%psiat(iexpo),&
-                            B%xp(1,jexpo),B%psiat(jexpo),&
+                       call kineticovrlp(A%xp(1,iexpo),A%psiat(1,iexpo),&
+                            B%xp(1,jexpo),B%psiat(1,jexpo),&
                             ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                             niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                     end if
@@ -702,8 +702,8 @@ subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
                  do mB=1,2*lB-1
                     jovrlp=jovrlp+1
                     if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) then
-                       call locpotovrlp(n1,n2,n3,pot,hx,hy,hz,A%xp(1,iexpo),A%psiat(iexpo),&
-                            B%xp(1,jexpo),B%psiat(jexpo),&
+                       call locpotovrlp(n1,n2,n3,pot,hx,hy,hz,A%xp(1,iexpo),A%psiat(1,iexpo),&
+                            B%xp(1,jexpo),B%psiat(1,jexpo),&
                             ngA,ngB,lA,mA,lB,mB,rxa,rya,rza,rxb,ryb,rzb,niw,nrw,iw,rw,&
                             ovrlp(iovrlp,jovrlp))
                     end if

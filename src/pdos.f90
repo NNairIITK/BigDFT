@@ -220,8 +220,8 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
         radnorm=0.0_wp
         do ig=1,ng
            r=G%xp(1,iexpo)
-           rad=rad+(G%psiat(iexpo))**2*r
-           radnorm=radnorm+(G%psiat(iexpo))**2
+           rad=rad+(G%psiat(1,iexpo))**2*r
+           radnorm=radnorm+(G%psiat(1,iexpo))**2
            iexpo=iexpo+1
         end do
         rad=rad/radnorm

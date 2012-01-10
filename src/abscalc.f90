@@ -342,7 +342,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   type(gaussian_basis) :: Gvirt
   type(rho_descriptors)  :: rhodsc
   type(rholoc_objects)::rholoc_tmp
-
+  type(gaussian_basis)::proj_tmp
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:,:), allocatable :: radii_cf,fion
@@ -731,7 +731,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
           orbsAO,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in)
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, &
+          GPU,in,proj_tmp)
      
      
      
@@ -813,7 +814,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call input_wf_diag(iproc,nproc,atoms,rhodsc,&
           orbsAO,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in)
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, &
+          phnons, GPU, in,proj_tmp)
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)

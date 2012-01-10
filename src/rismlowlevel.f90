@@ -521,7 +521,6 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
   character(len=*), parameter :: subname='gaussian_psp_basis'
   real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
   integer :: iat,nshell,iexpo,l,ishell,i_stat
-  integer :: ncplx_xp 
   G%nat=nat
   G%rxyz => rxyz
   allocate(G%nshell(G%nat+ndebug),stat=i_stat)
@@ -540,6 +539,7 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
   call memocc(i_stat,G%nam,'G%nam',subname)
 
   !assign shell IDs and count the number of exponents and coefficients
+  G%ncplx=1
   G%nexpo=0
   G%ncoeff=0
   ishell=0
@@ -554,10 +554,9 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
   end do
 
   !allocate and assign the exponents and the coefficients
-  ncplx_xp=1 !only 2 for PAW and XANES
-  allocate(G%xp(ncplx_xp,G%nexpo+ndebug),stat=i_stat)
+  allocate(G%xp(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%xp,'G%xp',subname)
-  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+  allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
 
   ishell=0
@@ -566,7 +565,7 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
      do l=1,G%nshell(iat) 
         ishell=ishell+1
         iexpo=iexpo+1
-        G%psiat(iexpo)=1.0_gp
+        G%psiat(1,iexpo)=1.0_gp
         G%xp(1,iexpo)=radii(iat)
      end do
   end do
@@ -738,8 +737,8 @@ subroutine kinetic_overlap_h(A,B,ovrlp)
                     jovrlp=jovrlp+1
                     if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff .or. &
                          A%ncoeff /= B%ncoeff ) then
-                       call kineticovrlp_h(A%xp(1,iexpo),A%psiat(iexpo),&
-                            B%xp(1,jexpo),B%psiat(jexpo),&
+                       call kineticovrlp_h(A%xp(1,iexpo),A%psiat(1,iexpo),&
+                            B%xp(1,jexpo),B%psiat(1,jexpo),&
                             ngA,ngB,lA,isat,lB,jsat,dx,dy,dz,&
                             niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                     end if
@@ -1081,7 +1080,7 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                          wy(1,0,1,iterm),work,nw,pery) 
                     n_gau=lz(i) 
                     !print *,'z',ml3,mu3,lr%d%n3
-                    call gauss_to_daub_k(hz,kz*hz,ncplx,G%psiat(iexpo+ig-1),rz,gau_a,n_gau,&
+                    call gauss_to_daub_k(hz,kz*hz,ncplx,G%psiat(1,iexpo+ig-1),rz,gau_a,n_gau,&
                          lr%d%n3,ml3,mu3,&
                          wz(1,0,1,iterm),work,nw,perz)
                     iterm=iterm+1
@@ -1169,8 +1168,8 @@ subroutine gaussian_overlap_h(A,B,ovrlp)
                     jovrlp=jovrlp+1
                     if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
                          A%ncoeff /= B%ncoeff ) then
-                       call gbasovrlp_h(A%xp(1,iexpo),A%psiat(iexpo),&
-                            B%xp(1,jexpo),B%psiat(jexpo),&
+                       call gbasovrlp_h(A%xp(1,iexpo),A%psiat(1,iexpo),&
+                            B%xp(1,jexpo),B%psiat(1,jexpo),&
                             ngA,ngB,lA,isat,lB,mB,dx,dy,dz,&
                             niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                     end if

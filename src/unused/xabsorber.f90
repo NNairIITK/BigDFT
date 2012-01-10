@@ -3754,6 +3754,7 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber , atoms, rxyz, nproc, iproc,&
 !!$  allocate(Gabsorber%nam (1+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,Gabsorber%nam,'Gabsorber%nam',subname)
 !!$
+!!$  Gabsorber%ncplx=1
 !!$  Gabsorber%nexpo=0
 !!$  Gabsorber%ncoeff=0
 !!$
@@ -3762,10 +3763,10 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber , atoms, rxyz, nproc, iproc,&
 !!$  Gabsorber%nexpo         =  Gabsorber%nexpo+ ng_fine 
 !!$  Gabsorber%ncoeff        =  Gabsorber%ncoeff+2* abs_final_l + 1
 !!$
-!!$  allocate(Gabsorber%psiat(Gabsorber%nexpo+ndebug),stat=i_stat)
+!!$  allocate(Gabsorber%psiat(Gabsorber%ncplx,Gabsorber%nexpo+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,Gabsorber%psiat , 'Gabsorber%psiat',subname)
 !!$
-!!$  allocate(Gabsorber%xp(ncplx_xp,Gabsorber%nexpo+ndebug),stat=i_stat)
+!!$  allocate(Gabsorber%xp(Gabsorber%ncplx,Gabsorber%nexpo+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,Gabsorber%xp    , 'Gabsorber%xp',subname)
 !!$
 !!$  iexpo=0

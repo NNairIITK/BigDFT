@@ -437,7 +437,8 @@ module module_interfaces
      subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
-          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
+          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,&
+          GPU,input,proj_G)
        use module_base
        use module_types
        implicit none
@@ -452,6 +453,7 @@ module module_interfaces
        type(communications_arrays), intent(in) :: comms
        type(GPU_pointers), intent(inout) :: GPU
        type(input_variables):: input
+       type(gaussian_basis),intent(in) :: proj_G
        integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz

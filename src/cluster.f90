@@ -232,7 +232,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms, commsv
   type(orbitals_data) :: orbsv
-  type(gaussian_basis) :: Gvirt
+  type(gaussian_basis) :: Gvirt,proj_tmp
   type(diis_objects) :: diis
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -692,7 +692,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call input_wf_diag(iproc,nproc, atoms,rhodsc,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,&
+          GPU,in,proj_tmp)
      if (nvirt > norbv) then
         nvirt = norbv
      end if

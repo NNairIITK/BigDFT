@@ -280,7 +280,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
   logical :: orbpol_nc,occeq
   integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc
   integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
-  integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng,ncplx_xp
+  integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng
   real(gp) :: ek,mx,my,mz,ma,mb,mc,md
   real(gp) :: mnorm,fac
   logical, dimension(lmax,noccmax) :: semicore
@@ -296,7 +296,6 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
      write(*,'(1x,a)')'Calculating AIO wavefunctions: '
   end if
 
-  ncplx_xp=1 !2 only for PAW and XANES
   !gaussian basis structure informations
   !insert these things in the loops above
   !here we can create a gaussian basis structure for the input guess functions
@@ -365,6 +364,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
   !assign shell IDs and count the number of exponents and coefficients
   !also calculate the wavefunctions 
+  G%ncplx=1
   G%nexpo=0
   G%ncoeff=0
   ishell=0
@@ -422,10 +422,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
   call razero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
 
   !allocate and assign the exponents and the coefficients
-  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+  allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
 
-  allocate(G%xp(ncplx_xp,G%nexpo+ndebug),stat=i_stat)
+  allocate(G%xp(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%xp,'G%xp',subname)
 
   allocate(psiatn(ng+ndebug),stat=i_stat)
@@ -506,7 +506,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
            call atomkin(l-1,ng,xp(1,ityx),psiat(1,ictotpsi,ityx),psiatn,ek)
            do ig=1,G%ndoc(ishell)
               iexpo=iexpo+1
-              G%psiat(iexpo)=psiatn(ig)
+              G%psiat(1,iexpo)=psiatn(ig)
               G%xp(1,iexpo)=xp(ig,ityx)
            end do
 

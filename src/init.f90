@@ -1137,7 +1137,8 @@ END SUBROUTINE createPawProjectorsArrays
 subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
      nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
-     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
+     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,&
+     GPU,input,proj_G)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -1159,6 +1160,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   type(communications_arrays), intent(in) :: comms
   type(GPU_pointers), intent(inout) :: GPU
   type(input_variables):: input
+  type(gaussian_basis),intent(in)::proj_G
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
