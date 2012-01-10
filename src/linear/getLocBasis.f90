@@ -3635,6 +3635,7 @@ real(8),dimension(orbs%npsidim),intent(inout):: lphi
 
 ! Local variables
 integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, lorb, jlr
+integer:: nlocregOnMPI, jlrold, jj, ii
 real(8):: trace, lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
 real(8):: tt1, tt2, tt3, tt4, tt5, tt
 real(8):: t1, t2, t1_tot, t2_tot
@@ -3642,7 +3643,7 @@ real(8):: time_convol, time_commun, time_lincomb, time_linalg, time_matrixmodifi
 real(8):: time_matrixelements
 complex(8):: ttc
 real(8),dimension(:,:),allocatable:: gmat, hamtrans, ttmat, Kmat
-real(8),dimension(:,:,:),allocatable:: potmat
+real(8),dimension(:,:,:),allocatable:: potmat, potmatsmall
 complex(8),dimension(:,:),allocatable:: gmatc, omatc
 complex(8),dimension(:,:,:),allocatable:: tempmatc
 complex(8),dimension(:),allocatable:: work, expD_cmplx
@@ -3680,14 +3681,29 @@ allocate(potmat(orbs%norb,orbs%norb,at%nat), stat=istat)
 call memocc(istat, potmat, 'potmat', subname)
 
 
+! Count how many locregs each process handles
+ilrold=-1
+nlocregOnMPI=0
+do iorb=1,orbs%norbp
+    iiorb=orbs%isorb+iorb
+    ilr=orbs%inwhichlocreg(iiorb)
+    if(ilr>ilrold) then
+        nlocregOnMPI=nlocregOnMPI+1
+    end if
+    ilrold=ilr
+end do
+allocate(potmatsmall(orbs%norb,orbs%norb,nlocregOnMPI), stat=istat)
+call memocc(istat, potmatsmall, 'potmatsmall', subname)
+
+
 
   call allocateSendBufferOrtho(comon, subname)
   call allocateRecvBufferOrtho(comon, subname)
   ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-  if(nit>0) then
-      call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
-      call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
-  end if
+  !if(nit>0) then
+  !    call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+  !    call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
+  !end if
 
   energyconf_trial=0.d0 !just to initialize this variable and make the compiler happy
   lstep=0.d0 !just to initialize this variable and make the compiler happy
@@ -3712,10 +3728,10 @@ call memocc(istat, potmat, 'potmat', subname)
       time_convol=time_convol+t2-t1
 
       t1=mpi_wtime()
-      allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
-      call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
-           comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
-      deallocate(ttmat)
+      !allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+      !call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
+      !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
+      !deallocate(ttmat)
       !write(*,*) '2: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
       t2=mpi_wtime()
       time_commun=time_commun+t2-t1
@@ -3725,6 +3741,11 @@ call memocc(istat, potmat, 'potmat', subname)
       !call deallocateRecvBufferOrtho(comon, subname)
       !call deallocateSendBufferOrtho(comon, subname)
       call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, lphi, lvphi, lin%mad, Kmat)
+      !do iorb=1,orbs%norb
+      !    do jorb=1,orbs%norb
+      !        if(iproc==0) write(66,*) iorb,jorb,Kmat(jorb,iorb)
+      !    end do
+      !end do
       !call allocateSendBufferOrtho(comon, subname)
       !call allocateRecvBufferOrtho(comon, subname)
       !write(*,*) '3: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
@@ -3734,6 +3755,8 @@ call memocc(istat, potmat, 'potmat', subname)
 
       if(lin%newgradient) then
           call get_potential_matrices(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, lphi, potmat)
+          !call get_potential_matrices_new(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, lphi, &
+          !     nlocregOnMPI, potmatsmall)
       end if
 
 
@@ -3766,23 +3789,73 @@ call memocc(istat, potmat, 'potmat', subname)
               end do
           end do 
       else
+          !!! THIS IS THE OLD VERSION #############################################################################
           do iorb=1,orbs%norb
               ilr=orbs%inwhichlocreg(iorb)
               do jorb=1,orbs%norb
                   jlr=orbs%inwhichlocreg(jorb)
                   tt=0.d0
                   do lorb=1,orbs%norb
-                      !!tt = tt + kernel(jorb,lorb)*Kmat(iorb,lorb) - kernel(iorb,lorb)*Kmat(jorb,lorb)
-                      !!tt = tt + kernel(jorb,lorb)*Kmat(lorb,iorb) - kernel(iorb,lorb)*Kmat(lorb,jorb)
-                      !tt = tt + kernel(jorb,lorb)*Kmat(lorb,iorb) - kernel(iorb,lorb)*Kmat(lorb,jorb)
-
                       tt = tt + kernel(jorb,lorb)*Kmat(lorb,iorb) - kernel(iorb,lorb)*Kmat(lorb,jorb) + &
                                 kernel(jorb,lorb)*potmat(lorb,iorb,jlr) - kernel(iorb,lorb)*potmat(lorb,jorb,ilr)
                   end do
-                  !gmat(jorb,iorb)=-2.d0*tt
                   gmat(jorb,iorb)=-tt
+                  !if(iproc==0) then
+                  !    write(77,*) iorb, jorb, gmat(jorb,iorb)
+                  !end if
               end do
           end do 
+          ! ########################################################################################################
+          !!! THIS IS THE NEW VERSION
+          !!gmat=0.d0
+          !!ii=0
+          !!ilrold=-1
+          !!do iorb=1,orbs%norbp
+          !!    iiorb=orbs%isorb+iorb
+          !!    ilr=orbs%inwhichlocreg(iiorb)
+          !!    if(ilr>ilrold) then
+          !!        ii=ii+1
+          !!    end if
+          !!    do jorb=1,orbs%norb
+          !!        jlr=orbs%inwhichlocreg(jorb)
+          !!        tt=0.d0
+          !!        do lorb=1,orbs%norb
+          !!            !tt = tt + kernel(jorb,lorb)*Kmat(lorb,iiorb) - kernel(iiorb,lorb)*Kmat(lorb,jorb) + &
+          !!            !          - kernel(iiorb,lorb)*potmat(lorb,jorb,ilr)
+          !!            tt = tt + kernel(jorb,lorb)*Kmat(lorb,iiorb) - kernel(iiorb,lorb)*Kmat(lorb,jorb) + &
+          !!                      - kernel(iiorb,lorb)*potmatsmall(lorb,jorb,ii)
+          !!        end do
+          !!        gmat(jorb,iiorb)=-tt
+          !!    end do
+          !!    ilrold=ilr
+          !!end do 
+          !!do iorb=1,orbs%norb
+          !!    ilr=orbs%inwhichlocreg(iorb)
+          !!    jlrold=-1
+          !!    jj=0
+          !!    do jorb=1,orbs%norbp
+          !!        jjorb=orbs%isorb+jorb
+          !!        jlr=orbs%inwhichlocreg(jjorb)
+          !!        if(jlr>jlrold) then
+          !!            jj=jj+1
+          !!        end if
+          !!        tt=0.d0
+          !!        do lorb=1,orbs%norb
+          !!            !tt = tt + kernel(jjorb,lorb)*potmat(lorb,iorb,jlr)
+          !!            tt = tt + kernel(jjorb,lorb)*potmatsmall(lorb,iorb,jj)
+          !!        end do
+          !!        gmat(jjorb,iorb)=gmat(jjorb,iorb)-tt
+          !!        jlrold=jlr
+          !!    end do
+          !!end do 
+          !!call mpiallred(gmat(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+          !!do iorb=1,orbs%norb
+          !!    do jorb=1,orbs%norb
+          !!        if(iproc==0) then
+          !!            write(77,*) iorb, jorb, gmat(jorb,iorb)
+          !!        end if
+          !!    end do
+          !!end do
       end if
       t2=mpi_wtime()
       time_matrixmodification=time_matrixmodification+t2-t1
@@ -3818,10 +3891,11 @@ call memocc(istat, potmat, 'potmat', subname)
           if(.not.lin%newgradient) then
               lstep=5.d-2/(maxval(eval))
           else
-              lstep=1.d-3/(maxval(eval))
+              lstep=5.d-3/(maxval(eval))
           end if
       else
           lstep=2.d0*lstep_optimal
+          !lstep=1.d-3/(maxval(eval))
       end if
 
       t1=mpi_wtime()
@@ -3886,12 +3960,12 @@ call memocc(istat, potmat, 'potmat', subname)
       else
 
           call dcopy(comon%nrecvbuf, comon%recvbuf, 1, recvbuf, 1)
-          call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
-          call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
-          allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
-          call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
-               comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
-          deallocate(ttmat)
+          !call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+          !call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
+          !allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+          !call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
+          !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
+          !deallocate(ttmat)
           call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, lphi, lvphi, lin%mad, Kmat)
           call dcopy(comon%nrecvbuf, recvbuf, 1, comon%recvbuf, 1)
 
@@ -3973,10 +4047,10 @@ call memocc(istat, potmat, 'potmat', subname)
       time_lincomb=time_lincomb+t2-t1
 
 
-      if(it<nit) then
-          call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
-          call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
-      end if
+      !if(it<nit) then
+      !    call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+      !    call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
+      !end if
 
 
   end do innerLoop
@@ -4051,6 +4125,9 @@ call memocc(istat, potmat, 'potmat', subname)
   iall=-product(shape(potmat))*kind(potmat)
   deallocate(potmat, stat=istat)
   call memocc(istat, iall, 'potmat', subname)
+  iall=-product(shape(potmatsmall))*kind(potmatsmall)
+  deallocate(potmatsmall, stat=istat)
+  call memocc(istat, iall, 'potmatsmall', subname)
 
   call deallocateRecvBufferOrtho(comon, subname)
   call deallocateSendBufferOrtho(comon, subname)
@@ -4321,11 +4398,12 @@ END SUBROUTINE flatten
 subroutine get_potential_matrices(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, psi, potmat)
 use module_base
 use module_types
+use module_interfaces
 implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linearParameters),intent(in):: lin
+type(linearParameters),intent(inout):: lin
 type(atoms_data),intent(in):: at
 type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
@@ -4353,12 +4431,12 @@ do iorb=1,orbs%norb
     if(ilr==ilrold) cycle
     call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, psi, ilr, vpsi)
 
-    call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, psi, comon%nsendBuf, comon%sendBuf)
-    call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, psi, comon, tt1, tt2)
-    allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
-    call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
-         comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
-    deallocate(ttmat)
+    !call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, vpsi, comon%nsendBuf, comon%sendBuf)
+    !call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, vpsi, comon, tt1, tt2)
+    !allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+    !call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
+    !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
+    !deallocate(ttmat)
     call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, psi, vpsi, lin%mad, potmat(1,1,ilr))
     ilrold=ilr
     
@@ -4371,3 +4449,85 @@ call memocc(istat, iall, 'vpsi', subname)
 
 
 end subroutine get_potential_matrices
+
+
+
+
+!!subroutine get_potential_matrices_new(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, psi, nlocregOnMPI, potmat)
+!!use module_base
+!!use module_types
+!!use module_interfaces
+!!implicit none
+!!
+!!! Calling arguments
+!!integer,intent(in):: iproc, nproc, nlocregOnMPI
+!!type(linearParameters),intent(inout):: lin
+!!type(atoms_data),intent(in):: at
+!!type(input_variables),intent(in):: input
+!!type(orbitals_data),intent(in):: orbs
+!!type(local_zone_descriptors),intent(in):: lzd
+!!type(overlapParameters),intent(inout):: op
+!!type(p2pCommsOrthonormality),intent(inout):: comon
+!!real(8),dimension(3,at%nat),intent(in):: rxyz
+!!real(8),dimension(lzd%lpsidimtot),intent(inout):: psi
+!!real(8),dimension(orbs%norb,orbs%norb,nlocregOnMPI),intent(out):: potmat
+!!
+!!! Local variables
+!!integer:: iorb, ilr, ilrold, istat, iall, ii, iiorb
+!!real(8),dimension(:,:),allocatable:: ttmat
+!!real(8):: tt1, tt2, tt3, tt4, tt5
+!!real(8),dimension(:),allocatable:: vpsi
+!!character(len=*),parameter:: subname='get_potential_matrices'
+!!integer,dimensioN(:),allocatable:: sendcounts, displs
+!!
+!!
+!!allocate(sendcounts(0:nproc-1), stat=istat)
+!!call memocc(istat, sendcounts, 'sendcounts', subname)
+!!allocate(displs(0:nproc-1), stat=istat)
+!!call memocc(istat, displs, 'displs', subname)
+!!
+!!call getCommunArraysMatrixCompression(iproc, nproc, orbs, lin%mad, sendcounts, displs)
+!!
+!!
+!!allocate(vpsi(lzd%lpsidimtot), stat=istat)
+!!call memocc(istat, vpsi, 'vpsi', subname)
+!!
+!!call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, vpsi, comon%nsendBuf, comon%sendBuf)
+!!call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, vpsi, comon, tt1, tt2)
+!!allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+!!call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
+!!     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
+!!deallocate(ttmat)
+!!
+!!ilrold=-1
+!!ii=0
+!!do iorb=1,orbs%norbp
+!!    iiorb=orbs%isorb+iorb
+!!    ilr=orbs%inwhichlocreg(iiorb)
+!!    if(ilr==ilrold) cycle
+!!    ii=ii+1
+!!    call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, psi, ilr, vpsi)
+!!    !call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
+!!    !                             comon%sendBuf, comon%nrecvBuf, comon%recvBuf, lin%mad, potmat(1,1,ii))
+!!    !call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, psi, vpsi, lin%mad, potmat(1,1,ilr))
+!!
+!!    call calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, orbs%inwhichlocreg, comon%nsendBuf, comon%sendBuf, &
+!!         comon%nrecvBuf, comon%recvBuf, lin%mad, tempmat)
+!!
+!!    ilrold=ilr
+!!    
+!!end do
+!!
+!!iall=-product(shape(vpsi))*kind(vpsi)
+!!deallocate(vpsi, stat=istat)
+!!call memocc(istat, iall, 'vpsi', subname)
+!!
+!!iall=-product(shape(sendcounts))*kind(sendcounts)
+!!deallocate(sendcounts, stat=istat)
+!!call memocc(istat, iall, 'sendcounts', subname)
+!!
+!!iall=-product(shape(displs))*kind(displs)
+!!deallocate(displs, stat=istat)
+!!call memocc(istat, iall, 'displs', subname)
+!!
+!!end subroutine get_potential_matrices_new
