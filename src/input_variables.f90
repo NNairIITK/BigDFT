@@ -115,7 +115,7 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   call read_input_parameters(iproc,inputs, atoms, rxyz)
 
   ! Read associated pseudo files.
-  call init_atomic_values(iproc, atoms, inputs%ixc)
+  call init_atomic_values((iproc == 0), atoms, inputs%ixc)
 END SUBROUTINE read_input_variables
 
 
@@ -1931,63 +1931,6 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    end if
 END SUBROUTINE read_atomic_file
 
-
-
-
-!> Check the position of atoms
-subroutine check_atoms_positions(iproc,atoms,rxyz)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc
-  type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  !local variables
-  logical :: dowrite
-  integer :: iat,nateq,jat,j
-
-  nateq=0
-  do iat=1,atoms%nat
-     do jat=iat+1,atoms%nat
-        if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
-             (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
-           nateq=nateq+1
-           write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
-                ' (',trim(atoms%atomnames(atoms%iatype(iat))),') and ',&
-                jat,' (',trim(atoms%atomnames(atoms%iatype(jat))),&
-                ') have the same positions'
-        end if
-     end do
-  end do
-  if (nateq /= 0) then
-     if (iproc == 0) then
-        write(*,'(1x,a)')'Control your posinp file, cannot proceed'
-        write(*,'(1x,a)',advance='no')&
-             'Writing tentative alternative positions in the file posinp_alt...'
-        open(unit=9,file='posinp_alt')
-        write(9,'(1x,a)')' ??? atomicd0'
-        write(9,*)
-        do iat=1,atoms%nat
-           dowrite=.true.
-           do jat=iat+1,atoms%nat
-              if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
-                   (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
-                 dowrite=.false.
-              end if
-           end do
-           if (dowrite) & 
-                write(9,'(a2,4x,3(1x,1pe21.14))')trim(atoms%atomnames(atoms%iatype(iat))),&
-                (rxyz(j,iat),j=1,3)
-        end do
-        close(9)
-        write(*,'(1x,a)')' done.'
-        write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
-     end if
-     stop 'check_atoms_positions'
-  end if
-END SUBROUTINE check_atoms_positions
-
-
 !> Write an atomic file
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   use module_base
@@ -2001,19 +1944,17 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   !local variables
   character(len = 15) :: arFile
 
+  open(unit=9,file=trim(filename)//'.'//trim(atoms%format))
   if (atoms%format == "xyz") then
-     open(unit=9,file=trim(filename)//'.xyz')
      call wtxyz(9,energy,rxyz,atoms,comment)
      if (present(forces)) call wtxyz_forces(9,forces,atoms)
   else if (atoms%format == "ascii") then
-     open(unit=9,file=trim(filename)//'.ascii')
      call wtascii(9,energy,rxyz,atoms,comment)
      if (present(forces)) call wtascii_forces(9,forces,atoms)
   else
      write(*,*) "Error, unknown file format."
      stop
   end if
-
   close(unit=9)
 
   ! Add to archive

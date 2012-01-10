@@ -1,7 +1,13 @@
 Test BigDFT_Atoms structure creation.
- Atom 0 -> type 1
- Atom 1 -> type 2
- Atom 2 -> type 3
+Test BigDFT_Atoms structure set n types.
+Test BigDFT_Atoms structure syncing.
+Test BigDFT_Atoms structure set n atoms.
+Test BigDFT_Atoms structure direct access.
+Test BigDFT_Atoms pseudo-potential on the fly.
+ Type 0, radii 1.215576 0.221786 0.221786
+ Type 1, radii 1.463418 0.200000 0.200000
+Test BigDFT_Atoms free.
+ Ok
 Test BigDFT_Atoms structure creation from file.
  Atom 0, coord. 1.620000 1.620000 1.620000, type 1
  Atom 1, coord. 3.240000 3.240000 3.240000, type 2
@@ -37,3 +43,11 @@ Test BigDFT_Glr free.
  Ok
 Test BigDFT_Atoms free.
  Ok
+# BigDFT file - Test from memory generation.
+ 0.50000000000000000E+01 0.00000000000000000E+00 0.50000000000000000E+01
+ 0.00000000000000000E+00 0.00000000000000000E+00 0.50000000000000000E+01
+#keyword: bohr
+#keyword: freeBC
+  9.97559590092617207E-04  5.66824707611273348E-04  9.65915375496124995E-04  O                                                     
+  5.00747927685471383E-01  3.67390897374755712E-04  5.00480636898754772E-01  H                                                     
+ -4.99926245736366015E-01  5.35522927772724745E-06  5.00347081288518014E-01  H                                                     
