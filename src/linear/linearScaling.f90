@@ -68,7 +68,7 @@ type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(inout):: at
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
-type(rho_descriptors),intent(in) :: rhodsc
+type(rho_descriptors),intent(inout) :: rhodsc
 real(8),dimension(3,at%nat),intent(inout):: rxyz
 real(8),dimension(3,at%nat),intent(in):: fion, fdisp
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
@@ -77,7 +77,7 @@ integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1
 integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in out):: rhopot
+real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout):: rhopot
 type(GPU_pointers),intent(in out):: GPU
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
 integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon 
@@ -92,13 +92,16 @@ real(gp),intent(in):: eion, edisp, eexctX
 logical,intent(in):: scpot
 !real(8),dimension(orbs),intent(out):: psi
 real(8),dimension(:),pointer,intent(out):: psi, psit
+real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 real(8),dimension(3,at%nat),intent(out):: fxyz
 !real(8),intent(out):: fnoise
-real(8):: fnoise
+real(8):: fnoise,pressure
+real(gp), dimension(6) :: ewaldstr,strten,hstrten
 
 ! Local variables
-integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot, ist, istr, ilr, tag, itout
+integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
+integer :: jproc
 real(8),dimension(:),pointer:: phi, phid
 real(8),dimension(:,:),pointer:: coeff, coeffd
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, dampingForMixing
@@ -567,8 +570,41 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !!    write(3000+iproc,*) rhopot(istat)
   !!end do
 
-  call calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
-       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rhopot, psi, fxyz, fnoise)
+
+  !manipulate scatter array for avoiding the GGA shift
+  do jproc=0,nproc-1
+     !n3d=n3p
+     nscatterarr(jproc,1)=nscatterarr(jproc,2)
+     !i3xcsh=0
+     nscatterarr(jproc,4)=0
+  end do
+  !change communication scheme to LDA case
+  rhodsc%icomm=1
+
+  !add an if statement which says whether the charge density has already been calculated
+  call density_and_hpot(iproc,nproc,at%geocode,at%symObj,orbs,lin%Lzd,&
+       0.5_gp*input%hx,0.5_gp*input%hy,0.5_gp*input%hz,nscatterarr,&
+       irrzon,phnons,pkernel,rhodsc,GPU,psi,rho,pot,hstrten)
+
+  !fake ewald stress tensor
+  ewaldstr=0.0_gp
+  call calculate_forces(iproc,nproc,Glr,at,orbs,nlpspd,rxyz,&
+       input%hx,input%hy,input%hz,proj,i3s+i3xcsh,n3p,&
+       input%nspin,.false.,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
+       ewaldstr,hstrten,strten,fnoise,pressure,0.0_dp)
+
+  iall=-product(shape(rho))*kind(rho)
+  deallocate(rho,stat=istat)
+  call memocc(istat,iall,'rho',subname)
+  iall=-product(shape(pot))*kind(pot)
+  deallocate(pot,stat=istat)
+  call memocc(istat,iall,'pot',subname)
+  nullify(rho,pot)
+
+
+
+!!$  call calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
+!!$       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rhopot, psi, fxyz, fnoise)
   call mpi_barrier(mpi_comm_world, ierr)
   t2force=mpi_wtime()
   timeforce=t2force-t1force
