@@ -147,6 +147,10 @@ real(8),dimension(:),pointer:: lpot
           itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj, coeff_proj)
   end if
 
+  if(updatePhi .or. itSCC==0) then
+      call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
+  end if
+
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   if(lin%useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
       call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
@@ -677,8 +681,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
       !!! NEW #########################################################
       t1=mpi_wtime()
-      !if(.not.ldiis%switchSD .and. .not.lin%newgradient) then
-      if(.not.ldiis%switchSD) then
+      if(.not.ldiis%switchSD .and. .not.lin%newgradient) then
+      !if(.not.ldiis%switchSD) then
           call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, &
                                     lin%comon, rxyz, lin%nItInnerLoop, kernel, lphi)
           !!! Flatten at the edges -  EXPERIMENTAL

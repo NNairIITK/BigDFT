@@ -344,8 +344,9 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
 
   lin%newgradient=.false.
+  !lin%useDerivativeBasisFunctions=.false.
 
-  do itout=1,lin%nItOuterSCC
+  do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
 
       updatePhi=.true.
 
@@ -362,12 +363,15 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       end if
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
 
-      if(itout==lin%nit_lowaccuracy) then
+      if(itout==lin%nit_lowaccuracy+1) then
            lin%potentialPrefac = 5.d-3*lin%potentialPrefac
            lin%nItBasisFirst = 5*lin%nItBasisFirst
            lin%nItBasis = 30*lin%nItBasis
            lin%newgradient=.true.
       end if
+      !!if(itout==lin%nit_lowaccuracy-2) then
+      !!    lin%useDerivativeBasisFunctions=.true.
+      !!end if
 
       do itSCC=1,nitSCC
           if(itSCC>1 .and. pnrm<lin%fixBasis .or. itSCC==lin%nitSCCWhenOptimizing) updatePhi=.false.

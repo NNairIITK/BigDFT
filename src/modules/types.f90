@@ -689,7 +689,7 @@ end type workarrays_quartic_convolutions
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff 
-    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG
+    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItOuterSCC, nItSCCWhenFixed
     integer:: norbvirt, nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
