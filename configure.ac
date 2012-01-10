@@ -742,6 +742,7 @@ config/Doxyfile
 src/bigdft-tool
 src/Makefile
 src/modules/Makefile
+src/modules/bigdft_cst.h
 src/modules/configure.inc
 src/PSolver/Makefile
 src/CUDA/Makefile
@@ -765,7 +766,7 @@ tests/libs/xc/Makefile
 tests/libs/OpenCL/Makefile
 tests/libs/CUDA/Makefile
 tests/libs/IO-wf/Makefile
-tests/libs/atoms/Makefile
+tests/libs/ftypes/Makefile
 tests/DFT/Makefile
 tests/overDFT/Makefile
 tests/tutorials/Makefile

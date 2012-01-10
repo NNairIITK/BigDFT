@@ -136,55 +136,22 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
   !Local variables
-  real(gp) :: tt
-  integer :: iat,ierr
+  integer :: ierr
 
   ! Default for inputs (should not be necessary if all the variables comes from the parsing)
   call default_input_variables(inputs)
-  ! Read performance input variables (if given)
-  call perf_input_variables(iproc,.true.,trim(inputs%file_perf),inputs)
-  ! Read dft input variables
-  call dft_input_variables_new(iproc,.true.,trim(inputs%file_dft),inputs)
+
+  ! Parse all input files, independent from atoms.
+  call inputs_parse_params(inputs, iproc, .true.)
+
   ! Update atoms with symmetry information
-  call update_symmetries(inputs, atoms, rxyz)
-  ! Read k-points input variables (if given)
-  call kpt_input_variables_new(iproc,trim(inputs%file_kpt),inputs,atoms)
-  !call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
-  ! Mixing input variables (if given)
-  call mix_input_variables_new(iproc,.true.,trim(inputs%file_mix),inputs)
-  ! Read geometry optimisation option
-  call geopt_input_variables_new(iproc,.true.,trim(inputs%file_geopt),inputs)
-  ! Read tddft variables
-  call tddft_input_variables_new(iproc,.true.,trim(inputs%file_tddft),inputs)
-  ! Read sic variables
-  call sic_input_variables_new(iproc,.true.,trim(inputs%file_sic),inputs)
+  call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%elecfield)
 
+  ! Parse input files depending on atoms.
+  call inputs_parse_add(inputs, atoms, iproc, .true.)
 
-  ! Shake atoms if required.
-  if (inputs%randdis > 0.d0) then
-     do iat=1,atoms%nat
-        if (atoms%ifrztyp(iat) == 0) then
-           call random_number(tt)
-           rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
-           call random_number(tt)
-           rxyz(2,iat)=rxyz(2,iat)+inputs%randdis*tt
-           call random_number(tt)
-           rxyz(3,iat)=rxyz(3,iat)+inputs%randdis*tt
-        end if
-     enddo
-  end if
-
-  !atoms inside the box.
-  do iat=1,atoms%nat
-     if (atoms%geocode == 'P') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-     else if (atoms%geocode == 'S') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-     end if
-  end do
+  ! Shake atoms, if required.
+  call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
@@ -201,8 +168,8 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Stop code for unproper input variables combination.
   if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym .and. atoms%geocode == 'S') then
      if (iproc==0) then
-         write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
-         write(*,'(1x,a)')  'Forces are not implemented with symmetry support, disable symmetry please (T)'
+        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
      end if
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
@@ -311,7 +278,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
 
   !dft parameters, needed for the SCF part
-  call input_set_file(iproc,trim(filename),exists,'DFT Calculation Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'DFT Calculation Parameters')  
   if (exists) in%files = in%files + INPUTS_DFT
   !call the variable, its default value, the line ends if there is a comment
 
@@ -466,7 +433,7 @@ subroutine mix_input_variables_new(iproc,dump,filename,in)
   logical :: exists
 
   !Mix parameters, needed for the SCF poart with Davidson
-  call input_set_file(iproc,trim(filename),exists,'Mixing Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Mixing Parameters')  
   if (exists) in%files = in%files + INPUTS_MIX
   !call the variable, its default value, the line ends if there is a comment
 
@@ -536,7 +503,7 @@ subroutine geopt_input_variables_new(iproc,dump,filename,in)
   in%strtarget(:)=0.0_gp
 
   !geometry input parameters
-  call input_set_file(iproc,trim(filename),exists,'Geometry Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Geometry Parameters')  
   if (exists) in%files = in%files + INPUTS_GEOPT
   !call the variable, its default value, the line ends if there is a comment
 !  if (.not. exists) then
@@ -752,7 +719,7 @@ subroutine sic_input_variables_new(iproc,dump,filename,in)
   !n(c) character(len=*), parameter :: subname='sic_input_variables'
 
   !Self-Interaction Correction input parameters
-  call input_set_file(iproc,trim(filename),exists,'SIC Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'SIC Parameters')  
   if (exists) in%files = in%files + INPUTS_SIC
 
   call input_var(in%SIC%approach,'NONE',exclusive=(/'NONE','PZ  ','NK  '/),comment='SIC method: NONE, PZ, NK')
@@ -790,7 +757,7 @@ subroutine tddft_input_variables_new(iproc,dump,filename,in)
   !n(c) character(len=*), parameter :: subname='tddft_input_variables'
 
   !TD-DFT parameters
-  call input_set_file(iproc,trim(filename),exists,'TD-DFT Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'TD-DFT Parameters')  
   if (exists) in%files = in%files + INPUTS_TDDFT
   !call the variable, its default value, the line ends if there is a comment
 
@@ -849,89 +816,7 @@ contains
 
 END SUBROUTINE tddft_input_variables
 
-
-!> Calculate symmetries and update
-subroutine update_symmetries(in, atoms, rxyz)
-  use module_base
-  use module_types
-  use defs_basis
-  use m_ab6_symmetry
-  implicit none
-  type(input_variables), intent(in) :: in
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  !local variables
-  character(len=*), parameter :: subname='update_symmetries'
-  integer :: i_stat, ierr, i_all
-  real(gp) :: rprimd(3, 3)
-  real(gp), dimension(:,:), allocatable :: xRed
-
-  ! Calculate the symmetries, if needed
-  if (atoms%geocode /= 'F') then
-     if (.not. in%disableSym) then
-        if (atoms%symObj < 0) then
-           call symmetry_new(atoms%symObj)
-        end if
-        ! New values
-        rprimd(:,:) = 0
-        rprimd(1,1) = atoms%alat1
-        rprimd(2,2) = atoms%alat2
-        if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
-        rprimd(3,3) = atoms%alat3
-        call symmetry_set_lattice(atoms%symObj, rprimd, ierr)
-        allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
-        call memocc(i_stat,xRed,'xRed',subname)
-        xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
-        xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
-        xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
-        call symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
-        i_all=-product(shape(xRed))*kind(xRed)
-        deallocate(xRed,stat=i_stat)
-        call memocc(i_stat,i_all,'xRed',subname)
-        if (atoms%geocode == 'S') then
-           !!for the moment symmetries are not allowed in surfaces BC
-           write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
-           stop
-           call symmetry_set_periodicity(atoms%symObj, &
-                & (/ .true., .false., .true. /), ierr)
-        else if (atoms%geocode == 'F') then
-           call symmetry_set_periodicity(atoms%symObj, &
-                & (/ .false., .false., .false. /), ierr)
-        end if
-        !if (all(in%elecfield(:) /= 0)) then
-        !     ! I'm not sure what this subroutine does!
-        !   call symmetry_set_field(atoms%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
-        !elseif (in%elecfield(2) /= 0) then
-        !   call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
-        if (in%elecfield(2) /= 0) then
-           call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
-        end if
-     else
-        if (atoms%symObj >= 0) then
-           call symmetry_free(atoms%symObj)
-        end if
-        call symmetry_new(atoms%symObj)
-        rprimd(1,1) = 0.5d0
-        rprimd(2,1) = 1d0
-        rprimd(3,1) = 1d0
-        rprimd(1,2) = 2d0
-        rprimd(2,2) = 0d0
-        rprimd(3,2) = 1d0
-        rprimd(1,3) = 3d0
-        rprimd(2,3) = 0d0
-        rprimd(3,3) = 1d0
-        call symmetry_set_lattice(atoms%symObj, rprimd, ierr)
-        call symmetry_set_structure(atoms%symObj, 3, (/ 1,2,3 /), rprimd / 4.d0, ierr)
-     end if
-  else
-     if (atoms%symObj >= 0) then
-        call symmetry_free(atoms%symObj)
-     end if
-     atoms%symObj = -1
-  end if
-END SUBROUTINE update_symmetries
-
-subroutine kpt_input_variables_new(iproc,filename,in,atoms)
+subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
   use module_base
   use module_types
   use defs_basis
@@ -940,6 +825,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
+  logical, intent(in) :: dump
   type(input_variables), intent(inout) :: in
   type(atoms_data), intent(in) :: atoms
   !local variables
@@ -954,13 +840,10 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   in%nkpt=1
   in%nkptv=0
   in%ngroups_kptv=1
-  nullify(in%kpt)
-  nullify(in%wkpt)
-  nullify(in%kptv)
-  nullify(in%nkptsv_group)
+  call free_kpt_variables(in)
 
   !dft parameters, needed for the SCF part
-  call input_set_file(iproc,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
   if (exists) in%files = in%files + INPUTS_KPT
   !call the variable, its default value, the line ends if there is a comment
 
@@ -1116,7 +999,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
      end if
   end if
   
-  call input_free((iproc == 0))
+  call input_free((iproc == 0) .and. dump)
   !control whether we are giving k-points to Free BC
   if (atoms%geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
      if (iproc==0) write(*,*)&
@@ -1348,9 +1231,9 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
-  integer :: iline,ierror,ierr,blocks(2)
+  integer :: ierr,blocks(2)
 
-  call input_set_file(iproc, filename, exists,'Performance Options')
+  call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
 
   call input_var("debug", .false., "Debug option", inputs%debug)
@@ -1415,20 +1298,14 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   end if
 END SUBROUTINE perf_input_variables
 
-
-!>  Free all dynamically allocated memory from the input variable structure.
-subroutine free_input_variables(in)
+!>  Free all dynamically allocated memory from the kpt input file.
+subroutine free_kpt_variables(in)
   use module_base
   use module_types
   implicit none
   type(input_variables), intent(inout) :: in
-  character(len=*), parameter :: subname='free_input_variables'
+  character(len=*), parameter :: subname='free_kpt_variables'
   integer :: i_stat, i_all
-  if (associated(in%qmass)) then
-     i_all=-product(shape(in%qmass))*kind(in%qmass)
-     deallocate(in%qmass,stat=i_stat)
-     call memocc(i_stat,i_all,'in%qmass',subname)
-  end if
   if (associated(in%kpt)) then
      i_all=-product(shape(in%kpt))*kind(in%kpt)
      deallocate(in%kpt,stat=i_stat)
@@ -1449,6 +1326,26 @@ subroutine free_input_variables(in)
      deallocate(in%nkptsv_group,stat=i_stat)
      call memocc(i_stat,i_all,'in%nkptsv_group',subname)
   end if
+  nullify(in%kpt)
+  nullify(in%wkpt)
+  nullify(in%kptv)
+  nullify(in%nkptsv_group)
+end subroutine free_kpt_variables
+
+!>  Free all dynamically allocated memory from the input variable structure.
+subroutine free_input_variables(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  character(len=*), parameter :: subname='free_input_variables'
+  integer :: i_stat, i_all
+  if (associated(in%qmass)) then
+     i_all=-product(shape(in%qmass))*kind(in%qmass)
+     deallocate(in%qmass,stat=i_stat)
+     call memocc(i_stat,i_all,'in%qmass',subname)
+  end if
+  call free_kpt_variables(in)
 
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
@@ -1471,9 +1368,6 @@ subroutine abscalc_input_variables_default(in)
   in%abscalc_bottomshift=0
   in%abscalc_S_do_cg=.false.
   in%abscalc_Sinv_do_cg=.false.
-
-
-
 END SUBROUTINE abscalc_input_variables_default
 
 
@@ -1605,7 +1499,7 @@ subroutine frequencies_input_variables_new(iproc,dump,filename,in)
   !n(c) integer, parameter :: iunit=111
 
   !Frequencies parameters
-  call input_set_file(iproc,trim(filename),exists,'Frequencies Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Frequencies Parameters')  
   if (exists) in%files = in%files + INPUTS_FREQ
   !call the variable, its default value, the line ends if there is a comment
 

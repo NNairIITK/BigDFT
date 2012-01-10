@@ -917,6 +917,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,h
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c_i),&
                       cproj(ispinor,m,i,l))
+                 !print *,'ispinor,m,l,i,iat',ispinor,m,l,i,iat,cproj(ispinor,m,i,l)
               end do
               istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
            end do

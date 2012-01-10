@@ -1,28 +1,24 @@
+/*> @file 
+     Header for the public BigDFT API.
+    @author
+     Copyright (C) 2011-2012 BigDFT group 
+     This file is distributed under the terms of the
+     GNU General Public License, see ~/COPYING file
+     or http://www.gnu.org/copyleft/gpl.txt .
+     For the list of contributors, see ~/AUTHORS 
+*/
+
 #ifndef BIGDFT_H
 #define BIGDFT_H
 
-#include <config.h>
+#include <bigdft_cst.h>
 
-#ifndef GLIB_MAJOR_VERSION
-#include <stdlib.h>
-#define TRUE 1
-#define FALSE 0
-#define gboolean int
-#define g_malloc(A) malloc(A)
-#define g_free(A)   free(A)
-#define guint unsigned int
-#define gchar char
-#endif
-
-#define F90_POINTER_SIZE 18
-
-#ifndef POINTER_SHIFT_SIZE
-#define POINTER_SHIFT_SIZE 1
-#endif
-
+/***************************/
+/* Generic pointer arrays. */
+/***************************/
 typedef struct f90_pointer_double_
 {
-#ifdef HAVE_POINTER_SHIFT
+#if POINTER_SHIFT_SIZE > 0
   void *shift[POINTER_SHIFT_SIZE];
 #endif
   double *data;
@@ -30,20 +26,16 @@ typedef struct f90_pointer_double_
 } f90_pointer_double;
 typedef struct f90_pointer_int_
 {
-#ifdef HAVE_POINTER_SHIFT
+#if POINTER_SHIFT_SIZE > 0
   void *shift[POINTER_SHIFT_SIZE];
 #endif
   int *data;
   void *info[F90_POINTER_SIZE];
 } f90_pointer_int;
 
-f90_pointer_double* bigdft_read_wave_to_isf(const gchar *filename, int iorbp,
-                                            double h[3], int n[3], int *nspinor);
-void bigdft_free_wave_to_isf(f90_pointer_double *psiscf);
-gboolean bigdft_read_wave_descr(const gchar *filename, int *norbu,
-                                int *norbd, int *nkpt, int *nspinor,
-                                int *iorb, int *ispin, int *ikpt, int *ispinor);
-
+/********************************/
+/* BigDFT_Atoms data structure. */
+/********************************/
 typedef struct f90_pointer_atoms_ f90_pointer_atoms;
 typedef struct BigDFT_Atoms_
 {
@@ -63,39 +55,46 @@ typedef struct BigDFT_Atoms_
 } BigDFT_Atoms;
 
 BigDFT_Atoms* bigdft_atoms_new();
-void bigdft_atoms_free(BigDFT_Atoms *atoms);
-BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename);
-void bigdft_atoms_set_n_atoms(BigDFT_Atoms *atoms, guint nat);
-void bigdft_atoms_set_n_types(BigDFT_Atoms *atoms, guint ntypes);
-void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc);
-double* bigdft_atoms_get_radii(BigDFT_Atoms *atoms);
+BigDFT_Atoms* bigdft_atoms_new_from_file   (const gchar *filename);
+void          bigdft_atoms_free            (BigDFT_Atoms *atoms);
+void          bigdft_atoms_set_n_atoms     (BigDFT_Atoms *atoms, guint nat);
+void          bigdft_atoms_set_n_types     (BigDFT_Atoms *atoms, guint ntypes);
+void          bigdft_atoms_set_psp         (BigDFT_Atoms *atoms, int ixc);
+void          bigdft_atoms_set_symmetries  (BigDFT_Atoms *atoms, gboolean active,
+                                            double elecfield[3]);
+void          bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis);
+double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms);
 
-typedef struct f90_pointer_glr_ f90_pointer_glr;
-typedef struct BigDFT_glr_
-{
-  double h[3];
-  guint n[3];
-  
-  /* TODO: bindings to values... */
-
-  /* Private. */
-  f90_pointer_glr *data;
-} BigDFT_Glr;
-
-BigDFT_Glr* bigdft_glr_new(BigDFT_Atoms *atoms, double *radii, double h[3],
-                           double crmult, double frmult);
-void bigdft_glr_free(BigDFT_Glr *glr);
+/*********************************/
+/* BigDFT_Inputs data structure. */
+/*********************************/
+typedef enum
+  {
+    SMEARING_DIST_ERF   = 1,
+    SMEARING_DIST_FERMI = 2,
+    SMEARING_DIST_COLD1 = 3,
+    SMEARING_DIST_COLD2 = 4,
+    SMEARING_DIST_METPX = 5
+  } BigDFT_Smearing;
 
 typedef struct f90_pointer_inputs_ f90_pointer_inputs;
 typedef struct BigDFT_Inputs_
 {
   /* TODO: bindings to values... */
   int files;
+  
+  /* DFT file variables. */
   int ixc, ncharge, nspin, mpol, itermax, nrepmax, ncong, idsx,
     dispersion, inputPsiId, output_wf_format, output_grid, ncongt, norbv, nvirt,
     nplot, disableSym;
   double crmult, frmult, gnrm_cv, rbuf;
   double h[3], elecfield[3];
+
+  /* MIX file variables. */
+  int iscf, itrpmax, norbsempty;
+  BigDFT_Smearing occopt;
+  double alphamix, rpnrm_cv, gnrm_startmix, Tel, alphadiis;
+
 
   /* Private. */
   f90_pointer_inputs *data;
@@ -111,14 +110,73 @@ typedef struct BigDFT_Inputs_
 #define BIGDFT_INPUTS_SIC    64
 #define BIGDFT_INPUTS_FREQ  128
 
-BigDFT_Inputs* bigdft_inputs_new(const gchar *radical);
-void bigdft_inputs_free(BigDFT_Inputs *in);
+BigDFT_Inputs* bigdft_inputs_new             (const gchar *radical);
+void           bigdft_inputs_free            (BigDFT_Inputs *in);
+void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms);
 
+/******************************/
+/* BigDFT_Glr data structure. */
+/******************************/
+typedef struct f90_pointer_glr_ f90_pointer_glr;
+typedef struct BigDFT_glr_
+{
+  double h[3];
+  guint n[3];
+  
+  /* TODO: bindings to values... */
 
+  /* Private. */
+  f90_pointer_glr *data;
+} BigDFT_Glr;
+
+BigDFT_Glr* bigdft_glr_new                 (BigDFT_Atoms *atoms, double *radii, double h[3],
+                                            double crmult, double frmult);
+BigDFT_Glr* bigdft_glr_new_with_wave_descriptors(BigDFT_Atoms *atoms, double *radii,
+                                                 double h[3], double crmult, double frmult);
+void        bigdft_glr_free                (BigDFT_Glr *glr);
+void        bigdft_glr_set_wave_descriptors(BigDFT_Glr *glr, BigDFT_Atoms *atoms,
+                                            double *radii, double crmult, double frmult);
+
+/*******************************/
+/* BigDFT_Orbs data structure. */
+/*******************************/
+typedef struct f90_pointer_orbs_ f90_pointer_orbs;
+typedef struct BigDFT_orbs_
+{
+  /* TODO: bindings to values... */
+  int norb, norbp, norbu, norbd;
+  int nspin, nspinor, npsidim;
+  int nkpts, nkptsp;
+  int isorb, iskpts;
+
+  double efermi, HLgap, eTS;
+
+     /* integer, dimension(:), pointer :: iokpt,ikptproc */
+     /* integer, dimension(:,:), pointer :: norb_par */
+     /* real(wp), dimension(:), pointer :: eval */
+     /* real(gp), dimension(:), pointer :: occup,spinsgn,kwgts */
+     /* real(gp), dimension(:,:), pointer :: kpts */
+
+  /* Private. */
+  f90_pointer_orbs *data;
+} BigDFT_Orbs;
+
+BigDFT_Orbs* bigdft_orbs_new (const BigDFT_Atoms *atoms, const BigDFT_Inputs *in,
+                              int iproc, int nproc, guint *nelec);
+void         bigdft_orbs_free(BigDFT_Orbs *orbs);
+
+/******************/
+/* Miscellaneous. */
+/******************/
+double bigdft_memory_peak(int nproc, BigDFT_Glr *lr, BigDFT_Inputs *in, BigDFT_Orbs *orbs);
 guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
                           double mult, double h[3]);
-
-
+f90_pointer_double* bigdft_read_wave_to_isf(const gchar *filename, int iorbp,
+                                            double h[3], int n[3], int *nspinor);
+void bigdft_free_wave_to_isf(f90_pointer_double *psiscf);
+gboolean bigdft_read_wave_descr(const gchar *filename, int *norbu,
+                                int *norbd, int *nkpt, int *nspinor,
+                                int *iorb, int *ispin, int *ikpt, int *ispinor);
 
 
 #endif

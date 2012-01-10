@@ -233,6 +233,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                istart_c=1
                call apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,lr%wfd,nlpspd,&
                   &   proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+               !print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum
                ispsi=ispsi+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*nspinor
             end do
 
