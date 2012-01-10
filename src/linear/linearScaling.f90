@@ -77,7 +77,7 @@ integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1
 integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout):: rhopot
+real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout), target :: rhopot
 type(GPU_pointers),intent(in out):: GPU
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
 integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon 
@@ -570,16 +570,8 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !!    write(3000+iproc,*) rhopot(istat)
   !!end do
 
-
-  !manipulate scatter array for avoiding the GGA shift
-  do jproc=0,nproc-1
-     !n3d=n3p
-     nscatterarr(jproc,1)=nscatterarr(jproc,2)
-     !i3xcsh=0
-     nscatterarr(jproc,4)=0
-  end do
-  !change communication scheme to LDA case
-  rhodsc%icomm=1
+  !associate the density
+  rho => rhopot
 
   !add an if statement which says whether the charge density has already been calculated
   call density_and_hpot(iproc,nproc,at%geocode,at%symObj,orbs,lin%Lzd,&
@@ -593,15 +585,22 @@ real(8),dimension(:,:),allocatable:: ovrlp
        input%nspin,.false.,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
        ewaldstr,hstrten,strten,fnoise,pressure,0.0_dp)
 
-  iall=-product(shape(rho))*kind(rho)
-  deallocate(rho,stat=istat)
-  call memocc(istat,iall,'rho',subname)
   iall=-product(shape(pot))*kind(pot)
   deallocate(pot,stat=istat)
   call memocc(istat,iall,'pot',subname)
+  !no need of deallocating rho
   nullify(rho,pot)
 
+  if(iproc==0) then
+     write(*,'(1x,a)') 'Force values for all atoms in x, y, z direction.'
+     do iat=1,atoms%nat
+        write(*,'(3x,i0,1x,a6,1x,3(1x,es17.10))') &
+             iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
+     end do
+  end if
 
+
+stop
 
 !!$  call calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
 !!$       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rhopot, psi, fxyz, fnoise)
@@ -784,6 +783,7 @@ integer:: ind1, ind2, istat, iall, iorb, ilr, ldim, gdim, nvctrp
 real(8),dimension(:),pointer:: phiWork
 real(8),dimension(:),allocatable:: phi
 character(len=*),parameter:: subname='transformToGlobal'
+
   !do iall=0,nproc-1
   !    write(*,'(a,i5,4i12)') 'START transformToGlobal: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
   !end do

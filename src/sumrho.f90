@@ -39,17 +39,19 @@ subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nsca
 
   n3p=nscatterarr(iproc,2)
 
-  if (n3p>0) then
-     allocate(rho(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p*orbs%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,rho,'rho',subname)
-  else
-     allocate(rho(1*orbs%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,rho,'rho',subname)
-  end if
+  if (.not. associated(rho)) then
+     if (n3p>0) then
+        allocate(rho(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p*orbs%nspin+ndebug),stat=i_stat)
+        call memocc(i_stat,rho,'rho',subname)
+     else
+        allocate(rho(1*orbs%nspin+ndebug),stat=i_stat)
+        call memocc(i_stat,rho,'rho',subname)
+     end if
 
-  call sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-       GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
-  call communicate_density(iproc,nproc,orbs%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho)
+     call sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
+          GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+     call communicate_density(iproc,nproc,orbs%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho)
+  end if
 
   !calculate the total density in the case of nspin==2
   if (orbs%nspin==2) then

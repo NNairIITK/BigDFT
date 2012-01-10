@@ -1446,6 +1446,7 @@ if (inputpsi /= -1000) then
          &   '----------------------------------------------------------------- Forces Calculation'
    end if
 
+   nullify(rho,pot)
    !manipulate scatter array for avoiding the GGA shift
    do jproc=0,nproc-1
       !n3d=n3p

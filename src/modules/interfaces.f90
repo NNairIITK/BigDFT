@@ -2110,7 +2110,7 @@ module module_interfaces
       integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-      real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in out):: rhopot
+      real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout), target :: rhopot
       type(GPU_pointers),intent(in out):: GPU
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
       integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
