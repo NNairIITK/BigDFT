@@ -78,6 +78,7 @@ subroutine standard_inputfile_names(inputs, radical)
   inputs%file_mix=trim(rad) // '.mix'
   inputs%file_sic=trim(rad) // '.sic'
   inputs%file_occnum=trim(rad) // '.occ'
+  inputs%file_igpop=trim(rad) // '.occup'
   inputs%file_lin=trim(rad) // '.lin'
 
   if (trim(rad) == "input") then
@@ -85,6 +86,8 @@ subroutine standard_inputfile_names(inputs, radical)
   else
      inputs%dir_output="data-"//trim(rad)
   end if
+
+  inputs%files = INPUTS_NONE
 END SUBROUTINE standard_inputfile_names
 
 
@@ -109,7 +112,6 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
-
 
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
@@ -141,22 +143,22 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Default for inputs (should not be necessary if all the variables comes from the parsing)
   call default_input_variables(inputs)
   ! Read performance input variables (if given)
-  call perf_input_variables(iproc,trim(inputs%file_perf),inputs)
+  call perf_input_variables(iproc,.true.,trim(inputs%file_perf),inputs)
   ! Read dft input variables
-  call dft_input_variables_new(iproc,trim(inputs%file_dft),inputs)
+  call dft_input_variables_new(iproc,.true.,trim(inputs%file_dft),inputs)
   ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
   call kpt_input_variables_new(iproc,trim(inputs%file_kpt),inputs,atoms)
   !call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
   ! Mixing input variables (if given)
-  call mix_input_variables_new(iproc,trim(inputs%file_mix),inputs)
+  call mix_input_variables_new(iproc,.true.,trim(inputs%file_mix),inputs)
   ! Read geometry optimisation option
-  call geopt_input_variables_new(iproc,trim(inputs%file_geopt),inputs)
+  call geopt_input_variables_new(iproc,.true.,trim(inputs%file_geopt),inputs)
   ! Read tddft variables
-  call tddft_input_variables_new(iproc,trim(inputs%file_tddft),inputs)
+  call tddft_input_variables_new(iproc,.true.,trim(inputs%file_tddft),inputs)
   ! Read sic variables
-  call sic_input_variables_new(iproc,trim(inputs%file_sic),inputs)
+  call sic_input_variables_new(iproc,.true.,trim(inputs%file_sic),inputs)
   ! Read linear variables
   if(inputs%inputpsiid==100) DistProjApply=.true.
   if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') then
@@ -296,17 +298,17 @@ subroutine default_input_variables(inputs)
   !Default for Self-Interaction Correction variables
   call sic_input_variables_default(inputs)
 
-
 END SUBROUTINE default_input_variables
 
 
-subroutine dft_input_variables_new(iproc,filename,in)
+subroutine dft_input_variables_new(iproc,dump,filename,in)
   use module_base
   use module_types
   use module_input
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
+  logical, intent(in) :: dump
   type(input_variables), intent(inout) :: in
   !local variables
   logical :: exists
@@ -316,6 +318,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
 
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,trim(filename),exists,'DFT Calculation Parameters')  
+  if (exists) in%files = in%files + INPUTS_DFT
   !call the variable, its default value, the line ends if there is a comment
 
   !grid spacings
@@ -426,7 +429,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
      in%last_run=0
   end if
 
-  call input_free(iproc)
+  call input_free((iproc == 0) .and. dump)
 
 end subroutine dft_input_variables_new
 
@@ -454,13 +457,14 @@ END SUBROUTINE mix_input_variables_default
 
 !> Read the input variables needed for the geometry optimisation
 !!    Every argument should be considered as mandatory
-subroutine mix_input_variables_new(iproc,filename,in)
+subroutine mix_input_variables_new(iproc,dump,filename,in)
   use module_base
   use module_types
   use module_input
   implicit none
   !Arguments
   integer, intent(in) :: iproc
+  logical, intent(in) :: dump
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   !local variables
@@ -469,6 +473,7 @@ subroutine mix_input_variables_new(iproc,filename,in)
 
   !Mix parameters, needed for the SCF poart with Davidson
   call input_set_file(iproc,trim(filename),exists,'Mixing Parameters')  
+  if (exists) in%files = in%files + INPUTS_MIX
   !call the variable, its default value, the line ends if there is a comment
 
   !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
@@ -486,7 +491,7 @@ subroutine mix_input_variables_new(iproc,filename,in)
   call input_var(in%alphadiis,'2.0',ranges=(/0.0_gp,10.0_gp/),&
        comment="Multiplying factors for the mixing and the electronic DIIS")
 
-  call input_free(iproc)
+  call input_free((iproc == 0) .and. dump)
 
   !put the startmix if the mixing has to be done
   if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
@@ -519,12 +524,13 @@ END SUBROUTINE geopt_input_variables_default
 
 !> Read the input variables needed for the geometry optimisation
 !! Every argument should be considered as mandatory
-subroutine geopt_input_variables_new(iproc,filename,in)
+subroutine geopt_input_variables_new(iproc,dump,filename,in)
   use module_base
   use module_types
   use module_input
   implicit none
   integer, intent(in) :: iproc
+  logical, intent(in) :: dump
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   !local variables
@@ -537,6 +543,7 @@ subroutine geopt_input_variables_new(iproc,filename,in)
 
   !geometry input parameters
   call input_set_file(iproc,trim(filename),exists,'Geometry Parameters')  
+  if (exists) in%files = in%files + INPUTS_GEOPT
   !call the variable, its default value, the line ends if there is a comment
 !  if (.not. exists) then
 !     in%ncount_cluster_x=0
@@ -611,7 +618,7 @@ subroutine geopt_input_variables_new(iproc,filename,in)
              comment="initial and maximal time step for the FIRE method")
   endif
 
-  call input_free(iproc)
+  call input_free((iproc == 0) .and. dump)
 
 END SUBROUTINE geopt_input_variables_new
 
@@ -737,12 +744,13 @@ END SUBROUTINE sic_input_variables_default
 
 
 !> Read Self-Interaction Correction (SIC) input parameters
-subroutine sic_input_variables_new(iproc,filename,in)
+subroutine sic_input_variables_new(iproc,dump,filename,in)
   use module_base
   use module_types
   use module_input
   implicit none
   integer, intent(in) :: iproc
+  logical, intent(in) :: dump
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   !local variables
@@ -751,12 +759,13 @@ subroutine sic_input_variables_new(iproc,filename,in)
 
   !Self-Interaction Correction input parameters
   call input_set_file(iproc,trim(filename),exists,'SIC Parameters')  
+  if (exists) in%files = in%files + INPUTS_SIC
 
   call input_var(in%SIC%approach,'NONE',exclusive=(/'NONE','PZ  ','NK  '/),comment='SIC method: NONE, PZ, NK')
   call input_var(in%SIC%alpha,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='SIC downscaling parameter')
   call input_var(in%SIC%fref,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='Reference occupation fref (NK case only)')
   in%SIC%ixc=in%ixc
-  call input_free(iproc)
+  call input_free((iproc == 0) .and. dump)
 
 END SUBROUTINE sic_input_variables_new
 
@@ -924,7 +933,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   end do
   
 
-  call input_free(iproc)
+  call input_free((iproc==0))
 
 END SUBROUTINE lin_input_variables_new
 
@@ -941,12 +950,13 @@ subroutine tddft_input_variables_default(in)
 END SUBROUTINE tddft_input_variables_default
 
 
-subroutine tddft_input_variables_new(iproc,filename,in)
+subroutine tddft_input_variables_new(iproc,dump,filename,in)
   use module_base
   use module_types
   use module_input
   implicit none
   integer, intent(in) :: iproc
+  logical, intent(in) :: dump
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   !local variables
@@ -955,11 +965,12 @@ subroutine tddft_input_variables_new(iproc,filename,in)
 
   !TD-DFT parameters
   call input_set_file(iproc,trim(filename),exists,'TD-DFT Parameters')  
+  if (exists) in%files = in%files + INPUTS_TDDFT
   !call the variable, its default value, the line ends if there is a comment
 
   call input_var(in%tddft_approach,"NONE",exclusive=(/'NONE','TDA '/),&
        comment="TDDFT Method")
-  call input_free(iproc)
+  call input_free((iproc == 0) .and. dump)
 
 END SUBROUTINE tddft_input_variables_new
 
@@ -1124,6 +1135,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
 
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
+  if (exists) in%files = in%files + INPUTS_KPT
   !call the variable, its default value, the line ends if there is a comment
 
   !if the file does not exists, put the default values
@@ -1278,7 +1290,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
      end if
   end if
   
-  call input_free(iproc)
+  call input_free((iproc == 0))
   !control whether we are giving k-points to Free BC
   if (atoms%geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
      if (iproc==0) write(*,*)&
@@ -1498,13 +1510,14 @@ END SUBROUTINE kpt_input_variables
 
 
 !> Read the input variables which can be used for performances
-subroutine perf_input_variables(iproc,filename,inputs)
+subroutine perf_input_variables(iproc,dump,filename,inputs)
   use module_base
   use module_types
   use module_input
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
+  logical, intent(in) :: dump
   type(input_variables), intent(inout) :: inputs
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
@@ -1512,9 +1525,9 @@ subroutine perf_input_variables(iproc,filename,inputs)
   integer :: iline,ierror,ierr,blocks(2)
 
   call input_set_file(iproc, filename, exists,'Performance Options')
+  if (exists) inputs%files = inputs%files + INPUTS_PERF
   !Use Linear sclaing methods
   inputs%linear='OFF'
-
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
@@ -1523,7 +1536,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   call input_var("blas", .false., "CUBLAS acceleration", GPUblas)
   call input_var("projrad", 15.0d0, &
        & "Radius of the projector as a function of the maxrad", inputs%projrad)
-  call input_var("exctxpar", "BC", &
+  call input_var("exctxpar", "OP2P", &
        & "Exact exchange parallelisation scheme", inputs%exctxpar)
   call input_var("ig_diag", .true., &
        & "Input guess: (T:Direct, F:Iterative) diag. of Ham.", &
@@ -1553,7 +1566,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
      call memocc_set_state(0)
   end if
 
-  call input_free()
+  call input_free(dump)
     
 
   !Block size used for the orthonormalization
@@ -1579,18 +1592,6 @@ subroutine perf_input_variables(iproc,filename,inputs)
      end if
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-        write(*,'(1x,a,a,a,i3)')  'Error while reading the file "',trim(filename),'", line=',iline
-        call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
-    end if
-  END SUBROUTINE check
-
 END SUBROUTINE perf_input_variables
 
 
@@ -1768,7 +1769,7 @@ END SUBROUTINE frequencies_input_variables_default
 
 !> Read the input variables needed for the frequencies calculation.
 !! Every argument should be considered as mandatory.
-subroutine frequencies_input_variables_new(iproc,filename,in)
+subroutine frequencies_input_variables_new(iproc,dump,filename,in)
   use module_base
   use module_types
   use module_input
@@ -1777,24 +1778,28 @@ subroutine frequencies_input_variables_new(iproc,filename,in)
   type(input_variables), intent(inout) :: in
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
+  logical, intent(in) :: dump
   !Local variables
   logical :: exists
   !n(c) integer, parameter :: iunit=111
 
   !Frequencies parameters
   call input_set_file(iproc,trim(filename),exists,'Frequencies Parameters')  
+  if (exists) in%files = in%files + INPUTS_FREQ
   !call the variable, its default value, the line ends if there is a comment
 
   !Read in%freq_alpha (possible 1/64)
   call input_var(in%freq_alpha,'1/64',ranges=(/0.0_gp,1.0_gp/),&
        comment="Step size factor (alpha*hgrid)")
   !Read the order of finite difference scheme
+
   call input_var(in%freq_order,'2',exclusive=(/-1,1,2,3/),&
        comment="Order of the difference scheme")
   !Read the index of the method
+
   call input_var(in%freq_method,'1',exclusive=(/1/),&
        comment="Method used (only possible value=1)")
-  call input_free(iproc)
+  call input_free((iproc == 0) .and. dump)
 
 END SUBROUTINE frequencies_input_variables_new
 

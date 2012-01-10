@@ -6,6 +6,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef HAVE_DEBUG
+#define DBG_MEM(A, T) {int i__; for (i__ = 0; i__ < sizeof(T) / sizeof(void*); i__++) \
+                                  fprintf(stderr, "DBG (%2d) -> %p\n", i__, ((void**)A)[i__]); }
+#else
+#define DBG_MEM(A, T)
+#endif
+
 void FC_FUNC_(deallocate_double, DEALLOCATE_DOUBLE)(f90_pointer_double *array);
 
 void FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
@@ -26,7 +33,7 @@ f90_pointer_double* bigdft_read_wave_to_isf(const char *filename, int iorbp,
 
   psiscf = g_malloc(sizeof(f90_pointer_double));
   memset(psiscf, 0, sizeof(f90_pointer_double));
-
+  
   ln = strlen(filename);
   FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
     (&lstat, filename, &ln, &iorbp, h, h + 1, h + 2, n, n + 1, n + 2, nspinor, psiscf);
@@ -35,6 +42,8 @@ f90_pointer_double* bigdft_read_wave_to_isf(const char *filename, int iorbp,
       g_free(psiscf);
       psiscf = (f90_pointer_double*)0;
     }
+
+  DBG_MEM(psiscf, f90_pointer_double);
 
   return psiscf;
 }
@@ -291,4 +300,75 @@ guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
                                      atoms->rxyz.data, radii, &mult, h, h + 1, h + 2, (int*)grid);
 
   return grid;
+}
+
+
+/* Wavefunction descriptor part. */
+struct f90_pointer_inputs_
+{
+  void *in;
+  /* void *info[F90_POINTER_SIZE]; */
+};
+
+void FC_FUNC_(inputs_new, INPUTS_NEW)(f90_pointer_inputs *in);
+void FC_FUNC_(inputs_free, INPUTS_FREE)(f90_pointer_inputs *in);
+void FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(f90_pointer_inputs *in,
+                                                      const gchar *rad, int *len);
+void FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(const f90_pointer_inputs *in, double *hx, double *hy, double *hz, double *crmult, double *frmult, int *ixc, int *ncharge, double *elecfield, int *nspin, int *mpol, double *gnrm_cv, int *itermax, int *nrepmax, int *ncong, int *idsx, int *dispersion, int *inputPsiId, int *output_wf_format, int *output_grid, double *rbuf, int *ncongt, int *norbv, int *nvirt, int *nplot, int *disableSym);
+void FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(f90_pointer_inputs *in, int *iproc);
+void FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(const f90_pointer_inputs *in, int *files);
+
+BigDFT_Inputs* bigdft_inputs_init()
+{
+  BigDFT_Inputs *in;
+
+  in = g_malloc(sizeof(BigDFT_Inputs));
+  memset(in, 0, sizeof(BigDFT_Inputs));
+  in->data = g_malloc(sizeof(f90_pointer_inputs));
+  memset(in->data, 0, sizeof(f90_pointer_inputs));
+
+  return in;
+}
+void bigdft_inputs_dispose(BigDFT_Inputs *in)
+{
+  g_free(in->data);
+  g_free(in);
+}
+
+BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
+{
+  BigDFT_Inputs *in;
+  int iproc = 0, len;
+
+  in = bigdft_inputs_init();
+  FC_FUNC_(inputs_new, INPUTS_NEW)(in->data);
+  if (naming && naming[0])
+    {
+      len = strlen(naming);
+      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data->in, naming, &len);
+    }
+  else
+    {
+      len = 1;
+      FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(in->data->in, " ", &len);
+    }
+  FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(in->data->in, &iproc);
+
+  FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data->in, &in->files);
+  FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(in->data->in, in->h, in->h + 1, in->h + 2,
+                                           &in->crmult, &in->frmult, &in->ixc,
+                                           &in->ncharge, in->elecfield, &in->nspin,
+                                           &in->mpol, &in->gnrm_cv, &in->itermax,
+                                           &in->nrepmax, &in->ncong, &in->idsx,
+                                           &in->dispersion, &in->inputPsiId,
+                                           &in->output_wf_format, &in->output_grid,
+                                           &in->rbuf, &in->ncongt, &in->norbv, &in->nvirt,
+                                           &in->nplot, &in->disableSym);
+  
+  return in;
+}
+void bigdft_inputs_free(BigDFT_Inputs *in)
+{
+  FC_FUNC_(inputs_free, INPUTS_FREE)(in->data);
+  bigdft_inputs_dispose(in);
 }

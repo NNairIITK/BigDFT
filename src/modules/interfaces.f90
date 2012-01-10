@@ -41,7 +41,7 @@ module module_interfaces
 
    interface
 
-      subroutine call_bigdft(nproc,iproc,atoms,rxyz,in,energy,fxyz,fnoise,rst,infocode)
+      subroutine call_bigdft(nproc,iproc,atoms,rxyz,in,energy,fxyz,strten,fnoise,rst,infocode)
          !n(c) use module_base
          use module_types
          implicit none
@@ -52,28 +52,23 @@ module module_interfaces
          integer, intent(inout) :: infocode
          real(gp), intent(out) :: energy,fnoise
          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+         real(gp), dimension(6), intent(out) :: strten
          real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
       END SUBROUTINE call_bigdft
 
-      subroutine geopt(nproc,iproc,x,at,f,epot,rst,in,ncount_bigdft)
-
-         !    use module_base
-         !    use module_interfaces, except_this_one => geopt
-         !    use module_types
-         !    use minimization, only:parameterminimization
-
-         !n(c) use module_base
-         use module_types
-         !    use minimization, only:parameterminimization
-         implicit none
-         integer, intent(in) :: nproc,iproc
-         integer, intent(inout) :: ncount_bigdft
-         type(atoms_data), intent(in) :: at
-         type(input_variables), intent(in) :: in
-         type(restart_objects), intent(inout) :: rst
-         real(gp), intent(inout) :: epot
-         real(gp), dimension(3*at%nat), intent(inout) :: x
-         real(gp), dimension(3*at%nat), intent(out) :: f
+      subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: nproc,iproc
+        type(atoms_data), intent(inout) :: at
+        type(input_variables), intent(inout) :: in
+        type(restart_objects), intent(inout) :: rst
+        real(gp), intent(inout) :: epot
+        integer, intent(inout) :: ncount_bigdft
+        real(gp), dimension(3*at%nat), intent(inout) :: pos
+        real(gp), dimension(6), intent(inout) :: strten
+        real(gp), dimension(3*at%nat), intent(inout) :: fxyz
       END SUBROUTINE geopt
 
      subroutine timing(iproc,category,action)
@@ -148,51 +143,6 @@ module module_interfaces
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE read_input_parameters
-
-      subroutine dft_input_variables(iproc,filename,in)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         integer, intent(in) :: iproc
-         type(input_variables), intent(out) :: in
-      END SUBROUTINE dft_input_variables
-
-      subroutine geopt_input_variables(filename,in)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         type(input_variables), intent(inout) :: in
-      END SUBROUTINE geopt_input_variables
-
-      subroutine tddft_input_variables(filename,in)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         type(input_variables), intent(inout) :: in
-      END SUBROUTINE tddft_input_variables
-
-
-      subroutine kpt_input_variables(iproc,filename,in,atoms)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         integer, intent(in) :: iproc
-         type(input_variables), intent(inout) :: in
-         type(atoms_data), intent(in) :: atoms
-      END SUBROUTINE kpt_input_variables
-
-      subroutine perf_input_variables(iproc,filename,inputs)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         integer, intent(in) :: iproc
-         type(input_variables), intent(inout) :: inputs
-      END SUBROUTINE perf_input_variables
 
       subroutine read_atomic_file(file,iproc,at,rxyz,status)
          !n(c) use module_base
@@ -422,40 +372,39 @@ module module_interfaces
          integer, optional :: sup_iatom, sup_l
          real(wp) , dimension(:), pointer, optional :: sup_arraym !, sup_arraychannel
 
-      END SUBROUTINE applyPAWprojectors
+       END SUBROUTINE applyPAWprojectors
 
-
-      subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,rxyz,eion,fion,psoffset,&
-            &   nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
-         !n(c) use module_base
+       subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
+            rxyz,eion,fion,ewaldstr,psoffset,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+         use module_base
          use module_types
          implicit none
          type(atoms_data), intent(in) :: at
-         integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,nvacancy
-         real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield(3)
-         real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
-         real(kind=8), dimension(*), intent(in) :: pkernel
-         real(kind=8), intent(out) :: eion,psoffset
-         real(kind=8), dimension(3,at%nat), intent(out) :: fion
-         real(kind=8), dimension(*), intent(out) :: pot_ion
-      END SUBROUTINE IonicEnergyandForces
+         integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi
+         real(gp), intent(in) :: hxh,hyh,hzh
+         real(gp), dimension(3), intent(in) :: elecfield
+         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         real(dp), dimension(*), intent(in) :: pkernel
+         real(gp), intent(out) :: eion,psoffset
+         real(dp), dimension(6),intent(out) :: ewaldstr
+         real(gp), dimension(3,at%nat), intent(out) :: fion
+         real(dp), dimension(*), intent(out) :: pot_ion
+       END subroutine IonicEnergyandForces
 
-      subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
-            &   hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
-         correct_offset)
-         !n(c) use module_base
+       subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
+            hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+         use module_base
          use module_types
          implicit none
          character(len=1), intent(in) :: geocode
-         logical, intent(in) :: correct_offset
-         integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nvacancy
+         integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
          real(gp), intent(in) :: hxh,hyh,hzh,psoffset
          type(atoms_data), intent(in) :: at
-         real(gp), intent(in) :: elecfield(3)
+         real(gp), dimension(3), intent(in) :: elecfield
          real(gp), dimension(3,at%nat), intent(in) :: rxyz
          real(dp), dimension(*), intent(in) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
-      END SUBROUTINE createIonicPotential
+       END SUBROUTINE createIonicPotential
 
       subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
           orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
@@ -672,40 +621,31 @@ module module_interfaces
          logical , optional :: keeppsit
       END SUBROUTINE last_orthon
 
-      subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
-            &   n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc)
-         ! Calculates the local forces acting on the atoms belonging to iproc
-         use module_types
-         implicit none
-         !Arguments---------
-         type(atoms_data), intent(in) :: at
-         integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
-         real(kind=8), intent(in) :: hxh,hyh,hzh
-         real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
-         real(kind=8), dimension(*), intent(in) :: rho,pot
-         real(kind=8), dimension(3,at%nat), intent(out) :: floc
-      END SUBROUTINE local_forces
-
-     subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
-            &   orbs,nlpspd,proj,wfd,psi,fsep,refill)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         !Arguments-------------
-         type(atoms_data), intent(in) :: at
-         type(wavefunctions_descriptors), intent(in) :: wfd
-         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-         logical, intent(in) :: refill
-       integer, intent(in) :: iproc
-         real(gp), intent(in) :: hx,hy,hz
+      subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
+           refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
+           ewaldstr,hstrten,strten,fnoise,pressure,psoffset)
+        use module_base
+        use module_types
+        implicit none
+        logical, intent(in) :: refill_proj
+        integer, intent(in) :: iproc,nproc,i3s,n3p,nspin
+        real(gp), intent(in) :: hx,hy,hz,psoffset
+        type(locreg_descriptors), intent(in) :: Glr
+        type(atoms_data), intent(in) :: atoms
        type(locreg_descriptors) :: lr
-         type(orbitals_data), intent(in) :: orbs
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
-         real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
-         real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-         real(gp), dimension(3,at%nat), intent(inout) :: fsep
-      END SUBROUTINE nonlocal_forces
-
+        type(orbitals_data), intent(in) :: orbs
+        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+        real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
+        real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+        real(gp), dimension(6), intent(in) :: ewaldstr,hstrten
+        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp
+        real(gp), intent(out) :: fnoise,pressure
+        real(gp), dimension(6), intent(out) :: strten
+        real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+      END SUBROUTINE calculate_forces
+      
       subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
             &   Glr,nlpspd,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
          proj,psi,output_denspot,ekin_sum,epot_sum,eproj_sum)
@@ -1649,6 +1589,20 @@ module module_interfaces
          real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,2*orbs%nspin), intent(in), optional :: potandrho 
          real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin), intent(out), optional :: wxdsave 
       END SUBROUTINE NK_SIC_potential
+
+      subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
+        !use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: nspinor
+        real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
+        type(locreg_descriptors), intent(in) :: lr
+        type(workarr_locham), intent(inout) :: w
+        real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
+        real(gp), intent(out) :: ekin
+        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
+        real(wp), dimension(6), optional :: k_strten
+      end subroutine isf_to_daub_kinetic
 
       subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
          wfd,psi,orblist)

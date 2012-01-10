@@ -55,7 +55,6 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
        proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
 
-
   call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
        ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -177,7 +176,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
       !put fref=1/2 for the moment
       if (present(orbsocc) .and. present(psirocc)) then
          call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),eSIC_DC_tmp,&
-            &   potandrho=psirocc)
+              potandrho=psirocc)
       else
          call NK_SIC_potential(Lzd%Glr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot),eSIC_DC_tmp)
       end if
@@ -319,12 +318,13 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                        nlpspd%nprojel,&
                        at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
                        proj,psi(ispsi),hpsi(ispsi),eproj_sum)
-                  !print *,'iorb,iat,eproj',iorb,iat,eproj_sum
+!                print *,'iorb,iat,eproj',iorb+orbs%isorb,ispsi,iat,eproj_sum
                   ispsi=ispsi+&
                        (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
                end do
 
             end do
+
             !if (iproj /= nlpspd%nproj) stop &
             !     'NonLocal HamiltonianApplication: incorrect number of projectors created'     
             !for the moment, localization region method is not implemented with
@@ -351,7 +351,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                   if(.not. overlap) stop 'ERROR all atoms should be in global'
                   call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
                        at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
-                       proj,psi(ispsi),hpsi(ispsi),eproj_sum)           
+                       proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+                  !print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum
                end do
                ispsi=ispsi+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
             end do
@@ -1272,7 +1273,10 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
    !print the found eigenvalues
    if (iproc == 0) then
+if (orbs%nspinor /= 4) allocate(mom_vec(1,1,1))
       call write_eigenvalues_data(nproc,orbs,mom_vec)
+if (orbs%nspinor /= 4) deallocate(mom_vec)
+
    end if
 
    if (orbs%nspinor ==4) then

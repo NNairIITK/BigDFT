@@ -505,7 +505,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !check the size of the rhopot array related to NK SIC
    nrhodim=in%nspin
    i3rho_add=0
-   if (in%SIC%approach=='NK') then
+   if (trim(in%SIC%approach)=='NK') then
       nrhodim=2*nrhodim
       i3rho_add=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,4)+1
    end if
@@ -620,15 +620,14 @@ subroutine davidson(iproc,nproc,in,at,&
            pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin+1),1,&
            psirocc(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin+1),1)
       call to_zero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin,psirocc(1))
-      !!$     !put the wxd term in the psirocc array (leav it like that in case the off-diagonal term is needed
       !!$     call NK_SIC_potential(Lzd%Glr,orbs,in%SIC%ixc,in%SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,&
       !!$          psi,pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin+1:),eSIC_DC,wxdsave=psirocc)
-      !experimental: add confining potential to the hamiltonian
-      !should aLzd%Glready be guaranteed by the crmult terms
+   end if
+   !experimental: add confining potential to the hamiltonian
+      !should already be guaranteed by the crmult terms
       !call add_confining_potential(Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,orbs%nspin,1.e-10_gp,1.e-14_gp,-0.5_gp,&
       !     pot(1),pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin+1))
-   end if
-
+   
 
    !experimental: add parabolic potential to the hamiltonian
    !call add_parabolic_potential(at%geocode,at%nat,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)

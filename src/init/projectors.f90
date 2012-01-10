@@ -495,7 +495,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: m,iterm
   !integer :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
-  integer :: istart_c,nterm
+  integer :: istart_c,nterm,idir2
   real(gp) :: fpi,factor,rx,ry,rz
   real(dp) :: scpr
   integer, dimension(3) :: nterm_arr
@@ -521,14 +521,35 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
         
         factors(1:nterm)=factor*factors(1:nterm)
      else !calculation of projector derivative
+idir2=mod(idir-1,3)+1
         call calc_coeff_derproj(l,i,m,nterm_max,gau_a,nterm_arr,lxyz_arr,fac_arr)
-        
-        nterm=nterm_arr(idir)
+
+        nterm=nterm_arr(idir2)
         do iterm=1,nterm
-           factors(iterm)=factor*fac_arr(iterm,idir)
-           lx(iterm)=lxyz_arr(1,iterm,idir)
-           ly(iterm)=lxyz_arr(2,iterm,idir)
-           lz(iterm)=lxyz_arr(3,iterm,idir)
+           factors(iterm)=factor*fac_arr(iterm,idir2)
+           lx(iterm)=lxyz_arr(1,iterm,idir2)
+           ly(iterm)=lxyz_arr(2,iterm,idir2)
+           lz(iterm)=lxyz_arr(3,iterm,idir2)        
+
+!       nterm=nterm_arr(idir)
+!       do iterm=1,nterm
+!          factors(iterm)=factor*fac_arr(iterm,idir)
+!          lx(iterm)=lxyz_arr(1,iterm,idir)
+!          ly(iterm)=lxyz_arr(2,iterm,idir)
+!          lz(iterm)=lxyz_arr(3,iterm,idir)
+
+! sequence: 11 21 31 12 22 32 13 23 33 
+
+if (idir > 3) then
+        if (idir < 7) then
+lx(iterm)=lx(iterm)+1
+        else if (idir < 10) then
+ly(iterm)=ly(iterm)+1
+        else 
+lz(iterm)=lz(iterm)+1
+        endif
+end if
+
         end do
      end if
      
@@ -540,6 +561,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
      if (idir == 0) then
         !here the norm should be done with the complex components
         call wnrm_wrap(ncplx,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
+        !print *,'iat,l,m,scpr',iat,l,m,scpr
         if (abs(1.d0-scpr) > 1.d-2) then
            if (abs(1.d0-scpr) > 1.d-1) then
               !if (iproc == 0) then
@@ -552,6 +574,8 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
                       'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
               !end if
                  !stop commented for the moment
+              !restore the norm of the projector
+              !call wscal_wrap(mbvctr_c,mbvctr_f,1.0_gp/sqrt(scpr),proj(istart_c))
            else
 !!!              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
 !!!                   'The norm of the nonlocal PSP for atom n=',iat,&

@@ -143,7 +143,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
      !apply the potential to the psir wavefunction and calculate potential energy
      call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
           pot(orbs%ispot(iorb)),psir,epot,confdatarr(iorb))
-!this ispot has to be better defined inside denspot structure
+     !this ispot has to be better defined inside denspot structure
 
      !ODP treatment (valid only for the nlr=1 case)
      if (ipotmethod==1) then !Exact Exchange
@@ -665,10 +665,12 @@ contains
        r2=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1))**2 +&
             (confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2))**2 +&
             (confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3))**2 
+
        cp=confdata%prefac*r2**(confdata%potorder/2)
     else
        cp=0.0_wp
     end if
+
   end function cp
 
 END SUBROUTINE apply_potential_lr
@@ -1236,6 +1238,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                       plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c_i),&
                       cproj(ispinor,m,i,l))
+!                 print *,'ispinor,m,l,i,iat',ispinor,m,l,i,iat,cproj(ispinor,m,i,l)
               end do
               istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
            end do

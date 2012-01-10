@@ -1256,11 +1256,11 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    integer, intent(in) :: iproc,nproc,ixc,symObj
    integer, intent(inout) :: nspin,nvirt
    real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data), intent(inout) :: at
+   type(atoms_data), intent(inout) :: at
    type(rho_descriptors),intent(in) :: rhodsc
    type(orbitals_data), intent(inout) :: orbs
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(local_zone_descriptors), intent(inout) :: Lzd
+   type(local_zone_descriptors), intent(inout) :: Lzd
    type(communications_arrays), intent(in) :: comms
    type(GPU_pointers), intent(inout) :: GPU
    type(input_variables):: input
@@ -1579,6 +1579,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
          ngatherarr, rhopot, Lpot)
 
     allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
+    call default_confinement_data(confdatarr,orbse%norbp)
 
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
     allocate(Lhpsi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
