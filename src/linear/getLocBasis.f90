@@ -4717,8 +4717,9 @@ do iorbout=1,orbs%norbp
             call getStartingIndices(iorb, jorb, op, orbs, ist, jst)
             ncount=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
     
-            call apply_orbitaldependent_potential_foronelocreg(iproc, nproc, op%olr(jorb,iorb), lin, at, input, orbs, rxyz, ncount, &
-               comon%recvbuf, iilr, vpsi(1))
+            call apply_orbitaldependent_potential_foronelocreg(iproc, nproc, op%olr(jorb,iorb), lin, &
+                 at, input, orbs, rxyz, ncount, &
+                 comon%recvbuf, iilr, vpsi(1))
             potmat(jjorb,iiorb,iilr)=ddot(ncount, comon%sendBuf(ist), 1, vpsi(1), 1)
         end do
     end do
