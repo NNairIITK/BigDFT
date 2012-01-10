@@ -732,6 +732,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !Check if we must use linear scaling for total SCF
      !change the Lzd structure accordingly, also orbs%inwhichlocreg
      call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf) 
+     call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
   case(INPUT_PSI_LINEAR)
 
