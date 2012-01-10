@@ -3222,6 +3222,135 @@ end subroutine apply_orbitaldependent_potential
 
 
 
+
+
+subroutine apply_orbitaldependent_potential_foronelocreg(iproc, nproc, lr, lin, at, input, orbs, rxyz, ndimpsi, &
+           psi, centralLocreg, vpsi)
+use module_base
+use module_types
+use module_interfaces
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, centralLocreg, ndimpsi
+type(locreg_descriptors),intent(in):: lr
+type(linearParameters),intent(in):: lin
+type(atoms_data),intent(in):: at
+type(input_variables),intent(in):: input
+type(orbitals_data),intent(in):: orbs
+real(8),dimension(3,at%nat),intent(in):: rxyz
+real(8),dimension(ndimpsi),intent(inout):: psi
+real(8),dimension(ndimpsi),intent(out):: vpsi
+
+! Local variables
+integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, ist_c, ist_f, ist, iiorb, iall, ierr
+real(8):: hxh, hyh, hzh, ddot, tt, t1, t2, time
+type(workarr_sumrho):: work_sr
+real(8),dimension(:,:),allocatable:: psir, vpsir
+type(workarr_precond) :: work
+type(workarrays_quartic_convolutions):: work_conv
+character(len=*),parameter:: subname='apply_orbitaldependent_potential'
+real(8),dimension(0:3),parameter:: scal=1.d0
+real(8),dimension(:,:,:),allocatable:: ypsitemp_c
+real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
+
+
+
+  vpsi=0.d0
+  ist_c=1
+  ist_f=1
+     iiorb=iorb+orbs%isorb
+     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+  
+     if(centralLocreg<0) then
+         icenter=lin%orbs%inWhichLocregp(iorb)
+     else
+         icenter=centralLocreg
+     end if
+     !components of the potential
+     npot=orbs%nspinor
+     if (orbs%nspinor == 2) npot=1
+
+
+     ist_f=ist_f+lr%wfd%nvctr_c
+
+     call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
+
+     call uncompress_for_quartic_convolutions(lr%d%n1, lr%d%n2, lr%d%n3, &
+          lr%d%nfl1, lr%d%nfu1, &
+          lr%d%nfl2, lr%d%nfu2, &
+          lr%d%nfl3, lr%d%nfu3, &
+          lr%wfd%nseg_c, lr%wfd%nvctr_c, &
+          lr%wfd%keyg, lr%wfd%keyv,  & 
+          lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+          lr%wfd%keyg(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+          lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),  & 
+          scal, psi(ist_c), psi(ist_f), &
+          work_conv)
+
+     if(lin%confpotorder==4) then
+      call ConvolQuartic4(lr%d%n1, lr%d%n2, lr%d%n3, &
+           lr%d%nfl1, lr%d%nfu1, &
+           lr%d%nfl2, lr%d%nfu2, &
+           lr%d%nfl3, lr%d%nfu3, & 
+           input%hx, lr%ns1, lr%ns2, lr%ns3, &
+           lr%bounds%kb%ibyz_c, lr%bounds%kb%ibxz_c, lr%bounds%kb%ibxy_c, &
+           lr%bounds%kb%ibyz_f, lr%bounds%kb%ibxz_f, lr%bounds%kb%ibxy_f, &
+           rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
+           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+           work_conv%y_c, work_conv%y_f)
+      else if(lin%confpotorder==6) then
+
+      call ConvolSextic(lr%d%n1, lr%d%n2, lr%d%n3, &
+           lr%d%nfl1, lr%d%nfu1, &
+           lr%d%nfl2, lr%d%nfu2, &
+           lr%d%nfl3, lr%d%nfu3, & 
+           input%hx, lr%ns1, lr%ns2, lr%ns3, &
+           lr%bounds%kb%ibyz_c, lr%bounds%kb%ibxz_c, lr%bounds%kb%ibxy_c, &
+           lr%bounds%kb%ibyz_f, lr%bounds%kb%ibxz_f, lr%bounds%kb%ibxy_f, &
+           rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
+           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+           work_conv%y_c, work_conv%y_f)
+
+       else
+           stop 'wronf conf pot'
+
+       end if
+
+     call compress_forstandard(lr%d%n1, lr%d%n2, lr%d%n3, &
+          lr%d%nfl1, lr%d%nfu1, &
+          lr%d%nfl2, lr%d%nfu2, &
+          lr%d%nfl3, lr%d%nfu3, &
+          lr%wfd%nseg_c, lr%wfd%nvctr_c, &
+          lr%wfd%keyg, lr%wfd%keyv,  & 
+          lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+          lr%wfd%keyg(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+          lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),  & 
+          scal, work_conv%y_c, work_conv%y_f, vpsi(ist_c), vpsi(ist_f))
+
+     call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
+
+
+
+
+
+end subroutine apply_orbitaldependent_potential_foronelocreg
+
+
+
+
+
+
+
+
+
+
+
+
 !> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
 subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  & 
      mseg_c, mvctr_c, keyg_c, keyv_c,  & 
@@ -3891,7 +4020,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           if(.not.lin%newgradient) then
               lstep=5.d-2/(maxval(eval))
           else
-              lstep=5.d-3/(maxval(eval))
+              lstep=1.d-4/(maxval(eval))
           end if
       else
           lstep=2.d0*lstep_optimal
@@ -4531,3 +4660,100 @@ end subroutine get_potential_matrices
 !!call memocc(istat, iall, 'displs', subname)
 !!
 !!end subroutine get_potential_matrices_new
+
+
+
+subroutine get_potential_matrices_new2(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, psi, nlocregOnMPI, potmat)
+use module_base
+use module_types
+use module_interfaces
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, nlocregOnMPI
+type(linearParameters),intent(inout):: lin
+type(atoms_data),intent(in):: at
+type(input_variables),intent(in):: input
+type(orbitals_data),intent(in):: orbs
+type(local_zone_descriptors),intent(in):: lzd
+type(overlapParameters),intent(inout):: op
+type(p2pCommsOrthonormality),intent(inout):: comon
+real(8),dimension(3,at%nat),intent(in):: rxyz
+real(8),dimension(lzd%lpsidimtot),intent(inout):: psi
+real(8),dimension(orbs%norb,orbs%norb,nlocregOnMPI),intent(out):: potmat
+
+! Local variables
+integer:: iorb, ilr, ilrold, istat, iall, ii, iiorb, ncount, iilr, jjorb, ist, jst, jorb, iorbout
+real(8),dimension(:,:),allocatable:: ttmat
+real(8):: tt1, tt2, tt3, tt4, tt5, ddot
+real(8),dimension(:),allocatable:: vpsi
+character(len=*),parameter:: subname='get_potential_matrices'
+integer,dimensioN(:),allocatable:: sendcounts, displs
+
+
+
+
+allocate(vpsi(comon%nrecvbuf), stat=istat)
+call memocc(istat, vpsi, 'vpsi', subname)
+
+call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, psi, comon%nsendBuf, comon%sendBuf)
+call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, psi, comon, tt1, tt2)
+allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
+     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
+deallocate(ttmat)
+
+! Now all other psi are in the receive buffer. Apply the potential to them.
+iilr=0
+ilrold=-1
+do iorbout=1,orbs%norbp
+    ilr=orbs%inwhichlocreg(orbs%isorb+iorbout)
+    if(ilr==ilrold) cycle
+    iilr=iilr+1
+    do iorb=1,orbs%norbp
+        iiorb=orbs%isorb+iorb
+        do jorb=1,op%noverlaps(iiorb)
+            jjorb=op%overlaps(jorb,iiorb)
+            call getStartingIndices(iorb, jorb, op, orbs, ist, jst)
+            ncount=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
+    
+            call apply_orbitaldependent_potential_foronelocreg(iproc, nproc, op%olr(jorb,iorb), lin, at, input, orbs, rxyz, ncount, &
+               comon%recvbuf, iilr, vpsi(1))
+            potmat(jjorb,iiorb,iilr)=ddot(ncount, comon%sendBuf(ist), 1, vpsi(1), 1)
+        end do
+    end do
+    ilrold=ilr
+end do
+
+!!ilrold=-1
+!!ii=0
+!!do iorb=1,orbs%norbp
+!!    iiorb=orbs%isorb+iorb
+!!    ilr=orbs%inwhichlocreg(iiorb)
+!!    if(ilr==ilrold) cycle
+!!    ii=ii+1
+!!    call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, psi, ilr, vpsi)
+!!    !call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
+!!    !                             comon%sendBuf, comon%nrecvBuf, comon%recvBuf, lin%mad, potmat(1,1,ii))
+!!    !call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, psi, vpsi, lin%mad, potmat(1,1,ilr))
+!!
+!!    call calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, orbs%inwhichlocreg, comon%nsendBuf, comon%sendBuf, &
+!!         comon%nrecvBuf, comon%recvBuf, lin%mad, tempmat)
+!!
+!!    ilrold=ilr
+!!    
+!!end do
+
+iall=-product(shape(vpsi))*kind(vpsi)
+deallocate(vpsi, stat=istat)
+call memocc(istat, iall, 'vpsi', subname)
+
+iall=-product(shape(sendcounts))*kind(sendcounts)
+deallocate(sendcounts, stat=istat)
+call memocc(istat, iall, 'sendcounts', subname)
+
+iall=-product(shape(displs))*kind(displs)
+deallocate(displs, stat=istat)
+call memocc(istat, iall, 'displs', subname)
+
+end subroutine get_potential_matrices_new2
