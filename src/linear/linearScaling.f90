@@ -364,10 +364,14 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
 
       if(itout==lin%nit_lowaccuracy+1) then
-           lin%potentialPrefac = 5.d-3*lin%potentialPrefac
-           lin%nItBasisFirst = 5*lin%nItBasisFirst
-           lin%nItBasis = 30*lin%nItBasis
-           lin%newgradient=.true.
+          lin%potentialPrefac = 5.d-3*lin%potentialPrefac
+          lin%nItBasisFirst = lin%nItBasis_highaccuracy
+          lin%nItBasis = lin%nItBasis_highaccuracy
+          lin%newgradient=.true.
+      else
+          lin%nItBasisFirst = lin%nItBasis_lowaccuracy
+          lin%nItBasis = lin%nItBasis_lowaccuracy
+          lin%newgradient=.false.
       end if
       !!if(itout==lin%nit_lowaccuracy-2) then
       !!    lin%useDerivativeBasisFunctions=.true.
