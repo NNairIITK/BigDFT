@@ -819,7 +819,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   ! lin%startWithSD, lin%startDIIS
   comments = 'start with SD, start criterion for DIIS'
   !call input_var(in%lin%startWithSD,'F')
-  call input_var(in%lin%startDIIS,'2.d2',ranges=(/1.d0,1.d3/),comment=comments)
+  !call input_var(in%lin%startDIIS,'2.d2',ranges=(/1.d0,1.d3/),comment=comments)
   
   !number of iterations in the preconditioner : lin%nItPrecond
   call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment='number of iterations in the preconditioner')

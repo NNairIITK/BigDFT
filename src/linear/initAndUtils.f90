@@ -482,7 +482,6 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   !read(99,*) lin%nItBasisFirst, lin%nItBasis, lin%fixBasis
   read(99,*) lin%nItInnerLoop, lin%convCrit
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
-  read(99,*) lin%startDIIS
   read(99,*) lin%nItPrecond
   read(99,*) lin%getCoeff, lin%locregShape
   read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
@@ -660,7 +659,7 @@ end if
 write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,1x,es8.2,1x,a,l3,a,1x,es10.3,a,a,i0,7x,es7.1,2x,a,1x,a,1x,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
     repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
-    lin%alphaDIIS, '|', lin%alphaSD, '|   ', .false., '    |', lin%startDIIS, ' |', &
+    lin%alphaDIIS, '|', lin%alphaSD, '|   ', .false., '    |', -1.d0, ' |', &
     repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, lin%convCritOrtho, '|', message2, '|'
 write(*,'(4x,a)') '------------------------------------------------------------------------------------------------------'
 write(*,'(1x,a)') '>>>> Parameters for the optimization of the coefficients.'

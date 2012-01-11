@@ -699,7 +699,7 @@ end type workarrays_quartic_convolutions
     integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
-    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMixWhenFixed, reducePrefactor
+    real(8):: convCrit, alphaSD, alphaDIIS, convCritCoeff, alphaMixWhenFixed, reducePrefactor
     real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho
     real(8):: convCritMixOut
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lxi, transmat, lpsi, lhpsi

@@ -188,7 +188,7 @@ end subroutine optimizeDIIS
 
 
 subroutine initializeDIIS(isx, lzd, orbs, alphaSDx, alphaDIISx, norb, icountSDSatur, &
-           icountSwitch, icountDIISFailureTot, icountDIISFailureCons, allowDIIS, startWithSD, &
+           icountSwitch, icountDIISFailureTot, icountDIISFailureCons, &
            ldiis, alpha, alphaDIIS)
 use module_base
 use module_types
@@ -200,7 +200,6 @@ type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 real(8),intent(in):: alphaSDx, alphaDIISx
 integer,intent(out):: icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons
-logical,intent(out):: allowDIIS, startWithSD
 type(localizedDIISParameters),intent(out):: ldiis
 real(8),dimension(norb),intent(out):: alpha, alphaDIIS
 
@@ -232,14 +231,6 @@ icountSDSatur=0
 icountSwitch=0
 icountDIISFailureTot=0
 icountDIISFailureCons=0
-!if(startWithSDx) then
-!    allowDIIS=.false.
-!    ldiis%switchSD=.false.
-!    startWithSD=.true.
-!else
-    allowDIIS=.true.
-    startWithSD=.false.
-!end if
 
 ! Assign the step size for SD iterations.
 alpha=alphaSDx

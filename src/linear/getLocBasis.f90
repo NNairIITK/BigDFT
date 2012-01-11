@@ -608,7 +608,7 @@ real(8),dimension(:),allocatable:: lchi, lphidebug
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr, W, ttmat, Kmat, Gmat, Umat, lhchi, omatr, omat2
 real(8),dimension(:,:),allocatable:: kernel
 real(8),dimension(:,:,:),allocatable:: Gmatc, tempmat, Omat, tempmat2, ham3, tempmat3, omatrtot
-logical:: quiet,allowDIIS,startWithSD,withConfinement,calc
+logical:: quiet,withConfinement,calc
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(localizedDIISParameters):: ldiis
@@ -660,8 +660,8 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
   ! Initialize the arrays and variable needed for DIIS.
   call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%alphaSD, lin%alphaDIIS, &
-       lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons, allowDIIS, &
-       startWithSD, ldiis, alpha, alphaDIIS)
+       lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons, &
+       ldiis, alpha, alphaDIIS)
 
   ! Set the maximal number of iterations.
   !if(itSCC==1) then
@@ -1064,13 +1064,13 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
               write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
                   icountDIISFailureCons, ', total failures=', icountDIISFailureTot
           else
-              if(allowDIIS) then
-                  message='y'
-              else
-                  message='n'
-              end if
-              write(*,'(1x,a,es9.3,a,i0,a,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
-              ', consecutive successes=', icountSDSatur, ', DIIS=', message
+              !if(allowDIIS) then
+              !    message='y'
+              !else
+              !    message='n'
+              !end if
+              write(*,'(1x,a,es9.3,a,i0,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
+              ', consecutive successes=', icountSDSatur, ', DIIS=y'
           end if
       end if
 
@@ -1188,34 +1188,36 @@ contains
       ! First there are some checks whether the force is small enough to allow DIIS.
 
       ! Decide whether the force is small eneough to allow DIIS
-      if(fnrmMax<lin%startDIIS .and. .not.allowDIIS) then
-          allowDIIS=.true.
-          if(iproc==0) write(*,'(1x,a)') 'The force is small enough to allow DIIS.'
-          ! This is to get the correct DIIS history 
-          ! (it is chosen as max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch).
-          icountSwitch=icountSwitch-1
-      else if(fnrmMax>lin%startDIIS .and. allowDIIS) then
-          allowDIIS=.false.
-          if(iproc==0) write(*,'(1x,a)') 'The force is too large to allow DIIS.'
-      end if    
+      !if(fnrmMax<lin%startDIIS .and. .not.allowDIIS) then
+      !    allowDIIS=.true.
+      !    if(iproc==0) write(*,'(1x,a)') 'The force is small enough to allow DIIS.'
+      !    ! This is to get the correct DIIS history 
+      !    ! (it is chosen as max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch).
+      !    icountSwitch=icountSwitch-1
+      !else if(fnrmMax>lin%startDIIS .and. allowDIIS) then
+      !    allowDIIS=.false.
+      !    if(iproc==0) write(*,'(1x,a)') 'The force is too large to allow DIIS.'
+      !end if    
 
-      ! Switch to SD if the flag indicating that we should start with SD is true.
-      ! If this is the case, this flag is set to false, since this flag concerns only the beginning.
-      if(startWithSD .and. ldiis%isx>0) then
-          call deallocateDIIS(ldiis)
-          ldiis%isx=0
-          ldiis%switchSD=.false.
-          startWithSD=.false.
-      end if
+      !! Switch to SD if the flag indicating that we should start with SD is true.
+      !! If this is the case, this flag is set to false, since this flag concerns only the beginning.
+      !if(startWithSD .and. ldiis%isx>0) then
+      !    call deallocateDIIS(ldiis)
+      !    ldiis%isx=0
+      !    ldiis%switchSD=.false.
+      !    startWithSD=.false.
+      !end if
 
       ! Decide whether we should switch from DIIS to SD in case we are using DIIS and it 
       ! is not allowed.
-      if(.not.startWithSD .and. .not.allowDIIS .and. ldiis%isx>0) then
-          if(iproc==0) write(*,'(1x,a,es10.3)') 'The force is too large, switch to SD with stepsize', alpha(1)
-          call deallocateDIIS(ldiis)
-          ldiis%isx=0
-          ldiis%switchSD=.true.
-      end if
+      !if(.not.startWithSD .and. .not.allowDIIS .and. ldiis%isx>0) then
+      !if(.not.startWithSD .and. ldiis%isx>0) then
+      !if(ldiis%isx>0) then
+      !    if(iproc==0) write(*,'(1x,a,es10.3)') 'The force is too large, switch to SD with stepsize', alpha(1)
+      !    call deallocateDIIS(ldiis)
+      !    ldiis%isx=0
+      !    ldiis%switchSD=.true.
+      !end if
 
       ! If we swicthed to SD in the previous iteration, reset this flag.
       if(ldiis%switchSD) ldiis%switchSD=.false.
@@ -1236,14 +1238,15 @@ contains
 
           ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
           ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
-          if(icountSDSatur>=10 .and. ldiis%isx==0 .and. allowDIIS .or. immediateSwitchToSD) then
+          !if(icountSDSatur>=10 .and. ldiis%isx==0 .and. allowDIIS .or. immediateSwitchToSD) then
+          if(icountSDSatur>=10 .and. ldiis%isx==0 .or. immediateSwitchToSD) then
               icountSwitch=icountSwitch+1
               idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
               if(idsx>0) then
                   if(iproc==0) write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
                   call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%alphaSD, &
                        lin%alphaDIIS, lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, &
-                       icountDIISFailureCons, allowDIIS, startWithSD, ldiis, alpha, alphaDIIS)
+                       icountDIISFailureCons, ldiis, alpha, alphaDIIS)
                   icountDIISFailureTot=0
                   icountDIISFailureCons=0
                   immediateSwitchToSD=.false.
