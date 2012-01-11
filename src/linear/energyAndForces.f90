@@ -1627,9 +1627,6 @@ if(iproc==0) write(*,'(1x,a)') '------------------------------------------------
 
 end subroutine updatePotential
 
-
-
-
 subroutine calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
     ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rho, psi, fxyz, fnoise)
 use module_base

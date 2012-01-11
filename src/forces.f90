@@ -360,7 +360,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      messages(4)='PSP Long Range'
      !here we should add the pretty printings
      do i=1,4
-        if (atoms%symObj >= 0) call symm_stress(iproc,strtens(1,i),atoms)
+        if (atoms%symObj >= 0) call symm_stress((iproc==0),strtens(1,i),atoms%symObj)
         if (iproc==0 .and. verbose>2)&
              call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
         do j=1,6
@@ -371,36 +371,6 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      pressure=strten(1)+strten(2)+strten(3)
      if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
   end if
-
-!!$  if (atoms%geocode == 'P') then
-!!$     call erf_stress(atoms,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,erfstr)
-!!$     if (iproc == 0) call symm_stress(iproc,erfstr,atoms)
-!!$     call local_hamiltonian_stress(iproc,orbs,Glr,hx,hy,hz,psi,kinstr)
-!!$     if (nproc > 1) call mpiallred(kinstr(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
-!!$
-!!$     if (iproc == 0) then
-!!$        write(*,*)'--------------------------------------------------------------------'
-!!$        write(*,*) 'STRESS TENSOR: KINETIC PART'
-!!$        write(*,*) kinstr(1),kinstr(2),kinstr(3)
-!!$        write(*,*)
-!!$        if (atoms%symObj >= 0) call symm_stress(iproc,kinstr,atoms)
-!!$     end if
-!!$
-!!$     if (iproc == 0 .and. verbose > 1 .and. atoms%geocode=='P') then
-!!$        write(*,*) 'STRESS TENSOR: LOCAL SR PART (Ha/bohr**3)'
-!!$        write(*,*) locstrten(1),locstrten(2),locstrten(3)
-!!$        write(*,*) locstrten(4),locstrten(5),locstrten(6)
-!!$        write(*,*)
-!!$        if (atoms%symObj >= 0) call symm_stress(iproc,locstrten,atoms)
-!!$        write(*,*) 'STRESS TENSOR: NON-LOCAL PART (Ha/bohr**3)'
-!!$        write(*,*) strten(1),strten(2),strten(3)
-!!$        write(*,*) strten(4),strten(5),strten(6)
-!!$        write(*,*)
-!!$        if (atoms%symObj >= 0) call symm_stress(iproc,strten,atoms)
-!!$     end if
-!!$
-!!$  end if
-
 
 !!$  if (iproc == 0) then
 !!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
@@ -3770,15 +3740,16 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   end if
 END SUBROUTINE clean_forces
 
-subroutine symm_stress(iproc,tens,at)
+!@todo: modifiy the arguments of this routine
+subroutine symm_stress(dump,tens,symobj)
   use defs_basis
   use module_base, only: verbose,gp
   use m_ab6_symmetry
   use module_types
-
-  integer, intent(in) :: iproc
-  real(gp),intent(inout) :: tens(6)
-  type(atoms_data), intent(in) :: at
+  logical, intent(in) :: dump
+  integer, intent(in) :: symobj
+  real(gp), dimension(6), intent(inout) :: tens
+  !local variables
   integer, pointer  :: sym(:,:,:)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
@@ -3787,11 +3758,11 @@ subroutine symm_stress(iproc,tens,at)
   integer, allocatable :: symrec(:,:,:)
   real(gp),dimension(3,3) :: symtens
 
-  call symmetry_get_matrices_p(at%symObj, nsym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(symObj, nsym, sym, transNon, symAfm, errno)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
-  if (iproc == 0 .and. verbose > 2)&
+  if (dump)&
        write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, "symmetries."
 
   !Get the symmetry matrices in terms of reciprocal basis
@@ -3827,10 +3798,10 @@ subroutine symm_stress(iproc,tens,at)
   tens(5)=symtens(1,3)
   tens(6)=symtens(2,3)
 
-  if (iproc == 0 .and. verbose > 2) then
-     write(*,*) '=== SYMMETRISED ==='
-     write(*,*) tens(:)
-  end if
+!  if (iproc == 0 .and. verbose > 2) then
+!     write(*,*) '=== SYMMETRISED ==='
+!     write(*,*) tens(:)
+!  end if
 
 end subroutine symm_stress
 

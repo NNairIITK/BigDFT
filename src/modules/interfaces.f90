@@ -466,6 +466,26 @@ module module_interfaces
          real(wp), dimension(:) , pointer :: psi,hpsi,psit
       END SUBROUTINE first_orthon
 
+      subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
+           irrzon,phnons,pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: iproc,nproc,symObj
+        real(gp), intent(in) :: hxh,hyh,hzh
+        type(rho_descriptors),intent(inout) :: rhodsc
+        type(orbitals_data), intent(in) :: orbs
+        type(local_zone_descriptors), intent(in) :: Lzd
+        character(len=1), intent(in) :: geocode
+        integer, dimension(*), intent(in) :: irrzon
+        real(dp), dimension(*), intent(in) :: phnons,pkernel
+        integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
+        real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+        type(GPU_pointers), intent(inout) :: GPU
+        real(gp), dimension(6), intent(out) :: hstrten
+        real(dp), dimension(:), pointer :: rho,vh
+      END SUBROUTINE density_and_hpot
+
       subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
            GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
         use module_base
@@ -478,7 +498,7 @@ module module_interfaces
         type(orbitals_data), intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
         integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-        real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
+        real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         real(dp), dimension(:,:), pointer :: rho_p
         type(GPU_pointers), intent(inout) :: GPU
         integer, dimension(*), intent(in) :: irrzon
@@ -2081,7 +2101,7 @@ module module_interfaces
       type(atoms_data),intent(inout):: at
       type(linearParameters),intent(in out):: lin
       type(input_variables),intent(in):: input
-      type(rho_descriptors),intent(in) :: rhodsc
+      type(rho_descriptors),intent(inout) :: rhodsc
       real(8),dimension(3,at%nat),intent(inout):: rxyz
       real(8),dimension(3,at%nat),intent(in):: fion, fdisp
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
@@ -2090,7 +2110,7 @@ module module_interfaces
       integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-      real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in out):: rhopot
+      real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout), target :: rhopot
       type(GPU_pointers),intent(in out):: GPU
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
       integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
