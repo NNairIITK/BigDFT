@@ -229,8 +229,8 @@ call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
 !call copy_locreg_descriptors(Glr, lin%lb%lzd%Glr, subname)
 
 ! Copy nlpspd to lin%lzd
-call nullify_nonlocal_psp_descriptors(lin%lzd%Gnlpspd)
-call copy_nonlocal_psp_descriptors(nlpspd, lin%lzd%Gnlpspd, subname)
+!call nullify_nonlocal_psp_descriptors(lin%lzd%Gnlpspd)
+!call copy_nonlocal_psp_descriptors(nlpspd, lin%lzd%Gnlpspd, subname)
 !call nullify_nonlocal_psp_descriptors(lin%lb%lzd%Gnlpspd)
 !call copy_nonlocal_psp_descriptors(nlpspd, lin%lb%lzd%Gnlpspd, subname)
 
@@ -1522,6 +1522,52 @@ subroutine allocateBasicArrays(at, lin)
 
 end subroutine allocateBasicArrays
 
+subroutine deallocateBasicArrays(at, lin)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(atoms_data),intent(inout):: at
+  type(linearParameters),intent(inout):: lin
+  
+  ! Local variables
+  integer:: i_stat,i_all
+  character(len=*),parameter:: subname='deallocateBasicArrays'
+ 
+  if(associated(lin%potentialPrefac)) then
+    print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
+    i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
+    print *,'i_all',i_all
+    deallocate(lin%potentialPrefac,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
+    nullify(lin%potentialPrefac)
+  end if 
+  if(associated(lin%norbsPerType)) then
+    print *,'lin%norbsPerType',associated(lin%norbsPerType)
+    i_all = -product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
+    deallocate(lin%norbsPerType,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%norbsPerType',subname)
+    nullify(lin%norbsPerType)
+  end if 
+  if(associated(lin%locrad)) then
+    print *,'lin%locrad',associated(lin%locrad)
+    i_all = -product(shape(lin%locrad))*kind(lin%locrad)
+    deallocate(lin%locrad,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%locrad',subname)
+    nullify(lin%locrad)
+  end if 
+  if(associated(at%rloc)) then
+    print *,'at%rloc',associated(at%rloc)
+    i_all = -product(shape(at%rloc))*kind(at%rloc)
+    deallocate(at%rloc,stat=i_stat)
+    call memocc(i_stat,i_all,'at%rloc',subname)
+    nullify(at%rloc)
+  end if 
+
+end subroutine deallocateBasicArrays
+
+
 subroutine allocateBasicArraysInputLin(at, lin)
   use module_base
   use module_types
@@ -1536,16 +1582,16 @@ subroutine allocateBasicArraysInputLin(at, lin)
   character(len=*),parameter:: subname='allocateBasicArrays'
   
   allocate(lin%norbsPerType(at%ntypes), stat=istat)
-  call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
+!  call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
   
   allocate(lin%potentialPrefac(at%ntypes), stat=istat)
-  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
+!  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 
   allocate(lin%locrad(at%nat),stat=istat)
-  call memocc(istat,lin%locrad,'lin%locrad',subname)
+!  call memocc(istat,lin%locrad,'lin%locrad',subname)
 
   allocate(at%rloc(at%ntypes,3), stat=istat)
-  call memocc(istat, at%rloc, 'at%rloc', subname)
+!  call memocc(istat, at%rloc, 'at%rloc', subname)
 
 end subroutine allocateBasicArraysInputLin
 
@@ -3273,8 +3319,8 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
     jjj=0
     do iseg=1,glr%wfd%nseg_c
        jj=glr%wfd%keyv(iseg)
-       j0=glr%wfd%keyg(1,iseg)
-       j1=glr%wfd%keyg(2,iseg)
+       j0=glr%wfd%keygloc(1,iseg)
+       j1=glr%wfd%keygloc(2,iseg)
        ii=j0-1
        i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
        ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
@@ -3295,8 +3341,8 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
     !$omp do
     do iseg=1,glr%wfd%nseg_f
        jj=glr%wfd%keyv(ishift+iseg)
-       j0=glr%wfd%keyg(1,ishift+iseg)
-       j1=glr%wfd%keyg(2,ishift+iseg)
+       j0=glr%wfd%keygloc(1,ishift+iseg)
+       j1=glr%wfd%keygloc(2,ishift+iseg)
        ii=j0-1
        i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
        ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
@@ -3474,11 +3520,11 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
         call copy_locreg_descriptors(Lzd%Glr,Lzd%Llr(1),subname)
         !copy dimensions of wavefunction and projectors
 !        Lzd%Lpsidimtot=orbs%npsidim
-        Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
+!        Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
         ! copy nlpspd to Lnlpspd(1)  NOTE: NOT NEEDED!
-        allocate(Lzd%Lnlpspd(Lzd%nlr))!,stat=i_stat)
-        call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(1))
-        call copy_nonlocal_psp_descriptors(Lzd%Gnlpspd,Lzd%Lnlpspd(1),subname)
+!        allocate(Lzd%Lnlpspd(Lzd%nlr))!,stat=i_stat)
+!        call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(1))
+!        call copy_nonlocal_psp_descriptors(Lzd%Gnlpspd,Lzd%Lnlpspd(1),subname)
 
         !call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
      else 
@@ -3499,12 +3545,15 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
         i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
         deallocate(calculateBounds,stat=i_stat)
         call memocc(i_stat,i_all,'calculateBounds',subname)
+        i_all = -product(shape(locrad))*kind(locrad)                                                                                                                                                              
+        deallocate(locrad,stat=i_stat)
+        call memocc(i_stat,i_all,'locrad',subname)
 
         ! determine the wavefunction dimension
         call wavefunction_dimension(Lzd,orbs)
 
         !determine the Local nlpspd
-        call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf, Lzd)
+!        call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf,'c', Lzd)
      end if
   end if
 
@@ -3710,7 +3759,7 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
      Lzd%linear = .false.
      Lzd%nlr = 1
 !     Lzd%Lpsidimtot=orbs%npsidim
-     Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
+!     Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
      call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg',subname)
      call checkAndDeallocatePointer(Lzd%doHamAppl, 'lzd%doHamAppl', subname)
      if(associated(lzd%llr)) then
@@ -3725,22 +3774,20 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
             call deallocate_locreg_descriptors(lzd%llr(i1), subname)
         end do
      end if
-     if(associated(lzd%lnlpspd)) then
-        iis1=lbound(lzd%lnlpspd,1)
-        iie1=ubound(lzd%lnlpspd,1)
-        do i1=iis1,iie1
-            call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-        end do
-     end if
+!!$     if(associated(lzd%lnlpspd)) then
+!!$        iis1=lbound(lzd%lnlpspd,1)
+!!$        iie1=ubound(lzd%lnlpspd,1)
+!!$        do i1=iis1,iie1
+!!$            call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
+!!$        end do
+!!$     end if
      call nullify_locreg_descriptors(Lzd%Llr(1))
      
-     !Copy the Glr to the Llr(1)
-     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat) 
-     allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      !nullify all pointers
      do ilr=1,Lzd%nlr
         nullify(Lzd%Llr(ilr)%projflg)
-        nullify(Lzd%Llr(ilr)%wfd%keyg)
+        nullify(Lzd%Llr(ilr)%wfd%keygloc)
+        nullify(Lzd%Llr(ilr)%wfd%keyglob)
         nullify(Lzd%Llr(ilr)%wfd%keyv)
         nullify(Lzd%Llr(ilr)%bounds%ibyyzz_r) 
         nullify(Lzd%Llr(ilr)%bounds%kb%ibyz_c)
@@ -3761,6 +3808,10 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
         nullify(Lzd%Llr(ilr)%bounds%gb%ibxxyy_f)
      end do
 
+     !Copy the Glr to the Llr(1)
+     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat) 
+     allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
+     call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
      call copy_locreg_descriptors(Lzd%Glr, Lzd%Llr(1), subname)
   
      !Reinitiliaze inwhichlocreg
@@ -3786,6 +3837,16 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
     ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
      call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
 
+    ! Deallocate the localization regions
+    if(associated(lzd%llr)) then
+         iis1=lbound(lzd%llr,1)
+         iie1=ubound(lzd%llr,1)
+         do i1=iis1,iie1
+             call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
+             call deallocate_locreg_descriptors(lzd%llr(i1), subname)
+         end do
+      end if
+
     ! Make the localization regions
     allocate(calculateBounds(lzd%nlr),stat=i_stat)
     call memocc(i_stat,calculateBounds,'calculateBounds',subname)
@@ -3793,6 +3854,7 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
 !    call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,calculateBounds)
     call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,&
           orbs,calculateBounds) 
+
      i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
      deallocate(calculateBounds,stat=i_stat)
      call memocc(i_stat,i_all,'calculateBounds',subname)
@@ -3804,7 +3866,7 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
      call wavefunction_dimension(Lzd,orbs)
 
      !determine the Local nlpspd
-     call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf, Lzd)
+!     call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf, Lzd)
   end if
 end subroutine reinitialize_Lzd_after_LIG
 

@@ -227,7 +227,7 @@
 !!$END SUBROUTINE HamiltonianApplication2
 
 subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-     proj,Lzd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
+     proj,Lzd,nlpspd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
 !withConfinement,energyReductionFlag, &
      pkernel,orbsocc,psirocc)
@@ -242,6 +242,7 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: Lzd
+  type(nonlocal_psp_descriptors),intent(in) :: nlpspd
   type(SIC_data), intent(in) :: SIC
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -436,7 +437,7 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   !create the building-block hamiltonian
   call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
-       proj,Lzd,psi,hpsi,eproj_sum)
+       proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
 
 
 !!$

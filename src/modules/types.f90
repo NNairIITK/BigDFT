@@ -251,7 +251,9 @@ module module_types
 !>  Used for lookup table for compressed wavefunctions
   type, public :: wavefunctions_descriptors
      integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
-     integer, dimension(:,:), pointer :: keyg
+!     integer, dimension(:,:), pointer :: keyg
+     integer, dimension(:,:), pointer :: keyglob
+     integer, dimension(:,:), pointer :: keygloc
      integer, dimension(:), pointer :: keyv
   end type wavefunctions_descriptors
 
@@ -441,9 +443,9 @@ module module_types
     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
     logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
     type(locreg_descriptors) :: Glr           !< Global region descriptors
-    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
+!    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
-    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
+!    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
   end type
 
 !>  Used to restart a new DFT calculation or to save information 
@@ -937,7 +939,8 @@ END SUBROUTINE deallocate_orbs
 
     nullify(rst%gaucoeffs)
 
-    nullify(rst%Lzd%Glr%wfd%keyg)
+    nullify(rst%Lzd%Glr%wfd%keyglob)
+    nullify(rst%Lzd%Glr%wfd%keygloc)
     nullify(rst%Lzd%Glr%wfd%keyv)
 
     nullify(rst%gbd%nshell)
@@ -1016,8 +1019,10 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_stat
 
-    allocate(wfd%keyg(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
-    call memocc(i_stat,wfd%keyg,'keyg',subname)
+    allocate(wfd%keyglob(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    call memocc(i_stat,wfd%keyglob,'keyglob',subname)
+    allocate(wfd%keygloc(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    call memocc(i_stat,wfd%keygloc,'keygloc',subname)
     allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyv,'keyv',subname)
 
@@ -1033,10 +1038,24 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_all,i_stat
 
-    if (associated(wfd%keyg)) then
-       i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
-       deallocate(wfd%keyg,stat=i_stat)
-       call memocc(i_stat,i_all,'wfd%keyg',subname)
+    if (associated(wfd%keyglob, target = wfd%keygloc)) then
+       i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
+       deallocate(wfd%keyglob,stat=i_stat)
+       call memocc(i_stat,i_all,'wfd%keyglob',subname)
+       nullify(wfd%keyglob)
+    else
+       if(associated(wfd%keygloc)) then
+          i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
+          deallocate(wfd%keyglob,stat=i_stat)
+          call memocc(i_stat,i_all,'wfd%keyglob',subname)
+          nullify(wfd%keyglob)
+       end if
+       if(associated(wfd%keygloc)) then 
+          i_all=-product(shape(wfd%keygloc))*kind(wfd%keygloc)
+          deallocate(wfd%keygloc,stat=i_stat)
+          call memocc(i_stat,i_all,'wfd%keygloc',subname)
+          nullify(wfd%keygloc)
+       end if
     end if
     if (associated(wfd%keyv)) then
        i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
@@ -1271,11 +1290,12 @@ END SUBROUTINE deallocate_orbs
     end if
 
 ! nullify the wfd of Glr
-   nullify(Lzd%Glr%wfd%keyg)
+   nullify(Lzd%Glr%wfd%keyglob)
+   nullify(Lzd%Glr%wfd%keygloc)
    nullify(Lzd%Glr%wfd%keyv)
 
 ! nullify the Gnlpspd
-   call deallocate_proj_descr(Lzd%Gnlpspd,subname)
+!   call deallocate_proj_descr(Lzd%Gnlpspd,subname)
 !!$   nullify(Lzd%Gnlpspd%nvctr_p)
 !!$   nullify(Lzd%Gnlpspd%nseg_p)
 !!$   nullify(Lzd%Gnlpspd%keyv_p)
@@ -1286,10 +1306,10 @@ END SUBROUTINE deallocate_orbs
 !Now destroy the Llr
     do ilr = 1, Lzd%nlr 
        call deallocate_lr(Lzd%Llr(ilr),subname)
-       call deallocate_Lnlpspd(Lzd%Lnlpspd(ilr),subname)
+!       call deallocate_Lnlpspd(Lzd%Lnlpspd(ilr),subname)
     end do
      nullify(Lzd%Llr)
-     nullify(Lzd%Lnlpspd)
+!     nullify(Lzd%Lnlpspd)
 
   END SUBROUTINE deallocate_Lzd
 

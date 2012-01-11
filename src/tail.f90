@@ -33,7 +33,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   !local variables
   type(locreg_descriptors) :: lr
   character(len=*), parameter :: subname='CalculateTailCorrection'
-  integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
+  integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,j,ierr,i_all,i_stat,nbuf,ispin
   integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3
   integer :: n1,n2,n3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
   real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail !n(c) eproj1 epot1,ekin1
@@ -102,8 +102,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   do iat=1,at%nat
      do iseg=1,nlpspd%plr(iat)%wfd%nseg_c+nlpspd%plr(iat)%wfd%nseg_f
-        j0=nlpspd%plr(iat)%wfd%keyg(1,iseg)
-        j1=nlpspd%plr(iat)%wfd%keyg(2,iseg)
+        j0=nlpspd%plr(iat)%wfd%keyglob(1,iseg)
+        j1=nlpspd%plr(iat)%wfd%keyglob(2,iseg)
         !do iseg=1,nlpspd%nseg_p(2*at%nat)
         !j0=nlpspd%keyg_p(1,iseg)
         !j1=nlpspd%keyg_p(2,iseg)
@@ -119,8 +119,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         i0=i0+nbuf
         j0=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i0+1
         j1=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i1+1
-        nlpspd%plr(iat)%wfd%keyg(1,iseg)=j0
-        nlpspd%plr(iat)%wfd%keyg(2,iseg)=j1
+        nlpspd%plr(iat)%wfd%keyglob(1,iseg)=j0
+        nlpspd%plr(iat)%wfd%keyglob(2,iseg)=j1
 !!$        nlpspd%keyg_p(1,iseg)=j0
 !!$        nlpspd%keyg_p(2,iseg)=j1
      end do
@@ -278,7 +278,18 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      wfdb%nseg_c=nsegb_c
      wfdb%nseg_f=nsegb_f
      wfdb%keyv => keyv
-     wfdb%keyg => keyg
+     wfdb%keygloc => keyg
+     wfdb%keyglob => keyg
+!!$     allocate(wfdb%keygloc(2,nsegb_c+nsegb_f+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,wfdb%keygloc,'wfdb%keygloc',subname)
+!!$     allocate(wfdb%keyglob(2,nsegb_c+nsegb_f+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,wfdb%keyglob,'wfdb%keyglob',subname)
+!!$     do i = 1, 2
+!!$        do j = 1, nsegb_c+nsegb_f
+!!$           wfdb%keygloc(i,j) = keyg(i,j)
+!!$           wfdb%keyglob(i,j) = keyg(i,j)
+!!$         end do
+!!$     end do
   end if
 
 
@@ -350,8 +361,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
      !build the compressed wavefunction in the enlarged box
      call transform_fortail(n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
-          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
-          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keyg(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1),  &
+          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),&
+          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1),  &
           nsegb_c,nvctrb_c,keyg(1,1),keyv(1),nsegb_f,nvctrb_f,&
           keyg(1,nsegb_c+1),keyv(nsegb_c+1),&
           nbuf,psi(1,iorb),psi(Glr%wfd%nvctr_c+1,iorb),  & 
@@ -968,7 +979,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
                    nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
                    mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                    nlpspd%plr(iat)%wfd%keyv(jseg_c),&
-                   nlpspd%plr(iat)%wfd%keyg(1,jseg_c),&
+                   nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
 !!$                   keyv_p(jseg_c),keyg_p(1,jseg_c),&
                    proj(istart_c),psi,hpsi,eproj)
               iproj=iproj+2*l-1

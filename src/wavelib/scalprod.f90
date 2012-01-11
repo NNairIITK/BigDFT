@@ -338,21 +338,26 @@ subroutine wpdot(  &
   iaseg0=1 
 
 !coarse part. Loop on the projectors segments
-
 !$omp do schedule(static)
    do ibseg=1,mbseg_c
      jbj=keybv_c(ibseg)
      jb0=keybg_c(1,ibseg) !starting point of projector segment
      jb1=keybg_c(2,ibseg) !ending point of projector segment
-    
+!     print *,'huntenter',ibseg,jb0,jb1
+ 
      !find the starting point of the wavefunction segment
      !warning: hunt is assuming that the variable is always found
      !if it is not, iaseg0 is put to maseg + 1 so that the loop is disabled
      call hunt1(.true.,keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
-     !print *,'huntexit',iaseg0,maseg_c,keyag_c_lin(iaseg0),keybg_c(1,ibseg)
+     if (iaseg0==0) then  !segment not belonging to the wavefunctions, go further
+        iaseg0=1
+        cycle     
+     end if
      !now pass through all the wavefunction segments until the end of the segment is 
      !still contained in projector segment
      nonconvex_loop_c: do while(iaseg0 <= maseg_c)
+!     print *,'huntexit',iaseg0,maseg_c,keyag_c_lin(iaseg0),keyag_c(2,iaseg0)
+
         !length = jb1-jb0
         !iaoff = jb0-keyag_c_lin(iaseg0)!jb0-ja0
 
@@ -365,11 +370,16 @@ subroutine wpdot(  &
         do i=0,length
            scpr0=scpr0+real(apsi_c(jaj+iaoff+i),dp)*real(bpsi_c(jbj+i),dp)
         enddo
+ !       print *,'length',length,ibseg,scpr0,iaseg0,ja1,jb1
+
         !print *,'ibseg,mbseg_c,iaseg0,maseg_c',ibseg,mbseg_c,iaseg0,maseg_c
         !print '(a,6(i8),1pe25.17)','ja0,ja1t,ja1,jb0,jb1',&
         !     ibseg,ja0,keyag_c(2,iaseg0),ja1,jb0,jb1,scpr0
-        if (ja1==jb1) exit nonconvex_loop_c !segment is finished
+        if ((ja1<=jb1 .and. length>=0) .or. iaseg0==maseg_c) exit nonconvex_loop_c !segment is finished
         iaseg0=iaseg0+1
+        jb0=max(keybg_c(1,ibseg),keyag_c_lin(iaseg0))
+        if (keyag_c_lin(iaseg0)>jb1) exit nonconvex_loop_c !segment is not covered
+        jbj=jbj+max(jb0-keybg_c(1,ibseg),0)
      end do nonconvex_loop_c
      !disable loop if the end is reached
      if (iaseg0 == maseg_c .and. keybg_c(1,ibseg)> keyag_c_lin(maseg_c)) iaseg0=iaseg0+1
@@ -388,9 +398,12 @@ iaseg0=1
      jbj=keybv_f(ibseg)
      jb0=keybg_f(1,ibseg)
      jb1=keybg_f(2,ibseg)
-
+!    print *,'huntenter',ibseg,jb0,jb1
      call hunt1(.true.,keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
-     
+     if (iaseg0==0) then  !segment not belonging to the wavefunctions, go further
+        iaseg0=1
+        cycle     
+     end if
      nonconvex_loop_f: do while(iaseg0 <= maseg_f)
 !!$     length = jb1-jb0
 !!$     iaoff = jb0-keyag_f_lin(iaseg0)
@@ -410,9 +423,12 @@ iaseg0=1
            scpr6=scpr6+real(apsi_f(6,jaj+iaoff+i),dp)*real(bpsi_f(6,jbj+i),dp)
            scpr7=scpr7+real(apsi_f(7,jaj+iaoff+i),dp)*real(bpsi_f(7,jbj+i),dp)
         enddo
-
-        if (ja1==jb1) exit nonconvex_loop_f !segment is finished
+ !       print *,'length',length,ibseg,scpr1,iaseg0,ja1,jb1
+        if ((ja1<=jb1 .and. length>=0) .or. iaseg0==maseg_f) exit nonconvex_loop_f !segment is finished  
         iaseg0=iaseg0+1
+        jb0=max(keybg_f(1,ibseg),keyag_f_lin(iaseg0))
+        if (keyag_f_lin(iaseg0)>jb1) exit nonconvex_loop_f !segment is not covered 
+        jbj=jbj+max(jb0-keybg_f(1,ibseg),0)
      end do nonconvex_loop_f
      !disable loop if the end is reached
      if (iaseg0 == maseg_f .and. keybg_f(1,ibseg)> keyag_f_lin(maseg_f)) iaseg0=iaseg0+1
@@ -576,7 +592,11 @@ iaseg0=1
      jb1=keybg_c(2,ibseg)
     
      call hunt1(.true.,keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
-
+     if (iaseg0==0) then  !segment not belonging to the wavefunctions, go further
+        iaseg0=1
+        cycle     
+     end if
+ 
      !now pass through all the wavefunction segments until the end of the segment is 
      !still contained in projector segment
      nonconvex_loop_c: do while(iaseg0 <= maseg_c)
@@ -593,8 +613,11 @@ iaseg0=1
         do i=0,length
            apsi_c(jaj+iaoff+i)=apsi_c(jaj+iaoff+i)+scprwp*bpsi_c(jbj+i)
         enddo
-        if (ja1==jb1) exit nonconvex_loop_c !segment is finished
+        if ((ja1<=jb1 .and. length>=0) .or. iaseg0==maseg_c) exit nonconvex_loop_c !segment is finished
         iaseg0=iaseg0+1
+        jb0=max(keybg_c(1,ibseg),keyag_c_lin(iaseg0))
+        if (keyag_c_lin(iaseg0)>jb1) exit nonconvex_loop_c
+        jbj=jbj+max(jb0-keybg_c(1,ibseg),0)
      end do nonconvex_loop_c
      !disable loop if the end is reached
      if (iaseg0 == maseg_c .and. keybg_c(1,ibseg)> keyag_c_lin(maseg_c)) iaseg0=iaseg0+1
@@ -613,7 +636,10 @@ iaseg0=1
       jb1=keybg_f(2,ibseg)
 
       call hunt1(.true.,keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
-
+     if (iaseg0==0) then  !segment not belonging to the wavefunctions, go further
+        iaseg0=1
+        cycle     
+     end if
       nonconvex_loop_f: do while(iaseg0 <= maseg_f)
 !!$     length = jb1-jb0
 !!$     iaoff = jb0-keyag_f_lin(iaseg0)
@@ -640,8 +666,11 @@ iaseg0=1
             apsi_f(7,jaj+iaoff+i)=apsi_f(7,jaj+iaoff+i)+&
                  scprwp*bpsi_f(7,jbj+i)
          enddo
-         if (ja1==jb1) exit nonconvex_loop_f !segment is finished
-         iaseg0=iaseg0+1
+        if ((ja1<=jb1 .and. length>=0) .or. iaseg0==maseg_f) exit nonconvex_loop_f !segment is finished  
+        iaseg0=iaseg0+1
+        jb0=max(keybg_f(1,ibseg),keyag_f_lin(iaseg0))
+        if (keyag_f_lin(iaseg0)>jb1) exit nonconvex_loop_f !segment is not covered 
+        jbj=jbj+max(jb0-keybg_f(1,ibseg),0)
       end do nonconvex_loop_f
       !disable loop if the end is reached
       if (iaseg0 == maseg_f .and. keybg_f(1,ibseg)> keyag_f_lin(maseg_f)) iaseg0=iaseg0+1
@@ -730,6 +759,7 @@ subroutine hunt1(ascnd,xx,n,x,jlo)
            exit guess_end
         endif
      end do guess_end
+!print *,'range',jlo,inc,jhi,x,xx(jlo),xx(jhi)
   else
      !target is below, invert start and end
      jhi=jlo

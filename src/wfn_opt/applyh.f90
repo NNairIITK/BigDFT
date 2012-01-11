@@ -143,7 +143,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
      !apply the potential to the psir wavefunction and calculate potential energy
      call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
           pot(orbs%ispot(iorb)),psir,epot,confdatarr(iorb))
-!this ispot has to be better defined inside denspot structure
+     !this ispot has to be better defined inside denspot structure
 
      !ODP treatment (valid only for the nlr=1 case)
      if (ipotmethod==1) then !Exact Exchange
@@ -665,10 +665,12 @@ contains
        r2=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1))**2 +&
             (confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2))**2 +&
             (confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3))**2 
+
        cp=confdata%prefac*r2**(confdata%potorder/2)
     else
        cp=0.0_wp
     end if
+
   end function cp
 
 END SUBROUTINE apply_potential_lr
@@ -1229,14 +1231,14 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
               do ispinor=1,orbs%nspinor,ncplx
                  call wpdot_wrap(ncplx,  &
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                      wfd%keyv,wfd%keyg,&
+                      wfd%keyv,wfd%keyglob,&
                       psi(1,ispinor), &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                       plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
-                      plr%wfd%keyg,&!nlpspd%keyg_p(1,jseg_c),&
+                      plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c_i),&
                       cproj(ispinor,m,i,l))
-                 !print *,'ispinor,m,l,i,iat',ispinor,m,l,i,iat,cproj(ispinor,m,i,l)
+!                 print *,'ispinor,m,l,i,iat',ispinor,m,l,i,iat,cproj(ispinor,m,i,l)
               end do
               istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
            end do
@@ -1280,10 +1282,10 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                  call waxpy_wrap(ncplx,dproj(ispinor,m,i,l),&
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                       plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
-                      plr%wfd%keyg,&!nlpspd%keyg_p(1,jseg_c),&
+                      plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c),&
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                      wfd%keyv,wfd%keyg,&
+                      wfd%keyv,wfd%keyglob,&
                       hpsi(1,ispinor))
               end do
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -1293,6 +1295,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   end do
 !!$  call nanosec(itsc1)
 !!$  print *,'normal time',real(itsc1-itsc0,gp)*1.e-9_gp
+
   eproj=eproj+&
        orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_i
 !!$  istart_c=istart_c_i

@@ -200,9 +200,9 @@ subroutine nullify_local_zone_descriptors(lzd)
   !nullify(lzd%lorbs)
   !call nullify_communications_arrays(lzd%comms)
   call nullify_locreg_descriptors(lzd%glr)
-  call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
+!  call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
   nullify(lzd%llr)
-  nullify(lzd%lnlpspd)
+!  nullify(lzd%lnlpspd)
   nullify(lzd%doHamAppl)
   !call nullify_matrixMinimization(lzd%matmin)
   
@@ -281,7 +281,8 @@ subroutine nullify_wavefunctions_descriptors(wfd)
   type(wavefunctions_descriptors),intent(out):: wfd
 
   !if(associated(wfd%keyg)) then
-     nullify(wfd%keyg)
+     nullify(wfd%keygloc)
+     nullify(wfd%keyglob)
      nullify(wfd%keyv)
   !end if
 end subroutine nullify_wavefunctions_descriptors

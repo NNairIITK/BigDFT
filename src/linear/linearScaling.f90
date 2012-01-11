@@ -173,7 +173,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !allocate(lphiold(size(lphi)), stat=istat)
   !call memocc(istat, lphiold, 'lphiold', subname)
 
-  call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
+!  call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
 
   potshortcut=0 ! What is this?
   call mpi_barrier(mpi_comm_world, ierr)
@@ -607,7 +607,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   timeforce=t2force-t1force
 
 
-  call free_lnlpspd(lin%orbs, lin%lzd)
+!  call free_lnlpspd(lin%orbs, lin%lzd)
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi, lphi, coeff)

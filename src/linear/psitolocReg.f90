@@ -69,8 +69,8 @@ subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
  
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = 1,Glr%wfd%nseg_c
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
@@ -120,8 +120,8 @@ subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
@@ -199,7 +199,7 @@ subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
 
 !##########################################
 ! For the Starting index
-    Bindex = Blr%wfd%keyg(1,iseg)
+    Bindex = Blr%wfd%keygloc(1,iseg)
     tmp = Bindex -1
     z   = tmp / ((Blr%d%n2+1)*(Blr%d%n1+1))
     tmp = tmp - z*((Blr%d%n2+1)*(Blr%d%n1+1))
@@ -217,7 +217,7 @@ subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
 !######################################
 ! For the ending index
 
-    Bindex = Blr%wfd%keyg(2,iseg)
+    Bindex = Blr%wfd%keygloc(2,iseg)
     tmp = Bindex -1
     z   = tmp / ((Blr%d%n2+1)*(Blr%d%n1+1))
     tmp = tmp - z*((Blr%d%n2+1)*(Blr%d%n1+1))
@@ -367,8 +367,8 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
      lmax = keymask(2,isegloc)
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = 1,Glr%wfd%nseg_c
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
         if((lmin > Gmax) .or. (lmax < Gmin)) cycle
@@ -423,8 +423,8 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
@@ -1127,8 +1127,8 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
  
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = 1,Glr%wfd%nseg_c
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
@@ -1179,8 +1179,8 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
@@ -1295,8 +1295,8 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = 1,Glr%wfd%nseg_c
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
@@ -1355,8 +1355,8 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
@@ -1618,8 +1618,8 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
      actuallength=0
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = 1,Glr%wfd%nseg_c
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
@@ -1684,8 +1684,8 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
@@ -1808,8 +1808,8 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
  
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = 1,Glr%wfd%nseg_c
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
@@ -1861,8 +1861,8 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
      do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
-        Gmin = Glr%wfd%keyg(1,isegG)
-        Gmax = Glr%wfd%keyg(2,isegG)
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle

@@ -159,7 +159,7 @@ real(wp) :: sum_psi
   !     orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
 
   ! ATTENTION: passing phi (after proj, before gxyz) is just to pass something of the right size
-  call Linearnonlocal_forces(iproc, nproc, lin%lzd, in%hx, in%hy, in%hz, atoms, rxyz, orbs, &
+  call Linearnonlocal_forces(iproc, nproc, lin%lzd, nlpspd, in%hx, in%hy, in%hz, atoms, rxyz, orbs, &
        proj, phi, gxyz, .false., lin%orbs, coeff, phi)
 
 !#####################################################################

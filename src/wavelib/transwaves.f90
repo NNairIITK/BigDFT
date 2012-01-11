@@ -161,7 +161,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
   real(wp), dimension(:), pointer, optional :: work
   real(wp), dimension(*), intent(out), optional :: outadd
   !local variables
-  character(len=*), parameter :: subname='transpose_v'
+  character(len=*), parameter :: subname='transpose_v2'
   integer :: ierr,i_all,i_stat
   integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
   real(wp), dimension(:), pointer :: workarr
@@ -176,11 +176,11 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
      call razero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
      psishift1 = 1
      totshift = 0
+     Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
+           sum(comms%ncntt(0:nproc-1)))
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-        Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
-             sum(comms%ncntt(0:nproc-1)))
         call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
              ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
         psishift1 = psishift1 + ldim
