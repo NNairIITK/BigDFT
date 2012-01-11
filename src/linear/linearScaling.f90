@@ -101,7 +101,7 @@ real(gp), dimension(6) :: ewaldstr,strten,hstrten
 
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
-integer :: jproc
+integer :: jproc,iat,j
 real(8),dimension(:),pointer:: phi, phid
 real(8),dimension(:,:),pointer:: coeff, coeffd
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, dampingForMixing
@@ -593,14 +593,12 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
   if(iproc==0) then
      write(*,'(1x,a)') 'Force values for all atoms in x, y, z direction.'
-     do iat=1,atoms%nat
+     do iat=1,at%nat
         write(*,'(3x,i0,1x,a6,1x,3(1x,es17.10))') &
-             iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
+             iat,trim(at%atomnames(at%iatype(iat))),(fxyz(j,iat),j=1,3)
      end do
   end if
 
-
-stop
 
 !!$  call calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
 !!$       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rhopot, psi, fxyz, fnoise)

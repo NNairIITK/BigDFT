@@ -158,7 +158,7 @@ subroutine init_atomic_values(iproc, atoms, ixc)
 
   !local variables
   character(len=*), parameter :: subname='init_atomic_values'
-  integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat
+  integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat,i_all
   integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
   logical :: exists, read_radii,exist_all
   character(len=27) :: filename
@@ -176,7 +176,7 @@ subroutine init_atomic_values(iproc, atoms, ixc)
   do ityp=1,atoms%ntypes
      filename = 'psppar.'//atoms%atomnames(ityp)
      call psp_from_file(iproc, filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
-          & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
+           & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
           & atoms%radii_cf(ityp, :), read_radii, exists)
 
      if (exists) then
@@ -206,6 +206,14 @@ subroutine init_atomic_values(iproc, atoms, ixc)
      atoms%donlcc = (atoms%donlcc .or. exists)
   end do
   
+  !deallocate the paw_array if not all the atoms are present
+  if (.not. exist_all .and. associated(atoms%paw_NofL)) then
+     i_all=-product(shape(atoms%paw_NofL ))*kind(atoms%paw_NofL )
+     deallocate(atoms%paw_NofL,stat=i_stat)
+     call memocc(i_stat,i_all,'atoms%paw_NofL',subname)
+     nullify(atoms%paw_NofL)
+  end if
+
   if (exist_all) then
      do ityp=1,atoms%ntypes
         filename = 'psppar.'//atoms%atomnames(ityp)
