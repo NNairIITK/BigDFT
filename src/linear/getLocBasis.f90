@@ -176,7 +176,9 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       ist=1
       istr=1
       do iorb=1,lin%lb%orbs%norbp
-          ilr=lin%lb%orbs%inWhichLocregp(iorb)
+          !ilr=lin%lb%orbs%inWhichLocregp(iorb)
+          iiorb=lin%lb%orbs%isorb+iorb
+          ilr=lin%lb%orbs%inWhichLocreg(iiorb)
           call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
           call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%comsr%sendBuf(istr))
           call deallocate_work_arrays_sumrho(w)
@@ -657,7 +659,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
   ! Initialize the arrays and variable needed for DIIS.
-  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, lin%alphaDIIS, &
+  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%startWithSD, lin%alphaSD, lin%alphaDIIS, &
        lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons, allowDIIS, &
        startWithSD, ldiis, alpha, alphaDIIS)
 
@@ -765,7 +767,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
      allocate(confdatarr(lin%orbs%norbp))
      call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
-          input%hx,input%hy,input%hz,lin,lin%Lzd,lin%orbs%inWhichLocregp)
+          input%hx,input%hy,input%hz,lin,lin%Lzd,lin%orbs%inWhichLocreg)
       call HamiltonianApplication3(iproc,nproc,at,lin%orbs,&
            input%hx,input%hy,input%hz,rxyz,&
            proj,lin%lzd,confdatarr,ngatherarr,lpot,lphi,lhphi,&
@@ -932,7 +934,9 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
       ! of the previous iteration (fnrmOvrlpArr).
       istart=1
       do iorb=1,lin%orbs%norbp
-          ilr=lin%orbs%inWhichLocregp(iorb)
+          !ilr=lin%orbs%inWhichLocregp(iorb)
+          iiorb=lin%orbs%isorb+iorb
+          ilr=lin%orbs%inWhichLocreg(iiorb)
           ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
           if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
           fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
@@ -981,7 +985,9 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
 
       ind2=1
       do iorb=1,lin%orbs%norbp
-          ilr = lin%orbs%inWhichLocregp(iorb)
+          !ilr = lin%orbs%inWhichLocregp(iorb)
+          iiorb=lin%orbs%isorb+iorb
+          ilr = lin%orbs%inWhichLocreg(iiorb)
           call choosePreconditioner2(iproc, nproc, lin%orbs, lin, lin%lzd%Llr(ilr), input%hx, input%hy, input%hz, &
               lin%nItPrecond, lhphi(ind2), at%nat, rxyz, at, it, iorb, eval_zero)
           ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
@@ -1230,7 +1236,7 @@ contains
               idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
               if(idsx>0) then
                   if(iproc==0) write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
-                  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, &
+                  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%startWithSD, lin%alphaSD, &
                        lin%alphaDIIS, lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, &
                        icountDIISFailureCons, allowDIIS, startWithSD, ldiis, alpha, alphaDIIS)
                   icountDIISFailureTot=0
@@ -1272,7 +1278,9 @@ contains
                  offset=0
                  istdest=1
                  do iorb=1,lin%orbs%norbp
-                     ilr=lin%orbs%inWhichLocregp(iorb)
+                     !ilr=lin%orbs%inWhichLocregp(iorb)
+                     iiorb=lin%orbs%isorb+iorb
+                     ilr=lin%orbs%inWhichLocreg(iiorb)
                      ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
                      istsource=offset+ii*ncount+1
                      !write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
@@ -1316,7 +1324,9 @@ contains
     if(ldiis%isx==0) then
         istart=1
         do iorb=1,lin%orbs%norbp
-            ilr=lin%orbs%inWhichLocregp(iorb)
+            !ilr=lin%orbs%inWhichLocregp(iorb)
+            iiorb=lin%orbs%isorb+iorb
+            ilr=lin%orbs%inWhichLocreg(iiorb)
             ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
             call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, lphi(istart), 1)
             istart=istart+ncount
@@ -1327,7 +1337,7 @@ contains
             !call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi, 1)
             call dscal(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), lin%alphaDIIS, lhphi, 1)
         end if
-        call optimizeDIIS(iproc, nproc, lin%orbs, lin%orbs, lin%lzd, lin%orbs%inWhichLocregp, lhphi, lphi, ldiis, it)
+        call optimizeDIIS(iproc, nproc, lin%orbs, lin%orbs, lin%lzd, lhphi, lphi, ldiis, it)
     end if
     end subroutine improveOrbitals
 
@@ -3159,9 +3169,10 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
   ist_f=1
   do iorb=1,orbs%norbp
      iiorb=iorb+orbs%isorb
-     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+     ilr = orbs%inwhichlocreg(iiorb)
      if(centralLocreg<0) then
-         icenter=lin%orbs%inWhichLocregp(iorb)
+         !icenter=lin%orbs%inWhichLocregp(iorb)
+         icenter=lin%orbs%inWhichLocreg(iiorb)
      else
          icenter=centralLocreg
      end if
@@ -3318,7 +3329,8 @@ real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
   
      if(centralLocreg<0) then
-         icenter=lin%orbs%inWhichLocregp(iorb)
+         !icenter=lin%orbs%inWhichLocregp(iorb)
+         icenter=lin%orbs%inWhichLocreg(iiorb)
      else
          icenter=centralLocreg
      end if
@@ -3546,7 +3558,7 @@ subroutine minimize_in_subspace(iproc, nproc, lin, at, input, lpot, GPU, ngather
   ! Apply the Hamiltonian for each atom.
   ! onWhichAtomTemp indicates that all orbitals feel the confining potential
   ! centered on atom iat.
-  allocate(onWhichAtomTemp(lin%orbs%norbp),stat=istat)
+  allocate(onWhichAtomTemp(lin%orbs%norb),stat=istat)
   call memocc(istat,onWhichAtomTemp,'onWhichAtomTemp',subname)
   allocate(doNotCalculate(lin%lzd%nlr),stat=istat)
   call memocc(istat,doNotCalculate,'doNotCalculate',subname)
@@ -3563,7 +3575,8 @@ subroutine minimize_in_subspace(iproc, nproc, lin, at, input, lpot, GPU, ngather
      skip(iat)=.true.
      do jorb=1,lin%orbs%norbp
         jjorb=jorb+lin%orbs%isorb
-        onWhichAtomTemp(jorb)=iat
+        !onWhichAtomTemp(jorb)=iat
+        onWhichAtomTemp(jjorb)=iat
         jlr=lin%orbs%inWhichLocreg(jjorb)
         if(lin%orbs%inWhichlocreg(jorb+lin%orbs%isorb)/=jlr) stop 'this should not happen'
         call getIndices(lin%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
@@ -3608,9 +3621,12 @@ subroutine minimize_in_subspace(iproc, nproc, lin, at, input, lpot, GPU, ngather
      call getIndices(lin%lzd%llr(iat), is1, ie1, is2, ie2, is3, ie3)
      skip(iat)=.true.
      do jorb=1,lin%orbs%norbp
-        onWhichAtomTemp(jorb)=iat
+        !onWhichAtomTemp(jorb)=iat
+        onWhichAtomTemp(lin%orbs%isorb+jorb)=iat
         !jlr=onWhichAtomp(jorb)
-        jlr=lin%orbs%inWhichLocregp(jorb)
+        !jlr=lin%orbs%inWhichLocregp(jorb)
+        jjorb=lin%orbs%isorb+jorb
+        jlr=lin%orbs%inWhichLocreg(jjorb)
         call getIndices(lin%lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
         ovrlpx = ( is1<=je1 .and. ie1>=js1 )
         ovrlpy = ( is2<=je2 .and. ie2>=js2 )
@@ -4393,7 +4409,7 @@ real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
 
 ! Local variables
-integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all
+integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, iiorb
 real(8):: hxh, hyh, hzh, alpha
 type(workarr_sumrho):: work_sr
 real(8),dimension(:,:),allocatable:: psir
@@ -4422,7 +4438,9 @@ character(len=*),parameter:: subname='flatten_at_edges'
      hyh=.5d0*input%hy
      hzh=.5d0*input%hz
      !icenter=confinementCenter(iorb)
-     icenter=lin%orbs%inWhichLocregp(iorb)
+     !icenter=lin%orbs%inWhichLocregp(iorb)
+     iiorb=orbs%isorb+iorb
+     icenter=lin%orbs%inWhichLocreg(iiorb)
      !components of the potential
      npot=orbs%nspinor
      if (orbs%nspinor == 2) npot=1

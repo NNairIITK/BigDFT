@@ -107,7 +107,8 @@ real(gp) :: kx,ky,kz
               
               ! iiAt indicates on which atom orbital iorb is centered.
               !iiAt=lin%onWhichAtom(iorb)
-              iiAt=lin%orbs%inWhichLocregp(iorb)
+              !iiAt=lin%orbs%inWhichLocregp(iorb)
+              iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
               call solvePrecondEquation(lr,ncplx,ncong,cprecr,&
                    hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb), rxyz(1,iiAt), orbs,&
                    lin%potentialPrefac(at%iatype(iiAt)), lin%confPotOrder, it)
@@ -683,7 +684,8 @@ real(gp) :: kx,ky,kz
               
               ! iiAt indicates on which atom orbital iorb is centered.
               !iiAt=lin%onWhichAtom(iorb)
-              iiAt=lin%orbs%inWhichLocregp(iorb)
+              !iiAt=lin%orbs%inWhichLocregp(iorb)
+              iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
               call solvePrecondEquation(lr,ncplx,ncong,cprecr,&
                    hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
                    lin%potentialPrefac(at%iatype(iiAt)), lin%confPotOrder, it)

@@ -554,7 +554,8 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   ist=1
   istr=1
   do iorb=1,lin%lb%orbs%norbp
-      ilr=lin%lb%orbs%inWhichLocregp(iorb)
+      !ilr=lin%lb%orbs%inWhichLocregp(iorb)
+      ilr=lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
       call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
       !call daub_to_isf(lin%lzd%llr(ilr), w, lphi(ist), lphir(istr))
       call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%comsr%sendBuf(istr))
@@ -804,7 +805,8 @@ character(len=*),parameter:: subname='transformToGlobal'
        call to_zero(max(lin%lb%gorbs%npsidim_orbs,lin%lb%gorbs%npsidim_comp),phi(1))
 
   do iorb=1,lin%lb%orbs%norbp
-      ilr = lin%lb%orbs%inWhichLocregp(iorb)
+      !ilr = lin%lb%orbs%inWhichLocregp(iorb)
+      ilr = lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
       ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       gdim=lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
       call Lpsi_to_global2(iproc,nproc,ldim,gdim,lin%lb%orbs%norb,lin%lb%orbs%nspinor,input%nspin,lin%lzd%Glr,&

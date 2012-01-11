@@ -5557,7 +5557,9 @@ call memocc(istat, phiWork, 'phiWork', subname)
   ind2=1
   phi=0.d0
   do iorb=1,orbs%norbp
-      ilr = orbs%inWhichLocregp(iorb)
+      !ilr = orbs%inWhichLocregp(iorb)
+      iiorb=orbs%isorb+iorb
+      ilr = orbs%inWhichLocreg(iiorb)
       ldim=lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
       gdim=lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
       call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norb, orbs%nspinor, input%nspin, lzd%Glr,&
@@ -5579,7 +5581,9 @@ call memocc(istat, phiWork, 'phiWork', subname)
   ind2=1
   hphi=0.d0
   do iorb=1,orbs%norbp
-      ilr = orbs%inWhichLocregp(iorb)
+      !ilr = orbs%inWhichLocregp(iorb)
+      iiorb=orbs%isorb+iorb
+      ilr = orbs%inWhichLocreg(iiorb)
       ldim=lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
       gdim=lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
       call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norb, orbs%nspinor, input%nspin, lzd%Glr,&
@@ -5670,7 +5674,9 @@ call dgemm('n', 't', nvctrp, orbs%norb, orbs%norb, -.5_wp, phi, nvctrp, lagmat, 
   ind1=1
   ind2=1
   do iorb=1,orbs%norbp
-      ilr = orbs%inWhichLocregp(iorb)
+      !ilr = orbs%inWhichLocregp(iorb)
+      iiorb=orbs%isorb+iorb
+      ilr = orbs%inWhichLocreg(iiorb)
       ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
       gdim=lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
       call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzd%glr, hphi(ind1), lhphi(ind2))

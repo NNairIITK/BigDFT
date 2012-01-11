@@ -278,7 +278,8 @@ call copy_nonlocal_psp_descriptors(nlpspd, lin%lzd%Gnlpspd, subname)
 do ilr=1,lin%lzd%nlr
     lin%lzd%Llr(ilr)%localnorb=0
     do iorb=1,lin%orbs%norbp
-        if(lin%orbs%inWhichLocregp(iorb)==ilr) then
+        !if(lin%orbs%inWhichLocregp(iorb)==ilr) then
+        if(lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)==ilr) then
             lin%lzd%Llr(ilr)%localnorb = lin%lzd%Llr(ilr)%localnorb+1
         end if
     end do
@@ -1106,7 +1107,8 @@ end do
     orbLoop: do iorb=1,orbs%norbp
         call daub_to_isf(Glr,w,phi(istart+1),phir(1))
         !iiAt=lin%onWhichAtom(iorb)
-        iiAt=lin%orbs%inWhichLocregp(iorb)
+        !iiAt=lin%orbs%inWhichLocregp(iorb)
+        iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
         ix0=nint(rxyz(1,iiAt)/hxh)
         iy0=nint(rxyz(2,iiAt)/hyh)
         iz0=nint(rxyz(3,iiAt)/hzh)
@@ -1306,7 +1308,8 @@ do iorb=1,lin%orbs%norbp
     call daub_to_isf(Glr, w, phi(ist), phir(1))
     
     !iiAt=lin%onWhichAtom(iorb)
-    iiAt=lin%orbs%inWhichLocregp(iorb)
+    !iiAt=lin%orbs%inWhichLocregp(iorb)
+    iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
     cut=lin%locrad(iiAt)
     
     jj=0
@@ -1366,7 +1369,8 @@ do iorb=1,lin%orbs%norbp
     call daub_to_isf(Glr,w,phi(ist),phir(1))
     
     !iiAt=lin%onWhichAtom(iorb)
-    iiAt=lin%orbs%inWhichLocregp(iorb)
+    !iiAt=lin%orbs%inWhichLocregp(iorb)
+    iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
     cut=lin%locrad(iiAt)
     !write(*,'(a,2i8,es10.3)') 'iorb,iiAt,cut',iorb,iiAt,cut
     
@@ -1510,7 +1514,8 @@ call memocc(istat, lin%comsr%computComplete, 'lin%comsr%computComplete', subname
 ! ('npsidimr') case.
 lin%comsr%nsendBuf=0
 do iorb=1,lin%lb%orbs%norbp
-    ilr=lin%lb%orbs%inWhichLocregp(iorb)
+    !ilr=lin%lb%orbs%inWhichLocregp(iorb)
+    ilr=lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
     lin%comsr%nsendBuf=lin%comsr%nsendBuf+lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
 end do
 
@@ -1797,7 +1802,8 @@ end do
 npsidim=0
 do iorb=1,lin%orbs%norbp
     !ilr=lin%onWhichAtom(iorb)
-    ilr=lin%orbs%inWhichLocregp(iorb)
+    !ilr=lin%orbs%inWhichLocregp(iorb)
+    ilr=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
     npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
 end do
 !lin%Lorbs%npsidim=npsidim
@@ -1811,7 +1817,8 @@ if(.not. lin%useDerivativeBasisFunctions) then
 else
     npsidim=0
     do iorb=1,lin%lb%orbs%norbp
-        ilr=lin%lb%orbs%inWhichLocregp(iorb)
+        !ilr=lin%lb%orbs%inWhichLocregp(iorb)
+        ilr=lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
         npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
         !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
     end do
@@ -1921,7 +1928,8 @@ lzd%linear=.true.
 ! ('npsidimr') case.
 npsidim=0
 do iorb=1,orbs%norbp
-    ilr=orbs%inWhichLocregp(iorb)
+    !ilr=orbs%inWhichLocregp(iorb)
+    ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
     npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
 end do
 !! WARNING: CHECHK THIS
@@ -2137,7 +2145,8 @@ if(iproc==0) then
     ! one orbital in real space (same size)
     iimax=0
     do iorb=1,lin%orbs%norbp
-        ilr=lin%orbs%inWhichLocregp(iorb)
+        !ilr=lin%orbs%inWhichLocregp(iorb)
+        ilr=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
         ii=lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
         if(ii>iimax) iimax=ii
     end do
