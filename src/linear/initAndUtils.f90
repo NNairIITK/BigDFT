@@ -134,12 +134,12 @@ call repartitionOrbitals(iproc, nproc, lin%lb%gorbs%norb, lin%lb%gorbs%norb_par,
      lin%lb%gorbs%norbp, lin%lb%gorbs%isorb_par, lin%lb%gorbs%isorb, lin%lb%gorbs%onWhichMPI)
 
 
-! Check the number of virtual orbitals.
-if(lin%norbvirt>lin%lb%orbs%norb-orbs%norb) then
-    lin%norbvirt=lin%lb%orbs%norb-orbs%norb
-    if(iproc==0) write(*,'(x,a,i0)') 'WARNING: the number of virtual orbitals is adjusted to its maximal &
-        & possible value of ', lin%norbvirt
-end if
+!!! Check the number of virtual orbitals.
+!!if(lin%norbvirt>lin%lb%orbs%norb-orbs%norb) then
+!!    lin%norbvirt=lin%lb%orbs%norb-orbs%norb
+!!    if(iproc==0) write(*,'(x,a,i0)') 'WARNING: the number of virtual orbitals is adjusted to its maximal &
+!!        & possible value of ', lin%norbvirt
+!!end if
 
 
 ! Assign the parameters needed for the communication to lin%comms. Again distinguish
@@ -479,10 +479,10 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   open(unit=99, file=trim(filename))
   read(99,*) lin%nit_lowaccuracy, lin%nit_highaccuracy, lin%reducePrefactor
   read(99,*) lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy
-  read(99,*) lin%nItBasisFirst, lin%nItBasis, lin%fixBasis
+  !read(99,*) lin%nItBasisFirst, lin%nItBasis, lin%fixBasis
   read(99,*) lin%nItInnerLoop, lin%convCrit
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
-  read(99,*) lin%startWithSD, lin%startDIIS
+  read(99,*) lin%startDIIS
   read(99,*) lin%nItPrecond
   read(99,*) lin%getCoeff, lin%locregShape
   read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
@@ -493,13 +493,12 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   read(99,*) lin%mixingMethod
   read(99,*) lin%mixHist, lin%nItSCCWhenOptimizing, lin%nItSCCWhenFixed
   read(99,*) lin%alphaMixWhenOptimizing, lin%alphaMixWhenFixed, lin%convCritMix
-  read(99,*) lin%nItOuterSCC, lin%factorFixBasis, lin%minimalFixBasis, lin%convCritMixOut
+  read(99,*) lin%convCritMixOut
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess, lin%memoryForCommunOverlapIG
   read(99,*) lin%plotBasisFunctions
   read(99,*) lin%transformToGlobal
   read(99,*) lin%norbsPerProcIG
-  read(99,*) lin%norbvirt
   read(99,*) lin%sumrho_fast
 
 
@@ -608,8 +607,8 @@ write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es8.2,a,es9
      lin%mixingMethod, '  |', message1, ' | ', repeat(' ', optimalLength(4, lin%nItSCCWhenOptimizing)), &
      lin%nItSCCWhenOptimizing, '   /', repeat(' ', optimalLength(3, lin%nItSCCWhenFixed)), lin%nItSCCWhenFixed, &
      '   |', lin%alphaMixWhenOptimizing, ' /', lin%alphaMixWhenOptimizing, ' |    ',&
-     lin%convCritMix, ' |', repeat(' ', optimalLength(9, lin%nItOuterSCC)), &
-     lin%nItOuterSCC, '      |   ', lin%factorFixBasis, '   | ', lin%minimalFixBasis, ' |   ',&
+     lin%convCritMix, ' |', repeat(' ', optimalLength(9, 1)), &
+     1, '      |   ', -1.d0, '   | ', -1.d0, ' |   ',&
      lin%convCritMixOut, '    |'
 write(*,'(4x,a)') '-----------------------------------------------------------------------------------------&
 &-------------------------------------------'
@@ -640,12 +639,12 @@ else if(trim(lin%getCoeff)=='min') then
     message1='   min  '
 end if
 write(*,'(4x,a,a,i0,3x,a,i0,2x,a,1x,es9.3,1x,a,a,i0,a,a,a,l2,a,2x,es10.3,2x,a)') '| ', &
-    repeat(' ', 5-ceiling(log10(dble(lin%nItBasisFirst+1)+1.d-10))), lin%nItBasisFirst, &
-    repeat(' ', 5-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
+    repeat(' ', 5-ceiling(log10(dble(0)+1.d-10))), -1, &
+    repeat(' ', 5-ceiling(log10(dble(0)+1.d-10))), -1, &
       '| ', lin%convCrit, ' | ', &
       repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       | ' , &
       message1, '  |  ', &
-      lin%plotBasisFunctions, '   |', lin%fixBasis, '|'
+      lin%plotBasisFunctions, '   |', -1.d0, '|'
 write(*,'(4x,a)') '---------------------------------------------------------------------'
 write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |'
 write(*,'(4x,a)') '|  min   max   |            |          | with SD |            | nit max   conv crit | of overlap mat |'
@@ -661,7 +660,7 @@ end if
 write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,1x,es8.2,1x,a,l3,a,1x,es10.3,a,a,i0,7x,es7.1,2x,a,1x,a,1x,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
     repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
-    lin%alphaDIIS, '|', lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |', &
+    lin%alphaDIIS, '|', lin%alphaSD, '|   ', .false., '    |', lin%startDIIS, ' |', &
     repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, lin%convCritOrtho, '|', message2, '|'
 write(*,'(4x,a)') '------------------------------------------------------------------------------------------------------'
 write(*,'(1x,a)') '>>>> Parameters for the optimization of the coefficients.'

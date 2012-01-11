@@ -798,12 +798,13 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
 
   !Linear input parameters
   call input_set_file(iproc,trim(filename),exists,'Linear Parameters')  
+  write(*,*) 'HERE'
   
   ! Read the number of iterations and convergence criterion for the basis functions BF
   comments = 'Max iter. for optimizing basis functions in 1st iter., same for other iter. , BF are fixed if pnrm < this number'
-  call input_var(in%lin%nItBasisFirst,'5',ranges=(/1,10000/))
-  call input_var(in%lin%nItBasis,'5',ranges=(/1,10000/))
-  call input_var(in%lin%fixBasis,'5.d-7',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  !call input_var(in%lin%nItBasisFirst,'5',ranges=(/1,10000/))
+  !call input_var(in%lin%nItBasis,'5',ranges=(/1,10000/))
+  !call input_var(in%lin%fixBasis,'5.d-7',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! Convergence criterion
   call input_var(in%lin%convCrit,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment='Convergence criterion')
@@ -817,7 +818,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   
   ! lin%startWithSD, lin%startDIIS
   comments = 'start with SD, start criterion for DIIS'
-  call input_var(in%lin%startWithSD,'F')
+  !call input_var(in%lin%startWithSD,'F')
   call input_var(in%lin%startDIIS,'2.d2',ranges=(/1.d0,1.d3/),comment=comments)
   
   !number of iterations in the preconditioner : lin%nItPrecond

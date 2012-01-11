@@ -184,8 +184,8 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
   !rhopotold_out=1.d100
 
-  allocate(lin%coeffall(lin%lb%orbs%norb,orbs%norb+lin%norbvirt), stat=istat)
-  call memocc(istat, lin%coeffall, 'lin%coeffall', subname)
+  !allocate(lin%coeffall(lin%lb%orbs%norb,orbs%norb+lin%norbvirt), stat=istat)
+  !call memocc(istat, lin%coeffall, 'lin%coeffall', subname)
 
   allocate(coeff_proj(lin%orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, coeff_proj, 'coeff_proj', subname)
@@ -349,11 +349,12 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
       updatePhi=.true.
 
-      if(reduceConvergenceTolerance) lin%fixBasis=max(lin%fixBasis*lin%factorFixBasis,lin%minimalFixBasis)
-      selfConsistent=max(lin%convCritMix,5.d-3*lin%fixBasis)
+      !if(reduceConvergenceTolerance) lin%fixBasis=max(lin%fixBasis*lin%factorFixBasis,lin%minimalFixBasis)
+      !selfConsistent=max(lin%convCritMix,5.d-3*lin%fixBasis)
+      selfConsistent=lin%convCritMix
 
-      if(iproc==0) write(*,'(a,es12.4,3x,es12.4)') &
-           'DELTA DENS for fixing basis functions, reaching self consistency:',lin%fixBasis, selfConsistent
+      !if(iproc==0) write(*,'(a,es12.4,3x,es12.4)') &
+      !     'DELTA DENS for fixing basis functions, reaching self consistency:',lin%fixBasis, selfConsistent
 
       if(lin%sumrho_fast) then
           with_auxarray=.true.
@@ -364,13 +365,13 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
       if(itout==lin%nit_lowaccuracy+1) then
           lin%potentialPrefac = lin%potentialPrefac_highaccuracy
-          lin%nItBasisFirst = lin%nItBasis_highaccuracy
-          lin%nItBasis = lin%nItBasis_highaccuracy
+          !lin%nItBasisFirst = lin%nItBasis_highaccuracy
+          !lin%nItBasis = lin%nItBasis_highaccuracy
           lin%newgradient=.true.
       else
           lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
-          lin%nItBasisFirst = lin%nItBasis_lowaccuracy
-          lin%nItBasis = lin%nItBasis_lowaccuracy
+          !lin%nItBasisFirst = lin%nItBasis_lowaccuracy
+          !lin%nItBasis = lin%nItBasis_lowaccuracy
           lin%newgradient=.false.
       end if
       !!if(itout==lin%nit_lowaccuracy-2) then
@@ -378,7 +379,8 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       !!end if
 
       do itSCC=1,nitSCC
-          if(itSCC>1 .and. pnrm<lin%fixBasis .or. itSCC==lin%nitSCCWhenOptimizing) updatePhi=.false.
+          !if(itSCC>1 .and. pnrm<lin%fixBasis .or. itSCC==lin%nitSCCWhenOptimizing) updatePhi=.false.
+          if(itSCC>lin%nitSCCWhenOptimizing) updatePhi=.false.
           if(itSCC==1) then
               communicate_lphi=.true.
           else
@@ -620,9 +622,9 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi, lphi, coeff)
 
-  iall=-product(shape(lin%coeffall))*kind(lin%coeffall)
-  deallocate(lin%coeffall, stat=istat)
-  call memocc(istat, iall, 'lin%coeffall', subname)
+  !iall=-product(shape(lin%coeffall))*kind(lin%coeffall)
+  !deallocate(lin%coeffall, stat=istat)
+  !call memocc(istat, iall, 'lin%coeffall', subname)
 
   iall=-product(shape(coeff_proj))*kind(coeff_proj)
   deallocate(coeff_proj, stat=istat)

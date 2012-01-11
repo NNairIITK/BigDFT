@@ -694,22 +694,22 @@ end type workarrays_quartic_convolutions
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
-    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff 
+    integer:: DIISHistMin, DIISHistMax, nItPrecond, nItCoeff 
     integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItOuterSCC, nItSCCWhenFixed
-    integer:: norbvirt, nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
+    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
+    integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMixWhenFixed, reducePrefactor
-    real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho, fixBasis
-    real(8):: FactorFixBasis, convCritMixOut, minimalFixBasis
+    real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho
+    real(8):: convCritMixOut
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lxi, transmat, lpsi, lhpsi
     real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
-    real(8),dimension(:,:),pointer:: hamold, coeffall
+    real(8),dimension(:,:),pointer:: hamold
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
-    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions, transformToGlobal, sumrho_fast
+    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, sumrho_fast
     logical:: newgradient
     character(len=4):: getCoeff, mixingMethod
     type(p2pCommsSumrho):: comsr

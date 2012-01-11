@@ -414,7 +414,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       end if
       if(iproc==0) write(*,'(a)') 'done.'
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
-      if(.not.updatePhi) call dcopy(lin%lb%orbs%norb*(orbs%norb+lin%norbvirt), matrixElements(1,1,2), 1, lin%coeffall(1,1), 1)
+      !if(.not.updatePhi) call dcopy(lin%lb%orbs%norb*(orbs%norb+lin%norbvirt), matrixElements(1,1,2), 1, lin%coeffall(1,1), 1)
       infoCoeff=0
 
       ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
@@ -659,15 +659,20 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
   ! Initialize the arrays and variable needed for DIIS.
-  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%startWithSD, lin%alphaSD, lin%alphaDIIS, &
+  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%alphaSD, lin%alphaDIIS, &
        lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons, allowDIIS, &
        startWithSD, ldiis, alpha, alphaDIIS)
 
   ! Set the maximal number of iterations.
-  if(itSCC==1) then
-      nit=lin%nItBasisFirst
+  !if(itSCC==1) then
+  !    nit=lin%nItBasisFirst
+  !else
+  !    nit=lin%nItBasis
+  !end if
+  if(lin%newgradient) then
+      nit=lin%nItBasis_highaccuracy
   else
-      nit=lin%nItBasis
+      nit=lin%nItBasis_lowaccuracy
   end if
 
   ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
@@ -1236,7 +1241,7 @@ contains
               idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
               if(idsx>0) then
                   if(iproc==0) write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
-                  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%startWithSD, lin%alphaSD, &
+                  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%alphaSD, &
                        lin%alphaDIIS, lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, &
                        icountDIISFailureCons, allowDIIS, startWithSD, ldiis, alpha, alphaDIIS)
                   icountDIISFailureTot=0
