@@ -290,6 +290,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
             iat_proj=0
             do iat=1,at%nat
                !check if the atom intersect with the given localisation region
+   !write(*,*) 'iproc, associated(lzd%Llr(ilr)%projflg)', iproc, associated(lzd%Llr(ilr)%projflg)
+   !write(*,*) 'iproc, lzd%Llr(ilr)%projflg', iproc, lzd%Llr(ilr)%projflg
                if(Lzd%Llr(ilr)%projflg(iat) == 0) cycle
                iat_proj=iat_proj+1
                if (Lzd%Lnlpspd(ilr)%nprojel > Lzd%Gnlpspd%nprojel) then

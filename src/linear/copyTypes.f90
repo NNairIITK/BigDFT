@@ -771,8 +771,6 @@ character(len=*),intent(in):: subname
 
 ! Local variables
 integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
-write(*,*) 'copy 0'
-call mpi_barrier(mpi_comm_world, istat)
 
 orbsout%norb = orbsin%norb
 orbsout%norbp = orbsin%norbp
@@ -787,9 +785,6 @@ orbsout%nkpts = orbsin%nkpts
 orbsout%nkptsp = orbsin%nkptsp
 orbsout%iskpts = orbsin%iskpts
 orbsout%efermi = orbsin%efermi
-
-write(*,*) 'copy 1'
-call mpi_barrier(mpi_comm_world, istat)
 
 if(associated(orbsout%norb_par)) then
     iall=-product(shape(orbsout%norb_par))*kind(orbsout%norb_par)
@@ -807,8 +802,6 @@ do i1=iis1,iie1
     orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
    end do
 end do
-write(*,*) 'copy 2'
-call mpi_barrier(mpi_comm_world, istat)
 
 if(associated(orbsout%iokpt)) then
     iall=-product(shape(orbsout%iokpt))*kind(orbsout%iokpt)
@@ -822,8 +815,6 @@ call memocc(istat, orbsout%iokpt, 'orbsout%iokpt', subname)
 do i1=iis1,iie1
     orbsout%iokpt(i1) = orbsin%iokpt(i1)
 end do
-write(*,*) 'copy 3'
-call mpi_barrier(mpi_comm_world, istat)
 
 if(associated(orbsout%ikptproc)) then
     iall=-product(shape(orbsout%ikptproc))*kind(orbsout%ikptproc)
@@ -837,8 +828,6 @@ call memocc(istat, orbsout%ikptproc, 'orbsout%ikptproc', subname)
 do i1=iis1,iie1
     orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
 end do
-write(*,*) 'copy 4'
-call mpi_barrier(mpi_comm_world, istat)
 
 if(associated(orbsout%inwhichlocreg)) then
     iall=-product(shape(orbsout%inwhichlocreg))*kind(orbsout%inwhichlocreg)
@@ -852,8 +841,6 @@ call memocc(istat, orbsout%inwhichlocreg, 'orbsout%inwhichlocreg', subname)
 do i1=iis1,iie1
     orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
 end do
-write(*,*) 'copy 5'
-call mpi_barrier(mpi_comm_world, istat)
 
 !!if(associated(orbsout%inWhichLocregP)) then
 !!    iall=-product(shape(orbsout%inWhichLocregP))*kind(orbsout%inWhichLocregP)
@@ -882,8 +869,6 @@ call memocc(istat, orbsout%onWhichMPI, 'orbsout%onWhichMPI', subname)
 do i1=iis1,iie1
     orbsout%onWhichMPI(i1) = orbsin%onWhichMPI(i1)
 end do
-write(*,*) 'copy 7'
-call mpi_barrier(mpi_comm_world, istat)
 
 if(associated(orbsout%isorb_par)) then
     iall=-product(shape(orbsout%isorb_par))*kind(orbsout%isorb_par)
@@ -897,8 +882,6 @@ end if
    do i1=iis1,iie1
        orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
    end do
-write(*,*) 'copy 8'
-call mpi_barrier(mpi_comm_world, istat)
 
 if(associated(orbsout%eval)) then
     iall=-product(shape(orbsout%eval))*kind(orbsout%eval)
@@ -914,8 +897,6 @@ if(iie1 /= iis1 ) then
        orbsout%eval(i1) = orbsin%eval(i1)
    end do
 end if
-write(*,*) 'copy 9'
-call mpi_barrier(mpi_comm_world, istat)
 
 if(associated(orbsout%occup)) then
     iall=-product(shape(orbsout%occup))*kind(orbsout%occup)
@@ -929,8 +910,6 @@ call memocc(istat, orbsout%occup, 'orbsout%occup', subname)
 do i1=iis1,iie1
     orbsout%occup(i1) = orbsin%occup(i1)
 end do
-write(*,*) 'copy 10'
-call mpi_barrier(mpi_comm_world, istat)
 
 if(associated(orbsout%spinsgn)) then
     iall=-product(shape(orbsout%spinsgn))*kind(orbsout%spinsgn)
@@ -944,8 +923,6 @@ call memocc(istat, orbsout%spinsgn, 'orbsout%spinsgn', subname)
 do i1=iis1,iie1
     orbsout%spinsgn(i1) = orbsin%spinsgn(i1)
 end do
-write(*,*) 'copy 11'
-call mpi_barrier(mpi_comm_world, istat)
 
 
 if(associated(orbsout%kwgts)) then
@@ -960,8 +937,6 @@ call memocc(istat, orbsout%kwgts, 'orbsout%kwgts', subname)
 do i1=iis1,iie1
     orbsout%kwgts(i1) = orbsin%kwgts(i1)
 end do
-write(*,*) 'copy 12'
-call mpi_barrier(mpi_comm_world, istat)
 
 
 if(associated(orbsout%kpts)) then
@@ -980,8 +955,6 @@ do i2=iis2,iie2
         orbsout%kpts(i1,i2) = orbsin%kpts(i1,i2)
     end do
 end do
-write(*,*) 'copy 13'
-call mpi_barrier(mpi_comm_world, istat)
 
 
 end subroutine copy_orbitals_data

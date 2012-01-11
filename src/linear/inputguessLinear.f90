@@ -85,8 +85,6 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
       norbat=norbat+norbsPerAt(iat)
       norbtot=norbtot+jj
   end do
-if(iproc==0) write(*,*) 'here 0'
-call mpi_barrier(mpi_comm_world, iall)
 
   ! Nullify the orbitals_data type and then determine its values.
   call nullify_orbitals_data(lin%lig%orbsig)
@@ -96,8 +94,6 @@ call mpi_barrier(mpi_comm_world, iall)
        input%nspin, lin%orbs%nspinor, lin%orbs%nkpts, lin%orbs%kpts, lin%orbs%kwgts, lin%lig%orbsig)
   call repartitionOrbitals(iproc, nproc, lin%lig%orbsig%norb, lin%lig%orbsig%norb_par, &
        lin%lig%orbsig%norbp, lin%lig%orbsig%isorb_par, lin%lig%orbsig%isorb, lin%lig%orbsig%onWhichMPI)
-if(iproc==0) write(*,*) 'here 1'
-call mpi_barrier(mpi_comm_world, iall)
 
 
   ! lzdig%orbs%inWhichLocreg has been allocated in orbitals_descriptors. Since it will again be allcoated
@@ -113,34 +109,22 @@ call mpi_barrier(mpi_comm_world, iall)
   allocate(lin%lig%orbsig%eval(lin%orbs%norb), stat=istat)
   call memocc(istat, lin%lig%orbsig%eval, 'lin%lig%orbsig%eval', subname)
   lin%lig%orbsig%eval=-.5d0
-if(iproc==0) write(*,*) 'here 3'
-call mpi_barrier(mpi_comm_world, iall)
 
 
   ! Nullify the locreg_descriptors and then copy Glr to it.
   call nullify_locreg_descriptors(lin%lig%lzdGauss%Glr)
   call copy_locreg_descriptors(Glr, lin%lig%lzdGauss%Glr, subname)
-if(iproc==0) write(*,*) 'here 4'
-call mpi_barrier(mpi_comm_world, iall)
 
   ! Determine the localization regions.
   call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdig, lin%lig%orbsig, input, Glr, lin%locrad, lin%locregShape)
   !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
   call copy_locreg_descriptors(Glr, lin%lig%lzdig%Glr, subname)
-if(iproc==0) write(*,*) 'here 5'
-call mpi_barrier(mpi_comm_world, iall)
 
   ! Determine the localization regions for the atomic orbitals, which have a different localization radius.
   locrad=max(12.d0,maxval(lin%locrad(:)))
   call nullify_orbitals_data(lin%lig%orbsGauss)
-if(iproc==0) write(*,*) 'here 5.1'
-call mpi_barrier(mpi_comm_world, iall)
   call copy_orbitals_data(lin%lig%orbsig, lin%lig%orbsGauss, subname)
-if(iproc==0) write(*,*) 'here 5.2'
-call mpi_barrier(mpi_comm_world, iall)
   call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdGauss, lin%lig%orbsGauss, input, Glr, locrad, lin%locregShape)
-if(iproc==0) write(*,*) 'here 6'
-call mpi_barrier(mpi_comm_world, iall)
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
@@ -148,15 +132,11 @@ call mpi_barrier(mpi_comm_world, iall)
   !!     input, lin%lig%op, lin%lig%comon, tag)
   call initCommsOrtho(iproc, nproc, lin%lig%lzdig, lin%lig%orbsig, lin%lig%orbsig%inWhichLocreg, &
        input, lin%locregShape, lin%lig%op, lin%lig%comon, tag)
-if(iproc==0) write(*,*) 'here 7'
-call mpi_barrier(mpi_comm_world, iall)
 
   ! Initialize the parameters needed for communicationg the potential.
   call copy_locreg_descriptors(Glr, lin%lig%lzdig%Glr, subname)
   call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lig%orbsig, lin%lig%lzdig, lin%lig%comgp, &
        lin%lig%orbsig%inWhichLocreg, tag)
-if(iproc==0) write(*,*) 'here 8'
-call mpi_barrier(mpi_comm_world, iall)
 
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
   !!call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
@@ -165,11 +145,7 @@ call mpi_barrier(mpi_comm_world, iall)
   !!call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
 
   call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
-if(iproc==0) write(*,*) 'here 9'
-call mpi_barrier(mpi_comm_world, iall)
   call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
-if(iproc==0) write(*,*) 'here 10'
-call mpi_barrier(mpi_comm_world, iall)
 
 
   ! Deallocate the local arrays.
@@ -716,6 +692,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   lin%lig%lzdig,confdatarr,ngatherarr,lpot,lchi,lhchi(1,ii),&
                   ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,&
                   pkernel=pkernelseq)
+             !write(*,*) 'iproc, associated(lin%lig%lzdig%Llr(1)%projflg)', iproc, associated(lin%lig%lzdig%Llr(1)%projflg)
+             !write(*,*) 'iproc, lin%lig%lzdig%Llr(1)%projflg', iproc, lin%lig%lzdig%Llr(1)%projflg
 
              call NonLocalHamiltonianApplication(iproc,at,lin%lig%orbsig,&
                   input%hx,input%hy,input%hz,rxyz,&
