@@ -58,7 +58,7 @@ int main(int argc, char **argv)
   atoms->rxyz.data[3 * 2 + 0] = -0.5;
   atoms->rxyz.data[3 * 2 + 1] = 0.;
   atoms->rxyz.data[3 * 2 + 2] = 0.5;
-  bigdft_atoms_set_displacement(atoms, 0.001);
+  /* bigdft_atoms_set_displacement(atoms, 0.001); */
   bigdft_atoms_write(atoms, "output");
   fprintf(stdout, "Test BigDFT_Atoms pseudo-potential on the fly.\n");
   bigdft_atoms_set_psp(atoms, 1);
