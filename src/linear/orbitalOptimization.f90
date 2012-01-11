@@ -1,4 +1,4 @@
-subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, onWhichAtom, hphi, phi, ldiis, it)
+subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, hphi, phi, ldiis, it)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => optimizeDIIS
@@ -8,7 +8,6 @@ implicit none
 integer,intent(in):: iproc, nproc, it
 type(orbitals_data),intent(in):: orbs, lorbs
 type(local_zone_descriptors),intent(in):: lzd
-integer,dimension(orbs%norbp),intent(in):: onWhichAtom
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(in):: hphi
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: phi
 type(localizedDIISParameters),intent(inout):: ldiis
@@ -41,18 +40,21 @@ ist=1
 do iorb=1,orbs%norbp
     jst=1
     do jorb=1,iorb-1
-        jlr=onWhichAtom(jorb)
+        !jlr=onWhichAtom(jorb)
+        jlr=orbs%inwhichlocreg(orbs%isorb+jorb)
         ncount=lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
         jst=jst+ncount*ldiis%isx
     end do
-    ilr=onWhichAtom(iorb)
+    !ilr=onWhichAtom(iorb)
+    ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     jst=jst+(ldiis%mis-1)*ncount
     call dcopy(ncount, phi(ist), 1, ldiis%phiHist(jst), 1)
     call dcopy(ncount, hphi(ist), 1, ldiis%hphiHist(jst), 1)
 
 
-    ilr=onWhichAtom(iorb)
+    !ilr=onWhichAtom(iorb)
+    ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     ist=ist+ncount
 end do
@@ -77,12 +79,14 @@ do iorb=1,orbs%norbp
     jst=1
     ist1=1
     do jorb=1,iorb-1
-        jlr=onWhichAtom(jorb)
+        !jlr=onWhichAtom(jorb)
+        jlr=orbs%inwhichlocreg(orbs%isorb+jorb)
         ncount=lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
         jst=jst+ncount*ldiis%isx
         ist1=ist1+ncount
     end do
-    ilr=onWhichAtom(iorb)
+    !ilr=onWhichAtom(iorb)
+    ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     do j=i,ldiis%is
        mi=mod(j-1,ldiis%isx)+1
@@ -127,21 +131,24 @@ do iorb=1,orbs%norbp
 
 
     ! Make a new guess for the orbital.
-    ilr=onWhichAtom(iorb)
+    !ilr=onWhichAtom(iorb)
+    ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     call razero(ncount, phi(ist))
     isthist=max(1,ldiis%is-ldiis%isx+1)
     jj=0
     jst=0
     do jorb=1,iorb-1
-        jlr=onWhichAtom(jorb)
+        !jlr=onWhichAtom(jorb)
+        jlr=orbs%inwhichlocreg(orbs%isorb+jorb)
         ncount=lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
         jst=jst+ncount*ldiis%isx
     end do
     do j=isthist,ldiis%is
         jj=jj+1
         mj=mod(j-1,ldiis%isx)+1
-        ilr=onWhichAtom(iorb)
+        !ilr=onWhichAtom(iorb)
+        ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
         ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
         jjst=jst+(mj-1)*ncount
         do k=1,ncount
@@ -150,7 +157,8 @@ do iorb=1,orbs%norbp
     end do
 
 
-    ilr=onWhichAtom(iorb)
+    !ilr=onWhichAtom(iorb)
+    ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     ist=ist+ncount
 end do
@@ -179,7 +187,7 @@ end subroutine optimizeDIIS
 
 
 
-subroutine initializeDIIS(isx, lzd, orbs, onWhichAtom, startWithSDx, alphaSDx, alphaDIISx, norb, icountSDSatur, &
+subroutine initializeDIIS(isx, lzd, orbs, startWithSDx, alphaSDx, alphaDIISx, norb, icountSDSatur, &
            icountSwitch, icountDIISFailureTot, icountDIISFailureCons, allowDIIS, startWithSD, &
            ldiis, alpha, alphaDIIS)
 use module_base
@@ -190,7 +198,6 @@ implicit none
 integer,intent(in):: isx, norb
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
-integer,dimension(orbs%norb),intent(in):: onWhichAtom
 logical,intent(in):: startWithSDx
 real(8),intent(in):: alphaSDx, alphaDIISx
 integer,intent(out):: icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons
@@ -212,7 +219,8 @@ allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norbp), stat=istat)
 call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
 ii=0
 do iorb=1,orbs%norbp
-    ilr=onWhichAtom(iorb)
+    !ilr=onWhichAtom(iorb)
+    ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ii=ii+ldiis%isx*(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
 end do
 allocate(ldiis%phiHist(ii), stat=istat)

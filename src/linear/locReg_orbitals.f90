@@ -183,12 +183,12 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
      Localnorb(ilr) = Lnorb
   end do
 
-!  already associated = 1 by default
-  allocate(orbs%inWhichLocregP(max(1,orbs%norb_par(iproc,0))),stat=i_stat)
+!!  already associated = 1 by default
+!  allocate(orbs%inWhichLocregP(max(1,orbs%norb_par(iproc,0))),stat=i_stat)
 
 ! initialize inwhichlocreg
   orbs%inWhichLocreg = 0
-  orbs%inWhichLocregP = 0
+  !orbs%inWhichLocregP = 0
 
   ind = 0
   jproc=0
@@ -216,7 +216,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
       jorb=jorb+1
       iiOrb=iiOrb+1
       if(iproc==jproc .and. orbs%norb_par(jproc,0)> 0) then
-         orbs%inWhichLocregP(jorb)=jat
+         !orbs%inWhichLocregP(jorb)=jat
          orbs%inWhichLocreg(jorb+orbs%isorb)=jat
       end if
   end do
@@ -284,8 +284,8 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
   !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
   allocate(orbse%inWhichLocreg(orbse%norb),stat=i_stat)
   call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
-  allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
-  call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
+  !allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
+  !call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
   allocate(covered(natom), stat=i_stat)
   call memocc(i_stat, covered, 'covered', subname)
  
@@ -344,7 +344,7 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
       end if
       jorb=jorb+1
       iiOrb=iiOrb+1
-      if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
+      !if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
       orbse%inWhichLocreg(iorb)=jat
   end do
 

@@ -15,7 +15,7 @@ real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),target
 ! Local variables
 integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc, ierr
 integer:: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f, istLoc, istRoot
-integer:: jjorb, jlr, jj, offset, ilr, jorb
+integer:: jjorb, jlr, jj, offset, ilr, jorb, iiorb
 real(8),dimension(0:3),parameter:: scal=1.d0
 real(8),dimension(:),allocatable:: w_f1, w_f2, w_f3
 real(8),dimension(:),pointer:: phiLoc
@@ -55,7 +55,8 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
   ist2_c=1
   ist0_c=1
   ! Dimension of the first orbital on each process
-  ilr=lin%orbs%inWhichLocregp(1)
+  !ilr=lin%orbs%inWhichLocregp(1)
+  ilr=lin%orbs%inWhichLocreg(lin%orbs%isorb+1)
   offset=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
 
   istx_c=offset+1
@@ -64,7 +65,9 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
 
   do iorb=1,lin%orbs%norbp
 
-      ilr=lin%orbs%inWhichLocregp(iorb)
+      !ilr=lin%orbs%inWhichLocregp(iorb)
+      iiorb=lin%orbs%isorb+iorb
+      ilr=lin%orbs%inWhichLocreg(iiorb)
       call allocateWorkarrays()
 
       ist1_f=ist1_c+lin%lzd%llr(ilr)%wfd%nvctr_c
@@ -113,7 +116,8 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
            lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phix_c, phix_f, phiLoc(istx_c), phiLoc(istx_f))
       if(iorb<lin%orbs%norbp) then
-          jlr=lin%orbs%inWhichLocregp(iorb+1)
+          !jlr=lin%orbs%inWhichLocregp(iorb+1)
+          jlr=lin%orbs%inWhichLocreg(iiorb+1)
           istx_c = istx_c + 3*(lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f) + &
               lin%lzd%llr(jlr)%wfd%nvctr_c + 7*lin%lzd%llr(jlr)%wfd%nvctr_f
       end if
@@ -128,7 +132,8 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
            lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phiy_c, phiy_f, phiLoc(isty_c), phiLoc(isty_f))
       if(iorb<lin%orbs%norbp) then
-          jlr=lin%orbs%inWhichLocregp(iorb+1)
+          !jlr=lin%orbs%inWhichLocregp(iorb+1)
+          jlr=lin%orbs%inWhichLocreg(iiorb+1)
           isty_c = isty_c + 2*(lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f) + &
               2*(lin%lzd%llr(jlr)%wfd%nvctr_c + 7*lin%lzd%llr(jlr)%wfd%nvctr_f)
       end if
@@ -143,7 +148,8 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
            lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phiz_c, phiz_f, phiLoc(istz_c), phiLoc(istz_f))
       if(iorb<lin%orbs%norbp) then
-          jlr=lin%orbs%inWhichLocregp(iorb+1)
+          !jlr=lin%orbs%inWhichLocregp(iorb+1)
+          jlr=lin%orbs%inWhichLocreg(iiorb+1)
           istz_c = istz_c + lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f + &
               3*(lin%lzd%llr(jlr)%wfd%nvctr_c + 7*lin%lzd%llr(jlr)%wfd%nvctr_f)
       end if
