@@ -636,24 +636,27 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
   allocate(kernel(lin%orbs%norb,lin%orbs%norb), stat=istat)
   call memocc(istat, kernel, 'kernel', subname)
 
-  ! Calculate kernel (can be optimized)
-  do jorb=1,lin%orbs%norb
-      do korb=1,lin%orbs%norb
-          tt=0.d0
-          do iorb=1,orbs%norb
-              tt=tt+coeff(korb,iorb)*coeff(jorb,iorb)
-          end do
-          !kernel(korb,jorb)=tt
-          kernel(jorb,korb)=tt
-      end do
-  end do
-  if(iproc==0) then
-       do iorb=1,lin%orbs%norb
-           do jorb=1,lin%orbs%norb
-               write(88,*) iorb, jorb, kernel(jorb,iorb)
-           end do
-       end do
-  end if
+  !! Calculate kernel (can be optimized)
+  !do jorb=1,lin%orbs%norb
+  !    do korb=1,lin%orbs%norb
+  !        tt=0.d0
+  !        do iorb=1,orbs%norb
+  !            tt=tt+coeff(korb,iorb)*coeff(jorb,iorb)
+  !        end do
+  !        !kernel(korb,jorb)=tt
+  !        kernel(jorb,korb)=tt
+  !    end do
+  !end do
+  call dgemm('n', 't', lin%orbs%norb, lin%orbs%norb, orbs%norb, 1.d0, coeff(1,1), lin%orbs%norb, &
+       coeff(1,1), lin%orbs%norb, 0.d0, kernel(1,1), lin%orbs%norb)
+
+  !if(iproc==0) then
+  !     do iorb=1,lin%orbs%norb
+  !         do jorb=1,lin%orbs%norb
+  !             write(88,*) iorb, jorb, kernel(jorb,iorb)
+  !         end do
+  !     end do
+  !end if
   
   
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
