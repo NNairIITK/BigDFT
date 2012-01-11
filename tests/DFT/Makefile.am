@@ -57,7 +57,7 @@ OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 TDDFT.psp: psppar.N
 Linear.psp Linear_withder.psp: HGH/psppar.C extra/psppar.H
-Locreg.psp : psppar.H psppar.Si
+Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
 SIC.psp: HGH/psppar.H \
 	HGH/psppar.C \
 	HGH/psppar.O \
