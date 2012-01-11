@@ -140,7 +140,7 @@ program abscalc_main
       !De-allocations
       call deallocate_abscalc_input(inputs, subname)
       call deallocate_atoms(atoms,subname) 
-      call deallocate_local_zone_descriptors(rst%Lzd, subname)
+!      call deallocate_local_zone_descriptors(rst%Lzd, subname)
 
       call free_restart_objects(rst,subname)
 
@@ -351,7 +351,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum
    real(kind=8) :: tel,psoffset
    real(gp) :: edisp ! Dispersion energy
-   !type(nonlocal_psp_descriptors) :: nlpspd
+   type(nonlocal_psp_descriptors) :: nlpspd
    type(communications_arrays) :: comms
    type(gaussian_basis) :: Gvirt
    type(rho_descriptors)  :: rhodsc
@@ -537,7 +537,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
-      &   radii_cf,cpmult,fpmult,hx,hy,hz,Lzd%Gnlpspd,proj)
+      &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
    call timing(iproc,'CrtProjectors ','OF')
 
 !   if (in%inputPsiId /= 0 .and. in%inputPsiId /= 10) then
@@ -573,7 +573,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !memory estimation
    if (iproc==0 .and. verbose > 0) then
      call MemoryEstimator(nproc,idsx,Lzd%Glr,&
-         &   atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,Lzd%Gnlpspd%nprojel,&
+         &   atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
          &   in%nspin,in%itrpmax,in%iscf,peakmem)
    end if
 
@@ -732,7 +732,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
           orbsAO,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
-          Lzd%Gnlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in,radii_cf)
 
       !Check if we must use linear scaling for total SCF
@@ -817,7 +817,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
       call input_wf_diag(iproc,nproc,atoms,rhodsc,&
           orbsAO,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          Lzd%Gnlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin,in%potshortcut,-1,irrzon,phnons,GPU,in,radii_cf)
 
       !Check if we must use linear scaling for total SCF
@@ -1255,18 +1255,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,Lzd%Gnlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,nlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1,1),ekin_sum,epot_sum,eproj_sum,in%nspin,GPU,&
              in%iat_absorber,in,PAWD,orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,Lzd%Gnlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,nlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
             &   rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
             &   , in%iat_absorber, in, PAWD, orbs)
       else if (in%iabscalc_type==3) then
          call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,Lzd%Gnlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,nlpspd,proj,Lzd,ngatherarr,n1i*n2i*n3p,&
             &   rhopot(1,1,1,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
             &   , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
       else
@@ -1279,7 +1279,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
    call deallocate_before_exiting
-   call deallocate_local_zone_descriptors(lzd, subname)
+!   call deallocate_local_zone_descriptors(lzd, subname)
 
    contains
 
@@ -1394,7 +1394,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call deallocate_orbs(orbs,subname)
       call deallocate_orbs(orbsAO,subname)
 
-      call deallocate_proj_descr(Lzd%Gnlpspd,subname)
+      call deallocate_proj_descr(nlpspd,subname)
 
       i_all=-product(shape(proj))*kind(proj)
       deallocate(proj,stat=i_stat)

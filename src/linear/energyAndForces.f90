@@ -159,7 +159,7 @@ real(wp) :: sum_psi
   !     orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
 
   ! ATTENTION: passing phi (after proj, before gxyz) is just to pass something of the right size
-  call Linearnonlocal_forces(iproc, nproc, lin%lzd, in%hx, in%hy, in%hz, atoms, rxyz, orbs, &
+  call Linearnonlocal_forces(iproc, nproc, lin%lzd, nlpspd, in%hx, in%hy, in%hz, atoms, rxyz, orbs, &
        proj, phi, gxyz, .false., lin%orbs, coeff, phi)
 
 !#####################################################################
@@ -1626,9 +1626,6 @@ if(iproc==0) write(*,'(1x,a)') '------------------------------------------------
 
 
 end subroutine updatePotential
-
-
-
 
 subroutine calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
     ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rho, psi, fxyz, fnoise)

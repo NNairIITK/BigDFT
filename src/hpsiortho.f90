@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-     proj,Lzd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
+     proj,Lzd,nlpspd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
      pkernel,orbsocc,psirocc)
   use module_base
@@ -21,6 +21,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: Lzd
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(SIC_data), intent(in) :: SIC
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -52,7 +53,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
  end if
 
   call NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
-       proj,Lzd,psi,hpsi,eproj_sum)
+       proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
 
   call SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
        ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
@@ -230,7 +231,7 @@ END SUBROUTINE LocalHamiltonianApplication
 !> Routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
 subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
-     proj,Lzd,psi,hpsi,eproj_sum)
+     proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
    use module_base
    use module_types
    implicit none
@@ -239,16 +240,16 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
    type(atoms_data), intent(in) :: at
    type(orbitals_data),  intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
-   !type(nonlocal_psp_descriptors), intent(in) :: nlpspd !should be put back in
-   real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
+   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
    real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
    real(gp), intent(out) :: eproj_sum
    !local variables
-   logical :: dosome
+   logical :: dosome, overlap
    integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
-   integer :: iproj,ispsi,istart_c,ilr,iat_proj,ilr_skip
+   integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj
 
    eproj_sum=0.0_gp
 
@@ -287,28 +288,21 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
          if (DistProjApply) then
             !first create a projector ,then apply it for everyone
             iproj=0
-            iat_proj=0
             do iat=1,at%nat
-               !check if the atom intersect with the given localisation region
-   !write(*,*) 'iproc, associated(lzd%Llr(ilr)%projflg)', iproc, associated(lzd%Llr(ilr)%projflg)
-   !write(*,*) 'iproc, lzd%Llr(ilr)%projflg', iproc, lzd%Llr(ilr)%projflg
-               if(Lzd%Llr(ilr)%projflg(iat) == 0) cycle
-               iat_proj=iat_proj+1
-               if (Lzd%Lnlpspd(ilr)%nprojel > Lzd%Gnlpspd%nprojel) then
-                  stop 'ERROR: proj array size not corrected'
-               end if
+               ! Check if atom has projectors, if not cycle
+               call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj) 
+               if(mproj == 0) cycle
+
+               !check if the atom projector intersect with the given localisation region
+               call check_overlap(Lzd%Llr(ilr), nlpspd%plr(iat), Lzd%Glr, overlap)
+               if(.not. overlap) cycle
+
+               ! Now create the projector
                istart_c=1
                call atom_projector(ikpt,iat,0,istart_c,iproj,&
-                    Lzd%Lnlpspd(ilr)%nprojel,&
-                    Lzd%Llr(ilr),hx,hy,hz,rxyz(1,iat),at,orbs,&
-                    Lzd%Lnlpspd(ilr)%plr(iat_proj),proj,nwarnings)
-
-               if (iproj > Lzd%Lnlpspd(ilr)%nproj) then
-                  write(*,*)&
-                       'ERROR (NonLocalHamiltonianApplication): iproc incorrect. ilr,iat,iproj,nproj:',&
-                       ilr,iat,iproj,Lzd%Lnlpspd(ilr)%nproj
-                  stop
-               end if
+                    nlpspd%nprojel,&
+                    Lzd%Glr,hx,hy,hz,rxyz(1,iat),at,orbs,&
+                    nlpspd%plr(iat),proj,nwarnings)
 
                !apply the projector to all the orbitals belonging to the processor
                ispsi=ispsi_k
@@ -316,24 +310,23 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                   if (orbs%inwhichlocreg(iorb+orbs%isorb) /= ilr) then
                      !increase ispsi to meet orbital index
                      ilr_skip=orbs%inwhichlocreg(iorb+orbs%isorb)
-                     ispsi=ispsi+&
-                          (Lzd%Llr(ilr_skip)%wfd%nvctr_c+&
-                          7*Lzd%Llr(ilr_skip)%wfd%nvctr_f)*nspinor
+                     ispsi=ispsi+(Lzd%Llr(ilr_skip)%wfd%nvctr_c+7*Lzd%Llr(ilr_skip)%wfd%nvctr_f)*nspinor
                      cycle
                   end if
                   istart_c=1
                   call apply_atproj_iorb_new(iat,iorb,istart_c,&
-                       Lzd%Lnlpspd(ilr)%nprojel,&
-                       at,orbs,Lzd%Llr(ilr)%wfd,Lzd%Lnlpspd(ilr)%plr(iat_proj),&
+                       nlpspd%nprojel,&
+                       at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
                        proj,psi(ispsi),hpsi(ispsi),eproj_sum)
-                  !print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum
+!                print *,'iorb,iat,eproj',iorb+orbs%isorb,ispsi,iat,eproj_sum
                   ispsi=ispsi+&
                        (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
                end do
 
             end do
-            if (iproj /= Lzd%Lnlpspd(ilr)%nproj) stop &
-                 'NonLocal HamiltonianApplication: incorrect number of projectors created'     
+
+            !if (iproj /= nlpspd%nproj) stop &
+            !     'NonLocal HamiltonianApplication: incorrect number of projectors created'     
             !for the moment, localization region method is not implemented with
             !once-and-for-all calculation
          else if (Lzd%nlr == 1) then
@@ -344,17 +337,20 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
                if (orbs%inwhichlocreg(iorb+orbs%isorb) /= ilr) then
                   !increase ispsi to meet orbital index
                   ilr_skip=orbs%inwhichlocreg(iorb+orbs%isorb)
-                  ispsi=ispsi+&
-                       (Lzd%Llr(ilr_skip)%wfd%nvctr_c+7*Lzd%Llr(ilr_skip)%wfd%nvctr_f)*nspinor
+                  ispsi=ispsi+(Lzd%Llr(ilr_skip)%wfd%nvctr_c+7*Lzd%Llr(ilr_skip)%wfd%nvctr_f)*nspinor
                   cycle
                end if
 
                istart_c=istart_ck !TO BE CHANGED IN ONCE-AND-FOR-ALL 
                do iat=1,at%nat
+                  ! Check if atom has projectors, if not cycle
+                  call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj) 
+                  if(mproj == 0) cycle
                   !check if the atom intersect with the given localisation region
-                  if(Lzd%Llr(ilr)%projflg(iat) == 0) stop 'ERROR all atoms should be in global'
-                  call apply_atproj_iorb_new(iat,iorb,istart_c,Lzd%Lnlpspd(ilr)%nprojel,&
-                       at,orbs,Lzd%Llr(ilr)%wfd,Lzd%Lnlpspd(ilr)%plr(iat),&
+                  call check_overlap(Lzd%Llr(ilr), nlpspd%plr(iat), Lzd%Glr, overlap)
+                  if(.not. overlap) stop 'ERROR all atoms should be in global'
+                  call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
+                       at,orbs,Lzd%Llr(ilr)%wfd,nlpspd%plr(iat),&
                        proj,psi(ispsi),hpsi(ispsi),eproj_sum)
                   !print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum
                end do
@@ -362,6 +358,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
             end do
             istart_ck=istart_c !TO BE CHANGED IN THIS ONCE-AND-FOR-ALL
          else
+           ! COULD CHANGE THIS NOW !!
            stop 'Localization Regions not allowed in once-and-for-all'    
          end if
 
@@ -376,7 +373,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
    end do loop_kpt
 
    if (.not. DistProjApply) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
-      if (istart_ck-1 /= Lzd%Lnlpspd(1)%nprojel) &
+      if (istart_ck-1 /= nlpspd%nprojel) &
          &   stop 'incorrect once-and-for-all psp application'
    end if
    !for the moment it has to be removed. A number of components in orbital distribution should be defined
@@ -464,7 +461,7 @@ END SUBROUTINE SynchronizeHamiltonianApplication
 !!                   the same holds for non-collinear calculations
 subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
      ndimrhopot,i3rho_add,orbs,&
-     Lzd,iflag,ngatherarr,potential,Lpot,comgp)
+     Lzd,iflag,ngatherarr,potential,pot,comgp)
    use module_base
    use module_types
    use module_xc
@@ -475,7 +472,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
    type(local_zone_descriptors),intent(in) :: Lzd
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(max(ndimrhopot,nspin)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
-   real(wp), dimension(:), pointer :: Lpot
+   real(wp), dimension(:), pointer :: pot
    type(p2pCommsGatherPot),intent(inout), optional:: comgp
    !local variables
    character(len=*), parameter :: subname='full_local_potential'
@@ -483,7 +480,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
    integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,iilr,ilr,iorb,iorb2,nilr
    integer:: istl, ist, size_Lpot, i3s, i3e
    integer,dimension(:,:),allocatable:: ilrtable
-   real(wp), dimension(:), pointer :: pot
+   real(wp), dimension(:), pointer :: pot1
    
    call timing(iproc,'Pot_commun    ','ON')
 
@@ -514,13 +511,13 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
       !in the linear scaling case this should be done for a given localisation region
       !this routine should then be modified or integrated in HamiltonianApplication
       if (nproc > 1) then
-         allocate(pot(npot+ndebug),stat=i_stat)
-         call memocc(i_stat,pot,'pot',subname)
+         allocate(pot1(npot+ndebug),stat=i_stat)
+         call memocc(i_stat,pot1,'pot1',subname)
          ispot=1
          ispotential=1
          do ispin=1,nspin
             call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
-                 &   mpidtypw,pot(ispot),ngatherarr(0,1),&
+                 &   mpidtypw,pot1(ispot),ngatherarr(0,1),&
                  ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
             ispot=ispot+ndimgrid
             ispotential=ispotential+max(1,ndimpot)
@@ -530,7 +527,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
             ispot=ispot+i3rho_add-1
             do ispin=1,nspin
                call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
-                    &   mpidtypw,pot(ispot),ngatherarr(0,1),&
+                    &   mpidtypw,pot1(ispot),ngatherarr(0,1),&
                     ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
                ispot=ispot+ndimgrid
                ispotential=ispotential+max(1,ndimpot)
@@ -538,15 +535,15 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
          end if
       else
          if (odp) then
-            allocate(pot(npot+ndebug),stat=i_stat)
-            call memocc(i_stat,pot,'pot',subname)
-            call dcopy(ndimgrid*nspin,potential,1,pot,1)
+            allocate(pot1(npot+ndebug),stat=i_stat)
+            call memocc(i_stat,pot1,'pot1',subname)
+            call dcopy(ndimgrid*nspin,potential,1,pot1,1)
             if (i3rho_add >0 .and. orbs%norbp > 0) then
                ispot=ndimgrid*nspin+1
-               call dcopy(ndimgrid*nspin,potential(ispot+i3rho_add),1,pot(ispot),1)
+               call dcopy(ndimgrid*nspin,potential(ispot+i3rho_add),1,pot1(ispot),1)
             end if
          else
-            pot => potential
+            pot1 => potential
          end if
       end if
    else
@@ -633,24 +630,24 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
    ! Depending on the scheme, cut out the local pieces of the potential
    !#################################################################################################################################################
    if(iflag==0) then
-      !       allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      !       call dcopy(lzd%ndimpotisf,pot,1,Lpot,1) 
-      Lpot=>pot
+      !       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
+      !       call dcopy(lzd%ndimpotisf,pot,1,pot,1) 
+      pot=>pot1
    else if(iflag<2 .and. iflag>0) then
-      allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      call memocc(i_stat,Lpot,'Lpot',subname)
+      allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
+      call memocc(i_stat,pot,'pot',subname)
       ! Cut potential
       istl=1
       do iorb=1,nilr
          ilr = ilrtable(iorb,1)
 
          ! Cut the potential into locreg pieces
-         call global_to_local(Lzd%Glr,Lzd%Llr(ilr),orbs%nspin,npot,lzd%ndimpotisf,pot,Lpot(istl))
+         call global_to_local(Lzd%Glr,Lzd%Llr(ilr),orbs%nspin,npot,lzd%ndimpotisf,pot1,pot(istl))
          istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin
       end do
    else
-      allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      call memocc(i_stat,Lpot,'Lpot',subname)
+      allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
+      call memocc(i_stat,pot,'pot',subname)
       ist=1
       do iorb=1,nilr
          ilr = ilrtable(iorb,1)
@@ -670,7 +667,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
          end if
 
          call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
-              comgp%recvBuf, Lpot(ist), i3s, i3e)
+              comgp%recvBuf, pot(ist), i3s, i3e)
 
          ist = ist + size_lpot
       end do
@@ -683,16 +680,16 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
    ! Deallocate pot.
    if (iflag<2 .and. iflag>0) then
       if (nproc > 1) then
-         i_all=-product(shape(pot))*kind(pot)
-         deallocate(pot,stat=i_stat)
-         call memocc(i_stat,i_all,'pot',subname)
+         i_all=-product(shape(pot1))*kind(pot1)
+         deallocate(pot1,stat=i_stat)
+         call memocc(i_stat,i_all,'pot1',subname)
       else
          if (xc_exctXfac() /= 0.0_gp) then
-            i_all=-product(shape(pot))*kind(pot)
-            deallocate(pot,stat=i_stat)
-            call memocc(i_stat,i_all,'pot',subname)
+            i_all=-product(shape(pot1))*kind(pot1)
+            deallocate(pot1,stat=i_stat)
+            call memocc(i_stat,i_all,'pot1',subname)
          else
-            nullify(pot)
+            nullify(pot1)
          end if
       end if
    end if
@@ -702,19 +699,19 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
 END SUBROUTINE full_local_potential
 
 
-subroutine free_full_potential(nproc,pot,subname)
+subroutine free_full_potential(nproc,flag,pot,subname)
    use module_base
    use module_xc
    implicit none
    character(len=*), intent(in) :: subname
-   integer, intent(in) :: nproc
+   integer, intent(in) :: nproc, flag
    real(wp), dimension(:), pointer :: pot
    !local variables
    logical :: odp
    integer :: i_all,i_stat
 
    odp = xc_exctXfac() /= 0.0_gp
-   if (nproc > 1 .or. odp) then
+   if (nproc > 1 .or. odp .or. flag > 0 ) then
       i_all=-product(shape(pot))*kind(pot)
       deallocate(pot,stat=i_stat)
       call memocc(i_stat,i_all,'pot',subname)

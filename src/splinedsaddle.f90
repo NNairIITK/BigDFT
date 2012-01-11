@@ -160,7 +160,7 @@ program splined_saddle
 
      call deallocate_atoms(atoms,subname) 
 
-     call deallocate_local_zone_descriptors(rst%Lzd, subname) 
+!     call deallocate_local_zone_descriptors(rst%Lzd, subname) 
 
      call free_restart_objects(rst,subname)
 

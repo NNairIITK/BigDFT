@@ -209,10 +209,10 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$                 Lnlpspd%nseg_p(2*iat-1),Lnlpspd%nvctr_p(2*iat-1),&
 !!$                 Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
            call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-                Gseg,nlpspd%plr(iatom)%wfd%keyg(1,jseg),&
+                Gseg,nlpspd%plr(iatom)%wfd%keyglob(1,jseg),&
                 nlpspd%plr(iatom)%wfd%keyv(jseg),&
                 Lnlpspd%plr(iat)%wfd%nseg_c,Lnlpspd%plr(iat)%wfd%nvctr_c,&
-                Lnlpspd%plr(iat)%wfd%keyg(1,iseg),&
+                Lnlpspd%plr(iat)%wfd%keyglob(1,iseg),&
                 Lnlpspd%plr(iat)%wfd%keyv(iseg))
 
         else if(locregShape=='s') then
@@ -223,11 +223,11 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$                Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
             call segkeys_locSphere(Glr%d%n1,Glr%d%n2,Glr%d%n3,&
                  isx,iex,isy,iey,isz,iez,&
-                 Gseg,Gvctr,nlpspd%plr(iatom)%wfd%keyg(1,jseg),&
+                 Gseg,Gvctr,nlpspd%plr(iatom)%wfd%keyglob(1,jseg),&
                  nlpspd%plr(iatom)%wfd%keyv(jseg),&
                  hx, hy, hz, llr%locrad, llr%locregCenter, &
                  Lnlpspd%plr(iat)%wfd%nseg_c,Lnlpspd%plr(iat)%wfd%nvctr_c,&
-                 Lnlpspd%plr(iat)%wfd%keyg(1,iseg),&
+                 Lnlpspd%plr(iat)%wfd%keyglob(1,iseg),&
                  Lnlpspd%plr(iat)%wfd%keyv(iseg))
         end if
      end if
@@ -253,9 +253,9 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$                 Lnlpspd%nseg_p(2*iat),Lnlpspd%nvctr_p(2*iat),&
 !!$                 Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
            call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-                Gseg,nlpspd%plr(iatom)%wfd%keyg(1,jseg),nlpspd%plr(iatom)%wfd%keyv(jseg),&
+                Gseg,nlpspd%plr(iatom)%wfd%keyglob(1,jseg),nlpspd%plr(iatom)%wfd%keyv(jseg),&
                 Lnlpspd%plr(iat)%wfd%nseg_f,Lnlpspd%plr(iat)%wfd%nvctr_f,&
-                Lnlpspd%plr(iat)%wfd%keyg(1,iseg),Lnlpspd%plr(iat)%wfd%keyv(iseg))
+                Lnlpspd%plr(iat)%wfd%keyglob(1,iseg),Lnlpspd%plr(iat)%wfd%keyv(iseg))
 
         else if(locregShape=='s') then
 !!$            call segkeys_locSphere(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
@@ -264,10 +264,10 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$                 Lnlpspd%nseg_p(2*iat),Lnlpspd%nvctr_p(2*iat),&
 !!$                 Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
            call segkeys_locSphere(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-                Gseg,Gvctr,nlpspd%plr(iatom)%wfd%keyg(1,jseg),nlpspd%plr(iatom)%wfd%keyv(jseg),&
+                Gseg,Gvctr,nlpspd%plr(iatom)%wfd%keyglob(1,jseg),nlpspd%plr(iatom)%wfd%keyv(jseg),&
                 hx, hy, hz, llr%locrad, llr%locregCenter, &
                 Lnlpspd%plr(iat)%wfd%nseg_f,Lnlpspd%plr(iat)%wfd%nvctr_f,&
-                Lnlpspd%plr(iat)%wfd%keyg(1,iseg),Lnlpspd%plr(iat)%wfd%keyv(iseg))
+                Lnlpspd%plr(iat)%wfd%keyglob(1,iseg),Lnlpspd%plr(iat)%wfd%keyv(iseg))
         end if
 !!$        iseg = iseg + Lnlpspd%nseg_p(2*iat)
      end if 

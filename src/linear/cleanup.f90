@@ -848,7 +848,7 @@ subroutine deallocate_linearParameters(lin, subname)
   call deallocate_p2pCommsSumrho(lin%comsr, subname)
   call deallocate_p2pCommsGatherPot(lin%comgp, subname)
   call deallocate_largeBasis(lin%lb, subname)
-  call deallocate_nonlocal_psp_descriptors(lin%lzd%Gnlpspd, subname)
+!  call deallocate_nonlocal_psp_descriptors(lin%lzd%Gnlpspd, subname)
   call deallocate_local_zone_descriptors(lin%lzd, subname)
   call deallocate_p2pCommsOrthonormality(lin%comon, subname)
   call deallocate_overlapParameters(lin%op, subname)
@@ -905,15 +905,15 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
      deallocate(lzd%llr)
      nullify(lzd%llr)
   end if
-  if(associated(lzd%lnlpspd)) then 
-     iis1=lbound(lzd%lnlpspd,1)
-     iie1=ubound(lzd%lnlpspd,1)
-     do i1=iis1,iie1
-        call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-     end do
-     deallocate(lzd%lnlpspd)
-     nullify(lzd%lnlpspd)
-  end if
+!  if(associated(lzd%lnlpspd)) then 
+!     iis1=lbound(lzd%lnlpspd,1)
+!     iie1=ubound(lzd%lnlpspd,1)
+!     do i1=iis1,iie1
+!        call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
+!     end do
+!     deallocate(lzd%lnlpspd)
+!     nullify(lzd%lnlpspd)
+!  end if
 
   call checkAndDeallocatePointer(lzd%cutoffweight, 'cutoffweight', subname)
 
@@ -948,7 +948,7 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
   call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
 !  call deallocate_locreg_descriptors(lzd%Glr, subname)
 
-  call deallocate_nonlocal_psp_descriptors(lzd%Gnlpspd, subname)
+!  call deallocate_nonlocal_psp_descriptors(lzd%Gnlpspd, subname)
 
   if(associated(lzd%llr)) then
      iis1=lbound(lzd%llr,1)
@@ -966,16 +966,17 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
      nullify(lzd%llr)
   end if
 
-  if(associated(lzd%lnlpspd)) then
-     iis1=lbound(lzd%lnlpspd,1)
-     iie1=ubound(lzd%lnlpspd,1)
+!  if(associated(lzd%lnlpspd)) then
+!     iis1=lbound(lzd%lnlpspd,1)
+!     iie1=ubound(lzd%lnlpspd,1)
      !write(*,*) 'iis1AAA,iie1AAA',iis1,iie1
-     do i1=iis1,iie1
-         call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-      end do
-      deallocate(lzd%lnlpspd)
-      nullify(lzd%lnlpspd)
-  end if
+!     do i1=iis1,iie1
+!         call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
+!      end do
+!      deallocate(lzd%lnlpspd)
+!      nullify(lzd%lnlpspd)
+!  end if
+
 end subroutine deallocate_Lzd_except_Glr
 
 
@@ -1078,7 +1079,15 @@ subroutine deallocate_wavefunctions_descriptors(wfd, subname)
   type(wavefunctions_descriptors),intent(inout):: wfd
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(wfd%keyg, 'wfd%keyg', subname)
+  if(associated(wfd%keyglob, target = wfd%keygloc)) then
+     call checkAndDeallocatePointer(wfd%keyglob, 'wfd%keyglob', subname)
+     nullify(wfd%keyglob)
+  else
+     call checkAndDeallocatePointer(wfd%keyglob, 'wfd%keyglob', subname)
+     nullify(wfd%keyglob)
+     call checkAndDeallocatePointer(wfd%keygloc, 'wfd%keygloc', subname)
+     nullify(wfd%keygloc)
+  end if
   call checkAndDeallocatePointer(wfd%keyv, 'wfd%keyv', subname)
 
 end subroutine deallocate_wavefunctions_descriptors

@@ -94,12 +94,12 @@ real(gp) :: kx,ky,kz
               case('S')
                  call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
                       lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                      lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                      lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
                       cprecr,hx,hy,hz,hpsi(1,inds,iorb))
               case('P')
                  call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
                       lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                      lr%wfd%keyg,lr%wfd%keyv, &
+                      lr%wfd%keygloc,lr%wfd%keyv, &
                       cprecr,hx,hy,hz,hpsi(1,inds,iorb))
               end select
 
@@ -275,9 +275,9 @@ integer:: confPotOrder, it
      do idx=1,ncplx
         call applyOperator(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, lr%ns1, lr%ns2, lr%ns3, &
-             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg,lr%wfd%keyv,&
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keygloc,lr%wfd%keyv,&
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
+             lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
              lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
              scal,cprecr,hx,&
              lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
@@ -295,7 +295,7 @@ integer:: confPotOrder, it
         do idx=1,ncplx
            call apply_hp_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg,lr%wfd%keyv, &
+                lr%wfd%keygloc,lr%wfd%keyv, &
                 cprecr,hx,hy,hz,x(1,idx),y(1,idx),&
                 w%x_f,w%x_c,w%x_f1,w%x_f2,w%x_f3,w%y_f,w%z1,&
                 lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3,nf,&
@@ -305,13 +305,13 @@ integer:: confPotOrder, it
         if (ncplx == 1) then
            call apply_hp_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
                 cprecr,hx,hy,hz,x,y,w%psifscf,w%ww,w%modul1,w%modul2,w%modul3,&
                 w%af,w%bf,w%cf,w%ef,scal) 
         else
            call apply_hp_per_k(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
                 !cprecr,hx,hy,hz,0.0_gp,0.0_gp,0.0_gp,x,y,w%psifscf,w%ww,scal) 
                 cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
         end if
@@ -320,13 +320,13 @@ integer:: confPotOrder, it
      if (ncplx == 1) then
         call apply_hp_slab_sd(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-             lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
              cprecr,hx,hy,hz,x,y,w%psifscf,w%ww,w%modul1,w%modul3,&
              w%af,w%bf,w%cf,w%ef)
      else
         call apply_hp_slab_k(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-             lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
              cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww) 
 
      end if
@@ -671,12 +671,12 @@ real(gp) :: kx,ky,kz
               case('S')
                  call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
                       lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                      lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                      lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyv, &
                       cprecr,hx,hy,hz,hpsi(1,inds))
               case('P')
                  call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
                       lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                      lr%wfd%keyg,lr%wfd%keyv, &
+                      lr%wfd%keygloc,lr%wfd%keyv, &
                       cprecr,hx,hy,hz,hpsi(1,inds))
               end select
 

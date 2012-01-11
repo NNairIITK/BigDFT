@@ -14,7 +14,8 @@ TESTDIRS = C \
 	  O2-Spin \
 	  TDDFT \
 	  SIC \
-	  Linear
+	  Linear \
+          Locreg
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -56,6 +57,7 @@ OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 TDDFT.psp: psppar.N
 Linear.psp Linear_withder.psp: HGH/psppar.C extra/psppar.H
+Locreg.psp : psppar.H psppar.Si
 SIC.psp: HGH/psppar.H \
 	HGH/psppar.C \
 	HGH/psppar.O \

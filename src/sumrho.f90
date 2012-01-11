@@ -7,6 +7,77 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
+     irrzon,phnons,pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
+  use module_base
+  use module_types
+  use module_interfaces, fake_name => density_and_hpot
+  use Poisson_Solver
+  implicit none
+  integer, intent(in) :: iproc,nproc,symObj
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(rho_descriptors),intent(inout) :: rhodsc
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: Lzd
+  character(len=1), intent(in) :: geocode
+  integer, dimension(*), intent(in) :: irrzon
+  real(dp), dimension(*), intent(in) :: phnons,pkernel
+  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
+  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+  type(GPU_pointers), intent(inout) :: GPU
+  real(gp), dimension(6), intent(out) :: hstrten
+  real(dp), dimension(:), pointer :: rho,vh
+  !local variables
+  character(len=*), parameter :: subname='density_and_hpot'
+  integer :: i_stat,i_all,jproc,n3p
+  real(gp) :: ehart_fake
+  real(dp), dimension(:,:), pointer :: rho_p
+  ! Selfconsistent potential is saved in rhopot, 
+  ! new arrays rho,pot for calculation of forces ground state electronic density
+
+  ! Potential from electronic charge density
+
+  n3p=nscatterarr(iproc,2)
+
+  if (.not. associated(rho)) then
+     if (n3p>0) then
+        allocate(rho(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p*orbs%nspin+ndebug),stat=i_stat)
+        call memocc(i_stat,rho,'rho',subname)
+     else
+        allocate(rho(1*orbs%nspin+ndebug),stat=i_stat)
+        call memocc(i_stat,rho,'rho',subname)
+     end if
+
+     call sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
+          GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+     call communicate_density(iproc,nproc,orbs%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho)
+  end if
+
+  !calculate the total density in the case of nspin==2
+  if (orbs%nspin==2) then
+     call axpy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p,1.0_dp,&
+          rho(1+Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p),1,rho(1),1)
+  end if
+  if (n3p>0) then
+     allocate(vh(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p+ndebug),stat=i_stat)
+     call memocc(i_stat,vh,'vh',subname)
+  else
+     allocate(vh(1+ndebug),stat=i_stat)
+     call memocc(i_stat,vh,'vh',subname)
+  end if
+
+  !calculate electrostatic potential
+  call dcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p,rho,1,vh,1) 
+  call H_potential(geocode,'D',iproc,nproc,&
+       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,vh,&
+       pkernel,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+  !in principle symmetrization of the stress tensor is not needed since the density has been 
+  !already symmetrized
+  if (symObj >= 0 .and. geocode=='P') call symm_stress((iproc==0),hstrten,symObj)
+
+end subroutine density_and_hpot
+
+
 
 !> Calculates the charge density by summing the square of all orbitals
 !! Input: 
@@ -26,7 +97,7 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
    integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-   real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
+   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
    real(dp), dimension(:,:), pointer :: rho_p
    !real(dp), dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),1),nspin), intent(out), target :: rho
    type(GPU_pointers), intent(inout) :: GPU

@@ -57,6 +57,8 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   do iat=1,at%nat
 
      call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
+     if (mproj == 0) call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
+                          0,0,0,0,0,0)
      if (mproj /= 0) then 
 
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
@@ -419,7 +421,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
                 at%psppar(l,0,ityp),rxyz(1),lr,&
                 hx,hy,hz,kx,ky,kz,ncplx,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                plr%wfd%keyv,plr%wfd%keyg,&
+                plr%wfd%keyv,plr%wfd%keyglob,&
                 proj(istart_c),nwarnings)
            iproj=iproj+2*l-1
            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
