@@ -6058,9 +6058,9 @@ do iorb=1,orbs%norb
                !end if
                !if(istop) write(*,*) 'STRANGE: istop is true...'
                !if(jstop) write(*,*) 'STRANGE: jstop is true...'
-               if(iorb==1 .and. jorb==5) then
-                   write(iproc*1000+999,*) iloc
-               end if
+               !if(iorb==1 .and. jorb==5) then
+               !    write(iproc*1000+999,*) iloc
+               !end if
                tt=tt+psi_i(ist)*psi_j(jst)
                ist=ist+1
                jst=jst+1

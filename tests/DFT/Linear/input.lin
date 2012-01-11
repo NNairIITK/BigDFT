@@ -1,9 +1,7 @@
 2  1  5.d-3            iterations with low accuracy, high accuracy ; factor for reducing the potential prefactor
 8  20                  iterations to optimize the basis functions for low accuracy and high accuracy
-10   10   2.d-8        max number of iterations for optimizing the basis functions in the very first iteration, the same for the other iterations in the SCC, basis functions are fixed if pnrm < this number
 0   4.d-5              iterations in the inner loop, convergence criterion
 0  5  1.d0  1.d-4      DIISHistMin, DIISHistMax, stepa size for DIIS, step size for SD
-F   2.d2               start with SD, start criterion for DIIS
 5                      number of iterations in the preconditioner
 diag  s                getCoeff: 'diag' or 'min', cubic ('c') or spheric ('s') localization region
 -8   -8                block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
@@ -12,15 +10,14 @@ diag  s                getCoeff: 'diag' or 'min', cubic ('c') or spheric ('s') l
 1                      in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
 2000 1.d-5             max number of iterations in the minimization of the coefficients, convergence criterion
 dens                   mixing method: dens or pot
-0  2   10              mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed (when optimized / not optimized)
-0.5d0 0.5d0  1.d-13     mixing parameter (when optimized / not optimized), convergence criterion
-20 .8d0 1.d-12 1.d-50 iterations in the outer SCC loop, factor that is multiplied in each iteration of the outer cycle with the limit for fixing the basis functions, minimal factor for fixing, exit outer loop if pnrm < this number
+0  1   11              mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed (when optimized / not optimized)
+0.5d0 0.5d0  1.d-13    mixing parameter (when optimized / not optimized), convergence criterion
+1.d-50                 exit outer loop if pnrm < this number
 F  4                   use the derivative basis functions, order of confinement potential
 1000  100              number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)
 F                      plot basis functions: true or false
 T                      transform to global orbitals in the end (T/F)
 1                      number of orbitals per process for trace minimization during input guess.
-1000                   number of virtual orbitals (will be adjusted automatically if too large)
 T                      versions of sumrho: T -> fast, but needs lot of memory ; F -> slow, needs little memory
-C  4  2.0d-2  7.0      number of basis functions per atom, prefactor for confinement potential, localization radius
-H  1  2.0d-2  7.0      number of basis functions per atom, prefactor for confinement potential, localization radius
+C  4  2.0d-2  1.d-4  7.0      number of basis functions per atom, prefactor for confinement potential, localization radius
+H  1  2.0d-2  1.d-4  7.0      number of basis functions per atom, prefactor for confinement potential, localization radius

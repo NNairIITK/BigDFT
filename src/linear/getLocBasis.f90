@@ -468,7 +468,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
               tt = tt + coeff(korb,iorb)*overlapmatrix(korb,jorb)
           end do
           coeff_proj(jjorb,iorb)=tt
-          if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  coeff_proj(jjorb,iorb), coeff(jorb,iorb)
+          !if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  coeff_proj(jjorb,iorb), coeff(jorb,iorb)
           jjorb=jjorb+1
       end do
   end do
