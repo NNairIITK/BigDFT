@@ -1139,7 +1139,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                 ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
             !deallocate potential
-            call free_full_potential(nproc,potential,subname)
+            call free_full_potential(nproc,linflag,potential,subname)
 
             energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
             energy=energybs-ehart+eexcu-vexcu-eexctX-eSIC_DC+eion+edisp
@@ -1957,7 +1957,7 @@ subroutine deallocate_before_exiting
    deallocate(phnons,stat=i_stat)
    call memocc(i_stat,i_all,'phnons',subname)
 
-    call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,&
+   call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,&
          Lzd%Glr%bounds,subname)
 
 

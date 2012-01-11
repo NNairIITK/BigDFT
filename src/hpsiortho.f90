@@ -461,7 +461,7 @@ END SUBROUTINE SynchronizeHamiltonianApplication
 !!                   the same holds for non-collinear calculations
 subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
      ndimrhopot,i3rho_add,orbs,&
-     Lzd,iflag,ngatherarr,potential,Lpot,comgp)
+     Lzd,iflag,ngatherarr,potential,pot,comgp)
    use module_base
    use module_types
    use module_xc
@@ -472,7 +472,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
    type(local_zone_descriptors),intent(in) :: Lzd
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(max(ndimrhopot,nspin)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
-   real(wp), dimension(:), pointer :: Lpot
+   real(wp), dimension(:), pointer :: pot
    type(p2pCommsGatherPot),intent(inout), optional:: comgp
    !local variables
    character(len=*), parameter :: subname='full_local_potential'
@@ -480,7 +480,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
    integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,iilr,ilr,iorb,iorb2,nilr
    integer:: istl, ist, size_Lpot, i3s, i3e
    integer,dimension(:,:),allocatable:: ilrtable
-   real(wp), dimension(:), pointer :: pot
+   real(wp), dimension(:), pointer :: pot1
    
    call timing(iproc,'Pot_commun    ','ON')
 
@@ -511,13 +511,13 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
       !in the linear scaling case this should be done for a given localisation region
       !this routine should then be modified or integrated in HamiltonianApplication
       if (nproc > 1) then
-         allocate(pot(npot+ndebug),stat=i_stat)
-         call memocc(i_stat,pot,'pot',subname)
+         allocate(pot1(npot+ndebug),stat=i_stat)
+         call memocc(i_stat,pot1,'pot1',subname)
          ispot=1
          ispotential=1
          do ispin=1,nspin
             call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
-                 &   mpidtypw,pot(ispot),ngatherarr(0,1),&
+                 &   mpidtypw,pot1(ispot),ngatherarr(0,1),&
                  ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
             ispot=ispot+ndimgrid
             ispotential=ispotential+max(1,ndimpot)
@@ -527,7 +527,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
             ispot=ispot+i3rho_add-1
             do ispin=1,nspin
                call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
-                    &   mpidtypw,pot(ispot),ngatherarr(0,1),&
+                    &   mpidtypw,pot1(ispot),ngatherarr(0,1),&
                     ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
                ispot=ispot+ndimgrid
                ispotential=ispotential+max(1,ndimpot)
@@ -535,15 +535,15 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
          end if
       else
          if (odp) then
-            allocate(pot(npot+ndebug),stat=i_stat)
-            call memocc(i_stat,pot,'pot',subname)
-            call dcopy(ndimgrid*nspin,potential,1,pot,1)
+            allocate(pot1(npot+ndebug),stat=i_stat)
+            call memocc(i_stat,pot1,'pot1',subname)
+            call dcopy(ndimgrid*nspin,potential,1,pot1,1)
             if (i3rho_add >0 .and. orbs%norbp > 0) then
                ispot=ndimgrid*nspin+1
-               call dcopy(ndimgrid*nspin,potential(ispot+i3rho_add),1,pot(ispot),1)
+               call dcopy(ndimgrid*nspin,potential(ispot+i3rho_add),1,pot1(ispot),1)
             end if
          else
-            pot => potential
+            pot1 => potential
          end if
       end if
    else
@@ -630,24 +630,24 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
    ! Depending on the scheme, cut out the local pieces of the potential
    !#################################################################################################################################################
    if(iflag==0) then
-      !       allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      !       call dcopy(lzd%ndimpotisf,pot,1,Lpot,1) 
-      Lpot=>pot
+      !       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
+      !       call dcopy(lzd%ndimpotisf,pot,1,pot,1) 
+      pot=>pot1
    else if(iflag<2 .and. iflag>0) then
-      allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      call memocc(i_stat,Lpot,'Lpot',subname)
+      allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
+      call memocc(i_stat,pot,'pot',subname)
       ! Cut potential
       istl=1
       do iorb=1,nilr
          ilr = ilrtable(iorb,1)
 
          ! Cut the potential into locreg pieces
-         call global_to_local(Lzd%Glr,Lzd%Llr(ilr),orbs%nspin,npot,lzd%ndimpotisf,pot,Lpot(istl))
+         call global_to_local(Lzd%Glr,Lzd%Llr(ilr),orbs%nspin,npot,lzd%ndimpotisf,pot1,pot(istl))
          istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin
       end do
    else
-      allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      call memocc(i_stat,Lpot,'Lpot',subname)
+      allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
+      call memocc(i_stat,pot,'pot',subname)
       ist=1
       do iorb=1,nilr
          ilr = ilrtable(iorb,1)
@@ -667,7 +667,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
          end if
 
          call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
-              comgp%recvBuf, Lpot(ist), i3s, i3e)
+              comgp%recvBuf, pot(ist), i3s, i3e)
 
          ist = ist + size_lpot
       end do
@@ -680,16 +680,16 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
    ! Deallocate pot.
    if (iflag<2 .and. iflag>0) then
       if (nproc > 1) then
-         i_all=-product(shape(pot))*kind(pot)
-         deallocate(pot,stat=i_stat)
-         call memocc(i_stat,i_all,'pot',subname)
+         i_all=-product(shape(pot1))*kind(pot1)
+         deallocate(pot1,stat=i_stat)
+         call memocc(i_stat,i_all,'pot1',subname)
       else
          if (xc_exctXfac() /= 0.0_gp) then
-            i_all=-product(shape(pot))*kind(pot)
-            deallocate(pot,stat=i_stat)
-            call memocc(i_stat,i_all,'pot',subname)
+            i_all=-product(shape(pot1))*kind(pot1)
+            deallocate(pot1,stat=i_stat)
+            call memocc(i_stat,i_all,'pot1',subname)
          else
-            nullify(pot)
+            nullify(pot1)
          end if
       end if
    end if
@@ -699,19 +699,19 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
 END SUBROUTINE full_local_potential
 
 
-subroutine free_full_potential(nproc,pot,subname)
+subroutine free_full_potential(nproc,flag,pot,subname)
    use module_base
    use module_xc
    implicit none
    character(len=*), intent(in) :: subname
-   integer, intent(in) :: nproc
+   integer, intent(in) :: nproc, flag
    real(wp), dimension(:), pointer :: pot
    !local variables
    logical :: odp
    integer :: i_all,i_stat
 
    odp = xc_exctXfac() /= 0.0_gp
-   if (nproc > 1 .or. odp) then
+   if (nproc > 1 .or. odp .or. flag > 0 ) then
       i_all=-product(shape(pot))*kind(pot)
       deallocate(pot,stat=i_stat)
       call memocc(i_stat,i_all,'pot',subname)

@@ -169,7 +169,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    deallocate(Gabs_coeffs,stat=i_stat)
    call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
-   call free_full_potential(nproc,pot,subname)
+   call free_full_potential(nproc,0,pot,subname)
 
 END SUBROUTINE xabs_lanczos
 
@@ -373,7 +373,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
       enddo
    endif
 
-   call free_full_potential(nproc,pot,subname)
+   call free_full_potential(nproc,0,pot,subname)
    nullify(ha%potential)
 
 
@@ -624,7 +624,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
       call memocc(i_stat,i_all,'potentialclone',subname)
    endif
 
-   call free_full_potential(nproc,pot,subname)
+   call free_full_potential(nproc,0,pot,subname)
    nullify(ha%potential)
 
 END SUBROUTINE xabs_cg

@@ -338,7 +338,7 @@ program oneatom
   end if
 
   !deallocate potential
-  call free_full_potential(nproc,pot,subname)
+  call free_full_potential(nproc,0,pot,subname)
 
   i_all=-product(shape(pot_ion))*kind(pot_ion)
   deallocate(pot_ion,stat=i_stat)

@@ -1522,6 +1522,52 @@ subroutine allocateBasicArrays(at, lin)
 
 end subroutine allocateBasicArrays
 
+subroutine deallocateBasicArrays(at, lin)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(atoms_data),intent(inout):: at
+  type(linearParameters),intent(inout):: lin
+  
+  ! Local variables
+  integer:: i_stat,i_all
+  character(len=*),parameter:: subname='deallocateBasicArrays'
+ 
+  if(associated(lin%potentialPrefac)) then
+    print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
+    i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
+    print *,'i_all',i_all
+    deallocate(lin%potentialPrefac,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
+    nullify(lin%potentialPrefac)
+  end if 
+  if(associated(lin%norbsPerType)) then
+    print *,'lin%norbsPerType',associated(lin%norbsPerType)
+    i_all = -product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
+    deallocate(lin%norbsPerType,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%norbsPerType',subname)
+    nullify(lin%norbsPerType)
+  end if 
+  if(associated(lin%locrad)) then
+    print *,'lin%locrad',associated(lin%locrad)
+    i_all = -product(shape(lin%locrad))*kind(lin%locrad)
+    deallocate(lin%locrad,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%locrad',subname)
+    nullify(lin%locrad)
+  end if 
+  if(associated(at%rloc)) then
+    print *,'at%rloc',associated(at%rloc)
+    i_all = -product(shape(at%rloc))*kind(at%rloc)
+    deallocate(at%rloc,stat=i_stat)
+    call memocc(i_stat,i_all,'at%rloc',subname)
+    nullify(at%rloc)
+  end if 
+
+end subroutine deallocateBasicArrays
+
+
 subroutine allocateBasicArraysInputLin(at, lin)
   use module_base
   use module_types
@@ -1536,16 +1582,16 @@ subroutine allocateBasicArraysInputLin(at, lin)
   character(len=*),parameter:: subname='allocateBasicArrays'
   
   allocate(lin%norbsPerType(at%ntypes), stat=istat)
-  call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
+!  call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
   
   allocate(lin%potentialPrefac(at%ntypes), stat=istat)
-  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
+!  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 
   allocate(lin%locrad(at%nat),stat=istat)
-  call memocc(istat,lin%locrad,'lin%locrad',subname)
+!  call memocc(istat,lin%locrad,'lin%locrad',subname)
 
   allocate(at%rloc(at%ntypes,3), stat=istat)
-  call memocc(istat, at%rloc, 'at%rloc', subname)
+!  call memocc(istat, at%rloc, 'at%rloc', subname)
 
 end subroutine allocateBasicArraysInputLin
 
@@ -3499,6 +3545,9 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
         i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
         deallocate(calculateBounds,stat=i_stat)
         call memocc(i_stat,i_all,'calculateBounds',subname)
+        i_all = -product(shape(locrad))*kind(locrad)                                                                                                                                                              
+        deallocate(locrad,stat=i_stat)
+        call memocc(i_stat,i_all,'locrad',subname)
 
         ! determine the wavefunction dimension
         call wavefunction_dimension(Lzd,orbs)
@@ -3734,9 +3783,6 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
 !!$     end if
      call nullify_locreg_descriptors(Lzd%Llr(1))
      
-     !Copy the Glr to the Llr(1)
-     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat) 
-     allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      !nullify all pointers
      do ilr=1,Lzd%nlr
         nullify(Lzd%Llr(ilr)%projflg)
@@ -3762,6 +3808,10 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
         nullify(Lzd%Llr(ilr)%bounds%gb%ibxxyy_f)
      end do
 
+     !Copy the Glr to the Llr(1)
+     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat) 
+     allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
+     call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
      call copy_locreg_descriptors(Lzd%Glr, Lzd%Llr(1), subname)
   
      !Reinitiliaze inwhichlocreg
@@ -3787,6 +3837,16 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
     ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
      call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
 
+    ! Deallocate the localization regions
+    if(associated(lzd%llr)) then
+         iis1=lbound(lzd%llr,1)
+         iie1=ubound(lzd%llr,1)
+         do i1=iis1,iie1
+             call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
+             call deallocate_locreg_descriptors(lzd%llr(i1), subname)
+         end do
+      end if
+
     ! Make the localization regions
     allocate(calculateBounds(lzd%nlr),stat=i_stat)
     call memocc(i_stat,calculateBounds,'calculateBounds',subname)
@@ -3794,6 +3854,7 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
 !    call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,calculateBounds)
     call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,&
           orbs,calculateBounds) 
+
      i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
      deallocate(calculateBounds,stat=i_stat)
      call memocc(i_stat,i_all,'calculateBounds',subname)

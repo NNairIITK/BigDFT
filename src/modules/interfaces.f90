@@ -1461,7 +1461,7 @@ module module_interfaces
        END SUBROUTINE write_eigen_objects
 
        subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3rho_add,orbs,&
-            Lzd,iflag,ngatherarr,potential,Lpot,comgp)
+            Lzd,iflag,ngatherarr,potential,pot,comgp)
          use module_base
          use module_types
          use module_xc
@@ -1472,15 +1472,15 @@ module module_interfaces
          type(local_zone_descriptors),intent(in) :: Lzd
          integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
          real(wp), dimension(max(ndimrhopot,1)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
-         real(wp), dimension(:), pointer :: Lpot
+         real(wp), dimension(:), pointer :: pot
          type(p2pCommsGatherPot),intent(inout), optional:: comgp
        END SUBROUTINE full_local_potential
 
-      subroutine free_full_potential(nproc,pot,subname)
+      subroutine free_full_potential(nproc,flag,pot,subname)
          use module_base
          implicit none
          character(len=*), intent(in) :: subname
-         integer, intent(in) :: nproc
+         integer, intent(in) :: nproc,flag
          real(wp), dimension(:), pointer :: pot
       END SUBROUTINE free_full_potential
 

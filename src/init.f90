@@ -1973,7 +1973,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
  
      !deallocate potential
-     call free_full_potential(nproc,pot,subname)
+     call free_full_potential(nproc,0,pot,subname)
 
      i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
      deallocate(orbse%ispot,stat=i_stat)

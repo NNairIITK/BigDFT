@@ -155,8 +155,10 @@ program BigDFT
       endif
 
       call deallocate_atoms(atoms,subname) 
-   
+
+!      call deallocate_lr(rst%Lzd%Glr,subname)    
 !      call deallocate_local_zone_descriptors(rst%Lzd, subname)
+!      if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') call deallocateBasicArrays(atoms,inputs%lin)
 
       call free_restart_objects(rst,subname)
 
