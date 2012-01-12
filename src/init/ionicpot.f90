@@ -921,7 +921,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   !read the positions of the counter ions from file
   call read_atomic_file('posinp_ci',iproc,at,rxyz)
   ! Read associated pseudo files.
-  call init_atomic_values(iproc, at, in%ixc)
+  call init_atomic_values((iproc == 0), at, in%ixc)
 
   allocate(radii_cf(at%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)

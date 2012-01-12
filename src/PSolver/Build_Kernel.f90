@@ -982,6 +982,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     call gauconv_ffts(itype_scf,pgauss,hx,hy,hz,nfft1,nfft2,nfft3,n1k,n2k,n3k,n_range,&
          fwork,fftwork,kernel_scf)
 
+
     !Add to the kernel (only the local part)
     wg=w_gauss(i_gauss)
     do i03=iproc*(nker3/nproc)+1,min((iproc+1)*(nker3/nproc),nfft3/2+1)
@@ -1007,6 +1008,8 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 !!$          end do
 !!$       end if
 !!$    end do
+
+    !!!!ALAM: here the print statement can be added print *,'igauss',i_gauss
 !!$
  end do
 !!$stop

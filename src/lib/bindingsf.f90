@@ -176,6 +176,32 @@ subroutine inputs_get_mix(in, iscf, itrpmax, norbsempty, occopt, alphamix, rpnrm
   Tel = in%Tel
   alphadiis = in%alphadiis
 END SUBROUTINE inputs_get_mix
+subroutine inputs_get_geopt(in, geopt_approach, ncount_cluster_x, frac_fluct, forcemax, &
+     & randdis, betax, history, ionmov, dtion, strtarget, qmass)
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  character(len = 10), intent(out) :: geopt_approach
+  integer, intent(out) :: ncount_cluster_x, history, ionmov
+  real(gp), intent(out) :: frac_fluct, forcemax, randdis, betax, dtion, strtarget(6)
+  real(gp), pointer :: qmass(:)
+  
+  geopt_approach = in%geopt_approach
+  ncount_cluster_x = in%ncount_cluster_x
+  frac_fluct = in%frac_fluct
+  forcemax = in%forcemax
+  randdis = in%randdis
+  betax = in%betax
+  history = in%history
+  ionmov = in%ionmov
+  dtion = in%dtion
+  strtarget(:) = in%strtarget(:)
+  if (associated(in%qmass)) then
+     qmass => in%qmass
+  else
+     nullify(qmass)
+  end if
+END SUBROUTINE inputs_get_geopt
 subroutine inputs_get_files(in, files)
   use module_types
   implicit none

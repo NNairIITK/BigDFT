@@ -134,6 +134,7 @@ subroutine allocate_atoms_nat(atoms, nat, subname)
   character(len = *), intent(in) :: subname
   !local variables
   integer :: i_stat
+  integer, parameter :: nelecmax=32
 
   atoms%nat = nat
 
@@ -146,6 +147,9 @@ subroutine allocate_atoms_nat(atoms, nat, subname)
   call memocc(i_stat,atoms%natpol,'atoms%natpol',subname)
   allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
+  ! semicores useful only for the input guess
+  allocate(atoms%iasctype(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
 
   !this array is useful for frozen atoms, no atom is frozen by default
   atoms%ifrztyp(:)=0
@@ -153,6 +157,9 @@ subroutine allocate_atoms_nat(atoms, nat, subname)
   !this corresponds to the value of 100
   !RULE natpol=charge*1000 + 100 + spinpol
   atoms%natpol(:)=100
+
+  allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 END SUBROUTINE allocate_atoms_nat
 
 subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
@@ -164,7 +171,6 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
   character(len = *), intent(in) :: subname
   !local variables
   integer :: i_stat
-  integer, parameter :: nelecmax=32
 
   atoms%ntypes = ntypes
 
@@ -191,11 +197,6 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
   call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)
   allocate(atoms%nlcc_ngc(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngc,'atoms%nlcc_ngc',subname)
-  ! semicores useful only for the input guess
-  allocate(atoms%iasctype(atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
-  allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 END SUBROUTINE allocate_atoms_ntypes
 
 !> Calculate symmetries and update
@@ -867,6 +868,59 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
         
 END SUBROUTINE frozen_ftoi
 
+!> Check the position of atoms
+subroutine check_atoms_positions(iproc,atoms,rxyz)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  !local variables
+  logical :: dowrite
+  integer :: iat,nateq,jat,j
+
+  nateq=0
+  do iat=1,atoms%nat
+     do jat=iat+1,atoms%nat
+        if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
+             (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
+           nateq=nateq+1
+           write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
+                ' (',trim(atoms%atomnames(atoms%iatype(iat))),') and ',&
+                jat,' (',trim(atoms%atomnames(atoms%iatype(jat))),&
+                ') have the same positions'
+        end if
+     end do
+  end do
+  if (nateq /= 0) then
+     if (iproc == 0) then
+        write(*,'(1x,a)')'Control your posinp file, cannot proceed'
+        write(*,'(1x,a)',advance='no')&
+             'Writing tentative alternative positions in the file posinp_alt...'
+        open(unit=9,file='posinp_alt')
+        write(9,'(1x,a)')' ??? atomicd0'
+        write(9,*)
+        do iat=1,atoms%nat
+           dowrite=.true.
+           do jat=iat+1,atoms%nat
+              if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
+                   (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
+                 dowrite=.false.
+              end if
+           end do
+           if (dowrite) & 
+                write(9,'(a2,4x,3(1x,1pe21.14))')trim(atoms%atomnames(atoms%iatype(iat))),&
+                (rxyz(j,iat),j=1,3)
+        end do
+        close(9)
+        write(*,'(1x,a)')' done.'
+        write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
+     end if
+     stop 'check_atoms_positions'
+  end if
+END SUBROUTINE check_atoms_positions
+
 !>Write xyz atomic file.
 subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   use module_base
@@ -1163,16 +1217,20 @@ subroutine atoms_free(atoms)
 END SUBROUTINE atoms_free
 
 ! Set routines for bindings
-subroutine atoms_set_n_atoms(atoms, nat)
+subroutine atoms_set_n_atoms(atoms, rxyz, nat)
   use module_types
+  use m_profiling
   implicit none
   type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
   integer, intent(in) :: nat
 
-  integer :: i
+  integer :: i, i_stat
 
   call allocate_atoms_nat(atoms, nat, "atoms_set_n_atoms")
   atoms%iatype = (/ (i, i=1,nat) /)
+  allocate(rxyz(3, atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz',"atoms_set_n_atoms")
 END SUBROUTINE atoms_set_n_atoms
 subroutine atoms_set_n_types(atoms, ntypes)
   use module_types
@@ -1182,24 +1240,49 @@ subroutine atoms_set_n_types(atoms, ntypes)
 
   call allocate_atoms_ntypes(atoms, ntypes, "atoms_set_n_types")
 END SUBROUTINE atoms_set_n_types
+subroutine atoms_set_name(atoms, ityp, name)
+  use module_types
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+  integer, intent(in) :: ityp
+  character(len = 20), intent(in) :: name
+
+  atoms%atomnames(ityp) = name
+END SUBROUTINE atoms_set_name
+subroutine atoms_sync(atoms, alat1, alat2, alat3, geocode, format, units)
+  use module_types
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), intent(out) :: alat1, alat2, alat3
+  character(len = 1), intent(in) :: geocode
+  character(len = 5), intent(in) :: format
+  character(len = 20), intent(in) :: units
+
+  atoms%alat1 = alat1
+  atoms%alat2 = alat2
+  atoms%alat3 = alat3
+  atoms%geocode = geocode
+  atoms%format = format
+  atoms%units = units
+END SUBROUTINE atoms_sync
 
 ! Accessors for bindings.
-subroutine atoms_get_nat(atoms, nat)
+subroutine atoms_copy_nat(atoms, nat)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
   integer, intent(out) :: nat
 
   nat = atoms%nat
-END SUBROUTINE atoms_get_nat
-subroutine atoms_get_ntypes(atoms, ntypes)
+END SUBROUTINE atoms_copy_nat
+subroutine atoms_copy_ntypes(atoms, ntypes)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
   integer, intent(out) :: ntypes
 
   ntypes = atoms%ntypes
-END SUBROUTINE atoms_get_ntypes
+END SUBROUTINE atoms_copy_ntypes
 subroutine atoms_get_iatype(atoms, iatype)
   use module_types
   implicit none
@@ -1208,15 +1291,157 @@ subroutine atoms_get_iatype(atoms, iatype)
 
   iatype => atoms%iatype
 END SUBROUTINE atoms_get_iatype
-subroutine atoms_get_geocode(atoms, geocode)
+subroutine atoms_get_iasctype(atoms, iasctype)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: iasctype
+
+  iasctype => atoms%iasctype
+END SUBROUTINE atoms_get_iasctype
+subroutine atoms_get_natpol(atoms, natpol)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: natpol
+
+  natpol => atoms%natpol
+END SUBROUTINE atoms_get_natpol
+subroutine atoms_get_ifrztyp(atoms, ifrztyp)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: ifrztyp
+
+  ifrztyp => atoms%ifrztyp
+END SUBROUTINE atoms_get_ifrztyp
+subroutine atoms_get_nelpsp(atoms, nelpsp)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: nelpsp
+
+  nelpsp => atoms%nelpsp
+END SUBROUTINE atoms_get_nelpsp
+subroutine atoms_get_npspcode(atoms, npspcode)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: npspcode
+
+  npspcode => atoms%npspcode
+END SUBROUTINE atoms_get_npspcode
+subroutine atoms_get_nzatom(atoms, nzatom)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: nzatom
+
+  nzatom => atoms%nzatom
+END SUBROUTINE atoms_get_nzatom
+subroutine atoms_get_nlcc_ngv(atoms, nlcc_ngv)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: nlcc_ngv
+
+  nlcc_ngv => atoms%nlcc_ngv
+END SUBROUTINE atoms_get_nlcc_ngv
+subroutine atoms_get_nlcc_ngc(atoms, nlcc_ngc)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: nlcc_ngc
+
+  nlcc_ngc => atoms%nlcc_ngc
+END SUBROUTINE atoms_get_nlcc_ngc
+subroutine atoms_get_ixcpsp(atoms, ixcpsp)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: ixcpsp
+
+  ixcpsp => atoms%ixcpsp
+END SUBROUTINE atoms_get_ixcpsp
+subroutine atoms_get_amu(atoms, amu)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:), pointer :: amu
+
+  amu => atoms%amu
+END SUBROUTINE atoms_get_amu
+subroutine atoms_get_aocc(atoms, aocc)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:,:), pointer :: aocc
+
+  aocc => atoms%aocc
+END SUBROUTINE atoms_get_aocc
+subroutine atoms_get_radii_cf(atoms, radii_cf)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:,:), pointer :: radii_cf
+
+  radii_cf => atoms%radii_cf
+END SUBROUTINE atoms_get_radii_cf
+subroutine atoms_get_psppar(atoms, psppar)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:,:,:), pointer :: psppar
+
+  psppar => atoms%psppar
+END SUBROUTINE atoms_get_psppar
+subroutine atoms_get_nlccpar(atoms, nlccpar)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:,:), pointer :: nlccpar
+
+  nlccpar => atoms%nlccpar
+END SUBROUTINE atoms_get_nlccpar
+subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:,:), pointer :: ig_nlccpar
+
+  ig_nlccpar => atoms%ig_nlccpar
+END SUBROUTINE atoms_get_ig_nlccpar
+subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
   character(len = 1), intent(out) :: geocode
+  character(len = 5), intent(out) :: format
+  character(len = 20), intent(out) :: units
 
   geocode = atoms%geocode
-END SUBROUTINE atoms_get_geocode
-subroutine atoms_get_name(atoms, ityp, name, ln)
+  format = atoms%format
+  units = atoms%units
+END SUBROUTINE atoms_copy_geometry_data
+subroutine atoms_copy_psp_data(atoms, natsc, donlcc)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(out) :: natsc
+  logical, intent(out) :: donlcc
+
+  natsc = atoms%natsc
+  donlcc = atoms%donlcc
+END SUBROUTINE atoms_copy_psp_data
+subroutine atoms_copy_symobj(atoms, symObj)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(out) :: symObj
+
+  symObj = atoms%symObj
+END SUBROUTINE atoms_copy_symobj
+subroutine atoms_copy_name(atoms, ityp, name, ln)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -1226,8 +1451,8 @@ subroutine atoms_get_name(atoms, ityp, name, ln)
 
   name = atoms%atomnames(ityp)
   ln = len(trim(name))
-END SUBROUTINE atoms_get_name
-subroutine atoms_get_alat(atoms, alat1, alat2, alat3)
+END SUBROUTINE atoms_copy_name
+subroutine atoms_copy_alat(atoms, alat1, alat2, alat3)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -1236,4 +1461,40 @@ subroutine atoms_get_alat(atoms, alat1, alat2, alat3)
   alat1 = atoms%alat1
   alat2 = atoms%alat2
   alat3 = atoms%alat3
-END SUBROUTINE atoms_get_alat
+END SUBROUTINE atoms_copy_alat
+subroutine atoms_write(atoms, filename, filelen, rxyz, forces, energy, comment, ln)
+  use module_types
+  implicit none
+  integer, intent(in) :: ln, filelen
+  character(len=ln), intent(in) :: comment
+  character(len=filelen), intent(in) :: filename
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(:,:), pointer :: forces
+
+  integer :: iunit
+
+  if (trim(filename) == "stdout") then
+     iunit = 6
+  else
+     open(unit=9,file=trim(filename)//'.'//trim(atoms%format))
+     iunit = 9
+  end if
+
+  if (trim(atoms%format) == "xyz") then
+     call wtxyz(iunit,energy,rxyz,atoms,comment)
+     if (associated(forces)) call wtxyz_forces(iunit,forces,atoms)
+  else if (trim(atoms%format) == "ascii") then
+     call wtascii(iunit,energy,rxyz,atoms,comment)
+     if (associated(forces)) call wtascii_forces(iunit,forces,atoms)
+  else
+     write(*,*) "Error, unknown file format."
+     stop
+  end if
+
+  if (trim(filename) /= "stdout") then
+     close(unit=9)
+  end if
+END SUBROUTINE atoms_write
+

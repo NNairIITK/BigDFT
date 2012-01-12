@@ -1,6 +1,7 @@
 #include <config.h>
 #include <bigdft.h>
 
+#include <string.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -25,15 +26,53 @@ int main(int argc, char **argv)
 
   int out_pipe[2], stdout_fileno_old;
 
-  if (argc > 1)
-    chdir(argv[1]);
-
   fprintf(stdout, "Test BigDFT_Atoms structure creation.\n");
   atoms = bigdft_atoms_new();
-  bigdft_atoms_set_n_atoms(atoms, 3);
+  atoms->comment = strdup("Test from memory generation.");
+  fprintf(stdout, "Test BigDFT_Atoms structure set n types.\n");
+  bigdft_atoms_set_n_types(atoms, 2);
   for (i = 0; i  < atoms->nat; i++)
     fprintf(stdout, " Atom %d -> type %d\n", i, atoms->iatype[i]);
+  fprintf(stdout, "Test BigDFT_Atoms structure syncing.\n");
+  atoms->geocode = 'F';
+  atoms->atomnames[0] = strdup("O");
+  atoms->atomnames[1] = strdup("H");
+  atoms->alat[0] = 5.;
+  atoms->alat[1] = 5.;
+  atoms->alat[2] = 5.;
+  sprintf(atoms->format, "ascii");
+  sprintf(atoms->units, "bohr");
+  bigdft_atoms_sync(atoms);
+  fprintf(stdout, "Test BigDFT_Atoms structure set n atoms.\n");
+  bigdft_atoms_set_n_atoms(atoms, 3);
+  fprintf(stdout, "Test BigDFT_Atoms structure direct access.\n");
+  atoms->iatype[0] = 1;
+  atoms->iatype[1] = 2;
+  atoms->iatype[2] = 2;
+  atoms->rxyz.data[3 * 0 + 0] = 0.;
+  atoms->rxyz.data[3 * 0 + 1] = 0.;
+  atoms->rxyz.data[3 * 0 + 2] = 0.;
+  atoms->rxyz.data[3 * 1 + 0] = 0.5;
+  atoms->rxyz.data[3 * 1 + 1] = 0.;
+  atoms->rxyz.data[3 * 1 + 2] = 0.5;
+  atoms->rxyz.data[3 * 2 + 0] = -0.5;
+  atoms->rxyz.data[3 * 2 + 1] = 0.;
+  atoms->rxyz.data[3 * 2 + 2] = 0.5;
+  /* bigdft_atoms_set_displacement(atoms, 0.001); */
+  bigdft_atoms_write(atoms, "output");
+  fprintf(stdout, "Test BigDFT_Atoms pseudo-potential on the fly.\n");
+  bigdft_atoms_set_psp(atoms, 1);
+  radii = bigdft_atoms_get_radii(atoms);
+  for (i = 0; i < atoms->ntypes; i++)
+    fprintf(stdout, " Type %d, radii %f %f %f\n", i,
+            radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
+  g_free(radii);
+  fprintf(stdout, "Test BigDFT_Atoms free.\n");
   bigdft_atoms_free(atoms);
+  fprintf(stdout, " Ok\n");
+
+  if (argc > 1)
+    chdir(argv[1]);
 
   fprintf(stdout, "Test BigDFT_Atoms structure creation from file.\n");
   atoms = bigdft_atoms_new_from_file("posinp.ascii");
@@ -95,11 +134,11 @@ int main(int argc, char **argv)
   orbs = bigdft_orbs_new(atoms, in, 0, 1, &nelec);
   fprintf(stdout, " System has %d electrons.\n", nelec);
 
-  fprintf(stdout, "Test memory estimation.\n");
-  stdout_fileno_old = redirect_init(out_pipe);
-  peak = bigdft_memory_peak(4, glr, in, orbs);
-  redirect_dump(out_pipe, stdout_fileno_old);
-  fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
+  /* fprintf(stdout, "Test memory estimation.\n"); */
+  /* stdout_fileno_old = redirect_init(out_pipe); */
+  /* peak = bigdft_memory_peak(4, glr, in, orbs); */
+  /* redirect_dump(out_pipe, stdout_fileno_old); */
+  /* fprintf(stdout, " Memory peak will reach %f octets.\n", peak); */
 
   fprintf(stdout, "Test BigDFT_Orbs free.\n");
   bigdft_orbs_free(orbs);
@@ -117,9 +156,11 @@ int main(int argc, char **argv)
   bigdft_atoms_free(atoms);
   fprintf(stdout, " Ok\n");
 
-  stdout_fileno_old = redirect_init(out_pipe);
-  FC_FUNC_(memocc_report, MEMOCC_REPORT)();
-  redirect_dump(out_pipe, stdout_fileno_old);
+  g_free(radii);
+
+  /* stdout_fileno_old = redirect_init(out_pipe); */
+  /* FC_FUNC_(memocc_report, MEMOCC_REPORT)(); */
+  /* redirect_dump(out_pipe, stdout_fileno_old); */
 
   return 0;
 }

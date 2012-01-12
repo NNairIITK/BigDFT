@@ -129,14 +129,14 @@ program MINHOP
 
 
   !use only the atoms structure for the run
-  call init_atomic_values(iproc,md_atoms,inputs_md%ixc)
+  call init_atomic_values((iproc == 0),md_atoms,inputs_md%ixc)
   call deallocate_atoms(md_atoms,subname) 
   i_all=-product(shape(mdpos))*kind(mdpos)
   deallocate(mdpos,stat=i_stat)
   call memocc(i_stat,i_all,'mdpos',subname)
 
   ! Read associated pseudo files. Based on the inputs_opt set
-  call init_atomic_values(iproc, atoms, inputs_opt%ixc)
+  call init_atomic_values((iproc == 0), atoms, inputs_opt%ixc)
 
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then

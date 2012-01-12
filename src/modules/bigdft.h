@@ -39,16 +39,26 @@ typedef struct f90_pointer_int_
 typedef struct f90_pointer_atoms_ f90_pointer_atoms;
 typedef struct BigDFT_Atoms_
 {
-  /* TODO: bindings to values... */
-  gchar geocode;
-  guint  ntypes, nat;
-  guint *iatype;
-  gchar **atomnames;
+  /* Bindings to values, obtained by copy. Update them with
+     bigdft_atoms_sync(). */
+  gchar geocode, format[6], units[21];
+  guint  ntypes, nat, natsc;
+  int symObj;
   double alat[3];
+  gchar **atomnames;
+  gboolean donlcc;
+  /* Bindings of pointer arrays, access is direct. */
+  guint *iatype, *iasctype, *natpol, *nelpsp, *npspcode, *nzatom;
+  int *nlcc_ngv, *nlcc_ngc, *ixcpsp, *ifrztyp;
+  double *radii_cf, *amu, *aocc, *psppar, *nlccpar, *ig_nlccpar;
 
   /* Coordinates. */
   f90_pointer_double rxyz;
   double shift[3];
+
+  /* Additional fields. */
+  gchar *comment;
+  double energy;
 
   /* Private. */
   f90_pointer_atoms *data;
@@ -63,6 +73,7 @@ void          bigdft_atoms_set_psp         (BigDFT_Atoms *atoms, int ixc);
 void          bigdft_atoms_set_symmetries  (BigDFT_Atoms *atoms, gboolean active,
                                             double elecfield[3]);
 void          bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis);
+void          bigdft_atoms_sync            (BigDFT_Atoms *atoms);
 double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms);
 
 /*********************************/
@@ -95,6 +106,12 @@ typedef struct BigDFT_Inputs_
   BigDFT_Smearing occopt;
   double alphamix, rpnrm_cv, gnrm_startmix, Tel, alphadiis;
 
+  /* GEOPT file variables. */
+  char geopt_approach[10];
+  int ncount_cluster_x, history, ionmov;
+  double frac_fluct, forcemax, randdis, betax, dtion;
+  double strtarget[6];
+  f90_pointer_double qmass;
 
   /* Private. */
   f90_pointer_inputs *data;

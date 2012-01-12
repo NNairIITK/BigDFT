@@ -15,3 +15,4 @@ bindings.report: $(srcdir)/bindings.out.ref bindings.out
 
 bindings.out: check_lib_c $(srcdir)/posinp.ascii $(srcdir)/test.dft
 	./check_lib_c $(srcdir) > $@
+	cat output.ascii >> $@

@@ -1,7 +1,13 @@
 Test BigDFT_Atoms structure creation.
- Atom 0 -> type 1
- Atom 1 -> type 2
- Atom 2 -> type 3
+Test BigDFT_Atoms structure set n types.
+Test BigDFT_Atoms structure syncing.
+Test BigDFT_Atoms structure set n atoms.
+Test BigDFT_Atoms structure direct access.
+Test BigDFT_Atoms pseudo-potential on the fly.
+ Type 0, radii 1.215576 0.221786 0.221786
+ Type 1, radii 1.463418 0.200000 0.200000
+Test BigDFT_Atoms free.
+ Ok
 Test BigDFT_Atoms structure creation from file.
  Atom 0, coord. 1.620000 1.620000 1.620000, type 1
  Atom 1, coord. 3.240000 3.240000 3.240000, type 2
@@ -29,8 +35,6 @@ Test BigDFT_Inputs structure creation.
  Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
 Test BigDFT_Orbs structure creation.
  System has 8 electrons.
-Test memory estimation.
-Fortran:  Memory peak will reach 56285752.000000 octets.
 Test BigDFT_Orbs free.
  Ok
 Test BigDFT_Inputs free.
@@ -39,29 +43,11 @@ Test BigDFT_Glr free.
  Ok
 Test BigDFT_Atoms free.
  Ok
- Total Number of Electrons        8
- Total Number of Orbitals         4
- occup(1:4)= 2.0000
- ------------------------------------------------------------------ Memory Estimation
- Number of atoms=   -1 Number of orbitals=     4 Sim. Box Dimensions=    40   40   40
- Estimation performed for 4 processors.
- Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     2 MB   845 KB
-              Poisson Solver Density (D):     2 MB   696 KB
-     Single Wavefunction for one orbital:     0 MB   412 KB
-    All Wavefunctions for each processor:     1 MB   210 KB
-       Wavefunctions + DIIS per proc (W):     6 MB    23 KB
-     Nonlocal Pseudopotential Arrays (P):     0 MB     0 KB
-    Arrays of full uncompressed grid (U):    10 MB   445 KB
- Estimation of Memory requirements for principal code sections:
-  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~19*K         |   W+~3*U+~ 3*D+K+P   |   ~12*D+K+W+P  |   W+~3*U+~ 3*D+K+P 
-        53MB         |        43MB          |       41MB     |            44MB
- The overall memory requirement needed for this calculation is thus: 53 MB
- By reducing the DIIS history and/or increasing the number of processors the amount of
-  memory can be reduced but for this system it will never be less than 40 MB
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 53 allocations and 53 deallocations, remaining memory(B): 0
- memory occupation peak: 6 MB
- for the array  logrid_big in the routine  make_all_ib
-Fortran: 
+# BigDFT file - Test from memory generation.
+ 0.50000000000000000E+01 0.00000000000000000E+00 0.50000000000000000E+01
+ 0.00000000000000000E+00 0.00000000000000000E+00 0.50000000000000000E+01
+#keyword: bohr
+#keyword: freeBC
+  0.00000000000000000E+00  0.00000000000000000E+00  0.00000000000000000E+00  O                                                     
+  5.00000000000000000E-01  0.00000000000000000E+00  5.00000000000000000E-01  H                                                     
+ -5.00000000000000000E-01  0.00000000000000000E+00  5.00000000000000000E-01  H                                                     
