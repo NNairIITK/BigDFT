@@ -683,6 +683,10 @@ subroutine gaussians_to_wavelets_new2(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,ps
            !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
            call wnrm_wrap(ncplx,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,psi(ind),scpr) 
            totnorm=totnorm+scpr
+           write(200+iproc,*) 'iorb, ilr, scpr', iorb, ilr, scpr
+           do ierr=1,Lzd%Llr(ilr)%wfd%nvctr_c + 7*Lzd%Llr(ilr)%wfd%nvctr_f
+               write(400+iproc*10+iorb,*) ierr, psi(ind+ierr-1)
+           end do
            ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c + 7*Lzd%Llr(ilr)%wfd%nvctr_f
         end do
         !write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx

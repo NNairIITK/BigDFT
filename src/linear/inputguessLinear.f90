@@ -295,6 +295,19 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       norbat=norbat+norbsPerAt(iat)
   end do
 
+  !if(iproc==0) then
+       do istat=1,lin%orbs%norb
+           write(100+iproc,*) istat, lin%orbs%inwhichlocreg(istat)
+       end do
+       do istat=1,lin%lig%orbsig%norb
+           write(110+iproc,*) istat, lin%lig%orbsig%inwhichlocreg(istat)
+       end do
+       do istat=1,lin%lig%orbsGauss%norb
+           write(120+iproc,*) istat, lin%lig%orbsGauss%inwhichlocreg(istat)
+       end do
+  !end if
+
+
 
   ! Create the atomic orbitals in a Gaussian basis. Deallocate lin%lig%orbsig, since it will be
   ! recalculated in inputguess_gaussian_orbitals.
@@ -303,27 +316,40 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
   !     orbs,lin%lig%orbsig,norbsc_arr,locrad,G,psigau,eks)
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
+       lin%lig%lzdig%nlr, norbsPerAt, &
        orbs,lin%lig%orbsig,norbsc_arr,locrad,G,psigau,eks)
   ! Since inputguess_gaussian_orbitals overwrites lin%lig%orbsig,we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
   call repartitionOrbitals(iproc,nproc,lin%lig%orbsig%norb,lin%lig%orbsig%norb_par,&
        lin%lig%orbsig%norbp,lin%lig%orbsig%isorb_par,lin%lig%orbsig%isorb,lin%lig%orbsig%onWhichMPI)
-  !dimension of the wavefunctions
-  call wavefunction_dimension(lin%lig%lzdGauss,lin%lig%orbsig)
+  !!!! Assign the orbitals to the localization regions (lin%lig%orbsig has been overwritten by calling inputguess_gaussian_orbitals_forLinear)
+  !!!iall=-product(shape(lin%lig%orbsig%inWhichLocreg))*kind(lin%lig%orbsig%inWhichLocreg)
+  !!!deallocate(lin%lig%orbsig%inWhichLocreg,stat=istat)
+  !!!call memocc(istat,iall,'lin%lig%orbsig%inWhichLocreg',subname)
+  !!!call assignToLocreg2(iproc, at%nat, lin%lig%lzdig%nlr, input%nspin, norbsPerAt, rxyz, lin%lig%orbsig)
+
 
   ! Maybe this could be moved to another subroutine? Or be omitted at all?
   allocate(lin%lig%orbsig%eval(lin%orbs%norb), stat=istat)
   call memocc(istat, lin%lig%orbsig%eval, 'lin%lig%orbsig%eval', subname)
   lin%lig%orbsig%eval=-.5d0
 
-  ! lin%lig%orbsig%inWhichLocreg has been allocated in inputguess_gaussian_orbitals. Since it will again be allcoated
-  ! in assignToLocreg2, deallocate it first.
-  iall=-product(shape(lin%lig%orbsig%inWhichLocreg))*kind(lin%lig%orbsig%inWhichLocreg)
-  deallocate(lin%lig%orbsig%inWhichLocreg,stat=istat)
-  call memocc(istat,iall,'lin%lig%orbsig%inWhichLocreg',subname)
-  
-  ! Assign the orbitals to the localization regions.
-  call assignToLocreg2(iproc,at%nat,lin%lig%lzdig%nlr,input%nspin,norbsPerAt,rxyz,lin%lig%orbsig)
+  !!! lin%lig%orbsig%inWhichLocreg has been allocated in inputguess_gaussian_orbitals. Since it will again be allcoated
+  !!! in assignToLocreg2, deallocate it first.
+  !!iall=-product(shape(lin%lig%orbsig%inWhichLocreg))*kind(lin%lig%orbsig%inWhichLocreg)
+  !!deallocate(lin%lig%orbsig%inWhichLocreg,stat=istat)
+  !!call memocc(istat,iall,'lin%lig%orbsig%inWhichLocreg',subname)
+  !!
+  !!! Assign the orbitals to the localization regions.
+  !!call assignToLocreg2(iproc,at%nat,lin%lig%lzdig%nlr,input%nspin,norbsPerAt,rxyz,lin%lig%orbsig)
+
+
+  !dimension of the wavefunctions
+  call wavefunction_dimension(lin%lig%lzdGauss,lin%lig%orbsig)
+  do istat=1,lin%lig%orbsGauss%norb
+      write(320+iproc,*) istat, lin%lig%orbsGauss%inwhichlocreg(istat)
+      write(330+iproc,*) istat, lin%lig%orbsig%inwhichlocreg(istat)
+  end do
 
   ! Copy lin%lig%orbsig to lin%lig%orbsGauss, but keep the size of the orbitals in lin%lig%orbsGauss.
   call deallocate_orbitals_data(lin%lig%orbsGauss, subname)

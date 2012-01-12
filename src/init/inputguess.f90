@@ -145,16 +145,18 @@ END SUBROUTINE inputguess_gaussian_orbitals
 ! (used for O(N), the cubic distribution scheme does not always match the scheme assumed for O(N)).
 ! Ask Luigi how to fix this problem.
 subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,at,rxyz,nvirt,nspin,&
+     nlr, norbsPerAt, &
      orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
   use module_base
   use module_types
   use module_interfaces, except_this_one => inputguess_gaussian_orbitals_forLinear
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin
+  integer, intent(in) :: iproc,nproc,nspin,nlr
   integer, intent(inout) :: nvirt
   type(atoms_data), intent(inout) :: at
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  integer,dimension(at%nat),intent(in):: norbsPerAt
   real(gp), intent(out) :: eks
   integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
   real(gp), dimension(at%nat), intent(out) :: locrad
@@ -165,7 +167,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,at,rxyz,nvirt,nspi
   character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
   integer, parameter :: ngx=31
   integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
-  integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
+  integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll,istat,iall
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: iorbtolr
 
@@ -233,6 +235,15 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,at,rxyz,nvirt,nspi
   call orbitals_descriptors_forLinear(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
        & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
   call repartitionOrbitals(iproc, nproc, orbse%norb, orbse%norb_par, orbse%norbp, orbse%isorb_par, orbse%isorb, orbse%onWhichMPI)
+
+  ! lin%lig%orbsig%inWhichLocreg has been allocated in orbitals_descriptors_forLinear. Since it will again be allcoated
+  ! in assignToLocreg2, deallocate it first.
+  iall=-product(shape(orbse%inWhichLocreg))*kind(orbse%inWhichLocreg)
+  deallocate(orbse%inWhichLocreg,stat=istat)
+  call memocc(istat,iall,'orbse%inWhichLocreg',subname)
+  ! Assign the orbitals to the localization regions.
+  call assignToLocreg2(iproc,at%nat,nlr,nspin,norbsPerAt,rxyz,orbse)
+
   do ikpt = 1, orbse%nkpts
      ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
      do ispin=1,nspin

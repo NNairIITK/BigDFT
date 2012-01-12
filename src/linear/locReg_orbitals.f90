@@ -283,6 +283,7 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
   integer:: iatxmin, iatxmax, iatymin, iatymax, iatzmin, iatzmax, idir
   real(8),dimension(3):: diff
 
+!! NEW VERSION #################################################################
   !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
   allocate(orbse%inWhichLocreg(orbse%norb),stat=i_stat)
   call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
@@ -416,6 +417,83 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
 
   !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocreg', iproc, orbse%inWhichLocreg
   !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocregp', iproc, orbse%inWhichLocregp
+
+
+
+!!!! OLD VERSION #################################################################
+!!  !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
+!!  allocate(orbse%inWhichLocreg(orbse%norb),stat=i_stat)
+!!  call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
+!!  !allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
+!!  !call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
+!!  allocate(covered(natom), stat=i_stat)
+!!  call memocc(i_stat, covered, 'covered', subname)
+!! 
+!!
+!!  ! Determine the atom with lowest z coordinate
+!!  zmin=1.d100
+!!      do iat=1,natom
+!!      if(rxyz(3,iat)<zmin) then
+!!          zmin=rxyz(3,iat)
+!!          iiat=iat
+!!      end if
+!!  end do
+!!
+!!  ! There are four counters:
+!!  !   jproc: indicates which MPI process is handling the basis function which is being treated
+!!  !   jat: counts the atom numbers
+!!  !   jorb: counts the orbitals handled by a given process
+!!  !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
+!!  jproc=0
+!!  !jat=iiat
+!!  jat=1
+!!  jorb=0
+!!  iiOrb=0
+!!
+!!  covered=.false.
+!!
+!!  do iorb=1,orbse%norb
+!!
+!!      ! Switch to the next MPI process if the numbers of orbitals for a given
+!!      ! MPI process is reached.
+!!      if(jorb==orbse%norb_par(jproc,0)) then
+!!          jproc=jproc+1
+!!          jorb=0
+!!      end if
+!!
+!!      ! Switch to the next atom if the number of basis functions for this atom is reached.
+!!      if(iiOrb==Localnorb(jat)) then
+!!          iiOrb=0
+!!          !jat=jat+1
+!!          ! Determine the nearest atom which has not been covered yet.
+!!          covered(jat)=.true.
+!!          dmin=1.d100
+!!          do iat=1,natom
+!!              if(covered(iat)) cycle
+!!              tt = (rxyz(1,iat)-rxyz(1,jat))**2 + (rxyz(2,iat)-rxyz(2,jat))**2 + (rxyz(3,iat)-rxyz(3,jat))**2
+!!              if(tt<dmin) then
+!!                  iiat=iat
+!!                  dmin=tt
+!!              end if
+!!          end do
+!!          !jat=iiat
+!!          jat=jat+1
+!!      end if
+!!      if(jat > natom) then
+!!        jat = 1
+!!      end if
+!!      jorb=jorb+1
+!!      iiOrb=iiOrb+1
+!!      !if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
+!!      orbse%inWhichLocreg(iorb)=jat
+!!  end do
+!!
+!!  i_all=-product(shape(covered))*kind(covered)
+!!  deallocate(covered,stat=i_stat)
+!!  call memocc(i_stat,i_all,'covered',subname)
+!!
+!!  !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocreg', iproc, orbse%inWhichLocreg
+!!  !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocregp', iproc, orbse%inWhichLocregp
 
 end subroutine assignToLocreg2
 
