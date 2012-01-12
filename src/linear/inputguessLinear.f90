@@ -4066,12 +4066,21 @@ type(matrixDescriptors):: mad
          call mpiallred(meanAlpha, 1, mpi_sum, newComm, ierr)
          meanAlpha=meanAlpha/dble(ip%norb)
 
-          ! Precondition the gradient.
-          do iorb=1,ip%norb_par(iproc)
-              ilr=onWhichAtom(ip%isorb+iorb)
-              iilr=matmin%inWhichLocregOnMPI(iorb)
-              call preconditionGradient2(matmin%mlr(ilr)%norbinlr, hamextract(1,1,iilr), lgrad(1,iorb))
-          end do
+          !! Precondition the gradient.
+          !do iorb=1,ip%norb_par(iproc)
+          !    ilr=onWhichAtom(ip%isorb+iorb)
+          !    iilr=matmin%inWhichLocregOnMPI(iorb)
+          !    call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), lgrad(1,iorb))
+          !end do
+          !!do iorb=1,ip%norb_par(iproc)
+          !!    !ilr=onWhichAtom(ip%isorb+iorb)
+          !!    !iilr=matmin%inWhichLocregOnMPI(iorb)
+          !!    ilr=matmin%inWhichLocregExtracted(iorb)
+          !!    iilr=matmin%inWhichLocregOnMPI(iorb)
+          !!    call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lgrad(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
+          !!    call preconditionGradient2(orbsig%norb, ham3(1,1,iilr), coeffPad((iorb-1)*ip%norbtotPad+1))
+          !!    call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lgrad(1,iorb))
+          !!end do
       
     
           ! Write some informations to the screen, but only every 1000th iteration.
@@ -4098,7 +4107,7 @@ type(matrixDescriptors):: mad
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, trace: ', fnrm, trace
               infoCoeff=-1
-              ! Transform back to global ragion.
+              ! Transform back to global region.
               do iorb=1,ip%norb_par(iproc)
                   ilr=matmin%inWhichLocregExtracted(iorb)
                   call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
@@ -4335,14 +4344,14 @@ end subroutine buildLinearCombinationsLocalized3
 
 
 
-subroutine preconditionGradient2(nel, ham, grad)
+subroutine preconditionGradient2(nel, neltot, ham, grad)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: nel
-real(8),dimension(nel,nel),intent(in):: ham
+integer,intent(in):: nel, neltot
+real(8),dimension(neltot,neltot),intent(in):: ham
 real(8),dimension(nel),intent(inout):: grad
 
 ! Local variables
@@ -4357,7 +4366,7 @@ call memocc(istat, mat, 'mat', subname)
 allocate(rhs(nel), stat=istat)
 call memocc(istat, mat, 'mat', subname)
 
-! Build the matrix to be inverted
+! Build the matrix to be inverted (extract it from ham, which might have a larger dimension)
 do iel=1,nel
     do jel=1,nel
         mat(jel,iel) = ham(jel,iel)
