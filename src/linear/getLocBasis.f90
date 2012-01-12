@@ -3890,7 +3890,8 @@ nlocregOnMPI=0
 do iorb=1,orbs%norbp
     iiorb=orbs%isorb+iorb
     ilr=orbs%inwhichlocreg(iiorb)
-    if(ilr>ilrold) then
+    !if(ilr>ilrold) then
+    if(ilr/=ilrold) then
         nlocregOnMPI=nlocregOnMPI+1
     end if
     ilrold=ilr
@@ -4373,7 +4374,8 @@ real(8):: tt
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-          if(ilr>ilrold) then
+          !if(ilr>ilrold) then
+          if(ilr/=ilrold) then
               iorbref=iorb
           end if
           gdim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
