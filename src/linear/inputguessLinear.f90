@@ -295,17 +295,17 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       norbat=norbat+norbsPerAt(iat)
   end do
 
-  !if(iproc==0) then
-       do istat=1,lin%orbs%norb
-           write(100+iproc,*) istat, lin%orbs%inwhichlocreg(istat)
-       end do
-       do istat=1,lin%lig%orbsig%norb
-           write(110+iproc,*) istat, lin%lig%orbsig%inwhichlocreg(istat)
-       end do
-       do istat=1,lin%lig%orbsGauss%norb
-           write(120+iproc,*) istat, lin%lig%orbsGauss%inwhichlocreg(istat)
-       end do
-  !end if
+  !!if(iproc==0) then
+  !     do istat=1,lin%orbs%norb
+  !         write(100+iproc,*) istat, lin%orbs%inwhichlocreg(istat)
+  !     end do
+  !     do istat=1,lin%lig%orbsig%norb
+  !         write(110+iproc,*) istat, lin%lig%orbsig%inwhichlocreg(istat)
+  !     end do
+  !     do istat=1,lin%lig%orbsGauss%norb
+  !         write(120+iproc,*) istat, lin%lig%orbsGauss%inwhichlocreg(istat)
+  !     end do
+  !!end if
 
 
 
@@ -346,10 +346,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   !dimension of the wavefunctions
   call wavefunction_dimension(lin%lig%lzdGauss,lin%lig%orbsig)
-  do istat=1,lin%lig%orbsGauss%norb
-      write(320+iproc,*) istat, lin%lig%orbsGauss%inwhichlocreg(istat)
-      write(330+iproc,*) istat, lin%lig%orbsig%inwhichlocreg(istat)
-  end do
+  !do istat=1,lin%lig%orbsGauss%norb
+  !    write(320+iproc,*) istat, lin%lig%orbsGauss%inwhichlocreg(istat)
+  !    write(330+iproc,*) istat, lin%lig%orbsig%inwhichlocreg(istat)
+  !end do
 
   ! Copy lin%lig%orbsig to lin%lig%orbsGauss, but keep the size of the orbitals in lin%lig%orbsGauss.
   call deallocate_orbitals_data(lin%lig%orbsGauss, subname)
