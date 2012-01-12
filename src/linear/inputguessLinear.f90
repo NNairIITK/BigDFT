@@ -4066,12 +4066,12 @@ type(matrixDescriptors):: mad
          call mpiallred(meanAlpha, 1, mpi_sum, newComm, ierr)
          meanAlpha=meanAlpha/dble(ip%norb)
 
-          !! Precondition the gradient.
-          !do iorb=1,ip%norb_par(iproc)
-          !    ilr=onWhichAtom(ip%isorb+iorb)
-          !    iilr=matmin%inWhichLocregOnMPI(iorb)
-          !    call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), lgrad(1,iorb))
-          !end do
+          ! Precondition the gradient.
+          do iorb=1,ip%norb_par(iproc)
+              ilr=onWhichAtom(ip%isorb+iorb)
+              iilr=matmin%inWhichLocregOnMPI(iorb)
+              call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), lgrad(1,iorb))
+          end do
           !!do iorb=1,ip%norb_par(iproc)
           !!    !ilr=onWhichAtom(ip%isorb+iorb)
           !!    !iilr=matmin%inWhichLocregOnMPI(iorb)
