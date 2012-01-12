@@ -3962,7 +3962,7 @@ type(matrixDescriptors):: mad
       isx=1
       call initializeDIIS_inguess(isx, ip%norb_par(iproc), matmin, onWhichAtom(ip%isorb+1), ldiis)
 
-      allocate(lagmatdiag(ip%norb_par(iproc)), stat=istat)
+      !!allocate(lagmatdiag(ip%norb_par(iproc)), stat=istat)
     
       iterLoop: do it=1,lin%nItInguess
     
@@ -4020,9 +4020,9 @@ type(matrixDescriptors):: mad
           ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
           ! multiplier matrix.
 
-          do iorb=1,ip%norb_par(iproc)
-              lagmatdiag(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
-          end do
+          !!do iorb=1,ip%norb_par(iproc)
+          !!    lagmatdiag(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
+          !!end do
 
           call orthoconstraintVectors(iproc, ip%nproc, methTransformOverlap, lin%correctionOrthoconstraint, &
                lin%blocksize_pdgemm, &
@@ -4081,11 +4081,11 @@ type(matrixDescriptors):: mad
                   ilr=onWhichAtom(ip%isorb+iorb)
                   iilr=matmin%inWhichLocregOnMPI(iorb)
                   !tt=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
-                  tt=lagmatdiag(iorb)
-                  write(80+iproc,*) it, iorb, tt
-                  do istat=1,matmin%mlr(ilr)%norbinlr
-                      write(90+iproc,'(3i8,2es16.8)') it, iorb, istat, lgrad(istat,iorb), lcoeff(istat,iorb)
-                  end do
+                  !tt=lagmatdiag(iorb)
+                  !write(80+iproc,*) it, iorb, tt
+                  !do istat=1,matmin%mlr(ilr)%norbinlr
+                  !    write(90+iproc,'(3i8,2es16.8)') it, iorb, istat, lgrad(istat,iorb), lcoeff(istat,iorb)
+                  !end do
                   !call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
                   call preconditionGradient3(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
               end do
