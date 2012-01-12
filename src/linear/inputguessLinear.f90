@@ -4067,7 +4067,11 @@ type(matrixDescriptors):: mad
          meanAlpha=meanAlpha/dble(ip%norb)
 
           ! Precondition the gradient.
-          !!if(fnrm<1.d0) call preconditionGradient(iproc, nproc, orbsig, orbs, at, Ham, lagMat, onWhichAtomPhi, grad, it, evals)
+          do iorb=1,ip%norb_par(iproc)
+              ilr=onWhichAtom(ip%isorb+iorb)
+              iilr=matmin%inWhichLocregOnMPI(iorb)
+              call preconditionGradient2(matmin%mlr(ilr)%norbinlr, hamextract(1,1,iilr), lgrad(1,iorb))
+          end do
       
     
           ! Write some informations to the screen, but only every 1000th iteration.
@@ -4329,3 +4333,144 @@ type(matrixDescriptors):: mad
 end subroutine buildLinearCombinationsLocalized3
 
 
+
+
+subroutine preconditionGradient2(nel, ham, grad)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: nel
+real(8),dimension(nel,nel),intent(in):: ham
+real(8),dimension(nel),intent(inout):: grad
+
+! Local variables
+integer:: iel, jel, info, istat, iall
+real(8),dimension(:,:),allocatable:: mat
+real(8),dimension(:),allocatable:: rhs
+integer,dimension(:),allocatable:: ipiv
+character(len=*),parameter:: subname='preconditionGradient2'
+
+allocate(mat(nel,nel), stat=istat)
+call memocc(istat, mat, 'mat', subname)
+allocate(rhs(nel), stat=istat)
+call memocc(istat, mat, 'mat', subname)
+
+! Build the matrix to be inverted
+do iel=1,nel
+    do jel=1,nel
+        mat(jel,iel) = ham(jel,iel)
+    end do
+    mat(iel,iel)=mat(iel,iel)+.5d0
+    rhs(iel)=grad(iel)
+end do
+
+
+allocate(ipiv(nel), stat=istat)
+call memocc(istat, ipiv, 'ipiv', subname)
+
+call dgesv(nel, 1, mat(1,1), nel, ipiv, rhs(1), nel, info)
+if(info/=0) then
+    stop 'ERROR in dgesv'
+end if
+call dcopy(nel, rhs(1), 1, grad(1), 1)
+
+iall=-product(shape(ipiv))*kind(ipiv)
+deallocate(ipiv, stat=istat)
+call memocc(istat, iall, 'ipiv', subname)
+
+iall=-product(shape(mat))*kind(mat)
+deallocate(mat, stat=istat)
+call memocc(istat, iall, 'mat', subname)
+
+iall=-product(shape(rhs))*kind(rhs)
+deallocate(rhs, stat=istat)
+call memocc(istat, iall, 'rhs', subname)
+
+end subroutine preconditionGradient2
+
+
+
+
+
+subroutine preconditionGradient(iproc, nproc, orbsig, orbs, at, Ham, lagMat, onWhichAtomPhi, grad)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbsig, orbs
+type(atoms_data),intent(in):: at
+real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(in):: Ham
+real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagMat
+integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi
+real(8),dimension(orbsig%norb,orbs%norb),intent(inout):: grad
+
+! Local variables
+integer:: iorb, jorb, korb, iiAt, info, istat, iall
+integer,dimension(:),allocatable:: ipiv
+real(8),dimension(:,:,:),allocatable:: matc
+real(8),dimension(:,:),allocatable:: solc
+character(len=*),parameter:: subname='preconditionGradient'
+real(8):: ddot
+
+
+allocate(ipiv(orbsig%norb), stat=istat)
+call memocc(istat, ipiv, 'ipiv', subname)
+allocate(matc(2,orbsig%norb,orbsig%norb), stat=istat)
+call memocc(istat, matc, 'matc', subname)
+allocate(solc(2,orbsig%norb), stat=istat)
+call memocc(istat, solc, 'solc', subname)
+
+do iorb=1,orbs%norb
+    iiAt=onWhichAtomPhi(iorb)
+    ! Build matrix that has to be inverted
+    do jorb=1,orbsig%norb
+        do korb=1,orbsig%norb
+            matc(1,korb,jorb)=Ham(korb,jorb,iiAt)
+            matc(2,korb,jorb)=0.d0
+        end do
+        !matc(1,jorb,jorb)=matc(1,jorb,jorb)-lagMat(iorb,iorb)
+        matc(1,jorb,jorb)=matc(1,jorb,jorb)+.5d0
+        matc(2,jorb,jorb)=-1.d-2
+        solc(1,jorb)=-grad(jorb,iiAt)
+        solc(2,jorb)=0.d0
+    end do
+    !do jorb=1,orbsig%norb
+    !    mat(jorb,jorb)=mat(jorb,jorb)-lagMat(iorb,iorb)
+    !end do
+    !call dcopy(orbsig%norb, grad(1,iorb), 1, sol(1), 1)
+write(100+iorb,*) ddot(orbsig%norb, grad(1,iorb), 1, grad(1,iorb), 1)
+do iall=1,orbsig%norb
+  write(100+iorb,*) iall, grad(iall,iorb)
+end do
+    !call dgesv(orbsig%norb, 1, mat(1,1), orbsig%norb, ipiv, grad(1,iorb), orbsig%norb, info)
+    call zgesv(orbsig%norb, 1, matc(1,1,1), orbsig%norb, ipiv, solc(1,1), orbsig%norb, info)
+    if(info/=0) then
+        write(*,'(x,a,i0)') 'ERROR in zgesv (subroutine preconditionGradient), infocode=', info
+    end if
+    do jorb=1,orbsig%norb
+        grad(jorb,iiAt)=solc(1,jorb)
+    end do
+    !call dscal(orbsig%norb, -1.d0, grad(1,iorb), 1)
+ write(200+iorb,*) ddot(orbsig%norb, grad(1,iorb), 1, grad(1,iorb), 1)
+ do iall=1,orbsig%norb
+   write(200+iorb,*) iall, grad(iall,iorb)
+ end do
+end do
+
+iall=-product(shape(ipiv))*kind(ipiv)
+deallocate(ipiv, stat=istat)
+call memocc(istat, iall, 'ipiv', subname)
+
+iall=-product(shape(matc))*kind(matc)
+deallocate(matc, stat=istat)
+call memocc(istat, iall, 'matc', subname)
+
+iall=-product(shape(solc))*kind(solc)
+deallocate(solc, stat=istat)
+call memocc(istat, iall, 'solc', subname)
+
+end subroutine preconditionGradient
