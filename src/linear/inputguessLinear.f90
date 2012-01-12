@@ -3866,7 +3866,7 @@ type(matrixDescriptors):: mad
     
       
       ! Initial step size for the optimization
-      alpha=1.d-1
+      alpha=1.d-2
     
       ! Flag which checks convergence.
       converged=.false.
@@ -4072,15 +4072,6 @@ type(matrixDescriptors):: mad
               iilr=matmin%inWhichLocregOnMPI(iorb)
               call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), lgrad(1,iorb))
           end do
-          !!do iorb=1,ip%norb_par(iproc)
-          !!    !ilr=onWhichAtom(ip%isorb+iorb)
-          !!    !iilr=matmin%inWhichLocregOnMPI(iorb)
-          !!    ilr=matmin%inWhichLocregExtracted(iorb)
-          !!    iilr=matmin%inWhichLocregOnMPI(iorb)
-          !!    call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lgrad(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
-          !!    call preconditionGradient2(orbsig%norb, ham3(1,1,iilr), coeffPad((iorb-1)*ip%norbtotPad+1))
-          !!    call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lgrad(1,iorb))
-          !!end do
       
     
           ! Write some informations to the screen, but only every 1000th iteration.

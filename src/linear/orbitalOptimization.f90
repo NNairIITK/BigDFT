@@ -272,45 +272,41 @@ end subroutine deallocateDIIS
 
 
 
-!subroutine initializeDIIS_inguess(isx, lzd, orbs, alphaSDx, alphaDIISx, norb, icountSDSatur, &
-!           icountSwitch, icountDIISFailureTot, icountDIISFailureCons, &
-!           ldiis, alpha, alphaDIIS)
-!use module_base
-!use module_types
-!implicit none
-!
-!! Calling arguments
-!integer,intent(in):: isx, norb
-!type(local_zone_descriptors),intent(in):: lzd
-!type(orbitals_data),intent(in):: orbs
-!real(8),intent(in):: alphaSDx, alphaDIISx
-!integer,intent(out):: icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons
-!type(localizedDIISParameters),intent(out):: ldiis
-!real(8),dimension(norb),intent(out):: alpha, alphaDIIS
-!
-!! Local variables
-!integer:: iorb, ii, istat, ilr
-!character(len=*),parameter:: subname='initializeDIIS_inguess'
-!
-!
-!ldiis%isx=isx
-!ldiis%is=0
-!ldiis%switchSD=.false.
-!ldiis%trmin=1.d100
-!ldiis%trold=1.d100
-!allocate(ldiis%mat(ldiis%isx,ldiis%isx,norbp), stat=istat)
-!call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
-!ii=0
-!do iorb=1,norbp
-!    !ilr=onWhichAtom(iorb)
-!    ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
-!    ii=ii+ldiis%isx*(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
-!end do
-!allocate(ldiis%phiHist(ii), stat=istat)
-!call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
-!allocate(ldiis%hphiHist(ii), stat=istat)
-!call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
-!
+subroutine initializeDIIS_inguess(isx, norbp, matmin, onWhichAtomp, ldiis)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: isx, norbp
+type(matrixMinimization),intent(in):: matmin
+integer,dimension(norbp):: onWhichAtomp
+type(localizedDIISParameters),intent(out):: ldiis
+
+! Local variables
+integer:: iorb, ii, istat, ilr
+character(len=*),parameter:: subname='initializeDIIS_inguess'
+
+
+ldiis%isx=isx
+ldiis%is=0
+ldiis%switchSD=.false.
+ldiis%trmin=1.d100
+ldiis%trold=1.d100
+allocate(ldiis%mat(ldiis%isx,ldiis%isx,norbp), stat=istat)
+call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
+ii=0
+do iorb=1,norbp
+    ilr=onWhichAtomp(iorb)
+    !ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
+    !ii=ii+ldiis%isx*(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
+    ii=ii+ldiis%isx*matmin%mlr(ilr)%norbinlr
+end do
+allocate(ldiis%phiHist(ii), stat=istat)
+call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
+allocate(ldiis%hphiHist(ii), stat=istat)
+call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+
 !! Initialize the DIIS parameters 
 !icountSDSatur=0
 !icountSwitch=0
@@ -320,6 +316,6 @@ end subroutine deallocateDIIS
 !! Assign the step size for SD iterations.
 !alpha=alphaSDx
 !alphaDIIS=alphaDIISx
-!
-!
-!end subroutine initializeDIIS_inguess
+
+
+end subroutine initializeDIIS_inguess
