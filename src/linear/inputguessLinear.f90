@@ -4067,11 +4067,13 @@ type(matrixDescriptors):: mad
          meanAlpha=meanAlpha/dble(ip%norb)
 
           ! Precondition the gradient.
-          do iorb=1,ip%norb_par(iproc)
-              ilr=onWhichAtom(ip%isorb+iorb)
-              iilr=matmin%inWhichLocregOnMPI(iorb)
-              call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), lgrad(1,iorb))
-          end do
+          if(it>20) then
+              do iorb=1,ip%norb_par(iproc)
+                  ilr=onWhichAtom(ip%isorb+iorb)
+                  iilr=matmin%inWhichLocregOnMPI(iorb)
+                  call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), lgrad(1,iorb))
+              end do
+          end if
       
     
           ! Write some informations to the screen, but only every 1000th iteration.
