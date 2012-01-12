@@ -3728,11 +3728,11 @@ real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrm
 logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinationsLocalized'
 real(4):: ttreal, builtin_rand
-integer:: wholeGroup, newGroup, newComm, norbtot
+integer:: wholeGroup, newGroup, newComm, norbtot, isx
 integer,dimension(:),allocatable:: newID
   
 ! new
-real(8),dimension(:),allocatable:: work, eval, evals
+real(8),dimension(:),allocatable:: work, eval, evals, lagmatdiag
 real(8),dimension(:,:),allocatable:: tempMat
 integer:: lwork, ii, info, iiAtprev, i, jproc, norbTarget, sendcount, ilr, iilr, ilrold, jlr
 type(inguessParameters):: ip
@@ -3740,6 +3740,7 @@ real(8),dimension(:,:,:),pointer:: hamextract
 type(p2pCommsOrthonormalityMatrix):: comom
 type(matrixMinimization):: matmin
 logical:: same
+type(localizedDIISParameters):: ldiis
 type(matrixDescriptors):: mad
 
 
@@ -3958,6 +3959,10 @@ type(matrixDescriptors):: mad
       end if
 
 
+      isx=1
+      call initializeDIIS_inguess(isx, ip%norb_par(iproc), matmin, onWhichAtom(ip%isorb+1), ldiis)
+
+      allocate(lagmatdiag(ip%norb_par(iproc)), stat=istat)
     
       iterLoop: do it=1,lin%nItInguess
     
@@ -4015,6 +4020,10 @@ type(matrixDescriptors):: mad
           ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
           ! multiplier matrix.
 
+          do iorb=1,ip%norb_par(iproc)
+              lagmatdiag(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
+          end do
+
           call orthoconstraintVectors(iproc, ip%nproc, methTransformOverlap, lin%correctionOrthoconstraint, &
                lin%blocksize_pdgemm, &
                lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
@@ -4066,14 +4075,20 @@ type(matrixDescriptors):: mad
          call mpiallred(meanAlpha, 1, mpi_sum, newComm, ierr)
          meanAlpha=meanAlpha/dble(ip%norb)
 
-          ! Precondition the gradient.
-          if(it>20) then
-              do iorb=1,ip%norb_par(iproc)
-                  ilr=onWhichAtom(ip%isorb+iorb)
-                  iilr=matmin%inWhichLocregOnMPI(iorb)
-                  call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), lgrad(1,iorb))
-              end do
-          end if
+          !! Precondition the gradient.
+          !if(it>20) then
+          !    do iorb=1,ip%norb_par(iproc)
+          !        ilr=onWhichAtom(ip%isorb+iorb)
+          !        iilr=matmin%inWhichLocregOnMPI(iorb)
+          !        !tt=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
+          !        tt=lagmatdiag(iorb)
+          !        write(80+iproc,*) it, iorb, tt
+          !        do istat=1,matmin%mlr(ilr)%norbinlr
+          !            write(90+iproc,'(3i8,2es16.8)') it, iorb, istat, lgrad(istat,iorb), lcoeff(istat,iorb)
+          !        end do
+          !        call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
+          !    end do
+          !end if
       
     
           ! Write some informations to the screen, but only every 1000th iteration.
@@ -4113,10 +4128,21 @@ type(matrixDescriptors):: mad
               ilr=onWhichAtom(ip%isorb+iorb)
               call daxpy(matmin%mlr(ilr)%norbinlr, -alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
           end do
+          !!if (ldiis%isx > 0) then
+          !!    ldiis%mis=mod(ldiis%is,ldiis%isx)+1
+          !!    ldiis%is=ldiis%is+1
+          !!end if
+          !!do iorb=1,ip%norb_par(iproc)
+          !!    ilr=onWhichAtom(ip%isorb+iorb)
+          !!    call dscal(matmin%mlr(ilr)%norbinlr, -alpha(iorb), lgrad(1,iorb), 1)
+          !!end do
+          !!call optimizeDIIS_inguess(iproc, ip%nproc, ip%norb_par(iproc), onWhichAtom(ip%isorb+1), matmin, lgrad, lcoeff, ldiis)
 
     
     
       end do iterLoop
+
+      call deallocateDIIS(ldiis)
     
     
       if(iproc==0) write(*,'(1x,a)') '===================================================================================='
@@ -4337,7 +4363,7 @@ end subroutine buildLinearCombinationsLocalized3
 
 
 
-subroutine preconditionGradient2(nel, neltot, ham, grad)
+subroutine preconditionGradient2(nel, neltot, ham, cprec, grad)
 use module_base
 use module_types
 implicit none
@@ -4345,6 +4371,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: nel, neltot
 real(8),dimension(neltot,neltot),intent(in):: ham
+real(8),intent(in):: cprec
 real(8),dimension(nel),intent(inout):: grad
 
 ! Local variables
@@ -4365,6 +4392,7 @@ do iel=1,nel
         mat(jel,iel) = ham(jel,iel)
     end do
     mat(iel,iel)=mat(iel,iel)+.5d0
+    !mat(iel,iel)=mat(iel,iel)-cprec
     rhs(iel)=grad(iel)
 end do
 
