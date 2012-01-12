@@ -3867,7 +3867,7 @@ type(matrixDescriptors):: mad
     
       
       ! Initial step size for the optimization
-      alpha=1.d-2
+      alpha=5.d-1
     
       ! Flag which checks convergence.
       converged=.false.
@@ -4075,20 +4075,21 @@ type(matrixDescriptors):: mad
          call mpiallred(meanAlpha, 1, mpi_sum, newComm, ierr)
          meanAlpha=meanAlpha/dble(ip%norb)
 
-          !! Precondition the gradient.
+          ! Precondition the gradient.
           !if(it>20) then
-          !    do iorb=1,ip%norb_par(iproc)
-          !        ilr=onWhichAtom(ip%isorb+iorb)
-          !        iilr=matmin%inWhichLocregOnMPI(iorb)
-          !        !tt=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
-          !        tt=lagmatdiag(iorb)
-          !        write(80+iproc,*) it, iorb, tt
-          !        do istat=1,matmin%mlr(ilr)%norbinlr
-          !            write(90+iproc,'(3i8,2es16.8)') it, iorb, istat, lgrad(istat,iorb), lcoeff(istat,iorb)
-          !        end do
-          !        call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
-          !    end do
-          !end if
+              do iorb=1,ip%norb_par(iproc)
+                  ilr=onWhichAtom(ip%isorb+iorb)
+                  iilr=matmin%inWhichLocregOnMPI(iorb)
+                  !tt=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
+                  tt=lagmatdiag(iorb)
+                  write(80+iproc,*) it, iorb, tt
+                  do istat=1,matmin%mlr(ilr)%norbinlr
+                      write(90+iproc,'(3i8,2es16.8)') it, iorb, istat, lgrad(istat,iorb), lcoeff(istat,iorb)
+                  end do
+                  !call preconditionGradient2(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
+                  call preconditionGradient3(matmin%mlr(ilr)%norbinlr, matmin%norbmax, hamextract(1,1,iilr), tt, lgrad(1,iorb))
+              end do
+          !!end if
       
     
           ! Write some informations to the screen, but only every 1000th iteration.
@@ -4420,6 +4421,68 @@ call memocc(istat, iall, 'rhs', subname)
 
 end subroutine preconditionGradient2
 
+
+
+subroutine preconditionGradient3(nel, neltot, ham, cprec, grad)
+
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: nel, neltot
+real(8),dimension(neltot,neltot),intent(in):: ham
+real(8),intent(in):: cprec
+real(8),dimension(nel),intent(inout):: grad
+
+! Local variables
+integer:: iel, jel, info, istat, iall
+complex(8),dimension(:,:),allocatable:: mat
+complex(8),dimension(:),allocatable:: rhs
+integer,dimension(:),allocatable:: ipiv
+character(len=*),parameter:: subname='preconditionGradient3'
+
+allocate(mat(nel,nel), stat=istat)
+!call memocc(istat, mat, 'mat', subname)
+allocate(rhs(nel), stat=istat)
+!call memocc(istat, mat, 'mat', subname)
+
+! Build the matrix to be inverted (extract it from ham, which might have a larger dimension)
+do iel=1,nel
+    do jel=1,nel
+        mat(jel,iel) = cmplx(ham(jel,iel),0.d0,kind=8)
+    end do
+    mat(iel,iel)=mat(iel,iel)+cmplx(.5d0,-1.d-1,kind=8)
+    !mat(iel,iel)=mat(iel,iel)-cprec
+    rhs(iel)=grad(iel)
+end do
+
+
+allocate(ipiv(nel), stat=istat)
+call memocc(istat, ipiv, 'ipiv', subname)
+
+call zgesv(nel, 1, mat(1,1), nel, ipiv, rhs(1), nel, info)
+if(info/=0) then
+    stop 'ERROR in dgesv'
+end if
+!call dcopy(nel, rhs(1), 1, grad(1), 1)
+do iel=1,nel
+    grad(iel)=real(rhs(iel))
+end do
+
+iall=-product(shape(ipiv))*kind(ipiv)
+deallocate(ipiv, stat=istat)
+call memocc(istat, iall, 'ipiv', subname)
+
+iall=-product(shape(mat))*kind(mat)
+deallocate(mat, stat=istat)
+!call memocc(istat, iall, 'mat', subname)
+
+iall=-product(shape(rhs))*kind(rhs)
+deallocate(rhs, stat=istat)
+!call memocc(istat, iall, 'rhs', subname)
+
+end subroutine preconditionGradient3
 
 
 
