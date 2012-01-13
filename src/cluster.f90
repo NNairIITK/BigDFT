@@ -443,7 +443,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
    call createEffectiveIonicPotential(iproc,nproc,in,atoms,rxyz,shift,Glr,hxh,hyh,hzh,&
         &   denspotd,pkernel,pot_ion,in%elecfield,psoffset)
 
-   !calculate the irreductible zone, if necessary.
+   !check the communication distribution
+   call check_communications(iproc,nproc,orbs,Glr,comms)
+
+   !avoid allocation of the eigenvalues array in case of restart
+   if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
+      allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+      call memocc(i_stat,orbs%eval,'eval',subname)
+   end if
+
+   !calculate the irreductible zone for this region, if necessary.
    if (atoms%sym%symObj >= 0) then
       call symmetry_get_n_sym(atoms%sym%symObj, nsym, i_stat)
       if (nsym > 1) then
@@ -454,7 +463,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          allocate(atoms%sym%phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
          call memocc(i_stat,atoms%sym%phnons,'phnons',subname)
          call kpoints_get_irreductible_zone(atoms%sym%irrzon, atoms%sym%phnons, &
-            &   n1i, n2i, n3i, in%nspin, in%nspin, atoms%sym%symObj, i_stat)
+              &   n1i, n2i, n3i, in%nspin, in%nspin, atoms%sym%symObj, i_stat)
       end if
    end if
    if (.not. associated(atoms%sym%irrzon)) then
@@ -463,15 +472,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       call memocc(i_stat,atoms%sym%irrzon,'irrzon',subname)
       allocate(atoms%sym%phnons(2,1,1+ndebug),stat=i_stat)
       call memocc(i_stat,atoms%sym%phnons,'phnons',subname)
-   end if
-
-   !check the communication distribution
-   call check_communications(iproc,nproc,orbs,Glr,comms)
-
-   !avoid allocation of the eigenvalues array in case of restart
-   if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
-      allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,orbs%eval,'eval',subname)
    end if
 
    !start the optimization

@@ -202,6 +202,30 @@ BigDFT_Proj* bigdft_proj_new (const BigDFT_Atoms *atoms, const BigDFT_Glr *glr,
                               const BigDFT_Orbs *orbs, double *radii, double frmult);
 void         bigdft_proj_free(BigDFT_Proj *proj);
 
+/**********************************/
+/* BigDFT_DensPot data structure. */
+/**********************************/
+typedef struct f90_pointer_rhodsc_ f90_pointer_rhodsc;
+typedef struct f90_pointer_denspotd_ f90_pointer_denspotd;
+typedef struct BigDFT_DensPot_
+{
+  /* TODO: bindings to values... */
+  guint n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add;
+
+  /* Additional pointers. */
+  f90_pointer_int nscatterarr, ngatherarr;
+  f90_pointer_double rhopot, rhocore, pot_ion, potxc;
+
+  /* Private. */
+  f90_pointer_rhodsc *rhodsc;
+  f90_pointer_denspotd *denspotd;
+} BigDFT_DensPot;
+
+BigDFT_DensPot* bigdft_denspot_new (const BigDFT_Atoms *atoms, const BigDFT_Glr *glr,
+                                    const BigDFT_Inputs *in, const double *radii,
+                                    guint iproc, guint nproc);
+void            bigdft_denspot_free(BigDFT_DensPot *denspotd);
+
 /*******************/
 /* Poisson solver. */
 /*******************/
