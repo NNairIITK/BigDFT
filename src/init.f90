@@ -1292,7 +1292,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
    !application of the hamiltonian for gaussian based treatment
    call sumrho(iproc,nproc,orbse,Glr,hxh,hyh,hzh,psi,rhopot,&
-      &   nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
+      &   nscatterarr,nspin,GPU,at%sym,rhodsc)
 
    !-- if spectra calculation uses a energy dependent potential
    !    input_wf_diag will write (to be used in abscalc)

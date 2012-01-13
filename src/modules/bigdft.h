@@ -43,7 +43,6 @@ typedef struct BigDFT_Atoms_
      bigdft_atoms_sync(). */
   gchar geocode, format[6], units[21];
   guint  ntypes, nat, natsc;
-  int symObj;
   double alat[3];
   gchar **atomnames;
   gboolean donlcc;
