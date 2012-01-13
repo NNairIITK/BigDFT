@@ -916,17 +916,18 @@ module module_interfaces
       END SUBROUTINE inputguess_gaussian_orbitals
 
 
-     subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,at,rxyz,nvirt,nspin,&
-          nlr, norbsPerAt, &
+     subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt,nspin,&
+          nlr, norbsPerAt, mapping, &
           orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,nspin,nlr
+       integer, intent(in) :: iproc,nproc,nspin,nlr,norb
        integer, intent(inout) :: nvirt
        type(atoms_data), intent(inout) :: at
        type(orbitals_data), intent(in) :: orbs
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       integer,dimension(norb),intent(in):: mapping
        integer,dimension(at%nat),intent(in):: norbsPerAt
        real(gp), intent(out) :: eks
        integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr

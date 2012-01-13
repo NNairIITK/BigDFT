@@ -283,7 +283,7 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
   integer:: iatxmin, iatxmax, iatymin, iatymax, iatzmin, iatzmax, idir
   real(8),dimension(3):: diff
 
-!! NEW VERSION #################################################################
+!!!! NEW VERSION #################################################################
   !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
   allocate(orbse%inWhichLocreg(orbse%norb),stat=i_stat)
   call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)

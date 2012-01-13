@@ -218,7 +218,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(8),dimension(:),allocatable:: lchi, lchi2, dummyArray
   real(8),dimension(:,:),allocatable::  lhchi
   real(8), dimension(:,:,:),allocatable:: ham3
-  integer, dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp
+  integer, dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp, mapping
+  logical,dimension(:),allocatable:: covered
   real(8),dimension(:),pointer:: lpot
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   logical:: withConfinement, ovrlpx, ovrlpy, ovrlpz
@@ -246,6 +247,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat,locrad,'locrad',subname)
   allocate(norbsPerAt(at%nat), stat=istat)
   call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
+  allocate(mapping(lin%lig%orbsig%norb), stat=istat)
+  call memocc(istat, mapping, 'mapping', subname)
+  allocate(covered(lin%lig%orbsig%norb), stat=istat)
+  call memocc(istat, covered, 'covered', subname)
 
   ! Number of localization regions.
   lin%lig%lzdig%nlr=at%nat
@@ -311,12 +316,43 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Create the atomic orbitals in a Gaussian basis. Deallocate lin%lig%orbsig, since it will be
   ! recalculated in inputguess_gaussian_orbitals.
+
+
+  ! This array gives a mapping from the 'natural' orbital distribution (i.e. simply counting up the atoms) to
+  ! our optimized orbital distribution (determined by in orbs%inwhichlocreg).
+  iiorb=0
+  covered=.false.
+  do iat=1,at%nat
+      do iorb=1,norbsPerAt(iat)
+          iiorb=iiorb+1
+          ! Search the corresponding entry in inwhichlocreg
+          do jorb=1,lin%lig%orbsig%norb
+              if(covered(jorb)) cycle
+              jlr=lin%lig%orbsig%inwhichlocreg(jorb)
+              if( lin%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
+                  lin%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
+                  lin%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
+                  covered(jorb)=.true.
+                  mapping(iiorb)=jorb
+                  if(iproc==0) write(666,*) iiorb, mapping(iiorb)
+                  exit
+              end if
+          end do
+      end do
+  end do
+  do jorb=1,lin%lig%orbsig%norb
+      if(iproc==0) write(777,*) jorb, lin%lig%orbsig%inwhichlocreg(jorb)
+  end do
+
+
   nvirt=0
   call deallocate_orbitals_data(lin%lig%orbsig,subname)
   !call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
   !     orbs,lin%lig%orbsig,norbsc_arr,locrad,G,psigau,eks)
-  call inputguess_gaussian_orbitals_forLinear(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
-       lin%lig%lzdig%nlr, norbsPerAt, &
+  
+
+  call inputguess_gaussian_orbitals_forLinear(iproc,nproc,lin%lig%orbsig%norb,at,rxyz,nvirt,nspin_ig,&
+       lin%lig%lzdig%nlr, norbsPerAt, mapping, &
        orbs,lin%lig%orbsig,norbsc_arr,locrad,G,psigau,eks)
   ! Since inputguess_gaussian_orbitals overwrites lin%lig%orbsig,we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
@@ -382,6 +418,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   lchi2=0.d0
   !call gaussians_to_wavelets_new2(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsig, input%hx, input%hy, input%hz, G, &
   !     psigau(1,1,min(lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb)), lchi2)
+  !write(*,'(a,4i9)') 'iproc, lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb, lin%lig%orbsGauss%norbp', &
+  !           iproc, lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb, lin%lig%orbsGauss%norbp
   call gaussians_to_wavelets_new2(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, input%hx, input%hy, input%hz, G, &
        psigau(1,1,min(lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb)), lchi2)
 
@@ -920,7 +958,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   deallocate(onWhichMPITemp, stat=istat)
   call memocc(istat, iall, 'onWhichMPITemp',subname)
 
+  iall=-product(shape(mapping))*kind(mapping)
+  deallocate(mapping, stat=istat)
+  call memocc(istat, iall, 'mapping',subname)
 
+  iall=-product(shape(covered))*kind(covered)
+  deallocate(covered, stat=istat)
+  call memocc(istat, iall, 'covered',subname)
 
 END SUBROUTINE inputguessConfinement
 
