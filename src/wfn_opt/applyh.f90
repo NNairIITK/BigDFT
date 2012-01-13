@@ -871,11 +871,16 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,h
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='apply_atproj_iorb'
-  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx,m,j,icplx
+  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx,m,j,icplx,ibseg
   real(gp) :: eproj_i
   real(wp), dimension(4,7,3,4) :: cproj,dproj !scalar products with the projectors (always assumed to be complex and spinorial)
   real(gp), dimension(3,3,4) :: hij_hgh 
 !!$  real(wp), dimension(:,:), allocatable :: wproj !work array for the application of the projectors
+  integer, dimension(wfd%nseg_c) :: keyag_c_lin!linear version of second inidces of keyag_c
+  integer, dimension(wfd%nseg_f) :: keyag_f_lin!linear version of second inidces of keyag_f
+  integer :: iaseg_f,ibseg_f
+  integer, dimension(:),allocatable :: iaseg0_c
+  integer, dimension(:),allocatable :: iaseg0_f
 
   !parameter for the descriptors of the projectors
   ityp=at%iatype(iat)
@@ -886,6 +891,9 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,h
   mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
   jseg_c=nlpspd%nseg_p(2*iat-2)+1
  
+  allocate(iaseg0_c(mbseg_c))
+  allocate(iaseg0_f(mbseg_f))
+
   !complex functions or not
   !this should be decided as a function of the orbital
   !features of the k-point ikpt
@@ -897,32 +905,53 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,h
 !!$  allocate(wproj(mbvctr_c+7*mbvctr_f,ncplx+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,wproj,'wproj',subname)
 
+  iaseg_f=min(wfd%nseg_f,1)
+  ibseg_f=min(mbseg_f,1)
+
+  keyag_c_lin = wfd%keyg(1,:)!speed up access in hunt subroutine by consecutive arrangement in memory
+  keyag_f_lin = wfd%keyg(1,wfd%nseg_c+iaseg_f:wfd%nseg_c+iaseg_f+wfd%nseg_f-1)!speed up access in hunt subroutine by consecutive arrangement in memory
+
+
+  iaseg0_c = 1
+  iaseg0_f = 1
+
+  do ibseg=1,mbseg_c
+    call hunt1(keyag_c_lin,wfd%nseg_c,nlpspd%keyg_p(ibseg*2-1,jseg_c),iaseg0_c(ibseg))
+  enddo
+
+  do ibseg=1,mbseg_f
+    call hunt1(keyag_f_lin,wfd%nseg_f,nlpspd%keyg_p((mbseg_c+ibseg_f-1)*2+ibseg*2-1,jseg_c),iaseg0_f(ibseg))
+  enddo
 
   !calculate the scalar product with all the projectors of the atom
   call to_zero(4*7*3*4,cproj(1,1,1,1))
   !index for performing the calculation with all the projectors
   istart_c_i=istart_c
-  !loop over all the channels (from s to f)
-  do l=1,4
-     !loop over all the projectors of the channel
-     do i=1,3
-        !loop over all the components of the projector
-        if (at%psppar(l,i,ityp) /= 0.0_gp) then
-           do m=1,2*l-1
-              !loop over all the components of the wavefunction
-              do ispinor=1,orbs%nspinor,ncplx
-                 call wpdot_wrap(ncplx,  &
+  do ispinor=1,orbs%nspinor,ncplx
+     !loop over all the channels (from s to f)
+     do l=1,4
+        !loop over all the projectors of the channel
+        do i=1,3
+           !loop over all the components of the projector
+           if (at%psppar(l,i,ityp) /= 0.0_gp) then
+              do m=1,2*l-1
+                 !loop over all the components of the wavefunction
+                 call wpdot_wrap1(ncplx,  &
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
                       psi(1,ispinor), &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c_i),&
-                      cproj(ispinor,m,i,l))
+                      cproj(ispinor,m,i,l),iaseg0_c,iaseg0_f,&
+                      keyag_c_lin,keyag_f_lin)
+                 istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
               end do
-              istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
-           end do
-        end if
+           end if
+        end do
      end do
   end do
+
+  deallocate(iaseg0_c)
+  deallocate(iaseg0_f)
 
   !apply the matrix of the coefficients on the cproj array
   call to_zero(4*7*3*4,dproj(1,1,1,1))
