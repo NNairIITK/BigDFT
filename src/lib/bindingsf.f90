@@ -246,3 +246,34 @@ subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, 
   isorb = orbs%isorb
   iskpts = orbs%iskpts
 END SUBROUTINE orbs_get_dimensions
+
+subroutine proj_new(nlpspd)
+  use module_types
+  implicit none
+  type(nonlocal_psp_descriptors), pointer :: nlpspd
+
+  allocate(nlpspd)
+END SUBROUTINE proj_new
+subroutine proj_free(nlpspd, proj)
+  use module_types
+  use m_profiling
+  implicit none
+  type(nonlocal_psp_descriptors), pointer :: nlpspd
+  real(kind=8), dimension(:), pointer :: proj
+
+  integer :: i_stat, i_all
+
+  call deallocate_proj_descr(nlpspd,"proj_free")
+  i_all=-product(shape(proj))*kind(proj)
+  deallocate(proj,stat=i_stat)
+  call memocc(i_stat,i_all,'proj',"proj_free")
+END SUBROUTINE proj_free
+subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
+  use module_types
+  implicit none
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  integer, intent(out) :: nproj, nprojel
+  
+  nproj = nlpspd%nproj
+  nprojel = nlpspd%nprojel
+END SUBROUTINE proj_get_dimensions

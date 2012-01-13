@@ -11,7 +11,7 @@
 static int redirect_init(int out_pipe[2]);
 static void redirect_dump(int out_pipe[2], int stdout_fileno_old);
 
-int main(int argc, char **argv)
+int main(guint argc, char **argv)
 {
   BigDFT_Atoms *atoms;
   guint i, n, nelec;
@@ -23,6 +23,7 @@ int main(int argc, char **argv)
 #define FRMULT 8.
   BigDFT_Inputs *in;
   BigDFT_Orbs *orbs;
+  BigDFT_Proj *proj;
 
   int out_pipe[2], stdout_fileno_old;
 
@@ -134,11 +135,22 @@ int main(int argc, char **argv)
   orbs = bigdft_orbs_new(atoms, in, 0, 1, &nelec);
   fprintf(stdout, " System has %d electrons.\n", nelec);
 
-  /* fprintf(stdout, "Test memory estimation.\n"); */
-  /* stdout_fileno_old = redirect_init(out_pipe); */
-  /* peak = bigdft_memory_peak(4, glr, in, orbs); */
-  /* redirect_dump(out_pipe, stdout_fileno_old); */
-  /* fprintf(stdout, " Memory peak will reach %f octets.\n", peak); */
+  fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
+  proj = bigdft_proj_new(atoms, glr, orbs, radii, in->frmult);
+  fprintf(stdout, " System has %d projectors, and %d elements.\n", proj->nproj, proj->nprojel);
+
+  if (argc > 2)
+    {
+      fprintf(stdout, "Test memory estimation.\n");
+      stdout_fileno_old = redirect_init(out_pipe);
+      peak = bigdft_memory_peak(4, glr, in, orbs, proj);
+      redirect_dump(out_pipe, stdout_fileno_old);
+      fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
+    }
+
+  fprintf(stdout, "Test BigDFT_Proj free.\n");
+  bigdft_proj_free(proj);
+  fprintf(stdout, " Ok\n");
 
   fprintf(stdout, "Test BigDFT_Orbs free.\n");
   bigdft_orbs_free(orbs);
@@ -158,9 +170,12 @@ int main(int argc, char **argv)
 
   g_free(radii);
 
-  /* stdout_fileno_old = redirect_init(out_pipe); */
-  /* FC_FUNC_(memocc_report, MEMOCC_REPORT)(); */
-  /* redirect_dump(out_pipe, stdout_fileno_old); */
+  if (argc > 2)
+    {
+      stdout_fileno_old = redirect_init(out_pipe);
+      FC_FUNC_(memocc_report, MEMOCC_REPORT)();
+      redirect_dump(out_pipe, stdout_fileno_old);
+    }
 
   return 0;
 }
