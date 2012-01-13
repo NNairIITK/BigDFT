@@ -66,10 +66,6 @@ module module_types
        &    "Cold (bumb)",   &
        &    "Cold (mono)",   &
        &    "Meth.-Pax. " /)
- !!!!!!! MOVED ....   ! To be moved as an input parameter later
-  !integer, parameter :: occopt = SMEARING_DIST_ERF
- !!!!!!! MOVED ....   
-
 
   !> Type used for the orthogonalisation parameter
   type, public :: orthon_data

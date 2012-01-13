@@ -190,7 +190,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
    use module_interfaces
    use Poisson_Solver
    use module_xc
-   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
+   use vdwcorrection
    use esatto
    use m_ab6_symmetry
    use m_ab6_mixing
@@ -240,10 +240,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
    type(diis_objects) :: diis
    type(denspot_distribution) :: denspotd
    real(gp), dimension(3) :: shift
-   real(dp), dimension(6) :: ewaldstr,elstrten,hstrten
+   real(dp), dimension(6) :: ewaldstr,hstrten
    real(kind=8), dimension(:), allocatable :: rho
-   real(gp), dimension(:,:), allocatable :: radii_cf,fion,thetaphi,band_structure_eval
-   real(gp), dimension(:,:),allocatable :: fdisp
+   real(gp), dimension(:,:), allocatable :: radii_cf,thetaphi,band_structure_eval
+   real(gp), dimension(:,:),pointer :: fdisp,fion
    ! Charge density/potential,ionic potential, pkernel
    type(ab6_mixing_object) :: mix
    real(dp), dimension(:), pointer :: pot_ion,rhopot
@@ -397,6 +397,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
    n3=Glr%d%n3
 
    ! A message about dispersion forces.
+   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
    if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
@@ -413,19 +414,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
    end if
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
-   call timing(iproc,'CrtDescriptors','ON')
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,crmult,frmult,Glr)
-   call timing(iproc,'CrtDescriptors','OF')
 
    !allocate communications arrays (allocate it before Projectors because of the definition
    !of iskpts and nkptsp)
    call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
    ! Calculate all projectors, or allocate array for on-the-fly calculation
-   call timing(iproc,'CrtProjectors ','ON')
    call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
       &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
-   call timing(iproc,'CrtProjectors ','OF')
 
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
@@ -440,27 +437,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
    call allocateRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, in, atoms, rxyz, radii_cf, &
         & denspotd, rhodsc, rhopot, pot_ion, potxc, rhocore)
 
-
-
-
-
-
-
    !here calculate the ionic energy and forces accordingly
-   allocate(fion(3,atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,fion,'fion',subname)
-
-   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,ewaldstr,&
-        &   psoffset,n1,n2,n3,n1i,n2i,n3i,denspotd%i3s+denspotd%i3xcsh,denspotd%n3pi,pot_ion,pkernel)
-
-   !this can be inserted inside the IonicEnergyandForces routine
-   !(after insertion of the non-regression test)
-   call vdwcorrection_calculate_energy(edisp,rxyz,atoms,in,iproc)
-
-   allocate(fdisp(3,atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,fdisp,'fdisp',subname)
-   !this can be inserted inside the IonicEnergyandForces routine
-   call vdwcorrection_calculate_forces(fdisp,rxyz,atoms,in) 
+   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,&
+        & eion,fion,in%dispersion,edisp,fdisp,ewaldstr,psoffset,n1,n2,n3,n1i,n2i,n3i,&
+        & denspotd%i3s+denspotd%i3xcsh,denspotd%n3pi,pot_ion,pkernel)
 
    !calculate effective ionic potential, including counter ions if any.
    call createEffectiveIonicPotential(iproc,nproc,in,atoms,rxyz,shift,Glr,hxh,hyh,hzh,&
