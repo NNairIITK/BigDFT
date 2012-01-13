@@ -5,7 +5,7 @@ SUBDIRS =
 check_PROGRAMS = check_psp
 
 check_psp_SOURCES = check_psp.f90
-check_psp_FCFLAGS = -I$(top_builddir)/src/modules
+check_psp_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
 check_psp_LDADD = @LIBS_DEPENDENCIES@
 
 CLEANFILES = psp.out psp.report
