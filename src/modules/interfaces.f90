@@ -5657,7 +5657,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(gaussian_basis), intent(out) :: G
          real(gp), intent(out) :: eks
          integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
-         real(wp), dimension(norbe,orbse%nspinor,orbse%norbp), intent(out) :: gaucoeff !norbe=G%ncoeff
+         !real(wp), dimension(norbe,orbse%nspinor,orbse%norbp), intent(out) :: gaucoeff !norbe=G%ncoeff
+         real(wp), intent(out) :: gaucoeff !norbe=G%ncoeff
        end subroutine AtomicOrbitals_forLinear
 
 
