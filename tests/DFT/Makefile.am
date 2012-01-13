@@ -58,10 +58,14 @@ O2-Spin.psp: HGH-K/psppar.O
 TDDFT.psp: psppar.N
 Linear.psp Linear_withder.psp: HGH/psppar.C extra/psppar.H
 Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
-SIC.psp: HGH/psppar.H \
-	HGH/psppar.C \
-	HGH/psppar.O \
-	HGH/psppar.N
+#SIC.psp: HGH/psppar.H \
+#	HGH/psppar.C \
+#	HGH/psppar.O \
+#	HGH/psppar.N
+
+SIC.post-in:
+	if [ ! -d data-PZ ] ; then mkdir data-PZ; fi
+	mv wavefunctions.gau data-PZ/
 
 # Define the precision for specific directories.
 %.report: %.ref

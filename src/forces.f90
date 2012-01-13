@@ -280,7 +280,7 @@ end subroutine forces_via_finite_differences
 
 subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
-     ewaldstr,hstrten,strten,fnoise,pressure,psoffset)
+     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset)
   use module_base
   use module_types
   implicit none
@@ -295,7 +295,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
   real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  real(gp), dimension(6), intent(in) :: ewaldstr,hstrten
+  real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp
   real(gp), intent(out) :: fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
@@ -351,8 +351,9 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      !sum and symmetrize results
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
+     if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,xcstr,ucvol,pressure,'XC')
      do j=1,6
-        strten(j)=ewaldstr(j)+hstrten(j)
+        strten(j)=ewaldstr(j)+hstrten(j)+xcstr(j)
      end do
      messages(1)='PSP Short Range'
      messages(2)='PSP Projectors'
@@ -368,7 +369,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
         end do
      end do
      !final result
-     pressure=strten(1)+strten(2)+strten(3)
+     pressure=(strten(1)+strten(2)+strten(3))/3.0_gp
      if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
   end if
 

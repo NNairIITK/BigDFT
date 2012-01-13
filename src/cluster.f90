@@ -239,7 +239,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
    type(gaussian_basis) :: Gvirt
    type(diis_objects) :: diis
    real(gp), dimension(3) :: shift
-   real(dp), dimension(6) :: ewaldstr,elstrten,hstrten
+   real(dp), dimension(6) :: ewaldstr,elstrten,hstrten,xcstr
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(dp), dimension(:), pointer :: rho,pot
    real(gp), dimension(:,:), allocatable :: radii_cf,fion,thetaphi,band_structure_eval
@@ -520,10 +520,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       end if
 
       call CounterIonPotential(atoms%geocode,iproc,nproc,in,shift,&
-          hxh,hyh,hzh,Lzd%Glr%d,n3pi,i3s,pkernel,counter_ions)
+          hxh,hyh,hzh,Lzd%Glr%d,n3pi,i3s+i3xcsh,pkernel,counter_ions)
 
       !sum that to the ionic potential
-     call axpy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p,1.0_dp,counter_ions(1),1,&
+     call axpy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3pi,1.0_dp,counter_ions(1),1,&
          &   pot_ion(1),1)
 
    end if
@@ -1056,13 +1056,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                end if
                if(orbs%nspinor==4) then
                   !this wrapper can be inserted inside the XC_potential routine
-                 call PSolverNC(atoms%geocode,'D',iproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,n3d,&
-                     &   ixc,hxh,hyh,hzh,&
-                  rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+                  call PSolverNC(atoms%geocode,'D',iproc,nproc,Lzd%Glr%d%n1i,&
+                       Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,n3d,ixc,hxh,hyh,hzh,&
+                       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
                else
                   call XC_potential(atoms%geocode,'D',iproc,nproc,&
-                      Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-                  rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+                       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
+                       rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
 
                   call H_potential(atoms%geocode,'D',iproc,nproc,&
                       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,&
@@ -1152,9 +1152,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
            !evaluate the functional of the wavefunctions and put it into the diis structure
             !the energy values is printed out in this routine
-           call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,in%ncong,in%iscf,&
-               &   ekin_sum,epot_sum,eproj_sum,eSIC_DC,ehart,eexcu,vexcu,eexctX,eion,edisp,&
-            psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
+           call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,&
+                in%ncong,in%iscf,&
+                ekin_sum,epot_sum,eproj_sum,eSIC_DC,ehart,eexcu,vexcu,eexctX,eion,edisp,&
+                psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
             !!$
 !!$           call calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,Lzd%Glr,in%orthpar,&
             !!$                hx,hy,hz,in%ncong,in%iscf,&
@@ -1198,9 +1199,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
             call bigdft_utils_flush(unit=6)
          end if
       end do wfn_loop
-
-
-
 
       if (iproc == 0) then 
          if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
@@ -1461,6 +1459,17 @@ if (inputpsi /= -1000) then
    call density_and_hpot(iproc,nproc,atoms%geocode,atoms%symObj,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
      irrzon,phnons,pkernel,rhodsc,GPU,psi,rho,pot,hstrten)
 
+   !xc stress, diagonal for the moment
+   if (atoms%geocode=='P') then
+      xcstr(1)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
+      xcstr(2)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
+      xcstr(3)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
+      xcstr(4:6)=0.0_gp
+      !just for completeness
+      if (atoms%symObj >= 0) call symm_stress((iproc==0),xcstr,atoms%symObj)
+   end if
+
+
    ! calculate dipole moment associated to the charge density
    if (DoLastRunThings) & 
         call calc_dipole(iproc,nproc,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
@@ -1473,8 +1482,8 @@ if (inputpsi /= -1000) then
       if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
 
       call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
-         &   iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
-      in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+           iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
+           in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
 
       if (associated(rhocore)) then
          if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
@@ -1508,7 +1517,7 @@ if (inputpsi /= -1000) then
      call calculate_forces(iproc,nproc,Lzd%Glr,atoms,orbs,nlpspd,rxyz,&
           hx,hy,hz,proj,i3s+i3xcsh,n3p,&
           in%nspin,refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
-          ewaldstr,hstrten,strten,fnoise,pressure,psoffset)
+          ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset)
 
    i_all=-product(shape(rho))*kind(rho)
    deallocate(rho,stat=i_stat)

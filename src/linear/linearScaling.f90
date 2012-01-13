@@ -97,7 +97,7 @@ real(8),intent(out):: energy
 real(8),dimension(3,at%nat),intent(out):: fxyz
 !real(8),intent(out):: fnoise
 real(8):: fnoise,pressure
-real(gp), dimension(6) :: ewaldstr,strten,hstrten
+real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
@@ -580,10 +580,11 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
   !fake ewald stress tensor
   ewaldstr=0.0_gp
+  xcstr=0.0_gp
   call calculate_forces(iproc,nproc,Glr,at,orbs,nlpspd,rxyz,&
        input%hx,input%hy,input%hz,proj,i3s+i3xcsh,n3p,&
        input%nspin,.false.,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
-       ewaldstr,hstrten,strten,fnoise,pressure,0.0_dp)
+       ewaldstr,hstrten,xcstr,strten,fnoise,pressure,0.0_dp)
 
   iall=-product(shape(pot))*kind(pot)
   deallocate(pot,stat=istat)

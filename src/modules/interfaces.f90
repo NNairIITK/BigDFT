@@ -643,7 +643,7 @@ module module_interfaces
 
       subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
            refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
-           ewaldstr,hstrten,strten,fnoise,pressure,psoffset)
+           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset)
         use module_base
         use module_types
         implicit none
@@ -659,7 +659,7 @@ module module_interfaces
         real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
         real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
         real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-        real(gp), dimension(6), intent(in) :: ewaldstr,hstrten
+        real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp
         real(gp), intent(out) :: fnoise,pressure
         real(gp), dimension(6), intent(out) :: strten

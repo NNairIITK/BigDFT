@@ -167,7 +167,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
         eval_zero=evalmax
         ikpt=orbs%iokpt(iorb)
      end if
-
+     !print *,'iorb,eval,evalmax',iorb+orbs%isorb,orbs%eval(iorb+orbs%isorb),eval_zero
      !indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
      !k-point values, if present
@@ -190,7 +190,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
         if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
            gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         else
-           !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
+           !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
 
@@ -208,7 +208,8 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
                       cprecr,hx,hy,hz,hpsi(1+ist))
               case('P')
                  call prec_fft(Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3, &
-                      Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
+                      Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
+                      Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
                       Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyv, &
                       cprecr,hx,hy,hz,hpsi(1+ist))
               end select
