@@ -37,6 +37,7 @@ PSPS = psppar.H \
        HGH/psppar.Mg \
        HGH/psppar.Ag \
        HGH/psppar.N \
+       HGH/psppar.C \
        HGH-K/psppar.H \
        HGH-K/psppar.Si \
        HGH-K/psppar.N \

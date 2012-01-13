@@ -175,7 +175,7 @@ subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspi
   dispcorr = in%dispersion
   inpsi = in%inputPsiId
   outpsi = in%output_wf_format
-  outgrid = in%output_grid
+  outgrid = in%output_denspot
   rbuf = in%rbuf
   ncongt = in%ncongt
   davidson = in%norbv

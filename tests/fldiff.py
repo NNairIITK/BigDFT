@@ -119,7 +119,8 @@ if bigdft:
             or "wavefunction written" in line \
             or "READING WAVES" in line \
             or "average CG stepsize" in line \
-            or "GPU data" in line
+            or "GPU data" in line \
+            or "Exact exchange calculation" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
     def line_junk(line):

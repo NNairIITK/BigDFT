@@ -9,7 +9,7 @@
 
 
 !> Routine to use BigDFT as a blackbox
-subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocode)
+subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,infocode)
    use module_base
    use module_types
    use module_interfaces, except_this_one => call_bigdft
@@ -21,7 +21,9 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
    integer, intent(inout) :: infocode
    real(gp), intent(out) :: energy,fnoise
    real(gp), dimension(3,atoms%nat), intent(in) :: rxyz0
+   real(gp), dimension(6), intent(out) :: strten
    real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+ 
    !local variables
    character(len=*), parameter :: subname='call_bigdft'
    character(len=40) :: comment
@@ -30,7 +32,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
 
    !temporary interface
    interface
-      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
+      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
             &   psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
          use module_base
          use module_types
@@ -47,6 +49,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
          real(gp), intent(out) :: energy,fnoise
          real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
          real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
+         real(gp), dimension(6), intent(out) :: strten
          real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
          real(wp), dimension(:), pointer :: psi
          real(wp), dimension(:,:), pointer :: gaucoeffs
@@ -99,7 +102,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
          in%inputPsiId=0 !the first run always restart from IG
          !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
       end if
-      call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,fnoise,&
+      call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,strten,fnoise,&
          &   rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
       rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
       if (exists) then
@@ -180,7 +183,7 @@ END SUBROUTINE call_bigdft
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
+subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       &   psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
    use module_base
    use module_types
@@ -205,6 +208,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
    integer, intent(out) :: infocode
    real(gp), intent(out) :: energy,fnoise
+   real(gp), dimension(6), intent(out) :: strten
    real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
    real(wp), dimension(:), pointer :: psi
    real(wp), dimension(:,:), pointer :: gaucoeffs
@@ -215,7 +219,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    character(len=500) :: errmess
    logical :: endloop,endlooprp,onefile,refill_proj
    logical :: DoDavidson,DoLastRunThings=.false.,lcs,scpot
-   integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden,input_wf_format,ipot_from_disk=0
+   integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden,input_wf_format
    integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
    integer :: nelec,ndegree_ip,j,i,npoints,irhotot_add,irho_add
    integer :: n1_old,n2_old,n3_old,n1,n2,n3,ispin
@@ -223,7 +227,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,nproctiming
    real :: tcpu0,tcpu1
    real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
-   real(gp) :: peakmem,evsum
+   real(gp) :: peakmem,evsum,pressure
    real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,eSIC_DC,rpnrm,gnrm,gnrm_zero
    real(gp) :: energybs,tt,tel,ehart_fake,psoffset
    real(kind=8) :: ttsum
@@ -236,6 +240,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    type(diis_objects) :: diis
    type(rhopot_distribution) :: rhopotd
    real(gp), dimension(3) :: shift
+   real(dp), dimension(6) :: ewaldstr,elstrten,hstrten
    real(kind=8), dimension(:), allocatable :: rho
    real(gp), dimension(:,:), allocatable :: radii_cf,fion,thetaphi,band_structure_eval
    real(gp), dimension(:,:),allocatable :: fdisp
@@ -283,10 +288,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    ncongt=in%ncongt
    nspin=in%nspin
    write(gridformat, "(A)") ""
-   select case (in%output_grid_format)
-   case (OUTPUT_GRID_FORMAT_ETSF)
+   select case (in%output_denspot_format)
+   case (output_denspot_FORMAT_ETSF)
       write(gridformat, "(A)") ".etsf"
-   case (OUTPUT_GRID_FORMAT_CUBE)
+   case (output_denspot_FORMAT_CUBE)
       write(gridformat, "(A)") ".cube"
    end select
    write(wfformat, "(A)") ""
@@ -445,8 +450,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    allocate(fion(3,atoms%nat+ndebug),stat=i_stat)
    call memocc(i_stat,fion,'fion',subname)
 
-   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
-        &   psoffset,0,n1,n2,n3,n1i,n2i,n3i,rhopotd%i3s+rhopotd%i3xcsh,rhopotd%n3pi,pot_ion,pkernel)
+   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,ewaldstr,&
+        &   psoffset,n1,n2,n3,n1i,n2i,n3i,rhopotd%i3s+rhopotd%i3xcsh,rhopotd%n3pi,pot_ion,pkernel)
 
    !this can be inserted inside the IonicEnergyandForces routine
    !(after insertion of the non-regression test)
@@ -459,7 +464,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
    !calculate effective ionic potential, including counter ions if any.
    call createEffectiveIonicPotential(iproc,nproc,in,atoms,rxyz,shift,Glr,hxh,hyh,hzh,&
-        &   rhopotd,pkernel,pot_ion,in%elecfield,0,psoffset,.false.)
+        &   rhopotd,pkernel,pot_ion,in%elecfield,psoffset)
 
    !calculate the irreductible zone, if necessary.
    if (atoms%symObj >= 0) then
@@ -495,7 +500,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !start the optimization
    !yaml output
    if (iproc==0) then
-      write(70,'(a,a)')repeat(' ',yaml_indent),'Electronic Ground State: '
+!      write(70,'(a,a)')repeat(' ',yaml_indent),'Electronic Ground State: '
       yaml_indent=yaml_indent+1 !hash table element
    end if
 
@@ -812,7 +817,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    rhopot_loop: do itrp=1,in%itrpmax
       !yaml output 
       if (iproc==0) then
-         write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Hamiltonian Optimization: &itrp',itrp
+!         write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Hamiltonian Optimization: &itrp',itrp
          yaml_indent=yaml_indent+2 !list element
       end if
 
@@ -821,7 +826,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       subd_loop : do icycle=1,in%nrepmax
          !yaml output 
          if (iproc==0) then
-            write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Subspace Optimization: &itrep',icycle
+!            write(70,'(a,i4.4)')repeat(' ',yaml_indent)//'- Subspace Optimization: &itrep',icycle
             yaml_indent=yaml_indent+3 !list element
          end if
 
@@ -830,7 +835,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
          !yaml output
          if (iproc==0) then
-            write(70,'(a,a)')repeat(' ',yaml_indent),'Wavefunctions Iterations: '
+!            write(70,'(a,a)')repeat(' ',yaml_indent),'Wavefunctions Iterations: '
             yaml_indent=yaml_indent+1 !Hash table element
          end if
          wfn_loop: do iter=1,in%itermax
@@ -843,9 +848,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                   &   repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
                !test for yaml output
                if (endloop) then
-                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
+!                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- &last { #iter: ',iter
                else
-                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',iter
+!                  write(70,'(a,i5)')repeat(' ',yaml_indent)//'- { #iter: ',iter
                end if
 
             endif
@@ -861,11 +866,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
             !stop the partial timing counter if necessary
             if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
             !logical flag for the self-consistent potential
-            scpot=(in%iscf /= SCF_KIND_DIRECT_MINIMIZATION .and. iter==1 .and. icycle==1 .and. ipot_from_disk/=1) .or. & !mixing to be done
+            scpot=(in%iscf /= SCF_KIND_DIRECT_MINIMIZATION .and. iter==1 .and. icycle==1) .or. & !mixing to be done
             (in%iscf == SCF_KIND_DIRECT_MINIMIZATION) .or. & !direct minimisation
             (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)  !startmix condition (hard-coded, always true by default)
-
-            if (ipot_from_disk ==1) ipot_from_disk=0 !the scpot condition affects the mixing only once
 
             !calculate the self-consistent potential
             if (scpot) then
@@ -881,7 +884,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                         write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
                         &   'DENSITY iteration,Delta : (Norm 2/Volume)',itrp,rpnrm
                         !yaml output
-                        write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
+!                        write(70,'(1x,a,1pe9.2,a,i5)')'DENSITY variation: &rpnrm',rpnrm,', #itrp: ',itrp
                      end if
                      endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
                      ! xc_init_rho should be put in the mixing routines
@@ -936,7 +939,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                      write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
                           &   'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
                      !yaml output
-                     write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
+!                     write(70,'(1x,a,1pe9.2,a,i5)')'POTENTIAL variation: &rpnrm',rpnrm,', #itrp: ',itrp
                   end if
                   endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
                end if
@@ -1017,7 +1020,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          !flush all writings on standart output
          if (iproc==0) then
             !yaml output
-            write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
+!            write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
             call bigdft_utils_flush(unit=6)
          end if
       end do wfn_loop
@@ -1037,7 +1040,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
          end if
          call write_energies(iter,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,energy,0.0_gp,gnrm,gnrm_zero,final_out)
          !yaml output
-         write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
+!         write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
          yaml_indent=yaml_indent-1 !end hash table element
 
          !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
@@ -1085,7 +1088,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
       if (iproc==0) then
          !yaml output
-         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',icycle
+!         write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'#End itrep:',icycle
          yaml_indent=yaml_indent-3 !end list element
       end if
    end do subd_loop
@@ -1109,8 +1112,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
       !yaml output
       yaml_indent=yaml_indent-2 !end list element
       !reassume the key elements in the itrp element
-      if (itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
-      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End itrp:',itrp
+!      if (itrp >1) write(70,'(a)')repeat(' ',yaml_indent+2)//'RhoPot Delta: *rpnrm'
+!      write(70,'(a,i5)')repeat(' ',yaml_indent+2)//'Energies: *last  #End itrp:',itrp
    end if
 
 end do rhopot_loop
@@ -1226,14 +1229,14 @@ if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
    end if
 end if
 
-!plot the ionic potential, if required by output_grid
-if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+!plot the ionic potential, if required by output_denspot
+if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
    if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
    call plot_density(trim(in%dir_output)//'external_potential' // gridformat,iproc,nproc,&
       &   n1,n2,n3,n1i,n2i,n3i,rhopotd%n3p,&
    1,hxh,hyh,hzh,atoms,rxyz,rhopotd%ngatherarr,pot_ion)
 end if
-if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
    if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
    call plot_density(trim(in%dir_output)//'local_potential' // gridformat,iproc,nproc,&
       &   n1,n2,n3,n1i,n2i,n3i,rhopotd%n3p,&
@@ -1271,7 +1274,7 @@ if (inputpsi /= -1000) then
       allocate(rho(n1i*n2i*rhopotd%n3p*in%nspin+ndebug),stat=i_stat)
       call memocc(i_stat,rho,'rho',subname)
    else
-      allocate(rho(1+ndebug),stat=i_stat)
+      allocate(rho(1*in%nspin+ndebug),stat=i_stat)
       call memocc(i_stat,rho,'rho',subname)
    end if
    call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rho,&
@@ -1283,7 +1286,7 @@ if (inputpsi /= -1000) then
 
    !plot the density on the cube file
    !to be done either for post-processing or if a restart is to be done with mixing enabled
-   if (((in%output_grid >= OUTPUT_GRID_DENSITY)) .and. DoLastRunThings) then
+   if (((in%output_denspot >= output_denspot_DENSITY)) .and. DoLastRunThings) then
       if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
 
       call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
@@ -1312,10 +1315,23 @@ if (inputpsi /= -1000) then
    !calculate electrostatic potential
    call dcopy(n1i*n2i*rhopotd%n3p,rho,1,pot,1) 
    call H_potential(atoms%geocode,'D',iproc,nproc,&
-      &   n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.)
+      &   n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+   !in principle symmetrization of the stress tensor is not needed since the density has been 
+   !already symmetrized
+   if (atoms%symObj >= 0 .and. atoms%geocode=='P') call symm_stress(iproc,hstrten,atoms)
+
+
+!!$   !temporary printout of the stress tensor
+!!$   if (iproc==0 .and. atoms%geocode =='P') then
+!!$     write(*,*) 
+!!$     write(*,*) 'STRESS TENSOR: HARTREE CONTRIBUTION (Ha/Bohr**3)'
+!!$     write(*,*) strten(1),strten(3),strten(2)
+!!$     write(*,*) strten(6),strten(5),strten(4)
+!!$  end if
+
 
    !plot also the electrostatic potential
-   if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+   if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
       if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
       call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
          &   iproc,nproc,n1,n2,n3,n1i,n2i,n3i,rhopotd%n3p,&
@@ -1324,7 +1340,7 @@ if (inputpsi /= -1000) then
 
 
    !     !plot also the electrostatic potential
-   !     if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
+   !     if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
    !        if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
    !        call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
    !             & iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1335,9 +1351,9 @@ if (inputpsi /= -1000) then
    !refill projectors for tails, davidson
    refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
 
-   call calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,&
-        & rhopotd%i3s+rhopotd%i3xcsh,rhopotd%n3p,in%nspin,refill_proj,&
-      &   rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise)
+   call calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,rhopotd%i3s+rhopotd%i3xcsh,rhopotd%n3p,&
+        in%nspin,refill_proj,rhopotd%ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
+        ewaldstr,hstrten,strten,fnoise,pressure,psoffset)
 
    i_all=-product(shape(rho))*kind(rho)
    deallocate(rho,stat=i_stat)
@@ -1544,10 +1560,13 @@ i_all=-product(shape(pkernel))*kind(pkernel)
 deallocate(pkernel,stat=i_stat)
 call memocc(i_stat,i_all,'kernel',subname)
 
-if (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp) then
+if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
+     .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
    i_all=-product(shape(pkernelseq))*kind(pkernelseq)
    deallocate(pkernelseq,stat=i_stat)
    call memocc(i_stat,i_all,'kernelseq',subname)
+else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
+   nullify(pkernelseq)
 end if
 
 
@@ -1594,7 +1613,7 @@ if ((in%rbuf > 0.0_gp) .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
    !pass hx instead of hgrid since we are only in free BC
    call CalculateTailCorrection(iproc,nproc,atoms,rbuf,orbs,&
       &   Glr,nlpspd,ncongt,pot,hx,rxyz,radii_cf,crmult,frmult,in%nspin,&
-   proj,psi,(in%output_grid /= 0),ekin_sum,epot_sum,eproj_sum)
+   proj,psi,(in%output_denspot /= 0),ekin_sum,epot_sum,eproj_sum)
 
    i_all=-product(shape(pot))*kind(pot)
    deallocate(pot,stat=i_stat)
@@ -1674,10 +1693,13 @@ subroutine deallocate_before_exiting
       deallocate(pot_ion,stat=i_stat)
       call memocc(i_stat,i_all,'pot_ion',subname)
 
-      if (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp) then
+      if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
+           .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
          i_all=-product(shape(pkernelseq))*kind(pkernelseq)
          deallocate(pkernelseq,stat=i_stat)
          call memocc(i_stat,i_all,'kernelseq',subname)
+      else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
+         nullify(pkernelseq)
       end if
 
       i_all=-product(shape(pkernel))*kind(pkernel)

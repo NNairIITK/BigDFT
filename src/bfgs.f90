@@ -29,6 +29,7 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
     logical :: move_this_coordinate
     integer ::  nr
     integer ::  nwork
+    real(gp), dimension(6) :: strten
     real(gp),allocatable:: x(:),f(:),work(:)
     !character(len=4) :: fn4
     !character(len=40) :: comment
@@ -61,7 +62,7 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
         !    call atomic_copymoving_forward(atoms,n,f(1,ip),nr,fa(1,ip))
         !enddo
         !if(icall/=0) then
-            call call_bigdft(nproc,iproc,at,rxyz,in,epot,fxyz,fnoise,rst,infocode)
+            call call_bigdft(nproc,iproc,at,rxyz,in,epot,fxyz,strten,fnoise,rst,infocode)
             ncount_bigdft=ncount_bigdft+1
         !endif
         call atomic_copymoving_forward(at,3*at%nat,fxyz,nr,f)
@@ -545,6 +546,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   integer ::  NWORK
   real(gp),allocatable:: X(:),G(:),DIAG(:),W(:)
   real(gp):: F,EPS!,XTOL,GTOL,,STPMIN,STPMAX
+  real(gp), dimension(6) :: strten
   real(gp), dimension(3*at%nat) :: rxyz0,rxyzwrite
   integer ::  IPRINT(2),IFLAG,ICALL,M
   character(len=*), parameter :: subname='bfgs'
@@ -663,7 +665,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
 !      call atomic_axpy(at,txyz,alpha,sxyz,rxyz)
       in%inputPsiId=1
 !      if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
-      if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,fnoise,rst,infocode)
+      if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,strten,fnoise,rst,infocode)
       if(ICALL.ne.0) ncount_bigdft=ncount_bigdft+1
       call atomic_copymoving_forward(at,n,fxyz,nr,G)
       etot=F

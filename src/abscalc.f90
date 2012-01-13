@@ -387,7 +387,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(gp) :: rpot_a,spot_a,hpot_a,espo,harmo,r,rx,ry,rz,minr  
    real(gp), pointer :: radpot(:,:)
    integer :: radpotcount, igrid
-
+   real(gp), dimension(6) :: ewaldstr
    real(gp), dimension(:,:), pointer :: rxyz_b2B
    integer, dimension(:), pointer :: iatype_b2B, znucl_b2B
    real(gp) :: shift_b2B(3)
@@ -447,10 +447,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    hz=in%hz
 
    write(gridformat, "(A)") ""
-   select case (in%output_grid_format)
-   case (OUTPUT_GRID_FORMAT_ETSF)
+   select case (in%output_denspot_format)
+   case (output_denspot_FORMAT_ETSF)
       write(gridformat, "(A)") ".etsf"
-   case (OUTPUT_GRID_FORMAT_CUBE)
+   case (output_denspot_FORMAT_CUBE)
       write(gridformat, "(A)") ".bin"
    end select
 
@@ -608,12 +608,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    if (iproc == 0) write(*,*) "IonicEnergyandForces  " 
 
-   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
-      &   psoffset,0,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
+   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,ewaldstr,&
+        psoffset,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
    call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-      &   in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,0,&
-      &   .false.)
+        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
 
    !this can be inserted inside the IonicEnergyandForces routine
    !(after insertion of the non-regression test)
@@ -856,8 +855,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !!$
       !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
-      if (in%output_grid == OUTPUT_GRID_DENSPOT) then
-         if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
+      if (in%output_denspot == output_denspot_DENSPOT) then
+         if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
 
             call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&

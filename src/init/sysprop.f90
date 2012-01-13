@@ -23,7 +23,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   !local variables
   !n(c) character(len=*), parameter :: subname='system_properties'
 
-  call read_atomic_variables('input.occup',iproc,in,atoms,radii_cf)
+  call read_atomic_variables(trim(in%file_igpop),iproc,in,atoms,radii_cf)
   call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
 END SUBROUTINE system_properties
 
@@ -137,6 +137,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
   paw_tot_matrices=0
   exist_all=.true.
   !@ todo : eliminate the pawpatch from psppar
+  nullify(atoms%paw_NofL)
   do ityp=1,atoms%ntypes
      filename = 'psppar.'//atoms%atomnames(ityp)
      call psp_from_file(filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
@@ -1649,7 +1650,8 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   !parameters for abscalc-paw
 
   if(.not. storeit) then
-     if(ityp.eq.1) then
+     !if(ityp == 1) then !this implies that the PSP are all present
+     if (.not. associated(atoms%paw_NofL)) then
         allocate(atoms%paw_NofL(atoms%ntypes+ndebug), stat=i_stat)
         call memocc(i_stat,atoms%paw_NofL,'atoms%paw_NofL',subname)
      end if

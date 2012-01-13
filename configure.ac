@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.12],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.15],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -19,7 +19,7 @@ AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE(-Wno-portability)
 
 dnl This is a hack for usage inside ABINIT.
 dnl if test -n "$FCFLAGS" ; then
@@ -555,7 +555,7 @@ if test -n "$ac_lapack_dir" ; then
 fi
 withlapack=no
 if test "$lapack" = "yes" ; then
-  AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no)
+  AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no,$LINALG_LIBS)
   if test "$withlapack" = "yes"; then
     LINALG_LIBS="-llapack $LINALG_LIBS"
   fi
@@ -568,7 +568,7 @@ if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
   AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
 fi
 if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
-  AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation."])
+  AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
 fi
 AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
 

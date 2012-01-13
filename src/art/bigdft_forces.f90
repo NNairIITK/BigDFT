@@ -187,6 +187,7 @@ module bigdft_forces
       !Local variables
       integer  :: infocode, i, ierror 
       real(gp) :: fnoise
+      real(gp), dimension(6) :: strten
       real(gp), allocatable :: xcart(:,:), fcart(:,:)
       !_______________________
 
@@ -213,7 +214,7 @@ module bigdft_forces
 
          in%inputPsiId = 0
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
+         call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten, fnoise, rst, infocode )
          evalf_number = evalf_number + 1
 
          in%inputPsiId = 1
@@ -238,7 +239,7 @@ module bigdft_forces
 
          ! Get into BigDFT
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
+         call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten,fnoise, rst, infocode )
          evalf_number = evalf_number + 1
 
       end if
@@ -291,6 +292,7 @@ module bigdft_forces
 
       !Local variables
       integer :: i, ierror, ncount_bigdft
+      real(gp), dimension(6) :: strten
       real(gp), allocatable :: xcart(:,:), fcart(:,:)
 
       if ( .not. initialised ) then
@@ -320,7 +322,7 @@ module bigdft_forces
       end do
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
-      call geopt( nproc, me, xcart, at, fcart, total_energy, rst, in, ncount_bigdft )
+      call geopt( nproc, me, xcart, at, fcart, strten,total_energy, rst, in, ncount_bigdft )
       evalf_number = evalf_number + ncount_bigdft 
       if (ncount_bigdft > in%ncount_cluster_x-1) success = .False.
 
@@ -630,6 +632,7 @@ module bigdft_forces
       real(kind=8) :: energy
       real(gp)     :: fnoise
       real(gp)     ::  fmax, fnrm
+      real(gp), dimension(6) :: strten
       real(gp), allocatable :: xcart(:,:), fcart(:,:)
       !_______________________
 
@@ -648,7 +651,7 @@ module bigdft_forces
       allocate(fcart(3, at%nat))
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
-      call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
+      call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten,fnoise, rst, infocode )
       evalf_number = evalf_number + 1
       in%inputPsiId = 1
 
@@ -662,14 +665,14 @@ module bigdft_forces
          end if
 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call geopt( nproc, me, xcart, at, fcart, total_energy, rst, in, ncount_bigdft )
+         call geopt( nproc, me, xcart, at, fcart, strten,total_energy, rst, in, ncount_bigdft )
          evalf_number = evalf_number + ncount_bigdft 
          if (ncount_bigdft > in%ncount_cluster_x-1) success = .False.
 
          ! and we clean again here
          in%inputPsiId = 0 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
+         call call_bigdft( nproc, me, at, xcart, in, energy, fcart,strten, fnoise, rst, infocode )
          evalf_number = evalf_number + 1
          in%inputPsiId = 1
 

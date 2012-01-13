@@ -291,8 +291,13 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'W') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
-     stop 'PSolver: geometry code not admitted'
+     stop 'XC potential: geometry code not admitted'
   end if
 
   !dimension for exchange-correlation (different in the global or distributed case)
@@ -686,13 +691,13 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   !of course it must be substituted with an alternative XC calculation
   npts=m1*m3*nwb
 
+  !do a separate calculation of the grid to allow for OMP parallelisation
   ! Do the calculation.
   if (abs(order) == 1) then
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr)
   else if (abs(order) == 2) then
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr,dvxci)
   end if
-
   if (use_gradient) then
      !do not calculate the White-Bird term in the Leeuwen Baerends XC case
      if (ixc/=13) then

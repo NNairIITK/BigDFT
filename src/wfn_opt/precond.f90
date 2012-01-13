@@ -56,7 +56,7 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
         eval_zero=evalmax
         ikpt=orbs%iokpt(iorb)
      end if
-
+     !print *,'iorb,eval,evalmax',iorb+orbs%isorb,orbs%eval(iorb+orbs%isorb),eval_zero
      !indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
      !k-point values, if present

@@ -354,10 +354,14 @@ subroutine wpdot(  &
         do i=0,length
            scpr0=scpr0+real(apsi_c(jaj+iaoff+i),dp)*real(bpsi_c(jbj+i),dp)
         enddo
+        !print *,'ibseg,mbseg_c,iaseg0,maseg_c',ibseg,mbseg_c,iaseg0,maseg_c
+        !print '(a,5(i8),1pe25.17)','ja0,ja1,jb0,jb1',&
+        !     ibseg,keyag_c_lin(iaseg0),keyag_c(2,iaseg0),jb0,jb1,scpr0
+        !print *,'ja0,ja1,jb0,jb1',ibseg,keyag_c_lin(iaseg0),keyag_c(2,iaseg0),jb0,jb1
+     !print *,'ibseg,iaseg0',ibseg,iaseg0,scpr0,mbseg_c,maseg_c,length
 
    enddo
 !$omp end do nowait
-
 
 ! fine part
 
@@ -597,6 +601,9 @@ SUBROUTINE hunt1(xx,n,x,jlo)
       integer :: x,xx(n)
       integer :: inc,jhi,jm
       logical :: ascnd
+
+      !print *,'jlo,n,xx(n),x',jlo,n,xx(n),x
+
       ascnd=xx(n).ge.xx(1)
       if(jlo.le.0.or.jlo.gt.n)then
         jlo=0
@@ -630,6 +637,7 @@ SUBROUTINE hunt1(xx,n,x,jlo)
       if(jhi-jlo.eq.1)then
         if(x.eq.xx(n))jlo=n
         if(x.eq.xx(1))jlo=1
+        !print *,'good,jm:',jm,jlo,jhi
         return
       endif
       jm=(jhi+jlo)/2
@@ -639,4 +647,6 @@ SUBROUTINE hunt1(xx,n,x,jlo)
         jhi=jm
       endif
       goto 3
+
+
 END SUBROUTINE hunt1

@@ -41,7 +41,7 @@ typedef struct BigDFT_Atoms_
 {
   /* Bindings to values, obtained by copy. Update them with
      bigdft_atoms_sync(). */
-  gchar geocode, format[5], units[20];
+  gchar geocode, format[6], units[21];
   guint  ntypes, nat, natsc;
   int symObj;
   double alat[3];

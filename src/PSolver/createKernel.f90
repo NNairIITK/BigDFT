@@ -24,6 +24,9 @@
 !!                    The density is supposed to be periodic in all the three directions,
 !!                    then all the dimensions must be compatible with the FFT.
 !!                    No need for setting up the kernel.
+!!              - 'W' Wires BC.
+!!                    The density is supposed to be periodic in z direction, 
+!!                    which has to be compatible with the FFT.
 !!    @param iproc,nproc number of process, number of processes
 !!    @param n01,n02,n03 dimensions of the real space grid to be hit with the Poisson Solver
 !!    @param itype_scf   order of the interpolating scaling functions used in the decomposition
@@ -99,6 +102,7 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
 
      !Build the Kernel
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+
      allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
      call memocc(i_stat,kernel,'kernel',subname)
 
@@ -107,6 +111,21 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
 
      !last plane calculated for the density and the kernel
      nlimd=n2/2
+     nlimk=n3/2+1
+     
+  else if (geocode == 'W') then
+
+     if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
+          'Calculating Poisson solver kernel, wires BC...'
+
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+
+     allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
+     call memocc(i_stat,kernel,'kernel',subname)
+
+     call Wires_Kernel(iproc,nproc,n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,kernel)
+
+     nlimd=n2
      nlimk=n3/2+1
 
   else

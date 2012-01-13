@@ -18,7 +18,7 @@ program MINHOP
 
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
-  logical :: newmin,CPUcheck,occured
+  logical :: newmin,CPUcheck,occured,exist_poslocm
   character(len=20) :: unitsp,units,atmn
   character(len=80) :: line
   type(atoms_data) :: atoms,md_atoms
@@ -40,7 +40,9 @@ program MINHOP
   character(len=41) :: filename
   character(len=4) :: fn4
   character(len=5) :: fn5
+  character(len=12) :: fn12
   character(len=50) :: comment
+  real(gp), dimension(6) :: strten
   real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
 
   ! Start MPI version
@@ -133,12 +135,8 @@ program MINHOP
   deallocate(mdpos,stat=i_stat)
   call memocc(i_stat,i_all,'mdpos',subname)
 
-
   ! Read associated pseudo files. Based on the inputs_opt set
   call init_atomic_values((iproc == 0), atoms, inputs_opt%ixc)
-
-
-
 
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then
@@ -266,7 +264,7 @@ program MINHOP
 
   inputs_opt%inputPsiId=0
   call init_restart_objects(iproc,inputs_opt%iacceleration,atoms,rst,subname)
-  call call_bigdft(nproc,iproc,atoms,pos,inputs_md,e_pos,ff,fnoise,rst,infocode)
+  call call_bigdft(nproc,iproc,atoms,pos,inputs_md,e_pos,ff,strten,fnoise,rst,infocode)
 
   if (iproc==0)write(17,*) 'ENERGY ',e_pos
   energyold=1.d100
@@ -277,17 +275,30 @@ program MINHOP
 !  if (atoms%geocode == 'P') & 
 !       call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
 
-  call geopt(nproc,iproc,pos,atoms,ff,e_pos,rst,inputs_md,ncount_bigdft)
+  nconjgr=0
+      do 
+        write(fn12,'(a8,i4.4)') "poslocm_",nconjgr
+        inquire(file=fn12,exist=exist_poslocm)
+        if (exist_poslocm) then
+            nconjgr=nconjgr+1
+        else
+            exit
+        endif
+       enddo
+       if (iproc == 0) write(*,*) '# number of poslocm files that exist already ',nconjgr
+
+
+  call geopt(nproc,iproc,pos,atoms,ff,strten,e_pos,rst,inputs_md,ncount_bigdft)
   if (iproc == 0) then
      write(*,*) '# ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
   end if
 
-  call geopt(nproc,iproc,pos,atoms,ff,e_pos,rst,inputs_opt,ncount_bigdft)
+  call geopt(nproc,iproc,pos,atoms,ff,strten,e_pos,rst,inputs_opt,ncount_bigdft)
   if (iproc == 0) then
      write(*,*) '# ', ncount_bigdft,' Wvfnctn Opt. steps for accurate initial conf'
   end if
 
-  nconjgr=0
+
   if (iproc == 0) then 
      tt=dnrm2(3*atoms%nat,ff,1)
      write(fn4,'(i4.4)') nconjgr
@@ -397,14 +408,14 @@ program MINHOP
 !5556 continue ! entry point for restart of optimization at cluster step irestart+1
 !     if (atoms%geocode == 'P') & 
 !        call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
-     call geopt(nproc,iproc,wpos,atoms,ff,e_wpos,rst,inputs_md,ncount_bigdft)
+     call geopt(nproc,iproc,wpos,atoms,ff,strten,e_wpos,rst,inputs_md,ncount_bigdft)
 
      if (iproc == 0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
      !ncount_bigdft=0
      !ncount_cluster=0
 !     if (atoms%geocode == 'P') & 
 !          call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
-      call geopt(nproc,iproc,wpos,atoms,ff,e_wpos,rst,inputs_opt,ncount_bigdft)
+      call geopt(nproc,iproc,wpos,atoms,ff,strten,e_wpos,rst,inputs_opt,ncount_bigdft)
 
      if (iproc == 0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for accurate geo. rel of MD conf.'
      if (iproc == 0) then 
@@ -633,7 +644,7 @@ contains
     implicit real*8 (a-h,o-z)
     type(atoms_data) :: atoms
     type(restart_objects) :: rst
-    dimension ff(3,atoms%nat),gg(3,atoms%nat),vxyz(3,atoms%nat),rxyz(3,atoms%nat),rxyz_old(3,atoms%nat)
+    dimension ff(3,atoms%nat),gg(3,atoms%nat),vxyz(3,atoms%nat),rxyz(3,atoms%nat),rxyz_old(3,atoms%nat),strten(6)
     type(input_variables) :: inputs_md
     character(len=4) :: fn,name
     !type(wavefunctions_descriptors), intent(inout) :: wfd
@@ -711,7 +722,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        enmin1=en0000
        !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
        inputs_md%inputPsiId=1
-       call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,fnoise,rst,infocode)
+       call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,strten,fnoise,rst,infocode)
 
        if (iproc == 0) then
           write(fn,'(i4.4)') istep
@@ -796,7 +807,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     type(input_variables) :: inputs_md
     type(restart_objects) :: rst
     !Local variables
-    dimension wpos(3*atoms%nat)
+    dimension wpos(3*atoms%nat),strten(6)
 
 !    eps_vxyz=1.d-1*atoms%nat
     alpha=inputs_md%betax
@@ -805,7 +816,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
 
     inputs_md%inputPsiId=1
     if(iproc==0)write(*,*)'# soften initial step '
-    call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,etot0,fxyz,fnoise,rst,infocode)
+    call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,etot0,fxyz,strten,fnoise,rst,infocode)
 
     ! scale velocity to generate dimer 
 
@@ -845,7 +856,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
 !       end do
 !      call atomic_axpy(atoms,rxyz,1.d0,vxyz,wpos)
        wpos=rxyz+vxyz
-       call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,fnoise,rst,infocode)
+       call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,strten,fnoise,rst,infocode)
        fd2=2.d0*(etot-etot0)/eps_vxyz**2
 
        sdf=0.d0
