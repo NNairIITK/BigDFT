@@ -32,7 +32,8 @@
   obj->name = (double*)tmp.data; \
   }
 
-void FC_FUNC_(deallocate_double, DEALLOCATE_DOUBLE)(f90_pointer_double *array);
+void FC_FUNC_(deallocate_double_1d, DEALLOCATE_DOUBLE_1D)(f90_pointer_double *array);
+void FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(f90_pointer_double *array);
 
 void FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
      (int *lstat, const char* filename, int *ln, int *iorbp,
@@ -171,7 +172,7 @@ static void bigdft_atoms_dispose(BigDFT_Atoms *atoms)
   guint i;
 
   g_free(atoms->data);
-  FC_FUNC_(deallocate_double, DEALLOCATE_DOUBLE)(&atoms->rxyz);
+  FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(&atoms->rxyz);
   if (atoms->atomnames)
     {
       for (i = 0; i < atoms->ntypes; i++)
@@ -365,14 +366,15 @@ void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, f90_pointer_atoms *atoms, do
                                         double *radii_cf, double *crmult, double *frmult,
                                         double *hx, double *hy, double *hz,
                                         f90_pointer_glr *glr, double *shift);
-void FC_FUNC_(glr_get_n, GLR_GET_N)(f90_pointer_glr *glr, int *n);
+void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(void *glr, char *geocode,
+                                                      int *n, int *ni);
 void FC_FUNC_(glr_free, GLR_FREE)(f90_pointer_glr *glr);
 void FC_FUNC(glr_set_wave_descriptors,
              GLR_SET_WAVE_DESCRIPTORS)(int *iproc, double *hx, double *hy,
                                        double *hz, void *atoms, double *rxyz, double *radii,
                                        double *crmult, double *frmult, void *glr);
 
-BigDFT_Glr* bigdft_glr_init(BigDFT_Atoms *atoms, double *radii, double h[3],
+static BigDFT_Glr* bigdft_glr_init(BigDFT_Atoms *atoms, double *radii, double h[3],
                             double crmult, double frmult)
 {
   BigDFT_Glr *glr;
@@ -390,13 +392,14 @@ BigDFT_Glr* bigdft_glr_init(BigDFT_Atoms *atoms, double *radii, double h[3],
   glr->h[0] = h[0];
   glr->h[1] = h[1];
   glr->h[2] = h[2];
-  FC_FUNC_(glr_get_n, GLR_GET_N)(glr->data->glr, (int*)glr->n);
+  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data->glr, &glr->geocode,
+                                                   (int*)glr->n, (int*)glr->ni);
   FC_FUNC_(atoms_copy_alat, ATOMS_COPY_ALAT)(atoms->data->atoms, atoms->alat,
                                              atoms->alat + 1, atoms->alat + 2);
 
   return glr;
 }
-void bigdft_glr_dispose(BigDFT_Glr *glr)
+static void bigdft_glr_dispose(BigDFT_Glr *glr)
 {
   g_free(glr->data);
   g_free(glr);
@@ -487,7 +490,7 @@ void FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(const f90_pointer_inputs *in, 
 void FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(void *in, void *atoms,
                                                   int *iproc, int *dump);
 
-BigDFT_Inputs* bigdft_inputs_init()
+static BigDFT_Inputs* bigdft_inputs_init()
 {
   BigDFT_Inputs *in;
 
@@ -499,7 +502,7 @@ BigDFT_Inputs* bigdft_inputs_init()
 
   return in;
 }
-void bigdft_inputs_dispose(BigDFT_Inputs *in)
+static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 {
   g_free(in->data);
   g_free(in);
@@ -582,7 +585,7 @@ void FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(void *orbs, int *norb,
                                                         int *nkpts, int *nkptsp,
                                                         int *isorb, int *iskpts);
 
-BigDFT_Orbs* bigdft_orbs_init()
+static BigDFT_Orbs* bigdft_orbs_init()
 {
   BigDFT_Orbs *orbs;
 
@@ -593,7 +596,7 @@ BigDFT_Orbs* bigdft_orbs_init()
 
   return orbs;
 }
-void bigdft_orbs_dispose(BigDFT_Orbs *orbs)
+static void bigdft_orbs_dispose(BigDFT_Orbs *orbs)
 {
   g_free(orbs->data);
   g_free(orbs);
@@ -628,18 +631,108 @@ void bigdft_orbs_free(BigDFT_Orbs *orbs)
   bigdft_orbs_dispose(orbs);
 }
 
+/*******************************/
+/* BigDFT_Proj data structure. */
+/*******************************/
+struct f90_pointer_nlpspd_
+{
+  void *proj;
+};
+
+void FC_FUNC_(proj_new, PROJ_NEW)(f90_pointer_nlpspd *nlpspd);
+void FC_FUNC_(proj_free, PROJ_FREE)(f90_pointer_nlpspd *nlpspd, f90_pointer_double *proj);
+void FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
+    (int *iproc, const guint *n1, const guint *n2, const guint *n3, double *rxyz, void *atoms,
+     void *orbs, double *radii, double *cpmult, double *fpmult, const double *h1,
+     const double *h2, const double *h3, void *nlpspd, f90_pointer_double *proj);
+void FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(void *nlpspd,
+                                                        guint *nproj, guint *nprojel);
+
+static BigDFT_Proj* bigdft_proj_init()
+{
+  BigDFT_Proj *proj;
+
+  proj = g_malloc(sizeof(BigDFT_Proj));
+  memset(proj, 0, sizeof(BigDFT_Proj));
+  proj->nlpspd = g_malloc(sizeof(f90_pointer_nlpspd));
+  memset(proj->nlpspd, 0, sizeof(f90_pointer_nlpspd));
+  memset(&proj->proj, 0, sizeof(f90_pointer_double));
+
+  return proj;
+}
+static void bigdft_proj_dispose(BigDFT_Proj *proj)
+{
+  g_free(proj->nlpspd);
+  g_free(proj);
+}
+
+BigDFT_Proj* bigdft_proj_new(const BigDFT_Atoms *atoms, const BigDFT_Glr *glr,
+                             const BigDFT_Orbs *orbs, double *radii, double frmult)
+{
+  BigDFT_Proj *proj;
+  int iproc = 1;
+
+  proj = bigdft_proj_init();
+  FC_FUNC_(proj_new, PROJ_NEW)(proj->nlpspd);
+  FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
+    (&iproc, glr->n, glr->n + 1, glr->n + 2, atoms->rxyz.data,
+     atoms->data->atoms, orbs->data->orbs, radii, &frmult, &frmult,
+     glr->h, glr->h + 1, glr->h + 2, proj->nlpspd->proj, &proj->proj);
+  FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(proj->nlpspd->proj, &proj->nproj,
+                                                     &proj->nprojel);
+
+  return proj;
+}
+void bigdft_proj_free(BigDFT_Proj *proj)
+{
+  FC_FUNC_(proj_free, PROJ_FREE)(proj->nlpspd, &proj->proj);
+  bigdft_proj_dispose(proj);
+}
+
 void FC_FUNC(memoryestimator, MEMORYESTIMATOR)(int *nproc, int *idsx, void *lr, int *nat,
                                                int *norb, int *nspinor, int *nkpt,
-                                               int *nprojel, int *nspin, int *itrpmax,
+                                               guint *nprojel, int *nspin, int *itrpmax,
                                                int *iscf, double *peak);
-double bigdft_memory_peak(int nproc, BigDFT_Glr *lr, BigDFT_Inputs *in, BigDFT_Orbs *orbs)
+double bigdft_memory_peak(int nproc, BigDFT_Glr *lr, BigDFT_Inputs *in,
+                          BigDFT_Orbs *orbs, BigDFT_Proj *proj)
 {
   double peak;
   int nat = -1;
 
   FC_FUNC(memoryestimator, MEMORYESTIMATOR)(&nproc, &in->idsx, lr->data->glr, &nat,
                                             &orbs->norb, &orbs->nspinor, &orbs->nkpts,
-                                            &nat, &orbs->nspin, &in->itrpmax, &in->iscf,
-                                            &peak);
+                                            &proj->nprojel, &orbs->nspin, &in->itrpmax,
+                                            &in->iscf, &peak);
   return peak;
+}
+
+void FC_FUNC(createkernel, CREATEKERNEL)(const guint *iproc, const guint *nproc,
+                                         const gchar *geocode,
+                                         const guint *n1i, const guint *n2i, const guint *n3i,
+                                         const double *hxh, const double *hyh,
+                                         const double *hzh, const guint *ndegree_ip,
+                                         f90_pointer_double *pkernel, const guint *verb);
+f90_pointer_double* bigdft_psolver_create_kernel(const BigDFT_Glr *glr, guint iproc,
+                                                 guint nproc)
+{
+  f90_pointer_double *pkernel;
+  guint ndegree_ip = 16, verb = 0;
+  double hh[3];
+
+  pkernel = g_malloc(sizeof(f90_pointer_double));
+  memset(pkernel, 0, sizeof(f90_pointer_double));
+
+  hh[0] = glr->h[0] * 0.5;
+  hh[1] = glr->h[1] * 0.5;
+  hh[2] = glr->h[2] * 0.5;
+  FC_FUNC(createkernel, CREATEKERNEL)(&iproc, &nproc, &glr->geocode, glr->ni,
+                                      glr->ni + 1, glr->ni + 2, hh, hh + 1, hh + 2,
+                                      &ndegree_ip, pkernel, &verb);
+  
+  return pkernel;
+}
+void bigdft_psolver_free_kernel(f90_pointer_double *pkernel)
+{
+  FC_FUNC_(deallocate_double_1d, DEALLOCATE_DOUBLE_1D)(pkernel);
+  g_free(pkernel);
 }

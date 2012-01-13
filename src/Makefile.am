@@ -248,6 +248,7 @@ modules_source = modules/base.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
+	modules/vdwcorrection.f90 \
 	$(CUDA_MODULES) \
 	$(LIBXC_MODULES) \
 	$(PS_MODULES)
@@ -268,7 +269,6 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	vdwcorrection.f90 \
 	lanczos_interface.f90 \
 	lanczos_base.f90 \
 	lanczos.f90 \
@@ -397,7 +397,7 @@ check:
 #dependencies
 $(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o WaCo.o: $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
+cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 

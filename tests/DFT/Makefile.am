@@ -13,6 +13,7 @@ TESTDIRS = C \
 	  TiSmear \
 	  O2-Spin \
 	  TDDFT \
+	  ElectField \
 	  SIC
 
 #This will run the automatic tests also for GPU

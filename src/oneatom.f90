@@ -114,7 +114,7 @@ program oneatom
   if (dokernel) then
      ndegree_ip=16 !default value 
      call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
-          pkernel)
+          pkernel,.true.)
   else
      nullify(pkernel)
   end if
@@ -366,7 +366,7 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,& !n(c) elecfield (arg:9)
   real(dp), dimension(*), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
-  character(len=*), parameter :: subname='createIonicPotential'
+  character(len=*), parameter :: subname='createPotential'
   logical :: perx,pery,perz,gox,goy,goz
   logical :: htoobig=.false.
   logical :: check_potion=.false.
