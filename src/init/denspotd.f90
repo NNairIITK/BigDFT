@@ -7,6 +7,85 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+subroutine allocateRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, in, atoms, rxyz, radii_cf, &
+     & rhopotd, rhodsc, rhopot, pot_ion, potxc, rhocore)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => allocateRhoPot
+
+  implicit none
+
+  integer, intent(in) :: iproc, nproc
+  type(locreg_descriptors), intent(in) :: Glr
+  real(gp), intent(in) :: hxh, hyh, hzh
+  type(input_variables), intent(in) :: in
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  type(rhopot_distribution), intent(out) :: rhopotd
+  type(rho_descriptors), intent(out) :: rhodsc
+  real(dp), dimension(:), pointer :: pot_ion, rhopot
+  real(kind=8), dimension(:,:,:,:), pointer :: potxc
+  real(kind=8), dimension(:), pointer :: rhocore
+
+  character(len = *), parameter :: subname = "allocateRhoPot"
+  integer :: i_stat
+
+  ! Create descriptors for density and potentials.
+  ! ------------------
+  !these arrays should be included in the comms descriptor
+  !allocate values of the array for the data scattering in sumrho
+  !its values are ignored in the datacode='G' case
+  allocate(rhopotd%nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
+  call memocc(i_stat,rhopotd%nscatterarr,'nscatterarr',subname)
+  !allocate array for the communications of the potential
+  allocate(rhopotd%ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,rhopotd%ngatherarr,'ngatherarr',subname)
+
+  !create the descriptors for the density and the potential
+  !these descriptors should take into account the localisation regions
+  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh, &
+       & rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',in%ixc,in%rho_commun, &
+       & rhopotd%n3d,rhopotd%n3p,rhopotd%n3pi,rhopotd%i3xcsh,rhopotd%i3s, &
+       & rhopotd%nscatterarr,rhopotd%ngatherarr,rhodsc)
+
+  ! Allocate density and potentials.
+  ! --------
+  !allocate ionic potential
+  if (rhopotd%n3pi > 0) then
+     allocate(pot_ion(Glr%d%n1i*Glr%d%n2i*rhopotd%n3pi+ndebug),stat=i_stat)
+     call memocc(i_stat,pot_ion,'pot_ion',subname)
+  else
+     allocate(pot_ion(1+ndebug),stat=i_stat)
+     call memocc(i_stat,pot_ion,'pot_ion',subname)
+  end if
+  !Allocate XC potential
+  if (rhopotd%n3p >0) then
+     allocate(potxc(Glr%d%n1i,Glr%d%n2i,rhopotd%n3p,in%nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,potxc,'potxc',subname)
+  else
+     allocate(potxc(1,1,1,in%nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,potxc,'potxc',subname)
+  end if
+  !Allocate Charge density / Potential in real space
+  rhopotd%nrhodim=in%nspin
+  rhopotd%i3rho_add=0
+  if (trim(in%SIC%approach)=='NK') then
+     rhopotd%nrhodim=2*rhopotd%nrhodim
+     rhopotd%i3rho_add=Glr%d%n1i*Glr%d%n2i*rhopotd%i3xcsh+1
+  end if
+  if (rhopotd%n3d >0) then
+     allocate(rhopot(Glr%d%n1i*Glr%d%n2i*rhopotd%n3d*rhopotd%nrhodim+ndebug),stat=i_stat)
+     call memocc(i_stat,rhopot,'rhopot',subname)
+  else
+     allocate(rhopot(rhopotd%nrhodim+ndebug),stat=i_stat)
+     call memocc(i_stat,rhopot,'rhopot',subname)
+  end if
+  !check if non-linear core correction should be applied, and allocate the 
+  !pointer if it is the case
+  call calculate_rhocore(iproc,atoms,Glr%d,rxyz,hxh,hyh,hzh, &
+       & rhopotd%i3s,rhopotd%i3xcsh,rhopotd%n3d,rhopotd%n3p,rhocore)
+END SUBROUTINE allocateRhoPot
 
 !> Create the descriptors for the density and the potential
 subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&

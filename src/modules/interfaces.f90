@@ -1588,6 +1588,24 @@ module module_interfaces
         real(wp), dimension(:,:,:,:), pointer :: psiscf
       END SUBROUTINE free_wave_to_isf
 
+      subroutine allocateRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, in, atoms, rxyz, radii_cf, &
+           & rhopotd, rhodsc, rhopot, pot_ion, potxc, rhocore)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: iproc, nproc
+        type(locreg_descriptors), intent(in) :: Glr
+        real(gp), intent(in) :: hxh, hyh, hzh
+        type(input_variables), intent(in) :: in
+        type(atoms_data), intent(in) :: atoms
+        real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
+        real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+        type(rhopot_distribution), intent(out) :: rhopotd
+        type(rho_descriptors), intent(out) :: rhodsc
+        real(dp), dimension(:), pointer :: pot_ion, rhopot
+        real(kind=8), dimension(:,:,:,:), pointer :: potxc
+        real(kind=8), dimension(:), pointer :: rhocore
+      END SUBROUTINE allocateRhoPot
       !subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
       !
       !

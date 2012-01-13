@@ -24,6 +24,7 @@ int main(guint argc, char **argv)
   BigDFT_Inputs *in;
   BigDFT_Orbs *orbs;
   BigDFT_Proj *proj;
+  f90_pointer_double *pkernel;
 
   int out_pipe[2], stdout_fileno_old;
 
@@ -103,9 +104,11 @@ int main(guint argc, char **argv)
             i, atoms->rxyz.data[3 * i], atoms->rxyz.data[3 * i + 1],
             atoms->rxyz.data[3 * i + 2], atoms->atomnames[atoms->iatype[i] - 1],
             atoms->iatype[i]);
-  fprintf(stdout, " Box is in %f %f %f\n", atoms->alat[0], atoms->alat[1], atoms->alat[2]);
-  fprintf(stdout, " Shift is  %f %f %f\n", atoms->shift[0], atoms->shift[1], atoms->shift[2]);
-  fprintf(stdout, " Grid is   %9d %9d %9d\n", glr->n[0], glr->n[1], glr->n[2]);
+  fprintf(stdout, " Box is in   %f %f %f\n", atoms->alat[0], atoms->alat[1], atoms->alat[2]);
+  fprintf(stdout, " Shift is    %f %f %f\n", atoms->shift[0], atoms->shift[1], atoms->shift[2]);
+  fprintf(stdout, " Geocode is  %c\n", glr->geocode);
+  fprintf(stdout, " Grid is     %9d %9d %9d\n", glr->n[0], glr->n[1], glr->n[2]);
+  fprintf(stdout, " Int grid is %9d %9d %9d\n", glr->ni[0], glr->ni[1], glr->ni[2]);
 
   fprintf(stdout, "Test calculation of grid points.\n");
   cgrid = bigdft_fill_logrid(atoms, glr->n, radii, CRMULT, h);
@@ -147,6 +150,13 @@ int main(guint argc, char **argv)
       redirect_dump(out_pipe, stdout_fileno_old);
       fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
     }
+
+  fprintf(stdout, "Test Poisson solver kernel creation.\n");
+  pkernel = bigdft_psolver_create_kernel(glr, 0, 1);
+
+  fprintf(stdout, "Test Poisson solver kernel free.\n");
+  bigdft_psolver_free_kernel(pkernel);
+  fprintf(stdout, " Ok\n");
 
   fprintf(stdout, "Test BigDFT_Proj free.\n");
   bigdft_proj_free(proj);

@@ -301,6 +301,12 @@ module module_types
      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   end type grid_dimensions
 
+!> Structure to store the density / potential distribution among processors.
+  type, public :: rhopot_distribution
+     integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add
+     integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
+  end type rhopot_distribution
+
 
 !>  Structures of basis of gaussian functions
   type, public :: gaussian_basis
@@ -998,6 +1004,27 @@ END SUBROUTINE deallocate_orbs
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
 
   END SUBROUTINE deallocate_lr
+
+  subroutine deallocate_rhopot_distribution(rhopotd, subname)
+    use module_base
+    implicit none
+    type(rhopot_distribution), intent(inout) :: rhopotd
+    character(len = *), intent(in) :: subname
+
+    integer :: i_stat, i_all
+
+    if (associated(rhopotd%nscatterarr)) then
+       i_all=-product(shape(rhopotd%nscatterarr))*kind(rhopotd%nscatterarr)
+       deallocate(rhopotd%nscatterarr,stat=i_stat)
+       call memocc(i_stat,i_all,'nscatterarr',subname)
+    end if
+
+    if (associated(rhopotd%ngatherarr)) then
+       i_all=-product(shape(rhopotd%ngatherarr))*kind(rhopotd%ngatherarr)
+       deallocate(rhopotd%ngatherarr,stat=i_stat)
+       call memocc(i_stat,i_all,'ngatherarr',subname)
+    end if
+  END SUBROUTINE deallocate_rhopot_distribution
 
   function input_psi_names(id)
     integer, intent(in) :: id

@@ -137,8 +137,9 @@ void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *a
 typedef struct f90_pointer_glr_ f90_pointer_glr;
 typedef struct BigDFT_glr_
 {
+  gchar geocode;
   double h[3];
-  guint n[3];
+  guint n[3], ni[3];
   
   /* TODO: bindings to values... */
 
@@ -201,6 +202,13 @@ typedef struct BigDFT_proj_
 BigDFT_Proj* bigdft_proj_new (const BigDFT_Atoms *atoms, const BigDFT_Glr *glr,
                               const BigDFT_Orbs *orbs, double *radii, double frmult);
 void         bigdft_proj_free(BigDFT_Proj *proj);
+
+/*******************/
+/* Poisson solver. */
+/*******************/
+f90_pointer_double* bigdft_psolver_create_kernel(const BigDFT_Glr *glr, guint iproc,
+                                                 guint nproc);
+void bigdft_psolver_free_kernel(f90_pointer_double *pkernel);
 
 /******************/
 /* Miscellaneous. */

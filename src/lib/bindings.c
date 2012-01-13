@@ -32,7 +32,8 @@
   obj->name = (double*)tmp.data; \
   }
 
-void FC_FUNC_(deallocate_double, DEALLOCATE_DOUBLE)(f90_pointer_double *array);
+void FC_FUNC_(deallocate_double_1d, DEALLOCATE_DOUBLE_1D)(f90_pointer_double *array);
+void FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(f90_pointer_double *array);
 
 void FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
      (int *lstat, const char* filename, int *ln, int *iorbp,
@@ -171,7 +172,7 @@ static void bigdft_atoms_dispose(BigDFT_Atoms *atoms)
   guint i;
 
   g_free(atoms->data);
-  FC_FUNC_(deallocate_double, DEALLOCATE_DOUBLE)(&atoms->rxyz);
+  FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(&atoms->rxyz);
   if (atoms->atomnames)
     {
       for (i = 0; i < atoms->ntypes; i++)
@@ -365,7 +366,8 @@ void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, f90_pointer_atoms *atoms, do
                                         double *radii_cf, double *crmult, double *frmult,
                                         double *hx, double *hy, double *hz,
                                         f90_pointer_glr *glr, double *shift);
-void FC_FUNC_(glr_get_n, GLR_GET_N)(f90_pointer_glr *glr, int *n);
+void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(void *glr, char *geocode,
+                                                      int *n, int *ni);
 void FC_FUNC_(glr_free, GLR_FREE)(f90_pointer_glr *glr);
 void FC_FUNC(glr_set_wave_descriptors,
              GLR_SET_WAVE_DESCRIPTORS)(int *iproc, double *hx, double *hy,
@@ -390,7 +392,8 @@ static BigDFT_Glr* bigdft_glr_init(BigDFT_Atoms *atoms, double *radii, double h[
   glr->h[0] = h[0];
   glr->h[1] = h[1];
   glr->h[2] = h[2];
-  FC_FUNC_(glr_get_n, GLR_GET_N)(glr->data->glr, (int*)glr->n);
+  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data->glr, &glr->geocode,
+                                                   (int*)glr->n, (int*)glr->ni);
   FC_FUNC_(atoms_copy_alat, ATOMS_COPY_ALAT)(atoms->data->atoms, atoms->alat,
                                              atoms->alat + 1, atoms->alat + 2);
 
@@ -690,7 +693,6 @@ void FC_FUNC(memoryestimator, MEMORYESTIMATOR)(int *nproc, int *idsx, void *lr, 
                                                int *norb, int *nspinor, int *nkpt,
                                                guint *nprojel, int *nspin, int *itrpmax,
                                                int *iscf, double *peak);
-
 double bigdft_memory_peak(int nproc, BigDFT_Glr *lr, BigDFT_Inputs *in,
                           BigDFT_Orbs *orbs, BigDFT_Proj *proj)
 {
@@ -702,4 +704,35 @@ double bigdft_memory_peak(int nproc, BigDFT_Glr *lr, BigDFT_Inputs *in,
                                             &proj->nprojel, &orbs->nspin, &in->itrpmax,
                                             &in->iscf, &peak);
   return peak;
+}
+
+void FC_FUNC(createkernel, CREATEKERNEL)(const guint *iproc, const guint *nproc,
+                                         const gchar *geocode,
+                                         const guint *n1i, const guint *n2i, const guint *n3i,
+                                         const double *hxh, const double *hyh,
+                                         const double *hzh, const guint *ndegree_ip,
+                                         f90_pointer_double *pkernel, const guint *verb);
+f90_pointer_double* bigdft_psolver_create_kernel(const BigDFT_Glr *glr, guint iproc,
+                                                 guint nproc)
+{
+  f90_pointer_double *pkernel;
+  guint ndegree_ip = 16, verb = 0;
+  double hh[3];
+
+  pkernel = g_malloc(sizeof(f90_pointer_double));
+  memset(pkernel, 0, sizeof(f90_pointer_double));
+
+  hh[0] = glr->h[0] * 0.5;
+  hh[1] = glr->h[1] * 0.5;
+  hh[2] = glr->h[2] * 0.5;
+  FC_FUNC(createkernel, CREATEKERNEL)(&iproc, &nproc, &glr->geocode, glr->ni,
+                                      glr->ni + 1, glr->ni + 2, hh, hh + 1, hh + 2,
+                                      &ndegree_ip, pkernel, &verb);
+  
+  return pkernel;
+}
+void bigdft_psolver_free_kernel(f90_pointer_double *pkernel)
+{
+  FC_FUNC_(deallocate_double_1d, DEALLOCATE_DOUBLE_1D)(pkernel);
+  g_free(pkernel);
 }

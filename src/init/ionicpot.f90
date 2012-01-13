@@ -750,7 +750,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
      !first calculate the kernel in isolated BC
      call timing(iproc,'CrtLocPot     ','OF')
-     call createKernel(iproc,nproc,'F',n1i,n2i,n3i,hxh,hyh,hzh,16,pkernel_ref)
+     call createKernel(iproc,nproc,'F',n1i,n2i,n3i,hxh,hyh,hzh,16,pkernel_ref,.true.)
      call timing(iproc,'CrtLocPot     ','ON')
 
 

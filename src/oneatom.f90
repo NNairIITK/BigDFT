@@ -114,7 +114,7 @@ program oneatom
   if (dokernel) then
      ndegree_ip=16 !default value 
      call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
-          pkernel)
+          pkernel,.true.)
   else
      nullify(pkernel)
   end if

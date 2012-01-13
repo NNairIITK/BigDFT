@@ -40,8 +40,7 @@
 !!    To avoid that, one can properly define the kernel dimensions by adding 
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
-subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,&
-     quiet) !optional arguments
+subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
   use module_base, only: ndebug
   implicit none
  ! include 'mpif.h'
@@ -49,28 +48,13 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
   integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
   real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), pointer :: kernel(:)
-  character(len=3), intent(in), optional :: quiet
+  logical, intent(in) :: wrtmsg
   !local variables
   character(len=*), parameter :: subname='createKernel'
-  logical :: wrtmsg
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
   integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
 
   call timing(iproc,'PSolvKernel   ','ON')
-
-  !do not write anything on screen if quiet is set to yes
-  if (present(quiet)) then
-     if(quiet == 'yes' .or. quiet == 'YES') then
-        wrtmsg=.false.
-     else if(quiet == 'no' .or. quiet == 'NO') then
-        wrtmsg=.true.
-     else
-        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
-        stop
-     end if
-  else
-     wrtmsg=.true.
-  end if
 
   if (iproc==0 .and. wrtmsg) write(*,'(1x,a)')&
           '------------------------------------------------------------ Poisson Kernel Creation'

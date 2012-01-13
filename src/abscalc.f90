@@ -604,7 +604,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value 
    call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel,&
-      &   quiet=PSquiet)
+      &   (verbose > 1))
 
    if (iproc == 0) write(*,*) "IonicEnergyandForces  " 
 

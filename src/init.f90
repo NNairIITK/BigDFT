@@ -1108,6 +1108,17 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
 END SUBROUTINE createPawProjectorsArrays
 
+!!$subroutine initRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, atoms, rxyz, crmult, frmult, radii, nspin, ixc, rho_commun, rhodsc, nscatterarr, ngatherarr, pot_ion)
+!!$  use module_base
+!!$  use module_types
+!!$
+!!$  implicit none
+!!$
+!!$  integer, intent(in) :: iproc, nproc
+!!$
+!!$  integer :: i_stat
+!!$
+!!$END SUBROUTINE initRhoPot
 
 !> Input guess wavefunction diagonalization
 subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
