@@ -134,6 +134,7 @@ subroutine allocate_atoms_nat(atoms, nat, subname)
   character(len = *), intent(in) :: subname
   !local variables
   integer :: i_stat
+  integer, parameter :: nelecmax=32
 
   atoms%nat = nat
 
@@ -146,6 +147,9 @@ subroutine allocate_atoms_nat(atoms, nat, subname)
   call memocc(i_stat,atoms%natpol,'atoms%natpol',subname)
   allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
+  ! semicores useful only for the input guess
+  allocate(atoms%iasctype(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
 
   !this array is useful for frozen atoms, no atom is frozen by default
   atoms%ifrztyp(:)=0
@@ -153,6 +157,9 @@ subroutine allocate_atoms_nat(atoms, nat, subname)
   !this corresponds to the value of 100
   !RULE natpol=charge*1000 + 100 + spinpol
   atoms%natpol(:)=100
+
+  allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 END SUBROUTINE allocate_atoms_nat
 
 subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
@@ -164,7 +171,6 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
   character(len = *), intent(in) :: subname
   !local variables
   integer :: i_stat
-  integer, parameter :: nelecmax=32
 
   atoms%ntypes = ntypes
 
@@ -191,16 +197,126 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
   call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)
   allocate(atoms%nlcc_ngc(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngc,'atoms%nlcc_ngc',subname)
-  ! semicores useful only for the input guess
-  allocate(atoms%iasctype(atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
-  allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 END SUBROUTINE allocate_atoms_ntypes
 
+!> Calculate symmetries and update
+subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
+  use module_base
+  use module_types
+  use defs_basis
+  use m_ab6_symmetry
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  logical, intent(in) :: disableSym
+  real(gp), intent(in) :: elecfield(3)
+  !local variables
+  character(len=*), parameter :: subname='atoms_set_symmetries'
+  integer :: i_stat, ierr, i_all
+  real(gp) :: rprimd(3, 3)
+  real(gp), dimension(:,:), allocatable :: xRed
 
+  ! Calculate the symmetries, if needed
+  if (atoms%geocode /= 'F') then
+     if (.not. disableSym) then
+        if (atoms%symObj < 0) then
+           call symmetry_new(atoms%symObj)
+        end if
+        ! New values
+        rprimd(:,:) = 0
+        rprimd(1,1) = atoms%alat1
+        rprimd(2,2) = atoms%alat2
+        if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
+        rprimd(3,3) = atoms%alat3
+        call symmetry_set_lattice(atoms%symObj, rprimd, ierr)
+        allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
+        call memocc(i_stat,xRed,'xRed',subname)
+        xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
+        xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
+        xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
+        call symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
+        i_all=-product(shape(xRed))*kind(xRed)
+        deallocate(xRed,stat=i_stat)
+        call memocc(i_stat,i_all,'xRed',subname)
+        if (atoms%geocode == 'S') then
+           !!for the moment symmetries are not allowed in surfaces BC
+           write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
+           stop
+           call symmetry_set_periodicity(atoms%symObj, &
+                & (/ .true., .false., .true. /), ierr)
+        else if (atoms%geocode == 'F') then
+           call symmetry_set_periodicity(atoms%symObj, &
+                & (/ .false., .false., .false. /), ierr)
+        end if
+        !if (all(in%elecfield(:) /= 0)) then
+        !     ! I'm not sure what this subroutine does!
+        !   call symmetry_set_field(atoms%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
+        !elseif (in%elecfield(2) /= 0) then
+        !   call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
+        if (elecfield(2) /= 0) then
+           call symmetry_set_field(atoms%symObj, (/ 0._gp, elecfield(2), 0._gp /), ierr)
+        end if
+     else
+        if (atoms%symObj >= 0) then
+           call symmetry_free(atoms%symObj)
+        end if
+        call symmetry_new(atoms%symObj)
+        rprimd(1,1) = 0.5d0
+        rprimd(2,1) = 1d0
+        rprimd(3,1) = 1d0
+        rprimd(1,2) = 2d0
+        rprimd(2,2) = 0d0
+        rprimd(3,2) = 1d0
+        rprimd(1,3) = 3d0
+        rprimd(2,3) = 0d0
+        rprimd(3,3) = 1d0
+        call symmetry_set_lattice(atoms%symObj, rprimd, ierr)
+        call symmetry_set_structure(atoms%symObj, 3, (/ 1,2,3 /), rprimd / 4.d0, ierr)
+     end if
+  else
+     if (atoms%symObj >= 0) then
+        call symmetry_free(atoms%symObj)
+     end if
+     atoms%symObj = -1
+  end if
+END SUBROUTINE atoms_set_symmetries
 
+subroutine atoms_set_displacement(atoms, rxyz, randdis)
+  use module_types
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+  real(gp), intent(in) :: randdis
 
+  integer :: iat
+  real(gp) :: tt
+  
+  ! Shake atoms if required.
+  if (randdis > 0.d0) then
+     do iat=1,atoms%nat
+        if (atoms%ifrztyp(iat) == 0) then
+           call random_number(tt)
+           rxyz(1,iat)=rxyz(1,iat)+randdis*tt
+           call random_number(tt)
+           rxyz(2,iat)=rxyz(2,iat)+randdis*tt
+           call random_number(tt)
+           rxyz(3,iat)=rxyz(3,iat)+randdis*tt
+        end if
+     enddo
+  end if
+
+  !atoms inside the box.
+  do iat=1,atoms%nat
+     if (atoms%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'S') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     end if
+  end do
+END SUBROUTINE atoms_set_displacement
 
 !> Read atomic positions
 subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
@@ -752,6 +868,59 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
         
 END SUBROUTINE frozen_ftoi
 
+!> Check the position of atoms
+subroutine check_atoms_positions(iproc,atoms,rxyz)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  !local variables
+  logical :: dowrite
+  integer :: iat,nateq,jat,j
+
+  nateq=0
+  do iat=1,atoms%nat
+     do jat=iat+1,atoms%nat
+        if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
+             (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
+           nateq=nateq+1
+           write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
+                ' (',trim(atoms%atomnames(atoms%iatype(iat))),') and ',&
+                jat,' (',trim(atoms%atomnames(atoms%iatype(jat))),&
+                ') have the same positions'
+        end if
+     end do
+  end do
+  if (nateq /= 0) then
+     if (iproc == 0) then
+        write(*,'(1x,a)')'Control your posinp file, cannot proceed'
+        write(*,'(1x,a)',advance='no')&
+             'Writing tentative alternative positions in the file posinp_alt...'
+        open(unit=9,file='posinp_alt')
+        write(9,'(1x,a)')' ??? atomicd0'
+        write(9,*)
+        do iat=1,atoms%nat
+           dowrite=.true.
+           do jat=iat+1,atoms%nat
+              if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
+                   (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
+                 dowrite=.false.
+              end if
+           end do
+           if (dowrite) & 
+                write(9,'(a2,4x,3(1x,1pe21.14))')trim(atoms%atomnames(atoms%iatype(iat))),&
+                (rxyz(j,iat),j=1,3)
+        end do
+        close(9)
+        write(*,'(1x,a)')' done.'
+        write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
+     end if
+     stop 'check_atoms_positions'
+  end if
+END SUBROUTINE check_atoms_positions
+
 !>Write xyz atomic file.
 subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   use module_base
@@ -1048,16 +1217,20 @@ subroutine atoms_free(atoms)
 END SUBROUTINE atoms_free
 
 ! Set routines for bindings
-subroutine atoms_set_n_atoms(atoms, nat)
+subroutine atoms_set_n_atoms(atoms, rxyz, nat)
   use module_types
+  use m_profiling
   implicit none
   type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
   integer, intent(in) :: nat
 
-  integer :: i
+  integer :: i, i_stat
 
   call allocate_atoms_nat(atoms, nat, "atoms_set_n_atoms")
   atoms%iatype = (/ (i, i=1,nat) /)
+  allocate(rxyz(3, atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz',"atoms_set_n_atoms")
 END SUBROUTINE atoms_set_n_atoms
 subroutine atoms_set_n_types(atoms, ntypes)
   use module_types
@@ -1067,24 +1240,49 @@ subroutine atoms_set_n_types(atoms, ntypes)
 
   call allocate_atoms_ntypes(atoms, ntypes, "atoms_set_n_types")
 END SUBROUTINE atoms_set_n_types
+subroutine atoms_set_name(atoms, ityp, name)
+  use module_types
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+  integer, intent(in) :: ityp
+  character(len = 20), intent(in) :: name
+
+  atoms%atomnames(ityp) = name
+END SUBROUTINE atoms_set_name
+subroutine atoms_sync(atoms, alat1, alat2, alat3, geocode, format, units)
+  use module_types
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), intent(out) :: alat1, alat2, alat3
+  character(len = 1), intent(in) :: geocode
+  character(len = 5), intent(in) :: format
+  character(len = 20), intent(in) :: units
+
+  atoms%alat1 = alat1
+  atoms%alat2 = alat2
+  atoms%alat3 = alat3
+  atoms%geocode = geocode
+  atoms%format = format
+  atoms%units = units
+END SUBROUTINE atoms_sync
 
 ! Accessors for bindings.
-subroutine atoms_get_nat(atoms, nat)
+subroutine atoms_copy_nat(atoms, nat)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
   integer, intent(out) :: nat
 
   nat = atoms%nat
-END SUBROUTINE atoms_get_nat
-subroutine atoms_get_ntypes(atoms, ntypes)
+END SUBROUTINE atoms_copy_nat
+subroutine atoms_copy_ntypes(atoms, ntypes)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
   integer, intent(out) :: ntypes
 
   ntypes = atoms%ntypes
-END SUBROUTINE atoms_get_ntypes
+END SUBROUTINE atoms_copy_ntypes
 subroutine atoms_get_iatype(atoms, iatype)
   use module_types
   implicit none
@@ -1093,15 +1291,157 @@ subroutine atoms_get_iatype(atoms, iatype)
 
   iatype => atoms%iatype
 END SUBROUTINE atoms_get_iatype
-subroutine atoms_get_geocode(atoms, geocode)
+subroutine atoms_get_iasctype(atoms, iasctype)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: iasctype
+
+  iasctype => atoms%iasctype
+END SUBROUTINE atoms_get_iasctype
+subroutine atoms_get_natpol(atoms, natpol)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: natpol
+
+  natpol => atoms%natpol
+END SUBROUTINE atoms_get_natpol
+subroutine atoms_get_ifrztyp(atoms, ifrztyp)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: ifrztyp
+
+  ifrztyp => atoms%ifrztyp
+END SUBROUTINE atoms_get_ifrztyp
+subroutine atoms_get_nelpsp(atoms, nelpsp)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: nelpsp
+
+  nelpsp => atoms%nelpsp
+END SUBROUTINE atoms_get_nelpsp
+subroutine atoms_get_npspcode(atoms, npspcode)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: npspcode
+
+  npspcode => atoms%npspcode
+END SUBROUTINE atoms_get_npspcode
+subroutine atoms_get_nzatom(atoms, nzatom)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: nzatom
+
+  nzatom => atoms%nzatom
+END SUBROUTINE atoms_get_nzatom
+subroutine atoms_get_nlcc_ngv(atoms, nlcc_ngv)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: nlcc_ngv
+
+  nlcc_ngv => atoms%nlcc_ngv
+END SUBROUTINE atoms_get_nlcc_ngv
+subroutine atoms_get_nlcc_ngc(atoms, nlcc_ngc)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: nlcc_ngc
+
+  nlcc_ngc => atoms%nlcc_ngc
+END SUBROUTINE atoms_get_nlcc_ngc
+subroutine atoms_get_ixcpsp(atoms, ixcpsp)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(:), pointer :: ixcpsp
+
+  ixcpsp => atoms%ixcpsp
+END SUBROUTINE atoms_get_ixcpsp
+subroutine atoms_get_amu(atoms, amu)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:), pointer :: amu
+
+  amu => atoms%amu
+END SUBROUTINE atoms_get_amu
+subroutine atoms_get_aocc(atoms, aocc)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:,:), pointer :: aocc
+
+  aocc => atoms%aocc
+END SUBROUTINE atoms_get_aocc
+subroutine atoms_get_radii_cf(atoms, radii_cf)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:,:), pointer :: radii_cf
+
+  radii_cf => atoms%radii_cf
+END SUBROUTINE atoms_get_radii_cf
+subroutine atoms_get_psppar(atoms, psppar)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:,:,:), pointer :: psppar
+
+  psppar => atoms%psppar
+END SUBROUTINE atoms_get_psppar
+subroutine atoms_get_nlccpar(atoms, nlccpar)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:,:), pointer :: nlccpar
+
+  nlccpar => atoms%nlccpar
+END SUBROUTINE atoms_get_nlccpar
+subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(:,:), pointer :: ig_nlccpar
+
+  ig_nlccpar => atoms%ig_nlccpar
+END SUBROUTINE atoms_get_ig_nlccpar
+subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
   character(len = 1), intent(out) :: geocode
+  character(len = 5), intent(out) :: format
+  character(len = 20), intent(out) :: units
 
   geocode = atoms%geocode
-END SUBROUTINE atoms_get_geocode
-subroutine atoms_get_name(atoms, ityp, name, ln)
+  format = atoms%format
+  units = atoms%units
+END SUBROUTINE atoms_copy_geometry_data
+subroutine atoms_copy_psp_data(atoms, natsc, donlcc)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(out) :: natsc
+  logical, intent(out) :: donlcc
+
+  natsc = atoms%natsc
+  donlcc = atoms%donlcc
+END SUBROUTINE atoms_copy_psp_data
+subroutine atoms_copy_symobj(atoms, symObj)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(out) :: symObj
+
+  symObj = atoms%symObj
+END SUBROUTINE atoms_copy_symobj
+subroutine atoms_copy_name(atoms, ityp, name, ln)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -1111,8 +1451,8 @@ subroutine atoms_get_name(atoms, ityp, name, ln)
 
   name = atoms%atomnames(ityp)
   ln = len(trim(name))
-END SUBROUTINE atoms_get_name
-subroutine atoms_get_alat(atoms, alat1, alat2, alat3)
+END SUBROUTINE atoms_copy_name
+subroutine atoms_copy_alat(atoms, alat1, alat2, alat3)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -1121,4 +1461,40 @@ subroutine atoms_get_alat(atoms, alat1, alat2, alat3)
   alat1 = atoms%alat1
   alat2 = atoms%alat2
   alat3 = atoms%alat3
-END SUBROUTINE atoms_get_alat
+END SUBROUTINE atoms_copy_alat
+subroutine atoms_write(atoms, filename, filelen, rxyz, forces, energy, comment, ln)
+  use module_types
+  implicit none
+  integer, intent(in) :: ln, filelen
+  character(len=ln), intent(in) :: comment
+  character(len=filelen), intent(in) :: filename
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(:,:), pointer :: forces
+
+  integer :: iunit
+
+  if (trim(filename) == "stdout") then
+     iunit = 6
+  else
+     open(unit=9,file=trim(filename)//'.'//trim(atoms%format))
+     iunit = 9
+  end if
+
+  if (trim(atoms%format) == "xyz") then
+     call wtxyz(iunit,energy,rxyz,atoms,comment)
+     if (associated(forces)) call wtxyz_forces(iunit,forces,atoms)
+  else if (trim(atoms%format) == "ascii") then
+     call wtascii(iunit,energy,rxyz,atoms,comment)
+     if (associated(forces)) call wtascii_forces(iunit,forces,atoms)
+  else
+     write(*,*) "Error, unknown file format."
+     stop
+  end if
+
+  if (trim(filename) /= "stdout") then
+     close(unit=9)
+  end if
+END SUBROUTINE atoms_write
+

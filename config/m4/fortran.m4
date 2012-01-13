@@ -773,8 +773,9 @@ int main(int argc, const char **argv)
 
   if test x$ax_fc_run != x"0" ; then
     AC_DEFINE([HAVE_POINTER_SHIFT], [1], [Define this macro if the Fortran compiler has a shift in pointer structure definition.])
-    AC_DEFINE_UNQUOTED([POINTER_SHIFT_SIZE], [$ax_fc_run], [Size of the shift for the data in a pointer structure in Fortran.])
   fi
+  POINTER_SHIFT_SIZE=$ax_fc_run
+  AC_SUBST(POINTER_SHIFT_SIZE)
 
   AC_LANG_POP(C)
 

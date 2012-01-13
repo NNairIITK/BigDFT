@@ -55,6 +55,7 @@ FeHyb.psp: HGH/psppar.Fe
 GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
+ElectField.psp: HGH-K/psppar.H HGH-K/psppar.O
 TDDFT.psp: psppar.N
 Linear.psp Linear_withder.psp: HGH/psppar.C extra/psppar.H
 Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
@@ -66,7 +67,6 @@ Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
 SIC.post-in:
 	if [ ! -d data-PZ ] ; then mkdir data-PZ; fi
 	mv wavefunctions.gau data-PZ/
-
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
@@ -82,6 +82,7 @@ SIC.post-in:
 	  TDDFT.out*)       prec="2.e-9" ;; \
 	  SIC*.out*)        prec="1.e-9" ;; \
 	  Mn2.out*)         prec="1.5e-10" ;; \
+          ElecField.out*)   prec="1.e-9" ;; \
 	  Linear.out*)         prec="1.e-8" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \

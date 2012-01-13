@@ -44,7 +44,7 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)
-include_HEADERS = bigdft.h
+include_HEADERS = bigdft.h bigdft_cst.h
 
 EXTRA_DIST = configure.inc.in
 

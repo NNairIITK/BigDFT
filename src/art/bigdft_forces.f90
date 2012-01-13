@@ -155,7 +155,7 @@ module bigdft_forces
       ! Read inputs.
       call read_input_parameters(me_, in, at, rxyz)
 
-      call init_atomic_values(me_, at, in%ixc)
+      call init_atomic_values((me_ == 0), at, in%ixc)
 
       ! Transfer "at" data to ART variables.
       gnrm_l = in%gnrm_cv

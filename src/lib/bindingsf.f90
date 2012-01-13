@@ -24,12 +24,19 @@ subroutine glr_new(glr)
   type(locreg_descriptors), pointer :: glr
 
   allocate(glr)
+  nullify(glr%wfd%keyglob)
+  nullify(glr%wfd%keygloc)
+  nullify(glr%wfd%keyv)
+
+  nullify(glr%bounds%kb%ibyz_f)
+  nullify(glr%bounds%kb%ibyz_c)
 end subroutine glr_new
 subroutine glr_free(glr)
   use module_types
   implicit none
   type(locreg_descriptors), pointer :: glr
 
+  call deallocate_lr(glr, "glr_free")
   deallocate(glr)
 end subroutine glr_free
 subroutine glr_get_n(glr, n)
@@ -42,6 +49,23 @@ subroutine glr_get_n(glr, n)
   n(2) = glr%d%n2
   n(3) = glr%d%n3
 end subroutine glr_get_n
+subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
+      &   crmult,frmult,Glr)
+   use module_base
+   use module_types
+   use module_interfaces
+   implicit none
+   !Arguments
+   type(atoms_data), intent(in) :: atoms
+   integer, intent(in) :: iproc
+   real(gp), intent(in) :: hx,hy,hz,crmult,frmult
+   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+   type(locreg_descriptors), intent(inout) :: Glr
+
+   call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
+      &   crmult,frmult,Glr)
+end subroutine glr_set_wave_descriptors
 
 subroutine inputs_new(in)
   use module_types
@@ -56,6 +80,7 @@ subroutine inputs_free(in)
   implicit none
   type(input_variables), pointer :: in
 
+  call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
 subroutine inputs_set_radical(in, rad, ln)
@@ -67,20 +92,32 @@ subroutine inputs_set_radical(in, rad, ln)
 
   call standard_inputfile_names(in, rad)
 end subroutine inputs_set_radical
-subroutine inputs_parse_params(in, iproc)
+subroutine inputs_parse_params(in, iproc, dump)
   use module_types
   implicit none
   type(input_variables), intent(inout) :: in
   integer, intent(in) :: iproc
+  logical, intent(in) :: dump
 
   ! Parse all values independant from atoms.
-  call perf_input_variables(iproc,.false.,trim(in%file_perf),in)
-  call dft_input_variables_new(iproc,.false.,trim(in%file_dft),in)
-  call mix_input_variables_new(iproc,.false.,trim(in%file_mix),in)
-  call geopt_input_variables_new(iproc,.false.,trim(in%file_geopt),in)
-  call tddft_input_variables_new(iproc,.false.,trim(in%file_tddft),in)
-  call sic_input_variables_new(iproc,.false.,trim(in%file_sic),in)
+  call perf_input_variables(iproc,dump,trim(in%file_perf),in)
+  call dft_input_variables_new(iproc,dump,trim(in%file_dft),in)
+  call mix_input_variables_new(iproc,dump,trim(in%file_mix),in)
+  call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
+  call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
+  call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
 end subroutine inputs_parse_params
+subroutine inputs_parse_add(in, atoms, iproc, dump)
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(in) :: iproc
+  logical, intent(in) :: dump
+
+  ! Read k-points input variables (if given)
+  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,atoms)
+end subroutine inputs_parse_add
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
      & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym)
@@ -120,7 +157,52 @@ subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspi
   else
      sym = 0
   end if
-end subroutine inputs_get_dft
+END SUBROUTINE inputs_get_dft
+subroutine inputs_get_mix(in, iscf, itrpmax, norbsempty, occopt, alphamix, rpnrm_cv, &
+     & gnrm_startmix, Tel, alphadiis)
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  integer, intent(out) :: iscf, itrpmax, norbsempty, occopt
+  real(gp), intent(out) :: alphamix, rpnrm_cv, gnrm_startmix, Tel, alphadiis
+  
+  iscf = in%iscf
+  itrpmax = in%itrpmax
+  norbsempty = in%norbsempty
+  occopt = in%occopt
+
+  alphamix = in%alphamix
+  rpnrm_cv = in%rpnrm_cv
+  gnrm_startmix = in%gnrm_startmix
+  Tel = in%Tel
+  alphadiis = in%alphadiis
+END SUBROUTINE inputs_get_mix
+subroutine inputs_get_geopt(in, geopt_approach, ncount_cluster_x, frac_fluct, forcemax, &
+     & randdis, betax, history, ionmov, dtion, strtarget, qmass)
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  character(len = 10), intent(out) :: geopt_approach
+  integer, intent(out) :: ncount_cluster_x, history, ionmov
+  real(gp), intent(out) :: frac_fluct, forcemax, randdis, betax, dtion, strtarget(6)
+  real(gp), pointer :: qmass(:)
+  
+  geopt_approach = in%geopt_approach
+  ncount_cluster_x = in%ncount_cluster_x
+  frac_fluct = in%frac_fluct
+  forcemax = in%forcemax
+  randdis = in%randdis
+  betax = in%betax
+  history = in%history
+  ionmov = in%ionmov
+  dtion = in%dtion
+  strtarget(:) = in%strtarget(:)
+  if (associated(in%qmass)) then
+     qmass => in%qmass
+  else
+     nullify(qmass)
+  end if
+END SUBROUTINE inputs_get_geopt
 subroutine inputs_get_files(in, files)
   use module_types
   implicit none
@@ -128,4 +210,40 @@ subroutine inputs_get_files(in, files)
   integer, intent(out) :: files
 
   files = in%files
-end subroutine inputs_get_files
+END SUBROUTINE inputs_get_files
+
+subroutine orbs_new(orbs)
+  use module_types
+  implicit none
+  type(orbitals_data), pointer :: orbs
+
+  allocate(orbs)
+END SUBROUTINE orbs_new
+subroutine orbs_free(orbs)
+  use module_types
+  implicit none
+  type(orbitals_data), pointer :: orbs
+
+  call deallocate_orbs(orbs,"orbs_free")
+  deallocate(orbs)
+END SUBROUTINE orbs_free
+subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, npsidim, &
+     & nkpts, nkptsp, isorb, iskpts)
+  use module_types
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  integer, intent(out) :: norb, norbp, norbu, norbd, nspin, nspinor, npsidim, &
+     & nkpts, nkptsp, isorb, iskpts
+  
+  norb = orbs%norb
+  norbp = orbs%norbp
+  norbu = orbs%norbu
+  norbd = orbs%norbd
+  nspin = orbs%nspin
+  nspinor = orbs%nspinor
+  npsidim = max(orbs%npsidim_orbs,orbs%npsidim_comp)
+  nkpts = orbs%nkpts
+  nkptsp = orbs%nkptsp
+  isorb = orbs%isorb
+  iskpts = orbs%iskpts
+END SUBROUTINE orbs_get_dimensions
