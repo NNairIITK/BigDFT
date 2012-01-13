@@ -1608,7 +1608,7 @@ module module_interfaces
         type(atoms_data), intent(in) :: atoms
         real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
         real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
-        type(rhopot_distribution), intent(out) :: rhopotd
+        type(denspot_distribution), intent(out) :: rhopotd
         type(rho_descriptors), intent(out) :: rhodsc
         real(dp), dimension(:), pointer :: pot_ion, rhopot
         real(kind=8), dimension(:,:,:,:), pointer :: potxc
