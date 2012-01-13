@@ -53,12 +53,12 @@ FeHyb.psp: HGH/psppar.Fe
 GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
+ElectField.psp: HGH-K/psppar.H HGH-K/psppar.O
 TDDFT.psp: psppar.N
 SIC.psp: HGH/psppar.H \
 	HGH/psppar.C \
 	HGH/psppar.O \
 	HGH/psppar.N
-
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
@@ -74,6 +74,7 @@ SIC.psp: HGH/psppar.H \
 	  TDDFT.out*)       prec="2.e-9" ;; \
 	  SIC*.out*)        prec="1.e-9" ;; \
 	  Mn2.out*)         prec="1.5e-10" ;; \
+          ElecField.out*)   prec="1.e-9" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

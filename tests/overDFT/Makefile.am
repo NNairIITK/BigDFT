@@ -2,7 +2,6 @@
 TESTDIRS = \
 	   GEOPT-BFGS \
 	   GEOPT-LBFGS \
-	   ElectField \
 	   NH3 \
 	   H2O-slab \
            H2-freq \
@@ -33,7 +32,6 @@ XabsLanc.psp: Xabs/psppar.Fe
 Xabsb2B.psp: Xabs/psppar.Fe
 NH3.psp: HGH-K/psppar.N HGH-K/psppar.H
 H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
-ElecField.psp: HGH-K/psppar.H HGH-K/psppar.O
 
 # Additional dependencies
 H2-freq2.freq.out: H2-freq.freq.out frequencies.res
@@ -76,7 +74,6 @@ InputGenPot.xabs.post-out:
         case $* in \
           GEOPT-BFGS.out*)  prec="1.e-9" ;; \
           GEOPT-LBFGS.out*) prec="1.e-9" ;; \
-          ElecField.out*)   prec="1.e-9" ;; \
           H2-freq*)         prec="1.e-8" ;; \
 	  NEB*)             prec="5e-5" ;; \
 	  SPLSAD*)          prec="2e-8" ;; \
