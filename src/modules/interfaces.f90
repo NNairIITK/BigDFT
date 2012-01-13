@@ -5643,4 +5643,23 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
    end interface
 
+
+   subroutine AtomicOrbitals_forLinear(iproc,at,rxyz,mapping,norbe,orbse,norbsc,&
+         &   nspin,eks,scorb,G,gaucoeff,iorbtolr)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: norbe,iproc
+      integer, intent(in) :: norbsc,nspin
+      type(atoms_data), intent(in) :: at
+      logical, dimension(4,2,at%natsc), intent(in) :: scorb
+      real(gp), dimension(3,at%nat), intent(in), target :: rxyz
+      type(orbitals_data), intent(inout) :: orbse
+      integer,dimension(orbse%norb),intent(in):: mapping
+      type(gaussian_basis), intent(out) :: G
+      real(gp), intent(out) :: eks
+      integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
+      real(wp), dimension(norbe,orbse%nspinor,orbse%norbp), intent(out) :: gaucoeff !norbe=G%ncoeff
+   end subroutine AtomicOrbitals_forLinear
+
 END MODULE module_interfaces
