@@ -366,7 +366,7 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,& !n(c) elecfield (arg:9)
   real(dp), dimension(*), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
-  character(len=*), parameter :: subname='createIonicPotential'
+  character(len=*), parameter :: subname='createPotential'
   logical :: perx,pery,perz,gox,goy,goz
   logical :: htoobig=.false.
   logical :: check_potion=.false.

@@ -214,7 +214,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    character(len=5) :: gridformat, wfformat, final_out
    character(len=500) :: errmess
    logical :: endloop,endlooprp,onefile,refill_proj
-   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
+   logical :: DoDavidson,DoLastRunThings=.false.,lcs,scpot
    integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden,input_wf_format,ipot_from_disk=0
    integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
    integer :: nelec,ndegree_ip,j,i,npoints,irhotot_add,irho_add
@@ -241,7 +241,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    real(gp), dimension(:,:),allocatable :: fdisp
    ! Charge density/potential,ionic potential, pkernel
    type(ab6_mixing_object) :: mix
-   real(dp), dimension(:), allocatable :: counter_ions
    real(dp), dimension(:), pointer :: pot_ion,rhopot
    real(kind=8), dimension(:,:,:,:), allocatable :: pot,dvxcdrho
    real(kind=8), dimension(:,:,:,:), pointer :: potxc
@@ -458,35 +457,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
    !this can be inserted inside the IonicEnergyandForces routine
    call vdwcorrection_calculate_forces(fdisp,rxyz,atoms,in) 
 
-
-
-
-
-
-
-   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-        &   in%elecfield,n1,n2,n3,rhopotd%n3pi,rhopotd%i3s+rhopotd%i3xcsh,n1i,n2i,n3i,&
-        &   pkernel,pot_ion,psoffset,0,.false.)
-
-   !inquire for the counter_ion potential calculation (for the moment only xyz format)
-   inquire(file='posinp_ci.xyz',exist=counterions)
-   if (counterions) then
-      if (rhopotd%n3pi > 0) then
-         allocate(counter_ions(n1i*n2i*rhopotd%n3pi+ndebug),stat=i_stat)
-         call memocc(i_stat,counter_ions,'counter_ions',subname)
-      else
-         allocate(counter_ions(1+ndebug),stat=i_stat)
-         call memocc(i_stat,counter_ions,'counter_ions',subname)
-      end if
-
-      call CounterIonPotential(atoms%geocode,iproc,nproc,in,shift,&
-           &   hxh,hyh,hzh,Glr%d,rhopotd%n3pi,rhopotd%i3s,pkernel,counter_ions)
-
-      !sum that to the ionic potential
-      call axpy(Glr%d%n1i*Glr%d%n2i*rhopotd%n3p,1.0_dp,counter_ions(1),1,&
-           &   pot_ion(1),1)
-
-   end if
+   !calculate effective ionic potential, including counter ions if any.
+   call createEffectiveIonicPotential(iproc,nproc,in,atoms,rxyz,shift,Glr,hxh,hyh,hzh,&
+        &   rhopotd,pkernel,pot_ion,in%elecfield,0,psoffset,.false.)
 
    !calculate the irreductible zone, if necessary.
    if (atoms%symObj >= 0) then
@@ -1270,11 +1243,6 @@ end if
 i_all=-product(shape(pot_ion))*kind(pot_ion)
 deallocate(pot_ion,stat=i_stat)
 call memocc(i_stat,i_all,'pot_ion',subname)
-if (counterions) then
-   i_all=-product(shape(counter_ions))*kind(counter_ions)
-   deallocate(counter_ions,stat=i_stat)
-   call memocc(i_stat,i_all,'counter_ions',subname)
-end if
 
 if (inputpsi /= -1000) then
    !------------------------------------------------------------------------
@@ -1705,11 +1673,6 @@ subroutine deallocate_before_exiting
       i_all=-product(shape(pot_ion))*kind(pot_ion)
       deallocate(pot_ion,stat=i_stat)
       call memocc(i_stat,i_all,'pot_ion',subname)
-      if (counterions) then
-         i_all=-product(shape(counter_ions))*kind(counter_ions)
-         deallocate(counter_ions,stat=i_stat)
-         call memocc(i_stat,i_all,'counter_ions',subname)
-      end if
 
       if (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp) then
          i_all=-product(shape(pkernelseq))*kind(pkernelseq)

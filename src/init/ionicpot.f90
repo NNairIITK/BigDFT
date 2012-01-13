@@ -457,6 +457,60 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   end if
 END SUBROUTINE IonicEnergyandForces
 
+subroutine createEffectiveIonicPotential(iproc, nproc, in, atoms, rxyz, shift, &
+     & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, &
+     & elecfield, nvacancy, psoffset, correct_offset)
+  use module_base
+  use module_types
+
+  implicit none
+
+  logical,intent(in) :: correct_offset
+  integer, intent(in) :: iproc,nproc,nvacancy
+  real(gp), intent(in) :: hxh,hyh,hzh,psoffset
+  type(atoms_data), intent(in) :: atoms
+  type(locreg_descriptors), intent(in) :: Glr
+  type(input_variables), intent(in) :: in
+  type(rhopot_distribution), intent(in) :: rhopotd
+  real(gp), intent(in) :: elecfield(3)
+  real(gp), dimension(3), intent(in) :: shift
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(dp), dimension(*), intent(in) :: pkernel
+  real(wp), dimension(*), intent(inout) :: pot_ion
+
+  character(len = *), parameter :: subname = "createEffectiveIonicPotential"
+  logical :: counterions
+  integer :: i_stat, i_all
+  real(dp), dimension(:), allocatable :: counter_ions
+
+  ! Compute the main ionic potential.
+  call createIonicPotential(atoms%geocode, iproc, nproc, atoms, rxyz, hxh, hyh, hzh, &
+       & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, rhopotd%n3pi, rhopotd%i3s + rhopotd%i3xcsh, &
+       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset, nvacancy, correct_offset)
+
+  !inquire for the counter_ion potential calculation (for the moment only xyz format)
+  inquire(file='posinp_ci.xyz',exist=counterions)
+  if (counterions) then
+     if (rhopotd%n3pi > 0) then
+        allocate(counter_ions(Glr%d%n1i*Glr%d%n2i*rhopotd%n3pi+ndebug),stat=i_stat)
+        call memocc(i_stat,counter_ions,'counter_ions',subname)
+     else
+        allocate(counter_ions(1+ndebug),stat=i_stat)
+        call memocc(i_stat,counter_ions,'counter_ions',subname)
+     end if
+
+     call CounterIonPotential(atoms%geocode,iproc,nproc,in,shift,&
+          &   hxh,hyh,hzh,Glr%d,rhopotd%n3pi,rhopotd%i3s + rhopotd%i3xcsh,pkernel,counter_ions)
+
+     !sum that to the ionic potential
+     call axpy(Glr%d%n1i*Glr%d%n2i*rhopotd%n3pi,1.0_dp,counter_ions(1),1,&
+          &   pot_ion(1),1)
+
+     i_all=-product(shape(counter_ions))*kind(counter_ions)
+     deallocate(counter_ions,stat=i_stat)
+     call memocc(i_stat,i_all,'counter_ions',subname)
+  end if
+END SUBROUTINE createEffectiveIonicPotential
 
 subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
