@@ -866,7 +866,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
           comment='Equivalent legth of K-space resolution (Bohr)')
-     call kpoints_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_auto_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -889,7 +889,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
         call input_var(shiftk(2,i),'0.')
         call input_var(shiftk(3,i),'0.',comment=' ')
      end do
-     call kpoints_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_mp_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1079,7 +1079,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   if (trim(type) == "auto" .or. trim(type) == "Auto" .or. trim(type) == "AUTO") then
      read(1,*,iostat=ierror) kptrlen
      call check()
-     call kpoints_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_auto_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1097,7 +1097,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         read(1,*,iostat=ierror) shiftk(:, i)
         call check()
      end do
-     call kpoints_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_mp_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1924,7 +1924,9 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    call check_atoms_positions(iproc,atoms,rxyz)
 
    ! We delay the calculation of the symmetries.
-   atoms%symObj = -1
+   atoms%sym%symObj = -1
+   nullify(atoms%sym%irrzon)
+   nullify(atoms%sym%phnons)
 
    ! rm temporary file.
    if (.not.archive) then
@@ -2066,8 +2068,8 @@ subroutine print_general_parameters(nproc,input,atoms)
 
   ! The additional data column
   if (atoms%geocode /= 'F' .and. .not. input%disableSym) then
-     call symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
-     call symmetry_get_group(atoms%symObj, spaceGroup, &
+     call symmetry_get_matrices(atoms%sym%symObj, nSym, sym, transNon, symAfm, ierr)
+     call symmetry_get_group(atoms%sym%symObj, spaceGroup, &
           & spaceGroupId, pointGroupMagn, genAfm, ierr)
      if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
      write(add(1), '(a,i0)')       "N. sym.   = ", nSym
@@ -2738,6 +2740,8 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   call check_atoms_positions(iproc,atoms,rxyz)
 
   ! We delay the calculation of the symmetries.
-  atoms%symObj = -1
+  atoms%sym%symObj = -1
+  nullify(atoms%sym%irrzon)
+  nullify(atoms%sym%phnons)
 
 END SUBROUTINE initialize_atomic_file

@@ -360,7 +360,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      messages(4)='PSP Long Range'
      !here we should add the pretty printings
      do i=1,4
-        if (atoms%symObj >= 0) call symm_stress(iproc,strtens(1,i),atoms)
+        if (atoms%sym%symObj >= 0) call symm_stress(iproc,strtens(1,i),atoms)
         if (iproc==0 .and. verbose>2)&
              call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
         do j=1,6
@@ -426,7 +426,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   ! Apply symmetries when needed
-  if (atoms%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
+  if (atoms%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
 
 !> calculate the contribution to the forces given by the core density charge
@@ -3769,7 +3769,7 @@ subroutine symm_stress(iproc,tens,at)
   integer, allocatable :: symrec(:,:,:)
   real(gp),dimension(3,3) :: symtens
 
-  call symmetry_get_matrices_p(at%symObj, nsym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(at%sym%symObj, nsym, sym, transNon, symAfm, errno)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
@@ -3836,7 +3836,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call symmetry_get_matrices_p(at%symObj, nsym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(at%sym%symObj, nsym, sym, transNon, symAfm, errno)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
@@ -3859,7 +3859,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
 
   ! actually conduct symmetrization
   do ia = 1, at%nat
-     call symmetry_get_equivalent_atom(at%symObj, indsym, ia, errno)
+     call symmetry_get_equivalent_atom(at%sym%symObj, indsym, ia, errno)
      if (errno /= AB6_NO_ERROR) stop
      do mu = 1, 3
         summ = real(0, gp)

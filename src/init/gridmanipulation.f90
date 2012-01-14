@@ -253,7 +253,6 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    else
       if (iproc == 0) write(*,*)'wavelet localization is OFF'
    endif
-
 END SUBROUTINE system_size
 
 

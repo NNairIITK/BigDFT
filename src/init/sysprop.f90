@@ -788,12 +788,12 @@ subroutine read_atomic_variables(fileocc,iproc,in,atoms,radii_cf)
   end if
 
   ! We modify the symmetry object with respect to the spin.
-  if (atoms%symObj >= 0) then
+  if (atoms%sym%symObj >= 0) then
      if (in%nspin == 2) then
-        call symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
+        call symmetry_set_collinear_spin(atoms%sym%symObj, atoms%nat, &
              & atoms%natpol, ierror)
 !!$     else if (in%nspin == 4) then
-!!$        call symmetry_set_spin(atoms%symObj, atoms%nat, &
+!!$        call symmetry_set_spin(atoms%sym%symObj, atoms%nat, &
 !!$             & atoms%natpol, ierror)
      end if
   end if

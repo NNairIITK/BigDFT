@@ -142,7 +142,6 @@ void FC_FUNC_(atoms_get_nlccpar, ATOMS_GET_NLCCPAR)(void *atoms, f90_pointer_dou
 void FC_FUNC_(atoms_get_ig_nlccpar, ATOMS_GET_IG_NLCCPAR)(void *atoms, f90_pointer_double *ig_nlccpar);
 void FC_FUNC_(atoms_copy_nat, ATOMS_COPY_NAT)(void *atoms, int *nat);
 void FC_FUNC_(atoms_copy_ntypes, ATOMS_COPY_NTYPES)(void *atoms, int *ntypes);
-void FC_FUNC_(atoms_copy_symobj, ATOMS_COPY_SYMOBJ)(void *atoms, int *symobj);
 void FC_FUNC_(atoms_copy_geometry_data, ATOMS_COPY_GEOMETRY_DATA)
      (void *atoms, gchar *geocode, gchar *format, gchar *units);
 void FC_FUNC_(atoms_copy_alat, ATOMS_COPY_ALAT)(void *atoms, double *alat1,
@@ -314,7 +313,6 @@ void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active, double el
   disable = (!active);
   FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(atoms->data->atoms, atoms->rxyz.data,
                                                        &disable, elecfield);
-  FC_FUNC_(atoms_copy_symobj, ATOMS_COPY_SYMOBJ)(atoms->data->atoms, &atoms->symObj);
 }
 
 void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)

@@ -454,21 +454,20 @@ module module_interfaces
       END SUBROUTINE first_orthon
 
       subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho, &
-            &   nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
+            &   nscatterarr,nspin,GPU,symObj,rhodsc)
          !n(c) use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc,nproc,nspin,symObj
+         integer, intent(in) :: iproc,nproc,nspin
          real(gp), intent(in) :: hxh,hyh,hzh
          type(rho_descriptors),intent(in) :: rhodsc
          type(orbitals_data), intent(in) :: orbs
          type(locreg_descriptors), intent(in) :: lr 
+         type(symmetry_data), intent(in) :: symObj
          integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
          real(dp), dimension(max(lr%d%n1i*lr%d%n2i*nscatterarr(iproc,1),1),nspin), intent(out), target :: rho
          type(GPU_pointers), intent(inout) :: GPU
-         integer, dimension(*), intent(in) :: irrzon
-         real(dp), dimension(*), intent(in) :: phnons
       END SUBROUTINE sumrho
 
 
