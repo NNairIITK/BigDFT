@@ -516,10 +516,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    n3=Glr%d%n3
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
-   call timing(iproc,'CrtDescriptors','ON')
+   !call timing(iproc,'CrtDescriptors','ON')
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
       &   atoms,rxyz,radii_cf,crmult,frmult,Glr)
-   call timing(iproc,'CrtDescriptors','OF')
+   !call timing(iproc,'CrtDescriptors','OF')
    ! Calculate all projectors, or allocate array for on-the-fly calculation
 
    !de-allocate orbs and recreate it with one orbital only
@@ -531,10 +531,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,orbs)
    call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
-   call timing(iproc,'CrtProjectors ','ON')
+   !call timing(iproc,'CrtProjectors ','ON')
    call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
       &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
-   call timing(iproc,'CrtProjectors ','OF')
+   !call timing(iproc,'CrtProjectors ','OF')
 
    if(sum(atoms%paw_NofL).gt.0) then
       ! Calculate all paw_projectors, or allocate array for on-the-fly calculation
