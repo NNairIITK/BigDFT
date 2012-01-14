@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                (Ver 1.6-dev.12)
+                           ggggg       i         BBBB                (Ver 1.6-dev.20)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -33,13 +33,14 @@
  |accel NO                   Acceleration (NO, CUDAGPU, OCLGPU)
  |blas F                     CUBLAS acceleration
  |projrad  1.50E+01          Radius of the projector as a function of the maxrad
- |exctxpar BC                Exact exchange parallelisation scheme
+ |exctxpar OP2P              Exact exchange parallelisation scheme
  |ig_diag T                  Input guess: (T:Direct, F:Iterative) diag. of Ham.
  |ig_norbp 5                 Input guess: Orbitals per process for iterative diag.
  |ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
  |ig_tol  1.00E-04           Input guess: Tolerance criterion
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
+ |linear OFF                 Linear Input Guess approach
  |verbosity 2                verbosity of the output 0=low, 2=high
  |psp_onfly T                Calculate pseudopotential projectors on the fly
  |... (file:toy.dft.. not present)........................DFT Calculation Parameters 
@@ -52,14 +53,10 @@
  |50 1           itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs     
  |6 6            ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history 
  |0              dispersion correction potential (values 1,2,3), 0=none              
- |0 0 0          InputPsiId, output_wf, output_grid                                  
+ |0 0 0          InputPsiId, output_wf, output_denspot                               
  |0.0 30         rbuf, ncongt: length of the tail (AU),# tail CG iterations          
  |0 0 0          Davidson subspace dim., # of opt. orbs, # of plotted orbs           
  |F              disable the symmetry detection                                      
- |... (file:toy.kpt.. not present)................Brillouin Zone Sampling Parameters 
- |manual         K-point sampling method                                             
- |1              Number of K-points                                                  
- |0. 0. 0. 1.    K-pt coords, K-pt weigth                                            
  |... (file:toy.mix.. not present).................................Mixing Parameters 
  |0              Mixing parameters                                                   
  |1              Maximum number of diagonalisation iterations                        
@@ -78,15 +75,19 @@
  |NONE           SIC method: NONE, PZ, NK                                            
  |0.0            SIC downscaling parameter                                           
  |0.0            Reference occupation fref (NK case only)                            
+ |... (file:toy.kpt.. not present)................Brillouin Zone Sampling Parameters 
+ |manual         K-point sampling method                                             
+ |1              Number of K-points                                                  
+ |0. 0. 0. 1.    K-pt coords, K-pt weigth                                            
  |----------------------------------------------------------------------------------
  |  Data Writing directory:    not needed
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
-      N          5      10            1.37026  0.25661  0.50650         X              
+      N          5      10            1.37026  0.25660  0.50650         X              
  ------------------------------------ Pseudopotential coefficients (Upper Triangular)
  Atom Name    rloc      C1        C2        C3        C4  
         N   0.28918 -12.23482   1.76641
      l=0      rl        h1j       h2j       h3j 
-            0.25661  13.55224
+            0.25660  13.55224
  Total Number of Electrons       10
  Total Number of Orbitals         5
  occup(1:5)= 2.0000
@@ -100,34 +101,34 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        876 points=     18172
    Fine resolution grid: Number of segments=        110 points=       702
- Wavefunctions memory occupation for root processor (Bytes): 923440
+ Wavefunctions memory occupation for root MPI process:     0 MB   901 KB   816 B
  wavefunctions need NO reformatting
  wavefunctions need NO reformatting
  wavefunctions need NO reformatting
  wavefunctions need NO reformatting
  wavefunctions need NO reformatting
-- READING WAVES TIME   0  2.800E-01  3.110E-01
+- READING WAVES TIME   0  2.900E-01  2.090E-01
  Proc           0  allocates psi to      115430
  Proc           0  treats orbital           1
  Proc           0  treats orbital           2
  Proc           0  treats orbital           3
  Proc           0  treats orbital           4
  Proc           0  treats orbital           5
- Proc           0  orbital           1  is of norm    1.0000000000005791     
- Proc           0  orbital           2  is of norm   0.99999999999995737     
- Proc           0  orbital           3  is of norm   0.99999999999987599     
- Proc           0  orbital           4  is of norm    1.0000000000000853     
- Proc           0  orbital           5  is of norm   0.99999999999997724     
+ Proc           0  orbital           1  is of norm    1.0000000000005715     
+ Proc           0  orbital           2  is of norm   0.99999999999998535     
+ Proc           0  orbital           3  is of norm   0.99999999999981104     
+ Proc           0  orbital           4  is of norm    1.0000000000000231     
+ Proc           0  orbital           5  is of norm   0.99999999999997380     
  Proc           0  treats       115430 components of all orbitals.
  The overlap matrix is:
-(     1.0000000       -0.67652679E-13    0.24619262E-13   -0.26384972E-13   -0.24055544E-12)
-(   -0.67652679E-13     1.0000000       -0.28746505E-13    0.87270048E-14    0.23859223E-13)
-(    0.24619262E-13   -0.28746505E-13     1.0000000        0.26092125E-13    0.34170963E-13)
-(   -0.26384972E-13    0.87270048E-14    0.26092125E-13     1.0000000        0.19218531E-13)
-(   -0.24055544E-12    0.23859223E-13    0.34170963E-13    0.19218531E-13     1.0000000    )
- System has   9.9999988090008358      electrons.
+(     1.0000000       -0.69984383E-13   -0.43295229E-13   -0.23414593E-13   -0.24137636E-12)
+(   -0.69984383E-13     1.0000000        0.21977212E-13    0.28605861E-13    0.94785291E-14)
+(   -0.43295229E-13    0.21977212E-13     1.0000000       -0.53768513E-13    0.54392255E-13)
+(   -0.23414593E-13    0.28605861E-13   -0.53768513E-13     1.0000000       -0.10670935E-13)
+(   -0.24137636E-12    0.94785291E-14    0.54392255E-13   -0.10670935E-13     1.0000000    )
+ System has   9.9999988090006617      electrons.
  Calculation of charge density... done. Total electronic charge=       9.999998809001
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -10.000000000000   0.000E+00
  PSolver, free  BC, dimensions:    91   91  101   proc    1 ... done.
- System pseudo energy is -0.40420050428781351      Ht.
+ System pseudo energy is -0.40420051788889549      Ht.

@@ -375,21 +375,22 @@ module module_interfaces
        END SUBROUTINE applyPAWprojectors
 
        subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
-            rxyz,eion,fion,ewaldstr,psoffset,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+            & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,psoffset,n1,n2,n3,&
+            & n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
          use module_base
          use module_types
          implicit none
          type(atoms_data), intent(in) :: at
-         integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi
+         integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,dispersion
          real(gp), intent(in) :: hxh,hyh,hzh
          real(gp), dimension(3), intent(in) :: elecfield
          real(gp), dimension(3,at%nat), intent(in) :: rxyz
          real(dp), dimension(*), intent(in) :: pkernel
-         real(gp), intent(out) :: eion,psoffset
+         real(gp), intent(out) :: eion,edisp,psoffset
          real(dp), dimension(6),intent(out) :: ewaldstr
-         real(gp), dimension(3,at%nat), intent(out) :: fion
+         real(gp), dimension(:,:), pointer :: fion,fdisp
          real(dp), dimension(*), intent(out) :: pot_ion
-       END subroutine IonicEnergyandForces
+       END SUBROUTINE IonicEnergyandForces
 
        subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
             hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
@@ -1711,7 +1712,24 @@ module module_interfaces
         real(wp), dimension(:,:,:,:), pointer :: psiscf
       END SUBROUTINE free_wave_to_isf
 
-
+      subroutine allocateRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, in, atoms, rxyz, radii_cf, &
+           & rhopotd, rhodsc, rhopot, pot_ion, potxc, rhocore)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: iproc, nproc
+        type(locreg_descriptors), intent(in) :: Glr
+        real(gp), intent(in) :: hxh, hyh, hzh
+        type(input_variables), intent(in) :: in
+        type(atoms_data), intent(in) :: atoms
+        real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
+        real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+        type(denspot_distribution), intent(out) :: rhopotd
+        type(rho_descriptors), intent(out) :: rhodsc
+        real(dp), dimension(:), pointer :: pot_ion, rhopot
+        real(kind=8), dimension(:,:,:,:), pointer :: potxc
+        real(kind=8), dimension(:), pointer :: rhocore
+      END SUBROUTINE allocateRhoPot
       !subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
       !
       !

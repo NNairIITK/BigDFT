@@ -10,20 +10,22 @@
 
 !>    Calculte the ionic contribution to the energy and the forces
 subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
-     rxyz,eion,fion,ewaldstr,psoffset,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+     & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,psoffset,n1,n2,n3,&
+     & n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
   use module_base
   use module_types
   use Poisson_Solver
+  use vdwcorrection
   implicit none
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,dispersion
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
-  real(gp), intent(out) :: eion,psoffset
+  real(gp), intent(out) :: eion,edisp,psoffset
   real(dp), dimension(6),intent(out) :: ewaldstr
-  real(gp), dimension(3,at%nat), intent(out) :: fion
+  real(gp), dimension(:,:), pointer :: fion,fdisp
   real(dp), dimension(*), intent(out) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='IonicEnergyandForces'
@@ -33,12 +35,17 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
-  real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod,evacancy
+  real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod
   real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart
   !real(gp) :: Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
   real(gp), dimension(:,:), allocatable :: fewald,xred
+
+  allocate(fion(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,fion,'fion',subname)
+  allocate(fdisp(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,fdisp,'fdisp',subname)
 
   pi=4.d0*datan(1.d0)
   psoffset=0.0_gp
@@ -427,8 +434,64 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
            write(*,'(1x,a,1pe22.14)') 'ion-ion and ion-electric field interaction energy',eion
      endif
   end if
+
+  ! Add empiric correction for Van der Waals forces and energy.
+  call vdwcorrection_calculate_energy(edisp,rxyz,at,dispersion,iproc)
+  call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion) 
 END SUBROUTINE IonicEnergyandForces
 
+subroutine createEffectiveIonicPotential(iproc, nproc, in, atoms, rxyz, shift, &
+     & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
+  use module_base
+  use module_types
+
+  implicit none
+
+  integer, intent(in) :: iproc,nproc
+  real(gp), intent(in) :: hxh,hyh,hzh,psoffset
+  type(atoms_data), intent(in) :: atoms
+  type(locreg_descriptors), intent(in) :: Glr
+  type(input_variables), intent(in) :: in
+  type(denspot_distribution), intent(in) :: rhopotd
+  real(gp), intent(in) :: elecfield(3)
+  real(gp), dimension(3), intent(in) :: shift
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(dp), dimension(*), intent(in) :: pkernel
+  real(wp), dimension(*), intent(inout) :: pot_ion
+
+  character(len = *), parameter :: subname = "createEffectiveIonicPotential"
+  logical :: counterions
+  integer :: i_stat, i_all
+  real(dp), dimension(:), allocatable :: counter_ions
+
+  ! Compute the main ionic potential.
+  call createIonicPotential(atoms%geocode, iproc, nproc, atoms, rxyz, hxh, hyh, hzh, &
+       & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, rhopotd%n3pi, rhopotd%i3s + rhopotd%i3xcsh, &
+       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset)
+
+  !inquire for the counter_ion potential calculation (for the moment only xyz format)
+  inquire(file='posinp_ci.xyz',exist=counterions)
+  if (counterions) then
+     if (rhopotd%n3pi > 0) then
+        allocate(counter_ions(Glr%d%n1i*Glr%d%n2i*rhopotd%n3pi+ndebug),stat=i_stat)
+        call memocc(i_stat,counter_ions,'counter_ions',subname)
+     else
+        allocate(counter_ions(1+ndebug),stat=i_stat)
+        call memocc(i_stat,counter_ions,'counter_ions',subname)
+     end if
+
+     call CounterIonPotential(atoms%geocode,iproc,nproc,in,shift,&
+          &   hxh,hyh,hzh,Glr%d,rhopotd%n3pi,rhopotd%i3s + rhopotd%i3xcsh,pkernel,counter_ions)
+
+     !sum that to the ionic potential
+     call axpy(Glr%d%n1i*Glr%d%n2i*rhopotd%n3pi,1.0_dp,counter_ions(1),1,&
+          &   pot_ion(1),1)
+
+     i_all=-product(shape(counter_ions))*kind(counter_ions)
+     deallocate(counter_ions,stat=i_stat)
+     call memocc(i_stat,i_all,'counter_ions',subname)
+  end if
+END SUBROUTINE createEffectiveIonicPotential
 subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base
@@ -450,13 +513,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp !n(c) nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
-  real(kind=8) :: tt_tot,rholeaked_tot,potxyz,offset
+  real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(wp) :: maxdiff
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
-  integer, dimension(:,:), allocatable :: ngatherarr
   real(dp), dimension(:), allocatable :: potion_corr
-  real(dp), dimension(:), pointer :: pkernel_ref
 
   call timing(iproc,'CrtLocPot     ','ON')
 

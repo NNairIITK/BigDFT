@@ -4,7 +4,32 @@ subroutine memocc_report()
   call mreport()
 end subroutine memocc_report
 
-subroutine deallocate_double(array)
+subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+  use Poisson_Solver, only: ck => createKernel
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
+  real(kind=8), intent(in) :: hx,hy,hz
+  real(kind=8), pointer :: kernel(:)
+  logical, intent(in) :: wrtmsg
+
+  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+end subroutine createKernel
+
+subroutine deallocate_double_1D(array)
+  use module_base
+  implicit none
+
+  double precision, dimension(:), pointer :: array
+  integer :: i_all, i_stat
+
+  if (associated(array)) then
+     i_all=-product(shape(array))*kind(array)
+     deallocate(array,stat=i_stat)
+     call memocc(i_stat,i_all,'array',"deallocate_double")
+  end if
+end subroutine deallocate_double_1D
+subroutine deallocate_double_2D(array)
   use module_base
   implicit none
 
@@ -16,7 +41,7 @@ subroutine deallocate_double(array)
      deallocate(array,stat=i_stat)
      call memocc(i_stat,i_all,'array',"deallocate_double")
   end if
-end subroutine deallocate_double
+end subroutine deallocate_double_2D
 
 subroutine glr_new(glr)
   use module_types
@@ -39,16 +64,21 @@ subroutine glr_free(glr)
   call deallocate_lr(glr, "glr_free")
   deallocate(glr)
 end subroutine glr_free
-subroutine glr_get_n(glr, n)
+subroutine glr_get_dimensions(glr, geocode, n, ni)
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: glr
-  integer, dimension(3), intent(out) :: n
+  character(len = 1), intent(out) :: geocode
+  integer, dimension(3), intent(out) :: n, ni
 
+  geocode = glr%geocode
   n(1) = glr%d%n1
   n(2) = glr%d%n2
   n(3) = glr%d%n3
-end subroutine glr_get_n
+  ni(1) = glr%d%n1i
+  ni(2) = glr%d%n2i
+  ni(3) = glr%d%n3i
+end subroutine glr_get_dimensions
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
    use module_base
@@ -247,3 +277,34 @@ subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, 
   isorb = orbs%isorb
   iskpts = orbs%iskpts
 END SUBROUTINE orbs_get_dimensions
+
+subroutine proj_new(nlpspd)
+  use module_types
+  implicit none
+  type(nonlocal_psp_descriptors), pointer :: nlpspd
+
+  allocate(nlpspd)
+END SUBROUTINE proj_new
+subroutine proj_free(nlpspd, proj)
+  use module_types
+  use m_profiling
+  implicit none
+  type(nonlocal_psp_descriptors), pointer :: nlpspd
+  real(kind=8), dimension(:), pointer :: proj
+
+  integer :: i_stat, i_all
+
+  call deallocate_proj_descr(nlpspd,"proj_free")
+  i_all=-product(shape(proj))*kind(proj)
+  deallocate(proj,stat=i_stat)
+  call memocc(i_stat,i_all,'proj',"proj_free")
+END SUBROUTINE proj_free
+subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
+  use module_types
+  implicit none
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  integer, intent(out) :: nproj, nprojel
+  
+  nproj = nlpspd%nproj
+  nprojel = nlpspd%nprojel
+END SUBROUTINE proj_get_dimensions

@@ -68,10 +68,6 @@ module module_types
        &    "Cold (bumb)",   &
        &    "Cold (mono)",   &
        &    "Meth.-Pax. " /)
- !!!!!!! MOVED ....   ! To be moved as an input parameter later
-  !integer, parameter :: occopt = SMEARING_DIST_ERF
- !!!!!!! MOVED ....   
-
 
   !> Type used for the orthogonalisation parameter
   type, public :: orthon_data
@@ -337,6 +333,12 @@ module module_types
      integer :: iat_absorber 
 
   end type atoms_data
+
+!> Structure to store the density / potential distribution among processors.
+  type, public :: denspot_distribution
+     integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add
+     integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
+  end type denspot_distribution
 
 !>  Structures of basis of gaussian functions
   type, public :: gaussian_basis
@@ -1264,6 +1266,27 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,i_all,'lr%projflg',subname)
 
   END SUBROUTINE deallocate_lr
+
+  subroutine deallocate_denspot_distribution(denspotd, subname)
+    use module_base
+    implicit none
+    type(denspot_distribution), intent(inout) :: denspotd
+    character(len = *), intent(in) :: subname
+
+    integer :: i_stat, i_all
+
+    if (associated(denspotd%nscatterarr)) then
+       i_all=-product(shape(denspotd%nscatterarr))*kind(denspotd%nscatterarr)
+       deallocate(denspotd%nscatterarr,stat=i_stat)
+       call memocc(i_stat,i_all,'nscatterarr',subname)
+    end if
+
+    if (associated(denspotd%ngatherarr)) then
+       i_all=-product(shape(denspotd%ngatherarr))*kind(denspotd%ngatherarr)
+       deallocate(denspotd%ngatherarr,stat=i_stat)
+       call memocc(i_stat,i_all,'ngatherarr',subname)
+    end if
+  END SUBROUTINE deallocate_denspot_distribution
 
   subroutine deallocate_Lzd(Lzd,subname)
     use module_base

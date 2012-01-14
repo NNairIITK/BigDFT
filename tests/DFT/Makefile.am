@@ -14,6 +14,7 @@ TESTDIRS = C \
 	  O2-Spin \
 	  TDDFT \
 	  SIC \
+	  ElectField \
 	  Linear \
           Locreg
 

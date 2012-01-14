@@ -38,6 +38,18 @@ module vdwcorrection
      REAL(kind=GP), DIMENSION(109) :: NEFF
   END TYPE VDWPARAMETERS
 
+  !> Van der Waals corrections.
+  integer, parameter, public :: VDW_NONE = 0
+  integer, parameter, public :: VDW_DAMP_ELSTNER = 1
+  integer, parameter, public :: VDW_DAMP_WU_YANG_1 = 2
+  integer, parameter, public :: VDW_DAMP_WU_YANG_2 = 3
+  character(len = 34), dimension(4), parameter :: vdw_correction_names = &
+       & (/ "none                              ",   &
+       &    "Damp from Elstner                 ",   &    
+       &    "Damp from Wu & Yang               ",   &
+       &    "Damp from Wu & Yang, second method" /)
+
+  public :: vdwcorrection_initializeparams
   public :: vdwcorrection_calculate_energy
   public :: vdwcorrection_calculate_forces
   public :: vdwcorrection_warnings
@@ -55,12 +67,10 @@ contains
   !! Written by Quintin Hill in 2007, with some modifications in 2008
   !! Some unoptimised parameters (e.g. for P) were taken from Halgren.
   !! Journal of the American Chemical Society 114(20), 7827–7843, 1992
-  subroutine vdwcorrection_initializeparams(in)
-
-    use module_types, only: input_variables
+  subroutine vdwcorrection_initializeparams(ixc, dispersion)
     implicit none
 
-    type(input_variables), intent(in) :: in
+    integer, intent(in) :: ixc, dispersion
 
     ! qoh: Initialise the vdwparams array
     vdwparams%c6coeff = 0.0_GP
@@ -70,13 +80,13 @@ contains
 
     ! qoh: Populate the vdwparams array  
 
-    select case (in%ixc)
+    select case (ixc)
 
     case(11)
 
-       pbedamp: select case (in%dispersion)
+       pbedamp: select case (dispersion)
 
-       case(1) pbedamp
+       case(VDW_DAMP_ELSTNER) pbedamp
 
           vdwparams%dcoeff(1)=3.2607_GP
           vdwparams%dcoeff(2)=3.5400_GP
@@ -114,7 +124,7 @@ contains
           vdwparams%radzero(15)=4.8000_GP
           vdwparams%radzero(16)=5.1033_GP
 
-       case(2) pbedamp
+       case(VDW_DAMP_WU_YANG_1) pbedamp
 
           vdwparams%dcoeff(1)=3.0000_GP
           vdwparams%dcoeff(2)=3.5400_GP
@@ -152,7 +162,7 @@ contains
           vdwparams%radzero(15)=4.8000_GP
           vdwparams%radzero(16)=5.5998_GP
 
-       case(3) pbedamp
+       case(VDW_DAMP_WU_YANG_2) pbedamp
 
           vdwparams%dcoeff(1)=3.0000_GP
           vdwparams%dcoeff(2)=3.5400_GP
@@ -195,9 +205,9 @@ contains
 
     case(15)
 
-       rpbedamp: select case (in%dispersion)
+       rpbedamp: select case (dispersion)
 
-       case(1) rpbedamp
+       case(VDW_DAMP_ELSTNER) rpbedamp
 
           vdwparams%dcoeff(1)=3.4967_GP
           vdwparams%dcoeff(2)=3.5400_GP
@@ -236,7 +246,7 @@ contains
           vdwparams%radzero(16)=4.0826_GP
 
 
-       case(2) rpbedamp
+       case(VDW_DAMP_WU_YANG_1) rpbedamp
 
           vdwparams%dcoeff(1)=3.0000_GP
           vdwparams%dcoeff(2)=3.9308_GP
@@ -276,7 +286,7 @@ contains
 
 
 
-       case(3) rpbedamp
+       case(VDW_DAMP_WU_YANG_2) rpbedamp
 
           vdwparams%dcoeff(1)=3.0000_GP
           vdwparams%dcoeff(2)=3.5400_GP
@@ -318,9 +328,9 @@ contains
 
     case(14) 
 
-       revpbedamp: select case (in%dispersion)
+       revpbedamp: select case (dispersion)
 
-       case(1) revpbedamp
+       case(VDW_DAMP_ELSTNER) revpbedamp
           vdwparams%dcoeff(1)=3.4962_GP
           vdwparams%dcoeff(2)=3.5400_GP
           vdwparams%dcoeff(3)=23.0000_GP
@@ -358,7 +368,7 @@ contains
           vdwparams%radzero(16)=3.9811_GP
 
 
-       case(2) revpbedamp
+       case(VDW_DAMP_WU_YANG_1) revpbedamp
 
           vdwparams%dcoeff(1)=3.0000_GP
           vdwparams%dcoeff(2)=3.8282_GP
@@ -397,7 +407,7 @@ contains
           vdwparams%radzero(16)=4.7980_GP
 
 
-       case(3) revpbedamp
+       case(VDW_DAMP_WU_YANG_2) revpbedamp
 
           vdwparams%dcoeff(1)=3.0000_GP
           vdwparams%dcoeff(2)=3.5400_GP
@@ -440,9 +450,9 @@ contains
 
     case(200)  ! qoh: FIXME: with proper number for PW91
 
-       pw91damp: select case (in%dispersion)
+       pw91damp: select case (dispersion)
 
-       case(1) pw91damp
+       case(VDW_DAMP_ELSTNER) pw91damp
 
           vdwparams%dcoeff(1)=3.2106_GP
           vdwparams%dcoeff(2)=3.5400_GP
@@ -480,7 +490,7 @@ contains
           vdwparams%radzero(15)=4.8000_GP
           vdwparams%radzero(16)=5.4111_GP
 
-       case(2) pw91damp
+       case(VDW_DAMP_WU_YANG_1) pw91damp
 
           vdwparams%dcoeff(1)=3.0000_GP
           vdwparams%dcoeff(2)=3.3102_GP
@@ -519,7 +529,7 @@ contains
           vdwparams%radzero(16)=5.6250_GP
 
 
-       case(3) pw91damp
+       case(VDW_DAMP_WU_YANG_2) pw91damp
 
           vdwparams%dcoeff(1)=3.0000_GP
           vdwparams%dcoeff(2)=3.5400_GP
@@ -626,18 +636,17 @@ contains
   !! @author
   !! Written by Quintin Hill in 2008, with some modifications in 2008
   !! Modified for BigDFT in March/April 2009 by Quintin Hill.
-  subroutine vdwcorrection_calculate_energy(dispersion_energy,rxyz,atoms,in,&
+  subroutine vdwcorrection_calculate_energy(dispersion_energy,rxyz,atoms,dispersion,&
        iproc)
 
-    use module_types, only: input_variables, atoms_data
+    use module_types
 
     implicit none
 
     ! Arguments
     type(atoms_data),                 intent(in) :: atoms
     real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-    type(input_variables),            intent(in) :: in
-    integer,                          intent(in) :: iproc
+    integer,                          intent(in) :: iproc, dispersion
     real(kind=GP),                   intent(out) :: dispersion_energy
 
     ! Internal variables
@@ -651,9 +660,7 @@ contains
 
     dispersion_energy = 0.0_GP
 
-    if (in%dispersion /= 0) then 
-
-       call vdwcorrection_initializeparams(in)
+    if (dispersion /= VDW_NONE) then 
 
        ! qoh: Loop over all distinct pairs of atoms
 
@@ -673,7 +680,7 @@ contains
              distance = sqrt(sqdist)
 
              ! qoh : Get damping function
-             damping = vdwcorrection_damping(nzatom1,nzatom2,distance,in)
+             damping = vdwcorrection_damping(nzatom1,nzatom2,distance,dispersion)
 
              ! qoh: distance**6 = sqdist**3
 
@@ -696,9 +703,9 @@ contains
   !! @author
   !! Written by Quintin Hill in 2007, with some modifications in 2008
   !! Modified for BigDFT in March/April 2009 by Quintin Hill.
-  subroutine vdwcorrection_calculate_forces(vdw_forces,rxyz,atoms,in) 
+  subroutine vdwcorrection_calculate_forces(vdw_forces,rxyz,atoms,dispersion) 
 
-    use module_types, only: input_variables, atoms_data
+    use module_types
 
     implicit none
 
@@ -707,7 +714,7 @@ contains
     type(atoms_data),                 intent(in)  :: atoms
     real(GP), dimension(3,atoms%nat), intent(out) :: vdw_forces
     real(GP), dimension(3,atoms%nat), intent(in)  :: rxyz
-    type(input_variables),            intent(in)  :: in
+    integer,                          intent(in)  :: dispersion
 
     ! Internal variables
 
@@ -723,9 +730,7 @@ contains
 
     vdw_forces = 0.0_GP
 
-    if (in%dispersion /= 0) then 
-
-       call vdwcorrection_initializeparams(in)
+    if (dispersion /= VDW_NONE) then 
 
        ! qoh: Loop over all atoms
 
@@ -750,10 +755,10 @@ contains
                 distance = sqrt(sqdist)
 
                 ! qoh : Get damping function
-                damping = vdwcorrection_damping(nzatom1,nzatom2,distance,in)
+                damping = vdwcorrection_damping(nzatom1,nzatom2,distance,dispersion)
 
                 dampingdrv = &
-                     vdwcorrection_drvdamping(nzatom1,nzatom2,distance,in)
+                     vdwcorrection_drvdamping(nzatom1,nzatom2,distance,dispersion)
 
                 ! qoh: distance**6 = sqdist**3
 
@@ -862,16 +867,15 @@ contains
   !! @author
   !! Written by Quintin Hill in 2007, with some modifications in 2008
   !! Merged into a single function in July 2008
-  function vdwcorrection_damping(nzatom1,nzatom2,separation,in)
+  function vdwcorrection_damping(nzatom1,nzatom2,separation,dispersion)
 
-    use module_types, only: input_variables
     implicit none
 
     real(kind=GP)             :: vdwcorrection_damping
+    integer, intent(in)       :: dispersion
     integer, intent(in)       :: nzatom1 ! Atomic number of atom 1
     integer, intent(in)       :: nzatom2 ! Atomic number of atom 2
     real(kind=GP), intent(in) :: separation
-    type(input_variables), intent(in) :: in
     real(kind=GP)             :: radzero
     real(kind=GP)             :: expo ! Exponent
     integer, parameter        :: mexpo(2) = (/4,2/)
@@ -881,13 +885,13 @@ contains
 
     radzero = vdwcorrection_radzero(nzatom1,nzatom2)
 
-    select case (in%dispersion)
+    select case (dispersion)
     case(1,2)
 
-       mexp = mexpo(in%dispersion)
-       nexp = nexpo(in%dispersion) 
+       mexp = mexpo(dispersion)
+       nexp = nexpo(dispersion) 
 
-       expo = -vdwparams%dcoeff(in%dispersion)*(separation/radzero)**nexp
+       expo = -vdwparams%dcoeff(dispersion)*(separation/radzero)**nexp
        vdwcorrection_damping = ( 1.0_GP - exp(expo))**mexp
 
     case(3)
@@ -914,17 +918,17 @@ contains
   !!       term is omitted here and included in the calling routine.
   !! @author
   !! Written by Quintin Hill in July 2008.
-  function vdwcorrection_drvdamping(nzatom1,nzatom2,separation,in)
+  function vdwcorrection_drvdamping(nzatom1,nzatom2,separation,dispersion)
 
     use module_types, only: input_variables
 
     implicit none
 
     real(kind=GP)                     :: vdwcorrection_drvdamping
+    integer, intent(in)       :: dispersion
     integer,               intent(in) :: nzatom1 ! Atomic number of atom 1
     integer,               intent(in) :: nzatom2 ! Atomic number of atom 2
     real(kind=GP),         intent(in) :: separation
-    type(input_variables), intent(in) :: in
     real(kind=GP)                     :: radzero
     real(kind=GP)                     :: expo ! Exponent
     integer, parameter                :: mexpo(2) = (/4,2/)
@@ -934,16 +938,16 @@ contains
 
     radzero = vdwcorrection_radzero(nzatom1,nzatom2)
 
-    select case (in%dispersion)
+    select case (dispersion)
     case(1,2)
 
-       mexp = mexpo(in%dispersion)
-       nexp = nexpo(in%dispersion)   
+       mexp = mexpo(dispersion)
+       nexp = nexpo(dispersion)   
 
-       expo = -vdwparams%dcoeff(in%dispersion)*(separation/radzero)**nexp
+       expo = -vdwparams%dcoeff(dispersion)*(separation/radzero)**nexp
 
        vdwcorrection_drvdamping = real((mexp*nexp),kind=GP)*exp(expo)* &
-            vdwparams%dcoeff(in%dispersion)*( 1.0_GP - exp(expo))**(mexp-1)*&
+            vdwparams%dcoeff(dispersion)*( 1.0_GP - exp(expo))**(mexp-1)*&
             separation**(nexp-2)/radzero**nexp
 
     case(3)
