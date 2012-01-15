@@ -297,6 +297,12 @@ module module_types
      integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
 
+!> Quantities used for the symmetry operators.
+  type, public :: symmetry_data
+     integer :: symObj    !< The symmetry object from ABINIT
+     integer, dimension(:,:,:), pointer :: irrzon
+     real(dp), dimension(:,:,:), pointer :: phnons
+  end type symmetry_data
 !>  Atomic data (name, polarisation, ...)
   type, public :: atoms_data
      character(len=1) :: geocode
@@ -323,7 +329,7 @@ module module_types
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !<number of valence and core gaussians describing NLCC 
      real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
      real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
-     integer :: symObj                               !< The symmetry object from ABINIT
+     type(symmetry_data) :: sym                      !< The symmetry operators
 
      !! for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
@@ -1287,6 +1293,34 @@ END SUBROUTINE deallocate_orbs
        call memocc(i_stat,i_all,'ngatherarr',subname)
     end if
   END SUBROUTINE deallocate_denspot_distribution
+
+  subroutine deallocate_symmetry(sym, subname)
+    use module_base
+    use m_ab6_symmetry
+    implicit none
+    type(symmetry_data), intent(inout) :: sym
+    character(len = *), intent(in) :: subname
+
+    integer :: i_stat, i_all
+
+    if (sym%symObj >= 0) then
+       call symmetry_free(sym%symObj)
+    end if
+
+    if (associated(sym%irrzon)) then
+       i_all=-product(shape(sym%irrzon))*kind(sym%irrzon)
+       deallocate(sym%irrzon,stat=i_stat)
+       call memocc(i_stat,i_all,'irrzon',subname)
+       nullify(sym%irrzon)
+    end if
+
+    if (associated(sym%phnons)) then
+       i_all=-product(shape(sym%phnons))*kind(sym%phnons)
+       deallocate(sym%phnons,stat=i_stat)
+       call memocc(i_stat,i_all,'phnons',subname)
+       nullify(sym%phnons)
+    end if
+  end subroutine deallocate_symmetry
 
   subroutine deallocate_Lzd(Lzd,subname)
     use module_base

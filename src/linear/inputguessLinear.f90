@@ -160,7 +160,7 @@ END SUBROUTINE initInputguessConfinement
 subroutine inputguessConfinement(iproc, nproc, at, &
      comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
      nlpspd, proj, pkernel, pkernelseq, &
-     nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf,  &
+     nscatterarr, ngatherarr, potshortcut, GPU, radii_cf,  &
      tag, lphi, ehart, eexcu, vexcu)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
@@ -191,8 +191,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
   real(dp), dimension(:), pointer :: pkernelseq
   integer, intent(in) ::potshortcut
-  integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
-  real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
   real(8),dimension(at%ntypes,3),intent(in):: radii_cf
   integer,intent(inout):: tag
   real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(out):: lphi
@@ -418,7 +416,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 !!$       nscatterarr, input%nspin, GPU, at%symObj, irrzon, phnons, rhodsc)
 
   call sumrho(iproc,nproc,lin%lig%orbsig,lin%lig%lzdGauss,hxh,hyh,hzh,nscatterarr,&
-       GPU,at%symObj,irrzon,phnons,rhodsc,lchi2,rho_p)
+       GPU,at%sym,rhodsc,lchi2,rho_p)
   call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,lin%lig%lzdGauss,&
        rhodsc,nscatterarr,rho_p,rhopot)
 

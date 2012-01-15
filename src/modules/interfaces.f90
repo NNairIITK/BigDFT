@@ -468,18 +468,18 @@ module module_interfaces
       END SUBROUTINE first_orthon
 
       subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-           irrzon,phnons,pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
+           pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,nproc,symObj
+        integer, intent(in) :: iproc,nproc
         real(gp), intent(in) :: hxh,hyh,hzh
         type(rho_descriptors),intent(inout) :: rhodsc
         type(orbitals_data), intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
+        type(symmetry_data), intent(in) :: symObj
         character(len=1), intent(in) :: geocode
-        integer, dimension(*), intent(in) :: irrzon
-        real(dp), dimension(*), intent(in) :: phnons,pkernel
+        real(dp), dimension(*), intent(in) :: pkernel
         integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         type(GPU_pointers), intent(inout) :: GPU
@@ -488,22 +488,21 @@ module module_interfaces
       END SUBROUTINE density_and_hpot
 
       subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-           GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+           GPU,symObj,rhodsc,psi,rho_p)
         use module_base
         use module_types
         implicit none
         !Arguments
-        integer, intent(in) :: iproc,nproc,symObj
+        integer, intent(in) :: iproc,nproc
         real(gp), intent(in) :: hxh,hyh,hzh
         type(rho_descriptors),intent(in) :: rhodsc
         type(orbitals_data), intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
+        type(symmetry_data), intent(in) :: symObj
         integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         real(dp), dimension(:,:), pointer :: rho_p
         type(GPU_pointers), intent(inout) :: GPU
-        integer, dimension(*), intent(in) :: irrzon
-        real(dp), dimension(*), intent(in) :: phnons
       END SUBROUTINE sumrho
 
       !starting point for the communication routine of the density
@@ -2107,7 +2106,7 @@ module module_interfaces
     end subroutine orbitalsCommunicatorsWithGroups
     
     subroutine linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, at, input, rhodsc, lin, rxyz, &
-        fion, fdisp, radii_cf, nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, &
+        fion, fdisp, radii_cf, nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, &
         pkernel, pot_ion, rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
       use module_base
       use module_types
@@ -2131,8 +2130,6 @@ module module_interfaces
       real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout), target :: rhopot
       type(GPU_pointers),intent(in out):: GPU
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
-      integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
-      real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
       real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
       real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
       !real(wp), dimension(lin%as%size_rhocore):: rhocore 
@@ -2486,7 +2483,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     subroutine inputguessConfinement(iproc, nproc, at, &
          comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
          nlpspd, proj, pkernel, pkernelseq, &
-         nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
+         nscatterarr, ngatherarr, potshortcut, GPU, radii_cf, &
          tag, lphi, ehart, eexcu, vexcu)
       use module_base
       use module_types
@@ -2511,8 +2508,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
       real(dp), dimension(:), pointer :: pkernelseq
       integer, intent(in) ::potshortcut
-      integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
-      real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
       integer,intent(inout):: tag
       real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(out):: lphi

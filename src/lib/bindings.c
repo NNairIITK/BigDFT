@@ -142,7 +142,6 @@ void FC_FUNC_(atoms_get_nlccpar, ATOMS_GET_NLCCPAR)(void *atoms, f90_pointer_dou
 void FC_FUNC_(atoms_get_ig_nlccpar, ATOMS_GET_IG_NLCCPAR)(void *atoms, f90_pointer_double *ig_nlccpar);
 void FC_FUNC_(atoms_copy_nat, ATOMS_COPY_NAT)(void *atoms, int *nat);
 void FC_FUNC_(atoms_copy_ntypes, ATOMS_COPY_NTYPES)(void *atoms, int *ntypes);
-void FC_FUNC_(atoms_copy_symobj, ATOMS_COPY_SYMOBJ)(void *atoms, int *symobj);
 void FC_FUNC_(atoms_copy_geometry_data, ATOMS_COPY_GEOMETRY_DATA)
      (void *atoms, gchar *geocode, gchar *format, gchar *units);
 void FC_FUNC_(atoms_copy_alat, ATOMS_COPY_ALAT)(void *atoms, double *alat1,
@@ -314,7 +313,6 @@ void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active, double el
   disable = (!active);
   FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(atoms->data->atoms, atoms->rxyz.data,
                                                        &disable, elecfield);
-  FC_FUNC_(atoms_copy_symobj, ATOMS_COPY_SYMOBJ)(atoms->data->atoms, &atoms->symObj);
 }
 
 void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
@@ -369,7 +367,7 @@ void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, f90_pointer_atoms *atoms, do
 void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(void *glr, char *geocode,
                                                       int *n, int *ni);
 void FC_FUNC_(glr_free, GLR_FREE)(f90_pointer_glr *glr);
-void FC_FUNC(glr_set_wave_descriptors,
+void FC_FUNC_(glr_set_wave_descriptors,
              GLR_SET_WAVE_DESCRIPTORS)(int *iproc, double *hx, double *hy,
                                        double *hz, void *atoms, double *rxyz, double *radii,
                                        double *crmult, double *frmult, void *glr);
@@ -434,7 +432,7 @@ void bigdft_glr_set_wave_descriptors(BigDFT_Glr *glr, BigDFT_Atoms *atoms, doubl
 {
   int iproc = 1;
 
-  FC_FUNC(glr_set_wave_descriptors,
+  FC_FUNC_(glr_set_wave_descriptors,
           GLR_SET_WAVE_DESCRIPTORS)(&iproc, glr->h, glr->h + 1, glr->h + 2,
                                     atoms->data->atoms, atoms->rxyz.data, radii,
                                     &crmult, &frmult, glr->data->glr);

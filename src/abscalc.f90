@@ -323,6 +323,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_xc
    use vdwcorrection
    use esatto
+   use m_ab6_symmetry
+   use m_ab6_mixing
+   use m_ab6_kpoints
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -339,7 +342,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    character(len=*), parameter :: subname='abscalc'
    character(len=3) :: PSquiet
    integer :: ixc,ncong,idsx,ncongt,nspin,itermax
-   integer :: nvirt
+   integer :: nvirt,nsym
    integer :: nelec,ndegree_ip,j
    integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
@@ -535,10 +538,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,orbs)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
-   call timing(iproc,'CrtProjectors ','ON')
+   !call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
       &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
-   call timing(iproc,'CrtProjectors ','OF')
+   !call timing(iproc,'CrtProjectors ','OF')
 
 !   if (in%inputPsiId /= 0 .and. in%inputPsiId /= 10) then
    call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
@@ -616,6 +619,29 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
         in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+
+
+   !calculate the irreductible zone for this region, if necessary.
+   if (atoms%sym%symObj >= 0) then
+      call symmetry_get_n_sym(atoms%sym%symObj, nsym, i_stat)
+      if (nsym > 1) then
+         ! Current third dimension is set to 1 always
+         ! since nspin == nsppol always in BigDFT
+         allocate(atoms%sym%irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
+         call memocc(i_stat,atoms%sym%irrzon,'irrzon',subname)
+         allocate(atoms%sym%phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
+         call memocc(i_stat,atoms%sym%phnons,'phnons',subname)
+         call kpoints_get_irreductible_zone(atoms%sym%irrzon, atoms%sym%phnons, &
+              &   n1i, n2i, n3i, in%nspin, in%nspin, atoms%sym%symObj, i_stat)
+      end if
+   end if
+   if (.not. associated(atoms%sym%irrzon)) then
+      ! Allocate anyway to small size other size the bounds check does not pass.
+      allocate(atoms%sym%irrzon(1,2,1+ndebug),stat=i_stat)
+      call memocc(i_stat,atoms%sym%irrzon,'irrzon',subname)
+      allocate(atoms%sym%phnons(2,1,1+ndebug),stat=i_stat)
+      call memocc(i_stat,atoms%sym%phnons,'phnons',subname)
+   end if
 
    !Allocate Charge density, Potential in real space
    if (n3d >0) then

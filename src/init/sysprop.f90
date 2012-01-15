@@ -400,23 +400,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   type(linearParameters) :: lin
   character(len=20),dimension(atoms%ntypes):: atomNames
 
-  ! in case of linear scaling, allocate the localization radii
-  if(in%linear == 'LIG') then
-     allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
-     call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
-  end if
-
-  ! if linear scaling applied with more then InputGuess, then go read input.lin for radii
-!  if (in%linear /= 'OFF' .and. in%linear /= 'LIG') then
-!     lin%nlr=atoms%nat
-!     call allocateBasicArrays(atoms, lin)
-!     call readLinearParameters(iproc, nproc, lin, atoms, atomNames)
-!  end if
-
-     !define the localization radius for the Linear input guess
-     if(in%linear == 'LIG') then
-        atoms%rloc(ityp,:) = rcov * 10.0
-     end if
 
 !!if(in%inputPsiId==100) then
 !!     norbitals=0
@@ -436,7 +419,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
 !!         end do
 !!     end if
 !!end if
-
 
 
   !calculate number of electrons and orbitals
@@ -673,7 +655,7 @@ subroutine read_atomic_variables(fileocc,iproc,in,atoms,radii_cf)
   character(len=24) :: message
   character(len=50) :: format
   integer :: i,j,k,l,ityp,iat,ierror,mxpl
-  integer :: mxchg,nsccode
+  integer :: mxchg,nsccode,i_stat
   real(gp) :: rcov,rprb,ehomo,minrad,maxrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
@@ -686,6 +668,13 @@ subroutine read_atomic_variables(fileocc,iproc,in,atoms,radii_cf)
           ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
   end if
   call read_radii_variables(atoms, radii_cf)
+
+  ! in case of linear scaling, allocate the localization radii
+  if(in%linear == 'LIG') then
+     allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
+     call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
+  end if
+
   do ityp=1,atoms%ntypes
      !control the hardest and the softest gaussian
      minrad=1.e10_gp
@@ -734,6 +723,12 @@ subroutine read_atomic_variables(fileocc,iproc,in,atoms,radii_cf)
           neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
      call atomic_occupation_numbers(fileocc,ityp,in%nspin,atoms,nmax,lmax,nelecmax,&
           neleconf,nsccode,mxpl,mxchg)
+
+     !define the localization radius for the Linear input guess
+     if(in%linear == 'LIG') then
+        atoms%rloc(ityp,:) = rcov * 10.0
+     end if
+
   end do
   !print *,'iatsctype',atOMS%iasctype(:)
 
@@ -838,12 +833,12 @@ subroutine read_atomic_variables(fileocc,iproc,in,atoms,radii_cf)
   end if
 
   ! We modify the symmetry object with respect to the spin.
-  if (atoms%symObj >= 0) then
+  if (atoms%sym%symObj >= 0) then
      if (in%nspin == 2) then
-        call symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
+        call symmetry_set_collinear_spin(atoms%sym%symObj, atoms%nat, &
              & atoms%natpol, ierror)
 !!$     else if (in%nspin == 4) then
-!!$        call symmetry_set_spin(atoms%symObj, atoms%nat, &
+!!$        call symmetry_set_spin(atoms%sym%symObj, atoms%nat, &
 !!$             & atoms%natpol, ierror)
      end if
   end if
@@ -856,6 +851,15 @@ subroutine read_atomic_variables(fileocc,iproc,in,atoms,radii_cf)
 !!!  tt=dble(norb)/dble(nproc)
 !!!  norbp=int((1.d0-eps_mach*tt) + tt)
 !!!  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
+
+
+  ! if linear scaling applied with more then InputGuess, then go read input.lin for radii
+  !  if (in%linear /= 'OFF' .and. in%linear /= 'LIG') then
+  !     lin%nlr=atoms%nat
+  !     call allocateBasicArrays(atoms, lin)
+  !     call readLinearParameters(iproc, nproc, lin, atoms, atomNames)
+  !  end if
+
 
 END SUBROUTINE read_atomic_variables
 

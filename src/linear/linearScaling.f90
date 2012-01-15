@@ -1,6 +1,6 @@
 subroutine linearScaling(iproc,nproc,n3d,n3p,n3pi,i3s,i3xcsh,Glr,orbs,comms,at,input,&
      rhodsc,lin,rxyz,fion,fdisp,radii_cf,nscatterarr,ngatherarr,nlpspd,proj,rhopot,GPU,&
-     pkernelseq,irrzon,phnons,pkernel,pot_ion,rhocore,potxc,&
+     pkernelseq,pkernel,pot_ion,rhocore,potxc,&
      PSquiet,eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
 !
 ! Purpose:
@@ -80,8 +80,6 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout), target :: rhopot
 type(GPU_pointers),intent(in out):: GPU
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
-integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon 
-real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons 
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
 real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
 !real(wp), dimension(lin%as%size_rhocore):: rhocore 
@@ -181,7 +179,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call inputguessConfinement(iproc, nproc, at, &
        comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
-       nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
+       nscatterarr, ngatherarr, potshortcut, GPU, radii_cf, &
        tag, lphi, ehart, eexcu, vexcu)
   call mpi_barrier(mpi_comm_world, ierr)
   t2ig=mpi_wtime()
@@ -574,9 +572,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
   rho => rhopot
 
   !add an if statement which says whether the charge density has already been calculated
-  call density_and_hpot(iproc,nproc,at%geocode,at%symObj,orbs,lin%Lzd,&
+  call density_and_hpot(iproc,nproc,at%geocode,at%sym,orbs,lin%Lzd,&
        0.5_gp*input%hx,0.5_gp*input%hy,0.5_gp*input%hz,nscatterarr,&
-       irrzon,phnons,pkernel,rhodsc,GPU,psi,rho,pot,hstrten)
+       pkernel,rhodsc,GPU,psi,rho,pot,hstrten)
 
   !fake ewald stress tensor
   ewaldstr=0.0_gp

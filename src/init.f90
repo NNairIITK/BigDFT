@@ -1514,7 +1514,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      !spin adaptation for the IG in the spinorial case
      orbse%nspin=nspin
      call sumrho(iproc,nproc,orbse,Lzd,hxh,hyh,hzh,nscatterarr,&
-          GPU,symObj,irrzon,phnons,rhodsc,Lpsi,rho_p)
+          GPU,at%sym,rhodsc,Lpsi,rho_p)
      call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rhopot)
      orbse%nspin=nspin_ig
 
@@ -1757,7 +1757,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    !spin adaptation for the IG in the spinorial case
    orbse%nspin=nspin
    call sumrho(iproc,nproc,orbse,Lzd,hxh,hyh,hzh,nscatterarr,&
-        GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+        GPU,at%sym,rhodsc,psi,rho_p)
    call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rhopot)
    orbse%nspin=nspin_ig
 

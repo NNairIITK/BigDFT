@@ -177,7 +177,7 @@ program wvl
   !call sumrho(iproc,nproc,orbs,Lzd%Glr,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
   !     & psi,rhor,nscatterarr,inputs%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
   call sumrho(iproc,nproc,orbs,Lzd,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,nscatterarr,&
-       GPU,atoms%symObj,irrzon,phnons,rhodsc,psi,rho_p)
+       GPU,atoms%sym,rhodsc,psi,rho_p)
   call communicate_density(iproc,nproc,orbs%nspin,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp,Lzd,&
        rhodsc,nscatterarr,rho_p,rhor)
 

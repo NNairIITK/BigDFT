@@ -3,8 +3,9 @@ SUBDIRS = fft \
 	PSolver \
 	OP2P \
 	IO-wf \
-	ftypes \
 	psp
+
+#	ftypes 
 
 if USE_CUDA_GPU
 SUBDIRS += CUDA
