@@ -371,6 +371,9 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
         Gmax = Glr%wfd%keygloc(2,isegG)
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
+if(isegloc==969 .and. isegG==408) then
+    write(*,*) 'lmin, Gmax, lmax, Gmin', lmin, Gmax, lmax, Gmin
+end if
         if((lmin > Gmax) .or. (lmax < Gmin)) cycle
 
         ! Define the offset between the two segments
@@ -393,9 +396,6 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 !                 Lindex = icheck+lincrement*(iorbs-1)+lincrement*norb*(ispin-1)
                  Gindex = Glr%wfd%keyv(isegG)+offset+ix+shift!+spinshift*(ispin-1)
                  Lindex = icheck!+lincrement*norb*(ispin-1)
-if(isegloc==969 .and. isegG==408) then
-    write(*,*) 'debug: ix', ix
-end if
 if(Lindex>Ldim) then
     write(*,'(a,5i9)') 'ERROR: Lindex, Ldim, ix, isegG, isegloc',Lindex, Ldim, ix, isegG, isegloc
 end if
