@@ -393,7 +393,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 !                 Lindex = icheck+lincrement*(iorbs-1)+lincrement*norb*(ispin-1)
                  Gindex = Glr%wfd%keyv(isegG)+offset+ix+shift!+spinshift*(ispin-1)
                  Lindex = icheck!+lincrement*norb*(ispin-1)
-
+if(Lindex>Ldim) write(*,*) 'ERROR: Lindex,Ldim',Lindex,Ldim
                  psi(Gindex) = psi(Gindex) + lpsi(Lindex)
 !              end do
 !           end do
