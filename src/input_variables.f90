@@ -832,7 +832,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%mixingMethod,'dens',comment=comments)
   
   !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
-  comments = 'mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed (when optimized / not optimized)'
+  comments = 'mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &
+              &where the potential is mixed (when optimized / not optimized)'
   call input_var(in%lin%mixHist,'0',ranges=(/0,100/))
   call input_var(in%lin%nItSCCWhenOptimizing,'1',ranges=(/1,1000/))
   call input_var(in%lin%nItSCCWhenFixed,'15',ranges=(/1,1000/),comment=comments)
@@ -866,7 +867,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   comments='number of orbitals per process for trace minimization during input guess.'
   call input_var(in%lin%norbsPerProcIG,'1',ranges=(/1,10000/),comment=comments)
 
-  call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; F -> slow, needs little memory')
+  call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; &
+                                                 &F -> slow, needs little memory')
 
   
   ! Allocate lin pointers and atoms%rloc
