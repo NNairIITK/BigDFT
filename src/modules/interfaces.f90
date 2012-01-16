@@ -487,7 +487,7 @@ module module_interfaces
       END SUBROUTINE density_and_hpot
 
       subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-           GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+           GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p,mapping)
         use module_base
         use module_types
         implicit none
@@ -503,6 +503,7 @@ module module_interfaces
         type(GPU_pointers), intent(inout) :: GPU
         integer, dimension(*), intent(in) :: irrzon
         real(dp), dimension(*), intent(in) :: phnons
+        integer,dimension(orbs%norb),intent(in),optional:: mapping
       END SUBROUTINE sumrho
 
       !starting point for the communication routine of the density
@@ -2708,7 +2709,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine partial_density_linear
 
     subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
-         nrhotot,Lzd,hxh,hyh,hzh,nspin,orbs,psi,rho)
+         nrhotot,Lzd,hxh,hyh,hzh,nspin,orbs,mapping,psi,rho)
       use module_base
       use module_types
       use module_xc
@@ -2720,6 +2721,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(gp), intent(in) :: hxh,hyh,hzh
       type(local_zone_descriptors), intent(in) :: Lzd
       type(orbitals_data),intent(in) :: orbs
+      integer,dimension(orbs%norb),intent(in):: mapping
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
       real(dp),dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1),max(nspin,orbs%nspinor)),intent(out):: rho

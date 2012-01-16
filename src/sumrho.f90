@@ -85,7 +85,7 @@ end subroutine density_and_hpot
 !! Output: 
 !!   @param rho
 subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-     GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+     GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p,mapping)
    use module_base
    use module_types
    use module_xc
@@ -103,6 +103,7 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
    type(GPU_pointers), intent(inout) :: GPU
    integer, dimension(*), intent(in) :: irrzon
    real(dp), dimension(*), intent(in) :: phnons
+   integer,dimension(orbs%norb),intent(in),optional:: mapping
    !Local variables
    character(len=*), parameter :: subname='sumrho'
    !n(c) logical :: rsflag
@@ -135,8 +136,11 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
    else if (OCLconv) then
       call local_partial_density_OCL(orbs,rhodsc%nrhotot,Lzd%Glr,hxh,hyh,hzh,orbs%nspin,psi,rho_p,GPU)
    else if(Lzd%linear) then
+       if(.not.present(mapping)) then
+           stop 'ERROR: mapping must be present for the linear scaling version'
+       end if
       call local_partial_densityLinear(iproc,nproc,(rhodsc%icomm==1),nscatterarr,rhodsc%nrhotot,&
-           Lzd,hxh,hyh,hzh,orbs%nspin,orbs,psi,rho_p)
+           Lzd,hxh,hyh,hzh,orbs%nspin,orbs,mapping,psi,rho_p)
    else
       !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
       !otherwise use libXC routine
@@ -614,6 +618,7 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
                   psisq=real(psir(i1,i2,j3,1),dp)
                   psisq=psisq*psisq
                   rho_p(i1,i2,i3s,isjmp)=rho_p(i1,i2,i3s,isjmp)+real(hfac,dp)*psisq
+                  !write(93000+iorb,'(4i8,es20.10)') i1,i2,i3,isjmp,rho_p(i1,i2,i3s,isjmp)
                end do
             else !similar loop for npsir=4
                do i1=i1s,i1e

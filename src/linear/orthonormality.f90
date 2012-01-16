@@ -2750,7 +2750,7 @@ subroutine checkUnity(iproc, norb, ovrlp, maxError)
         if(error>maxError) then
            maxError=error
         end if
-          !write(2000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+          write(20000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
      end do
   end do
 
