@@ -108,7 +108,8 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
    !n(c) logical :: rsflag
    integer :: nrhotot,n3d,itmred,i_stat,i_all
    integer :: nspinn
-   integer :: irho
+   integer :: irho, iorb
+   integer,dimension(:),allocatable:: localmapping
 
    call timing(iproc,'Rho_comput    ','ON')
 
@@ -136,10 +137,22 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
       call local_partial_density_OCL(orbs,rhodsc%nrhotot,Lzd%Glr,hxh,hyh,hzh,orbs%nspin,psi,rho_p,GPU)
    else if(Lzd%linear) then
        if(.not.present(mapping)) then
-           stop 'ERROR: mapping must be present for the linear scaling version'
+           if(iproc==0) write(*,'(x,a)') &
+               'WARNING: mapping is not present, using fake local mapping array. Check whether this is correct!'
+           allocate(localmapping(orbs%norb), stat=i_stat)
+           call memocc(i_stat,localmapping,'localmapping',subname)
+           do iorb=1,orbs%norb
+               localmapping(iorb)=iorb
+           end do
+           call local_partial_densityLinear(iproc,nproc,(rhodsc%icomm==1),nscatterarr,rhodsc%nrhotot,&
+                Lzd,hxh,hyh,hzh,orbs%nspin,orbs,localmapping,psi,rho_p)
+           i_all=-product(shape(localmapping))*kind(localmapping)
+           deallocate(localmapping,stat=i_stat)
+           call memocc(i_stat,i_all,'localmapping',subname)
+       else
+           call local_partial_densityLinear(iproc,nproc,(rhodsc%icomm==1),nscatterarr,rhodsc%nrhotot,&
+                Lzd,hxh,hyh,hzh,orbs%nspin,orbs,mapping,psi,rho_p)
        end if
-      call local_partial_densityLinear(iproc,nproc,(rhodsc%icomm==1),nscatterarr,rhodsc%nrhotot,&
-           Lzd,hxh,hyh,hzh,orbs%nspin,orbs,mapping,psi,rho_p)
    else
       !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
       !otherwise use libXC routine

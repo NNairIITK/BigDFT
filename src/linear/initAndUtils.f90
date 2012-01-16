@@ -1760,6 +1760,12 @@ subroutine allocateBasicArraysInputLin(at, lin)
   allocate(lin%potentialPrefac(at%ntypes), stat=istat)
 !  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 
+  allocate(lin%potentialPrefac_lowaccuracy(at%ntypes), stat=istat)
+!  call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
+
+  allocate(lin%potentialPrefac_highaccuracy(at%ntypes), stat=istat)
+!  call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
+
   allocate(lin%locrad(at%nat),stat=istat)
 !  call memocc(istat,lin%locrad,'lin%locrad',subname)
 

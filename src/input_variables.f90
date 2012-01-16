@@ -755,7 +755,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   logical :: found
   character(len=20):: atomname
   integer :: itype, jtype, ios, ierr, iat, npt
-  real(gp):: pp, lt
+  real(gp):: ppl, pph, lt
   real(gp),dimension(atoms%ntypes) :: locradType
 
   ! Begin by nullifying all the pointers
@@ -766,26 +766,31 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
 
   !Linear input parameters
   call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
-  write(*,*) 'HERE'
   
   ! Read the number of iterations and convergence criterion for the basis functions BF
-  comments = 'Max iter. for optimizing basis functions in 1st iter., same for other iter. , BF are fixed if pnrm < this number'
-  !call input_var(in%lin%nItBasisFirst,'5',ranges=(/1,10000/))
-  !call input_var(in%lin%nItBasis,'5',ranges=(/1,10000/))
-  !call input_var(in%lin%fixBasis,'5.d-7',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  comments = 'iterations with low accuracy, high accuracy ; factor for reducing the potential prefactor'
+  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/1,10000/))
+  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/1,10000/))
+  call input_var(in%lin%reducePrefactor,'5.d-3',ranges=(/0.d0,1.d0/),comment=comments)
+
+  comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
+  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/1,10000/))
+  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/1,10000/),comment=comments)
   
   ! Convergence criterion
-  call input_var(in%lin%convCrit,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment='Convergence criterion')
+  comments= 'iterations in the inner loop, convergence criterion'
+  call input_var(in%lin%nItInnerLoop,'0',ranges=(/0,1000/))
+  call input_var(in%lin%convCrit,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
-  comments = 'DIISHistMin, DIISHistMax, stepa size for DIIS, step size for SD'
+  comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'
   call input_var(in%lin%DIISHistMin,'0',ranges=(/0,100/))
-  call input_var(in%lin%DIISHistMax,'8',ranges=(/1,100/))
+  call input_var(in%lin%DIISHistMax,'5',ranges=(/1,100/))
   call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%alphaSD,'1.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! lin%startWithSD, lin%startDIIS
-  comments = 'start with SD, start criterion for DIIS'
+  !comments = 'start with SD, start criterion for DIIS'
   !call input_var(in%lin%startWithSD,'F')
   !call input_var(in%lin%startDIIS,'2.d2',ranges=(/1.d0,1.d3/),comment=comments)
   
@@ -793,7 +798,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment='number of iterations in the preconditioner')
   
   !getCoeff: 'diag' or 'min'
-  call input_var(in%lin%getCoeff,'diag',comment='getCoeff: diag or min')
+  comments="getCoeff: 'diag' or 'min', cubic ('c') or spheric ('s') localization region"
+  call input_var(in%lin%getCoeff,'diag')
+  call input_var(in%lin%locregShape,'s',comment=comments)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
   comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential)'
@@ -825,11 +832,17 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%mixingMethod,'dens',comment=comments)
   
   !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
-  comments = 'mixing history (0-> SD, >0-> DIIS), # iter. in the SCC potential mixing, Mixing parameter, Convergence criterion'
+  comments = 'mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed (when optimized / not optimized)'
   call input_var(in%lin%mixHist,'0',ranges=(/0,100/))
-  call input_var(in%lin%nItSCC,'10',ranges=(/1,1000/))
-  call input_var(in%lin%alphaMix,'.4d0',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%convCritMix,'1.d-7',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(in%lin%nItSCCWhenOptimizing,'1',ranges=(/1,1000/))
+  call input_var(in%lin%nItSCCWhenFixed,'15',ranges=(/1,1000/),comment=comments)
+
+  comments = 'mixing parameter (when optimized / not optimized), convergence criterion'
+  call input_var(in%lin%alphaMixWhenOptimizing,'.5d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%alphaMixWhenFixed,'.5d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
+
+  call input_var(in%lin%alphaMixWhenFixed,'1.d-50',ranges=(/0.d0,1.d0/),comment='exit outer loop if pnrm < this number')
   
   !use the derivative basis functions, order of confinement potential
   comments='use the derivative basis functions, Order of confinement potential (4 or 6)'
@@ -837,8 +850,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%ConfPotOrder,'4',comment=comments)
   
   !number of iterations for the input guess
-  comments='number of iterations for the input guess'
-  call input_var(in%lin%nItInguess,'10',ranges=(/1,10000/),comment=comments)
+  comments='number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)'
+  call input_var(in%lin%nItInguess,'100',ranges=(/1,10000/))
+  call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
   
   !plot basis functions: true or false
   comments='plot basis functions: true or false'
@@ -851,6 +865,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   !number of orbitals per process for trace minimization during input guess.
   comments='number of orbitals per process for trace minimization during input guess.'
   call input_var(in%lin%norbsPerProcIG,'1',ranges=(/1,10000/),comment=comments)
+
+  call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; F -> slow, needs little memory')
+
   
   ! Allocate lin pointers and atoms%rloc
   call allocateBasicArraysInputLin(atoms, in%lin)
@@ -861,8 +878,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   do itype=1,atoms%ntypes
       call input_var(atomname,'C',input_iostat=ios)
       call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
-      call input_var(pp,'1.0d-3',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-      call input_var(lt,'7.0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+      call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+      call input_var(lt,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
       if(ios/=0) then
           ! The parameters where not specified for all atom types.
           if(iproc==0) then
@@ -882,7 +900,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
               found=.true.
               parametersSpecified(jtype)=.true.
               in%lin%norbsPerType(jtype)=npt
-              in%lin%potentialPrefac(jtype)=pp
+              in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
+              in%lin%potentialPrefac_highaccuracy(jtype)=pph
               locradType(jtype)=lt
               atoms%rloc(jtype,:)=locradType(jtype)
           end if

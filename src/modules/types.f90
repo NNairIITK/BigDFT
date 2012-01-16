@@ -112,14 +112,20 @@ module module_types
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
+    integer:: DIISHistMin, DIISHistMax, nItPrecond, nItCoeff 
+    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: nItInguess, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
-    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho, fixBasis
-    real(8),dimension(:),pointer:: potentialPrefac, locrad
+    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
+    integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
+    real(8):: convCrit, alphaSD, alphaDIIS, convCritCoeff, alphaMixWhenFixed, reducePrefactor
+    real(kind=8) :: alphaMixWhenOptimizing, convCritOrtho
+    real(8):: convCritMixOut, convCritMix
+    real(8),dimension(:),pointer:: locrad
+    real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
-    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions, transformToGlobal
+    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, sumrho_fast
     character(len=4):: getCoeff, mixingMethod
+    character(len=1):: locregShape
   end type linearInputParameters
 
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
