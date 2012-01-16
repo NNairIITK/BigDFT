@@ -1027,12 +1027,12 @@ subroutine uncompress_rho_old(sprho_comp,dprho_comp,&
 END SUBROUTINE uncompress_rho_old
 
 
-subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
+subroutine rho_segkey(iproc,nproc,at,rxyz,crmult,frmult,radii_cf,&
       &   n1i,n2i,n3i,hxh,hyh,hzh,nspin,rhodsc,iprint)
    use module_base
    use module_types
    implicit none
-   integer,intent(in) :: n1i,n2i,n3i,iproc,nspin
+   integer,intent(in) :: n1i,n2i,n3i,iproc,nproc,nspin
    type(atoms_data), intent(in) :: at
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
@@ -1053,9 +1053,22 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
       &   i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,dsq_cr,dsq_fr
    integer :: csegstot,fsegstot,corx,cory,corz,ierr,ithread,nthreads
    !integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
+   integer, dimension(at%nat) :: at2proc
 
    rhodsc%geocode=at%geocode
    nat=at%nat
+
+   ! assign atoms to procs
+   if (at%nat.le.nproc) then
+     do iat=1,at%nat
+       at2proc(iat)=iat-1
+     enddo
+   else       ! nat > nproc
+     do iat=1,at%nat
+       at2proc(iat)=mod(iat-1,nproc)
+     enddo
+   endif
+
 
    !parameter to adjust the single precision and double precision regions
    spadd=10.0_gp
@@ -1107,33 +1120,29 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
       dsq_fr(iat)=(radii_cf(at%iatype(iat),2)*frmult*dpmult)**2
    enddo
 
-   !$omp parallel default(none)&
+  do iat=1,at%nat
    !$omp private(iat,irho,dsq,i1,i2,i3,ithread,nthreads)&
-   !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
-   !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
    !$omp shared(n1i,n2i,n3i,corx,cory,corz)
    ithread = omp_get_thread_num()
    nthreads = omp_get_num_threads()
 
-   do iat=1,nat
       do i3=i3cmin(iat),i3cmax(iat)
       if (mod(i3,nthreads).eq.ithread) then
          do i2=i2cmin(iat),i2cmax(iat)
              do i1=i1cmin(iat),i1cmax(iat)
-               dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
-                  &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
-                  &   (rxyz(3,iat)-(i3-corz)*hzh)**2
-               irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
-               if(dsq.lt.dsq_cr(iat)) then
-                  reg(irho)=1
-               endif
-            enddo
-         enddo
+            dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
+                (rxyz(2,iat)-(i2-cory)*hyh)**2+&
+                (rxyz(3,iat)-(i3-corz)*hzh)**2          
+            if(dsq.lt.dsq_cr(iat)) then
+              irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+              reg(irho)=1
+            endif
+          enddo
+        enddo
       endif
       enddo
-   enddo
-   !$omp end parallel
-
+    endif
+  enddo
    !$omp parallel default(none)&
    !$omp private(iat,irho,dsq,i1,i2,i3,ithread,nthreads)&
    !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
@@ -1146,19 +1155,68 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
       if (mod(i3,nthreads).eq.ithread) then
          do i2=i2fmin(iat),i2fmax(iat)
             do i1=i1fmin(iat),i1fmax(iat)
-               dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
-                  &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
-                  &   (rxyz(3,iat)-(i3-corz)*hzh)**2          
-               irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
-               if(dsq.lt.dsq_fr(iat)) then
-                  reg(irho)=2
-               endif
-            enddo
-         enddo
+            dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
+                (rxyz(2,iat)-(i2-cory)*hyh)**2+&
+                (rxyz(3,iat)-(i3-corz)*hzh)**2          
+            if(dsq.lt.dsq_fr(iat)) then
+              irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+              reg(irho)=2
+            endif
+          enddo
+        enddo
       endif
       enddo
-   enddo
+    endif
+  enddo
    !$omp end parallel
+  endif
+
+
+!   !$omp parallel default(shared)&
+!   !$omp private(iat,irho,dsq,i1,i2,i3)
+!   !omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
+!   !omp firstprivate(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
+!   !omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
+!   !$omp do schedule(static,1)
+!   do iat=1,nat
+!      do i1=i1cmin(iat),i1cmax(iat)
+!         do i2=i2cmin(iat),i2cmax(iat)
+!            do i3=i3cmin(iat),i3cmax(iat)
+!               dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
+!                  &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
+!                  &   (rxyz(3,iat)-(i3-corz)*hzh)**2
+!               irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+!               if(dsq.lt.dsq_cr(iat)) then
+!                  reg(irho)=1
+!               endif
+!            enddo
+!         enddo
+!      enddo
+!   enddo
+!   !$omp enddo
+!   !$omp end parallel
+!
+!   !call system_clock(ncount2,ncount_rate,ncount_max)
+!   !write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
+!
+!   do iat=1,at%nat
+!      do i1=i1fmin(iat),i1fmax(iat)
+!         do i2=i2fmin(iat),i2fmax(iat)
+!            do i3=i3fmin(iat),i3fmax(iat)
+!               dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
+!                  &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
+!                  &   (rxyz(3,iat)-(i3-corz)*hzh)**2          
+!               irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+!               if(dsq.lt.dsq_fr(iat)) then
+!                  reg(irho)=2
+!               endif
+!            enddo
+!         enddo
+!      enddo
+!   enddo
+!
+!   call system_clock(ncount2,ncount_rate,ncount_max)
+!   write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
 
    do irho=nrhomin,nrhomax
       if (irho.eq.nrhomin) then

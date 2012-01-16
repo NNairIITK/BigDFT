@@ -472,12 +472,12 @@ module module_interfaces
       END SUBROUTINE sumrho
 
 
-      subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
+      subroutine rho_segkey(iproc,nproc,at,rxyz,crmult,frmult,radii_cf,&
             &   n1i,n2i,n3i,hxh,hyh,hzh,nspin,rho_d,iprint)
          !n(c) use module_base
          use module_types
          implicit none
-         integer,intent(in) :: n1i,n2i,n3i,iproc,nspin
+         integer,intent(in) :: n1i,n2i,n3i,iproc,nproc,nspin
          type(atoms_data), intent(in) :: at
          real(gp), dimension(3,at%nat), intent(in) :: rxyz
          real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
