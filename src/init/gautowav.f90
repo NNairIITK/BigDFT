@@ -683,13 +683,6 @@ subroutine gaussians_to_wavelets_new2(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,ps
            !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
            call wnrm_wrap(ncplx,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,psi(ind),scpr) 
            totnorm=totnorm+scpr
-           write(200+iproc,*) 'iorb, ilr, scpr', iorb, ilr, scpr
-           do ierr=1,Lzd%Llr(ilr)%wfd%nvctr_c + 7*Lzd%Llr(ilr)%wfd%nvctr_f
-               write(400+iproc*10+iorb,*) ierr, psi(ind+ierr-1)
-           end do
-           do ierr=1,G%ncoeff
-               write(500+iproc*10+iorb,*) ierr,  wfn_gau(ierr,ispinor,iorb)
-           end do
            ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c + 7*Lzd%Llr(ilr)%wfd%nvctr_f
         end do
         !write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx
@@ -805,19 +798,16 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                     gau_a=G%xp(iexpo+ig-1)
                     n_gau=lx(i)
                     !print *,'x',gau_a,nterm,ncplx,kx,ky,kz,ml1,mu1,lr%d%n1
-                    write(*,'(a,2es16.8,2i9)') 'x dir:', gau_a, rx, lr%ns1, lr%d%n1
                     call gauss_to_daub_k(hx,kx*hx,ncplx,fac_arr(i),rx,gau_a,n_gau,&
                          lr%ns1,lr%d%n1,ml1,mu1,&
                          wx(1,0,1,iterm),work,nw,perx) 
                     n_gau=ly(i)
                     !print *,'y',ml2,mu2,lr%d%n2
-                    write(*,'(a,2es16.8,2i9)') 'y dir:', gau_a, ry, lr%ns2, lr%d%n2
                     call gauss_to_daub_k(hy,ky*hy,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
                          lr%ns2,lr%d%n2,ml2,mu2,&
                          wy(1,0,1,iterm),work,nw,pery) 
                     n_gau=lz(i) 
                     !print *,'z',ml3,mu3,lr%d%n3
-                    write(*,'(a,2es16.8,2i9)') 'z dir:', gau_a, rz, lr%ns3, lr%d%n3
                     call gauss_to_daub_k(hz,kz*hz,ncplx,G%psiat(iexpo+ig-1),rz,gau_a,n_gau,&
                          lr%ns3,lr%d%n3,ml3,mu3,&
                          wz(1,0,1,iterm),work,nw,perz)

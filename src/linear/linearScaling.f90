@@ -145,11 +145,11 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
        input, rxyz, nscatterarr, tag, coeff, lphi)
   lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
 
-  if(iproc==0) then
-       do istat=1,lin%orbs%norb
-           write(99,*) istat, lin%orbs%inwhichlocreg(istat)
-       end do
-  end if
+  !!if(iproc==0) then
+  !!     do istat=1,lin%orbs%norb
+  !!         write(99,*) istat, lin%orbs%inwhichlocreg(istat)
+  !!     end do
+  !!end if
 
 !!! Determine lin%cutoffweight
 !!ist=1

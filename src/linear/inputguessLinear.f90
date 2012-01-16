@@ -336,14 +336,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   lin%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
                   covered(jorb)=.true.
                   mapping(iiorb)=jorb
-                  if(iproc==0) write(666,*) iiorb, mapping(iiorb)
+                  !if(iproc==0) write(666,*) iiorb, mapping(iiorb)
                   exit
               end if
           end do
       end do
-  end do
-  do jorb=1,lin%lig%orbsig%norb
-      if(iproc==0) write(777,*) jorb, lin%lig%orbsig%inwhichlocreg(jorb)
   end do
 
   ! Inverse mapping
@@ -351,7 +348,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       do jorb=1,lin%lig%orbsig%norb
           if(mapping(jorb)==iorb) then
               inversemapping(iorb)=jorb
-              if(iproc==0) write(888,*) iorb, inversemapping(iorb)
+              !if(iproc==0) write(888,*) iorb, inversemapping(iorb)
               exit
           end if
       end do
@@ -492,9 +489,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, lin%nItOrtho, lin%blocksize_pdsyev, &
        lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdig, lin%lig%orbsig, lin%lig%comon, &
        lin%lig%op, input, lin%lig%mad, lchi)
-  write(*,*) 'WARNING: DEALLOCATE HERE!'
-  !call deallocate_overlapParameters(lin%lig%op, subname)
-  !call deallocate_p2pCommsOrthonormality(lin%lig%comon, subname)
+  !!write(*,*) 'WARNING: DEALLOCATE HERE!'
+  call deallocate_overlapParameters(lin%lig%op, subname)
+  call deallocate_p2pCommsOrthonormality(lin%lig%comon, subname)
 
   ! Deallocate locrad, which is not used any longer.
   iall=-product(shape(locrad))*kind(locrad)
@@ -822,11 +819,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   end do
 
 
-  do istat=1,ndim_lhchi
-      do iall=1,size(lchi)
-          write(1000*(iproc+1)+100+istat,*) iall, lchi(iall), lhchi(iall,istat)
-      end do
-  end do
+  !!do istat=1,ndim_lhchi
+  !!    do iall=1,size(lchi)
+  !!        write(1000*(iproc+1)+100+istat,*) iall, lchi(iall), lhchi(iall,istat)
+  !!    end do
+  !!end do
 
 
   iall=-product(shape(lpot))*kind(lpot)
@@ -1076,11 +1073,6 @@ call memocc(istat, ovrlp, 'ovrlp', subname)
 
 call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm, &
      orbs, op, comon, lzd, orbs%inWhichLocreg, convCritOrtho, input, mad, lchi,  ovrlp, 'old')
-do iall=1,orbs%norb
-  do istat=1,orbs%norb
-    if(iproc==0) write(3333,*) iall, istat, ovrlp(istat,iall)
-  end do
-end do
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
@@ -1914,12 +1906,6 @@ call collectnew(iproc, nproc, comon, mad, op, orbsig, input, lzdig, comon%nsendb
      comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt1, tt2, tt3)
 deallocate(ttmat)
 
-do istat=1,size(lchi)
-    write(1000*(iproc+1)+300,*) istat, lchi(istat)
-end do
-do istat=1,comon%nrecvbuf
-    write(1000*(iproc+1)+310,*) istat, comon%recvbuf(istat)
-end do
 
 
 if(iproc==0) write(*,'(1x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
@@ -1943,11 +1929,11 @@ do iat=1,lzdig%nlr
              lhchi(1,ii), comon%nsendBuf, comon%sendBuf)
         call calculateOverlapMatrix3Partial(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, &
              comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
-        do istat=1,orbsig%norb
-            do iall=1,orbsig%norb
-                write(40000+1000*iproc+iat,*) istat,iall,hamTemp(iall,istat)
-            end do
-        end do
+        !!do istat=1,orbsig%norb
+        !!    do iall=1,orbsig%norb
+        !!        write(40000+1000*iproc+iat,*) istat,iall,hamTemp(iall,istat)
+        !!    end do
+        !!end do
         call compressMatrixPerProcess(iproc, nproc, orbsig, mad, hamTemp, sendcounts(iproc), hamTempCompressed(1,ioverlap))
 
     else
@@ -3888,13 +3874,13 @@ logical:: same
 type(localizedDIISParameters):: ldiis
 type(matrixDescriptors):: mad
 
-do istat=1,nlocregPerMPI
-    do iorb=1,orbsig%norb
-        do jorb=1,orbsig%norb
-            write(1000*(iproc+1)+istat,*) iorb,jorb,ham3(jorb,iorb,istat)
-        end do
-    end do
-end do
+!!do istat=1,nlocregPerMPI
+!!    do iorb=1,orbsig%norb
+!!        do jorb=1,orbsig%norb
+!!            write(1000*(iproc+1)+istat,*) iorb,jorb,ham3(jorb,iorb,istat)
+!!        end do
+!!    end do
+!!end do
 
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
@@ -3996,9 +3982,9 @@ end do
                            coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
                       else
                           !read(100000+ip%isorb_par(jproc)+iorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
-                          !coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
-                          coeffPad((iorb-1)*ip%norbtotPad+jorb)=cos(dble(ip%isorb_par(jproc)+iorb))+sin(dble(jjAt))
-                          write(100000+ip%isorb_par(jproc)+iorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
+                          coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
+                          !coeffPad((iorb-1)*ip%norbtotPad+jorb)=cos(dble(ip%isorb_par(jproc)+iorb))+sin(dble(jjAt))
+                          !write(100000+ip%isorb_par(jproc)+iorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
                           !write(110000+ip%isorb_par(jproc)+iorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
                           !write(200000+100*(ip%isorb_par(jproc)+iorb)+jorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
                           !read(200000+100*(ip%isorb_par(jproc)+iorb)+jorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
@@ -4149,7 +4135,6 @@ end do
           !     matmin%mlr, lcoeff, comom)
           ilr=onWhichAtom(ip%isorb+1)
 
-          lcoeff=1.d0
     
           ! Calculate the gradient grad.
           ilrold=0
@@ -4167,10 +4152,10 @@ end do
               !print *,'Newcoeffs',lcoeff(1:matmin%mlr(ilr)%norbinlr-1,iorb)
               !print *,'coeffs',hamextract(1:matmin%mlr(ilr)%norbinlr-1,1,iilr)
               !stop
-              if(it==1) write(*,*) 'matrix application: ', ip%isorb+iorb, iilr
-              do istat=1,matmin%mlr(ilr)%norbinlr
-                  write(120000+ip%isorb+iorb,'(i4,2es16.8,14es10.2)') istat, lcoeff(istat,iorb), lgrad(istat,iorb), hamextract(1,:,iilr)
-              end do
+              !!if(it==1) write(*,*) 'matrix application: ', ip%isorb+iorb, iilr
+              !!do istat=1,matmin%mlr(ilr)%norbinlr
+              !!    write(120000+ip%isorb+iorb,'(i4,2es16.8,14es10.2)') istat, lcoeff(istat,iorb), lgrad(istat,iorb), hamextract(1,:,iilr)
+              !!end do
           end do
           ilr=onWhichAtom(ip%isorb+1)
 
@@ -4701,10 +4686,6 @@ do iorb=1,orbs%norb
     !    mat(jorb,jorb)=mat(jorb,jorb)-lagMat(iorb,iorb)
     !end do
     !call dcopy(orbsig%norb, grad(1,iorb), 1, sol(1), 1)
-write(100+iorb,*) ddot(orbsig%norb, grad(1,iorb), 1, grad(1,iorb), 1)
-do iall=1,orbsig%norb
-  write(100+iorb,*) iall, grad(iall,iorb)
-end do
     !call dgesv(orbsig%norb, 1, mat(1,1), orbsig%norb, ipiv, grad(1,iorb), orbsig%norb, info)
     call zgesv(orbsig%norb, 1, matc(1,1,1), orbsig%norb, ipiv, solc(1,1), orbsig%norb, info)
     if(info/=0) then
@@ -4714,10 +4695,6 @@ end do
         grad(jorb,iiAt)=solc(1,jorb)
     end do
     !call dscal(orbsig%norb, -1.d0, grad(1,iorb), 1)
- write(200+iorb,*) ddot(orbsig%norb, grad(1,iorb), 1, grad(1,iorb), 1)
- do iall=1,orbsig%norb
-   write(200+iorb,*) iall, grad(iall,iorb)
- end do
 end do
 
 iall=-product(shape(ipiv))*kind(ipiv)

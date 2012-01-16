@@ -371,11 +371,7 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
      !hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(iorb)/(hxh*hyh*hzh))
      hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(mapping(iorb))/(hxh*hyh*hzh))
      spinval=orbs%spinsgn(iorb)
-     write(*,'(a,2i6,3es16.7)') 'DEBUG: ii, iorb, orbs%iokpt(ii), orbs%kwgts(orbs%iokpt(ii)), orbs%occup(iorb)', ii, iorb, orbs%iokpt(ii), orbs%kwgts(orbs%iokpt(ii)), orbs%occup(iorb)
-     write(*,'(a,2i6,3es16.7)') 'DEBUG2: ii, iorb, orbs%iokpt(ii), orbs%kwgts(orbs%iokpt(ii)), orbs%occup(mapping(iorb))', ii, iorb, orbs%iokpt(ii), orbs%kwgts(orbs%iokpt(ii)), orbs%occup(mapping(iorb))
 
-        write(*,*) 'WARNING....DEBUG!!!!'
-        !hfac=1.d0
 
      if (hfac /= 0.d0) then
 
@@ -386,9 +382,6 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
               call daub_to_isf(Lzd%Llr(ilr),w,psi(ind),psir(1,sidx))
               ind=ind+Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
            end do
-           do i_stat=1,Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir
-               write(90000+iorb,*) i_stat, psir(i_stat,1)
-           end do
            
 
            select case(Lzd%Llr(ilr)%geocode)
@@ -397,9 +390,6 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
               call partial_density_free((rsflag .and. .not. Lzd%linear),nproc,Lzd%Llr(ilr)%d%n1i,&
                    Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
                    hfac,Lnscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
-               write(*,'(a,2i9,es20.10,2l6)') 'HERE: iorb, ilr, hfac, rsflag, Lzd%linear', iorb, ilr, hfac, rsflag, Lzd%linear
-               !write(*,'(a,7i9,es16.7)') 'HERE2: iorb, ilr, Lzd%Llr(ilr)%d%n1i, Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,npsir,nspinn,spinval', iorb, ilr, Lzd%Llr(ilr)%d%n1i, Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,npsir,nspinn,spinval
-               !write(92000+iorb,*) Lzd%Llr(ilr)%bounds%ibyyzz_r
 
            case('P')
 
@@ -414,9 +404,6 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
                    hfac,Lnscatterarr,spinval,psir,rho_p)
 
            end select
-           do i_stat=1,Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
-               write(80000+iorb,*) i_stat, rho_p(i_stat)
-           end do
 
            ! Copy rho_p to the correct place in rho
            indSmall=0
