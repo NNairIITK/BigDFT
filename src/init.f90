@@ -1359,7 +1359,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!experimental part for building the localisation regions
 ! ###################################################################
 
-   if(potshortcut<=0) call check_linear_and_create_Lzd(iproc,nproc,input,Lzd,at,orbse,rxyz,radii_cf)
+  if(potshortcut<=0) call check_linear_and_create_Lzd(iproc,nproc,input,Lzd,at,orbse,rxyz,radii_cf)
 
   if (Lzd%linear) then
 
@@ -2072,7 +2072,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   end if  !if on linear         <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   ! reput the good wavefunction dimensions: PUT IT inside LDiagHam? 
-  call wavefunction_dimension(Lzd,orbs)
+  if(input%linear /= 'LIG') call wavefunction_dimension(Lzd,orbs)
 
    if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
      

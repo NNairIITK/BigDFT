@@ -3503,7 +3503,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
      linear = .false.
      Lzd%nlr = 1
   end if
-print *,'======>Using linear code:',linear
+
   Lzd%linear = .true.
   if (.not. linear)  Lzd%linear = .false. 
 
@@ -3783,6 +3783,8 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
 !!$     end if
      call nullify_locreg_descriptors(Lzd%Llr(1))
      
+     !Copy the Glr to the Llr(1)
+     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      !nullify all pointers
      do ilr=1,Lzd%nlr
         nullify(Lzd%Llr(ilr)%projflg)
@@ -3807,11 +3809,10 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
         nullify(Lzd%Llr(ilr)%bounds%gb%ibzxx_f)
         nullify(Lzd%Llr(ilr)%bounds%gb%ibxxyy_f)
      end do
-
-     !Copy the Glr to the Llr(1)
-     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat) 
+      
      allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
+     Lzd%doHamAppl = .true.
      call copy_locreg_descriptors(Lzd%Glr, Lzd%Llr(1), subname)
   
      !Reinitiliaze inwhichlocreg

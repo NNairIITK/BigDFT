@@ -468,10 +468,6 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
   call read_radii_variables(atoms, radii_cf)
   do ityp=1,atoms%ntypes
 
-     !define the localization radius for the Linear input guess
-     if(in%linear == 'LIG') then
-        atoms%rloc(ityp,:) = rcov * 10.0
-     end if
 
 !!if(in%inputPsiId==100) then
 !!     norbitals=0
@@ -540,6 +536,12 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
           neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
      call atomic_occupation_numbers(fileocc,ityp,in%nspin,atoms,nmax,lmax,nelecmax,&
           neleconf,nsccode,mxpl,mxchg)
+
+     !define the localization radius for the Linear input guess
+     if(in%linear == 'LIG') then
+        atoms%rloc(ityp,:) = rcov * 10.0
+     end if
+
   end do
   !print *,'iatsctype',atOMS%iasctype(:)
 

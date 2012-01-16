@@ -420,7 +420,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call timing(iproc,'CrtDescriptors','ON')
-  call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,crmult,frmult,Lzd%Glr)
+   call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,crmult,frmult,Lzd%Glr)
    call timing(iproc,'CrtDescriptors','OF')
 
    !allocate communications arrays (allocate it before Projectors because of the definition

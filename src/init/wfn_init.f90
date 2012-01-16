@@ -660,7 +660,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   character(len=*), parameter :: subname='LDiagHam'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal,linear_nosemicore
-  integer :: ikptp,ikpt,nvctrp,ilr,psishift1,ldim,totshift,iorb
+  integer :: ikptp,ikpt,nvctrp,ilr,psishift1,ldim,totshift,iorb,Gdim
   integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(gp) :: tolerance
@@ -706,7 +706,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   end if
 
   if (nproc > 1 .or. Lzd%linear) then
-     allocate(psiw(npsidim+ndebug),stat=i_stat)
+     Gdim = (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbsu%norb_par(iproc,0)*orbsu%nspinor
+     allocate(psiw(max(npsidim,Gdim)+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   else
      nullify(psiw)
@@ -810,7 +811,6 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   !this is possible since the semicore orbitals are the first in the 
   !order, so the linear algebra on the transposed wavefunctions 
   !may be splitted
-
   ispsi=1
   do ikptp=1,orbsu%nkptsp
      ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)

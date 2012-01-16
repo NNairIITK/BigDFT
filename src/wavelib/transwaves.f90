@@ -171,13 +171,13 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
   !for linear scaling must project the wavefunctions to whole simulation box
   if(Lzd%linear) then
 !     if(.not. present(work) .or. .not. associated(work)) stop 'transpose_v needs optional argument work with Linear Scaling'
-     allocate(workarr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-     call memocc(i_stat,workarr,'workarr',subname)
-     call razero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
      psishift1 = 1
      totshift = 0
      Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
            sum(comms%ncntt(0:nproc-1)))
+     allocate(workarr(Gdim+ndebug),stat=i_stat)
+     call memocc(i_stat,workarr,'workarr',subname)
+     call razero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
@@ -210,7 +210,6 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
      call switch_waves_v(nproc,orbs,&
           Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
 
-
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
      if (present(outadd)) then
@@ -220,6 +219,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
         call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
              psi,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
      end if
+
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
   else
