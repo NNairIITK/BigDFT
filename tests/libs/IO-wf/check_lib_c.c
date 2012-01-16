@@ -56,6 +56,8 @@ int main(int argc, char **argv)
 
   bigdft_free_wave_to_isf(psiscf);
 
+  fflush(stdout);
+
   FC_FUNC_(memocc_report, MEMOCC_REPORT)();
 
   return 0;

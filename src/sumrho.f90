@@ -8,20 +8,20 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-     irrzon,phnons,pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
+     pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
   use module_base
   use module_types
   use module_interfaces, fake_name => density_and_hpot
   use Poisson_Solver
   implicit none
-  integer, intent(in) :: iproc,nproc,symObj
+  integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hxh,hyh,hzh
   type(rho_descriptors),intent(inout) :: rhodsc
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
+  type(symmetry_data), intent(in) :: symObj
   character(len=1), intent(in) :: geocode
-  integer, dimension(*), intent(in) :: irrzon
-  real(dp), dimension(*), intent(in) :: phnons,pkernel
+  real(dp), dimension(*), intent(in) :: pkernel
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(GPU_pointers), intent(inout) :: GPU
@@ -49,7 +49,7 @@ subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nsca
      end if
 
      call sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-          GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+          GPU,symObj,rhodsc,psi,rho_p)
      call communicate_density(iproc,nproc,orbs%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho)
   end if
 
@@ -73,7 +73,7 @@ subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nsca
        pkernel,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
   !in principle symmetrization of the stress tensor is not needed since the density has been 
   !already symmetrized
-  if (symObj >= 0 .and. geocode=='P') call symm_stress((iproc==0),hstrten,symObj)
+  if (symObj%symObj >= 0 .and. geocode=='P') call symm_stress((iproc==0),hstrten,symObj%symObj)
 
 end subroutine density_and_hpot
 
@@ -85,24 +85,23 @@ end subroutine density_and_hpot
 !! Output: 
 !!   @param rho
 subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-     GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p,mapping)
+     GPU,symObj,rhodsc,psi,rho_p,mapping)
    use module_base
    use module_types
    use module_xc
    implicit none
    !Arguments
-   integer, intent(in) :: iproc,nproc,symObj
+   integer, intent(in) :: iproc,nproc
    real(gp), intent(in) :: hxh,hyh,hzh
    type(rho_descriptors),intent(in) :: rhodsc
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
+   type(symmetry_data), intent(in) :: symObj
    integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
    real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
    real(dp), dimension(:,:), pointer :: rho_p
    !real(dp), dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),1),nspin), intent(out), target :: rho
    type(GPU_pointers), intent(inout) :: GPU
-   integer, dimension(*), intent(in) :: irrzon
-   real(dp), dimension(*), intent(in) :: phnons
    integer,dimension(orbs%norb),intent(in),optional:: mapping
    !Local variables
    character(len=*), parameter :: subname='sumrho'
@@ -153,10 +152,10 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
 
    !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
    !probably previous line is not suitable due to the fact that a extra communication would be needed
-   if (symObj >= 0) then
+   if (symObj%symObj >= 0) then
       call symmetrise_density(0,1,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,orbs%nspin,& !n(m)
       Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
-         &   rho_p,symObj,irrzon,phnons)
+         &   rho_p,symObj%symObj,symObj%irrzon,symObj%phnons)
    end if
    call timing(iproc,'Rho_comput    ','OF')
 

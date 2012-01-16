@@ -206,8 +206,11 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
   real(gp), intent(out) :: epot
   type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+  !local variables
+  integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
 
   epot=0.0_gp
+  ishift=(/0,0,0/)
 
 !!$  select case(lr%geocode)
 !!$  case('F')
@@ -216,13 +219,13 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
      if (lr%geocode == 'F') then
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             (/0,0,0/),lr%d%n2,lr%d%n3,&
+             ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot,&
              confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
      else
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             (/0,0,0/),lr%d%n2,lr%d%n3,&
+             ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot,confdata=confdata)
      end if
 
@@ -231,7 +234,7 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
      if (lr%geocode == 'F') then
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             (/0,0,0/),lr%d%n2,lr%d%n3,&
+             ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot,&
              ibyyzz_r=lr%bounds%ibyyzz_r)
 
@@ -241,7 +244,7 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
      else
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             (/0,0,0/),lr%d%n2,lr%d%n3,&
+             ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot)
      end if
   end if
@@ -1238,7 +1241,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                       plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c_i),&
                       cproj(ispinor,m,i,l))
-!                 print *,'ispinor,m,l,i,iat',ispinor,m,l,i,iat,cproj(ispinor,m,i,l)
+                 !print *,'ispinor,m,l,i,iat',ispinor,m,l,i,iat,cproj(ispinor,m,i,l)
               end do
               istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
            end do

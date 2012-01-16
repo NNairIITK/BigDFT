@@ -321,8 +321,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_interfaces
    use Poisson_Solver
    use module_xc
-   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
+   use vdwcorrection
    use esatto
+   use m_ab6_symmetry
+   use m_ab6_mixing
+   use m_ab6_kpoints
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -339,7 +342,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    character(len=*), parameter :: subname='abscalc'
    character(len=3) :: PSquiet
    integer :: ixc,ncong,idsx,ncongt,nspin,itermax
-   integer :: nvirt
+   integer :: nvirt,nsym
    integer :: nelec,ndegree_ip,j
    integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
@@ -357,9 +360,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(rho_descriptors)  :: rhodsc
 
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-   real(kind=8), dimension(:,:), allocatable :: radii_cf,fion
+   real(kind=8), dimension(:,:), allocatable :: radii_cf
    !real(kind=8), dimension(:,:), allocatable :: gxyz
-   real(gp), dimension(:,:),allocatable :: fdisp
+   real(gp), dimension(:,:),pointer :: fdisp,fion
    ! Charge density/potential,ionic potential, pkernel
    real(kind=8), dimension(:), allocatable :: pot_ion
 
@@ -518,10 +521,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    n3=Lzd%Glr%d%n3
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
-   call timing(iproc,'CrtDescriptors','ON')
+   !call timing(iproc,'CrtDescriptors','ON')
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
        atoms,rxyz,radii_cf,crmult,frmult,Lzd%Glr)
-   call timing(iproc,'CrtDescriptors','OF')
+   !call timing(iproc,'CrtDescriptors','OF')
 
 
    ! Calculate all projectors, or allocate array for on-the-fly calculation
@@ -535,10 +538,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,orbs)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
-   call timing(iproc,'CrtProjectors ','ON')
+   !call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
       &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
-   call timing(iproc,'CrtProjectors ','OF')
+   !call timing(iproc,'CrtProjectors ','OF')
 
 !   if (in%inputPsiId /= 0 .and. in%inputPsiId /= 10) then
    call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
@@ -601,31 +604,44 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call memocc(i_stat,pot_ion,'pot_ion',subname)
    end if
 
-   allocate(fion(3,atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,fion,'fion',subname)
-
    ! A message about dispersion forces.
+   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
    if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value 
    call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel,&
-      &   quiet=PSquiet)
+      &   (verbose > 1))
 
-   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,ewaldstr,&
+   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,&
+        & eion,fion,in%dispersion,edisp,fdisp,ewaldstr,&
         psoffset,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
    call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
         in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
 
-   !this can be inserted inside the IonicEnergyandForces routine
-   !(after insertion of the non-regression test)
-   call vdwcorrection_calculate_energy(edisp,rxyz,atoms,in,iproc)
 
-   allocate(fdisp(3,atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,fdisp,'fdisp',subname)
-   !this can be inserted inside the IonicEnergyandForces routine
-   call vdwcorrection_calculate_forces(fdisp,rxyz,atoms,in) 
+   !calculate the irreductible zone for this region, if necessary.
+   if (atoms%sym%symObj >= 0) then
+      call symmetry_get_n_sym(atoms%sym%symObj, nsym, i_stat)
+      if (nsym > 1) then
+         ! Current third dimension is set to 1 always
+         ! since nspin == nsppol always in BigDFT
+         allocate(atoms%sym%irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
+         call memocc(i_stat,atoms%sym%irrzon,'irrzon',subname)
+         allocate(atoms%sym%phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
+         call memocc(i_stat,atoms%sym%phnons,'phnons',subname)
+         call kpoints_get_irreductible_zone(atoms%sym%irrzon, atoms%sym%phnons, &
+              &   n1i, n2i, n3i, in%nspin, in%nspin, atoms%sym%symObj, i_stat)
+      end if
+   end if
+   if (.not. associated(atoms%sym%irrzon)) then
+      ! Allocate anyway to small size other size the bounds check does not pass.
+      allocate(atoms%sym%irrzon(1,2,1+ndebug),stat=i_stat)
+      call memocc(i_stat,atoms%sym%irrzon,'irrzon',subname)
+      allocate(atoms%sym%phnons(2,1,1+ndebug),stat=i_stat)
+      call memocc(i_stat,atoms%sym%phnons,'phnons',subname)
+   end if
 
    !Allocate Charge density, Potential in real space
    if (n3d >0) then

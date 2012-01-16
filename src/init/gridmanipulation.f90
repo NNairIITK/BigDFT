@@ -221,6 +221,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    endif
 
    !assign the values
+   Glr%geocode=atoms%geocode
    Glr%d%n1  =n1  
    Glr%d%n2  =n2  
    Glr%d%n3  =n3  
@@ -257,7 +258,6 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    else
       if (iproc == 0) write(*,*)'wavelet localization is OFF'
    endif
-
 END SUBROUTINE system_size
 
 

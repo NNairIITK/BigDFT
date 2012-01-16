@@ -3679,7 +3679,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
      linear = .false.
      Lzd%nlr = 1
   end if
-
+!print *,'======>Using linear code:',linear
   Lzd%linear = .true.
   if (.not. linear)  Lzd%linear = .false. 
 
@@ -3721,7 +3721,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
         i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
         deallocate(calculateBounds,stat=i_stat)
         call memocc(i_stat,i_all,'calculateBounds',subname)
-        i_all = -product(shape(locrad))*kind(locrad)                                                                                                                                                              
+        i_all = -product(shape(locrad))*kind(locrad)
         deallocate(locrad,stat=i_stat)
         call memocc(i_stat,i_all,'locrad',subname)
 

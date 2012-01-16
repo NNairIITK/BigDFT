@@ -33,7 +33,7 @@ check_lib_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
 check_lib_LDADD = @LIBS_DEPENDENCIES@
 
 check_lib_c_SOURCES = check_lib_c.c
-check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules
+check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules
 check_lib_c_LDADD = @LIBS_DEPENDENCIES@ @FCLIBS@
 
 clean-local: 
@@ -191,10 +191,10 @@ read_etsf.report: read_etsf.out $(srcdir)/read.out.ref
 
 # Bigdft-tool exportation
 exportwf.report: wf_binary.cube wf_plain.cube
-	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-9 $^ | tee $@
 
 exportwf_etsf.report: wf_binary.cube wf_etsf.cube
-	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-9 $^ | tee $@
 
 # Library in Fortran
 check_lib_plain.report: $(srcdir)/check_lib.out.ref check_lib_plain.out

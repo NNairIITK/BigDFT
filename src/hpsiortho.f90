@@ -727,176 +727,177 @@ END SUBROUTINE free_full_potential
 !! depending of the functional we want to calculate. The gradient wrt the wavefunction
 !! is put in hpsi accordingly to the functional
 subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,ncong,iscf,&
-      &   ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
-   use module_base
-   use module_types
-   use module_interfaces, except_this_one => calculate_energy_and_gradient
-   implicit none
-   integer, intent(in) :: iproc,nproc,ncong,iscf,iter
-   real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
-   type(orbitals_data), intent(in) :: orbs
-   type(communications_arrays), intent(in) :: comms
+     &   ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => calculate_energy_and_gradient
+  implicit none
+  integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+  real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
+  type(orbitals_data), intent(in) :: orbs
+  type(communications_arrays), intent(in) :: comms
   type(local_zone_descriptors), intent(in) :: Lzd
-   type(GPU_pointers), intent(in) :: GPU
-   real(gp), intent(out) :: gnrm,gnrm_zero,energy
-   real(wp), dimension(:), pointer :: psi,psit,hpsi
-   !local variables
-   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
-   logical :: lcs
-   integer :: ierr,ikpt,iorb,i_all,i_stat,k
-   real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
-   real(wp), dimension(:,:,:), pointer :: mom_vec
+  type(GPU_pointers), intent(in) :: GPU
+  real(gp), intent(out) :: gnrm,gnrm_zero,energy
+  real(wp), dimension(:), pointer :: psi,psit,hpsi
+  !local variables
+  character(len=*), parameter :: subname='calculate_energy_and_gradient' 
+  logical :: lcs
+  integer :: ierr,ikpt,iorb,i_all,i_stat,k,ilr,ist
+  real(gp) :: energybs,trH,rzeroorbs,tt,energyKS,scpr
+  real(wp), dimension(:,:,:), pointer :: mom_vec
 
-   !band structure energy calculated with occupation numbers
-   energybs=ekin+epot+eproj !the potential energy contains also exctX
+  !band structure energy calculated with occupation numbers
+  energybs=ekin+epot+eproj !the potential energy contains also exctX
 
-   !!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
-   !!$  eTS=0.0_gp
-   !!$  do iorb=1,orbs%norbu  ! for closed shell case
-   !!$     !  if (iproc == 0)  print '("iorb,occup,eval,fermi:  ",i,e10.2,e27.17,e27.17)',iorb,orbs%occup(iorb),orbs%eval(iorb),orbs%efermi
-   !!$     eTS=eTS+exp(-((orbs%eval(iorb)-orbs%efermi)/in%Tel)**2)
-   !!$  enddo
-   !!$  if eTS=eTS*2._gp   ! for closed shell case
-   !!$  eTS=in%Tel/(2._gp*sqrt(3.1415926535897932_gp))* eTS
-   !!$  energy=energy-eTS
-   !!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
+!!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
+!!$  eTS=0.0_gp
+!!$  do iorb=1,orbs%norbu  ! for closed shell case
+!!$     !  if (iproc == 0)  print '("iorb,occup,eval,fermi:  ",i,e10.2,e27.17,e27.17)',iorb,orbs%occup(iorb),orbs%eval(iorb),orbs%efermi
+!!$     eTS=eTS+exp(-((orbs%eval(iorb)-orbs%efermi)/in%Tel)**2)
+!!$  enddo
+!!$  if eTS=eTS*2._gp   ! for closed shell case
+!!$  eTS=in%Tel/(2._gp*sqrt(3.1415926535897932_gp))* eTS
+!!$  energy=energy-eTS
+!!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
 
-   !this is the Kohn-Sham energy
-   energyKS=energybs-ehart+exc-evxc-eexctX-eSIC_DC+eion+edisp
+  !this is the Kohn-Sham energy
+  energyKS=energybs-ehart+exc-evxc-eexctX-eSIC_DC+eion+edisp
 
   !calculate orbital polarisation directions
-   if(orbs%nspinor==4) then
-      allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
-      call memocc(i_stat,mom_vec,'mom_vec',subname)
+  if(orbs%nspinor==4) then
+     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
+     call memocc(i_stat,mom_vec,'mom_vec',subname)
 
-      call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
+     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
           Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
-   else
-      nullify(mom_vec)
-   end if
+  else
+     nullify(mom_vec)
+  end if
 
 
-   if (iproc==0 .and. verbose > 1) then
-      write(*,'(1x,a)',advance='no')&
-         &   'done,  orthoconstraint...'
-   end if
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)',advance='no')&
+          &   'done,  orthoconstraint...'
+  end if
 
-   !transpose the hpsi wavefunction
+  !transpose the hpsi wavefunction
   call transpose_v2(iproc,nproc,orbs,Lzd,comms,hpsi,work=psi)
 
-   if (nproc == 1) then
-      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
-      psit => psi
+  if (nproc == 1) then
+     !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
+     psit => psi
      call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psit)
-   end if
+  end if
 
-   ! Apply  orthogonality constraints to all orbitals belonging to iproc
-   !takes also into account parallel k-points distribution
-   !here the orthogonality with respect to other occupied functions should be 
-   !passed as an optional argument
-   call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
+  ! Apply  orthogonality constraints to all orbitals belonging to iproc
+  !takes also into account parallel k-points distribution
+  !here the orthogonality with respect to other occupied functions should be 
+  !passed as an optional argument
+  call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
 
-   !retranspose the hpsi wavefunction
+  !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=psi)
 
-   !after having calcutated the trace of the hamiltonian, the functional have to be defined
-   !new value without the trace, to be added in hpsitopsi
-   if (iscf >1) then
-      energy=trH
-   else
-      energy=energyKS!trH-ehart+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
-   end if
+  !after having calcutated the trace of the hamiltonian, the functional have to be defined
+  !new value without the trace, to be added in hpsitopsi
+  if (iscf >1) then
+     energy=trH
+  else
+     energy=energyKS!trH-ehart+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
+  end if
 
-   !check that the trace of the hamiltonian is compatible with the 
-   !band structure energy 
-   !this can be done only if the occupation numbers are all equal
-   tt=(energybs-trH)/trH
-   if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
-      &   (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
-   !write this warning only if the system is closed shell
-   call check_closed_shell(orbs,lcs)
-   if (lcs) then
-      write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-         &   'ERROR: inconsistency between gradient and energy',tt,energybs,trH
-   end if
-endif
+  !check that the trace of the hamiltonian is compatible with the 
+  !band structure energy 
+  !this can be done only if the occupation numbers are all equal
+  tt=(energybs-trH)/trH
+  if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+       &   (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
+     !write this warning only if the system is closed shell
+     call check_closed_shell(orbs,lcs)
+     if (lcs) then
+        write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
+             &   'ERROR: inconsistency between gradient and energy',tt,energybs,trH
+     end if
+  endif
 
-call timing(iproc,'Precondition  ','ON')
-if (iproc==0 .and. verbose > 1) then
-   write(*,'(1x,a)',advance='no')&
-      &   'done,  preconditioning...'
-end if
 
-!Preconditions all orbitals belonging to iproc
-!and calculate the partial norm of the residue
-!switch between CPU and GPU treatment
-if (GPUconv) then
+  call timing(iproc,'Precondition  ','ON')
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)',advance='no')&
+          &   'done,  preconditioning...'
+  end if
+
+  !Preconditions all orbitals belonging to iproc
+  !and calculate the partial norm of the residue
+  !switch between CPU and GPU treatment
+  if (GPUconv) then
      call preconditionall_GPU(orbs,Lzd%Glr,hx,hy,hz,ncong,&
-      &   hpsi,gnrm,gnrm_zero,GPU)
-else if (OCLconv) then
+          &   hpsi,gnrm,gnrm_zero,GPU)
+  else if (OCLconv) then
      call preconditionall_OCL(orbs,Lzd%Glr,hx,hy,hz,ncong,&
-      &   hpsi,gnrm,gnrm_zero,GPU)
-else
+          &   hpsi,gnrm,gnrm_zero,GPU)
+  else
      call preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
      if(.false.) then
         call preconditionall(orbs,Lzd%Glr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
      end if
-end if
+  end if
 
-!sum over all the partial residues
-if (nproc > 1) then
-   call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-   call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-endif
+  !sum over all the partial residues
+  if (nproc > 1) then
+     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+  endif
 
-!count the number of orbitals which have zero occupation number
-!weight this with the corresponding k point weight
-rzeroorbs=0.0_gp
-do ikpt=1,orbs%nkpts
-   do iorb=1,orbs%norb
-      if (orbs%occup(iorb+(ikpt-1)*orbs%norb) == 0.0_gp) then
-         rzeroorbs=rzeroorbs+orbs%kwgts(ikpt)
-      end if
-   end do
-end do
-!commented out, the kwgts sum already to one
-!if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
+  !count the number of orbitals which have zero occupation number
+  !weight this with the corresponding k point weight
+  rzeroorbs=0.0_gp
+  do ikpt=1,orbs%nkpts
+     do iorb=1,orbs%norb
+        if (orbs%occup(iorb+(ikpt-1)*orbs%norb) == 0.0_gp) then
+           rzeroorbs=rzeroorbs+orbs%kwgts(ikpt)
+        end if
+     end do
+  end do
+  !commented out, the kwgts sum already to one
+  !if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
 
-gnrm=sqrt(gnrm/(real(orbs%norb,gp)-rzeroorbs))
+  gnrm=sqrt(gnrm/(real(orbs%norb,gp)-rzeroorbs))
 
-if (rzeroorbs /= 0.0_gp) then
-   gnrm_zero=sqrt(gnrm_zero/rzeroorbs)
-else
-   gnrm_zero=0.0_gp
-end if
+  if (rzeroorbs /= 0.0_gp) then
+     gnrm_zero=sqrt(gnrm_zero/rzeroorbs)
+  else
+     gnrm_zero=0.0_gp
+  end if
 
-if (iproc==0 .and. verbose > 1) then
-   write(*,'(1x,a)')&
-      &   'done.'
-end if
-call timing(iproc,'Precondition  ','OF')
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)')&
+          &   'done.'
+  end if
+  call timing(iproc,'Precondition  ','OF')
 
-if (orbs%nspinor == 4) then
-   !only the root process has the correct array
-   if(iproc==0 .and. verbose > 0) then
-      write(*,'(1x,a)')&
-         &   'Magnetic polarization per orbital'
-      write(*,'(1x,a)')&
-         &   '  iorb    m_x       m_y       m_z'
-      do iorb=1,orbs%norb
-         write(*,'(1x,i5,3f10.5)') &
-            &   iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
-      end do
-   end if
-   i_all=-product(shape(mom_vec))*kind(mom_vec)
-   deallocate(mom_vec,stat=i_stat)
-   call memocc(i_stat,i_all,'mom_vec',subname)
-end if
+  if (orbs%nspinor == 4) then
+     !only the root process has the correct array
+     if(iproc==0 .and. verbose > 0) then
+        write(*,'(1x,a)')&
+             &   'Magnetic polarization per orbital'
+        write(*,'(1x,a)')&
+             &   '  iorb    m_x       m_y       m_z'
+        do iorb=1,orbs%norb
+           write(*,'(1x,i5,3f10.5)') &
+                &   iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
+        end do
+     end if
+     i_all=-product(shape(mom_vec))*kind(mom_vec)
+     deallocate(mom_vec,stat=i_stat)
+     call memocc(i_stat,i_all,'mom_vec',subname)
+  end if
 
 
-!write the energy information
-if (iproc == 0) then
-call write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,' ')
+  !write the energy information
+  if (iproc == 0) then
+     call write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,' ')
 !!$   if (verbose > 0 .and. iscf<1) then
 !!$      write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
 !!$      ekin,epot,eproj
