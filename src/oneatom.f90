@@ -31,6 +31,7 @@ program oneatom
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis
   type(rho_descriptors)  :: rhodsc
+  type(gaussian_basis)::proj_G
   character(len=4) :: itername
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -90,7 +91,7 @@ program oneatom
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,proj)
+       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,proj,proj_G)
   call timing(iproc,'CrtProjectors ','OF')
 
   !allocate communications arrays
@@ -219,7 +220,7 @@ program oneatom
           Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
 
      call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          nlpspd,proj,Glr,psi,hpsi,eproj_sum)
+          nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G)
 
      call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 

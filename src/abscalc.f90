@@ -528,7 +528,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj,proj_tmp)
   call timing(iproc,'CrtProjectors ','OF')
 
   if(sum(atoms%paw_NofL).gt.0) then

@@ -592,6 +592,10 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
   !local variables
   integer :: iat,nwarnings,iproj,iorb
   integer :: istart_c,idir,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
+  type(gaussian_basis)::G
+
+  !G is only used in PAW
+  call nullify_gaussian_basis(G)
   
   !put idir=0, no derivative
   idir=0
@@ -617,7 +621,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      do iat=1,at%nat
         istart_c=1
         call atom_projector(ikpt,iat,idir,istart_c,iproj,&
-             n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+             n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings,G)
 
         !apply the projector to all the orbitals belonging to the processor
         ispsi=ispsi_k

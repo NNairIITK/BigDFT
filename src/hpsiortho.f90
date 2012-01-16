@@ -91,7 +91,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   else
      nullify(pkernelSIC)
   end if
-  
+ 
   !fill the rest of the potential with the exact-exchange terms
   if (ipotmethod==1) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
@@ -174,7 +174,7 @@ END SUBROUTINE LocalHamiltonianApplication
 !> routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
 subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-     nlpspd,proj,lr,psi,hpsi,eproj_sum)
+     nlpspd,proj,lr,psi,hpsi,eproj_sum,G)
   use module_base
   use module_types
   implicit none
@@ -184,6 +184,7 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(orbitals_data),  intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr 
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(gaussian_basis),intent(in)::G !projectors in gaussian basis (for PAW)
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
@@ -224,7 +225,7 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
         do iat=1,at%nat
            istart_c=1
            call atom_projector(ikpt,iat,0,istart_c,iproj,&
-                lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+                lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings,G)
 
            !apply the projector to all the orbitals belonging to the processor
            ispsi=ispsi_k

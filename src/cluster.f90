@@ -232,7 +232,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms, commsv
   type(orbitals_data) :: orbsv
-  type(gaussian_basis) :: Gvirt,proj_tmp
+  type(gaussian_basis) :: Gvirt,proj_G
   type(diis_objects) :: diis
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -298,6 +298,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         write(wfformat, "(A)") ".bin"
   end select
      
+  !proj_G is dummy here, it is only used for PAW
+  call nullify_gaussian_basis(proj_G)
+
   norbv=abs(in%norbv)
   nvirt=in%nvirt
   hx=in%hx
@@ -414,7 +417,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj,proj_G)
   call timing(iproc,'CrtProjectors ','OF')
 
   !calculate the partitioning of the orbitals between the different processors
@@ -693,7 +696,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,&
-          GPU,in,proj_tmp)
+          GPU,in,proj_G)
      if (nvirt > norbv) then
         nvirt = norbv
      end if
@@ -975,7 +978,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
 
            call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-                nlpspd,proj,Glr,psi,hpsi,eproj_sum)
+                nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G)
 
            call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -1392,7 +1395,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
            call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbsv,&
-                radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj) 
+                radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj,proj_G) 
            call timing(iproc,'CrtProjectors ','OF') 
 
         else

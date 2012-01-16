@@ -219,7 +219,7 @@ END SUBROUTINE createWavefunctionsDescriptors
 
 !>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
-     radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+     radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj,G)
   use module_base
   use module_types
   implicit none
@@ -227,6 +227,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
+  type(gaussian_basis),intent(in) :: G
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
@@ -251,7 +252,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   call memocc(i_stat,logrid,'logrid',subname)
 
   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
-       logrid,at,orbs,nlpspd)
+       logrid,at,orbs,nlpspd,G)
 
   ! allocations for arrays holding the projectors and their data descriptors
   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
@@ -263,7 +264,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
   ! After having determined the size of the projector descriptor arrays fill them
   do iat=1,at%nat
-     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
+     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,G,mproj)
      if (mproj.ne.0) then 
 
         ! coarse grid quantities
@@ -1487,7 +1488,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
        Glr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
 
   call NonLocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-       nlpspd,proj,Glr,psi,hpsi,eproj_sum)
+       nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G)
 
   call SynchronizeHamiltonianApplication(nproc,orbse,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -1617,3 +1618,4 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
      
 END SUBROUTINE input_wf_diag
+

@@ -1290,6 +1290,21 @@ END SUBROUTINE deallocate_orbs
     end if
   END SUBROUTINE deallocate_pcproj_data
 
+subroutine nullify_gaussian_basis(G)
+
+  implicit none
+  !Arguments
+  type(gaussian_basis),intent(inout)::G 
+
+  G%ncplx=1
+  nullify(G%nshell)
+  nullify(G%ndoc)
+  nullify(G%nam)
+  nullify(G%psiat)
+  nullify(G%xp)
+  nullify(G%rxyz)
+
+END SUBROUTINE nullify_gaussian_basis
 
 
 end module module_types

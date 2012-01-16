@@ -1026,6 +1026,9 @@ END SUBROUTINE EP_set_random_interna
    real(gp) ene, gamma, mene
    !Local variables
    integer :: k
+   type(gaussian_basis)::proj_G
+ 
+   call nullify_gaussian_basis(proj_G)
    
    if( ha%nproc > 1) then
       if(i>=0) then
@@ -1059,7 +1062,7 @@ END SUBROUTINE EP_set_random_interna
          ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
     call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G)
 
     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
          ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
@@ -1080,7 +1083,7 @@ END SUBROUTINE EP_set_random_interna
          ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
     call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G)
 
     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
          ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
@@ -1150,6 +1153,7 @@ END SUBROUTINE EP_set_random_interna
     integer, intent(in) :: p,i
     !Local variables
     integer :: k
+    type(gaussian_basis)::proj_G
     
     if( ha%nproc > 1) then
        if(i>=0) then
@@ -1187,7 +1191,7 @@ END SUBROUTINE EP_set_random_interna
          ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
     call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G)
 
     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
          ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)

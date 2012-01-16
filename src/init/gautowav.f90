@@ -723,17 +723,17 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                     gau_a=G%xp(1,iexpo+ig-1)
                     n_gau=lx(i)
                     !print *,'x',gau_a,nterm,ncplx,kx,ky,kz,ml1,mu1,lr%d%n1
-                    call gauss_to_daub_k(hx,kx*hx,ncplx,fac_arr(i),rx,gau_a,n_gau,&
+                    call gauss_to_daub_k(hx,kx*hx,ncplx,1,ncplx,fac_arr(i),rx,gau_a,n_gau,&
                          lr%d%n1,ml1,mu1,&
                          wx(1,0,1,iterm),work,nw,perx) 
                     n_gau=ly(i)
                     !print *,'y',ml2,mu2,lr%d%n2
-                    call gauss_to_daub_k(hy,ky*hy,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
+                    call gauss_to_daub_k(hy,ky*hy,ncplx,1,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
                          lr%d%n2,ml2,mu2,&
                          wy(1,0,1,iterm),work,nw,pery) 
                     n_gau=lz(i) 
                     !print *,'z',ml3,mu3,lr%d%n3
-                    call gauss_to_daub_k(hz,kz*hz,ncplx,G%psiat(1,iexpo+ig-1),rz,gau_a,n_gau,&
+                    call gauss_to_daub_k(hz,kz*hz,ncplx,1,ncplx,G%psiat(1,iexpo+ig-1),rz,gau_a,n_gau,&
                          lr%d%n3,ml3,mu3,&
                          wz(1,0,1,iterm),work,nw,perz)
                     iterm=iterm+1
