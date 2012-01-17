@@ -472,12 +472,12 @@ module module_interfaces
       END SUBROUTINE sumrho
 
 
-      subroutine rho_segkey(iproc,nproc,at,rxyz,crmult,frmult,radii_cf,&
+      subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
             &   n1i,n2i,n3i,hxh,hyh,hzh,nspin,rho_d,iprint)
          !n(c) use module_base
          use module_types
          implicit none
-         integer,intent(in) :: n1i,n2i,n3i,iproc,nproc,nspin
+         integer,intent(in) :: n1i,n2i,n3i,iproc,nspin
          type(atoms_data), intent(in) :: at
          real(gp), dimension(3,at%nat), intent(in) :: rxyz
          real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
@@ -1615,6 +1615,22 @@ module module_interfaces
         real(kind=8), dimension(:,:,:,:), pointer :: potxc
         real(kind=8), dimension(:), pointer :: rhocore
       END SUBROUTINE allocateRhoPot
+
+      subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,tens)
+        use module_base
+        use module_types
+        implicit none
+        !passed var
+        type(atoms_data), intent(in) :: at
+        real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+        real(gp), intent(in) :: hxh,hyh,hzh
+        integer,intent(in) :: n1i,n2i,n3i,n3p,iproc,nproc
+        real(kind=8), dimension(n1i*n2i*max(n3p,1)), intent(in), target :: rho
+        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+        real(dp),dimension(6), intent(out) :: tens
+      end subroutine erf_stress
+
+
       !subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
       !
       !
