@@ -14,24 +14,23 @@
 !! Output: 
 !!   @param rho
 subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
-      &   nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
+      &   nscatterarr,nspin,GPU,symObj,rhodsc)
    use module_base!, only: gp,dp,wp,ndebug,memocc
    use module_types
    use module_xc
 
    implicit none
    !Arguments
-   integer, intent(in) :: iproc,nproc,nspin,symObj
+   integer, intent(in) :: iproc,nproc,nspin
    real(gp), intent(in) :: hxh,hyh,hzh
    type(rho_descriptors),intent(in) :: rhodsc
    type(orbitals_data), intent(in) :: orbs
    type(locreg_descriptors), intent(in) :: lr 
+   type(symmetry_data), intent(in) :: symObj
    integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
    real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
    real(dp), dimension(max(lr%d%n1i*lr%d%n2i*nscatterarr(iproc,1),1),nspin), intent(out), target :: rho
    type(GPU_pointers), intent(inout) :: GPU
-   integer, dimension(*), intent(in) :: irrzon
-   real(dp), dimension(*), intent(in) :: phnons
    !Local variables
    character(len=*), parameter :: subname='sumrho'
    !n(c) logical :: rsflag
@@ -135,10 +134,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
    ! Symmetrise density, TODO...
    !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
    !probably previous line is not suitable due to the fact that a extra communication would be needed
-   if (symObj >= 0) then
+   if (symObj%symObj >= 0) then
       call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin,& !n(m)
       lr%d%n1i*lr%d%n2i*lr%d%n3i,&
-         &   rho_p,symObj,irrzon,phnons)
+         &   rho_p,symObj%symObj,symObj%irrzon,symObj%phnons)
    end if
 
    !starting point for the communication routine of the density

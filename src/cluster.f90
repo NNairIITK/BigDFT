@@ -259,9 +259,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
    real(kind=8), dimension(:), pointer :: hpsi,psit,psi_old,psivirt
    ! PSP projectors 
    real(kind=8), dimension(:), pointer :: proj,gbd_occ,rhocore
-   ! Arrays for the symmetrisation.
-   integer, dimension(:,:,:), allocatable :: irrzon
-   real(dp), dimension(:,:,:), allocatable :: phnons
    ! Variables for the virtual orbitals and band diagram.
    integer :: nkptv, nvirtu, nvirtd
    real(gp), allocatable :: wkptv(:)
@@ -446,28 +443,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
    call createEffectiveIonicPotential(iproc,nproc,in,atoms,rxyz,shift,Glr,hxh,hyh,hzh,&
         &   denspotd,pkernel,pot_ion,in%elecfield,psoffset)
 
-   !calculate the irreductible zone, if necessary.
-   if (atoms%symObj >= 0) then
-      call symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
-      if (nsym > 1) then
-         ! Current third dimension is set to 1 always
-         ! since nspin == nsppol always in BigDFT
-         allocate(irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
-         call memocc(i_stat,irrzon,'irrzon',subname)
-         allocate(phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
-         call memocc(i_stat,phnons,'phnons',subname)
-         call kpoints_get_irreductible_zone(irrzon, phnons, &
-            &   n1i, n2i, n3i, in%nspin, in%nspin, atoms%symObj, i_stat)
-      end if
-   end if
-   if (.not. allocated(irrzon)) then
-      ! Allocate anyway to small size other size the bounds check does not pass.
-      allocate(irrzon(1,2,1+ndebug),stat=i_stat)
-      call memocc(i_stat,irrzon,'irrzon',subname)
-      allocate(phnons(2,1,1+ndebug),stat=i_stat)
-      call memocc(i_stat,phnons,'phnons',subname)
-   end if
-
    !check the communication distribution
    call check_communications(iproc,nproc,orbs,Glr,comms)
 
@@ -475,6 +450,28 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
    if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
       allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
       call memocc(i_stat,orbs%eval,'eval',subname)
+   end if
+
+   !calculate the irreductible zone for this region, if necessary.
+   if (atoms%sym%symObj >= 0) then
+      call symmetry_get_n_sym(atoms%sym%symObj, nsym, i_stat)
+      if (nsym > 1) then
+         ! Current third dimension is set to 1 always
+         ! since nspin == nsppol always in BigDFT
+         allocate(atoms%sym%irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
+         call memocc(i_stat,atoms%sym%irrzon,'irrzon',subname)
+         allocate(atoms%sym%phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
+         call memocc(i_stat,atoms%sym%phnons,'phnons',subname)
+         call kpoints_get_irreductible_zone(atoms%sym%irrzon, atoms%sym%phnons, &
+              &   n1i, n2i, n3i, in%nspin, in%nspin, atoms%sym%symObj, i_stat)
+      end if
+   end if
+   if (.not. associated(atoms%sym%irrzon)) then
+      ! Allocate anyway to small size other size the bounds check does not pass.
+      allocate(atoms%sym%irrzon(1,2,1+ndebug),stat=i_stat)
+      call memocc(i_stat,atoms%sym%irrzon,'irrzon',subname)
+      allocate(atoms%sym%phnons(2,1,1+ndebug),stat=i_stat)
+      call memocc(i_stat,atoms%sym%phnons,'phnons',subname)
    end if
 
    !start the optimization
@@ -619,7 +616,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       call input_wf_diag(iproc,nproc, atoms,rhodsc,&
          &   orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
       nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
-         &   denspotd%nscatterarr,denspotd%ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
+         &   denspotd%nscatterarr,denspotd%ngatherarr,nspin,0,atoms%sym%symObj,atoms%sym%irrzon,atoms%sym%phnons,GPU,in)
       if (nvirt > norbv) then
          nvirt = norbv
       end if
@@ -854,7 +851,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
             if (scpot) then
                ! Potential from electronic charge density     
                call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rhopot,&
-                  &   denspotd%nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
+                  &   denspotd%nscatterarr,in%nspin,GPU,atoms%sym,rhodsc)
                !here the density can be mixed
                if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
                   if (mix%kind == AB6_MIXING_DENSITY) then
@@ -1258,7 +1255,7 @@ if (inputpsi /= -1000) then
       call memocc(i_stat,rho,'rho',subname)
    end if
    call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rho,&
-      &   denspotd%nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
+      &   denspotd%nscatterarr,in%nspin,GPU,atoms%sym,rhodsc)
 
    ! calculate dipole moment associated to the charge density
    if (DoLastRunThings) & 
@@ -1298,7 +1295,7 @@ if (inputpsi /= -1000) then
       &   n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
    !in principle symmetrization of the stress tensor is not needed since the density has been 
    !already symmetrized
-   if (atoms%symObj >= 0 .and. atoms%geocode=='P') call symm_stress(iproc,hstrten,atoms)
+   if (atoms%sym%symObj >= 0 .and. atoms%geocode=='P') call symm_stress(iproc,hstrten,atoms)
 
 
 !!$   !temporary printout of the stress tensor
@@ -1451,7 +1448,7 @@ if (DoDavidson) then
          ! Potential from electronic charge density
          !WARNING: this is good just because the TDDFT is done with LDA
          call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rhopot,&
-            &   denspotd%nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
+            &   denspotd%nscatterarr,in%nspin,GPU,atoms%sym,rhodsc)
 
          if (OCLconv) then
             call free_gpu_OCL(GPU,orbs,in%nspin)
@@ -1704,14 +1701,6 @@ subroutine deallocate_before_exiting
       call memocc(i_stat,i_all,'fdisp',subname)
 
    end if
-
-   i_all=-product(shape(irrzon))*kind(irrzon)
-   deallocate(irrzon,stat=i_stat)
-   call memocc(i_stat,i_all,'irrzon',subname)
-
-   i_all=-product(shape(phnons))*kind(phnons)
-   deallocate(phnons,stat=i_stat)
-   call memocc(i_stat,i_all,'phnons',subname)
 
    call deallocate_bounds(Glr%geocode,Glr%hybrid_on,Glr%bounds,subname)
 
