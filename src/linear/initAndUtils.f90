@@ -540,6 +540,9 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   end do
   close(unit=99)
 
+  ! Initialize lin%potentialPrefac to some value (will be adjusted later)
+  lin%potentialPrefac=-1.d0
+
   ! Assign the localization radius to each atom.
   do iat=1,at%nat
       itype=at%iatype(iat)
@@ -586,7 +589,7 @@ write(*,'(1x,a)') '>>>> General parameters.'
 write(*,'(4x,a)') '|           |    number of    |     prefactor for     | localization |'
 write(*,'(4x,a)') '| atom type | basis functions | confinement potential |    radius    |'
 do itype=1,at%ntypes
-    write(*,'(4x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a,3x,f8.4,3x,a)') '| ', trim(atomNames(itype)), &
+    write(*,'(4x,a,4x,a,a,a,a,i0,7x,a,7x,es10.2,6x,a,3x,f8.4,3x,a)') '| ', trim(atomNames(itype)), &
         repeat(' ', 6-len_trim(atomNames(itype))), '|', repeat(' ', 10-ceiling(log10(dble(norbsPerType(itype)+1)+1.d-10))), &
          norbsPerType(itype), '|', lin%potentialPrefac(itype), ' |', lin%locrad(itype), '|'
 end do
@@ -602,7 +605,7 @@ else
     write(hist,'(i2)') lin%mixHist
     message1=' DIIS'//hist//' '
 end if
-write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es8.2,a,es9.3,a,es9.3,a)') '| ', &
+write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es9.2,a,es9.2,a,es9.3,a)') '| ', &
      lin%mixingMethod, '  |', message1, ' | ', repeat(' ', optimalLength(4, lin%nItSCCWhenOptimizing)), &
      lin%nItSCCWhenOptimizing, '   /', repeat(' ', optimalLength(3, lin%nItSCCWhenFixed)), lin%nItSCCWhenFixed, &
      '   |', lin%alphaMixWhenOptimizing, ' /', lin%alphaMixWhenOptimizing, ' |    ',&

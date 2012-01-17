@@ -181,7 +181,6 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-write(*,*) 'iorb+orbs%isorb, ilr, ldim', iorb+orbs%isorb, ilr, ldim
         call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
              ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
         psishift1 = psishift1 + ldim
