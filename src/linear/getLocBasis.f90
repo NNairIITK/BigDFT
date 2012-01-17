@@ -1613,8 +1613,10 @@ real(8),dimension(orbs%norb):: eval
 ! Local variables
 integer:: lwork, info, istat, iall, i, iorb, jorb
 real(8),dimension(:),allocatable:: work
+real(8),dimension(:,:),allocatable:: ham_band, ovrlp_band
 character(len=*),parameter:: subname='diagonalizeHamiltonian'
 
+  !! OLD VERSION #####################################################################################################
   ! Get the optimal work array size
   lwork=-1 
   allocate(work(1), stat=istat)
@@ -1646,6 +1648,44 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
           end do
       end if
   end do
+  !! #################################################################################################################
+
+  !!!! NEW VERSION #####################################################################################################
+  !!! Determine the maximal number of non-zero subdiagonals
+
+
+
+  !!! Get the optimal work array size
+  !!lwork=-1 
+  !!allocate(work(1), stat=istat)
+  !!call memocc(istat, work, 'work', subname)
+  !!call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+  !!lwork=work(1) 
+
+  !!! Deallocate the work array ane reallocate it with the optimal size
+  !!iall=-product(shape(work))*kind(work)
+  !!deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+  !!call memocc(istat, iall, 'work', subname)
+  !!allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
+  !!call memocc(istat, work, 'work', subname)
+
+  !!! Diagonalize the Hamiltonian
+  !!call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+
+  !!! Deallocate the work array.
+  !!iall=-product(shape(work))*kind(work)
+  !!deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+  !!call memocc(istat, iall, 'work', subname)
+  !!
+  !!! Make sure that the eigenvectors are the same for all MPI processes. To do so, require that 
+  !!! the first entry of each vector is positive.
+  !!do iorb=1,orbs%norb
+  !!    if(HamSmall(1,iorb)<0.d0) then
+  !!        do jorb=1,orbs%norb
+  !!            HamSmall(jorb,iorb)=-HamSmall(jorb,iorb)
+  !!        end do
+  !!    end if
+  !!end do
 
 
 end subroutine diagonalizeHamiltonian2
@@ -4276,17 +4316,17 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   !time_matrixmodification=time_matrixmodification/dble(nproc)
   !time_exponential_=time_exponential/dble(nproc)
   !time_tot=time_tot/dble(nproc)
-  if(iproc==0) then
-      write(*,'(a,es16.6)') 'total time: ',time_tot
-      write(*,'(a,es15.7,a,f5.2,a)') 'convolutions: ',time_convol,' (',time_convol/time_tot*100.d0,'%)'
-      write(*,'(a,es15.7,a,f5.2,a)') 'linear combinations: ',time_lincomb,' (',time_lincomb/time_tot*100.d0,'%)'
-      write(*,'(a,es15.7,a,f5.2,a)') 'communication: ',time_commun,' (',time_commun/time_tot*100.d0,'%)'
-      write(*,'(a,es15.7,a,f5.2,a)') 'linear algebra: ',time_linalg,' (',time_linalg/time_tot*100.d0,'%)'
-      write(*,'(a,es15.7,a,f5.2,a)') 'matrix modification: ',time_matrixmodification, &
-                                     ' (',time_matrixmodification/time_tot*100.d0,'%)'
-      write(*,'(a,es15.7,a,f5.2,a)') 'building exponential: ',time_exponential,' (',time_exponential/time_tot*100.d0,'%)'
-      write(*,'(a,es15.7,a,f5.2,a)') 'matrix elements ',time_matrixelements,' (',time_matrixelements/time_tot*100.d0,'%)'
-  end if
+  !!if(iproc==0) then
+  !!    write(*,'(a,es16.6)') 'total time: ',time_tot
+  !!    write(*,'(a,es15.7,a,f5.2,a)') 'convolutions: ',time_convol,' (',time_convol/time_tot*100.d0,'%)'
+  !!    write(*,'(a,es15.7,a,f5.2,a)') 'linear combinations: ',time_lincomb,' (',time_lincomb/time_tot*100.d0,'%)'
+  !!    write(*,'(a,es15.7,a,f5.2,a)') 'communication: ',time_commun,' (',time_commun/time_tot*100.d0,'%)'
+  !!    write(*,'(a,es15.7,a,f5.2,a)') 'linear algebra: ',time_linalg,' (',time_linalg/time_tot*100.d0,'%)'
+  !!    write(*,'(a,es15.7,a,f5.2,a)') 'matrix modification: ',time_matrixmodification, &
+  !!                                   ' (',time_matrixmodification/time_tot*100.d0,'%)'
+  !!    write(*,'(a,es15.7,a,f5.2,a)') 'building exponential: ',time_exponential,' (',time_exponential/time_tot*100.d0,'%)'
+  !!    write(*,'(a,es15.7,a,f5.2,a)') 'matrix elements ',time_matrixelements,' (',time_matrixelements/time_tot*100.d0,'%)'
+  !!end if
 
 
   iall=-product(shape(gmat))*kind(gmat)

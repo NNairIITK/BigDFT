@@ -233,10 +233,10 @@
     | Processes from 0 to 5 treat 2 orbitals, |
     | processes from 6 to 7 treat 1 orbitals. |
  ####################################################################################
- Initializing localization regions... done in 1.390E-02s.
- Initializing communications sumrho... done in 2.098E-05s.
- Initializing communications potential... done in 2.408E-05s.
- Initializing communications orthonormalization... done in 1.391E-01s.
+ Initializing localization regions... done in 1.388E-02s.
+ Initializing communications sumrho... done in 2.313E-05s.
+ Initializing communications potential... done in 2.098E-05s.
+ Initializing communications orthonormalization... done in 1.393E-01s.
  Initializing input guess... done in 1.012E-01s.
  ################################# Memory estimator ##################################
  WARNING: The memory requirements are underestimated by about 20-30%!
@@ -256,7 +256,7 @@
  >>> estimated memory peak: 42MB
  >>> peak section: Optimization of the basis functions
  #####################################################################################
- Initializing matrix compression... done in 5.293E-05s.
+ Initializing matrix compression... done in 5.102E-05s.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 14 Atomic Input Orbitals
  Processes from 0 to 5 treat 2 inguess orbitals 
@@ -458,12 +458,12 @@ max deviation from unity, position:  1.472938E-04  8  11
  converged in 49 iterations.
    Final values for fnrm, trace:   9.12843E-04   3.46506E+00
  ====================================================================================
- time for "buildLinearCombinations": 2.025E-01
+ time for "buildLinearCombinations": 2.137E-01
  ------------------------------------------------------------- Input guess generated.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 136 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 240 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -485,7 +485,7 @@ max deviation from unity, position:  1.472938E-04  8  11
  eval(13)= 5.44140E-01
  eval(14)= 5.65091E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
- time for sumrho:  2.5000E-03
+ time for sumrho:  0.0000E+00
  Posting sends / receives for communicating the potential... done.
  ======================== Creation of the basis functions... ========================
  statistics: - 440 point to point communications, of which 0 could be overlapped with computation.
@@ -496,14 +496,6 @@ max deviation from unity, position:  1.472938E-04  8  11
  Orthonormalization... 
  deviation from unity:  7.686277489549763E-004
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     1.907349E-06
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -517,14 +509,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  0.253751318542349     
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     9.536743E-07
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -538,14 +522,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  0.106965787887836     
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     9.536743E-07
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -559,14 +535,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  2.651771059291933E-002
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     1.192093E-06
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -580,14 +548,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  3.097454545119435E-002
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     9.536743E-07
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -601,14 +561,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  5.931432635930332E-002
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     9.536743E-07
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -622,14 +574,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  8.311250313924086E-002
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     9.536743E-07
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -643,14 +587,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  7.193287840108636E-002
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     1.192093E-06
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -663,13 +599,13 @@ Preconditioning... done.
  Final values for fnrm, fnrmMax, trace:   6.9156100E-02  1.9131350E-01   1.3576397
  ============================= Basis functions created. =============================
  timings:
-   -total time: 2.247E+00
-     - orthonormalization: 2.330E-01=10.4%
-     - Hamiltonian application: 6.201E-01=27.6%
-     - orthoconstraint: 1.304E-01= 5.8%
-     - preconditioning: 1.172E+00=52.2%
-     - unitary optimization: 3.429E-03= 0.2%
-     - other: 8.798E-02= 3.9%
+   -total time: 2.274E+00
+     - orthonormalization: 2.686E-01=11.8%
+     - Hamiltonian application: 6.443E-01=28.3%
+     - orthoconstraint: 1.237E-01= 5.4%
+     - preconditioning: 1.150E+00=50.6%
+     - unitary optimization: 3.169E-03= 0.1%
+     - other: 8.486E-02= 3.7%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
@@ -697,11 +633,11 @@ time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 13 copies on the same processor.
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999967530E+01
- time for sumrho: 1.500E-01
+ time for sumrho: 1.700E-01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -712,7 +648,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   1   3.46E-06   -1.62994774711684514E+01   -1.6299E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 88 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -735,9 +671,9 @@ time for large loop:  6.0000E-02
  eval(14)= 6.05422E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999968504E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -748,7 +684,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   2   1.24E-06   -1.38483575562002272E+01    2.4511E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 72 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -771,9 +707,9 @@ time for large loop:  7.0000E-02
  eval(14)= 5.97006E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999968354E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 9.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -784,7 +720,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   3   5.31E-07   -1.41729782864581821E+01   -3.2462E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 88 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 144 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -807,9 +743,9 @@ time for large loop:  7.0000E-02
  eval(14)= 6.07979E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999968380E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -820,7 +756,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   4   2.66E-07   -1.40728234361733726E+01    1.0015E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 72 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -843,9 +779,9 @@ time for large loop:  7.0000E-02
  eval(14)= 6.11918E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999968373E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 9.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -856,7 +792,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   5   1.32E-07   -1.40687171590739766E+01    4.1063E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -879,9 +815,9 @@ time for large loop:  7.0000E-02
  eval(14)= 6.14278E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999968374E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -892,7 +828,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   6   6.58E-08   -1.40574086506475737E+01    1.1309E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 88 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 120 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -917,7 +853,7 @@ time for large loop:  6.0000E-02
  Calculating charge density...time for kernel:  0.0000E+00
 time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999968374E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -928,7 +864,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   7   3.29E-08   -1.40535858830310119E+01    3.8228E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 88 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -951,9 +887,9 @@ time for large loop:  7.0000E-02
  eval(14)= 6.16062E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999968374E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 9.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -964,7 +900,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   8   1.64E-08   -1.40512568794722910E+01    2.3290E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 88 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -989,7 +925,7 @@ time for large loop:  6.0000E-02
  Calculating charge density...time for kernel:  0.0000E+00
 time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999968374E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1000,7 +936,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   9   8.22E-09   -1.40501871198240735E+01    1.0698E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1023,9 +959,9 @@ time for large loop:  7.0000E-02
  eval(14)= 6.16511E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999968374E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1036,7 +972,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   10   4.10E-09   -1.40496301604212590E+01    5.5696E-04
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 72 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 152 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1059,9 +995,9 @@ time for large loop:  7.0000E-02
  eval(14)= 6.16585E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999968374E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 9.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1072,7 +1008,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   11   2.05E-09   -1.40493579247803737E+01    2.7224E-04
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 144 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1097,7 +1033,7 @@ time for large loop:  7.0000E-02
  Calculating charge density...time for kernel:  0.0000E+00
 time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999968374E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1117,14 +1053,6 @@ time for large loop:  7.0000E-02
  Orthonormalization... 
  deviation from unity:  3.273871553855793E-006
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     9.536743E-07
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -1138,14 +1066,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  5.417922740821379E-002
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     9.536743E-07
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -1159,14 +1079,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  6.595884090009078E-002
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     9.536743E-07
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -1180,14 +1092,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  0.105278323754041     
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     9.536743E-07
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -1201,14 +1105,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  3.381509626932998E-002
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     1.192093E-06
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -1222,14 +1118,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  5.254013205057342E-002
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     1.192093E-06
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -1257,14 +1145,6 @@ Preconditioning... done.
  Orthonormalization... 
  deviation from unity:  1.765626878460844E-005
    WARNING: orthonormalization not converged within 1 iterations.
-total time:     9.536743E-07
-convolutions:   0.0000000E+00 ( 0.00%)
-linear combinations:   0.0000000E+00 ( 0.00%)
-communication:   0.0000000E+00 ( 0.00%)
-linear algebra:   0.0000000E+00 ( 0.00%)
-matrix modification:   0.0000000E+00 ( 0.00%)
-building exponential:   0.0000000E+00 ( 0.00%)
-matrix elements   0.0000000E+00 ( 0.00%)
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
  copy lagmat to W
  old version of orthoconstraint
@@ -1278,13 +1158,13 @@ Preconditioning... done.
  Final values for fnrm, fnrmMax, trace:   6.4422959E-02  1.6510263E-01   3.4249261
  ============================= Basis functions created. =============================
  timings:
-   -total time: 2.236E+00
-     - orthonormalization: 2.038E-01= 9.1%
-     - Hamiltonian application: 6.344E-01=28.4%
-     - orthoconstraint: 1.307E-01= 5.8%
-     - preconditioning: 1.178E+00=52.7%
-     - unitary optimization: 2.906E-03= 0.1%
-     - other: 8.633E-02= 3.9%
+   -total time: 2.256E+00
+     - orthonormalization: 2.337E-01=10.4%
+     - Hamiltonian application: 6.597E-01=29.2%
+     - orthoconstraint: 1.237E-01= 5.5%
+     - preconditioning: 1.154E+00=51.2%
+     - unitary optimization: 2.616E-03= 0.1%
+     - other: 8.212E-02= 3.6%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
@@ -1312,11 +1192,11 @@ time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 13 copies on the same processor.
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999970731E+01
- time for sumrho: 1.400E-01
+ time for sumrho: 1.700E-01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1327,7 +1207,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   1   7.00E-07   -1.39954198097981362E+01    5.3801E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 72 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1350,9 +1230,9 @@ time for large loop:  7.0000E-02
  eval(14)= 5.46286E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999970731E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1363,7 +1243,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   2   3.27E-07   -1.41818870360297922E+01   -1.8647E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 96 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 136 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1388,7 +1268,7 @@ time for large loop:  7.0000E-02
  Calculating charge density...time for kernel:  0.0000E+00
 time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999970739E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1399,7 +1279,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   3   1.52E-07   -1.41810793126722317E+01    8.0772E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 72 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 120 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1420,11 +1300,11 @@ time for large loop:  7.0000E-02
  eval(12)= 4.40136E-01
  eval(13)= 4.52098E-01
  eval(14)= 5.43003E-01
- time for diagonalizing the Hamiltonian: 1.000E-02
+ time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  5.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999970740E+01
- time for sumrho: 6.000E-02
+ time for sumrho: 9.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1435,7 +1315,7 @@ time for large loop:  5.0000E-02
    it, Delta DENS, energy, energyDiff   4   7.54E-08   -1.41955468739352497E+01   -1.4468E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 152 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1458,9 +1338,9 @@ time for large loop:  5.0000E-02
  eval(14)= 5.42107E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999970741E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1471,7 +1351,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   5   3.72E-08   -1.42005996270769757E+01   -5.0528E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1494,9 +1374,9 @@ time for large loop:  6.0000E-02
  eval(14)= 5.41615E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999970741E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1507,7 +1387,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   6   1.85E-08   -1.42034468423554827E+01   -2.8472E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 88 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 136 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1530,9 +1410,9 @@ time for large loop:  6.0000E-02
  eval(14)= 5.41374E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999970741E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 9.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1543,7 +1423,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   7   9.23E-09   -1.42048304702009744E+01   -1.3836E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 136 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1566,9 +1446,9 @@ time for large loop:  6.0000E-02
  eval(14)= 5.41254E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999970741E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1579,7 +1459,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   8   4.60E-09   -1.42055247535646529E+01   -6.9428E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 72 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 144 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1602,9 +1482,9 @@ time for large loop:  6.0000E-02
  eval(14)= 5.41195E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999970741E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 9.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1615,7 +1495,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   9   2.29E-09   -1.42058713215804318E+01   -3.4657E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 96 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 136 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1638,9 +1518,9 @@ time for large loop:  6.0000E-02
  eval(14)= 5.41165E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999970741E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1651,7 +1531,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   10   1.15E-09   -1.42060439697124323E+01   -1.7265E-04
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 144 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1674,9 +1554,9 @@ time for large loop:  6.0000E-02
  eval(14)= 5.41151E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999970741E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1687,7 +1567,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   11   5.71E-10   -1.42061301530445121E+01   -8.6183E-05
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 88 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 136 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -1710,9 +1590,9 @@ time for large loop:  7.0000E-02
  eval(14)= 5.41144E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999970741E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 9.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1997,13 +1877,13 @@ Preconditioning... done.
  Final values for fnrm, fnrmMax, trace:   2.6505305E-03  6.0443329E-03  -2.3671299
  ============================= Basis functions created. =============================
  timings:
-   -total time: 5.813E+00
-     - orthonormalization: 5.759E-01= 9.9%
-     - Hamiltonian application: 1.735E+00=29.8%
-     - orthoconstraint: 3.250E-01= 5.6%
-     - preconditioning: 2.946E+00=50.7%
-     - unitary optimization: 4.262E-06= 0.0%
-     - other: 2.314E-01= 4.0%
+   -total time: 5.855E+00
+     - orthonormalization: 6.690E-01=11.4%
+     - Hamiltonian application: 1.784E+00=30.5%
+     - orthoconstraint: 3.089E-01= 5.3%
+     - preconditioning: 2.879E+00=49.2%
+     - unitary optimization: 7.659E-06= 0.0%
+     - other: 2.143E-01= 3.7%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
@@ -2031,11 +1911,11 @@ time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 13 copies on the same processor.
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999975649E+01
- time for sumrho: 1.400E-01
+ time for sumrho: 1.600E-01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2046,7 +1926,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   1   1.79E-06   -1.39631317034851037E+01    2.4304E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 88 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -2069,9 +1949,9 @@ time for large loop:  7.0000E-02
  eval(14)= 4.64791E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  9.0000E-02
  done. TOTAL CHARGE =   1.399999975546E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 9.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2082,7 +1962,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   2   8.96E-07   -1.47164701423379327E+01   -7.5334E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 72 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 152 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -2105,9 +1985,9 @@ time for large loop:  6.0000E-02
  eval(14)= 4.44405E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999975546E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2118,7 +1998,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   3   4.46E-07   -1.47878972699229791E+01   -7.1427E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 88 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 112 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -2141,9 +2021,9 @@ time for large loop:  7.0000E-02
  eval(14)= 4.34506E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999975543E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2154,7 +2034,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   4   2.24E-07   -1.48363209991601934E+01   -4.8424E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 88 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 152 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -2179,7 +2059,7 @@ time for large loop:  7.0000E-02
  Calculating charge density...time for kernel:  0.0000E+00
 time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999975542E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 9.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2190,7 +2070,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   5   1.13E-07   -1.48581431787578708E+01   -2.1822E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 96 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 144 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -2215,7 +2095,7 @@ time for large loop:  7.0000E-02
  Calculating charge density...time for kernel:  0.0000E+00
 time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999975542E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2226,7 +2106,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   6   5.65E-08   -1.48688537984287521E+01   -1.0711E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 72 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -2249,9 +2129,9 @@ time for large loop:  7.0000E-02
  eval(14)= 4.26675E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  7.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999975542E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 9.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2262,7 +2142,7 @@ time for large loop:  7.0000E-02
    it, Delta DENS, energy, energyDiff   7   2.83E-08   -1.48741172785893241E+01   -5.2635E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 88 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 136 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -2285,9 +2165,9 @@ time for large loop:  7.0000E-02
  eval(14)= 4.26150E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999975542E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2298,7 +2178,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   8   1.42E-08   -1.48767275071489564E+01   -2.6102E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 72 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -2321,9 +2201,9 @@ time for large loop:  6.0000E-02
  eval(14)= 4.25891E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999975542E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2334,7 +2214,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   9   7.12E-09   -1.48780261637318674E+01   -1.2987E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 136 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -2357,9 +2237,9 @@ time for large loop:  6.0000E-02
  eval(14)= 4.25762E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999975542E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2370,7 +2250,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   10   3.56E-09   -1.48786735471196891E+01   -6.4738E-04
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 120 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -2393,9 +2273,9 @@ time for large loop:  6.0000E-02
  eval(14)= 4.25699E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999975542E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2406,7 +2286,7 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   11   1.78E-09   -1.48789965667802377E+01   -3.2302E-04
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 440 point to point communications, of which 96 could be overlapped with computation.
+ statistics: - 440 point to point communications, of which 136 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 440 point to point communications, of which 440 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -2429,9 +2309,9 @@ time for large loop:  6.0000E-02
  eval(14)= 4.25667E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
-time for large loop:  6.0000E-02
+time for large loop:  8.0000E-02
  done. TOTAL CHARGE =   1.399999975542E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 8.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2447,17 +2327,17 @@ time for large loop:  6.0000E-02
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
- statistics: - 95 point to point communications, of which 49 could be overlapped with computation.
+ statistics: - 95 point to point communications, of which 42 could be overlapped with computation.
              - 13 copies on the same processor.
-time for large loop:  8.0000E-02
+time for large loop:  1.2000E-01
  done. TOTAL CHARGE =   1.399999975542E+01
  ------------------------------------- Building linear combinations... done.
  ================================================
- total time for linear scaling version: 2.192E+01s
+ total time for linear scaling version: 2.286E+01s
    of which:
-             - initialization: 2.814E-01s ( 1.3%)
-             - input guess: 1.334E+00s ( 6.1%)
-             - self consistency cycle: 2.015E+01s (91.9%)
+             - initialization: 2.817E-01s ( 1.2%)
+             - input guess: 1.339E+00s ( 5.9%)
+             - self consistency cycle: 2.105E+01s (92.1%)
              - forces: 0.000E+00s ( 0.0%)
  ================================================
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -2479,12 +2359,12 @@ time for large loop:  8.0000E-02
    7      H  -1.0728645525E-02  3.8871443965E-03 -2.6268629921E-04
    8      H  -6.2000122422E-04  8.2222618844E-03 -8.1291898847E-03
  ================================================
- total time for linear scaling version: 2.200E+01s
+ total time for linear scaling version: 2.294E+01s
    of which:
-             - initialization: 2.814E-01s ( 1.3%)
-             - input guess: 1.334E+00s ( 6.1%)
-             - self consistency cycle: 2.015E+01s (91.6%)
-             - forces: 7.964E-02s ( 0.4%)
+             - initialization: 2.817E-01s ( 1.2%)
+             - input guess: 1.339E+00s ( 5.8%)
+             - self consistency cycle: 2.105E+01s (91.8%)
+             - forces: 8.098E-02s ( 0.4%)
  ================================================
  Final values of the Forces for each atom
      1      C  4.20140E-02 -6.53462E-02  1.35517E-01
