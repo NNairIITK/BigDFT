@@ -119,7 +119,7 @@ module module_types
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed, reducePrefactor
     real(kind=8) :: alphaMixWhenOptimizing, convCritOrtho
-    real(8):: convCritMixOut, convCritMix
+    real(8):: lowaccuray_converged, convCritMix
     real(8),dimension(:),pointer:: locrad
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
@@ -717,7 +717,7 @@ end type workarrays_quartic_convolutions
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed, reducePrefactor
     real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho
-    real(8):: convCritMixOut
+    real(8):: lowaccuray_converged
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lxi, transmat, lpsi, lhpsi
     real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     real(8),dimension(:,:),pointer:: hamold

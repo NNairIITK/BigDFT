@@ -557,11 +557,6 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
        ldiis, alpha, alphaDIIS)
 
   ! Set the maximal number of iterations.
-  !if(itSCC==1) then
-  !    nit=lin%nItBasisFirst
-  !else
-  !    nit=lin%nItBasis
-  !end if
   if(lin%newgradient) then
       nit=lin%nItBasis_highaccuracy
   else
@@ -602,11 +597,6 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
           write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       endif
 
-
-      !! Flatten at the edges -  EXPERIMENTAL
-      !call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
-
-  
       ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
       ! will be the usual case), the orthogonalization can not be done exactly, but only approximately.
       if(iproc==0) then
@@ -618,23 +608,15 @@ logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, imme
            lin%convCritOrtho, input, lin%mad, lphi, ovrlp, 'new')
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1
-      !!! Flatten at the edges -  EXPERIMENTAL
-      !!call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
 
 
-      !!! NEW #########################################################
       t1=mpi_wtime()
       if(.not.ldiis%switchSD .and. .not.lin%newgradient) then
-      !if(.not.ldiis%switchSD) then
           call unitary_optimization(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, &
                                     lin%comon, rxyz, lin%nItInnerLoop, kernel, lphi)
-          !!! Flatten at the edges -  EXPERIMENTAL
-          !!call flatten_at_edges(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, lphi)
       end if
       t2=mpi_wtime()
       time(5)=time(5)+t2-t1
-      !!!call unitary_optimization2(iproc, nproc, lin, lin%lzd, lin%orbs, at, input, lin%op, lin%comon, rxyz, lin%nItInnerLoop, lphi)
-      !!! #############################################################
 
       !!! Post the sends again to calculate the overlap matrix (will be needed for the orthoconstraint).
       !!call allocateSendBufferOrtho(lin%comon, subname)

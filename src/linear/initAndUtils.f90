@@ -492,7 +492,7 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   read(99,*) lin%mixingMethod
   read(99,*) lin%mixHist, lin%nItSCCWhenOptimizing, lin%nItSCCWhenFixed
   read(99,*) lin%alphaMixWhenOptimizing, lin%alphaMixWhenFixed, lin%convCritMix
-  read(99,*) lin%convCritMixOut
+  read(99,*) lin%lowaccuray_converged
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess, lin%memoryForCommunOverlapIG
   read(99,*) lin%plotBasisFunctions
@@ -605,13 +605,13 @@ else
     write(hist,'(i2)') lin%mixHist
     message1=' DIIS'//hist//' '
 end if
-write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es9.2,a,es9.2,a,es9.3,a)') '| ', &
+write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es9.2,a,es9.2,a,es9.2,a)') '| ', &
      lin%mixingMethod, '  |', message1, ' | ', repeat(' ', optimalLength(4, lin%nItSCCWhenOptimizing)), &
      lin%nItSCCWhenOptimizing, '   /', repeat(' ', optimalLength(3, lin%nItSCCWhenFixed)), lin%nItSCCWhenFixed, &
      '   |', lin%alphaMixWhenOptimizing, ' /', lin%alphaMixWhenOptimizing, ' |    ',&
      lin%convCritMix, ' |', repeat(' ', optimalLength(9, 1)), &
      1, '      |   ', -1.d0, '   | ', -1.d0, ' |   ',&
-     lin%convCritMixOut, '    |'
+     -1.d0, '    |'
 write(*,'(4x,a)') '-----------------------------------------------------------------------------------------&
 &-------------------------------------------'
 write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  | transform |'

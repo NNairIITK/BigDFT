@@ -106,7 +106,7 @@ real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, dampingForMixing
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
 type(linearParameters):: lind
-logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray
+logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged
 real(8),dimension(:),pointer:: lphi, lphir, phibuffr
 
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -352,6 +352,8 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   lin%newgradient=.false.
   !lin%useDerivativeBasisFunctions=.false.
 
+  lowaccur_converged=.false.
+
   do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
 
       updatePhi=.true.
@@ -359,6 +361,22 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       !if(reduceConvergenceTolerance) lin%fixBasis=max(lin%fixBasis*lin%factorFixBasis,lin%minimalFixBasis)
       !selfConsistent=max(lin%convCritMix,5.d-3*lin%fixBasis)
       selfConsistent=lin%convCritMix
+
+      if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm<lin%lowaccuray_converged)) then
+         lowaccur_converged=.true.
+     end if 
+
+      if(lowaccur_converged) then
+          lin%potentialPrefac = lin%potentialPrefac_highaccuracy
+          !lin%nItBasisFirst = lin%nItBasis_highaccuracy
+          !lin%nItBasis = lin%nItBasis_highaccuracy
+          lin%newgradient=.true.
+      else
+          lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
+          !lin%nItBasisFirst = lin%nItBasis_lowaccuracy
+          !lin%nItBasis = lin%nItBasis_lowaccuracy
+          lin%newgradient=.false.
+      end if
 
       !if(iproc==0) write(*,'(a,es12.4,3x,es12.4)') &
       !     'DELTA DENS for fixing basis functions, reaching self consistency:',lin%fixBasis, selfConsistent
@@ -371,17 +389,17 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       with_auxarray=.false.
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
 
-      if(itout==lin%nit_lowaccuracy+1) then
-          lin%potentialPrefac = lin%potentialPrefac_highaccuracy
-          !lin%nItBasisFirst = lin%nItBasis_highaccuracy
-          !lin%nItBasis = lin%nItBasis_highaccuracy
-          lin%newgradient=.true.
-      else
-          lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
-          !lin%nItBasisFirst = lin%nItBasis_lowaccuracy
-          !lin%nItBasis = lin%nItBasis_lowaccuracy
-          lin%newgradient=.false.
-      end if
+      !!if(itout>=lin%nit_lowaccuracy+1) then
+      !!    lin%potentialPrefac = lin%potentialPrefac_highaccuracy
+      !!    !lin%nItBasisFirst = lin%nItBasis_highaccuracy
+      !!    !lin%nItBasis = lin%nItBasis_highaccuracy
+      !!    lin%newgradient=.true.
+      !!else
+      !!    lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
+      !!    !lin%nItBasisFirst = lin%nItBasis_lowaccuracy
+      !!    !lin%nItBasis = lin%nItBasis_lowaccuracy
+      !!    lin%newgradient=.false.
+      !!end if
       !!if(itout==lin%nit_lowaccuracy-2) then
       !!    lin%useDerivativeBasisFunctions=.true.
       !!end if
@@ -530,7 +548,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
                    'itout, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energy-energyoldout
           end if
       end if
-      if(abs(pnrm_out)<lin%convCritMixOut) exit
+      !!if(abs(pnrm_out)<lin%convCritMixOut) exit
       energyoldout=energy
   end do
 
