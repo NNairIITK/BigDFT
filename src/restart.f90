@@ -428,7 +428,7 @@ subroutine verify_file_presence(filerad,orbs,iformat)
   call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
  
   if (allfiles) then
-     iformat=1
+     iformat=WF_FORMAT_PLAIN
      return
   end if
 
@@ -452,12 +452,12 @@ subroutine verify_file_presence(filerad,orbs,iformat)
   end if
 
   if (allfiles) then
-     iformat=2
+     iformat=WF_FORMAT_BINARY
      return
   end if
 
   !otherwise, switch to normal input guess
-  iformat=0
+  iformat=WF_FORMAT_NONE
 
 end subroutine verify_file_presence
 

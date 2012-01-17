@@ -443,7 +443,7 @@ void FC_FUNC_(fill_logrid, FILL_LOGRID)(char *geocode, int *n1, int *n2, int *n3
                                         int *orig, int *nat, int *ntypes, int *iatype,
                                         double *rxyz, double *radii, double *mult,
                                         double *hx, double *hy, double *hz, int *grid);
-guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
+int* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
                           double mult, double h[3])
 {
   guint *grid;
@@ -456,7 +456,7 @@ guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
                                      &orig, (int*)(&atoms->nat), (int*)(&atoms->ntypes), (int*)atoms->iatype,
                                      atoms->rxyz.data, radii, &mult, h, h + 1, h + 2, (int*)grid);
 
-  return grid;
+  return  (int*) grid;
 }
 
 

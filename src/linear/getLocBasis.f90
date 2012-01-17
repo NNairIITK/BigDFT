@@ -636,7 +636,7 @@ real(8),dimension(4):: time
 real(8),dimension(:),pointer:: potential
 real(8),dimension(:),pointer:: phiWork
 real(8),dimension(:),pointer:: lpot
-real(8),external :: mpi_wtime1
+!real(8),external :: mpi_wtime1
 complex(8):: ttc,ttc2, ttc3, zdotu
 complex(8),dimension(:),allocatable:: Gmat_c, expD_cmplx
 character(len=3):: orbname, comment

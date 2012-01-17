@@ -515,8 +515,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       else
          call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
       end if
-      if (input_wf_format == WF_FORMAT_NONE .and. iproc == 0) &
-           & write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+      if (input_wf_format == WF_FORMAT_NONE .and. iproc == 0) then
+         write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+         inputpsi=INPUT_PSI_LCAO
+      end if
+      
    end if
 
    !all the input formats need to allocate psi except the LCAO input_guess
