@@ -1,5 +1,5 @@
-subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
-    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
+subroutine getLinearPsi(iproc, nproc, nspin, orbs, comms, at, lin, rxyz, rxyzParab, &
+    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 !
@@ -62,7 +62,6 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nspin, n3p, n3pi, n3d, i3s, i3xcsh, itSCC
-type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in) :: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
@@ -72,13 +71,12 @@ real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(3,at%nat),intent(inout):: rxyzParab
 integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
-real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
+real(dp),dimension(max(lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
 type(GPU_pointers),intent(inout):: GPU
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
 logical,intent(in):: updatePhi
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
 real(8),dimension(max(lin%lb%gorbs%npsidim_orbs,lin%lb%gorbs%npsidim_comp)),intent(inout):: phi
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
@@ -94,7 +92,6 @@ integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, 
 real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold, hphiold, eps, temparr, work
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, hamold, overlapmatrix, lambda, coeffold
 real(8),dimension(:,:,:),allocatable:: matrixElements
-real(8),dimension(:),pointer:: phiWork
 real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time,eSIC_DC
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
@@ -110,8 +107,6 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   call memocc(istat, matrixElements, 'matrixElements', subname)
   allocate(HamSmall(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
   call memocc(istat, HamSmall, 'HamSmall', subname)
-  allocate(phiWork(max(size(phi),size(psi))), stat=istat)
-  call memocc(istat, phiWork, 'phiWork', subname)
   allocate(eval(lin%lb%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
   allocate(ovrlp(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
@@ -129,7 +124,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
 
       ! Improve the trace minimizing orbitals.
-      call getLocalizedBasis(iproc,nproc,at,orbs,input,lin,rxyz,nspin,&
+      call getLocalizedBasis(iproc,nproc,at,orbs,input,lin,rxyz,&
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
           infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj)
   end if
@@ -142,7 +137,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   if(lin%useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
       call dcopy(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
-      call getDerivativeBasisFunctions2(iproc,nproc,input%hx,Glr,lin,&
+      call getDerivativeBasisFunctions2(iproc,nproc,input%hx,lin%lzd%Glr,lin,&
            max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp),lin%lphiRestart,lphi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if
@@ -399,10 +394,6 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   deallocate(lhphi, stat=istat)
   call memocc(istat, iall, 'lhphi', subname)
 
-  iall=-product(shape(phiWork))*kind(phiWork)
-  deallocate(phiWork, stat=istat)
-  call memocc(istat, iall, 'phiWork', subname)
-
   iall=-product(shape(matrixElements))*kind(matrixElements)
   deallocate(matrixElements, stat=istat)
   call memocc(istat, iall, 'matrixElements', subname)
@@ -423,7 +414,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
 end subroutine getLinearPsi
 
-subroutine getLocalizedBasis(iproc, nproc, at, orbs, input, lin, rxyz, nspin, &
+subroutine getLocalizedBasis(iproc, nproc, at, orbs, input, lin, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
     infoBasisFunctions, ovrlp, nlpspd, proj, coeff)
 !
@@ -486,7 +477,6 @@ type(orbitals_data):: orbs
 type(input_variables):: input
 type(linearParameters):: lin
 real(8),dimension(3,at%nat):: rxyz
-integer:: nspin
 integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
 real(dp), dimension(*), intent(inout) :: rhopot
