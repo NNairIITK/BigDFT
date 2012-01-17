@@ -798,8 +798,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment='number of iterations in the preconditioner')
   
   !getCoeff: 'diag' or 'min'
-  comments="getCoeff: 'diag' or 'min', cubic ('c') or spheric ('s') localization region"
-  call input_var(in%lin%getCoeff,'diag')
+  comments="cubic ('c') or spheric ('s') localization region"
+  !call input_var(in%lin%getCoeff,'diag')
   call input_var(in%lin%locregShape,'s',comment=comments)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
@@ -822,10 +822,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   comments='in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
   call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
   
-  ! max number of iterations in the minimization of the coefficients, convergence criterion
-  comments='max number of iterations in the minimization of the coefficients, convergence criterion'
-  call input_var(in%lin%nItCoeff,'2000',ranges=(/1,10000/))
-  call input_var(in%lin%convCritCoeff,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  !!! max number of iterations in the minimization of the coefficients, convergence criterion
+  !!comments='max number of iterations in the minimization of the coefficients, convergence criterion'
+  !!call input_var(in%lin%nItCoeff,'2000',ranges=(/1,10000/))
+  !!call input_var(in%lin%convCritCoeff,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   !mixing method: dens or pot
   comments='mixing method: dens or pot'

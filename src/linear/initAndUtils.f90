@@ -483,12 +483,12 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   read(99,*) lin%nItInnerLoop, lin%convCrit
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
   read(99,*) lin%nItPrecond
-  read(99,*) lin%getCoeff, lin%locregShape
+  read(99,*) lin%locregShape
   read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
   read(99,*) lin%nproc_pdsyev, lin%nproc_pdgemm
   read(99,*) lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho
   read(99,*) lin%correctionOrthoconstraint
-  read(99,*) lin%nItCoeff, lin%convCritCoeff
+  !read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
   read(99,*) lin%mixHist, lin%nItSCCWhenOptimizing, lin%nItSCCWhenFixed
   read(99,*) lin%alphaMixWhenOptimizing, lin%alphaMixWhenFixed, lin%convCritMix
@@ -630,22 +630,22 @@ write(*,'(1x,a)') '>>>> Parameters for the optimization of the basis functions.'
 write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |     stop     |'
 write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis | optimization |'
 write(*,'(4x,a)') '|  first   else  |             |                |           |       |              |'
-if(trim(lin%getCoeff)=='diag') then
-    !if(trim(lin%diagMethod)=='seq') then
-    !    message1='diag seq'
-    !else if(trim(lin%diagMethod)=='par') then
-    !    message1='diag par'
-    !end if
-    message1='  diag  '
-else if(trim(lin%getCoeff)=='min') then
-    message1='   min  '
-end if
+!!if(trim(lin%getCoeff)=='diag') then
+!!    !if(trim(lin%diagMethod)=='seq') then
+!!    !    message1='diag seq'
+!!    !else if(trim(lin%diagMethod)=='par') then
+!!    !    message1='diag par'
+!!    !end if
+!!    message1='  diag  '
+!!else if(trim(lin%getCoeff)=='min') then
+!!    message1='   min  '
+!!end if
 write(*,'(4x,a,a,i0,3x,a,i0,2x,a,1x,es9.3,1x,a,a,i0,a,a,a,l2,a,2x,es10.3,2x,a)') '| ', &
     repeat(' ', 5-ceiling(log10(dble(0)+1.d-10))), -1, &
     repeat(' ', 5-ceiling(log10(dble(0)+1.d-10))), -1, &
       '| ', lin%convCrit, ' | ', &
       repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       | ' , &
-      message1, '  |  ', &
+      ' ... ', '  |  ', &
       lin%plotBasisFunctions, '   |', -1.d0, '|'
 write(*,'(4x,a)') '---------------------------------------------------------------------'
 write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |'
@@ -669,7 +669,7 @@ write(*,'(1x,a)') '>>>> Parameters for the optimization of the coefficients.'
 write(*,'(4x,a)') '| maximal number | convergence |'
 write(*,'(4x,a)') '|  of iterations |  criterion  |'
 write(*,'(4x,a,a,i0,5x,a,1x,es9.3,1x,a)') '| ', &
-    repeat(' ', 9-ceiling(log10(dble(lin%nItCoeff+1)+1.d-10))), lin%nItCoeff, ' | ', lin%convCritCoeff, ' | '
+    repeat(' ', 9-ceiling(log10(dble(1)+1.d-10))), 1, ' | ', -1.d0, ' | '
 write(*,'(4x,a)') '--------------------------------'
 write(*,'(1x,a)') '>>>> Performance options'
 write(*,'(4x,a)') '| blocksize | blocksize | max proc | max proc | memory for |'
@@ -926,12 +926,12 @@ integer:: norbTarget, nprocIG, ierr
       stop
   end if
 
-  if(trim(lin%getCoeff)/='min' .and. trim(lin%getCoeff)/='diag') then
-      if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min', &
-          & but we found '", trim(lin%getCoeff), "'!"
-      call mpi_barrier(mpi_comm_world, ierr)
-      stop
-  end if
+  !!if(trim(lin%getCoeff)/='min' .and. trim(lin%getCoeff)/='diag') then
+  !!    if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min', &
+  !!        & but we found '", trim(lin%getCoeff), "'!"
+  !!    call mpi_barrier(mpi_comm_world, ierr)
+  !!    stop
+  !!end if
 
   if(lin%methTransformOverlap<0 .or. lin%methTransformOverlap>2) then
       if(iproc==0) write(*,'(1x,a,i0,a)') 'ERROR: lin%methTransformOverlap must be 0,1 or 2, but you specified ', &

@@ -112,19 +112,19 @@ module module_types
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIISHistMin, DIISHistMax, nItPrecond, nItCoeff 
+    integer:: DIISHistMin, DIISHistMax, nItPrecond
     integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: nItInguess, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
-    real(8):: convCrit, alphaSD, alphaDIIS, convCritCoeff, alphaMixWhenFixed, reducePrefactor
+    real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed, reducePrefactor
     real(kind=8) :: alphaMixWhenOptimizing, convCritOrtho
     real(8):: convCritMixOut, convCritMix
     real(8),dimension(:),pointer:: locrad
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, sumrho_fast
-    character(len=4):: getCoeff, mixingMethod
+    character(len=4):: mixingMethod
     character(len=1):: locregShape
   end type linearInputParameters
 
@@ -710,12 +710,12 @@ end type workarrays_quartic_convolutions
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
-    integer:: DIISHistMin, DIISHistMax, nItPrecond, nItCoeff 
+    integer:: DIISHistMin, DIISHistMax, nItPrecond
     integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
-    real(8):: convCrit, alphaSD, alphaDIIS, convCritCoeff, alphaMixWhenFixed, reducePrefactor
+    real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed, reducePrefactor
     real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho
     real(8):: convCritMixOut
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lxi, transmat, lpsi, lhpsi
@@ -727,7 +727,7 @@ end type workarrays_quartic_convolutions
     type(arraySizes):: as
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, sumrho_fast
     logical:: newgradient
-    character(len=4):: getCoeff, mixingMethod
+    character(len=4):: mixingMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp
     type(largeBasis):: lb
