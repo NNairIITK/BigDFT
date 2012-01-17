@@ -498,7 +498,7 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   read(99,*) lin%plotBasisFunctions
   read(99,*) lin%transformToGlobal
   read(99,*) lin%norbsPerProcIG
-  read(99,*) lin%sumrho_fast
+  !read(99,*) lin%sumrho_fast
 
 
   ! Now read in the parameters specific for each atom type.
@@ -668,7 +668,7 @@ write(*,'(4x,a)') '-------------------------------------------------------------
 write(*,'(1x,a)') '>>>> Parameters for the optimization of the coefficients.'
 write(*,'(4x,a)') '| maximal number | convergence |'
 write(*,'(4x,a)') '|  of iterations |  criterion  |'
-write(*,'(4x,a,a,i0,5x,a,1x,es9.3,1x,a)') '| ', &
+write(*,'(4x,a,a,i0,5x,a,1x,es9.2,1x,a)') '| ', &
     repeat(' ', 9-ceiling(log10(dble(1)+1.d-10))), 1, ' | ', -1.d0, ' | '
 write(*,'(4x,a)') '--------------------------------'
 write(*,'(1x,a)') '>>>> Performance options'
@@ -681,7 +681,7 @@ write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a,a,i0,4x,a)') '|',repeat('
     repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm, '|',&
     repeat(' ', 8-ceiling(log10(dble(abs(lin%memoryForCommunOverlapIG)+1)+1.d-10))),lin%memoryForCommunOverlapIG, '|'
 write(*,'(1x,a,a)') 'lin%locregShape:',lin%locregShape
-write(*,'(1x,a,l)') 'lin%sumrho_fast:',lin%sumrho_fast
+!write(*,'(1x,a,l)') 'lin%sumrho_fast:',lin%sumrho_fast
 write(*,'(1x,a,2i6,es9.2)') 'nit low accur, nit high accur, reduce prefactor', &
                       lin%nit_lowaccuracy, lin%nit_highaccuracy, lin%reducePrefactor
 write(*,'(1x,a,2i6)') 'lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy', &

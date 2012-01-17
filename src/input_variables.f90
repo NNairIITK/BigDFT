@@ -867,8 +867,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   comments='number of orbitals per process for trace minimization during input guess.'
   call input_var(in%lin%norbsPerProcIG,'1',ranges=(/1,10000/),comment=comments)
 
-  call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; &
-                                                 &F -> slow, needs little memory')
+  !!call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; &
+  !!                                               &F -> slow, needs little memory')
 
   
   ! Allocate lin pointers and atoms%rloc

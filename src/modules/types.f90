@@ -123,7 +123,7 @@ module module_types
     real(8),dimension(:),pointer:: locrad
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
-    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, sumrho_fast
+    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
     character(len=4):: mixingMethod
     character(len=1):: locregShape
   end type linearInputParameters
@@ -725,7 +725,7 @@ end type workarrays_quartic_convolutions
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
-    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, sumrho_fast
+    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
     logical:: newgradient
     character(len=4):: mixingMethod
     type(p2pCommsSumrho):: comsr

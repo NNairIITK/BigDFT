@@ -363,11 +363,12 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       !if(iproc==0) write(*,'(a,es12.4,3x,es12.4)') &
       !     'DELTA DENS for fixing basis functions, reaching self consistency:',lin%fixBasis, selfConsistent
 
-      if(lin%sumrho_fast) then
-          with_auxarray=.true.
-      else
-          with_auxarray=.false.
-      end if
+      !!if(lin%sumrho_fast) then
+      !!    with_auxarray=.true.
+      !!else
+      !!    with_auxarray=.false.
+      !!end if
+      with_auxarray=.false.
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
 
       if(itout==lin%nit_lowaccuracy+1) then
@@ -404,19 +405,19 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           ! Potential from electronic charge density
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t1)
-          if(.not. lin%sumrho_fast) then
+          !!if(.not. lin%sumrho_fast) then
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
                    rhopot, at, nscatterarr)
-          else
-              if(itSCC==1) then
-                  call sumrholinear_auxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, phi, at, nscatterarr)
-                  call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &
-                       rhopot, at, nscatterarr)
-              else
-                  call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &
-                       rhopot, at, nscatterarr)
-              end if
-          end if
+          !!else
+          !!    if(itSCC==1) then
+          !!        call sumrholinear_auxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, phi, at, nscatterarr)
+          !!        call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &
+          !!             rhopot, at, nscatterarr)
+          !!    else
+          !!        call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &
+          !!             rhopot, at, nscatterarr)
+          !!    end if
+          !!end if
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t2)
           time=t2-t1
