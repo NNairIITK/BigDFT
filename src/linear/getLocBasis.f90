@@ -129,9 +129,9 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
 
       ! Improve the trace minimizing orbitals.
-      call getLocalizedBasis(iproc,nproc,at,orbs,Glr,input,lin,rxyz,nspin,&
-          nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,rxyzParab,&
-          itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj, coeff_proj)
+      call getLocalizedBasis(iproc,nproc,at,orbs,input,lin,rxyz,nspin,&
+          nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
+          infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj)
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -423,9 +423,9 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
 end subroutine getLinearPsi
 
-subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
-    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
-    itScc, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj, coeff)
+subroutine getLocalizedBasis(iproc, nproc, at, orbs, input, lin, rxyz, nspin, &
+    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
+    infoBasisFunctions, ovrlp, nlpspd, proj, coeff)
 !
 ! Purpose:
 ! ========
@@ -480,13 +480,12 @@ use module_interfaces, except_this_one => getLocalizedBasis
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, infoBasisFunctions, itSCC
+integer:: iproc, nproc, infoBasisFunctions
 type(atoms_data), intent(in) :: at
 type(orbitals_data):: orbs
-type(locreg_descriptors), intent(in) :: Glr
 type(input_variables):: input
 type(linearParameters):: lin
-real(8),dimension(3,at%nat):: rxyz, rxyzParabola
+real(8),dimension(3,at%nat):: rxyz
 integer:: nspin
 integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
@@ -495,7 +494,6 @@ type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
 real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)):: lphi
 real(8):: trH
-real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -512,12 +510,10 @@ integer :: icountDIISFailureCons,itBest,info,lwork,ndim_lchi,ndim_lhchi
 integer:: istat,istart,ierr,ii,it,iall,nit,ind1,ind2,jorb,i,ist,jst,iiorb,jjorb,ilrold,k
 integer:: ldim,gdim,ilr,ncount,offset,istsource,istdest
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS,lhphi,lhphiold
-real(8),dimension(:),allocatable:: eval, lvphi, lvphiovrlp, alpha2, lhpsiold, work, rwork, lphiold, lphiovrlporig, lphi2
-real(8),dimension(:),allocatable:: lchi, lphidebug
-real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr, W, ttmat, Kmat, Gmat, Umat, lhchi, omatr, omat2
+real(8),dimension(:),allocatable:: eval, lphiold
+real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, W, ttmat
 real(8),dimension(:,:),allocatable:: kernel
-real(8),dimension(:,:,:),allocatable:: Gmatc, tempmat, Omat, tempmat2, ham3, tempmat3, omatrtot
-logical:: quiet,withConfinement,calc
+logical:: withConfinement
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(localizedDIISParameters):: ldiis
@@ -526,15 +522,10 @@ real(8),dimension(:),pointer:: potential
 real(8),dimension(:),pointer:: phiWork
 real(8),dimension(:),pointer:: lpot
 real(8),external :: mpi_wtime1
-complex(8):: ttc,ttc2, ttc3, zdotu
-complex(8),dimension(:),allocatable:: Gmat_c, expD_cmplx
 character(len=3):: orbname, comment
-integer,dimension(:),allocatable:: onwhichatomtemp, norb_parTemp, onWhichMPITemp
-logical,dimension(:),allocatable:: doNotCalculate, skip
 type(confpot_data), dimension(:), allocatable :: confdatarr
-integer:: iat, is1, ie1, is2, ie2, is3, ie3, jlr, js1, je1, js2, je2, js3, je3
-integer :: norbTarget, nprocTemp, kk, jlrold, nlocregPerMPI, tag, jproc, ncnt, korb
-logical:: ovrlpx, ovrlpy, ovrlpz, check_whether_locregs_overlap, resetDIIS, immediateSwitchToSD
+integer :: korb
+logical:: resetDIIS, immediateSwitchToSD
 
 
 

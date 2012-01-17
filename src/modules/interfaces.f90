@@ -1769,16 +1769,15 @@ module module_interfaces
 !!$      character(len=*), intent(in) :: filename
 !!$     end subroutine readmywaves
     
-  subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
-        nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
-        itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj, coeff)
+  subroutine getLocalizedBasis(iproc, nproc, at, orbs, input, lin, rxyz, nspin, &
+        nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
+        infoBasisFunctions, ovrlp, nlpspd, proj, coeff)
       use module_base
       use module_types
       implicit none
-      integer:: iproc, nproc, idsxMin, idsxMax, infoBasisFunctions, itSCC
+      integer:: iproc, nproc, idsxMin, idsxMax, infoBasisFunctions
       type(atoms_data), intent(in) :: at
       type(orbitals_data):: orbs
-      type(locreg_descriptors), intent(in) :: Glr
       type(input_variables):: input
       type(linearParameters):: lin
       real(8),dimension(3,at%nat):: rxyz
@@ -1790,8 +1789,6 @@ module module_interfaces
       real(dp), dimension(:), pointer :: pkernelseq
       real(8),dimension(lin%orbs%npsidim_orbs):: lphi
       real(8):: trH
-      real(8),dimension(3,at%nat):: rxyzParabola
-      real(8),dimension(at%ntypes,3),intent(in):: radii_cf
       real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
