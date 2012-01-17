@@ -1795,34 +1795,6 @@ module module_interfaces
     end subroutine getLocalizedBasis
 
 
-    subroutine getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-        proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, coeff, &
-        lastAlpha, infoBasisFunctions)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc, nproc
-      type(atoms_data),intent(in) :: at
-      type(orbitals_data),intent(in):: orbs
-      type(locreg_descriptors),intent(in) :: Glr
-      type(input_variables),intent(in):: input
-      type(linearParameters),intent(in):: lin
-      real(8),dimension(3,at%nat),intent(in):: rxyz, rxyzParabola
-      integer,intent(in):: nspin
-      type(nonlocal_psp_descriptors),intent(in):: nlpspd
-      real(wp), dimension(nlpspd%nprojel),intent(in):: proj
-      integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcs
-      integer, dimension(0:nproc-1,2),intent(in):: ngatherarr  
-      real(dp), dimension(*),intent(inout):: rhopot
-      type(GPU_pointers),intent(inout):: GPU
-      real(dp), dimension(:),pointer:: pkernelseq
-      real(8),dimension(lin%orbs%npsidim_orbs),intent(inout):: phi
-      real(8),dimension(lin%orbs%npsidim_orbs),intent(out):: hphi
-      real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
-      real(8),intent(out):: trH, lastAlpha
-      integer,intent(out):: infoBasisFunctions
-    end subroutine getLocalizedBasisNew
-
 
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
           input, rxyz, nscatterarr, tag, coeff, lphi)

@@ -302,43 +302,34 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
   call mpi_barrier(mpi_comm_world, ierr) !To measure the time correctly.
   t1=mpi_wtime()
-  !!if(trim(lin%getCoeff)=='min') then
-  !!    call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
-  !!else if(trim(lin%getCoeff)=='diag') then
-      ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
-      ! are still needed later.
-      call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      if(lin%blocksize_pdsyev<0) then
-          if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
-          call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, lin%lb%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
-      else
-          if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
-          call dsygv_parallel(iproc, nproc, lin%blocksize_pdsyev, lin%nproc_pdsyev, mpi_comm_world, 1, 'v', 'l', lin%lb%orbs%norb,&
-               matrixElements(1,1,2), lin%lb%orbs%norb, ovrlp, lin%lb%orbs%norb, eval, info)
-      end if
-      if(iproc==0) write(*,'(a)') 'done.'
-      call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
-      !if(.not.updatePhi) call dcopy(lin%lb%orbs%norb*(orbs%norb+lin%norbvirt), matrixElements(1,1,2), 1, lin%coeffall(1,1), 1)
-      infoCoeff=0
+  ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
+  ! are still needed later.
+  call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+  if(lin%blocksize_pdsyev<0) then
+      if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
+      call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, lin%lb%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
+  else
+      if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
+      call dsygv_parallel(iproc, nproc, lin%blocksize_pdsyev, lin%nproc_pdsyev, mpi_comm_world, 1, 'v', 'l', lin%lb%orbs%norb,&
+           matrixElements(1,1,2), lin%lb%orbs%norb, ovrlp, lin%lb%orbs%norb, eval, info)
+  end if
+  if(iproc==0) write(*,'(a)') 'done.'
+  call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
+  !if(.not.updatePhi) call dcopy(lin%lb%orbs%norb*(orbs%norb+lin%norbvirt), matrixElements(1,1,2), 1, lin%coeffall(1,1), 1)
+  infoCoeff=0
 
-      ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
-      if(iproc==0) then
-          do iorb=max(orbs%norb-8,1),min(orbs%norb+8,lin%orbs%norb)
-              if(iorb==orbs%norb) then
-                  write(*,'(1x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
-              else if(iorb==orbs%norb+1) then
-                  write(*,'(1x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- first virtual orbital'
-              else
-                  write(*,'(1x,a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
-              end if
-          end do
-      end if
-  !!else if(trim(lin%getCoeff)=='new') then
-  !!    !stop 'not yet ready'
-  !!    !! THIS IS THE NEW PART ###########################################################################
-  !!    call getCoefficients_new(iproc, nproc, lin, orbs, lin%hamold, lphi, ovrlp, coeff)
-  !!    !! ################################################################################################
-  !!end if
+  ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
+  if(iproc==0) then
+      do iorb=max(orbs%norb-8,1),min(orbs%norb+8,lin%orbs%norb)
+          if(iorb==orbs%norb) then
+              write(*,'(1x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
+          else if(iorb==orbs%norb+1) then
+              write(*,'(1x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- first virtual orbital'
+          else
+              write(*,'(1x,a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
+          end if
+      end do
+  end if
   t2=mpi_wtime()
   time=t2-t1
   if(iproc==0) write(*,'(1x,a,es10.3)') 'time for diagonalizing the Hamiltonian:',time
