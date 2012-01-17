@@ -85,7 +85,7 @@ end subroutine density_and_hpot
 !! Output: 
 !!   @param rho
 subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-     GPU,symObj,rhodsc,psi,rho_p)
+     GPU,symObj,rhodsc,psi,rho_p,mapping)
    use module_base
    use module_types
    use module_xc
@@ -102,12 +102,14 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
    real(dp), dimension(:,:), pointer :: rho_p
    !real(dp), dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),1),nspin), intent(out), target :: rho
    type(GPU_pointers), intent(inout) :: GPU
+   integer,dimension(orbs%norb),intent(in),optional:: mapping
    !Local variables
    character(len=*), parameter :: subname='sumrho'
    !n(c) logical :: rsflag
    integer :: nrhotot,n3d,itmred,i_stat,i_all
    integer :: nspinn
-   integer :: irho
+   integer :: irho, iorb
+   integer,dimension(:),allocatable:: localmapping
 
    call timing(iproc,'Rho_comput    ','ON')
 
@@ -134,8 +136,23 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
    else if (OCLconv) then
       call local_partial_density_OCL(orbs,rhodsc%nrhotot,Lzd%Glr,hxh,hyh,hzh,orbs%nspin,psi,rho_p,GPU)
    else if(Lzd%linear) then
-      call local_partial_densityLinear(iproc,nproc,(rhodsc%icomm==1),nscatterarr,rhodsc%nrhotot,&
-           Lzd,hxh,hyh,hzh,orbs%nspin,orbs,psi,rho_p)
+       if(.not.present(mapping)) then
+           if(iproc==0) write(*,'(x,a)') &
+               'WARNING: mapping is not present, using fake local mapping array. Check whether this is correct!'
+           allocate(localmapping(orbs%norb), stat=i_stat)
+           call memocc(i_stat,localmapping,'localmapping',subname)
+           do iorb=1,orbs%norb
+               localmapping(iorb)=iorb
+           end do
+           call local_partial_densityLinear(iproc,nproc,(rhodsc%icomm==1),nscatterarr,rhodsc%nrhotot,&
+                Lzd,hxh,hyh,hzh,orbs%nspin,orbs,localmapping,psi,rho_p)
+           i_all=-product(shape(localmapping))*kind(localmapping)
+           deallocate(localmapping,stat=i_stat)
+           call memocc(i_stat,i_all,'localmapping',subname)
+       else
+           call local_partial_densityLinear(iproc,nproc,(rhodsc%icomm==1),nscatterarr,rhodsc%nrhotot,&
+                Lzd,hxh,hyh,hzh,orbs%nspin,orbs,mapping,psi,rho_p)
+       end if
    else
       !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
       !otherwise use libXC routine
@@ -613,6 +630,7 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
                   psisq=real(psir(i1,i2,j3,1),dp)
                   psisq=psisq*psisq
                   rho_p(i1,i2,i3s,isjmp)=rho_p(i1,i2,i3s,isjmp)+real(hfac,dp)*psisq
+                  !write(93000+iorb,'(4i8,es20.10)') i1,i2,i3,isjmp,rho_p(i1,i2,i3s,isjmp)
                end do
             else !similar loop for npsir=4
                do i1=i1s,i1e

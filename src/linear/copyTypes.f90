@@ -863,18 +863,20 @@ do i1=iis1,iie1
     orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
 end do
 
-if(associated(orbsout%inWhichLocregP)) then
-    iall=-product(shape(orbsout%inWhichLocregP))*kind(orbsout%inWhichLocregP)
-    deallocate(orbsout%inWhichLocregP, stat=istat)
-    call memocc(istat, iall, 'orbsout%inWhichLocregP', subname)
-end if
-iis1=lbound(orbsin%inWhichLocregP,1)
-iie1=ubound(orbsin%inWhichLocregP,1)
-allocate(orbsout%inWhichLocregP(iis1:iie1), stat=istat)
-call memocc(istat, orbsout%inWhichLocregP, 'orbsout%inWhichLocregP', subname)
-do i1=iis1,iie1
-    orbsout%inWhichLocregP(i1) = orbsin%inWhichLocregP(i1)
-end do
+!!if(associated(orbsout%inWhichLocregP)) then
+!!    iall=-product(shape(orbsout%inWhichLocregP))*kind(orbsout%inWhichLocregP)
+!!    deallocate(orbsout%inWhichLocregP, stat=istat)
+!!    call memocc(istat, iall, 'orbsout%inWhichLocregP', subname)
+!!end if
+!!iis1=lbound(orbsin%inWhichLocregP,1)
+!!iie1=ubound(orbsin%inWhichLocregP,1)
+!!allocate(orbsout%inWhichLocregP(iis1:iie1), stat=istat)
+!!call memocc(istat, orbsout%inWhichLocregP, 'orbsout%inWhichLocregP', subname)
+!!do i1=iis1,iie1
+!!    orbsout%inWhichLocregP(i1) = orbsin%inWhichLocregP(i1)
+!!end do
+!!write(*,*) 'copy 6'
+!!call mpi_barrier(mpi_comm_world, istat)
 
 if(associated(orbsout%onWhichMPI)) then
     iall=-product(shape(orbsout%onWhichMPI))*kind(orbsout%onWhichMPI)

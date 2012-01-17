@@ -183,12 +183,12 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
      Localnorb(ilr) = Lnorb
   end do
 
-!  already associated = 1 by default
-  allocate(orbs%inWhichLocregP(max(1,orbs%norb_par(iproc,0))),stat=i_stat)
+!!  already associated = 1 by default
+!  allocate(orbs%inWhichLocregP(max(1,orbs%norb_par(iproc,0))),stat=i_stat)
 
 ! initialize inwhichlocreg
   orbs%inWhichLocreg = 0
-  orbs%inWhichLocregP = 0
+  !orbs%inWhichLocregP = 0
 
   ind = 0
   jproc=0
@@ -216,7 +216,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
       jorb=jorb+1
       iiOrb=iiOrb+1
       if(iproc==jproc .and. orbs%norb_par(jproc,0)> 0) then
-         orbs%inWhichLocregP(jorb)=jat
+         !orbs%inWhichLocregP(jorb)=jat
          orbs%inWhichLocreg(jorb+orbs%isorb)=jat
       end if
   end do
@@ -279,25 +279,79 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
   integer:: iat, jproc, iiOrb, iorb, jorb, jat, iiat, i_stat, i_all
   character(len=*), parameter :: subname='assignToLocreg'
   logical,dimension(:),allocatable:: covered
-  real(8):: tt, dmin, zmin
+  real(8):: tt, dmin, minvalue, xmin, xmax, ymin, ymax, zmin, zmax
+  integer:: iatxmin, iatxmax, iatymin, iatymax, iatzmin, iatzmax, idir
+  real(8),dimension(3):: diff
 
+!!!! NEW VERSION #################################################################
   !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
   allocate(orbse%inWhichLocreg(orbse%norb),stat=i_stat)
   call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
-  allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
-  call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
+  !allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
+  !call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
   allocate(covered(natom), stat=i_stat)
   call memocc(i_stat, covered, 'covered', subname)
- 
 
-  ! Determine the atom with lowest z coordinate
+
+  ! Determine in which direction the system has its largest extent
+  xmin=1.d100
+  ymin=1.d100
   zmin=1.d100
-      do iat=1,natom
+  xmax=-1.d100
+  ymax=-1.d100
+  zmax=-1.d100
+  do iat=1,natom
+      if(rxyz(1,iat)<xmin) then
+          xmin=rxyz(1,iat)
+          iatxmin=iat
+      end if
+      if(rxyz(1,iat)>xmax) then
+          xmax=rxyz(1,iat)
+          iatxmax=iat
+      end if
+      if(rxyz(2,iat)<ymin) then
+          ymin=rxyz(2,iat)
+          iatymin=iat
+      end if
+      if(rxyz(2,iat)>ymax) then
+          ymax=rxyz(2,iat)
+          iatymax=iat
+      end if
       if(rxyz(3,iat)<zmin) then
           zmin=rxyz(3,iat)
-          iiat=iat
+          iatzmin=iat
+      end if
+      if(rxyz(3,iat)>zmax) then
+          zmax=rxyz(3,iat)
+          iatzmax=iat
       end if
   end do
+
+  diff(1)=xmax-xmin
+  diff(2)=ymax-ymin
+  diff(3)=zmax-zmin
+  if(maxloc(diff,1)==1) then
+      idir=1
+      iiat=iatxmin
+  else if(maxloc(diff,1)==2) then
+      idir=2
+      iiat=iatymin
+  else if(maxloc(diff,1)==3) then
+      idir=3
+      iiat=iatzmin
+  else
+      stop 'ERROR: not possible to determine the maximal extent'
+  end if
+ 
+
+  !! Determine the atom with lowest z coordinate
+  !zmin=1.d100
+  !    do iat=1,natom
+  !    if(rxyz(3,iat)<zmin) then
+  !        zmin=rxyz(3,iat)
+  !        iiat=iat
+  !    end if
+  !end do
 
   ! There are four counters:
   !   jproc: indicates which MPI process is handling the basis function which is being treated
@@ -311,8 +365,11 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
   iiOrb=0
 
   covered=.false.
+  covered(iiat)=.true.
+  orbse%inWhichLocreg(1)=iiat
+  iiorb=1
 
-  do iorb=1,orbse%norb
+  do iorb=2,orbse%norb
 
       ! Switch to the next MPI process if the numbers of orbitals for a given
       ! MPI process is reached.
@@ -322,30 +379,36 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
       end if
 
       ! Switch to the next atom if the number of basis functions for this atom is reached.
-      if(iiOrb==Localnorb(jat)) then
+      !if(iiOrb==Localnorb(jat)) then
+      if(iiOrb==Localnorb(iiat)) then
           iiOrb=0
           !jat=jat+1
           ! Determine the nearest atom which has not been covered yet.
-          covered(jat)=.true.
+          !covered(jat)=.true.
           dmin=1.d100
+          minvalue=1.d100
           do iat=1,natom
               if(covered(iat)) cycle
               tt = (rxyz(1,iat)-rxyz(1,jat))**2 + (rxyz(2,iat)-rxyz(2,jat))**2 + (rxyz(3,iat)-rxyz(3,jat))**2
-              if(tt<dmin) then
+              !if(tt<dmin) then
+              if(rxyz(idir,iat)<minvalue) then
                   iiat=iat
                   dmin=tt
+                  minvalue=rxyz(idir,iat)
               end if
           end do
           !jat=iiat
           jat=jat+1
+          covered(iiat)=.true.
       end if
       if(jat > natom) then
         jat = 1
       end if
       jorb=jorb+1
       iiOrb=iiOrb+1
-      if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
-      orbse%inWhichLocreg(iorb)=jat
+      !if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
+      !orbse%inWhichLocreg(iorb)=jat
+      orbse%inWhichLocreg(iorb)=iiat
   end do
 
   i_all=-product(shape(covered))*kind(covered)
@@ -354,6 +417,83 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
 
   !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocreg', iproc, orbse%inWhichLocreg
   !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocregp', iproc, orbse%inWhichLocregp
+
+
+
+!!!! OLD VERSION #################################################################
+!!  !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
+!!  allocate(orbse%inWhichLocreg(orbse%norb),stat=i_stat)
+!!  call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
+!!  !allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
+!!  !call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
+!!  allocate(covered(natom), stat=i_stat)
+!!  call memocc(i_stat, covered, 'covered', subname)
+!! 
+!!
+!!  ! Determine the atom with lowest z coordinate
+!!  zmin=1.d100
+!!      do iat=1,natom
+!!      if(rxyz(3,iat)<zmin) then
+!!          zmin=rxyz(3,iat)
+!!          iiat=iat
+!!      end if
+!!  end do
+!!
+!!  ! There are four counters:
+!!  !   jproc: indicates which MPI process is handling the basis function which is being treated
+!!  !   jat: counts the atom numbers
+!!  !   jorb: counts the orbitals handled by a given process
+!!  !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
+!!  jproc=0
+!!  !jat=iiat
+!!  jat=1
+!!  jorb=0
+!!  iiOrb=0
+!!
+!!  covered=.false.
+!!
+!!  do iorb=1,orbse%norb
+!!
+!!      ! Switch to the next MPI process if the numbers of orbitals for a given
+!!      ! MPI process is reached.
+!!      if(jorb==orbse%norb_par(jproc,0)) then
+!!          jproc=jproc+1
+!!          jorb=0
+!!      end if
+!!
+!!      ! Switch to the next atom if the number of basis functions for this atom is reached.
+!!      if(iiOrb==Localnorb(jat)) then
+!!          iiOrb=0
+!!          !jat=jat+1
+!!          ! Determine the nearest atom which has not been covered yet.
+!!          covered(jat)=.true.
+!!          dmin=1.d100
+!!          do iat=1,natom
+!!              if(covered(iat)) cycle
+!!              tt = (rxyz(1,iat)-rxyz(1,jat))**2 + (rxyz(2,iat)-rxyz(2,jat))**2 + (rxyz(3,iat)-rxyz(3,jat))**2
+!!              if(tt<dmin) then
+!!                  iiat=iat
+!!                  dmin=tt
+!!              end if
+!!          end do
+!!          !jat=iiat
+!!          jat=jat+1
+!!      end if
+!!      if(jat > natom) then
+!!        jat = 1
+!!      end if
+!!      jorb=jorb+1
+!!      iiOrb=iiOrb+1
+!!      !if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
+!!      orbse%inWhichLocreg(iorb)=jat
+!!  end do
+!!
+!!  i_all=-product(shape(covered))*kind(covered)
+!!  deallocate(covered,stat=i_stat)
+!!  call memocc(i_stat,i_all,'covered',subname)
+!!
+!!  !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocreg', iproc, orbse%inWhichLocreg
+!!  !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocregp', iproc, orbse%inWhichLocregp
 
 end subroutine assignToLocreg2
 

@@ -216,7 +216,7 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,lin,Lzd,conf
   type(linearParameters), intent(in) :: lin
   type(local_zone_descriptors), intent(in) :: Lzd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  integer, dimension(orbs%norbp), intent(in) :: confinementCenter
+  integer, dimension(orbs%norb), intent(in) :: confinementCenter
   type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
   !local variables
   integer :: iorb,nl1,nl2,nl3,icenter,ilr
@@ -224,7 +224,7 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,lin,Lzd,conf
   !initialize the confdatarr
   do iorb=1,orbs%norbp
      ilr=orbs%inWhichlocreg(orbs%isorb+iorb)
-     icenter=confinementCenter(iorb)
+     icenter=confinementCenter(orbs%isorb+iorb)
      confdatarr(iorb)%potorder=lin%confpotorder
      confdatarr(iorb)%prefac=lin%potentialprefac(at%iatype(icenter))
      confdatarr(iorb)%hh(1)=.5_gp*hx

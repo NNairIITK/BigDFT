@@ -9,4 +9,3 @@ Hartwigsen-Goedecker-Hutter psp for C,  from PRB58, 3641 (1998)
               0.000000    0.000000    0.000000                          k11d, k22d, k33d
   0.000000    0.000000    0.000000    0.000000          rf, h11f, h22f, h33f
               0.000000    0.000000    0.000000                          k11f, k22f, k33f
-

@@ -112,14 +112,20 @@ module module_types
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
+    integer:: DIISHistMin, DIISHistMax, nItPrecond, nItCoeff 
+    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: nItInguess, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
-    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho, fixBasis
-    real(8),dimension(:),pointer:: potentialPrefac, locrad
+    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
+    integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
+    real(8):: convCrit, alphaSD, alphaDIIS, convCritCoeff, alphaMixWhenFixed, reducePrefactor
+    real(kind=8) :: alphaMixWhenOptimizing, convCritOrtho
+    real(8):: convCritMixOut, convCritMix
+    real(8),dimension(:),pointer:: locrad
+    real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
-    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions, transformToGlobal
+    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, sumrho_fast
     character(len=4):: getCoeff, mixingMethod
+    character(len=1):: locregShape
   end type linearInputParameters
 
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
@@ -400,7 +406,7 @@ module module_types
      integer :: npsidim_orbs,nkpts,nkptsp,iskpts,npsidim_comp
      real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
-     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,inwhichlocregP
+     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI!,inwhichlocregP
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -425,7 +431,7 @@ module module_types
 !! Also other information concerning the GPU runs can be stored in this structure
   type, public :: GPU_pointers
      logical :: useDynamic,full_locham
-     integer :: id_proc
+     integer :: id_proc,ndevices
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
      real(kind=8) :: rhopot_down, rhopot_up
      real(kind=8) :: work1_i,work2_i,work3_i,d_i
@@ -454,6 +460,7 @@ module module_types
 !    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
 !    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
+    real(8),dimension(:,:),pointer:: cutoffweight
   end type
 
 !>  Used to restart a new DFT calculation or to save information 
@@ -544,10 +551,11 @@ module module_types
 !! for sumrho in the linear scaling version.
   type,public:: p2pCommsSumrho
     integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
-    real(8),dimension(:),pointer:: sendBuf, recvBuf
+    real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf
+    integer:: nsendBuf, nrecvBuf, nauxarray
     logical,dimension(:,:),pointer:: communComplete, computComplete
+    integer,dimension(:,:),pointer:: startingindex
   end type p2pCommsSumrho
 
 !> Contains the parameters neeed for the point to point communications
@@ -581,6 +589,12 @@ module module_types
        logical,dimension(:,:),pointer:: communComplete
   end type p2pCommsRepartition
 
+  type,public:: expansionSegments
+      integer:: nseg
+      integer,dimension(:,:),pointer:: segborders
+  end type expansionSegments
+
+
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
       integer:: ndim_lphiovrlp, noverlapsmax, noverlapsmaxp
@@ -589,6 +603,8 @@ module module_types
       integer,dimension(:,:),pointer:: indexInRecvBuf
       integer,dimension(:,:),pointer:: indexInSendBuf
       type(locreg_descriptors),dimension(:,:),pointer:: olr
+      type(expansionSegments),dimension(:,:),pointer:: expseg
+      type(expansionSegments),dimension(:,:),pointer:: extseg
   end type overlapParameters
 
 
@@ -623,6 +639,15 @@ module module_types
       integer,dimension(:,:,:),pointer:: keygline
   end type matrixDescriptors
 
+
+  !> Contains arrays for collective communications
+  type,public:: collectiveComms
+      integer,dimension(:,:),pointer:: nvctr_par
+      integer,dimension(:),pointer:: sendcnts, senddspls, recvcnts, recvdspls, indexarray
+  end type collectiveComms
+
+
+
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
 !! minimizing orbitals, this basis may be larger than only the trace minimizing
@@ -637,7 +662,19 @@ type,public:: largeBasis
     type(overlapParameters):: op
     type(p2pCommsGatherPot):: comgp
     type(matrixDescriptors):: mad
+    type(collectiveComms):: collComms
 end type largeBasis
+
+
+type,public:: workarrays_quartic_convolutions
+  real(wp),dimension(:,:,:),pointer:: xx_c, xy_c, xz_c
+  real(wp),dimension(:,:,:),pointer:: xx_f1
+  real(wp),dimension(:,:,:),pointer:: xy_f2
+  real(wp),dimension(:,:,:),pointer:: xz_f4
+  real(wp),dimension(:,:,:,:),pointer:: xx_f, xy_f, xz_f
+  real(wp),dimension(:,:,:),pointer:: y_c
+  real(wp),dimension(:,:,:,:),pointer:: y_f
+end type workarrays_quartic_convolutions
 
 
 
@@ -673,20 +710,23 @@ end type largeBasis
 
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
-    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff 
-    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG
+    integer:: DIISHistMin, DIISHistMax, nItPrecond, nItCoeff 
+    integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItOuterSCC, nItSCCWhenFixed
-    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMixWhenFixed
-    real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho, fixBasis
-    real(8):: FactorFixBasis, convCritMixOut, minimalFixBasis
+    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
+    integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
+    real(8):: convCrit, alphaSD, alphaDIIS, convCritCoeff, alphaMixWhenFixed, reducePrefactor
+    real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho
+    real(8):: convCritMixOut
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lxi, transmat, lpsi, lhpsi
+    real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     real(8),dimension(:,:),pointer:: hamold
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
-    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions, transformToGlobal
+    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, sumrho_fast
+    logical:: newgradient
     character(len=4):: getCoeff, mixingMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp
@@ -697,6 +737,7 @@ end type largeBasis
     type(linearInputGuess):: lig
     type(matrixDescriptors):: mad
     character(len=1):: locregShape
+    type(collectiveComms):: collComms
   end type linearParameters
 
 !> Contains the arguments needed for the diis procedure
@@ -973,7 +1014,8 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_all,i_stat
 
-    call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
+    !call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
+    call deallocate_locreg_descriptors(rst%Lzd%Glr,subname)
 
     if (associated(rst%psi)) then
        i_all=-product(shape(rst%psi))*kind(rst%psi)

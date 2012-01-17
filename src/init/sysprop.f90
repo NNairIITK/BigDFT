@@ -1431,7 +1431,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
   ! default for inwhichlocreg
   orbs%inwhichlocreg = 1
 
-  nullify(orbs%inwhichlocregP)
+  !nullify(orbs%inwhichlocregP)
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)

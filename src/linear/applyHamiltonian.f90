@@ -73,13 +73,13 @@ real(gp) :: epot_p
   
   epot=0.0_wp
 
-!!$omp parallel default(private)&
-!!$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
+!!!$omp parallel default(private)&
+!!!$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
   !case without bounds
   i1s=-14*nl1
   i1e=2*n1+1+15*nl1
   epot_p=0._gp
-!$omp do
+!!!$omp do
 !write(*,*) 'iproc, -14*nl3,2*n3+1+15*nl3', iproc, -14*nl3,2*n3+1+15*nl3
 !write(*,*) 'iproc, -14*nl2,2*n2+1+15*nl2', iproc, -14*nl2,2*n2+1+15*nl2
 !write(*,'(a,i5,3es14.6)') 'iproc, confinement center (on grid): ', iproc, rxyzConfinement(1)/hxh, rxyzConfinement(2)/hyh, rxyzConfinement(3)/hzh
@@ -155,16 +155,30 @@ real(gp) :: epot_p
                     do i1=i1s,i1e
                        !the local potential is always real
                        ! Add the quartic confinement potential to the potential.
-                       !tt=(hxh*dble(i1)-rxyzConfinement(1))**2 + (hyh*dble(i2)-rxyzConfinement(2))**2 + &
-                       !    (hzh*dble(i3)-rxyzConfinement(3))**2
-                       tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
-                           (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                        tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                            (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                        !!!!! EXPERIMENTAL ########################
+                        !!tt=sqrt(tt)
+                        !!tt=max(tt-3.d0,0.d0)
+                        !!tt=tt**2
+                        !!!########################################
+
+
+                       !!! New trial
+                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                       !!   (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!tt=sqrt(tt)
+                       !!tt=tt/5.d0
+                       !!tt=tt**2
+                       !!tt=5.d-2*(exp(tt)-1.d0)
+
+
                        tt=potentialPrefac*tt**order
-                       !!if(i1==55 .and. i2==64) then
-                       !!    !write(*,'(a,i0,a)') 'process ',iproc,' writes to file.'
-                       !!    write(1001+iproc,'(i8,3es20.12)') i3, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1), tt, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
-                       !!    write(2001+iproc,'(i8,es20.12)') i3, psir(i1,i2,i3,ispinor)
-                       !!end if
+
+
+                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                       !!    (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!tt=.5d0*potentialPrefac*tt**2+.5d0*.01d0*potentialPrefac*tt**3
                        tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
                        tt=tt*psir(i1,i2,i3,ispinor)
                        epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)
@@ -194,14 +208,14 @@ real(gp) :: epot_p
         enddo
      endif
   enddo
-!$omp end do
+!!!$omp end do
 
 
-!$omp critical
+!!!$omp critical
   epot=epot+epot_p
-!$omp end critical
+!!!$omp end critical
 
-!!$omp end parallel
+!!!$omp end parallel
 
 END SUBROUTINE apply_potentialConfinement2
 !!***
@@ -621,166 +635,166 @@ END SUBROUTINE apply_potentialConfinement2
 
 
 
-!>   Calculate the action of the local hamiltonian on the orbitals
-subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb, hx, hy, hz, &
-     nspin, ndimpot, pot, psi, hpsi, ekin_sum, epot_sum, lin, at, rxyz, onWhichAtomp, withConfinement)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => local_hamiltonian_LinearConfinement
-  use libxc_functionals
-  implicit none
-  integer, intent(in) :: iproc, nproc, nspin, ilr, norb, ndimpot
-  real(gp), intent(in) :: hx, hy, hz
-  type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*norb), intent(in) :: psi
-  real(wp), dimension(ndimpot) :: pot
-  real(gp), intent(out) :: ekin_sum,epot_sum
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*norb), intent(out) :: hpsi
-  type(linearParameters),intent(in):: lin
-  type(atoms_data),intent(in):: at
-  real(8),dimension(3,at%nat),intent(in):: rxyz
-  integer,dimension(orbs%norbp),intent(in):: onWhichAtomp
-  logical,intent(in):: withConfinement
-  !local variables
-  character(len=*), parameter :: subname='local_hamiltonian_Linear'
-  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
-  integer :: ii,orbtot
-  !integer,dimension(lr%localnorb*nspin) :: inthisLocreg
-  integer,dimension(norb*nspin) :: inthisLocreg
-  real(wp) :: exctXcoeff
-  real(gp) :: ekin,epot,kx,ky,kz,etest, hxh, hyh, hzh
-  type(workarr_locham) :: wrk_lh
-  real(wp), dimension(:,:), allocatable :: psir
-integer:: i, j, jj
-
-  hxh=.5d0*hx
-  hyh=.5d0*hy
-  hzh=.5d0*hz
-
-  exctXcoeff=libxc_functionals_exctXfac()
-
-  !initialise the work arrays
-  call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)
-
-  !components of the potential
-  npot=orbs%nspinor
-  if (orbs%nspinor == 2) npot=1
-
-  ! Wavefunction in real space
-  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
-
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
-
-  ekin_sum=0.0_gp
-  epot_sum=0.0_gp
-
-  etest=0.0_gp
-  
-  orbtot = 0
-  do iorb=1,orbs%norbp
-     !if (orbs%inWhichLocreg(iorb) == ilr) then
-     if (orbs%inWhichLocregp(iorb) == ilr) then
-        orbtot = orbtot+1
-        inthisLocreg(orbtot) = iorb
-     end if
-  end do 
-  
-  !if (orbtot .ne. lr%localnorb*nspin) then
-  if (orbtot .ne. norb*nspin) then
-     write(*,'(3(a,i0))') 'process ',iproc, ': Problem in local_hamiltonian_Linear, orbtot=',orbtot,&
-     ' is not equal to localnorb=',lr%localnorb*nspin
-     stop
-  end if
-  !write(*,'(4(a,i0))') 'iproc ',iproc,' handles ',orbtot,' orbitals in locreg ',ilr,'. Data per orbital=',lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-
-
-  do ii=1,orbtot
-
-     iorb = inthisLocreg(ii)   !using ii and iorb to identify the orbitals because in linear case, the ordering is different
-                               !orbitals are now orderer by locreg. So, iorb is the old numbering (i.e. in Global region)
-                               !while ii is it's numbering in the locreg.
-
-     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
-        nsoffset=1
-     else
-        nsoffset=lr%d%n1i*lr%d%n2i*lr%d%n3i+1
-     end if
-
-     oidx=(ii-1)*orbs%nspinor+1
-
-     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
-     !the psir wavefunction is given in the spinorial form
-     call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
-
-     !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
-     !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
-     !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
-
-     !apply the potential to the psir wavefunction and calculate potential energy
-     select case(lr%geocode)
-     case('F')
-
-        if(withConfinement) then
-            call apply_potentialConfinement2(iproc, lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-                 pot(nsoffset),epot, rxyz(1,onWhichAtomp(iorb)), hxh, hyh, hzh, &
-                 lin%potentialprefac(at%iatype(onWhichAtomp(iorb))), lin%confpotorder, &
-                 lr%nsi1, lr%nsi2, lr%nsi3, &
-                 lr%bounds%ibyyzz_r) !optional
-        else
-            !!call apply_potentialConfinement2(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-            !!     pot(nsoffset),epot, rxyz(1,onWhichAtomp(iorb)), hxh, hyh, hzh, &
-            !!     0.d0, lin%confpotorder, &
-            !!     lr%nsi1, lr%nsi2, lr%nsi3, &
-            !!     lr%bounds%ibyyzz_r) !optional
-            call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-                pot(nsoffset),epot,&
-                lr%bounds%ibyyzz_r) !optional
-        end if
-
-     case('P')
-        !here the hybrid BC act the same way
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot)
-
-     case('S')
-
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot)
-     end select
-
-     !k-point values, if present
-     kx=orbs%kpts(1,orbs%iokpt(iorb))
-     ky=orbs%kpts(2,orbs%iokpt(iorb))
-     kz=orbs%kpts(3,orbs%iokpt(iorb))
-
-     if (exctXcoeff /= 0.0_gp) then
-        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+ii-1)
-        !add to the psir function the part of the potential coming from the exact exchange
-        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
-     end if
-
-     !apply the kinetic term, sum with the potential and transform back to Daubechies basis
-     call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
-          psir,hpsi(1,oidx),ekin)
-!     print *,iorb, ekin+epot, epot
-     ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
-     epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
-
-  enddo
-
-  !print *,'iproc,etest',etest
-
-  !deallocations of work arrays
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
-
-  call deallocate_work_arrays_locham(lr,wrk_lh)
-
-
-END SUBROUTINE local_hamiltonian_LinearConfinement
+!!!>   Calculate the action of the local hamiltonian on the orbitals
+!!subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb, hx, hy, hz, &
+!!     nspin, ndimpot, pot, psi, hpsi, ekin_sum, epot_sum, lin, at, rxyz, onWhichAtomp, withConfinement)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => local_hamiltonian_LinearConfinement
+!!  use libxc_functionals
+!!  implicit none
+!!  integer, intent(in) :: iproc, nproc, nspin, ilr, norb, ndimpot
+!!  real(gp), intent(in) :: hx, hy, hz
+!!  type(orbitals_data), intent(in) :: orbs
+!!  type(locreg_descriptors), intent(in) :: lr
+!!  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*norb), intent(in) :: psi
+!!  real(wp), dimension(ndimpot) :: pot
+!!  real(gp), intent(out) :: ekin_sum,epot_sum
+!!  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*norb), intent(out) :: hpsi
+!!  type(linearParameters),intent(in):: lin
+!!  type(atoms_data),intent(in):: at
+!!  real(8),dimension(3,at%nat),intent(in):: rxyz
+!!  integer,dimension(orbs%norbp),intent(in):: onWhichAtomp
+!!  logical,intent(in):: withConfinement
+!!  !local variables
+!!  character(len=*), parameter :: subname='local_hamiltonian_Linear'
+!!  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
+!!  integer :: ii,orbtot
+!!  !integer,dimension(lr%localnorb*nspin) :: inthisLocreg
+!!  integer,dimension(norb*nspin) :: inthisLocreg
+!!  real(wp) :: exctXcoeff
+!!  real(gp) :: ekin,epot,kx,ky,kz,etest, hxh, hyh, hzh
+!!  type(workarr_locham) :: wrk_lh
+!!  real(wp), dimension(:,:), allocatable :: psir
+!!integer:: i, j, jj
+!!
+!!  hxh=.5d0*hx
+!!  hyh=.5d0*hy
+!!  hzh=.5d0*hz
+!!
+!!  exctXcoeff=libxc_functionals_exctXfac()
+!!
+!!  !initialise the work arrays
+!!  call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)
+!!
+!!  !components of the potential
+!!  npot=orbs%nspinor
+!!  if (orbs%nspinor == 2) npot=1
+!!
+!!  ! Wavefunction in real space
+!!  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+!!  call memocc(i_stat,psir,'psir',subname)
+!!
+!!  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+!!
+!!  ekin_sum=0.0_gp
+!!  epot_sum=0.0_gp
+!!
+!!  etest=0.0_gp
+!!  
+!!  orbtot = 0
+!!  do iorb=1,orbs%norbp
+!!     !if (orbs%inWhichLocreg(iorb) == ilr) then
+!!     if (orbs%inWhichLocregp(iorb) == ilr) then
+!!        orbtot = orbtot+1
+!!        inthisLocreg(orbtot) = iorb
+!!     end if
+!!  end do 
+!!  
+!!  !if (orbtot .ne. lr%localnorb*nspin) then
+!!  if (orbtot .ne. norb*nspin) then
+!!     write(*,'(3(a,i0))') 'process ',iproc, ': Problem in local_hamiltonian_Linear, orbtot=',orbtot,&
+!!     ' is not equal to localnorb=',lr%localnorb*nspin
+!!     stop
+!!  end if
+!!  !write(*,'(4(a,i0))') 'iproc ',iproc,' handles ',orbtot,' orbitals in locreg ',ilr,'. Data per orbital=',lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+!!
+!!
+!!  do ii=1,orbtot
+!!
+!!     iorb = inthisLocreg(ii)   !using ii and iorb to identify the orbitals because in linear case, the ordering is different
+!!                               !orbitals are now orderer by locreg. So, iorb is the old numbering (i.e. in Global region)
+!!                               !while ii is it's numbering in the locreg.
+!!
+!!     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
+!!        nsoffset=1
+!!     else
+!!        nsoffset=lr%d%n1i*lr%d%n2i*lr%d%n3i+1
+!!     end if
+!!
+!!     oidx=(ii-1)*orbs%nspinor+1
+!!
+!!     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
+!!     !the psir wavefunction is given in the spinorial form
+!!     call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
+!!
+!!     !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
+!!     !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
+!!     !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
+!!
+!!     !apply the potential to the psir wavefunction and calculate potential energy
+!!     select case(lr%geocode)
+!!     case('F')
+!!
+!!        if(withConfinement) then
+!!            call apply_potentialConfinement2(iproc, lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+!!                 pot(nsoffset),epot, rxyz(1,onWhichAtomp(iorb)), hxh, hyh, hzh, &
+!!                 lin%potentialprefac(at%iatype(onWhichAtomp(iorb))), lin%confpotorder, &
+!!                 lr%nsi1, lr%nsi2, lr%nsi3, &
+!!                 lr%bounds%ibyyzz_r) !optional
+!!        else
+!!            !!call apply_potentialConfinement2(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+!!            !!     pot(nsoffset),epot, rxyz(1,onWhichAtomp(iorb)), hxh, hyh, hzh, &
+!!            !!     0.d0, lin%confpotorder, &
+!!            !!     lr%nsi1, lr%nsi2, lr%nsi3, &
+!!            !!     lr%bounds%ibyyzz_r) !optional
+!!            call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+!!                pot(nsoffset),epot,&
+!!                lr%bounds%ibyyzz_r) !optional
+!!        end if
+!!
+!!     case('P')
+!!        !here the hybrid BC act the same way
+!!        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
+!!             pot(nsoffset),epot)
+!!
+!!     case('S')
+!!
+!!        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
+!!             pot(nsoffset),epot)
+!!     end select
+!!
+!!     !k-point values, if present
+!!     kx=orbs%kpts(1,orbs%iokpt(iorb))
+!!     ky=orbs%kpts(2,orbs%iokpt(iorb))
+!!     kz=orbs%kpts(3,orbs%iokpt(iorb))
+!!
+!!     if (exctXcoeff /= 0.0_gp) then
+!!        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+ii-1)
+!!        !add to the psir function the part of the potential coming from the exact exchange
+!!        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
+!!     end if
+!!
+!!     !apply the kinetic term, sum with the potential and transform back to Daubechies basis
+!!     call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
+!!          psir,hpsi(1,oidx),ekin)
+!!!     print *,iorb, ekin+epot, epot
+!!     ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
+!!     epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
+!!
+!!  enddo
+!!
+!!  !print *,'iproc,etest',etest
+!!
+!!  !deallocations of work arrays
+!!  i_all=-product(shape(psir))*kind(psir)
+!!  deallocate(psir,stat=i_stat)
+!!  call memocc(i_stat,i_all,'psir',subname)
+!!
+!!  call deallocate_work_arrays_locham(lr,wrk_lh)
+!!
+!!
+!!END SUBROUTINE local_hamiltonian_LinearConfinement
 
 
 !!$!> @file
@@ -1232,13 +1246,13 @@ real(gp) :: epot_p, epot
   end if
   
 
-  !!$omp parallel default(private)&
-  !!$omp shared(psir,n1,n2,n3,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
+!!!$omp parallel default(private)&
+!!!$omp shared(psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
   !case without bounds
   i1s=-14*nl1
   i1e=2*n1+1+15*nl1
   !epot_p=0._gp
-!$omp do
+!!!$omp do
   do i3=-14*nl3,2*n3+1+15*nl3
      if (i3 >= -14+2*nbuf .and. i3 <= 2*n3+16-2*nbuf) then !check for the nbuf case
         do i2=-14*nl2,2*n2+1+15*nl2
@@ -1262,9 +1276,43 @@ real(gp) :: epot_p, epot
               else
                  do ispinor=1,nspinor
                     do i1=i1s,i1e
+                       ! THIS IS CORRECT #################################################################
                        tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
-                           (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                          (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!!!! EXPERIMENTAL ########################
+                       !!tt=sqrt(tt)
+                       !!tt=max(tt-3.d0,0.d0)
+                       !!tt=tt**2
+                       !!!!########################################
                        tt=potentialPrefac*tt**order
+
+                       !!! New trial
+                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                       !!   (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!tt=sqrt(tt)
+                       !!tt=tt/5.d0
+                       !!tt=tt**2
+                       !!tt=5.d-2*(exp(tt)-1.d0)
+
+
+
+
+                       ! #################################################################################
+                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                       !!   (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**4 - 2.d0*2.d0*(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + 2.d0**2
+                       !!tt=tt*potentialPrefac
+                       !!if((hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2 > 2.d0) then
+                       !!else
+                       !!    tt=0.d0
+                       !!end if
+                       !!tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                       !!   (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
+                       !!tt=potentialPrefac*tt**3
+                       !!tt = (hxh*dble(i1+offsetx)-rxyzConfinement(1))**6 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**6 + &
+                       !!     3.d0*(hxh*dble(i1+offsetx)-rxyzConfinement(1))**4*(hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
+                       !!     3.d0*(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2*(hyh*dble(i2+offsety)-rxyzConfinement(2))**4
+                       !!tt=potentialPrefac*tt
                        tt=tt*psir(i1,i2,i3,ispinor)
                        psir(i1,i2,i3,ispinor)=tt
                     end do
@@ -1292,9 +1340,9 @@ real(gp) :: epot_p, epot
         enddo
      endif
   enddo
-!$omp end do
+!!!$omp end do
 
-!!$omp end parallel
+!!!$omp end parallel
 
 END SUBROUTINE apply_confinement
 !!***
