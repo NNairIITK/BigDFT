@@ -47,8 +47,9 @@ module module_input
 
    contains
 
-   subroutine input_set_file(iproc, filename, exists,comment_file_usage)
+   subroutine input_set_file(iproc, dump, filename, exists,comment_file_usage)
       integer, intent(in) :: iproc
+      logical, intent(in) :: dump
       character(len = *), intent(in) :: filename,comment_file_usage
       logical, intent(out) :: exists
 
@@ -81,6 +82,7 @@ module module_input
       inquire(file=trim(input_file),exist=exists)
       if (exists) then
          !only the root processor parse the file
+         nlines = 0
          if (iproc==0) then
             open(unit = 1, file = trim(filename), status = 'old')
             i=0
@@ -141,9 +143,9 @@ module module_input
       end if
       iline_written=iline_written+1
 
-      output = (iproc == 0)
+      output = (iproc == 0) .and. dump
       !dump the 0-th line on the screen
-      if (iproc == 0) then
+      if (iproc == 0 .and. dump) then
          write(*,'(a)') inout_lines(0)
       end if
       !!$    output = (iproc == 0)
@@ -160,20 +162,19 @@ module module_input
       !!$               trim(comment_file_usage)
       !!$       end if
       !!$    end if
-
    END SUBROUTINE input_set_file
 
 
-   subroutine input_free(iproc)
+   subroutine input_free(dump)
       implicit none
-      integer, intent(in), optional :: iproc
+      logical, intent(in), optional :: dump
       !Local variables
       integer, parameter :: iunit=11
       integer :: ierr,iline
 
-      if (present(iproc)) then !case for compulsory variables
+      if (present(dump)) then !case for compulsory variables
          !if (iline_written==1) iline_written=2
-         if (iproc ==0) then
+         if (dump) then
             if (iline_parsed==0) then !the file does not exist
                !add the writing of the file in the given unit
                open(unit=iunit,file='default.' // trim(input_type), status ='unknown')

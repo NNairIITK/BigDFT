@@ -40,15 +40,15 @@ module module_types
        & (/ "none        ", "plain text  ", "Fortran bin.", "ETSF        " /)
 
   !> Output grid parameters.
-  integer, parameter :: OUTPUT_GRID_NONE    = 0
-  integer, parameter :: OUTPUT_GRID_DENSITY = 1
-  integer, parameter :: OUTPUT_GRID_DENSPOT = 2
-  character(len = 12), dimension(0:2), parameter :: output_grid_names = &
+  integer, parameter :: OUTPUT_DENSPOT_NONE    = 0
+  integer, parameter :: OUTPUT_DENSPOT_DENSITY = 1
+  integer, parameter :: OUTPUT_DENSPOT_DENSPOT = 2
+  character(len = 12), dimension(0:2), parameter :: OUTPUT_DENSPOT_names = &
        & (/ "none        ", "density     ", "dens. + pot." /)
-  integer, parameter :: OUTPUT_GRID_FORMAT_TEXT = 0
-  integer, parameter :: OUTPUT_GRID_FORMAT_ETSF = 1
-  integer, parameter :: OUTPUT_GRID_FORMAT_CUBE = 2
-  character(len = 4), dimension(0:2), parameter :: output_grid_format_names = &
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_TEXT = 0
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_ETSF = 1
+  integer, parameter :: OUTPUT_DENSPOT_FORMAT_CUBE = 2
+  character(len = 4), dimension(0:2), parameter :: OUTPUT_DENSPOT_format_names = &
        & (/ "text", "ETSF", "cube" /)
 
   !> SCF mixing parameters. (mixing parameters to be added)
@@ -66,10 +66,6 @@ module module_types
        &    "Cold (bumb)",   &
        &    "Cold (mono)",   &
        &    "Meth.-Pax. " /)
- !!!!!!! MOVED ....   ! To be moved as an input parameter later
-  !integer, parameter :: occopt = SMEARING_DIST_ERF
- !!!!!!! MOVED ....   
-
 
   !> Type used for the orthogonalisation parameter
   type, public :: orthon_data
@@ -101,16 +97,28 @@ module module_types
      real(gp) :: fref !< reference occupation (for alphaNK case)
   end type SIC_data
 
+  !> Flags for the input files.
+  integer, parameter, public :: INPUTS_NONE  =   0
+  integer, parameter, public :: INPUTS_DFT   =   1
+  integer, parameter, public :: INPUTS_GEOPT =   2
+  integer, parameter, public :: INPUTS_PERF  =   4
+  integer, parameter, public :: INPUTS_KPT   =   8
+  integer, parameter, public :: INPUTS_MIX   =  16
+  integer, parameter, public :: INPUTS_TDDFT =  32
+  integer, parameter, public :: INPUTS_SIC   =  64
+  integer, parameter, public :: INPUTS_FREQ  = 128
+
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-          & file_mix,file_sic,file_occnum, dir_output
+          & file_mix,file_sic,file_occnum,file_igpop, dir_output
+     integer :: files ! existing files.
      !miscellaneous variables
      logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty, occopt
-     integer :: output_grid, dispersion,last_run,output_wf_format,output_grid_format
+     integer :: OUTPUT_DENSPOT,dispersion,last_run,output_wf_format,OUTPUT_DENSPOT_format
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel, alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: verbosity
@@ -288,6 +296,12 @@ module module_types
   type, public :: grid_dimensions
      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   end type grid_dimensions
+
+!> Structure to store the density / potential distribution among processors.
+  type, public :: denspot_distribution
+     integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add
+     integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
+  end type denspot_distribution
 
 
 !>  Structures of basis of gaussian functions
@@ -477,82 +491,6 @@ module module_types
 
 
 contains
-
-
-
-!>   De-Allocate paw data contained in atom_data object
-
-  subroutine deallocate_atomdatapaw(atoms,subname)
-    use module_base
-    implicit none
-    character(len=*), intent(in) :: subname
-    type(atoms_data), intent(inout) :: atoms
-    !local variables
-    integer :: i_all,i_stat
-
-    if(associated(atoms%paw_l)) then
-       i_all=-product(shape(atoms%paw_l ))*kind(atoms%paw_l )
-       deallocate(atoms%paw_l,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_l',subname)
-    end if
-
-    if(associated(atoms%paw_NofL)) then
-       i_all=-product(shape(  atoms%paw_NofL ))*kind(atoms%paw_NofL )
-       deallocate(atoms%paw_NofL,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_NofL',subname)
-    end if
-
-    if(associated(atoms%paw_nofchannels)) then
-       i_all=-product(shape(  atoms%paw_nofchannels ))*kind(atoms%paw_nofchannels )
-       deallocate(atoms%paw_nofchannels,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_nofchannels',subname)
-    end if
-
-    if(associated(atoms%paw_nofgaussians)) then
-       i_all=-product(shape(  atoms%paw_nofgaussians ))*kind(atoms%paw_nofgaussians )
-       deallocate(atoms%paw_nofgaussians,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_nofgaussians',subname)
-    end if
-
-    if(associated(atoms%paw_Greal)) then
-       i_all=-product(shape(  atoms%paw_Greal ))*kind(atoms%paw_Greal )
-       deallocate(atoms%paw_Greal,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Greal',subname)
-    end if
-
-    if(associated(atoms%paw_Gimag)) then
-       i_all=-product(shape(  atoms%paw_Gimag ))*kind(atoms%paw_Gimag )
-       deallocate(atoms%paw_Gimag,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Gimag',subname)
-    end if
-
-    if(associated(atoms%paw_Gcoeffs)) then
-       i_all=-product(shape(  atoms%paw_Gcoeffs ))*kind(atoms%paw_Gcoeffs )
-       deallocate(atoms%paw_Gcoeffs,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Gcoeffs',subname)
-    end if
-
-    if(associated(atoms%paw_H_matrices)) then
-       i_all=-product(shape(  atoms%paw_H_matrices ))*kind(atoms%paw_H_matrices )
-       deallocate(atoms%paw_H_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_H_matrices',subname)
-    end if
-
-    if(associated(atoms%paw_S_matrices)) then
-       i_all=-product(shape(  atoms%paw_S_matrices ))*kind(atoms%paw_S_matrices )
-       deallocate(atoms%paw_S_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_S_matrices',subname)
-    end if
-    
-    if(associated(atoms%paw_Sm1_matrices)) then
-       i_all=-product(shape(  atoms%paw_Sm1_matrices ))*kind(atoms%paw_Sm1_matrices )
-       deallocate(atoms%paw_Sm1_matrices,stat=i_stat)
-       call memocc(i_stat,i_all,'atoms%paw_Sm1_matrices',subname)
-    end if
-
-
-  END SUBROUTINE deallocate_atomdatapaw
-
 
 
 !> Allocate diis objects
@@ -981,66 +919,72 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_all,i_stat
 
-    if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then 
-       i_all=-product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f)
-       deallocate(bounds%kb%ibyz_f,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%kb%ibyz_f',subname)
-       i_all=-product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f)
-       deallocate(bounds%kb%ibxz_f,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%kb%ibxz_f',subname)
-       i_all=-product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f)
-       deallocate(bounds%kb%ibxy_f,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%kb%ibxy_f',subname)
+    if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then
+       ! Just test the first one...
+       if (associated(bounds%kb%ibyz_f)) then
+          i_all=-product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f)
+          deallocate(bounds%kb%ibyz_f,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%kb%ibyz_f',subname)
+          i_all=-product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f)
+          deallocate(bounds%kb%ibxz_f,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%kb%ibxz_f',subname)
+          i_all=-product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f)
+          deallocate(bounds%kb%ibxy_f,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%kb%ibxy_f',subname)
 
-       i_all=-product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff)
-       deallocate(bounds%sb%ibxy_ff,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%sb%ibxy_ff',subname)
-       i_all=-product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f)
-       deallocate(bounds%sb%ibzzx_f,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%sb%ibzzx_f',subname)
-       i_all=-product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f)
-       deallocate(bounds%sb%ibyyzz_f,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%sb%ibyyzz_f',subname)
-       i_all=-product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff)
-       deallocate(bounds%gb%ibyz_ff,stat=i_stat)
+          i_all=-product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff)
+          deallocate(bounds%sb%ibxy_ff,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%sb%ibxy_ff',subname)
+          i_all=-product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f)
+          deallocate(bounds%sb%ibzzx_f,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%sb%ibzzx_f',subname)
+          i_all=-product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f)
+          deallocate(bounds%sb%ibyyzz_f,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%sb%ibyyzz_f',subname)
+          i_all=-product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff)
+          deallocate(bounds%gb%ibyz_ff,stat=i_stat)
 
-       call memocc(i_stat,i_all,'bounds%gb%ibyz_ff',subname)
-       i_all=-product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f)
-       deallocate(bounds%gb%ibzxx_f,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%gb%ibzxx_f',subname)
-       i_all=-product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f)
-       deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%gb%ibxxyy_f',subname)
+          call memocc(i_stat,i_all,'bounds%gb%ibyz_ff',subname)
+          i_all=-product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f)
+          deallocate(bounds%gb%ibzxx_f,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%gb%ibzxx_f',subname)
+          i_all=-product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f)
+          deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%gb%ibxxyy_f',subname)
+       end if
     end if
 
     !the arrays which are needed only for free BC
     if (geocode == 'F') then
-       i_all=-product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c)
-       deallocate(bounds%kb%ibyz_c,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%kb%ibyz_c',subname)
-       i_all=-product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c)
-       deallocate(bounds%kb%ibxz_c,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%kb%ibxz_c',subname)
-       i_all=-product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c)
-       deallocate(bounds%kb%ibxy_c,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%kb%ibxy_c',subname)
-       i_all=-product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c)
-       deallocate(bounds%sb%ibzzx_c,stat=i_stat)
+       ! Just test the first one...
+       if (associated(bounds%kb%ibyz_c)) then
+          i_all=-product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c)
+          deallocate(bounds%kb%ibyz_c,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%kb%ibyz_c',subname)
+          i_all=-product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c)
+          deallocate(bounds%kb%ibxz_c,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%kb%ibxz_c',subname)
+          i_all=-product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c)
+          deallocate(bounds%kb%ibxy_c,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%kb%ibxy_c',subname)
+          i_all=-product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c)
+          deallocate(bounds%sb%ibzzx_c,stat=i_stat)
 
-       call memocc(i_stat,i_all,'bounds%sb%ibzzx_c',subname)
-       i_all=-product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c)
-       deallocate(bounds%sb%ibyyzz_c,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%sb%ibyyzz_c',subname)
-       i_all=-product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c)
-       deallocate(bounds%gb%ibzxx_c,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%gb%ibzxx_c',subname)
-       i_all=-product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c)
-       deallocate(bounds%gb%ibxxyy_c,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%gb%ibxxyy_c',subname)
+          call memocc(i_stat,i_all,'bounds%sb%ibzzx_c',subname)
+          i_all=-product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c)
+          deallocate(bounds%sb%ibyyzz_c,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%sb%ibyyzz_c',subname)
+          i_all=-product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c)
+          deallocate(bounds%gb%ibzxx_c,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%gb%ibzxx_c',subname)
+          i_all=-product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c)
+          deallocate(bounds%gb%ibxxyy_c,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%gb%ibxxyy_c',subname)
 
-       i_all=-product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r)
-       deallocate(bounds%ibyyzz_r,stat=i_stat)
-       call memocc(i_stat,i_all,'bounds%ibyyzz_r',subname)
+          i_all=-product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r)
+          deallocate(bounds%ibyyzz_r,stat=i_stat)
+          call memocc(i_stat,i_all,'bounds%ibyyzz_r',subname)
+       end if
     end if
 
   END SUBROUTINE deallocate_bounds
@@ -1056,6 +1000,27 @@ END SUBROUTINE deallocate_orbs
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
 
   END SUBROUTINE deallocate_lr
+
+  subroutine deallocate_denspot_distribution(denspotd, subname)
+    use module_base
+    implicit none
+    type(denspot_distribution), intent(inout) :: denspotd
+    character(len = *), intent(in) :: subname
+
+    integer :: i_stat, i_all
+
+    if (associated(denspotd%nscatterarr)) then
+       i_all=-product(shape(denspotd%nscatterarr))*kind(denspotd%nscatterarr)
+       deallocate(denspotd%nscatterarr,stat=i_stat)
+       call memocc(i_stat,i_all,'nscatterarr',subname)
+    end if
+
+    if (associated(denspotd%ngatherarr)) then
+       i_all=-product(shape(denspotd%ngatherarr))*kind(denspotd%ngatherarr)
+       deallocate(denspotd%ngatherarr,stat=i_stat)
+       call memocc(i_stat,i_all,'ngatherarr',subname)
+    end if
+  END SUBROUTINE deallocate_denspot_distribution
 
   function input_psi_names(id)
     integer, intent(in) :: id
@@ -1127,31 +1092,31 @@ END SUBROUTINE deallocate_orbs
     output_wf_format_validate = (id >= 0 .and. id < size(wf_format_names))
   end function output_wf_format_validate
 
-  subroutine output_grid_help()
+  subroutine output_denspot_help()
     integer :: i, j
 
-    write(*, "(1x,A)") "Available values of output_grid are:"
-    do i = 0, size(output_grid_format_names) - 1
-       do j = 0, size(output_grid_names) - 1
+    write(*, "(1x,A)") "Available values of output_denspot are:"
+    do i = 0, size(output_denspot_format_names) - 1
+       do j = 0, size(output_denspot_names) - 1
           if (j == 0 .and. i == 0) then
              write(*, "(1x,A,I5,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_grid_names(j)), "."
+                  & " - ", trim(output_denspot_names(j)), "."
           else if (j /= 0) then
              write(*, "(1x,A,I5,A,A,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_grid_names(j)), &
-                  & " in ", trim(output_grid_format_names(i)), " format."
+                  & " - ", trim(output_denspot_names(j)), &
+                  & " in ", trim(output_denspot_format_names(i)), " format."
           end if
        end do
     end do
-  end subroutine output_grid_help
+  end subroutine output_denspot_help
 
-  function output_grid_validate(id, fid)
+  function output_denspot_validate(id, fid)
     integer, intent(in) :: id, fid
-    logical :: output_grid_validate
+    logical :: output_denspot_validate
 
-    output_grid_validate = (id >= 0 .and. id < size(output_grid_names)) .and. &
-         & (fid >= 0 .and. fid < size(output_grid_format_names))
-  end function output_grid_validate
+    output_denspot_validate = (id >= 0 .and. id < size(output_denspot_names)) .and. &
+         & (fid >= 0 .and. fid < size(output_denspot_format_names))
+  end function output_denspot_validate
 
 
 !!

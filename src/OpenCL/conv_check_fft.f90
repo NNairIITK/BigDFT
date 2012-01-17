@@ -128,11 +128,8 @@ program conv_check_fft
 
    !initialize rhopots
    call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot(1),1)
-!   call to_zero(2*n1*n2*n3,rhopot2(1))
    call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot2(1),1)
 
-   !call to_zero(2*n1*n2*n3,rhopot2(1))
-   !call to_zero(n1*n2*n3,rhopot(1))
 
    !the input and output arrays must be reverted in this implementation
    do i=1,n2*n3
@@ -275,7 +272,7 @@ program conv_check_fft
    !Poisson Solver
     write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver, dimensions:',n1,n2,n3
    !calculate the kernel in parallel for each processor
-   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,quiet='yes') 
+   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,.false.) 
 
    !call to_zero(size(pkernel),pkernel(1))
    !pkernel(1:size(pkernel))=1.0_dp
@@ -317,7 +314,6 @@ program conv_check_fft
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
-!   call vcopy(n1*n2*n3,psi_cuda(1,1,1,1),2,rhopot2(1),1)
    call compare_3D_results(n1, n2, n3, rhopot(1), rhopot2(1), maxdiff, 3.d-7)
    call compare_time(CPUtime,GPUtime,n1*n2*n3,2*5 * (log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)

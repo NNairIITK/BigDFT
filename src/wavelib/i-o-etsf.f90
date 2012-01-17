@@ -75,6 +75,9 @@ contains
     hx_old = rprimd(1,1) / n1_old
     hy_old = rprimd(2,2) / n2_old
     hz_old = rprimd(3,3) / n3_old
+    n1_old = n1_old - 1
+    n2_old = n2_old - 1
+    n3_old = n3_old - 1
     ! We read the eigenvalues & occupations.
     allocate(orbsd%eval(dims%number_of_spins * dims%max_number_of_states * &
          & dims%number_of_kpoints),stat=i_stat)
@@ -560,16 +563,16 @@ contains
   END SUBROUTINE calc_displ
 END SUBROUTINE read_waves_from_list_etsf
 
-subroutine read_wave_descr_etsf(lstat, filename, ln, norbu, norbd, nkpt, nspinor)
+subroutine readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
   use module_base
   use module_types
   use etsf_io_low_level
+  use etsf_io_file
   use internal_etsf
 
   implicit none
 
-  integer, intent(in) :: ln
-  character(len = ln), intent(in) :: filename
+  character(len = *), intent(in) :: filename
   integer, intent(out) :: norbu, norbd, nkpt, nspinor
   logical, intent(out) :: lstat
 
@@ -585,13 +588,20 @@ subroutine read_wave_descr_etsf(lstat, filename, ln, norbu, norbd, nkpt, nspinor
      return
   end if
 
+  ! Check that we are a valid wavefunction file.
+  call etsf_io_file_check_wavefunctions_data(ncid, lstat, error_data = error)
+  if (.not. lstat) then
+     call etsf_warning(error)
+     return
+  end if
+
   ! We read the basis set description and the atomic definition.
   call etsf_read_descr(ncid, orbsd, n1, n2, n3, hx, hy, hz, lstat, error)
   if (.not. lstat) then
      call etsf_warning(error)
      return
   end if
-
+  
   ! We close the ETSF file.
   call etsf_io_low_close(ncid, lstat, error)
   if (.not. lstat) call etsf_warning(error)
@@ -606,9 +616,9 @@ subroutine read_wave_descr_etsf(lstat, filename, ln, norbu, norbd, nkpt, nspinor
   norbd   = orbsd%norbd
   nkpt    = orbsd%nkpts
   nspinor = orbsd%nspinor
-END SUBROUTINE read_wave_descr_etsf
+END SUBROUTINE readwavedescr_etsf
 
-subroutine read_wave_to_isf_etsf(lstat, filename, ln, iorbp, hx, hy, hz, &
+subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
   use module_base
   use module_types
@@ -618,8 +628,7 @@ subroutine read_wave_to_isf_etsf(lstat, filename, ln, iorbp, hx, hy, hz, &
 
   implicit none
 
-  integer, intent(in) :: ln
-  character(len = ln), intent(in) :: filename
+  character(len = *), intent(in) :: filename
   integer, intent(in) :: iorbp
   integer, intent(out) :: n1, n2, n3, nspinor
   real(gp), intent(out) :: hx, hy, hz
@@ -740,20 +749,7 @@ contains
     end if
     call deallocate_wfd(lr%wfd, subname)
   END SUBROUTINE deallocate_local
-END SUBROUTINE read_wave_to_isf_etsf
-
-subroutine free_wave_to_isf_etsf(psiscf)
-  use module_base
-  implicit none
-  real(wp), dimension(:,:,:,:), pointer :: psiscf
-
-  integer :: i_all, i_stat
-
-  i_all=-product(shape(psiscf))*kind(psiscf)
-  deallocate(psiscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psiscf',"free_wave_to_isf_etsf")
-END SUBROUTINE free_wave_to_isf_etsf
-
+END SUBROUTINE readwavetoisf_etsf
 
 !>   Read a ETSF (NETCDF) file containing wavefunctions.
 !!    coordinates_of_grid_points is used to store the geometric
@@ -924,7 +920,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
      call cpu_time(tr0)
      call system_clock(ncount1,ncount_rate,ncount_max)
 
-     call etsf_io_low_open_create(ncid, filename, 1.3, lstat, &
+     call etsf_io_low_open_create(ncid, filename // ".etsf", 1.3, lstat, &
           & title = "BigDFT wavefunctions", error_data = error, &
           & overwrite = .true., with_etsf_header = .true.)
      if (.not. lstat) call etsf_error(error)
@@ -945,7 +941,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
      do i = 0, iproc - 1, 1
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
      end do
-     call etsf_io_low_open_modify(ncid, filename, lstat, error_data = error)
+     call etsf_io_low_open_modify(ncid, filename // ".etsf", lstat, error_data = error)
      if (.not. lstat) call etsf_error(error)
 !!$  else
 !!$     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
@@ -1002,12 +998,16 @@ contains
     type(etsf_dims) :: dims
     type(etsf_geometry) :: geo
     type(etsf_basisdata) :: basis
+    type(etsf_kpoints) :: kpts
     type(etsf_electrons) :: elec
     integer :: i_all, i_stat, iat, i, ispin, iorb
     double precision, target :: rprimd(3,3)
     double precision, allocatable, target :: xred(:,:)
     double precision, dimension(:), allocatable, target :: znucl
     character(len=etsf_chemlen), allocatable, dimension(:), target :: spnames
+    integer, dimension(3,3,1), target :: symId
+    real(gp), dimension(3,1), target :: transId
+    character(len=etsf_charlen), target :: wvlBasis
     logical :: lstat
     type(etsf_io_low_error) :: error
 
@@ -1020,13 +1020,13 @@ contains
     dims%number_of_frequencies_dielectric_function = etsf_no_dimension
     dims%number_of_qpoints_dielectric_function = etsf_no_dimension
     dims%number_of_qpoints_gamma_limit = etsf_no_dimension
-    dims%number_of_symmetry_operations = etsf_no_dimension
     dims%real_or_complex_gw_corrections = etsf_no_dimension
     dims%real_or_complex_wavefunctions = etsf_no_dimension
     dims%real_or_complex_density = etsf_no_dimension
     dims%real_or_complex_potential = etsf_no_dimension
 
     ! Specific dims of interest.
+    dims%number_of_symmetry_operations = 1
     dims%real_or_complex_coefficients = 1
     dims%max_number_of_coefficients = wfd%nvctr_c+7*wfd%nvctr_f
     dims%number_of_spinor_components = orbs%nspinor
@@ -1043,9 +1043,19 @@ contains
 
     dims%number_of_atoms               = at%nat
     dims%number_of_atom_species        = at%ntypes
-    dims%number_of_grid_points_vector1 = n1
-    dims%number_of_grid_points_vector2 = n2
-    dims%number_of_grid_points_vector3 = n3
+!!$    if (at%geocode == 'P') then
+       dims%number_of_grid_points_vector1 = n1 + 1
+       dims%number_of_grid_points_vector2 = n2 + 1
+       dims%number_of_grid_points_vector3 = n3 + 1
+!!$    else if (at%geocode == 'S') then
+!!$       dims%number_of_grid_points_vector1 = n1 + 1
+!!$       dims%number_of_grid_points_vector2 = n2
+!!$       dims%number_of_grid_points_vector3 = n3 + 1
+!!$    else
+!!$       dims%number_of_grid_points_vector1 = n1
+!!$       dims%number_of_grid_points_vector2 = n2
+!!$       dims%number_of_grid_points_vector3 = n3
+!!$    end if
 
     ! We write the dimensions to the file.
     call etsf_io_dims_def(ncid, dims, lstat, error)
@@ -1055,26 +1065,35 @@ contains
     call etsf_io_geometry_def(ncid, lstat, error, &
          & flags = etsf_geometry_primitive_vectors + etsf_geometry_atom_species + &
          & etsf_geometry_red_at_pos + etsf_geometry_atomic_numbers + &
-         & etsf_geometry_chemical_symbols)
+         & etsf_geometry_chemical_symbols + etsf_geometry_red_sym_matrices + &
+         & etsf_geometry_red_sym_trans)
     if (.not. lstat) call etsf_error(error)
     call etsf_io_basisdata_def(ncid, lstat, error, &
-         & flags = etsf_basisdata_coord_grid + etsf_basisdata_n_coeff_grid)
+         & flags = etsf_basisdata_basis_set + etsf_basisdata_coord_grid + &
+         & etsf_basisdata_n_coeff_grid)
+    if (.not. lstat) call etsf_error(error)
+    call etsf_io_kpoints_def(ncid, lstat, error, &
+         & flags = etsf_kpoints_red_coord_kpt + etsf_kpoints_kpoint_weights)
     if (.not. lstat) call etsf_error(error)
     call etsf_io_electrons_def(ncid, lstat, error, &
-         & flags = etsf_electrons_eigenvalues) ! + etsf_electrons_occupations)
+         & flags = etsf_electrons_number_of_states + etsf_electrons_eigenvalues + &
+         & etsf_electrons_occupations)
     if (.not. lstat) call etsf_error(error)
     call etsf_io_main_def(ncid, lstat, error, flags = etsf_main_wfs_coeff)
     if (.not. lstat) call etsf_error(error)
 
     ! We write the global informations.
     ! Geometry
-    rprimd = reshape((/ (hx * n1),0.0_gp,0.0_gp, &
-         & 0.0_gp,(hy * n2),0.0_gp, &
-         & 0.0_gp,0.0_gp,(hz * n3) /), (/ 3, 3 /))
+    rprimd = reshape((/ (hx * dims%number_of_grid_points_vector1),0.0_gp,0.0_gp, &
+         & 0.0_gp,(hy * dims%number_of_grid_points_vector2),0.0_gp, &
+         & 0.0_gp,0.0_gp,(hz * dims%number_of_grid_points_vector3) /), (/ 3, 3 /))
     allocate(xred(3, at%nat),stat=i_stat)
     call memocc(i_stat,xred,'xred',subname)
     do iat = 1, at%nat, 1
-       xred(:, iat) = rxyz(:, iat) / (/ hx * n1, hy * n2, hz * n3 /)
+       xred(:, iat) = rxyz(:, iat) / &
+            & (/ hx * dims%number_of_grid_points_vector1, &
+            &    hy * dims%number_of_grid_points_vector2, &
+            &    hz * dims%number_of_grid_points_vector3 /)
     end do
     allocate(znucl(at%ntypes),stat=i_stat)
     call memocc(i_stat,znucl,'znucl',subname)
@@ -1084,11 +1103,15 @@ contains
     do iat = 1, at%ntypes, 1
        call nzsymbol(at%nzatom(iat), spnames(iat))
     end do
-    geo%chemical_symbols       => spnames
-    geo%atom_species           => at%iatype
-    geo%atomic_numbers         => znucl
-    geo%reduced_atom_positions => xred
-    geo%primitive_vectors      => rprimd
+    symId = reshape((/1,0,0,0,1,0,0,0,1/), (/3,3,1/))
+    transId = reshape((/0.d0,0.d0,0.d0/), (/3,1/))
+    geo%chemical_symbols              => spnames
+    geo%atom_species                  => at%iatype
+    geo%atomic_numbers                => znucl
+    geo%reduced_atom_positions        => xred
+    geo%primitive_vectors             => rprimd
+    geo%reduced_symmetry_matrices     => symId
+    geo%reduced_symmetry_translations => transId
     call etsf_io_geometry_put(ncid, geo, lstat, error)
     if (.not. lstat) call etsf_error(error)
     i_all=-product(shape(xred))*kind(xred)
@@ -1103,16 +1126,16 @@ contains
     ! The eigenvalues & occupation.
     if (dims%number_of_spins == 1) then
        elec%eigenvalues%data1D => orbs%eval
-!!$       elec%occupations%data1D => orbs%occup
+       elec%occupations%data1D => orbs%occup
     else
        allocate(elec%eigenvalues%data3D(dims%max_number_of_states, &
             & dims%number_of_kpoints, dims%number_of_spins + ndebug),stat=i_stat)
        call memocc(i_stat,elec%eigenvalues%data3D,'elec%eigenvalues%data3D',subname)
        elec%eigenvalues%data3D = UNINITIALIZED(1.d0)
-!!$       allocate(elec%occupations%data3D(dims%max_number_of_states, &
-!!$            & dims%number_of_kpoints, dims%number_of_spins + ndebug),stat=i_stat)
-!!$       call memocc(i_stat,elec%occupations%data3D,'elec%occupations%data3D',subname)
-!!$       elec%occupations%data3D = UNINITIALIZED(1.d0)
+       allocate(elec%occupations%data3D(dims%max_number_of_states, &
+            & dims%number_of_kpoints, dims%number_of_spins + ndebug),stat=i_stat)
+       call memocc(i_stat,elec%occupations%data3D,'elec%occupations%data3D',subname)
+       elec%occupations%data3D = UNINITIALIZED(1.d0)
        do i = 1, orbs%norb*orbs%nkpts, 1
           ispin = 1
           iorb = modulo(i - 1, orbs%norb) + 1
@@ -1121,23 +1144,45 @@ contains
              iorb = iorb - orbs%norbu
           end if
           elec%eigenvalues%data3D(iorb, (i - 1) / orbs%norb + 1, ispin) = orbs%eval(i)
-!!$          elec%occupations%data3D(iorb, (i - 1) / orbs%norb + 1, ispin) = orbs%occup(i)
+          elec%occupations%data3D(iorb, (i - 1) / orbs%norb + 1, ispin) = orbs%occup(i)
        end do
     end if
+    allocate(elec%number_of_states%data2D(dims%number_of_kpoints, &
+         & dims%number_of_spins + ndebug),stat=i_stat)
+    call memocc(i_stat,elec%number_of_states%data2D,'elec%number_of_states%data2D',subname)
+    do ispin = 1, dims%number_of_spins, 1
+       do i = 1, orbs%nkpts, 1
+          if (ispin == 1) then
+             elec%number_of_states%data2D(i, ispin) = orbs%norbu
+          else
+             elec%number_of_states%data2D(i, ispin) = orbs%norbd
+          end if
+       end do
+    end do
     call etsf_io_electrons_put(ncid, elec, lstat, error)
     if (.not. lstat) call etsf_error(error)
     if (dims%number_of_spins /= 1) then
        i_all=-product(shape(elec%eigenvalues%data3D))*kind(elec%eigenvalues%data3D)
        deallocate(elec%eigenvalues%data3D)
        call memocc(i_stat,i_all,'elec%eigenvalues%data3D',subname)
-!!$       i_all=-product(shape(elec%occupations%data3D))*kind(elec%occupations%data3D)
-!!$       deallocate(elec%occupations%data3D)
-!!$       call memocc(i_stat,i_all,'elec%occupations%data3D',subname)
+       i_all=-product(shape(elec%occupations%data3D))*kind(elec%occupations%data3D)
+       deallocate(elec%occupations%data3D)
+       call memocc(i_stat,i_all,'elec%occupations%data3D',subname)
     end if
+    i_all=-product(shape(elec%number_of_states%data2D))*kind(elec%number_of_states%data2D)
+    deallocate(elec%number_of_states%data2D)
+    call memocc(i_stat,i_all,'elec%number_of_states%data2D',subname)
     ! Basis set
+    write(wvlBasis, "(A)") "daubechies_wavelets"
     basis%coordinates_of_basis_grid_points%data2D => gcoord
     basis%number_of_coefficients_per_grid_point%data1D => nvctr
+    basis%basis_set => wvlBasis
     call etsf_io_basisdata_put(ncid, basis, lstat, error)
+    if (.not. lstat) call etsf_error(error)
+    ! Kpoints
+    kpts%reduced_coordinates_of_kpoints => orbs%kpts
+    kpts%kpoint_weights => orbs%kwgts
+    call etsf_io_kpoints_put(ncid, kpts, lstat, error)
     if (.not. lstat) call etsf_error(error)
   END SUBROUTINE etsf_write_global
 

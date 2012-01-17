@@ -202,7 +202,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	-I$(srcdir)/PSolver -I$(srcdir)/wavelib -I$(srcdir)/convolutions \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
-AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules -Imodules
 AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
 
 if USE_MPI
@@ -248,6 +248,7 @@ modules_source = modules/base.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
+	modules/vdwcorrection.f90 \
 	$(CUDA_MODULES) \
 	$(LIBXC_MODULES) \
 	$(PS_MODULES)
@@ -268,7 +269,6 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	vdwcorrection.f90 \
 	lanczos_interface.f90 \
 	lanczos_base.f90 \
 	lanczos.f90 \
@@ -279,6 +279,7 @@ high_level = cluster.f90 \
 #objects which can be compiled only with module_base
 low_level = \
 	$(PS_SOURCES) \
+	init/atoms.f90 \
 	init/projectors.f90  \
 	init/ionicpot.f90 \
 	init/gridmanipulation.f90 \
@@ -309,6 +310,7 @@ low_level = \
 	lib/fft/fft2d.f90 \
 	lib/lbfgs.f90 \
 	lib/bindings.c \
+	lib/bindingsf.f90 \
 	$(flush_files) \
 	$(etsf_files) \
 	wavelib/transwaves.f90 \
@@ -395,11 +397,10 @@ check:
 #dependencies
 $(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o WaCo.o: $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
+cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 $(modules_objects) : $(mpi_include)
-

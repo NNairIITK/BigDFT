@@ -319,7 +319,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_interfaces
    use Poisson_Solver
    use module_xc
-   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
+   use vdwcorrection
    use esatto
    implicit none
    integer, intent(in) :: nproc,iproc
@@ -355,9 +355,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(rho_descriptors)  :: rhodsc
 
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-   real(kind=8), dimension(:,:), allocatable :: radii_cf,fion
+   real(kind=8), dimension(:,:), allocatable :: radii_cf
    !real(kind=8), dimension(:,:), allocatable :: gxyz
-   real(gp), dimension(:,:),allocatable :: fdisp
+   real(gp), dimension(:,:),pointer :: fdisp,fion
    ! Charge density/potential,ionic potential, pkernel
    real(kind=8), dimension(:), allocatable :: pot_ion
 
@@ -387,7 +387,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(gp) :: rpot_a,spot_a,hpot_a,espo,harmo,r,rx,ry,rz,minr  
    real(gp), pointer :: radpot(:,:)
    integer :: radpotcount, igrid
-
+   real(gp), dimension(6) :: ewaldstr
    real(gp), dimension(:,:), pointer :: rxyz_b2B
    integer, dimension(:), pointer :: iatype_b2B, znucl_b2B
    real(gp) :: shift_b2B(3)
@@ -447,10 +447,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    hz=in%hz
 
    write(gridformat, "(A)") ""
-   select case (in%output_grid_format)
-   case (OUTPUT_GRID_FORMAT_ETSF)
+   select case (in%output_denspot_format)
+   case (output_denspot_FORMAT_ETSF)
       write(gridformat, "(A)") ".etsf"
-   case (OUTPUT_GRID_FORMAT_CUBE)
+   case (output_denspot_FORMAT_CUBE)
       write(gridformat, "(A)") ".bin"
    end select
 
@@ -595,34 +595,23 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call memocc(i_stat,pot_ion,'pot_ion',subname)
    end if
 
-   allocate(fion(3,atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,fion,'fion',subname)
-
    ! A message about dispersion forces.
+   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
    if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value 
    call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel,&
-      &   quiet=PSquiet)
+      &   (verbose > 1))
 
    if (iproc == 0) write(*,*) "IonicEnergyandForces  " 
 
-   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
-      &   psoffset,0,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
+   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,&
+        & eion,fion,in%dispersion,edisp,fdisp,ewaldstr,&
+        psoffset,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
    call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-      &   in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,0,&
-      &   .false.)
-
-   !this can be inserted inside the IonicEnergyandForces routine
-   !(after insertion of the non-regression test)
-   call vdwcorrection_calculate_energy(edisp,rxyz,atoms,in,iproc)
-
-   allocate(fdisp(3,atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,fdisp,'fdisp',subname)
-   !this can be inserted inside the IonicEnergyandForces routine
-   call vdwcorrection_calculate_forces(fdisp,rxyz,atoms,in) 
+        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
 
    !Allocate Charge density, Potential in real space
    if (n3d >0) then
@@ -856,8 +845,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !!$
       !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
-      if (in%output_grid == OUTPUT_GRID_DENSPOT) then
-         if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
+      if (in%output_denspot == output_denspot_DENSPOT) then
+         if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
 
             call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
@@ -1433,8 +1422,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call deallocate_orbs(orbs,subname)
       call deallocate_orbs(orbsAO,subname)
-
-      call deallocate_atoms_scf(atoms,subname) 
 
 
       i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)

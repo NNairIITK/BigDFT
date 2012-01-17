@@ -851,10 +851,10 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  !(the support of the exponential should be inside [-n_range/2,n_range/2])
  real(dp), dimension(n_gauss) :: p_gauss,w_gauss
  real(dp), dimension(:), allocatable :: fwork
- real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
+ real(dp), dimension(:,:), allocatable :: kernel_scf, fftwork
  real(dp) :: ur_gauss,dr_gauss,acc_gauss,pgauss,a_range
  real(dp) :: factor,factor2 !n(c) ,dx
- real(dp) :: a1,a2,a3
+ real(dp) :: a1,a2,a3,wg,k1,k2,k3
  integer :: n_scf,nker2,nker3 !n(c) nker1
  integer :: i_gauss,n_range,n_cell
  integer :: i1,i2,i3,i_stat,i_all
@@ -921,7 +921,6 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  allocate(fwork(0:n_range+ndebug),stat=i_stat)
  call memocc(i_stat,fwork,'fwork',subname)
  allocate(fftwork(2,max(nfft1,nfft2,nfft3)*2+ndebug),stat=i_stat)
- fftwork(1,1)=0.0d0
  call memocc(i_stat,fftwork,'fftwork',subname)
 
  do i3=1,n3k/nproc
@@ -983,18 +982,34 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     call gauconv_ffts(itype_scf,pgauss,hx,hy,hz,nfft1,nfft2,nfft3,n1k,n2k,n3k,n_range,&
          fwork,fftwork,kernel_scf)
 
+
     !Add to the kernel (only the local part)
-    do i3=1,nker3/nproc  
-       if (iproc*(nker3/nproc)+i3  <= nfft3/2+1) then
-          i03=iproc*(nker3/nproc)+i3
-          do i2=1,n2k
-             do i1=1,n1k
-                karray(i1,i2,i3) = karray(i1,i2,i3) + w_gauss(i_gauss)* &
-                     kernel_scf(i1,1)*kernel_scf(i2,2)*kernel_scf(i03,3)
-             end do
+    wg=w_gauss(i_gauss)
+    do i03=iproc*(nker3/nproc)+1,min((iproc+1)*(nker3/nproc),nfft3/2+1)
+       i3=i03-iproc*(nker3/nproc)
+       k3=kernel_scf(i03,3)
+       do i2=1,n2k
+          k2=kernel_scf(i2,2)*k3
+          do i1=1,n1k
+             k1=kernel_scf(i1,1)*k2
+             karray(i1,i2,i3) = karray(i1,i2,i3)+ wg*k1
           end do
-       end if
+       end do
     end do
+
+!!$    do i3=1,nker3/nproc  
+!!$       if (iproc*(nker3/nproc)+i3  <= nfft3/2+1) then
+!!$          i03=iproc*(nker3/nproc)+i3
+!!$          do i2=1,n2k
+!!$             do i1=1,n1k
+!!$                karray(i1,i2,i3) = karray(i1,i2,i3) + w_gauss(i_gauss)* &
+!!$                     kernel_scf(i1,1)*kernel_scf(i2,2)*kernel_scf(i03,3)
+!!$             end do
+!!$          end do
+!!$       end if
+!!$    end do
+
+    !!!!ALAM: here the print statement can be added print *,'igauss',i_gauss
 !!$
  end do
 !!$stop
@@ -1059,10 +1074,15 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         nk=ndimsk(idir)
         !copy the values on the real part of the fftwork array
         fftwork=0.0_dp
-        do j=0,min(n_range,n/2)
+        do j=0,min(n_range,n/2)-1
            fftwork(1,n/2+1+j)=fwork(j)
-           fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
+           fftwork(1,n/2+1-j)=fwork(j)
         end do
+        !old version of the loop, after Cray compiler bug.
+        !do j=0,min(n_range,n/2)
+        !   fftwork(1,n/2+1+j)=fwork(j)
+        !   fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
+        !end do
         !calculate the fft 
         call fft_1d_ctoc(1,1,n,fftwork,inzee)
         !copy the real part on the kfft array
@@ -1920,3 +1940,100 @@ subroutine copyreal(n1,nk1,nfft,halfft,kernelfour)
     call dcopy(nk1,halfft(1,1,ifft),2,kernelfour(1,ifft),1)  
   enddo
 END SUBROUTINE copyreal
+
+!> @file
+!!  Temporary Wires BC kernel, mimic Periodic BC. To be modified
+!! @author
+!!    Copyright (C) 2006-2011 BigDFT group (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+!>  Build the kernel of the Poisson operator with
+!!  wires Boundary conditions
+!!  in an interpolating scaling functions basis.
+!!  The periodic direction is z
+!! SYNOPSIS
+!!   @param iproc,nproc        Number of process, number of processes
+!!   @param n1,n2,n3           Dimensions for the FFT
+!!   @param nker1,nker2,nker3  Dimensions of the kernel nker(1,2,3)=n(1,2,3)/2+1
+!!   @param h1,h2,h3           Mesh steps in the three dimensions
+!!   @param itype_scf          Order of the scaling function
+!!   @param karray             output array
+subroutine Wires_Kernel(iproc,nproc,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray)
+  use module_base
+  implicit none
+  !Arguments
+  integer, intent(in) :: n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
+  real(dp), intent(in) :: h1,h2,h3
+  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  !Local variables 
+  character(len=*), parameter :: subname='Wires_Kernel'
+  real(dp), parameter :: pi=3.14159265358979323846_dp
+  integer :: i1,i2,i3,j3,i_all,i_stat
+  real(dp) :: p1,p2,mu3,ker
+  real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
+
+  !first control that the domain is not shorter than the scaling function
+  !add also a temporary flag for the allowed ISF types for the kernel
+  if (itype_scf > min(n1,n2,n3) .or. itype_scf /= 16) then
+     print *,'ERROR: dimension of the box are too small for the ISF basis chosen',&
+          itype_scf,n1,n2,n3
+     stop
+  end if
+  !calculate the FFT of the ISF for the three dimensions
+  allocate(fourISFx(0:nker1-1+ndebug),stat=i_stat)
+  call memocc(i_stat,fourISFx,'fourISFx',subname)
+  allocate(fourISFy(0:nker2-1+ndebug),stat=i_stat)
+  call memocc(i_stat,fourISFy,'fourISFy',subname)
+  allocate(fourISFz(0:nker3-1+ndebug),stat=i_stat)
+  call memocc(i_stat,fourISFz,'fourISFz',subname)
+
+  call fourtrans_isf(n1/2,fourISFx)
+  call fourtrans_isf(n2/2,fourISFy)
+  call fourtrans_isf(n3/2,fourISFz)
+
+!!  fourISFx=0._dp
+!!  fourISFy=0._dp
+!!  fourISFz=0._dp
+
+  !calculate directly the reciprocal space components of the kernel function
+  do i3=1,nker3/nproc
+     j3=iproc*(nker3/nproc)+i3
+     if (j3 <= n3/2+1) then
+        mu3=real(j3-1,dp)/real(n3,dp)
+        mu3=(mu3/h2)**2 !beware of the exchanged dimension
+        do i2=1,nker2
+           p2=real(i2-1,dp)/real(n2,dp)
+           do i1=1,nker1
+              p1=real(i1-1,dp)/real(n1,dp)
+              ker=pi*((p1/h1)**2+(p2/h3)**2+mu3)!beware of the exchanged dimension
+              if (ker/=0._dp) then
+                 karray(i1,i2,i3)=1._dp/ker*fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
+              else
+                 karray(i1,i2,i3)=0._dp
+              end if
+           end do
+        end do
+     else
+        do i2=1,nker2
+           do i1=1,nker1
+              karray(i1,i2,i3)=0._dp
+           end do
+        end do
+     end if
+  end do
+
+  i_all=-product(shape(fourISFx))*kind(fourISFx)
+  deallocate(fourISFx,stat=i_stat)
+  call memocc(i_stat,i_all,'fourISFx',subname)
+  i_all=-product(shape(fourISFy))*kind(fourISFy)
+  deallocate(fourISFy,stat=i_stat)
+  call memocc(i_stat,i_all,'fourISFy',subname)
+  i_all=-product(shape(fourISFz))*kind(fourISFz)
+  deallocate(fourISFz,stat=i_stat)
+  call memocc(i_stat,i_all,'fourISFz',subname)
+
+END SUBROUTINE Wires_Kernel
+

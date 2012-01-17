@@ -12,7 +12,7 @@
 !!   Calculates also the bounds arrays needed for convolutions
 !!   Refers this information to the global localisation region descriptor
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-      &   crmult,frmult,Glr,output_grid)
+      &   crmult,frmult,Glr,output_denspot)
    use module_base
    use module_types
    implicit none
@@ -23,13 +23,15 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
    real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
    type(locreg_descriptors), intent(inout) :: Glr
-   logical, intent(in), optional :: output_grid
+   logical, intent(in), optional :: output_denspot
    !local variables
    character(len=*), parameter :: subname='createWavefunctionsDescriptors'
    integer :: i_all,i_stat,i1,i2,i3,iat
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-   logical :: my_output_grid
+   logical :: my_output_denspot
    logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+
+   call timing(iproc,'CrtDescriptors','ON')
 
    if (iproc == 0) then
       write(*,'(1x,a)')&
@@ -90,9 +92,9 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    '  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
 
    ! Create the file grid.xyz to visualize the grid of functions
-   my_output_grid = .false.
-   if (present(output_grid)) my_output_grid = output_grid
-   if (my_output_grid) then
+   my_output_denspot = .false.
+   if (present(output_denspot)) my_output_denspot = output_denspot
+   if (my_output_denspot) then
       open(unit=22,file='grid.xyz',status='unknown')
       write(22,*) Glr%wfd%nvctr_c+Glr%wfd%nvctr_f+atoms%nat,' atomic'
       if (atoms%geocode=='F') then
@@ -133,6 +135,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    i_all=-product(shape(logrid_f))*kind(logrid_f)
    deallocate(logrid_f,stat=i_stat)
    call memocc(i_stat,i_all,'logrid_f',subname)
+
+   call timing(iproc,'CrtDescriptors','OF')
 END SUBROUTINE createWavefunctionsDescriptors
 
 subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
@@ -265,6 +269,8 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
    integer :: iat,i_stat,i_all,iseg
    logical, dimension(:,:,:), allocatable :: logrid
 
+   call timing(iproc,'CrtProjectors ','ON')
+
    allocate(nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
    call memocc(i_stat,nlpspd%nseg_p,'nlpspd%nseg_p',subname)
    allocate(nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
@@ -340,6 +346,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
       call fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
    end if
 
+   call timing(iproc,'CrtProjectors ','OF')
 END SUBROUTINE createProjectorsArrays
 
 
@@ -1108,6 +1115,17 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
 END SUBROUTINE createPawProjectorsArrays
 
+!!$subroutine initRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, atoms, rxyz, crmult, frmult, radii, nspin, ixc, rho_commun, rhodsc, nscatterarr, ngatherarr, pot_ion)
+!!$  use module_base
+!!$  use module_types
+!!$
+!!$  implicit none
+!!$
+!!$  integer, intent(in) :: iproc, nproc
+!!$
+!!$  integer :: i_stat
+!!$
+!!$END SUBROUTINE initRhoPot
 
 !> Input guess wavefunction diagonalization
 subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
@@ -1171,7 +1189,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
       write(*,'(1x,a)')&
          &   '------------------------------------------------------- Input Wavefunctions Creation'
       !yaml_output
-      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
+!      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
       yaml_indent=yaml_indent+2 !list element
    end if
    !spin for inputguess orbitals
@@ -1501,7 +1519,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    if (iproc==0) then
       call write_energies(0,0,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,0.0_gp,0.0_gp,0.0_gp,0.0_gp,'Input Guess')
       !yaml output
-      write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
+!      write(70,'(a)')repeat(' ',yaml_indent+2)//'}'
    end if
 
    !!!  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&

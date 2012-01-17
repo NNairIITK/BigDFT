@@ -38,7 +38,7 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)
-include_HEADERS = bigdft.h
+include_HEADERS = bigdft.h bigdft_cst.h
 
 EXTRA_DIST = configure.inc.in
 
@@ -54,6 +54,7 @@ libmodules_a_SOURCES = base.f90 \
 	xc.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
+	vdwcorrection.f90 \
 	bigdft.h \
 	$(LIBXC_MODULE) \
 	$(GPUBLAS_INTERFACE)
@@ -83,5 +84,6 @@ input.o: base.o
 interfaces.o: base.o types.o xc.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
+vdwcorrection.o: base.o types.o
 
 $(mod_bigdft) : base.o types.o interfaces.o

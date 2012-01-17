@@ -291,7 +291,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
       write(*,'(1x,a,f21.12)')&
          &   'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
       !yaml output
-      write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
+!      write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
       if(nspin == 4 .and. tt > 0._dp)&
          &   write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
          &   (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
@@ -1095,16 +1095,16 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
       dsq_fr(iat)=(radii_cf(at%iatype(iat),2)*frmult*dpmult)**2
    enddo
 
-   !$omp parallel default(none)&
-   !$omp private(iat,irho,dsq,i1,i2,i3)&
-   !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
-   !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
-   !$omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
-   !$omp do schedule(static,1)
+!   !$omp parallel default(none)&
+!   !$omp private(iat,irho,dsq,i1,i2,i3)&
+!   !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
+!   !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
+!   !$omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
+!   !$omp do schedule(static,1)
    do iat=1,nat
-      do i1=i1cmin(iat),i1cmax(iat)
+      do i3=i3cmin(iat),i3cmax(iat)
          do i2=i2cmin(iat),i2cmax(iat)
-            do i3=i3cmin(iat),i3cmax(iat)
+             do i1=i1cmin(iat),i1cmax(iat)
                dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
                   &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
                   &   (rxyz(3,iat)-(i3-corz)*hzh)**2
@@ -1116,16 +1116,16 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
          enddo
       enddo
    enddo
-   !$omp enddo
-   !$omp end parallel
+!   !$omp enddo
+!   !$omp end parallel
 
    !call system_clock(ncount2,ncount_rate,ncount_max)
    !write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
 
    do iat=1,at%nat
-      do i1=i1fmin(iat),i1fmax(iat)
+      do i3=i3fmin(iat),i3fmax(iat)
          do i2=i2fmin(iat),i2fmax(iat)
-            do i3=i3fmin(iat),i3fmax(iat)
+            do i1=i1fmin(iat),i1fmax(iat)
                dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
                   &   (rxyz(2,iat)-(i2-cory)*hyh)**2+&
                   &   (rxyz(3,iat)-(i3-corz)*hzh)**2          
