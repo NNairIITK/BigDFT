@@ -1616,99 +1616,23 @@ real(8),dimension(:),allocatable:: work
 real(8),dimension(:,:),allocatable:: ham_band, ovrlp_band
 character(len=*),parameter:: subname='diagonalizeHamiltonian'
 
-  !!!! OLD VERSION #####################################################################################################
-  !!! Get the optimal work array size
-  !!lwork=-1 
-  !!allocate(work(1), stat=istat)
-  !!call memocc(istat, work, 'work', subname)
-  !!call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-  !!lwork=work(1) 
+  !! OLD VERSION #####################################################################################################
+  ! Get the optimal work array size
+  lwork=-1 
+  allocate(work(1), stat=istat)
+  call memocc(istat, work, 'work', subname)
+  call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+  lwork=work(1) 
 
-  !!! Deallocate the work array ane reallocate it with the optimal size
-  !!iall=-product(shape(work))*kind(work)
-  !!deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-  !!call memocc(istat, iall, 'work', subname)
-  !!allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
-  !!call memocc(istat, work, 'work', subname)
-
-  !!! Diagonalize the Hamiltonian
-  !!call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-
-  !!! Deallocate the work array.
-  !!iall=-product(shape(work))*kind(work)
-  !!deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-  !!call memocc(istat, iall, 'work', subname)
-  !!
-  !!! Make sure that the eigenvectors are the same for all MPI processes. To do so, require that 
-  !!! the first entry of each vector is positive.
-  !!do iorb=1,orbs%norb
-  !!    if(HamSmall(1,iorb)<0.d0) then
-  !!        do jorb=1,orbs%norb
-  !!            HamSmall(jorb,iorb)=-HamSmall(jorb,iorb)
-  !!        end do
-  !!    end if
-  !!end do
-  !!!! #################################################################################################################
-
-  !! NEW VERSION #####################################################################################################
-  ! Determine the maximal number of non-zero subdiagonals
-  !!nsubmax=0
-  !!do iorb=1,orbs%norb
-  !!    nsub=0
-  !!    do jorb=orbs%norb,iorb+1,-1
-  !!        if(Hamsmall(jorb,iorb)/=0.d0) then
-  !!            nsub=jorb-iorb
-  !!            exit
-  !!        end if
-  !!    end do
-  !!    if(iproc==0) write(*,*) 'iorb,nsub',iorb,nsub
-  !!    nsubmax=max(nsub,nsubmax)
-  !!end do
-  !!if(iproc==0) write(*,*) 'nsubmax',nsubmax
-  !!if(iproc==0) then
-  !!      do iorb=1,orbs%norb
-  !!           write(*,'(14es10.3)') (hamsmall(iorb,jorb), jorb=1,orbs%norb)
-  !!      end do
-  !!end if
-
-  ! Copy to banded format
-  allocate(ham_band(nsubmax+1,orbs%norb), stat=istat)
-  call memocc(istat, ham_band, 'ham_band', subname)
-  allocate(ovrlp_band(nsubmax+1,orbs%norb), stat=istat)
-  call memocc(istat, ovrlp_band, 'ovrlp_band', subname)
-  do iorb=1,orbs%norb
-      do jorb=iorb,min(iorb+nsubmax,orbs%norb)
-          ham_band(1+jorb-iorb,iorb)=HamSmall(jorb,iorb)
-          ovrlp_band(1+jorb-iorb,iorb)=ovrlp(jorb,iorb)
-      end do
-  end do
-  !!if(iproc==0) then
-  !!      write(*,*) '+++++++++++++++++++++++++++++'
-  !!      do iorb=1,nsubmax+1
-  !!           write(*,'(14es10.3)') (ham_band(iorb,jorb), jorb=1,orbs%norb)
-  !!      end do
-  !!end if
-
-
-
-  !!! Get the optimal work array size
-  !!lwork=-1 
-  !!allocate(work(1), stat=istat)
-  !!call memocc(istat, work, 'work', subname)
-  !!call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-  !!lwork=work(1) 
-
-  !!! Deallocate the work array ane reallocate it with the optimal size
-  !!iall=-product(shape(work))*kind(work)
-  !!deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-  !!call memocc(istat, iall, 'work', subname)
-  allocate(work(3*orbs%norb), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
+  ! Deallocate the work array ane reallocate it with the optimal size
+  iall=-product(shape(work))*kind(work)
+  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+  call memocc(istat, iall, 'work', subname)
+  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
   call memocc(istat, work, 'work', subname)
 
   ! Diagonalize the Hamiltonian
-  !call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-  call dsbgv('v', 'l', orbs%norb, nsubmax, nsubmax, ham_band(1,1), nsubmax+1, ovrlp_band(1,1), nsubmax+1, &
-       eval(1), HamSmall(1,1), orbs%norb, work, info)
+  call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
 
   ! Deallocate the work array.
   iall=-product(shape(work))*kind(work)
@@ -1724,15 +1648,91 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
           end do
       end if
   end do
+  !! #################################################################################################################
+
+  !!!! NEW VERSION #####################################################################################################
+  !!! Determine the maximal number of non-zero subdiagonals
+  !!!!nsubmax=0
+  !!!!do iorb=1,orbs%norb
+  !!!!    nsub=0
+  !!!!    do jorb=orbs%norb,iorb+1,-1
+  !!!!        if(Hamsmall(jorb,iorb)/=0.d0) then
+  !!!!            nsub=jorb-iorb
+  !!!!            exit
+  !!!!        end if
+  !!!!    end do
+  !!!!    if(iproc==0) write(*,*) 'iorb,nsub',iorb,nsub
+  !!!!    nsubmax=max(nsub,nsubmax)
+  !!!!end do
+  !!!!if(iproc==0) write(*,*) 'nsubmax',nsubmax
+  !!!!if(iproc==0) then
+  !!!!      do iorb=1,orbs%norb
+  !!!!           write(*,'(14es10.3)') (hamsmall(iorb,jorb), jorb=1,orbs%norb)
+  !!!!      end do
+  !!!!end if
+
+  !!! Copy to banded format
+  !!allocate(ham_band(nsubmax+1,orbs%norb), stat=istat)
+  !!call memocc(istat, ham_band, 'ham_band', subname)
+  !!allocate(ovrlp_band(nsubmax+1,orbs%norb), stat=istat)
+  !!call memocc(istat, ovrlp_band, 'ovrlp_band', subname)
+  !!do iorb=1,orbs%norb
+  !!    do jorb=iorb,min(iorb+nsubmax,orbs%norb)
+  !!        ham_band(1+jorb-iorb,iorb)=HamSmall(jorb,iorb)
+  !!        ovrlp_band(1+jorb-iorb,iorb)=ovrlp(jorb,iorb)
+  !!    end do
+  !!end do
+  !!!!if(iproc==0) then
+  !!!!      write(*,*) '+++++++++++++++++++++++++++++'
+  !!!!      do iorb=1,nsubmax+1
+  !!!!           write(*,'(14es10.3)') (ham_band(iorb,jorb), jorb=1,orbs%norb)
+  !!!!      end do
+  !!!!end if
 
 
-  iall=-product(shape(ham_band))*kind(ham_band)
-  deallocate(ham_band, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating ham_band' 
-  call memocc(istat, iall, 'ham_band', subname)
 
-  iall=-product(shape(ovrlp_band))*kind(ovrlp_band)
-  deallocate(ovrlp_band, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating ovrlp_band' 
-  call memocc(istat, iall, 'ovrlp_band', subname)
+  !!!!! Get the optimal work array size
+  !!!!lwork=-1 
+  !!!!allocate(work(1), stat=istat)
+  !!!!call memocc(istat, work, 'work', subname)
+  !!!!call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+  !!!!lwork=work(1) 
+
+  !!!!! Deallocate the work array ane reallocate it with the optimal size
+  !!!!iall=-product(shape(work))*kind(work)
+  !!!!deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+  !!!!call memocc(istat, iall, 'work', subname)
+  !!allocate(work(3*orbs%norb), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
+  !!call memocc(istat, work, 'work', subname)
+
+  !!! Diagonalize the Hamiltonian
+  !!!call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+  !!call dsbgv('v', 'l', orbs%norb, nsubmax, nsubmax, ham_band(1,1), nsubmax+1, ovrlp_band(1,1), nsubmax+1, &
+  !!     eval(1), HamSmall(1,1), orbs%norb, work, info)
+
+  !!! Deallocate the work array.
+  !!iall=-product(shape(work))*kind(work)
+  !!deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+  !!call memocc(istat, iall, 'work', subname)
+  !!
+  !!! Make sure that the eigenvectors are the same for all MPI processes. To do so, require that 
+  !!! the first entry of each vector is positive.
+  !!do iorb=1,orbs%norb
+  !!    if(HamSmall(1,iorb)<0.d0) then
+  !!        do jorb=1,orbs%norb
+  !!            HamSmall(jorb,iorb)=-HamSmall(jorb,iorb)
+  !!        end do
+  !!    end if
+  !!end do
+
+
+  !!iall=-product(shape(ham_band))*kind(ham_band)
+  !!deallocate(ham_band, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating ham_band' 
+  !!call memocc(istat, iall, 'ham_band', subname)
+
+  !!iall=-product(shape(ovrlp_band))*kind(ovrlp_band)
+  !!deallocate(ovrlp_band, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating ovrlp_band' 
+  !!call memocc(istat, iall, 'ovrlp_band', subname)
 
 
 end subroutine diagonalizeHamiltonian2
