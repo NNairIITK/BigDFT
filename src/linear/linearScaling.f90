@@ -210,7 +210,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       communicate_lphi=.true.
       with_auxarray=.false.
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
-      call getLinearPsi(iproc, nproc, input%nspin, orbs, comms, at, lin, rxyz, rxyz, &
+      call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%comsr, lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
           nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
           infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
           i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
@@ -332,7 +332,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           end if
           ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
 
-          call getLinearPsi(iproc, nproc, input%nspin, orbs, comms, at, lin, rxyz, rxyz, &
+          call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%comsr, lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
               infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
               i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
