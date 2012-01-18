@@ -796,7 +796,7 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   ! Local variables
   integer:: iorb, jorb, iiorb, jproc, ioverlaporb, ioverlapMPI, ilr, jlr
   integer:: ilrold, is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3
-  integer::  je3, istat, i1, i2, irecv, isend, mpidest, mpisource
+  integer::  je3, istat, i1, i2, irecv, isend, mpidest, mpisource, jjorb, nsub, ierr
   logical:: ovrlpx, ovrlpy, ovrlpz
   character(len=*),parameter:: subname='initCommsOrtho'
 
@@ -885,6 +885,21 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
       end do
   end do
   call indicesForExtraction(iproc, nproc, orbs, orbs%npsidim_orbs, onWhichAtomAll, lzd, op, comon)
+
+
+  ! Determine the number of non subdiagonals that the overlap matrix / overlap matrix will have.
+  op%nsubmax=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      do jorb=1,op%noverlaps(iiorb)
+          jjorb=op%overlaps(jorb,iiorb)
+          nsub=jjorb-iiorb
+          op%nsubmax=max(op%nsubmax,nsub)
+      end do
+  end do
+  call mpiallred(op%nsubmax, 1, mpi_max, mpi_comm_world, ierr)
+  if(iproc==0) write(*,*) 'op%nsubmax', op%nsubmax
+
 
 end subroutine initCommsOrtho
 

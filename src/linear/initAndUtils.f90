@@ -483,22 +483,22 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   read(99,*) lin%nItInnerLoop, lin%convCrit
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
   read(99,*) lin%nItPrecond
-  read(99,*) lin%getCoeff, lin%locregShape
+  read(99,*) lin%locregShape
   read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
   read(99,*) lin%nproc_pdsyev, lin%nproc_pdgemm
   read(99,*) lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho
   read(99,*) lin%correctionOrthoconstraint
-  read(99,*) lin%nItCoeff, lin%convCritCoeff
+  !read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
   read(99,*) lin%mixHist, lin%nItSCCWhenOptimizing, lin%nItSCCWhenFixed
   read(99,*) lin%alphaMixWhenOptimizing, lin%alphaMixWhenFixed, lin%convCritMix
-  read(99,*) lin%convCritMixOut
+  read(99,*) lin%lowaccuray_converged
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess, lin%memoryForCommunOverlapIG
   read(99,*) lin%plotBasisFunctions
   read(99,*) lin%transformToGlobal
   read(99,*) lin%norbsPerProcIG
-  read(99,*) lin%sumrho_fast
+  !read(99,*) lin%sumrho_fast
 
 
   ! Now read in the parameters specific for each atom type.
@@ -605,13 +605,13 @@ else
     write(hist,'(i2)') lin%mixHist
     message1=' DIIS'//hist//' '
 end if
-write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es9.2,a,es9.2,a,es9.3,a)') '| ', &
+write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es9.2,a,es9.2,a,es9.2,a)') '| ', &
      lin%mixingMethod, '  |', message1, ' | ', repeat(' ', optimalLength(4, lin%nItSCCWhenOptimizing)), &
      lin%nItSCCWhenOptimizing, '   /', repeat(' ', optimalLength(3, lin%nItSCCWhenFixed)), lin%nItSCCWhenFixed, &
      '   |', lin%alphaMixWhenOptimizing, ' /', lin%alphaMixWhenOptimizing, ' |    ',&
      lin%convCritMix, ' |', repeat(' ', optimalLength(9, 1)), &
      1, '      |   ', -1.d0, '   | ', -1.d0, ' |   ',&
-     lin%convCritMixOut, '    |'
+     -1.d0, '    |'
 write(*,'(4x,a)') '-----------------------------------------------------------------------------------------&
 &-------------------------------------------'
 write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  | transform |'
@@ -630,22 +630,22 @@ write(*,'(1x,a)') '>>>> Parameters for the optimization of the basis functions.'
 write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |     stop     |'
 write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis | optimization |'
 write(*,'(4x,a)') '|  first   else  |             |                |           |       |              |'
-if(trim(lin%getCoeff)=='diag') then
-    !if(trim(lin%diagMethod)=='seq') then
-    !    message1='diag seq'
-    !else if(trim(lin%diagMethod)=='par') then
-    !    message1='diag par'
-    !end if
-    message1='  diag  '
-else if(trim(lin%getCoeff)=='min') then
-    message1='   min  '
-end if
+!!if(trim(lin%getCoeff)=='diag') then
+!!    !if(trim(lin%diagMethod)=='seq') then
+!!    !    message1='diag seq'
+!!    !else if(trim(lin%diagMethod)=='par') then
+!!    !    message1='diag par'
+!!    !end if
+!!    message1='  diag  '
+!!else if(trim(lin%getCoeff)=='min') then
+!!    message1='   min  '
+!!end if
 write(*,'(4x,a,a,i0,3x,a,i0,2x,a,1x,es9.3,1x,a,a,i0,a,a,a,l2,a,2x,es10.3,2x,a)') '| ', &
     repeat(' ', 5-ceiling(log10(dble(0)+1.d-10))), -1, &
     repeat(' ', 5-ceiling(log10(dble(0)+1.d-10))), -1, &
       '| ', lin%convCrit, ' | ', &
       repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       | ' , &
-      message1, '  |  ', &
+      ' ... ', '  |  ', &
       lin%plotBasisFunctions, '   |', -1.d0, '|'
 write(*,'(4x,a)') '---------------------------------------------------------------------'
 write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |'
@@ -668,8 +668,8 @@ write(*,'(4x,a)') '-------------------------------------------------------------
 write(*,'(1x,a)') '>>>> Parameters for the optimization of the coefficients.'
 write(*,'(4x,a)') '| maximal number | convergence |'
 write(*,'(4x,a)') '|  of iterations |  criterion  |'
-write(*,'(4x,a,a,i0,5x,a,1x,es9.3,1x,a)') '| ', &
-    repeat(' ', 9-ceiling(log10(dble(lin%nItCoeff+1)+1.d-10))), lin%nItCoeff, ' | ', lin%convCritCoeff, ' | '
+write(*,'(4x,a,a,i0,5x,a,1x,es9.2,1x,a)') '| ', &
+    repeat(' ', 9-ceiling(log10(dble(1)+1.d-10))), 1, ' | ', -1.d0, ' | '
 write(*,'(4x,a)') '--------------------------------'
 write(*,'(1x,a)') '>>>> Performance options'
 write(*,'(4x,a)') '| blocksize | blocksize | max proc | max proc | memory for |'
@@ -681,7 +681,7 @@ write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a,a,i0,4x,a)') '|',repeat('
     repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm, '|',&
     repeat(' ', 8-ceiling(log10(dble(abs(lin%memoryForCommunOverlapIG)+1)+1.d-10))),lin%memoryForCommunOverlapIG, '|'
 write(*,'(1x,a,a)') 'lin%locregShape:',lin%locregShape
-write(*,'(1x,a,l1)') 'lin%sumrho_fast:',lin%sumrho_fast
+!write(*,'(1x,a,l1)') 'lin%sumrho_fast:',lin%sumrho_fast
 write(*,'(1x,a,2i6,es9.2)') 'nit low accur, nit high accur, reduce prefactor', &
                       lin%nit_lowaccuracy, lin%nit_highaccuracy, lin%reducePrefactor
 write(*,'(1x,a,2i6)') 'lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy', &
@@ -926,12 +926,12 @@ integer:: norbTarget, nprocIG, ierr
       stop
   end if
 
-  if(trim(lin%getCoeff)/='min' .and. trim(lin%getCoeff)/='diag') then
-      if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min', &
-          & but we found '", trim(lin%getCoeff), "'!"
-      call mpi_barrier(mpi_comm_world, ierr)
-      stop
-  end if
+  !!if(trim(lin%getCoeff)/='min' .and. trim(lin%getCoeff)/='diag') then
+  !!    if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min', &
+  !!        & but we found '", trim(lin%getCoeff), "'!"
+  !!    call mpi_barrier(mpi_comm_world, ierr)
+  !!    stop
+  !!end if
 
   if(lin%methTransformOverlap<0 .or. lin%methTransformOverlap>2) then
       if(iproc==0) write(*,'(1x,a,i0,a)') 'ERROR: lin%methTransformOverlap must be 0,1 or 2, but you specified ', &
@@ -4252,45 +4252,16 @@ do iorb=1,orbs%norbp
 end do
 
 
+!! ATTENTION: This will not work for nproc=1, so comment it.
+!! As a consequence, the transposition will not work correctly.
 
-!if(iproc==0) then
-!    do istat=ii1s,ii1e
-!        write(100,*) istat, collComms%indexarray(istat)
-!    end do
-!    do istat=ii5s,ii5e
-!        write(500,*) istat, collComms%indexarray(istat)
-!    end do
-!    i1=ii1s
-!    i5=ii5s
-!    stop1=.false.
-!    stop5=.false.
-!    do
-!        write(880,'(2i9,4x,2i12,2l4,2i9)') i1, i5, collComms%indexarray(i1), collComms%indexarray(i5), stop1, stop5, ii1e-ii1s+1, ii5e-ii5s+1
-!        if(collComms%indexarray(i1)==collComms%indexarray(i5)) then
-!            write(888,*) collComms%indexarray(i1)
-!            i1=i1+1
-!            i5=i5+1
-!        else if((collComms%indexarray(i1)<collComms%indexarray(i5) .or. stop5 ) .and. .not.stop1) then
-!            i1=i1+1
-!        else if((collComms%indexarray(i5)<collComms%indexarray(i1) .or. stop1 ) .and. .not.stop5) then
-!            i5=i5+1
-!        end if
-!        if(i1==ii1e) stop1=.true.
-!        if(i5==ii5e) stop5=.true.
-!        if(stop1 .and. stop5) exit
-!    end do
-!end if
-
-! Transpose the index array
-allocate(work_int(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
-call memocc(istat, work_int, 'work_int', subname)
-call transpose_linear_int(iproc, 0, nproc-1, orbs, collComms, collComms%indexarray, mpi_comm_world, work_int)
-iall=-product(shape(work_int))*kind(work_int)
-deallocate(work_int, stat=istat)
-call memocc(istat, iall, 'work_int', subname)
-!!do istat=1,orbs%npsidim
-!!    write(300+iproc,*) istat, collComms%indexarray(istat)
-!!end do
+!!! Transpose the index array
+!!allocate(work_int(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
+!!call memocc(istat, work_int, 'work_int', subname)
+!!call transpose_linear_int(iproc, 0, nproc-1, orbs, collComms, collComms%indexarray, mpi_comm_world, work_int)
+!!iall=-product(shape(work_int))*kind(work_int)
+!!deallocate(work_int, stat=istat)
+!!call memocc(istat, iall, 'work_int', subname)
 
 
 

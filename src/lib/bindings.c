@@ -640,7 +640,7 @@ struct f90_pointer_nlpspd_
 void FC_FUNC_(proj_new, PROJ_NEW)(f90_pointer_nlpspd *nlpspd);
 void FC_FUNC_(proj_free, PROJ_FREE)(f90_pointer_nlpspd *nlpspd, f90_pointer_double *proj);
 void FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
-    (int *iproc, const guint *n1, const guint *n2, const guint *n3, double *rxyz, void *atoms,
+    (int *iproc, const void *lr, double *rxyz, void *atoms,
      void *orbs, double *radii, double *cpmult, double *fpmult, const double *h1,
      const double *h2, const double *h3, void *nlpspd, f90_pointer_double *proj);
 void FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(void *nlpspd,
@@ -673,7 +673,7 @@ BigDFT_Proj* bigdft_proj_new(const BigDFT_Atoms *atoms, const BigDFT_Glr *glr,
   proj = bigdft_proj_init();
   FC_FUNC_(proj_new, PROJ_NEW)(proj->nlpspd);
   FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
-    (&iproc, glr->n, glr->n + 1, glr->n + 2, atoms->rxyz.data,
+    (&iproc, glr->data->glr, atoms->rxyz.data,
      atoms->data->atoms, orbs->data->orbs, radii, &frmult, &frmult,
      glr->h, glr->h + 1, glr->h + 2, proj->nlpspd->proj, &proj->proj);
   FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(proj->nlpspd->proj, &proj->nproj,

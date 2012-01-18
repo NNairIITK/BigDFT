@@ -1259,7 +1259,7 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   !       wavelet and scaling function second derivative filters
   real(wp), parameter :: b2=24.8758460293923314_wp, a2=3.55369228991319019_wp
   integer :: i,icong,i_stat,i_all
-  real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta
+  real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta,aa1,aa2
   real(wp), dimension(0:3) :: scal
   real(wp), dimension(:), allocatable :: rpsi,ppsi,wpsi
   real(wp), dimension(:,:,:,:), allocatable :: xpsig_f,ypsig_f
@@ -1391,17 +1391,25 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
      alpha1=0.0_wp 
      alpha2=0.0_wp
-
+ 
      !$omp parallel default(shared)&   !*
-     !$omp private(i)
+     !$omp private(i,aa1,aa2)
+     aa1=0.0_wp
+     aa2=0.0_wp
      !$omp do !!!! schedule(static,1)
      do i=1,nvctr_c+7*nvctr_f
-        alpha1=alpha1+rpsi(i)*rpsi(i)
-        alpha2=alpha2+rpsi(i)*wpsi(i)
+        aa1=aa1+rpsi(i)*rpsi(i)
+        aa2=aa2+rpsi(i)*wpsi(i)
      enddo
      !$omp enddo
+
+     !$omp critical
+     alpha1=alpha1+aa1
+     alpha2=alpha2+aa2
+     !$omp end critical
+
      !$omp end parallel
-     !write(*,*)icong,alpha1
+     !write(*,*)icong,alpha1,alpha2
 
      !residues(icong)=alpha1
      alpha=alpha1/alpha2        
@@ -1424,13 +1432,21 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      beta2=0.0_wp
 
      !$omp parallel default(shared)&
-     !$omp private(i)
+     !$omp private(i,aa1,aa2)
+     aa1=0.0_wp
+     aa2=0.0_wp
      !$omp do !!!! schedule (static,1)
      do i=1,nvctr_c+7*nvctr_f
-        beta1=beta1+rpsi(i)*wpsi(i)
-        beta2=beta2+ppsi(i)*wpsi(i)
+        aa1=aa1+rpsi(i)*wpsi(i)
+        aa2=aa2+ppsi(i)*wpsi(i)
      enddo
      !$omp enddo
+
+     !$omp critical
+     beta1=beta1+aa1
+     beta2=beta2+aa2
+     !$omp end critical
+
      !$omp end parallel
 
      beta=beta1/beta2        

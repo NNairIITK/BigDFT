@@ -1098,9 +1098,11 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         call analytic_integral(sqrt(pgauss)*h,n_range,itype_scf,fwork)
         !copy the values on the real part of the fftwork array
         fftwork=0.0_dp
-        do j=0,min(n_range,n/2)
+        do j=0,min(n_range,n/2)-1
            fftwork(1,n/2+1+j)=fwork(j)
-           fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
+           fftwork(1,n/2+1-j)=fwork(j)
+           !fftwork(1,n/2+1+j)=fwork(j)
+           !fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
         end do
         !calculate the fft 
         call fft_1d_ctoc(1,1,n,fftwork,inzee)

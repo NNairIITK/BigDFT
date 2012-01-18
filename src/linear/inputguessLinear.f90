@@ -1958,15 +1958,13 @@ do iat=1,lzdig%nlr
         nrecv=0
         ilrold=-1
         jjprocold=-1
-        do iioverlap=1,jj
-            iiat=iioverlap+nshift
-            if(iproc<nprocTemp) then
-                do iorb=1,orbs%norb
-                    ilr=orbs%inWhichLocreg(iorb)
-                    jjproc=onWhichMPITemp(iorb)
+        do iorb=1,orbs%norb
+            ilr=orbs%inWhichLocreg(iorb)
+            jjproc=onWhichMPITemp(iorb)
+            do iioverlap=1,jj
+                iiat=iioverlap+nshift
+                if(iproc<nprocTemp) then
                     if(ilr==ilrold .and. jjproc==jjprocold) cycle !Otherwise we would communicate the same again
-                    ilrold=ilr
-                    jjprocold=jjproc
                     if(ilr==iiat) then
                         ! Send this matrix to process jproc.
                         if(iproc==jjproc) then
@@ -1978,8 +1976,10 @@ do iat=1,lzdig%nlr
                             nsend=nsend+1
                         end if
                     end if
-                end do
-            end if
+                end if
+            end do
+            ilrold=ilr
+            jjprocold=jjproc
         end do
 
 
@@ -1994,17 +1994,15 @@ do iat=1,lzdig%nlr
         irecv=0
         ilrold=-1
         jjprocold=-1
-        do iioverlap=1,jj
-            iiat=iioverlap+nshift
-            ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
-            ! in calculating the input guess, this check has to be done only for those processes.
-            if(iproc<nprocTemp) then
-                do iorb=1,orbs%norb
-                    ilr=orbs%inWhichLocreg(iorb)
-                    jjproc=onWhichMPITemp(iorb)
+        do iorb=1,orbs%norb
+            ilr=orbs%inWhichLocreg(iorb)
+            jjproc=onWhichMPITemp(iorb)
+            do iioverlap=1,jj
+                iiat=iioverlap+nshift
+                ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
+                ! in calculating the input guess, this check has to be done only for those processes.
+                if(iproc<nprocTemp) then
                     if(ilr==ilrold .and. jjproc==jjprocold) cycle
-                    ilrold=ilr
-                    jjprocold=jjproc
                     if(ilr==iiat) then
                         ! Send to process jproc
                        if(iproc==jjproc .and. nproc > 1) then
@@ -2037,8 +2035,10 @@ do iat=1,lzdig%nlr
                        end if
                         tag0=tag0+1
                     end if
-                end do
-            end if
+                end if
+            end do
+            ilrold=ilr
+            jjprocold=jjproc
         end do
         
         ! Wait for the communication to complete
@@ -2332,6 +2332,7 @@ do jorb=1,norb
            do jnd=1,matmin%mlr(jlr)%norbinlr
               jndlarge=matmin%mlr(jlr)%indexInGlobal(jnd)
               hamextract(jnd,ind,jjlr)=ham(jndlarge,indlarge,jjlr)
+              !!write(30000+iproc,'(6i8,es20.10)') jnd,ind,jjlr,jndlarge,indlarge,jjlr,hamextract(jnd,ind,jjlr)
            end do
         end do
         jlrold=jlr
@@ -3958,7 +3959,7 @@ type(matrixDescriptors):: mad
       !!do istat=1,size(hamextract,3)
       !!  do ierr=1,size(hamextract,2)
       !!    do iall=1,size(hamextract,1)
-      !!      write(2000*(iproc+1),'(3i8,es25.12)') istat, ierr, iall, hamextract(iall,ierr,istat)
+      !!      write(10000+1000*(iproc+1),'(3i8,es25.12)') istat, ierr, iall, hamextract(iall,ierr,istat)
       !!    end do
       !!  end do
       !!end do
@@ -4134,6 +4135,9 @@ type(matrixDescriptors):: mad
           !     matmin%mlr, lcoeff, comom)
           ilr=onWhichAtom(ip%isorb+1)
 
+          !!write(*,*) 'ATTENTION DEBUG!!'
+          !!lcoeff=1.d0
+
     
           ! Calculate the gradient grad.
           ilrold=0
@@ -4151,9 +4155,9 @@ type(matrixDescriptors):: mad
               !print *,'Newcoeffs',lcoeff(1:matmin%mlr(ilr)%norbinlr-1,iorb)
               !print *,'coeffs',hamextract(1:matmin%mlr(ilr)%norbinlr-1,1,iilr)
               !stop
-              !!if(it==1) write(*,*) 'matrix application: ', ip%isorb+iorb, iilr
+              !if(it==1) write(*,*) 'matrix application: ', ip%isorb+iorb, iilr
               !!do istat=1,matmin%mlr(ilr)%norbinlr
-              !!    write(120000+ip%isorb+iorb,'(i4,2es16.8,14es10.2)') istat, lcoeff(istat,iorb), lgrad(istat,iorb), hamextract(1,:,iilr)
+              !!    write(120000+ip%isorb+iorb,'(i4,2es16.8,14es10.2)') istat, lcoeff(istat,iorb), lgrad(istat,iorb), hamextract(istat,:,iilr)
               !!end do
           end do
           ilr=onWhichAtom(ip%isorb+1)

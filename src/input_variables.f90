@@ -798,8 +798,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment='number of iterations in the preconditioner')
   
   !getCoeff: 'diag' or 'min'
-  comments="getCoeff: 'diag' or 'min', cubic ('c') or spheric ('s') localization region"
-  call input_var(in%lin%getCoeff,'diag')
+  comments="cubic ('c') or spheric ('s') localization region"
+  !call input_var(in%lin%getCoeff,'diag')
   call input_var(in%lin%locregShape,'s',comment=comments)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
@@ -822,10 +822,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   comments='in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
   call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
   
-  ! max number of iterations in the minimization of the coefficients, convergence criterion
-  comments='max number of iterations in the minimization of the coefficients, convergence criterion'
-  call input_var(in%lin%nItCoeff,'2000',ranges=(/1,10000/))
-  call input_var(in%lin%convCritCoeff,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  !!! max number of iterations in the minimization of the coefficients, convergence criterion
+  !!comments='max number of iterations in the minimization of the coefficients, convergence criterion'
+  !!call input_var(in%lin%nItCoeff,'2000',ranges=(/1,10000/))
+  !!call input_var(in%lin%convCritCoeff,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   !mixing method: dens or pot
   comments='mixing method: dens or pot'
@@ -843,7 +843,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%alphaMixWhenFixed,'.5d0',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
 
-  call input_var(in%lin%alphaMixWhenFixed,'1.d-50',ranges=(/0.d0,1.d0/),comment='exit outer loop if pnrm < this number')
+  call input_var(in%lin%lowaccuray_converged,'1.d-11',&
+       ranges=(/0.d0,1.d0/),comment='convergence criterion for the low accuracy part')
   
   !use the derivative basis functions, order of confinement potential
   comments='use the derivative basis functions, Order of confinement potential (4 or 6)'
@@ -867,8 +868,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   comments='number of orbitals per process for trace minimization during input guess.'
   call input_var(in%lin%norbsPerProcIG,'1',ranges=(/1,10000/),comment=comments)
 
-  call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; &
-                                                 &F -> slow, needs little memory')
+  !!call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; &
+  !!                                               &F -> slow, needs little memory')
 
   
   ! Allocate lin pointers and atoms%rloc

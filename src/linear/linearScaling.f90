@@ -106,7 +106,7 @@ real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, dampingForMixing
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
 type(linearParameters):: lind
-logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray
+logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged
 real(8),dimension(:),pointer:: lphi, lphir, phibuffr
 
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -143,34 +143,6 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
        input, rxyz, nscatterarr, tag, coeff, lphi)
   lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
 
-  !!if(iproc==0) then
-  !!     do istat=1,lin%orbs%norb
-  !!         write(99,*) istat, lin%orbs%inwhichlocreg(istat)
-  !!     end do
-  !!end if
-
-!!! Determine lin%cutoffweight
-!!ist=1
-!!lphi=1.d0
-!!do iorb=1,lin%orbs%norbp
-!!    iiorb=lin%orbs%isorb+iorb
-!!    ilr=lin%orbs%inwhichlocreg(iiorb)
-!!    ncnt = lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f
-!!    tt=sqrt(dble(ncnt))
-!!    call dscal(ncnt, 1/tt, lphi(ist), 1)
-!!    ist = ist + ncnt
-!!end do
-!!allocate(lin%lzd%cutoffweight(orbs%norb,orbs%norb), stat=istat)
-!!call memocc(istat, lin%lzd%cutoffweight, 'lin%lzd%cutoffweight', subname)
-!!call allocateCommuncationBuffersOrtho(lin%comon, subname)
-!!call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, lin%comon, lphi, lphi, lin%mad, lin%lzd%cutoffweight)
-!!call deallocateCommuncationBuffersOrtho(lin%comon, subname)
-!!!!call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%orbs, lin%comon, lin%op, lphi, lin%mad, lin%lzd%cutoffweight)
-!!do iorb=1,lin%orbs%norb
-!!    do iiorb=1,lin%orbs%norb
-!!        write(90+iproc,*) iorb, iiorb, lin%lzd%cutoffweight(iiorb,iorb)
-!!    end do
-!!end do
 
   call mpi_barrier(mpi_comm_world, ierr)
   t2init=mpi_wtime()
@@ -191,13 +163,9 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
   !rhopotold_out=1.d100
 
-  !allocate(lin%coeffall(lin%lb%orbs%norb,orbs%norb+lin%norbvirt), stat=istat)
-  !call memocc(istat, lin%coeffall, 'lin%coeffall', subname)
-
   allocate(coeff_proj(lin%orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, coeff_proj, 'coeff_proj', subname)
 
-!  call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
 
   potshortcut=0 ! What is this?
   call mpi_barrier(mpi_comm_world, ierr)
@@ -242,25 +210,13 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       communicate_lphi=.true.
       with_auxarray=.false.
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
-      call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
-          nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
+      call getLinearPsi(iproc, nproc, input%nspin, orbs, comms, at, lin, rxyz, rxyz, &
+          nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
           infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
           i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 
       ! Calculate the charge density.
       call cpu_time(t1)
-      !call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, lphi, Glr%d%n1i*Glr%d%n2i*n3d, &
-      !     rhopot, at, nscatterarr)
-      !do istat=1,Glr%d%n1i*Glr%d%n2i*n3d
-      !    write(1200+iproc,*) istat, rhopot(istat)
-      !end do
-
-      !call sumrholinear_auxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, phi, at, nscatterarr)
-      !call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &
-      !     rhopot, at, nscatterarr)
-      !do istat=1,Glr%d%n1i*Glr%d%n2i*n3d
-      !    write(1100+iproc,*) istat, rhopot(istat)
-      !end do
       call deallocateCommunicationbufferSumrho(lin%comsr, subname)
       call cpu_time(t2)
       time=t2-t1
@@ -283,17 +239,6 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           rhopotold_out=rhopotold
       end if
 
-      ! if we mix the density, copy the current charge density.
-      !allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
-      !call memocc(istat, rhopotold, 'rhopotold', subname)
-      !if(trim(lin%mixingmethod)=='dens') then
-      !    call dcopy(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotold(1), 1)
-      !end if
-
-      !! Calculate the potential we get with the current chareg density.
-      !call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
-      !    rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      !    coeff, ehart, eexcu, vexcu)
 
       if(trim(lin%mixingMethod)=='pot') then
           if(lin%mixHist==0) then
@@ -333,8 +278,6 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   end if
 
 
-  !! For mixing phi together with mixing the density -- experimental
-  !lphiold=lphi
 
 
   !if(nproc==1) allocate(psit(size(psi)))
@@ -342,6 +285,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   ! Flag that indicates that the basis functions shall be improved in the following.
   updatePhi=.true.
   pnrm=1.d100
+  pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
   !lin%getCoeff='new'
@@ -352,41 +296,31 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   lin%newgradient=.false.
   !lin%useDerivativeBasisFunctions=.false.
 
+  lowaccur_converged=.false.
+
   do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
 
       updatePhi=.true.
 
-      !if(reduceConvergenceTolerance) lin%fixBasis=max(lin%fixBasis*lin%factorFixBasis,lin%minimalFixBasis)
-      !selfConsistent=max(lin%convCritMix,5.d-3*lin%fixBasis)
       selfConsistent=lin%convCritMix
 
-      !if(iproc==0) write(*,'(a,es12.4,3x,es12.4)') &
-      !     'DELTA DENS for fixing basis functions, reaching self consistency:',lin%fixBasis, selfConsistent
+      if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged)) then
+         lowaccur_converged=.true.
+     end if 
 
-      if(lin%sumrho_fast) then
-          with_auxarray=.true.
-      else
-          with_auxarray=.false.
-      end if
-      call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
-
-      if(itout==lin%nit_lowaccuracy+1) then
+      if(lowaccur_converged) then
           lin%potentialPrefac = lin%potentialPrefac_highaccuracy
-          !lin%nItBasisFirst = lin%nItBasis_highaccuracy
-          !lin%nItBasis = lin%nItBasis_highaccuracy
           lin%newgradient=.true.
       else
           lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
-          !lin%nItBasisFirst = lin%nItBasis_lowaccuracy
-          !lin%nItBasis = lin%nItBasis_lowaccuracy
           lin%newgradient=.false.
       end if
-      !!if(itout==lin%nit_lowaccuracy-2) then
-      !!    lin%useDerivativeBasisFunctions=.true.
-      !!end if
+      if(iproc==0) write(*,*) 'lowaccur_converged',lowaccur_converged
+
+      with_auxarray=.false.
+      call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
 
       do itSCC=1,nitSCC
-          !if(itSCC>1 .and. pnrm<lin%fixBasis .or. itSCC==lin%nitSCCWhenOptimizing) updatePhi=.false.
           if(itSCC>lin%nitSCCWhenOptimizing) updatePhi=.false.
           if(itSCC==1) then
               communicate_lphi=.true.
@@ -395,8 +329,8 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           end if
           ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
 
-          call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
-              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
+          call getLinearPsi(iproc, nproc, input%nspin, orbs, comms, at, lin, rxyz, rxyz, &
+              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
               infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
               i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 
@@ -404,19 +338,8 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           ! Potential from electronic charge density
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t1)
-          if(.not. lin%sumrho_fast) then
-              call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
-                   rhopot, at, nscatterarr)
-          else
-              if(itSCC==1) then
-                  call sumrholinear_auxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, phi, at, nscatterarr)
-                  call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &
-                       rhopot, at, nscatterarr)
-              else
-                  call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &
-                       rhopot, at, nscatterarr)
-              end if
-          end if
+          call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+               rhopot, at, nscatterarr)
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t2)
           time=t2-t1
@@ -529,7 +452,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
                    'itout, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energy-energyoldout
           end if
       end if
-      if(abs(pnrm_out)<lin%convCritMixOut) exit
+      !!if(abs(pnrm_out)<lin%convCritMixOut) exit
       energyoldout=energy
   end do
 
