@@ -1733,6 +1733,7 @@ module module_interfaces
         real(kind=8), dimension(:,:,:,:), pointer :: potxc
         real(kind=8), dimension(:), pointer :: rhocore
       END SUBROUTINE allocateRhoPot
+
       !subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
       !
       !
@@ -5641,7 +5642,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
        end subroutine psir_to_vpsi
 
-
        subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,tens)
          use module_base
          use module_types
@@ -5655,7 +5655,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
          real(dp),dimension(6), intent(out) :: tens
        end subroutine erf_stress
-
 
        subroutine AtomicOrbitals_forLinear(iproc,at,rxyz,mapping,norbe,orbse,norbsc,&
             &   nspin,eks,scorb,G,gaucoeff,iorbtolr)
