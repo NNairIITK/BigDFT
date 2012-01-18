@@ -341,8 +341,8 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           ! Potential from electronic charge density
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t1)
-          call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
-               rhopot, at, nscatterarr)
+          call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%comsr, &
+               coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t2)
           time=t2-t1
@@ -507,8 +507,8 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   ! to point communication, the program will continue immediately. The messages will be gathered
   ! in the subroutine sumrhoForLocalizedBasis2.
   call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
-  call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
-       rhopot, at, nscatterarr)
+  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%comsr, &
+       coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
 
   !call sumrholinear_auxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, phi, at, nscatterarr)
   !call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &

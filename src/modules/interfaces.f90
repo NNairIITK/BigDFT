@@ -2823,18 +2823,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 !!$       real(8),dimension(orbs%norb,orbs%norb,2),intent(out):: matrixElements
 !!$     end subroutine getMatrixElements
 
-     subroutine sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, at, nscatterarr)
+     subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, orbs, comsr, coeff, phi, nrho, rho, at, nscatterarr)
        use module_base
        use module_types
        use libxc_functionals
        implicit none
-       integer,intent(in):: iproc, nproc, nrho
-       type(orbitals_data),intent(in):: orbs
-       type(locreg_descriptors),intent(in):: Glr
+       integer,intent(in):: iproc, nproc, nrho, norb
+       type(local_zone_descriptors),intent(in):: lzd
        type(input_variables),intent(in):: input
-       type(linearParameters),intent(inout):: lin
-       real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
-       real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),intent(in):: phi
+       type(orbitals_data),intent(in):: orbs
+       type(p2pCommsSumrho),intent(inout):: comsr
+       real(8),dimension(orbs%norb,norb),intent(in):: coeff
+       real(8),dimension(orbs%npsidim_orbs),intent(in):: phi
        real(8),dimension(nrho),intent(out),target:: rho
        type(atoms_data),intent(in):: at
        integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
