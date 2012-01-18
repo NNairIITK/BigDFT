@@ -1961,7 +1961,8 @@ module module_interfaces
       real(8):: hxh, hyh, hzh, potentialPrefac
     end subroutine apply_potentialConfinement
 
-    subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, op, lbop, comon, lbcomon, comms, at, lin, rxyz, rxyzParab, &
+    subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, &
+        op, lbop, comon, lbcomon, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
         i3s, i3xcsh, ebsMod, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
@@ -2526,7 +2527,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine initializeCommsSumrho
 
 
-    subroutine initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, tag)
+    subroutine initializeCommsSumrho2(iproc, nproc, nscatterarr, lzd, orbs, tag, comsr)
       use module_base
       use module_types
       implicit none
@@ -2534,8 +2535,10 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       ! Calling arguments
       integer,intent(in):: iproc, nproc
       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      type(linearParameters),intent(inout):: lin
+      type(local_zone_descriptors),intent(in):: lzd
+      type(orbitals_data),intent(in):: orbs
       integer,intent(inout):: tag
+      type(p2pCommsSumrho),intent(out):: comsr
     end subroutine initializeCommsSumrho2
 
 

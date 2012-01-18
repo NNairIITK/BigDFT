@@ -1,4 +1,5 @@
-subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, op, lbop, comon, lbcomon, comms, at, lin, rxyz, rxyzParab, &
+subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, &
+    op, lbop, comon, lbcomon, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
@@ -138,6 +139,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
+  !write(*,*) 'associated(lin%lb%comrp%communComplete)', associated(lin%lb%comrp%communComplete)
   if(lin%useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
       call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
