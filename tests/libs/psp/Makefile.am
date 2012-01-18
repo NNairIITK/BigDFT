@@ -2,6 +2,8 @@
 
 SUBDIRS = 
 
+EXTRA_DIST = psp.out.ref
+
 check_PROGRAMS = check_psp
 
 check_psp_SOURCES = check_psp.f90

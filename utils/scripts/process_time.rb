@@ -11,7 +11,7 @@ CLASSES = [ "Communications",
     "Total"] 
 
 # Subcategories (example)
-CATEGORIES = ["Rho_commun","Rho_comput","Pot_commun"]
+CATEGORIES = ["ApplyLocPotKin","Rho_comput","Precondition"]#Rho_comput","Pot_commun"]
 
 #print the legend of the results
 print "#ncores nproc nthds" 

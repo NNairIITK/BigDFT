@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=34,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=39,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -56,7 +56,12 @@ module timeData
        'GS/Chol_commun','Communications' ,'ALLReduce orbs' ,  &
        'Input_comput  ','Initialization' ,'Miscellaneous ' ,  &
        'Input_commun  ','Communications' ,'ALLtoALL+Reduc' ,  &
-       'Davidson      ','Finalization  ' ,'Complete SCF  ' /),(/3,ncat/))
+       'Davidson      ','Finalization  ' ,'Complete SCF  ' ,  &
+       'check_IG      ','Initialization' ,'Linear Scaling' ,  &
+       'constrc_locreg','Initialization' ,'Miscellaneous ' ,  &
+       'wavefunction  ','Initialization' ,'Miscellaneous ' ,  &
+       'create_nlpspd ','Initialization' ,'RMA pattern   ' ,  &
+       'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc,nextra

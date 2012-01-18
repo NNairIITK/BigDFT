@@ -49,7 +49,8 @@ subroutine glr_new(glr)
   type(locreg_descriptors), pointer :: glr
 
   allocate(glr)
-  nullify(glr%wfd%keyg)
+  nullify(glr%wfd%keyglob)
+  nullify(glr%wfd%keygloc)
   nullify(glr%wfd%keyv)
 
   nullify(glr%bounds%kb%ibyz_f)
@@ -270,7 +271,7 @@ subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, 
   norbd = orbs%norbd
   nspin = orbs%nspin
   nspinor = orbs%nspinor
-  npsidim = orbs%npsidim
+  npsidim = max(orbs%npsidim_orbs,orbs%npsidim_comp)
   nkpts = orbs%nkpts
   nkptsp = orbs%nkptsp
   isorb = orbs%isorb

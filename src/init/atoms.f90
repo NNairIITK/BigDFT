@@ -1437,8 +1437,13 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   integer, intent(in) :: ityp
   character(len = 20), intent(out) :: name
   integer, intent(out) :: ln
+  !local variables
+  integer :: lnt
+  character(len=20) :: namet
 
-  name = atoms%atomnames(ityp)
+  lnt=min(len(trim(atoms%atomnames(ityp))),20)
+  !print *,'lnt2',lnt
+  name(1:lnt)=atoms%atomnames(ityp)(1:lnt)
   ln = len(trim(name))
 END SUBROUTINE atoms_copy_name
 subroutine atoms_copy_alat(atoms, alat1, alat2, alat3)

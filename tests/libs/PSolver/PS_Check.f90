@@ -89,7 +89,7 @@ program PS_Check
    itype_scf=16
 
    !calculate the kernel in parallel for each processor
-   call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,quiet='yes')
+   call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.true.)
 
    !Allocations, considering also spin density
    !Density
@@ -163,7 +163,7 @@ program PS_Check
          call memocc(i_stat,i_all,'pkernel',subname)
 
          !calculate the kernel 
-         call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,quiet='yes')
+         call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
 
          call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
          offset,ehartree,eexcu,vexcu,&

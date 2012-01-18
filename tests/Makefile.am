@@ -1,10 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = \
-	  libs \
 	  DFT \
 	  overDFT \
-	  tutorials
+	  tutorials \
+	  libs
 
 if USE_OCL
 oclrun_message = oclrun
