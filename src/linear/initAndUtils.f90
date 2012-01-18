@@ -4252,45 +4252,16 @@ do iorb=1,orbs%norbp
 end do
 
 
+!! ATTENTION: This will not work for nproc=1, so comment it.
+!! As a consequence, the transposition will not work correctly.
 
-!if(iproc==0) then
-!    do istat=ii1s,ii1e
-!        write(100,*) istat, collComms%indexarray(istat)
-!    end do
-!    do istat=ii5s,ii5e
-!        write(500,*) istat, collComms%indexarray(istat)
-!    end do
-!    i1=ii1s
-!    i5=ii5s
-!    stop1=.false.
-!    stop5=.false.
-!    do
-!        write(880,'(2i9,4x,2i12,2l4,2i9)') i1, i5, collComms%indexarray(i1), collComms%indexarray(i5), stop1, stop5, ii1e-ii1s+1, ii5e-ii5s+1
-!        if(collComms%indexarray(i1)==collComms%indexarray(i5)) then
-!            write(888,*) collComms%indexarray(i1)
-!            i1=i1+1
-!            i5=i5+1
-!        else if((collComms%indexarray(i1)<collComms%indexarray(i5) .or. stop5 ) .and. .not.stop1) then
-!            i1=i1+1
-!        else if((collComms%indexarray(i5)<collComms%indexarray(i1) .or. stop1 ) .and. .not.stop5) then
-!            i5=i5+1
-!        end if
-!        if(i1==ii1e) stop1=.true.
-!        if(i5==ii5e) stop5=.true.
-!        if(stop1 .and. stop5) exit
-!    end do
-!end if
-
-! Transpose the index array
-allocate(work_int(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
-call memocc(istat, work_int, 'work_int', subname)
-call transpose_linear_int(iproc, 0, nproc-1, orbs, collComms, collComms%indexarray, mpi_comm_world, work_int)
-iall=-product(shape(work_int))*kind(work_int)
-deallocate(work_int, stat=istat)
-call memocc(istat, iall, 'work_int', subname)
-!!do istat=1,orbs%npsidim
-!!    write(300+iproc,*) istat, collComms%indexarray(istat)
-!!end do
+!!! Transpose the index array
+!!allocate(work_int(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
+!!call memocc(istat, work_int, 'work_int', subname)
+!!call transpose_linear_int(iproc, 0, nproc-1, orbs, collComms, collComms%indexarray, mpi_comm_world, work_int)
+!!iall=-product(shape(work_int))*kind(work_int)
+!!deallocate(work_int, stat=istat)
+!!call memocc(istat, iall, 'work_int', subname)
 
 
 
