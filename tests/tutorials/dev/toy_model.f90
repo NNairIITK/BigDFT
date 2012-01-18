@@ -169,7 +169,7 @@ program wvl
   allocate(irrzon(1,2,1))
   allocate(phnons(2,1,1))
   call sumrho(iproc,nproc,orbs,Glr,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
-       & psi,rhor,nscatterarr,inputs%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
+       & psi,rhor,nscatterarr,inputs%nspin,GPU,atoms%sym,rhodsc)
   call deallocate_rho_descriptors(rhodsc,"main")
 
   ! Example of calculation of the energy of the local potential of the pseudos.
