@@ -32,7 +32,7 @@ program conv_check_fft
   character(len=*), parameter :: subname='conv_check_fft'
   !n(c) character(len=50) :: chain
   integer :: i,i_stat,j,i1,i2,i3,ntimes,i_all !n(c) i_all,i1_max,i_max,it0,it1,ndim,itimes
-  integer :: l,ierror !n(c) i1s,i1e,count_rate,count_max
+  integer :: l,ierror,device_number !n(c) i1s,i1e,count_rate,count_max
   real(wp) :: tt,scale
   real(gp) :: CPUtime,GPUtime,ekin,ehartree !n(c) v,p,comp
   !n(c) real(gp), dimension(3) :: hgridh
@@ -76,7 +76,7 @@ program conv_check_fft
      stop
   end if
 
-  call ocl_create_gpu_context(context)
+  call ocl_create_gpu_context(context,device_number)
   call customize_fft((/n1,n2,n3/))
   call ocl_build_programs(context)
   call ocl_create_command_queue(queue,context)

@@ -13,8 +13,8 @@ TESTDIRS = C \
 	  TiSmear \
 	  O2-Spin \
 	  TDDFT \
-	  ElectField \
-	  SIC
+	  ElectField 
+
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -25,7 +25,7 @@ if USE_OCL
 else
 #Add H (box too small) and Graphene (different algorithm) only if we do not use OCL (see README)
 #OCL not implemented with spin=4 (Fehyb and Mn2)
-  TESTDIRS += H Graphene FeHyb Mn2
+  TESTDIRS += H Graphene FeHyb Mn2 Linear SIC Locreg
 endif
 
 EXTRA_DIST = \
@@ -56,10 +56,16 @@ OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 ElectField.psp: HGH-K/psppar.H HGH-K/psppar.O
 TDDFT.psp: psppar.N
-SIC.psp: HGH/psppar.H \
-	HGH/psppar.C \
-	HGH/psppar.O \
-	HGH/psppar.N
+Linear.psp Linear_withder.psp: HGH/psppar.C extra/psppar.H
+Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
+#SIC.psp: HGH/psppar.H \
+#	HGH/psppar.C \
+#	HGH/psppar.O \
+#	HGH/psppar.N
+
+SIC.post-in:
+	if [ ! -d data-PZ ] ; then mkdir data-PZ; fi
+	mv wavefunctions.gau data-PZ/
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
@@ -76,6 +82,7 @@ SIC.psp: HGH/psppar.H \
 	  SIC*.out*)        prec="1.e-9" ;; \
 	  Mn2.out*)         prec="1.5e-10" ;; \
           ElecField.out*)   prec="1.e-9" ;; \
+	  Linear.out*)         prec="1.e-8" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

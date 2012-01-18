@@ -191,9 +191,9 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
 
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
   call compress(n1,n2,0,n1,0,n2,0,n3,  &
-       wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),   &
+       wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyv(1),   &
        wfd%nseg_f,wfd%nvctr_f,&
-       wfd%keyg(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
+       wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
        wfd%keyv(wfd%nseg_c+min(1,wfd%nseg_f)),   &
        psig,psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
 

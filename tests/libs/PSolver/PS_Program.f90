@@ -101,7 +101,7 @@ program PSolver_Program
 
   call timing(nproc,'time.prc','IN')
 
-  call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,karray)
+  call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,karray,.true.)
 
   if (.not. onlykernel) then
      !Allocations
@@ -197,7 +197,7 @@ program PSolver_Program
   if (alsoserial) then
      call timing(0,'             ','IN')
 
-     call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,karray)
+     call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,karray,.true.)
 
      if (.not. onlykernel) then
         !offset, used only for the periodic solver case
