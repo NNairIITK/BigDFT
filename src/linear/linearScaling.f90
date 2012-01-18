@@ -99,7 +99,7 @@ real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
-integer :: jproc,iat,j
+integer :: jproc,iat,j, nit_highaccuracy
 real(8),dimension(:),pointer:: phi, phid
 real(8),dimension(:,:),pointer:: coeff, coeffd
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, dampingForMixing
@@ -298,7 +298,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
   lowaccur_converged=.false.
 
-  do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
+  outerLoop: do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
 
       updatePhi=.true.
 
@@ -306,11 +306,14 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
       if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged)) then
          lowaccur_converged=.true.
+         nit_highaccuracy=0
      end if 
 
       if(lowaccur_converged) then
           lin%potentialPrefac = lin%potentialPrefac_highaccuracy
           lin%newgradient=.true.
+          nit_highaccuracy=nit_highaccuracy+1
+          if(nit_highaccuracy==lin%nit_highaccuracy+1) exit outerLoop
       else
           lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
           lin%newgradient=.false.
@@ -454,7 +457,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       end if
       !!if(abs(pnrm_out)<lin%convCritMixOut) exit
       energyoldout=energy
-  end do
+  end do outerLoop
 
   call cancelCommunicationPotential(iproc, nproc, lin%comgp)
   call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
