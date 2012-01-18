@@ -24,7 +24,7 @@ subroutine init_acceleration_OCL(GPU)
   implicit none
   type(GPU_pointers), intent(out) :: GPU
 
-  call ocl_create_gpu_context(GPU%context)
+  call ocl_create_gpu_context(GPU%context,GPU%ndevices)
   !call ocl_create_command_queue(GPU%queue,GPU%context)
   call ocl_build_programs(GPU%context)
   call ocl_create_command_queue_id(GPU%queue,GPU%context,GPU%id_proc)

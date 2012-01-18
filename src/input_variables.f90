@@ -2727,7 +2727,8 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
   integer, intent(in):: iacceleration,iproc
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
+  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node,jproc,namelen
+  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
 
   if (iacceleration == 1) then
      call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
@@ -2764,10 +2765,20 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
         !initialize the id_proc per node
         call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
+        !initialize the opencl context for any process in the node
+        !call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+        !do jproc=0,mproc-1
+        !   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+        !   if (iproc == jproc) then
+        !      print '(a,a,i4,i4)','Initializing for node: ',trim(nodename_local),iproc,GPU%id_proc
         call init_acceleration_OCL(GPU)
+        !   end if
+        !end do
+        GPU%ndevices=min(GPU%ndevices,nproc_node)
         if (iproc == 0) then
-           write(*,'(1x,a)') 'OpenCL support activated (iproc=0)'
+           write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node:',GPU%ndevices
         end if
+        !the number of devices is the min between the number of processes per node
         OCLconv=.true.
      end if
   else

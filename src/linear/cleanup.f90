@@ -966,17 +966,6 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
      nullify(lzd%llr)
   end if
 
-!  if(associated(lzd%lnlpspd)) then
-!     iis1=lbound(lzd%lnlpspd,1)
-!     iie1=ubound(lzd%lnlpspd,1)
-     !write(*,*) 'iis1AAA,iie1AAA',iis1,iie1
-!     do i1=iis1,iie1
-!         call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-!      end do
-!      deallocate(lzd%lnlpspd)
-!      nullify(lzd%lnlpspd)
-!  end if
-
 end subroutine deallocate_Lzd_except_Glr
 
 
@@ -1038,7 +1027,7 @@ subroutine deallocate_locreg_descriptors(lr, subname)
   type(locreg_descriptors),intent(inout):: lr
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(lr%projflg, 'lr%projflg', subname)
+  call checkAndDeallocatePointer(lr%projflg,'lr%projflg', subname)
 
   call deallocate_wavefunctions_descriptors(lr%wfd, subname)
 
@@ -1047,7 +1036,7 @@ subroutine deallocate_locreg_descriptors(lr, subname)
   
 end subroutine deallocate_locreg_descriptors
 
-subroutine deallocate_locreg_descriptors2(lr, subname)
+subroutine deallocate_locreg_descriptors2(lr,subname)
   use module_base
   use module_types
   use deallocatePointers

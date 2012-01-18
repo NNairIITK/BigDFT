@@ -431,7 +431,7 @@ module module_types
 !! Also other information concerning the GPU runs can be stored in this structure
   type, public :: GPU_pointers
      logical :: useDynamic,full_locham
-     integer :: id_proc
+     integer :: id_proc,ndevices
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
      real(kind=8) :: rhopot_down, rhopot_up
      real(kind=8) :: work1_i,work2_i,work3_i,d_i
@@ -1014,7 +1014,8 @@ END SUBROUTINE deallocate_orbs
     !local variables
     integer :: i_all,i_stat
 
-    call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
+    !call deallocate_wfd(rst%Lzd%Glr%wfd,subname)
+    call deallocate_locreg_descriptors(rst%Lzd%Glr,subname)
 
     if (associated(rst%psi)) then
        i_all=-product(shape(rst%psi))*kind(rst%psi)

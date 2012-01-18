@@ -13,10 +13,8 @@ TESTDIRS = C \
 	  TiSmear \
 	  O2-Spin \
 	  TDDFT \
-	  SIC \
-	  ElectField \
-	  Linear \
-          Locreg
+	  ElectField 
+
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -27,7 +25,7 @@ if USE_OCL
 else
 #Add H (box too small) and Graphene (different algorithm) only if we do not use OCL (see README)
 #OCL not implemented with spin=4 (Fehyb and Mn2)
-  TESTDIRS += H Graphene FeHyb Mn2
+  TESTDIRS += H Graphene FeHyb Mn2 Linear SIC Locreg
 endif
 
 EXTRA_DIST = \

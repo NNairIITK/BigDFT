@@ -502,7 +502,7 @@ real(8),dimension(5):: time
 real(8),dimension(:),pointer:: potential
 real(8),dimension(:),pointer:: phiWork
 real(8),dimension(:),pointer:: lpot
-real(8),external :: mpi_wtime1
+!real(8),external :: mpi_wtime1
 character(len=3):: orbname, comment
 type(confpot_data), dimension(:), allocatable :: confdatarr
 integer :: korb
@@ -3582,6 +3582,7 @@ subroutine minimize_in_subspace(iproc, nproc, lin, at, input, lpot, GPU, ngather
                 input%hx,input%hy,input%hz,rxyz,&
                 proj,lin%lzd,nlpspd,lchi,lhchi(1,ii),eproj_sum)
            deallocate(confdatarr)
+           print *,'iproc,energies',ekin_sum,epot_sum,eproj_sum 
         end if
 
      else

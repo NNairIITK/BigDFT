@@ -796,6 +796,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   input%hx,input%hy,input%hz,rxyz,&
                   proj,lin%lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
              deallocate(confdatarr)
+             !print *,'iproc,energies',ekin_sum,epot_sum,eproj_sum              
           end if
 
       else

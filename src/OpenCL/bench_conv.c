@@ -30,12 +30,12 @@ int main(){
   cl_uint un1,un2,un3;
   cl_double *in, *out;
   cl_uint size = (MAX_N1+N1_URANGE)*(MAX_N2+N2_URANGE)*(MAX_N3+N3_URANGE);
-
+  cl_uint device_number;
 
 //  in = (double*) malloc(size*sizeof(double));
 //  out = (double*) malloc(size*sizeof(double));
 
-  ocl_create_gpu_context_(&context);
+  ocl_create_gpu_context_(&context,&device_number);
   ocl_build_programs_(&context);
   ocl_create_command_queue_(&queue,&context);
   init_event_list_();

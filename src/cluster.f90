@@ -368,8 +368,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
    end if
 
-   if(nspin/=1 .and. nspin/=2 .and. nspin/=4) nspin=1
-
    ! grid spacing (same in x,y and z direction)
 
    if (iproc==0) then
@@ -384,9 +382,29 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
    call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
+   inputpsi=in%inputPsiId
+
+   !for the inputPsiId==2 case, check 
+   !if the wavefunctions are all present
+   !otherwise switch to normal input guess
+   if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
+      ! Test ETSF file.
+      inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
+      if (onefile) then
+         input_wf_format= WF_FORMAT_ETSF
+      else
+         call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
+      end if
+      if (input_wf_format == WF_FORMAT_NONE) then
+         if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+         inputpsi=INPUT_PSI_LCAO
+      end if
+   end if
+
+
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Lzd%Glr,shift)
+   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Lzd%Glr,shift)
 
    !variables substitution for the PSolver part
    hxh=0.5d0*hx
@@ -430,7 +448,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! See if linear scaling should be activated and build the correct Lzd 
   ! There is a copy of this inside the LCAO input guess because the norbs changes
   ! and so the inwhichlocreg also ==> different distribution for the locregs
-  if (in%inputPsiId /= 0 .and. in%inputPsiId /= 10) then
+  if (inputpsi /= 0 .and. inputpsi /= 10) then
      call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
   end if
 
@@ -502,22 +520,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       yaml_indent=yaml_indent+1 !hash table element
    end if
 
-   inputpsi=in%inputPsiId
-
-   !for the inputPsiId==2 case, check 
-   !if the wavefunctions are all present
-   !otherwise switch to normal input guess
-   if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
-      ! Test ETSF file.
-      inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
-      if (onefile) then
-         input_wf_format= WF_FORMAT_ETSF
-      else
-         call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
-      end if
-      if (input_wf_format == WF_FORMAT_NONE .and. iproc == 0) &
-           & write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-   end if
 
    !all the input formats need to allocate psi except the LCAO input_guess
   ! WARNING: at the moment the linear scaling version allocates psi in the same
@@ -643,7 +645,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       call input_wf_diag(iproc,nproc, atoms,rhodsc,&
           orbs,norbv,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
-         &   denspotd%nscatterarr,denspotd%ngatherarr,nspin,0,atoms%sym%symObj,atoms%sym%irrzon,atoms%sym%phnons,GPU,in,radii_cf)
+          denspotd%nscatterarr,denspotd%ngatherarr,nspin,0,&
+          atoms%sym%symObj,atoms%sym%irrzon,atoms%sym%phnons,GPU,in,radii_cf)
 
       if (nvirt > norbv) then
          nvirt = norbv
@@ -1815,7 +1818,6 @@ subroutine deallocate_before_exiting
 
    call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,&
          Lzd%Glr%bounds,subname)
-
 
 !    call deallocate_local_zone_descriptors(Lzd, subname)
     call deallocate_Lzd_except_Glr(Lzd, subname)
