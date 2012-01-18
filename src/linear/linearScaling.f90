@@ -285,6 +285,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   ! Flag that indicates that the basis functions shall be improved in the following.
   updatePhi=.true.
   pnrm=1.d100
+  pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
   !lin%getCoeff='new'
@@ -303,7 +304,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
       selfConsistent=lin%convCritMix
 
-      if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm<lin%lowaccuray_converged)) then
+      if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged)) then
          lowaccur_converged=.true.
      end if 
 
@@ -314,6 +315,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
           lin%newgradient=.false.
       end if
+      if(iproc==0) write(*,*) 'lowaccur_converged',lowaccur_converged
 
       with_auxarray=.false.
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
