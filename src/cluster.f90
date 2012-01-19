@@ -616,7 +616,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       call input_wf_diag(iproc,nproc, atoms,rhodsc,&
          &   orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
       nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
-         &   denspotd%nscatterarr,denspotd%ngatherarr,nspin,0,atoms%sym%symObj,atoms%sym%irrzon,atoms%sym%phnons,GPU,in)
+         &   denspotd%nscatterarr,denspotd%ngatherarr,nspin,0,atoms%sym,GPU,in)
       if (nvirt > norbv) then
          nvirt = norbv
       end if

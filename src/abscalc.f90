@@ -378,8 +378,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! arrays for DIIS convergence accelerator
    !real(kind=8), dimension(:,:,:), pointer :: ads
    ! Arrays for the symmetrisation, not used here...
-   integer, dimension(:,:,:), allocatable :: irrzon
-   real(dp), dimension(:,:,:), allocatable :: phnons
+   type(symmetry_data) :: symObj
    character(len=5) :: gridformat
 
    !for xabsorber
@@ -516,10 +515,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    n3=Glr%d%n3
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
-   call timing(iproc,'CrtDescriptors','ON')
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
       &   atoms,rxyz,radii_cf,crmult,frmult,Glr)
-   call timing(iproc,'CrtDescriptors','OF')
    ! Calculate all projectors, or allocate array for on-the-fly calculation
 
    !de-allocate orbs and recreate it with one orbital only
@@ -531,10 +528,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,orbs)
    call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
-   call timing(iproc,'CrtProjectors ','ON')
    call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
       &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
-   call timing(iproc,'CrtProjectors ','OF')
 
    if(sum(atoms%paw_NofL).gt.0) then
       ! Calculate all paw_projectors, or allocate array for on-the-fly calculation
@@ -700,12 +695,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
 
       nspin=in%nspin
-
-      !Fake allocations
-      allocate(irrzon(1,2,1+ndebug),stat=i_stat)
-      call memocc(i_stat,irrzon,'irrzon',subname)
-      allocate(phnons(2,1,1+ndebug),stat=i_stat)
-      call memocc(i_stat,phnons,'phnons',subname)
+      symObj%symObj = -1
 
       !-- calculate input guess from non-diagonalised of LCAO basis (written in wavelets)
       !-- if spectra calculation is energy dependent  input_wf_diag will write
@@ -723,7 +713,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
          &   orbsAO,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
          &   nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-         &   nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in)
+         &   nscatterarr,ngatherarr,nspin, in%potshortcut, symObj, GPU,in)
 
 
 
@@ -769,14 +759,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       deallocate(psi,stat=i_stat)
       call memocc(i_stat,i_all,'psi',subname)
 
-      i_all=-product(shape(irrzon))*kind(irrzon)
-      deallocate(irrzon,stat=i_stat)
-      call memocc(i_stat,i_all,'irrzon',subname)
-
-      i_all=-product(shape(phnons))*kind(phnons)
-      deallocate(phnons,stat=i_stat)
-      call memocc(i_stat,i_all,'phnons',subname)
-
       i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
       deallocate(atoms_clone%aocc,stat=i_stat)
       call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
@@ -795,29 +777,17 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       nspin=in%nspin
 
-      !Fake allocations
-      allocate(irrzon(1,2,1+ndebug),stat=i_stat)
-      call memocc(i_stat,irrzon,'irrzon',subname)
-      allocate(phnons(2,1,1+ndebug),stat=i_stat)
-      call memocc(i_stat,phnons,'phnons',subname)
+      symObj%symObj = -1
 
       !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
       call input_wf_diag(iproc,nproc,atoms,rhodsc,&
          &   orbsAO,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
          &   nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-         &   nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in)
+         &   nscatterarr,ngatherarr,nspin, in%potshortcut, symObj, GPU, in)
 
       i_all=-product(shape(psi))*kind(psi)
       deallocate(psi,stat=i_stat)
       call memocc(i_stat,i_all,'psi',subname)
-
-      i_all=-product(shape(irrzon))*kind(irrzon)
-      deallocate(irrzon,stat=i_stat)
-      call memocc(i_stat,i_all,'irrzon',subname)
-
-      i_all=-product(shape(phnons))*kind(phnons)
-      deallocate(phnons,stat=i_stat)
-      call memocc(i_stat,i_all,'phnons',subname)
 
    end if
 

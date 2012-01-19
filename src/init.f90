@@ -1131,7 +1131,7 @@ END SUBROUTINE createPawProjectorsArrays
 subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
       &   orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
       &   nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
-      &   nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
+      &   nscatterarr,ngatherarr,nspin,potshortcut,symObj,GPU,input)
    ! Input wavefunctions are found by a diagonalization in a minimal basis set
    ! Each processors write its initial wavefunctions into the wavefunction file
    ! The files are then read by readwave
@@ -1142,7 +1142,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    use Poisson_Solver
    implicit none
    !Arguments
-   integer, intent(in) :: iproc,nproc,ixc,symObj
+   integer, intent(in) :: iproc,nproc,ixc
    integer, intent(inout) :: nspin,nvirt
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
@@ -1153,6 +1153,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    type(communications_arrays), intent(in) :: comms
    type(GPU_pointers), intent(inout) :: GPU
    type(input_variables):: input
+   type(symmetry_data), intent(in) :: symObj
    integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -1162,8 +1163,6 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
    real(dp), dimension(:), pointer :: pkernel,pkernelseq
    integer, intent(in) ::potshortcut
-   integer, dimension(*), intent(in) :: irrzon
-   real(dp), dimension(*), intent(in) :: phnons
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
    logical :: switchGPUconv,switchOCLconv
@@ -1292,7 +1291,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
    !application of the hamiltonian for gaussian based treatment
    call sumrho(iproc,nproc,orbse,Glr,hxh,hyh,hzh,psi,rhopot,&
-      &   nscatterarr,nspin,GPU,at%sym,rhodsc)
+      &   nscatterarr,nspin,GPU,symObj,rhodsc)
 
    !-- if spectra calculation uses a energy dependent potential
    !    input_wf_diag will write (to be used in abscalc)

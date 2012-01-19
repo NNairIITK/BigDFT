@@ -397,11 +397,11 @@ module module_interfaces
       subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
             &   orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
          nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
-            &   nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
+            &   nscatterarr,ngatherarr,nspin,potshortcut,symObj,GPU,input)
          !n(c) use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc,nproc,ixc,symObj
+         integer, intent(in) :: iproc,nproc,ixc
          integer, intent(inout) :: nspin,nvirt
          real(gp), intent(in) :: hx,hy,hz
          type(rho_descriptors),intent(in) :: rhodsc
@@ -412,6 +412,7 @@ module module_interfaces
          type(communications_arrays), intent(in) :: comms
          type(GPU_pointers), intent(inout) :: GPU
          type(input_variables):: input
+         type(symmetry_data), intent(in) :: symObj
          integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
          integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
          real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -421,8 +422,6 @@ module module_interfaces
          real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
          real(dp), dimension(:), pointer :: pkernel,pkernelseq
          integer, intent(in) :: potshortcut
-         integer, dimension(*), intent(in) :: irrzon
-         real(dp), dimension(*), intent(in) :: phnons
       END SUBROUTINE input_wf_diag
 
       subroutine reformatmywaves(iproc,orbs,at,&
@@ -1632,6 +1631,20 @@ module module_interfaces
       !  integer, dimension(nat),intent(in) :: numnei 
       !  integer, dimension(nat,maxnei),intent(in) :: nei 
       !END SUBROUTINE SWcalczone
+
+      subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,tens)
+        use module_base
+        use module_types
+        implicit none
+        !passed var
+        type(atoms_data), intent(in) :: at
+        real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+        real(gp), intent(in) :: hxh,hyh,hzh
+        integer,intent(in) :: n1i,n2i,n3i,n3p,iproc,nproc
+        real(kind=8), dimension(n1i*n2i*max(n3p,1)), intent(in), target :: rho
+        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+        real(dp),dimension(6), intent(out) :: tens
+      end subroutine erf_stress
 
    end interface
 
