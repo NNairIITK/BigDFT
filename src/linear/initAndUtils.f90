@@ -186,7 +186,8 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 ! Initialize the localization regions.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
 t1=mpi_wtime()
-call initLocregs(iproc, at%nat, rxyz, lin, input, Glr)
+!call initLocregs(iproc, at%nat, rxyz, lin, input, Glr)
+call initLocregs2(iproc, nproc, at%nat, rxyz, lin%lzd, lin%orbs, input, Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
 allocate(phi(max(lin%lb%gorbs%npsidim_orbs,lin%lb%gorbs%npsidim_comp)), stat=istat)
 
 ! Copy Glr to lin%lzd
@@ -1915,14 +1916,14 @@ end subroutine initLocregs
 !> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
 !! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
 !subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
-subroutine initLocregs2(iproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape)
+subroutine initLocregs2(iproc, nproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape, lborbs)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => initLocregs2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nat
+integer,intent(in):: iproc, nproc, nat
 real(8),dimension(3,nat),intent(in):: rxyz
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(inout):: orbs
@@ -1930,6 +1931,8 @@ type(input_variables),intent(in):: input
 type(locreg_descriptors),intent(in):: Glr
 real(8),dimension(lzd%nlr),intent(in):: locrad
 character(len=1),intent(in):: locregShape
+type(orbitals_data),optional,intent(inout):: lborbs
+
 !real(8),dimension(:),pointer:: phi, lphi
 
 ! Local variables
@@ -1958,12 +1961,26 @@ end do
              exit
          end if
      end do
+     if(present(lborbs)) then
+         do jorb=1,lborbs%norbp
+             jjorb=lborbs%isorb+jorb
+             jlr=lborbs%inWhichLocreg(jjorb)
+             if(jlr==ilr) then
+                 calculateBounds(ilr)=.true.
+                 exit
+             end if
+         end do
+     end if
+     lzd%llr(ilr)%locrad=locrad(ilr)
+     lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
  end do
 
  if(locregShape=='c') then
      call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr, calculateBounds)
  else if(locregShape=='s') then
-     call determine_locregSphere(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, &
+     !!call determine_locregSphere(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, &
+     !!     Glr, lzd%Llr, calculateBounds)
+     call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, &
           Glr, lzd%Llr, calculateBounds)
  end if
 

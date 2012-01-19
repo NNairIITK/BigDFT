@@ -333,6 +333,7 @@ low_level = \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
+	linear/communicatetypes.f90 \
 	linear/filterModule.f90 \
 	linear/getLocBasis.f90 \
 	linear/applyHamiltonian.f90 \

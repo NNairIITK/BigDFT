@@ -4121,11 +4121,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(matrixLocalizationRegion),intent(out):: mlr
     end subroutine nullify_matrixLocalizationRegion
 
-    subroutine initLocregs2(iproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape)
+    subroutine initLocregs2(iproc, nproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape, lborbs)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nat
+      integer,intent(in):: iproc, nproc, nat
       real(8),dimension(3,nat),intent(in):: rxyz
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(inout):: orbs
@@ -4133,6 +4133,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(locreg_descriptors),intent(in):: Glr
       real(8),dimension(lzd%nlr),intent(in):: locrad
       character(len=1),intent(in):: locregShape
+      type(orbitals_data),optional,intent(inout):: lborbs
     end subroutine initLocregs2
 
     subroutine deallocate_linearParameters(lin, subname)
