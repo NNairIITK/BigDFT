@@ -6,6 +6,8 @@ check_PROGRAMS =
 my_tests =
 endif
 
+EXTRA_DIST = conv_check.awk
+
 CLEANFILES = fort.1 conv_check.out OpenCL.report
 
 AM_FCFLAGS = -I$(top_builddir)/src/modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ 

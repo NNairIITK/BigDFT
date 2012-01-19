@@ -367,7 +367,7 @@ void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, f90_pointer_atoms *atoms, do
 void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(void *glr, char *geocode,
                                                       int *n, int *ni);
 void FC_FUNC_(glr_free, GLR_FREE)(f90_pointer_glr *glr);
-void FC_FUNC(glr_set_wave_descriptors,
+void FC_FUNC_(glr_set_wave_descriptors,
              GLR_SET_WAVE_DESCRIPTORS)(int *iproc, double *hx, double *hy,
                                        double *hz, void *atoms, double *rxyz, double *radii,
                                        double *crmult, double *frmult, void *glr);
@@ -432,7 +432,7 @@ void bigdft_glr_set_wave_descriptors(BigDFT_Glr *glr, BigDFT_Atoms *atoms, doubl
 {
   int iproc = 1;
 
-  FC_FUNC(glr_set_wave_descriptors,
+  FC_FUNC_(glr_set_wave_descriptors,
           GLR_SET_WAVE_DESCRIPTORS)(&iproc, glr->h, glr->h + 1, glr->h + 2,
                                     atoms->data->atoms, atoms->rxyz.data, radii,
                                     &crmult, &frmult, glr->data->glr);
@@ -443,7 +443,7 @@ void FC_FUNC_(fill_logrid, FILL_LOGRID)(char *geocode, int *n1, int *n2, int *n3
                                         int *orig, int *nat, int *ntypes, int *iatype,
                                         double *rxyz, double *radii, double *mult,
                                         double *hx, double *hy, double *hz, int *grid);
-guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
+int* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
                           double mult, double h[3])
 {
   guint *grid;
@@ -456,7 +456,7 @@ guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
                                      &orig, (int*)(&atoms->nat), (int*)(&atoms->ntypes), (int*)atoms->iatype,
                                      atoms->rxyz.data, radii, &mult, h, h + 1, h + 2, (int*)grid);
 
-  return grid;
+  return  (int*) grid;
 }
 
 
@@ -640,7 +640,7 @@ struct f90_pointer_nlpspd_
 void FC_FUNC_(proj_new, PROJ_NEW)(f90_pointer_nlpspd *nlpspd);
 void FC_FUNC_(proj_free, PROJ_FREE)(f90_pointer_nlpspd *nlpspd, f90_pointer_double *proj);
 void FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
-    (int *iproc, const guint *n1, const guint *n2, const guint *n3, double *rxyz, void *atoms,
+    (int *iproc, const void *lr, double *rxyz, void *atoms,
      void *orbs, double *radii, double *cpmult, double *fpmult, const double *h1,
      const double *h2, const double *h3, void *nlpspd, f90_pointer_double *proj);
 void FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(void *nlpspd,
@@ -673,7 +673,7 @@ BigDFT_Proj* bigdft_proj_new(const BigDFT_Atoms *atoms, const BigDFT_Glr *glr,
   proj = bigdft_proj_init();
   FC_FUNC_(proj_new, PROJ_NEW)(proj->nlpspd);
   FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
-    (&iproc, glr->n, glr->n + 1, glr->n + 2, atoms->rxyz.data,
+    (&iproc, glr->data->glr, atoms->rxyz.data,
      atoms->data->atoms, orbs->data->orbs, radii, &frmult, &frmult,
      glr->h, glr->h + 1, glr->h + 2, proj->nlpspd->proj, &proj->proj);
   FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(proj->nlpspd->proj, &proj->nproj,

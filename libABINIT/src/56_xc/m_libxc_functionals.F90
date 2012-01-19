@@ -110,7 +110,6 @@ contains
 #if defined HAVE_LIBXC
     type(xc_f90_pointer_t) :: str
 #endif
-
 ! *************************************************************************
 
 #if defined HAVE_LIBXC
@@ -329,8 +328,9 @@ contains
     else
       libxc_functionals_ismgga = .false.
     end if
+#else
+    libxc_functionals_ismgga = .false.
 #endif
-
   end function libxc_functionals_ismgga
 !!*** 
 

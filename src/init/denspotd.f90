@@ -149,7 +149,7 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
     !allocate rho_descriptors if the density repartition is activated
   !decide rho communication strategy
   if (rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1) .and. xc_isgga()) then
-     call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
+     call rho_segkey(iproc,nproc,atoms,rxyz,crmult,frmult,radii_cf,&
           gdim%n1i,gdim%n2i,gdim%n3i,&
           hxh,hyh,hzh,nspin,rhodsc,.false.)
      rhodsc%icomm=2
@@ -166,8 +166,99 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
      endif
   end if
 
+  !calculate dimensions of the complete array to be allocated before the reduction procedure
+  if (rhodsc%icomm==1) then
+     rhodsc%nrhotot=0
+     do jproc=0,nproc-1
+        rhodsc%nrhotot=rhodsc%nrhotot+nscatterarr(jproc,1)
+     end do
+  else
+     rhodsc%nrhotot=gdim%n3i
+  end if
 
 END SUBROUTINE createDensPotDescriptors
+
+!> routine which initialised the potential data
+subroutine default_confinement_data(confdatarr,norbp)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: norbp
+  type(confpot_data), dimension(norbp), intent(out) :: confdatarr
+  !local variables
+  integer :: iorb
+
+  !initialize the confdatarr
+  do iorb=1,norbp
+     confdatarr(iorb)%potorder=0
+     !the rest is not useful
+     confdatarr(iorb)%prefac     =UNINITIALIZED(confdatarr(iorb)%prefac)     
+     confdatarr(iorb)%hh(1)      =UNINITIALIZED(confdatarr(iorb)%hh(1))      
+     confdatarr(iorb)%hh(2)      =UNINITIALIZED(confdatarr(iorb)%hh(2))      
+     confdatarr(iorb)%hh(3)      =UNINITIALIZED(confdatarr(iorb)%hh(3))      
+     confdatarr(iorb)%rxyzConf(1)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(1))
+     confdatarr(iorb)%rxyzConf(2)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(2))
+     confdatarr(iorb)%rxyzConf(3)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(3))
+     confdatarr(iorb)%ioffset(1) =UNINITIALIZED(confdatarr(iorb)%ioffset(1)) 
+     confdatarr(iorb)%ioffset(2) =UNINITIALIZED(confdatarr(iorb)%ioffset(2)) 
+     confdatarr(iorb)%ioffset(3) =UNINITIALIZED(confdatarr(iorb)%ioffset(3)) 
+
+  end do
+end subroutine default_confinement_data
+
+subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,lin,Lzd,confinementCenter)
+  use module_base
+  use module_types
+  implicit none
+  real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(linearParameters), intent(in) :: lin
+  type(local_zone_descriptors), intent(in) :: Lzd
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  integer, dimension(orbs%norb), intent(in) :: confinementCenter
+  type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
+  !local variables
+  integer :: iorb,nl1,nl2,nl3,icenter,ilr
+
+  !initialize the confdatarr
+  do iorb=1,orbs%norbp
+     ilr=orbs%inWhichlocreg(orbs%isorb+iorb)
+     icenter=confinementCenter(orbs%isorb+iorb)
+     confdatarr(iorb)%potorder=lin%confpotorder
+     confdatarr(iorb)%prefac=lin%potentialprefac(at%iatype(icenter))
+     confdatarr(iorb)%hh(1)=.5_gp*hx
+     confdatarr(iorb)%hh(2)=.5_gp*hy
+     confdatarr(iorb)%hh(3)=.5_gp*hz
+     confdatarr(iorb)%rxyzConf(1:3)=rxyz(1:3,icenter)
+     call geocode_buffers(Lzd%Llr(ilr)%geocode,nl1,nl2,nl3)
+     confdatarr(iorb)%ioffset(1)=lzd%llr(ilr)%nsi1-nl1-1
+     confdatarr(iorb)%ioffset(2)=lzd%llr(ilr)%nsi2-nl2-1
+     confdatarr(iorb)%ioffset(3)=lzd%llr(ilr)%nsi3-nl3-1
+  end do
+
+contains
+
+    subroutine geocode_buffers(geocode,nl1,nl2,nl3)
+      implicit none
+      integer, intent(in) :: nl1,nl2,nl3
+      character(len=1), intent(in) :: geocode
+      !local variables
+      logical :: perx,pery,perz
+      integer :: nr1,nr2,nr3
+
+      !conditions for periodicity in the three directions
+      perx=(geocode /= 'F')
+      pery=(geocode == 'P')
+      perz=(geocode /= 'F')
+
+      call ext_buffers(perx,nl1,nr1)
+      call ext_buffers(pery,nl2,nr2)
+      call ext_buffers(perz,nl3,nr3)
+
+    end subroutine geocode_buffers
+  
+end subroutine define_confinement_data
 
 
 !> Partition the orbitals between processors to ensure load balancing
@@ -194,7 +285,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
   character(len=*), parameter :: subname='orbitals_communicators'
   logical :: yesorb,yescomp
   integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
-  integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info,jkpt
+  integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info,jkpt,nB,nKB,nMB
   integer, dimension(:), allocatable :: mykpts
   logical, dimension(:), allocatable :: GPU_for_comp
   integer, dimension(:,:), allocatable :: nvctr_par,norb_par !<for all the components and orbitals (with k-pts)
@@ -327,6 +418,8 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
      stop
   end if
 
+!write(*,'(a,i2,3x,8i7,i10)') 'iproc, nvctr_par(jproc), sum', iproc, (nvctr_par(jproc,1), jproc=0,nproc-1), sum(nvctr_par(:,1))
+!write(*,*) 'iproc, (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp', iproc, (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp
   !some checks
   !check the distribution
   do ikpts=1,orbs%nkpts
@@ -356,6 +449,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
   
   !print*,'check',orbs%ikptproc(:)
 
+!write(*,*) 'orbs%norb_par',orbs%norb_par
 
   !calculate the number of k-points treated by each processor in both
   ! the component distribution and the orbital distribution.
@@ -399,7 +493,8 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
      end if
      jkpte=min((jsorb+orbs%norb_par(jproc,0)-1)/orbs%norb+1,orbs%nkpts)
      if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc,0) /=0) then
-        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution ends after the components one'
+        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,&
+             ' the orbital k-points distribution ends after the components one'
         print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
         stop
      end if
@@ -507,16 +602,24 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
   call memocc(i_stat,i_all,'mykpts',subname)
 
   !calculate the dimension of the wavefunction
-  !for the given processor
-  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
-       sum(comms%ncntt(0:nproc-1)))
+  !for the given processor (this is only the cubic strategy)
+  orbs%npsidim_orbs=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor
+  orbs%npsidim_comp=sum(comms%ncntt(0:nproc-1))
+    
+!!$  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
+!!$       sum(comms%ncntt(0:nproc-1)))
 
-  if (iproc == 0) write(*,'(1x,a,i0)') &
-       'Wavefunctions memory occupation for root processor (Bytes): ',&
-       orbs%npsidim*8
+
+  nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
+  nMB=nB/1024/1024
+  nKB=(nB-nMB*1024*1024)/1024
+  nB=modulo(nB,1024)
+
+  if (iproc == 0) write(*,'(1x,a,3(i5,a))') &
+       'Wavefunctions memory occupation for root MPI process: ',&
+       nMB,' MB ',nKB,' KB ',nB,' B'
 
 END SUBROUTINE orbitals_communicators
-
 
 !> Print the distribution schemes
 subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
