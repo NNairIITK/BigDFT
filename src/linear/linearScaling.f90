@@ -209,16 +209,34 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       !communicate_lphi=.true.
       communicate_lphi=.true.
       with_auxarray=.false.
-      call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
-      call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-          lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
-          nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
-          infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
-          i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
+      if(lin%mixedmode) then
+          call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
+          call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
+              lin%op, lin%op, lin%comon, lin%comon, comms, at, lin, rxyz, rxyz, &
+              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
+              infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
+              i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
+      else
+          call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
+          call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
+              lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
+              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
+              infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
+              i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
+      end if
+      !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
+      !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
+      !!    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
+      !!    infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
+      !!    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 
       ! Calculate the charge density.
       call cpu_time(t1)
-      call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
+      if(lin%mixedmode) then
+          call deallocateCommunicationbufferSumrho(lin%comsr, subname)
+      else
+          call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
+      end if
       call cpu_time(t2)
       time=t2-t1
       call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
@@ -335,28 +353,36 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
 
 
-          !!if(itout<=3) then
-          !!    lin%useDerivativeBasisFunctions=.false.
-          !!    call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
-          !!        lin%op, lin%op, lin%comon, lin%comon, comms, at, lin, rxyz, rxyz, &
-          !!        nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
-          !!        infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-          !!        i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
-          !!else
-          !!    lin%useDerivativeBasisFunctions=.true.
-          !!    call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-          !!        lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
-          !!        nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
-          !!        infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-          !!        i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
-          !!end if
+          if(lin%mixedmode) then
+              if(itout<=lin%nit_lowaccuracy-1) then
+                  lin%useDerivativeBasisFunctions=.false.
+                  call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
+                      lin%op, lin%op, lin%comon, lin%comon, comms, at, lin, rxyz, rxyz, &
+                      nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
+                      infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
+                      i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
+              else
+                  lin%useDerivativeBasisFunctions=.true.
+                  call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
+                      lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
+                      nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
+                      infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
+                      i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
+              end if
+          else
+              call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
+                  lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
+                  nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
+                  infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
+                  i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
+          end if
 
-          !! THIS WAS THE ORIGINAL
-          call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-              lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
-              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
-              infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
+          !!!! THIS WAS THE ORIGINAL
+          !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
+          !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
+          !!    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
+          !!    infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
+          !!    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 
 
           ! Potential from electronic charge density
@@ -364,16 +390,16 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           call cpu_time(t1)
           !!call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%comsr, &
           !!     coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
-          !!if(itout<=3) then
-          !!    call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%orbs, lin%comsr, &
-          !!         coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
-          !!else
-          !!    call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
-          !!         coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
-          !!end if
-          !!! THIS WAS THE ORIGINAL
-          call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
-               coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+          if(lin%mixedmode .and. itout<=lin%nit_lowaccuracy-1) then
+              call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%orbs, lin%comsr, &
+                   coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+          else
+              call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
+                   coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+          end if
+          !!!! THIS WAS THE ORIGINAL
+          !!call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
+          !!     coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t2)
           time=t2-t1

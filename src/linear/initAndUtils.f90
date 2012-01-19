@@ -502,6 +502,7 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   read(99,*) lin%plotBasisFunctions
   read(99,*) lin%transformToGlobal
   read(99,*) lin%norbsPerProcIG
+  read(99,*) lin%mixedmode
   !read(99,*) lin%sumrho_fast
 
 
@@ -690,6 +691,7 @@ write(*,'(1x,a,2i6,es9.2)') 'nit low accur, nit high accur, reduce prefactor', &
                       lin%nit_lowaccuracy, lin%nit_highaccuracy, lin%reducePrefactor
 write(*,'(1x,a,2i6)') 'lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy', &
     lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy
+write(*,'(1x,a,l3)') 'lin%mixedmode',lin%mixedmode
 
 
 written=.false.

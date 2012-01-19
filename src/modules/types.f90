@@ -727,7 +727,7 @@ end type workarrays_quartic_convolutions
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
-    logical:: newgradient
+    logical:: newgradient, mixedmode
     character(len=4):: mixingMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp
