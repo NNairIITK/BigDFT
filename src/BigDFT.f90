@@ -160,7 +160,6 @@ program BigDFT
 !      call deallocate_local_zone_descriptors(rst%Lzd, subname)
 !      if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') call deallocateBasicArrays(atoms,inputs%lin)
 
-      write(*,*) associated(rst%Lzd%Glr%bounds%ibyyzz_r)
       call free_restart_objects(rst,subname)
 
       i_all=-product(shape(rxyz))*kind(rxyz)
