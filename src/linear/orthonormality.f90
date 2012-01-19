@@ -799,6 +799,7 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   integer::  je3, istat, i1, i2, irecv, isend, mpidest, mpisource, jjorb, nsub, ierr
   logical:: ovrlpx, ovrlpy, ovrlpz
   character(len=*),parameter:: subname='initCommsOrtho'
+  real(8):: t1, t2, time
 
   call nullify_overlapParameters(op)
 
@@ -817,6 +818,7 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
 
+  t1=mpi_wtime()
   ! Count how many overlaping regions each orbital / process has.
   if(locregShape=='c') then
      call countOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
@@ -827,6 +829,10 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   else if(locregShape=='s') then
      call determine_overlap_from_descriptors(iproc, nproc, orbs, lzd, op, comon)
   end if
+  t2=mpi_wtime()
+  time=t2-t1
+  if(iproc==0) write(*,'(a,es10.2)') 'time for determine_overlap_from_descriptors: ',time
+
 
   ! Determine the overlapping orbitals.
   if(locregShape=='c') then
@@ -844,12 +850,16 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
      end do
   end do
 
+  t1=mpi_wtime()
   ! Set the orbital descriptors for the overlap regions.
   if(locregShape=='c') then
      call determineOverlapDescriptors(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, op)
   else if(locregShape=='s') then
      call determineOverlapDescriptorsSphere(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, input%hx, input%hy, input%hz, op)
   end if
+  t2=mpi_wtime()
+  time=t2-t1
+  if(iproc==0) write(*,'(a,es10.2)') 'time for determineOverlapDescriptorsSphere: ',time
 
 
   ! Initialize the communications.
@@ -861,6 +871,7 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   call setCommsOrtho(iproc, nproc, orbs, onWhichAtomAll, lzd, op, comon, tag)
 
 
+  t1=mpi_wtime()
   ! Initialize the index arrays for the transformations from overlap region
   ! to ordinary localization region.
   allocate(op%indexExpand(comon%nrecvBuf), stat=istat)
@@ -873,7 +884,11 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
       end do
   end do
   call indicesForExpansion(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon)
+  t2=mpi_wtime()
+  time=t2-t1
+  if(iproc==0) write(*,'(a,es10.2)') 'time for indicesForExpansion: ',time
 
+  t1=mpi_wtime()
   ! Initialize the index arrays for the transformations from the ordinary localization region
   ! to the overlap region.
   allocate(op%indexExtract(comon%nsendBuf), stat=istat)
@@ -885,6 +900,9 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
       end do
   end do
   call indicesForExtraction(iproc, nproc, orbs, orbs%npsidim_orbs, onWhichAtomAll, lzd, op, comon)
+  t2=mpi_wtime()
+  time=t2-t1
+  if(iproc==0) write(*,'(a,es10.2)') 'time for indicesForExtraction: ',time
 
 
   ! Determine the number of non subdiagonals that the overlap matrix / overlap matrix will have.
