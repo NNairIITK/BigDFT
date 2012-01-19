@@ -344,7 +344,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           !!        i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
           !!else
           !!    lin%useDerivativeBasisFunctions=.true.
-          !!    call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%comsr, &
+          !!    call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
           !!        lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
           !!        nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
           !!        infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
@@ -364,6 +364,14 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           call cpu_time(t1)
           !!call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%comsr, &
           !!     coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+          !!if(itout<=3) then
+          !!    call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%orbs, lin%comsr, &
+          !!         coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+          !!else
+          !!    call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
+          !!         coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+          !!end if
+          !!! THIS WAS THE ORIGINAL
           call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
                coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
           call mpi_barrier(mpi_comm_world, ierr)
