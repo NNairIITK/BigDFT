@@ -1261,6 +1261,16 @@ END SUBROUTINE deallocate_orbs
           i_all=-product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f)
           deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
           call memocc(i_stat,i_all,'bounds%gb%ibxxyy_f',subname)
+
+          nullify(bounds%kb%ibyz_f)
+          nullify(bounds%kb%ibxz_f)
+          nullify(bounds%kb%ibxy_f)
+          nullify(bounds%sb%ibxy_ff)
+          nullify(bounds%sb%ibzzx_f)
+          nullify(bounds%sb%ibyyzz_f)
+          nullify(bounds%gb%ibyz_ff)
+          nullify(bounds%gb%ibzxx_f)
+          nullify(bounds%gb%ibxxyy_f)
        end if
     end if
 
@@ -1294,6 +1304,15 @@ END SUBROUTINE deallocate_orbs
           i_all=-product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r)
           deallocate(bounds%ibyyzz_r,stat=i_stat)
           call memocc(i_stat,i_all,'bounds%ibyyzz_r',subname)
+
+          nullify(bounds%kb%ibyz_c)
+          nullify(bounds%kb%ibxz_c)
+          nullify(bounds%kb%ibxy_c)
+          nullify(bounds%sb%ibzzx_c)
+          nullify(bounds%sb%ibyyzz_c)
+          nullify(bounds%gb%ibzxx_c)
+          nullify(bounds%gb%ibxxyy_c)
+          nullify(bounds%ibyyzz_r)
        end if
     end if
 
@@ -1368,7 +1387,7 @@ END SUBROUTINE deallocate_orbs
     use module_base
     character(len=*), intent(in) :: subname
     type(local_zone_descriptors) :: Lzd
-    integer :: i_all,i_stat,ilr
+    integer :: ilr
 
 !   nullify the bounds of Glr
     if ((Lzd%Glr%geocode == 'P' .and. Lzd%Glr%hybrid_on) .or. Lzd%Glr%geocode == 'F') then

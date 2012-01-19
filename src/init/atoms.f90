@@ -1492,3 +1492,51 @@ subroutine atoms_write(atoms, filename, filelen, rxyz, forces, energy, comment, 
   end if
 END SUBROUTINE atoms_write
 
+subroutine symmetry_set_irreductible_zone(sym, n1i, n2i, n3i, nspin)
+  use module_base
+  use module_types
+  use m_ab6_kpoints
+  use m_ab6_symmetry
+  implicit none
+  type(symmetry_data), intent(inout) :: sym
+  integer, intent(in) :: n1i, n2i, n3i, nspin
+
+  character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
+  integer :: i_stat, nsym, i_all
+
+  if (associated(sym%irrzon)) then
+     i_all=-product(shape(sym%irrzon))*kind(sym%irrzon)
+     deallocate(sym%irrzon,stat=i_stat)
+     call memocc(i_stat,i_all,'irrzon',subname)
+     nullify(sym%irrzon)
+  end if
+
+  if (associated(sym%phnons)) then
+     i_all=-product(shape(sym%phnons))*kind(sym%phnons)
+     deallocate(sym%phnons,stat=i_stat)
+     call memocc(i_stat,i_all,'phnons',subname)
+     nullify(sym%phnons)
+  end if
+
+  if (sym%symObj >= 0) then
+     call symmetry_get_n_sym(sym%symObj, nsym, i_stat)
+     if (nsym > 1) then
+        ! Current third dimension is set to 1 always
+        ! since nspin == nsppol always in BigDFT
+        allocate(sym%irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
+        call memocc(i_stat,sym%irrzon,'irrzon',subname)
+        allocate(sym%phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
+        call memocc(i_stat,sym%phnons,'phnons',subname)
+        call kpoints_get_irreductible_zone(sym%irrzon, sym%phnons, &
+             &   n1i, n2i, n3i, nspin, nspin, sym%symObj, i_stat)
+     end if
+  end if
+
+  if (.not. associated(sym%irrzon)) then
+     ! Allocate anyway to small size other size the bounds check does not pass.
+     allocate(sym%irrzon(1,2,1+ndebug),stat=i_stat)
+     call memocc(i_stat,sym%irrzon,'irrzon',subname)
+     allocate(sym%phnons(2,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,sym%phnons,'phnons',subname)
+  end if
+END SUBROUTINE symmetry_set_irreductible_zone
