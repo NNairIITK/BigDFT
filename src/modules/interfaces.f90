@@ -2849,14 +2849,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine sumrhoForLocalizedBasis2
 
 
-     subroutine postCommunicationSumrho2(iproc, nproc, lin, sendBuf, recvBuf)
+     subroutine postCommunicationSumrho2(iproc, nproc, comsr, sendBuf, recvBuf)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(linearParameters),intent(inout):: lin
-       real(8),dimension(lin%comsr%nsendBuf),intent(inout):: sendBuf
-       real(8),dimension(lin%comsr%nrecvBuf),intent(out):: recvBuf
+       type(p2pCommsSumrho),intent(inout):: comsr
+       real(8),dimension(comsr%nsendBuf),intent(inout):: sendBuf
+       real(8),dimension(comsr%nrecvBuf),intent(out):: recvBuf
      end subroutine postCommunicationSumrho2
 
 

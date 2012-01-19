@@ -663,6 +663,7 @@ type,public:: largeBasis
     type(p2pCommsGatherPot):: comgp
     type(matrixDescriptors):: mad
     type(collectiveComms):: collComms
+    type(p2pCommsSumrho):: comsr
 end type largeBasis
 
 

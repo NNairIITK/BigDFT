@@ -209,8 +209,8 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       !communicate_lphi=.true.
       communicate_lphi=.true.
       with_auxarray=.false.
-      call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
-      call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%comsr, &
+      call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
+      call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
           lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
           nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
           infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
@@ -218,7 +218,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
       ! Calculate the charge density.
       call cpu_time(t1)
-      call deallocateCommunicationbufferSumrho(lin%comsr, subname)
+      call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
       call cpu_time(t2)
       time=t2-t1
       call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
@@ -323,6 +323,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
       with_auxarray=.false.
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
+      call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
 
       do itSCC=1,nitSCC
           if(itSCC>lin%nitSCCWhenOptimizing) updatePhi=.false.
@@ -351,7 +352,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           !!end if
 
           !! THIS WAS THE ORIGINAL
-          call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%comsr, &
+          call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
               lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
               infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
@@ -361,7 +362,9 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           ! Potential from electronic charge density
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t1)
-          call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%comsr, &
+          !!call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%comsr, &
+          !!     coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+          call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
                coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t2)
@@ -465,6 +468,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       end do
 
       call deallocateCommunicationbufferSumrho(lin%comsr, subname)
+      call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
 
       if(iproc==0) then
           if(trim(lin%mixingMethod)=='dens') then
@@ -504,7 +508,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
   ! Allocate the communication buffers for the calculation of the charge density.
   with_auxarray=.false.
-  call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
+  call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
   ! Transform all orbitals to real space.
   ist=1
   istr=1
@@ -513,12 +517,12 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       ilr=lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
       call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
       !call daub_to_isf(lin%lzd%llr(ilr), w, lphi(ist), lphir(istr))
-      call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%comsr%sendBuf(istr))
+      call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%lb%comsr%sendBuf(istr))
       call deallocate_work_arrays_sumrho(w)
       ist = ist + lin%lzd%Llr(ilr)%wfd%nvctr_c + 7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       istr = istr + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
   end do
-  if(istr/=lin%comsr%nsendBuf+1) then
+  if(istr/=lin%lb%comsr%nsendBuf+1) then
       write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=lin%comsr%nsendBuf+1'
       stop
   end if
@@ -526,14 +530,14 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
   ! to point communication, the program will continue immediately. The messages will be gathered
   ! in the subroutine sumrhoForLocalizedBasis2.
-  call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
-  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%comsr, &
+  call postCommunicationSumrho2(iproc, nproc, lin%lb%comsr, lin%lb%comsr%sendBuf, lin%lb%comsr%recvBuf)
+  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
        coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
 
   !call sumrholinear_auxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, phi, at, nscatterarr)
   !call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &
   !     rhopot, at, nscatterarr)
-  call deallocateCommunicationbufferSumrho(lin%comsr, subname)
+  call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
 
   call mpi_barrier(mpi_comm_world, ierr)
   t1force=mpi_wtime()

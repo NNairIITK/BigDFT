@@ -263,7 +263,8 @@ call initCoefficients(iproc, orbs, lin, coeff)
 ! calculation of the charge density.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications sumrho... '
 t1=mpi_wtime()
-call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin%lzd, lin%lb%orbs, tag, lin%comsr)
+call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin%lzd, lin%orbs, tag, lin%comsr)
+call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin%lzd, lin%lb%orbs, tag, lin%lb%comsr)
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 !call allocateCommunicationbufferSumrho(lin%comsr, subname)
