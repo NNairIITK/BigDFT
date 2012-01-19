@@ -4570,22 +4570,30 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                 y3=(hgrid*(i2+3+offsety)-rxyzConf(2))**2
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
                    if(x0+y0+z0>shift) then
-                      dyi0=dyi0 + xy_c(t,i1,i3)*(aeff0array(t-i2-0,i2+0)-2.d0*shift*aeff0_2array(t-i2-0,i2+0)) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-0,i2+0)
+                      dyi0=dyi0 + xy_c(t,i1,i3)*(aeff0array(t-i2-0,i2+0)-&
+                           2.d0*shift*aeff0_2array(t-i2-0,i2+0)) + &
+                           2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-0,i2+0)
                    else
                       dyi0=dyi0 + xy_c(t,i1,i3)*aeff0kinarray(t-i2-0,i2+0)
                    end if
                    if(x0+y1+z0>shift) then
-                      dyi1=dyi1 + xy_c(t,i1,i3)*(aeff0array(t-i2-1,i2+1)-2.d0*shift*aeff0_2array(t-i2-1,i2+1)) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-1,i2+1)
+                      dyi1=dyi1 + xy_c(t,i1,i3)*(aeff0array(t-i2-1,i2+1)-&
+                           2.d0*shift*aeff0_2array(t-i2-1,i2+1)) + &
+                           2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-1,i2+1)
                    else
                       dyi1=dyi1 + xy_c(t,i1,i3)*aeff0kinarray(t-i2-1,i2+1)
                    end if
                    if(x0+y2+z0>shift) then
-                      dyi2=dyi2 + xy_c(t,i1,i3)*(aeff0array(t-i2-2,i2+2)-2.d0*shift*aeff0_2array(t-i2-2,i2+2)) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-2,i2+2)
+                      dyi2=dyi2 + xy_c(t,i1,i3)*(aeff0array(t-i2-2,i2+2)-&
+                           2.d0*shift*aeff0_2array(t-i2-2,i2+2)) + &
+                           2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-2,i2+2)
                    else
                       dyi2=dyi2 + xy_c(t,i1,i3)*aeff0kinarray(t-i2-2,i2+2)
                    end if
                    if(x0+y3+z0>shift) then
-                      dyi3=dyi3 + xy_c(t,i1,i3)*(aeff0array(t-i2-3,i2+3)-2.d0*shift*aeff0_2array(t-i2-3,i2+3)) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-3,i2+3)
+                      dyi3=dyi3 + xy_c(t,i1,i3)*(aeff0array(t-i2-3,i2+3)-&
+                           2.d0*shift*aeff0_2array(t-i2-3,i2+3)) + &
+                           2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-3,i2+3)
                    else
                       dyi3=dyi3 + xy_c(t,i1,i3)*aeff0kinarray(t-i2-3,i2+3)
                    end if
@@ -4690,26 +4698,30 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
                 y3=(hgrid*(i2+3+offsety)-rxyzConf(2))**2
                 do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_f(2,i1,i3))
                    if(x0+y0+z0>shift) then
-                      dyi0=dyi0 + xy_f2(t,i1,i3)*beff0array(t-i2-0,i2+0) + 2.d0*xyb_f(1,t,i1,i3)*aeff0_2array(t-i2-0,i2+0) + &
-                                  2.d0*(xya_f(1,t,i1,i3)+xyb_f(2,t,i1,i3))*beff0_2array(t-i2-0,i2+0)
+                      dyi0=dyi0 + xy_f2(t,i1,i3)*beff0array(t-i2-0,i2+0) + &
+                           2.d0*xyb_f(1,t,i1,i3)*aeff0_2array(t-i2-0,i2+0) + &
+                           2.d0*(xya_f(1,t,i1,i3)+xyb_f(2,t,i1,i3))*beff0_2array(t-i2-0,i2+0)
                    else
                       dyi0=dyi0 + xy_f2(t,i1,i3)*beff0kinarray(t-i2-0,i2+0)
                    end if
                    if(x0+y1+z0>shift) then
-                      dyi1=dyi1 + xy_f2(t,i1,i3)*beff0array(t-i2-1,i2+1) + 2.d0*xyb_f(1,t,i1,i3)*aeff0_2array(t-i2-1,i2+1) + &
-                                  2.d0*(xya_f(1,t,i1,i3)+xyb_f(2,t,i1,i3))*beff0_2array(t-i2-1,i2+1)
+                      dyi1=dyi1 + xy_f2(t,i1,i3)*beff0array(t-i2-1,i2+1) +&
+                           2.d0*xyb_f(1,t,i1,i3)*aeff0_2array(t-i2-1,i2+1) + &
+                           2.d0*(xya_f(1,t,i1,i3)+xyb_f(2,t,i1,i3))*beff0_2array(t-i2-1,i2+1)
                    else
                       dyi1=dyi1 + xy_f2(t,i1,i3)*beff0kinarray(t-i2-1,i2+1)
                    end if
                    if(x0+y2+z0>shift) then
-                      dyi2=dyi2 + xy_f2(t,i1,i3)*beff0array(t-i2-2,i2+2) + 2.d0*xyb_f(1,t,i1,i3)*aeff0_2array(t-i2-2,i2+2) + &
-                                  2.d0*(xya_f(1,t,i1,i3)+xyb_f(2,t,i1,i3))*beff0_2array(t-i2-2,i2+2)
+                      dyi2=dyi2 + xy_f2(t,i1,i3)*beff0array(t-i2-2,i2+2) +&
+                           2.d0*xyb_f(1,t,i1,i3)*aeff0_2array(t-i2-2,i2+2) + &
+                           2.d0*(xya_f(1,t,i1,i3)+xyb_f(2,t,i1,i3))*beff0_2array(t-i2-2,i2+2)
                    else
                       dyi2=dyi2 + xy_f2(t,i1,i3)*beff0kinarray(t-i2-2,i2+2)
                    end if
                    if(x0+y3+z0>shift) then
-                      dyi3=dyi3 + xy_f2(t,i1,i3)*beff0array(t-i2-3,i2+3) + 2.d0*xyb_f(1,t,i1,i3)*aeff0_2array(t-i2-3,i2+3) + &
-                                  2.d0*(xya_f(1,t,i1,i3)+xyb_f(2,t,i1,i3))*beff0_2array(t-i2-3,i2+3)
+                      dyi3=dyi3 + xy_f2(t,i1,i3)*beff0array(t-i2-3,i2+3) + &
+                           2.d0*xyb_f(1,t,i1,i3)*aeff0_2array(t-i2-3,i2+3) + &
+                           2.d0*(xya_f(1,t,i1,i3)+xyb_f(2,t,i1,i3))*beff0_2array(t-i2-3,i2+3)
                    else
                       dyi3=dyi3 + xy_f2(t,i1,i3)*beff0kinarray(t-i2-3,i2+3)
                    end if
@@ -4727,8 +4739,9 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
              y0=(hgrid*(i2+0+offsety)-rxyzConf(2))**2
              do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_f(2,i1,i3))
                 if(x0+y0+z0>shift) then
-                   dyi0=dyi0 + xy_f2(t,i1,i3)*beff0array(t-i2-0,i2+0) + 2.d0*xyb_f(1,t,i1,i3)*aeff0_2array(t-i2-0,i2+0) + &
-                               2.d0*(xya_f(1,t,i1,i3)+xyb_f(2,t,i1,i3))*beff0_2array(t-i2-0,i2+0)
+                   dyi0=dyi0 + xy_f2(t,i1,i3)*beff0array(t-i2-0,i2+0) + &
+                        2.d0*xyb_f(1,t,i1,i3)*aeff0_2array(t-i2-0,i2+0) + &
+                        2.d0*(xya_f(1,t,i1,i3)+xyb_f(2,t,i1,i3))*beff0_2array(t-i2-0,i2+0)
                 else
                    dyi0=dyi0 + xy_f2(t,i1,i3)*beff0kinarray(t-i2-0,i2+0)
                 end if

@@ -43,6 +43,7 @@ PSPS = psppar.H \
        HGH-K/psppar.N \
        HGH-K/psppar.O \
        HGH-K/psppar.Ti \
+       extra/psppar.H \
        Xabs/psppar.Fe
 
 INS = $(TESTDIRS:=.in)

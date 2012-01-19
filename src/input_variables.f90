@@ -843,7 +843,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%alphaMixWhenFixed,'.5d0',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
 
-  call input_var(in%lin%lowaccuray_converged,'1.d-11',ranges=(/0.d0,1.d0/),comment='convergence criterion for the low accuracy part')
+  call input_var(in%lin%lowaccuray_converged,'1.d-11',&
+       ranges=(/0.d0,1.d0/),comment='convergence criterion for the low accuracy part')
   
   !use the derivative basis functions, order of confinement potential
   comments='use the derivative basis functions, Order of confinement potential (4 or 6)'
