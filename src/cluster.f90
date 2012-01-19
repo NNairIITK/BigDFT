@@ -395,7 +395,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      end if
   end if
 
-
   call nullify_locreg_descriptors(Lzd%Glr)
 
   ! Determine size alat of overall simulation cell and shift atom positions

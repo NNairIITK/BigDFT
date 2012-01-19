@@ -498,10 +498,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call system_properties(iproc,nproc,in,atoms,orbsAO,radii_cf,nelec)
 
+   call nullify_locreg_descriptors(Lzd%Glr)
+
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
 
-  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Lzd%Glr,shift)
+   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Lzd%Glr,shift)
    if ( orbsAO%nspinor.gt.1) then
       !!  hybrid_on is not compatible with kpoints
      Lzd%Glr%hybrid_on=.false.

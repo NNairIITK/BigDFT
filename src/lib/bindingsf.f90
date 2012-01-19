@@ -49,12 +49,7 @@ subroutine glr_new(glr)
   type(locreg_descriptors), pointer :: glr
 
   allocate(glr)
-  nullify(glr%wfd%keyglob)
-  nullify(glr%wfd%keygloc)
-  nullify(glr%wfd%keyv)
-
-  nullify(glr%bounds%kb%ibyz_f)
-  nullify(glr%bounds%kb%ibyz_c)
+  call nullify_locreg_descriptors(glr)
 end subroutine glr_new
 subroutine glr_free(glr)
   use module_types
@@ -68,10 +63,10 @@ subroutine glr_get_dimensions(glr, geocode, n, ni)
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: glr
-  character(len = 1), intent(out) :: geocode
+  character, intent(out) :: geocode(1)
   integer, dimension(3), intent(out) :: n, ni
 
-  geocode = glr%geocode
+  write(geocode, "(A1)") glr%geocode
   n(1) = glr%d%n1
   n(2) = glr%d%n2
   n(3) = glr%d%n3
