@@ -347,9 +347,9 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
   end if
 
   if(G%ncplx == 2 .or. ncplx_k==2) then 
-   ncplx=2
+    ncplx=2
   else
-   ncplx=1
+    ncplx=1
   end if
 
   ityp=at%iatype(iat)
@@ -368,7 +368,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
            if (at%psppar(l,i,ityp) /= 0.0_gp) then
               call projector(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
                    at%psppar(l,0,ityp),rxyz(1,iat),n1,n2,n3,&
-                   hx,hy,hz,kx,ky,kz,ncplx_k,&
+                   hx,hy,hz,kx,ky,kz,ncplx,&
                    mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                    nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),nwarnings)
               iproj=iproj+2*l-1
@@ -389,7 +389,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
            i_g=i_g+1
            call projector_paw(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
                 G%psiat(:,i_g),G%xp(:,i_g),rxyz(1,iat),n1,n2,n3,&
-                hx,hy,hz,kx,ky,kz,ncplx,ncplx_g,ncplx_k,&
+                hx,hy,hz,kx,ky,kz,ncplx,G%ncplx,ncplx_k,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                 nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),nwarnings)
            iproj=iproj+2*l-1
@@ -532,7 +532,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
 END SUBROUTINE projector
 
 subroutine projector_paw(geocode,atomname,iat,idir,l,i,factor,gau_a,rxyz,n1,n2,n3,&
-     hx,hy,hz,kx,ky,kz,ncplx,ncplx_k,ncplx_g,&
+     hx,hy,hz,kx,ky,kz,ncplx,ncplx_g,ncplx_k,&
      mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,nwarnings)
   use module_base
   implicit none
@@ -575,22 +575,19 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,factor,gau_a,rxyz,n1,n2,n
     
      if (idir==0) then !normal projector calculation case
         call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,factors(1,:))
-       
         do iterm=1,nterm 
            factors(:,iterm)=factor(:)*factors(:,iterm)
         end do
      else !calculation of projector derivative
-        write(*,*)'This is not coded yet'
-        stop !this is not coded
-        !call calc_coeff_derproj(l,i,m,nterm_max,gau_a,nterm_arr,lxyz_arr,fac_arr)
+        call calc_coeff_derproj(l,i,m,nterm_max,gau_a,nterm_arr,lxyz_arr,fac_arr)
         
-        !nterm=nterm_arr(idir)
-        !do iterm=1,nterm
-        !   factors(iterm)=factor*fac_arr(iterm,idir)
-        !   lx(iterm)=lxyz_arr(1,iterm,idir)
-        !   ly(iterm)=lxyz_arr(2,iterm,idir)
-        !   lz(iterm)=lxyz_arr(3,iterm,idir)
-        !end do
+        nterm=nterm_arr(idir)
+        do iterm=1,nterm
+           factors(:,iterm)=factor(:)*fac_arr(iterm,idir)
+           lx(iterm)=lxyz_arr(1,iterm,idir)
+           ly(iterm)=lxyz_arr(2,iterm,idir)
+           lz(iterm)=lxyz_arr(3,iterm,idir)
+        end do
      end if
 
      call crtproj(geocode,nterm,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx,ncplx_k,ncplx_g,&
@@ -598,35 +595,35 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,factor,gau_a,rxyz,n1,n2,n
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c))
 
      ! testing
-     if (idir == 0) then
-        !here the norm should be done with the complex components
-        call wnrm_wrap(ncplx,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
-        if (abs(1.d0-scpr) > 1.d-2) then
-           if (abs(1.d0-scpr) > 1.d-1) then
-              !if (iproc == 0) then
-                 write(*,'(1x,a)')'error found!'
-                 write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
-                      'The norm of the nonlocal PSP for atom n=',iat,&
-                      ' (',trim(atomname),&
-                      ') labeled by l=',l,' m=',m,' is ',scpr
-                 write(*,'(1x,a)')&
-                      'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
-              !end if
-              stop
-           else
-!!!              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
-!!!                   'The norm of the nonlocal PSP for atom n=',iat,&
-!!!                   ' (',trim(atomname),&
-!!!                   ') labeled by l=',l,' m=',m,' is ',scpr
-              nwarnings=nwarnings+1
-           end if
-        end if
-        !do iterm=1,nterm
-        !   if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
-        !        'projector: iat,atomname,gau_a,lx,ly,lz ', & 
-        !        iat,trim(at%atomnames(at%iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
-        !enddo
-     end if
+     !if (idir == 0) then
+     !   !here the norm should be done with the complex components
+     !   call wnrm_wrap(ncplx,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
+     !   if (abs(1.d0-scpr) > 1.d-2) then
+     !      if (abs(1.d0-scpr) > 1.d-1) then
+     !         !if (iproc == 0) then
+     !            write(*,'(1x,a)')'error found!'
+     !            write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
+     !                 'The norm of the nonlocal PSP for atom n=',iat,&
+     !                 ' (',trim(atomname),&
+     !                 ') labeled by l=',l,' m=',m,' is ',scpr
+     !            write(*,'(1x,a)')&
+     !                 'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
+     !         !end if
+     !         stop
+     !      else
+     !         write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
+     !              'The norm of the nonlocal PSP for atom n=',iat,&
+     !              ' (',trim(atomname),&
+     !              ') labeled by l=',l,' m=',m,' is ',scpr
+     !         nwarnings=nwarnings+1
+     !      end if
+     !   end if
+     !   !do iterm=1,nterm
+     !   !   if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
+     !   !        'projector: iat,atomname,gau_a,lx,ly,lz ', & 
+     !   !        iat,trim(at%atomnames(at%iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
+     !   !enddo
+     !end if
      !end testing
      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
   enddo
@@ -666,6 +663,7 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,G,mproj)
            mproj=mproj+2*l-1
         end do
      end do
+     mproj=mproj*G%ncplx
   end if
 
 END SUBROUTINE numb_proj
