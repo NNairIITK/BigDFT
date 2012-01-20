@@ -1883,22 +1883,17 @@ allocate(hamTemp(orbsig%norb,orbsig%norb), stat=istat)
 call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
-if(iproc==0) write(*,*) 'calling initCommsOrtho in getHamiltonianMatrix6'
 call initCommsOrtho(iproc, nproc, lzdig, orbsig, onWhichAtom, input, locregShape, op, comon, tagout)
 
 
-if(iproc==0) write(*,*) 'calling allocateCommuncationBuffersOrtho in getHamiltonianMatrix6'
 call allocateCommuncationBuffersOrtho(comon, subname)
 
 ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
 ! Then post the messages and gather them.
 !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi, comon)
-if(iproc==0) write(*,*) 'calling extractOrbital3 in getHamiltonianMatrix6'
 call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim_orbs, onWhichAtom, lzdig, op, lchi, comon%nsendBuf, comon%sendBuf)
-if(iproc==0) write(*,*) 'calling postCommsOverlap in getHamiltonianMatrix6'
 !!call postCommsOverlap(iproc, nproc, comon)
 call postCommsOverlapNew(iproc, nproc, orbsig, op, lzdig, lchi, comon, tt1, tt2)
-if(iproc==0) write(*,*) 'calling gatherOrbitals2 in getHamiltonianMatrix6'
 !call gatherOrbitals2(iproc, nproc, comon)
 allocate(ttmat(orbsig%norb,orbsig%norb))
 call collectnew(iproc, nproc, comon, mad, op, orbsig, input, lzdig, comon%nsendbuf, &

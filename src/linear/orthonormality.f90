@@ -102,8 +102,8 @@ character(len=3),intent(in):: method
      call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
           comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
      t4=mpi_wtime()
-     call checkUnity(iproc, orbs%norb, ovrlp, maxError)
-      if(iproc==0) write(*,*) 'deviation from unity:', maxError
+     !call checkUnity(iproc, orbs%norb, ovrlp, maxError)
+     !if(iproc==0) write(*,*) 'deviation from unity:', maxError
       !!if(maxError<1.d-2) then
       !!    if(iproc==0) write(*,*) 'error is small enough, no need for orthogonalization, only normalization...'
       !!    ist=1
@@ -172,11 +172,11 @@ character(len=3),intent(in):: method
      !end if
   end do
 
-  if(converged) then
-     if(iproc==0) write(*,'(3x,a,i0,a)') 'done in ', it, ' iterations.'
-  else 
-     if(iproc==0) write(*,'(3x,a,i0,a)') 'WARNING: orthonormalization not converged within ', nItOrtho, ' iterations.'
-  end if
+  !if(converged) then
+  !   if(iproc==0) write(*,'(3x,a,i0,a)') 'done in ', it, ' iterations.'
+  !else 
+  !   if(iproc==0) write(*,'(3x,a,i0,a)') 'WARNING: orthonormalization not converged within ', nItOrtho, ' iterations.'
+  !end if
 
 
 
@@ -408,7 +408,7 @@ end subroutine orthonormalizeLocalized
 
 
 
-subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, trH, W, eval)
+subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, lagmat)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
@@ -424,14 +424,11 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
   !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lhphi
   real(8),dimension(max(lin%orbs%npsidim_comp,lin%orbs%npsidim_orbs)),intent(inout):: lhphi
   type(matrixDescriptors),intent(in):: mad
-  real(8),intent(out):: trH
-  real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out),optional:: W
-  real(8),dimension(lin%orbs%norb),intent(out),optional:: eval
+  real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: lagmat
 
   ! Local variables
   integer:: it, istat, iall, iorb, ierr, i, maxvaloverlap, lwork, info, jorb, k
   real(8),dimension(:),allocatable:: lphiovrlp, sendBuf, ovrlpCompressed, ovrlpCompressed2, work
-  real(8),dimension(:,:),allocatable:: lagmat
   character(len=*),parameter:: subname='orthoconstraintLocalized'
   real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput, tt
   real(8):: timecommunp2p, timecommuncoll, timecompress
@@ -441,8 +438,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
 
 
 
-  allocate(lagmat(lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, lagmat, 'lagmat',subname)
   allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
   call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
   allocate(expanded(lin%orbs%norb,lin%orbs%norbp), stat=istat)
@@ -520,25 +515,25 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
   t2=mpi_wtime()
   timecalcmatrix=timecalcmatrix+t2-t1
 
-  present_W=present(W)
-  present_eval=present(eval)
-  if(present_W .and. .not.present_eval .or. present_eval .and. .not.present_W) then
-      write(*,*) 'ERROR W and eval must be present at the same time'
-      stop
-  end if
-  if(present_W .and. present_eval) then
-      !! Just copy lagmat... used for debugging
-      if(iproc==0) write(*,*) 'copy lagmat to W'
-      W=lagmat
-  end if
+  !!present_W=present(W)
+  !!present_eval=present(eval)
+  !!if(present_W .and. .not.present_eval .or. present_eval .and. .not.present_W) then
+  !!    write(*,*) 'ERROR W and eval must be present at the same time'
+  !!    stop
+  !!end if
+  !!if(present_W .and. present_eval) then
+  !!    !! Just copy lagmat... used for debugging
+  !!    if(iproc==0) write(*,*) 'copy lagmat to W'
+  !!    W=lagmat
+  !!end if
 
 
   !call cpu_time(t2)
   !timeCalcMatrix=t2-t1
-  trH=0.d0
-  do iorb=1,lin%orbs%norb
-     trH=trH+lagmat(iorb,iorb)
-  end do
+  !!trH=0.d0
+  !!do iorb=1,lin%orbs%norb
+  !!   trH=trH+lagmat(iorb,iorb)
+  !!end do
   ! Expand the receive buffer, i.e. lphi
   t1=mpi_wtime()
   !call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
@@ -581,68 +576,65 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
 
   call deallocateCommuncationBuffersOrtho(lin%comon, subname)
 
-  present_W=present(W)
-  present_eval=present(eval)
-  !present_eval=.false.
-  if(present_W .and. .not.present_eval .or. present_eval .and. .not.present_W) then
-     write(*,*) 'ERROR W and eval must be present at the same time'
-     stop
-  end if
-  if(present_W .and. present_eval) then
-      !! Just copy lagmat... used for debugging
-      !!W=lagmat
-      !!! Diagonalize lagmat -- EXPERIMENTAL
+  !!!present_W=present(W)
+  !!!present_eval=present(eval)
+  !!!!present_eval=.false.
+  !!!if(present_W .and. .not.present_eval .or. present_eval .and. .not.present_W) then
+  !!!   write(*,*) 'ERROR W and eval must be present at the same time'
+  !!!   stop
+  !!!end if
+  !!!if(present_W .and. present_eval) then
+  !!!    !! Just copy lagmat... used for debugging
+  !!!    !!W=lagmat
+  !!!    !!! Diagonalize lagmat -- EXPERIMENTAL
 
-      !!! Copy lagmat to W and symmetrize it.
-      !!do iorb=1,lin%orbs%norb
-      !!    do jorb=1,lin%orbs%norb
-      !!        W(jorb,iorb)=.5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)
-      !!    end do
-      !!end do
-      !!allocate(work(1), stat=istat)
-      !!call memocc(istat, work, 'work', subname)
-      !!call dsyev('v', 'l', lin%orbs%norb, W(1,1), lin%orbs%norb, eval, work, -1, info)
-      !!if(info/=0) stop 'ERROR in dsyev'
-      !!lwork=work(1)
-      !!iall=-product(shape(work))*kind(work)
-      !!deallocate(work, stat=istat)
-      !!call memocc(istat, iall, 'work', subname)
-      !!allocate(work(lwork), stat=istat)
-      !!call memocc(istat, work, 'work', subname)
-      !!call dsyev('v', 'l', lin%orbs%norb, W(1,1), lin%orbs%norb, eval, work, lwork, info)
-      !!if(info/=0) stop 'ERROR in dsyev'
-      !!iall=-product(shape(work))*kind(work)
-      !!deallocate(work, stat=istat)
-      !!call memocc(istat, iall, 'work', subname)
+  !!!    !!! Copy lagmat to W and symmetrize it.
+  !!!    !!do iorb=1,lin%orbs%norb
+  !!!    !!    do jorb=1,lin%orbs%norb
+  !!!    !!        W(jorb,iorb)=.5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)
+  !!!    !!    end do
+  !!!    !!end do
+  !!!    !!allocate(work(1), stat=istat)
+  !!!    !!call memocc(istat, work, 'work', subname)
+  !!!    !!call dsyev('v', 'l', lin%orbs%norb, W(1,1), lin%orbs%norb, eval, work, -1, info)
+  !!!    !!if(info/=0) stop 'ERROR in dsyev'
+  !!!    !!lwork=work(1)
+  !!!    !!iall=-product(shape(work))*kind(work)
+  !!!    !!deallocate(work, stat=istat)
+  !!!    !!call memocc(istat, iall, 'work', subname)
+  !!!    !!allocate(work(lwork), stat=istat)
+  !!!    !!call memocc(istat, work, 'work', subname)
+  !!!    !!call dsyev('v', 'l', lin%orbs%norb, W(1,1), lin%orbs%norb, eval, work, lwork, info)
+  !!!    !!if(info/=0) stop 'ERROR in dsyev'
+  !!!    !!iall=-product(shape(work))*kind(work)
+  !!!    !!deallocate(work, stat=istat)
+  !!!    !!call memocc(istat, iall, 'work', subname)
 
-      !!! Transpose W
-      !!do iorb=1,lin%orbs%norb
-      !!    do jorb=iorb,lin%orbs%norb
-      !!        tt=W(jorb,iorb)
-      !!        W(jorb,iorb)=W(iorb,jorb)
-      !!        W(iorb,jorb)=tt
-      !!    end do
-      !!end do
+  !!!    !!! Transpose W
+  !!!    !!do iorb=1,lin%orbs%norb
+  !!!    !!    do jorb=iorb,lin%orbs%norb
+  !!!    !!        tt=W(jorb,iorb)
+  !!!    !!        W(jorb,iorb)=W(iorb,jorb)
+  !!!    !!        W(iorb,jorb)=tt
+  !!!    !!    end do
+  !!!    !!end do
 
-      !!! Check
-      !!!do iorb=1,lin%orbs%norb
-      !!!    do jorb=1,lin%orbs%norb
-      !!!        tt=0.d0
-      !!!        do k=1,lin%orbs%norb
-      !!!            tt=tt+eval(k)*W(k,iorb)*W(k,jorb)
-      !!!        end do
-      !!!        if(iproc==0) then
-      !!!            write(*,'(a,2i7,2es16.8)') 'iproc, jorb, tt, .5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)', iproc, jorb, tt, .5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)
-      !!!        end if
-      !!!    end do
-      !!!end do
-  end if
+  !!!    !!! Check
+  !!!    !!!do iorb=1,lin%orbs%norb
+  !!!    !!!    do jorb=1,lin%orbs%norb
+  !!!    !!!        tt=0.d0
+  !!!    !!!        do k=1,lin%orbs%norb
+  !!!    !!!            tt=tt+eval(k)*W(k,iorb)*W(k,jorb)
+  !!!    !!!        end do
+  !!!    !!!        if(iproc==0) then
+  !!!    !!!            write(*,'(a,2i7,2es16.8)') 'iproc, jorb, tt, .5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)', iproc, jorb, tt, .5d0*lagmat(jorb,iorb)+.5d0*lagmat(iorb,jorb)
+  !!!    !!!        end if
+  !!!    !!!    end do
+  !!!    !!!end do
+  !!!end if
 
   !!
 
-  iall=-product(shape(lagmat))*kind(lagmat)
-  deallocate(lagmat, stat=istat)
-  call memocc(istat, iall, 'lagmat', subname)
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
   deallocate(lphiovrlp, stat=istat)
   call memocc(istat, iall, 'lphiovrlp', subname)
@@ -818,7 +810,7 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
 
-  t1=mpi_wtime()
+  !t1=mpi_wtime()
   ! Count how many overlaping regions each orbital / process has.
   if(locregShape=='c') then
      call countOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
@@ -829,9 +821,9 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   else if(locregShape=='s') then
      call determine_overlap_from_descriptors(iproc, nproc, orbs, lzd, op, comon)
   end if
-  t2=mpi_wtime()
-  time=t2-t1
-  if(iproc==0) write(*,'(a,es10.2)') 'time for determine_overlap_from_descriptors: ',time
+  !t2=mpi_wtime()
+  !time=t2-t1
+  !if(iproc==0) write(*,'(a,es10.2)') 'time for determine_overlap_from_descriptors: ',time
 
 
   ! Determine the overlapping orbitals.
@@ -850,16 +842,16 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
      end do
   end do
 
-  t1=mpi_wtime()
+  !t1=mpi_wtime()
   ! Set the orbital descriptors for the overlap regions.
   if(locregShape=='c') then
      call determineOverlapDescriptors(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, op)
   else if(locregShape=='s') then
      call determineOverlapDescriptorsSphere(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, input%hx, input%hy, input%hz, op)
   end if
-  t2=mpi_wtime()
-  time=t2-t1
-  if(iproc==0) write(*,'(a,es10.2)') 'time for determineOverlapDescriptorsSphere: ',time
+  !t2=mpi_wtime()
+  !time=t2-t1
+  !if(iproc==0) write(*,'(a,es10.2)') 'time for determineOverlapDescriptorsSphere: ',time
 
 
   ! Initialize the communications.
@@ -871,7 +863,7 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   call setCommsOrtho(iproc, nproc, orbs, onWhichAtomAll, lzd, op, comon, tag)
 
 
-  t1=mpi_wtime()
+  !t1=mpi_wtime()
   ! Initialize the index arrays for the transformations from overlap region
   ! to ordinary localization region.
   allocate(op%indexExpand(comon%nrecvBuf), stat=istat)
@@ -884,11 +876,11 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
       end do
   end do
   call indicesForExpansion(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon)
-  t2=mpi_wtime()
-  time=t2-t1
-  if(iproc==0) write(*,'(a,es10.2)') 'time for indicesForExpansion: ',time
+  !t2=mpi_wtime()
+  !time=t2-t1
+  !if(iproc==0) write(*,'(a,es10.2)') 'time for indicesForExpansion: ',time
 
-  t1=mpi_wtime()
+  !t1=mpi_wtime()
   ! Initialize the index arrays for the transformations from the ordinary localization region
   ! to the overlap region.
   allocate(op%indexExtract(comon%nsendBuf), stat=istat)
@@ -900,9 +892,9 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
       end do
   end do
   call indicesForExtraction(iproc, nproc, orbs, orbs%npsidim_orbs, onWhichAtomAll, lzd, op, comon)
-  t2=mpi_wtime()
-  time=t2-t1
-  if(iproc==0) write(*,'(a,es10.2)') 'time for indicesForExtraction: ',time
+  !t2=mpi_wtime()
+  !time=t2-t1
+  !if(iproc==0) write(*,'(a,es10.2)') 'time for indicesForExtraction: ',time
 
 
   ! Determine the number of non subdiagonals that the overlap matrix / overlap matrix will have.
@@ -916,7 +908,7 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
       end do
   end do
   call mpiallred(op%nsubmax, 1, mpi_max, mpi_comm_world, ierr)
-  if(iproc==0) write(*,*) 'op%nsubmax', op%nsubmax
+  !if(iproc==0) write(*,*) 'op%nsubmax', op%nsubmax
 
 
 end subroutine initCommsOrtho

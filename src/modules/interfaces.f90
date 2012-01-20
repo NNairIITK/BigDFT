@@ -4721,7 +4721,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(matrixDescriptors),intent(out):: mad
       end subroutine initMatrixCompression
 
-      subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, trH, W, eval)
+      subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, lagmat)
         use module_base
         use module_types
         implicit none
@@ -4732,9 +4732,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(max(lin%orbs%npsidim_comp,lin%orbs%npsidim_orbs)),intent(in):: lphi
         real(8),dimension(max(lin%orbs%npsidim_comp,lin%orbs%npsidim_orbs)),intent(inout):: lhphi
         type(matrixDescriptors),intent(in):: mad
-        real(8),intent(out):: trH
-        real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(ouT),optional:: W
-        real(8),dimension(lin%orbs%norb),intent(out),optional:: eval
+        real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: lagmat
       end subroutine orthoconstraintNonorthogonal
 
       subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)

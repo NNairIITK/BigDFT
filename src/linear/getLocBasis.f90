@@ -502,7 +502,7 @@ integer:: istat,istart,ierr,ii,it,iall,nit,ind1,ind2,jorb,i,ist,jst,iiorb,jjorb,
 integer:: ldim,gdim,ilr,ncount,offset,istsource,istdest
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS,lhphi,lhphiold
 real(8),dimension(:),allocatable:: eval, lphiold
-real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, W, ttmat
+real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat, ttmat
 real(8),dimension(:,:),allocatable:: kernel
 logical:: withConfinement
 character(len=*),parameter:: subname='getLocalizedBasis'
@@ -561,8 +561,8 @@ logical:: resetDIIS, immediateSwitchToSD
 
   allocate(lphiold(size(lphi)), stat=istat)
   call memocc(istat, lphiold, 'lphiold', subname)
-  allocate(W(lorbs%norb,lorbs%norb), stat=istat)
-  call memocc(istat, W, 'W', subname)
+  allocate(lagmat(lorbs%norb,lorbs%norb), stat=istat)
+  call memocc(istat, lagmat, 'lagmat', subname)
   allocate(eval(lorbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
 
@@ -693,18 +693,30 @@ logical:: resetDIIS, immediateSwitchToSD
 
       t1=mpi_wtime()
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
-      call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH, W, eval)
+      call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, lagmat)
 
       ! Calculate modified trace
-      tt=0.d0
-      do iorb=1,orbs%norb
+      !!tt=0.d0
+      !!do iorb=1,orbs%norb
+      !!    do jorb=1,lorbs%norb
+      !!        do korb=1,lorbs%norb
+      !!            tt = tt + coeff(jorb,iorb)*coeff(korb,iorb)*W(korb,jorb)
+      !!        end do
+      !!    end do
+      !!end do
+      if(lin%newgradient) then
+          trH=0.d0
           do jorb=1,lorbs%norb
               do korb=1,lorbs%norb
-                  tt = tt + coeff(jorb,iorb)*coeff(korb,iorb)*W(korb,jorb)
+                  trH = trH + kernel(korb,jorb)*lagmat(korb,jorb)
               end do
           end do
-      end do
-      if(iproc==0) write(*,*) 'new trace',tt
+      else
+          trH=0.d0
+          do jorb=1,lorbs%norb
+              trH = trH + lagmat(jorb,jorb)
+          end do
+      end if
 
 
 
@@ -763,7 +775,7 @@ logical:: resetDIIS, immediateSwitchToSD
       if(iproc==0) then
           write(*,'(a)', advance='no') 'done. '
       end if
-      if(iproc==0) write(*,*) 'trH',trH
+      !!if(iproc==0) write(*,*) 'trH',trH
 
 
   
@@ -947,9 +959,9 @@ logical:: resetDIIS, immediateSwitchToSD
   iall=-product(shape(lphiold))*kind(lphiold)
   deallocate(lphiold, stat=istat)
   call memocc(istat, iall, 'lphiold', subname)
-  iall=-product(shape(W))*kind(W)
-  deallocate(W, stat=istat)
-  call memocc(istat, iall, 'W', subname)
+  iall=-product(shape(lagmat))*kind(lagmat)
+  deallocate(lagmat, stat=istat)
+  call memocc(istat, iall, 'lagmat', subname)
   iall=-product(shape(eval))*kind(eval)
   deallocate(eval, stat=istat)
   call memocc(istat, iall, 'eval', subname)
