@@ -1770,7 +1770,7 @@ module module_interfaces
 !!$      character(len=*), intent(in) :: filename
 !!$     end subroutine readmywaves
     
-  subroutine getLocalizedBasis(iproc, nproc, at, orbs, input, lin, rxyz, &
+  subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, input, lin, rxyz, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
         infoBasisFunctions, ovrlp, nlpspd, proj, coeff)
       use module_base
@@ -1778,7 +1778,10 @@ module module_interfaces
       implicit none
       integer:: iproc, nproc, idsxMin, idsxMax, infoBasisFunctions
       type(atoms_data), intent(in) :: at
-      type(orbitals_data):: orbs
+      type(local_zone_descriptors),intent(inout):: lzd
+      type(orbitals_data):: lorbs, orbs
+      type(p2pCommsOrthonormality):: comon
+      type(overlapParameters):: op
       type(input_variables):: input
       type(linearParameters):: lin
       real(8),dimension(3,at%nat):: rxyz
