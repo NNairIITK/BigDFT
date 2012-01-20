@@ -1,6 +1,6 @@
 subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, &
     mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, comms, at, lin, rxyz, rxyzParab, &
-    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
+    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 !
@@ -83,7 +83,6 @@ type(GPU_pointers),intent(inout):: GPU
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
 logical,intent(in):: updatePhi
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
-real(8),dimension(max(lin%lb%gorbs%npsidim_orbs,lin%lb%gorbs%npsidim_comp)),intent(inout):: phi
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
 real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
@@ -3785,6 +3784,9 @@ real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi, recvbuf
 real(8),dimension(:,:,:),allocatable:: tempmat3
 character(len=*),parameter:: subname='unitary_optimization'
 type(p2pCommsOrthonormality):: comon_local
+
+! Quick return if possible
+if(nit==0) return
 
 allocate(gmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, gmat, 'gmat', subname)

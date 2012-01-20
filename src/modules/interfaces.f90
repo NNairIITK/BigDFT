@@ -1968,7 +1968,7 @@ module module_interfaces
 
     subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, &
         mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, comms, at, lin, rxyz, rxyzParab, &
-        nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
+        nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
         i3s, i3xcsh, ebsMod, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
       use module_base
@@ -1995,7 +1995,6 @@ module module_interfaces
       real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
       logical,intent(in):: updatePhi
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
-      real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),intent(inout):: phi
       integer,intent(out):: infoBasisFunctions, infoCoeff
       real(8),intent(out):: ebsMod
       real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
