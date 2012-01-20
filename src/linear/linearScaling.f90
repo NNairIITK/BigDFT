@@ -332,10 +332,13 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       if(onemoreiteration) lowaccur_converged=.true.
 
       if(lin%mixedmode) then
-          if( (.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy .or. pnrm_out<lin%lowaccuray_converged) ) &
+          !!if( (.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy .or. pnrm_out<lin%lowaccuray_converged) ) &
+          !!    .or. lowaccur_converged ) then
+          if( (.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged) ) &
               .or. lowaccur_converged ) then
               withder=.true.
-              if(.not.onemoreiteration) onemoreiteration=.true.
+              !if(.not.onemoreiteration) onemoreiteration=.true.
+              if(.not.onemoreiteration) onemoreiteration=.false.
           else
               withder=.false.
               onemoreiteration=.false.
