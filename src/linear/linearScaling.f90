@@ -211,6 +211,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
       with_auxarray=.false.
       if(lin%mixedmode) then
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
+          lin%useDerivativeBasisFunctions=.false.
           call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
               lin%op, lin%op, lin%comon, lin%comon, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
