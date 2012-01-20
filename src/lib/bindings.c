@@ -707,7 +707,7 @@ void FC_FUNC_(denspot_free, DENSPOT_FREE)(f90_pointer_denspotd *denspotd,
                                           f90_pointer_double *rhopot,
                                           f90_pointer_double *rhocore,
                                           f90_pointer_double *potxc);
-void FC_FUNC_(allocaterhopot, ALLOCATERHOPOT)(const guint *iproc, const guint nproc,
+void FC_FUNC_(allocaterhopot, ALLOCATERHOPOT)(const guint *iproc, const guint *nproc,
                                               const void *glr, const double *hxh,
                                               const double *hyh, const double *hzh,
                                               const void *in, const void *atoms,
@@ -756,17 +756,17 @@ BigDFT_DensPot* bigdft_denspot_new (const BigDFT_Atoms *atoms, const BigDFT_Glr 
                                            hh, hh + 1, hh + 2, in->data->in,
                                            atoms->data->atoms, atoms->rxyz.data,
                                            radii, denspot->denspotd->denspotd,
-                                           denspot->rhodsc->rhodsc, denspot->rhopot,
-                                           denspot->pot_ion, denspot->potxc,
-                                           denspot->rhocore);
+                                           denspot->rhodsc->rhodsc, &denspot->rhopot,
+                                           &denspot->pot_ion, &denspot->potxc,
+                                           &denspot->rhocore);
 
   return denspot;
 }
 void bigdft_denspot_free(BigDFT_DensPot *denspotd)
 {
   FC_FUNC_(denspot_free, DENSPOT_FREE)(denspotd->denspotd, denspotd->rhodsc,
-                                       denspotd->pot_ion, denspotd->rhopot,
-                                       denspotd->rhocore, denspotd->potxc);
+                                       &denspotd->pot_ion, &denspotd->rhopot,
+                                       &denspotd->rhocore, &denspotd->potxc);
   bigdft_denspot_dispose(denspotd);
 }
 

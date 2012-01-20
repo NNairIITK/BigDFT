@@ -1435,15 +1435,19 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   implicit none
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: ityp
-  character(len = 20), intent(out) :: name
+  character, intent(out) :: name(20)
   integer, intent(out) :: ln
-  !local variables
-  integer :: lnt
 
-  lnt=min(len(trim(atoms%atomnames(ityp))),20)
+  integer :: i
+
+  ln=min(len(trim(atoms%atomnames(ityp))),20)
   !print *,'lnt2',lnt
-  write(name, "(A)") atoms%atomnames(ityp)(1:lnt)
-  ln = len(trim(name))
+  do i = 1, ln, 1
+     name(i) = atoms%atomnames(ityp)(i:i)
+  end do
+  do i = ln + 1, 20, 1
+     name(i) = ' '
+  end do
 END SUBROUTINE atoms_copy_name
 subroutine atoms_copy_alat(atoms, alat1, alat2, alat3)
   use module_types

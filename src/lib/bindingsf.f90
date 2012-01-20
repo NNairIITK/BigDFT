@@ -335,7 +335,7 @@ subroutine denspot_free(denspotd, rhodsc, pot_ion, rhopot, potxc, rhocore)
   call deallocate_rho_descriptors(rhodsc, "denspot_free")
   deallocate(rhodsc)
 
-  call deallocate_denspot_distribution(denspots, "denspot_free")
+  call deallocate_denspot_distribution(denspotd, "denspot_free")
   deallocate(denspotd)
 
   i_all=-product(shape(pot_ion))*kind(pot_ion)
