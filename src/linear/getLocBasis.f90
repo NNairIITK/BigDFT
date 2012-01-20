@@ -1,5 +1,5 @@
 subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, &
-    mad, lbmad, op, lbop, comon, lbcomon, comms, at, lin, rxyz, rxyzParab, &
+    mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
@@ -69,6 +69,7 @@ type(p2pCommsSumrho),intent(inout):: comsr
 type(matrixDescriptors),intent(in):: mad, lbmad
 type(overlapParameters),intent(inout):: op, lbop
 type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
+type(p2pCommsGatherPot):: comgp, lbcomgp
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
 type(linearParameters),intent(inout):: lin
@@ -130,7 +131,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
 
       ! Improve the trace minimizing orbitals.
-      call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,input,lin,rxyz,&
+      call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,lin,rxyz,&
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
           infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj)
   end if
@@ -190,10 +191,10 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   ! Gather the potential (it has been posted in the subroutine linearScaling) if the basis functions
   ! have not been updated (in that case it was gathered there).
   if(.not.updatePhi) then
-      call gatherPotential(iproc, nproc, lin%comgp)
+      call gatherPotential(iproc, nproc, comgp)
   end if
   ! If we use the derivative basis functions the potential has to be gathered anyway.
-  if(lin%useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lin%lb%comgp)
+  if(lin%useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lbcomgp)
 
   if(.not.lin%useDerivativeBasisFunctions) then
 
@@ -204,7 +205,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
            lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
            lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,input%nspin,&
            lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
-           lorbs,lzd,2,ngatherarr,rhopot,lpot,lin%comgp)
+           lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
   else
 
      call local_potential_dimensions(lzd,llborbs,ngatherarr(0,1))
@@ -213,7 +214,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
            lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
            lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,input%nspin,&
            lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
-           llborbs,lzd,2,ngatherarr,rhopot,lpot,lin%lb%comgp)
+           llborbs,lzd,2,ngatherarr,rhopot,lpot,lbcomgp)
 
   end if
 
@@ -260,8 +261,8 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   if(iproc==0) write(*,'(1x,a)') 'done.'
 
   ! Deallocate the buffers needed for the communication of the potential.
-  call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
-  if(lin%useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+  call deallocateCommunicationsBuffersPotential(comgp, subname)
+  if(lin%useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 
   ! Calculate the matrix elements <phi|H|phi>.
@@ -412,7 +413,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
 end subroutine getLinearPsi
 
-subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, input, lin, rxyz, &
+subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, lin, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
     infoBasisFunctions, ovrlp, nlpspd, proj, coeff)
 !
@@ -475,6 +476,7 @@ type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data):: lorbs, orbs
 type(p2pCommsOrthonormality):: comon
 type(overlapParameters):: op
+type(p2pCommsGatherPot):: comgp
 type(input_variables):: input
 type(linearParameters):: lin
 real(8),dimension(3,at%nat):: rxyz
@@ -547,7 +549,7 @@ logical:: resetDIIS, immediateSwitchToSD
 
   ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
   ! The messages for this point to point communication have been posted in the subroutine linearScaling.
-  call gatherPotential(iproc, nproc, lin%comgp)
+  call gatherPotential(iproc, nproc, comgp)
 
   ! Build the required potential
   call local_potential_dimensions(lzd,lorbs,ngatherarr(0,1))
@@ -556,7 +558,7 @@ logical:: resetDIIS, immediateSwitchToSD
        lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
        lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,input%nspin,&
        lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
-       lorbs,lin%Lzd,2,ngatherarr,rhopot,lpot,lin%comgp)
+       lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
 
 
   allocate(lphiold(size(lphi)), stat=istat)
@@ -623,7 +625,7 @@ logical:: resetDIIS, immediateSwitchToSD
 
      allocate(confdatarr(lorbs%norbp))
      call define_confinement_data(confdatarr,lorbs,rxyz,at,&
-          input%hx,input%hy,input%hz,lin,lin%Lzd,lorbs%inWhichLocreg)
+          input%hx,input%hy,input%hz,lin,lzd,lorbs%inWhichLocreg)
       call HamiltonianApplication3(iproc,nproc,at,lorbs,&
            input%hx,input%hy,input%hz,rxyz,&
            proj,lzd,nlpspd,confdatarr,ngatherarr,lpot,lphi,lhphi,&

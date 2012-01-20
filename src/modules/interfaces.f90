@@ -1770,7 +1770,7 @@ module module_interfaces
 !!$      character(len=*), intent(in) :: filename
 !!$     end subroutine readmywaves
     
-  subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, input, lin, rxyz, &
+  subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, lin, rxyz, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
         infoBasisFunctions, ovrlp, nlpspd, proj, coeff)
       use module_base
@@ -1782,6 +1782,7 @@ module module_interfaces
       type(orbitals_data):: lorbs, orbs
       type(p2pCommsOrthonormality):: comon
       type(overlapParameters):: op
+      type(p2pCommsGatherPot):: comgp
       type(input_variables):: input
       type(linearParameters):: lin
       real(8),dimension(3,at%nat):: rxyz
@@ -1966,7 +1967,7 @@ module module_interfaces
     end subroutine apply_potentialConfinement
 
     subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, &
-        mad, lbmad, op, lbop, comon, lbcomon, comms, at, lin, rxyz, rxyzParab, &
+        mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
         i3s, i3xcsh, ebsMod, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
@@ -1980,6 +1981,7 @@ module module_interfaces
       type(matrixDescriptors),intent(in):: mad, lbmad
       type(overlapParameters),intent(inout):: op, lbop
       type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
+      type(p2pCommsGatherPot):: comgp, lbcomgp
       type(communications_arrays),intent(in) :: comms
       type(atoms_data),intent(in):: at
       type(linearParameters),intent(inout):: lin
