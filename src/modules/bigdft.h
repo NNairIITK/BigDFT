@@ -238,7 +238,7 @@ void bigdft_psolver_free_kernel(f90_pointer_double *pkernel);
 /******************/
 double bigdft_memory_peak(int nproc, BigDFT_Glr *lr, BigDFT_Inputs *in,
                           BigDFT_Orbs *orbs, BigDFT_Proj *proj);
-int* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
+guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
                           double mult, double h[3]);
 f90_pointer_double* bigdft_read_wave_to_isf(const gchar *filename, int iorbp,
                                             double h[3], int n[3], int *nspinor);

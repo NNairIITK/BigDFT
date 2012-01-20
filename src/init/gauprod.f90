@@ -560,7 +560,6 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
      noncoll=1
   end if
 
-
   natpaw=0
   do iat=1, at%nat
      if(  at%paw_NofL(at%iatype(iat)).gt.0) then

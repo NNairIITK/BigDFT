@@ -1033,7 +1033,6 @@ subroutine deallocate_locreg_descriptors(lr, subname)
 
   call deallocate_convolutions_bounds(lr%bounds, subname)
   
-  
 end subroutine deallocate_locreg_descriptors
 
 subroutine deallocate_locreg_descriptors2(lr,subname)
@@ -1133,7 +1132,6 @@ subroutine deallocate_kinetic_bounds(kb, subname)
   !end if
   call checkAndDeallocatePointer(kb%ibyz_f, 'kb%ibyz_f', subname)
   call checkAndDeallocatePointer(kb%ibxz_f, 'kb%ibxz_f', subname)
-
   call checkAndDeallocatePointer(kb%ibxy_f, 'kb%ibxy_f', subname)
 
 end subroutine deallocate_kinetic_bounds
