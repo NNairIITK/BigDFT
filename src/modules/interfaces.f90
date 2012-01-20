@@ -1963,7 +1963,7 @@ module module_interfaces
     end subroutine apply_potentialConfinement
 
     subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, &
-        op, lbop, comon, lbcomon, comms, at, lin, rxyz, rxyzParab, &
+        mad, lbmad, op, lbop, comon, lbcomon, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
         i3s, i3xcsh, ebsMod, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
@@ -1974,6 +1974,7 @@ module module_interfaces
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
       type(p2pCommsSumrho),intent(inout):: comsr
+      type(matrixDescriptors),intent(in):: mad, lbmad
       type(overlapParameters),intent(inout):: op, lbop
       type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
       type(communications_arrays),intent(in) :: comms

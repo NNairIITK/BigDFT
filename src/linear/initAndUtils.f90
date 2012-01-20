@@ -919,7 +919,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linearParameters),intent(in):: lin
+type(linearParameters),intent(inout):: lin
 
 ! Local variables
 integer:: norbTarget, nprocIG, ierr
@@ -1005,6 +1005,12 @@ integer:: norbTarget, nprocIG, ierr
       if(iproc==0) write(*,*) "ERROR: lin%locregShape must be 's' or 'c'!"
       call mpi_barrier(mpi_comm_world, ierr)
       stop
+  end if
+
+  if(lin%mixedmode .and. .not.lin%useDerivativeBasisFunctions) then
+      if(iproc==0) write(*,*) 'WARNING: will set lin%useDerivativeBasisFunctions to true, &
+                               &since this is required if lin%mixedmode is true!'
+      lin%useDerivativeBasisFunctions=.true.
   end if
 
 

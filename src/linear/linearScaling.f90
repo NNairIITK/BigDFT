@@ -106,7 +106,8 @@ real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, dampingForMixing
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
 type(linearParameters):: lind
-logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged
+logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder
+logical:: onemoreiteration
 real(8),dimension(:),pointer:: lphi, lphir, phibuffr
 
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -139,6 +140,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   tag=0
   call mpi_barrier(mpi_comm_world, ierr)
   t1init=mpi_wtime()
+  if(iproc==0) write(*,*) 'input%file_lin',input%file_lin
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
        input, rxyz, nscatterarr, tag, coeff, lphi)
   lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
@@ -213,14 +215,14 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
           lin%useDerivativeBasisFunctions=.false.
           call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
-              lin%op, lin%op, lin%comon, lin%comon, comms, at, lin, rxyz, rxyz, &
+              lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
               i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
       else
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
           call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-              lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
+              lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
               i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
@@ -317,6 +319,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   !lin%useDerivativeBasisFunctions=.false.
 
   lowaccur_converged=.false.
+  onemoreiteration=.false.
 
   outerLoop: do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
 
@@ -324,10 +327,26 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
       selfConsistent=lin%convCritMix
 
-      if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged)) then
-         lowaccur_converged=.true.
-         nit_highaccuracy=0
-     end if 
+      ! This means that the convergence was reached in the last iteration, but another iteration was added
+      ! with the derivatives,
+      if(onemoreiteration) lowaccur_converged=.true.
+
+      if(lin%mixedmode) then
+          if( (.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy .or. pnrm_out<lin%lowaccuray_converged) ) &
+              .or. lowaccur_converged ) then
+              withder=.true.
+              if(.not.onemoreiteration) onemoreiteration=.true.
+          else
+              withder=.false.
+              onemoreiteration=.false.
+          end if
+      end if
+
+      if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged) &
+         .and. .not.onemoreiteration) then
+          lowaccur_converged=.true.
+          nit_highaccuracy=0
+      end if 
 
       if(lowaccur_converged) then
           lin%potentialPrefac = lin%potentialPrefac_highaccuracy
@@ -355,24 +374,24 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
 
           if(lin%mixedmode) then
-              if(itout<=lin%nit_lowaccuracy-1) then
+              if(.not.withder) then
                   lin%useDerivativeBasisFunctions=.false.
                   call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
-                      lin%op, lin%op, lin%comon, lin%comon, comms, at, lin, rxyz, rxyz, &
+                      lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, comms, at, lin, rxyz, rxyz, &
                       nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                       i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-                      lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
+                      lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
                       nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                       i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
               end if
           else
               call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-                  lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
+                  lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
                   nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
                   infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                   i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
@@ -391,9 +410,14 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           call cpu_time(t1)
           !!call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%comsr, &
           !!     coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
-          if(lin%mixedmode .and. itout<=lin%nit_lowaccuracy-1) then
-              call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%orbs, lin%comsr, &
-                   coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+          if(lin%mixedmode) then
+              if(.not.withder) then
+                  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%orbs, lin%comsr, &
+                       coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+               else
+                  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
+                       coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+               end if
           else
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
                    coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)

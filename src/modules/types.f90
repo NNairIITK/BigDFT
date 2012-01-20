@@ -123,7 +123,7 @@ module module_types
     real(8),dimension(:),pointer:: locrad
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
-    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
+    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, mixedmode
     character(len=4):: mixingMethod
     character(len=1):: locregShape
   end type linearInputParameters

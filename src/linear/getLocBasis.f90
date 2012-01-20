@@ -1,5 +1,5 @@
 subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, &
-    op, lbop, comon, lbcomon, comms, at, lin, rxyz, rxyzParab, &
+    mad, lbmad, op, lbop, comon, lbcomon, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
@@ -66,6 +66,7 @@ integer,intent(in):: iproc, nproc, nspin, n3p, n3pi, n3d, i3s, i3xcsh, itSCC
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
 type(p2pCommsSumrho),intent(inout):: comsr
+type(matrixDescriptors),intent(in):: mad, lbmad
 type(overlapParameters),intent(inout):: op, lbop
 type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
 type(communications_arrays),intent(in) :: comms
@@ -150,9 +151,9 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
   ! Get the overlap matrix.
   if(.not.lin%useDerivativeBasisFunctions) then
-      call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, lphi, lin%mad, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, lphi, mad, ovrlp)
   else
-      call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, lphi, lin%lb%mad, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, lphi, lbmad, ovrlp)
   end if
 
 
@@ -266,9 +267,9 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   ! Calculate the matrix elements <phi|H|phi>.
   call allocateCommuncationBuffersOrtho(lbcomon, subname)
   if(.not. lin%useDerivativeBasisFunctions) then
-      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, lphi, lhphi, lin%mad, matrixElements)
+      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, lphi, lhphi, mad, matrixElements)
   else
-      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, lphi, lhphi, lin%lb%mad, matrixElements)
+      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, lphi, lhphi, lbmad, matrixElements)
   end if
   call deallocateCommuncationBuffersOrtho(lbcomon, subname)
 
