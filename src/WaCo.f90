@@ -784,8 +784,8 @@ stop
            if(.false.) then
               open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown')
               call writeonewave(ifile,.false.,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,  & 
-                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),  & 
-                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keyg(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1), & 
+                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),  & 
+                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1), & 
                    wann(1),wann(Glr%wfd%nvctr_c+1), 0.d0)
            else
               ! should be write_wave_etsf  (only one orbital)
@@ -1107,7 +1107,7 @@ subroutine scalar_kmeans_diffIG(nIG,crit,nel,vect,string,nbuf)
      end do
   end do loop_iter
 
-  write(*,'(A,x,i4.4,x,A)') 'Convergence reached in',iter,'iterations.'
+  write(*,'(A,1x,i4.4,1x,A)') 'Convergence reached in',iter,'iterations.'
   write(*,'(A,A,A,1x,i4.4,1x,A)') 'The ',trim(string),' can be clustered in',nbuf,'elements:'
   do i = 1, nbuf
      minold = huge(minold)

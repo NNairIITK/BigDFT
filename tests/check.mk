@@ -37,11 +37,13 @@ PSPS = psppar.H \
        HGH/psppar.Mg \
        HGH/psppar.Ag \
        HGH/psppar.N \
+       HGH/psppar.C \
        HGH-K/psppar.H \
        HGH-K/psppar.Si \
        HGH-K/psppar.N \
        HGH-K/psppar.O \
        HGH-K/psppar.Ti \
+       extra/psppar.H \
        Xabs/psppar.Fe
 
 INS = $(TESTDIRS:=.in)

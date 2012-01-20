@@ -462,7 +462,7 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
   else
      if (iproc == 0) then
         write(*,*) 'wavefunctions need reformatting'
-        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) &
+        if (abs(hx_old - hx) > 1e-6 .and. abs(hy_old - hy) > 1e-6 .and. abs(hz_old - hz) > 1e-6) &
              & write(*,*) 'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
         if (nvctr_c_old /= wfd%nvctr_c) &
              & write(*,*) 'because nvctr_c_old /= nvctr_c',nvctr_c_old,wfd%nvctr_c
@@ -1202,8 +1202,8 @@ contains
     coeff_map = 0
     do iseg = 1, wfd%nseg_c
        jj = wfd%keyv(iseg)
-       j0 = wfd%keyg(1, iseg)
-       j1 = wfd%keyg(2, iseg)
+       j0 = wfd%keygloc(1, iseg)
+       j1 = wfd%keygloc(2, iseg)
        ii = j0 - 1
        i3 = ii / ((n1 + 1) * (n2 + 1))
        ii = ii - i3 * (n1 + 1) * (n2 + 1)
@@ -1220,8 +1220,8 @@ contains
     ! fine part
     do iseg = 1, wfd%nseg_f
        jj = wfd%keyv(wfd%nseg_c + iseg)
-       j0 = wfd%keyg(1, wfd%nseg_c + iseg)
-       j1 = wfd%keyg(2, wfd%nseg_c + iseg)
+       j0 = wfd%keygloc(1, wfd%nseg_c + iseg)
+       j1 = wfd%keygloc(2, wfd%nseg_c + iseg)
        ii = j0 - 1
        i3 = ii / ((n1 + 1) * (n2 + 1))
        ii = ii - i3 * (n1 + 1) * (n2 + 1)

@@ -81,8 +81,8 @@
    prod=rho*rhom1
 !  If the previous point is too far ...
    if(prod < 0.01_dp .or. prod > 10._dp )then
-     rhomtrd=sign( (abs(rho))**m1thrd , rho )
-     rhom1=one/rho
+      rhomtrd=sign( (abs(rho))**m1thrd , rho )
+      rhom1=one/rho
    else
      del=prod-one
      do ii=1,5

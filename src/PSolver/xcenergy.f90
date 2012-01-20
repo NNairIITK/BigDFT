@@ -291,8 +291,13 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'W') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
-     stop 'PSolver: geometry code not admitted'
+     stop 'XC potential: geometry code not admitted'
   end if
 
   !dimension for exchange-correlation (different in the global or distributed case)
@@ -330,7 +335,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      call timing(iproc,'Exchangecorr  ','OF')
      return
   end if
-
+  
   !if rhocore is associated we should add it on the charge density
   if (associated(rhocore)) then
      if (nspin == 1) then
@@ -408,11 +413,10 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !if (present(dvxcdrho)) then
   !   write(*,*)'Array of second derivatives of Exc allocated, dimension',ndvxc,m1,m3,nwb
   !end if
-
   if (istart+1 <= m2) then 
      if(datacode=='G' .and. &
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
-        !allocation of an auxiliary array for avoiding the shift 
+        !allocation of an auxiliary array for avoiding the shift
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho_G,vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
@@ -442,7 +446,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      eexcuLOC=0.0_dp
      vexcuLOC=0.0_dp
   end if
-   
   !the value of the shift depends of the distributed i/o or not
   if ((datacode=='G' .and. nproc == 1) .or. datacode == 'D') then
      !copy the relevant part of vxci on the output potxc
@@ -677,7 +680,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
      allocate(dvxcdgr(1,1,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
   end if
-
+  
   !Allocations
   allocate(exci(m1,m3,nwb+ndebug),stat=i_stat)
   call memocc(i_stat,exci,'exci',subname)
@@ -692,6 +695,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr)
   else if (abs(order) == 2) then
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr,dvxci)
+  
   end if
   if (use_gradient) then
      !do not calculate the White-Bird term in the Leeuwen Baerends XC case

@@ -29,7 +29,8 @@ program BigDFT
    type(restart_objects) :: rst
    character(len=50), dimension(:), allocatable :: arr_posinp
    character(len=60) :: filename, radical
-   ! atomic coordinates, forces
+   ! atomic coordinates, forces, strten
+   real(gp), dimension(6) :: strten
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
    integer :: iconfig,nconfig,istat
@@ -108,21 +109,21 @@ program BigDFT
          inputs%last_run = 1
       end if
 
-      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
+      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
 
       if (inputs%ncount_cluster_x > 1) then
          open(unit=16,file='geopt.mon',status='unknown',position='append')
          if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
          if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
          ! geometry optimization
-         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
+         call geopt(nproc,iproc,rxyz,atoms,fxyz,strten,etot,rst,inputs,ncount_bigdft)
          close(16)
       end if
 
       !if there is a last run to be performed do it now before stopping
       if (inputs%last_run == -1) then
          inputs%last_run = 1
-         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
+         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
       end if
 
       if (inputs%ncount_cluster_x > 1) then
@@ -154,6 +155,11 @@ program BigDFT
       endif
 
       call deallocate_atoms(atoms,subname) 
+
+!      call deallocate_lr(rst%Lzd%Glr,subname)    
+!      call deallocate_local_zone_descriptors(rst%Lzd, subname)
+!      if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') call deallocateBasicArrays(atoms,inputs%lin)
+
       call free_restart_objects(rst,subname)
 
       i_all=-product(shape(rxyz))*kind(rxyz)
