@@ -719,9 +719,8 @@ end type workarrays_quartic_convolutions
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed, reducePrefactor
     real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho
     real(8):: lowaccuray_converged
-    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lxi, transmat, lpsi, lhpsi
+    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold
     real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
-    real(8),dimension(:,:),pointer:: hamold
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType

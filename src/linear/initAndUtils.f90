@@ -328,12 +328,12 @@ if(lin%useDerivativeBasisFunctions) &
 ! Restart array for the basis functions (only needed if we use the derivative basis functions).
 allocate(lin%lphiRestart(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
 call memocc(istat, lin%lphiRestart, 'lin%lphiRestart', subname)
-allocate(lin%lphiold(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
-call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
+!!!allocate(lin%lphiold(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
+!!!call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
 
-! hamold stores the Hamiltonian matrix of the previous iterations.
-allocate(lin%hamold(lin%orbs%norb,lin%orbs%norb), stat=istat)
-call memocc(istat, lin%hamold, 'lin%hamold', subname)
+!!! hamold stores the Hamiltonian matrix of the previous iterations.
+!!allocate(lin%hamold(lin%orbs%norb,lin%orbs%norb), stat=istat)
+!!call memocc(istat, lin%hamold, 'lin%hamold', subname)
 
 
 !! Stores the Hamiltonian in the basis of the localized orbitals

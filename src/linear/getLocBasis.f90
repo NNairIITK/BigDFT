@@ -1,8 +1,8 @@
-subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, &
+subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
     mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
-    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
+    i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
 !
 ! Purpose:
 ! ========
@@ -22,7 +22,6 @@ subroutine getLinearPsi(iproc, nproc, nspin, lzd, orbs, lorbs, llborbs, comsr, &
 !   ----------------
 !     iproc           process ID
 !     nproc           total number of processes
-!     nspin           npsin==1 -> closed shell; npsin==2 -> spin polarized
 !     Glr             type describing the localization region
 !     orbs            type describing the physical orbitals psi
 !     comms           type containing the communication parameters for the physical orbitals psi
@@ -62,7 +61,7 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nspin, n3p, n3pi, n3d, i3s, i3xcsh, itSCC
+integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
 type(p2pCommsSumrho),intent(inout):: comsr
@@ -87,7 +86,6 @@ integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
 real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
 real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
-real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 logical,intent(in):: communicate_lphi
@@ -95,8 +93,8 @@ real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
 
 ! Local variables 
 integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount, jlr, ii
-real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold, hphiold, eps, temparr, work
-real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, hamold, overlapmatrix, lambda, coeffold
+real(8),dimension(:),allocatable:: eval, lhphi
+real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, overlapmatrix, lambda, coeffold
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time,eSIC_DC
 character(len=*),parameter:: subname='getLinearPsi' 
@@ -377,11 +375,11 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
   
 
-  ! Copy the basis functions for the next iterations
-  call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1), 1, lin%lphiold(1), 1)
+  !!! Copy the basis functions for the next iterations
+  !!call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1), 1, lin%lphiold(1), 1)
 
-  ! Copy the Hamiltonian matrix for the next iteration
-  call dcopy(lorbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
+  !!! Copy the Hamiltonian matrix for the next iteration
+  !!call dcopy(lorbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
 
   ! Deallocate all local arrays.
   iall=-product(shape(HamSmall))*kind(HamSmall)
@@ -2917,103 +2915,103 @@ end subroutine gatherPotential
 
 
 
-subroutine getCoefficients_new(iproc, nproc, lin, orbs, hamold, lphi, ovrlp, coeff)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => getCoefficients_new
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(linearParameters),intent(inout):: lin
-type(orbitals_data),intent(in):: orbs
-real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: hamold
-real(8),dimension(lin%orbs%npsidim_orbs),intent(in):: lphi
-real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(inout):: ovrlp
-real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff
-
-! Local variables
-integer:: iorb, jorb, j, k, l, info, istat, iall, jproc, ierr
-real(8),dimension(:,:),allocatable:: Q, lambda
-real(8):: tt, tt2, tt3, alpha
-integer,dimension(:),allocatable:: sendcounts, displs
-character(len=*),parameter:: subname='getCoefficients_new'
-
-! this is the "step size"
-alpha=1.d-1
-
-allocate(Q(lin%orbs%norb,lin%orbs%norb), stat=istat)
-call memocc(istat, Q, 'Q', subname)
-allocate(lambda(lin%orbs%norb,orbs%norbp), stat=istat)
-call memocc(istat, lambda, 'lambda', subname)
-allocate(sendcounts(0:nproc-1), stat=istat)
-call memocc(istat, sendcounts, 'sendcounts', subname)
-allocate(displs(0:nproc-1), stat=istat)
-call memocc(istat, displs, 'displs', subname)
-
-
-! Calculate the matrices Q=<phi|phiold>
-call allocateCommuncationBuffersOrtho(lin%lb%comon, subname)
-call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lin%lphiold, lin%mad, Q)
-call deallocateCommuncationBuffersOrtho(lin%lb%comon, subname)
-
-! Calculate the right hand sides for all physical orbitals handled by this process.
-do iorb=1,orbs%norbp
-    do jorb=1,lin%orbs%norb
-        tt=0.d0
-        ! First part. Check indices of Q.
-        do j=1,lin%orbs%norb
-            !tt=tt+coeff(j,iorb)*Q(jorb,j)
-            tt=tt+coeff(j,iorb)*Q(j,jorb)
-        end do
-        ! Second part. Keep the value of tt.
-        tt2=0.d0
-        do j=1,lin%orbs%norb
-            do k=1,lin%orbs%norb
-                tt2=tt2+coeff(j,iorb)*coeff(k,iorb)*hamold(k,j)
-            end do
-        end do
-        ! Check signs of Q.
-        tt3=0.d0
-        do l=1,lin%orbs%norb
-            !tt3=tt3+Q(jorb,l)
-            tt3=tt3+Q(l,jorb)
-        end do
-        lambda(jorb,iorb)=tt-alpha*(tt-tt2*tt3)
-    end do
-end do
-
-! Solve the system of linear equations.
-! Copy the overlap matrix.
-call dposv('l', lin%orbs%norb, orbs%norbp, ovrlp(1,1), lin%orbs%norb, lambda(1,1), lin%orbs%norb, info)
-
-! Communicate the coefficients to all processes.
-displs(0)=0
-do jproc=0,nproc-1
-    sendcounts(jproc)=lin%orbs%norb*orbs%norb_par(jproc,0)
-    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
-end do
-if (nproc > 1) then
-   call mpi_allgatherv(lambda, sendcounts(iproc), mpi_double_precision, coeff, sendcounts, displs, &
-        mpi_double_precision, mpi_comm_world, ierr)
-else
-   call vcopy(sendcounts(iproc),lambda(1,1),1,coeff(1,1),1)
-end if
-
-iall=-product(shape(Q))*kind(Q)
-deallocate(Q, stat=istat)
-call memocc(istat, iall, 'Q', subname)
-iall=-product(shape(lambda))*kind(lambda)
-deallocate(lambda, stat=istat)
-call memocc(istat, iall, 'lambda', subname)
-iall=-product(shape(sendcounts))*kind(sendcounts)
-deallocate(sendcounts, stat=istat)
-call memocc(istat, iall, 'sendcounts', subname)
-iall=-product(shape(displs))*kind(displs)
-deallocate(displs, stat=istat)
-call memocc(istat, iall, 'displs', subname)
-
-end subroutine getCoefficients_new
+!!!!!subroutine getCoefficients_new(iproc, nproc, lin, orbs, hamold, lphi, ovrlp, coeff)
+!!!!!use module_base
+!!!!!use module_types
+!!!!!use module_interfaces, exceptThisOne => getCoefficients_new
+!!!!!implicit none
+!!!!!
+!!!!!! Calling arguments
+!!!!!integer,intent(in):: iproc, nproc
+!!!!!type(linearParameters),intent(inout):: lin
+!!!!!type(orbitals_data),intent(in):: orbs
+!!!!!real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: hamold
+!!!!!real(8),dimension(lin%orbs%npsidim_orbs),intent(in):: lphi
+!!!!!real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(inout):: ovrlp
+!!!!!real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff
+!!!!!
+!!!!!! Local variables
+!!!!!integer:: iorb, jorb, j, k, l, info, istat, iall, jproc, ierr
+!!!!!real(8),dimension(:,:),allocatable:: Q, lambda
+!!!!!real(8):: tt, tt2, tt3, alpha
+!!!!!integer,dimension(:),allocatable:: sendcounts, displs
+!!!!!character(len=*),parameter:: subname='getCoefficients_new'
+!!!!!
+!!!!!! this is the "step size"
+!!!!!alpha=1.d-1
+!!!!!
+!!!!!allocate(Q(lin%orbs%norb,lin%orbs%norb), stat=istat)
+!!!!!call memocc(istat, Q, 'Q', subname)
+!!!!!allocate(lambda(lin%orbs%norb,orbs%norbp), stat=istat)
+!!!!!call memocc(istat, lambda, 'lambda', subname)
+!!!!!allocate(sendcounts(0:nproc-1), stat=istat)
+!!!!!call memocc(istat, sendcounts, 'sendcounts', subname)
+!!!!!allocate(displs(0:nproc-1), stat=istat)
+!!!!!call memocc(istat, displs, 'displs', subname)
+!!!!!
+!!!!!
+!!!!!! Calculate the matrices Q=<phi|phiold>
+!!!!!call allocateCommuncationBuffersOrtho(lin%lb%comon, subname)
+!!!!!call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lin%lphiold, lin%mad, Q)
+!!!!!call deallocateCommuncationBuffersOrtho(lin%lb%comon, subname)
+!!!!!
+!!!!!! Calculate the right hand sides for all physical orbitals handled by this process.
+!!!!!do iorb=1,orbs%norbp
+!!!!!    do jorb=1,lin%orbs%norb
+!!!!!        tt=0.d0
+!!!!!        ! First part. Check indices of Q.
+!!!!!        do j=1,lin%orbs%norb
+!!!!!            !tt=tt+coeff(j,iorb)*Q(jorb,j)
+!!!!!            tt=tt+coeff(j,iorb)*Q(j,jorb)
+!!!!!        end do
+!!!!!        ! Second part. Keep the value of tt.
+!!!!!        tt2=0.d0
+!!!!!        do j=1,lin%orbs%norb
+!!!!!            do k=1,lin%orbs%norb
+!!!!!                tt2=tt2+coeff(j,iorb)*coeff(k,iorb)*hamold(k,j)
+!!!!!            end do
+!!!!!        end do
+!!!!!        ! Check signs of Q.
+!!!!!        tt3=0.d0
+!!!!!        do l=1,lin%orbs%norb
+!!!!!            !tt3=tt3+Q(jorb,l)
+!!!!!            tt3=tt3+Q(l,jorb)
+!!!!!        end do
+!!!!!        lambda(jorb,iorb)=tt-alpha*(tt-tt2*tt3)
+!!!!!    end do
+!!!!!end do
+!!!!!
+!!!!!! Solve the system of linear equations.
+!!!!!! Copy the overlap matrix.
+!!!!!call dposv('l', lin%orbs%norb, orbs%norbp, ovrlp(1,1), lin%orbs%norb, lambda(1,1), lin%orbs%norb, info)
+!!!!!
+!!!!!! Communicate the coefficients to all processes.
+!!!!!displs(0)=0
+!!!!!do jproc=0,nproc-1
+!!!!!    sendcounts(jproc)=lin%orbs%norb*orbs%norb_par(jproc,0)
+!!!!!    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+!!!!!end do
+!!!!!if (nproc > 1) then
+!!!!!   call mpi_allgatherv(lambda, sendcounts(iproc), mpi_double_precision, coeff, sendcounts, displs, &
+!!!!!        mpi_double_precision, mpi_comm_world, ierr)
+!!!!!else
+!!!!!   call vcopy(sendcounts(iproc),lambda(1,1),1,coeff(1,1),1)
+!!!!!end if
+!!!!!
+!!!!!iall=-product(shape(Q))*kind(Q)
+!!!!!deallocate(Q, stat=istat)
+!!!!!call memocc(istat, iall, 'Q', subname)
+!!!!!iall=-product(shape(lambda))*kind(lambda)
+!!!!!deallocate(lambda, stat=istat)
+!!!!!call memocc(istat, iall, 'lambda', subname)
+!!!!!iall=-product(shape(sendcounts))*kind(sendcounts)
+!!!!!deallocate(sendcounts, stat=istat)
+!!!!!call memocc(istat, iall, 'sendcounts', subname)
+!!!!!iall=-product(shape(displs))*kind(displs)
+!!!!!deallocate(displs, stat=istat)
+!!!!!call memocc(istat, iall, 'displs', subname)
+!!!!!
+!!!!!end subroutine getCoefficients_new
 
 
 
