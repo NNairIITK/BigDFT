@@ -100,27 +100,19 @@ real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
 integer :: jproc,iat,j, nit_highaccuracy
-real(8),dimension(:),pointer:: phi
-real(8),dimension(:,:),pointer:: coeff, coeffd
-real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, dampingForMixing
+real(8),dimension(:,:),pointer:: coeff
+real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
-type(linearParameters):: lind
 logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder
 logical:: onemoreiteration
-real(8),dimension(:),pointer:: lphi, lphir, phibuffr
-
-integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-real(8),dimension(:),allocatable:: phiTemp, lphiold
-real(wp),dimension(:),allocatable:: projTemp
+real(8),dimension(:),pointer:: lphi
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
-character(len=11):: orbName
-character(len=10):: comment, procName, orbNumber
-integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot, iiorb, ncount, ncnt
+integer:: iorb, ndimtot
 type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
-real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
+real(8),dimension(:,:),allocatable:: coeff_proj
 
 
 
