@@ -272,7 +272,7 @@ END SUBROUTINE partial_density_linear
 
 
 
-subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, orbs, comsr, coeff, phi, nrho, rho, at, nscatterarr)
+subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, orbs, comsr, coeff, nrho, rho, at, nscatterarr)
 !
 use module_base
 use module_types
@@ -287,7 +287,6 @@ type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
 type(p2pCommsSumrho),intent(inout):: comsr
 real(8),dimension(orbs%norb,norb),intent(in):: coeff
-real(8),dimension(orbs%npsidim_orbs),intent(in):: phi
 real(8),dimension(nrho),intent(out),target:: rho
 type(atoms_data),intent(in):: at
 integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh

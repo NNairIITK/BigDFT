@@ -501,7 +501,7 @@ integer:: istat,istart,ierr,ii,it,iall,nit,ind1,ind2,jorb,i,ist,jst,iiorb,jjorb,
 integer:: ldim,gdim,ilr,ncount,offset,istsource,istdest,korb
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS,lhphi,lhphiold
 real(8),dimension(:),allocatable:: eval, lphiold
-real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat, ttmat
+real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat
 real(8),dimension(:,:),allocatable:: kernel
 logical:: withConfinement, resetDIIS, immediateSwitchToSD
 character(len=*),parameter:: subname='getLocalizedBasis'
@@ -640,10 +640,8 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
                lorbs%inWhichLocreg, lzd, op, &
                lhphi, comon%nsendBuf, comon%sendBuf)
           call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lhphi, comon, tt1, tt2)
-          !!allocate(ttmat(lorbs%norb,lorbs%norb), stat=istat)
           call collectnew(iproc, nproc, comon, lin%mad,op, lorbs, input, lzd, comon%nsendbuf, &
                comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
-          !!deallocate(ttmat, stat=istat)
           call build_new_linear_combinations(lzd, lorbs, op, comon%nrecvbuf, &
                comon%recvbuf, kernel, .true., lhphi)
           call deallocateRecvBufferOrtho(comon, subname)

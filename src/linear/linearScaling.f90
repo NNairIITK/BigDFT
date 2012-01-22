@@ -100,7 +100,7 @@ real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
 integer :: jproc,iat,j, nit_highaccuracy
-real(8),dimension(:),pointer:: phi, phid
+real(8),dimension(:),pointer:: phi
 real(8),dimension(:,:),pointer:: coeff, coeffd
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, dampingForMixing
 character(len=*),parameter:: subname='linearScaling'
@@ -141,7 +141,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   call mpi_barrier(mpi_comm_world, ierr)
   t1init=mpi_wtime()
   if(iproc==0) write(*,*) 'input%file_lin',input%file_lin
-  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
+  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
        input, rxyz, nscatterarr, tag, coeff, lphi)
   lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
 
@@ -416,14 +416,14 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           if(lin%mixedmode) then
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%orbs, lin%comsr, &
-                       coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+                       coeff, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
                else
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
-                       coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+                       coeff, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
                end if
           else
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
-                   coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+                   coeff, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
           end if
           !!!! THIS WAS THE ORIGINAL
           !!call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
@@ -467,7 +467,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
           end if
 
           ! Calculate the new potential.
-          call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
+          call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, &
               rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
               coeff, ehart, eexcu, vexcu)
           ! Calculate the total energy.
@@ -594,7 +594,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
   ! in the subroutine sumrhoForLocalizedBasis2.
   call postCommunicationSumrho2(iproc, nproc, lin%lb%comsr, lin%lb%comsr%sendBuf, lin%lb%comsr%recvBuf)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
-       coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+       coeff, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
 
   !call sumrholinear_auxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, phi, at, nscatterarr)
   !call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &
@@ -670,7 +670,7 @@ real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 !  call free_lnlpspd(lin%orbs, lin%lzd)
 
   ! Deallocate all arrays related to the linear scaling version.
-  call deallocateLinear(iproc, lin, phi, lphi, coeff)
+  call deallocateLinear(iproc, lin, lphi, coeff)
 
   !iall=-product(shape(lin%coeffall))*kind(lin%coeffall)
   !deallocate(lin%coeffall, stat=istat)

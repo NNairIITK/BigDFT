@@ -1498,7 +1498,7 @@ END SUBROUTINE createIonicPotentialModified
 
 
 
-subroutine updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, phi, &
+subroutine updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, &
     rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
     coeff, ehart, eexcu, vexcu)
 !
@@ -1559,7 +1559,6 @@ type(orbitals_data):: orbs
 type(atoms_data):: atoms
 type(input_variables):: in
 type(linearParameters):: lin
-real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)):: phi
 real(dp), dimension(lin%as%size_rhopot) :: rhopot
 integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(dp), dimension(lin%as%size_pkernel):: pkernel

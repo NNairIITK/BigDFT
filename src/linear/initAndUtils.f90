@@ -1,6 +1,6 @@
 !> This subroutine initializes all parameters needed for the linear scaling version
 !! and allocate all arrays.
-subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
+subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
     input, rxyz, nscatterarr, tag, coeff, lphi)
 ! Calling arguments:
 ! ==================
@@ -36,7 +36,6 @@ type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,intent(inout):: tag
-real(8),dimension(:),pointer,intent(out):: phi
 real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
 
@@ -188,7 +187,6 @@ if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions..
 t1=mpi_wtime()
 !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr)
 call initLocregs2(iproc, nproc, at%nat, rxyz, lin%lzd, lin%orbs, input, Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
-allocate(phi(max(lin%lb%gorbs%npsidim_orbs,lin%lb%gorbs%npsidim_comp)), stat=istat)
 
 ! Copy Glr to lin%lzd
 call nullify_locreg_descriptors(lin%lzd%Glr)
@@ -201,7 +199,6 @@ call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
 call initCollectiveComms(iproc, nproc, lin%lzd, input, lin%orbs, lin%collcomms)
 call initCollectiveComms(iproc, nproc, lin%lzd, input, lin%lb%orbs, lin%lb%collcomms)
 
-call memocc(istat, phi, 'phi', subname)
 allocate(lphi(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
 
@@ -475,7 +472,7 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   ! Open the input file and read in the parameters.
   inquire(file=trim(filename), exist=fileExists)
   if(.not. fileExists) then
-      if(iproc==0) write(*,'(1x,a)') "ERROR: the file 'input.lin' must be present for the linear &
+      if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: the file '",trim(filename),"' must be present for the linear &
           & scaling version!"
       call mpi_barrier(mpi_comm_world, ierr)
       stop
@@ -1017,7 +1014,7 @@ integer:: norbTarget, nprocIG, ierr
 
 end subroutine checkLinearParameters
 
-subroutine deallocateLinear(iproc, lin, phi, lphi, coeff)
+subroutine deallocateLinear(iproc, lin, lphi, coeff)
 !
 ! Purpose:
 ! ========
@@ -1035,17 +1032,13 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc
 type(linearParameters),intent(inout):: lin
-real(8),dimension(:),pointer,intent(inout):: phi, lphi
+real(8),dimension(:),pointer,intent(inout):: lphi
 real(8),dimension(:,:),pointer,intent(inout):: coeff
 
 ! Local variables
 integer:: istat, iall, iorb
 character(len=*),parameter:: subname='deallocateLinear'
 
-
-  iall=-product(shape(phi))*kind(phi)
-  deallocate(phi, stat=istat)
-  call memocc(istat, iall, 'phi', subname)
 
   iall=-product(shape(lphi))*kind(lphi)
   deallocate(lphi, stat=istat)

@@ -1801,7 +1801,7 @@ module module_interfaces
 
 
 
-    subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
+    subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
           input, rxyz, nscatterarr, tag, coeff, lphi)
       use module_base
       use module_types
@@ -1817,7 +1817,6 @@ module module_interfaces
       real(8),dimension(3,at%nat),intent(in):: rxyz
       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       integer,intent(inout):: tag
-      real(8),dimension(:),pointer,intent(out):: phi
       real(8),dimension(:,:),pointer,intent(out):: coeff
       real(8),dimension(:),pointer,intent(out):: lphi
     end subroutine allocateAndInitializeLinear
@@ -2053,13 +2052,13 @@ module module_interfaces
     end subroutine local_hamiltonianConfinementForAllLocregs
 
     
-    subroutine deallocateLinear(iproc, lin, phi, lphi, coeff)
+    subroutine deallocateLinear(iproc, lin, lphi, coeff)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc
       type(linearParameters),intent(inout):: lin
-      real(8),dimension(:),pointer,intent(inout):: phi, lphi
+      real(8),dimension(:),pointer,intent(inout):: lphi
       real(8),dimension(:,:),pointer,intent(inout):: coeff
     end subroutine deallocateLinear
     
@@ -2835,7 +2834,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 !!$       real(8),dimension(orbs%norb,orbs%norb,2),intent(out):: matrixElements
 !!$     end subroutine getMatrixElements
 
-     subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, orbs, comsr, coeff, phi, nrho, rho, at, nscatterarr)
+     subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, orbs, comsr, coeff, nrho, rho, at, nscatterarr)
        use module_base
        use module_types
        use libxc_functionals
@@ -2846,7 +2845,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data),intent(in):: orbs
        type(p2pCommsSumrho),intent(inout):: comsr
        real(8),dimension(orbs%norb,norb),intent(in):: coeff
-       real(8),dimension(orbs%npsidim_orbs),intent(in):: phi
        real(8),dimension(nrho),intent(out),target:: rho
        type(atoms_data),intent(in):: at
        integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -2999,7 +2997,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine initializeInguessParameters
 
 
-     subroutine updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, phi, &
+     subroutine updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, &
          rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
          coeff, ehart, eexcu, vexcu)
        use module_base
@@ -3013,7 +3011,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(atoms_data):: atoms
        type(input_variables):: in
        type(linearParameters):: lin
-       real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)):: phi
        real(dp), dimension(lin%as%size_rhopot) :: rhopot
        integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
        real(dp), dimension(lin%as%size_pkernel):: pkernel
