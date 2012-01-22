@@ -1321,6 +1321,10 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !  real(wp), dimension(nlpspd%nprojel) :: projtmp        !debug for debug nonlocal forces
 !  integer :: ierr                                       !for debugging
   real(8),dimension(:),pointer:: Lpot
+  integer :: i!,iorb,jorb,icplx
+  real(gp), dimension(:), allocatable :: ovrlp
+  real(gp), dimension(:,:), allocatable :: smat,tmp
+
 
    allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -1825,28 +1829,29 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    
      end if
    
-   !!!  if (nproc == 1) then
-   !!!     !calculate the overlap matrix as well as the kinetic overlap
-   !!!     !in view of complete gaussian calculation
-   !!!     allocate(ovrlp(G%ncoeff*G%ncoeff),stat=i_stat)
-   !!!     call memocc(i_stat,ovrlp,'ovrlp',subname)
-   !!!     allocate(tmp(G%ncoeff,orbse%norb),stat=i_stat)
-   !!!     call memocc(i_stat,tmp,'tmp',subname)
-   !!!     allocate(smat(orbse%norb,orbse%norb),stat=i_stat)
-   !!!     call memocc(i_stat,smat,'smat',subname)
-   !!!
-   !!!     !overlap calculation of the gaussian matrix
-   !!!     call gaussian_overlap(G,G,ovrlp)
-   !!!     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-   !!!          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
-   !!!
-   !!!     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
-   !!!          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
-   !!!
-   !!!     !print overlap matrices
-   !!!     do i=1,orbse%norb
-   !!!        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-   !!!     end do
+!!$   !!!  if (nproc == 1) then
+!!$     !calculate the overlap matrix as well as the kinetic overlap
+!!$     !in view of complete gaussian calculation
+!!$     allocate(ovrlp(G%ncoeff*G%ncoeff),stat=i_stat)
+!!$     call memocc(i_stat,ovrlp,'ovrlp',subname)
+!!$     allocate(tmp(G%ncoeff,orbse%norb),stat=i_stat)
+!!$     call memocc(i_stat,tmp,'tmp',subname)
+!!$     allocate(smat(orbse%norb,orbse%norb),stat=i_stat)
+!!$     call memocc(i_stat,smat,'smat',subname)
+!!$
+!!$     !overlap calculation of the gaussian matrix
+!!$     call gaussian_overlap(G,G,ovrlp)
+!!$     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
+!!$          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+!!$
+!!$     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
+!!$          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+
+!!$     !print overlap matrices
+!!$     do i=1,orbse%norb
+!!$        !write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!$        write(*,'(i5,30(1pe15.8))')i,(ovrlp(i+(iorb-1)*orbse%norb),iorb=1,orbse%norb)
+!!$     end do
    !!!
    !!!     !overlap calculation of the kinetic operator
    !!!     call kinetic_overlap(G,G,ovrlp)
@@ -1895,7 +1900,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    !!!     i_all=-product(shape(smat))*kind(smat)
    !!!     deallocate(smat,stat=i_stat)
    !!!     call memocc(i_stat,i_all,'smat',subname)
-   !!!  end if
+   !!! end if
    
      if(potshortcut>0) then
    !!$    if (GPUconv) then
