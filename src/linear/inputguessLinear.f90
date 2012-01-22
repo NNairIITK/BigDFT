@@ -1895,10 +1895,10 @@ call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim_orbs, onWhichAtom, lzd
 !!call postCommsOverlap(iproc, nproc, comon)
 call postCommsOverlapNew(iproc, nproc, orbsig, op, lzdig, lchi, comon, tt1, tt2)
 !call gatherOrbitals2(iproc, nproc, comon)
-allocate(ttmat(orbsig%norb,orbsig%norb))
+!!allocate(ttmat(orbsig%norb,orbsig%norb))
 call collectnew(iproc, nproc, comon, mad, op, orbsig, input, lzdig, comon%nsendbuf, &
-     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt1, tt2, tt3)
-deallocate(ttmat)
+     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt1, tt2, tt3)
+!!deallocate(ttmat)
 
 
 
@@ -3668,10 +3668,10 @@ call extractOrbital3(iproc,nproc,orbsig,orbsig%npsidim_orbs,orbsig%inWhichLocreg
 !call postCommsOverlap(iproc, nproc, comon)
 call postCommsOverlapNew(iproc, nproc, orbsig, op, lzdig, lchi, comon, tt1, tt2)
 !call gatherOrbitals2(iproc, nproc, comon)
-allocate(ttmat(orbsig%norb,orbsig%norb))
+!!allocate(ttmat(orbsig%norb,orbsig%norb))
 call collectnew(iproc, nproc, comon, mad, op, orbsig, input, lzdig, comon%nsendbuf, &
-     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt1, tt2, tt3)
-deallocate(ttmat)
+     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt1, tt2, tt3)
+!!deallocate(ttmat)
 call expandOrbital2(iproc, nproc, orbsig, input, orbsig%inWhichLocreg, lzdig, op, comon, lchiovrlp)
 call deallocateCommuncationBuffersOrtho(comon, subname)
 

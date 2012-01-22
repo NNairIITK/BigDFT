@@ -66,7 +66,7 @@ character(len=3),intent(in):: method
      !call collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
      !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ovrlp, lphiovrlp, timecommunp2p, timecommuncoll, timeoverlap, timeexpand, timecompress)
      call collectnew(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
-          comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
+          comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
 
 !!! THIS IS NEW #####################
      !!maxvaloverlap=maxval(comon%noverlaps)
@@ -475,7 +475,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
   !call gatherOrbitalsOverlapWithComput(iproc, nproc, lin%orbs, input, lin%lzd, lin%op, lin%comon, lphiovrlp, expanded)
   !!call gatherOrbitalsOverlapWithComput2(iproc, nproc, lin%orbs, input, lin%lzd, lin%op, lin%comon, lin%comon%nsendbuf, sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, lphiovrlp, expanded, lagmat)
   call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
-       lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, lagmat, timecommunp2p, timecommuncoll, timecompress)
+       lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
 !!!! THIS IS NEW #####################
   !!maxvaloverlap=maxval(lin%comon%noverlaps)
   !!lin%comon%nstepoverlap=50000
@@ -754,7 +754,7 @@ subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad
   call postCommsOverlapNew(iproc,nproc,orbs,op_lb,lzd,lphi,comon_lb,tt1,tt2)
   !call gatherOrbitals2(iproc,nproc,comon_lb)
   call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,input,lzd,comon_lb%nsendbuf,&
-       comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,ovrlp,tt1,tt2,tt3)
+       comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,tt1,tt2,tt3)
   !!call calculateOverlapMatrix2(iproc,nproc,orbs,op_lb,comon_lb,orbs%inWhichLocreg,mad,ovrlp)
   call calculateOverlapMatrix3(iproc, nproc, orbs, op_lb, orbs%inWhichLocreg, comon_lb%nsendBuf, &
        comon_lb%sendBuf, comon_lb%nrecvBuf, comon_lb%recvBuf, mad, ovrlp)
@@ -3663,7 +3663,7 @@ type(input_variables):: input
   !call gatherOrbitals2(iproc,nproc,comon_lb)
   allocate(ttmat(orbs%norb,orbs%norb))
   call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,input,lzd,comon_lb%nsendbuf,&
-       comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,ttmat,tt1,tt2,tt3)
+       comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,tt1,tt2,tt3)
   deallocate(ttmat)
   ! Put lhphi to the sendbuffer,so we can the calculate <lphi|lhphi>
   !call extractOrbital2(iproc,nproc,orbs,orbs%npsidim,orbs%inWhichLocreg,lzd,op_lb,lhphi,comon_lb)
@@ -4873,7 +4873,7 @@ end subroutine collectAndCalculateOverlap
 
 
 subroutine collectnew(iproc, nproc, comon, mad, op, orbs, input, lzd, &
-   nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
+   nsendbuf, sendbuf, nrecvbuf, recvbuf, timecommunp2p, timecommuncoll, timecompress)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => collectnew
@@ -4889,7 +4889,6 @@ type(input_variables),intent(in):: input
 type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(nsendbuf),intent(in):: sendbuf
 real(8),dimension(nrecvbuf),intent(inout):: recvbuf
-real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 real(8),intent(inout):: timecommunp2p, timecommuncoll, timecompress
 
 ! Local variables
@@ -4933,7 +4932,6 @@ if (nproc > 1) then
    timecommunp2p=timecommunp2p+t2-t1
 
 
-   ovrlp=0.d0
    nrecv=0
    waitLoopRecv: do
       t1=mpi_wtime()
