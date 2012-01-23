@@ -1,5 +1,5 @@
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-     blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, input, mad, lphi, ovrlp, method)
+     blocksize_pdgemm, orbs, op, comon, lzd, input, mad, lphi, ovrlp)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
@@ -7,24 +7,19 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
 
   ! Calling arguments
   integer,intent(in):: iproc,nproc,methTransformOverlap,nItOrtho,blocksize_dsyev,blocksize_pdgemm
-  !type(linearParameters),intent(inout):: lin
   type(orbitals_data),intent(in):: orbs
   type(overlapParameters),intent(inout):: op
   type(p2pCommsOrthonormality),intent(inout):: comon
   type(local_zone_descriptors),intent(in):: lzd
-  integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
   type(input_variables),intent(in):: input
-  !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
   type(matrixDescriptors),intent(in):: mad
   real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(inout) :: lphi
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
-character(len=3),intent(in):: method
 
   ! Local variables
   integer:: it, istat, iall, iorb, jorb, ierr, ind1, ind2, maxvaloverlap
-  real(8),dimension(:),allocatable:: lphiovrlp, sendbufcopy
+  real(8),dimension(:),allocatable:: lphiovrlp
   character(len=*),parameter:: subname='orthonormalize'
-  logical:: converged
   real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeExpand, timeLoewdin, timeTransform, timeExtract
   real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
 
@@ -40,9 +35,6 @@ character(len=3),intent(in):: method
   timeoverlap=0.d0
   timeexpand=0.d0
   timecompress=0.d0
-  converged=.false.
-  !write(*,*) 'iproc, comon%nsend', iproc, comon%nsend
-  !do it=1,nItOrtho+orbs%norb
   do it=1,nItOrtho
      t1=mpi_wtime()
 
@@ -51,7 +43,7 @@ character(len=3),intent(in):: method
      call allocateRecvBufferOrtho(comon, subname)
 
      ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-     call extractOrbital3(iproc, nproc, orbs, orbs%npsidim_orbs, onWhichAtomAll, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+     call extractOrbital3(iproc, nproc, orbs, orbs%npsidim_orbs, orbs%inwhichlocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
 
      t2=mpi_wtime()
      timeExtract=timeExtract+t2-t1
@@ -62,73 +54,26 @@ character(len=3),intent(in):: method
      call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
      allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
      call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-     !call collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
-     !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ovrlp, lphiovrlp, timecommunp2p, timecommuncoll, timeoverlap, timeexpand, timecompress)
      call collectnew(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
           comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
 
-!!! THIS IS NEW #####################
-     !!maxvaloverlap=maxval(comon%noverlaps)
-     !!comon%nstepoverlap=50000
-     !!comon%isoverlap=1
-     !!do 
-     !!    call postCommsOverlapNew2(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
-     !!    !write(*,'(a,3i9)') 'iproc, comon%nrecv, comon%nsend', iproc, comon%nrecv, comon%nsend
-     !!    call collectnew2(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
-     !!         comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
-     !!    comon%isoverlap=comon%isoverlap+comon%nstepoverlap
-     !!    if(comon%isoverlap>=maxvaloverlap) exit
-     !!end do
-!!! #################################
-
-     !!do ind1=1,orbs%norb
-     !!    do ind2=1,orbs%norb
-     !!        write(500+iproc,*) ind1, ind2, ovrlp(ind2,ind1)
-     !!    end do
-     !!end do
      t2=mpi_wtime()
      timeCommun=timeCommun+t2-t1
      t1=mpi_wtime()
-     !call deallocateSendBufferOrtho(comon, subname)
-      !call expandOrbital2(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon, lphiovrlp)
      t2=mpi_wtime()
      timeexpand=timeexpand+t2-t1
-     !call checkUnity(iproc, orbs%norb, ovrlp, maxError)
-     !if(iproc==0) write(*,'(3x,a,es12.4)') 'maximal deviation from unity:', maxError
      t3=mpi_wtime()
 
-     !call overlapMatrixCubic(iproc, nproc, gorbs, orbs, comms, lzd, input, lphi, ovrlp)
      call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
           comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
      t4=mpi_wtime()
      !call checkUnity(iproc, orbs%norb, ovrlp, maxError)
      !if(iproc==0) write(*,*) 'deviation from unity:', maxError
-      !!if(maxError<1.d-2) then
-      !!    if(iproc==0) write(*,*) 'error is small enough, no need for orthogonalization, only normalization...'
-      !!    ist=1
-      !!    do iorb=1,orbs%norbp
-      !!        iiorb=orbs%isorb+iorb
-      !!        ilr=orbs%inwhichlocreg(iiorb)
-      !!        ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-      !!        ! Normalize
-      !!        tt=dnrm2(ncount, lphi(ist), 1)
-      !!        call dscal(ncount, 1/tt, lphi(ist), 1)
-      !!        ist=ist+ncount
-      !!    end do
-      !!    call deallocateRecvBufferOrtho(comon, subname)
-      !!    call deallocateSendBufferOrtho(comon, subname)
-      !!    iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
-      !!    deallocate(lphiovrlp, stat=istat)
-      !!    call memocc(istat, iall, 'lphiovrlp', subname)
-      !!    exit
-      !!end if
      timeoverlap=timeoverlap+t4-t3
 
      t3=mpi_wtime()
-      !!if(method=='old' .or. maxError>2.d-20) then
-          call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, blocksize_dsyev, &
-                blocksize_pdgemm, orbs%norb, mad, ovrlp)
-      !!end if
+     call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, blocksize_dsyev, &
+          blocksize_pdgemm, orbs%norb, mad, ovrlp)
      t4=mpi_wtime()
      timeTransform=timeTransform+t4-t3
      t3=mpi_wtime()
@@ -137,19 +82,10 @@ character(len=3),intent(in):: method
      t4=mpi_wtime()
      timeExpand=timeExpand+t4-t3
      t3=mpi_wtime()
-      !!if(method=='old' .or. maxError>2.d-20) then
-          call globalLoewdin(iproc, nproc, orbs, orbs, onWhichAtomAll, lzd, op, comon, ovrlp, lphiovrlp, lphi)
-      !!end if
+      call globalLoewdin(iproc, nproc, orbs, orbs, orbs%inwhichlocreg, lzd, op, comon, ovrlp, lphiovrlp, lphi)
       call deallocateRecvBufferOrtho(comon, subname)
       call deallocateSendBufferOrtho(comon, subname)
 
-      !!if(method=='new' .and. maxError<=2.d-20) then
-      !!    call localloewdin(iproc, nproc, lzd, orbs, op, ovrlp, lphiovrlp, lphi)
-      !!end if
-
-      !!call mpi_barrier(mpi_comm_world, ierr)
-      !!call gramschmidt_forlinear(iproc, nproc, it, orbs, orbs, onWhichAtomAll, lzd, op, ovrlp, lphiovrlp, lphi)
-      !!call mpi_barrier(mpi_comm_world, ierr)
      iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
      deallocate(lphiovrlp, stat=istat)
      call memocc(istat, iall, 'lphiovrlp', subname)
@@ -158,29 +94,8 @@ character(len=3),intent(in):: method
      t2=mpi_wtime()
      timeComput=timeComput+t2-t1
 
-      !if(it==nItOrtho+orbs%norb) then
-     if(it==nItOrtho) then
-        converged=.false.
-        exit
-     end if
-     !if(maxError<convCritOrtho) then
-     !    converged=.true.
-     !    exit
-     !else if(it==nItOrtho) then
-     !    exit
-     !end if
   end do
 
-  !if(converged) then
-  !   if(iproc==0) write(*,'(3x,a,i0,a)') 'done in ', it, ' iterations.'
-  !else 
-  !   if(iproc==0) write(*,'(3x,a,i0,a)') 'WARNING: orthonormalization not converged within ', nItOrtho, ' iterations.'
-  !end if
-
-
-
-  !write(*,*)'iproc, timecommunp2p', iproc, timecommunp2p
-  !write(*,*)'iproc, timecommuncoll', iproc, timecommuncoll
 
   if (verbose > 2) then
      timeComput=timeLoewdin+timeTransform+timeextract+timeoverlap+timeexpand+timecompress

@@ -3201,7 +3201,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-                blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, input, mad, lphi, ovrlp, method)
+                blocksize_pdgemm, orbs, op, comon, lzd, input, mad, lphi, ovrlp)
        use module_base
        use module_types
        implicit none
@@ -3210,12 +3210,10 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters),intent(inout):: op
        type(p2pCommsOrthonormality),intent(inout):: comon
        type(local_zone_descriptors),intent(in):: lzd
-       integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
        type(input_variables),intent(in):: input
        type(matrixDescriptors),intent(in):: mad
        real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
-       character(len=3),intent(in):: method
      end subroutine orthonormalizeLocalized
 
 

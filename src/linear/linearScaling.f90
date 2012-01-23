@@ -174,18 +174,13 @@ real(8),dimension(:,:),allocatable:: coeff_proj
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
 
-  !!! Copy lphi to lin%lpsi, don't know whether this is a good choice
-  !!lin%lpsi=lphi
-
-
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist>0) then
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
       call initializeMixrhopotDIIS(lin%mixHist, ndimpot, mixdiis)
   end if
 
-  !if(lin%nItInguess>0 .and. .false.) then
-  if(lin%nItInguess>0 .and. .true.) then
+  if(lin%nItInguess>0) then
       ! Post communications for gathering the potential.
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
       call allocateCommunicationsBuffersPotential(lin%comgp, subname)
@@ -403,8 +398,6 @@ real(8),dimension(:,:),allocatable:: coeff_proj
           ! Potential from electronic charge density
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t1)
-          !!call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%comsr, &
-          !!     coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
           if(lin%mixedmode) then
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%orbs, lin%comsr, &
@@ -423,7 +416,6 @@ real(8),dimension(:,:),allocatable:: coeff_proj
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t2)
           time=t2-t1
-          !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
           if(iproc==0) write(*,'(1x,a,es10.3)') 'time for sumrho:', time
 
           ! Mix the density.
