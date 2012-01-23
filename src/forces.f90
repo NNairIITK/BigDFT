@@ -32,7 +32,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-          &   psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
+          &   psi,Lzd,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
        implicit none
@@ -40,7 +40,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
        integer, intent(out) :: infocode
        real(gp), intent(inout) :: hx_old,hy_old,hz_old
        type(input_variables), intent(in) :: in
-       type(locreg_descriptors), intent(inout) :: Glr
+       type(local_zone_descriptors), intent(inout) :: Lzd
        type(atoms_data), intent(inout) :: atoms
        type(gaussian_basis), intent(inout) :: gbd
        type(orbitals_data), intent(inout) :: orbs
@@ -159,7 +159,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            inputs%inputPsiId=1
            !here we should call cluster
            call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz_fake,strten,fnoise,&
-                rst%psi,rst%Lzd%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
+                rst%psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
                 rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
 
            !assign the quantity which should be differentiated

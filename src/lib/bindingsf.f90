@@ -49,12 +49,7 @@ subroutine glr_new(glr)
   type(locreg_descriptors), pointer :: glr
 
   allocate(glr)
-  nullify(glr%wfd%keyglob)
-  nullify(glr%wfd%keygloc)
-  nullify(glr%wfd%keyv)
-
-  nullify(glr%bounds%kb%ibyz_f)
-  nullify(glr%bounds%kb%ibyz_c)
+  call nullify_locreg_descriptors(glr)
 end subroutine glr_new
 subroutine glr_free(glr)
   use module_types
@@ -68,10 +63,10 @@ subroutine glr_get_dimensions(glr, geocode, n, ni)
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: glr
-  character(len = 1), intent(out) :: geocode
+  character, intent(out) :: geocode(1)
   integer, dimension(3), intent(out) :: n, ni
 
-  geocode = glr%geocode
+  write(geocode, "(A1)") glr%geocode
   n(1) = glr%d%n1
   n(2) = glr%d%n2
   n(3) = glr%d%n3
@@ -118,9 +113,16 @@ subroutine inputs_set_radical(in, rad, ln)
   implicit none
   type(input_variables), intent(inout) :: in
   integer, intent(in) :: ln
-  character(len = ln), intent(in) :: rad
+  character, intent(in) :: rad(ln)
 
-  call standard_inputfile_names(in, rad)
+  character(len = 1024) :: rad_
+  integer :: i
+
+  write(rad_, "(A)") " "
+  do i = 1, ln
+     write(rad_(i:i), "(A1)") rad(i)
+  end do
+  call standard_inputfile_names(in, rad_)
 end subroutine inputs_set_radical
 subroutine inputs_parse_params(in, iproc, dump)
   use module_types
@@ -308,3 +310,47 @@ subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   nproj = nlpspd%nproj
   nprojel = nlpspd%nprojel
 END SUBROUTINE proj_get_dimensions
+
+subroutine denspot_new(denspotd, rhodsc)
+  use module_types
+  implicit none
+  type(denspot_distribution), pointer :: denspotd
+  type(rho_descriptors), pointer :: rhodsc
+
+  allocate(denspotd)
+  allocate(rhodsc)
+END SUBROUTINE denspot_new
+subroutine denspot_free(denspotd, rhodsc, pot_ion, rhopot, potxc, rhocore)
+  use module_types
+  use m_profiling
+  implicit none
+  type(denspot_distribution), pointer :: denspotd
+  type(rho_descriptors), pointer :: rhodsc
+  real(dp), dimension(:), pointer :: pot_ion, rhopot
+  real(kind = 8), dimension(:), pointer :: rhocore
+  real(kind = 8), dimension(:,:,:,:), pointer :: potxc
+
+  integer :: i_stat, i_all
+
+  call deallocate_rho_descriptors(rhodsc, "denspot_free")
+  deallocate(rhodsc)
+
+  call deallocate_denspot_distribution(denspotd, "denspot_free")
+  deallocate(denspotd)
+
+  i_all=-product(shape(pot_ion))*kind(pot_ion)
+  deallocate(pot_ion,stat=i_stat)
+  call memocc(i_stat,i_all,'pot_ion',"denspot_free")
+
+  i_all=-product(shape(rhopot))*kind(rhopot)
+  deallocate(rhopot,stat=i_stat)
+  call memocc(i_stat,i_all,'rhopot',"denspot_free")
+
+  i_all=-product(shape(rhocore))*kind(rhocore)
+  deallocate(rhocore,stat=i_stat)
+  call memocc(i_stat,i_all,'rhocore',"denspot_free")
+
+  i_all=-product(shape(potxc))*kind(potxc)
+  deallocate(potxc,stat=i_stat)
+  call memocc(i_stat,i_all,'potxc',"denspot_free")
+END SUBROUTINE denspot_free

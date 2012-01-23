@@ -89,7 +89,7 @@ program PS_Check
    itype_scf=16
 
    !calculate the kernel in parallel for each processor
-   call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.true.)
+   call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
 
    !Allocations, considering also spin density
    !Density
