@@ -640,7 +640,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
                lorbs%inWhichLocreg, lzd, op, &
                lhphi, comon%nsendBuf, comon%sendBuf)
           call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lhphi, comon, tt1, tt2)
-          call collectnew(iproc, nproc, comon, lin%mad,op, lorbs, input, lzd, comon%nsendbuf, &
+          call collectnew(iproc, nproc, comon, lin%mad,op, lorbs, lzd, comon%nsendbuf, &
                comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
           call build_new_linear_combinations(lzd, lorbs, op, comon%nrecvbuf, &
                comon%recvbuf, kernel, .true., lhphi)
@@ -675,7 +675,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
 
       ! Gather the messages and calculate the overlap matrix.
-      call collectnew(iproc, nproc, comon, lin%mad, op, lorbs, input, lzd, comon%nsendbuf, &
+      call collectnew(iproc, nproc, comon, lin%mad, op, lorbs, lzd, comon%nsendbuf, &
            comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
       call calculateOverlapMatrix3(iproc, nproc, lorbs, op, lorbs%inWhichLocreg, comon%nsendBuf, &
            comon%sendBuf, comon%nrecvBuf, comon%recvBuf, lin%mad, ovrlp)
@@ -4665,7 +4665,7 @@ call extractOrbital3(iproc, nproc, orbs, max(orbs%npsidim_orbs,orbs%npsidim_comp
      lzd, op, psi, comon%nsendBuf, comon%sendBuf)
 call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, psi, comon, tt1, tt2)
 !!allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
-call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
+call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, lin%lzd, comon%nsendbuf, &
      comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
 !!deallocate(ttmat)
 

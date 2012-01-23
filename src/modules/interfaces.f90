@@ -5212,7 +5212,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),intent(out):: trH
        end subroutine applyOrthoconstraintNonorthogonalCubic
 
-       subroutine collectnew(iproc, nproc, comon, mad, op, orbs, input, lzd, &
+       subroutine collectnew(iproc, nproc, comon, mad, op, orbs, lzd, &
                   nsendbuf, sendbuf, nrecvbuf, recvbuf, timecommunp2p, &
                   timecommuncoll, timecompress)
          use module_base
@@ -5223,7 +5223,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(matrixDescriptors),intent(in):: mad
          type(overlapParameters),intent(in):: op
          type(orbitals_data),intent(in):: orbs
-         type(input_variables),intent(in):: input
          type(local_zone_descriptors),intent(in):: lzd
          real(8),dimension(nsendbuf),intent(in):: sendbuf
          real(8),dimension(nrecvbuf),intent(inout):: recvbuf

@@ -392,7 +392,7 @@ call extractOrbital3(iproc, nproc, lin%orbs, max(lin%orbs%npsidim_orbs,lin%orbs%
      lin%orbs%inWhichLocreg, lin%lzd, &
      lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
 call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, tt1, tt2)
-call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
+call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, lin%lzd, lin%comon%nsendbuf, &
      lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, tt3, tt4, tt5)
 call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, lin%comon, lphi, lphi, lin%mad, lin%lzd%cutoffweight)
 call deallocateRecvBufferOrtho(lin%comon, subname)

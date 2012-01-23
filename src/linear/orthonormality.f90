@@ -54,7 +54,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
      call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
      allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
      call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-     call collectnew(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
+     call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
           comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
 
      t2=mpi_wtime()
@@ -168,20 +168,15 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
 
   ! Local variables
   integer:: it, istat, iall, iorb, ierr, i, maxvaloverlap, lwork, info, jorb, k
-  real(8),dimension(:),allocatable:: lphiovrlp, sendBuf, ovrlpCompressed, ovrlpCompressed2, work
+  real(8),dimension(:),allocatable:: lphiovrlp, sendBuf
   character(len=*),parameter:: subname='orthoconstraintLocalized'
   real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput, tt
   real(8):: timecommunp2p, timecommuncoll, timecompress
-  logical,dimension(:,:),allocatable:: expanded
   integer,dimension(:),allocatable:: sendcounts, displs
-  logical:: present_W, present_eval
-
 
 
   allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
   call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-  allocate(expanded(lin%orbs%norb,lin%orbs%norbp), stat=istat)
-  call memocc(istat, expanded, 'expanded',subname)
   allocate(sendBuf(lin%comon%nsendBuf), stat=istat)
   call memocc(istat, sendBuf, 'sendBuf',subname)
   lphiovrlp=0.d0
@@ -203,7 +198,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
   t2=mpi_wtime()
   timeExtract=t2-t1
   call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
-  call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
+  call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, lin%lzd, lin%comon%nsendbuf, &
        lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
   t1=mpi_wtime()
   call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim_orbs, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
@@ -230,9 +225,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
   deallocate(lphiovrlp, stat=istat)
   call memocc(istat, iall, 'lphiovrlp', subname)
-  iall=-product(shape(expanded))*kind(expanded)
-  deallocate(expanded, stat=istat)
-  call memocc(istat, iall, 'expanded', subname)
   iall=-product(shape(sendBuf))*kind(sendBuf)
   deallocate(sendBuf, stat=istat)
   call memocc(istat, iall, 'sendBuf', subname)
@@ -305,7 +297,7 @@ subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad
   !call postCommsOverlap(iproc,nproc,comon_lb)
   call postCommsOverlapNew(iproc,nproc,orbs,op_lb,lzd,lphi,comon_lb,tt1,tt2)
   !call gatherOrbitals2(iproc,nproc,comon_lb)
-  call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,input,lzd,comon_lb%nsendbuf,&
+  call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,lzd,comon_lb%nsendbuf,&
        comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,tt1,tt2,tt3)
   !!call calculateOverlapMatrix2(iproc,nproc,orbs,op_lb,comon_lb,orbs%inWhichLocreg,mad,ovrlp)
   call calculateOverlapMatrix3(iproc, nproc, orbs, op_lb, orbs%inWhichLocreg, comon_lb%nsendBuf, &
@@ -2160,7 +2152,7 @@ subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon,
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(in):: op
-type(p2pCommsOrthonormality),intent(in):: comon
+  type(p2pCommsOrthonormality),intent(in):: comon
   real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
   real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
   real(8),dimension(lorbs%npsidim_orbs),intent(out):: lphi
@@ -2170,9 +2162,9 @@ type(p2pCommsOrthonormality),intent(in):: comon
   real(8):: tt, dnrm2
 
 
-call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp, .true., lphi)
+  call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp, .true., lphi)
 
-! Normalize
+  ! Normalize
   ist=1
   do iorb=1,orbs%norbp
      iiorb=orbs%isorb+iorb
@@ -2186,121 +2178,8 @@ call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, comon%recvbuf,
      ist=ist+ncount
   end do
 
-!!lphi=0.d0
-!!
-!!ist=1
-!!jst=1
-!!ilrold=-1
-!!do iorb=1,orbs%norbp
-!!    iiorb=orbs%isorb+iorb
-!!    ilr=onWhichAtom(iiorb)
-!!    if(ilr==ilrold) then
-!!        ! Set back the index of lphiovrlp, since we again need the same orbitals.
-!!        jst=jst-op%noverlaps(iiorb)*ncount
-!!    end if
-!!    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-!!    do jorb=1,op%noverlaps(iiorb)
-!!        jjorb=op%overlaps(jorb,iiorb)
-!!        call daxpy(ncount, ovrlp(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
-!!        jst=jst+ncount
-!!    end do
-!!
-!!    ! Normalize
-!!    tt=dnrm2(ncount, lphi(ist), 1)
-!!    call dscal(ncount, 1/tt, lphi(ist), 1)
-!!
-!!    ist=ist+ncount
-!!    ilrold=ilr
-!!
-!!end do
-
 
 end subroutine globalLoewdin
-
-
-
-!!!!!!
-!!!!!!subroutine gramschmidt_forlinear(iproc, nproc, iorbwork, orbs, lorbs, onWhichAtom, lzd, op, ovrlp, lphiovrlp, lphi)
-!!!!!!use module_base
-!!!!!!use module_types
-!!!!!!implicit none
-!!!!!!
-!!!!!!! Calling arguments
-!!!!!!integer,intent(in):: iproc, nproc, iorbwork
-!!!!!!type(orbitals_data),intent(in):: orbs, lorbs
-!!!!!!integer,dimension(orbs%norb),intent(in):: onWhichAtom
-!!!!!!type(local_zone_descriptors),intent(in):: lzd
-!!!!!!type(overlapParameters),intent(in):: op
-!!!!!!real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
-!!!!!!real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
-!!!!!!real(8),dimension(lorbs%npsidim),intent(out):: lphi
-!!!!!!
-!!!!!!! Local variables
-!!!!!!integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount, jst2
-!!!!!!real(8):: tt, dnrm2, ddot
-!!!!!!
-!!!!!!!lphi=0.d0
-!!!!!!
-!!!!!!ist=1
-!!!!!!jst=1
-!!!!!!jst2=1
-!!!!!!ilrold=-1
-!!!!!!do iorb=1,orbs%norbp
-!!!!!!    iiorb=orbs%isorb+iorb
-!!!!!!    ilr=onWhichAtom(iiorb)
-!!!!!!    if(ilr==ilrold) then
-!!!!!!        ! Set back the index of lphiovrlp, since we again need the same orbitals.
-!!!!!!        jst=jst-op%noverlaps(iiorb)*ncount
-!!!!!!        jst2=jst2-op%noverlaps(iiorb)*ncount
-!!!!!!    end if
-!!!!!!    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-!!!!!!    if(iiorb==iorbwork) then
-!!!!!!        !write(*,*) 'before: sum(lphi)',sum(lphi)
-!!!!!!        do jorb=1,op%noverlaps(iiorb)
-!!!!!!            jjorb=op%overlaps(jorb,iiorb)
-!!!!!!            if(jjorb<iiorb) then
-!!!!!!                !write(*,'(3(a,i0),a,es15.8,a,es15.8)') 'iproc ',iproc,' works on orbital ', iiorb,'; subtracting orbital ',jjorb,'. ddot before:',&
-!!!!!!                !    ddot(ncount, lphiovrlp(jst), 1, lphi(ist), 1), '    ddot before2', ovrlp(jjorb,iiorb)
-!!!!!!                !write(*,'(a,2i11,2es15.6)') 'ist, jst, ddot(lphi), ddot(lphiovrlp)', ist, jst, ddot(ncount, lphi(ist), 1, lphi(ist), 1), &
-!!!!!!                !    ddot(ncount, lphiovrlp(jst), 1, lphiovrlp(jst), 1)
-!!!!!!                tt=ddot(ncount, lphiovrlp(jst), 1, lphi(ist), 1)/ddot(ncount, lphiovrlp(jst), 1, lphiovrlp(jst), 1)
-!!!!!!                call daxpy(ncount, -tt, lphiovrlp(jst), 1, lphi(ist), 1)
-!!!!!!                write(*,'(a,es15.8)') 'ddot :after', ddot(ncount, lphiovrlp(jst), 1, lphi(ist), 1)
-!!!!!!            end if
-!!!!!!            jst=jst+ncount
-!!!!!!        end do
-!!!!!!        do jorb=1,op%noverlaps(iiorb)
-!!!!!!            jjorb=op%overlaps(jorb,iiorb)
-!!!!!!            if(jjorb<iiorb) then
-!!!!!!                write(*,'(a,es15.8)') 'overview: ddot :after', ddot(ncount, lphiovrlp(jst2), 1, lphi(ist), 1)
-!!!!!!            end if
-!!!!!!            jst2=jst2+ncount
-!!!!!!        end do
-!!!!!!        !write(*,*) 'after1: sum(lphi)',sum(lphi)
-!!!!!!
-!!!!!!        ! Normalize
-!!!!!!        tt=dnrm2(ncount, lphi(ist), 1)
-!!!!!!        !call dscal(ncount, 1/tt, lphi(ist), 1)
-!!!!!!        !write(*,*) 'after2: sum(lphi)',sum(lphi)
-!!!!!!    else
-!!!!!!        ! only increase index
-!!!!!!        do jorb=1,op%noverlaps(iiorb)
-!!!!!!            jjorb=op%overlaps(jorb,iiorb)
-!!!!!!            jst=jst+ncount
-!!!!!!            jst2=jst2+ncount
-!!!!!!        end do
-!!!!!!    end if
-!!!!!!
-!!!!!!    ist=ist+ncount
-!!!!!!    ilrold=ilr
-!!!!!!
-!!!!!!end do
-!!!!!!
-!!!!!!
-!!!!!!end subroutine gramschmidt_forlinear
-
-
-
 
 
 
@@ -2332,7 +2211,6 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   real(8),dimension(:,:),allocatable:: ovrlp2
   real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
   character(len=*),parameter:: subname='applyOrthoconstraintNonorthogonal2'
-  logical:: val, segment
 
   allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
@@ -2577,36 +2455,6 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
       iall=-product(shape(ovrlp2))*kind(ovrlp2)
       deallocate(ovrlp2, stat=istat)
       call memocc(istat, iall, 'ovrlp2', subname)
-  !!else if(iorder==3) then
-  !!    ! Taylor expansion up to third iorder.
-  !!
-  !!    ! Calculate ovrlp**2
-  !!    allocate(ovrlp2(norb,norb), stat=istat)
-  !!    call memocc(istat, ovrlp2, 'ovrlp2', subname)
-  !!    allocate(ovrlp3(norb,norb), stat=istat)
-  !!    call memocc(istat, ovrlp3, 'ovrlp3', subname)
-  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
-  !!    
-  !!    ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
-  !!    do iorb=1,norb
-  !!        do jorb=1,norb
-  !!            if(iorb==jorb) then
-  !!                ovrlp(jorb,iorb) = 4.d0 - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
-  !!            else
-  !!                ovrlp(jorb,iorb) = - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
-  !!            end if
-  !!        end do
-  !!    end do
-  !!    
-  !!    iall=-product(shape(ovrlp2))*kind(ovrlp2)
-  !!    deallocate(ovrlp2, stat=istat)
-  !!    call memocc(istat, iall, 'ovrlp2', subname)
-  !!    iall=-product(shape(ovrlp3))*kind(ovrlp3)
-  !!    deallocate(ovrlp3, stat=istat)
-  !!    call memocc(istat, iall, 'ovrlp3', subname)
   else
       write(*,'(1x,a)') 'ERROR: iorder must be 0,1 or 2!'
       stop
@@ -2748,39 +2596,6 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       iall=-product(shape(ovrlp2))*kind(ovrlp2)
       deallocate(ovrlp2, stat=istat)
       call memocc(istat, iall, 'ovrlp2', subname)
-
-  !!else if(methTransformOrder==3) then
-
-  !!    ! Taylor expansion up to third order.
-  !!
-  !!    ! Calculate ovrlp**2
-  !!    allocate(ovrlp2(norb,norb), stat=istat)
-  !!    call memocc(istat, ovrlp2, 'ovrlp2', subname)
-  !!    allocate(ovrlp3(norb,norb), stat=istat)
-  !!    call memocc(istat, ovrlp3, 'ovrlp3', subname)
-  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
-  !!    
-  !!    ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
-  !!    do iorb=1,norb
-  !!        do jorb=1,norb
-  !!            if(iorb==jorb) then
-  !!                ovrlp(jorb,iorb) = 1.4375d0 - 0.6875d0*ovrlp(jorb,iorb) + 0.5625d0*ovrlp2(jorb,iorb) - 0.3125d0*ovrlp3(jorb,iorb)
-  !!            else
-  !!                ovrlp(jorb,iorb) = - 0.6875d0*ovrlp(jorb,iorb) + 0.5625d0*ovrlp2(jorb,iorb) - 0.3125d0*ovrlp3(jorb,iorb)
-  !!            end if
-  !!        end do
-  !!    end do
-  !!    
-  !!    iall=-product(shape(ovrlp2))*kind(ovrlp2)
-  !!    deallocate(ovrlp2, stat=istat)
-  !!    call memocc(istat, iall, 'ovrlp2', subname)
-  !!    iall=-product(shape(ovrlp3))*kind(ovrlp3)
-  !!    deallocate(ovrlp3, stat=istat)
-  !!    call memocc(istat, iall, 'ovrlp3', subname)
-
   else
 
       write(*,'(1x,a)') 'ERROR: methTransformOrder must be 0,1 or 2!'
@@ -3013,47 +2828,20 @@ real(8),dimension(orbs%norb,orbs%norb),intent(out):: matrixElements
 integer:: it, istat, iall, iorb
 real(8),dimension(:),allocatable:: lphiovrlp
 character(len=*),parameter:: subname='getMatrixElements2'
-real(8),dimension(:,:),allocatable:: ttmat
 real(8):: tt1, tt2, tt3
 type(input_variables):: input
 
 
 
-  !!call allocateCommuncationBuffersOrtho(comon_lb, subname)
   ! Put lphi in the sendbuffer,i.e. lphi will be sent to other processes' receive buffer.
-  !call extractOrbital2(iproc,nproc,orbs,orbs%npsidim,orbs%inWhichLocreg,lzd,op_lb,lphi,comon_lb)
   call extractOrbital3(iproc,nproc,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,lzd,op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
-  !call postCommsOverlap(iproc,nproc,comon_lb)
   call postCommsOverlapNew(iproc,nproc,orbs,op_lb,lzd,lphi,comon_lb,tt1,tt2)
-  !call gatherOrbitals2(iproc,nproc,comon_lb)
-  allocate(ttmat(orbs%norb,orbs%norb))
-  call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,input,lzd,comon_lb%nsendbuf,&
+  call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,lzd,comon_lb%nsendbuf,&
        comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,tt1,tt2,tt3)
-  deallocate(ttmat)
   ! Put lhphi to the sendbuffer,so we can the calculate <lphi|lhphi>
-  !call extractOrbital2(iproc,nproc,orbs,orbs%npsidim,orbs%inWhichLocreg,lzd,op_lb,lhphi,comon_lb)
   call extractOrbital3(iproc,nproc,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,lzd,op_lb,lhphi,comon_lb%nsendBuf,comon_lb%sendBuf)
-  !!call calculateOverlapMatrix2(iproc,nproc,orbs,op_lb,comon_lb,orbs%inWhichLocreg,mad,matrixElements)
   call calculateOverlapMatrix3(iproc,nproc,orbs,op_lb,orbs%inWhichLocreg,comon_lb%nsendBuf,&
                                comon_lb%sendBuf,comon_lb%nrecvBuf,comon_lb%recvBuf,mad,matrixElements)
-  !!if(iproc==0) then
-  !!    do iall=1,orbs%norb
-  !!        do istat=1,orbs%norb
-  !!            write(27000+iproc,*) iall, istat, matrixElements(istat,iall)
-  !!        end do
-  !!    end do
-  !!    write(27000+iproc,*) '=============================='
-  !!end if
-  !!call deallocateCommuncationBuffersOrtho(comon_lb, subname)
-
-  !!if(iproc==0) then
-  !!    do iall=1,orbs%norb
-  !!        do istat=1,orbs%norb
-  !!            write(26000+iproc,*) iall, istat, matrixElements(istat,iall)
-  !!        end do
-  !!    end do
-  !!    write(26000+iproc,*) '=============================='
-  !!end if
 
 end subroutine getMatrixElements2
 
@@ -4237,7 +4025,7 @@ end subroutine collectAndCalculateOverlap
 
 
 
-subroutine collectnew(iproc, nproc, comon, mad, op, orbs, input, lzd, &
+subroutine collectnew(iproc, nproc, comon, mad, op, orbs, lzd, &
    nsendbuf, sendbuf, nrecvbuf, recvbuf, timecommunp2p, timecommuncoll, timecompress)
 use module_base
 use module_types
@@ -4250,7 +4038,6 @@ type(p2pCommsOrthonormality),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 type(overlapParameters),intent(in):: op
 type(orbitals_data),intent(in):: orbs
-type(input_variables),intent(in):: input
 type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(nsendbuf),intent(in):: sendbuf
 real(8),dimension(nrecvbuf),intent(inout):: recvbuf
