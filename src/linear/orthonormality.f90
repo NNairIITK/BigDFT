@@ -17,7 +17,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 
   ! Local variables
-  integer:: it, istat, iall, iorb, jorb, ierr, ind1, ind2, maxvaloverlap
+  integer:: it, istat, iall, ierr
   real(8),dimension(:),allocatable:: lphiovrlp
   character(len=*),parameter:: subname='orthonormalize'
   real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeExpand, timeLoewdin, timeTransform, timeExtract
@@ -159,26 +159,21 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
   type(linearParameters),intent(inout):: lin
   type(input_variables),intent(in):: input
   real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: ovrlp
-  !real(8),dimension(lin%lorbs%npsidim),intent(in):: lphi
   real(8),dimension(max(lin%orbs%npsidim_comp,lin%orbs%npsidim_orbs)),intent(in):: lphi
-  !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lhphi
   real(8),dimension(max(lin%orbs%npsidim_comp,lin%orbs%npsidim_orbs)),intent(inout):: lhphi
   type(matrixDescriptors),intent(in):: mad
   real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: lagmat
 
   ! Local variables
-  integer:: it, istat, iall, iorb, ierr, i, maxvaloverlap, lwork, info, jorb, k
-  real(8),dimension(:),allocatable:: lphiovrlp, sendBuf
-  character(len=*),parameter:: subname='orthoconstraintLocalized'
-  real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput, tt
+  integer:: istat, iall, ierr
+  real(8),dimension(:),allocatable:: lphiovrlp
+  real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput
   real(8):: timecommunp2p, timecommuncoll, timecompress
-  integer,dimension(:),allocatable:: sendcounts, displs
+  character(len=*),parameter:: subname='orthoconstraintLocalized'
 
 
   allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
   call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-  allocate(sendBuf(lin%comon%nsendBuf), stat=istat)
-  call memocc(istat, sendBuf, 'sendBuf',subname)
   lphiovrlp=0.d0
 
 
@@ -224,9 +219,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
   deallocate(lphiovrlp, stat=istat)
   call memocc(istat, iall, 'lphiovrlp', subname)
-  iall=-product(shape(sendBuf))*kind(sendBuf)
-  deallocate(sendBuf, stat=istat)
-  call memocc(istat, iall, 'sendBuf', subname)
 
   if (verbose > 2) then
      timeComput=timeExtract+timeExpand+timeApply+timecalcmatrix
@@ -279,26 +271,16 @@ subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 
   ! Local variables
-  integer:: it, istat, iall, iorb, jorb, ierr
-  real(8),dimension(:),allocatable:: lphiovrlp
-  character(len=*),parameter:: subname='orthonormalize'
-  logical:: converged
+  character(len=*),parameter:: subname='getOverlapMatrix2'
   real(8):: tt1, tt2, tt3
-  type(input_variables):: input
 
-  !!allocate(lphiovrlp(lin%op_lb%ndim_lphiovrlp), stat=istat)
-  !!call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
 
   call allocateCommuncationBuffersOrtho(comon_lb, subname)
-  !call extractOrbital2(iproc,nproc,orbs,orbs%npsidim,orbs%inWhichLocreg,lzd,op_lb,lphi,comon_lb)
   call extractOrbital3(iproc,nproc,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,&
        lzd,op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
-  !call postCommsOverlap(iproc,nproc,comon_lb)
   call postCommsOverlapNew(iproc,nproc,orbs,op_lb,lzd,lphi,comon_lb,tt1,tt2)
-  !call gatherOrbitals2(iproc,nproc,comon_lb)
   call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,lzd,comon_lb%nsendbuf,&
        comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,tt1,tt2,tt3)
-  !!call calculateOverlapMatrix2(iproc,nproc,orbs,op_lb,comon_lb,orbs%inWhichLocreg,mad,ovrlp)
   call calculateOverlapMatrix3(iproc, nproc, orbs, op_lb, orbs%inWhichLocreg, comon_lb%nsendBuf, &
        comon_lb%sendBuf, comon_lb%nrecvBuf, comon_lb%recvBuf, mad, ovrlp)
   call deallocateCommuncationBuffersOrtho(comon_lb, subname)
