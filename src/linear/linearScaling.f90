@@ -296,26 +296,17 @@ real(8),dimension(:,:),allocatable:: coeff_proj
   pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
-  !lin%getCoeff='new'
   reduceConvergenceTolerance=.false.
-  !if(iproc==0) write(*,'(a,es9.2)') 'dampingForMixing',dampingForMixing
-
-
   lin%newgradient=.false.
-  !lin%useDerivativeBasisFunctions=.false.
-
   lowaccur_converged=.false.
 
   outerLoop: do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
 
       updatePhi=.true.
-
       selfConsistent=lin%convCritMix
 
-
+      ! Check whether the derivatives shall be used or not.
       if(lin%mixedmode) then
-          !!if( (.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy .or. pnrm_out<lin%lowaccuray_converged) ) &
-          !!    .or. lowaccur_converged ) then
           if( (.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged) ) &
               .or. lowaccur_converged ) then
               withder=.true.
@@ -324,11 +315,14 @@ real(8),dimension(:,:),allocatable:: coeff_proj
           end if
       end if
 
+      ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
       if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged)) then
           lowaccur_converged=.true.
           nit_highaccuracy=0
       end if 
 
+      ! Choose the correct confining potential and gradient method, depending on whether we are in the low accuracy
+      ! or high accuracy part.
       if(lowaccur_converged) then
           lin%potentialPrefac = lin%potentialPrefac_highaccuracy
           lin%newgradient=.true.
@@ -338,8 +332,8 @@ real(8),dimension(:,:),allocatable:: coeff_proj
           lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
           lin%newgradient=.false.
       end if
-      if(iproc==0) write(*,*) 'lowaccur_converged',lowaccur_converged
 
+      ! Allocate the communication arrays for the calculation of the charge density.
       with_auxarray=.false.
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)

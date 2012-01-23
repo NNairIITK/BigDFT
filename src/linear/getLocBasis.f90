@@ -92,7 +92,7 @@ logical,intent(in):: communicate_lphi
 real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
 
 ! Local variables 
-integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount, jlr, ii
+integer:: istat, iall, ilr, istr, iorb, jorb, korb
 real(8),dimension(:),allocatable:: eval, lhphi
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
@@ -490,17 +490,17 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
 
 ! Local variables
-real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,evalmax,eval_zero,t1tot,eSIC_DC
-real(8) :: t2tot,timetot,tt1,tt2,tt3,tt4,tt5,lstep,dfactorial
+real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
+real(8) :: t2tot,timetot,tt1,tt2,tt3,tt4,tt5
 real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha,gnrm,gnrm_zero,gnrmMax,t1,t2
 real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress, energyconf_0, energyconf_trial
 real(8):: trHold
-integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, itinner, consecutive_rejections
-integer :: icountDIISFailureCons,itBest,info,lwork,ndim_lchi,ndim_lhchi
-integer:: istat,istart,ierr,ii,it,iall,nit,ind1,ind2,jorb,i,ist,jst,iiorb,jjorb,ilrold,k
-integer:: ldim,gdim,ilr,ncount,offset,istsource,istdest,korb
+integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, consecutive_rejections
+integer :: icountDIISFailureCons,itBest
+integer:: istat,istart,ierr,ii,it,iall,nit,ind1,ind2,jorb,ist,iiorb
+integer:: gdim,ilr,ncount,offset,istsource,istdest,korb
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS,lhphi,lhphiold
-real(8),dimension(:),allocatable:: eval, lphiold
+real(8),dimension(:),allocatable:: lphiold
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat
 real(8),dimension(:,:),allocatable:: kernel
 logical:: withConfinement, resetDIIS, immediateSwitchToSD
@@ -556,8 +556,6 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   call memocc(istat, lphiold, 'lphiold', subname)
   allocate(lagmat(lorbs%norb,lorbs%norb), stat=istat)
   call memocc(istat, lagmat, 'lagmat', subname)
-  allocate(eval(lorbs%norb), stat=istat)
-  call memocc(istat, eval, 'eval', subname)
 
   time=0.d0
   resetDIIS=.false.
@@ -953,9 +951,6 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
   call memocc(istat, iall, 'lagmat', subname)
-  iall=-product(shape(eval))*kind(eval)
-  deallocate(eval, stat=istat)
-  call memocc(istat, iall, 'eval', subname)
 
 
 !!$  iall=-product(shape(lorbs%ispot))*kind(lorbs%ispot)

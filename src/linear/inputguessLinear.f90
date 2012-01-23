@@ -2628,17 +2628,6 @@ call memocc(istat, ovrlp, 'ovrlp', subname)
 
 do it=1,nItOrtho
 
-!!!! THIS IS A TEST !!
-   !!do iorb=1,orbs%norbp
-   !!  ilr=onWhichAtom(iorb+orbs%isorb)
-   !!  !write(*,'(3(a,i0))') 'iproc=',iproc,', iorb=',iorb,' calls with ilr=',ilr
-   !!  call vectorLocalToGlobal(orbs%norb, mlr(ilr), vec(1,iorb), vecglobal(1))
-   !!  do i=1,orbs%norb
-   !!      write(8000+iproc,'(i8,es20.12)') i, vecglobal(i)
-   !!  end do
-   !!end do
-!!!!!!!!!!!!!!!!!!!!!!
-
   call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
   !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
   !call gatherVectors(iproc, nproc, newComm, comom)
@@ -2672,26 +2661,6 @@ do it=1,nItOrtho
      write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
   end if
   call overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, orbs%norb, mad, ovrlp)
-  !!do iorb=1,orbs%norb
-  !!    do jorb=1,orbs%norb
-  !!        if(iproc==0) write(400,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
-  !!    end do
-  !!end do
-  !!if(methTransformOverlap==0) then
-  !!    !write(*,'(a,i0)') 'call transformOverlapMatrix in orthonormalizeVectors, iproc=',iproc
-  !!    call transformOverlapMatrix(iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
-  !!    if(iproc==0) write(*,*) 'method 0'
-  !!else
-  !!    call overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
-  !!end if
-  !!else if(methTransformOverlap==1) then
-  !!    call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
-  !!    if(iproc==0) write(*,*) 'method 1'
-  !!else if(methTransformOverlap==2) then
-  !!    call transformOverlapMatrixTaylorOrder2(iproc, nproc, orbs%norb, mad, ovrlp)
-  !!else
-  !!    stop 'methTransformOverlap is wrong'
-  !!end if
 
 
 
@@ -2701,7 +2670,6 @@ do it=1,nItOrtho
   ! Normalize the vectors
   do iorb=1,norbp
      tt=dnrm2(norbmax, vec(1,iorb), 1)
-     !write(*,'(a,2i8,es14.6)') 'iproc, iorb, tt',iproc, iorb, tt
      call dscal(norbmax, 1/tt, vec(1,iorb), 1)
   end do
 
@@ -3659,22 +3627,15 @@ type(matrixDescriptors):: madig
 ! Local variables
 integer:: iorb, jorb, korb, iat, ist, jst, nvctrp, iall, istat, ierr, infoCoeff, k, l,it, iiAt, jjAt, methTransformOverlap, iiorb
 real(8),dimension(:),allocatable:: alpha, coeffPad, coeff2, gradTemp, gradOld, fnrmArr, fnrmOvrlpArr, fnrmOldArr, grad
-real(8),dimension(:,:),allocatable:: ovrlp, ovrlpTemp
-real(8),dimension(:,:),allocatable:: coeff, lagMat, coeffOld, lcoeff, lgrad, lgradold
-!!real(8),dimension(:,:,:),allocatable:: HamPad
-real(8),dimension(:),pointer:: chiw
+real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold
 integer,dimension(:),allocatable:: recvcounts, displs, norb_par
-real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax, valin, valout, dsum, tt2
+real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax, valin, valout, tt2
 logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinationsLocalized'
 real(4):: ttreal, builtin_rand
 integer:: wholeGroup, newGroup, newComm, norbtot, isx
 integer,dimension(:),allocatable:: newID
-  
-! new
-real(8),dimension(:),allocatable:: work, eval, evals, lagmatdiag
-real(8),dimension(:,:),allocatable:: tempMat
-integer:: lwork, ii, info, iiAtprev, i, jproc, norbTarget, sendcount, ilr, iilr, ilrold, jlr
+integer:: ii, jproc, norbTarget, sendcount, ilr, iilr, ilrold, jlr
 type(inguessParameters):: ip
 real(8),dimension(:,:,:),pointer:: hamextract
 type(p2pCommsOrthonormalityMatrix):: comom
@@ -3682,15 +3643,6 @@ type(matrixMinimization):: matmin
 logical:: same
 type(localizedDIISParameters):: ldiis
 type(matrixDescriptors):: mad
-
-!!do istat=1,nlocregPerMPI
-!!    do iorb=1,orbsig%norb
-!!        do jorb=1,orbsig%norb
-!!            write(1000*(iproc+1)+istat,*) iorb,jorb,ham3(jorb,iorb,istat)
-!!        end do
-!!    end do
-!!end do
-
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
@@ -3736,7 +3688,6 @@ type(matrixDescriptors):: mad
 
       call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
            lin%locrad, rxyz, lin%lzd, input%hx, input%hy, input%hz, matmin%mlr)
-      !call extractMatrix(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, at%nat, ham, matmin, hamextract)
       call extractMatrix3(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
            ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
 
@@ -3765,13 +3716,6 @@ type(matrixDescriptors):: mad
       ! of the number of preocesses that are used.
       !call initRandomSeed(0, 1)
 
-      !!do istat=1,size(hamextract,3)
-      !!  do ierr=1,size(hamextract,2)
-      !!    do iall=1,size(hamextract,1)
-      !!      write(10000+1000*(iproc+1),'(3i8,es25.12)') istat, ierr, iall, hamextract(iall,ierr,istat)
-      !!    end do
-      !!  end do
-      !!end do
     
       coeffPad=0.d0
       ii=0
@@ -3790,35 +3734,13 @@ type(matrixDescriptors):: mad
                       if(tt>cut) then
                            coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
                       else
-                          !read(100000+ip%isorb_par(jproc)+iorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
                           coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
-                          !coeffPad((iorb-1)*ip%norbtotPad+jorb)=cos(dble(ip%isorb_par(jproc)+iorb))+sin(dble(jjAt))
-                          !write(100000+ip%isorb_par(jproc)+iorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
-                          !write(110000+ip%isorb_par(jproc)+iorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
-                          !write(200000+100*(ip%isorb_par(jproc)+iorb)+jorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
-                          !read(200000+100*(ip%isorb_par(jproc)+iorb)+jorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
-                          !write(300000+100*(ip%isorb_par(jproc)+iorb)+jorb,*) coeffPad((iorb-1)*ip%norbtotPad+jorb)
                       end if
                   end if
               end do
           end do
       end do
 
-    
-      !!! Pad the Hamiltonian with zeros.
-      !!do iat=1,at%nat
-      !!    do iorb=1,ip%norbtot
-      !!        call dcopy(ip%norbtot, Ham(1,iorb,iat), 1, HamPad(1,iorb,iat), 1)
-      !!        do i=ip%norbtot+1,ip%norbtotPad
-      !!            HamPad(i,iorb,iat)=0.d0
-      !!        end do
-      !!    end do
-      !!    do iorb=ip%norbtot+1,ip%norbtotPad
-      !!        do i=1,ip%norbtotPad
-      !!            HamPad(i,iorb,iat)=0.d0
-      !!        end do
-      !!    end do
-      !!end do
     
       
       ! Initial step size for the optimization
@@ -3842,66 +3764,6 @@ type(matrixDescriptors):: mad
           call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
       end do
 
-
-      !!do i=1,0
-      !!    ! Transform to localization regions and cut at the edge.
-      !!    do iorb=1,ip%norb_par(iproc)
-      !!        ilr=matmin%inWhichLocregExtracted(iorb)
-      !!        if(ilr/=orbs%inWhichLocreg(iorb+orbs%isorb)) then
-      !!            write(*,'(a,2i6,3x,2i8)') &
-      !!                 'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)',&
-      !!                 iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
-      !!        end if
-      !!        call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
-      !!    end do
-
-      !!    ilr=onWhichAtom(ip%isorb+1)
-
-      !!    methTransformOverlap=0
-      !!    call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
-      !!         lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
-      !!         lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
-      !!         lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
-      !!    ilr=onWhichAtom(ip%isorb+1)
-
-      !!    do iorb=1,ip%norb_par(iproc)
-      !!        ilr=matmin%inWhichLocregExtracted(iorb)
-      !!        call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
-      !!    end do
-
-      !!    valout=0.d0
-      !!    valin=0.d0
-      !!    ii=0
-      !!    do jproc=0,ip%nproc-1
-      !!        do iorb=1,ip%norb_par(jproc)
-      !!            iiAt=onWhichAtomPhi(ip%isorb_par(jproc)+iorb)
-      !!            ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
-      !!            cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
-      !!            do jorb=1,ip%norbtot
-      !!                ii=ii+1
-      !!                if(iproc==jproc) then
-      !!                    jjAt=onWhichAtom(jorb)
-      !!                    tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
-      !!                    if(tt>cut) then
-      !!                        ! set to zero
-      !!                        valout=valout+coeffPad((iorb-1)*ip%norbtotPad+jorb)**2
-      !!                        coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
-      !!                    else
-      !!                        ! keep the current value
-      !!                        valin=valin+coeffPad((iorb-1)*ip%norbtotPad+jorb)**2
-      !!                    end if
-      !!                end if
-      !!            end do
-      !!        end do
-      !!    end do
-      !!    call mpiallred(valin, 1, mpi_sum, mpi_comm_world, ierr)
-      !!    call mpiallred(valout, 1, mpi_sum, mpi_comm_world, ierr)
-      !!    if(iproc==0) then
-      !!        write(*,'(a,es15.6)') 'valin',valin
-      !!        write(*,'(a,es15.6)') 'valout',valout
-      !!        write(*,'(a,es15.6)') 'ratio:',valout/(valout+valin)
-      !!    end if
-      !!end do
 
 
       if(lin%nItInguess==0) then
@@ -3939,13 +3801,7 @@ type(matrixDescriptors):: mad
                lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
                lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
                lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
-          !call orthonormalizeVectors(iproc, ip%nproc, lin%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
-          !     matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
-          !     matmin%mlr, lcoeff, comom)
           ilr=onWhichAtom(ip%isorb+1)
-
-          !!write(*,*) 'ATTENTION DEBUG!!'
-          !!lcoeff=1.d0
 
     
           ! Calculate the gradient grad.
@@ -3960,21 +3816,10 @@ type(matrixDescriptors):: mad
               !!end if
               call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
                    hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
-              !print *,'iorb',iorb,lgrad(1,iorb),lcoeff(1,iorb), matmin%norbmax
-              !print *,'Newcoeffs',lcoeff(1:matmin%mlr(ilr)%norbinlr-1,iorb)
-              !print *,'coeffs',hamextract(1:matmin%mlr(ilr)%norbinlr-1,1,iilr)
-              !stop
-              !if(it==1) write(*,*) 'matrix application: ', ip%isorb+iorb, iilr
-              !!do istat=1,matmin%mlr(ilr)%norbinlr
-              !!    write(120000+ip%isorb+iorb,'(i4,2es16.8,14es10.2)') istat, lcoeff(istat,iorb), lgrad(istat,iorb), hamextract(istat,:,iilr)
-              !!end do
           end do
           ilr=onWhichAtom(ip%isorb+1)
 
       
-          !!do jorb=1,matmin%norbmax
-          !!    write(650+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
-          !!end do
           if(it>1) then
               traceOld=trace
           else
@@ -4150,8 +3995,8 @@ type(matrixDescriptors):: mad
   allocate(norb_par(0:ip%nproc-1), stat=istat)
   call memocc(istat, norb_par, 'norb_par', subname)
   if(iproc==0) then
-      do i=0,ip%nproc-1
-          norb_par(i)=ip%norb_par(i)
+      do jproc=0,ip%nproc-1
+          norb_par(jproc)=ip%norb_par(jproc)
       end do
       norbtot=ip%norbtot
   end if
