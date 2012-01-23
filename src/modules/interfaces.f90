@@ -5171,28 +5171,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),intent(inout):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
       end subroutine collectAndCalculateOverlap2
 
-
-!!$       subroutine orthonormalizeLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-!!$                  blocksize_pdgemm, orbs, op, comon, lzd, gorbs, comms, onWhichAtomAll, convCritOrtho, input, mad, lphi, ovrlp)
-!!$         use module_base
-!!$         use module_types
-!!$         implicit none
-!!$         integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm
-!!$         !type(linearParameters),intent(inout):: lin
-!!$         type(orbitals_data),intent(in):: orbs, gorbs
-!!$         type(overlapParameters),intent(inout):: op
-!!$         type(p2pCommsOrthonormality),intent(inout):: comon
-!!$         type(local_zone_descriptors),intent(in):: lzd
-!!$         type(communications_arrays),intent(in):: comms
-!!$         integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
-!!$         real(8),intent(in):: convCritOrtho
-!!$         type(input_variables),intent(in):: input
-!!$         !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
-!!$         type(matrixDescriptors),intent(in):: mad
-!!$         real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
-!!$         real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
-!!$       end subroutine orthonormalizeLocalized2
-
        subroutine applyOrthoconstraintNonorthogonalCubic(iproc, nproc, methTransformOverlap, blocksize_pdgemm, &
                   orbs, gorbs, comms, lzd, input, &
                   op, ovrlp, mad, lphi, lhphi, trH)
@@ -5445,17 +5423,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(overlapParameters),intent(inout):: op
         type(p2pCommsOrthonormality),intent(in):: comon
       end subroutine indicesForExpansion
-
-
-      !!!!subroutine determineExpansionSegments(ldim, indexExpand, nseg, segborders)
-      !!!!  use module_base
-      !!!!  use module_types
-      !!!!  implicit none
-      !!!!  integer,intent(in):: ldim
-      !!!!  integer,dimension(ldim),intent(in):: indexExpand
-      !!!!  integer,intent(out):: nseg
-      !!!!  integer,dimension(:,:),pointer:: segborders
-      !!!!end subroutine determineExpansionSegments
 
 
       subroutine nullify_expansionSegments(expseg)
