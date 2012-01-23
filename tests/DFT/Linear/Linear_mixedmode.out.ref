@@ -183,9 +183,6 @@
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
- input%file_lin
- mixedmode.lin                                                                  
-                      
  Wavefunctions memory occupation for root MPI process:     0 MB   731 KB   288 B
  Wavefunctions memory occupation for root MPI process:     2 MB   511 KB   832 B
  Wavefunctions memory occupation for root MPI process:     0 MB   731 KB   288 B
@@ -236,10 +233,10 @@
     | Processes from 0 to 7 treat 7 orbitals. |
  ####################################################################################
  Initializing localization regions... done in 1.419E-02s.
- Initializing communications sumrho... done in 4.601E-05s.
- Initializing communications potential... done in 2.599E-05s.
- Initializing communications orthonormalization... done in 2.693E-01s.
- Initializing input guess... done in 6.662E-02s.
+ Initializing communications sumrho... done in 4.888E-05s.
+ Initializing communications potential... done in 2.503E-05s.
+ Initializing communications orthonormalization... done in 2.698E-01s.
+ Initializing input guess... done in 6.585E-02s.
  ################################# Memory estimator ##################################
  WARNING: The memory requirements are underestimated by about 20-30%!
  Memory requirements of the largest arrays:
@@ -258,7 +255,7 @@
  >>> estimated memory peak: 36MB
  >>> peak section: Optimization of the basis functions
  #####################################################################################
- Initializing matrix compression... done in 2.069E-04s.
+ Initializing matrix compression... done in 2.141E-04s.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 14 Atomic Input Orbitals
  Processes from 0 to 5 treat 2 inguess orbitals 
@@ -279,14 +276,14 @@ done.
  Hamiltonian application for all atoms. This may take some time.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
-   Hamiltonian application for atom 1...  Hamiltonian application...done.
-   Hamiltonian application for atom 2...  Hamiltonian application...done.
-   Hamiltonian application for atom 3...  Hamiltonian application...done.
-   Hamiltonian application for atom 4...  Hamiltonian application...done.
-   Hamiltonian application for atom 5...  Hamiltonian application...done.
-   Hamiltonian application for atom 6...  Hamiltonian application...done.
-   Hamiltonian application for atom 7...  Hamiltonian application...done.
-   Hamiltonian application for atom 8...  Hamiltonian application...done.
+   atom 1...  Hamiltonian application...done.
+   atom 2...  Hamiltonian application...done.
+   atom 3...  Hamiltonian application...done.
+   atom 4...  Hamiltonian application...done.
+   atom 5...  Hamiltonian application...done.
+   atom 6...  Hamiltonian application...done.
+   atom 7...  Hamiltonian application...done.
+   atom 8...  Hamiltonian application...done.
 The minimization is performed using 8 processes.
  the specified memory allows to overlap 468114 iterations with communication
  Calculating Hamiltonian matrix for all atoms. This may take some time.
@@ -333,131 +330,110 @@ max deviation from unity, position:  6.953439E-04  2  2
  converged in 9 iterations.
    Final values for fnrm, trace:   5.91339E-04   5.16624E+00
  ====================================================================================
- time for "buildLinearCombinations": 7.750E-02
+ time for "buildLinearCombinations": 7.625E-02
  ------------------------------------------------------------- Input guess generated.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 104 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 160 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement: -0.231980311072806     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-7.37663E-01
- eval(2)=-5.78235E-01
- eval(3)=-4.21763E-01
- eval(4)=-4.21644E-01
- eval(5)=-3.99571E-01
- eval(6)=-3.13803E-01
- eval(7)=-3.13382E-01  <-- last occupied orbital
- eval(8)= 2.49284E-01  <-- first virtual orbital
- eval(9)= 3.50879E-01
- eval(10)= 3.51679E-01
- eval(11)= 4.46646E-01
- eval(12)= 4.47301E-01
- eval(13)= 5.45665E-01
- eval(14)= 5.67091E-01
- time for diagonalizing the Hamiltonian: 1.810E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-7.37663E-01
+   eval(2)=-5.78235E-01
+   eval(3)=-4.21763E-01
+   eval(4)=-4.21644E-01
+   eval(5)=-3.99571E-01
+   eval(6)=-3.13803E-01
+   eval(7)=-3.13382E-01  <-- last occupied orbital
+   eval(8)= 2.49284E-01  <-- first virtual orbital
+   eval(9)= 3.50879E-01
+   eval(10)= 3.51679E-01
+   eval(11)= 4.46646E-01
+   eval(12)= 4.47301E-01
+   eval(13)= 5.45665E-01
+   eval(14)= 5.67091E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.948E-04
  time for sumrho:  0.0000E+00
  Posting sends / receives for communicating the potential... done.
- lowaccur_converged F
  ======================== Creation of the basis functions... ========================
  statistics: - 408 point to point communications, of which 0 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  1.5892397E+00  2.2593123E+00     5.0794903110
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  1.3424406E+00  1.9891817E+00     2.3305383437
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     3  4.1732366E-01  6.0229395E-01     1.3713934581
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  1.4778544E-01  1.9891597E-01     1.1972691305
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     5  8.5249445E-02  1.0849213E-01     1.1389616522
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     6  5.0278184E-02  5.6044085E-02     1.1131884176
  WARNING: not converged within 6 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   5.0278184E-02  5.6044085E-02   1.1131884
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.232E+00
-     - orthonormalization: 1.335E-01=10.8%
-     - Hamiltonian application: 3.594E-01=29.2%
-     - orthoconstraint: 6.580E-02= 5.3%
-     - preconditioning: 6.268E-01=50.9%
-     - unitary optimization: 3.520E-05= 0.0%
-     - other: 4.673E-02= 3.8%
+   -total time: 1.326E+00
+     - orthonormalization: 1.589E-01=12.0%
+     - Hamiltonian application: 3.995E-01=30.1%
+     - orthoconstraint: 7.832E-02= 5.9%
+     - preconditioning: 6.322E-01=47.7%
+     - unitary optimization: 2.509E-05= 0.0%
+     - other: 5.704E-02= 4.3%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement: -0.620751442094377     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-7.17220E-01
- eval(2)=-5.56074E-01
- eval(3)=-3.80741E-01
- eval(4)=-3.80595E-01
- eval(5)=-3.64763E-01
- eval(6)=-2.88666E-01
- eval(7)=-2.88376E-01  <-- last occupied orbital
- eval(8)= 2.72772E-01  <-- first virtual orbital
- eval(9)= 2.83542E-01
- eval(10)= 2.83713E-01
- eval(11)= 3.69772E-01
- eval(12)= 3.70166E-01
- eval(13)= 3.81401E-01
- eval(14)= 3.94320E-01
- time for diagonalizing the Hamiltonian: 1.631E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-7.17220E-01
+   eval(2)=-5.56074E-01
+   eval(3)=-3.80741E-01
+   eval(4)=-3.80595E-01
+   eval(5)=-3.64763E-01
+   eval(6)=-2.88666E-01
+   eval(7)=-2.88376E-01  <-- last occupied orbital
+   eval(8)= 2.72772E-01  <-- first virtual orbital
+   eval(9)= 2.83542E-01
+   eval(10)= 2.83713E-01
+   eval(11)= 3.69772E-01
+   eval(12)= 3.70166E-01
+   eval(13)= 3.81401E-01
+   eval(14)= 3.94320E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.800E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  7.0000E-02
+time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999966655E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 6.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -465,31 +441,33 @@ time for large loop:  7.0000E-02
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.17E-06   -1.63814835711858251E+01   -1.6381E+01
+   it, Delta DENS, energy, energyDiff   1   3.17E-06   -1.63814835711858109E+01   -1.6381E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 128 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.53592773798572     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.23184E-01
- eval(2)=-4.15181E-01
- eval(3)=-2.41044E-01
- eval(4)=-2.40813E-01
- eval(5)=-1.72623E-01
- eval(6)=-1.72486E-01
- eval(7)=-1.57380E-01  <-- last occupied orbital
- eval(8)= 4.19121E-01  <-- first virtual orbital
- eval(9)= 4.19529E-01
- eval(10)= 4.97721E-01
- eval(11)= 5.02264E-01
- eval(12)= 5.34938E-01
- eval(13)= 5.35461E-01
- eval(14)= 5.49607E-01
- time for diagonalizing the Hamiltonian: 1.619E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.23184E-01
+   eval(2)=-4.15181E-01
+   eval(3)=-2.41044E-01
+   eval(4)=-2.40813E-01
+   eval(5)=-1.72623E-01
+   eval(6)=-1.72486E-01
+   eval(7)=-1.57380E-01  <-- last occupied orbital
+   eval(8)= 4.19121E-01  <-- first virtual orbital
+   eval(9)= 4.19529E-01
+   eval(10)= 4.97721E-01
+   eval(11)= 5.02264E-01
+   eval(12)= 5.34938E-01
+   eval(13)= 5.35461E-01
+   eval(14)= 5.49607E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.850E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -506,31 +484,33 @@ time for large loop:  6.0000E-02
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   9.89E-07   -1.39252961943078191E+01    2.4562E+00
+   it, Delta DENS, energy, energyDiff   2   9.89E-07   -1.39252961943078120E+01    2.4562E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.16709577931245     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.57361E-01
- eval(2)=-4.36813E-01
- eval(3)=-2.62621E-01
- eval(4)=-2.62320E-01
- eval(5)=-1.95701E-01
- eval(6)=-1.88229E-01
- eval(7)=-1.88011E-01  <-- last occupied orbital
- eval(8)= 3.93759E-01  <-- first virtual orbital
- eval(9)= 3.94108E-01
- eval(10)= 4.78683E-01
- eval(11)= 4.80363E-01
- eval(12)= 5.01603E-01
- eval(13)= 5.04035E-01
- eval(14)= 5.05607E-01
- time for diagonalizing the Hamiltonian: 1.609E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.57361E-01
+   eval(2)=-4.36813E-01
+   eval(3)=-2.62621E-01
+   eval(4)=-2.62320E-01
+   eval(5)=-1.95701E-01
+   eval(6)=-1.88229E-01
+   eval(7)=-1.88011E-01  <-- last occupied orbital
+   eval(8)= 3.93759E-01  <-- first virtual orbital
+   eval(9)= 3.94108E-01
+   eval(10)= 4.78683E-01
+   eval(11)= 4.80363E-01
+   eval(12)= 5.01603E-01
+   eval(13)= 5.04035E-01
+   eval(14)= 5.05607E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.831E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -550,37 +530,39 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   3   3.53E-07   -1.43905993819603992E+01   -4.6530E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 128 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.30558340027847     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.46482E-01
- eval(2)=-4.27816E-01
- eval(3)=-2.54169E-01
- eval(4)=-2.53831E-01
- eval(5)=-1.82824E-01
- eval(6)=-1.80717E-01
- eval(7)=-1.80474E-01  <-- last occupied orbital
- eval(8)= 4.03117E-01  <-- first virtual orbital
- eval(9)= 4.03478E-01
- eval(10)= 4.87998E-01
- eval(11)= 4.90622E-01
- eval(12)= 5.13918E-01
- eval(13)= 5.15045E-01
- eval(14)= 5.17724E-01
- time for diagonalizing the Hamiltonian: 1.490E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.46482E-01
+   eval(2)=-4.27816E-01
+   eval(3)=-2.54169E-01
+   eval(4)=-2.53831E-01
+   eval(5)=-1.82824E-01
+   eval(6)=-1.80717E-01
+   eval(7)=-1.80474E-01  <-- last occupied orbital
+   eval(8)= 4.03117E-01  <-- first virtual orbital
+   eval(9)= 4.03478E-01
+   eval(10)= 4.87998E-01
+   eval(11)= 4.90622E-01
+   eval(12)= 5.13918E-01
+   eval(13)= 5.15045E-01
+   eval(14)= 5.17724E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.850E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  7.0000E-02
+time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999967601E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 6.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -588,31 +570,33 @@ time for large loop:  7.0000E-02
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.74E-07   -1.42633185927911796E+01    1.2728E-01
+   it, Delta DENS, energy, energyDiff   4   1.74E-07   -1.42633185927911654E+01    1.2728E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.30766481278656     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.46906E-01
- eval(2)=-4.27536E-01
- eval(3)=-2.53984E-01
- eval(4)=-2.53628E-01
- eval(5)=-1.83001E-01
- eval(6)=-1.80188E-01
- eval(7)=-1.79929E-01  <-- last occupied orbital
- eval(8)= 4.03304E-01  <-- first virtual orbital
- eval(9)= 4.03664E-01
- eval(10)= 4.88578E-01
- eval(11)= 4.91033E-01
- eval(12)= 5.13730E-01
- eval(13)= 5.15063E-01
- eval(14)= 5.17466E-01
- time for diagonalizing the Hamiltonian: 1.631E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.46906E-01
+   eval(2)=-4.27536E-01
+   eval(3)=-2.53984E-01
+   eval(4)=-2.53628E-01
+   eval(5)=-1.83001E-01
+   eval(6)=-1.80188E-01
+   eval(7)=-1.79929E-01  <-- last occupied orbital
+   eval(8)= 4.03304E-01  <-- first virtual orbital
+   eval(9)= 4.03664E-01
+   eval(10)= 4.88578E-01
+   eval(11)= 4.91033E-01
+   eval(12)= 5.13730E-01
+   eval(13)= 5.15063E-01
+   eval(14)= 5.17466E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.860E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -629,31 +613,33 @@ time for large loop:  6.0000E-02
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   8.40E-08   -1.42760759713272876E+01   -1.2757E-02
+   it, Delta DENS, energy, energyDiff   5   8.40E-08   -1.42760759713273160E+01   -1.2757E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 128 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.32365568432095     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.45796E-01
- eval(2)=-4.26486E-01
- eval(3)=-2.52986E-01
- eval(4)=-2.52622E-01
- eval(5)=-1.81608E-01
- eval(6)=-1.79207E-01
- eval(7)=-1.78941E-01  <-- last occupied orbital
- eval(8)= 4.04409E-01  <-- first virtual orbital
- eval(9)= 4.04769E-01
- eval(10)= 4.89708E-01
- eval(11)= 4.92246E-01
- eval(12)= 5.15049E-01
- eval(13)= 5.16301E-01
- eval(14)= 5.18824E-01
- time for diagonalizing the Hamiltonian: 1.581E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.45796E-01
+   eval(2)=-4.26486E-01
+   eval(3)=-2.52986E-01
+   eval(4)=-2.52622E-01
+   eval(5)=-1.81608E-01
+   eval(6)=-1.79207E-01
+   eval(7)=-1.78941E-01  <-- last occupied orbital
+   eval(8)= 4.04409E-01  <-- first virtual orbital
+   eval(9)= 4.04769E-01
+   eval(10)= 4.89708E-01
+   eval(11)= 4.92246E-01
+   eval(12)= 5.15049E-01
+   eval(13)= 5.16301E-01
+   eval(14)= 5.18824E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.922E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -670,113 +656,33 @@ time for large loop:  6.0000E-02
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   4.23E-08   -1.42655948754460908E+01    1.0481E-02
+   it, Delta DENS, energy, energyDiff   6   4.23E-08   -1.42655948754460766E+01    1.0481E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.32846263647388     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.45517E-01
- eval(2)=-4.26165E-01
- eval(3)=-2.52678E-01
- eval(4)=-2.52310E-01
- eval(5)=-1.81224E-01
- eval(6)=-1.78870E-01
- eval(7)=-1.78600E-01  <-- last occupied orbital
- eval(8)= 4.04750E-01  <-- first virtual orbital
- eval(9)= 4.05109E-01
- eval(10)= 4.90080E-01
- eval(11)= 4.92623E-01
- eval(12)= 5.15413E-01
- eval(13)= 5.16659E-01
- eval(14)= 5.19197E-01
- time for diagonalizing the Hamiltonian: 1.621E-04
- Calculating charge density...time for kernel:  0.0000E+00
-time for test:  0.0000E+00
-time for allreduce:  0.0000E+00
-time for wait:  0.0000E+00
- statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
-             - 11 copies on the same processor.
-time for large loop:  7.0000E-02
- done. TOTAL CHARGE =   1.399999967594E+01
- time for sumrho: 7.000E-02
- ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
- Posting sends / receives for communicating the potential... done.
- ############################################################################################
- at iteration 7 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   2.11E-08   -1.42639828906103361E+01    1.6120E-03
- ############################################################################################
- ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
-             - 56 copies on the same processor.
- statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
-             - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.33158580501652     
- Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.45313E-01
- eval(2)=-4.25963E-01
- eval(3)=-2.52480E-01
- eval(4)=-2.52110E-01
- eval(5)=-1.80960E-01
- eval(6)=-1.78668E-01
- eval(7)=-1.78396E-01  <-- last occupied orbital
- eval(8)= 4.04969E-01  <-- first virtual orbital
- eval(9)= 4.05329E-01
- eval(10)= 4.90305E-01
- eval(11)= 4.92858E-01
- eval(12)= 5.15664E-01
- eval(13)= 5.16897E-01
- eval(14)= 5.19456E-01
- time for diagonalizing the Hamiltonian: 1.590E-04
- Calculating charge density...time for kernel:  0.0000E+00
-time for test:  0.0000E+00
-time for allreduce:  0.0000E+00
-time for wait:  0.0000E+00
- statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
-             - 11 copies on the same processor.
-time for large loop:  6.0000E-02
- done. TOTAL CHARGE =   1.399999967594E+01
- time for sumrho: 7.000E-02
- ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
- Posting sends / receives for communicating the potential... done.
- ############################################################################################
- at iteration 8 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   1.06E-08   -1.42623666454819684E+01    1.6162E-03
- ############################################################################################
- ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
-             - 56 copies on the same processor.
- statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
-             - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.33299630137453     
- Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.45223E-01
- eval(2)=-4.25872E-01
- eval(3)=-2.52390E-01
- eval(4)=-2.52019E-01
- eval(5)=-1.80842E-01
- eval(6)=-1.78573E-01
- eval(7)=-1.78301E-01  <-- last occupied orbital
- eval(8)= 4.05069E-01  <-- first virtual orbital
- eval(9)= 4.05428E-01
- eval(10)= 4.90407E-01
- eval(11)= 4.92963E-01
- eval(12)= 5.15775E-01
- eval(13)= 5.17004E-01
- eval(14)= 5.19572E-01
- time for diagonalizing the Hamiltonian: 1.590E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.45517E-01
+   eval(2)=-4.26165E-01
+   eval(3)=-2.52678E-01
+   eval(4)=-2.52310E-01
+   eval(5)=-1.81224E-01
+   eval(6)=-1.78870E-01
+   eval(7)=-1.78600E-01  <-- last occupied orbital
+   eval(8)= 4.04750E-01  <-- first virtual orbital
+   eval(9)= 4.05109E-01
+   eval(10)= 4.90080E-01
+   eval(11)= 4.92623E-01
+   eval(12)= 5.15413E-01
+   eval(13)= 5.16659E-01
+   eval(14)= 5.19197E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.929E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -790,98 +696,161 @@ time for large loop:  6.0000E-02
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
+ at iteration 7 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   7   2.11E-08   -1.42639828906103077E+01    1.6120E-03
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
+             - 56 copies on the same processor.
+ statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
+             - 56 copies on the same processor.
+ Hamiltonian application...  done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.45313E-01
+   eval(2)=-4.25963E-01
+   eval(3)=-2.52480E-01
+   eval(4)=-2.52110E-01
+   eval(5)=-1.80960E-01
+   eval(6)=-1.78668E-01
+   eval(7)=-1.78396E-01  <-- last occupied orbital
+   eval(8)= 4.04969E-01  <-- first virtual orbital
+   eval(9)= 4.05329E-01
+   eval(10)= 4.90305E-01
+   eval(11)= 4.92858E-01
+   eval(12)= 5.15664E-01
+   eval(13)= 5.16897E-01
+   eval(14)= 5.19456E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.948E-04
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
+             - 11 copies on the same processor.
+time for large loop:  5.0000E-02
+ done. TOTAL CHARGE =   1.399999967594E+01
+ time for sumrho: 6.000E-02
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 8 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   8   1.06E-08   -1.42623666454819826E+01    1.6162E-03
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
+             - 56 copies on the same processor.
+ statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
+             - 56 copies on the same processor.
+ Hamiltonian application...  done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.45223E-01
+   eval(2)=-4.25872E-01
+   eval(3)=-2.52390E-01
+   eval(4)=-2.52019E-01
+   eval(5)=-1.80842E-01
+   eval(6)=-1.78573E-01
+   eval(7)=-1.78301E-01  <-- last occupied orbital
+   eval(8)= 4.05069E-01  <-- first virtual orbital
+   eval(9)= 4.05428E-01
+   eval(10)= 4.90407E-01
+   eval(11)= 4.92963E-01
+   eval(12)= 5.15775E-01
+   eval(13)= 5.17004E-01
+   eval(14)= 5.19572E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.941E-04
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
+             - 11 copies on the same processor.
+time for large loop:  5.0000E-02
+ done. TOTAL CHARGE =   1.399999967594E+01
+ time for sumrho: 6.000E-02
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   9   5.27E-09   -1.42617311443913550E+01    6.3550E-04
  ############################################################################################
    itout, Delta DENSOUT, energy, energyDiff   1   1.73E-06   -1.42617311443913550E+01   -1.4262E+01
- lowaccur_converged F
  ======================== Creation of the basis functions... ========================
  statistics: - 408 point to point communications, of which 0 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  7.7676519E-02  9.2069820E-02     3.0676819984
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  4.7256542E-02  5.3884018E-02     3.0394307954
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     3  3.7340356E-02  5.0894033E-02     3.0206912471
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  2.4712268E-02  3.0652890E-02     3.0133021424
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     5  1.6315745E-02  2.1935853E-02     3.0103286337
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     6  1.0140613E-02  1.2418933E-02     3.0095816487
  WARNING: not converged within 6 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.0140613E-02  1.2418933E-02   3.0095816
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.233E+00
-     - orthonormalization: 1.357E-01=11.0%
-     - Hamiltonian application: 3.587E-01=29.1%
-     - orthoconstraint: 6.567E-02= 5.3%
-     - preconditioning: 6.264E-01=50.8%
-     - unitary optimization: 1.985E-05= 0.0%
-     - other: 4.668E-02= 3.8%
+   -total time: 1.324E+00
+     - orthonormalization: 1.595E-01=12.0%
+     - Hamiltonian application: 3.974E-01=30.0%
+     - orthoconstraint: 7.841E-02= 5.9%
+     - preconditioning: 6.316E-01=47.7%
+     - unitary optimization: 2.006E-05= 0.0%
+     - other: 5.726E-02= 4.3%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.10110551544870     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.51853E-01
- eval(2)=-4.29313E-01
- eval(3)=-2.55860E-01
- eval(4)=-2.55275E-01
- eval(5)=-1.87137E-01
- eval(6)=-1.78509E-01
- eval(7)=-1.77804E-01  <-- last occupied orbital
- eval(8)= 3.82863E-01  <-- first virtual orbital
- eval(9)= 3.83091E-01
- eval(10)= 4.53418E-01
- eval(11)= 4.57573E-01
- eval(12)= 4.84416E-01
- eval(13)= 4.84871E-01
- eval(14)= 4.90626E-01
- time for diagonalizing the Hamiltonian: 1.640E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.51853E-01
+   eval(2)=-4.29313E-01
+   eval(3)=-2.55860E-01
+   eval(4)=-2.55275E-01
+   eval(5)=-1.87137E-01
+   eval(6)=-1.78509E-01
+   eval(7)=-1.77804E-01  <-- last occupied orbital
+   eval(8)= 3.82863E-01  <-- first virtual orbital
+   eval(9)= 3.83091E-01
+   eval(10)= 4.53418E-01
+   eval(11)= 4.57573E-01
+   eval(12)= 4.84416E-01
+   eval(13)= 4.84871E-01
+   eval(14)= 4.90626E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.950E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -890,7 +859,7 @@ time for wait:  0.0000E+00
              - 11 copies on the same processor.
 time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969518E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 6.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -898,31 +867,33 @@ time for large loop:  6.0000E-02
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.54E-07   -1.42609303534295435E+01    8.0079E-04
+   it, Delta DENS, energy, energyDiff   1   3.54E-07   -1.42609303534295719E+01    8.0079E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.05435840084497     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.55473E-01
- eval(2)=-4.31666E-01
- eval(3)=-2.58733E-01
- eval(4)=-2.58509E-01
- eval(5)=-1.91453E-01
- eval(6)=-1.81365E-01
- eval(7)=-1.81093E-01  <-- last occupied orbital
- eval(8)= 3.79277E-01  <-- first virtual orbital
- eval(9)= 3.79694E-01
- eval(10)= 4.50916E-01
- eval(11)= 4.55111E-01
- eval(12)= 4.80868E-01
- eval(13)= 4.81471E-01
- eval(14)= 4.85313E-01
- time for diagonalizing the Hamiltonian: 1.638E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.55473E-01
+   eval(2)=-4.31666E-01
+   eval(3)=-2.58733E-01
+   eval(4)=-2.58509E-01
+   eval(5)=-1.91453E-01
+   eval(6)=-1.81365E-01
+   eval(7)=-1.81093E-01  <-- last occupied orbital
+   eval(8)= 3.79277E-01  <-- first virtual orbital
+   eval(9)= 3.79694E-01
+   eval(10)= 4.50916E-01
+   eval(11)= 4.55111E-01
+   eval(12)= 4.80868E-01
+   eval(13)= 4.81471E-01
+   eval(14)= 4.85313E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.900E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -942,37 +913,39 @@ time for large loop:  6.0000E-02
    it, Delta DENS, energy, energyDiff   2   1.76E-07   -1.42819352591106821E+01   -2.1005E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.02959925751982     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.57370E-01
- eval(2)=-4.33004E-01
- eval(3)=-2.60317E-01
- eval(4)=-2.60139E-01
- eval(5)=-1.93726E-01
- eval(6)=-1.82904E-01
- eval(7)=-1.82774E-01  <-- last occupied orbital
- eval(8)= 3.77420E-01  <-- first virtual orbital
- eval(9)= 3.77924E-01
- eval(10)= 4.49519E-01
- eval(11)= 4.53721E-01
- eval(12)= 4.78996E-01
- eval(13)= 4.79662E-01
- eval(14)= 4.82594E-01
- time for diagonalizing the Hamiltonian: 1.650E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.57370E-01
+   eval(2)=-4.33004E-01
+   eval(3)=-2.60317E-01
+   eval(4)=-2.60139E-01
+   eval(5)=-1.93726E-01
+   eval(6)=-1.82904E-01
+   eval(7)=-1.82774E-01  <-- last occupied orbital
+   eval(8)= 3.77420E-01  <-- first virtual orbital
+   eval(9)= 3.77924E-01
+   eval(10)= 4.49519E-01
+   eval(11)= 4.53721E-01
+   eval(12)= 4.78996E-01
+   eval(13)= 4.79662E-01
+   eval(14)= 4.82594E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.950E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  7.0000E-02
+time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969519E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 6.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -980,31 +953,33 @@ time for large loop:  7.0000E-02
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   8.80E-08   -1.42942884540503456E+01   -1.2353E-02
+   it, Delta DENS, energy, energyDiff   3   8.80E-08   -1.42942884540503314E+01   -1.2353E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 128 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.01769221850594     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.58260E-01
- eval(2)=-4.33669E-01
- eval(3)=-2.61111E-01
- eval(4)=-2.60886E-01
- eval(5)=-1.94810E-01
- eval(6)=-1.83693E-01
- eval(7)=-1.83549E-01  <-- last occupied orbital
- eval(8)= 3.76530E-01  <-- first virtual orbital
- eval(9)= 3.77077E-01
- eval(10)= 4.48815E-01
- eval(11)= 4.53020E-01
- eval(12)= 4.78101E-01
- eval(13)= 4.78794E-01
- eval(14)= 4.81334E-01
- time for diagonalizing the Hamiltonian: 1.600E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.58260E-01
+   eval(2)=-4.33669E-01
+   eval(3)=-2.61111E-01
+   eval(4)=-2.60886E-01
+   eval(5)=-1.94810E-01
+   eval(6)=-1.83693E-01
+   eval(7)=-1.83549E-01  <-- last occupied orbital
+   eval(8)= 3.76530E-01  <-- first virtual orbital
+   eval(9)= 3.77077E-01
+   eval(10)= 4.48815E-01
+   eval(11)= 4.53020E-01
+   eval(12)= 4.78101E-01
+   eval(13)= 4.78794E-01
+   eval(14)= 4.81334E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.938E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1021,31 +996,33 @@ time for large loop:  6.0000E-02
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   4.39E-08   -1.42999520513905338E+01   -5.6636E-03
+   it, Delta DENS, energy, energyDiff   4   4.39E-08   -1.42999520513905267E+01   -5.6636E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.01166939079499     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.58704E-01
- eval(2)=-4.34016E-01
- eval(3)=-2.61516E-01
- eval(4)=-2.61258E-01
- eval(5)=-1.95356E-01
- eval(6)=-1.84103E-01
- eval(7)=-1.83929E-01  <-- last occupied orbital
- eval(8)= 3.76083E-01  <-- first virtual orbital
- eval(9)= 3.76651E-01
- eval(10)= 4.48448E-01
- eval(11)= 4.52654E-01
- eval(12)= 4.77650E-01
- eval(13)= 4.78355E-01
- eval(14)= 4.80712E-01
- time for diagonalizing the Hamiltonian: 1.659E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.58704E-01
+   eval(2)=-4.34016E-01
+   eval(3)=-2.61516E-01
+   eval(4)=-2.61258E-01
+   eval(5)=-1.95356E-01
+   eval(6)=-1.84103E-01
+   eval(7)=-1.83929E-01  <-- last occupied orbital
+   eval(8)= 3.76083E-01  <-- first virtual orbital
+   eval(9)= 3.76651E-01
+   eval(10)= 4.48448E-01
+   eval(11)= 4.52654E-01
+   eval(12)= 4.77650E-01
+   eval(13)= 4.78355E-01
+   eval(14)= 4.80712E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.960E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1054,7 +1031,7 @@ time for wait:  0.0000E+00
              - 11 copies on the same processor.
 time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969519E+01
- time for sumrho: 6.000E-02
+ time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1062,31 +1039,33 @@ time for large loop:  6.0000E-02
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   2.20E-08   -1.43028838496298931E+01   -2.9318E-03
+   it, Delta DENS, energy, energyDiff   5   2.20E-08   -1.43028838496298789E+01   -2.9318E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 128 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.00868862810515     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.58921E-01
- eval(2)=-4.34192E-01
- eval(3)=-2.61716E-01
- eval(4)=-2.61441E-01
- eval(5)=-1.95626E-01
- eval(6)=-1.84307E-01
- eval(7)=-1.84117E-01  <-- last occupied orbital
- eval(8)= 3.75863E-01  <-- first virtual orbital
- eval(9)= 3.76441E-01
- eval(10)= 4.48262E-01
- eval(11)= 4.52467E-01
- eval(12)= 4.77427E-01
- eval(13)= 4.78138E-01
- eval(14)= 4.80411E-01
- time for diagonalizing the Hamiltonian: 1.581E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.58921E-01
+   eval(2)=-4.34192E-01
+   eval(3)=-2.61716E-01
+   eval(4)=-2.61441E-01
+   eval(5)=-1.95626E-01
+   eval(6)=-1.84307E-01
+   eval(7)=-1.84117E-01  <-- last occupied orbital
+   eval(8)= 3.75863E-01  <-- first virtual orbital
+   eval(9)= 3.76441E-01
+   eval(10)= 4.48262E-01
+   eval(11)= 4.52467E-01
+   eval(12)= 4.77427E-01
+   eval(13)= 4.78138E-01
+   eval(14)= 4.80411E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.941E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1095,7 +1074,7 @@ time for wait:  0.0000E+00
              - 11 copies on the same processor.
 time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969519E+01
- time for sumrho: 6.000E-02
+ time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1103,31 +1082,33 @@ time for large loop:  6.0000E-02
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   1.10E-08   -1.43043183617626113E+01   -1.4345E-03
+   it, Delta DENS, energy, energyDiff   6   1.10E-08   -1.43043183617625829E+01   -1.4345E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.00719568994983     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.59029E-01
- eval(2)=-4.34281E-01
- eval(3)=-2.61817E-01
- eval(4)=-2.61533E-01
- eval(5)=-1.95760E-01
- eval(6)=-1.84410E-01
- eval(7)=-1.84211E-01  <-- last occupied orbital
- eval(8)= 3.75753E-01  <-- first virtual orbital
- eval(9)= 3.76337E-01
- eval(10)= 4.48167E-01
- eval(11)= 4.52372E-01
- eval(12)= 4.77315E-01
- eval(13)= 4.78030E-01
- eval(14)= 4.80262E-01
- time for diagonalizing the Hamiltonian: 1.490E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.59029E-01
+   eval(2)=-4.34281E-01
+   eval(3)=-2.61817E-01
+   eval(4)=-2.61533E-01
+   eval(5)=-1.95760E-01
+   eval(6)=-1.84410E-01
+   eval(7)=-1.84211E-01  <-- last occupied orbital
+   eval(8)= 3.75753E-01  <-- first virtual orbital
+   eval(9)= 3.76337E-01
+   eval(10)= 4.48167E-01
+   eval(11)= 4.52372E-01
+   eval(12)= 4.77315E-01
+   eval(13)= 4.78030E-01
+   eval(14)= 4.80262E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.941E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1144,40 +1125,42 @@ time for large loop:  7.0000E-02
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   5.49E-09   -1.43050405442256334E+01   -7.2218E-04
+   it, Delta DENS, energy, energyDiff   7   5.49E-09   -1.43050405442256903E+01   -7.2218E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.00645152425178     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.59082E-01
- eval(2)=-4.34326E-01
- eval(3)=-2.61867E-01
- eval(4)=-2.61578E-01
- eval(5)=-1.95827E-01
- eval(6)=-1.84462E-01
- eval(7)=-1.84258E-01  <-- last occupied orbital
- eval(8)= 3.75699E-01  <-- first virtual orbital
- eval(9)= 3.76285E-01
- eval(10)= 4.48119E-01
- eval(11)= 4.52324E-01
- eval(12)= 4.77260E-01
- eval(13)= 4.77976E-01
- eval(14)= 4.80189E-01
- time for diagonalizing the Hamiltonian: 1.619E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.59082E-01
+   eval(2)=-4.34326E-01
+   eval(3)=-2.61867E-01
+   eval(4)=-2.61578E-01
+   eval(5)=-1.95827E-01
+   eval(6)=-1.84462E-01
+   eval(7)=-1.84258E-01  <-- last occupied orbital
+   eval(8)= 3.75699E-01  <-- first virtual orbital
+   eval(9)= 3.76285E-01
+   eval(10)= 4.48119E-01
+   eval(11)= 4.52324E-01
+   eval(12)= 4.77260E-01
+   eval(13)= 4.77976E-01
+   eval(14)= 4.80189E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.960E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  6.0000E-02
+time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999969519E+01
- time for sumrho: 6.000E-02
+ time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1185,38 +1168,40 @@ time for large loop:  6.0000E-02
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   2.74E-09   -1.43053995367338516E+01   -3.5899E-04
+   it, Delta DENS, energy, energyDiff   8   2.74E-09   -1.43053995367338374E+01   -3.5899E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.00607951735047     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.59109E-01
- eval(2)=-4.34349E-01
- eval(3)=-2.61892E-01
- eval(4)=-2.61601E-01
- eval(5)=-1.95861E-01
- eval(6)=-1.84487E-01
- eval(7)=-1.84281E-01  <-- last occupied orbital
- eval(8)= 3.75672E-01  <-- first virtual orbital
- eval(9)= 3.76259E-01
- eval(10)= 4.48095E-01
- eval(11)= 4.52300E-01
- eval(12)= 4.77232E-01
- eval(13)= 4.77949E-01
- eval(14)= 4.80153E-01
- time for diagonalizing the Hamiltonian: 1.650E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.59109E-01
+   eval(2)=-4.34349E-01
+   eval(3)=-2.61892E-01
+   eval(4)=-2.61601E-01
+   eval(5)=-1.95861E-01
+   eval(6)=-1.84487E-01
+   eval(7)=-1.84281E-01  <-- last occupied orbital
+   eval(8)= 3.75672E-01  <-- first virtual orbital
+   eval(9)= 3.76259E-01
+   eval(10)= 4.48095E-01
+   eval(11)= 4.52300E-01
+   eval(12)= 4.77232E-01
+   eval(13)= 4.77949E-01
+   eval(14)= 4.80153E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.960E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  6.0000E-02
+time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999969519E+01
  time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
@@ -1226,102 +1211,79 @@ time for large loop:  6.0000E-02
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   1.37E-09   -1.43055791924304145E+01   -1.7966E-04
+   it, Delta DENS, energy, energyDiff   9   1.37E-09   -1.43055791924304501E+01   -1.7966E-04
  ############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   2   3.52E-07   -1.43055791924304145E+01   -4.3848E-02
- lowaccur_converged F
+   itout, Delta DENSOUT, energy, energyDiff   2   3.52E-07   -1.43055791924304501E+01   -4.3848E-02
  ======================== Creation of the basis functions... ========================
  statistics: - 408 point to point communications, of which 0 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  1.1850099E-02  1.4606780E-02     2.9143718739
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  6.9573067E-03  8.8851715E-03     2.9139898093
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     3  3.8745843E-03  4.7034244E-03     2.9138631386
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  2.3989474E-03  3.0104027E-03     2.9138110718
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     5  1.7513623E-03  2.3081618E-03     2.9137963177
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     6  1.5417302E-03  2.1319097E-03     2.9137882940
  WARNING: not converged within 6 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.5417302E-03  2.1319097E-03   2.9137883
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.234E+00
-     - orthonormalization: 1.377E-01=11.2%
-     - Hamiltonian application: 3.584E-01=29.0%
-     - orthoconstraint: 6.568E-02= 5.3%
-     - preconditioning: 6.259E-01=50.7%
-     - unitary optimization: 1.958E-05= 0.0%
-     - other: 4.635E-02= 3.8%
+   -total time: 1.326E+00
+     - orthonormalization: 1.598E-01=12.1%
+     - Hamiltonian application: 3.988E-01=30.1%
+     - orthoconstraint: 7.833E-02= 5.9%
+     - preconditioning: 6.309E-01=47.6%
+     - unitary optimization: 2.021E-05= 0.0%
+     - other: 5.800E-02= 4.4%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.01559435871877     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.58830E-01
- eval(2)=-4.34436E-01
- eval(3)=-2.61940E-01
- eval(4)=-2.61371E-01
- eval(5)=-1.96033E-01
- eval(6)=-1.84958E-01
- eval(7)=-1.84306E-01  <-- last occupied orbital
- eval(8)= 3.77346E-01  <-- first virtual orbital
- eval(9)= 3.77487E-01
- eval(10)= 4.49039E-01
- eval(11)= 4.53230E-01
- eval(12)= 4.79073E-01
- eval(13)= 4.79209E-01
- eval(14)= 4.82086E-01
- time for diagonalizing the Hamiltonian: 1.619E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.58830E-01
+   eval(2)=-4.34436E-01
+   eval(3)=-2.61940E-01
+   eval(4)=-2.61371E-01
+   eval(5)=-1.96033E-01
+   eval(6)=-1.84958E-01
+   eval(7)=-1.84306E-01  <-- last occupied orbital
+   eval(8)= 3.77346E-01  <-- first virtual orbital
+   eval(9)= 3.77487E-01
+   eval(10)= 4.49039E-01
+   eval(11)= 4.53230E-01
+   eval(12)= 4.79073E-01
+   eval(13)= 4.79209E-01
+   eval(14)= 4.82086E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.841E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  7.0000E-02
+time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969154E+01
  time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
@@ -1331,31 +1293,33 @@ time for large loop:  7.0000E-02
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.26E-08   -1.43259625111747866E+01   -2.0383E-02
+   it, Delta DENS, energy, energyDiff   1   5.26E-08   -1.43259625111747795E+01   -2.0383E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 72 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.03530688674035     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.57139E-01
- eval(2)=-4.33142E-01
- eval(3)=-2.60425E-01
- eval(4)=-2.60187E-01
- eval(5)=-1.94258E-01
- eval(6)=-1.83543E-01
- eval(7)=-1.83269E-01  <-- last occupied orbital
- eval(8)= 3.78707E-01  <-- first virtual orbital
- eval(9)= 3.78771E-01
- eval(10)= 4.50121E-01
- eval(11)= 4.54313E-01
- eval(12)= 4.80552E-01
- eval(13)= 4.80623E-01
- eval(14)= 4.84184E-01
- time for diagonalizing the Hamiltonian: 1.619E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.57139E-01
+   eval(2)=-4.33142E-01
+   eval(3)=-2.60425E-01
+   eval(4)=-2.60187E-01
+   eval(5)=-1.94258E-01
+   eval(6)=-1.83543E-01
+   eval(7)=-1.83269E-01  <-- last occupied orbital
+   eval(8)= 3.78707E-01  <-- first virtual orbital
+   eval(9)= 3.78771E-01
+   eval(10)= 4.50121E-01
+   eval(11)= 4.54313E-01
+   eval(12)= 4.80552E-01
+   eval(13)= 4.80623E-01
+   eval(14)= 4.84184E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.841E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1364,7 +1328,7 @@ time for wait:  0.0000E+00
              - 11 copies on the same processor.
 time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969158E+01
- time for sumrho: 6.000E-02
+ time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1372,31 +1336,33 @@ time for large loop:  6.0000E-02
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.91E-08   -1.43095509686579092E+01    1.6412E-02
+   it, Delta DENS, energy, energyDiff   2   2.91E-08   -1.43095509686578737E+01    1.6412E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 128 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.03845397466089     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56912E-01
- eval(2)=-4.32926E-01
- eval(3)=-2.60115E-01
- eval(4)=-2.60005E-01
- eval(5)=-1.94032E-01
- eval(6)=-1.83189E-01
- eval(7)=-1.83077E-01  <-- last occupied orbital
- eval(8)= 3.78909E-01  <-- first virtual orbital
- eval(9)= 3.79028E-01
- eval(10)= 4.50319E-01
- eval(11)= 4.54509E-01
- eval(12)= 4.80741E-01
- eval(13)= 4.80826E-01
- eval(14)= 4.84378E-01
- time for diagonalizing the Hamiltonian: 1.631E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56912E-01
+   eval(2)=-4.32926E-01
+   eval(3)=-2.60115E-01
+   eval(4)=-2.60005E-01
+   eval(5)=-1.94032E-01
+   eval(6)=-1.83189E-01
+   eval(7)=-1.83077E-01  <-- last occupied orbital
+   eval(8)= 3.78909E-01  <-- first virtual orbital
+   eval(9)= 3.79028E-01
+   eval(10)= 4.50319E-01
+   eval(11)= 4.54509E-01
+   eval(12)= 4.80741E-01
+   eval(13)= 4.80826E-01
+   eval(14)= 4.84378E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.829E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1405,7 +1371,7 @@ time for wait:  0.0000E+00
              - 11 copies on the same processor.
 time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969157E+01
- time for sumrho: 6.000E-02
+ time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1413,38 +1379,40 @@ time for large loop:  6.0000E-02
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.37E-08   -1.43093941707107604E+01    1.5680E-04
+   it, Delta DENS, energy, energyDiff   3   1.37E-08   -1.43093941707107390E+01    1.5680E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 128 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.04163158481938     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56655E-01
- eval(2)=-4.32709E-01
- eval(3)=-2.59880E-01
- eval(4)=-2.59789E-01
- eval(5)=-1.93763E-01
- eval(6)=-1.82948E-01
- eval(7)=-1.82882E-01  <-- last occupied orbital
- eval(8)= 3.79110E-01  <-- first virtual orbital
- eval(9)= 3.79259E-01
- eval(10)= 4.50506E-01
- eval(11)= 4.54697E-01
- eval(12)= 4.80955E-01
- eval(13)= 4.81057E-01
- eval(14)= 4.84673E-01
- time for diagonalizing the Hamiltonian: 1.628E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56655E-01
+   eval(2)=-4.32709E-01
+   eval(3)=-2.59880E-01
+   eval(4)=-2.59789E-01
+   eval(5)=-1.93763E-01
+   eval(6)=-1.82948E-01
+   eval(7)=-1.82882E-01  <-- last occupied orbital
+   eval(8)= 3.79110E-01  <-- first virtual orbital
+   eval(9)= 3.79259E-01
+   eval(10)= 4.50506E-01
+   eval(11)= 4.54697E-01
+   eval(12)= 4.80955E-01
+   eval(13)= 4.81057E-01
+   eval(14)= 4.84673E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.831E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  7.0000E-02
+time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969158E+01
  time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
@@ -1454,38 +1422,40 @@ time for large loop:  7.0000E-02
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   7.02E-09   -1.43073896231956823E+01    2.0045E-03
+   it, Delta DENS, energy, energyDiff   4   7.02E-09   -1.43073896231957463E+01    2.0045E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.04283419741744     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56562E-01
- eval(2)=-4.32625E-01
- eval(3)=-2.59798E-01
- eval(4)=-2.59696E-01
- eval(5)=-1.93667E-01
- eval(6)=-1.82861E-01
- eval(7)=-1.82789E-01  <-- last occupied orbital
- eval(8)= 3.79186E-01  <-- first virtual orbital
- eval(9)= 3.79350E-01
- eval(10)= 4.50581E-01
- eval(11)= 4.54772E-01
- eval(12)= 4.81031E-01
- eval(13)= 4.81143E-01
- eval(14)= 4.84769E-01
- time for diagonalizing the Hamiltonian: 1.559E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56562E-01
+   eval(2)=-4.32625E-01
+   eval(3)=-2.59798E-01
+   eval(4)=-2.59696E-01
+   eval(5)=-1.93667E-01
+   eval(6)=-1.82861E-01
+   eval(7)=-1.82789E-01  <-- last occupied orbital
+   eval(8)= 3.79186E-01  <-- first virtual orbital
+   eval(9)= 3.79350E-01
+   eval(10)= 4.50581E-01
+   eval(11)= 4.54772E-01
+   eval(12)= 4.81031E-01
+   eval(13)= 4.81143E-01
+   eval(14)= 4.84769E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.860E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  7.0000E-02
+time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969158E+01
  time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
@@ -1495,31 +1465,33 @@ time for large loop:  7.0000E-02
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   3.47E-09   -1.43068498154491692E+01    5.3981E-04
+   it, Delta DENS, energy, energyDiff   5   3.47E-09   -1.43068498154491337E+01    5.3981E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.04352704565113     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56508E-01
- eval(2)=-4.32576E-01
- eval(3)=-2.59753E-01
- eval(4)=-2.59641E-01
- eval(5)=-1.93610E-01
- eval(6)=-1.82816E-01
- eval(7)=-1.82735E-01  <-- last occupied orbital
- eval(8)= 3.79229E-01  <-- first virtual orbital
- eval(9)= 3.79401E-01
- eval(10)= 4.50624E-01
- eval(11)= 4.54815E-01
- eval(12)= 4.81076E-01
- eval(13)= 4.81194E-01
- eval(14)= 4.84828E-01
- time for diagonalizing the Hamiltonian: 1.612E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56508E-01
+   eval(2)=-4.32576E-01
+   eval(3)=-2.59753E-01
+   eval(4)=-2.59641E-01
+   eval(5)=-1.93610E-01
+   eval(6)=-1.82816E-01
+   eval(7)=-1.82735E-01  <-- last occupied orbital
+   eval(8)= 3.79229E-01  <-- first virtual orbital
+   eval(9)= 3.79401E-01
+   eval(10)= 4.50624E-01
+   eval(11)= 4.54815E-01
+   eval(12)= 4.81076E-01
+   eval(13)= 4.81194E-01
+   eval(14)= 4.84828E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.860E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1528,7 +1500,7 @@ time for wait:  0.0000E+00
              - 11 copies on the same processor.
 time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969158E+01
- time for sumrho: 6.000E-02
+ time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1536,40 +1508,42 @@ time for large loop:  6.0000E-02
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   1.75E-09   -1.43064696740711597E+01    3.8014E-04
+   it, Delta DENS, energy, energyDiff   6   1.75E-09   -1.43064696740711526E+01    3.8014E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.04385111479456     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56483E-01
- eval(2)=-4.32553E-01
- eval(3)=-2.59732E-01
- eval(4)=-2.59615E-01
- eval(5)=-1.93584E-01
- eval(6)=-1.82795E-01
- eval(7)=-1.82708E-01  <-- last occupied orbital
- eval(8)= 3.79250E-01  <-- first virtual orbital
- eval(9)= 3.79425E-01
- eval(10)= 4.50644E-01
- eval(11)= 4.54835E-01
- eval(12)= 4.81097E-01
- eval(13)= 4.81217E-01
- eval(14)= 4.84855E-01
- time for diagonalizing the Hamiltonian: 1.590E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56483E-01
+   eval(2)=-4.32553E-01
+   eval(3)=-2.59732E-01
+   eval(4)=-2.59615E-01
+   eval(5)=-1.93584E-01
+   eval(6)=-1.82795E-01
+   eval(7)=-1.82708E-01  <-- last occupied orbital
+   eval(8)= 3.79250E-01  <-- first virtual orbital
+   eval(9)= 3.79425E-01
+   eval(10)= 4.50644E-01
+   eval(11)= 4.54835E-01
+   eval(12)= 4.81097E-01
+   eval(13)= 4.81217E-01
+   eval(14)= 4.84855E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.841E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  5.0000E-02
+time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969158E+01
- time for sumrho: 6.000E-02
+ time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1577,31 +1551,33 @@ time for large loop:  5.0000E-02
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   8.73E-10   -1.43063062485330121E+01    1.6343E-04
+   it, Delta DENS, energy, energyDiff   7   8.73E-10   -1.43063062485330192E+01    1.6343E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.04401832212933     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56470E-01
- eval(2)=-4.32541E-01
- eval(3)=-2.59722E-01
- eval(4)=-2.59602E-01
- eval(5)=-1.93570E-01
- eval(6)=-1.82784E-01
- eval(7)=-1.82694E-01  <-- last occupied orbital
- eval(8)= 3.79260E-01  <-- first virtual orbital
- eval(9)= 3.79437E-01
- eval(10)= 4.50655E-01
- eval(11)= 4.54846E-01
- eval(12)= 4.81107E-01
- eval(13)= 4.81229E-01
- eval(14)= 4.84868E-01
- time for diagonalizing the Hamiltonian: 1.581E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56470E-01
+   eval(2)=-4.32541E-01
+   eval(3)=-2.59722E-01
+   eval(4)=-2.59602E-01
+   eval(5)=-1.93570E-01
+   eval(6)=-1.82784E-01
+   eval(7)=-1.82694E-01  <-- last occupied orbital
+   eval(8)= 3.79260E-01  <-- first virtual orbital
+   eval(9)= 3.79437E-01
+   eval(10)= 4.50655E-01
+   eval(11)= 4.54846E-01
+   eval(12)= 4.81107E-01
+   eval(13)= 4.81229E-01
+   eval(14)= 4.84868E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.872E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1618,31 +1594,33 @@ time for large loop:  6.0000E-02
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   4.38E-10   -1.43062182551759207E+01    8.7993E-05
+   it, Delta DENS, energy, energyDiff   8   4.38E-10   -1.43062182551759491E+01    8.7993E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 128 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.04410061047093     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56464E-01
- eval(2)=-4.32535E-01
- eval(3)=-2.59716E-01
- eval(4)=-2.59595E-01
- eval(5)=-1.93563E-01
- eval(6)=-1.82779E-01
- eval(7)=-1.82688E-01  <-- last occupied orbital
- eval(8)= 3.79265E-01  <-- first virtual orbital
- eval(9)= 3.79443E-01
- eval(10)= 4.50660E-01
- eval(11)= 4.54851E-01
- eval(12)= 4.81112E-01
- eval(13)= 4.81235E-01
- eval(14)= 4.84875E-01
- time for diagonalizing the Hamiltonian: 1.600E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56464E-01
+   eval(2)=-4.32535E-01
+   eval(3)=-2.59716E-01
+   eval(4)=-2.59595E-01
+   eval(5)=-1.93563E-01
+   eval(6)=-1.82779E-01
+   eval(7)=-1.82688E-01  <-- last occupied orbital
+   eval(8)= 3.79265E-01  <-- first virtual orbital
+   eval(9)= 3.79443E-01
+   eval(10)= 4.50660E-01
+   eval(11)= 4.54851E-01
+   eval(12)= 4.81112E-01
+   eval(13)= 4.81235E-01
+   eval(14)= 4.84875E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.860E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1659,95 +1637,72 @@ time for large loop:  6.0000E-02
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   2.19E-10   -1.43061758054921526E+01    4.2450E-05
+   it, Delta DENS, energy, energyDiff   9   2.19E-10   -1.43061758054921313E+01    4.2450E-05
  ############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   3   5.39E-08   -1.43061758054921526E+01   -5.9661E-04
- lowaccur_converged F
+   itout, Delta DENSOUT, energy, energyDiff   3   5.39E-08   -1.43061758054921313E+01   -5.9661E-04
  ======================== Creation of the basis functions... ========================
  statistics: - 408 point to point communications, of which 0 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  1.9164950E-03  2.5236818E-03     2.9423379724
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  1.5712543E-03  2.1283767E-03     2.9423279588
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     3  1.4824232E-03  2.0572764E-03     2.9423237460
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  1.4154834E-03  2.0459457E-03     2.9423216683
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     5  1.3879588E-03  2.0033767E-03     2.9423209472
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     6  1.3805367E-03  1.9895331E-03     2.9423205899
  WARNING: not converged within 6 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.3805367E-03  1.9895331E-03   2.9423206
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.231E+00
-     - orthonormalization: 1.352E-01=11.0%
-     - Hamiltonian application: 3.592E-01=29.2%
-     - orthoconstraint: 6.536E-02= 5.3%
-     - preconditioning: 6.253E-01=50.8%
-     - unitary optimization: 1.991E-05= 0.0%
-     - other: 4.641E-02= 3.8%
+   -total time: 1.326E+00
+     - orthonormalization: 1.615E-01=12.2%
+     - Hamiltonian application: 3.991E-01=30.1%
+     - orthoconstraint: 7.816E-02= 5.9%
+     - preconditioning: 6.308E-01=47.6%
+     - unitary optimization: 1.925E-05= 0.0%
+     - other: 5.688E-02= 4.3%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.04112269583460     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56538E-01
- eval(2)=-4.32569E-01
- eval(3)=-2.59771E-01
- eval(4)=-2.59626E-01
- eval(5)=-1.93538E-01
- eval(6)=-1.82817E-01
- eval(7)=-1.82689E-01  <-- last occupied orbital
- eval(8)= 3.79020E-01  <-- first virtual orbital
- eval(9)= 3.79127E-01
- eval(10)= 4.50175E-01
- eval(11)= 4.54375E-01
- eval(12)= 4.80704E-01
- eval(13)= 4.80785E-01
- eval(14)= 4.84487E-01
- time for diagonalizing the Hamiltonian: 1.612E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56538E-01
+   eval(2)=-4.32569E-01
+   eval(3)=-2.59771E-01
+   eval(4)=-2.59626E-01
+   eval(5)=-1.93538E-01
+   eval(6)=-1.82817E-01
+   eval(7)=-1.82689E-01  <-- last occupied orbital
+   eval(8)= 3.79020E-01  <-- first virtual orbital
+   eval(9)= 3.79127E-01
+   eval(10)= 4.50175E-01
+   eval(11)= 4.54375E-01
+   eval(12)= 4.80704E-01
+   eval(13)= 4.80785E-01
+   eval(14)= 4.84487E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.929E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1764,40 +1719,42 @@ time for large loop:  6.0000E-02
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   8.60E-09   -1.43039635264385012E+01    2.2123E-03
+   it, Delta DENS, energy, energyDiff   1   8.60E-09   -1.43039635264385367E+01    2.2123E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.03850115173772     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56774E-01
- eval(2)=-4.32719E-01
- eval(3)=-2.59924E-01
- eval(4)=-2.59835E-01
- eval(5)=-1.93780E-01
- eval(6)=-1.82947E-01
- eval(7)=-1.82884E-01  <-- last occupied orbital
- eval(8)= 3.78848E-01  <-- first virtual orbital
- eval(9)= 3.78936E-01
- eval(10)= 4.50049E-01
- eval(11)= 4.54250E-01
- eval(12)= 4.80508E-01
- eval(13)= 4.80593E-01
- eval(14)= 4.84181E-01
- time for diagonalizing the Hamiltonian: 1.619E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56774E-01
+   eval(2)=-4.32719E-01
+   eval(3)=-2.59924E-01
+   eval(4)=-2.59835E-01
+   eval(5)=-1.93780E-01
+   eval(6)=-1.82947E-01
+   eval(7)=-1.82884E-01  <-- last occupied orbital
+   eval(8)= 3.78848E-01  <-- first virtual orbital
+   eval(9)= 3.78936E-01
+   eval(10)= 4.50049E-01
+   eval(11)= 4.54250E-01
+   eval(12)= 4.80508E-01
+   eval(13)= 4.80593E-01
+   eval(14)= 4.84181E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.941E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  5.0000E-02
+time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969197E+01
- time for sumrho: 6.000E-02
+ time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1805,38 +1762,40 @@ time for large loop:  5.0000E-02
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   4.56E-09   -1.43060164254353808E+01   -2.0529E-03
+   it, Delta DENS, energy, energyDiff   2   4.56E-09   -1.43060164254354163E+01   -2.0529E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.03795402395519     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56820E-01
- eval(2)=-4.32747E-01
- eval(3)=-2.59960E-01
- eval(4)=-2.59881E-01
- eval(5)=-1.93826E-01
- eval(6)=-1.82991E-01
- eval(7)=-1.82925E-01  <-- last occupied orbital
- eval(8)= 3.78808E-01  <-- first virtual orbital
- eval(9)= 3.78892E-01
- eval(10)= 4.50022E-01
- eval(11)= 4.54224E-01
- eval(12)= 4.80470E-01
- eval(13)= 4.80559E-01
- eval(14)= 4.84130E-01
- time for diagonalizing the Hamiltonian: 1.612E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56820E-01
+   eval(2)=-4.32747E-01
+   eval(3)=-2.59960E-01
+   eval(4)=-2.59881E-01
+   eval(5)=-1.93826E-01
+   eval(6)=-1.82991E-01
+   eval(7)=-1.82925E-01  <-- last occupied orbital
+   eval(8)= 3.78808E-01  <-- first virtual orbital
+   eval(9)= 3.78892E-01
+   eval(10)= 4.50022E-01
+   eval(11)= 4.54224E-01
+   eval(12)= 4.80470E-01
+   eval(13)= 4.80559E-01
+   eval(14)= 4.84130E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.950E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  5.0000E-02
+time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969197E+01
  time for sumrho: 6.000E-02
  ---------------------------------------------------------------- Updating potential.
@@ -1846,31 +1805,33 @@ time for large loop:  5.0000E-02
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.19E-09   -1.43061290740393829E+01   -1.1265E-04
+   it, Delta DENS, energy, energyDiff   3   2.19E-09   -1.43061290740393616E+01   -1.1265E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.03750031935268     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56858E-01
- eval(2)=-4.32775E-01
- eval(3)=-2.59993E-01
- eval(4)=-2.59912E-01
- eval(5)=-1.93866E-01
- eval(6)=-1.83026E-01
- eval(7)=-1.82951E-01  <-- last occupied orbital
- eval(8)= 3.78777E-01  <-- first virtual orbital
- eval(9)= 3.78860E-01
- eval(10)= 4.49998E-01
- eval(11)= 4.54200E-01
- eval(12)= 4.80436E-01
- eval(13)= 4.80528E-01
- eval(14)= 4.84083E-01
- time for diagonalizing the Hamiltonian: 1.638E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56858E-01
+   eval(2)=-4.32775E-01
+   eval(3)=-2.59993E-01
+   eval(4)=-2.59912E-01
+   eval(5)=-1.93866E-01
+   eval(6)=-1.83026E-01
+   eval(7)=-1.82951E-01  <-- last occupied orbital
+   eval(8)= 3.78777E-01  <-- first virtual orbital
+   eval(9)= 3.78860E-01
+   eval(10)= 4.49998E-01
+   eval(11)= 4.54200E-01
+   eval(12)= 4.80436E-01
+   eval(13)= 4.80528E-01
+   eval(14)= 4.84083E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.950E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1887,31 +1848,33 @@ time for large loop:  6.0000E-02
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.12E-09   -1.43064028475215892E+01   -2.7377E-04
+   it, Delta DENS, energy, energyDiff   4   1.12E-09   -1.43064028475215963E+01   -2.7377E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.03731782845926     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56873E-01
- eval(2)=-4.32786E-01
- eval(3)=-2.60007E-01
- eval(4)=-2.59924E-01
- eval(5)=-1.93881E-01
- eval(6)=-1.83042E-01
- eval(7)=-1.82961E-01  <-- last occupied orbital
- eval(8)= 3.78764E-01  <-- first virtual orbital
- eval(9)= 3.78847E-01
- eval(10)= 4.49988E-01
- eval(11)= 4.54189E-01
- eval(12)= 4.80423E-01
- eval(13)= 4.80516E-01
- eval(14)= 4.84066E-01
- time for diagonalizing the Hamiltonian: 1.650E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56873E-01
+   eval(2)=-4.32786E-01
+   eval(3)=-2.60007E-01
+   eval(4)=-2.59924E-01
+   eval(5)=-1.93881E-01
+   eval(6)=-1.83042E-01
+   eval(7)=-1.82961E-01  <-- last occupied orbital
+   eval(8)= 3.78764E-01  <-- first virtual orbital
+   eval(9)= 3.78847E-01
+   eval(10)= 4.49988E-01
+   eval(11)= 4.54189E-01
+   eval(12)= 4.80423E-01
+   eval(13)= 4.80516E-01
+   eval(14)= 4.84066E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.960E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -1920,7 +1883,7 @@ time for wait:  0.0000E+00
              - 11 copies on the same processor.
 time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969197E+01
- time for sumrho: 6.000E-02
+ time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1928,38 +1891,40 @@ time for large loop:  6.0000E-02
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   5.57E-10   -1.43064869122012510E+01   -8.4065E-05
+   it, Delta DENS, energy, energyDiff   5   5.57E-10   -1.43064869122012439E+01   -8.4065E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.03721638455427     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56881E-01
- eval(2)=-4.32792E-01
- eval(3)=-2.60015E-01
- eval(4)=-2.59931E-01
- eval(5)=-1.93890E-01
- eval(6)=-1.83051E-01
- eval(7)=-1.82967E-01  <-- last occupied orbital
- eval(8)= 3.78757E-01  <-- first virtual orbital
- eval(9)= 3.78840E-01
- eval(10)= 4.49982E-01
- eval(11)= 4.54183E-01
- eval(12)= 4.80416E-01
- eval(13)= 4.80510E-01
- eval(14)= 4.84056E-01
- time for diagonalizing the Hamiltonian: 1.609E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56881E-01
+   eval(2)=-4.32792E-01
+   eval(3)=-2.60015E-01
+   eval(4)=-2.59931E-01
+   eval(5)=-1.93890E-01
+   eval(6)=-1.83051E-01
+   eval(7)=-1.82967E-01  <-- last occupied orbital
+   eval(8)= 3.78757E-01  <-- first virtual orbital
+   eval(9)= 3.78840E-01
+   eval(10)= 4.49982E-01
+   eval(11)= 4.54183E-01
+   eval(12)= 4.80416E-01
+   eval(13)= 4.80510E-01
+   eval(14)= 4.84056E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.941E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  6.0000E-02
+time for large loop:  7.0000E-02
  done. TOTAL CHARGE =   1.399999969197E+01
  time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
@@ -1969,38 +1934,40 @@ time for large loop:  6.0000E-02
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   2.82E-10   -1.43065413595244806E+01   -5.4447E-05
+   it, Delta DENS, energy, energyDiff   6   2.82E-10   -1.43065413595244308E+01   -5.4447E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.03716827935566     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56885E-01
- eval(2)=-4.32795E-01
- eval(3)=-2.60018E-01
- eval(4)=-2.59934E-01
- eval(5)=-1.93894E-01
- eval(6)=-1.83055E-01
- eval(7)=-1.82969E-01  <-- last occupied orbital
- eval(8)= 3.78754E-01  <-- first virtual orbital
- eval(9)= 3.78836E-01
- eval(10)= 4.49979E-01
- eval(11)= 4.54180E-01
- eval(12)= 4.80412E-01
- eval(13)= 4.80507E-01
- eval(14)= 4.84052E-01
- time for diagonalizing the Hamiltonian: 1.640E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56885E-01
+   eval(2)=-4.32795E-01
+   eval(3)=-2.60018E-01
+   eval(4)=-2.59934E-01
+   eval(5)=-1.93894E-01
+   eval(6)=-1.83055E-01
+   eval(7)=-1.82969E-01  <-- last occupied orbital
+   eval(8)= 3.78754E-01  <-- first virtual orbital
+   eval(9)= 3.78836E-01
+   eval(10)= 4.49979E-01
+   eval(11)= 4.54180E-01
+   eval(12)= 4.80412E-01
+   eval(13)= 4.80507E-01
+   eval(14)= 4.84052E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.919E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  5.0000E-02
+time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969197E+01
  time for sumrho: 7.000E-02
  ---------------------------------------------------------------- Updating potential.
@@ -2010,31 +1977,33 @@ time for large loop:  5.0000E-02
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   1.41E-10   -1.43065655070811246E+01   -2.4148E-05
+   it, Delta DENS, energy, energyDiff   7   1.41E-10   -1.43065655070811459E+01   -2.4148E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 128 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.03714366520656     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56887E-01
- eval(2)=-4.32797E-01
- eval(3)=-2.60020E-01
- eval(4)=-2.59935E-01
- eval(5)=-1.93896E-01
- eval(6)=-1.83057E-01
- eval(7)=-1.82971E-01  <-- last occupied orbital
- eval(8)= 3.78752E-01  <-- first virtual orbital
- eval(9)= 3.78834E-01
- eval(10)= 4.49977E-01
- eval(11)= 4.54179E-01
- eval(12)= 4.80410E-01
- eval(13)= 4.80505E-01
- eval(14)= 4.84050E-01
- time for diagonalizing the Hamiltonian: 1.640E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56887E-01
+   eval(2)=-4.32797E-01
+   eval(3)=-2.60020E-01
+   eval(4)=-2.59935E-01
+   eval(5)=-1.93896E-01
+   eval(6)=-1.83057E-01
+   eval(7)=-1.82971E-01  <-- last occupied orbital
+   eval(8)= 3.78752E-01  <-- first virtual orbital
+   eval(9)= 3.78834E-01
+   eval(10)= 4.49977E-01
+   eval(11)= 4.54179E-01
+   eval(12)= 4.80410E-01
+   eval(13)= 4.80505E-01
+   eval(14)= 4.84050E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.869E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -2051,40 +2020,42 @@ time for large loop:  6.0000E-02
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   7.11E-11   -1.43065782807160033E+01   -1.2774E-05
+   it, Delta DENS, energy, energyDiff   8   7.11E-11   -1.43065782807160247E+01   -1.2774E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 80 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 136 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   1.03713151859044     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.56888E-01
- eval(2)=-4.32798E-01
- eval(3)=-2.60021E-01
- eval(4)=-2.59936E-01
- eval(5)=-1.93897E-01
- eval(6)=-1.83058E-01
- eval(7)=-1.82972E-01  <-- last occupied orbital
- eval(8)= 3.78751E-01  <-- first virtual orbital
- eval(9)= 3.78834E-01
- eval(10)= 4.49977E-01
- eval(11)= 4.54178E-01
- eval(12)= 4.80410E-01
- eval(13)= 4.80504E-01
- eval(14)= 4.84049E-01
- time for diagonalizing the Hamiltonian: 3.578E-02
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.56888E-01
+   eval(2)=-4.32798E-01
+   eval(3)=-2.60021E-01
+   eval(4)=-2.59936E-01
+   eval(5)=-1.93897E-01
+   eval(6)=-1.83058E-01
+   eval(7)=-1.82972E-01  <-- last occupied orbital
+   eval(8)= 3.78751E-01  <-- first virtual orbital
+   eval(9)= 3.78834E-01
+   eval(10)= 4.49977E-01
+   eval(11)= 4.54178E-01
+   eval(12)= 4.80410E-01
+   eval(13)= 4.80504E-01
+   eval(14)= 4.84049E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.819E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 77 point to point communications, of which 77 could be overlapped with computation.
              - 11 copies on the same processor.
-time for large loop:  5.0000E-02
+time for large loop:  6.0000E-02
  done. TOTAL CHARGE =   1.399999969197E+01
- time for sumrho: 7.000E-02
+ time for sumrho: 6.000E-02
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2092,104 +2063,65 @@ time for large loop:  5.0000E-02
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   3.57E-11   -1.43065844849142536E+01   -6.2042E-06
+   it, Delta DENS, energy, energyDiff   9   3.57E-11   -1.43065844849142110E+01   -6.2042E-06
  ############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   4   8.67E-09   -1.43065844849142536E+01   -4.0868E-04
- lowaccur_converged T
+   itout, Delta DENSOUT, energy, energyDiff   4   8.67E-09   -1.43065844849142110E+01   -4.0868E-04
  ======================== Creation of the basis functions... ========================
  statistics: - 408 point to point communications, of which 0 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 408 point to point communications, of which 408 could be overlapped with computation.
              - 56 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  1.6914773E-01  1.8932531E-01    -2.0674797788
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  6.2351521E-02  7.5790023E-02    -2.3183607102
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     3  2.1687243E-02  2.7301692E-02    -2.3521503719
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  8.1308012E-03  1.0171017E-02    -2.3540714328
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     5  4.1632160E-03  5.3402959E-03    -2.3542958030
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     6  3.4591644E-03  4.5290100E-03    -2.3540915255
  DIIS informations: history length=5, consecutive failures=1, total failures=1
  ----------------------------------------------------------------------------- iter=7
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           5
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     7  3.5331922E-03  5.0243577E-03    -2.3538479853
  DIIS failed 2 times consecutively. Switch to SD with stepsize 1.000E-04
  Recover the orbitals from iteration 5 which are the best so far.
  steepest descent informations: mean alpha=1.000E-04, consecutive successes=0, DIIS=y
  no improvement of the orbitals, recalculate gradient
  ----------------------------------------------------------------------------- iter=8
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx T           0
-done. Preconditioning... done. 
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     8  3.4591644E-03  4.5290100E-03    -2.3540915255
  steepest descent informations: mean alpha=1.000E-04, consecutive successes=0, DIIS=y
  ----------------------------------------------------------------------------- iter=9
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           0
- trH, trHold  -2.35378700458550       -2.35409152551913     
+ Orthonormalization... Hamiltonian application... Orthoconstraint...  trH, trHol
+ d  -2.35378700458550       -2.35409152551913     
  trace increased; reject orbitals and cycle
  ---------------------------------------------------------------------------- iter=10
- Orthonormalization... 
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint... 
- old version of orthoconstraint
- ldiis%switchSD, ldiis%isx F           0
- trH, trHold  -2.35378698296871       -2.35409152551913     
+ Orthonormalization... Hamiltonian application... Orthoconstraint...  trH, trHol
+ d  -2.35378698296871       -2.35409152551913     
  trace increased; reject orbitals and cycle
  timings:
-   -total time: 1.895E+00
-     - orthonormalization: 1.906E-01=10.1%
-     - Hamiltonian application: 6.709E-01=35.4%
-     - orthoconstraint: 8.770E-02= 4.6%
-     - preconditioning: 8.413E-01=44.4%
-     - unitary optimization: 2.861E-06= 0.0%
-     - other: 1.049E-01= 5.5%
+   -total time: 2.049E+00
+     - orthonormalization: 2.282E-01=11.1%
+     - Hamiltonian application: 7.517E-01=36.7%
+     - orthoconstraint: 1.038E-01= 5.1%
+     - preconditioning: 8.417E-01=41.1%
+     - unitary optimization: 3.368E-06= 0.0%
+     - other: 1.239E-01= 6.0%
  calculating derivative basis functions... statistics: - 24 point to point communications, of which 0 could be overlapped with computation.
              - 32 copies on the same processor.
 done.
@@ -2199,24 +2131,26 @@ done.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   19.0952615149792     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-7.52450E-01
- eval(2)=-5.88505E-01
- eval(3)=-4.29639E-01
- eval(4)=-4.28297E-01
- eval(5)=-3.98580E-01
- eval(6)=-3.15105E-01
- eval(7)=-3.13421E-01  <-- last occupied orbital
- eval(8)= 2.22950E-01  <-- first virtual orbital
- eval(9)= 2.51350E-01
- eval(10)= 2.53402E-01
- eval(11)= 3.22274E-01
- eval(12)= 3.27891E-01
- eval(13)= 3.29908E-01
- eval(14)= 3.37175E-01
- time for diagonalizing the Hamiltonian: 1.217E-03
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-7.52450E-01
+   eval(2)=-5.88505E-01
+   eval(3)=-4.29639E-01
+   eval(4)=-4.28297E-01
+   eval(5)=-3.98580E-01
+   eval(6)=-3.15105E-01
+   eval(7)=-3.13421E-01  <-- last occupied orbital
+   eval(8)= 2.22950E-01  <-- first virtual orbital
+   eval(9)= 2.51350E-01
+   eval(10)= 2.53402E-01
+   eval(11)= 3.22274E-01
+   eval(12)= 3.27891E-01
+   eval(13)= 3.29908E-01
+   eval(14)= 3.37175E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 9.091E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -2225,7 +2159,7 @@ time for wait:  0.0000E+00
              - 42 copies on the same processor.
 time for large loop:  1.0200E+00
  done. TOTAL CHARGE =   1.399999972404E+01
- time for sumrho: 1.030E+00
+ time for sumrho: 1.040E+00
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2234,33 +2168,35 @@ time for large loop:  1.0200E+00
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.67E-06   -1.67612303445919082E+01   -2.4546E+00
+   it, Delta DENS, energy, energyDiff   1   1.67E-06   -1.67612303445919508E+01   -2.4546E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 208 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 160 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   22.5583170549231     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-5.77890E-01
- eval(2)=-4.68731E-01
- eval(3)=-3.11463E-01
- eval(4)=-3.09706E-01
- eval(5)=-2.16834E-01
- eval(6)=-2.15492E-01
- eval(7)=-2.13871E-01  <-- last occupied orbital
- eval(8)= 3.56097E-01  <-- first virtual orbital
- eval(9)= 3.57609E-01
- eval(10)= 4.01984E-01
- eval(11)= 4.15362E-01
- eval(12)= 4.51382E-01
- eval(13)= 4.53082E-01
- eval(14)= 4.63026E-01
- time for diagonalizing the Hamiltonian: 8.590E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.77890E-01
+   eval(2)=-4.68731E-01
+   eval(3)=-3.11463E-01
+   eval(4)=-3.09706E-01
+   eval(5)=-2.16834E-01
+   eval(6)=-2.15492E-01
+   eval(7)=-2.13871E-01  <-- last occupied orbital
+   eval(8)= 3.56097E-01  <-- first virtual orbital
+   eval(9)= 3.57609E-01
+   eval(10)= 4.01984E-01
+   eval(11)= 4.15362E-01
+   eval(12)= 4.51382E-01
+   eval(13)= 4.53082E-01
+   eval(14)= 4.63026E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 8.862E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -2278,40 +2214,42 @@ time for large loop:  1.0300E+00
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.60E-06   -1.36923910741141839E+01    3.0688E+00
+   it, Delta DENS, energy, energyDiff   2   1.60E-06   -1.36923910741141626E+01    3.0688E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 224 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 160 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   20.3153041111702     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-6.82036E-01
- eval(2)=-5.48051E-01
- eval(3)=-3.89241E-01
- eval(4)=-3.87690E-01
- eval(5)=-3.28399E-01
- eval(6)=-2.84628E-01
- eval(7)=-2.82788E-01  <-- last occupied orbital
- eval(8)= 2.79612E-01  <-- first virtual orbital
- eval(9)= 2.81293E-01
- eval(10)= 3.21157E-01
- eval(11)= 3.39429E-01
- eval(12)= 3.54203E-01
- eval(13)= 3.65285E-01
- eval(14)= 3.66832E-01
- time for diagonalizing the Hamiltonian: 8.550E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-6.82036E-01
+   eval(2)=-5.48051E-01
+   eval(3)=-3.89241E-01
+   eval(4)=-3.87690E-01
+   eval(5)=-3.28399E-01
+   eval(6)=-2.84628E-01
+   eval(7)=-2.82788E-01  <-- last occupied orbital
+   eval(8)= 2.79612E-01  <-- first virtual orbital
+   eval(9)= 2.81293E-01
+   eval(10)= 3.21157E-01
+   eval(11)= 3.39429E-01
+   eval(12)= 3.54203E-01
+   eval(13)= 3.65285E-01
+   eval(14)= 3.66832E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 8.829E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 310 point to point communications, of which 310 could be overlapped with computation.
              - 42 copies on the same processor.
-time for large loop:  1.0300E+00
+time for large loop:  1.0200E+00
  done. TOTAL CHARGE =   1.399999973854E+01
  time for sumrho: 1.030E+00
  ---------------------------------------------------------------- Updating potential.
@@ -2322,33 +2260,35 @@ time for large loop:  1.0300E+00
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.34E-07   -1.49272227337298489E+01   -1.2348E+00
+   it, Delta DENS, energy, energyDiff   3   4.34E-07   -1.49272227337298844E+01   -1.2348E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 192 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 160 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   20.4239370709213     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-6.73955E-01
- eval(2)=-5.45415E-01
- eval(3)=-3.85263E-01
- eval(4)=-3.83677E-01
- eval(5)=-3.21025E-01
- eval(6)=-2.82956E-01
- eval(7)=-2.81114E-01  <-- last occupied orbital
- eval(8)= 2.82058E-01  <-- first virtual orbital
- eval(9)= 2.83690E-01
- eval(10)= 3.31524E-01
- eval(11)= 3.39744E-01
- eval(12)= 3.54414E-01
- eval(13)= 3.68496E-01
- eval(14)= 3.70039E-01
- time for diagonalizing the Hamiltonian: 8.650E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-6.73955E-01
+   eval(2)=-5.45415E-01
+   eval(3)=-3.85263E-01
+   eval(4)=-3.83677E-01
+   eval(5)=-3.21025E-01
+   eval(6)=-2.82956E-01
+   eval(7)=-2.81114E-01  <-- last occupied orbital
+   eval(8)= 2.82058E-01  <-- first virtual orbital
+   eval(9)= 2.83690E-01
+   eval(10)= 3.31524E-01
+   eval(11)= 3.39744E-01
+   eval(12)= 3.54414E-01
+   eval(13)= 3.68496E-01
+   eval(14)= 3.70039E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 8.821E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
@@ -2357,7 +2297,7 @@ time for wait:  0.0000E+00
              - 42 copies on the same processor.
 time for large loop:  1.0200E+00
  done. TOTAL CHARGE =   1.399999973862E+01
- time for sumrho: 1.020E+00
+ time for sumrho: 1.040E+00
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2366,42 +2306,44 @@ time for large loop:  1.0200E+00
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.83E-07   -1.48200333558023942E+01    1.0719E-01
+   it, Delta DENS, energy, energyDiff   4   1.83E-07   -1.48200333558023800E+01    1.0719E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 200 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 160 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   20.3354263719896     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-6.77358E-01
- eval(2)=-5.48878E-01
- eval(3)=-3.88483E-01
- eval(4)=-3.86895E-01
- eval(5)=-3.24753E-01
- eval(6)=-2.86428E-01
- eval(7)=-2.84585E-01  <-- last occupied orbital
- eval(8)= 2.78651E-01  <-- first virtual orbital
- eval(9)= 2.80282E-01
- eval(10)= 3.27235E-01
- eval(11)= 3.36444E-01
- eval(12)= 3.51091E-01
- eval(13)= 3.64851E-01
- eval(14)= 3.66393E-01
- time for diagonalizing the Hamiltonian: 8.452E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-6.77358E-01
+   eval(2)=-5.48878E-01
+   eval(3)=-3.88483E-01
+   eval(4)=-3.86895E-01
+   eval(5)=-3.24753E-01
+   eval(6)=-2.86428E-01
+   eval(7)=-2.84585E-01  <-- last occupied orbital
+   eval(8)= 2.78651E-01  <-- first virtual orbital
+   eval(9)= 2.80282E-01
+   eval(10)= 3.27235E-01
+   eval(11)= 3.36444E-01
+   eval(12)= 3.51091E-01
+   eval(13)= 3.64851E-01
+   eval(14)= 3.66393E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 8.781E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 310 point to point communications, of which 310 could be overlapped with computation.
              - 42 copies on the same processor.
-time for large loop:  1.0100E+00
+time for large loop:  1.0300E+00
  done. TOTAL CHARGE =   1.399999973778E+01
- time for sumrho: 1.020E+00
+ time for sumrho: 1.030E+00
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2410,42 +2352,44 @@ time for large loop:  1.0100E+00
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   9.13E-08   -1.48545264090221352E+01   -3.4493E-02
+   it, Delta DENS, energy, energyDiff   5   9.13E-08   -1.48545264090221281E+01   -3.4493E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 192 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 160 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   20.3109423389375     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-6.78112E-01
- eval(2)=-5.49887E-01
- eval(3)=-3.89397E-01
- eval(4)=-3.87804E-01
- eval(5)=-3.25621E-01
- eval(6)=-2.87547E-01
- eval(7)=-2.85704E-01  <-- last occupied orbital
- eval(8)= 2.77595E-01  <-- first virtual orbital
- eval(9)= 2.79224E-01
- eval(10)= 3.26304E-01
- eval(11)= 3.35368E-01
- eval(12)= 3.49996E-01
- eval(13)= 3.63775E-01
- eval(14)= 3.65314E-01
- time for diagonalizing the Hamiltonian: 8.521E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-6.78112E-01
+   eval(2)=-5.49887E-01
+   eval(3)=-3.89397E-01
+   eval(4)=-3.87804E-01
+   eval(5)=-3.25621E-01
+   eval(6)=-2.87547E-01
+   eval(7)=-2.85704E-01  <-- last occupied orbital
+   eval(8)= 2.77595E-01  <-- first virtual orbital
+   eval(9)= 2.79224E-01
+   eval(10)= 3.26304E-01
+   eval(11)= 3.35368E-01
+   eval(12)= 3.49996E-01
+   eval(13)= 3.63775E-01
+   eval(14)= 3.65314E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 8.779E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 310 point to point communications, of which 310 could be overlapped with computation.
              - 42 copies on the same processor.
-time for large loop:  1.0100E+00
+time for large loop:  1.0200E+00
  done. TOTAL CHARGE =   1.399999973749E+01
- time for sumrho: 1.020E+00
+ time for sumrho: 1.030E+00
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2454,42 +2398,44 @@ time for large loop:  1.0100E+00
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   4.47E-08   -1.48601285860658834E+01   -5.6022E-03
+   it, Delta DENS, energy, energyDiff   6   4.47E-08   -1.48601285860658905E+01   -5.6022E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 200 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 160 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   20.2967672359877     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-6.78603E-01
- eval(2)=-5.50448E-01
- eval(3)=-3.89929E-01
- eval(4)=-3.88334E-01
- eval(5)=-3.26164E-01
- eval(6)=-2.88161E-01
- eval(7)=-2.86318E-01  <-- last occupied orbital
- eval(8)= 2.77006E-01  <-- first virtual orbital
- eval(9)= 2.78634E-01
- eval(10)= 3.25698E-01
- eval(11)= 3.34795E-01
- eval(12)= 3.49416E-01
- eval(13)= 3.63168E-01
- eval(14)= 3.64707E-01
- time for diagonalizing the Hamiltonian: 8.609E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-6.78603E-01
+   eval(2)=-5.50448E-01
+   eval(3)=-3.89929E-01
+   eval(4)=-3.88334E-01
+   eval(5)=-3.26164E-01
+   eval(6)=-2.88161E-01
+   eval(7)=-2.86318E-01  <-- last occupied orbital
+   eval(8)= 2.77006E-01  <-- first virtual orbital
+   eval(9)= 2.78634E-01
+   eval(10)= 3.25698E-01
+   eval(11)= 3.34795E-01
+   eval(12)= 3.49416E-01
+   eval(13)= 3.63168E-01
+   eval(14)= 3.64707E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 8.838E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 310 point to point communications, of which 310 could be overlapped with computation.
              - 42 copies on the same processor.
-time for large loop:  1.0200E+00
+time for large loop:  1.0300E+00
  done. TOTAL CHARGE =   1.399999973733E+01
- time for sumrho: 1.020E+00
+ time for sumrho: 1.030E+00
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2501,39 +2447,41 @@ time for large loop:  1.0200E+00
    it, Delta DENS, energy, energyDiff   7   2.21E-08   -1.48642214309321758E+01   -4.0928E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 192 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 160 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   20.2900999759347     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-6.78834E-01
- eval(2)=-5.50710E-01
- eval(3)=-3.90182E-01
- eval(4)=-3.88586E-01
- eval(5)=-3.26417E-01
- eval(6)=-2.88453E-01
- eval(7)=-2.86611E-01  <-- last occupied orbital
- eval(8)= 2.76725E-01  <-- first virtual orbital
- eval(9)= 2.78353E-01
- eval(10)= 3.25417E-01
- eval(11)= 3.34525E-01
- eval(12)= 3.49143E-01
- eval(13)= 3.62882E-01
- eval(14)= 3.64420E-01
- time for diagonalizing the Hamiltonian: 8.531E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-6.78834E-01
+   eval(2)=-5.50710E-01
+   eval(3)=-3.90182E-01
+   eval(4)=-3.88586E-01
+   eval(5)=-3.26417E-01
+   eval(6)=-2.88453E-01
+   eval(7)=-2.86611E-01  <-- last occupied orbital
+   eval(8)= 2.76725E-01  <-- first virtual orbital
+   eval(9)= 2.78353E-01
+   eval(10)= 3.25417E-01
+   eval(11)= 3.34525E-01
+   eval(12)= 3.49143E-01
+   eval(13)= 3.62882E-01
+   eval(14)= 3.64420E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 8.850E-04
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 310 point to point communications, of which 310 could be overlapped with computation.
              - 42 copies on the same processor.
-time for large loop:  1.0100E+00
+time for large loop:  1.0300E+00
  done. TOTAL CHARGE =   1.399999973726E+01
- time for sumrho: 1.020E+00
+ time for sumrho: 1.030E+00
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2542,42 +2490,44 @@ time for large loop:  1.0100E+00
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   1.09E-08   -1.48660596743050846E+01   -1.8382E-03
+   it, Delta DENS, energy, energyDiff   8   1.09E-08   -1.48660596743050206E+01   -1.8382E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 408 point to point communications, of which 192 could be overlapped with computation.
+ statistics: - 408 point to point communications, of which 160 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
  statistics: - 416 point to point communications, of which 416 could be overlapped with computation.
              - 56 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- trace of H without confinement:   20.2867845704081     
+ Hamiltonian application...  done.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-6.78951E-01
- eval(2)=-5.50840E-01
- eval(3)=-3.90308E-01
- eval(4)=-3.88712E-01
- eval(5)=-3.26544E-01
- eval(6)=-2.88598E-01
- eval(7)=-2.86756E-01  <-- last occupied orbital
- eval(8)= 2.76586E-01  <-- first virtual orbital
- eval(9)= 2.78214E-01
- eval(10)= 3.25276E-01
- eval(11)= 3.34392E-01
- eval(12)= 3.49008E-01
- eval(13)= 3.62741E-01
- eval(14)= 3.64278E-01
- time for diagonalizing the Hamiltonian: 8.540E-04
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-6.78951E-01
+   eval(2)=-5.50840E-01
+   eval(3)=-3.90308E-01
+   eval(4)=-3.88712E-01
+   eval(5)=-3.26544E-01
+   eval(6)=-2.88598E-01
+   eval(7)=-2.86756E-01  <-- last occupied orbital
+   eval(8)= 2.76586E-01  <-- first virtual orbital
+   eval(9)= 2.78214E-01
+   eval(10)= 3.25276E-01
+   eval(11)= 3.34392E-01
+   eval(12)= 3.49008E-01
+   eval(13)= 3.62741E-01
+   eval(14)= 3.64278E-01
+ -------------------------------------------------
+ time for diagonalizing the Hamiltonian: 1.420E-03
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 310 point to point communications, of which 310 could be overlapped with computation.
              - 42 copies on the same processor.
-time for large loop:  1.0100E+00
+time for large loop:  1.0200E+00
  done. TOTAL CHARGE =   1.399999973722E+01
- time for sumrho: 1.020E+00
+ time for sumrho: 1.030E+00
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -2586,25 +2536,25 @@ time for large loop:  1.0100E+00
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   5.41E-09   -1.48669874022358570E+01   -9.2773E-04
+   it, Delta DENS, energy, energyDiff   9   5.41E-09   -1.48669874022358357E+01   -9.2773E-04
  ############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   5   1.45E-06   -1.48669874022358570E+01   -5.6040E-01
+   itout, Delta DENSOUT, energy, energyDiff   5   1.45E-06   -1.48669874022358357E+01   -5.6040E-01
  Posting sends / receives for the calculation of the charge density... done.
- Calculating charge density...time for kernel:  2.0000E-02
+ Calculating charge density...time for kernel:  0.0000E+00
 time for test:  1.0000E-02
-time for allreduce:  0.0000E+00
+time for allreduce:  1.0000E-02
 time for wait:  0.0000E+00
- statistics: - 310 point to point communications, of which 125 could be overlapped with computation.
+ statistics: - 310 point to point communications, of which 145 could be overlapped with computation.
              - 42 copies on the same processor.
 time for large loop:  1.0200E+00
  done. TOTAL CHARGE =   1.399999973722E+01
  ------------------------------------- Building linear combinations... done.
  ================================================
- total time for linear scaling version: 3.110E+01s
+ total time for linear scaling version: 3.235E+01s
    of which:
-             - initialization: 3.697E-01s ( 1.2%)
-             - input guess: 1.053E+00s ( 3.4%)
-             - self consistency cycle: 2.845E+01s (91.5%)
+             - initialization: 3.728E-01s ( 1.2%)
+             - input guess: 1.146E+00s ( 3.5%)
+             - self consistency cycle: 2.959E+01s (91.5%)
              - forces: 0.000E+00s ( 0.0%)
  ================================================
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -2614,24 +2564,24 @@ time for large loop:  1.0200E+00
  average noise along y direction:   7.59437668E-03
  average noise along z direction:   8.19360770E-04
  total average noise            :   1.39862018E-02
- clean forces norm (Ha/Bohr): maxval=  2.041097697823E-02  fnrm2=  7.166579041742E-04
- raw forces:                  maxval=  2.531306107524E-02  fnrm2=  9.191165880993E-04
+ clean forces norm (Ha/Bohr): maxval=  2.041097697823E-02  fnrm2=  7.166579041743E-04
+ raw forces:                  maxval=  2.531306107524E-02  fnrm2=  9.191165880994E-04
  Force values for all atoms in x, y, z direction.
    1      C  -1.5797129014E-02  1.2872340946E-02 -1.1668481954E-03
    2      C  -1.7676698791E-03 -2.2302195600E-03  1.4345223357E-03
-   3      H  -2.3998973349E-03 -5.6895054806E-03 -4.5179016084E-04
+   3      H  -2.3998973349E-03 -5.6895054806E-03 -4.5179016085E-04
    4      H   1.1276239547E-03  3.2279898461E-03  6.2139903381E-03
    5      H   6.1085467716E-04  2.3909702262E-03 -6.7676145802E-03
-   6      H   6.0080684612E-03 -3.4072506822E-03  7.7273981496E-04
+   6      H   6.0080684612E-03 -3.4072506822E-03  7.7273981497E-04
    7      H   6.6892887422E-03 -3.7262835119E-03 -1.5827383227E-04
    8      H   5.5288603924E-03 -3.4380417833E-03  1.2327427990E-04
  ================================================
- total time for linear scaling version: 3.118E+01s
+ total time for linear scaling version: 3.242E+01s
    of which:
-             - initialization: 3.697E-01s ( 1.2%)
-             - input guess: 1.053E+00s ( 3.4%)
-             - self consistency cycle: 2.845E+01s (91.3%)
-             - forces: 9.629E-02s ( 0.3%)
+             - initialization: 3.728E-01s ( 1.1%)
+             - input guess: 1.146E+00s ( 3.5%)
+             - self consistency cycle: 2.959E+01s (91.3%)
+             - forces: 9.703E-02s ( 0.3%)
  ================================================
  Final values of the Forces for each atom
      1      C -1.57971E-02  1.28723E-02 -1.16685E-03
@@ -2643,6 +2593,6 @@ time for large loop:  1.0200E+00
      7      H  6.68929E-03 -3.72628E-03 -1.58274E-04
      8      H  5.52886E-03 -3.43804E-03  1.23274E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 31761 allocations and 31761 deallocations, remaining memory(B): 0
+ 31722 allocations and 31722 deallocations, remaining memory(B): 0
  memory occupation peak: 119 MB
  for the array  ovrlp2 in the routine applyOrthoconstraintNonorthogonal2

@@ -220,7 +220,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   allocate(lhphi(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
-  if(iproc==0) write(*,'(1x,a)',advance='no') 'Hamiltonian application...'
+  !if(iproc==0) write(*,'(1x,a)',advance='no') 'Hamiltonian application...'
   allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
   call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
   lzd%doHamAppl=.true.
@@ -255,7 +255,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   deallocate(lpot, stat=istat)
   call memocc(istat, iall, 'lpot', subname)
 
-  if(iproc==0) write(*,'(1x,a)') 'done.'
+  if(iproc==0) write(*,'(1x,a)') ' done.'
 
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(comgp, subname)
@@ -292,11 +292,11 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   !!    end do
   !!end do
 
-  tt=0.d0
-  do iall=1,llborbs%norb
-       tt=tt+matrixElements(iall,iall,1)
-  end do
-  if(iproc==0) write(*,*) 'trace of H without confinement:',tt
+  !!tt=0.d0
+  !!do iall=1,llborbs%norb
+  !!     tt=tt+matrixElements(iall,iall,1)
+  !!end do
+  !!if(iproc==0) write(*,*) 'trace of H without confinement:',tt
 
 
   allocate(overlapmatrix(llborbs%norb,llborbs%norb), stat=istat)
@@ -325,15 +325,18 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
   ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
   if(iproc==0) then
+      write(*,'(1x,a)') '-------------------------------------------------'
+      write(*,'(1x,a)') 'some selected eigenvalues:'
       do iorb=max(orbs%norb-8,1),min(orbs%norb+8,lorbs%norb)
           if(iorb==orbs%norb) then
-              write(*,'(1x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
+              write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
           else if(iorb==orbs%norb+1) then
-              write(*,'(1x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- first virtual orbital'
+              write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- first virtual orbital'
           else
-              write(*,'(1x,a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
+              write(*,'(3x,a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
           end if
       end do
+      write(*,'(1x,a)') '-------------------------------------------------'
   end if
   t2=mpi_wtime()
   time=t2-t1
@@ -573,7 +576,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
       ! will be the usual case), the orthogonalization can not be done exactly, but only approximately.
       if(iproc==0) then
-          write(*,'(1x,a)') 'Orthonormalization... '
+          write(*,'(1x,a)',advance='no') 'Orthonormalization...'
       end if
       t1=mpi_wtime()
       if(.not.ldiis%switchSD) call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, &
@@ -602,9 +605,9 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
   
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      if(iproc==0) then
-          write(*,'(1x,a)', advance='no') 'Hamiltonian application... '
-      end if
+      !if(iproc==0) then
+      !    write(*,'(1x,a)', advance='no') 'Hamiltonian application... '
+      !end if
       t1=mpi_wtime()
       !withConfinement=.false.
       withConfinement=.true.
@@ -660,15 +663,15 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
 
       time(2)=time(2)+t2-t1
-      if(iproc==0) then
-          write(*,'(a)', advance='no') 'done. '
-      end if
+      !if(iproc==0) then
+      !    write(*,'(a)', advance='no') 'done. '
+      !end if
 
 
   
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
-          write(*,'(a)', advance='no') 'Orthoconstraint... '
+          write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
       !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
 
@@ -713,7 +716,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
 
       ! Cycle if the trace increased (steepest descent only)
-      if(iproc==0) write(*,*) 'ldiis%switchSD, ldiis%isx', ldiis%switchSD, ldiis%isx
+      !if(iproc==0) write(*,*) 'ldiis%switchSD, ldiis%isx', ldiis%switchSD, ldiis%isx
       if(.not. ldiis%switchSD .and. ldiis%isx==0) then
            if(iproc==0) write(*,*) 'trH, trHold', trH, trHold
            !if(trH>trHold) then
@@ -761,9 +764,9 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
       t2=mpi_wtime()
       time(3)=time(3)+t2-t1
-      if(iproc==0) then
-          write(*,'(a)', advance='no') 'done. '
-      end if
+      !if(iproc==0) then
+      !    write(*,'(a)', advance='no') 'done. '
+      !end if
       !!if(iproc==0) write(*,*) 'trH',trH
 
 
@@ -816,14 +819,14 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
       ! Precondition the gradient.
       if(iproc==0) then
-          write(*,'(a)', advance='no') 'Preconditioning... '
+          !write(*,'(a)', advance='no') 'Preconditioning... '
+          write(*,'(a)') 'Preconditioning.'
       end if
       gnrm=1.d3 ; gnrm_zero=1.d3
       t1=mpi_wtime()
 
       ind2=1
       do iorb=1,lorbs%norbp
-          !ilr = lorbs%inWhichLocregp(iorb)
           iiorb=lorbs%isorb+iorb
           ilr = lorbs%inWhichLocreg(iiorb)
           call choosePreconditioner2(iproc, nproc, lorbs, lin, lzd%Llr(ilr), input%hx, input%hy, input%hz, &
@@ -834,9 +837,9 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       !call preconditionall(iproc, nproc, lorbs, lzd%glr, input%hx, input%hy, input%hz, lin%nItPrecond, lhphi, tt, tt2)
       t2=mpi_wtime()
       time(4)=time(4)+t2-t1
-      if(iproc==0) then
-          write(*,'(a)') 'done. '
-      end if
+      !if(iproc==0) then
+      !    write(*,'(a)') 'done. '
+      !end if
 
 
       !!!! plot the orbitals -- EXPERIMENTAL ##################################################

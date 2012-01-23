@@ -213,7 +213,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
 
   t1=mpi_wtime()
 
-  if(iproc==0) write(*,*) 'old version of orthoconstraint'
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%orbs, &
        lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lagmat, ovrlp, lphiovrlp, mad, lhphi)
 

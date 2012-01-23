@@ -647,7 +647,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
               lin%lig%lzdig%doHamAppl(jlr)=.false.
           end if
       end do
-      if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
+      if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'atom ', iat, '... '
       if(.not.skip(iat)) then
           ii=ii+1
           if(lin%nItInguess>0) then
@@ -665,11 +665,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   proj,lin%lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
              deallocate(confdatarr)
           end if
-
       else
+          if(iproc==0) write(*,'(3x,a)', advance='no') 'no Hamiltonian application required... '
       end if
-
-
       if(iproc==0) write(*,'(a)') 'done.'
   end do
 
