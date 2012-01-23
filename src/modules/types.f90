@@ -713,11 +713,14 @@ end type workarrays_quartic_convolutions
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItPrecond
     integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
-    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist_lowaccuracy, mixHist_highaccuracy
+    integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
+    integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
+    integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
-    real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed
-    real(kind=8) :: alphaMixWhenOptimizing, convCritMix
+    real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
+    real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy, convCritMix
     real(8):: lowaccuray_converged
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold
     real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy

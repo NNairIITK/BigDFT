@@ -494,8 +494,10 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   read(99,*) lin%correctionOrthoconstraint
   !read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
-  read(99,*) lin%mixHist, lin%nItSCCWhenOptimizing, lin%nItSCCWhenFixed
-  read(99,*) lin%alphaMixWhenOptimizing, lin%alphaMixWhenFixed, lin%convCritMix
+  read(99,*) lin%mixHist_lowaccuracy, lin%nItSCCWhenOptimizing_lowaccuracy, lin%nItSCCWhenFixed_lowaccuracy
+  read(99,*) lin%mixHist_highaccuracy, lin%nItSCCWhenOptimizing_highaccuracy, lin%nItSCCWhenFixed_highaccuracy
+  read(99,*) lin%alphaMixWhenOptimizing_lowaccuracy, lin%alphaMixWhenFixed_lowaccuracy, lin%convCritMix
+  read(99,*) lin%alphaMixWhenOptimizing_highaccuracy, lin%alphaMixWhenFixed_highaccuracy
   read(99,*) lin%lowaccuray_converged
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess, lin%memoryForCommunOverlapIG
@@ -604,16 +606,16 @@ write(*,'(4x,a)') '| mixing | mixing | iterations in |   alpha mix   | convergen
 & factor for  |  minimal  |  pot diff to   |'
 write(*,'(4x,a)') '| scheme | method |  in SC cycle  | optim / fixed |    for mixing     | in outer loop | &
 &fixing basis | fix basis | exit outer SCC |'
-if(lin%mixHist==0) then
+if(lin%mixHist_lowaccuracy==0) then
     message1=' linear '
 else
-    write(hist,'(i2)') lin%mixHist
+    write(hist,'(i2)') lin%mixHist_lowaccuracy
     message1=' DIIS'//hist//' '
 end if
 write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es9.2,a,es9.2,a,es9.2,a)') '| ', &
      lin%mixingMethod, '  |', message1, ' | ', repeat(' ', optimalLength(4, lin%nItSCCWhenOptimizing)), &
      lin%nItSCCWhenOptimizing, '   /', repeat(' ', optimalLength(3, lin%nItSCCWhenFixed)), lin%nItSCCWhenFixed, &
-     '   |', lin%alphaMixWhenOptimizing, ' /', lin%alphaMixWhenOptimizing, ' |    ',&
+     '   |', lin%alphaMixWhenOptimizing_lowaccuracy, ' /', lin%alphaMixWhenOptimizing_highaccuracy, ' |    ',&
      lin%convCritMix, ' |', repeat(' ', optimalLength(9, 1)), &
      1, '      |   ', -1.d0, '   | ', -1.d0, ' |   ',&
      -1.d0, '    |'

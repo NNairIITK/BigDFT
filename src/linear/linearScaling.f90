@@ -99,7 +99,7 @@ real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
-integer :: jproc,iat,j, nit_highaccuracy
+integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing
 real(8),dimension(:,:),pointer:: coeff
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix
 character(len=*),parameter:: subname='linearScaling'
@@ -173,9 +173,9 @@ real(8),dimension(:,:),allocatable:: coeff_proj
   t1scc=mpi_wtime()
 
   ! Initialize the DIIS mixing of the potential if required.
-  if(lin%mixHist>0) then
+  if(lin%mixHist_lowaccuracy>0) then
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-      call initializeMixrhopotDIIS(lin%mixHist, ndimpot, mixdiis)
+      call initializeMixrhopotDIIS(lin%mixHist_lowaccuracy, ndimpot, mixdiis)
   end if
 
   if(lin%nItInguess>0) then
@@ -248,14 +248,15 @@ real(8),dimension(:,:),allocatable:: coeff_proj
 
 
       if(trim(lin%mixingMethod)=='pot') then
-          if(lin%mixHist==0) then
-              call mixPotential(iproc, n3p, Glr, input, lin%alphaMixWhenFixed, rhopotOld, rhopot, pnrm)
+          if(lin%mixHist_lowaccuracy==0) then
+              call mixPotential(iproc, n3p, Glr, input, lin%alphaMixWhenFixed_lowaccuracy, rhopotOld, rhopot, pnrm)
           else 
               ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
               ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
               mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
               mixdiis%is=mixdiis%is+1
-              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMixWhenFixed, 2, pnrm)
+              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, &
+                   lin%alphaMixWhenFixed_lowaccuracy, 2, pnrm)
           end if
           rhopotold_out=rhopot
       end if
@@ -338,8 +339,23 @@ real(8),dimension(:,:),allocatable:: coeff_proj
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
 
       ! Optimize the basis functions and them mix the density / potential to reach self consistency.
+      if(lowaccur_converged) then
+          nitSCC=lin%nitSCCWhenOptimizing_lowaccuracy+lin%nitSCCWhenFixed_lowaccuracy
+          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_lowaccuracy
+          mixHist=lin%mixHist_lowaccuracy
+          if(lin%mixHist_lowaccuracy==0 .and. lin%mixHist_highaccuracy>0) then
+              ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+              call initializeMixrhopotDIIS(lin%mixHist_highaccuracy, ndimpot, mixdiis)
+          else if(lin%mixHist_lowaccuracy>0 .and. lin%mixHist_highaccuracy==0) then
+              call deallocateMixrhopotDIIS(mixdiis)
+          end if
+      else
+          nitSCC=lin%nitSCCWhenOptimizing_highaccuracy+lin%nitSCCWhenFixed_highaccuracy
+          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_highaccuracy
+          mixHist=lin%mixHist_highaccuracy
+      end if
       do itSCC=1,nitSCC
-          if(itSCC>lin%nitSCCWhenOptimizing) updatePhi=.false.
+          if(itSCC>nitSCCWhenOptimizing) updatePhi=.false.
           if(itSCC==1) then
               communicate_lphi=.true.
           else
@@ -395,11 +411,19 @@ real(8),dimension(:,:),allocatable:: coeff_proj
           ! Mix the density.
           if(trim(lin%mixingMethod)=='dens') then
               if(updatePhi) then
-                  alphaMix=lin%alphaMixWhenOptimizing
+                  if(lowaccur_converged) then
+                      alphaMix=lin%alphaMixWhenOptimizing_highaccuracy
+                  else
+                      alphaMix=lin%alphaMixWhenOptimizing_lowaccuracy
+                  end if
               else
-                  alphaMix=lin%alphaMixWhenFixed
+                  if(lowaccur_converged) then
+                      alphaMix=lin%alphaMixWhenFixed_highaccuracy
+                  else
+                      alphaMix=lin%alphaMixWhenFixed_lowaccuracy
+                  end if
               end if
-              if(lin%mixHist==0) then
+              if(mixHist==0) then
                   call mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
               else 
                   ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -440,11 +464,19 @@ real(8),dimension(:,:),allocatable:: coeff_proj
           ! Mix the potential
           if(trim(lin%mixingMethod)=='pot') then
               if(updatePhi) then
-                  alphaMix=lin%alphaMixWhenOptimizing
+                  if(lowaccur_converged) then
+                      alphaMix=lin%alphaMixWhenOptimizing_highaccuracy
+                  else
+                      alphaMix=lin%alphaMixWhenOptimizing_lowaccuracy
+                  end if
               else
-                  alphaMix=lin%alphaMixWhenFixed
+                  if(lowaccur_converged) then
+                      alphaMix=lin%alphaMixWhenFixed_highaccuracy
+                  else
+                      alphaMix=lin%alphaMixWhenFixed_lowaccuracy
+                  end if
               end if
-              if(lin%mixHist==0) then
+              if(mixHist==0) then
                   call mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
               else 
                   ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -517,7 +549,7 @@ real(8),dimension(:,:),allocatable:: coeff_proj
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
 
-  if(lin%mixHist>0) then
+  if(lin%mixHist_highaccuracy>0) then
       call deallocateMixrhopotDIIS(mixdiis)
   end if
 
