@@ -1,7 +1,7 @@
-5  1  5.d-3            iterations with low accuracy, high accuracy ; factor for reducing the potential prefactor
+5  1                   iterations with low accuracy, high accuracy
 6  10                  iterations to optimize the basis functions for low accuracy and high accuracy
 0   4.d-5              iterations in the inner loop, convergence criterion
-0  5  1.d0  1.d-4      DIISHistMin, DIISHistMax, stepa size for DIIS, step size for SD
+0  5  1.d0  1.d-4      DIISHistMin, DIISHistMax, step size for DIIS, step size for SD
 5                      number of iterations in the preconditioner
 s                      cubic ('c') or spheric ('s') localization region
 -8   -8                block size for pdsyev/pdsygv, pdgemm (negative -> sequential)

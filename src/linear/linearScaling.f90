@@ -105,7 +105,6 @@ real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
 logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder
-logical:: onemoreiteration
 real(8),dimension(:),pointer:: lphi
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
@@ -306,7 +305,6 @@ real(8),dimension(:,:),allocatable:: coeff_proj
   !lin%useDerivativeBasisFunctions=.false.
 
   lowaccur_converged=.false.
-  onemoreiteration=.false.
 
   outerLoop: do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
 
@@ -314,9 +312,6 @@ real(8),dimension(:,:),allocatable:: coeff_proj
 
       selfConsistent=lin%convCritMix
 
-      ! This means that the convergence was reached in the last iteration, but another iteration was added
-      ! with the derivatives,
-      if(onemoreiteration) lowaccur_converged=.true.
 
       if(lin%mixedmode) then
           !!if( (.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy .or. pnrm_out<lin%lowaccuray_converged) ) &
@@ -324,16 +319,12 @@ real(8),dimension(:,:),allocatable:: coeff_proj
           if( (.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged) ) &
               .or. lowaccur_converged ) then
               withder=.true.
-              !if(.not.onemoreiteration) onemoreiteration=.true.
-              if(.not.onemoreiteration) onemoreiteration=.false.
           else
               withder=.false.
-              onemoreiteration=.false.
           end if
       end if
 
-      if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged) &
-         .and. .not.onemoreiteration) then
+      if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged)) then
           lowaccur_converged=.true.
           nit_highaccuracy=0
       end if 
