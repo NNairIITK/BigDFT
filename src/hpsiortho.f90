@@ -727,177 +727,178 @@ END SUBROUTINE free_full_potential
 !! depending of the functional we want to calculate. The gradient wrt the wavefunction
 !! is put in hpsi accordingly to the functional
 subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,hy,hz,ncong,iscf,&
-      &   ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
-   use module_base
-   use module_types
-   use module_interfaces, except_this_one => calculate_energy_and_gradient
-   implicit none
-   integer, intent(in) :: iproc,nproc,ncong,iscf,iter
-   real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
-   type(orbitals_data), intent(in) :: orbs
-   type(communications_arrays), intent(in) :: comms
+     &   ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => calculate_energy_and_gradient
+  implicit none
+  integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+  real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
+  type(orbitals_data), intent(in) :: orbs
+  type(communications_arrays), intent(in) :: comms
   type(local_zone_descriptors), intent(in) :: Lzd
-   type(GPU_pointers), intent(in) :: GPU
-   real(gp), intent(out) :: gnrm,gnrm_zero,energy
-   real(wp), dimension(:), pointer :: psi,psit,hpsi
-   !local variables
-   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
-   logical :: lcs
-   integer :: ierr,ikpt,iorb,i_all,i_stat,k
-   real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
-   real(wp), dimension(:,:,:), pointer :: mom_vec
+  type(GPU_pointers), intent(in) :: GPU
+  real(gp), intent(out) :: gnrm,gnrm_zero,energy
+  real(wp), dimension(:), pointer :: psi,psit,hpsi
+  !local variables
+  character(len=*), parameter :: subname='calculate_energy_and_gradient' 
+  logical :: lcs
+  integer :: ierr,ikpt,iorb,i_all,i_stat,k,ilr,ist
+  real(gp) :: energybs,trH,rzeroorbs,tt,energyKS,scpr
+  real(wp), dimension(:,:,:), pointer :: mom_vec
 
-   !band structure energy calculated with occupation numbers
-   energybs=ekin+epot+eproj !the potential energy contains also exctX
+  !band structure energy calculated with occupation numbers
+  energybs=ekin+epot+eproj !the potential energy contains also exctX
 
-   !!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
-   !!$  eTS=0.0_gp
-   !!$  do iorb=1,orbs%norbu  ! for closed shell case
-   !!$     !  if (iproc == 0)  print '("iorb,occup,eval,fermi:  ",i,e10.2,e27.17,e27.17)',iorb,orbs%occup(iorb),orbs%eval(iorb),orbs%efermi
-   !!$     eTS=eTS+exp(-((orbs%eval(iorb)-orbs%efermi)/in%Tel)**2)
-   !!$  enddo
-   !!$  if eTS=eTS*2._gp   ! for closed shell case
-   !!$  eTS=in%Tel/(2._gp*sqrt(3.1415926535897932_gp))* eTS
-   !!$  energy=energy-eTS
-   !!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
+!!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
+!!$  eTS=0.0_gp
+!!$  do iorb=1,orbs%norbu  ! for closed shell case
+!!$     !  if (iproc == 0)  print '("iorb,occup,eval,fermi:  ",i,e10.2,e27.17,e27.17)',iorb,orbs%occup(iorb),orbs%eval(iorb),orbs%efermi
+!!$     eTS=eTS+exp(-((orbs%eval(iorb)-orbs%efermi)/in%Tel)**2)
+!!$  enddo
+!!$  if eTS=eTS*2._gp   ! for closed shell case
+!!$  eTS=in%Tel/(2._gp*sqrt(3.1415926535897932_gp))* eTS
+!!$  energy=energy-eTS
+!!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
 
-   !this is the Kohn-Sham energy
-   energyKS=energybs-ehart+exc-evxc-eexctX-eSIC_DC+eion+edisp
+  !this is the Kohn-Sham energy
+  energyKS=energybs-ehart+exc-evxc-eexctX-eSIC_DC+eion+edisp
 
   !calculate orbital polarisation directions
-   if(orbs%nspinor==4) then
-      allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
-      call memocc(i_stat,mom_vec,'mom_vec',subname)
+  if(orbs%nspinor==4) then
+     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
+     call memocc(i_stat,mom_vec,'mom_vec',subname)
 
-      call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
+     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
           Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
-   else
-      nullify(mom_vec)
-   end if
+  else
+     nullify(mom_vec)
+  end if
 
 
-   if (iproc==0 .and. verbose > 1) then
-      write(*,'(1x,a)',advance='no')&
-         &   'done,  orthoconstraint...'
-   end if
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)',advance='no')&
+          &   'done,  orthoconstraint...'
+  end if
 
-   !transpose the hpsi wavefunction
+  !transpose the hpsi wavefunction
    call transpose_v2(iproc,nproc,orbs,Lzd,comms,hpsi,work=psi)
 
-   if (nproc == 1) then
-      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
-      psit => psi
+  if (nproc == 1) then
+     !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
+     psit => psi
      call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psit)
-   end if
+  end if
 
-   ! Apply  orthogonality constraints to all orbitals belonging to iproc
-   !takes also into account parallel k-points distribution
-   !here the orthogonality with respect to other occupied functions should be 
-   !passed as an optional argument
-   call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
+  ! Apply  orthogonality constraints to all orbitals belonging to iproc
+  !takes also into account parallel k-points distribution
+  !here the orthogonality with respect to other occupied functions should be 
+  !passed as an optional argument
+  call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
 
-   !retranspose the hpsi wavefunction
+  !retranspose the hpsi wavefunction
    call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=psi)
 
-   !after having calcutated the trace of the hamiltonian, the functional have to be defined
-   !new value without the trace, to be added in hpsitopsi
-   if (iscf >1) then
-      energy=trH
-   else
-      energy=energyKS!trH-ehart+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
-   end if
+  !after having calcutated the trace of the hamiltonian, the functional have to be defined
+  !new value without the trace, to be added in hpsitopsi
+  if (iscf >1) then
+     energy=trH
+  else
+     energy=energyKS!trH-ehart+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
+  end if
 
-   !check that the trace of the hamiltonian is compatible with the 
-   !band structure energy 
-   !this can be done only if the occupation numbers are all equal
-   tt=(energybs-trH)/trH
-print *,'tt,energybs,trH',tt,energybs,trH
-   if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
-      &   (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
-   !write this warning only if the system is closed shell
-   call check_closed_shell(orbs,lcs)
-   if (lcs) then
-      write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-         &   'ERROR: inconsistency between gradient and energy',tt,energybs,trH
-   end if
-endif
+  !check that the trace of the hamiltonian is compatible with the 
+  !band structure energy 
+  !this can be done only if the occupation numbers are all equal
+  tt=(energybs-trH)/trH
+!print *,'tt,energybs,trH',tt,energybs,trH
+  if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+       &   (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
+     !write this warning only if the system is closed shell
+     call check_closed_shell(orbs,lcs)
+     if (lcs) then
+        write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
+             &   'ERROR: inconsistency between gradient and energy',tt,energybs,trH
+     end if
+  endif
 
-call timing(iproc,'Precondition  ','ON')
-if (iproc==0 .and. verbose > 1) then
-   write(*,'(1x,a)',advance='no')&
-      &   'done,  preconditioning...'
-end if
 
-!Preconditions all orbitals belonging to iproc
-!and calculate the partial norm of the residue
-!switch between CPU and GPU treatment
-if (GPUconv) then
+  call timing(iproc,'Precondition  ','ON')
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)',advance='no')&
+          &   'done,  preconditioning...'
+  end if
+
+  !Preconditions all orbitals belonging to iproc
+  !and calculate the partial norm of the residue
+  !switch between CPU and GPU treatment
+  if (GPUconv) then
      call preconditionall_GPU(orbs,Lzd%Glr,hx,hy,hz,ncong,&
-      &   hpsi,gnrm,gnrm_zero,GPU)
-else if (OCLconv) then
+          &   hpsi,gnrm,gnrm_zero,GPU)
+  else if (OCLconv) then
      call preconditionall_OCL(orbs,Lzd%Glr,hx,hy,hz,ncong,&
-      &   hpsi,gnrm,gnrm_zero,GPU)
-else
+          &   hpsi,gnrm,gnrm_zero,GPU)
+  else
      call preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
      if(.false.) then
         call preconditionall(orbs,Lzd%Glr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
      end if
-end if
+  end if
 
-!sum over all the partial residues
-if (nproc > 1) then
-   call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-   call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-endif
+  !sum over all the partial residues
+  if (nproc > 1) then
+     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+  endif
 
-!count the number of orbitals which have zero occupation number
-!weight this with the corresponding k point weight
-rzeroorbs=0.0_gp
-do ikpt=1,orbs%nkpts
-   do iorb=1,orbs%norb
-      if (orbs%occup(iorb+(ikpt-1)*orbs%norb) == 0.0_gp) then
-         rzeroorbs=rzeroorbs+orbs%kwgts(ikpt)
-      end if
-   end do
-end do
-!commented out, the kwgts sum already to one
-!if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
+  !count the number of orbitals which have zero occupation number
+  !weight this with the corresponding k point weight
+  rzeroorbs=0.0_gp
+  do ikpt=1,orbs%nkpts
+     do iorb=1,orbs%norb
+        if (orbs%occup(iorb+(ikpt-1)*orbs%norb) == 0.0_gp) then
+           rzeroorbs=rzeroorbs+orbs%kwgts(ikpt)
+        end if
+     end do
+  end do
+  !commented out, the kwgts sum already to one
+  !if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
 
-gnrm=sqrt(gnrm/(real(orbs%norb,gp)-rzeroorbs))
+  gnrm=sqrt(gnrm/(real(orbs%norb,gp)-rzeroorbs))
 
-if (rzeroorbs /= 0.0_gp) then
-   gnrm_zero=sqrt(gnrm_zero/rzeroorbs)
-else
-   gnrm_zero=0.0_gp
-end if
+  if (rzeroorbs /= 0.0_gp) then
+     gnrm_zero=sqrt(gnrm_zero/rzeroorbs)
+  else
+     gnrm_zero=0.0_gp
+  end if
 
-if (iproc==0 .and. verbose > 1) then
-   write(*,'(1x,a)')&
-      &   'done.'
-end if
-call timing(iproc,'Precondition  ','OF')
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)')&
+          &   'done.'
+  end if
+  call timing(iproc,'Precondition  ','OF')
 
-if (orbs%nspinor == 4) then
-   !only the root process has the correct array
-   if(iproc==0 .and. verbose > 0) then
-      write(*,'(1x,a)')&
-         &   'Magnetic polarization per orbital'
-      write(*,'(1x,a)')&
-         &   '  iorb    m_x       m_y       m_z'
-      do iorb=1,orbs%norb
-         write(*,'(1x,i5,3f10.5)') &
-            &   iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
-      end do
-   end if
-   i_all=-product(shape(mom_vec))*kind(mom_vec)
-   deallocate(mom_vec,stat=i_stat)
-   call memocc(i_stat,i_all,'mom_vec',subname)
-end if
+  if (orbs%nspinor == 4) then
+     !only the root process has the correct array
+     if(iproc==0 .and. verbose > 0) then
+        write(*,'(1x,a)')&
+             &   'Magnetic polarization per orbital'
+        write(*,'(1x,a)')&
+             &   '  iorb    m_x       m_y       m_z'
+        do iorb=1,orbs%norb
+           write(*,'(1x,i5,3f10.5)') &
+                &   iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
+        end do
+     end if
+     i_all=-product(shape(mom_vec))*kind(mom_vec)
+     deallocate(mom_vec,stat=i_stat)
+     call memocc(i_stat,i_all,'mom_vec',subname)
+  end if
 
 
-!write the energy information
-if (iproc == 0) then
-call write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,' ')
+  !write the energy information
+  if (iproc == 0) then
+     call write_energies(iter,iscf,ekin,epot,eproj,ehart,exc,evxc,energyKS,trH,gnrm,gnrm_zero,' ')
 !!$   if (verbose > 0 .and. iscf<1) then
 !!$      write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
 !!$      ekin,epot,eproj
@@ -2058,327 +2059,325 @@ END SUBROUTINE broadcast_kpt_objects
 
 
 
-subroutine minimize_by_orthogonal_transformation(iproc, nproc, orbs, wfd, comms, orthpar, E0, El, stepsize, hpsi, psi, derivative)
-use module_base
-use module_types
-use module_interfaces
-implicit none
-
-  integer, intent(in) :: iproc,nproc
-  type(orbitals_data), intent(in) :: orbs
-  type(wavefunctions_descriptors),intent(in):: wfd
-  type(communications_arrays), intent(in) :: comms
-  type(orthon_data), intent(in) :: orthpar
-  !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
-  !real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: hpsi
-  !real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
-  real(8),intent(in):: E0, El
-  real(8),intent(inout):: stepsize 
-  real(wp), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(inout) :: hpsi
-  real(wp), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(inout) :: psi
-  real(8),intent(out):: derivative
-  !local variables
-  character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,iorb !n(c) ise
-  integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor,iiorb,jjorb,jorb,lwork,info,k
-  real(dp) :: occ !n(c) tt
-  integer, dimension(:,:), allocatable :: ndimovrlp
-  real(wp), dimension(:), allocatable :: alag, work, rwork, eval
-  real(wp),dimension(:,:),allocatable:: gmat
-  complex(8),dimension(:,:),allocatable:: gmatc, tempmatc, tempmat2c, omatc
-  complex(8),dimension(:),allocatable:: expDc
-  real(8):: lstep, dfactorial
-  complex(8):: ttc
-  real(8),dimension(:),pointer:: psiwork
-  real(8),dimension(:,:),allocatable:: omat
-
-  write(*,*) 'iproc, orbs%npsidim',iproc,max(orbs%npsidim_orbs,orbs%npsidim_comp)
-
-  !separate the orthogonalisation procedure for up and down orbitals 
-  !and for different k-points
-  call timing(iproc,'LagrM_comput  ','ON')
-
-  !number of components of the overlap matrix for parallel case
-  !calculate the dimension of the overlap matrix for each k-point
-  if (orbs%norbd > 0) then
-     nspin=2
-  else
-     nspin=1
-  end if
-
-  !number of components for the overlap matrix in wp-kind real numbers
-
-  allocate(ndimovrlp(nspin,0:orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,ndimovrlp,'ndimovrlp',subname)
-
-  call dimension_ovrlp(nspin,orbs,ndimovrlp)
-
-  allocate(alag(ndimovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
-  call memocc(i_stat,alag,'alag',subname)
-
-  !put to zero all the k-points which are not needed
-  call razero(ndimovrlp(nspin,orbs%nkpts),alag)
-
-  ! Transpose orbitals
-  allocate(psiwork(size(psi)), stat=i_stat)
-  call transpose_v(iproc, nproc, orbs, wfd, comms, psi, work=psiwork)
-  call transpose_v(iproc, nproc, orbs, wfd, comms, hpsi, work=psiwork)
-
-  !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
-  ispsi=1
-  do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
-
-     do ispin=1,nspin
-
-        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
-             nvctrp,norb,norbs,ncomp,nspinor)
-        if (nvctrp == 0) cycle
-
-        if(nspinor==1) then
-           call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-                max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
-                alag(ndimovrlp(ispin,ikpt-1)+1),norb)
-        else
-           !this part should be recheck in the case of nspinor == 2
-           call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
-                max(1,ncomp*nvctrp), &
-                hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-                alag(ndimovrlp(ispin,ikpt-1)+1),norb)
-        end if
-        ispsi=ispsi+nvctrp*norb*nspinor
-     end do
-  end do
-
-  if (nproc > 1) then
-     call timing(iproc,'LagrM_comput  ','OF')
-     call timing(iproc,'LagrM_commun  ','ON')
-     call mpiallred(alag(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'LagrM_commun  ','OF')
-     call timing(iproc,'LagrM_comput  ','ON')
-  end if
-
-  !now each processors knows all the overlap matrices for each k-point
-  !even if it does not handle it.
-  !this is somehow redundant but it is one way of reducing the number of communications
-  !without defining group of processors
-
-  i_stat=0
-  do iorb=1,orbs%norb
-      do jorb=1,orbs%norb
-          i_stat=i_stat+1
-          if(iproc==0) write(1750,'(a,3i8,es20.8)') 'iorb, jorb, i_stat, alag(i_stat)', iorb, jorb, i_stat, alag(i_stat)
-      end do
-  end do 
-
-  ! Build the antisymmetric matrix "alag(iorb,jorb)-alag(jorb,iorb)"
-  allocate(gmat(orbs%norb,orbs%norb), stat=i_stat)
-  call memocc(i_stat, gmat, 'gmat', subname)
-  do iorb=1,orbs%norb
-      do jorb=1,orbs%norb
-          iiorb=(iorb-1)*orbs%norb+jorb
-          jjorb=(jorb-1)*orbs%norb+iorb
-          gmat(jorb,iorb)=alag(iiorb)-alag(jjorb)
-      end do
-  end do
-
-
-
-
-  !Build the complex matrix -igmat
-  allocate(gmatc(orbs%norb,orbs%norb), stat=i_stat)
-  !call memocc(i_stat, gmatc, 'gmatc', subname) !memocc not working for complex
-  do iorb=1,orbs%norb
-      do jorb=1,orbs%norb
-          gmatc(jorb,iorb)=cmplx(0.d0,-gmat(jorb,iorb),kind=8)
-      end do
-  end do 
-
-
-
-  ! Check whether hermitian
-  do iorb=1,orbs%norb
-      do jorb=1,orbs%norb
-          if(real(gmatc(jorb,iorb))/=real(gmatc(iorb,jorb)) .or. aimag(gmatc(jorb,iorb))/=-aimag(gmatc(iorb,jorb))) then
-              write(*,'(a,4es16.7)')&
-                   'ERROR: (Gmatc(1,jorb,iorb)), (Gmatc(1,iorb,jorb)), (Gmatc(2,jorb,iorb)), (Gmatc(2,iorb,jorb))',&
-                   Gmatc(jorb,iorb), Gmatc(iorb,jorb)
-          end if
-          if(iproc==0) write(1710,'(a,2i8,2es20.12)') 'iorb, jorb, gmatc(jorb,iorb)', iorb, jorb, gmatc(jorb,iorb)
-      end do
-  end do 
-
-
-
-  ! Diagonalize gmatc
-  allocate(eval(orbs%norb), stat=i_stat)
-  call memocc(i_stat, eval, 'eval', subname)
-  lwork=10*orbs%norb
-  allocate(work(2*lwork), stat=i_stat) ! factor of 2 since it is assumed to be complex
-  allocate(rwork(lwork), stat=i_stat)
-  call zheev('v', 'l', orbs%norb, gmatc(1,1), orbs%norb, eval(1), work, lwork, rwork, info)
-  if(info/=0) stop 'ERROR in zheev'
-  deallocate(work)
-  deallocate(rwork)
-
-  do iorb=1,orbs%norb
-      if(iproc==0) write(1720,'(a,i8,es20.8)') 'iorb, eval(iorb)', iorb, eval(iorb)
-  end do
-
-
-  if(stepsize>0.d0) then
-      if(iproc==0) write(*,*) 'in first branch'
-      ! Calculate the derivative
-      ! Calculate optimal step size
-      lstep=derivative*stepsize**2/(2.d0*(derivative*stepsize+E0-El))
-      stepsize=-1.d0
-      derivative=0.d0
-  else
-      if(iproc==0) write(*,*) 'in second branch'
-      lstep=.1d0/(maxval(abs(eval)))
-      stepsize=lstep
-      derivative=0.d0
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              derivative=derivative+gmat(jorb,iorb)**2
-          end do
-      end do
-      derivative=-.5d0*derivative
-  end if
-  if(iproc==0) write(*,'(a,2es12.4)') '>> LSTEP:, derivative', lstep, derivative
-
-
-  ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
-  ! This is also a diagonal matrix, so only calculate the diagonal part.
-  allocate(expDc(orbs%norb), stat=i_stat)
-  !call memocc(i_stat, expDc, 'expDc', subname)
-  do iorb=1,orbs%norb
-     ttc=cmplx(0.d0,-lstep*eval(iorb),kind=8)
-     expDc(iorb)=cmplx(0.d0,0.d0,kind=8)
-      do k=0,100
-          expDc(iorb)=expDc(iorb)+ttc**k/dfactorial(k)
-      end do
-  end do
-  do iorb=1,orbs%norb
-     if(iproc==0) write(1740,'(a,i8,2es20.8)') 'iorb, expDc(iorb)', iorb, expDc(iorb)
-  end do
-
-
-
-  ! Calculate the matrix O
-  allocate(tempmatc(orbs%norb,orbs%norb), stat=i_stat)
-  allocate(tempmat2c(orbs%norb,orbs%norb), stat=i_stat)
-  allocate(omatc(orbs%norb,orbs%norb), stat=i_stat)
-  do iorb=1,orbs%norb
-     do jorb=1,orbs%norb
-         if(iorb==jorb) then
-             tempmat2c(jorb,iorb)=expDc(iorb)
-         else
-             tempmat2c(jorb,iorb)=cmplx(0.d0,0.d0,kind=8)
-         end if
-     end do
-  end do
-  call zgemm('n', 'c', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), tempmat2c(1,1), orbs%norb, &
-      gmatc(1,1), orbs%norb, (0.d0,0.d0), tempmatc(1,1), orbs%norb)
-  do iorb=1,orbs%norb
-     do jorb=1,orbs%norb
-         if(iproc==0) write(1730,'(a,2i8,2es20.8)') 'iorb, jorb, tempmatc(jorb,iorb)', iorb, jorb, tempmatc(jorb,iorb)
-     end do
-  end do
-
-  call zgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), gmatc(1,1), orbs%norb, &
-      tempmatc(1,1), orbs%norb, (0.d0,0.d0), omatc(1,1), orbs%norb)
-
-  if(iproc==0) then
-     do iorb=1,orbs%norb
-         do jorb=1,orbs%norb
-             write(1700,'(2i8,2es20.8)') iorb,jorb,omatc(jorb,iorb)
-         end do
-     end do
-  end if
-
-
-  ! Build new linear combinations
-  call memocc(i_stat, psiwork, 'psiwork', subname)
-
-  allocate(omat(orbs%norb,orbs%norb), stat=i_stat)
-  call memocc(i_stat, omat, 'omat', subname)
-
-  do iorb=1,orbs%norb
-      do jorb=1,orbs%norb
-          omat(jorb,iorb)=real(omatc(jorb,iorb))
-          !!if(iorb==jorb) then
-          !!    omat(jorb,iorb)=1.d0
-          !!else
-          !!    omat(jorb,iorb)=0.d0
-          !!end if
-      end do
-  end do
-
-  nvctrp=comms%nvctr_par(iproc,0)
-  call gemm('n', 'n', nvctrp, orbs%norb, orbs%norb, 1.0_wp, psi(1), max(1,nvctrp), &
-            omat(1,1), orbs%norb, 0.0_wp, psiwork(1), max(1,nvctrp))
-  call dcopy(size(psi), psiwork(1), 1, psi(1), 1)
-
-  ! I think this is not required..
-  call orthogonalize(iproc,nproc,orbs,comms,psi,orthpar)
-
-  call untranspose_v(iproc, nproc, orbs, wfd, comms, psi, work=psiwork)
-  call untranspose_v(iproc, nproc, orbs, wfd, comms, hpsi, work=psiwork)
-
-
-
-
-
-
-
-  i_all=-product(shape(omat))*kind(omat)
-  deallocate(omat,stat=i_stat)
-  call memocc(i_stat,i_all,'omat',subname)
-
-  i_all=-product(shape(psiwork))*kind(psiwork)
-  deallocate(psiwork,stat=i_stat)
-  call memocc(i_stat,i_all,'psiwork',subname)
-
-  i_all=-product(shape(alag))*kind(alag)
-  deallocate(alag,stat=i_stat)
-  call memocc(i_stat,i_all,'alag',subname)
-
-  i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
-  deallocate(ndimovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ndimovrlp',subname)
-
-  i_all=-product(shape(gmat))*kind(gmat)
-  deallocate(gmat,stat=i_stat)
-  call memocc(i_stat,i_all,'gmat',subname)
-
-  i_all=-product(shape(eval))*kind(eval)
-  deallocate(eval,stat=i_stat)
-  call memocc(i_stat,i_all,'eval',subname)
-
-  !!memoc not working for complex
-  !i_all=-product(shape(gmatc))*kind(gmatc)  
-  deallocate(gmatc,stat=i_stat)
-  !call memocc(i_stat,i_all,'gmatc',subname)
-
-  !i_all=-product(shape(tempmatc))*kind(tempmatc)  
-  deallocate(tempmatc,stat=i_stat)
-  !call memocc(i_stat,i_all,'tempmatc',subname)
-
-  !i_all=-product(shape(tempmat2c))*kind(tempmat2c)  
-  deallocate(tempmat2c,stat=i_stat)
-  !call memocc(i_stat,i_all,'tempmat2c',subname)
-
-  !i_all=-product(shape(omatc))*kind(omatc)  
-  deallocate(omatc,stat=i_stat)
-  !call memocc(i_stat,i_all,'omatc',subname)
-
-  !i_all=-product(shape(expDc))*kind(expDc)  
-  deallocate(expDc,stat=i_stat)
-  !call memocc(i_stat,i_all,'expDc',subname)
-
-  call timing(iproc,'LagrM_comput  ','OF')
-
-
-
-end subroutine minimize_by_orthogonal_transformation
+!!subroutine minimize_by_orthogonal_transformation(iproc, nproc, orbs, wfd, comms, orthpar, E0, El, stepsize, hpsi, psi, derivative)
+!!use module_base
+!!use module_types
+!!use module_interfaces
+!!implicit none
+!!
+!!  integer, intent(in) :: iproc,nproc
+!!  type(orbitals_data), intent(in) :: orbs
+!!  type(wavefunctions_descriptors),intent(in):: wfd
+!!  type(communications_arrays), intent(in) :: comms
+!!  type(orthon_data), intent(in) :: orthpar
+!!  !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
+!!  !real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: hpsi
+!!  !real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
+!!  real(8),intent(in):: E0, El
+!!  real(8),intent(inout):: stepsize 
+!!  real(wp), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(inout) :: hpsi
+!!  real(wp), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(inout) :: psi
+!!  real(8),intent(out):: derivative
+!!  !local variables
+!!  character(len=*), parameter :: subname='orthoconstraint'
+!!  integer :: i_stat,i_all,ierr,iorb !n(c) ise
+!!  integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor,iiorb,jjorb,jorb,lwork,info,k
+!!  real(dp) :: occ !n(c) tt
+!!  integer, dimension(:,:), allocatable :: ndimovrlp
+!!  real(wp), dimension(:), allocatable :: alag, work, rwork, eval
+!!  real(wp),dimension(:,:),allocatable:: gmat
+!!  complex(8),dimension(:,:),allocatable:: gmatc, tempmatc, tempmat2c, omatc
+!!  complex(8),dimension(:),allocatable:: expDc
+!!  real(8):: lstep, dfactorial
+!!  complex(8):: ttc
+!!  real(8),dimension(:),pointer:: psiwork
+!!  real(8),dimension(:,:),allocatable:: omat
+!!
+!!  write(*,*) 'iproc, orbs%npsidim',iproc,max(orbs%npsidim_orbs,orbs%npsidim_comp)
+!!
+!!  !separate the orthogonalisation procedure for up and down orbitals 
+!!  !and for different k-points
+!!  call timing(iproc,'LagrM_comput  ','ON')
+!!
+!!  !number of components of the overlap matrix for parallel case
+!!  !calculate the dimension of the overlap matrix for each k-point
+!!  if (orbs%norbd > 0) then
+!!     nspin=2
+!!  else
+!!     nspin=1
+!!  end if
+!!
+!!  !number of components for the overlap matrix in wp-kind real numbers
+!!
+!!  allocate(ndimovrlp(nspin,0:orbs%nkpts+ndebug),stat=i_stat)
+!!  call memocc(i_stat,ndimovrlp,'ndimovrlp',subname)
+!!
+!!  call dimension_ovrlp(nspin,orbs,ndimovrlp)
+!!
+!!  allocate(alag(ndimovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
+!!  call memocc(i_stat,alag,'alag',subname)
+!!
+!!  !put to zero all the k-points which are not needed
+!!  call razero(ndimovrlp(nspin,orbs%nkpts),alag)
+!!
+!!  ! Transpose orbitals
+!!  allocate(psiwork(size(psi)), stat=i_stat)
+!!  call transpose_v(iproc, nproc, orbs, wfd, comms, psi, work=psiwork)
+!!  call transpose_v(iproc, nproc, orbs, wfd, comms, hpsi, work=psiwork)
+!!
+!!  !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
+!!  ispsi=1
+!!  do ikptp=1,orbs%nkptsp
+!!     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
+!!
+!!     do ispin=1,nspin
+!!
+!!        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
+!!             nvctrp,norb,norbs,ncomp,nspinor)
+!!        if (nvctrp == 0) cycle
+!!
+!!        if(nspinor==1) then
+!!           call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+!!                max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
+!!                alag(ndimovrlp(ispin,ikpt-1)+1),norb)
+!!        else
+!!           !this part should be recheck in the case of nspinor == 2
+!!           call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
+!!                max(1,ncomp*nvctrp), &
+!!                hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
+!!                alag(ndimovrlp(ispin,ikpt-1)+1),norb)
+!!        end if
+!!        ispsi=ispsi+nvctrp*norb*nspinor
+!!     end do
+!!  end do
+!!
+!!  if (nproc > 1) then
+!!     call timing(iproc,'LagrM_comput  ','OF')
+!!     call timing(iproc,'LagrM_commun  ','ON')
+!!     call mpiallred(alag(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,MPI_COMM_WORLD,ierr)
+!!     call timing(iproc,'LagrM_commun  ','OF')
+!!     call timing(iproc,'LagrM_comput  ','ON')
+!!  end if
+!!
+!!  !now each processors knows all the overlap matrices for each k-point
+!!  !even if it does not handle it.
+!!  !this is somehow redundant but it is one way of reducing the number of communications
+!!  !without defining group of processors
+!!
+!!  i_stat=0
+!!  do iorb=1,orbs%norb
+!!      do jorb=1,orbs%norb
+!!          i_stat=i_stat+1
+!!          if(iproc==0) write(1750,'(a,3i8,es20.8)') 'iorb, jorb, i_stat, alag(i_stat)', iorb, jorb, i_stat, alag(i_stat)
+!!      end do
+!!  end do 
+!!
+!!  ! Build the antisymmetric matrix "alag(iorb,jorb)-alag(jorb,iorb)"
+!!  allocate(gmat(orbs%norb,orbs%norb), stat=i_stat)
+!!  call memocc(i_stat, gmat, 'gmat', subname)
+!!  do iorb=1,orbs%norb
+!!      do jorb=1,orbs%norb
+!!          iiorb=(iorb-1)*orbs%norb+jorb
+!!          jjorb=(jorb-1)*orbs%norb+iorb
+!!          gmat(jorb,iorb)=alag(iiorb)-alag(jjorb)
+!!      end do
+!!  end do
+!!
+!!
+!!
+!!
+!!  !Build the complex matrix -igmat
+!!  allocate(gmatc(orbs%norb,orbs%norb), stat=i_stat)
+!!  !call memocc(i_stat, gmatc, 'gmatc', subname) !memocc not working for complex
+!!  do iorb=1,orbs%norb
+!!      do jorb=1,orbs%norb
+!!          gmatc(jorb,iorb)=cmplx(0.d0,-gmat(jorb,iorb),kind=8)
+!!      end do
+!!  end do 
+!!
+!!
+!!
+!!  ! Check whether hermitian
+!!  do iorb=1,orbs%norb
+!!      do jorb=1,orbs%norb
+!!          if(real(gmatc(jorb,iorb))/=real(gmatc(iorb,jorb)) .or. aimag(gmatc(jorb,iorb))/=-aimag(gmatc(iorb,jorb))) then
+!!              write(*,'(a,4es16.7)') 'ERROR: (Gmatc(1,jorb,iorb)), (Gmatc(1,iorb,jorb)), (Gmatc(2,jorb,iorb)), (Gmatc(2,iorb,jorb))', Gmatc(jorb,iorb), Gmatc(iorb,jorb)
+!!          end if
+!!          if(iproc==0) write(1710,'(a,2i8,2es20.12)') 'iorb, jorb, gmatc(jorb,iorb)', iorb, jorb, gmatc(jorb,iorb)
+!!      end do
+!!  end do 
+!!
+!!
+!!
+!!  ! Diagonalize gmatc
+!!  allocate(eval(orbs%norb), stat=i_stat)
+!!  call memocc(i_stat, eval, 'eval', subname)
+!!  lwork=10*orbs%norb
+!!  allocate(work(2*lwork), stat=i_stat) ! factor of 2 since it is assumed to be complex
+!!  allocate(rwork(lwork), stat=i_stat)
+!!  call zheev('v', 'l', orbs%norb, gmatc(1,1), orbs%norb, eval(1), work, lwork, rwork, info)
+!!  if(info/=0) stop 'ERROR in zheev'
+!!  deallocate(work)
+!!  deallocate(rwork)
+!!
+!!  do iorb=1,orbs%norb
+!!      if(iproc==0) write(1720,'(a,i8,es20.8)') 'iorb, eval(iorb)', iorb, eval(iorb)
+!!  end do
+!!
+!!
+!!  if(stepsize>0.d0) then
+!!      if(iproc==0) write(*,*) 'in first branch'
+!!      ! Calculate the derivative
+!!      ! Calculate optimal step size
+!!      lstep=derivative*stepsize**2/(2.d0*(derivative*stepsize+E0-El))
+!!      stepsize=-1.d0
+!!      derivative=0.d0
+!!  else
+!!      if(iproc==0) write(*,*) 'in second branch'
+!!      lstep=.1d0/(maxval(abs(eval)))
+!!      stepsize=lstep
+!!      derivative=0.d0
+!!      do iorb=1,orbs%norb
+!!          do jorb=1,orbs%norb
+!!              derivative=derivative+gmat(jorb,iorb)**2
+!!          end do
+!!      end do
+!!      derivative=-.5d0*derivative
+!!  end if
+!!  if(iproc==0) write(*,'(a,2es12.4)') '>> LSTEP:, derivative', lstep, derivative
+!!
+!!
+!!  ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
+!!  ! This is also a diagonal matrix, so only calculate the diagonal part.
+!!  allocate(expDc(orbs%norb), stat=i_stat)
+!!  !call memocc(i_stat, expDc, 'expDc', subname)
+!!  do iorb=1,orbs%norb
+!!     ttc=cmplx(0.d0,-lstep*eval(iorb),kind=8)
+!!     expDc(iorb)=cmplx(0.d0,0.d0,kind=8)
+!!      do k=0,100
+!!          expDc(iorb)=expDc(iorb)+ttc**k/dfactorial(k)
+!!      end do
+!!  end do
+!!  do iorb=1,orbs%norb
+!!     if(iproc==0) write(1740,'(a,i8,2es20.8)') 'iorb, expDc(iorb)', iorb, expDc(iorb)
+!!  end do
+!!
+!!
+!!
+!!  ! Calculate the matrix O
+!!  allocate(tempmatc(orbs%norb,orbs%norb), stat=i_stat)
+!!  allocate(tempmat2c(orbs%norb,orbs%norb), stat=i_stat)
+!!  allocate(omatc(orbs%norb,orbs%norb), stat=i_stat)
+!!  do iorb=1,orbs%norb
+!!     do jorb=1,orbs%norb
+!!         if(iorb==jorb) then
+!!             tempmat2c(jorb,iorb)=expDc(iorb)
+!!         else
+!!             tempmat2c(jorb,iorb)=cmplx(0.d0,0.d0,kind=8)
+!!         end if
+!!     end do
+!!  end do
+!!  call zgemm('n', 'c', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), tempmat2c(1,1), orbs%norb, &
+!!      gmatc(1,1), orbs%norb, (0.d0,0.d0), tempmatc(1,1), orbs%norb)
+!!  do iorb=1,orbs%norb
+!!     do jorb=1,orbs%norb
+!!         if(iproc==0) write(1730,'(a,2i8,2es20.8)') 'iorb, jorb, tempmatc(jorb,iorb)', iorb, jorb, tempmatc(jorb,iorb)
+!!     end do
+!!  end do
+!!
+!!  call zgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, (1.d0,0.d0), gmatc(1,1), orbs%norb, &
+!!      tempmatc(1,1), orbs%norb, (0.d0,0.d0), omatc(1,1), orbs%norb)
+!!
+!!  if(iproc==0) then
+!!     do iorb=1,orbs%norb
+!!         do jorb=1,orbs%norb
+!!             write(1700,'(2i8,2es20.8)') iorb,jorb,omatc(jorb,iorb)
+!!         end do
+!!     end do
+!!  end if
+!!
+!!
+!!  ! Build new linear combinations
+!!  call memocc(i_stat, psiwork, 'psiwork', subname)
+!!
+!!  allocate(omat(orbs%norb,orbs%norb), stat=i_stat)
+!!  call memocc(i_stat, omat, 'omat', subname)
+!!
+!!  do iorb=1,orbs%norb
+!!      do jorb=1,orbs%norb
+!!          omat(jorb,iorb)=real(omatc(jorb,iorb))
+!!          !!if(iorb==jorb) then
+!!          !!    omat(jorb,iorb)=1.d0
+!!          !!else
+!!          !!    omat(jorb,iorb)=0.d0
+!!          !!end if
+!!      end do
+!!  end do
+!!
+!!  nvctrp=comms%nvctr_par(iproc,0)
+!!  call gemm('n', 'n', nvctrp, orbs%norb, orbs%norb, 1.0_wp, psi(1), max(1,nvctrp), &
+!!            omat(1,1), orbs%norb, 0.0_wp, psiwork(1), max(1,nvctrp))
+!!  call dcopy(size(psi), psiwork(1), 1, psi(1), 1)
+!!
+!!  ! I think this is not required..
+!!  call orthogonalize(iproc,nproc,orbs,comms,psi,orthpar)
+!!
+!!  call untranspose_v(iproc, nproc, orbs, wfd, comms, psi, work=psiwork)
+!!  call untranspose_v(iproc, nproc, orbs, wfd, comms, hpsi, work=psiwork)
+!!
+!!
+!!
+!!
+!!
+!!
+!!
+!!  i_all=-product(shape(omat))*kind(omat)
+!!  deallocate(omat,stat=i_stat)
+!!  call memocc(i_stat,i_all,'omat',subname)
+!!
+!!  i_all=-product(shape(psiwork))*kind(psiwork)
+!!  deallocate(psiwork,stat=i_stat)
+!!  call memocc(i_stat,i_all,'psiwork',subname)
+!!
+!!  i_all=-product(shape(alag))*kind(alag)
+!!  deallocate(alag,stat=i_stat)
+!!  call memocc(i_stat,i_all,'alag',subname)
+!!
+!!  i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
+!!  deallocate(ndimovrlp,stat=i_stat)
+!!  call memocc(i_stat,i_all,'ndimovrlp',subname)
+!!
+!!  i_all=-product(shape(gmat))*kind(gmat)
+!!  deallocate(gmat,stat=i_stat)
+!!  call memocc(i_stat,i_all,'gmat',subname)
+!!
+!!  i_all=-product(shape(eval))*kind(eval)
+!!  deallocate(eval,stat=i_stat)
+!!  call memocc(i_stat,i_all,'eval',subname)
+!!
+!!  !!memoc not working for complex
+!!  !i_all=-product(shape(gmatc))*kind(gmatc)  
+!!  deallocate(gmatc,stat=i_stat)
+!!  !call memocc(i_stat,i_all,'gmatc',subname)
+!!
+!!  !i_all=-product(shape(tempmatc))*kind(tempmatc)  
+!!  deallocate(tempmatc,stat=i_stat)
+!!  !call memocc(i_stat,i_all,'tempmatc',subname)
+!!
+!!  !i_all=-product(shape(tempmat2c))*kind(tempmat2c)  
+!!  deallocate(tempmat2c,stat=i_stat)
+!!  !call memocc(i_stat,i_all,'tempmat2c',subname)
+!!
+!!  !i_all=-product(shape(omatc))*kind(omatc)  
+!!  deallocate(omatc,stat=i_stat)
+!!  !call memocc(i_stat,i_all,'omatc',subname)
+!!
+!!  !i_all=-product(shape(expDc))*kind(expDc)  
+!!  deallocate(expDc,stat=i_stat)
+!!  !call memocc(i_stat,i_all,'expDc',subname)
+!!
+!!  call timing(iproc,'LagrM_comput  ','OF')
+!!
+!!
+!!
+!!end subroutine minimize_by_orthogonal_transformation

@@ -130,7 +130,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data), intent(in) :: orbs
   real(dp), intent(out) :: gnrm,gnrm_zero
-  real(wp), dimension(orbs%npsidim_comp), intent(inout) :: hpsi
+  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
   !local variables
   integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr
   real(wp) :: cprecr,scpr,evalmax,eval_zero
@@ -167,7 +167,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
         eval_zero=evalmax
         ikpt=orbs%iokpt(iorb)
      end if
-
+     !print *,'iorb,eval,evalmax',iorb+orbs%isorb,orbs%eval(iorb+orbs%isorb),eval_zero
      !indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
      !k-point values, if present
@@ -190,7 +190,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
         if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
            gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         else
-           !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
+           !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
 
@@ -208,7 +208,8 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_z
                       cprecr,hx,hy,hz,hpsi(1+ist))
               case('P')
                  call prec_fft(Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3, &
-                      Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
+                      Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
+                      Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
                       Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyv, &
                       cprecr,hx,hy,hz,hpsi(1+ist))
               end select
@@ -1042,6 +1043,9 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   hpsip=0.0_wp
 
   ! coarse part
+  !$omp parallel default(shared)&
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i1,i,i0)
+  !$omp do !!!!schedule(static,1)
   do iseg=1,nseg_c
      jj=keyv_c(iseg)
      j0=keyg_c(1,iseg)
@@ -1056,6 +1060,8 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
         hpsip(i,i2,i3)=hpsi_c(i-i0+jj)
      enddo
   enddo
+  !$omp enddo
+  !$omp end parallel
 
   fac_h=real(1.0_gp/((hgrid*real(n2_nt,gp))**2),wp)
 
@@ -1080,6 +1086,9 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   call syn_repeated_per(nd1,nd2,nd3,hpsip,num_trans,nn1,nn2,nn3)
 
   !       diagonally precondition the fine wavelets
+  !$omp parallel default(shared)&
+  !$omp private(i)
+  !$omp do !!!!schedule(static,1)
   do i=1,nvctr_f
      hpsi_f(1,i)=hpsi_f(1,i)*scal(1)
      hpsi_f(2,i)=hpsi_f(2,i)*scal(1)
@@ -1091,8 +1100,13 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
      hpsi_f(7,i)=hpsi_f(7,i)*scal(3)
   enddo
+  !$omp enddo
+  !$omp end parallel
 
   ! coarse part
+  !$omp parallel default(shared)&
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i)
+  !$omp do !!!!schedule(static,1)
   do iseg=1,nseg_c
      jj=keyv_c(iseg)
      j0=keyg_c(1,iseg)
@@ -1107,6 +1121,8 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
         hpsi_c(i-i0+jj)=hpsip(i,i2,i3)
      enddo
   enddo
+  !$omp enddo
+  !$omp end parallel
 
   i_all=-product(shape(hpsip))*kind(hpsip)
   deallocate(hpsip,stat=i_stat)
@@ -1149,6 +1165,9 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
 
         f0=1.d0/(h0+eps)
 
+     !$omp parallel default(shared)&   !*
+     !$omp private(i3,i3p,i2,i2p,i1,i1p)
+     !$omp do !!!!schedule(static,1)
         do i3=0,n3
            i3p=i3+n3pp
            do i2=0,n2
@@ -1171,9 +1190,14 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
               enddo
            enddo
         enddo
+     !$omp enddo
+     !$omp end parallel
 
      else
 
+     !$omp parallel default(shared)&   !*
+     !$omp private(i3,i3p,i2,i2p,i1,i1p)
+     !$omp do !!!!schedule(static,1)
         do i3=0,n3
            i3p=i3+n3pp
            do i2=0,n2
@@ -1194,6 +1218,8 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
               enddo
            enddo
         enddo
+     !$omp enddo
+     !$omp end parallel
 
      endif
 
@@ -1233,7 +1259,7 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   !       wavelet and scaling function second derivative filters
   real(wp), parameter :: b2=24.8758460293923314_wp, a2=3.55369228991319019_wp
   integer :: i,icong,i_stat,i_all
-  real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta
+  real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta,aa1,aa2
   real(wp), dimension(0:3) :: scal
   real(wp), dimension(:), allocatable :: rpsi,ppsi,wpsi
   real(wp), dimension(:,:,:,:), allocatable :: xpsig_f,ypsig_f
@@ -1331,18 +1357,27 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
 
   IF (INGUESS_ON) THEN 
+     !$omp parallel default(shared)&   !*
+     !$omp private(i,tt)
+     !$omp do !!!!schedule(static,1)
      do i=1,nvctr_c+7*nvctr_f
         tt=wpsi(i)-rpsi(i)  ! rpsi instead of hpsi: alexey
         rpsi(i)=tt
         ppsi(i)=tt
      enddo
-
+     !$omp enddo
+     !$omp end parallel
   ELSE
+     !$omp parallel default(shared)&   !*
+     !$omp private(i,tt)
+     !$omp do !!!!schedule(static,1)
      do i=1,nvctr_c+7*nvctr_f
         tt=wpsi(i)-hpsi(i)  ! normal
         rpsi(i)=tt
         ppsi(i)=tt
      enddo
+     !$omp enddo
+     !$omp end parallel
   ENDIF
 
   loop_precond: do icong=2,ncong
@@ -1356,37 +1391,74 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
      alpha1=0.0_wp 
      alpha2=0.0_wp
+ 
+     !$omp parallel default(shared)&   !*
+     !$omp private(i,aa1,aa2)
+     aa1=0.0_wp
+     aa2=0.0_wp
+     !$omp do !!!! schedule(static,1)
      do i=1,nvctr_c+7*nvctr_f
-        alpha1=alpha1+rpsi(i)*rpsi(i)
-        alpha2=alpha2+rpsi(i)*wpsi(i)
+        aa1=aa1+rpsi(i)*rpsi(i)
+        aa2=aa2+rpsi(i)*wpsi(i)
      enddo
-     !write(*,*)icong,alpha1
+     !$omp enddo
+
+     !$omp critical
+     alpha1=alpha1+aa1
+     alpha2=alpha2+aa2
+     !$omp end critical
+
+     !$omp end parallel
+     !write(*,*)icong,alpha1,alpha2
 
      !residues(icong)=alpha1
      alpha=alpha1/alpha2        
 
      !write(10+iorb,'(1x,i0,3(1x,1pe24.17))')icong,alpha1,alpha2,alpha
 
+     !$omp parallel default(shared)&
+     !$omp private(i)
+     !$omp do !!!!schedule (static,1)
      do i=1,nvctr_c+7*nvctr_f
         hpsi(i)=hpsi(i)-alpha*ppsi(i)
         rpsi(i)=rpsi(i)-alpha*wpsi(i)
      end do
+     !$omp enddo
+     !$omp end parallel
 
      if (icong >= ncong) exit loop_precond
 
      beta1=0.0_wp 
      beta2=0.0_wp
 
+     !$omp parallel default(shared)&
+     !$omp private(i,aa1,aa2)
+     aa1=0.0_wp
+     aa2=0.0_wp
+     !$omp do !!!! schedule (static,1)
      do i=1,nvctr_c+7*nvctr_f
-        beta1=beta1+rpsi(i)*wpsi(i)
-        beta2=beta2+ppsi(i)*wpsi(i)
+        aa1=aa1+rpsi(i)*wpsi(i)
+        aa2=aa2+ppsi(i)*wpsi(i)
      enddo
+     !$omp enddo
+
+     !$omp critical
+     beta1=beta1+aa1
+     beta2=beta2+aa2
+     !$omp end critical
+
+     !$omp end parallel
 
      beta=beta1/beta2        
 
+     !omp parallel default(shared)&
+     !omp private(i)
+     !omp do schedule(static,1)
      do i=1,nvctr_c+7*nvctr_f
         ppsi(i)=rpsi(i)-beta*ppsi(i)
      end do
+     !omp enddo
+     !omp end parallel
 
   end do loop_precond
 

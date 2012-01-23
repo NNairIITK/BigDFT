@@ -831,6 +831,8 @@ subroutine deallocate_linearParameters(lin, subname)
   integer:: ierr
 
   call checkAndDeallocatePointer(lin%potentialPrefac, 'lin%potentialPrefac', subname)
+  call checkAndDeallocatePointer(lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
+  call checkAndDeallocatePointer(lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
   call checkAndDeallocatePointer(lin%locrad, 'lin%locrad', subname)
   call checkAndDeallocatePointer(lin%lphiRestart, 'lin%lphiold', subname)
   call checkAndDeallocatePointer(lin%lphiold, 'lin%lphiold', subname)
@@ -851,6 +853,7 @@ subroutine deallocate_linearParameters(lin, subname)
   call deallocate_p2pCommsOrthonormality(lin%comon, subname)
   call deallocate_overlapParameters(lin%op, subname)
   call deallocate_matrixDescriptors(lin%mad, subname)
+  call deallocate_collectiveComms(lin%collComms, subname)
 
 end subroutine deallocate_linearParameters
 
@@ -912,6 +915,8 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
 !     nullify(lzd%lnlpspd)
 !  end if
 
+  call checkAndDeallocatePointer(lzd%cutoffweight, 'cutoffweight', subname)
+
 end subroutine deallocate_local_zone_descriptors
 
 subroutine deallocate_Lzd_except_Glr(lzd, subname)
@@ -961,17 +966,6 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
      nullify(lzd%llr)
   end if
 
-!  if(associated(lzd%lnlpspd)) then
-!     iis1=lbound(lzd%lnlpspd,1)
-!     iie1=ubound(lzd%lnlpspd,1)
-     !write(*,*) 'iis1AAA,iie1AAA',iis1,iie1
-!     do i1=iis1,iie1
-!         call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-!      end do
-!      deallocate(lzd%lnlpspd)
-!      nullify(lzd%lnlpspd)
-!  end if
-
 end subroutine deallocate_Lzd_except_Glr
 
 
@@ -989,7 +983,7 @@ subroutine deallocate_orbitals_data(orbs, subname)
   call checkAndDeallocatePointer(orbs%iokpt, 'orbs%iokpt', subname)
   call checkAndDeallocatePointer(orbs%ikptproc, 'orbs%ikptproc', subname)
   call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg', subname)
-  call checkAndDeallocatePointer(orbs%inWhichLocregP, 'orbs%inWhichLocregP', subname)
+  !call checkAndDeallocatePointer(orbs%inWhichLocregP, 'orbs%inWhichLocregP', subname)
   call checkAndDeallocatePointer(orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
   call checkAndDeallocatePointer(orbs%isorb_par, 'orbs%isorb_par', subname)
   call checkAndDeallocatePointer(orbs%eval, 'orbs%eval', subname)
@@ -1033,16 +1027,15 @@ subroutine deallocate_locreg_descriptors(lr, subname)
   type(locreg_descriptors),intent(inout):: lr
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(lr%projflg, 'lr%projflg', subname)
+  call checkAndDeallocatePointer(lr%projflg,'lr%projflg', subname)
 
   call deallocate_wavefunctions_descriptors(lr%wfd, subname)
 
   call deallocate_convolutions_bounds(lr%bounds, subname)
   
-  
 end subroutine deallocate_locreg_descriptors
 
-subroutine deallocate_locreg_descriptors2(lr, subname)
+subroutine deallocate_locreg_descriptors2(lr,subname)
   use module_base
   use module_types
   use deallocatePointers
@@ -1139,7 +1132,6 @@ subroutine deallocate_kinetic_bounds(kb, subname)
   !end if
   call checkAndDeallocatePointer(kb%ibyz_f, 'kb%ibyz_f', subname)
   call checkAndDeallocatePointer(kb%ibxz_f, 'kb%ibxz_f', subname)
-
   call checkAndDeallocatePointer(kb%ibxy_f, 'kb%ibxy_f', subname)
 
 end subroutine deallocate_kinetic_bounds
@@ -1262,6 +1254,22 @@ subroutine deallocate_matrixLocalizationRegion(mlr, subname)
 end subroutine deallocate_matrixLocalizationRegion
 
 
+
+subroutine deallocate_expansionSegments(expseg, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(expansionSegments),intent(inout):: expseg
+  character(len=*),intent(in):: subname
+  
+  call checkAndDeallocatePointer(expseg%segborders, 'expseg%segborders', subname)
+
+end subroutine deallocate_expansionSegments
+
+
 subroutine deallocate_p2pCommsSumrho(comsr, subname)
   use module_base
   use module_types
@@ -1281,6 +1289,8 @@ subroutine deallocate_p2pCommsSumrho(comsr, subname)
   call checkAndDeallocatePointer(comsr%comarr, 'comsr%comarr', subname)
   call checkAndDeallocatePointer(comsr%communComplete, 'comsr%communComplete', subname)
   call checkAndDeallocatePointer(comsr%computComplete, 'comsr%computComplete', subname)
+  call checkAndDeallocatePointer(comsr%auxarray, 'comsr%auxarray', subname)
+  call checkAndDeallocatePointer(comsr%startingindex, 'comsr%startingindex', subname)
 
 end subroutine deallocate_p2pCommsSumrho
 
@@ -1326,6 +1336,7 @@ subroutine deallocate_largeBasis(lb, subname)
   call deallocate_overlapParameters(lb%op, subname)
   call deallocate_p2pCommsGatherPot(lb%comgp, subname)
   call deallocate_matrixDescriptors(lb%mad, subname)
+  call deallocate_collectiveComms(lb%collComms, subname)
 
 
 end subroutine deallocate_largeBasis
@@ -1402,6 +1413,28 @@ subroutine deallocate_overlapParameters(op, subname)
   end do
   deallocate(op%olr)
   nullify(op%olr)
+
+
+  iis1=lbound(op%expseg,1)
+  iie1=ubound(op%expseg,1)
+  iis2=lbound(op%expseg,2)
+  iie2=ubound(op%expseg,2)
+  do i2=iis2,iie2
+      do i1=iis1,iie1
+          call deallocate_expansionSegments(op%expseg(i1,i2), subname)
+      end do
+  end do
+
+
+  iis1=lbound(op%extseg,1)
+  iie1=ubound(op%extseg,1)
+  iis2=lbound(op%extseg,2)
+  iie2=ubound(op%extseg,2)
+  do i2=iis2,iie2
+      do i1=iis1,iie1
+          call deallocate_expansionSegments(op%extseg(i1,i2), subname)
+      end do
+  end do
 
 end subroutine deallocate_overlapParameters
 
@@ -1496,3 +1529,27 @@ subroutine deallocate_matrixDescriptors(mad, subname)
   call checkAndDeallocatePointer(mad%keygline, 'mad%keygline', subname)
 
 end subroutine deallocate_matrixDescriptors
+
+
+
+subroutine deallocate_collectiveComms(collComms, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_collectiveComms
+  implicit none
+  
+  ! Calling arguments
+  type(collectiveComms),intent(inout):: collComms
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+
+  call checkAndDeallocatePointer(collComms%nvctr_par, 'collComms%nvctr_par', subname)
+  call checkAndDeallocatePointer(collComms%sendcnts, 'collComms%sendcnts', subname)
+  call checkAndDeallocatePointer(collComms%senddspls, 'collComms%senddspls', subname)
+  call checkAndDeallocatePointer(collComms%recvcnts, 'collComms%recvcnts', subname)
+  call checkAndDeallocatePointer(collComms%recvdspls, 'collComms%recvdspls', subname)
+  call checkAndDeallocatePointer(collComms%indexarray, 'collComms%indexarray', subname)
+
+end subroutine deallocate_collectiveComms

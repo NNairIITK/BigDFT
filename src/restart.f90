@@ -428,7 +428,7 @@ subroutine verify_file_presence(filerad,orbs,iformat)
   call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
  
   if (allfiles) then
-     iformat=1
+     iformat=WF_FORMAT_PLAIN
      return
   end if
 
@@ -452,12 +452,12 @@ subroutine verify_file_presence(filerad,orbs,iformat)
   end if
 
   if (allfiles) then
-     iformat=2
+     iformat=WF_FORMAT_BINARY
      return
   end if
 
   !otherwise, switch to normal input guess
-  iformat=0
+  iformat=WF_FORMAT_NONE
 
 end subroutine verify_file_presence
 
@@ -619,24 +619,30 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
   implicit none
 
   integer, intent(in) :: ln
-  character(len = ln), intent(in) :: filename
+  character, intent(in) :: filename(ln)
   integer, intent(in) :: iorbp
   integer, intent(out) :: n1, n2, n3, nspinor
   real(gp), intent(out) :: hx, hy, hz
   real(wp), dimension(:,:,:,:), pointer :: psiscf
   logical, intent(out) :: lstat
 
-  integer :: wave_format_from_filename, iformat
+  character(len = 1024) :: filename_
+  integer :: wave_format_from_filename, iformat, i
   
+  write(filename_, "(A)") " "
+  do i = 1, ln, 1
+     filename_(i:i) = filename(i)
+  end do
+
   ! Find format from name.
-  iformat = wave_format_from_filename(1, filename)
+  iformat = wave_format_from_filename(1, trim(filename_))
 
   ! Call proper wraping routine.
   if (iformat == WF_FORMAT_ETSF) then
-     call readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
+     call readwavetoisf_etsf(lstat, trim(filename_), iorbp, hx, hy, hz, &
           & n1, n2, n3, nspinor, psiscf)
   else
-     call readwavetoisf(lstat, filename, (iformat == WF_FORMAT_PLAIN), hx, hy, hz, &
+     call readwavetoisf(lstat, trim(filename_), (iformat == WF_FORMAT_PLAIN), hx, hy, hz, &
           & n1, n2, n3, nspinor, psiscf)
   end if
 END SUBROUTINE read_wave_to_isf
@@ -658,26 +664,32 @@ subroutine read_wave_descr(lstat, filename, ln, &
   use module_types
   implicit none
   integer, intent(in) :: ln
-  character(len = ln), intent(in) :: filename
+  character, intent(in) :: filename(ln)
   integer, intent(out) :: norbu, norbd, nkpt, nspinor
   integer, intent(out) :: iorbs, ispins, ikpts, ispinor
   logical, intent(out) :: lstat
 
-  integer :: wave_format_from_filename, iformat
+  character(len = 1024) :: filename_
+  integer :: wave_format_from_filename, iformat, i
   character(len = 1024) :: testf
   
+  write(filename_, "(A)") " "
+  do i = 1, ln, 1
+     filename_(i:i) = filename(i)
+  end do
+
   ! Find format from name.
-  iformat = wave_format_from_filename(1, filename)
+  iformat = wave_format_from_filename(1, trim(filename_))
 
   ! Call proper wraping routine.
   if (iformat == WF_FORMAT_ETSF) then
-     call readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
+     call readwavedescr_etsf(lstat, trim(filename_), norbu, norbd, nkpt, nspinor)
      iorbs = 1
      ispins = 1
      ikpts = 1
      ispinor = 1
   else
-     call readwavedescr(lstat, filename, iorbs, ispins, ikpts, ispinor, nspinor, testf)
+     call readwavedescr(lstat, trim(filename_), iorbs, ispins, ikpts, ispinor, nspinor, testf)
      norbu = 0
      norbd = 0
      nkpt = 0

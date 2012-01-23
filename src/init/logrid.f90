@@ -43,6 +43,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   !    for real space:
   integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
 
+
   allocate(logrid_big((2*n1+31)*(2*n2+31)*(2*n3+31)+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_big,'logrid_big',subname)
 
@@ -374,6 +375,13 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
           'ERROR: problem in wfd_to_logrid(coarse)',nvctr_check,wfd%nvctr_c,wfd%nseg_c
      stop
   end if
+  !!do i3=0,n3
+  !!  do i2=0,n2
+  !!    do i1=0,n1
+  !!      write(700,'(a,3i9,l)') 'i1, i2, i3, logrid_c(i1,i2,i3)', i1, i2, i3, logrid_c(i1,i2,i3)
+  !!    end do
+  !!  end do
+  !!end do
 
   !fine part
   logrid_f(:,:,:)=.false.

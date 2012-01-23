@@ -22,45 +22,9 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
   !n(c) character(len=*), parameter :: subname='system_properties'
-  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
-  integer :: norbuempty,norbdempty
 
-  call read_system_variables(trim(in%file_igpop),iproc,nproc,in,atoms,radii_cf,nelec,&
-       norb,norbu,norbd,norbuempty,norbdempty,iunit)
-
-  if(in%nspin==4) then
-     nspinor=4
-  else
-     nspinor=1
-  end if
-
-  call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor, &
-       & in%nkpt,in%kpt,in%wkpt,orbs)
-
-  !distribution of wavefunction arrays between processors
-  !tuned for the moment only on the cubic distribution
-  if (iproc == 0 .and. nproc > 1) then
-     jpst=0
-     do jproc=0,nproc-1
-        norbme=orbs%norb_par(jproc,0)
-        norbyou=orbs%norb_par(min(jproc+1,nproc-1),0)
-        if (norbme /= norbyou .or. jproc == nproc-1) then
-           !this is a screen output that must be modified
-           write(*,'(3(a,i0),a)')&
-                ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
-           jpst=jproc+1
-        end if
-     end do
-     !write(*,'(3(a,i0),a)')&
-     !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
-  end if
-
-  !assign to each k-point the same occupation number
-  do ikpts=1,orbs%nkpts
-     call occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
-          orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
-  end do
-
+  call read_atomic_variables(trim(in%file_igpop),iproc,in,atoms,radii_cf)
+  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
 END SUBROUTINE system_properties
 
 
@@ -148,12 +112,13 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
 END SUBROUTINE calculate_rhocore
 
-subroutine init_atomic_values(iproc, atoms, ixc)
+subroutine init_atomic_values(verb, atoms, ixc)
   use module_base
   use module_types
   implicit none
   
-  integer, intent(in) :: iproc, ixc
+  integer, intent(in) :: ixc
+  logical, intent(in) :: verb
   type(atoms_data), intent(inout) :: atoms
 
   !local variables
@@ -162,7 +127,7 @@ subroutine init_atomic_values(iproc, atoms, ixc)
   integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
   logical :: exists, read_radii,exist_all
   character(len=27) :: filename
-     
+  
   ! Read values from pseudo files.
   nlcc_dim=0
   atoms%donlcc=.false.
@@ -175,7 +140,7 @@ subroutine init_atomic_values(iproc, atoms, ixc)
   nullify(atoms%paw_NofL)
   do ityp=1,atoms%ntypes
      filename = 'psppar.'//atoms%atomnames(ityp)
-     call psp_from_file(iproc, filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
+     call psp_from_file(filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
            & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
           & atoms%radii_cf(ityp, :), read_radii, exists)
 
@@ -193,7 +158,7 @@ subroutine init_atomic_values(iproc, atoms, ixc)
              & atoms%nelpsp(ityp), atoms%npspcode(ityp), atoms%ixcpsp(ityp), &
              & atoms%psppar(:,:,ityp), exists)
         if (.not. exists) then
-           if (iproc ==0) write(*,'(1x,5a)')&
+           if (verb) write(*,'(1x,5a)')&
                 'ERROR: The pseudopotential parameter file "',trim(filename),&
                 '" is lacking, and no registered pseudo found for "', &
                 & trim(atoms%atomnames(ityp)), '", exiting...'
@@ -256,13 +221,12 @@ subroutine init_atomic_values(iproc, atoms, ixc)
   end if
 end subroutine init_atomic_values
 
-subroutine psp_from_file(iproc, filename, nzatom, nelpsp, npspcode, &
+subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, radii_cf, read_radii, exists)
   use module_base
   implicit none
   
   character(len = *), intent(in) :: filename
-  integer, intent(in) :: iproc
   integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
   real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3)
   logical, intent(out) :: read_radii, exists
@@ -278,8 +242,7 @@ subroutine psp_from_file(iproc, filename, nzatom, nelpsp, npspcode, &
   open(unit=11,file=trim(filename),status='old',iostat=ierror)
   !Check the open statement
   if (ierror /= 0) then
-     write(*,*) 'iproc=',iproc,&
-          ': Failed to open the file (it must be in ABINIT format!): "',&
+     write(*,*) ': Failed to open the file (it must be in ABINIT format!): "',&
           trim(filename),'"'
      stop
   end if
@@ -412,61 +375,30 @@ subroutine read_radii_variables(atoms, radii_cf)
   enddo
 END SUBROUTINE read_radii_variables
 
-!>   Assign some of the physical system variables
-!!   Performs also some cross-checks with other variables
-!!   The pointer in atoms structure have to be associated or nullified.
-subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
-     nelec,norb,norbu,norbd,norbuempty,norbdempty,iunit)
+subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   use module_base
   use module_types
-  use module_xc
-  use m_ab6_symmetry
+  use module_interfaces
   implicit none
-  character (len=*), intent(in) :: fileocc
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
-  type(atoms_data), intent(inout) :: atoms
-  integer, intent(out) :: nelec,norb,norbu,norbd,iunit,norbuempty,norbdempty
-  real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
+  logical, intent(in) :: verb
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(out) :: nelec
+  type(orbitals_data), intent(inout) :: orbs
   !local variables
-  character(len=*), parameter :: subname='read_system_variables'
+  character(len=*), parameter :: subname='read_orbital_variables'
   integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
   logical :: exists
-  character(len=2) :: symbol
-  character(len=24) :: message
-  character(len=50) :: format
-  integer :: i,j,k,l,iat,nt,ntu,ntd,ityp,ierror,ispinsum,mxpl,i_stat
-  integer :: ispol,mxchg,ichg,ichgsum,nsccode,norbe,norbat,nspinor,nspin
-  real(gp) :: rcov,rprb,ehomo,minrad,maxrad
-  real(gp), dimension(3,3) :: hij
-  real(gp), dimension(2,2,3) :: offdiagarr
-  !integer, dimension(nmax,0:lmax-1) :: neleconf
-  real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+  integer :: iat,iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
+  integer :: norbuempty,norbdempty
+  integer :: nt,ntu,ntd,ityp,ierror,ispinsum,i_stat
+  integer :: ispol,ichg,ichgsum,norbe,norbat,nspin
+  real(gp) :: rcov
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
-  character(len=500) :: name_xc1, name_xc2
   type(linearParameters) :: lin
   character(len=20),dimension(atoms%ntypes):: atomNames
-
-  ! in case of linear scaling, allocate the localization radii
-  if(in%linear == 'LIG') then
-     allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
-     call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
-  end if
-
-  ! if linear scaling applied with more then InputGuess, then go read input.lin for radii
-!  if (in%linear /= 'OFF' .and. in%linear /= 'LIG') then
-!     lin%nlr=atoms%nat
-!     call allocateBasicArrays(atoms, lin)
-!     call readLinearParameters(iproc, nproc, lin, atoms, atomNames)
-!  end if
-
-  if (iproc == 0) then
-     write(*,'(1x,a)')&
-          ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
-  end if
-  call read_radii_variables(atoms, radii_cf)
-  do ityp=1,atoms%ntypes
 
 
 !!if(in%inputPsiId==100) then
@@ -489,6 +421,267 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
 !!end if
 
 
+
+     !define the localization radius for the Linear input guess
+     if(in%linear == 'LIG') then
+        atoms%rloc(ityp,:) = rcov * 10.0
+     end if
+
+  !calculate number of electrons and orbitals
+  ! Number of electrons and number of semicore atoms
+  nelec=0
+  do iat=1,atoms%nat
+     ityp=atoms%iatype(iat)
+     nelec=nelec+atoms%nelpsp(ityp)
+  enddo
+  nelec=nelec-in%ncharge
+  if (verb) then
+     write(*,'(1x,a,t28,i8)') 'Total Number of Electrons',nelec
+  end if
+
+  ! Number of orbitals
+  if (in%nspin==1) then
+     norb=(nelec+1)/2
+     norbu=norb
+     norbd=0
+     if (mod(nelec,2).ne.0 .and. verb) then
+        write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
+     end if
+  else if(in%nspin==4) then
+     if (verb) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
+     norb=nelec
+     norbu=norb
+     norbd=0
+  else 
+     if (verb) write(*,'(1x,a)') 'Spin-polarized calculation'
+     norb=nelec
+     if (mod(norb+in%mpol,2) /=0) then
+        write(*,*)'ERROR: the mpol polarization should have the same parity of the number of electrons'
+        stop
+     end if
+     norbu=min((norb+in%mpol)/2,norb)
+     norbd=norb-norbu
+
+     !test if the spin is compatible with the input guess polarisations
+     ispinsum=0
+     ichgsum=0
+     do iat=1,atoms%nat
+        call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+        ispinsum=ispinsum+ispol
+        ichgsum=ichgsum+ichg
+     end do
+
+     if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
+        !if (iproc==0) then 
+           write(*,'(1x,a,i0,a)')&
+                'ERROR: Total input polarisation (found ',ispinsum,&
+                ') must be equal to norbu-norbd.'
+           write(*,'(1x,3(a,i0))')&
+                'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
+        !end if
+        stop
+     end if
+
+     if (ichgsum /= in%ncharge .and. ichgsum /= 0) then
+        !if (iproc==0) then 
+           write(*,'(1x,a,i0,a)')&
+                'ERROR: Total input charge (found ',ichgsum,&
+                ') cannot be different than charge.'
+           write(*,'(1x,2(a,i0))')&
+                'The charge is=',in%ncharge,' input charge=',ichgsum
+        !end if
+        stop
+     end if
+
+     !now warn if there is no input guess spin polarisation
+     ispinsum=0
+     do iat=1,atoms%nat
+        call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+        ispinsum=ispinsum+abs(ispol)
+     end do
+     if (ispinsum == 0 .and. in%nspin==2) then
+        if (iproc==0 .and. in%norbsempty == 0) &
+             write(*,'(1x,a)')&
+             'WARNING: Found no input polarisation, add it for a correct input guess'
+        !stop
+     end if
+
+  end if
+
+  !initialise the values for the empty orbitals
+  norbuempty=0
+  norbdempty=0
+
+  ! Test if the file 'input.occ exists
+  inquire(file=trim(in%file_occnum),exist=exists)
+  iunit=0
+  if (exists) then
+     iunit=25
+     open(unit=iunit,file=trim(in%file_occnum),form='formatted',action='read',status='old')
+     if (in%nspin==1) then
+        !The first line gives the number of orbitals
+        read(unit=iunit,fmt=*,iostat=ierror) nt
+     else
+        !The first line gives the number of orbitals
+        read(unit=iunit,fmt=*,iostat=ierror) ntu,ntd
+     end if
+     if (ierror /=0) then
+        !if (iproc==0) 
+          write(*,'(1x,a)') &
+             'ERROR: reading the number of orbitals in the file "'//trim(in%file_occnum)//'"'
+        stop
+     end if
+     !Check
+     if (in%nspin==1) then
+        if (nt<norb) then
+           !if (iproc==0) 
+               write(*,'(1x,a,i0,a,i0)') &
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals norb=',nt,&
+                ' should be greater or equal than (nelec+1)/2=',norb
+           stop
+        else
+           norb=nt
+           norbu=norb
+           norbd=0
+        end if
+     else
+        nt=ntu+ntd
+        if (nt<norb) then
+           !if (iproc==0) 
+               write(*,'(1x,a,i0,a,i0)') &
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals norb=',nt,&
+                ' should be greater or equal than nelec=',norb
+           stop
+        else
+           norb=nt
+        end if
+        if (ntu<norbu) then
+           !if (iproc==0) 
+                write(*,'(1x,a,i0,a,i0)') &
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals up norbu=',ntu,&
+                ' should be greater or equal than min((nelec+mpol)/2,nelec)=',norbu
+           stop
+        else
+           norbu=ntu
+        end if
+        if (ntd<norbd) then
+           !if (iproc==0) 
+                  write(*,'(1x,a,i0,a,i0)') &
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals down norbd=',ntd,&
+                ' should be greater or equal than min((nelec-mpol/2),0)=',norbd
+           stop
+        else
+           norbd=ntd
+        end if
+     end if
+  else if (in%norbsempty > 0) then
+     !total number of orbitals
+     norbe=0
+     if(in%nspin==4) then
+        nspin=2
+        nspinor=4
+     else
+        nspin=in%nspin
+        nspinor=1
+     end if
+
+     do iat=1,atoms%nat
+        ityp=atoms%iatype(iat)
+        call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,iat),occup,nl)
+        norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
+        norbe=norbe+norbat
+     end do
+
+     !value of empty orbitals up and down, needed to fill occupation numbers
+     norbuempty=min(in%norbsempty,norbe-norbu)
+     norbdempty=min(in%norbsempty,norbe-norbd)
+
+     if (in%nspin == 4 .or. in%nspin==1) then
+        norb=norb+norbuempty
+        norbu=norbu+norbuempty
+     else if (in%nspin ==2) then
+        norbu=norbu+norbuempty
+        norbd=norbd+norbdempty
+        norb=norbu+norbd
+     end if
+  end if
+
+  if(in%nspin==4) then
+     nspinor=4
+  else
+     nspinor=1
+  end if
+
+  call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor, &
+       & in%nkpt,in%kpt,in%wkpt,orbs)
+
+  !distribution of wavefunction arrays between processors
+  !tuned for the moment only on the cubic distribution
+  if (verb .and. nproc > 1) then
+     jpst=0
+     do jproc=0,nproc-1
+        norbme=orbs%norb_par(jproc,0)
+        norbyou=orbs%norb_par(min(jproc+1,nproc-1),0)
+        if (norbme /= norbyou .or. jproc == nproc-1) then
+           !this is a screen output that must be modified
+           write(*,'(3(a,i0),a)')&
+                ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
+           jpst=jproc+1
+        end if
+     end do
+     !write(*,'(3(a,i0),a)')&
+     !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
+  end if
+
+  !assign to each k-point the same occupation number
+  do ikpts=1,orbs%nkpts
+     call occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
+          orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
+  end do
+end subroutine read_orbital_variables
+
+!>   Assign some of the physical system variables
+!!   Performs also some cross-checks with other variables
+!!   The pointer in atoms structure have to be associated or nullified.
+subroutine read_atomic_variables(fileocc,iproc,in,atoms,radii_cf)
+  use module_base
+  use module_types
+  use module_xc
+  use m_ab6_symmetry
+  implicit none
+  character (len=*), intent(in) :: fileocc
+  type(input_variables), intent(in) :: in
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
+  !local variables
+  character(len=*), parameter :: subname='read_system_variables'
+  integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
+  character(len=2) :: symbol
+  character(len=24) :: message
+  character(len=50) :: format
+  integer :: i,j,k,l,ityp,iat,ierror,mxpl
+  integer :: mxchg,nsccode,i_stat
+  real(gp) :: rcov,rprb,ehomo,minrad,maxrad
+  real(gp), dimension(3,3) :: hij
+  real(gp), dimension(2,2,3) :: offdiagarr
+  !integer, dimension(nmax,0:lmax-1) :: neleconf
+  real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+  character(len=500) :: name_xc1, name_xc2
+
+  if (iproc == 0) then
+     write(*,'(1x,a)')&
+          ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
+  end if
+  call read_radii_variables(atoms, radii_cf)
+
+  ! in case of linear scaling, allocate the localization radii
+  if(in%linear == 'LIG') then
+     allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
+     call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
+  end if
+
+  do ityp=1,atoms%ntypes
      !control the hardest and the softest gaussian
      minrad=1.e10_gp
      maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
@@ -645,214 +838,36 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
      end do
   end if
 
-  !calculate number of electrons and orbitals
-  ! Number of electrons and number of semicore atoms
-  nelec=0
-  atoms%natsc=0
-  do iat=1,atoms%nat
-     ityp=atoms%iatype(iat)
-     nelec=nelec+atoms%nelpsp(ityp)
-     nsccode=atoms%iasctype(iat)
-
-     !print *,'nsccode,iat2',nsccode
-     !this part should be removed one the occupation number has been passed
-     !call charge_and_spol(atoms%natpol(iat),ichg,ispol)
-     !if (ichg /=0) then
-     !   call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-     !        neleconf,atoms%iasctype(ityp),mxpl,mxchg,atoms%amu(ityp))
-     !   call correct_semicore(6,3,ichg,neleconf,nsccode)
-     !end if
-     !end of part to be removed
-     if (nsccode/= 0) atoms%natsc=atoms%natsc+1
-  enddo
-  nelec=nelec-in%ncharge
-  if (iproc == 0) then
-     write(*,'(1x,a,t28,i8)') 'Total Number of Electrons',nelec
-  end if
-
-  ! Number of orbitals
-  if (in%nspin==1) then
-     norb=(nelec+1)/2
-     norbu=norb
-     norbd=0
-     if (mod(nelec,2).ne.0 .and. iproc==0) then
-        write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
-     end if
-  else if(in%nspin==4) then
-     if (iproc==0) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
-     norb=nelec
-     norbu=norb
-     norbd=0
-  else 
-     if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
-     norb=nelec
-     if (mod(norb+in%mpol,2) /=0) then
-        write(*,*)'ERROR: the mpol polarization should have the same parity of the number of electrons'
-        stop
-     end if
-     norbu=min((norb+in%mpol)/2,norb)
-     norbd=norb-norbu
-
-     !test if the spin is compatible with the input guess polarisations
-     ispinsum=0
-     ichgsum=0
-     do iat=1,atoms%nat
-        call charge_and_spol(atoms%natpol(iat),ichg,ispol)
-        ispinsum=ispinsum+ispol
-        ichgsum=ichgsum+ichg
-     end do
-
-     if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
-        !if (iproc==0) then 
-           write(*,'(1x,a,i0,a)')&
-                'ERROR: Total input polarisation (found ',ispinsum,&
-                ') must be equal to norbu-norbd.'
-           write(*,'(1x,3(a,i0))')&
-                'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
-        !end if
-        stop
-     end if
-
-     if (ichgsum /= in%ncharge .and. ichgsum /= 0) then
-        !if (iproc==0) then 
-           write(*,'(1x,a,i0,a)')&
-                'ERROR: Total input charge (found ',ichgsum,&
-                ') cannot be different than charge.'
-           write(*,'(1x,2(a,i0))')&
-                'The charge is=',in%ncharge,' input charge=',ichgsum
-        !end if
-        stop
-     end if
-
-     !now warn if there is no input guess spin polarisation
-     ispinsum=0
-     do iat=1,atoms%nat
-        call charge_and_spol(atoms%natpol(iat),ichg,ispol)
-        ispinsum=ispinsum+abs(ispol)
-     end do
-     if (ispinsum == 0 .and. in%nspin==2) then
-        if (iproc==0 .and. in%norbsempty == 0) &
-             write(*,'(1x,a)')&
-             'WARNING: Found no input polarisation, add it for a correct input guess'
-        !stop
-     end if
-
-  end if
-
-  !initialise the values for the empty orbitals
-  norbuempty=0
-  norbdempty=0
-
-  ! Test if the file 'input.occ exists
-  inquire(file=trim(in%file_occnum),exist=exists)
-  iunit=0
-  if (exists) then
-     iunit=25
-     open(unit=iunit,file=trim(in%file_occnum),form='formatted',action='read',status='old')
-     if (in%nspin==1) then
-        !The first line gives the number of orbitals
-        read(unit=iunit,fmt=*,iostat=ierror) nt
-     else
-        !The first line gives the number of orbitals
-        read(unit=iunit,fmt=*,iostat=ierror) ntu,ntd
-     end if
-     if (ierror /=0) then
-        !if (iproc==0) 
-          write(*,'(1x,a)') &
-             'ERROR: reading the number of orbitals in the file "'//trim(in%file_occnum)//'"'
-        stop
-     end if
-     !Check
-     if (in%nspin==1) then
-        if (nt<norb) then
-           !if (iproc==0) 
-               write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals norb=',nt,&
-                ' should be greater or equal than (nelec+1)/2=',norb
-           stop
-        else
-           norb=nt
-           norbu=norb
-           norbd=0
-        end if
-     else
-        nt=ntu+ntd
-        if (nt<norb) then
-           !if (iproc==0) 
-               write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals norb=',nt,&
-                ' should be greater or equal than nelec=',norb
-           stop
-        else
-           norb=nt
-        end if
-        if (ntu<norbu) then
-           !if (iproc==0) 
-                write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals up norbu=',ntu,&
-                ' should be greater or equal than min((nelec+mpol)/2,nelec)=',norbu
-           stop
-        else
-           norbu=ntu
-        end if
-        if (ntd<norbd) then
-           !if (iproc==0) 
-                  write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals down norbd=',ntd,&
-                ' should be greater or equal than min((nelec-mpol/2),0)=',norbd
-           stop
-        else
-           norbd=ntd
-        end if
-     end if
-  else if (in%norbsempty > 0) then
-     !total number of orbitals
-     norbe=0
-     if(in%nspin==4) then
-        nspin=2
-        nspinor=4
-     else
-        nspin=in%nspin
-        nspinor=1
-     end if
-
-     do iat=1,atoms%nat
-        ityp=atoms%iatype(iat)
-        call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,iat),occup,nl)
-        norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
-        norbe=norbe+norbat
-     end do
-
-     !value of empty orbitals up and down, needed to fill occupation numbers
-     norbuempty=min(in%norbsempty,norbe-norbu)
-     norbdempty=min(in%norbsempty,norbe-norbd)
-
-     if (in%nspin == 4 .or. in%nspin==1) then
-        norb=norb+norbuempty
-        norbu=norbu+norbuempty
-     else if (in%nspin ==2) then
-        norbu=norbu+norbuempty
-        norbd=norbd+norbdempty
-        norb=norbu+norbd
-     end if
-  end if
-
   ! We modify the symmetry object with respect to the spin.
-  if (atoms%symObj >= 0) then
+  if (atoms%sym%symObj >= 0) then
      if (in%nspin == 2) then
-        call symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
+        call symmetry_set_collinear_spin(atoms%sym%symObj, atoms%nat, &
              & atoms%natpol, ierror)
 !!$     else if (in%nspin == 4) then
-!!$        call symmetry_set_spin(atoms%symObj, atoms%nat, &
+!!$        call symmetry_set_spin(atoms%sym%symObj, atoms%nat, &
 !!$             & atoms%natpol, ierror)
      end if
   end if
+
+  atoms%natsc = 0
+  do iat=1,atoms%nat
+     if (atoms%iasctype(iat) /= 0) atoms%natsc=atoms%natsc+1
+  enddo
 
 !!!  tt=dble(norb)/dble(nproc)
 !!!  norbp=int((1.d0-eps_mach*tt) + tt)
 !!!  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
-END SUBROUTINE read_system_variables
+
+  ! if linear scaling applied with more then InputGuess, then go read input.lin for radii
+  !  if (in%linear /= 'OFF' .and. in%linear /= 'LIG') then
+  !     lin%nlr=atoms%nat
+  !     call allocateBasicArrays(atoms, lin)
+  !     call readLinearParameters(iproc, nproc, lin, atoms, atomNames)
+  !  end if
+
+
+END SUBROUTINE read_atomic_variables
 
 !>find the correct position of the nlcc parameters
 subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
@@ -1017,7 +1032,6 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
   if (exists) close(unit=91)
 
 END SUBROUTINE atomic_occupation_numbers
-
 
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
@@ -1423,7 +1437,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
   ! default for inwhichlocreg
   orbs%inwhichlocreg = 1
 
-  nullify(orbs%inwhichlocregP)
+  !nullify(orbs%inwhichlocregP)
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)

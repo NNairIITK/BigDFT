@@ -221,6 +221,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    endif
 
    !assign the values
+   Glr%geocode=atoms%geocode
    Glr%d%n1  =n1  
    Glr%d%n2  =n2  
    Glr%d%n3  =n3  
@@ -257,7 +258,6 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    else
       if (iproc == 0) write(*,*)'wavelet localization is OFF'
    endif
-
 END SUBROUTINE system_size
 
 
@@ -415,7 +415,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       &   ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
    use module_base
    implicit none
-   character(len=1), intent(in) :: geocode
+   character, intent(in) :: geocode(1)
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,ntypes
    real(gp), intent(in) :: rmult,hx,hy,hz
    integer, dimension(nat), intent(in) :: iatype
@@ -428,7 +428,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    real(gp) :: dx,dy2,dz2,rad
 
    !some checks
-   if (geocode /='F') then
+   if (geocode(1) /='F') then
       !the nbuf value makes sense only in the case of free BC
       if (nbuf /=0) then
          write(*,'(1x,a)')'ERROR: a nonzero value of nbuf is allowed only for Free BC (tails)'
@@ -440,7 +440,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       end if
    end if
 
-   if (geocode == 'F') then
+   if (geocode(1) == 'F') then
       do i3=nl3,nu3 
          do i2=nl2,nu2 
             do i1=nl1,nu1
@@ -469,7 +469,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
          mu3=floor((rxyz(3,iat)+rad)/hz + eps_mach)
 
          !for Free BC, there must be no incoherences with the previously calculated delimiters
-         if (geocode == 'F') then
+         if (geocode(1) == 'F') then
            if (ml1 < nl1) then
                write(*,'(a,i0,3x,i0)')  'ERROR: ml1 < nl1  ', ml1, nl1
                stop
@@ -518,6 +518,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
          !$omp end parallel
       end if
    enddo
+
 
 END SUBROUTINE fill_logrid
 

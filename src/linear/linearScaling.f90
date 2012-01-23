@@ -1,6 +1,6 @@
 subroutine linearScaling(iproc,nproc,n3d,n3p,n3pi,i3s,i3xcsh,Glr,orbs,comms,at,input,&
      rhodsc,lin,rxyz,fion,fdisp,radii_cf,nscatterarr,ngatherarr,nlpspd,proj,rhopot,GPU,&
-     pkernelseq,irrzon,phnons,pkernel,pot_ion,rhocore,potxc,&
+     pkernelseq,pkernel,pot_ion,rhocore,potxc,&
      PSquiet,eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
 !
 ! Purpose:
@@ -80,8 +80,6 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout), target :: rhopot
 type(GPU_pointers),intent(in out):: GPU
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
-integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon 
-real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons 
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
 real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
 !real(wp), dimension(lin%as%size_rhocore):: rhocore 
@@ -97,7 +95,7 @@ real(8),intent(out):: energy
 real(8),dimension(3,at%nat),intent(out):: fxyz
 !real(8),intent(out):: fnoise
 real(8):: fnoise,pressure
-real(gp), dimension(6) :: ewaldstr,strten,hstrten
+real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
@@ -108,7 +106,7 @@ real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix, dampingForMixing
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
 type(linearParameters):: lind
-logical:: updatePhi, reduceConvergenceTolerance
+logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged
 real(8),dimension(:),pointer:: lphi, lphir, phibuffr
 
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -118,20 +116,17 @@ real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2ini
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
-integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot, iiorb, ncount
+integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot, iiorb, ncount, ncnt
 type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
-real(8),dimension(:,:),allocatable:: ovrlp
+real(8),dimension(:,:),allocatable:: ovrlp, coeff_proj
 
 
-  !do iall=0,nproc-1
-  !    write(*,'(a,i5,4i12)') 'START: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
-  !end do
 
-!!  do istat=1,at%nat
-!!      if(iproc==0) write(*,'(a,i5,3es14.6)') 'iat, confinement center (on grid): ', istat, rxyz(1,istat)/(.5d0*input%hx), rxyz(2,istat)/(.5d0*input%hy), rxyz(3,istat)/(.5d0*input%hz)
-!!  end do
-!!
+
+
+
+
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
@@ -146,6 +141,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
   t1init=mpi_wtime()
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
        input, rxyz, nscatterarr, tag, coeff, lphi)
+  lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
+
+
   call mpi_barrier(mpi_comm_world, ierr)
   t2init=mpi_wtime()
   timeinit=t2init-t1init
@@ -165,15 +163,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
   !rhopotold_out=1.d100
 
-  allocate(lin%lpsi(size(lphi)), stat=istat)
-  call memocc(istat, lin%lpsi, 'lin%lpsi', subname)
-  allocate(lin%lhpsi(size(lphi)), stat=istat)
-  call memocc(istat, lin%lhpsi, 'lin%lhpsi', subname)
+  allocate(coeff_proj(lin%orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, coeff_proj, 'coeff_proj', subname)
 
-  !allocate(lphiold(size(lphi)), stat=istat)
-  !call memocc(istat, lphiold, 'lphiold', subname)
-
-!  call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%locregShape, lin%lzd)
 
   potshortcut=0 ! What is this?
   call mpi_barrier(mpi_comm_world, ierr)
@@ -181,34 +173,16 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call inputguessConfinement(iproc, nproc, at, &
        comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
-       nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
+       nscatterarr, ngatherarr, potshortcut, GPU, radii_cf, &
        tag, lphi, ehart, eexcu, vexcu)
   call mpi_barrier(mpi_comm_world, ierr)
   t2ig=mpi_wtime()
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
 
-  !debug
-  !do istat=1,size(lphi)
-  !    write(5000+iproc,*) istat, lphi(istat)
-  !end do
+  !!! Copy lphi to lin%lpsi, don't know whether this is a good choice
+  !!lin%lpsi=lphi
 
-
-  ! Copy lphi to lin%lpsi, don't know whether this is a good choice
-  lin%lpsi=lphi
-
-
-  !!allocate(ovrlp(lin%orbs%norb,lin%orbs%norb))
-  !!call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
-  !!     lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
-  !!     input, lin%mad, lphi, ovrlp)
-  !!deallocate(ovrlp)
-
-
-  !!! if we mix the density, copy the current charge density.
-  !!if(trim(lin%mixingmethod)=='dens') then
-  !!    call dcopy(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotold(1), 1)
-  !!end if
 
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist>0) then
@@ -232,15 +206,17 @@ real(8),dimension(:,:),allocatable:: ovrlp
       ! This subroutine will also post the point to point messages needed for the calculation
       ! of the charge density.
       updatePhi=.false.
-      call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
-          nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
+      !communicate_lphi=.true.
+      communicate_lphi=.true.
+      with_auxarray=.false.
+      call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
+      call getLinearPsi(iproc, nproc, input%nspin, orbs, comms, at, lin, rxyz, rxyz, &
+          nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
           infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
-          i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj)
+          i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 
       ! Calculate the charge density.
       call cpu_time(t1)
-      call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, lphi, Glr%d%n1i*Glr%d%n2i*n3d, &
-           rhopot, at, nscatterarr)
       call deallocateCommunicationbufferSumrho(lin%comsr, subname)
       call cpu_time(t2)
       time=t2-t1
@@ -249,30 +225,20 @@ real(8),dimension(:,:),allocatable:: ovrlp
       if(iproc==0) write(*,'(1x,a,es12.4)') 'time for sumrho:',time
 
       if(trim(lin%mixingMethod)=='dens') then
-          if(lin%mixHist==0) then
-              !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
-              call mixPotential(iproc, n3p, Glr, input, lin%alphaMixWhenFixed, rhopotOld, rhopot, pnrm)
-          else 
-              ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-              ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
-              mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-              mixdiis%is=mixdiis%is+1
-              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMixWhenFixed, 1, pnrm)
-          end if
-          rhopotold_out=rhopot
+          !if(lin%mixHist==0) then
+          !    !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+          !    call mixPotential(iproc, n3p, Glr, input, lin%alphaMixWhenFixed, rhopotOld, rhopot, pnrm)
+          !else 
+          !    ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+          !    ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+          !    mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+          !    mixdiis%is=mixdiis%is+1
+          !    call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMixWhenFixed, 1, pnrm)
+          !end if
+          !rhopotold_out=rhopot
+          rhopotold_out=rhopotold
       end if
 
-      ! if we mix the density, copy the current charge density.
-      !allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
-      !call memocc(istat, rhopotold, 'rhopotold', subname)
-      if(trim(lin%mixingmethod)=='dens') then
-          call dcopy(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotold(1), 1)
-      end if
-
-      ! Calculate the potential we get with the current chareg density.
-      call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
-          rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-          coeff, ehart, eexcu, vexcu)
 
       if(trim(lin%mixingMethod)=='pot') then
           if(lin%mixHist==0) then
@@ -312,8 +278,6 @@ real(8),dimension(:,:),allocatable:: ovrlp
   end if
 
 
-  !! For mixing phi together with mixing the density -- experimental
-  !lphiold=lphi
 
 
   !if(nproc==1) allocate(psit(size(psi)))
@@ -321,6 +285,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   ! Flag that indicates that the basis functions shall be improved in the following.
   updatePhi=.true.
   pnrm=1.d100
+  pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
   !lin%getCoeff='new'
@@ -328,23 +293,46 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !if(iproc==0) write(*,'(a,es9.2)') 'dampingForMixing',dampingForMixing
 
 
-  do itout=1,lin%nItOuterSCC
+  lin%newgradient=.false.
+  !lin%useDerivativeBasisFunctions=.false.
+
+  lowaccur_converged=.false.
+
+  do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
+
       updatePhi=.true.
-      if(reduceConvergenceTolerance) lin%fixBasis=max(lin%fixBasis*lin%factorFixBasis,lin%minimalFixBasis)
-      selfConsistent=max(lin%convCritMix,5.d-3*lin%fixBasis)
-      if(iproc==0) write(*,'(a,es12.4,3x,es12.4)') &
-           'DELTA DENS for fixing basis functions, reaching self consistency:',lin%fixBasis, selfConsistent
-      !do itSCC=1,nitSCC
+
+      selfConsistent=lin%convCritMix
+
+      if(.not.lowaccur_converged .and. (itout==lin%nit_lowaccuracy+1 .or. pnrm_out<lin%lowaccuray_converged)) then
+         lowaccur_converged=.true.
+     end if 
+
+      if(lowaccur_converged) then
+          lin%potentialPrefac = lin%potentialPrefac_highaccuracy
+          lin%newgradient=.true.
+      else
+          lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
+          lin%newgradient=.false.
+      end if
+      if(iproc==0) write(*,*) 'lowaccur_converged',lowaccur_converged
+
+      with_auxarray=.false.
+      call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
+
       do itSCC=1,nitSCC
-          if(itSCC>1 .and. pnrm<lin%fixBasis .or. itSCC==lin%nitSCCWhenOptimizing) updatePhi=.false.
-          !if(pnrm<lin%fixBasis) updatePhi=.false.
+          if(itSCC>lin%nitSCCWhenOptimizing) updatePhi=.false.
+          if(itSCC==1) then
+              communicate_lphi=.true.
+          else
+              communicate_lphi=.false.
+          end if
           ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
 
-          call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
-              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
+          call getLinearPsi(iproc, nproc, input%nspin, orbs, comms, at, lin, rxyz, rxyz, &
+              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, updatePhi, &
               infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj)
-
+              i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 
 
           ! Potential from electronic charge density
@@ -355,56 +343,37 @@ real(8),dimension(:,:),allocatable:: ovrlp
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t2)
           time=t2-t1
-          call deallocateCommunicationbufferSumrho(lin%comsr, subname)
           !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
           if(iproc==0) write(*,'(1x,a,es10.3)') 'time for sumrho:', time
 
           ! Mix the density.
-          !if(lin%nItInguess>0 .or. itSCC>1) then
-          !if(itSCC>1) then
-          if(itSCC>0) then
-          !if(itSCC>0 .and. mod(itScc,2)==0) then
-              if(trim(lin%mixingMethod)=='dens') then
-                  if(updatePhi) then
-                      alphaMix=lin%alphaMixWhenOptimizing
-                  else
-                      alphaMix=lin%alphaMixWhenFixed
-                  end if
-                  if(lin%mixHist==0) then
-                      !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
-                      call mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
-
-                      !! Mix phi - EXPERIMENTAL
-                      !tt=1.d0-lin%alphaMix
-                      !do i=1,size(lphi)
-                      !    lphi(i)=tt*lphiold(i)+lin%alphaMix*lphi(i)
-                      !end do
-                  else 
-                      ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-                      ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
-                      mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-                      mixdiis%is=mixdiis%is+1
-                      call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, 1, pnrm)
-                  end if
-                  if(pnrm<selfConsistent .or. itSCC==nitSCC) then
-                      pnrm_out=0.d0
-                      do i=1,Glr%d%n1i*Glr%d%n2i*n3p
-                          pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2
-                      end do
-                      call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
-                      pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
-                      !!!! EXPERIMENTAL !!
-                      !!do i=1,Glr%d%n1i*Glr%d%n2i*n3p
-                      !!    rhopot(i)=.5d0*rhopotOld_out(i)+.5d0*rhopot(i)
-                      !!end do
-                      !!!! END EXPERIMENTAL !!
-                      call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld_out(1), 1)
-                  end if
+          if(trim(lin%mixingMethod)=='dens') then
+              if(updatePhi) then
+                  alphaMix=lin%alphaMixWhenOptimizing
+              else
+                  alphaMix=lin%alphaMixWhenFixed
+              end if
+              if(lin%mixHist==0) then
+                  call mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
+              else 
+                  ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+                  ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+                  mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+                  mixdiis%is=mixdiis%is+1
+                  call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, 1, pnrm)
+              end if
+              if(pnrm<selfConsistent .or. itSCC==nitSCC) then
+                  pnrm_out=0.d0
+                  do i=1,Glr%d%n1i*Glr%d%n2i*n3p
+                      pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2
+                  end do
+                  call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
+                  pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+                  call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld_out(1), 1)
               end if
           end if
 
           ! Copy the current charge density.
-          !!if(trim(lin%mixingMethod)=='dens' .and. .not.(pnrm<selfConsistent .or. itSCC==nitSCC+10)) then
           if(trim(lin%mixingMethod)=='dens') then
               call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
           end if
@@ -423,33 +392,29 @@ real(8),dimension(:,:),allocatable:: ovrlp
           ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
 
           ! Mix the potential
-          !if(lin%nItInguess>0 .or. itSCC>1) then
-          !if(itSCC>1) then
-          if(itSCC>0) then
-              if(trim(lin%mixingMethod)=='pot') then
-                  if(updatePhi) then
-                      alphaMix=lin%alphaMixWhenOptimizing
-                  else
-                      alphaMix=lin%alphaMixWhenFixed
-                  end if
-                  if(lin%mixHist==0) then
-                      call mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
-                  else 
-                      ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-                      ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
-                      mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-                      mixdiis%is=mixdiis%is+1
-                      call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, 2, pnrm)
-                  end if
-                  if(pnrm<selfConsistent .or. itSCC==nitSCC) then
-                      pnrm_out=0.d0
-                      do i=1,Glr%d%n1i*Glr%d%n2i*n3p
-                          pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2
-                      end do
-                      call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
-                      pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
-                      call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld_out(1), 1)
-                  end if
+          if(trim(lin%mixingMethod)=='pot') then
+              if(updatePhi) then
+                  alphaMix=lin%alphaMixWhenOptimizing
+              else
+                  alphaMix=lin%alphaMixWhenFixed
+              end if
+              if(lin%mixHist==0) then
+                  call mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
+              else 
+                  ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+                  ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+                  mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+                  mixdiis%is=mixdiis%is+1
+                  call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, 2, pnrm)
+              end if
+              if(pnrm<selfConsistent .or. itSCC==nitSCC) then
+                  pnrm_out=0.d0
+                  do i=1,Glr%d%n1i*Glr%d%n2i*n3p
+                      pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2
+                  end do
+                  call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
+                  pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+                  call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld_out(1), 1)
               end if
           end if
 
@@ -468,7 +433,6 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
           ! Write some informations
           call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, lin%mixingMethod)
-          !if(pnrm<lin%convCritMix) exit
           if(pnrm<selfConsistent) then
               reduceConvergenceTolerance=.true.
               exit
@@ -476,6 +440,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
               reduceConvergenceTolerance=.false.
           end if
       end do
+
+      call deallocateCommunicationbufferSumrho(lin%comsr, subname)
+
       if(iproc==0) then
           if(trim(lin%mixingMethod)=='dens') then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
@@ -485,7 +452,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
                    'itout, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energy-energyoldout
           end if
       end if
-      if(abs(pnrm_out)<lin%convCritMixOut) exit
+      !!if(abs(pnrm_out)<lin%convCritMixOut) exit
       energyoldout=energy
   end do
 
@@ -502,9 +469,6 @@ real(8),dimension(:,:),allocatable:: ovrlp
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
-  !iall=-product(shape(lphiold))*kind(lphiold)
-  !deallocate(lphiold, stat=istat)
-  !call memocc(istat, iall, 'lphiold', subname)
 
   if(lin%mixHist>0) then
       call deallocateMixrhopotDIIS(mixdiis)
@@ -516,12 +480,14 @@ real(8),dimension(:,:),allocatable:: ovrlp
 
 
   ! Allocate the communication buffers for the calculation of the charge density.
-  call allocateCommunicationbufferSumrho(lin%comsr, subname)
+  with_auxarray=.false.
+  call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
   ! Transform all orbitals to real space.
   ist=1
   istr=1
   do iorb=1,lin%lb%orbs%norbp
-      ilr=lin%lb%orbs%inWhichLocregp(iorb)
+      !ilr=lin%lb%orbs%inWhichLocregp(iorb)
+      ilr=lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
       call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
       !call daub_to_isf(lin%lzd%llr(ilr), w, lphi(ist), lphir(istr))
       call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%comsr%sendBuf(istr))
@@ -540,50 +506,55 @@ real(8),dimension(:,:),allocatable:: ovrlp
   call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
        rhopot, at, nscatterarr)
+
+  !call sumrholinear_auxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, phi, at, nscatterarr)
+  !call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &
+  !     rhopot, at, nscatterarr)
   call deallocateCommunicationbufferSumrho(lin%comsr, subname)
 
   call mpi_barrier(mpi_comm_world, ierr)
   t1force=mpi_wtime()
   ! Build global orbitals psi (the physical ones).
   if(lin%transformToGlobal) then
-      !do iall=0,nproc-1
-      !    write(*,'(a,i5,4i12)') 'CALLING transformToGlobal: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
-      !end do
       call transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
   end if
 
-  !!do iorb=1,orbs%norb
-  !!    do iall=1,lin%lb%orbs%norb
-  !!        write(600+iproc,*) iorb, iall, coeff(iall,iorb)
-  !!    end do
-  !!end do
+
+  ! Put the timings here since there is a crash in the forces.
+  call mpi_barrier(mpi_comm_world, ierr)
+  t2tot=mpi_wtime()
+  timetot=t2tot-t1tot
+  timeforce=0.d0
+  if(iproc==0) write(*,'(1x,a)') '================================================'
+  if(iproc==0) write(*,'(1x,a,es10.3,a)') 'total time for linear scaling version:',timetot,'s'
+  if(iproc==0) write(*,'(3x,a)') 'of which:'
+  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- initialization:',timeinit,'s (',timeinit/timetot*100.d0,'%)'
+  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- input guess:',timeig,'s (',timeig/timetot*100.d0,'%)'
+  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- self consistency cycle:',timescc,'s (',timescc/timetot*100.d0,'%)'
+  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- forces:',timeforce,'s (',timeforce/timetot*100.d0,'%)'
+  if(iproc==0) write(*,'(1x,a)') '================================================'
+
 
   ! Calculate the forces we get with psi.
   !!call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
   !!    proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, lphi, coeff, rhopot, &
   !!    fxyz, fnoise,radii_cf)
 
-  !!do istat=1,size(psi)
-  !!    write(2000+iproc,*) psi(istat)
-  !!end do
-  !!do istat=1,size(rhopot)
-  !!    write(3000+iproc,*) rhopot(istat)
-  !!end do
-
   !associate the density
   rho => rhopot
 
   !add an if statement which says whether the charge density has already been calculated
-  call density_and_hpot(iproc,nproc,at%geocode,at%symObj,orbs,lin%Lzd,&
+  call density_and_hpot(iproc,nproc,at%geocode,at%sym,orbs,lin%Lzd,&
        0.5_gp*input%hx,0.5_gp*input%hy,0.5_gp*input%hz,nscatterarr,&
-       irrzon,phnons,pkernel,rhodsc,GPU,psi,rho,pot,hstrten)
+       pkernel,rhodsc,GPU,psi,rho,pot,hstrten)
 
   !fake ewald stress tensor
   ewaldstr=0.0_gp
+  xcstr=0.0_gp
   call calculate_forces(iproc,nproc,Glr,at,orbs,nlpspd,rxyz,&
        input%hx,input%hy,input%hz,proj,i3s+i3xcsh,n3p,&
        input%nspin,.false.,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
-       ewaldstr,hstrten,strten,fnoise,pressure,0.0_dp)
+       ewaldstr,hstrten,xcstr,strten,fnoise,pressure,0.0_dp)
 
   iall=-product(shape(pot))*kind(pot)
   deallocate(pot,stat=istat)
@@ -612,13 +583,13 @@ real(8),dimension(:,:),allocatable:: ovrlp
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi, lphi, coeff)
 
-  iall=-product(shape(lin%lpsi))*kind(lin%lpsi)
-  deallocate(lin%lpsi, stat=istat)
-  call memocc(istat, iall, 'lin%lpsi', subname)
-  iall=-product(shape(lin%lhpsi))*kind(lin%lhpsi)
-  deallocate(lin%lhpsi, stat=istat)
-  call memocc(istat, iall, 'lin%lhpsi', subname)
+  !iall=-product(shape(lin%coeffall))*kind(lin%coeffall)
+  !deallocate(lin%coeffall, stat=istat)
+  !call memocc(istat, iall, 'lin%coeffall', subname)
 
+  iall=-product(shape(coeff_proj))*kind(coeff_proj)
+  deallocate(coeff_proj, stat=istat)
+  call memocc(istat, iall, 'coeff_proj', subname)
 
 
 
@@ -798,7 +769,8 @@ character(len=*),parameter:: subname='transformToGlobal'
        call to_zero(max(lin%lb%gorbs%npsidim_orbs,lin%lb%gorbs%npsidim_comp),phi(1))
 
   do iorb=1,lin%lb%orbs%norbp
-      ilr = lin%lb%orbs%inWhichLocregp(iorb)
+      !ilr = lin%lb%orbs%inWhichLocregp(iorb)
+      ilr = lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
       ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       gdim=lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
       call Lpsi_to_global2(iproc,nproc,ldim,gdim,lin%lb%orbs%norb,lin%lb%orbs%nspinor,input%nspin,lin%lzd%Glr,&

@@ -40,6 +40,7 @@ EXTRA_DIST = \
 	HGH-K/psppar.C \
 	HGH-K/psppar.N \
 	HGH-K/psppar.Ti \
+	extra/psppar.H \
 	Xabs/psppar.Fe \
 	Krach-LDA/Ag-q1 \
 	Krach-LDA/Ag-q11 \

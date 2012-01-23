@@ -31,6 +31,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    logical :: my_output_denspot
    logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
+   call timing(iproc,'CrtDescriptors','ON')
+
    if (iproc == 0) then
       write(*,'(1x,a)')&
          &   '------------------------------------------------- Wavefunctions Descriptors Creation'
@@ -133,6 +135,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    i_all=-product(shape(logrid_f))*kind(logrid_f)
    deallocate(logrid_f,stat=i_stat)
    call memocc(i_stat,i_all,'logrid_f',subname)
+
+   call timing(iproc,'CrtDescriptors','OF')
 END SUBROUTINE createWavefunctionsDescriptors
 
 subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
@@ -1236,12 +1240,23 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
 END SUBROUTINE createPawProjectorsArrays
 
+!!$subroutine initRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, atoms, rxyz, crmult, frmult, radii, nspin, ixc, rho_commun, rhodsc, nscatterarr, ngatherarr, pot_ion)
+!!$  use module_base
+!!$  use module_types
+!!$
+!!$  implicit none
+!!$
+!!$  integer, intent(in) :: iproc, nproc
+!!$
+!!$  integer :: i_stat
+!!$
+!!$END SUBROUTINE initRhoPot
 
 !> Input guess wavefunction diagonalization
 subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
       &   nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
-     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input,radii_cf)
+     nscatterarr,ngatherarr,nspin,potshortcut,symObj,GPU,input,radii_cf)
    ! Input wavefunctions are found by a diagonalization in a minimal basis set
    ! Each processors write its initial wavefunctions into the wavefunction file
    ! The files are then read by readwave
@@ -1253,7 +1268,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   use libxc_functionals
    implicit none
    !Arguments
-   integer, intent(in) :: iproc,nproc,ixc,symObj
+   integer, intent(in) :: iproc,nproc,ixc
    integer, intent(inout) :: nspin,nvirt
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(inout) :: at
@@ -1264,6 +1279,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    type(communications_arrays), intent(in) :: comms
    type(GPU_pointers), intent(inout) :: GPU
    type(input_variables):: input
+   type(symmetry_data), intent(in) :: symObj
    integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -1273,8 +1289,6 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
    real(dp), dimension(:), pointer :: pkernel,pkernelseq
    integer, intent(in) ::potshortcut
-   integer, dimension(*), intent(in) :: irrzon
-   real(dp), dimension(*), intent(in) :: phnons
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
@@ -1307,6 +1321,10 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !  real(wp), dimension(nlpspd%nprojel) :: projtmp        !debug for debug nonlocal forces
 !  integer :: ierr                                       !for debugging
   real(8),dimension(:),pointer:: Lpot
+  integer :: i!,iorb,jorb,icplx
+  real(gp), dimension(:), allocatable :: ovrlp
+  real(gp), dimension(:,:), allocatable :: smat,tmp
+
 
    allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -1499,7 +1517,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      !spin adaptation for the IG in the spinorial case
      orbse%nspin=nspin
      call sumrho(iproc,nproc,orbse,Lzd,hxh,hyh,hzh,nscatterarr,&
-          GPU,symObj,irrzon,phnons,rhodsc,Lpsi,rho_p)
+          GPU,at%sym,rhodsc,Lpsi,rho_p)
      call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rhopot)
      orbse%nspin=nspin_ig
 
@@ -1742,7 +1760,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    !spin adaptation for the IG in the spinorial case
    orbse%nspin=nspin
    call sumrho(iproc,nproc,orbse,Lzd,hxh,hyh,hzh,nscatterarr,&
-        GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+        GPU,symObj,rhodsc,psi,rho_p)
    call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rhopot)
    orbse%nspin=nspin_ig
 
@@ -1811,28 +1829,29 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    
      end if
    
-   !!!  if (nproc == 1) then
-   !!!     !calculate the overlap matrix as well as the kinetic overlap
-   !!!     !in view of complete gaussian calculation
-   !!!     allocate(ovrlp(G%ncoeff*G%ncoeff),stat=i_stat)
-   !!!     call memocc(i_stat,ovrlp,'ovrlp',subname)
-   !!!     allocate(tmp(G%ncoeff,orbse%norb),stat=i_stat)
-   !!!     call memocc(i_stat,tmp,'tmp',subname)
-   !!!     allocate(smat(orbse%norb,orbse%norb),stat=i_stat)
-   !!!     call memocc(i_stat,smat,'smat',subname)
-   !!!
-   !!!     !overlap calculation of the gaussian matrix
-   !!!     call gaussian_overlap(G,G,ovrlp)
-   !!!     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-   !!!          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
-   !!!
-   !!!     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
-   !!!          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
-   !!!
-   !!!     !print overlap matrices
-   !!!     do i=1,orbse%norb
-   !!!        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-   !!!     end do
+!!$   !!!  if (nproc == 1) then
+!!$     !calculate the overlap matrix as well as the kinetic overlap
+!!$     !in view of complete gaussian calculation
+!!$     allocate(ovrlp(G%ncoeff*G%ncoeff),stat=i_stat)
+!!$     call memocc(i_stat,ovrlp,'ovrlp',subname)
+!!$     allocate(tmp(G%ncoeff,orbse%norb),stat=i_stat)
+!!$     call memocc(i_stat,tmp,'tmp',subname)
+!!$     allocate(smat(orbse%norb,orbse%norb),stat=i_stat)
+!!$     call memocc(i_stat,smat,'smat',subname)
+!!$
+!!$     !overlap calculation of the gaussian matrix
+!!$     call gaussian_overlap(G,G,ovrlp)
+!!$     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
+!!$          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+!!$
+!!$     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
+!!$          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+
+!!$     !print overlap matrices
+!!$     do i=1,orbse%norb
+!!$        !write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!$        write(*,'(i5,30(1pe15.8))')i,(ovrlp(i+(iorb-1)*orbse%norb),iorb=1,orbse%norb)
+!!$     end do
    !!!
    !!!     !overlap calculation of the kinetic operator
    !!!     call kinetic_overlap(G,G,ovrlp)
@@ -1881,7 +1900,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    !!!     i_all=-product(shape(smat))*kind(smat)
    !!!     deallocate(smat,stat=i_stat)
    !!!     call memocc(i_stat,i_all,'smat',subname)
-   !!!  end if
+   !!! end if
    
      if(potshortcut>0) then
    !!$    if (GPUconv) then

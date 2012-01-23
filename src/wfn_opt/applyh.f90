@@ -205,8 +205,11 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
   real(gp), intent(out) :: epot
   type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+  !local variables
+  integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
 
   epot=0.0_gp
+  ishift=(/0,0,0/)
 
 !!$  select case(lr%geocode)
 !!$  case('F')
@@ -215,13 +218,13 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
      if (lr%geocode == 'F') then
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             (/0,0,0/),lr%d%n2,lr%d%n3,&
+             ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot,&
              confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
      else
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             (/0,0,0/),lr%d%n2,lr%d%n3,&
+             ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot,confdata=confdata)
      end if
 
@@ -230,7 +233,7 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
      if (lr%geocode == 'F') then
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             (/0,0,0/),lr%d%n2,lr%d%n3,&
+             ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot,&
              ibyyzz_r=lr%bounds%ibyyzz_r)
 
@@ -240,7 +243,7 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
      else
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             (/0,0,0/),lr%d%n2,lr%d%n3,&
+             ishift,lr%d%n2,lr%d%n3,&
              nspinor,npot,vpsir,pot,epot)
      end if
   end if
@@ -483,9 +486,16 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   i1e=min(n1i,n1ip+ishift(1))
 
 
-  !$omp parallel default(private)&
+  !$omp parallel default(none)&
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
-  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
+  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
+  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
+
+!!$  !$omp parallel default(private)&
+!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+!!$  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)
   !case without bounds
 
   epot_p=0._gp
@@ -1237,7 +1247,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                       plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c_i),&
                       cproj(ispinor,m,i,l))
-!                 print *,'ispinor,m,l,i,iat',ispinor,m,l,i,iat,cproj(ispinor,m,i,l)
+                 !print *,'ispinor,m,l,i,iat',ispinor,m,l,i,iat,cproj(ispinor,m,i,l)
               end do
               istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
            end do

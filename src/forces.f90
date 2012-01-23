@@ -32,7 +32,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-          &   psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
+          &   psi,Lzd,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
        implicit none
@@ -40,7 +40,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
        integer, intent(out) :: infocode
        real(gp), intent(inout) :: hx_old,hy_old,hz_old
        type(input_variables), intent(in) :: in
-       type(locreg_descriptors), intent(inout) :: Glr
+       type(local_zone_descriptors), intent(inout) :: Lzd
        type(atoms_data), intent(inout) :: atoms
        type(gaussian_basis), intent(inout) :: gbd
        type(orbitals_data), intent(inout) :: orbs
@@ -159,7 +159,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            inputs%inputPsiId=1
            !here we should call cluster
            call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz_fake,strten,fnoise,&
-                rst%psi,rst%Lzd%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
+                rst%psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
                 rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
 
            !assign the quantity which should be differentiated
@@ -280,9 +280,10 @@ end subroutine forces_via_finite_differences
 
 subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
-     ewaldstr,hstrten,strten,fnoise,pressure,psoffset)
+     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => calculate_forces
   implicit none
   logical, intent(in) :: refill_proj
   integer, intent(in) :: iproc,nproc,i3s,n3p,nspin
@@ -295,7 +296,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
   real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  real(gp), dimension(6), intent(in) :: ewaldstr,hstrten
+  real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp
   real(gp), intent(out) :: fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
@@ -351,8 +352,9 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      !sum and symmetrize results
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
+     if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,xcstr,ucvol,pressure,'XC')
      do j=1,6
-        strten(j)=ewaldstr(j)+hstrten(j)
+        strten(j)=ewaldstr(j)+hstrten(j)+xcstr(j)
      end do
      messages(1)='PSP Short Range'
      messages(2)='PSP Projectors'
@@ -360,7 +362,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      messages(4)='PSP Long Range'
      !here we should add the pretty printings
      do i=1,4
-        if (atoms%symObj >= 0) call symm_stress((iproc==0),strtens(1,i),atoms%symObj)
+        if (atoms%sym%symObj >= 0) call symm_stress((iproc==0),strtens(1,i),atoms%sym%symObj)
         if (iproc==0 .and. verbose>2)&
              call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
         do j=1,6
@@ -368,7 +370,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
         end do
      end do
      !final result
-     pressure=strten(1)+strten(2)+strten(3)
+     pressure=(strten(1)+strten(2)+strten(3))/3.0_gp
      if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
   end if
 
@@ -396,7 +398,7 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   ! Apply symmetries when needed
-  if (atoms%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
+  if (atoms%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
 
 !> calculate the contribution to the forces given by the core density charge
@@ -3825,7 +3827,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call symmetry_get_matrices_p(at%symObj, nsym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(at%sym%symObj, nsym, sym, transNon, symAfm, errno)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
@@ -3848,7 +3850,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
 
   ! actually conduct symmetrization
   do ia = 1, at%nat
-     call symmetry_get_equivalent_atom(at%symObj, indsym, ia, errno)
+     call symmetry_get_equivalent_atom(at%sym%symObj, indsym, ia, errno)
      if (errno /= AB6_NO_ERROR) stop
      do mu = 1, 3
         summ = real(0, gp)

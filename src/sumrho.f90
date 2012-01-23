@@ -8,20 +8,20 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-     irrzon,phnons,pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
+     pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
   use module_base
   use module_types
   use module_interfaces, fake_name => density_and_hpot
   use Poisson_Solver
   implicit none
-  integer, intent(in) :: iproc,nproc,symObj
+  integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hxh,hyh,hzh
   type(rho_descriptors),intent(inout) :: rhodsc
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
+  type(symmetry_data), intent(in) :: symObj
   character(len=1), intent(in) :: geocode
-  integer, dimension(*), intent(in) :: irrzon
-  real(dp), dimension(*), intent(in) :: phnons,pkernel
+  real(dp), dimension(*), intent(in) :: pkernel
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(GPU_pointers), intent(inout) :: GPU
@@ -49,7 +49,7 @@ subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nsca
      end if
 
      call sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-          GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+          GPU,symObj,rhodsc,psi,rho_p)
      call communicate_density(iproc,nproc,orbs%nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho)
   end if
 
@@ -73,7 +73,7 @@ subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nsca
        pkernel,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
   !in principle symmetrization of the stress tensor is not needed since the density has been 
   !already symmetrized
-  if (symObj >= 0 .and. geocode=='P') call symm_stress((iproc==0),hstrten,symObj)
+  if (symObj%symObj >= 0 .and. geocode=='P') call symm_stress((iproc==0),hstrten,symObj%symObj)
 
 end subroutine density_and_hpot
 
@@ -85,30 +85,31 @@ end subroutine density_and_hpot
 !! Output: 
 !!   @param rho
 subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
-     GPU,symObj,irrzon,phnons,rhodsc,psi,rho_p)
+     GPU,symObj,rhodsc,psi,rho_p,mapping)
    use module_base
    use module_types
    use module_xc
    implicit none
    !Arguments
-   integer, intent(in) :: iproc,nproc,symObj
+   integer, intent(in) :: iproc,nproc
    real(gp), intent(in) :: hxh,hyh,hzh
    type(rho_descriptors),intent(in) :: rhodsc
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
+   type(symmetry_data), intent(in) :: symObj
    integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
    real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
    real(dp), dimension(:,:), pointer :: rho_p
    !real(dp), dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),1),nspin), intent(out), target :: rho
    type(GPU_pointers), intent(inout) :: GPU
-   integer, dimension(*), intent(in) :: irrzon
-   real(dp), dimension(*), intent(in) :: phnons
+   integer,dimension(orbs%norb),intent(in),optional:: mapping
    !Local variables
    character(len=*), parameter :: subname='sumrho'
    !n(c) logical :: rsflag
    integer :: nrhotot,n3d,itmred,i_stat,i_all
    integer :: nspinn
-   integer :: irho
+   integer :: irho, iorb
+   integer,dimension(:),allocatable:: localmapping
 
    call timing(iproc,'Rho_comput    ','ON')
 
@@ -135,8 +136,23 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
    else if (OCLconv) then
       call local_partial_density_OCL(orbs,rhodsc%nrhotot,Lzd%Glr,hxh,hyh,hzh,orbs%nspin,psi,rho_p,GPU)
    else if(Lzd%linear) then
-      call local_partial_densityLinear(iproc,nproc,(rhodsc%icomm==1),nscatterarr,rhodsc%nrhotot,&
-           Lzd,hxh,hyh,hzh,orbs%nspin,orbs,psi,rho_p)
+       if(.not.present(mapping)) then
+           if(iproc==0) write(*,'(x,a)') &
+               'WARNING: mapping is not present, using fake local mapping array. Check whether this is correct!'
+           allocate(localmapping(orbs%norb), stat=i_stat)
+           call memocc(i_stat,localmapping,'localmapping',subname)
+           do iorb=1,orbs%norb
+               localmapping(iorb)=iorb
+           end do
+           call local_partial_densityLinear(iproc,nproc,(rhodsc%icomm==1),nscatterarr,rhodsc%nrhotot,&
+                Lzd,hxh,hyh,hzh,orbs%nspin,orbs,localmapping,psi,rho_p)
+           i_all=-product(shape(localmapping))*kind(localmapping)
+           deallocate(localmapping,stat=i_stat)
+           call memocc(i_stat,i_all,'localmapping',subname)
+       else
+           call local_partial_densityLinear(iproc,nproc,(rhodsc%icomm==1),nscatterarr,rhodsc%nrhotot,&
+                Lzd,hxh,hyh,hzh,orbs%nspin,orbs,mapping,psi,rho_p)
+       end if
    else
       !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
       !otherwise use libXC routine
@@ -149,10 +165,10 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
 
    !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
    !probably previous line is not suitable due to the fact that a extra communication would be needed
-   if (symObj >= 0) then
+   if (symObj%symObj >= 0) then
       call symmetrise_density(0,1,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,orbs%nspin,& !n(m)
       Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
-         &   rho_p,symObj,irrzon,phnons)
+         &   rho_p,symObj%symObj,symObj%irrzon,symObj%phnons)
    end if
    call timing(iproc,'Rho_comput    ','OF')
 
@@ -187,19 +203,19 @@ subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatter
      call timing(iproc,'Rho_commun    ','ON')
      !write(*,*) 'rsflag',rsflag
      !communication strategy for the density
-
      !LDA case (icomm==1)
      if (rhodsc%icomm==1) then
         do ispin=1,nspin
+            !call system_clock(ncount0,ncount_rate,ncount_max)
            call MPI_REDUCE_SCATTER(rho_p(1,ispin),rho(1,ispin),&
                 &   Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(:,1),&
                 &   MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-           !write(*,*) 'LDA: MRC called'
+            !call system_clock(ncount1,ncount_rate,ncount_max)
+            !write(*,*) 'TIMING:LDA',real(ncount1-ncount0)/real(ncount_rate)
         end do
 
         ! splitted single-double precision communication (icomm=2)
      else if (rhodsc%icomm==2) then
-       !if (verbose >= 1) then
          rhotot_dbl=0.0d0
          do ispin=1,nspin
            do irho=1, Lzd%Glr%d%n1i* Lzd%Glr%d%n2i*rhodsc%nrhotot
@@ -207,29 +223,33 @@ subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatter
            enddo
         enddo
          call mpiallred(rhotot_dbl,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-         !write(*,*) 'RHOTOT_DBL:',rhotot_dbl
-      !endif
-        !        if (rho_compress .and. rhodsc%geocode.eq.'F') then
-        !if (rhodsc%geocode == 'F') then
+
         !call system_clock(ncount0,ncount_rate,ncount_max)
-        !write(*,*) 'geocode=F, compress rho called'
+
         allocate(sprho_comp(rhodsc%sp_size,nspin),stat=i_stat)
         call memocc(i_stat,sprho_comp,'sprho_comp',subname)
         allocate(dprho_comp(rhodsc%dp_size,nspin),stat=i_stat)
         call memocc(i_stat,dprho_comp,'dprho_comp',subname)
         call compress_rho(rho_p,Lzd%Glr,nspin,rhodsc,sprho_comp,dprho_comp)
+
         !call system_clock(ncount1,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED1',real(ncount1-ncount0)/real(ncount_rate)
+
         call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
         call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
+
         !call system_clock(ncount2,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED2',real(ncount2-ncount1)/real(ncount_rate)
+
         i3s=nscatterarr(iproc,3)-nscatterarr(iproc,4)
         n3d=nscatterarr(iproc,1)
         call uncompress_rho(sprho_comp,dprho_comp,&
              &   Lzd%Glr,nspin,rhodsc,rho_p,i3s,n3d)
+
         !call system_clock(ncount3,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED3',real(ncount3-ncount2)/real(ncount_rate)
+         !write(*,*) 'TIMING:MIX',real(ncount3-ncount0)/real(ncount_rate)
+
         i_all=-product(shape(sprho_comp))*kind(sprho_comp)
         deallocate(sprho_comp,stat=i_stat)
         call memocc(i_stat,i_all,'sprho_comp',subname)
@@ -241,6 +261,8 @@ subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatter
      else if (rhodsc%icomm==0) then
         call mpiallred(rho_p(1,1),Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin,&
              &   MPI_SUM,MPI_COMM_WORLD,ierr)
+         !call system_clock(ncount1,ncount_rate,ncount_max)
+         !write(*,*) 'TIMING:DBL',real(ncount1-ncount0)/real(ncount_rate)
      else
         STOP 'DENSITY COMMUNICATION KEY UNVALID' 
      endif
@@ -327,14 +349,14 @@ subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatter
      write(*,'(1x,a,f21.12)')&
           &   'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
      !yaml output
-!      write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
+      write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
      if(nspin == 4 .and. tt > 0._dp)&
           &   write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
           &   (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
      if (rhodsc%icomm==2) then
        write(*,'(1x,a,f21.12)') &
-         'Electronic charge changed by rho compression =                 ',&
-          rhotot_dbl-real(charge,gp)*hxh*hyh*hzh
+         'Electronic charge changed by rho compression=                  ',&
+          abs(rhotot_dbl-real(charge,gp)*hxh*hyh*hzh)
      endif
   end if
 
@@ -614,6 +636,7 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
                   psisq=real(psir(i1,i2,j3,1),dp)
                   psisq=psisq*psisq
                   rho_p(i1,i2,i3s,isjmp)=rho_p(i1,i2,i3s,isjmp)+real(hfac,dp)*psisq
+                  !write(93000+iorb,'(4i8,es20.10)') i1,i2,i3,isjmp,rho_p(i1,i2,i3s,isjmp)
                end do
             else !similar loop for npsir=4
                do i1=i1s,i1e
@@ -1079,19 +1102,20 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax
    integer,dimension(at%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
    integer,dimension(at%nat) :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,dsq_cr,dsq_fr
-   integer :: csegstot,fsegstot,corx,cory,corz
-   !n(c) integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
+   integer :: csegstot,fsegstot,corx,cory,corz,ierr,ithread,nthreads
+   !integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
+   !$ integer :: omp_get_thread_num,omp_get_num_threads
+
+   ithread=0
+   nthreads=1
 
    rhodsc%geocode=at%geocode
    nat=at%nat
 
-!write (*,*) 'hxh,hyh,hzh',hxh,hyh,hzh
-
    !parameter to adjust the single precision and double precision regions
-   spadd=10.0_gp
+   spadd=5.0_gp
    dpmult=1.0_gp
 
-   !call system_clock(ncount0,ncount_rate,ncount_max)
 
    ! calculate the corrections of the grid when transforming from 
    ! n1,n2,n3 to n1i, n2i, n3i
@@ -1111,11 +1135,22 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    n_fsegs=0
    n_csegs=0
 
-   do irho=nrhomin,nrhomax
-      reg(irho)=0
-   enddo
-   !call system_clock(ncount1,ncount_rate,ncount_max)
-   !write(*,*) 'TIMING:RHOKEY1',real(ncount1-ncount0)/real(ncount_rate)
+   !$omp parallel default(none)&
+   !$omp private(irho,i1,i2,i3,ithread,nthreads)&
+   !$omp shared(i1min,i1max,i2min,i2max,i3min,i3max,reg,n1i,n2i,n3i)
+   !$ ithread = omp_get_thread_num()
+   !$ nthreads = omp_get_num_threads()
+      do i3=i3min,i3max
+      if (mod(i3,nthreads).eq.ithread) then
+        do i2=i2min,i2max
+          do i1=i1min,i1max
+            irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+            reg(irho)=0
+          enddo
+        enddo
+      endif
+      enddo
+   !$omp end parallel
 
    do iat=1,nat
       call get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,&
@@ -1127,14 +1162,17 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
       dsq_fr(iat)=(radii_cf(at%iatype(iat),2)*frmult*dpmult)**2
    enddo
 
-!   !$omp parallel default(none)&
-!   !$omp private(iat,irho,dsq,i1,i2,i3)&
-!   !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
-!   !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
-!   !$omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
-!   !$omp do schedule(static,1)
+   !$omp parallel default(none)&
+   !$omp private(iat,irho,dsq,i1,i2,i3,ithread,nthreads)&
+   !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
+   !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
+   !$omp shared(n1i,n2i,n3i,corx,cory,corz)
+   !$ ithread = omp_get_thread_num()
+   !$ nthreads = omp_get_num_threads()
+
    do iat=1,nat
       do i3=i3cmin(iat),i3cmax(iat)
+      if (mod(i3,nthreads).eq.ithread) then
          do i2=i2cmin(iat),i2cmax(iat)
              do i1=i1cmin(iat),i1cmax(iat)
                dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
@@ -1146,16 +1184,21 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
                endif
             enddo
          enddo
+      endif
       enddo
    enddo
-!   !$omp enddo
-!   !$omp end parallel
+   !$omp end parallel
 
-   !call system_clock(ncount2,ncount_rate,ncount_max)
-   !write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
-
-   do iat=1,at%nat
+   !$omp parallel default(none)&
+   !$omp private(iat,irho,dsq,i1,i2,i3,ithread,nthreads)&
+   !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
+   !$omp shared(i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax)&
+   !$omp shared(n1i,n2i,n3i,corx,cory,corz)
+   !$ ithread = omp_get_thread_num()
+   !$ nthreads = omp_get_num_threads()
+   do iat=1,nat
       do i3=i3fmin(iat),i3fmax(iat)
+      if (mod(i3,nthreads).eq.ithread) then
          do i2=i2fmin(iat),i2fmax(iat)
             do i1=i1fmin(iat),i1fmax(iat)
                dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
@@ -1167,11 +1210,10 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
                endif
             enddo
          enddo
+      endif
       enddo
    enddo
-
-   !call system_clock(ncount3,ncount_rate,ncount_max)
-   !write(*,*) 'TIMING:RHOKEY3',real(ncount3-ncount2)/real(ncount_rate)
+   !$omp end parallel
 
    do irho=nrhomin,nrhomax
       if (irho.eq.nrhomin) then
@@ -1185,7 +1227,6 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
             n_csegs=n_csegs+1
             spkey(n_csegs,1)=irho
          end select
-
       else
          reg_c=reg(irho)
          reg_l=reg(irho-1)
@@ -1240,9 +1281,6 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
          end select
       endif
    enddo
-
-   !call system_clock(ncount3,ncount_rate,ncount_max)
-   !write(*,*) 'TIMING:RHOKEY3',real(ncount3-ncount2)/real(ncount_rate)
 
    rhodsc%sp_size=0
    rhodsc%dp_size=0

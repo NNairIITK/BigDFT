@@ -2,8 +2,9 @@ SUBDIRS = fft \
 	xc \
 	PSolver \
 	OP2P \
+	psp \
 	IO-wf \
-	atoms
+	ftypes 
 
 if USE_CUDA_GPU
 SUBDIRS += CUDA

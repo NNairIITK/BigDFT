@@ -158,8 +158,8 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum) !n(c) wfd (a
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
   !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
-  real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: psi
-  real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: hpsi
+  real(wp), dimension(orbs%npsidim_comp), intent(in) :: psi
+  real(wp), dimension(orbs%npsidim_comp), intent(inout) :: hpsi
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
@@ -206,7 +206,9 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum) !n(c) wfd (a
         if (nvctrp == 0) cycle
 
         if(nspinor==1) then
-           call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+           !dgemmsy desactivated for the moment due to SIC
+           !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+           call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
                 max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
                 alag(ndimovrlp(ispin,ikpt-1)+1),norb)
         else
@@ -420,16 +422,16 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   allocate(psiw(npsiw+ndebug),stat=i_stat)
   call memocc(i_stat,psiw,'psiw',subname)
 
-!!$  if(iproc==0) then
-!!$      ierr=0
-!!$      do i_all=1,norb
-!!$          do i_stat=1,norb
-!!$              ierr=ierr+1
-!!$              write(13000+iproc,*) i_all, i_stat, hamks(ierr,1)
-!!$          end do
-!!$      end do
-!!$      write(13000+iproc,*) '=============================='
-!!$  end if
+  !!if(iproc==0) then
+  !!    ierr=0
+  !!    do i_all=1,norb
+  !!        do i_stat=1,norb
+  !!            ierr=ierr+1
+  !!            write(13000+iproc,*) i_all, i_stat, hamks(ierr,1)
+  !!        end do
+  !!    end do
+  !!    write(13000+iproc,*) '=============================='
+  !!end if
 
   !for each k-point now reorthogonalise wavefunctions
   ispsi=1

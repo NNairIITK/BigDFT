@@ -19,22 +19,20 @@ def export_psp(dir, symbol, elements):
     # h_ij terms
     vals = f.readline().split()
     size = int(vals[1])
-    coeffs = map(float, vals[2:2 + size])
+    coeffs = map(float, vals[2:2 + size]) + [0.] * (3 - size)
     for j in range(size - 1):
-      coeffs += map(float, f.readline().split()[:size - j - 1])
-    hij = []
-    for i in range(size):
-      for j in range(size - i):
-        hij.append(coeffs[j * (2 * size + 1 - j) / 2 + i])
+      coeffs += map(float, f.readline().split()[:size - j - 1]) + [0.] * (3 - size)
+    for j in range(size, 3):
+      coeffs += [0.] * (3 - j)
+    hij = [coeffs[0], coeffs[3], coeffs[5], coeffs[1], coeffs[2], coeffs[4]]
     # k_ij terms
     if l > 0:
-      coeffs = map(float, f.readline().split()[:size])
+      coeffs = map(float, f.readline().split()[:size]) + [0.] * (3 - size)
       for j in range(size - 1):
-        coeffs += map(float, f.readline().split()[:size - j - 1])
-      kij = []
-      for i in range(size):
-        for j in range(size - i):
-          kij.append(coeffs[j * (2 * size + 1 - j) / 2 + i])
+        coeffs += map(float, f.readline().split()[:size - j - 1]) + [0.] * (3 - size)
+      for j in range(size, 3):
+        coeffs += [0.] * (3 - j)
+      kij = [coeffs[0], coeffs[3], coeffs[5], coeffs[1], coeffs[2], coeffs[4]]
     psppar.append([float(vals[0])] + hij)
 
   f.close()
@@ -52,10 +50,10 @@ def export_psp(dir, symbol, elements):
   print '     ixc      = %d' % ixcpsp
   l = 0
   for vals in psppar:
-    print '     psppar(%d,0:%d) = (/ %f_gp' % (l, len(vals) - 1, vals[0]),
+    print '     psppar(%d,0:%d) = (/ %12.12f_gp' % (l, len(vals) - 1, vals[0]),
     k = 0
     for val in vals[1:]:
-      print ', %f_gp' % val,
+      print ', %12.12f_gp' % val,
       if (k == 3):
         print ' &\n        & ',
       k += 1
