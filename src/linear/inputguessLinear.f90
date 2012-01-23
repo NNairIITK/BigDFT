@@ -485,7 +485,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Always use the exact Loewdin method.
   call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, lin%nItOrtho, lin%blocksize_pdsyev, &
-       lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdig, lin%lig%orbsig, lin%lig%comon, &
+       lin%blocksize_pdgemm, lin%lig%lzdig, lin%lig%orbsig, lin%lig%comon, &
        lin%lig%op, input, lin%lig%mad, lchi)
 
   ! Deallocate locrad, which is not used any longer.
@@ -892,16 +892,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
 
-  !! Reinitialize some parameters needed for the calculation of the Hamiltonian matrices
-  !call deallocate_matrixDescriptors(lin%lig%mad, subname)
-  !call deallocate_overlapParameters(lin%lig%op, subname)
-  !call deallocate_p2pCommsOrthonormality(lin%lig%comon, subname)
-  !tag=0
-  !call initCommsOrtho(iproc, nproc, lin%lig%lzdig, lin%lig%orbsig, lin%lig%orbsig%inWhichLocreg, &
-  !     input, lin%lig%op, lin%lig%comon, tag)
-  !call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
-  !call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
-
 
 
   ! Calculate the Hamiltonian matrix.
@@ -1034,7 +1024,7 @@ END SUBROUTINE inputguessConfinement
 
 
 subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-           blocksize_pdgemm, convCritOrtho, lzd, orbs, comon, op, input, mad, lchi)
+           blocksize_pdgemm, lzd, orbs, comon, op, input, mad, lchi)
 
 !
 ! Purpose:
@@ -1051,7 +1041,6 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm
-real(8),intent(in):: convCritOrtho
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
@@ -1073,7 +1062,7 @@ allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
 call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm, &
-     orbs, op, comon, lzd, orbs%inWhichLocreg, convCritOrtho, input, mad, lchi,  ovrlp, 'old')
+     orbs, op, comon, lzd, orbs%inWhichLocreg, input, mad, lchi,  ovrlp, 'old')
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)

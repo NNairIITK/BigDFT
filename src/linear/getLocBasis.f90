@@ -580,7 +580,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       t1=mpi_wtime()
       if(.not.ldiis%switchSD) call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, &
            lin%blocksize_pdsyev, lin%blocksize_pdgemm, lorbs, op, comon, lzd, lorbs%inWhichLocreg, &
-           lin%convCritOrtho, input, lin%mad, lphi, ovrlp, 'new')
+           input, lin%mad, lphi, ovrlp, 'new')
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1
 

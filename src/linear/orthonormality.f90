@@ -1,5 +1,5 @@
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-     blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, mad, lphi, ovrlp, method)
+     blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, input, mad, lphi, ovrlp, method)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
@@ -13,7 +13,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   type(p2pCommsOrthonormality),intent(inout):: comon
   type(local_zone_descriptors),intent(in):: lzd
   integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
-  real(8),intent(in):: convCritOrtho
   type(input_variables),intent(in):: input
   !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
   type(matrixDescriptors),intent(in):: mad

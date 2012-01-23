@@ -487,7 +487,7 @@ subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
   read(99,*) lin%locregShape
   read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
   read(99,*) lin%nproc_pdsyev, lin%nproc_pdgemm
-  read(99,*) lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho
+  read(99,*) lin%methTransformOverlap, lin%nItOrtho
   read(99,*) lin%correctionOrthoconstraint
   !read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
@@ -661,11 +661,11 @@ else if(lin%methTransformOverlap==2) then
 else if(lin%methTransformOverlap==3) then
     message2='taylor appr. 3'
 end if
-write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,1x,es8.2,1x,a,l3,a,1x,es10.3,a,a,i0,7x,es7.1,2x,a,1x,a,1x,a)') '|', &
+write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,1x,es8.2,1x,a,l3,a,1x,es10.3,a,a,i0,7x,es8.1,2x,a,1x,a,1x,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
     repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
     lin%alphaDIIS, '|', lin%alphaSD, '|   ', .false., '    |', -1.d0, ' |', &
-    repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, lin%convCritOrtho, '|', message2, '|'
+    repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, -1.d0, '|', message2, '|'
 write(*,'(4x,a)') '------------------------------------------------------------------------------------------------------'
 write(*,'(1x,a)') '>>>> Parameters for the optimization of the coefficients.'
 write(*,'(4x,a)') '| maximal number | convergence |'

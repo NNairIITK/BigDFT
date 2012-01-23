@@ -717,7 +717,7 @@ end type workarrays_quartic_convolutions
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed, reducePrefactor
-    real(kind=8) :: alphaMixWhenOptimizing, convCritMix, convCritOrtho
+    real(kind=8) :: alphaMixWhenOptimizing, convCritMix
     real(8):: lowaccuray_converged
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold
     real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy

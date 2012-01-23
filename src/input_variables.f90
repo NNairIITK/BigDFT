@@ -813,10 +813,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   
   ! Orthogonalization of wavefunctions:
   !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
-  comments = '0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the orthonormalization ; convergence criterion'
+  comments = '0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the orthonormalization'
   call input_var(in%lin%methTransformOverlap,'0',ranges=(/0,1/))
-  call input_var(in%lin%nItOrtho,'2',ranges=(/1,100/))
-  call input_var(in%lin%convCritOrtho,'1.d-14',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(in%lin%nItOrtho,'2',ranges=(/1,100/),comment=comments)
   
   !in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
   comments='in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
