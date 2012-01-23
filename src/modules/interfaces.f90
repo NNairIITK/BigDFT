@@ -2870,16 +2870,16 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine allocateLinArrays
 
 
-     subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nat
-       real(8),dimension(3,nat),intent(in):: rxyz
-       type(linearParameters),intent(inout):: lin
-       type(input_variables),intent(in):: input
-       type(locreg_descriptors),intent(in):: Glr
-     end subroutine initLocregs
+     !!subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr)
+     !!  use module_base
+     !!  use module_types
+     !!  implicit none
+     !!  integer,intent(in):: iproc, nat
+     !!  real(8),dimension(3,nat),intent(in):: rxyz
+     !!  type(linearParameters),intent(inout):: lin
+     !!  type(input_variables),intent(in):: input
+     !!  type(locreg_descriptors),intent(in):: Glr
+     !!end subroutine initLocregs
 
 
      subroutine initCoefficients(iproc, orbs, lin, coeff)
@@ -4122,7 +4122,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(matrixLocalizationRegion),intent(out):: mlr
     end subroutine nullify_matrixLocalizationRegion
 
-    subroutine initLocregs2(iproc, nproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape, lborbs)
+    subroutine initLocregs(iproc, nproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape, lborbs)
       use module_base
       use module_types
       implicit none
@@ -4135,7 +4135,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(lzd%nlr),intent(in):: locrad
       character(len=1),intent(in):: locregShape
       type(orbitals_data),optional,intent(inout):: lborbs
-    end subroutine initLocregs2
+    end subroutine initLocregs
 
     subroutine deallocate_linearParameters(lin, subname)
       use module_base
@@ -4710,15 +4710,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine transformOverlapMatrixParallel
 
 
-      subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
-        use module_base
-        use module_types
-        implicit none
-        integer,intent(in):: iproc, nproc
-        type(orbitals_data),intent(in):: orbs
-        type(overlapParameters),intent(in):: op
-        type(matrixDescriptors),intent(out):: mad
-      end subroutine initMatrixCompression
+      !!subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
+      !!  use module_base
+      !!  use module_types
+      !!  implicit none
+      !!  integer,intent(in):: iproc, nproc
+      !!  type(orbitals_data),intent(in):: orbs
+      !!  type(overlapParameters),intent(in):: op
+      !!  type(matrixDescriptors),intent(out):: mad
+      !!end subroutine initMatrixCompression
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, lagmat)
         use module_base
@@ -5251,7 +5251,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine my_iallgather_collect2
 
 
-       subroutine initMatrixCompressionForInguess(iproc, nproc, nlr, orbs, noverlaps, overlaps, mad)
+       subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, mad)
          use module_base
          use module_types
          implicit none
@@ -5260,7 +5260,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer,dimension(nlr),intent(in):: noverlaps
          integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
          type(matrixDescriptors),intent(out):: mad
-       end subroutine initMatrixCompressionForInguess
+       end subroutine initMatrixCompression
 
 
        subroutine postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)

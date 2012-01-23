@@ -117,8 +117,8 @@ module module_types
     integer:: nItInguess, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
     integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
-    real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed, reducePrefactor
-    real(kind=8) :: alphaMixWhenOptimizing, convCritOrtho
+    real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed
+    real(kind=8) :: alphaMixWhenOptimizing
     real(8):: lowaccuray_converged, convCritMix
     real(8),dimension(:),pointer:: locrad
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy

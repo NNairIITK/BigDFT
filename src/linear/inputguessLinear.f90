@@ -116,7 +116,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   call copy_locreg_descriptors(Glr, lin%lig%lzdGauss%Glr, subname)
 
   ! Determine the localization regions.
-  call initLocregs2(iproc, nproc, at%nat, rxyz, lin%lig%lzdig, lin%lig%orbsig, input, Glr, lin%locrad, lin%locregShape)
+  call initLocregs(iproc, nproc, at%nat, rxyz, lin%lig%lzdig, lin%lig%orbsig, input, Glr, lin%locrad, lin%locregShape)
   !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
   call copy_locreg_descriptors(Glr, lin%lig%lzdig%Glr, subname)
 
@@ -124,7 +124,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   locrad=max(12.d0,maxval(lin%locrad(:)))
   call nullify_orbitals_data(lin%lig%orbsGauss)
   call copy_orbitals_data(lin%lig%orbsig, lin%lig%orbsGauss, subname)
-  call initLocregs2(iproc, nproc, at%nat, rxyz, lin%lig%lzdGauss, lin%lig%orbsGauss, input, Glr, locrad, lin%locregShape)
+  call initLocregs(iproc, nproc, at%nat, rxyz, lin%lig%lzdGauss, lin%lig%orbsGauss, input, Glr, locrad, lin%locregShape)
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
@@ -144,7 +144,9 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   !!!      lin%lig%mad%keygmatmul, lin%lig%mad%keyvmatmul)
   !!call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
 
-  call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
+  !call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
+  call initMatrixCompression(iproc, nproc, lin%lig%lzdig%nlr, lin%lig%orbsig, &
+       lin%lig%op%noverlaps, lin%lig%op%overlaps, lin%lig%mad)
   call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
 
 
@@ -3745,7 +3747,7 @@ type(matrixDescriptors):: mad
            onWhichAtomPhi, ip%onWhichMPI, tag, comom)
  
       call nullify_matrixDescriptors(mad)
-      call initMatrixCompressionForInguess(iproc, nproc, lzdig%nlr, orbsig, comom%noverlap, comom%overlaps, mad)
+      call initMatrixCompression(iproc, nproc, lzdig%nlr, orbsig, comom%noverlap, comom%overlaps, mad)
       call initCompressedMatmul3(orbsig%norb, mad)
 
 

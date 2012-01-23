@@ -186,7 +186,7 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
 t1=mpi_wtime()
 !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr)
-call initLocregs2(iproc, nproc, at%nat, rxyz, lin%lzd, lin%orbs, input, Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
+call initLocregs(iproc, nproc, at%nat, rxyz, lin%lzd, lin%orbs, input, Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
 
 ! Copy Glr to lin%lzd
 call nullify_locreg_descriptors(lin%lzd%Glr)
@@ -359,9 +359,12 @@ call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing matrix compression... '
 t1=mpi_wtime()
-call initMatrixCompression(iproc, nproc, lin%orbs, lin%op, lin%mad)
+!call initMatrixCompression(iproc, nproc, lin%orbs, lin%op, lin%mad)
+call initMatrixCompression(iproc, nproc, lin%lzd%nlr, lin%orbs, lin%op%noverlaps, lin%op%overlaps, lin%mad)
 call initCompressedMatmul3(lin%orbs%norb, lin%mad)
-call initMatrixCompression(iproc, nproc, lin%lb%orbs, lin%lb%op, lin%lb%mad)
+!call initMatrixCompression(iproc, nproc, lin%lb%orbs, lin%lb%op, lin%lb%mad)
+call initMatrixCompression(iproc, nproc, lin%lzd%nlr, lin%lb%orbs, &
+     lin%lb%op%noverlaps, lin%lb%op%overlaps, lin%lb%mad)
 call initCompressedMatmul3(lin%lb%orbs%norb, lin%lb%mad)
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
@@ -820,86 +823,6 @@ integer:: jproc, iiOrb, iorb, jorb, jat
   end do    
 
 end subroutine assignOrbitalsToAtoms
-
-
-
-!!subroutine assignOrbitalsToAtoms2(iproc, orbs, nat, norbsPerAt, onWhichAtom, onWhichAtomAll)
-!!!
-!!! Purpose:
-!!! ========
-!!!   Assigns the orbitals to the atoms, using the array lin%onWhichAtom.
-!!!   If orbital i is centered on atom j, we have lin%onWhichAtom(i)=j.
-!!!
-!!! Calling arguments:
-!!! ==================
-!!!   Input arguments:
-!!!   ----------------
-!!!     iproc         process ID
-!!!     nat           number of atoms
-!!!     norbsPerAt    indicates how many orbitals are centered on each atom.
-!!!  Input / Output arguments
-!!!  ---------------------
-!!!     lin           type containing parameters for the linear version
-!!!
-!!use module_base
-!!use module_types
-!!implicit none
-!!
-!!! Calling arguments
-!!integer,intent(in):: iproc, nat
-!!type(orbitals_data):: orbs
-!!integer,dimension(nat):: norbsPerAt
-!!integer,dimension(orbs%norbp):: onWhichAtom
-!!integer,dimension(orbs%norb):: onWhichAtomAll
-!!
-!!! Local variables
-!!integer:: jproc, iiOrb, iorb, jorb, jat
-!!
-!!
-!!  ! Count the total 'weighted orbitals', i.e. the sum of 1/(number of orbitals for this atom).
-!!  weightLocreg=0.d0
-!!  do iat=1,nat
-!!      weightLocreg=weightLocreg+1.d0/dble(norbsPerAt(iat))
-!!  end do
-!!
-!!
-!!  ! There are four counters:
-!!  !   jproc: indicates which MPI process is handling the basis function which is being treated
-!!  !   jat: counts the atom numbers
-!!  !   jorb: counts the orbitals handled by a given process
-!!  !   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
-!!  jproc=0
-!!  jat=1
-!!  jorb=0
-!!  iiOrb=0
-!!  
-!!  do iorb=1,orbs%norb
-!!  
-!!      ! Switch to the next MPI process if the numbers of orbitals for a given
-!!      ! MPI process is reached.
-!!      if(jorb==orbs%norb_par(jproc)) then
-!!          jproc=jproc+1
-!!          jorb=0
-!!      end if
-!!      
-!!      ! Get the atom number. First calculate the 'weighted localization region, i.e. 1/(number of basis functions for this atom).
-!!      ! Switch to the next atom if the number of basis functions for this atom is reached.
-!!      if(iiOrb==norbsPerAt(jat)) then
-!!          jat=jat+1
-!!          iiOrb=0
-!!      end if
-!!      jorb=jorb+1
-!!      iiOrb=iiOrb+1
-!!      if(iproc==jproc) onWhichAtom(jorb)=jat
-!!
-!!      ! Global assignment, i.e. without taking in account
-!!      ! the various MPI processes.
-!!      onWhichAtomAll(iorb)=jat
-!!  end do    
-!!
-!!end subroutine assignOrbitalsToAtoms2
-
-
 
 
 
@@ -1787,126 +1710,126 @@ subroutine allocateBasicArraysInputLin(at, lin)
 end subroutine allocateBasicArraysInputLin
 
 
-subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => initLocregs
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nat
-real(8),dimension(3,nat),intent(in):: rxyz
-type(linearParameters),intent(inout):: lin
-type(input_variables),intent(in):: input
-type(locreg_descriptors),intent(in):: Glr
-
-! Local variables
-integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
-character(len=*),parameter:: subname='initLocregs'
-logical,dimension(:),allocatable:: calculateBounds
-
-! Allocate the array of localisation regions
-!allocate(lin%Llr(lin%nlr),stat=istat)
-allocate(lin%lzd%Llr(lin%lzd%nlr),stat=istat)
-do ilr=1,lin%lzd%nlr
-    call nullify_locreg_descriptors(lin%lzd%llr(ilr))
-end do
-
- allocate(calculateBounds(lin%lzd%nlr), stat=istat)
- call memocc(istat, calculateBounds, 'calculateBounds', subname)
- calculateBounds=.false.
- do ilr=1,lin%lzd%nlr
-     do jorb=1,lin%orbs%norbp
-         jjorb=lin%orbs%isorb+jorb
-         jlr=lin%orbs%inWhichLocreg(jjorb)
-         if(jlr==ilr) then
-             calculateBounds(ilr)=.true.
-             exit
-         end if
-     end do
-     do jorb=1,lin%lb%orbs%norbp
-         jjorb=lin%lb%orbs%isorb+jorb
-         jlr=lin%lb%orbs%inWhichLocreg(jjorb)
-         if(jlr==ilr) then
-             calculateBounds(ilr)=.true.
-             exit
-         end if
-     end do
-     lin%lzd%llr(ilr)%locrad=lin%locrad(ilr)
-     lin%lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
- end do
-
- if(lin%locregShape=='c') then
-     call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, &
-          Glr, lin%lzd%Llr, calculateBounds)
- else if(lin%locregShape=='s') then
-     call determine_locregSphere(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, &
-          Glr, lin%lzd%Llr, calculateBounds)
- end if
- !do ilr=1,lin%lzd%nlr
- !    write(*,'(a,3i6)') 'ilr, glr%d%nfl1, lin%lzd%llr(ilr)%d%nfl1', ilr, glr%d%nfl1, lin%lzd%llr(ilr)%d%nfl1
- !    write(*,'(a,i3,2(3x,3i8))') 'ilr, lin%lzd%llr(ilr)%ns1, lin%lzd%llr(ilr)%ns2, lin%lzd%llr(ilr)%ns3, lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3', &
- !               ilr, lin%lzd%llr(ilr)%ns1, lin%lzd%llr(ilr)%ns2, lin%lzd%llr(ilr)%ns3, lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3
- !end do
- !call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr, calculateBounds)
-
- !if(iproc==0) write(*,'(a,2i9)') 'glr%wfd%nvctr_c, glr%wfd%nvctr_f', glr%wfd%nvctr_c, glr%wfd%nvctr_f
- !do ilr=1,lin%lzd%nlr
- !    if(iproc==0) write(*,'(a,i4,2i9)') 'ilr, nvctrc_c, nvctr_f', ilr, lin%lzd%Llr(ilr)%wfd%nvctr_c, lin%lzd%Llr(ilr)%wfd%nvctr_f
- !end do
-
- iall=-product(shape(calculateBounds))*kind(calculateBounds)
- deallocate(calculateBounds, stat=istat)
- call memocc(istat, iall, 'calculateBounds', subname)
-
-
-! Calculate the dimension of the wave function for each process.
-npsidim=0
-do iorb=1,lin%orbs%norbp
-    !ilr=lin%onWhichAtom(iorb)
-    !ilr=lin%orbs%inWhichLocregp(iorb)
-    ilr=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
-    npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
-end do
-!lin%Lorbs%npsidim=npsidim
-lin%orbs%npsidim_orbs=max(npsidim,1)
-lin%orbs%npsidim_comp=max(npsidim,1)
-
-if(.not. lin%useDerivativeBasisFunctions) then
-    !lin%lb%Lorbs%npsidim=npsidim
-    lin%lb%orbs%npsidim_orbs=max(npsidim,1)
-    lin%lb%orbs%npsidim_comp=max(npsidim,1)
-else
-    npsidim=0
-    do iorb=1,lin%lb%orbs%norbp
-        !ilr=lin%lb%orbs%inWhichLocregp(iorb)
-        ilr=lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
-        npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
-        !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
-    end do
-    !lin%lb%Lorbs%npsidim=npsidim
-    lin%lb%orbs%npsidim_orbs=max(npsidim,1)
-    lin%lb%orbs%npsidim_comp=max(npsidim,1)
-    
-end if
-
-
-lin%lzd%linear=.true.
-
-
-!!allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
-!!call memocc(istat, phi, 'phi', subname)
+!!subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr)
+!!use module_base
+!!use module_types
+!!use module_interfaces, exceptThisOne => initLocregs
+!!implicit none
 !!
-!!allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
-!!call memocc(istat, lphi, 'lphi', subname)
-
-!allocate(lin%lphiold(lin%lb%orbs%npsidim), stat=istat)
-!call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
-
-!allocate(lin%lhphiold(lin%lb%orbs%npsidim), stat=istat)
-!call memocc(istat, lin%lhphiold, 'lin%lhphiold', subname)
-
-end subroutine initLocregs
+!!! Calling arguments
+!!integer,intent(in):: iproc, nat
+!!real(8),dimension(3,nat),intent(in):: rxyz
+!!type(linearParameters),intent(inout):: lin
+!!type(input_variables),intent(in):: input
+!!type(locreg_descriptors),intent(in):: Glr
+!!
+!!! Local variables
+!!integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
+!!character(len=*),parameter:: subname='initLocregs'
+!!logical,dimension(:),allocatable:: calculateBounds
+!!
+!!! Allocate the array of localisation regions
+!!!allocate(lin%Llr(lin%nlr),stat=istat)
+!!allocate(lin%lzd%Llr(lin%lzd%nlr),stat=istat)
+!!do ilr=1,lin%lzd%nlr
+!!    call nullify_locreg_descriptors(lin%lzd%llr(ilr))
+!!end do
+!!
+!! allocate(calculateBounds(lin%lzd%nlr), stat=istat)
+!! call memocc(istat, calculateBounds, 'calculateBounds', subname)
+!! calculateBounds=.false.
+!! do ilr=1,lin%lzd%nlr
+!!     do jorb=1,lin%orbs%norbp
+!!         jjorb=lin%orbs%isorb+jorb
+!!         jlr=lin%orbs%inWhichLocreg(jjorb)
+!!         if(jlr==ilr) then
+!!             calculateBounds(ilr)=.true.
+!!             exit
+!!         end if
+!!     end do
+!!     do jorb=1,lin%lb%orbs%norbp
+!!         jjorb=lin%lb%orbs%isorb+jorb
+!!         jlr=lin%lb%orbs%inWhichLocreg(jjorb)
+!!         if(jlr==ilr) then
+!!             calculateBounds(ilr)=.true.
+!!             exit
+!!         end if
+!!     end do
+!!     lin%lzd%llr(ilr)%locrad=lin%locrad(ilr)
+!!     lin%lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
+!! end do
+!!
+!! if(lin%locregShape=='c') then
+!!     call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, &
+!!          Glr, lin%lzd%Llr, calculateBounds)
+!! else if(lin%locregShape=='s') then
+!!     call determine_locregSphere(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, &
+!!          Glr, lin%lzd%Llr, calculateBounds)
+!! end if
+!! !do ilr=1,lin%lzd%nlr
+!! !    write(*,'(a,3i6)') 'ilr, glr%d%nfl1, lin%lzd%llr(ilr)%d%nfl1', ilr, glr%d%nfl1, lin%lzd%llr(ilr)%d%nfl1
+!! !    write(*,'(a,i3,2(3x,3i8))') 'ilr, lin%lzd%llr(ilr)%ns1, lin%lzd%llr(ilr)%ns2, lin%lzd%llr(ilr)%ns3, lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3', &
+!! !               ilr, lin%lzd%llr(ilr)%ns1, lin%lzd%llr(ilr)%ns2, lin%lzd%llr(ilr)%ns3, lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3
+!! !end do
+!! !call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr, calculateBounds)
+!!
+!! !if(iproc==0) write(*,'(a,2i9)') 'glr%wfd%nvctr_c, glr%wfd%nvctr_f', glr%wfd%nvctr_c, glr%wfd%nvctr_f
+!! !do ilr=1,lin%lzd%nlr
+!! !    if(iproc==0) write(*,'(a,i4,2i9)') 'ilr, nvctrc_c, nvctr_f', ilr, lin%lzd%Llr(ilr)%wfd%nvctr_c, lin%lzd%Llr(ilr)%wfd%nvctr_f
+!! !end do
+!!
+!! iall=-product(shape(calculateBounds))*kind(calculateBounds)
+!! deallocate(calculateBounds, stat=istat)
+!! call memocc(istat, iall, 'calculateBounds', subname)
+!!
+!!
+!!! Calculate the dimension of the wave function for each process.
+!!npsidim=0
+!!do iorb=1,lin%orbs%norbp
+!!    !ilr=lin%onWhichAtom(iorb)
+!!    !ilr=lin%orbs%inWhichLocregp(iorb)
+!!    ilr=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
+!!    npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
+!!end do
+!!!lin%Lorbs%npsidim=npsidim
+!!lin%orbs%npsidim_orbs=max(npsidim,1)
+!!lin%orbs%npsidim_comp=max(npsidim,1)
+!!
+!!if(.not. lin%useDerivativeBasisFunctions) then
+!!    !lin%lb%Lorbs%npsidim=npsidim
+!!    lin%lb%orbs%npsidim_orbs=max(npsidim,1)
+!!    lin%lb%orbs%npsidim_comp=max(npsidim,1)
+!!else
+!!    npsidim=0
+!!    do iorb=1,lin%lb%orbs%norbp
+!!        !ilr=lin%lb%orbs%inWhichLocregp(iorb)
+!!        ilr=lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
+!!        npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
+!!        !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
+!!    end do
+!!    !lin%lb%Lorbs%npsidim=npsidim
+!!    lin%lb%orbs%npsidim_orbs=max(npsidim,1)
+!!    lin%lb%orbs%npsidim_comp=max(npsidim,1)
+!!    
+!!end if
+!!
+!!
+!!lin%lzd%linear=.true.
+!!
+!!
+!!!!allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
+!!!!call memocc(istat, phi, 'phi', subname)
+!!!!
+!!!!allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
+!!!!call memocc(istat, lphi, 'lphi', subname)
+!!
+!!!allocate(lin%lphiold(lin%lb%orbs%npsidim), stat=istat)
+!!!call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
+!!
+!!!allocate(lin%lhphiold(lin%lb%orbs%npsidim), stat=istat)
+!!!call memocc(istat, lin%lhphiold, 'lin%lhphiold', subname)
+!!
+!!end subroutine initLocregs
 
 
 
@@ -1917,10 +1840,10 @@ end subroutine initLocregs
 !> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
 !! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
 !subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
-subroutine initLocregs2(iproc, nproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape, lborbs)
+subroutine initLocregs(iproc, nproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape, lborbs)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => initLocregs2
+use module_interfaces, exceptThisOne => initLocregs
 implicit none
 
 ! Calling arguments
@@ -2014,7 +1937,7 @@ end do
 orbs%npsidim_orbs=max(npsidim,1)
 
 
-end subroutine initLocregs2
+end subroutine initLocregs
 
 
 !> Allocate the coefficients for the linear combinations of the  orbitals and initialize
@@ -2304,20 +2227,191 @@ end function megabytes
 
 
 
-subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
+!!subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  integer,intent(in):: iproc, nproc
+!!  type(orbitals_data),intent(in):: orbs
+!!  type(overlapParameters),intent(in):: op
+!!  type(matrixDescriptors),intent(out):: mad
+!!  
+!!  ! Local variables
+!!  integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, i
+!!  character(len=*),parameter:: subname='initMatrixCompression'
+!!  
+!!  
+!!  mad%nseg=0
+!!  mad%nvctr=0
+!!  jjorbold=-1
+!!  irowold=0
+!!  allocate(mad%nsegline(orbs%norb), stat=istat)
+!!  call memocc(istat, mad%nsegline, 'mad%nsegline', subname)
+!!  mad%nsegline=0
+!!  do jproc=0,nproc-1
+!!      do iorb=1,orbs%norb_par(jproc,0)
+!!          iiorb=orbs%isorb_par(jproc)+iorb
+!!          ijorb=(iiorb-1)*orbs%norb
+!!          do jorb=1,op%noverlaps(iiorb)
+!!              jjorb=op%overlaps(jorb,iiorb)+ijorb
+!!              ! Entry (iiorb,jjorb) is not zero.
+!!              !if(iproc==0) write(300,*) iiorb,jjorb
+!!              if(jjorb==jjorbold+1) then
+!!                  ! There was no zero element in between, i.e. we are in the same segment.
+!!                  jjorbold=jjorb
+!!                  mad%nvctr=mad%nvctr+1
+!!
+!!                  ! Segments for each row
+!!                  irow=(jjorb-1)/orbs%norb+1
+!!                  if(irow/=irowold) then
+!!                      ! We are in a new line
+!!                      mad%nsegline(irow)=mad%nsegline(irow)+1
+!!                      irowold=irow
+!!                  end if
+!!
+!!              else
+!!                  ! There was a zero segment in between, i.e. we are in a new segment
+!!                  mad%nseg=mad%nseg+1
+!!                  mad%nvctr=mad%nvctr+1
+!!                  jjorbold=jjorb
+!!                  
+!!                  ! Segments for each row
+!!                  irow=(jjorb-1)/orbs%norb+1
+!!                  mad%nsegline(irow)=mad%nsegline(irow)+1
+!!                  irowold=irow
+!!              end if
+!!          end do
+!!      end do
+!!  end do
+!!
+!!  !if(iproc==0) write(*,*) 'mad%nseg, mad%nvctr',mad%nseg, mad%nvctr
+!!  mad%nseglinemax=0
+!!  do iorb=1,orbs%norb
+!!      if(mad%nsegline(iorb)>mad%nseglinemax) then
+!!          mad%nseglinemax=mad%nsegline(iorb)
+!!      end if
+!!  end do
+!!
+!!  allocate(mad%keyv(mad%nseg), stat=istat)
+!!  call memocc(istat, mad%keyv, 'mad%keyv', subname)
+!!  allocate(mad%keyg(2,mad%nseg), stat=istat)
+!!  call memocc(istat, mad%keyg, 'mad%keyg', subname)
+!!  allocate(mad%keygline(2,mad%nseglinemax,orbs%norb), stat=istat)
+!!  call memocc(istat, mad%keygline, 'mad%keygline', subname)
+!!
+!!
+!!  nseg=0
+!!  mad%keyv=0
+!!  jjorbold=-1
+!!  irow=0
+!!  isegline=0
+!!  irowold=0
+!!  mad%keygline=0
+!!  mad%keyg=0
+!!  do jproc=0,nproc-1
+!!      do iorb=1,orbs%norb_par(jproc,0)
+!!          iiorb=orbs%isorb_par(jproc)+iorb
+!!          ijorb=(iiorb-1)*orbs%norb
+!!          do jorb=1,op%noverlaps(iiorb)
+!!              jjorb=op%overlaps(jorb,iiorb)+ijorb
+!!              ! Entry (iiorb,jjorb) is not zero.
+!!              !if(iproc==0) write(300,*) iiorb,jjorb
+!!              if(jjorb==jjorbold+1) then
+!!                  ! There was no zero element in between, i.e. we are in the same segment.
+!!                  mad%keyv(nseg)=mad%keyv(nseg)+1
+!!
+!!                  ! Segments for each row
+!!                  irow=(jjorb-1)/orbs%norb+1
+!!                  if(irow/=irowold) then
+!!                      ! We are in a new line, so close the last segment and start the new one
+!!                      mad%keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
+!!                      isegline=1
+!!                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
+!!                      irowold=irow
+!!                  end if
+!!                  jjorbold=jjorb
+!!              else
+!!                  ! There was a zero segment in between, i.e. we are in a new segment.
+!!                  ! First determine the end of the previous segment.
+!!                  if(jjorbold>0) then
+!!                      mad%keyg(2,nseg)=jjorbold
+!!                      mad%keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
+!!                  end if
+!!                  ! Now add the new segment.
+!!                  nseg=nseg+1
+!!                  mad%keyg(1,nseg)=jjorb
+!!                  jjorbold=jjorb
+!!                  mad%keyv(nseg)=mad%keyv(nseg)+1
+!!
+!!                  ! Segments for each row
+!!                  irow=(jjorb-1)/orbs%norb+1
+!!                  if(irow/=irowold) then
+!!                      ! We are in a new line
+!!                      isegline=1
+!!                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
+!!                      irowold=irow
+!!                  else
+!!                      ! We are in the same line
+!!                      isegline=isegline+1
+!!                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
+!!                      irowold=irow
+!!                  end if
+!!              end if
+!!          end do
+!!      end do
+!!  end do
+!!  ! Close the last segment
+!!  mad%keyg(2,nseg)=jjorb
+!!  mad%keygline(2,isegline,orbs%norb)=mod(jjorb-1,orbs%norb)+1
+!!
+!!  !!if(iproc==0) then
+!!  !!    do iorb=1,orbs%norb
+!!  !!        write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)
+!!  !!        write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)
+!!  !!    end do
+!!  !!end if
+!!
+!!  !!if(iproc==0) then
+!!  !!    do iseg=1,mad%nseg
+!!  !!        write(*,'(a,4i8)') 'iseg, mad%keyv(iseg), mad%keyg(1,iseg), mad%keyg(2,iseg)', iseg, mad%keyv(iseg), mad%keyg(1,iseg), mad%keyg(2,iseg)
+!!  !!    end do
+!!  !!end if
+!!
+!!  ! Some checks
+!!  ii=0
+!!  do iseg=1,mad%nseg
+!!      ii=ii+mad%keyv(iseg)
+!!  end do
+!!  if(ii/=mad%nvctr) then
+!!      write(*,'(a,2(2x,i0))') 'ERROR: ii/=mad%nvctr',ii,mad%nvctr
+!!      stop
+!!  end if
+!!
+!!
+!!
+!!end subroutine initMatrixCompression
+
+
+
+
+
+subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, mad)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
+  integer,intent(in):: iproc, nproc, nlr
   type(orbitals_data),intent(in):: orbs
-  type(overlapParameters),intent(in):: op
+  integer,dimension(nlr),intent(in):: noverlaps
+  integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
   type(matrixDescriptors),intent(out):: mad
   
   ! Local variables
-  integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, i
-  character(len=*),parameter:: subname='initMatrixCompression'
+  integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, i, ilr
+  character(len=*),parameter:: subname='initMatrixCompressionForInguess'
   
   
   mad%nseg=0
@@ -2330,9 +2424,12 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc,0)
           iiorb=orbs%isorb_par(jproc)+iorb
+          ilr=orbs%inWhichLocreg(iiorb)
           ijorb=(iiorb-1)*orbs%norb
-          do jorb=1,op%noverlaps(iiorb)
-              jjorb=op%overlaps(jorb,iiorb)+ijorb
+          !do jorb=1,noverlaps(iiorb)
+          do jorb=1,noverlaps(ilr)
+              !jjorb=overlaps(jorb,iiorb)+ijorb
+              jjorb=overlaps(jorb,ilr)+ijorb
               ! Entry (iiorb,jjorb) is not zero.
               !if(iproc==0) write(300,*) iiorb,jjorb
               if(jjorb==jjorbold+1) then
@@ -2390,9 +2487,12 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc,0)
           iiorb=orbs%isorb_par(jproc)+iorb
+          ilr=orbs%inWhichLocreg(iiorb)
           ijorb=(iiorb-1)*orbs%norb
-          do jorb=1,op%noverlaps(iiorb)
-              jjorb=op%overlaps(jorb,iiorb)+ijorb
+          !do jorb=1,noverlaps(iiorb)
+          do jorb=1,noverlaps(ilr)
+              !jjorb=overlaps(jorb,iiorb)+ijorb
+              jjorb=overlaps(jorb,ilr)+ijorb
               ! Entry (iiorb,jjorb) is not zero.
               !if(iproc==0) write(300,*) iiorb,jjorb
               if(jjorb==jjorbold+1) then
@@ -2469,183 +2569,6 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
 
 
 end subroutine initMatrixCompression
-
-
-
-
-
-subroutine initMatrixCompressionForInguess(iproc, nproc, nlr, orbs, noverlaps, overlaps, mad)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc, nlr
-  type(orbitals_data),intent(in):: orbs
-  integer,dimension(nlr),intent(in):: noverlaps
-  integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
-  type(matrixDescriptors),intent(out):: mad
-  
-  ! Local variables
-  integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, i, ilr
-  character(len=*),parameter:: subname='initMatrixCompression'
-  
-  
-  mad%nseg=0
-  mad%nvctr=0
-  jjorbold=-1
-  irowold=0
-  allocate(mad%nsegline(orbs%norb), stat=istat)
-  call memocc(istat, mad%nsegline, 'mad%nsegline', subname)
-  mad%nsegline=0
-  do jproc=0,nproc-1
-      do iorb=1,orbs%norb_par(jproc,0)
-          iiorb=orbs%isorb_par(jproc)+iorb
-          ilr=orbs%inWhichLocreg(iiorb)
-          ijorb=(iiorb-1)*orbs%norb
-          !do jorb=1,noverlaps(iiorb)
-          do jorb=1,noverlaps(ilr)
-              !jjorb=overlaps(jorb,iiorb)+ijorb
-              jjorb=overlaps(jorb,ilr)+ijorb
-              ! Entry (iiorb,jjorb) is not zero.
-              !if(iproc==0) write(300,*) iiorb,jjorb
-              if(jjorb==jjorbold+1) then
-                  ! There was no zero element in between, i.e. we are in the same segment.
-                  jjorbold=jjorb
-                  mad%nvctr=mad%nvctr+1
-
-                  ! Segments for each row
-                  irow=(jjorb-1)/orbs%norb+1
-                  if(irow/=irowold) then
-                      ! We are in a new line
-                      mad%nsegline(irow)=mad%nsegline(irow)+1
-                      irowold=irow
-                  end if
-
-              else
-                  ! There was a zero segment in between, i.e. we are in a new segment
-                  mad%nseg=mad%nseg+1
-                  mad%nvctr=mad%nvctr+1
-                  jjorbold=jjorb
-                  
-                  ! Segments for each row
-                  irow=(jjorb-1)/orbs%norb+1
-                  mad%nsegline(irow)=mad%nsegline(irow)+1
-                  irowold=irow
-              end if
-          end do
-      end do
-  end do
-
-  !if(iproc==0) write(*,*) 'mad%nseg, mad%nvctr',mad%nseg, mad%nvctr
-  mad%nseglinemax=0
-  do iorb=1,orbs%norb
-      if(mad%nsegline(iorb)>mad%nseglinemax) then
-          mad%nseglinemax=mad%nsegline(iorb)
-      end if
-  end do
-
-  allocate(mad%keyv(mad%nseg), stat=istat)
-  call memocc(istat, mad%keyv, 'mad%keyv', subname)
-  allocate(mad%keyg(2,mad%nseg), stat=istat)
-  call memocc(istat, mad%keyg, 'mad%keyg', subname)
-  allocate(mad%keygline(2,mad%nseglinemax,orbs%norb), stat=istat)
-  call memocc(istat, mad%keygline, 'mad%keygline', subname)
-
-
-  nseg=0
-  mad%keyv=0
-  jjorbold=-1
-  irow=0
-  isegline=0
-  irowold=0
-  mad%keygline=0
-  mad%keyg=0
-  do jproc=0,nproc-1
-      do iorb=1,orbs%norb_par(jproc,0)
-          iiorb=orbs%isorb_par(jproc)+iorb
-          ilr=orbs%inWhichLocreg(iiorb)
-          ijorb=(iiorb-1)*orbs%norb
-          !do jorb=1,noverlaps(iiorb)
-          do jorb=1,noverlaps(ilr)
-              !jjorb=overlaps(jorb,iiorb)+ijorb
-              jjorb=overlaps(jorb,ilr)+ijorb
-              ! Entry (iiorb,jjorb) is not zero.
-              !if(iproc==0) write(300,*) iiorb,jjorb
-              if(jjorb==jjorbold+1) then
-                  ! There was no zero element in between, i.e. we are in the same segment.
-                  mad%keyv(nseg)=mad%keyv(nseg)+1
-
-                  ! Segments for each row
-                  irow=(jjorb-1)/orbs%norb+1
-                  if(irow/=irowold) then
-                      ! We are in a new line, so close the last segment and start the new one
-                      mad%keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
-                      isegline=1
-                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
-                      irowold=irow
-                  end if
-                  jjorbold=jjorb
-              else
-                  ! There was a zero segment in between, i.e. we are in a new segment.
-                  ! First determine the end of the previous segment.
-                  if(jjorbold>0) then
-                      mad%keyg(2,nseg)=jjorbold
-                      mad%keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
-                  end if
-                  ! Now add the new segment.
-                  nseg=nseg+1
-                  mad%keyg(1,nseg)=jjorb
-                  jjorbold=jjorb
-                  mad%keyv(nseg)=mad%keyv(nseg)+1
-
-                  ! Segments for each row
-                  irow=(jjorb-1)/orbs%norb+1
-                  if(irow/=irowold) then
-                      ! We are in a new line
-                      isegline=1
-                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
-                      irowold=irow
-                  else
-                      ! We are in the same line
-                      isegline=isegline+1
-                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
-                      irowold=irow
-                  end if
-              end if
-          end do
-      end do
-  end do
-  ! Close the last segment
-  mad%keyg(2,nseg)=jjorb
-  mad%keygline(2,isegline,orbs%norb)=mod(jjorb-1,orbs%norb)+1
-
-  !!if(iproc==0) then
-  !!    do iorb=1,orbs%norb
-  !!        write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)
-  !!        write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)
-  !!    end do
-  !!end if
-
-  !!if(iproc==0) then
-  !!    do iseg=1,mad%nseg
-  !!        write(*,'(a,4i8)') 'iseg, mad%keyv(iseg), mad%keyg(1,iseg), mad%keyg(2,iseg)', iseg, mad%keyv(iseg), mad%keyg(1,iseg), mad%keyg(2,iseg)
-  !!    end do
-  !!end if
-
-  ! Some checks
-  ii=0
-  do iseg=1,mad%nseg
-      ii=ii+mad%keyv(iseg)
-  end do
-  if(ii/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR: ii/=mad%nvctr',ii,mad%nvctr
-      stop
-  end if
-
-
-
-end subroutine initMatrixCompressionForInguess
 
 
 

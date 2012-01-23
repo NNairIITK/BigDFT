@@ -768,10 +768,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
   
   ! Read the number of iterations and convergence criterion for the basis functions BF
-  comments = 'iterations with low accuracy, high accuracy ; factor for reducing the potential prefactor'
+  comments = 'iterations with low accuracy, high accuracy'
   call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/1,10000/))
-  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/1,10000/))
-  call input_var(in%lin%reducePrefactor,'5.d-3',ranges=(/0.d0,1.d0/),comment=comments)
+  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/1,10000/),comment=comments)
 
   comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
   call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/1,10000/))
