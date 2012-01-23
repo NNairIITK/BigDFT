@@ -487,9 +487,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, lin%nItOrtho, lin%blocksize_pdsyev, &
        lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdig, lin%lig%orbsig, lin%lig%comon, &
        lin%lig%op, input, lin%lig%mad, lchi)
-  !!write(*,*) 'WARNING: DEALLOCATE HERE!'
-  call deallocate_overlapParameters(lin%lig%op, subname)
-  call deallocate_p2pCommsOrthonormality(lin%lig%comon, subname)
 
   ! Deallocate locrad, which is not used any longer.
   iall=-product(shape(locrad))*kind(locrad)
@@ -954,7 +951,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
   call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
-       lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, nlocregPerMPI, tag, ham3)
+       lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, nlocregPerMPI, tag, ham3, &
+       lin%lig%comon, lin%lig%op, lin%lig%mad)
   call cpu_time(t2)
   time=t2-t1
   call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
@@ -971,6 +969,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
   call deallocate_matrixDescriptors(lin%lig%mad, subname)
   !!if(iproc==0) write(*,*) 'WARNING: THIS WILL CAUSE MEMORY PROBLEMS, DEALLOCATE LATER'
+
+  !!write(*,*) 'WARNING: DEALLOCATE HERE!'
+  call deallocate_overlapParameters(lin%lig%op, subname)
+  call deallocate_p2pCommsOrthonormality(lin%lig%comon, subname)
 
   ! Deallocate all remaining local arrays.
   iall=-product(shape(norbsc_arr))*kind(norbsc_arr)
@@ -2060,7 +2062,8 @@ do iat=1,lzdig%nlr
         end if
      ! Uncompress the matrices
      do i=imatold,imat
-        call uncompressMatrix(orbs%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
+        !call uncompressMatrix(orbs%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
+        call uncompressMatrix(orbsig%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
      end do
      imatold=imat+1
 
@@ -3629,7 +3632,7 @@ end subroutine applyOrthoconstraintVectors
 
 
 subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, locregShape, &
-           tag, lphi)
+           tag, comonig, opig, madig, lphi)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => buildLinearCombinations
@@ -3644,36 +3647,39 @@ real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
 real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
 character(len=1),intent(in):: locregShape
 integer,intent(inout):: tag
+type(p2pCommsOrthonormality):: comonig
+type(overlapParameters):: opig
+type(matrixDescriptors):: madig
 real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
 
 ! Local variables
 integer:: istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb
-type(overlapParameters):: op
-type(p2pCommsOrthonormality):: comon
+!type(overlapParameters):: op
+!type(p2pCommsOrthonormality):: comon
 real(8),dimension(:),allocatable:: lchiovrlp
 character(len=*),parameter:: subname='buildLinearCombinations'
-type(matrixDescriptors):: mad !just for calling collectnew, not really needed
+!type(matrixDescriptors):: mad !just for calling collectnew, not really needed
 real(8),dimension(:,:),allocatable:: ttmat
 real(8):: tt1, tt2, tt3
 
 !tag=10000
-call initCommsOrtho(iproc, nproc, lzdig, orbsig, orbsig%inWhichLocreg, input, locregShape, op, comon, tag)
-allocate(lchiovrlp(op%ndim_lphiovrlp), stat=istat)
+!call initCommsOrtho(iproc, nproc, lzdig, orbsig, orbsig%inWhichLocreg, input, locregShape, op, comon, tag)
+allocate(lchiovrlp(opig%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
 
-call allocateCommuncationBuffersOrtho(comon, subname)
+call allocateCommuncationBuffersOrtho(comonig, subname)
 !call extractOrbital2(iproc,nproc,orbsig,orbsig%npsidim,orbsig%inWhichLocreg,lzdig,op,lchi,comon)
 call extractOrbital3(iproc,nproc,orbsig,orbsig%npsidim_orbs,orbsig%inWhichLocreg,&
-     lzdig,op,lchi,comon%nsendBuf,comon%sendBuf)
+     lzdig,opig,lchi,comonig%nsendBuf,comonig%sendBuf)
 !call postCommsOverlap(iproc, nproc, comon)
-call postCommsOverlapNew(iproc, nproc, orbsig, op, lzdig, lchi, comon, tt1, tt2)
+call postCommsOverlapNew(iproc, nproc, orbsig, opig, lzdig, lchi, comonig, tt1, tt2)
 !call gatherOrbitals2(iproc, nproc, comon)
 !!allocate(ttmat(orbsig%norb,orbsig%norb))
-call collectnew(iproc, nproc, comon, mad, op, orbsig, input, lzdig, comon%nsendbuf, &
-     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt1, tt2, tt3)
+call collectnew(iproc, nproc, comonig, madig, opig, orbsig, input, lzdig, comonig%nsendbuf, &
+     comonig%sendbuf, comonig%nrecvbuf, comonig%recvbuf, tt1, tt2, tt3)
 !!deallocate(ttmat)
-call expandOrbital2(iproc, nproc, orbsig, input, orbsig%inWhichLocreg, lzdig, op, comon, lchiovrlp)
-call deallocateCommuncationBuffersOrtho(comon, subname)
+call expandOrbital2(iproc, nproc, orbsig, input, orbsig%inWhichLocreg, lzdig, opig, comonig, lchiovrlp)
+call deallocateCommuncationBuffersOrtho(comonig, subname)
 
 
 
@@ -3687,12 +3693,12 @@ do iorb=1,orbs%norbp
     ilr=orbs%inWhichLocreg(iiorb)
     if(ilr==ilrold) then
         ! Set back the index of lphiovrlp, since we again need the same orbitals.
-        jst=jst-op%noverlaps(iiorb-1)*ncount
+        jst=jst-opig%noverlaps(iiorb-1)*ncount
     end if
     !write(*,'(a,6i13)') 'iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst', iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-    do jorb=1,op%noverlaps(iiorb)
-        jjorb=op%overlaps(jorb,iiorb)
+    do jorb=1,opig%noverlaps(iiorb)
+        jjorb=opig%overlaps(jorb,iiorb)
         !call daxpy(ncount, ovrlp(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
         call daxpy(ncount, coeff(jjorb,iiorb), lchiovrlp(jst), 1, lphi(ist), 1)
         jst=jst+ncount
@@ -3714,8 +3720,8 @@ end if
 
 
 
-call deallocate_overlapParameters(op, subname)
-call deallocate_p2pCommsOrthonormality(comon, subname)
+!call deallocate_overlapParameters(op, subname)
+!call deallocate_p2pCommsOrthonormality(comon, subname)
 
 
 iall=-product(shape(lchiovrlp))*kind(lchiovrlp)
@@ -3816,7 +3822,7 @@ end subroutine buildLinearCombinationsVariable
 
 
 subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbs, comms, at, Glr, input, norbsPerType, &
-           onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3)
+           onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
 !
 use module_base
 use module_types
@@ -3841,6 +3847,9 @@ integer,dimension(orbs%norb):: onWhichAtomPhi
 !!real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
 integer,intent(inout):: tag
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
+type(p2pCommsOrthonormality):: comonig
+type(overlapParameters):: opig
+type(matrixDescriptors):: madig
 
 ! Local variables
 integer:: iorb, jorb, korb, iat, ist, jst, nvctrp, iall, istat, ierr, infoCoeff, k, l,it, iiAt, jjAt, methTransformOverlap, iiorb
@@ -3934,7 +3943,7 @@ type(matrixDescriptors):: mad
  
       call nullify_matrixDescriptors(mad)
       call initMatrixCompressionForInguess(iproc, nproc, lzdig%nlr, orbsig, comom%noverlap, comom%overlaps, mad)
-      call initCompressedMatmul3(orbs%norb, mad)
+      call initCompressedMatmul3(orbsig%norb, mad)
 
 
 
@@ -4432,8 +4441,10 @@ type(matrixDescriptors):: mad
       same=.false.
   end if
   if(same) then
-      call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lin%locregShape, tag, lphi)
+      call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lin%locregShape, tag, &
+           comonig, opig, madig, lphi)
   else
+      !! THIS WAS THE ORIGINAL, BUT NOT WORKING.
       call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, tag, lphi)
   end if
 

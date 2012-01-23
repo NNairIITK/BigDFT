@@ -3548,7 +3548,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, locregShape, &
-                tag, lphi)
+                tag, comonig, opig, madig, lphi)
        use module_base
        use module_types
        implicit none
@@ -3561,6 +3561,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        character(len=1),intent(in):: locregShape
        integer,intent(inout):: tag
        real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: lphi
+       type(p2pCommsOrthonormality):: comonig
+       type(overlapParameters):: opig
+       type(matrixDescriptors):: madig
      end subroutine buildLinearCombinations
 
 
@@ -4396,7 +4399,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
     subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbs, comms, at, Glr, input, norbsPerType, &
-      onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3)
+      onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
       use module_base
       use module_types
       implicit none
@@ -4416,6 +4419,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer,dimension(orbs%norb):: onWhichAtomPhi
       integer,intent(inout):: tag
       real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
+      type(p2pCommsOrthonormality):: comonig
+      type(overlapParameters):: opig
+      type(matrixDescriptors):: madig
     end subroutine buildLinearCombinationsLocalized3
 
     subroutine extractMatrix3(iproc, nproc, norb, norbp, orbstot, onWhichAtomPhi, onWhichMPI, nmat, ham, matmin, hamextract)

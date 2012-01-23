@@ -1084,7 +1084,7 @@ subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvct
   endif
 
   if (nvctr_check /= nvctr) then
-     write(*,'(1x,a,2(i6))')&
+     write(*,'(1x,a,2(i8))')&
           'ERROR: incorrect number of coarse points examined for reducing the localisation region',&
           nvctr_check,nvctr
      stop
