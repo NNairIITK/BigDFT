@@ -311,10 +311,8 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   integer,intent(inout):: tag
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, jproc, ioverlaporb, ioverlapMPI, ilr, jlr
-  integer:: ilrold, is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3
-  integer::  je3, istat, i1, i2, irecv, isend, mpidest, mpisource, jjorb, nsub, ierr
-  logical:: ovrlpx, ovrlpy, ovrlpz
+  integer:: iorb, jorb, iiorb
+  integer::  istat, i1, i2, jjorb, nsub, ierr
   character(len=*),parameter:: subname='initCommsOrtho'
   real(8):: t1, t2, time
 
