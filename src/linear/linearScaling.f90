@@ -806,6 +806,7 @@ end do
 
 end subroutine cancelCommunicationPotential
 
+
 subroutine transformToGlobal(iproc,nproc,lin,orbs,comms,input,coeff,lphi,psi,psit)
 use module_base
 use module_types

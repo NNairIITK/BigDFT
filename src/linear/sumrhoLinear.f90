@@ -299,9 +299,9 @@ integer:: ierr, jproc, is, ie, nreceives
 integer:: nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
 real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
 real(8),dimension(:,:),allocatable:: densKern
-character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
 integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
+character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
 
 
 if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
