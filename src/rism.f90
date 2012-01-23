@@ -13,7 +13,7 @@ program rism
   implicit none
   character(len=*), parameter :: subname='rism'
   integer :: n1i,n2i,n3i,iproc,nproc,i_stat,i_all,nelec
-  integer :: n3d,n3p,n3pi,i3xcsh,i3s,nlr,iat,nspin
+  integer :: n3d,n3p,n3pi,i3xcsh,i3s,nlr,iat,nspin,istat
   real(gp) :: hxh,hyh,hzh
   type(atoms_data) :: atoms
   type(input_variables) :: in
@@ -28,14 +28,24 @@ program rism
   real(gp), dimension(:,:), pointer :: rxyz
   real(dp), dimension(:,:), pointer :: rho,pot,pot_ion
   character(len=5) :: gridformat
+  character(len=60) :: radical
 
   !for the moment no need to have parallelism
   iproc=0
   nproc=1
 
+  call memocc_set_memory_limit(memorylimit)
+
+  ! Read a possible radical format argument.
+  call get_command_argument(1, value = radical, status = istat)
+  if (istat > 0) then
+     write(radical, "(A)") "input"
+  end if
+
+
   !initalise the varaibles for the calculation
   !standard names
-  call standard_inputfile_names(in)
+  call standard_inputfile_names(in,radical)
   call read_input_variables(iproc,'posinp',in,atoms,rxyz)
   write(gridformat, "(A)") ""
   select case (in%output_grid_format)
@@ -717,6 +727,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   call memocc(i_stat,G%nam,'G%nam',subname)
 
   !assign shell IDs and count the number of exponents and coefficients
+  G%ncplx=1
   G%nexpo=0
   G%ncoeff=0
   ishell=0
@@ -733,9 +744,9 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   end do
 
   !allocate and assign the exponents and the coefficients
-  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+  allocate(G%xp(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%xp,'G%xp',subname)
-  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+  allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
 
   ishell=0
@@ -745,8 +756,8 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
         if (l==1) then
            ishell=ishell+1
            iexpo=iexpo+1
-           G%psiat(iexpo)=-oneo2pi3halves/radii(iat)**3
-           G%xp(iexpo)=radii(iat)
+           G%psiat(1,iexpo)=-oneo2pi3halves/radii(iat)**3
+           G%xp(1,iexpo)=radii(iat)
         end if
      end do
   end do

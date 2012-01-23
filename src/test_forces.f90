@@ -21,14 +21,14 @@ program test_forces
   use module_base
   use module_types
   use module_interfaces
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   !as a general policy, we'll have "implicit none" by assuming the same
   !name convention as "implicit real(kind=8) (a-h,o-z)"
 
   implicit none
   character(len=*), parameter :: subname='test_forces'
-  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode
+  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,istat
   real(gp) :: etot,fnoise
   logical :: exist_list
   !input variables
@@ -46,12 +46,22 @@ program test_forces
   !parameter (dx=1.d-2 , npath=2*16+1)  ! npath = 2*n+1 where n=2,4,6,8,...
   parameter (dx=1.d-2 , npath=5)
   real(gp) :: simpson(1:npath)
+  character(len=60) :: radical
   
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+  call memocc_set_memory_limit(memorylimit)
+
+  ! Read a possible radical format argument.
+  call get_command_argument(1, value = radical, status = istat)
+  if (istat > 0) then
+     write(radical, "(A)") "input"
+  end if
+
 
   ! find out which input files will be used
   inquire(file=filename,exist=exist_list)
@@ -111,7 +121,7 @@ do iconfig=1,nconfig
 
      ! Read all input files.
      !standard names
-     call standard_inputfile_names(inputs)
+     call standard_inputfile_names(inputs,radical)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 !     if (iproc == 0) then
  !       call print_general_parameters(nproc,inputs,atoms)

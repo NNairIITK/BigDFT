@@ -18,7 +18,7 @@ program oneatom
   logical :: endloop
   integer :: n1i,n2i,n3i,iproc,nproc,i_stat,i_all,nelec
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
-  integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter
+  integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter,istat
   real(gp) :: hxh,hyh,hzh
   real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
@@ -31,6 +31,7 @@ program oneatom
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis
   type(rho_descriptors)  :: rhodsc
+  type(gaussian_basis)::proj_G
   character(len=4) :: itername
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -38,13 +39,23 @@ program oneatom
   real(wp), dimension(:), pointer :: hpsi,psit,psi,proj,pot
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
+  character(len=60) :: radical
 
   !for the moment no need to have parallelism
   iproc=0
   nproc=1
 
+  call memocc_set_memory_limit(memorylimit)
+
+  ! Read a possible radical format argument.
+  call get_command_argument(1, value = radical, status = istat)
+  if (istat > 0) then
+     write(radical, "(A)") "input"
+  end if
+
+
   !initalise the variables for the calculation
-  call standard_inputfile_names(in)
+  call standard_inputfile_names(in,radical)
   call read_input_variables(iproc,'posinp',in, atoms, rxyz)
 
   if (iproc == 0) then
@@ -80,7 +91,7 @@ program oneatom
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,proj)
+       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,proj,proj_G)
   call timing(iproc,'CrtProjectors ','OF')
 
   !allocate communications arrays
@@ -205,8 +216,14 @@ program oneatom
      !terminate SCF loop if forced to switch more than once from DIIS to SD
      endloop=endloop .or. ndiis_sd_sw > 2
 
-     call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          nlpspd,proj,Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU)
+     call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
+          Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
+
+     call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
+          nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G)
+
+     call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy

@@ -664,6 +664,10 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
+  type(gaussian_basis)::G
+
+  !G is only used for PAW
+  call nullify_gaussian_basis(G)
 
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
@@ -736,7 +740,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
               !calculate projectors
               istart_c=1
               call atom_projector(ikpt,iat,idir,istart_c,iproj,&
-                   n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+                   n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings,G)
 
               !calculate the contribution for each orbital
               !here the nspinor contribution should be adjusted
@@ -3554,7 +3558,7 @@ END SUBROUTINE clean_forces
 
 subroutine symmetrise_forces(iproc, fxyz, at)
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_symmetry
   use module_types
 
   implicit none
@@ -3573,7 +3577,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call ab6_symmetry_get_matrices_p(at%symObj, nsym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(at%symObj, nsym, sym, transNon, symAfm, errno)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
@@ -3596,7 +3600,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
 
   ! actually conduct symmetrization
   do ia = 1, at%nat
-     call ab6_symmetry_get_equivalent_atom(at%symObj, indsym, ia, errno)
+     call symmetry_get_equivalent_atom(at%symObj, indsym, ia, errno)
      if (errno /= AB6_NO_ERROR) stop
      do mu = 1, 3
         summ = real(0, gp)

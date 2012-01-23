@@ -12,6 +12,7 @@
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => call_bigdft
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables),intent(inout) :: in
@@ -188,8 +189,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   use module_xc
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
-  use ab6_symmetry
+  use m_ab6_symmetry
   use m_ab6_mixing
+  use m_ab6_kpoints
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -230,7 +232,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms, commsv
   type(orbitals_data) :: orbsv
-  type(gaussian_basis) :: Gvirt
+  type(gaussian_basis) :: Gvirt,proj_G
   type(diis_objects) :: diis
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -258,6 +260,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nkptv, nvirtu, nvirtd
   real(gp), allocatable :: wkptv(:)
   type(rho_descriptors) :: rhodsc
+  type(rholoc_objects)::rholoc_tmp
+
 
   ! ----------------------------------
 
@@ -294,6 +298,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         write(wfformat, "(A)") ".bin"
   end select
      
+  !proj_G is dummy here, it is only used for PAW
+  call nullify_gaussian_basis(proj_G)
+
   norbv=abs(in%norbv)
   nvirt=in%nvirt
   hx=in%hx
@@ -321,11 +328,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call print_dft_parameters(in,atoms)
   end if
   if (iproc == 0) call xc_dump()
-  if (nproc > 1) then
-     call timing(iproc,'parallel     ','IN')
-  else
-     call timing(iproc,'             ','IN')
-  end if
+  !time initialization
+  call timing(nproc,trim(in%dir_output)//'time.prc','IN')
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -413,7 +417,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj,proj_G)
   call timing(iproc,'CrtProjectors ','OF')
 
   !calculate the partitioning of the orbitals between the different processors
@@ -440,7 +444,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !calculate the irreductible zone, if necessary.
   if (atoms%symObj >= 0) then
-     call ab6_symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
+     call symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
      if (nsym > 1) then
         ! Current third dimension is set to 1 always
         ! since nspin == nsppol always in BigDFT
@@ -448,8 +452,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,irrzon,'irrzon',subname)
         allocate(phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
         call memocc(i_stat,phnons,'phnons',subname)
-        call ab6_symmetry_get_irreductible_zone(atoms%symObj, irrzon, phnons, &
-             & n1i, n2i, n3i, in%nspin, in%nspin, i_stat)
+        call kpoints_get_irreductible_zone(irrzon, phnons, &
+             & n1i, n2i, n3i, in%nspin, in%nspin, atoms%symObj, i_stat)
      end if
   end if
   if (.not. allocated(irrzon)) then
@@ -478,7 +482,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,&
-       0,.false.)
+       0,.false.,rholoc_tmp)
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)
@@ -691,7 +695,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call input_wf_diag(iproc,nproc, atoms,rhodsc,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,&
+          GPU,in,proj_G)
      if (nvirt > norbv) then
         nvirt = norbv
      end if
@@ -965,9 +970,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 Glr%d%n1i*Glr%d%n2i*n3d*nrhodim,i3rho_add,&
                 orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
 
-           call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-                nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,&
-                in%SIC,GPU,pkernel=pkernelseq)
+!!$           call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+!!$                nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,&
+!!$                in%SIC,GPU,pkernel=pkernelseq)
+
+           call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
+
+           call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G)
+
+           call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
            !deallocate potential
            call free_full_potential(nproc,potential,subname)
@@ -1020,7 +1033,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
            end if
            !flush all writings on standart output
-           if (iproc==0) flush(unit=6)
+           if (iproc==0) call bigdft_utils_flush(unit = 6)
         end do wfn_loop
 
         if (iproc == 0) then 
@@ -1274,6 +1287,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
              iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+
+        ! calculate dipole moment associated to the charge density
+        call calc_dipole(iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+
         if (associated(rhocore)) then
            if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
            call plot_density(trim(in%dir_output)//'core_density' // gridformat,&
@@ -1378,7 +1395,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
            call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbsv,&
-                radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj) 
+                radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj,proj_G) 
            call timing(iproc,'CrtProjectors ','OF') 
 
         else
@@ -1408,6 +1425,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!$                orbs,orbsv,in%nvirt,Glr,comms,commsv,&
 !!$                hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
 !!$                pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
+        end if
+
+        ! Write virtual wavefunctions in ETSF format
+        if (in%output_wf_format /= WF_FORMAT_NONE  .and. abs(in%norbv) > 0) then
+           call  writemywaves(iproc,trim(in%dir_output) // "virtuals" // trim(wfformat), &
+             & orbsv,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psivirt)
         end if
 
         !start the Casida's treatment 
@@ -1724,6 +1747,7 @@ contains
     ! Free the libXC stuff if necessary.
     call xc_end()
 
+
     !deallocate the mixing
     if (in%itrpmax > 1) then
        call ab6_mixing_deallocate(mix)
@@ -1737,6 +1761,7 @@ contains
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
     if (iproc == 0) &
          write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
+
 
   END SUBROUTINE deallocate_before_exiting
 

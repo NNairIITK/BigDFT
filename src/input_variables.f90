@@ -62,12 +62,12 @@ subroutine standard_inputfile_names(inputs, radical)
   use module_types
   implicit none
   type(input_variables), intent(inout) :: inputs
-  character(len = *), intent(in), optional :: radical
+  character(len = *), intent(in) :: radical
 
   character(len = 128) :: rad
 
   write(rad, "(A)") ""
-  if (present(radical)) write(rad, "(A)") trim(radical)
+  write(rad, "(A)") trim(radical)
   if (trim(radical) == "") write(rad, "(A)") "input"
 
   inputs%file_dft=trim(rad) // '.dft'
@@ -108,6 +108,7 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
+
 
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
@@ -237,13 +238,15 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 12 .or.  &                    !read in gaussian basis
        in%gaussian_help                             !mulliken and local density of states
   
+  !here you can check whether the etsf format is compiled
+
   if (shouldwrite) then
      ! Create a directory to put the files in.
      dirname=repeat(' ',len(dirname))
      if (iproc == 0) then
         call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
         if (i_stat /= 0) then
-           write(*,*) "ERROR: cannot create output directory."
+           write(*,*) "ERROR: cannot create output directory '" // trim(in%dir_output) // "'."
            call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
         end if
      end if
@@ -287,6 +290,7 @@ subroutine default_input_variables(inputs)
   !Default for Self-Interaction Correction variables
   call sic_input_variables_default(inputs)
 
+
 END SUBROUTINE default_input_variables
 
 subroutine dft_input_variables_new(iproc,filename,in)
@@ -301,7 +305,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   logical :: exists
   integer :: ivrbproj,ierror
   real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
-  real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,20.0_gp/)
+  real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
 
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,trim(filename),exists,'DFT Calculation Parameters')  
@@ -476,7 +480,7 @@ subroutine mix_input_variables_new(iproc,filename,in)
        comment="Mixing parameters")
   call input_var(in%itrpmax,'1',ranges=(/0,10000/),&
        comment="Maximum number of diagonalisation iterations")
-  call input_var(in%rpnrm_cv,'1.e-4',ranges=(/1.e-10_gp,10.0_gp/),&
+  call input_var(in%rpnrm_cv,'1.e-4',ranges=(/0.0_gp,10.0_gp/),&
        comment="Stop criterion on the residue of potential or density")
   call input_var(in%norbsempty,'0',ranges=(/0,10000/))
   call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/),&
@@ -596,7 +600,7 @@ subroutine geopt_input_variables_new(iproc,filename,in)
 !     return
 !  end if
 
-  call input_var(in%geopt_approach,"BFGS",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD','DIIS '/),&
+  call input_var(in%geopt_approach,"BFGS",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD','DIIS ','FIRE '/),&
        comment="Geometry optimisation method")
   call input_var(in%ncount_cluster_x,'1',ranges=(/0,2000/),&
        comment="Maximum number of force evaluations")
@@ -903,7 +907,7 @@ subroutine update_symmetries(in, atoms, rxyz)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(inout) :: atoms
@@ -918,7 +922,7 @@ subroutine update_symmetries(in, atoms, rxyz)
   if (atoms%geocode /= 'F') then
      if (.not. in%disableSym) then
         if (atoms%symObj < 0) then
-           call ab6_symmetry_new(atoms%symObj)
+           call symmetry_new(atoms%symObj)
         end if
         ! New values
         rprimd(:,:) = 0
@@ -926,13 +930,13 @@ subroutine update_symmetries(in, atoms, rxyz)
         rprimd(2,2) = atoms%alat2
         if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
         rprimd(3,3) = atoms%alat3
-        call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
+        call symmetry_set_lattice(atoms%symObj, rprimd, ierr)
         allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
         call memocc(i_stat,xRed,'xRed',subname)
         xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
         xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
         xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
-        call ab6_symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
+        call symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
         i_all=-product(shape(xRed))*kind(xRed)
         deallocate(xRed,stat=i_stat)
         call memocc(i_stat,i_all,'xRed',subname)
@@ -940,20 +944,20 @@ subroutine update_symmetries(in, atoms, rxyz)
            !!for the moment symmetries are not allowed in surfaces BC
            write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
            stop
-           call ab6_symmetry_set_periodicity(atoms%symObj, &
+           call symmetry_set_periodicity(atoms%symObj, &
                 & (/ .true., .false., .true. /), ierr)
         else if (atoms%geocode == 'F') then
-           call ab6_symmetry_set_periodicity(atoms%symObj, &
+           call symmetry_set_periodicity(atoms%symObj, &
                 & (/ .false., .false., .false. /), ierr)
         end if
         if (in%elecfield /= 0) then
-           call ab6_symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield, 0._gp /), ierr)
+           call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield, 0._gp /), ierr)
         end if
      else
         if (atoms%symObj >= 0) then
-           call ab6_symmetry_free(atoms%symObj)
+           call symmetry_free(atoms%symObj)
         end if
-        call ab6_symmetry_new(atoms%symObj)
+        call symmetry_new(atoms%symObj)
         rprimd(1,1) = 0.5d0
         rprimd(2,1) = 1d0
         rprimd(3,1) = 1d0
@@ -963,12 +967,12 @@ subroutine update_symmetries(in, atoms, rxyz)
         rprimd(1,3) = 3d0
         rprimd(2,3) = 0d0
         rprimd(3,3) = 1d0
-        call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
-        call ab6_symmetry_set_structure(atoms%symObj, 3, (/ 1,2,3 /), rprimd / 4.d0, ierr)
+        call symmetry_set_lattice(atoms%symObj, rprimd, ierr)
+        call symmetry_set_structure(atoms%symObj, 3, (/ 1,2,3 /), rprimd / 4.d0, ierr)
      end if
   else
      if (atoms%symObj >= 0) then
-        call ab6_symmetry_free(atoms%symObj)
+        call symmetry_free(atoms%symObj)
      end if
      atoms%symObj = -1
   end if
@@ -978,7 +982,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_kpoints
   use module_input
   implicit none
   character(len=*), intent(in) :: filename
@@ -997,6 +1001,10 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   in%nkpt=1
   in%nkptv=0
   in%ngroups_kptv=1
+  nullify(in%kpt)
+  nullify(in%wkpt)
+  nullify(in%kptv)
+  nullify(in%nkptsv_group)
 
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
@@ -1020,8 +1028,8 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
 
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
-          comment='Equivalent length of K-space resolution (Bohr)')
-     call ab6_symmetry_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+          comment='Equivalent legth of K-space resolution (Bohr)')
+     call kpoints_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1044,7 +1052,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
         call input_var(shiftk(2,i),'0.')
         call input_var(shiftk(3,i),'0.',comment=' ')
      end do
-     call ab6_symmetry_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1068,6 +1076,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
         call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
         norm=norm+in%wkpt(i)
      end do
+
      ! We normalise the weights.
      in%wkpt(:)=in%wkpt/norm
   end if
@@ -1183,7 +1192,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_kpoints
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
@@ -1233,7 +1242,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   if (trim(type) == "auto" .or. trim(type) == "Auto" .or. trim(type) == "AUTO") then
      read(1,*,iostat=ierror) kptrlen
      call check()
-     call ab6_symmetry_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1251,7 +1260,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         read(1,*,iostat=ierror) shiftk(:, i)
         call check()
      end do
-     call ab6_symmetry_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1504,6 +1513,11 @@ subroutine abscalc_input_variables_default(in)
   in%c_absorbtion=.false.
   in%potshortcut=0
   in%iat_absorber=0
+  in%abscalc_bottomshift=0
+  in%abscalc_S_do_cg=.false.
+  in%abscalc_Sinv_do_cg=.false.
+
+
 
 END SUBROUTINE abscalc_input_variables_default
 
@@ -1557,16 +1571,32 @@ subroutine abscalc_input_variables(iproc,filename,in)
   if( iand( in%potshortcut,4)>0) then
      read(iunit,'(a100)',iostat=ierror) in%extraOrbital
   end if
-
-
   
-  read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+  read(iunit,*,iostat=ierror) in%abscalc_bottomshift
   if(ierror==0) then
+  else
+     in%abscalc_bottomshift=0
+  endif
 
+ 
+
+  read(iunit, '(a100)' ,iostat=ierror) in%xabs_res_prefix
+  if(ierror==0) then
+  else
+     in%xabs_res_prefix=""
+  endif
+
+
+  read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+  !!, &
+  !!     in%abscalc_S_do_cg ,in%abscalc_Sinv_do_cg
+  if(ierror==0) then
   else
      in%abscalc_alterpot=.false.
      in%abscalc_eqdiff =.false.
   endif
+
+
 
   in%c_absorbtion=.true.
 
@@ -1922,7 +1952,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
    use module_base
    use module_types
    use module_interfaces, except_this_one => read_atomic_file
-   use ab6_symmetry
+   use m_ab6_symmetry
    use position_files
    implicit none
    character(len=*), intent(in) :: file
@@ -2038,7 +2068,7 @@ END SUBROUTINE read_atomic_file
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   character(len=*), intent(in) :: subname
   type(atoms_data), intent(inout) :: atoms
@@ -2062,7 +2092,7 @@ subroutine deallocate_atoms(atoms,subname)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
   if (atoms%symObj >= 0) then
-     call ab6_symmetry_free(atoms%symObj)
+     call symmetry_free(atoms%symObj)
   end if
   ! Deallocations related to pseudos.
   i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
@@ -2092,6 +2122,12 @@ subroutine deallocate_atoms(atoms,subname)
   i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
   deallocate(atoms%radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%radii_cf',subname)
+
+  
+  !  Free data for pawpatch
+  call deallocate_atomdatapaw(atoms,subname)
+
+
 END SUBROUTINE deallocate_atoms
 
 
@@ -2743,7 +2779,7 @@ END SUBROUTINE charge_and_spol
 
 
 !> Write an atomic file
-subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
+subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   use module_base
   use module_types
   implicit none
@@ -2751,17 +2787,25 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-
+  real(gp), dimension(3,atoms%nat), intent(in), optional :: forces
+  !local variables
   character(len = 15) :: arFile
 
   if (atoms%format == "xyz") then
-     call wtxyz(filename,energy,rxyz,atoms,comment)
+     open(unit=9,file=trim(filename)//'.xyz')
+     call wtxyz(9,energy,rxyz,atoms,comment)
+     if (present(forces)) call wtxyz_forces(9,forces,atoms)
   else if (atoms%format == "ascii") then
-     call wtascii(filename,energy,rxyz,atoms,comment)
+     open(unit=9,file=trim(filename)//'.ascii')
+     call wtascii(9,energy,rxyz,atoms,comment)
+     if (present(forces)) call wtascii_forces(9,forces,atoms)
   else
      write(*,*) "Error, unknown file format."
      stop
   end if
+
+  close(unit=9)
+
   ! Add to archive
   if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
      write(arFile, "(A)") "posout.tar.bz2"
@@ -2774,11 +2818,12 @@ END SUBROUTINE write_atomic_file
 
 
 !>Write xyz atomic file.
-subroutine wtxyz(filename,energy,rxyz,atoms,comment)
+subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   use module_base
   use module_types
   implicit none
-  character(len=*), intent(in) :: filename,comment
+  integer, intent(in) :: iunit
+  character(len=*), intent(in) :: comment
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
@@ -2790,7 +2835,6 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
-  open(unit=9,file=trim(filename)//'.xyz')
   xmax=0.0_gp
   ymax=0.0_gp
   zmax=0.0_gp
@@ -2808,16 +2852,16 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
      units='atomicd0'
   end if
 
-  write(9,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),energy,comment
+  write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),energy,comment
 
   if (atoms%geocode == 'P') then
-     write(9,'(a,3(1x,1pe24.17))')'periodic',&
+     write(iunit,'(a,3(1x,1pe24.17))')'periodic',&
           atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
   else if (atoms%geocode == 'S') then
-     write(9,'(a,3(1x,1pe24.17))')'surface',&
+     write(iunit,'(a,3(1x,1pe24.17))')'surface',&
           atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
   else
-     write(9,*)'free'
+     write(iunit,*)'free'
   end if
   do iat=1,atoms%nat
      name=trim(atoms%atomnames(atoms%iatype(iat)))
@@ -2826,25 +2870,53 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
      else if (name(2:2)=='_') then
         symbol=name(1:1)
      else
-        symbol=name(1:2)
+        symbol=name(1:min(len(name),5))
      end if
 
      call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))
 
-     write(9,'(a2,4x,3(1x,1pe24.17),2x,a50)')symbol,(rxyz(j,iat)*factor,j=1,3),extra
-
+     write(iunit,'(a5,1x,3(1x,1pe24.17),2x,a50)')symbol,(rxyz(j,iat)*factor,j=1,3),extra
   enddo
-  close(unit=9)
 
 END SUBROUTINE wtxyz
 
-
-!>Write ascii file (atomic position). 
-subroutine wtascii(filename,energy,rxyz,atoms,comment)
+!> Add the forces in the position file for the xyz system
+subroutine wtxyz_forces(iunit,fxyz,at)
   use module_base
   use module_types
   implicit none
-  character(len=*), intent(in) :: filename,comment
+  integer, intent(in) :: iunit
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: fxyz
+  !local variables
+  integer :: iat,j
+  character(len=20) :: symbol
+  character(len=10) :: name
+
+  write(iunit,*)'forces'
+  
+  do iat=1,at%nat
+     name=trim(at%atomnames(at%iatype(iat)))
+     if (name(3:3)=='_') then
+        symbol=name(1:2)
+     else if (name(2:2)=='_') then
+        symbol=name(1:1)
+     else
+        symbol=name(1:min(len(name),5))
+     end if
+
+     write(iunit,'(a5,1x,3(1x,1pe24.17))')symbol,(fxyz(j,iat),j=1,3)
+  end do
+  
+end subroutine wtxyz_forces
+
+!>Write ascii file (atomic position). 
+subroutine wtascii(iunit,energy,rxyz,atoms,comment)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iunit
+  character(len=*), intent(in) :: comment
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
@@ -2855,7 +2927,6 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
-  open(unit=9,file=trim(filename)//'.ascii')
   xmax=0.0_gp
   ymax=0.0_gp
   zmax=0.0_gp
@@ -2871,16 +2942,16 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
      factor=1.0_gp
   end if
 
-  write(9, "(A,A)") "# BigDFT file - ", trim(comment)
-  write(9, "(3e24.17)") atoms%alat1*factor, 0.d0, atoms%alat2*factor
-  write(9, "(3e24.17)") 0.d0,               0.d0, atoms%alat3*factor
+  write(iunit, "(A,A)") "# BigDFT file - ", trim(comment)
+  write(iunit, "(3e24.17)") atoms%alat1*factor, 0.d0, atoms%alat2*factor
+  write(iunit, "(3e24.17)") 0.d0,               0.d0, atoms%alat3*factor
 
-  write(9, "(A,A)") "#keyword: ", trim(atoms%units)
-  if (atoms%geocode == 'P') write(9, "(A)") "#keyword: periodic"
-  if (atoms%geocode == 'S') write(9, "(A)") "#keyword: surface"
-  if (atoms%geocode == 'F') write(9, "(A)") "#keyword: freeBC"
+  write(iunit, "(A,A)") "#keyword: ", trim(atoms%units)
+  if (atoms%geocode == 'P') write(iunit, "(A)") "#keyword: periodic"
+  if (atoms%geocode == 'S') write(iunit, "(A)") "#keyword: surface"
+  if (atoms%geocode == 'F') write(iunit, "(A)") "#keyword: freeBC"
   if (energy /= 0.d0) then
-     write(9, "(A,e24.17,A)") "#metaData: totalEnergy=", energy, "Ht"
+     write(iunit, "(A,e24.17,A)") "#metaData: totalEnergy=", energy, "Ht"
   end if
 
   do iat=1,atoms%nat
@@ -2895,12 +2966,43 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
 
      call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))     
 
-     write(9,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor,j=1,3),symbol,extra
+     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor,j=1,3),symbol,extra
   end do
-  close(unit=9)
+
 
 END SUBROUTINE wtascii
 
+subroutine wtascii_forces(iunit,fxyz,at)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iunit
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: fxyz
+  !local variables
+  integer :: iat,j
+  character(len=1) :: endline
+  
+  if (at%nat ==0) return
+  !write the first position
+  iat=1
+  if (at%nat==iat) then
+     endline=']'
+  else
+     endline=char(92)
+  end if
+
+  write(iunit, "(A,3(1pe25.17,A),a)") "#metaData: forces=[",(fxyz(j,iat), ";",j=1,3),' '//endline
+  !then the rest until the second-last
+  do iat=2,at%nat
+     if (at%nat==iat) then
+        endline=']'
+     else
+        endline=char(92)
+     end if
+     write(iunit, "(A,3(1pe25.17,A),a)") "# ",(fxyz(j,iat), ";",j=1,3),' '//endline
+  end do
+end subroutine wtascii_forces
 
 !>Write the extra info necessary for the output file
 subroutine write_extra_info(extra,natpol,ifrztyp)
@@ -3002,7 +3104,7 @@ subroutine print_general_parameters(nproc,input,atoms)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   !Arguments
   integer, intent(in) :: nproc
@@ -3074,8 +3176,8 @@ subroutine print_general_parameters(nproc,input,atoms)
 
   ! The additional data column
   if (atoms%geocode /= 'F' .and. .not. input%disableSym) then
-     call ab6_symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
-     call ab6_symmetry_get_group(atoms%symObj, spaceGroup, &
+     call symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
+     call symmetry_get_group(atoms%symObj, spaceGroup, &
           & spaceGroupId, pointGroupMagn, genAfm, ierr)
      if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
      write(add(1), '(a,i0)')       "N. sym.   = ", nSym
@@ -3569,3 +3671,99 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
 END SUBROUTINE processor_id_per_node
+
+
+!> initialize_atomic_file
+!! @author
+!! Written by Laurent K Beland 2011 UdeM
+!! this routine does the same operations as
+!! read_atomic_file but uses inputs from memory
+!! as input positions instead of inputs from file
+!! Useful for QM/MM implementation of BigDFT-ART
+subroutine initialize_atomic_file(iproc,atoms,rxyz)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => read_atomic_file
+  use m_ab6_symmetry
+  implicit none
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
+  !local variables
+  character(len=*), parameter :: subname='initialize_atomic_file'
+  integer :: i_stat, l
+  integer :: iat,i
+
+  allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
+
+  if (atoms%geocode=='S') then 
+        atoms%alat2=0.0_gp
+  else if (atoms%geocode=='F') then !otherwise free bc    
+        atoms%alat1=0.0_gp
+        atoms%alat2=0.0_gp
+        atoms%alat3=0.0_gp
+  else
+        atoms%alat1=0.0_gp
+        atoms%alat2=0.0_gp
+        atoms%alat3=0.0_gp
+  end if
+
+  !reduced coordinates are possible only with periodic units
+  if (atoms%units == 'reduced' .and. atoms%geocode == 'F') then
+     if (iproc==0) write(*,'(1x,a)')&
+          'ERROR: Reduced coordinates are not allowed with isolated BC'
+  end if
+
+   !convert the values of the cell sizes in bohr
+  if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
+     ! if Angstroem convert to Bohr
+     atoms%alat1=atoms%alat1/bohr2ang
+     atoms%alat2=atoms%alat2/bohr2ang
+     atoms%alat3=atoms%alat3/bohr2ang
+  else if (atoms%units == 'reduced') then
+     !assume that for reduced coordinates cell size is in bohr
+     atoms%alat1=real(atoms%alat1,gp)
+     atoms%alat2=real(atoms%alat2,gp)
+     atoms%alat3=real(atoms%alat3,gp)
+  else
+     write(*,*) 'length units in input file unrecognized'
+     write(*,*) 'recognized units are angstroem or atomic = bohr'
+     stop 
+  endif
+  
+  do iat=1,atoms%nat
+     !xyz input file, allow extra information
+     
+     if (atoms%units == 'reduced') then !add treatment for reduced coordinates
+        rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
+        if (atoms%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
+        rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
+     else if (atoms%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'S') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     end if
+ 
+     if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
+        ! if Angstroem convert to Bohr
+        do i=1,3 
+           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
+        enddo
+     else if (atoms%units == 'reduced') then 
+        rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
+        if (atoms%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
+        rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
+     endif
+  enddo
+
+  !control atom positions
+  call check_atoms_positions(iproc,atoms,rxyz)
+
+  ! We delay the calculation of the symmetries.
+  atoms%symObj = -1
+
+END SUBROUTINE initialize_atomic_file

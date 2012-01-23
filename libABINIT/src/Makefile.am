@@ -27,10 +27,16 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	12_hide_mpi/xsum_master.F90 \
 	12_hide_mpi/xsum_mpi.F90
 
-noinst_LIBRARIES = libabinit.a
+lib_LIBRARIES = libabinit.a
+
+if DISABLE_LIBXC
+LIBXC_DEFS =
+else
+LIBXC_DEFS = -DHAVE_LIBXC
+endif
 
 # Don't use the HAVE_CONFIG_H
-DEFS = -DHAVE_MPI -DHAVE_MPI1 -DHAVE_LIBXC
+DEFS = -DHAVE_MPI -DHAVE_MPI1 $(LIBXC_DEFS)
 # Force HAVE_MPI and HAVE_MPI1.
 AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim
 
@@ -53,6 +59,7 @@ libabinit_a_SOURCES = \
 	18_timing/timab.F90 \
 	18_memory/m_profiling.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
+        28_numeric_noabirule/m_splines.F90 \
 	28_numeric_noabirule/sort_dp.F90 \
 	28_numeric_noabirule/sort_int.F90 \
 	28_numeric_noabirule/uniformrandom.F90 \
@@ -78,6 +85,7 @@ libabinit_a_SOURCES = \
 	42_geometry/getspinrot.F90 \
 	42_geometry/gridgcart.F90 \
 	42_geometry/holocell.F90 \
+	42_geometry/m_ab6_symmetry.F90 \
 	42_geometry/metric.F90 \
 	42_geometry/mkrdim.F90 \
 	42_geometry/operat.F90 \
@@ -127,11 +135,11 @@ libabinit_a_SOURCES = \
 	56_mixing/sqnormm_v.F90 \
 	56_recipspace/interfaces_56_recipspace.F90 \
 	56_recipspace/irrzg.F90 \
+	56_recipspace/m_ab6_kpoints.F90 \
 	56_recipspace/getkgrid.F90 \
 	56_recipspace/smpbz.F90 \
 	56_recipspace/symkpt.F90 \
 	56_recipspace/testkgrid.F90 \
-	56_recipspace/ab6_symmetry_f90.F90 \
 	56_xc/interfaces_56_xc.F90 \
 	56_xc/drivexc.F90 \
 	56_xc/invcb.F90 \
@@ -152,29 +160,7 @@ libabinit_a_SOURCES = \
 	72_geomoptim/ab6_moldyn.F90 \
 	72_geomoptim/xfpack.F90
 
-CLEANFILES = mpif.h \
-	defs_abitypes.@MODULE_EXT@ DEFS_ABITYPES.@MODULE_EXT@ \
-	defs_basis.@MODULE_EXT@ DEFS_BASIS.@MODULE_EXT@ \
-	defs_datatypes.@MODULE_EXT@ DEFS_DATATYPES.@MODULE_EXT@ \
-	defs_parameters.@MODULE_EXT@ DEFS_PARAMETERS.@MODULE_EXT@ \
-	defs_xc.@MODULE_EXT@ DEFS_XC.@MODULE_EXT@ \
-	m_ab6_mixing.@MODULE_EXT@ M_AB6_MIXING.@MODULE_EXT@ \
-	m_profiling.@MODULE_EXT@ M_PROFILING.@MODULE_EXT@ \
-	m_xmpi.@MODULE_EXT@ M_XMPI.@MODULE_EXT@ \
-	libxc_functionals.@MODULE_EXT@ LIBXC_FUNCTIONALS.@MODULE_EXT@ \
-	interfaces_12_hide_mpi.@MODULE_EXT@ INTERFACES_12_HIDE_MPI.@MODULE_EXT@ \
-	interfaces_14_hidewrite.@MODULE_EXT@ INTERFACES_14_HIDEWRITE.@MODULE_EXT@ \
-	interfaces_16_hideleave.@MODULE_EXT@ INTERFACES_16_HIDELEAVE.@MODULE_EXT@ \
-	interfaces_18_timing.@MODULE_EXT@ INTERFACES_18_TIMING.@MODULE_EXT@ \
-	interfaces_28_numeric_noabirule.@MODULE_EXT@ INTERFACES_28_NUMERIC_NOABIRULE.@MODULE_EXT@ \
-	interfaces_32_util.@MODULE_EXT@ INTERFACES_32_UTIL.@MODULE_EXT@ \
-	interfaces_42_geometry.@MODULE_EXT@ INTERFACES_42_GEOMETRY.@MODULE_EXT@ \
-	interfaces_56_mixing.@MODULE_EXT@ INTERFACES_56_MIXING.@MODULE_EXT@ \
-	interfaces_56_recipspace.@MODULE_EXT@ INTERFACES_56_RECIPSPACE.@MODULE_EXT@ \
-	interfaces_56_xc.@MODULE_EXT@ INTERFACES_56_XC.@MODULE_EXT@ \
-	interfaces_linalg.@MODULE_EXT@ INTERFACES_LINALG.@MODULE_EXT@ \
-	ab6_moldyn.@MODULE_EXT@ AB6_MOLDYN.@MODULE_EXT@ \
-	ab6_symmetry.@MODULE_EXT@ AB6_SYMMETRY.@MODULE_EXT@
+CLEANFILES = mpif.h *.@MODULE_EXT@
 
 #dependencies
 mpif.h:

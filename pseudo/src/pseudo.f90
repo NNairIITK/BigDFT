@@ -60,11 +60,15 @@
       character*30 plotfile
       character(80):: errmsg
       character*7 is(2)
-      character fname*35,tname*10,string*125,strcyc*10,form*25
+      character fname*35,tname*10,string*520,strcyc*10,form*25
       character*80 label
       integer namoeb,nsmplx
 !      integer*4:: dateDMY(3)
       character(len=8) :: dateYMD
+ 
+      integer ::  nconfpaw, nchannelspaw, npawl, pawstN, pawstL, pawstP
+      real(8) pawrcovfact
+      character(len=125) :: pawstatom
 
 
 !     INCLUDE 'func.inc'
@@ -152,6 +156,15 @@
       info=.false.
       mixref=.false.
       ldump=.false.
+
+
+      npawconf=-1
+      npawl   = 3
+      nchannelspaw = 4
+      pawstatom=''
+      pawrcovfact=1.0_8
+ 
+
 !     some defaults for new input related to the simplex
       dh=0.2d0
       ntrymax=200
@@ -189,78 +202,96 @@
                write(6,'(i3,a)')iline-1,' lines have been read.'
 
                if(iline==1)then
-                 write(6,'(a,i2)')'   Could not read the file input.dat'
-                 write(6,*)
-                   write(6,*) 'possible options (with input N/Float)'
-                   write(6,*) '                  -cy      N ',  &
-                        'number of fitting cycles (-1< N< 10000)'
-                   write(6,*) '                  -fit       ',  &
-                        'equivalent to -cy 1'
-                   write(6,*) '                  -maxiter N ',  &
-                        'number of iterations per simplex'
-                   write(6,*) '                  -ng      N ',  &
-                        'number of Gaussians'
-                   write(6,*) '                  -rij     F ',  &
-                        'max length scale of Gaussians/rloc '
-                   write(6,*) '                  -fullacc   ',  &
-                        'use max. number of gaussians'
-                   write(6,*) '                  -orth      ',  &
-                        'orthogonalisation of the projectors'
-                   write(6,*) '                  -lith      ',  &
-                        'transformation of the projectors as in lit.'
-                   write(6,*) '                  -denbas    ',  &
-                        'use dense gaussian basis    '
-                   write(6,*) '                  -mixref    ',  &
-                        'allow contradictions in AE ref data'
-                   write(6,*) '                  -info      ',  &
-                        'write gaussian coefficients of final'
-                   write(6,*) '                             ',  &
-                        'wavefunctions to gauss.par'
-                   write(6,*) '                  -plot      ',  &
-                        'plot wfs after each iteration'
-                   write(6,*) '                  -lNso      ',  &
-                        'avg nonlocal potential =0 for l=N  '
-                   write(6,*) '                            ',  &
-                        '(only for the highest projector)'
-                   write(6,*) '                  -inwidth F ',  &
-                        'initial width of the simplex'
-                   write(6,*) '                  -stuck   N ',  &
-                        'max steps to consider simplex stuck'
-                   write(6,*) '                  -cvg     F ',  &
-                        'convergence crit for simplex spread'
-                   write(6,*)   
-                   write(6,*)' Keywords related to wavelets:'
-                   write(6,*) '                  -nh      N ',  &
-                        'no of grids with different spacings'
-                   write(6,*) '                  -hmin    F ',  &
-                        'minimum value for the grid spacing '
-                   write(6,*) '                  -hmax    F ',  &
-                        'maximum value for the grid spacing'
-                   write(6,*) '                  -nhpow   N ',  &
-                        'power for weighting softness samples'
-                   write(6,*) '                  -crmult  F ',  &
-                        'localization radius for scaling functions'
-                   write(6,*) '                  -frmult  F ',  &
-                        'localization radius for wavelets'
-                   write(6,*) '                  -offset  F ',  &
-                        'offset between grid and origin'
-                   write(6,*)
+                  write(6,'(a,i2)')'   Could not read the file input.dat'
+                  write(6,*)
+                  write(6,*) 'possible options (with input N/Float)'
+                  write(6,*) '                  -cy      N ',  &
+                       'number of fitting cycles (-1< N< 10000)'
+                  write(6,*) '                  -fit       ',  &
+                       'equivalent to -cy 1'
+                  write(6,*) '                  -maxiter N ',  &
+                       'number of iterations per simplex'
+                  write(6,*) '                  -ng      N ',  &
+                       'number of Gaussians'
+                  write(6,*) '                  -rij     F ',  &
+                       'max length scale of Gaussians/rloc '
+                  write(6,*) '                  -fullacc   ',  &
+                       'use max. number of gaussians'
+                  write(6,*) '                  -orth      ',  &
+                       'orthogonalisation of the projectors'
+                  write(6,*) '                  -lith      ',  &
+                       'transformation of the projectors as in lit.'
+                  write(6,*) '                  -denbas    ',  &
+                       'use dense gaussian basis    '
+                  write(6,*) '                  -mixref    ',  &
+                       'allow contradictions in AE ref data'
+                  write(6,*) '                  -info      ',  &
+                       'write gaussian coefficients of final'
+                  write(6,*) '                             ',  &
+                       'wavefunctions to gauss.par'
+                  write(6,*) '                  -plot      ',  &
+                       'plot wfs after each iteration'
+                  write(6,*) '                  -lNso      ',  &
+                       'avg nonlocal potential =0 for l=N  '
+                  write(6,*) '                            ',  &
+                       '(only for the highest projector)'
+                  write(6,*) '                  -inwidth F ',  &
+                       'initial width of the simplex'
+                  write(6,*) '                  -stuck   N ',  &
+                       'max steps to consider simplex stuck'
+                  write(6,*) '                  -cvg     F ',  &
+                       'convergence crit for simplex spread'
+                  write(6,*)   
+                  write(6,*)' Keywords related to wavelets:'
+                  write(6,*) '                  -nh      N ',  &
+                       'no of grids with different spacings'
+                  write(6,*) '                  -hmin    F ',  &
+                       'minimum value for the grid spacing '
+                  write(6,*) '                  -hmax    F ',  &
+                       'maximum value for the grid spacing'
+                  write(6,*) '                  -nhpow   N ',  &
+                       'power for weighting softness samples'
+                  write(6,*) '                  -crmult  F ',  &
+                       'localization radius for scaling functions'
+                  write(6,*) '                  -frmult  F ',  &
+                       'localization radius for wavelets'
+                  write(6,*) '                  -offset  F ',  &
+                       'offset between grid and origin'
+                  write(6,*)
+                  
+                  write(6,*) '                  -pawN       ',&
+                       ' no opt.,calculate  pawpatch projectors for',&
+                       ' the Nth configuration '
+                  write(6,*) '                  -noflpawN       ',&
+                       ' pawpatch patches for the first N Ls (defaults to 3)'
+                  write(6,*) '                  -nchannelspawN       ',&
+                       ' set number of paw projectors to N (defaults to 4)'
+                  
+                  write(6,*) '                  -pawstatomName       ',&
+                       '  file named Name will be read for initial ' , &
+                       '  wave funct. '
+                  write(6,*) '                  -pawstnN       ',&
+                       '  initial wave function has first quantum number N ' 
+                  write(6,*) '                  -pawstlL       ',&
+                       '  initial wave function has angular momentum L' 
+                  write(6,*) '                  -pawstpP       ',&
+                       '  initial wave function is multiplied by r**P' 
+                  write(6,*) '                  -pawrcovfactF     ',&
+                       'Rbox for paw is equal to rcov*pawrcovfact. Defaults to 1' 
                end if
                exit
             elseif(ierr>0)then
                write(6,'(a,i3,a)')'Line ', iline,  &
-                                  ' skipped, reading error.'
+                    ' skipped, reading error.'
                cycle
             end if
-
-
             ii=index(string,'-cy')
             if (ii.ne.0) then
                label=string(ii+3:min(ii+13,120))
                read(label,*,iostat=ierr)namoeb
                write(6,'(i4,a)') namoeb, 'fit cycles'
                if(ierr/=0)write(6,'(a,a,i3)')'Above value was set to ',   &
-               'its default due to a READING ERROR. Check line',iline
+                    'its default due to a READING ERROR. Check line',iline
             endif
             ii=index(string,'-fit')
             if (ii.ne.0) then
@@ -453,6 +484,75 @@
                'its default due to a READING ERROR. Check line',iline
             endif
 
+
+            ii=index(string,'-paw')
+            if (ii.ne.0) then
+               label=string(ii+4:min(ii+12,520))
+               read(label,*) nconfpaw
+               write(6,*)  'will calculate pawpatches for conf No ',&
+                      nconfpaw
+            endif
+            ii=index(string,'-noflpaw')
+            if (ii.ne.0) then
+               label=string(ii+8:min(ii+16,520))
+               read(label,*) npawl
+               write(6,*)  'will calculate paw patches for the',&
+               npawl, ' first Ls '
+
+            endif
+
+            ii=index(string,'-nchannelspaw')
+            if (ii.ne.0) then
+               label=string(ii+13:min(ii+21,520))
+               read(label,*)  nchannelspaw
+               write(6,*)  'will consider',&
+              nchannelspaw , ' paw channels  '
+
+            endif
+
+            ii=index(string,'-pawstatom')
+            if (ii.ne.0) then
+               pawstatom=trim(string(ii+10:min(ii+130,520)))
+               ii=index(pawstatom,' ')
+               if(ii.ne.0) then
+                  pawstatom=trim(pawstatom(:ii-1))
+               endif
+               write(6,*)  'will consider  ',&
+             trim(pawstatom) ,'file for reading the initial potential '
+            endif
+
+
+            ii=index(string,'-pawstn')
+            if (ii.ne.0) then
+               label=string(ii+7:min(ii+15,520))
+               read(label,*)  pawstN
+               write(6,*)  ' N of st. wf. is ', pawstN
+            endif
+
+            ii=index(string,'-pawstl')
+            if (ii.ne.0) then
+               label=string(ii+7:min(ii+15,520))
+               read(label,*)  pawstL
+               write(6,*)  ' L of st. wf. is ' , pawstL
+            endif
+
+            ii=index(string,'-pawstp')
+            if (ii.ne.0) then
+               label=string(ii+7:min(ii+15,520))
+               read(label,*)  pawstP
+               write(6,*)  ' initial wf radial part is ',&
+               ' multiplied by r**' , pawstP
+            endif
+
+            ii=index(string,'-pawrcovfact')
+            if (ii.ne.0) then
+               label=string(ii+12:min(ii+20,520))
+               print *, label
+               read(label,*)  pawrcovfact
+               write(6,*)  ' rbox is rcov   ',&
+               ' multiplied by ' , pawrcovfact
+            endif
+
 !           loop over input lines from input.dat ends here
        end do
        close(11)
@@ -460,6 +560,10 @@
 
 !      further output about input variables
 
+      if (nconfpaw /= -1) then
+         namoeb=0
+         write(6,*) ' fitting disactivated because paw option is active'
+      endif
 
       if (namoeb.eq.0) then
          write(6,*) 'Do one pseudopotential calculation.'
@@ -1723,6 +1827,27 @@
                  avgl1,avgl2,avgl3,ortprj,litprj,  &
                  rcore,gcore,znuc,zion)
             verbose=.true.
+
+            if (nconfpaw/=-1) then
+               call pawpatch(energ,verbose,nfit,pp(1),yp(1), &
+                             noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,&
+                             no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,&
+                             occup,aeval,chrg,dhrg,ehrg,res,wght,&
+                             wfnode,psir0,wghtp0,&
+                             rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,&
+                             vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,&
+                             avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae,&
+!                               the following lines differ from pseudo2.2
+                             iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,&
+                         wghthij,&
+                             nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,&
+                             excitAE,ntime,iter,itertot,penref,time,ngrid, &
+                              nconfpaw, npawl, nchannelspaw , ispp, pawstatom,&
+                             pawstN, pawstL  , pawstP,     pawrcovfact    )
+               
+               stop " pawpatch normal stop"
+            endif
+
             call penalty(energ,verbose,nfit,pp(1),yp(1),  &
                  noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
                  no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &

@@ -310,8 +310,9 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='preconditionall_GPU'
-  integer ::  ierr,iorb,i_stat,ncplx,i_all,inds
+  integer ::  ierr,iorb,i_stat,ncplx,i_all,inds,ikpt,jorb
   real(wp) :: scpr
+  real(gp) :: eval_zero,evalmax,cprecr
   type(GPU_pointers), intent(inout) :: GPU
   type(workarr_precond) :: w
   real(wp), dimension(:,:), allocatable :: b
@@ -330,8 +331,20 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
   gnrm=0.0_dp
   !norm of gradient of unoccupied orbitals
   gnrm_zero=0.0_dp
-
+  if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
+     if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
+        !the eval array contains all the values
+        !take the max for all k-points
+        !one may think to take the max per k-point
+        evalmax=orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+1)
+        do jorb=1,orbs%norb
+           evalmax=max(orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+jorb),evalmax)
+        enddo
+        eval_zero=evalmax
+        ikpt=orbs%iokpt(iorb)
+     end if
+
 
      do inds=1,orbs%nspinor,ncplx !the streams should be more if nspinor>1
         !the nrm2 function can be replaced here by ddot
@@ -344,7 +357,9 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
 
-        call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,0.5_wp,w,&
+        call cprecr_from_eval(lr%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)          
+
+        call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,&
              hpsi(1,inds,iorb),b(1,iorb))
 
         call sg_create_stream(tab_stream_ptr(iorb))
@@ -366,7 +381,7 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
              0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
              GPU%psi(iorb),&
              GPU%keys,GPU%r,GPU%rhopot,GPU%d,GPU%work1,GPU%work2,GPU%work3,&
-             0.5_wp,ncong,tab_stream_ptr(iorb))
+             cprecr,ncong,tab_stream_ptr(iorb))
 
      call sg_gpu_recv_mem(hpsi(1,inds,iorb),&
           GPU%psi(iorb),&

@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.6-tuto.0],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.6-tuto.1],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -49,29 +49,13 @@ AC_FC_SRCEXT(f90)
 
 AC_FC_WRAPPERS()
 AX_FC_FLUSH()
-AX_FC_F2003()
 AX_FC_DEFS()
+AX_FC_F2003()
 
-dnl Set if the module name are capitalized or not with the FC compiler.
-AC_MSG_CHECKING([for module extension for compiler '$fc_type'])
-case "$fc_type" in
-  "pathscale")
-     capitalize_module=yes
-     capitalize_module_ext="mod" ;;
-  "mipspro")
-     capitalize_module=yes
-     capitalize_module_ext="mod" ;;
-  *)
-     capitalize_module=no
-     capitalize_module_ext="mod" ;;
-esac
-AC_MSG_RESULT([$capitalize_module_ext])
-
-dnl We custom the module naming scheme depending on the compiler
-dnl and the platform.
-dnl Not done yet
-AM_CONDITIONAL(CAPITALIZE, test "$capitalize_module" = "yes")
-AC_SUBST(MODULE_EXT, $capitalize_module_ext)
+dnl Set if the module name are capitalized or not with the FC compiler. 
+AX_FC_MOD()
+AM_CONDITIONAL(CAPITALIZE, test "$ax_fc_mod_capitalize" = "yes")
+AC_SUBST(MODULE_EXT, $ax_fc_mod_ext)
 
 dnl Set the FCFLAGS and FFLAGS variable
 if test -z "$FFLAGS" ; then
@@ -193,7 +177,7 @@ ac_with_memory_limit="no"
 AC_MSG_CHECKING([for memory limit in GB])
 AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit value in GB. It stops EVERYTHING if some process passes such limit (disabled by default).]),
               ac_with_memory_limit=$withval, ac_with_memory_limit="no")
-if test "${ac_with_memory_limit/.*/}" -ge "0" 2> /dev/null ; then
+if test `echo "$ac_with_memory_limit" | sed "s/[.].*//"` -ge "0" 2> /dev/null ; then
   MEMORY_LIMIT=$ac_with_memory_limit
 else
   ac_with_memory_limit="undefined"
@@ -348,7 +332,7 @@ if test x"$ac_use_ocl" = "xyes" ; then
       ac_use_ocl="no"
     else
 dnl      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
-      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt"
+      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm"
     fi
     LIBS=$LIBS_OLD
   fi
@@ -563,46 +547,51 @@ fi # End of the if library compilation
 
 dnl Test the libXC library
 ac_internal_libxc="yes"
+ac_use_libxc="no"
+ac_build_libxc="no"
+AC_ARG_ENABLE(libxc, AS_HELP_STRING([--disable-libxc], [Do not link with libXC library (default = yes).]), ac_use_libxc=$enableval, ac_use_libxc="yes")
 AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_internal_libxc=$enableval, ac_internal_libxc="yes")
 AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path for an external libXC library, lib and module files (default = None).]),
             ac_libxc_dir=$withval, ac_libxc_dir=)
-ac_use_libxc="no"
-ac_build_libxc=$ac_internal_libxc
-if test "$ac_internal_libxc" = "yes" ; then
-  ac_build_libxc="yes"
-  ac_use_libxc="yes"
-  ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
-  AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
-  AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
-  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
-  LIBXC_LIBS="-lxc"
-else
-  if test -n "$ac_libxc_dir" ; then
-    LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
-    
-    dnl Test the given implementation of libXC.
-    ac_libxc_libname="xc"
-    AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
-    if test x"$withlibxc" = x"no" ; then
-      ac_libxc_libname="dft_xc"
-      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
-    fi
-    AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
-    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
-    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
-    if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
-      ac_use_libxc="yes"
-      AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
-      AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
-      LIBXC_LIBS="-l"$ac_libxc_libname
-    fi
+if test x"$ac_use_libxc" = x"yes" ; then
+  ac_build_libxc=$ac_internal_libxc
+  if test "$ac_internal_libxc" = "yes" ; then
+    ac_build_libxc="yes"
+    ac_use_libxc="yes"
+    ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
+    AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
+    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
+    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
+    LIBXC_LIBS="-lxc"
   else
-    LIBXC_CFLAGS="-I/usr/include"
-    PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
-    AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
+    if test -n "$ac_libxc_dir" ; then
+      LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
+      
+      dnl Test the given implementation of libXC.
+      ac_libxc_libname="xc"
+      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+      if test x"$withlibxc" = x"no" ; then
+        ac_libxc_libname="dft_xc"
+        AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+      fi
+      AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
+      AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
+      AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
+      if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
+        ac_use_libxc="yes"
+        AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
+        AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
+        LIBXC_LIBS="-l"$ac_libxc_libname
+      fi
+    else
+      LIBXC_CFLAGS="-I/usr/include"
+      PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
+      AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
+    fi
   fi
 fi
 AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
+AM_CONDITIONAL(DISABLE_LIBXC, test x"$ac_use_libxc" = x"no")
 if test x"$ac_use_libxc" = x"yes" ; then
   AC_DEFINE([HAVE_LIBXC], [1], [use libXC in BigDFT.])
 fi
@@ -677,7 +666,15 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
 fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
+dnl Test the availability of clock_gettime() and rt library.
+AC_LANG_PUSH(C)
+AC_CHECK_HEADERS([time.h])
+AC_CHECK_LIB([rt], [clock_gettime])
+AC_CHECK_FUNCS([clock_gettime])
+AC_LANG_POP(C)
+
 dnl Agregate all the optional libs.
+dnl We always add rt library. To be tested later if necessary.
 LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS $LIB_ARCHIVE_LIBS"
 
 
@@ -721,6 +718,8 @@ src/OpenCL/Makefile
 src/dgemmsy/Makefile
 src/convolutions-c/Makefile
 src/art/Makefile
+src/tools/Makefile
+src/tools/bader/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
 pseudo/Makefile
@@ -822,20 +821,16 @@ Installation paths:
 "
 
 if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" ; then
-  echo -n "Warnings:"
+  echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
-    echo -n "
-  MPI:                       disabled by tests"
+    echo "  MPI:                       disabled by tests"
   fi
   if test x"$ac_use_archive" = x"warn" ; then
-    echo -n "
-  libarchive:                disabled by tests"
+    echo "  libarchive:                disabled by tests"
   fi
   if test x"$ac_use_etsfio" = x"warn" ; then
-    echo -n "
-  ETSF_IO:                   disabled by tests"
+    echo "  ETSF_IO:                   disabled by tests"
   fi
-  echo
 fi
 
 dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
