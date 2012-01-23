@@ -354,6 +354,10 @@ real(8),dimension(:,:),allocatable:: coeff_proj
           nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_highaccuracy
           mixHist=lin%mixHist_highaccuracy
       end if
+
+      ! The self consistency cycle. Here we try to get a self consistent density/potential.
+      ! In the first nitSCCWhenOptimizing iteration, the basis functions are optimized, whereas in the remaining
+      ! iteration the basis functions are fixed.
       do itSCC=1,nitSCC
           if(itSCC>nitSCCWhenOptimizing) updatePhi=.false.
           if(itSCC==1) then
@@ -362,7 +366,7 @@ real(8),dimension(:,:),allocatable:: coeff_proj
               communicate_lphi=.false.
           end if
 
-
+          ! Update the basis functions (if updatePhi is true), diagonalize the Hamiltonian in this basis, and diagonalize it.
           if(lin%mixedmode) then
               if(.not.withder) then
                   lin%useDerivativeBasisFunctions=.false.
@@ -432,6 +436,7 @@ real(8),dimension(:,:),allocatable:: coeff_proj
                   mixdiis%is=mixdiis%is+1
                   call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, 1, pnrm)
               end if
+              ! Determine the change in the density between this iteration and the last iteration in the outer loop.
               if(pnrm<selfConsistent .or. itSCC==nitSCC) then
                   pnrm_out=0.d0
                   do i=1,Glr%d%n1i*Glr%d%n2i*n3p
@@ -458,9 +463,6 @@ real(8),dimension(:,:),allocatable:: coeff_proj
           energyold=energy
 
 
-          ! Post communications for gathering the potential
-          ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-
           ! Mix the potential
           if(trim(lin%mixingMethod)=='pot') then
               if(updatePhi) then
@@ -485,6 +487,7 @@ real(8),dimension(:,:),allocatable:: coeff_proj
                   mixdiis%is=mixdiis%is+1
                   call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, 2, pnrm)
               end if
+              ! Determine the change in the density between this iteration and the last iteration in the outer loop.
               if(pnrm<selfConsistent .or. itSCC==nitSCC) then
                   pnrm_out=0.d0
                   do i=1,Glr%d%n1i*Glr%d%n2i*n3p
@@ -501,6 +504,7 @@ real(8),dimension(:,:),allocatable:: coeff_proj
                call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
           end if
 
+          ! Post communications for gathering the potential
           ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
           call allocateCommunicationsBuffersPotential(lin%comgp, subname)
           call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
@@ -509,7 +513,7 @@ real(8),dimension(:,:),allocatable:: coeff_proj
               call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
           end if
 
-          ! Write some informations
+          ! Write some informations.
           call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, lin%mixingMethod)
           if(pnrm<selfConsistent) then
               reduceConvergenceTolerance=.true.
@@ -522,6 +526,7 @@ real(8),dimension(:,:),allocatable:: coeff_proj
       call deallocateCommunicationbufferSumrho(lin%comsr, subname)
       call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
 
+      ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
           if(trim(lin%mixingMethod)=='dens') then
               write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
@@ -533,7 +538,9 @@ real(8),dimension(:,:),allocatable:: coeff_proj
       end if
       !!if(abs(pnrm_out)<lin%convCritMixOut) exit
       energyoldout=energy
+
   end do outerLoop
+
 
   call cancelCommunicationPotential(iproc, nproc, lin%comgp)
   call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
@@ -565,10 +572,8 @@ real(8),dimension(:,:),allocatable:: coeff_proj
   ist=1
   istr=1
   do iorb=1,lin%lb%orbs%norbp
-      !ilr=lin%lb%orbs%inWhichLocregp(iorb)
       ilr=lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
       call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
-      !call daub_to_isf(lin%lzd%llr(ilr), w, lphi(ist), lphir(istr))
       call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%lb%comsr%sendBuf(istr))
       call deallocate_work_arrays_sumrho(w)
       ist = ist + lin%lzd%Llr(ilr)%wfd%nvctr_c + 7*lin%lzd%Llr(ilr)%wfd%nvctr_f
@@ -586,9 +591,6 @@ real(8),dimension(:,:),allocatable:: coeff_proj
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
        coeff, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
 
-  !call sumrholinear_auxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, phi, at, nscatterarr)
-  !call sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, Glr%d%n1i*Glr%d%n2i*n3d, &
-  !     rhopot, at, nscatterarr)
   call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
 
   call mpi_barrier(mpi_comm_world, ierr)
@@ -657,14 +659,9 @@ real(8),dimension(:,:),allocatable:: coeff_proj
   timeforce=t2force-t1force
 
 
-!  call free_lnlpspd(lin%orbs, lin%lzd)
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, lphi, coeff)
-
-  !iall=-product(shape(lin%coeffall))*kind(lin%coeffall)
-  !deallocate(lin%coeffall, stat=istat)
-  !call memocc(istat, iall, 'lin%coeffall', subname)
 
   iall=-product(shape(coeff_proj))*kind(coeff_proj)
   deallocate(coeff_proj, stat=istat)
