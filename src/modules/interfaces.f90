@@ -5622,6 +5622,24 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine AtomicOrbitals_forLinear
 
 
+       subroutine apply_orbitaldependent_potential(iproc, nproc, lin, at, input, orbs, lzd, rxyz, confpotorder, &
+                    potentialprefac, psi, centralLocreg, vpsi)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, centralLocreg, confpotorder
+         type(linearParameters),intent(in):: lin
+         type(atoms_data),intent(in):: at
+         type(input_variables),intent(in):: input
+         type(orbitals_data),intent(in):: orbs
+         type(local_zone_descriptors),intent(in):: lzd
+         real(8),dimension(3,at%nat),intent(in):: rxyz
+         real(8),dimension(at%ntypes),intent(in):: potentialprefac
+         real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
+         real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: vpsi
+       end subroutine apply_orbitaldependent_potential
+
+
    end interface
 
 END MODULE module_interfaces
