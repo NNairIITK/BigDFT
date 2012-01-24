@@ -789,7 +789,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   integer :: ierr,ilr
-  real(gp), dimension(9) :: sab
+  real(gp), dimension(6) :: sab
 
   call to_zero(6,strten(1)) 
 
@@ -801,7 +801,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 
   !  allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  allocate(scalprod(2,0:12,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
+  allocate(scalprod(2,0:9,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
   call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
 
@@ -866,7 +866,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
            jseg_c=1
            jseg_f=1
 
-           do idir=0,12
+           do idir=0,9
 !!$           mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
 !!$           mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
 !!$           jseg_c=nlpspd%nseg_p(2*iat-2)+1
@@ -925,7 +925,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 
   else
      !calculate all the scalar products for each direction and each orbitals
-     do idir=0,12
+     do idir=0,9
 
         if (idir /= 0) then !for the first run the projectors are already allocated
            call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
@@ -1040,7 +1040,7 @@ sab=0.0_gp
 
 Enl=Enl+sp0*sp0*at%psppar(l,i,ityp)*&
 orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                            do idir=4,12 !for stress
+                            do idir=4,9 !for stress
 strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
 sab(idir-3)=&
 sab(idir-3)+&   
@@ -1080,7 +1080,7 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
 
 Enl=Enl+2.0_gp*sp0i*sp0j*hij&
 *orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                  do idir=4,12
+                                  do idir=4,9
 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
 spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
 sab(idir-3)=&
@@ -1103,15 +1103,11 @@ sab(idir-3)+&
 
 !seq: strten(1:6) =  11 22 33 23 13 12 
 strten(1)=strten(1)+sab(1)/vol 
-strten(2)=strten(2)+sab(5)/vol 
-strten(3)=strten(3)+sab(9)/vol 
-! symmetrize tensor ( 12 -> (12+21)/2 )
-!strten(4)=strten(4)+(sab(2)+sab(4))/2._gp/vol
-!strten(5)=strten(5)+(sab(6)+sab(8))/2._gp/vol
-!strten(6)=strten(6)+(sab(3)+sab(7))/2._gp/vol
-strten(6)=strten(6)+sab(2)/vol
-strten(5)=strten(5)+sab(3)/vol
-strten(4)=strten(4)+sab(6)/vol
+strten(2)=strten(2)+sab(2)/vol 
+strten(3)=strten(3)+sab(3)/vol 
+strten(4)=strten(4)+sab(5)/vol
+strten(5)=strten(5)+sab(6)/vol
+strten(6)=strten(6)+sab(4)/vol
         do iat=1,at%nat
            fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
            fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)

@@ -1412,9 +1412,9 @@ do isp=1,nsp
         wbstress(1) = wbstress(1)+gradient(i1,i2,i3,isp,1)*f_i(i1,i2,i3,1,isp)
         wbstress(2) = wbstress(2)+gradient(i1,i2,i3,isp,2)*f_i(i1,i2,i3,2,isp)
         wbstress(3) = wbstress(3)+gradient(i1,i2,i3,isp,3)*f_i(i1,i2,i3,3,isp)
-        wbstress(4) = wbstress(4)+gradient(i1,i2,i3,isp,1)*f_i(i1,i2,i3,2,isp)
+        wbstress(6) = wbstress(6)+gradient(i1,i2,i3,isp,1)*f_i(i1,i2,i3,2,isp)
         wbstress(5) = wbstress(5)+gradient(i1,i2,i3,isp,1)*f_i(i1,i2,i3,3,isp)
-        wbstress(6) = wbstress(6)+gradient(i1,i2,i3,isp,2)*f_i(i1,i2,i3,3,isp)
+        wbstress(4) = wbstress(4)+gradient(i1,i2,i3,isp,2)*f_i(i1,i2,i3,3,isp)
 
                  end do
               end do
