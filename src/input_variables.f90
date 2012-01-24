@@ -896,7 +896,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
       call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
       call input_var(lt,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
       if(ios/=0) then
-          ! The parameters where not specified for all atom types.
+          ! The parameters were not specified for all atom types.
           if(iproc==0) then
               write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
                        & for the following atom types:"
