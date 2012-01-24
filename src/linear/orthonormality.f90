@@ -1214,9 +1214,6 @@ subroutine extractOrbital3(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, ph
      iiprocold=iiproc
 
   end do
-!!do i=1,nsendBuf
-!!     write(1000+iproc,*) i, sendbuf(i)
-!!end do
 
   if(indovrlp/=nsendBuf+1) then
      write(*,'(1x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=nsendBuf+1', indovrlp, nsendBuf+1
@@ -1631,7 +1628,7 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
   ! Local variables
   integer:: iorb, jorb, iiorb, jjorb, jjproc, ii, ist, jst, jjlr, ncount, ierr, jj, korb, kkorb, iilr, iiproc, istat, iall
   real(8):: ddot, tt, ttmax
-  real(8),dimension(:),allocatable:: ovrlpCompressed, ovrlpCompressed2
+  real(8),dimension(:),allocatable:: ovrlpCompressed_send, ovrlpCompressed_receive
   character(len=*),parameter:: subname='calculateOverlapMatrix3'
   integer,dimension(:),allocatable:: sendcounts, displs
 
@@ -1642,68 +1639,38 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
      iiorb=orbs%isorb+iorb
      do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
-!!! Starting index of orbital iorb, already transformed to overlap region with jjorb.
-!!! We have to find the first orbital on the same MPI and in the same locreg as jjorb.
-        !!jjlr=onWhichAtom(jjorb)
-        !!jjproc=orbs%onWhichMPI(jjorb)
-        !!jj=orbs%isorb_par(jjproc)+1
-        !!do
-        !!    if(onWhichAtom(jj)==jjlr) exit
-        !!    jj=jj+1
-        !!end do
-        !!ist=op%indexInSendBuf(iorb,jj)
-!!! Starting index of orbital jjorb.
-!!! We have to find the first orbital on the same MPI and in the same locreg as iiorb.
-        !!iilr=onWhichAtom(iiorb)
-        !!iiproc=orbs%onWhichMPI(iiorb)
-        !!do korb=1,orbs%norbp
-        !!    kkorb=orbs%isorb_par(iiproc)+korb
-        !!    if(onWhichAtom(kkorb)==iilr) then
-        !!        ii=korb
-        !!        exit
-        !!    end if
-        !!end do
-        !!jst=op%indexInRecvBuf(ii,jjorb)
         call getStartingIndices(iorb, jorb, op, orbs, ist, jst)
-        !write(*,'(5(a,i0))') 'process ',iproc,' calculates overlap of ',iiorb,' and ',jjorb,'. ist=',ist,' jst=',jst 
-        !ncount=op%olr(jorb,iiorb)%wfd%nvctr_c+7*op%olr(jorb,iiorb)%wfd%nvctr_f
         ncount=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
-        !write(*,'(a,4i8)') 'iproc, iiorb, jjorb, ncount', iproc, iiorb, jjorb, ncount
-        !ovrlp(iiorb,jjorb)=ddot(ncount, comon%sendBuf(ist), 1, comon%recvBuf(jst), 1)
-        !ovrlp(iiorb,jjorb)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
         ovrlp(jjorb,iiorb)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
      end do
   end do
 
 
-  allocate(ovrlpCompressed(mad%nvctr), stat=istat)
-  call memocc(istat, ovrlpCompressed, 'ovrlpCompressed', subname)
+  allocate(ovrlpCompressed_send(mad%nvctr), stat=istat)
+  call memocc(istat, ovrlpCompressed_send, 'ovrlpCompressed_send', subname)
 
-  !call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
   allocate(sendcounts(0:nproc-1), stat=istat)
   call memocc(istat, sendcounts, 'sendcounts', subname)
   allocate(displs(0:nproc-1), stat=istat)
   call memocc(istat, displs, 'displs', subname)
-  call compressMatrix2(iproc, nproc, orbs, mad, ovrlp, ovrlpCompressed, sendcounts, displs)
-  !call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
-  allocate(ovrlpCompressed2(mad%nvctr), stat=istat)
-  call memocc(istat, ovrlpCompressed2, 'ovrlpCompressed2', subname)
+  call compressMatrix2(iproc, nproc, orbs, mad, ovrlp, ovrlpCompressed_send, sendcounts, displs)
+  allocate(ovrlpCompressed_receive(mad%nvctr), stat=istat)
+  call memocc(istat, ovrlpCompressed_receive, 'ovrlpCompressed_receive', subname)
   if (nproc >1) then
-     call mpi_allgatherv(ovrlpCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed2(1), &
+     call mpi_allgatherv(ovrlpCompressed_send(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed_receive(1), &
           sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
   else
-     call vcopy(sendcounts(iproc),ovrlpCompressed(displs(iproc)+1),1,ovrlpCompressed2(1+displs(iproc)),1)
+     call vcopy(sendcounts(iproc),ovrlpCompressed_send(displs(iproc)+1),1,ovrlpCompressed_receive(1+displs(iproc)),1)
   end if
 
-  !call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
-  call uncompressMatrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
+  call uncompressMatrix(orbs%norb, mad, ovrlpCompressed_receive, ovrlp)
 
-  iall=-product(shape(ovrlpCompressed))*kind(ovrlpCompressed)
-  deallocate(ovrlpCompressed, stat=istat)
-  call memocc(istat, iall, 'ovrlpCompressed', subname)
-  iall=-product(shape(ovrlpCompressed2))*kind(ovrlpCompressed2)
-  deallocate(ovrlpCompressed2, stat=istat)
-  call memocc(istat, iall, 'ovrlpCompressed2', subname)
+  iall=-product(shape(ovrlpCompressed_send))*kind(ovrlpCompressed_send)
+  deallocate(ovrlpCompressed_send, stat=istat)
+  call memocc(istat, iall, 'ovrlpCompressed_send', subname)
+  iall=-product(shape(ovrlpCompressed_receive))*kind(ovrlpCompressed_receive)
+  deallocate(ovrlpCompressed_receive, stat=istat)
+  call memocc(istat, iall, 'ovrlpCompressed_receive', subname)
   iall=-product(shape(sendcounts))*kind(sendcounts)
   deallocate(sendcounts, stat=istat)
   call memocc(istat, iall, 'sendcounts', subname)
@@ -1721,7 +1688,6 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
   !if(iproc==0) write(*,*) 'in calculateOverlapMatrix3: max dev from symmetry:', ttmax
 
 
-  !!call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 
 end subroutine calculateOverlapMatrix3
 
@@ -1898,25 +1864,18 @@ subroutine expandOrbital2(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon
         do i=m,ldim-1,7
                 ii=jst+i
                 indDest=ind+op%indexExpand(ii+0)-1
-                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+0)
                 indDest=ind+op%indexExpand(ii+1)-1
-                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+1)
                 indDest=ind+op%indexExpand(ii+2)-1
-                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+2)
                 indDest=ind+op%indexExpand(ii+3)-1
-                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+3)
                 indDest=ind+op%indexExpand(ii+4)-1
-                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+4)
                 indDest=ind+op%indexExpand(ii+5)-1
-                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+5)
                 indDest=ind+op%indexExpand(ii+6)-1
-                !if(iproc==0) write(333,*) indDest
                 lphiovrlp(indDest)=comon%recvBuf(ii+6)
         end do
         ind=ind+gdim

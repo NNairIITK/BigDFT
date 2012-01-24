@@ -116,10 +116,6 @@ real(8),dimension(:,:),allocatable:: coeff_proj
 
 
 
-
-
-
-
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
       write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
@@ -457,6 +453,7 @@ real(8),dimension(:,:),allocatable:: coeff_proj
           call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, &
               rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
               coeff, ehart, eexcu, vexcu)
+
           ! Calculate the total energy.
           energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
           energyDiff=energy-energyold
@@ -487,7 +484,9 @@ real(8),dimension(:,:),allocatable:: coeff_proj
                   mixdiis%is=mixdiis%is+1
                   call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, 2, pnrm)
               end if
-              ! Determine the change in the density between this iteration and the last iteration in the outer loop.
+
+              ! Determine the change in the density between this iteration and the last iteration 
+              ! of the previous iteration in the outer loop.
               if(pnrm<selfConsistent .or. itSCC==nitSCC) then
                   pnrm_out=0.d0
                   do i=1,Glr%d%n1i*Glr%d%n2i*n3p

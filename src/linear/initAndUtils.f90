@@ -60,7 +60,6 @@ call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 ! Number of localization regions.
 lin%nlr=at%nat
 lin%lzd%nlr=at%nat
-!lin%lb%lzd%nlr=at%nat
 
 ! Allocate the basic arrays that are needed for reading the input parameters.
 call allocateBasicArrays(at, lin)
@@ -78,10 +77,6 @@ do iat=1,at%nat
     norbsPerAtom(iat)=lin%norbsPerType(ityp)
     norb=norb+norbsPerAtom(iat)
 end do
-!!write(*,'(a,2i9)') 'iproc, norb',iproc, norb
-!!! ATTENTION: DEBUG
-!norb=31
-!!!!!!!!!!!!!!!!!!!
 
 ! Distribute the basis functions among the processors.
 norbu=norb
@@ -144,9 +139,6 @@ if(iproc==0) call print_orbital_distribution(iproc, nproc, lin)
 call checkLinearParameters(iproc, nproc, lin)
 
 
-!!! Allocate (almost) all remaining arrays.
-!!call allocateLinArrays(lin)
-
 ! Decide which orbital is centered on which atom, again for the 'normal' and
 ! the 'large' basis.
 
@@ -161,10 +153,8 @@ iall=-product(shape(lin%lb%orbs%inWhichLocreg))*kind(lin%lb%orbs%inWhichLocreg)
 deallocate(lin%lb%orbs%inWhichLocreg, stat=istat)
 call memocc(istat, iall, 'lin%lb%orbs%inWhichLocreg', subname)
 
-!call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%orbs)
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
-!call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%lzd%orbs)
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%lb%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
@@ -173,14 +163,11 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 ! Initialize the localization regions.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
 t1=mpi_wtime()
-!call initLocregs(iproc, at%nat, rxyz, lin, input, Glr)
 call initLocregs(iproc, nproc, at%nat, rxyz, lin%lzd, lin%orbs, input, Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
 
 ! Copy Glr to lin%lzd
 call nullify_locreg_descriptors(lin%lzd%Glr)
 call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
-!call nullify_locreg_descriptors(lin%lb%lzd%Glr)
-!call copy_locreg_descriptors(Glr, lin%lb%lzd%Glr, subname)
 
 
 ! Initialize collective communications
@@ -191,27 +178,6 @@ allocate(lphi(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)), stat=ista
 call memocc(istat, lphi, 'lphi', subname)
 
 
-
-
-!!! TEST #################################################################################
-!!call random_number(lphi)
-!!do iall=1,lin%orbs%npsidim
-!!    write(1000+iproc,*) lphi(iall)
-!!end do
-!!!call switch_waves_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, phi)
-!!call transpose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, &
-!!           phi) !optional
-!!do iall=1,lin%orbs%npsidim
-!!    write(1100+iproc,*) phi(iall)
-!!end do
-!!call untranspose_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, lphi, mpi_comm_world, &
-!!           phi) !optional
-!!!call unswitch_waves_linear(iproc, 0, nproc-1, lin%orbs, lin%collComms, phi, lphi)
-!!do iall=1,lin%orbs%npsidim
-!!    write(1200+iproc,*) lphi(iall)
-!!end do
-!!! END TEST #############################################################################
-
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 npsidim = 0
@@ -219,9 +185,7 @@ do iorb=1,lin%orbs%norbp
  ilr=lin%orbs%inwhichlocreg(iorb+lin%orbs%isorb)
  npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
 end do
-!lin%lzd%Lpsidimtot = max(npsidim,1)
 lin%orbs%npsidim_orbs=max(npsidim,1)
-!lin%lzd%Lpsidimtot = lin%orbs%npsidim
 
 ! The same for the lb type, i.e. with the derivatives.
 npsidim = 0
@@ -229,8 +193,6 @@ do iorb=1,lin%lb%orbs%norbp
  ilr=lin%lb%orbs%inwhichlocreg(iorb+lin%lb%orbs%isorb)
  npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
 end do
-!lin%lzd%Lpsidimtot_der = max(npsidim,1)
-!lin%lzd%Lpsidimtot_der = lin%lb%orbs%npsidim
 lin%lb%orbs%npsidim_orbs=max(npsidim,1)
 
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
@@ -252,14 +214,7 @@ call initializeCommsSumrho(iproc, nproc, nscatterarr, lin%lzd, lin%orbs, tag, li
 call initializeCommsSumrho(iproc, nproc, nscatterarr, lin%lzd, lin%lb%orbs, tag, lin%lb%comsr)
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
-!call allocateCommunicationbufferSumrho(lin%comsr, subname)
 
-
-! Copy nlpspd to lin%lzd
-!call nullify_nonlocal_psp_descriptors(lin%lzd%Gnlpspd)
-!call copy_nonlocal_psp_descriptors(nlpspd, lin%lzd%Gnlpspd, subname)
-!call nullify_nonlocal_psp_descriptors(lin%lb%lzd%Gnlpspd)
-!call copy_nonlocal_psp_descriptors(nlpspd, lin%lb%lzd%Gnlpspd, subname)
 
 ! Set localnorb
 do ilr=1,lin%lzd%nlr
@@ -287,8 +242,6 @@ end do
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications potential... '
 t1=mpi_wtime()
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%orbs%inWhichLocreg, tag)
-!call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp, &
-!     lin%lb%lzd%orbs%inWhichLocreg, tag)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lzd, lin%lb%comgp, &
      lin%lb%orbs%inWhichLocreg, tag)
 t2=mpi_wtime()
@@ -305,25 +258,13 @@ t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 ! Initialize the parameters for the repartitioning of the orbitals.
-!!if(lin%useDerivativeBasisFunctions) write(*,*) 'initializing RepartitionOrbitals'
 if(lin%useDerivativeBasisFunctions) &
      call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
-!!write(*,*) 'FIRST: associated(lin%lb%comrp%communComplete)', associated(lin%lb%comrp%communComplete)
 
 ! Restart array for the basis functions (only needed if we use the derivative basis functions).
 allocate(lin%lphiRestart(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
 call memocc(istat, lin%lphiRestart, 'lin%lphiRestart', subname)
-!!!allocate(lin%lphiold(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
-!!!call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
 
-!!! hamold stores the Hamiltonian matrix of the previous iterations.
-!!allocate(lin%hamold(lin%orbs%norb,lin%orbs%norb), stat=istat)
-!!call memocc(istat, lin%hamold, 'lin%hamold', subname)
-
-
-!! Stores the Hamiltonian in the basis of the localized orbitals
-!allocate(lin%hamold(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
-!call memocc(istat, lin%hamold, 'lin%hamold', subname)
 
 ! Deallocate all local arrays.
 iall=-product(shape(atomNames))*kind(atomNames)
@@ -372,10 +313,6 @@ do iorb=1,lin%orbs%norbp
 end do
 allocate(lin%lzd%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
 call memocc(istat, lin%lzd%cutoffweight, 'lin%lzd%cutoffweight', subname)
-!!call allocateCommuncationBuffersOrtho(lin%comon, subname)
-!!call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, lin%comon, lphi, lphi, lin%mad, lin%lzd%cutoffweight)
-!!call deallocateCommuncationBuffersOrtho(lin%comon, subname)
-!!call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%orbs, lin%comon, lin%op, lphi, lin%mad, lin%lzd%cutoffweight)
 
 call allocateSendBufferOrtho(lin%comon, subname)
 call allocateRecvBufferOrtho(lin%comon, subname)
@@ -415,13 +352,6 @@ call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdGauss%cutoffwei
 
 
 
-!!if(iproc==0) then
-!!    do iall=1,lin%mad%nsegmatmul
-!!        write(*,'(a,4i8)') 'iall, lin%mad%keyvmatmul(iall), lin%mad%keygmatmul(1,iall), lin%mad%keygmatmul(2,iall)', iall, lin%mad%keyvmatmul(iall), lin%mad%keygmatmul(1,iall), lin%mad%keygmatmul(2,iall)
-!!    end do
-!!end if
-
-
 !!! Plot basis functions grid
 !!do iorb=1,lin%orbs%norbp
 !!    iiorb=lin%orbs%isorb+iorb
@@ -436,312 +366,312 @@ end subroutine allocateAndInitializeLinear
 
 
 
-subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
-  use module_base
-  use module_types
-  implicit none
-  
-  integer,intent(in):: iproc, nproc
-  character(len=*), intent(in) :: filename
-  type(linearParameters):: lin
-  type(atoms_data),intent(inout):: at
-  character(len=20),dimension(at%ntypes):: atomNames
-  !integer,dimension(at%ntypes):: norbsPerType
-  
-  ! Local variables
-  integer:: istat, itype, jtype, ierr, iall, iat, npt, ios
-  logical:: fileExists, found
-  character(len=*),parameter:: subname='readLinearParameters'
-  character(len=20):: atomname
-  real(8):: ppl, pph, lt
-  real(8),dimension(:),allocatable:: locradType
-  logical,dimension(at%ntypes):: parametersSpecified
-  
-  allocate(locradType(at%ntypes), stat=istat)
-  call memocc(istat, locradType, 'locradType', subname)
-
-  ! Open the input file and read in the parameters.
-  inquire(file=trim(filename), exist=fileExists)
-  if(.not. fileExists) then
-      if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: the file '",trim(filename),"' must be present for the linear &
-          & scaling version!"
-      call mpi_barrier(mpi_comm_world, ierr)
-      stop
-  end if
-  open(unit=99, file=trim(filename))
-  read(99,*) lin%nit_lowaccuracy, lin%nit_highaccuracy
-  read(99,*) lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy
-  !read(99,*) lin%nItBasisFirst, lin%nItBasis, lin%fixBasis
-  read(99,*) lin%nItInnerLoop, lin%convCrit
-  read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
-  read(99,*) lin%nItPrecond
-  read(99,*) lin%locregShape
-  read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
-  read(99,*) lin%nproc_pdsyev, lin%nproc_pdgemm
-  read(99,*) lin%methTransformOverlap, lin%nItOrtho
-  read(99,*) lin%correctionOrthoconstraint
-  !read(99,*) lin%nItCoeff, lin%convCritCoeff
-  read(99,*) lin%mixingMethod
-  read(99,*) lin%mixHist_lowaccuracy, lin%nItSCCWhenOptimizing_lowaccuracy, lin%nItSCCWhenFixed_lowaccuracy
-  read(99,*) lin%mixHist_highaccuracy, lin%nItSCCWhenOptimizing_highaccuracy, lin%nItSCCWhenFixed_highaccuracy
-  read(99,*) lin%alphaMixWhenOptimizing_lowaccuracy, lin%alphaMixWhenFixed_lowaccuracy, lin%convCritMix
-  read(99,*) lin%alphaMixWhenOptimizing_highaccuracy, lin%alphaMixWhenFixed_highaccuracy
-  read(99,*) lin%lowaccuray_converged
-  read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
-  read(99,*) lin%nItInguess, lin%memoryForCommunOverlapIG
-  read(99,*) lin%plotBasisFunctions
-  read(99,*) lin%transformToGlobal
-  read(99,*) lin%norbsPerProcIG
-  read(99,*) lin%mixedmode
-  !read(99,*) lin%sumrho_fast
-
-
-  ! Now read in the parameters specific for each atom type.
-  parametersSpecified=.false.
-  do itype=1,at%ntypes
-      read(99,*,iostat=ios) atomname, npt, ppl, pph, lt
-      if(ios/=0) then
-          ! The parameters were not specified for all atom types.
-          if(iproc==0) then
-              write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
-                       & for the following atom types:"
-              do jtype=1,at%ntypes
-                  if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(at%atomnames(jtype))
-              end do
-          end if
-          call mpi_barrier(mpi_comm_world, ierr)
-          stop
-      end if
-      ! The reading was succesful. Check whether this atom type is actually present.
-      found=.false.
-      do jtype=1,at%ntypes
-          if(trim(atomname)==trim(at%atomnames(jtype))) then
-              found=.true.
-              parametersSpecified(jtype)=.true.
-              atomNames(jtype)=atomname
-              lin%norbsPerType(jtype)=npt
-              lin%potentialPrefac_lowaccuracy(jtype)=ppl
-              lin%potentialPrefac_highaccuracy(jtype)=pph
-              locradType(jtype)=lt
-              at%rloc(jtype,:)=locradType(jtype)
-          end if
-      end do
-      if(.not.found) then
-          if(iproc==0) write(*,'(1x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
-                     "', which is not present in the file containing the atomic coordinates."
-          call mpi_barrier(mpi_comm_world, ierr)
-          stop
-      end if
-  end do
-  close(unit=99)
-
-  ! Initialize lin%potentialPrefac to some value (will be adjusted later)
-  lin%potentialPrefac=-1.d0
-
-  ! Assign the localization radius to each atom.
-  do iat=1,at%nat
-      itype=at%iatype(iat)
-      lin%locrad(iat)=locradType(itype)
-  end do
-  
-  iall=-product(shape(locradType))*kind(locradType)
-  deallocate(locradType, stat=istat)
-  call memocc(istat, iall, 'locradType', subname)
-
-end subroutine readLinearParameters
-
-
+!!subroutine readLinearParameters(iproc, nproc,filename, lin, at, atomNames)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!  
+!!  integer,intent(in):: iproc, nproc
+!!  character(len=*), intent(in) :: filename
+!!  type(linearParameters):: lin
+!!  type(atoms_data),intent(inout):: at
+!!  character(len=20),dimension(at%ntypes):: atomNames
+!!  !integer,dimension(at%ntypes):: norbsPerType
+!!  
+!!  ! Local variables
+!!  integer:: istat, itype, jtype, ierr, iall, iat, npt, ios
+!!  logical:: fileExists, found
+!!  character(len=*),parameter:: subname='readLinearParameters'
+!!  character(len=20):: atomname
+!!  real(8):: ppl, pph, lt
+!!  real(8),dimension(:),allocatable:: locradType
+!!  logical,dimension(at%ntypes):: parametersSpecified
+!!  
+!!  allocate(locradType(at%ntypes), stat=istat)
+!!  call memocc(istat, locradType, 'locradType', subname)
+!!
+!!  ! Open the input file and read in the parameters.
+!!  inquire(file=trim(filename), exist=fileExists)
+!!  if(.not. fileExists) then
+!!      if(iproc==0) write(*,'(1x,a,a,a)') "ERROR: the file '",trim(filename),"' must be present for the linear &
+!!          & scaling version!"
+!!      call mpi_barrier(mpi_comm_world, ierr)
+!!      stop
+!!  end if
+!!  open(unit=99, file=trim(filename))
+!!  read(99,*) lin%nit_lowaccuracy, lin%nit_highaccuracy
+!!  read(99,*) lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy
+!!  !read(99,*) lin%nItBasisFirst, lin%nItBasis, lin%fixBasis
+!!  read(99,*) lin%nItInnerLoop, lin%convCrit
+!!  read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
+!!  read(99,*) lin%nItPrecond
+!!  read(99,*) lin%locregShape
+!!  read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
+!!  read(99,*) lin%nproc_pdsyev, lin%nproc_pdgemm
+!!  read(99,*) lin%methTransformOverlap, lin%nItOrtho
+!!  read(99,*) lin%correctionOrthoconstraint
+!!  !read(99,*) lin%nItCoeff, lin%convCritCoeff
+!!  read(99,*) lin%mixingMethod
+!!  read(99,*) lin%mixHist_lowaccuracy, lin%nItSCCWhenOptimizing_lowaccuracy, lin%nItSCCWhenFixed_lowaccuracy
+!!  read(99,*) lin%mixHist_highaccuracy, lin%nItSCCWhenOptimizing_highaccuracy, lin%nItSCCWhenFixed_highaccuracy
+!!  read(99,*) lin%alphaMixWhenOptimizing_lowaccuracy, lin%alphaMixWhenFixed_lowaccuracy, lin%convCritMix
+!!  read(99,*) lin%alphaMixWhenOptimizing_highaccuracy, lin%alphaMixWhenFixed_highaccuracy
+!!  read(99,*) lin%lowaccuray_converged
+!!  read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
+!!  read(99,*) lin%nItInguess, lin%memoryForCommunOverlapIG
+!!  read(99,*) lin%plotBasisFunctions
+!!  read(99,*) lin%transformToGlobal
+!!  read(99,*) lin%norbsPerProcIG
+!!  read(99,*) lin%mixedmode
+!!  !read(99,*) lin%sumrho_fast
+!!
+!!
+!!  ! Now read in the parameters specific for each atom type.
+!!  parametersSpecified=.false.
+!!  do itype=1,at%ntypes
+!!      read(99,*,iostat=ios) atomname, npt, ppl, pph, lt
+!!      if(ios/=0) then
+!!          ! The parameters were not specified for all atom types.
+!!          if(iproc==0) then
+!!              write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
+!!                       & for the following atom types:"
+!!              do jtype=1,at%ntypes
+!!                  if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(at%atomnames(jtype))
+!!              end do
+!!          end if
+!!          call mpi_barrier(mpi_comm_world, ierr)
+!!          stop
+!!      end if
+!!      ! The reading was succesful. Check whether this atom type is actually present.
+!!      found=.false.
+!!      do jtype=1,at%ntypes
+!!          if(trim(atomname)==trim(at%atomnames(jtype))) then
+!!              found=.true.
+!!              parametersSpecified(jtype)=.true.
+!!              atomNames(jtype)=atomname
+!!              lin%norbsPerType(jtype)=npt
+!!              lin%potentialPrefac_lowaccuracy(jtype)=ppl
+!!              lin%potentialPrefac_highaccuracy(jtype)=pph
+!!              locradType(jtype)=lt
+!!              at%rloc(jtype,:)=locradType(jtype)
+!!          end if
+!!      end do
+!!      if(.not.found) then
+!!          if(iproc==0) write(*,'(1x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
+!!                     "', which is not present in the file containing the atomic coordinates."
+!!          call mpi_barrier(mpi_comm_world, ierr)
+!!          stop
+!!      end if
+!!  end do
+!!  close(unit=99)
+!!
+!!  ! Initialize lin%potentialPrefac to some value (will be adjusted later)
+!!  lin%potentialPrefac=-1.d0
+!!
+!!  ! Assign the localization radius to each atom.
+!!  do iat=1,at%nat
+!!      itype=at%iatype(iat)
+!!      lin%locrad(iat)=locradType(itype)
+!!  end do
+!!  
+!!  iall=-product(shape(locradType))*kind(locradType)
+!!  deallocate(locradType, stat=istat)
+!!  call memocc(istat, iall, 'locradType', subname)
+!!
+!!end subroutine readLinearParameters
 
 
-subroutine writeLinearParameters(iproc, nproc, at, lin, atomNames, norbsPerType)
-!
-! Purpose:
-! ========
-!   Write all parameters concerning the linear scaling version to the screen.
-!
-! Calling arguments:
-! ==================
-use module_base
-use module_types
-implicit none
-
-integer,intent(in):: iproc, nproc
-type(atoms_data),intent(in):: at
-type(linearParameters),intent(in):: lin
-character(len=20),dimension(at%ntypes),intent(in):: atomNames
-integer,dimension(at%ntypes),intent(in):: norbsPerType
-
-! Local variables
-integer:: itype, jproc, len1, len2, space1, space2, optimalLength
-logical:: written
-character(len=8):: message1
-character(len=14):: message2
-character(len=2):: hist
 
 
-write(*,'(1x,a)') '################################# Input parameters #################################'
-write(*,'(1x,a)') '>>>> General parameters.'
-write(*,'(4x,a)') '|           |    number of    |     prefactor for     | localization |'
-write(*,'(4x,a)') '| atom type | basis functions | confinement potential |    radius    |'
-do itype=1,at%ntypes
-    write(*,'(4x,a,4x,a,a,a,a,i0,7x,a,7x,es10.2,6x,a,3x,f8.4,3x,a)') '| ', trim(atomNames(itype)), &
-        repeat(' ', 6-len_trim(atomNames(itype))), '|', repeat(' ', 10-ceiling(log10(dble(norbsPerType(itype)+1)+1.d-10))), &
-         norbsPerType(itype), '|', lin%potentialPrefac(itype), ' |', lin%locrad(itype), '|'
-end do
-close(unit=99)
-write(*,'(4x,a)') '----------------------------------------------------------------------'
-write(*,'(4x,a)') '| mixing | mixing | iterations in |   alpha mix   | convergence crit. |  iterations   | &
-& factor for  |  minimal  |  pot diff to   |'
-write(*,'(4x,a)') '| scheme | method |  in SC cycle  | optim / fixed |    for mixing     | in outer loop | &
-&fixing basis | fix basis | exit outer SCC |'
-if(lin%mixHist_lowaccuracy==0) then
-    message1=' linear '
-else
-    write(hist,'(i2)') lin%mixHist_lowaccuracy
-    message1=' DIIS'//hist//' '
-end if
-write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es9.2,a,es9.2,a,es9.2,a)') '| ', &
-     lin%mixingMethod, '  |', message1, ' | ', repeat(' ', optimalLength(4, lin%nItSCCWhenOptimizing)), &
-     lin%nItSCCWhenOptimizing, '   /', repeat(' ', optimalLength(3, lin%nItSCCWhenFixed)), lin%nItSCCWhenFixed, &
-     '   |', lin%alphaMixWhenOptimizing_lowaccuracy, ' /', lin%alphaMixWhenOptimizing_highaccuracy, ' |    ',&
-     lin%convCritMix, ' |', repeat(' ', optimalLength(9, 1)), &
-     1, '      |   ', -1.d0, '   | ', -1.d0, ' |   ',&
-     -1.d0, '    |'
-write(*,'(4x,a)') '-----------------------------------------------------------------------------------------&
-&-------------------------------------------'
-write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  | transform |'
-write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  | orthoconstraint | to global |'
-if(lin%correctionOrthoconstraint==0) then
-    message1='  yes   '
-else if(lin%correctionOrthoconstraint==1) then
-    message1='  no    '
-end if
-write(*,'(4x,a,8x,l2,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a,5x,a,4x,a,5x,l2,4x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
-     lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
-     lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|', &
-     message1, '|', lin%transformToGlobal, '|'
-write(*,'(4x,a)') '----------------------------------------------------------------------'
-write(*,'(1x,a)') '>>>> Parameters for the optimization of the basis functions.'
-write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |     stop     |'
-write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis | optimization |'
-write(*,'(4x,a)') '|  first   else  |             |                |           |       |              |'
-!!if(trim(lin%getCoeff)=='diag') then
-!!    !if(trim(lin%diagMethod)=='seq') then
-!!    !    message1='diag seq'
-!!    !else if(trim(lin%diagMethod)=='par') then
-!!    !    message1='diag par'
-!!    !end if
-!!    message1='  diag  '
-!!else if(trim(lin%getCoeff)=='min') then
-!!    message1='   min  '
-!!end if
-write(*,'(4x,a,a,i0,3x,a,i0,2x,a,1x,es9.3,1x,a,a,i0,a,a,a,l2,a,2x,es10.3,2x,a)') '| ', &
-    repeat(' ', 5-ceiling(log10(dble(0)+1.d-10))), -1, &
-    repeat(' ', 5-ceiling(log10(dble(0)+1.d-10))), -1, &
-      '| ', lin%convCrit, ' | ', &
-      repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       | ' , &
-      ' ... ', '  |  ', &
-      lin%plotBasisFunctions, '   |', -1.d0, '|'
-write(*,'(4x,a)') '---------------------------------------------------------------------'
-write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |'
-write(*,'(4x,a)') '|  min   max   |            |          | with SD |            | nit max   conv crit | of overlap mat |'
-if(lin%methTransformOverlap==0) then
-    message2='    exact     '
-else if(lin%methTransformOverlap==1) then
-    message2='taylor appr. 1'
-else if(lin%methTransformOverlap==2) then
-    message2='taylor appr. 2'
-else if(lin%methTransformOverlap==3) then
-    message2='taylor appr. 3'
-end if
-write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,1x,es8.2,1x,a,l3,a,1x,es10.3,a,a,i0,7x,es8.1,2x,a,1x,a,1x,a)') '|', &
-    repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
-    repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
-    lin%alphaDIIS, '|', lin%alphaSD, '|   ', .false., '    |', -1.d0, ' |', &
-    repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, -1.d0, '|', message2, '|'
-write(*,'(4x,a)') '------------------------------------------------------------------------------------------------------'
-write(*,'(1x,a)') '>>>> Parameters for the optimization of the coefficients.'
-write(*,'(4x,a)') '| maximal number | convergence |'
-write(*,'(4x,a)') '|  of iterations |  criterion  |'
-write(*,'(4x,a,a,i0,5x,a,1x,es9.2,1x,a)') '| ', &
-    repeat(' ', 9-ceiling(log10(dble(1)+1.d-10))), 1, ' | ', -1.d0, ' | '
-write(*,'(4x,a)') '--------------------------------'
-write(*,'(1x,a)') '>>>> Performance options'
-write(*,'(4x,a)') '| blocksize | blocksize | max proc | max proc | memory for |'
-write(*,'(4x,a)') '|  pdsyev   |  pdgemm   |  pdsyev  |  pdgemm  | overlap IG |'
-write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a,a,i0,4x,a)') '|',repeat(' ', &
-    6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),&
-    lin%blocksize_pdsyev,'|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),lin%blocksize_pdgemm,&
-    '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm,'|',&
-    repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm, '|',&
-    repeat(' ', 8-ceiling(log10(dble(abs(lin%memoryForCommunOverlapIG)+1)+1.d-10))),lin%memoryForCommunOverlapIG, '|'
-write(*,'(1x,a,a)') 'lin%locregShape:',lin%locregShape
-write(*,'(1x,a,2i6)') 'nit low accur, nit high accur', &
-                      lin%nit_lowaccuracy, lin%nit_highaccuracy
-write(*,'(1x,a,2i6)') 'lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy', &
-    lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy
-write(*,'(1x,a,l3)') 'lin%mixedmode',lin%mixedmode
-
-
-written=.false.
-write(*,'(1x,a)') '>>>> Partition of the basis functions among the processes.'
-do jproc=1,nproc-1
-    if(lin%orbs%norb_par(jproc,0)<lin%orbs%norb_par(jproc-1,0)) then
-        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%orbs%norb_par(jproc-1,0)+1.d-5)))
-        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
-             ceiling(log10(dble(lin%orbs%norb_par(jproc,0)+1.d-5)))
-        if(len1>=len2) then
-            space1=1
-            space2=1+len1-len2
-        else
-            space1=1+len2-len1
-            space2=1
-        end if
-        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
-            lin%orbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
-        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
-            lin%orbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
-        written=.true.
-        exit
-    end if
-end do
-if(.not.written) then
-    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
-        ' treat ',lin%orbs%norbp,' orbitals. |'!, &
-end if
-write(*,'(1x,a)') '-----------------------------------------------'
-
-
-written=.false.
-write(*,'(1x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
-do jproc=1,nproc-1
-    if(lin%lb%orbs%norb_par(jproc,0)<lin%lb%orbs%norb_par(jproc-1,0)) then
-        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%lb%orbs%norb_par(jproc-1,0)+1.d-5)))
-        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
-             ceiling(log10(dble(lin%lb%orbs%norb_par(jproc,0)+1.d-5)))
-        if(len1>=len2) then
-            space1=1
-            space2=1+len1-len2
-        else
-            space1=1+len2-len1
-            space2=1
-        end if
-        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
-            lin%lb%orbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
-        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
-            lin%lb%orbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
-        written=.true.
-        exit
-    end if
-end do
-if(.not.written) then
-    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
-        ' treat ',lin%lb%orbs%norbp,' orbitals. |'!, &
-end if
-write(*,'(1x,a)') '####################################################################################'
-
-
-end subroutine writeLinearParameters
+!!!subroutine writeLinearParameters(iproc, nproc, at, lin, atomNames, norbsPerType)
+!!!!
+!!!! Purpose:
+!!!! ========
+!!!!   Write all parameters concerning the linear scaling version to the screen.
+!!!!
+!!!! Calling arguments:
+!!!! ==================
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!integer,intent(in):: iproc, nproc
+!!!type(atoms_data),intent(in):: at
+!!!type(linearParameters),intent(in):: lin
+!!!character(len=20),dimension(at%ntypes),intent(in):: atomNames
+!!!integer,dimension(at%ntypes),intent(in):: norbsPerType
+!!!
+!!!! Local variables
+!!!integer:: itype, jproc, len1, len2, space1, space2, optimalLength
+!!!logical:: written
+!!!character(len=8):: message1
+!!!character(len=14):: message2
+!!!character(len=2):: hist
+!!!
+!!!
+!!!write(*,'(1x,a)') '################################# Input parameters #################################'
+!!!write(*,'(1x,a)') '>>>> General parameters.'
+!!!write(*,'(4x,a)') '|           |    number of    |     prefactor for     | localization |'
+!!!write(*,'(4x,a)') '| atom type | basis functions | confinement potential |    radius    |'
+!!!do itype=1,at%ntypes
+!!!    write(*,'(4x,a,4x,a,a,a,a,i0,7x,a,7x,es10.2,6x,a,3x,f8.4,3x,a)') '| ', trim(atomNames(itype)), &
+!!!        repeat(' ', 6-len_trim(atomNames(itype))), '|', repeat(' ', 10-ceiling(log10(dble(norbsPerType(itype)+1)+1.d-10))), &
+!!!         norbsPerType(itype), '|', lin%potentialPrefac(itype), ' |', lin%locrad(itype), '|'
+!!!end do
+!!!close(unit=99)
+!!!write(*,'(4x,a)') '----------------------------------------------------------------------'
+!!!write(*,'(4x,a)') '| mixing | mixing | iterations in |   alpha mix   | convergence crit. |  iterations   | &
+!!!& factor for  |  minimal  |  pot diff to   |'
+!!!write(*,'(4x,a)') '| scheme | method |  in SC cycle  | optim / fixed |    for mixing     | in outer loop | &
+!!!&fixing basis | fix basis | exit outer SCC |'
+!!!if(lin%mixHist_lowaccuracy==0) then
+!!!    message1=' linear '
+!!!else
+!!!    write(hist,'(i2)') lin%mixHist_lowaccuracy
+!!!    message1=' DIIS'//hist//' '
+!!!end if
+!!!write(*,'(4x,a,a,a,a,a,a,i0,a,a,i0,a,f6.3,a,f6.3,a,es9.3,5x,a,a,i0,a,es9.2,a,es9.2,a,es9.2,a)') '| ', &
+!!!     lin%mixingMethod, '  |', message1, ' | ', repeat(' ', optimalLength(4, lin%nItSCCWhenOptimizing)), &
+!!!     lin%nItSCCWhenOptimizing, '   /', repeat(' ', optimalLength(3, lin%nItSCCWhenFixed)), lin%nItSCCWhenFixed, &
+!!!     '   |', lin%alphaMixWhenOptimizing_lowaccuracy, ' /', lin%alphaMixWhenOptimizing_highaccuracy, ' |    ',&
+!!!     lin%convCritMix, ' |', repeat(' ', optimalLength(9, 1)), &
+!!!     1, '      |   ', -1.d0, '   | ', -1.d0, ' |   ',&
+!!!     -1.d0, '    |'
+!!!write(*,'(4x,a)') '-----------------------------------------------------------------------------------------&
+!!!&-------------------------------------------'
+!!!write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  | transform |'
+!!!write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  | orthoconstraint | to global |'
+!!!if(lin%correctionOrthoconstraint==0) then
+!!!    message1='  yes   '
+!!!else if(lin%correctionOrthoconstraint==1) then
+!!!    message1='  no    '
+!!!end if
+!!!write(*,'(4x,a,8x,l2,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a,5x,a,4x,a,5x,l2,4x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
+!!!     lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
+!!!     lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|', &
+!!!     message1, '|', lin%transformToGlobal, '|'
+!!!write(*,'(4x,a)') '----------------------------------------------------------------------'
+!!!write(*,'(1x,a)') '>>>> Parameters for the optimization of the basis functions.'
+!!!write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |     stop     |'
+!!!write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis | optimization |'
+!!!write(*,'(4x,a)') '|  first   else  |             |                |           |       |              |'
+!!!!!if(trim(lin%getCoeff)=='diag') then
+!!!!!    !if(trim(lin%diagMethod)=='seq') then
+!!!!!    !    message1='diag seq'
+!!!!!    !else if(trim(lin%diagMethod)=='par') then
+!!!!!    !    message1='diag par'
+!!!!!    !end if
+!!!!!    message1='  diag  '
+!!!!!else if(trim(lin%getCoeff)=='min') then
+!!!!!    message1='   min  '
+!!!!!end if
+!!!write(*,'(4x,a,a,i0,3x,a,i0,2x,a,1x,es9.3,1x,a,a,i0,a,a,a,l2,a,2x,es10.3,2x,a)') '| ', &
+!!!    repeat(' ', 5-ceiling(log10(dble(0)+1.d-10))), -1, &
+!!!    repeat(' ', 5-ceiling(log10(dble(0)+1.d-10))), -1, &
+!!!      '| ', lin%convCrit, ' | ', &
+!!!      repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       | ' , &
+!!!      ' ... ', '  |  ', &
+!!!      lin%plotBasisFunctions, '   |', -1.d0, '|'
+!!!write(*,'(4x,a)') '---------------------------------------------------------------------'
+!!!write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |'
+!!!write(*,'(4x,a)') '|  min   max   |            |          | with SD |            | nit max   conv crit | of overlap mat |'
+!!!if(lin%methTransformOverlap==0) then
+!!!    message2='    exact     '
+!!!else if(lin%methTransformOverlap==1) then
+!!!    message2='taylor appr. 1'
+!!!else if(lin%methTransformOverlap==2) then
+!!!    message2='taylor appr. 2'
+!!!else if(lin%methTransformOverlap==3) then
+!!!    message2='taylor appr. 3'
+!!!end if
+!!!write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,1x,es8.2,1x,a,l3,a,1x,es10.3,a,a,i0,7x,es8.1,2x,a,1x,a,1x,a)') '|', &
+!!!    repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
+!!!    repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
+!!!    lin%alphaDIIS, '|', lin%alphaSD, '|   ', .false., '    |', -1.d0, ' |', &
+!!!    repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, -1.d0, '|', message2, '|'
+!!!write(*,'(4x,a)') '------------------------------------------------------------------------------------------------------'
+!!!write(*,'(1x,a)') '>>>> Parameters for the optimization of the coefficients.'
+!!!write(*,'(4x,a)') '| maximal number | convergence |'
+!!!write(*,'(4x,a)') '|  of iterations |  criterion  |'
+!!!write(*,'(4x,a,a,i0,5x,a,1x,es9.2,1x,a)') '| ', &
+!!!    repeat(' ', 9-ceiling(log10(dble(1)+1.d-10))), 1, ' | ', -1.d0, ' | '
+!!!write(*,'(4x,a)') '--------------------------------'
+!!!write(*,'(1x,a)') '>>>> Performance options'
+!!!write(*,'(4x,a)') '| blocksize | blocksize | max proc | max proc | memory for |'
+!!!write(*,'(4x,a)') '|  pdsyev   |  pdgemm   |  pdsyev  |  pdgemm  | overlap IG |'
+!!!write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a,a,i0,4x,a)') '|',repeat(' ', &
+!!!    6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),&
+!!!    lin%blocksize_pdsyev,'|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),lin%blocksize_pdgemm,&
+!!!    '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm,'|',&
+!!!    repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm, '|',&
+!!!    repeat(' ', 8-ceiling(log10(dble(abs(lin%memoryForCommunOverlapIG)+1)+1.d-10))),lin%memoryForCommunOverlapIG, '|'
+!!!write(*,'(1x,a,a)') 'lin%locregShape:',lin%locregShape
+!!!write(*,'(1x,a,2i6)') 'nit low accur, nit high accur', &
+!!!                      lin%nit_lowaccuracy, lin%nit_highaccuracy
+!!!write(*,'(1x,a,2i6)') 'lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy', &
+!!!    lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy
+!!!write(*,'(1x,a,l3)') 'lin%mixedmode',lin%mixedmode
+!!!
+!!!
+!!!written=.false.
+!!!write(*,'(1x,a)') '>>>> Partition of the basis functions among the processes.'
+!!!do jproc=1,nproc-1
+!!!    if(lin%orbs%norb_par(jproc,0)<lin%orbs%norb_par(jproc-1,0)) then
+!!!        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%orbs%norb_par(jproc-1,0)+1.d-5)))
+!!!        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
+!!!             ceiling(log10(dble(lin%orbs%norb_par(jproc,0)+1.d-5)))
+!!!        if(len1>=len2) then
+!!!            space1=1
+!!!            space2=1+len1-len2
+!!!        else
+!!!            space1=1+len2-len1
+!!!            space2=1
+!!!        end if
+!!!        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+!!!            lin%orbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
+!!!        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+!!!            lin%orbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
+!!!        written=.true.
+!!!        exit
+!!!    end if
+!!!end do
+!!!if(.not.written) then
+!!!    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+!!!        ' treat ',lin%orbs%norbp,' orbitals. |'!, &
+!!!end if
+!!!write(*,'(1x,a)') '-----------------------------------------------'
+!!!
+!!!
+!!!written=.false.
+!!!write(*,'(1x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
+!!!do jproc=1,nproc-1
+!!!    if(lin%lb%orbs%norb_par(jproc,0)<lin%lb%orbs%norb_par(jproc-1,0)) then
+!!!        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%lb%orbs%norb_par(jproc-1,0)+1.d-5)))
+!!!        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
+!!!             ceiling(log10(dble(lin%lb%orbs%norb_par(jproc,0)+1.d-5)))
+!!!        if(len1>=len2) then
+!!!            space1=1
+!!!            space2=1+len1-len2
+!!!        else
+!!!            space1=1+len2-len1
+!!!            space2=1
+!!!        end if
+!!!        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+!!!            lin%lb%orbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
+!!!        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+!!!            lin%lb%orbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
+!!!        written=.true.
+!!!        exit
+!!!    end if
+!!!end do
+!!!if(.not.written) then
+!!!    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+!!!        ' treat ',lin%lb%orbs%norbp,' orbitals. |'!, &
+!!!end if
+!!!write(*,'(1x,a)') '####################################################################################'
+!!!
+!!!
+!!!end subroutine writeLinearParameters
 
 
 

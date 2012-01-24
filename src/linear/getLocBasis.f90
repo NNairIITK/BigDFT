@@ -410,8 +410,8 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   call memocc(istat, iall, 'overlapmatrix', subname)
 
 
-
 end subroutine getLinearPsi
+
 
 subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, lin, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
