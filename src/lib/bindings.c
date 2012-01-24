@@ -31,28 +31,40 @@
   FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data->obj, &tmp); \
   obj->name = (double*)tmp.data; \
   }
+#define GET_ATTR_DBL_2D(obj,OBJ,name,NAME) {       \
+  f90_pointer_double_2D tmp; \
+  memset(&tmp, 0, sizeof(f90_pointer_double_2D)); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data->obj, &tmp); \
+  obj->name = (double*)tmp.data; \
+  }
+#define GET_ATTR_DBL_3D(obj,OBJ,name,NAME) {       \
+  f90_pointer_double_3D tmp; \
+  memset(&tmp, 0, sizeof(f90_pointer_double_3D)); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data->obj, &tmp); \
+  obj->name = (double*)tmp.data; \
+  }
 
 void FC_FUNC_(deallocate_double_1d, DEALLOCATE_DOUBLE_1D)(f90_pointer_double *array);
-void FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(f90_pointer_double *array);
+void FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(f90_pointer_double_2D *array);
 
 void FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
      (int *lstat, const char* filename, int *ln, int *iorbp,
       double *hx, double *hy, double *hz,
-      int *n1, int *n2, int *n3, int *nspinor, f90_pointer_double *psiscf);
-void FC_FUNC_(free_wave_to_isf, FREE_WAVE_TO_ISF)(f90_pointer_double *psiscf);
+      int *n1, int *n2, int *n3, int *nspinor, f90_pointer_double_4D *psiscf);
+void FC_FUNC_(free_wave_to_isf, FREE_WAVE_TO_ISF)(f90_pointer_double_4D *psiscf);
 
 void FC_FUNC_(read_wave_descr, READ_WAVE_DESCR)
      (int *lstat, const char* filename, int *ln, int *norbu,
       int *norbd, int *iorb, int *ispin, int *nkpt, int *ikpt, int *nspinor, int *ispinor);
 
-f90_pointer_double* bigdft_read_wave_to_isf(const char *filename, int iorbp,
-                                            double h[3], int n[3], int *nspinor)
+f90_pointer_double_4D* bigdft_read_wave_to_isf(const char *filename, int iorbp,
+                                               double h[3], int n[3], int *nspinor)
 {
   int ln, lstat;
-  f90_pointer_double *psiscf;
+  f90_pointer_double_4D *psiscf;
 
-  psiscf = g_malloc(sizeof(f90_pointer_double));
-  memset(psiscf, 0, sizeof(f90_pointer_double));
+  psiscf = g_malloc(sizeof(f90_pointer_double_4D));
+  memset(psiscf, 0, sizeof(f90_pointer_double_4D));
   
   ln = strlen(filename);
   FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
@@ -60,14 +72,14 @@ f90_pointer_double* bigdft_read_wave_to_isf(const char *filename, int iorbp,
   if (!lstat)
     {
       g_free(psiscf);
-      psiscf = (f90_pointer_double*)0;
+      psiscf = (f90_pointer_double_4D*)0;
     }
 
-  DBG_MEM(psiscf, f90_pointer_double);
+  DBG_MEM(psiscf, f90_pointer_double_4D);
 
   return psiscf;
 }
-void bigdft_free_wave_to_isf(f90_pointer_double *psiscf)
+void bigdft_free_wave_to_isf(f90_pointer_double_4D *psiscf)
 {
   FC_FUNC_(free_wave_to_isf, FREE_WAVE_TO_ISF)(psiscf);
   g_free(psiscf);
@@ -110,10 +122,10 @@ struct f90_pointer_atoms_
 void FC_FUNC_(atoms_new, ATOMS_NEW)(f90_pointer_atoms *atoms);
 void FC_FUNC_(atoms_free, ATOMS_FREE)(f90_pointer_atoms *atoms);
 void FC_FUNC_(atoms_new_from_file, ATOMS_NEW_FROM_FILE)(int *lstat, f90_pointer_atoms *atoms,
-                                                        f90_pointer_double *rxyz,
+                                                        f90_pointer_double_2D *rxyz,
                                                         const gchar *filename, int *ln);
 void FC_FUNC_(atoms_set_n_atoms, ATOMS_SET_N_ATOMS)(void *atoms,
-                                                    f90_pointer_double *rxyz, int *nat);
+                                                    f90_pointer_double_2D *rxyz, int *nat);
 void FC_FUNC_(atoms_set_n_types, ATOMS_SET_N_TYPES)(void *atoms, int *ntypes);
 void FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(void *atoms, double *rxyz,
                                                           int *disable, double *elecfield);
@@ -129,17 +141,17 @@ void FC_FUNC_(atoms_get_iasctype, ATOMS_GET_IASCTYPE)(void *atoms, f90_pointer_i
 void FC_FUNC_(atoms_get_natpol, ATOMS_GET_NATPOL)(void *atoms, f90_pointer_int *natpol);
 void FC_FUNC_(atoms_get_ifrztyp, ATOMS_GET_IFRZTYP)(void *atoms, f90_pointer_int *ifrztyp);
 void FC_FUNC_(atoms_get_amu, ATOMS_GET_AMU)(void *atoms, f90_pointer_double *amu);
-void FC_FUNC_(atoms_get_aocc, ATOMS_GET_AOCC)(void *atoms, f90_pointer_double *aocc);
+void FC_FUNC_(atoms_get_aocc, ATOMS_GET_AOCC)(void *atoms, f90_pointer_double_2D *aocc);
 void FC_FUNC_(atoms_get_nelpsp, ATOMS_GET_NELPSP)(void *atoms, f90_pointer_int *nelpsp);
 void FC_FUNC_(atoms_get_npspcode, ATOMS_GET_NPSPCODE)(void *atoms, f90_pointer_int *npspcode);
 void FC_FUNC_(atoms_get_nzatom, ATOMS_GET_NZATOM)(void *atoms, f90_pointer_int *nzatom);
 void FC_FUNC_(atoms_get_nlcc_ngv, ATOMS_GET_NLCC_NGV)(void *atoms, f90_pointer_int *nlcc_ngv);
 void FC_FUNC_(atoms_get_nlcc_ngc, ATOMS_GET_NLCC_NGC)(void *atoms, f90_pointer_int *nlcc_ngc);
 void FC_FUNC_(atoms_get_ixcpsp, ATOMS_GET_IXCPSP)(void *atoms, f90_pointer_int *ixcpsp);
-void FC_FUNC_(atoms_get_radii_cf, ATOMS_GET_RADII_CF)(void *atoms, f90_pointer_double *radii_cf);
-void FC_FUNC_(atoms_get_psppar, ATOMS_GET_PSPPAR)(void *atoms, f90_pointer_double *psppar);
-void FC_FUNC_(atoms_get_nlccpar, ATOMS_GET_NLCCPAR)(void *atoms, f90_pointer_double *nlccpar);
-void FC_FUNC_(atoms_get_ig_nlccpar, ATOMS_GET_IG_NLCCPAR)(void *atoms, f90_pointer_double *ig_nlccpar);
+void FC_FUNC_(atoms_get_radii_cf, ATOMS_GET_RADII_CF)(void *atoms, f90_pointer_double_2D *radii_cf);
+void FC_FUNC_(atoms_get_psppar, ATOMS_GET_PSPPAR)(void *atoms, f90_pointer_double_3D *psppar);
+void FC_FUNC_(atoms_get_nlccpar, ATOMS_GET_NLCCPAR)(void *atoms, f90_pointer_double_2D *nlccpar);
+void FC_FUNC_(atoms_get_ig_nlccpar, ATOMS_GET_IG_NLCCPAR)(void *atoms, f90_pointer_double_2D *ig_nlccpar);
 void FC_FUNC_(atoms_copy_nat, ATOMS_COPY_NAT)(void *atoms, int *nat);
 void FC_FUNC_(atoms_copy_ntypes, ATOMS_COPY_NTYPES)(void *atoms, int *ntypes);
 void FC_FUNC_(atoms_copy_geometry_data, ATOMS_COPY_GEOMETRY_DATA)
@@ -162,7 +174,7 @@ static BigDFT_Atoms* bigdft_atoms_init()
   memset(atoms, 0, sizeof(BigDFT_Atoms));
   atoms->data = g_malloc(sizeof(f90_pointer_atoms));
   memset(atoms->data, 0, sizeof(f90_pointer_atoms));
-  memset(&atoms->rxyz, 0, sizeof(f90_pointer_double));
+  memset(&atoms->rxyz, 0, sizeof(f90_pointer_double_2D));
 
   return atoms;
 }
@@ -183,25 +195,25 @@ static void bigdft_atoms_dispose(BigDFT_Atoms *atoms)
 }
 static void bigdft_atoms_get_nat_arrays(BigDFT_Atoms *atoms)
 {
-  GET_ATTR_UINT(atoms, ATOMS, iatype,   IATYPE);
-  GET_ATTR_UINT(atoms, ATOMS, iasctype, IASCTYPE);
-  GET_ATTR_UINT(atoms, ATOMS, natpol,   NATPOL);
-  GET_ATTR_INT (atoms, ATOMS, ifrztyp,  IFRZTYP);
-  GET_ATTR_DBL (atoms, ATOMS, amu,      AMU);
-  GET_ATTR_DBL (atoms, ATOMS, aocc,     AOCC);
+  GET_ATTR_UINT  (atoms, ATOMS, iatype,   IATYPE);
+  GET_ATTR_UINT  (atoms, ATOMS, iasctype, IASCTYPE);
+  GET_ATTR_UINT  (atoms, ATOMS, natpol,   NATPOL);
+  GET_ATTR_INT   (atoms, ATOMS, ifrztyp,  IFRZTYP);
+  GET_ATTR_DBL   (atoms, ATOMS, amu,      AMU);
+  GET_ATTR_DBL_2D(atoms, ATOMS, aocc,     AOCC);
 }
 static void bigdft_atoms_get_ntypes_arrays(BigDFT_Atoms *atoms)
 {
-  GET_ATTR_UINT(atoms, ATOMS, nelpsp,     NELPSP);
-  GET_ATTR_UINT(atoms, ATOMS, npspcode,   NPSPCODE);
-  GET_ATTR_UINT(atoms, ATOMS, nzatom,     NZATOM);
-  GET_ATTR_INT (atoms, ATOMS, nlcc_ngv,   NLCC_NGV);
-  GET_ATTR_INT (atoms, ATOMS, nlcc_ngc,   NLCC_NGC);
-  GET_ATTR_INT (atoms, ATOMS, ixcpsp,     IXCPSP);
-  GET_ATTR_DBL (atoms, ATOMS, radii_cf,   RADII_CF);
-  GET_ATTR_DBL (atoms, ATOMS, psppar,     PSPPAR);
-  GET_ATTR_DBL (atoms, ATOMS, nlccpar,    NLCCPAR);
-  GET_ATTR_DBL (atoms, ATOMS, ig_nlccpar, IG_NLCCPAR);
+  GET_ATTR_UINT  (atoms, ATOMS, nelpsp,     NELPSP);
+  GET_ATTR_UINT  (atoms, ATOMS, npspcode,   NPSPCODE);
+  GET_ATTR_UINT  (atoms, ATOMS, nzatom,     NZATOM);
+  GET_ATTR_INT   (atoms, ATOMS, nlcc_ngv,   NLCC_NGV);
+  GET_ATTR_INT   (atoms, ATOMS, nlcc_ngc,   NLCC_NGC);
+  GET_ATTR_INT   (atoms, ATOMS, ixcpsp,     IXCPSP);
+  GET_ATTR_DBL_2D(atoms, ATOMS, radii_cf,   RADII_CF);
+  GET_ATTR_DBL_3D(atoms, ATOMS, psppar,     PSPPAR);
+  GET_ATTR_DBL_2D(atoms, ATOMS, nlccpar,    NLCCPAR);
+  GET_ATTR_DBL_2D(atoms, ATOMS, ig_nlccpar, IG_NLCCPAR);
 }
 
 BigDFT_Atoms* bigdft_atoms_new()
