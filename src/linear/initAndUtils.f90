@@ -68,6 +68,7 @@ call allocateBasicArrays(at, lin)
 ! Read in all parameters related to the linear scaling version.
 !call readLinearParameters(iproc, nproc, input%file_lin, lin, at, atomNames)
 call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
+call copy_linearInputParameters_to_linearParameters(at%ntypes, at%nat, input, lin)
 
 
 ! Count the number of basis functions.
@@ -136,7 +137,8 @@ call orbitals_communicators(iproc,nproc,Glr,lin%lb%gorbs,lin%lb%gcomms)
 
 
 ! Write all parameters related to the linear scaling version to the screen.
-if(iproc==0) call writeLinearParameters(iproc, nproc, at, lin, atomNames, lin%norbsPerType)
+!!if(iproc==0) call writeLinearParameters(iproc, nproc, at, lin, atomNames, lin%norbsPerType)
+if(iproc==0) call print_orbital_distribution(iproc, nproc, lin)
 
 ! Do some checks on the input parameters.
 call checkLinearParameters(iproc, nproc, lin)
@@ -3845,18 +3847,18 @@ end subroutine initCollectiveComms
 
 
 
-subroutine copy_linearInputParameters_to_linearParameters(ntypes, input, lin)
+subroutine copy_linearInputParameters_to_linearParameters(ntypes, nat, input, lin)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: ntypes
+  integer,intent(in):: ntypes, nat
   type(input_variables),intent(in):: input
   type(linearParameters),intent(out):: lin
 
   ! Local variables
-  integer:: itype
+  integer:: itype, iat
 
   lin%nit_lowaccuracy = input%lin%nit_lowaccuracy
   lin%nit_highaccuracy = input%lin%nit_highaccuracy
@@ -3903,5 +3905,87 @@ subroutine copy_linearInputParameters_to_linearParameters(ntypes, input, lin)
       lin%potentialPrefac_lowaccuracy(itype) = input%lin%potentialPrefac_lowaccuracy(itype)
       lin%potentialPrefac_highaccuracy(itype) = input%lin%potentialPrefac_highaccuracy(itype)
   end do
+
+  ! Initialize lin%potentialPrefac to some value (will be adjusted later)
+  lin%potentialPrefac=-1.d0
+
+  ! Assign the localization radius to each atom.
+  do iat=1,nat
+      lin%locrad(iat) = input%lin%locrad(iat)
+  end do
   
 end subroutine copy_linearInputParameters_to_linearParameters
+
+
+
+subroutine print_orbital_distribution(iproc, nproc, lin)
+use module_base
+use module_types
+implicit none
+
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(in):: lin
+
+! Local variables
+integer:: jproc, len1, len2, space1, space2
+logical:: written
+
+write(*,'(1x,a)') '------------------------------------------------------------------------------------'
+written=.false.
+write(*,'(1x,a)') '>>>> Partition of the basis functions among the processes.'
+do jproc=1,nproc-1
+    if(lin%orbs%norb_par(jproc,0)<lin%orbs%norb_par(jproc-1,0)) then
+        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%orbs%norb_par(jproc-1,0)+1.d-5)))
+        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
+             ceiling(log10(dble(lin%orbs%norb_par(jproc,0)+1.d-5)))
+        if(len1>=len2) then
+            space1=1
+            space2=1+len1-len2
+        else
+            space1=1+len2-len1
+            space2=1
+        end if
+        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+            lin%orbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
+        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+            lin%orbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
+        written=.true.
+        exit
+    end if
+end do
+if(.not.written) then
+    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+        ' treat ',lin%orbs%norbp,' orbitals. |'!, &
+end if
+write(*,'(1x,a)') '-----------------------------------------------'
+
+written=.false.
+write(*,'(1x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
+do jproc=1,nproc-1
+    if(lin%lb%orbs%norb_par(jproc,0)<lin%lb%orbs%norb_par(jproc-1,0)) then
+        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%lb%orbs%norb_par(jproc-1,0)+1.d-5)))
+        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
+             ceiling(log10(dble(lin%lb%orbs%norb_par(jproc,0)+1.d-5)))
+        if(len1>=len2) then
+            space1=1
+            space2=1+len1-len2
+        else
+            space1=1+len2-len1
+            space2=1
+        end if
+        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+            lin%lb%orbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
+        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+            lin%lb%orbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
+        written=.true.
+        exit
+    end if
+end do
+if(.not.written) then
+    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+        ' treat ',lin%lb%orbs%norbp,' orbitals. |'
+end if
+write(*,'(1x,a)') '------------------------------------------------------------------------------------'
+
+
+end subroutine print_orbital_distribution
