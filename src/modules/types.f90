@@ -90,6 +90,7 @@ module module_types
      !> iguessTol gives the tolerance to which the input guess will converged (maximal
      !! residue of all orbitals).
      real(gp):: iguessTol
+     integer:: methTransformOverlap, nItOrtho, blocksize_pdsyev, blocksize_pdgemm
   end type orthon_data
 
   type, public :: SIC_data

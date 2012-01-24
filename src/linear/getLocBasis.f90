@@ -3,7 +3,7 @@ subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
-    ldiis, nit, newgradient)
+    ldiis, nit, newgradient, orthpar)
 !
 ! Purpose:
 ! ========
@@ -92,6 +92,7 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 logical,intent(in):: communicate_lphi
 real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
 type(localizedDIISParameters),intent(inout):: ldiis
+type(orthon_data),intent(in):: orthpar
 
 ! Local variables 
 integer:: istat, iall, ilr, istr, iorb, jorb, korb
@@ -132,7 +133,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,lin,rxyz,&
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
-          infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, newgradient)
+          infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, newgradient, orthpar)
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -417,7 +418,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, lin, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
-    infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient)
+    infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient, orthpar)
 !
 ! Purpose:
 ! ========
@@ -495,6 +496,7 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
 type(localizedDIISParameters),intent(inout):: ldiis
 logical,intent(in):: newgradient
+type(orthon_data),intent(in):: orthpar
 
 ! Local variables
 real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
@@ -590,8 +592,8 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
           write(*,'(1x,a)',advance='no') 'Orthonormalization...'
       end if
       t1=mpi_wtime()
-      if(.not.ldiis%switchSD) call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, &
-           lin%blocksize_pdsyev, lin%blocksize_pdgemm, lorbs, op, comon, lzd, &
+      if(.not.ldiis%switchSD) call orthonormalizeLocalized(iproc, nproc, orthpar%methTransformOverlap, orthpar%nItOrtho, &
+           orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, lorbs, op, comon, lzd, &
            input, lin%mad, lphi, ovrlp)
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1

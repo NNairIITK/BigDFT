@@ -96,6 +96,7 @@ real(8),dimension(3,at%nat),intent(out):: fxyz
 !real(8),intent(out):: fnoise
 real(8):: fnoise,pressure
 real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
+type(orthon_data):: orthpar
 
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
@@ -131,6 +132,12 @@ type(localizedDIISParameters):: ldiis
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
        input, rxyz, nscatterarr, tag, coeff, lphi)
   lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
+
+
+  orthpar%methTransformOverlap = lin%methTransformOverlap
+  orthpar%nItOrtho = lin%nItOrtho
+  orthpar%blocksize_pdsyev = lin%blocksize_pdsyev
+  orthpar%blocksize_pdgemm = lin%blocksize_pdgemm
 
 
   call mpi_barrier(mpi_comm_world, ierr)
@@ -202,14 +209,15 @@ type(localizedDIISParameters):: ldiis
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, lin%comgp, lin%comgp, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%newgradient)
+              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%newgradient, orthpar)
       else
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
               lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%newgradient)
+              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
+              coeff_proj, ldiis, nit, lin%newgradient, orthpar)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -376,21 +384,24 @@ type(localizedDIISParameters):: ldiis
                       lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, lin%comgp, lin%comgp, comms, at, lin, rxyz, rxyz, &
                       nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%newgradient)
+                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
+                      coeff_proj, ldiis, nit, lin%newgradient, orthpar)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
                       lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
                       nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%newgradient)
+                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
+                      coeff_proj, ldiis, nit, lin%newgradient, orthpar)
               end if
           else
               call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
                   lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
                   nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                   infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-                  i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%newgradient)
+                  i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
+                  coeff_proj, ldiis, nit, lin%newgradient, orthpar)
           end if
 
 

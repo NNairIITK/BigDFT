@@ -1771,7 +1771,7 @@ module module_interfaces
     
   subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, lin, rxyz, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
-        infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient)
+        infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient, orthpar)
       use module_base
       use module_types
       implicit none
@@ -1798,6 +1798,7 @@ module module_interfaces
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
       type(localizedDIISParameters),intent(inout):: ldiis
       logical,intent(in):: newgradient
+      type(orthon_data),intent(in):: orthpar
     end subroutine getLocalizedBasis
 
 
@@ -1971,7 +1972,7 @@ module module_interfaces
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
         i3s, i3xcsh, ebsMod, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
-        ldiis, nit, newgradient)
+        ldiis, nit, newgradient, orthpar)
       use module_base
       use module_types
       implicit none
@@ -2005,6 +2006,7 @@ module module_interfaces
       logical,intent(in):: communicate_lphi, newgradient
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff_proj
       type(localizedDIISParameters),intent(inout):: ldiis
+      type(orthon_data),intent(in):: orthpar
     end subroutine getLinearPsi
 
 
