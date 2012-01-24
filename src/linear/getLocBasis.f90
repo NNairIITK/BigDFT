@@ -131,7 +131,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
 
       ! Improve the trace minimizing orbitals.
-      call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,lin,rxyz,&
+      call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,mad,lin,rxyz,&
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
           infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, newgradient, orthpar)
   end if
@@ -416,7 +416,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 end subroutine getLinearPsi
 
 
-subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, lin, rxyz, &
+subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, mad, lin, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
     infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient, orthpar)
 !
@@ -481,6 +481,7 @@ type(p2pCommsOrthonormality):: comon
 type(overlapParameters):: op
 type(p2pCommsGatherPot):: comgp
 type(input_variables):: input
+type(matrixDescriptors),intent(in):: mad
 type(linearParameters):: lin
 real(8),dimension(3,at%nat):: rxyz
 integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh

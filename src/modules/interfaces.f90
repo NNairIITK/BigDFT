@@ -1769,7 +1769,7 @@ module module_interfaces
 !!$      character(len=*), intent(in) :: filename
 !!$     end subroutine readmywaves
     
-  subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, lin, rxyz, &
+  subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, mad, lin, rxyz, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
         infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient, orthpar)
       use module_base
@@ -1783,6 +1783,7 @@ module module_interfaces
       type(overlapParameters):: op
       type(p2pCommsGatherPot):: comgp
       type(input_variables):: input
+      type(matrixDescriptors),intent(in):: mad
       type(linearParameters):: lin
       real(8),dimension(3,at%nat):: rxyz
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
