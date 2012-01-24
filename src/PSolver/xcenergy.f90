@@ -1378,6 +1378,9 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   !end of spin-polarized if statement
   end if
 
+! wb-stress
+  call wb_stress(geocode,n01,n02,n03,nspden,f_i,gradient)
+
   !let us now calculate the gradient and correct the result
   call wb_correction(geocode,n01,n02,n03,n3eff,wbl,wbr,f_i,hx,hy,hz,nspden,wb_vxc)
 
@@ -1387,3 +1390,44 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   call memocc(i_stat,i_all,'f_i',subname)
 
 END SUBROUTINE vxcpostprocessing
+
+subroutine wb_stress(geocode,n1,n2,n3,nsp,f_i,gradient)
+ use module_base
+ implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: n1,n2,n3,nsp
+  real(dp), dimension(n1,n2,n3,3,nsp) :: f_i
+  real(dp), dimension(n1,n2,n3,2*nsp-1,0:3), intent(in) :: gradient
+!  real(dp), intent(in) :: hx,hy,hz
+ real(dp),dimension(6) :: wbstress
+ integer :: i1,i2,i3,isp
+
+wbstress=0._dp
+!seq: 11 22 33 12 13 23
+
+do isp=1,nsp
+           do i3=1,n3
+              do i2=1,n2
+                 do i1=1,n1
+        wbstress(1) = wbstress(1)+gradient(i1,i2,i3,isp,1)*f_i(i1,i2,i3,1,isp)
+        wbstress(2) = wbstress(2)+gradient(i1,i2,i3,isp,2)*f_i(i1,i2,i3,2,isp)
+        wbstress(3) = wbstress(3)+gradient(i1,i2,i3,isp,3)*f_i(i1,i2,i3,3,isp)
+        wbstress(4) = wbstress(4)+gradient(i1,i2,i3,isp,1)*f_i(i1,i2,i3,2,isp)
+        wbstress(5) = wbstress(5)+gradient(i1,i2,i3,isp,1)*f_i(i1,i2,i3,3,isp)
+        wbstress(6) = wbstress(6)+gradient(i1,i2,i3,isp,2)*f_i(i1,i2,i3,3,isp)
+
+                 end do
+              end do
+           end do
+end do
+! unpol case: up+dn=2*up
+if (nsp==1) wbstress=wbstress*2._gp
+
+wbstress=wbstress/real(n1*n2*n3,gp)
+
+write(*,*) 'WB-correction to stress'
+write(*,*) wbstress(1:3)
+write(*,*) wbstress(4:6)
+
+end subroutine wb_stress
+
