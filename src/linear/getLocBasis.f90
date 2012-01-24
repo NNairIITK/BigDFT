@@ -2,7 +2,8 @@ subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
     mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
-    i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+    i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
+    ldiis)
 !
 ! Purpose:
 ! ========
@@ -90,6 +91,7 @@ type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 logical,intent(in):: communicate_lphi
 real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
+type(localizedDIISParameters),intent(inout):: ldiis
 
 ! Local variables 
 integer:: istat, iall, ilr, istr, iorb, jorb, korb
@@ -130,7 +132,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,lin,rxyz,&
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
-          infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj)
+          infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis)
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -415,7 +417,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, lin, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
-    infoBasisFunctions, ovrlp, nlpspd, proj, coeff)
+    infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis)
 !
 ! Purpose:
 ! ========
@@ -491,6 +493,7 @@ real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
+type(localizedDIISParameters),intent(inout):: ldiis
 
 ! Local variables
 real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
@@ -508,7 +511,6 @@ real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat
 real(8),dimension(:,:),allocatable:: kernel
 logical:: withConfinement, resetDIIS, immediateSwitchToSD
 character(len=*),parameter:: subname='getLocalizedBasis'
-type(localizedDIISParameters):: ldiis
 real(8),dimension(5):: time
 real(8),dimension(:),pointer:: lpot
 !real(8),external :: mpi_wtime1
@@ -530,9 +532,17 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
   ! Initialize the arrays and variable needed for DIIS.
-  call initializeDIIS(lin%DIISHistMax, lzd, lorbs, lin%alphaSD, lin%alphaDIIS, &
-       lorbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons, &
-       ldiis, alpha, alphaDIIS)
+  icountSDSatur=0
+  icountSwitch=0
+  icountDIISFailureTot=0
+  icountDIISFailureCons=0
+  ldiis%is=0
+  ldiis%switchSD=.false.
+  ldiis%trmin=1.d100
+  ldiis%trold=1.d100
+  alpha=ldiis%alphaSD
+  alphaDIIS=ldiis%alphaDIISx
+  !!!call initializeDIIS(input%lin%DIISHistMax, lzd, lorbs, lorbs%norb, ldiis)
 
   ! Set the maximal number of iterations.
   if(lin%newgradient) then
@@ -991,7 +1001,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
 
   ! Deallocate all quantities related to DIIS,
-  if(ldiis%isx>0) call deallocateDIIS(ldiis)
+  !!!!if(ldiis%isx>0) call deallocateDIIS(ldiis)
 
   ! Deallocate all local arrays.
   call deallocateLocalArrays()
@@ -1077,9 +1087,17 @@ contains
               idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
               if(idsx>0) then
                   if(iproc==0) write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
-                  call initializeDIIS(lin%DIISHistMax, lzd, lorbs, lin%alphaSD, &
-                       lin%alphaDIIS, lorbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, &
-                       icountDIISFailureCons, ldiis, alpha, alphaDIIS)
+                  icountSDSatur=0
+                  icountSwitch=0
+                  icountDIISFailureTot=0
+                  icountDIISFailureCons=0
+                  ldiis%is=0
+                  ldiis%switchSD=.false.
+                  ldiis%trmin=1.d100
+                  ldiis%trold=1.d100
+                  alpha=ldiis%alphaSD
+                  alphaDIIS=ldiis%alphaDIISx
+                  !!!call initializeDIIS(lin%DIISHistMax, lzd, lorbs, lorbs%norb, ldiis)
                   icountDIISFailureTot=0
                   icountDIISFailureCons=0
                   immediateSwitchToSD=.false.
@@ -1134,7 +1152,7 @@ contains
                  ! else copy the orbitals of the last iteration to lphiold
                  call dcopy(size(lphi), lphi(1), 1, lphiold(1), 1)
               end if
-              call deallocateDIIS(ldiis)
+              !!!call deallocateDIIS(ldiis)
               ldiis%isx=0
               ldiis%switchSD=.true.
           end if
@@ -3505,7 +3523,7 @@ end function dfactorial
 
 
 
-
+!> Some description of the routine goes here
 subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, nit, kernel, lphi)
 use module_base
 use module_types
@@ -3518,7 +3536,7 @@ type(linearParameters),intent(inout):: lin
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input
+type(input_variables),intent(in):: input !< Input parameters, to be removed
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
 real(8),dimension(3,at%nat),intent(in):: rxyz

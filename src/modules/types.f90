@@ -693,7 +693,7 @@ end type workarrays_quartic_convolutions
     integer:: is, isx, mis
     real(8),dimension(:),pointer:: phiHist, hphiHist
     real(8),dimension(:,:,:),pointer:: mat
-    real(8):: trmin, trold
+    real(8):: trmin, trold, alphaSD, alphaDIISx
     logical:: switchSD
   end type localizedDIISParameters
 

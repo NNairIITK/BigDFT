@@ -65,7 +65,7 @@ lin%lzd%nlr=at%nat
 call allocateBasicArrays(at, lin)
 
 ! Read in all parameters related to the linear scaling version.
-call readLinearParameters(iproc, nproc, input%file_lin, lin, at, atomNames)
+!call readLinearParameters(iproc, nproc, input%file_lin, lin, at, atomNames)
 call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
 call copy_linearInputParameters_to_linearParameters(at%ntypes, at%nat, input, lin)
 

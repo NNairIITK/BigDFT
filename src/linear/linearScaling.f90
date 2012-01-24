@@ -112,6 +112,7 @@ integer:: iorb, ndimtot
 type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
 real(8),dimension(:,:),allocatable:: coeff_proj
+type(localizedDIISParameters):: ldiis
 
 
 
@@ -168,6 +169,8 @@ real(8),dimension(:,:),allocatable:: coeff_proj
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
 
+  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%norb, ldiis)
+
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist_lowaccuracy>0) then
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -199,14 +202,14 @@ real(8),dimension(:,:),allocatable:: coeff_proj
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, lin%comgp, lin%comgp, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis)
       else
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
               lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -370,21 +373,21 @@ real(8),dimension(:,:),allocatable:: coeff_proj
                       lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, lin%comgp, lin%comgp, comms, at, lin, rxyz, rxyz, &
                       nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
                       lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
                       nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis)
               end if
           else
               call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
                   lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
                   nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                   infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-                  i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+                  i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis)
           end if
 
 
@@ -661,6 +664,8 @@ real(8),dimension(:,:),allocatable:: coeff_proj
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, lphi, coeff)
+  call deallocateDIIS(ldiis)
+
 
   iall=-product(shape(coeff_proj))*kind(coeff_proj)
   deallocate(coeff_proj, stat=istat)

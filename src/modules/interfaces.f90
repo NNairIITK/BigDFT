@@ -1771,7 +1771,7 @@ module module_interfaces
     
   subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, lin, rxyz, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
-        infoBasisFunctions, ovrlp, nlpspd, proj, coeff)
+        infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis)
       use module_base
       use module_types
       implicit none
@@ -1796,6 +1796,7 @@ module module_interfaces
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
+type(localizedDIISParameters),intent(inout):: ldiis
     end subroutine getLocalizedBasis
 
 
@@ -1968,7 +1969,8 @@ module module_interfaces
         mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
-        i3s, i3xcsh, ebsMod, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+        i3s, i3xcsh, ebsMod, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
+        ldiis)
       use module_base
       use module_types
       implicit none
@@ -2001,6 +2003,7 @@ module module_interfaces
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       logical,intent(in):: communicate_lphi
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff_proj
+      type(localizedDIISParameters),intent(inout):: ldiis
     end subroutine getLinearPsi
 
 
