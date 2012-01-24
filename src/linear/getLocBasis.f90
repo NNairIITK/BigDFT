@@ -3,7 +3,7 @@ subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
-    ldiis)
+    ldiis, nit, newgradient)
 !
 ! Purpose:
 ! ========
@@ -62,7 +62,7 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC
+integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
 type(p2pCommsSumrho),intent(inout):: comsr
@@ -81,7 +81,7 @@ integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
 real(dp),dimension(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
 type(GPU_pointers),intent(inout):: GPU
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
-logical,intent(in):: updatePhi
+logical,intent(in):: updatePhi, newgradient
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
@@ -132,7 +132,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,lin,rxyz,&
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
-          infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis)
+          infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, newgradient)
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -417,7 +417,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, lin, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
-    infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis)
+    infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient)
 !
 ! Purpose:
 ! ========
@@ -472,7 +472,7 @@ use module_interfaces, except_this_one => getLocalizedBasis
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, infoBasisFunctions
+integer:: iproc, nproc, infoBasisFunctions, nit
 type(atoms_data), intent(in) :: at
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data):: lorbs, orbs
@@ -494,6 +494,7 @@ type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
 type(localizedDIISParameters),intent(inout):: ldiis
+logical,intent(in):: newgradient
 
 ! Local variables
 real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
@@ -503,7 +504,7 @@ real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress
 real(8):: trHold
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, consecutive_rejections
 integer :: icountDIISFailureCons,itBest
-integer:: istat,istart,ierr,ii,it,iall,nit,ind1,ind2,jorb,ist,iiorb
+integer:: istat,istart,ierr,ii,it,iall,ind1,ind2,jorb,ist,iiorb
 integer:: gdim,ilr,ncount,offset,istsource,istdest,korb
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS,lhphi,lhphiold
 real(8),dimension(:),allocatable:: lphiold
@@ -544,12 +545,12 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   alphaDIIS=ldiis%alphaDIISx
   !!!call initializeDIIS(input%lin%DIISHistMax, lzd, lorbs, lorbs%norb, ldiis)
 
-  ! Set the maximal number of iterations.
-  if(lin%newgradient) then
-      nit=lin%nItBasis_highaccuracy
-  else
-      nit=lin%nItBasis_lowaccuracy
-  end if
+  !!! Set the maximal number of iterations.
+  !!if(lin%newgradient) then
+  !!    nit=lin%nItBasis_highaccuracy
+  !!else
+  !!    nit=lin%nItBasis_lowaccuracy
+  !!end if
 
   ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
   ! The messages for this point to point communication have been posted in the subroutine linearScaling.

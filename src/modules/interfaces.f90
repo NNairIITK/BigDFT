@@ -1771,11 +1771,11 @@ module module_interfaces
     
   subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, lin, rxyz, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
-        infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis)
+        infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient)
       use module_base
       use module_types
       implicit none
-      integer:: iproc, nproc, idsxMin, idsxMax, infoBasisFunctions
+      integer:: iproc, nproc, idsxMin, idsxMax, infoBasisFunctions, nit
       type(atoms_data), intent(in) :: at
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data):: lorbs, orbs
@@ -1796,7 +1796,8 @@ module module_interfaces
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
-type(localizedDIISParameters),intent(inout):: ldiis
+      type(localizedDIISParameters),intent(inout):: ldiis
+      logical,intent(in):: newgradient
     end subroutine getLocalizedBasis
 
 
@@ -1970,11 +1971,11 @@ type(localizedDIISParameters),intent(inout):: ldiis
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
         i3s, i3xcsh, ebsMod, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
-        ldiis)
+        ldiis, nit, newgradient)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC
+      integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
       type(p2pCommsSumrho),intent(inout):: comsr
@@ -2001,7 +2002,7 @@ type(localizedDIISParameters),intent(inout):: ldiis
       real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),intent(inout):: lphi
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-      logical,intent(in):: communicate_lphi
+      logical,intent(in):: communicate_lphi, newgradient
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff_proj
       type(localizedDIISParameters),intent(inout):: ldiis
     end subroutine getLinearPsi
