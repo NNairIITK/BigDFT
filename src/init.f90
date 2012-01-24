@@ -1288,6 +1288,20 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   deallocate(locrad,stat=i_stat)
   call memocc(i_stat,i_all,'locrad',subname)
 
+! IF PAW: return
+  if(any(at%npspcode(:)==7)) then
+    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+    allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
+    call memocc(i_stat,hpsi,'hpsi',subname)
+    
+    !This is allocated in DiagHam
+    nullify(psit)
+
+    call deallocate_input_wfs()
+    return 
+  end if
+
+
   !check the size of the rhopot array related to NK SIC
   nrhodim=nspin
   i3rho_add=0
@@ -1449,22 +1463,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
         OCLconv=.true.
      end if
 
-     call deallocate_orbs(orbse,subname)
-     i_all=-product(shape(orbse%eval))*kind(orbse%eval)
-     deallocate(orbse%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'orbse%eval',subname)
-
-     
-     !deallocate the gaussian basis descriptors
-     call deallocate_gwf(G,subname)
-    
-     i_all=-product(shape(psigau))*kind(psigau)
-     deallocate(psigau,stat=i_stat)
-     call memocc(i_stat,i_all,'psigau',subname)
-     call deallocate_comms(commse,subname)
-     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-     deallocate(norbsc_arr,stat=i_stat)
-     call memocc(i_stat,i_all,'norbsc_arr',subname)
+    call deallocate_input_wfs()
  
     return 
  end if
@@ -1587,11 +1586,6 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
   end if
 
-  call deallocate_comms(commse,subname)
-
-  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-  deallocate(norbsc_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'norbsc_arr',subname)
 
   if (iproc == 0) then
      !gaussian estimation valid only for Free BC
@@ -1604,18 +1598,33 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      end if
   endif
 
-  !here we can define the subroutine which generates the coefficients for the virtual orbitals
-  call deallocate_gwf(G,subname)
 
-  i_all=-product(shape(psigau))*kind(psigau)
-  deallocate(psigau,stat=i_stat)
-  call memocc(i_stat,i_all,'psigau',subname)
+  call deallocate_input_wfs()
+
+contains
+
+subroutine deallocate_input_wfs()
 
   call deallocate_orbs(orbse,subname)
   i_all=-product(shape(orbse%eval))*kind(orbse%eval)
   deallocate(orbse%eval,stat=i_stat)
   call memocc(i_stat,i_all,'orbse%eval',subname)
+  
+  !deallocate the gaussian basis descriptors
+  !here we can define the subroutine which generates the coefficients for the virtual orbitals
+  call deallocate_gwf(G,subname)
+ 
+  i_all=-product(shape(psigau))*kind(psigau)
+  deallocate(psigau,stat=i_stat)
+  call memocc(i_stat,i_all,'psigau',subname)
 
+  call deallocate_comms(commse,subname)
+
+  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
+  deallocate(norbsc_arr,stat=i_stat)
+  call memocc(i_stat,i_all,'norbsc_arr',subname)
+
+end subroutine deallocate_input_wfs
      
 END SUBROUTINE input_wf_diag
 
