@@ -283,3 +283,67 @@ subroutine deallocateRecvBufferOrtho(comon, subname)
 
 end subroutine deallocateRecvBufferOrtho
 
+
+subroutine allocateCommunicationbufferSumrho(iproc, with_auxarray, comsr, subname)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc
+logical,intent(in):: with_auxarray
+type(p2pCommsSumrho),intent(inout):: comsr
+character(len=*),intent(in):: subname
+
+! Local variables
+integer:: istat
+
+allocate(comsr%sendBuf(comsr%nsendBuf), stat=istat)
+call memocc(istat, comsr%sendBuf, 'comsr%sendBuf', subname)
+call razero(comsr%nSendBuf, comsr%sendBuf)
+
+allocate(comsr%recvBuf(comsr%nrecvBuf), stat=istat)
+call memocc(istat, comsr%recvBuf, 'comsr%recvBuf', subname)
+call razero(comsr%nrecvBuf, comsr%recvBuf)
+
+if(with_auxarray) then
+    allocate(comsr%auxarray(comsr%nauxarray), stat=istat)
+    call memocc(istat, comsr%auxarray, 'comsr%auxarray', subname)
+else
+    allocate(comsr%auxarray(1), stat=istat)
+    call memocc(istat, comsr%auxarray, 'comsr%auxarray', subname)
+end if
+
+!write(*,'(a,i5,i14)') 'iproc, comsr%nauxarray', iproc, comsr%nauxarray
+
+
+end subroutine allocateCommunicationbufferSumrho
+
+
+subroutine deallocateCommunicationbufferSumrho(comsr, subname)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(p2pCommsSumrho),intent(inout):: comsr
+character(len=*),intent(in):: subname
+
+! Local variables
+integer:: istat, iall
+
+iall=-product(shape(comsr%sendBuf))*kind(comsr%sendBuf)
+deallocate(comsr%sendBuf, stat=istat)
+call memocc(istat, iall, 'comsr%sendBuf', subname)
+
+iall=-product(shape(comsr%recvBuf))*kind(comsr%recvBuf)
+deallocate(comsr%recvBuf, stat=istat)
+call memocc(istat, iall, 'comsr%recvBuf', subname)
+
+iall=-product(shape(comsr%auxarray))*kind(comsr%auxarray)
+deallocate(comsr%auxarray, stat=istat)
+call memocc(istat, iall, 'comsr%auxarray', subname)
+
+end subroutine deallocateCommunicationbufferSumrho
+
+

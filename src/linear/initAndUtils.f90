@@ -40,7 +40,7 @@ real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
 
 ! Local variables
-integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb, ii, jproc, ist, ncnt
+integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb, ii, ist, ncnt
 integer,dimension(:),allocatable:: norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
@@ -96,14 +96,6 @@ call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspi
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, &
      lin%gorbs%norbp, lin%gorbs%isorb_par, lin%gorbs%isorb, lin%gorbs%onWhichMPI)
-!!ii=0
-!!do jproc=0,nproc-1
-!!    ii=ii+lin%orbs%norb_par(jproc)
-!!    if(iproc==0) write(*,'(a,2i9)') 'jproc, lin%orbs%norb_par(jproc)', jproc, lin%orbs%norb_par(jproc)
-!!end do
-!!if(ii/=lin%orbs%norb) then
-!!    write(*,'(a,2(2x,i0))') 'ERROR: ii/=lin%orbs%norb', ii, lin%orbs%norb
-!!end if
 
 
 
@@ -133,13 +125,6 @@ call repartitionOrbitals(iproc, nproc, lin%lb%gorbs%norb, lin%lb%gorbs%norb_par,
      lin%lb%gorbs%norbp, lin%lb%gorbs%isorb_par, lin%lb%gorbs%isorb, lin%lb%gorbs%onWhichMPI)
 
 
-!!! Check the number of virtual orbitals.
-!!if(lin%norbvirt>lin%lb%orbs%norb-orbs%norb) then
-!!    lin%norbvirt=lin%lb%orbs%norb-orbs%norb
-!!    if(iproc==0) write(*,'(x,a,i0)') 'WARNING: the number of virtual orbitals is adjusted to its maximal &
-!!        & possible value of ', lin%norbvirt
-!!end if
-
 
 ! Assign the parameters needed for the communication to lin%comms. Again distinguish
 ! between the 'normal' basis and the 'large' basis inlcuding the derivtaives.
@@ -156,8 +141,8 @@ if(iproc==0) call writeLinearParameters(iproc, nproc, at, lin, atomNames, lin%no
 call checkLinearParameters(iproc, nproc, lin)
 
 
-! Allocate (almost) all remaining arrays.
-call allocateLinArrays(lin)
+!!! Allocate (almost) all remaining arrays.
+!!call allocateLinArrays(lin)
 
 ! Decide which orbital is centered on which atom, again for the 'normal' and
 ! the 'large' basis.
@@ -260,8 +245,8 @@ call initCoefficients(iproc, orbs, lin, coeff)
 ! calculation of the charge density.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications sumrho... '
 t1=mpi_wtime()
-call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin%lzd, lin%orbs, tag, lin%comsr)
-call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin%lzd, lin%lb%orbs, tag, lin%lb%comsr)
+call initializeCommsSumrho(iproc, nproc, nscatterarr, lin%lzd, lin%orbs, tag, lin%comsr)
+call initializeCommsSumrho(iproc, nproc, nscatterarr, lin%lzd, lin%lb%orbs, tag, lin%lb%comsr)
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 !call allocateCommunicationbufferSumrho(lin%comsr, subname)
@@ -758,73 +743,73 @@ end subroutine writeLinearParameters
 
 
 
-subroutine assignOrbitalsToAtoms(iproc, orbs, nat, norbsPerAt, onWhichAtom, onWhichAtomAll)
-!
-! Purpose:
-! ========
-!   Assigns the orbitals to the atoms, using the array lin%onWhichAtom.
-!   If orbital i is centered on atom j, we have lin%onWhichAtom(i)=j.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc         process ID
-!     nat           number of atoms
-!     norbsPerAt    indicates how many orbitals are centered on each atom.
-!  Input / Output arguments
-!  ---------------------
-!     lin           type containing parameters for the linear version
-!
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nat
-type(orbitals_data):: orbs
-integer,dimension(nat):: norbsPerAt
-integer,dimension(orbs%norbp):: onWhichAtom
-integer,dimension(orbs%norb):: onWhichAtomAll
-
-! Local variables
-integer:: jproc, iiOrb, iorb, jorb, jat
-
-
-  ! There are four counters:
-  !   jproc: indicates which MPI process is handling the basis function which is being treated
-  !   jat: counts the atom numbers
-  !   jorb: counts the orbitals handled by a given process
-  !   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
-  jproc=0
-  jat=1
-  jorb=0
-  iiOrb=0
-  
-  do iorb=1,orbs%norb
-  
-      ! Switch to the next MPI process if the numbers of orbitals for a given
-      ! MPI process is reached.
-      if(jorb==orbs%norb_par(jproc,0)) then
-          jproc=jproc+1
-          jorb=0
-      end if
-      
-      ! Switch to the next atom if the number of basis functions for this atom is reached.
-      if(iiOrb==norbsPerAt(jat)) then
-          jat=jat+1
-          iiOrb=0
-      end if
-      jorb=jorb+1
-      iiOrb=iiOrb+1
-      if(iproc==jproc) onWhichAtom(jorb)=jat
-
-      ! Global assignment, i.e. without taking in account
-      ! the various MPI processes.
-      onWhichAtomAll(iorb)=jat
-  end do    
-
-end subroutine assignOrbitalsToAtoms
+!!!subroutine assignOrbitalsToAtoms(iproc, orbs, nat, norbsPerAt, onWhichAtom, onWhichAtomAll)
+!!!!
+!!!! Purpose:
+!!!! ========
+!!!!   Assigns the orbitals to the atoms, using the array lin%onWhichAtom.
+!!!!   If orbital i is centered on atom j, we have lin%onWhichAtom(i)=j.
+!!!!
+!!!! Calling arguments:
+!!!! ==================
+!!!!   Input arguments:
+!!!!   ----------------
+!!!!     iproc         process ID
+!!!!     nat           number of atoms
+!!!!     norbsPerAt    indicates how many orbitals are centered on each atom.
+!!!!  Input / Output arguments
+!!!!  ---------------------
+!!!!     lin           type containing parameters for the linear version
+!!!!
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nat
+!!!type(orbitals_data):: orbs
+!!!integer,dimension(nat):: norbsPerAt
+!!!integer,dimension(orbs%norbp):: onWhichAtom
+!!!integer,dimension(orbs%norb):: onWhichAtomAll
+!!!
+!!!! Local variables
+!!!integer:: jproc, iiOrb, iorb, jorb, jat
+!!!
+!!!
+!!!  ! There are four counters:
+!!!  !   jproc: indicates which MPI process is handling the basis function which is being treated
+!!!  !   jat: counts the atom numbers
+!!!  !   jorb: counts the orbitals handled by a given process
+!!!  !   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
+!!!  jproc=0
+!!!  jat=1
+!!!  jorb=0
+!!!  iiOrb=0
+!!!  
+!!!  do iorb=1,orbs%norb
+!!!  
+!!!      ! Switch to the next MPI process if the numbers of orbitals for a given
+!!!      ! MPI process is reached.
+!!!      if(jorb==orbs%norb_par(jproc,0)) then
+!!!          jproc=jproc+1
+!!!          jorb=0
+!!!      end if
+!!!      
+!!!      ! Switch to the next atom if the number of basis functions for this atom is reached.
+!!!      if(iiOrb==norbsPerAt(jat)) then
+!!!          jat=jat+1
+!!!          iiOrb=0
+!!!      end if
+!!!      jorb=jorb+1
+!!!      iiOrb=iiOrb+1
+!!!      if(iproc==jproc) onWhichAtom(jorb)=jat
+!!!
+!!!      ! Global assignment, i.e. without taking in account
+!!!      ! the various MPI processes.
+!!!      onWhichAtomAll(iorb)=jat
+!!!  end do    
+!!!
+!!!end subroutine assignOrbitalsToAtoms
 
 
 
@@ -1348,7 +1333,7 @@ end subroutine cutoffOutsideLocreg
 
 
 
-subroutine initializeCommsSumrho2(iproc,nproc,nscatterarr,lzd,orbs,tag,comsr)
+subroutine initializeCommsSumrho(iproc,nproc,nscatterarr,lzd,orbs,tag,comsr)
 use module_base
 use module_types
 implicit none
@@ -1495,106 +1480,39 @@ do iorb=1,comsr%noverlaps(iproc)
     end do
 end do
 
+end subroutine initializeCommsSumrho
 
 
 
 
-end subroutine initializeCommsSumrho2
 
-
-
-subroutine allocateCommunicationbufferSumrho(iproc, with_auxarray, comsr, subname)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc
-logical,intent(in):: with_auxarray
-type(p2pCommsSumrho),intent(inout):: comsr
-character(len=*),intent(in):: subname
-
-! Local variables
-integer:: istat
-
-allocate(comsr%sendBuf(comsr%nsendBuf), stat=istat)
-call memocc(istat, comsr%sendBuf, 'comsr%sendBuf', subname)
-call razero(comsr%nSendBuf, comsr%sendBuf)
-
-allocate(comsr%recvBuf(comsr%nrecvBuf), stat=istat)
-call memocc(istat, comsr%recvBuf, 'comsr%recvBuf', subname)
-call razero(comsr%nrecvBuf, comsr%recvBuf)
-
-if(with_auxarray) then
-    allocate(comsr%auxarray(comsr%nauxarray), stat=istat)
-    call memocc(istat, comsr%auxarray, 'comsr%auxarray', subname)
-else
-    allocate(comsr%auxarray(1), stat=istat)
-    call memocc(istat, comsr%auxarray, 'comsr%auxarray', subname)
-end if
-
-!write(*,'(a,i5,i14)') 'iproc, comsr%nauxarray', iproc, comsr%nauxarray
-
-
-end subroutine allocateCommunicationbufferSumrho
-
-
-subroutine deallocateCommunicationbufferSumrho(comsr, subname)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-type(p2pCommsSumrho),intent(inout):: comsr
-character(len=*),intent(in):: subname
-
-! Local variables
-integer:: istat, iall
-
-iall=-product(shape(comsr%sendBuf))*kind(comsr%sendBuf)
-deallocate(comsr%sendBuf, stat=istat)
-call memocc(istat, iall, 'comsr%sendBuf', subname)
-
-iall=-product(shape(comsr%recvBuf))*kind(comsr%recvBuf)
-deallocate(comsr%recvBuf, stat=istat)
-call memocc(istat, iall, 'comsr%recvBuf', subname)
-
-iall=-product(shape(comsr%auxarray))*kind(comsr%auxarray)
-deallocate(comsr%auxarray, stat=istat)
-call memocc(istat, iall, 'comsr%auxarray', subname)
-
-end subroutine deallocateCommunicationbufferSumrho
-
-
-
-
-subroutine allocateLinArrays(lin)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-type(linearParameters),intent(inout):: lin
-
-! Local variables
-integer:: istat
-character(len=*),parameter:: subname='allocateLinArrays'
-
-
-!allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
-!call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtom', subname)
-
-!allocate(lin%onWhichAtomAll(lin%orbs%norb), stat=istat)
-!call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtomAll', subname)
-
-!allocate(lin%lb%onWhichAtom(lin%lb%orbs%norbp), stat=istat)
-!call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtom', subname)
-
-!allocate(lin%lb%onWhichAtomAll(lin%lb%orbs%norb), stat=istat)
-!call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtomAll', subname)
-
-
-end subroutine allocateLinArrays
+!!!subroutine allocateLinArrays(lin)
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!type(linearParameters),intent(inout):: lin
+!!!
+!!!! Local variables
+!!!integer:: istat
+!!!character(len=*),parameter:: subname='allocateLinArrays'
+!!!
+!!!
+!!!!allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
+!!!!call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtom', subname)
+!!!
+!!!!allocate(lin%onWhichAtomAll(lin%orbs%norb), stat=istat)
+!!!!call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtomAll', subname)
+!!!
+!!!!allocate(lin%lb%onWhichAtom(lin%lb%orbs%norbp), stat=istat)
+!!!!call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtom', subname)
+!!!
+!!!!allocate(lin%lb%onWhichAtomAll(lin%lb%orbs%norb), stat=istat)
+!!!!call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtomAll', subname)
+!!!
+!!!
+!!!end subroutine allocateLinArrays
 
 
 
@@ -1710,131 +1628,6 @@ subroutine allocateBasicArraysInputLin(at, lin)
 !  call memocc(istat, at%rloc, 'at%rloc', subname)
 
 end subroutine allocateBasicArraysInputLin
-
-
-!!subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr)
-!!use module_base
-!!use module_types
-!!use module_interfaces, exceptThisOne => initLocregs
-!!implicit none
-!!
-!!! Calling arguments
-!!integer,intent(in):: iproc, nat
-!!real(8),dimension(3,nat),intent(in):: rxyz
-!!type(linearParameters),intent(inout):: lin
-!!type(input_variables),intent(in):: input
-!!type(locreg_descriptors),intent(in):: Glr
-!!
-!!! Local variables
-!!integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
-!!character(len=*),parameter:: subname='initLocregs'
-!!logical,dimension(:),allocatable:: calculateBounds
-!!
-!!! Allocate the array of localisation regions
-!!!allocate(lin%Llr(lin%nlr),stat=istat)
-!!allocate(lin%lzd%Llr(lin%lzd%nlr),stat=istat)
-!!do ilr=1,lin%lzd%nlr
-!!    call nullify_locreg_descriptors(lin%lzd%llr(ilr))
-!!end do
-!!
-!! allocate(calculateBounds(lin%lzd%nlr), stat=istat)
-!! call memocc(istat, calculateBounds, 'calculateBounds', subname)
-!! calculateBounds=.false.
-!! do ilr=1,lin%lzd%nlr
-!!     do jorb=1,lin%orbs%norbp
-!!         jjorb=lin%orbs%isorb+jorb
-!!         jlr=lin%orbs%inWhichLocreg(jjorb)
-!!         if(jlr==ilr) then
-!!             calculateBounds(ilr)=.true.
-!!             exit
-!!         end if
-!!     end do
-!!     do jorb=1,lin%lb%orbs%norbp
-!!         jjorb=lin%lb%orbs%isorb+jorb
-!!         jlr=lin%lb%orbs%inWhichLocreg(jjorb)
-!!         if(jlr==ilr) then
-!!             calculateBounds(ilr)=.true.
-!!             exit
-!!         end if
-!!     end do
-!!     lin%lzd%llr(ilr)%locrad=lin%locrad(ilr)
-!!     lin%lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
-!! end do
-!!
-!! if(lin%locregShape=='c') then
-!!     call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, &
-!!          Glr, lin%lzd%Llr, calculateBounds)
-!! else if(lin%locregShape=='s') then
-!!     call determine_locregSphere(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, &
-!!          Glr, lin%lzd%Llr, calculateBounds)
-!! end if
-!! !do ilr=1,lin%lzd%nlr
-!! !    write(*,'(a,3i6)') 'ilr, glr%d%nfl1, lin%lzd%llr(ilr)%d%nfl1', ilr, glr%d%nfl1, lin%lzd%llr(ilr)%d%nfl1
-!! !    write(*,'(a,i3,2(3x,3i8))') 'ilr, lin%lzd%llr(ilr)%ns1, lin%lzd%llr(ilr)%ns2, lin%lzd%llr(ilr)%ns3, lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3', &
-!! !               ilr, lin%lzd%llr(ilr)%ns1, lin%lzd%llr(ilr)%ns2, lin%lzd%llr(ilr)%ns3, lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3
-!! !end do
-!! !call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr, calculateBounds)
-!!
-!! !if(iproc==0) write(*,'(a,2i9)') 'glr%wfd%nvctr_c, glr%wfd%nvctr_f', glr%wfd%nvctr_c, glr%wfd%nvctr_f
-!! !do ilr=1,lin%lzd%nlr
-!! !    if(iproc==0) write(*,'(a,i4,2i9)') 'ilr, nvctrc_c, nvctr_f', ilr, lin%lzd%Llr(ilr)%wfd%nvctr_c, lin%lzd%Llr(ilr)%wfd%nvctr_f
-!! !end do
-!!
-!! iall=-product(shape(calculateBounds))*kind(calculateBounds)
-!! deallocate(calculateBounds, stat=istat)
-!! call memocc(istat, iall, 'calculateBounds', subname)
-!!
-!!
-!!! Calculate the dimension of the wave function for each process.
-!!npsidim=0
-!!do iorb=1,lin%orbs%norbp
-!!    !ilr=lin%onWhichAtom(iorb)
-!!    !ilr=lin%orbs%inWhichLocregp(iorb)
-!!    ilr=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
-!!    npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
-!!end do
-!!!lin%Lorbs%npsidim=npsidim
-!!lin%orbs%npsidim_orbs=max(npsidim,1)
-!!lin%orbs%npsidim_comp=max(npsidim,1)
-!!
-!!if(.not. lin%useDerivativeBasisFunctions) then
-!!    !lin%lb%Lorbs%npsidim=npsidim
-!!    lin%lb%orbs%npsidim_orbs=max(npsidim,1)
-!!    lin%lb%orbs%npsidim_comp=max(npsidim,1)
-!!else
-!!    npsidim=0
-!!    do iorb=1,lin%lb%orbs%norbp
-!!        !ilr=lin%lb%orbs%inWhichLocregp(iorb)
-!!        ilr=lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
-!!        npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
-!!        !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
-!!    end do
-!!    !lin%lb%Lorbs%npsidim=npsidim
-!!    lin%lb%orbs%npsidim_orbs=max(npsidim,1)
-!!    lin%lb%orbs%npsidim_comp=max(npsidim,1)
-!!    
-!!end if
-!!
-!!
-!!lin%lzd%linear=.true.
-!!
-!!
-!!!!allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
-!!!!call memocc(istat, phi, 'phi', subname)
-!!!!
-!!!!allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
-!!!!call memocc(istat, lphi, 'lphi', subname)
-!!
-!!!allocate(lin%lphiold(lin%lb%orbs%npsidim), stat=istat)
-!!!call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
-!!
-!!!allocate(lin%lhphiold(lin%lb%orbs%npsidim), stat=istat)
-!!!call memocc(istat, lin%lhphiold, 'lin%lhphiold', subname)
-!!
-!!end subroutine initLocregs
-
-
-
 
 
 
@@ -2244,7 +2037,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
   type(matrixDescriptors),intent(out):: mad
   
   ! Local variables
-  integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, i, ilr
+  integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr
   character(len=*),parameter:: subname='initMatrixCompressionForInguess'
   
   
@@ -3125,7 +2918,6 @@ implicit none
 integer,intent(in):: iproc, nproc, norb, norbp, nseglinemax, nsegmatmul
 integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
 integer,dimension(norb):: nsegline
-!integer,dimension(2,maxval(nsegline),norb):: keygline
 integer,dimension(2,nseglinemax,norb):: keygline
 integer,dimension(0:nproc-1),intent(in):: norb_par, isorb_par
 real(8),dimension(norb,norb),intent(in):: a, b

@@ -142,7 +142,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   if(lin%useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
       call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
-      call getDerivativeBasisFunctions2(iproc,nproc,input%hx,lzd%Glr,lin,&
+      call getDerivativeBasisFunctions(iproc,nproc,input%hx,lzd%Glr,lin,&
            max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lin%lphiRestart,lphi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if

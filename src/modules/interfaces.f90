@@ -2517,20 +2517,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     !end subroutine sumrhoForLocalizedBasis
 
 
-    subroutine initializeCommsSumrho(iproc, nproc, nscatterarr, lin, phibuff)
-      use module_base
-      use module_types
-      implicit none
-      
-      ! Calling arguments
-      integer,intent(in):: iproc, nproc
-      integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      type(linearParameters),intent(inout):: lin
-      real(8),dimension(:),pointer,intent(out):: phibuff
-    end subroutine initializeCommsSumrho
+    !!!subroutine initializeCommsSumrho(iproc, nproc, nscatterarr, lin, phibuff)
+    !!!  use module_base
+    !!!  use module_types
+    !!!  implicit none
+    !!!  
+    !!!  ! Calling arguments
+    !!!  integer,intent(in):: iproc, nproc
+    !!!  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+    !!!  type(linearParameters),intent(inout):: lin
+    !!!  real(8),dimension(:),pointer,intent(out):: phibuff
+    !!!end subroutine initializeCommsSumrho
 
 
-    subroutine initializeCommsSumrho2(iproc, nproc, nscatterarr, lzd, orbs, tag, comsr)
+    subroutine initializeCommsSumrho(iproc, nproc, nscatterarr, lzd, orbs, tag, comsr)
       use module_base
       use module_types
       implicit none
@@ -2542,7 +2542,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(orbitals_data),intent(in):: orbs
       integer,intent(inout):: tag
       type(p2pCommsSumrho),intent(out):: comsr
-    end subroutine initializeCommsSumrho2
+    end subroutine initializeCommsSumrho
 
 
    subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)
@@ -2799,17 +2799,17 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(wp), dimension(:), pointer, optional :: psivirt
      end subroutine LDiagHam
      
-     subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc, nphi
-       real(8),intent(in):: hgrid
-       type(locreg_descriptors),intent(in):: Glr
-       type(linearParameters),intent(in):: lin
-       real(8),dimension(nphi),intent(in):: phi
-       real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),intent(out):: phid
-     end subroutine getDerivativeBasisFunctions
+     !!!subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
+     !!!  use module_base
+     !!!  use module_types
+     !!!  implicit none
+     !!!  integer,intent(in):: iproc, nproc, nphi
+     !!!  real(8),intent(in):: hgrid
+     !!!  type(locreg_descriptors),intent(in):: Glr
+     !!!  type(linearParameters),intent(in):: lin
+     !!!  real(8),dimension(nphi),intent(in):: phi
+     !!!  real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),intent(out):: phid
+     !!!end subroutine getDerivativeBasisFunctions
 
      subroutine orthonormalizeOnlyDerivatives(iproc, nproc, lin, phid)
        use module_base
@@ -3530,7 +3530,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 !!$     end subroutine getHamiltonianMatrix2
 !!$
 
-     subroutine getDerivativeBasisFunctions2(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
+     subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
      use module_base
      use module_types
      implicit none
@@ -3540,7 +3540,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      type(linearParameters),intent(inout):: lin
      real(8),dimension(nphi),intent(in):: phi
      real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),target,intent(out):: phid
-     end subroutine getDerivativeBasisFunctions2
+     end subroutine getDerivativeBasisFunctions
 
 
      subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, locregShape, &
