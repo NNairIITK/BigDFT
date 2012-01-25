@@ -1,5 +1,5 @@
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-     blocksize_pdgemm, orbs, op, comon, lzd, input, mad, lphi, ovrlp)
+     blocksize_pdgemm, orbs, op, comon, lzd, mad, lphi, ovrlp)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
@@ -11,7 +11,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   type(overlapParameters),intent(inout):: op
   type(p2pCommsOrthonormality),intent(inout):: comon
   type(local_zone_descriptors),intent(in):: lzd
-  type(input_variables),intent(in):: input
   type(matrixDescriptors),intent(in):: mad
   real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(inout) :: lphi
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
@@ -148,7 +147,7 @@ end subroutine orthonormalizeLocalized
 
 
 
-subroutine orthoconstraintNonorthogonal(iproc, nproc, input, lzd, orbs, op, comon, mad, ovrlp, &
+subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, ovrlp, &
            methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
   use module_base
   use module_types
@@ -157,7 +156,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, input, lzd, orbs, op, como
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
-  type(input_variables),intent(in):: input
   type(local_zone_descriptors),intent(in):: lzd
   type(orbitals_Data),intent(in):: orbs
   type(overlapParameters),intent(inout):: op

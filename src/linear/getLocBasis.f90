@@ -135,10 +135,11 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
       ! Improve the trace minimizing orbitals.
-      call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,mad,rxyz,&
+      call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
           infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, nItInnerLoop, newgradient, &
-          orthpar, confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond)
+          orthpar, confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, &
+          input%hx, input%hy, input%hz, input%SIC, input%nspin, nItPrecond)
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -421,10 +422,10 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 end subroutine getLinearPsi
 
 
-subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, mad, rxyz, &
+subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, mad, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
     infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, nItInnerLoop, newgradient, orthpar, &
-    confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond)
+    confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, hx, hy, hz, SIC, nspin, nItPrecond)
 !
 ! Purpose:
 ! ========
@@ -479,7 +480,7 @@ use module_interfaces, except_this_one => getLocalizedBasis
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nit, nItInnerLoop, methTransformOverlap, blocksize_pdgemm
+integer,intent(in):: iproc, nproc, nit, nItInnerLoop, methTransformOverlap, blocksize_pdgemm, nspin
 integer,intent(in):: nItPrecond
 integer,intent(out):: infoBasisFunctions
 type(atoms_data), intent(in) :: at
@@ -488,7 +489,6 @@ type(orbitals_data):: lorbs, orbs
 type(p2pCommsOrthonormality):: comon
 type(overlapParameters):: op
 type(p2pCommsGatherPot):: comgp
-type(input_variables):: input
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat):: rxyz
 integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -498,7 +498,7 @@ type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
 real(8),intent(out):: trH
-real(8),intent(in):: convCrit
+real(8),intent(in):: convCrit, hx, hy, hz
 real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -507,6 +507,7 @@ type(localizedDIISParameters),intent(inout):: ldiis
 logical,intent(in):: newgradient
 type(orthon_data),intent(in):: orthpar
 type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
+type(SIC_data) :: SIC !<parameters for the SIC methods
 
 ! Local variables
 real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
@@ -572,8 +573,8 @@ character(len=3):: orbname, comment
 
   call full_local_potential(iproc,nproc,&
        lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
-       lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,input%nspin,&
-       lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
+       lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
+       lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
        lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
 
 
@@ -603,16 +604,16 @@ character(len=3):: orbname, comment
       t1=mpi_wtime()
       if(.not.ldiis%switchSD) call orthonormalizeLocalized(iproc, nproc, orthpar%methTransformOverlap, orthpar%nItOrtho, &
            orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, lorbs, op, comon, lzd, &
-           input, mad, lphi, ovrlp)
+           mad, lphi, ovrlp)
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1
 
 
       t1=mpi_wtime()
       if(.not.ldiis%switchSD .and. .not.newgradient) then
-          call unitary_optimization(iproc, nproc, lzd, lorbs, at, input, op, &
+          call unitary_optimization(iproc, nproc, lzd, lorbs, at, op, &
                                     comon, mad, rxyz, nItInnerLoop, kernel, &
-                                    newgradient, confdatarr, lphi)
+                                    newgradient, confdatarr, hx, lphi)
       end if
       t2=mpi_wtime()
       time(5)=time(5)+t2-t1
@@ -639,9 +640,9 @@ character(len=3):: orbname, comment
       lzd%doHamAppl=.true.
 
       call HamiltonianApplication3(iproc,nproc,at,lorbs,&
-           input%hx,input%hy,input%hz,rxyz,&
+           hx,hy,hz,rxyz,&
            proj,lzd,nlpspd,confdatarr,ngatherarr,lpot,lphi,lhphi,&
-           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
            pkernel=pkernelseq)
 
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
@@ -704,7 +705,7 @@ character(len=3):: orbname, comment
 
       t1=mpi_wtime()
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
-      call orthoconstraintNonorthogonal(iproc, nproc, input, lzd, lorbs, op, comon, mad, ovrlp, &
+      call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
            methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
 
       ! Calculate modified trace
@@ -849,7 +850,7 @@ character(len=3):: orbname, comment
       do iorb=1,lorbs%norbp
           iiorb=lorbs%isorb+iorb
           ilr = lorbs%inWhichLocreg(iiorb)
-          call choosePreconditioner2(iproc, nproc, lorbs, lzd%Llr(ilr), input%hx, input%hy, input%hz, &
+          call choosePreconditioner2(iproc, nproc, lorbs, lzd%Llr(ilr), hx, hy, hz, &
               nItPrecond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder, confdatarr(iorb)%prefac, it, iorb, eval_zero)
           ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
       end do
@@ -2899,7 +2900,7 @@ end subroutine gatherPotential
 
 
 
-subroutine apply_orbitaldependent_potential(iproc, nproc, at, input, orbs, lzd, rxyz, confdatarr, &
+subroutine apply_orbitaldependent_potential(iproc, nproc, at, orbs, lzd, rxyz, confdatarr, hx, &
            psi, centralLocreg, vpsi)
 use module_base
 use module_types
@@ -2909,11 +2910,11 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, centralLocreg
 type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(3,at%nat),intent(in):: rxyz
 type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
+real(8),intent(in):: hx
 !real(8),dimension(lzd%lpsidimtot),intent(in):: psi  !!!! ATENTION, intent should be in !
 !real(8),dimension(lzd%lpsidimtot),intent(inout):: psi
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
@@ -2967,7 +2968,7 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
                lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
                lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
                lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
-               input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+               hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
                lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
                lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
                rxyz(1,ilr), confdatarr(iorb)%prefac, .false., 0.d0, &
@@ -2980,7 +2981,7 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
                lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
                lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
                lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
-               input%hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
+               hx, lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, &
                lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
                lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
                rxyz(1,ilr), confdatarr(iorb)%prefac, .false., 0.d0, &
@@ -3019,112 +3020,112 @@ end subroutine apply_orbitaldependent_potential
 
 
 
-subroutine apply_orbitaldependent_potential_foronelocreg(iproc, nproc, lr, lin, at, input, orbs, rxyz, ndimpsi, &
-           psi, centralLocreg, vpsi)
-use module_base
-use module_types
-use module_interfaces
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc, centralLocreg, ndimpsi
-type(locreg_descriptors),intent(in):: lr
-type(linearParameters),intent(in):: lin
-type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input
-type(orbitals_data),intent(in):: orbs
-real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(ndimpsi),intent(inout):: psi
-real(8),dimension(ndimpsi),intent(out):: vpsi
-
-! Local variables
-integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, ist_c, ist_f, ist, iiorb, iall, ierr
-real(8):: hxh, hyh, hzh, ddot, tt, t1, t2, time
-type(workarr_sumrho):: work_sr
-real(8),dimension(:,:),allocatable:: psir, vpsir
-type(workarr_precond) :: work
-type(workarrays_quartic_convolutions):: work_conv
-character(len=*),parameter:: subname='apply_orbitaldependent_potential'
-real(8),dimension(0:3),parameter:: scal=1.d0
-real(8),dimension(:,:,:),allocatable:: ypsitemp_c
-real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
-
-
-
-  vpsi=0.d0
-  ist_c=1
-  ist_f=1
-     iiorb=iorb+orbs%isorb
-     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-  
-     if(centralLocreg<0) then
-         !icenter=lin%orbs%inWhichLocregp(iorb)
-         icenter=lin%orbs%inWhichLocreg(iiorb)
-     else
-         icenter=centralLocreg
-     end if
-     ist_f=ist_f+lr%wfd%nvctr_c
-     call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
-     call uncompress_for_quartic_convolutions(lr%d%n1, lr%d%n2, lr%d%n3, &
-          lr%d%nfl1, lr%d%nfu1, &
-          lr%d%nfl2, lr%d%nfu2, &
-          lr%d%nfl3, lr%d%nfu3, &
-          lr%wfd%nseg_c, lr%wfd%nvctr_c, &
-          lr%wfd%keygloc, lr%wfd%keyv,  & 
-          lr%wfd%nseg_f, lr%wfd%nvctr_f, &
-          lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
-          lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),  & 
-          scal, psi(ist_c), psi(ist_f), &
-          work_conv)
-
-     if(lin%confpotorder==4) then
-      call ConvolQuartic4(lr%d%n1, lr%d%n2, lr%d%n3, &
-           lr%d%nfl1, lr%d%nfu1, &
-           lr%d%nfl2, lr%d%nfu2, &
-           lr%d%nfl3, lr%d%nfu3, & 
-           input%hx, lr%ns1, lr%ns2, lr%ns3, &
-           lr%bounds%kb%ibyz_c, lr%bounds%kb%ibxz_c, lr%bounds%kb%ibxy_c, &
-           lr%bounds%kb%ibyz_f, lr%bounds%kb%ibxz_f, lr%bounds%kb%ibxy_f, &
-           rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
-           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-           work_conv%y_c, work_conv%y_f)
-      else if(lin%confpotorder==6) then
-
-      call ConvolSextic(lr%d%n1, lr%d%n2, lr%d%n3, &
-           lr%d%nfl1, lr%d%nfu1, &
-           lr%d%nfl2, lr%d%nfu2, &
-           lr%d%nfl3, lr%d%nfu3, & 
-           input%hx, lr%ns1, lr%ns2, lr%ns3, &
-           lr%bounds%kb%ibyz_c, lr%bounds%kb%ibxz_c, lr%bounds%kb%ibxy_c, &
-           lr%bounds%kb%ibyz_f, lr%bounds%kb%ibxz_f, lr%bounds%kb%ibxy_f, &
-           rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
-           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-           work_conv%y_c, work_conv%y_f)
-
-       else
-           stop 'wronf conf pot'
-
-       end if
-
-     call compress_forstandard(lr%d%n1, lr%d%n2, lr%d%n3, &
-          lr%d%nfl1, lr%d%nfu1, &
-          lr%d%nfl2, lr%d%nfu2, &
-          lr%d%nfl3, lr%d%nfu3, &
-          lr%wfd%nseg_c, lr%wfd%nvctr_c, &
-          lr%wfd%keygloc, lr%wfd%keyv,  & 
-          lr%wfd%nseg_f, lr%wfd%nvctr_f, &
-          lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
-          lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),  & 
-          scal, work_conv%y_c, work_conv%y_f, vpsi(ist_c), vpsi(ist_f))
-
-     call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
-
-
-end subroutine apply_orbitaldependent_potential_foronelocreg
+!!!subroutine apply_orbitaldependent_potential_foronelocreg(iproc, nproc, lr, lin, at, input, orbs, rxyz, ndimpsi, &
+!!!           psi, centralLocreg, vpsi)
+!!!use module_base
+!!!use module_types
+!!!use module_interfaces
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nproc, centralLocreg, ndimpsi
+!!!type(locreg_descriptors),intent(in):: lr
+!!!type(linearParameters),intent(in):: lin
+!!!type(atoms_data),intent(in):: at
+!!!type(input_variables),intent(in):: input
+!!!type(orbitals_data),intent(in):: orbs
+!!!real(8),dimension(3,at%nat),intent(in):: rxyz
+!!!real(8),dimension(ndimpsi),intent(inout):: psi
+!!!real(8),dimension(ndimpsi),intent(out):: vpsi
+!!!
+!!!! Local variables
+!!!integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, ist_c, ist_f, ist, iiorb, iall, ierr
+!!!real(8):: hxh, hyh, hzh, ddot, tt, t1, t2, time
+!!!type(workarr_sumrho):: work_sr
+!!!real(8),dimension(:,:),allocatable:: psir, vpsir
+!!!type(workarr_precond) :: work
+!!!type(workarrays_quartic_convolutions):: work_conv
+!!!character(len=*),parameter:: subname='apply_orbitaldependent_potential'
+!!!real(8),dimension(0:3),parameter:: scal=1.d0
+!!!real(8),dimension(:,:,:),allocatable:: ypsitemp_c
+!!!real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
+!!!
+!!!
+!!!
+!!!  vpsi=0.d0
+!!!  ist_c=1
+!!!  ist_f=1
+!!!     iiorb=iorb+orbs%isorb
+!!!     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!!!  
+!!!     if(centralLocreg<0) then
+!!!         !icenter=lin%orbs%inWhichLocregp(iorb)
+!!!         icenter=lin%orbs%inWhichLocreg(iiorb)
+!!!     else
+!!!         icenter=centralLocreg
+!!!     end if
+!!!     ist_f=ist_f+lr%wfd%nvctr_c
+!!!     call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
+!!!     call uncompress_for_quartic_convolutions(lr%d%n1, lr%d%n2, lr%d%n3, &
+!!!          lr%d%nfl1, lr%d%nfu1, &
+!!!          lr%d%nfl2, lr%d%nfu2, &
+!!!          lr%d%nfl3, lr%d%nfu3, &
+!!!          lr%wfd%nseg_c, lr%wfd%nvctr_c, &
+!!!          lr%wfd%keygloc, lr%wfd%keyv,  & 
+!!!          lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+!!!          lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+!!!          lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),  & 
+!!!          scal, psi(ist_c), psi(ist_f), &
+!!!          work_conv)
+!!!
+!!!     if(lin%confpotorder==4) then
+!!!      call ConvolQuartic4(lr%d%n1, lr%d%n2, lr%d%n3, &
+!!!           lr%d%nfl1, lr%d%nfu1, &
+!!!           lr%d%nfl2, lr%d%nfu2, &
+!!!           lr%d%nfl3, lr%d%nfu3, & 
+!!!           input%hx, lr%ns1, lr%ns2, lr%ns3, &
+!!!           lr%bounds%kb%ibyz_c, lr%bounds%kb%ibxz_c, lr%bounds%kb%ibxy_c, &
+!!!           lr%bounds%kb%ibyz_f, lr%bounds%kb%ibxz_f, lr%bounds%kb%ibxy_f, &
+!!!           rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
+!!!           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+!!!           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+!!!           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+!!!           work_conv%y_c, work_conv%y_f)
+!!!      else if(lin%confpotorder==6) then
+!!!
+!!!      call ConvolSextic(lr%d%n1, lr%d%n2, lr%d%n3, &
+!!!           lr%d%nfl1, lr%d%nfu1, &
+!!!           lr%d%nfl2, lr%d%nfu2, &
+!!!           lr%d%nfl3, lr%d%nfu3, & 
+!!!           input%hx, lr%ns1, lr%ns2, lr%ns3, &
+!!!           lr%bounds%kb%ibyz_c, lr%bounds%kb%ibxz_c, lr%bounds%kb%ibxy_c, &
+!!!           lr%bounds%kb%ibyz_f, lr%bounds%kb%ibxz_f, lr%bounds%kb%ibxy_f, &
+!!!           rxyz(1,ilr), lin%potentialprefac(at%iatype(icenter)), .false., 0.d0, &
+!!!           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+!!!           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+!!!           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+!!!           work_conv%y_c, work_conv%y_f)
+!!!
+!!!       else
+!!!           stop 'wronf conf pot'
+!!!
+!!!       end if
+!!!
+!!!     call compress_forstandard(lr%d%n1, lr%d%n2, lr%d%n3, &
+!!!          lr%d%nfl1, lr%d%nfu1, &
+!!!          lr%d%nfl2, lr%d%nfu2, &
+!!!          lr%d%nfl3, lr%d%nfu3, &
+!!!          lr%wfd%nseg_c, lr%wfd%nvctr_c, &
+!!!          lr%wfd%keygloc, lr%wfd%keyv,  & 
+!!!          lr%wfd%nseg_f, lr%wfd%nvctr_f, &
+!!!          lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+!!!          lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),  & 
+!!!          scal, work_conv%y_c, work_conv%y_f, vpsi(ist_c), vpsi(ist_f))
+!!!
+!!!     call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
+!!!
+!!!
+!!!end subroutine apply_orbitaldependent_potential_foronelocreg
 
 
 
@@ -3536,8 +3537,8 @@ end function dfactorial
 
 
 !> Some description of the routine goes here
-subroutine unitary_optimization(iproc, nproc, lzd, orbs, at, input, op, comon, mad, rxyz, nit, kernel, &
-           newgradient, confdatarr, lphi)
+subroutine unitary_optimization(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, &
+           newgradient, confdatarr, hx, lphi)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => unitary_optimization
@@ -3548,13 +3549,13 @@ integer,intent(in):: iproc, nproc, nit
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input !< Input parameters, to be removed
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
 logical,intent(in):: newgradient
+real(8),intent(in):: hx
 type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
 
@@ -3652,8 +3653,8 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   !write(*,*) '1: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
 
       t1=mpi_wtime()
-      call apply_orbitaldependent_potential(iproc, nproc, at, input, orbs, lzd, rxyz, &
-           confdatarr, lphi, -1, lvphi)
+      call apply_orbitaldependent_potential(iproc, nproc, at, orbs, lzd, rxyz, &
+           confdatarr, hx, lphi, -1, lvphi)
       t2=mpi_wtime()
       time_convol=time_convol+t2-t1
 
@@ -3684,8 +3685,8 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
 
       if(newgradient) then
-          call get_potential_matrices(iproc, nproc, at, input, orbs, lzd, op, comon, mad, rxyz, &
-               confdatarr, lphi, potmat)
+          call get_potential_matrices(iproc, nproc, at, orbs, lzd, op, comon, mad, rxyz, &
+               confdatarr, hx, lphi, potmat)
           !call get_potential_matrices_new(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, lphi, &
           !     nlocregOnMPI, potmatsmall)
       end if
@@ -3881,8 +3882,8 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       time_lincomb=time_lincomb+t2-t1
 
       t1=mpi_wtime()
-      call apply_orbitaldependent_potential(iproc, nproc, at, input, orbs, lzd, rxyz, &
-           confdatarr, lphi, -1, lvphi)
+      call apply_orbitaldependent_potential(iproc, nproc, at, orbs, lzd, rxyz, &
+           confdatarr, hx, lphi, -1, lvphi)
       t2=mpi_wtime()
       time_convol=time_convol+t2-t1
 
@@ -4330,8 +4331,8 @@ END SUBROUTINE flatten
 
 
 
-subroutine get_potential_matrices(iproc, nproc, at, input, orbs, lzd, op, comon, mad, rxyz, &
-           confdatarr, psi, potmat)
+subroutine get_potential_matrices(iproc, nproc, at, orbs, lzd, op, comon, mad, rxyz, &
+           confdatarr, hx, psi, potmat)
 use module_base
 use module_types
 use module_interfaces, eccept_this_one => get_potential_matrices
@@ -4340,13 +4341,13 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat),intent(in):: rxyz
+real(8),intent(in):: hx
 type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
 real(8),dimension(orbs%norb,orbs%norb,at%nat),intent(out):: potmat
@@ -4366,8 +4367,8 @@ ilrold=-1
 do iorb=1,orbs%norb
     ilr=orbs%inwhichlocreg(iorb)
     if(ilr==ilrold) cycle
-    call apply_orbitaldependent_potential(iproc, nproc, at, input, orbs, lzd, rxyz, &
-         confdatarr, psi, ilr, vpsi)
+    call apply_orbitaldependent_potential(iproc, nproc, at, orbs, lzd, rxyz, &
+         confdatarr, hx, psi, ilr, vpsi)
 
     !call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, vpsi, comon%nsendBuf, comon%sendBuf)
     !call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, vpsi, comon, tt1, tt2)
@@ -4472,101 +4473,101 @@ end subroutine get_potential_matrices
 
 
 
-subroutine get_potential_matrices_new2(iproc, nproc, lin, at, input, orbs, lzd, op, comon, mad, rxyz, &
-           psi, nlocregOnMPI, potmat)
-use module_base
-use module_types
-use module_interfaces
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc, nlocregOnMPI
-type(linearParameters),intent(inout):: lin
-type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input
-type(orbitals_data),intent(in):: orbs
-type(local_zone_descriptors),intent(in):: lzd
-type(overlapParameters),intent(inout):: op
-type(p2pCommsOrthonormality),intent(inout):: comon
-type(matrixDescriptors),intent(in):: mad
-real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
-real(8),dimension(orbs%norb,orbs%norb,nlocregOnMPI),intent(out):: potmat
-
-! Local variables
-integer:: iorb, ilr, ilrold, istat, iall, ii, iiorb, ncount, iilr, jjorb, ist, jst, jorb, iorbout
-real(8),dimension(:,:),allocatable:: ttmat
-real(8):: tt1, tt2, tt3, tt4, tt5, ddot
-real(8),dimension(:),allocatable:: vpsi
-character(len=*),parameter:: subname='get_potential_matrices_new2'
-integer,dimensioN(:),allocatable:: sendcounts, displs
-
-
-
-
-allocate(vpsi(comon%nrecvbuf), stat=istat)
-call memocc(istat, vpsi, 'vpsi', subname)
-
-call extractOrbital3(iproc, nproc, orbs, max(orbs%npsidim_orbs,orbs%npsidim_comp), orbs%inWhichLocreg, &
-     lzd, op, psi, comon%nsendBuf, comon%sendBuf)
-call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, psi, comon, tt1, tt2)
-!!allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
-call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, lin%lzd, comon%nsendbuf, &
-     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
-!!deallocate(ttmat)
-
-! Now all other psi are in the receive buffer. Apply the potential to them.
-iilr=0
-ilrold=-1
-do iorbout=1,orbs%norbp
-    ilr=orbs%inwhichlocreg(orbs%isorb+iorbout)
-    if(ilr==ilrold) cycle
-    iilr=iilr+1
-    do iorb=1,orbs%norbp
-        iiorb=orbs%isorb+iorb
-        do jorb=1,op%noverlaps(iiorb)
-            jjorb=op%overlaps(jorb,iiorb)
-            call getStartingIndices(iorb, jorb, op, orbs, ist, jst)
-            ncount=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
-    
-            call apply_orbitaldependent_potential_foronelocreg(iproc, nproc, op%olr(jorb,iorb), lin, &
-                 at, input, orbs, rxyz, ncount, &
-                 comon%recvbuf, iilr, vpsi(1))
-            potmat(jjorb,iiorb,iilr)=ddot(ncount, comon%sendBuf(ist), 1, vpsi(1), 1)
-        end do
-    end do
-    ilrold=ilr
-end do
-
-!!ilrold=-1
-!!ii=0
-!!do iorb=1,orbs%norbp
-!!    iiorb=orbs%isorb+iorb
-!!    ilr=orbs%inwhichlocreg(iiorb)
-!!    if(ilr==ilrold) cycle
-!!    ii=ii+1
-!!    call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, psi, ilr, vpsi)
-!!    !call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
-!!    !                             comon%sendBuf, comon%nrecvBuf, comon%recvBuf, lin%mad, potmat(1,1,ii))
-!!    !call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, psi, vpsi, lin%mad, potmat(1,1,ilr))
-!!
-!!    call calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, orbs%inwhichlocreg, comon%nsendBuf, comon%sendBuf, &
-!!         comon%nrecvBuf, comon%recvBuf, lin%mad, tempmat)
-!!
-!!    ilrold=ilr
-!!    
-!!end do
-
-iall=-product(shape(vpsi))*kind(vpsi)
-deallocate(vpsi, stat=istat)
-call memocc(istat, iall, 'vpsi', subname)
-
-iall=-product(shape(sendcounts))*kind(sendcounts)
-deallocate(sendcounts, stat=istat)
-call memocc(istat, iall, 'sendcounts', subname)
-
-iall=-product(shape(displs))*kind(displs)
-deallocate(displs, stat=istat)
-call memocc(istat, iall, 'displs', subname)
-
-end subroutine get_potential_matrices_new2
+!!!subroutine get_potential_matrices_new2(iproc, nproc, lin, at, input, orbs, lzd, op, comon, mad, rxyz, &
+!!!           psi, nlocregOnMPI, potmat)
+!!!use module_base
+!!!use module_types
+!!!use module_interfaces
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nproc, nlocregOnMPI
+!!!type(linearParameters),intent(inout):: lin
+!!!type(atoms_data),intent(in):: at
+!!!type(input_variables),intent(in):: input
+!!!type(orbitals_data),intent(in):: orbs
+!!!type(local_zone_descriptors),intent(in):: lzd
+!!!type(overlapParameters),intent(inout):: op
+!!!type(p2pCommsOrthonormality),intent(inout):: comon
+!!!type(matrixDescriptors),intent(in):: mad
+!!!real(8),dimension(3,at%nat),intent(in):: rxyz
+!!!real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
+!!!real(8),dimension(orbs%norb,orbs%norb,nlocregOnMPI),intent(out):: potmat
+!!!
+!!!! Local variables
+!!!integer:: iorb, ilr, ilrold, istat, iall, ii, iiorb, ncount, iilr, jjorb, ist, jst, jorb, iorbout
+!!!real(8),dimension(:,:),allocatable:: ttmat
+!!!real(8):: tt1, tt2, tt3, tt4, tt5, ddot
+!!!real(8),dimension(:),allocatable:: vpsi
+!!!character(len=*),parameter:: subname='get_potential_matrices_new2'
+!!!integer,dimensioN(:),allocatable:: sendcounts, displs
+!!!
+!!!
+!!!
+!!!
+!!!allocate(vpsi(comon%nrecvbuf), stat=istat)
+!!!call memocc(istat, vpsi, 'vpsi', subname)
+!!!
+!!!call extractOrbital3(iproc, nproc, orbs, max(orbs%npsidim_orbs,orbs%npsidim_comp), orbs%inWhichLocreg, &
+!!!     lzd, op, psi, comon%nsendBuf, comon%sendBuf)
+!!!call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, psi, comon, tt1, tt2)
+!!!!!allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+!!!call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, lin%lzd, comon%nsendbuf, &
+!!!     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
+!!!!!deallocate(ttmat)
+!!!
+!!!! Now all other psi are in the receive buffer. Apply the potential to them.
+!!!iilr=0
+!!!ilrold=-1
+!!!do iorbout=1,orbs%norbp
+!!!    ilr=orbs%inwhichlocreg(orbs%isorb+iorbout)
+!!!    if(ilr==ilrold) cycle
+!!!    iilr=iilr+1
+!!!    do iorb=1,orbs%norbp
+!!!        iiorb=orbs%isorb+iorb
+!!!        do jorb=1,op%noverlaps(iiorb)
+!!!            jjorb=op%overlaps(jorb,iiorb)
+!!!            call getStartingIndices(iorb, jorb, op, orbs, ist, jst)
+!!!            ncount=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
+!!!    
+!!!            call apply_orbitaldependent_potential_foronelocreg(iproc, nproc, op%olr(jorb,iorb), lin, &
+!!!                 at, input, orbs, rxyz, ncount, &
+!!!                 comon%recvbuf, iilr, vpsi(1))
+!!!            potmat(jjorb,iiorb,iilr)=ddot(ncount, comon%sendBuf(ist), 1, vpsi(1), 1)
+!!!        end do
+!!!    end do
+!!!    ilrold=ilr
+!!!end do
+!!!
+!!!!!ilrold=-1
+!!!!!ii=0
+!!!!!do iorb=1,orbs%norbp
+!!!!!    iiorb=orbs%isorb+iorb
+!!!!!    ilr=orbs%inwhichlocreg(iiorb)
+!!!!!    if(ilr==ilrold) cycle
+!!!!!    ii=ii+1
+!!!!!    call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, psi, ilr, vpsi)
+!!!!!    !call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
+!!!!!    !                             comon%sendBuf, comon%nrecvBuf, comon%recvBuf, lin%mad, potmat(1,1,ii))
+!!!!!    !call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, psi, vpsi, lin%mad, potmat(1,1,ilr))
+!!!!!
+!!!!!    call calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, orbs%inwhichlocreg, comon%nsendBuf, comon%sendBuf, &
+!!!!!         comon%nrecvBuf, comon%recvBuf, lin%mad, tempmat)
+!!!!!
+!!!!!    ilrold=ilr
+!!!!!    
+!!!!!end do
+!!!
+!!!iall=-product(shape(vpsi))*kind(vpsi)
+!!!deallocate(vpsi, stat=istat)
+!!!call memocc(istat, iall, 'vpsi', subname)
+!!!
+!!!iall=-product(shape(sendcounts))*kind(sendcounts)
+!!!deallocate(sendcounts, stat=istat)
+!!!call memocc(istat, iall, 'sendcounts', subname)
+!!!
+!!!iall=-product(shape(displs))*kind(displs)
+!!!deallocate(displs, stat=istat)
+!!!call memocc(istat, iall, 'displs', subname)
+!!!
+!!!end subroutine get_potential_matrices_new2

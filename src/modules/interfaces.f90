@@ -1769,16 +1769,16 @@ module module_interfaces
 !!$      character(len=*), intent(in) :: filename
 !!$     end subroutine readmywaves
     
-  subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, mad, rxyz, &
+  subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, mad, rxyz, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
         infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, nItInnerLoop, &
         newgradient, orthpar, confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, &
-        nItPrecond)
+        hx, hy, hz, SIC, nspin, nItPrecond)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, nit, nItInnerLoop
-      integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
+      integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond, nspin
       integer,intent(out):: infoBasisFunctions
       type(atoms_data), intent(in) :: at
       type(local_zone_descriptors),intent(inout):: lzd
@@ -1786,7 +1786,6 @@ module module_interfaces
       type(p2pCommsOrthonormality):: comon
       type(overlapParameters):: op
       type(p2pCommsGatherPot):: comgp
-      type(input_variables):: input
       type(matrixDescriptors),intent(in):: mad
       real(8),dimension(3,at%nat):: rxyz
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -1796,7 +1795,7 @@ module module_interfaces
       real(dp), dimension(:), pointer :: pkernelseq
       real(8),dimension(lorbs%npsidim_orbs):: lphi
       real(8),intent(out):: trH
-      real(8),intent(in):: convCrit
+      real(8),intent(in):: convCrit, hx, hy, hz
       real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -1805,6 +1804,7 @@ module module_interfaces
       logical,intent(in):: newgradient
       type(orthon_data),intent(in):: orthpar
       type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
+      type(SIC_data) :: SIC !<parameters for the SIC methods
     end subroutine getLocalizedBasis
 
 
@@ -3216,7 +3216,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-                blocksize_pdgemm, orbs, op, comon, lzd, input, mad, lphi, ovrlp)
+                blocksize_pdgemm, orbs, op, comon, lzd, mad, lphi, ovrlp)
        use module_base
        use module_types
        implicit none
@@ -3225,7 +3225,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters),intent(inout):: op
        type(p2pCommsOrthonormality),intent(inout):: comon
        type(local_zone_descriptors),intent(in):: lzd
-       type(input_variables),intent(in):: input
        type(matrixDescriptors),intent(in):: mad
        real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
@@ -4735,13 +4734,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       !!  type(matrixDescriptors),intent(out):: mad
       !!end subroutine initMatrixCompression
 
-      subroutine orthoconstraintNonorthogonal(iproc, nproc, input, lzd, orbs, op, comon, mad, ovrlp, &
+      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, ovrlp, &
                  methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
         use module_base
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
-        type(input_variables),intent(in):: input
         type(local_zone_descriptors),intent(in):: lzd
         type(orbitals_Data),intent(in):: orbs
         type(overlapParameters),intent(inout):: op
@@ -5398,8 +5396,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine applyOrthoconstraintlocal
 
 
-       subroutine unitary_optimization(iproc, nproc, lzd, orbs, at, input, op, comon, mad, rxyz, nit, kernel, &
-        newgradient, confdatarr, lphi)
+       subroutine unitary_optimization(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, &
+        newgradient, confdatarr, hx, lphi)
          use module_base
          use module_types
          implicit none
@@ -5407,13 +5405,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(local_zone_descriptors),intent(in):: lzd
          type(orbitals_data),intent(in):: orbs
          type(atoms_data),intent(in):: at
-         type(input_variables),intent(in):: input
          type(overlapParameters),intent(inout):: op
          type(p2pCommsOrthonormality),intent(inout):: comon
          type(matrixDescriptors),intent(in):: mad
          real(8),dimension(3,at%nat),intent(in):: rxyz
          real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
          logical,intent(in):: newgradient
+         real(8),intent(in):: hx
          type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
          real(8),dimension(orbs%npsidim_comp),intent(inout):: lphi
        end subroutine unitary_optimization
@@ -5638,31 +5636,30 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine AtomicOrbitals_forLinear
 
 
-       subroutine apply_orbitaldependent_potential(iproc, nproc, at, input, orbs, lzd, rxyz, &
-                  confdatarr, psi, centralLocreg, vpsi)
+       subroutine apply_orbitaldependent_potential(iproc, nproc, at, orbs, lzd, rxyz, &
+                  confdatarr, hx, psi, centralLocreg, vpsi)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, centralLocreg
          type(atoms_data),intent(in):: at
-         type(input_variables),intent(in):: input
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          real(8),dimension(3,at%nat),intent(in):: rxyz
          type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
+         real(8),intent(in):: hx
          real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
          real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: vpsi
        end subroutine apply_orbitaldependent_potential
 
 
-       subroutine get_potential_matrices(iproc, nproc, at, input, orbs, lzd, op, comon, mad, rxyz, &
-                  confdatarr, psi, potmat)
+       subroutine get_potential_matrices(iproc, nproc, at, orbs, lzd, op, comon, mad, rxyz, &
+                  confdatarr, hx, psi, potmat)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          type(atoms_data),intent(in):: at
-         type(input_variables),intent(in):: input
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          type(overlapParameters),intent(inout):: op
@@ -5670,6 +5667,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(matrixDescriptors),intent(in):: mad
          real(8),dimension(3,at%nat),intent(in):: rxyz
          type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
+         real(8),intent(in):: hx
          real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
          real(8),dimension(orbs%norb,orbs%norb,at%nat),intent(out):: potmat
        end subroutine get_potential_matrices
