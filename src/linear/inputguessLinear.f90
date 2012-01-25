@@ -116,7 +116,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   call copy_locreg_descriptors(Glr, lin%lig%lzdGauss%Glr, subname)
 
   ! Determine the localization regions.
-  call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdig, lin%lig%orbsig, input, Glr, lin%locrad, lin%locregShape)
+  call initLocregs2(iproc, nproc, at%nat, rxyz, lin%lig%lzdig, lin%lig%orbsig, input, Glr, lin%locrad, lin%locregShape)
   !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
   call copy_locreg_descriptors(Glr, lin%lig%lzdig%Glr, subname)
 
@@ -124,7 +124,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   locrad=max(12.d0,maxval(lin%locrad(:)))
   call nullify_orbitals_data(lin%lig%orbsGauss)
   call copy_orbitals_data(lin%lig%orbsig, lin%lig%orbsGauss, subname)
-  call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdGauss, lin%lig%orbsGauss, input, Glr, locrad, lin%locregShape)
+  call initLocregs2(iproc, nproc, at%nat, rxyz, lin%lig%lzdGauss, lin%lig%orbsGauss, input, Glr, locrad, lin%locregShape)
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
@@ -167,7 +167,7 @@ END SUBROUTINE initInputguessConfinement
 subroutine inputguessConfinement(iproc, nproc, at, &
      comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
      nlpspd, proj, pkernel, pkernelseq, &
-     nscatterarr, ngatherarr, potshortcut, GPU, radii_cf,  &
+     nscatterarr, ngatherarr, potshortcut, GPU,  &
      tag, lphi, ehart, eexcu, vexcu)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
@@ -194,11 +194,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot, rhopotold
   real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
-  real(wp), dimension(:), pointer :: rhocore
+  real(wp), dimension(:,:,:,:), pointer :: rhocore
   real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
   real(dp), dimension(:), pointer :: pkernelseq
   integer, intent(in) ::potshortcut
-  real(8),dimension(at%ntypes,3),intent(in):: radii_cf
   integer,intent(inout):: tag
   real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(out):: lphi
   real(8),intent(out):: ehart, eexcu, vexcu
@@ -397,12 +396,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !end do
 
   ! Copy lin%lig%orbsig to lin%lig%orbsGauss, but keep the size of the orbitals in lin%lig%orbsGauss.
-  call deallocate_orbitals_data(lin%lig%orbsGauss, subname)
+  call deallocate_orbitals_data(lin%lig%orbsGauss,subname)
   ii_orbs=lin%lig%orbsGauss%npsidim_orbs
   ii_comp=lin%lig%orbsGauss%npsidim_comp
   call nullify_orbitals_data(lin%lig%orbsGauss)
   !call nullify_orbitals_data(lin%lig%lzdGauss%orbs)
-  call copy_orbitals_data(lin%lig%orbsig, lin%lig%orbsGauss, subname)
+  call copy_orbitals_data(lin%lig%orbsig,lin%lig%orbsGauss,subname)
   !call copy_orbitals_data(lin%lig%orbsig, lin%lig%lzdGauss%orbs, subname)
   lin%lig%orbsGauss%npsidim_orbs=ii_orbs
   lin%lig%orbsGauss%npsidim_comp=ii_comp
@@ -410,6 +409,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Allcoate the array holding the orbitals. lchi2 are the atomic orbitals with the larger cutoff, whereas
   ! lchi are the atomic orbitals with the smaller cutoff.
+  !print *,'here',lin%lig%orbsGauss%npsidim_orbs,lin%lig%orbsGauss%npsidim_comp
   allocate(lchi2(max(lin%lig%orbsGauss%npsidim_orbs,lin%lig%orbsGauss%npsidim_comp)),stat=istat)
   call memocc(istat,lchi2,'lchi2',subname)
   lchi2=0.d0
@@ -705,8 +705,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
   call mpi_barrier(mpi_comm_world,ierr)
   call cpu_time(t1)
-!  call prepare_lnlpspd(iproc,at,input,lin%lig%orbsig,rxyz,radii_cf,&
-!       lin%locregShape,lin%lig%lzdig)
 
 !!$  call full_local_potential2(iproc, nproc, &
 !!$       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2), &
@@ -759,25 +757,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       end do
       !write(*,'(a,2i4,4x,100l4)') 'iat, iproc, doNotCalculate', iat, iproc, doNotCalculate
       if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
-      !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
-      !!     ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, lhchi(1,iat), &
-      !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
-      !!     withConfinement, pkernel=pkernelseq)
       if(.not.skip(iat)) then
           ii=ii+1
-          !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, &
-          !!     input%hx, input%hy, input%hz, rxyz,&
-          !!     ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, lhchi(1,ii), &
-          !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
-          !!     withConfinement, .false., doNotCalculate=doNotCalculate, pkernel=pkernelseq)
           if(lin%nItInguess>0) then
-!!$             call HamiltonianApplication3(iproc,nproc,at,&
-!!$                  lin%lig%orbsig,&
-!!$                  input%hx,input%hy,input%hz,rxyz,&
-!!$                  proj,lin%lig%lzdig,ngatherarr,lpot,lchi,lhchi(1,ii),&
-!!$                  ekin_sum,epot_sum,eexctX,eproj_sum,input%nspin,GPU,&
-!!$                  withConfinement,.false.,&
-!!$                  pkernel=pkernelseq,lin=lin,confinementCenter=onWhichAtomTemp)
 
              allocate(confdatarr(lin%lig%orbsig%norbp))
              call define_confinement_data(confdatarr,lin%lig%orbsig,rxyz,at,&
@@ -804,13 +786,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           !!! localization regions du to doNotCalculate.
           !!allocate(dummyArray(lin%lig%orbsig%npsidim), stat=istat)
           !!call memocc(istat, dummyArray, 'dummyArray', subname)
-          !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
-          !!     ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, dummyArray(1), &
-          !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
-          !!     withConfinement, doNotCalculate=doNotCalculate, pkernel=pkernelseq, energyReductionFlag=.false.)
-          !!iall=-product(shape(dummyArray))*kind(dummyArray)
-          !!deallocate(dummyArray,stat=istat)
-          !!call memocc(istat,iall,'dummyArray',subname)
       end if
 
 
@@ -1883,22 +1858,17 @@ allocate(hamTemp(orbsig%norb,orbsig%norb), stat=istat)
 call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
-if(iproc==0) write(*,*) 'calling initCommsOrtho in getHamiltonianMatrix6'
 call initCommsOrtho(iproc, nproc, lzdig, orbsig, onWhichAtom, input, locregShape, op, comon, tagout)
 
 
-if(iproc==0) write(*,*) 'calling allocateCommuncationBuffersOrtho in getHamiltonianMatrix6'
 call allocateCommuncationBuffersOrtho(comon, subname)
 
 ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
 ! Then post the messages and gather them.
 !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi, comon)
-if(iproc==0) write(*,*) 'calling extractOrbital3 in getHamiltonianMatrix6'
 call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim_orbs, onWhichAtom, lzdig, op, lchi, comon%nsendBuf, comon%sendBuf)
-if(iproc==0) write(*,*) 'calling postCommsOverlap in getHamiltonianMatrix6'
 !!call postCommsOverlap(iproc, nproc, comon)
 call postCommsOverlapNew(iproc, nproc, orbsig, op, lzdig, lchi, comon, tt1, tt2)
-if(iproc==0) write(*,*) 'calling gatherOrbitals2 in getHamiltonianMatrix6'
 !call gatherOrbitals2(iproc, nproc, comon)
 allocate(ttmat(orbsig%norb,orbsig%norb))
 call collectnew(iproc, nproc, comon, mad, op, orbsig, input, lzdig, comon%nsendbuf, &

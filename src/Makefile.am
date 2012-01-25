@@ -333,11 +333,11 @@ low_level = \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
+	linear/communicatetypes.f90 \
 	linear/filterModule.f90 \
 	linear/getLocBasis.f90 \
 	linear/applyHamiltonian.f90 \
 	linear/precondLinear.f90 \
-	linear/locReg.f90 \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
 	linear/locReg_projectors.f90 \
@@ -357,6 +357,7 @@ low_level = \
 	linear/copyTypes.f90 \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
+	linear/locReg.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \

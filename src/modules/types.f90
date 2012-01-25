@@ -123,7 +123,7 @@ module module_types
     real(8),dimension(:),pointer:: locrad
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
-    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
+    logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, mixedmode
     character(len=4):: mixingMethod
     character(len=1):: locregShape
   end type linearInputParameters
@@ -309,6 +309,7 @@ module module_types
      integer, dimension(:,:,:), pointer :: irrzon
      real(dp), dimension(:,:,:), pointer :: phnons
   end type symmetry_data
+
 !>  Atomic data (name, polarisation, ...)
   type, public :: atoms_data
      character(len=1) :: geocode
@@ -646,8 +647,6 @@ module module_types
       integer,dimension(:),pointer:: sendcnts, senddspls, recvcnts, recvdspls, indexarray
   end type collectiveComms
 
-
-
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
 !! minimizing orbitals, this basis may be larger than only the trace minimizing
@@ -663,6 +662,7 @@ type,public:: largeBasis
     type(p2pCommsGatherPot):: comgp
     type(matrixDescriptors):: mad
     type(collectiveComms):: collComms
+    type(p2pCommsSumrho):: comsr
 end type largeBasis
 
 
@@ -726,7 +726,7 @@ end type workarrays_quartic_convolutions
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
-    logical:: newgradient
+    logical:: newgradient, mixedmode
     character(len=4):: mixingMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp
@@ -768,79 +768,40 @@ end type workarrays_quartic_convolutions
      real(gp), dimension(3) :: rxyzConf !< confining potential center in global coordinates
   end type confpot_data
 
+  !> Densities and potentials, and related metadata, needed for their creation/application
+  !! Not all these quantities are available, some of them may point to the same memory space
+  type, public :: DFT_local_fields
+     real(dp), dimension(:), pointer :: rhov !< generic workspace. What is there is indicated by rhov_is 
+     !local fields which are associated to their name
+     !normally given in parallel distribution
+     real(dp), dimension(:,:), pointer :: rho_psi !< density as given by square of el. WFN
+     real(dp), dimension(:,:,:,:), pointer :: rho_C   !< core density
+     real(wp), dimension(:,:,:,:), pointer :: V_ext   !< local part of pseudopotientials
+     real(wp), dimension(:,:,:,:), pointer :: V_XC    !< eXchange and Correlation potential (local)
+     real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
+     real(wp), dimension(:,:,:,:), pointer :: f_XC !< dV_XC[rho]/d_rho
+     !temoprary arrays
+     real(wp), dimension(:), pointer :: rho_full,pot_full !<full grid arrays
+     !metadata
+     integer :: rhov_is
+     real(gp) :: psoffset !< offset of the Poisson Solver in the case of Periodic BC
+     type(rho_descriptors) :: rhod !< descriptors of the density for parallel communication
+     type(denspot_distribution) :: dpcom !< parallel distribution of density and potential
+     character(len=3) :: PSquiet
+     real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid
+     real(dp), dimension(:), pointer :: pkernel !< kernel of the Poisson Solverm used for V_H[rho]
+     real(dp), dimension(:), pointer :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
+
+  end type DFT_local_fields
+
+  !> Flags for rhov status
+  integer, parameter, public :: EMPTY              = -1980
+  integer, parameter, public :: ELECTRONIC_DENSITY = -1979
+  integer, parameter, public :: CHARGE_DENSITY     = -1978
+  integer, parameter, public :: KS_POTENTIAL       = -1977
+  integer, parameter, public :: HARTREE_POTENTIAL  = -1976
+
 contains
-
-
-!> Allocate diis objects
-  subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subname) !n(m)
-    use module_base
-    implicit none
-    character(len=*), intent(in) :: subname
-    integer, intent(in) :: idsx,npsidim,nkptsp,nspinor !n(m)
-    real(gp), intent(in) :: alphadiis
-    type(diis_objects), intent(inout) :: diis
-    !local variables
-    integer :: i_stat,ncplx,ngroup
-
-    !calculate the number of complex components
-    if (nspinor > 1) then
-       ncplx=2
-    else
-       ncplx=1
-    end if
-
-    !always better to allow real combination of the wavefunctions
-    ncplx=1
-
-    !add the possibility of more than one diis group
-    ngroup=1
-
-    allocate(diis%psidst(npsidim*idsx+ndebug),stat=i_stat)
-    call memocc(i_stat,diis%psidst,'psidst',subname)
-    allocate(diis%hpsidst(npsidim*idsx+ndebug),stat=i_stat)
-    call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
-    allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)
-    call memocc(i_stat,diis%ads,'ads',subname)
-    call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
-
-    !initialize scalar variables
-    !diis initialisation variables
-    diis%alpha=alphadiis
-    diis%alpha_max=alphadiis
-    diis%energy=1.d10
-    !minimum value of the energy during the minimisation procedure
-    diis%energy_min=1.d10
-    !previous value already fulfilled
-    diis%energy_old=diis%energy
-    !local variable for the diis history
-    diis%idsx=idsx
-    !logical control variable for switch DIIS-SD
-    diis%switchSD=.false.
-    
-
-  END SUBROUTINE allocate_diis_objects
-
-
-!> De-Allocate diis objects
-  subroutine deallocate_diis_objects(diis,subname)
-    use module_base
-    implicit none
-    character(len=*), intent(in) :: subname
-    type(diis_objects), intent(inout) :: diis
-    !local variables
-    integer :: i_all,i_stat
-
-    i_all=-product(shape(diis%psidst))*kind(diis%psidst)
-    deallocate(diis%psidst,stat=i_stat)
-    call memocc(i_stat,i_all,'psidst',subname)
-    i_all=-product(shape(diis%hpsidst))*kind(diis%hpsidst)
-    deallocate(diis%hpsidst,stat=i_stat)
-    call memocc(i_stat,i_all,'hpsidst',subname)
-    i_all=-product(shape(diis%ads))*kind(diis%ads)
-    deallocate(diis%ads,stat=i_stat)
-    call memocc(i_stat,i_all,'ads',subname)
-
-  END SUBROUTINE deallocate_diis_objects
 
 
 !!$!> Allocate communications_arrays

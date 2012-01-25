@@ -376,7 +376,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !transposed  wavefunction
    ! Pointers and variables to store the last psi
    ! before reformatting if useFormattedInput is .true.
-   real(kind=8), dimension(:), pointer :: hpsi,psit,psivirt,rhocore
+   real(kind=8), dimension(:), pointer :: hpsi,psit,psivirt
+   real(dp), dimension(:,:,:,:), pointer :: rhocore
    !real(kind=8), dimension(:), pointer :: psidst,hpsidst
    ! PSP projectors 
    real(kind=8), dimension(:), pointer :: proj
@@ -397,7 +398,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(gp) :: shift_b2B(3)
    integer :: itype, nd
    integer :: n1i_bB,n2i_bB,n3i_bB
-   real(gp), dimension(:,:), pointer :: pot_bB
+   real(gp), dimension(:,:,:,:), pointer :: pot_bB
    real(gp), dimension(:), pointer ::  intfunc_x, intfunc_y
    real(gp) :: factx, facty, factz
    integer :: idelta
@@ -541,7 +542,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
 
 !   if (in%inputPsiId /= 0 .and. in%inputPsiId /= 10) then
-   call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
+   call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
 !   end if
 
    if(sum(atoms%paw_NofL).gt.0) then
@@ -741,11 +742,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
           orbsAO,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-         &   nscatterarr,ngatherarr,nspin, in%potshortcut, symObj, GPU,in, radii_cf)
+         &   nscatterarr,ngatherarr,nspin, in%potshortcut, symObj, GPU,in)
 
       !Check if we must use linear scaling for total SCF
       !change the Lzd structure accordingly, also orbs%inwhichlocreg
-      call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms_clone,orbsAO,rxyz,radii_cf) 
+      call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms_clone,orbsAO,rxyz) 
 
 
       if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
@@ -767,7 +768,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          do iz = 1,n3i
             do iy=1,n2i
                do ix=1,n1i
-                  rhopottmp(ix,iy,iz +i3xcsh,1) =  pot_bB(ix+ (iy-1)*n1i  + (iz-1)*n1i*n2i,1)  
+                  rhopottmp(ix,iy,iz +i3xcsh,1) =  pot_bB(ix,iy,iz,1)  !pot_bB(ix+ (iy-1)*n1i  + (iz-1)*n1i*n2i,1)  
                enddo
             enddo
          enddo
@@ -814,11 +815,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call input_wf_diag(iproc,nproc,atoms,rhodsc,&
           orbsAO,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-         &   nscatterarr,ngatherarr,nspin, in%potshortcut, symObj, GPU, in, radii_cf)
+         &   nscatterarr,ngatherarr,nspin, in%potshortcut, symObj, GPU, in)
 
       !Check if we must use linear scaling for total SCF
       !change the Lzd structure accordingly, also orbs%inwhichlocreg
-      call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms,orbsAO,rxyz,radii_cf) 
+      call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms,orbsAO,rxyz) 
 
       i_all=-product(shape(psi))*kind(psi)
       deallocate(psi,stat=i_stat)
@@ -985,7 +986,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                do iz_bB = 1,n3i_bB
                   do iy_bB=1,n2i_bB
                      do ix_bB=1,n1i_bB
-                        rhopottmp(ix_bB,iy_bB,iz_bB ,1) =  pot_bB(ix_bB  + (iy_bB-1)*n1i_bB  + (iz_bB-1)*n1i_bB*n2i_bB,1)
+                        rhopottmp(ix_bB,iy_bB,iz_bB ,1) =  pot_bB(ix_bB,iy_bB,iz_bB,1)
+                                                          !pot_bB(ix_bB  + (iy_bB-1)*n1i_bB  + (iz_bB-1)*n1i_bB*n2i_bB,1)
                         !! rhopottmp(ix_bB,iy_bB,iz_bB ,1) =  pot_bB(ix_bB  + (iy_bB-1)*n1i_bB  + (iz_bB-1)*n1i_bB*n2i_bB,1)
                      enddo
                   enddo
