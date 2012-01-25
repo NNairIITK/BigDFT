@@ -4,7 +4,8 @@ subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
     ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr, &
-    methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond)
+    methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond, &
+    useDerivativeBasisFunctions, lphiRestart, comrp, blocksize_pdsyev, nproc_pdsyev)
 !
 ! Purpose:
 ! ========
@@ -65,6 +66,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit, nItInnerLoop
 integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
+integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
 type(p2pCommsSumrho),intent(inout):: comsr
@@ -83,7 +85,7 @@ integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
 real(dp),dimension(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
 type(GPU_pointers),intent(inout):: GPU
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
-logical,intent(in):: updatePhi, newgradient
+logical,intent(in):: updatePhi, newgradient, useDerivativeBasisFunctions
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
@@ -97,6 +99,8 @@ real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
 type(localizedDIISParameters),intent(inout):: ldiis
 type(orthon_data),intent(in):: orthpar
 type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
+real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
+type(p2pCommsRepartition),intent(inout):: comrp
 
 ! Local variables 
 integer:: istat, iall, ilr, istr, iorb, jorb, korb
@@ -129,8 +133,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       ! If we use the derivative basis functions, the trace minimizing orbitals of the last iteration are
       ! stored in lin%lphiRestart.
       ! WARNING: Will probably not work if we use the random input guess
-      if(lin%useDerivativeBasisFunctions) then
-          call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lin%lphiRestart(1),1,lphi(1),1)
+      if(useDerivativeBasisFunctions) then
+          call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart(1),1,lphi(1),1)
       end if
 
 
@@ -143,21 +147,21 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   end if
 
   if(updatePhi .or. itSCC==0) then
-      call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1), 1, lin%lphiRestart(1), 1)
+      call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1), 1, lphiRestart(1), 1)
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   !write(*,*) 'associated(lin%lb%comrp%communComplete)', associated(lin%lb%comrp%communComplete)
-  if(lin%useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
-      call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
+  if(useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
+      !!call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
-      call getDerivativeBasisFunctions(iproc,nproc,input%hx,lzd%Glr,lin,&
-           max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lin%lphiRestart,lphi)
+      call getDerivativeBasisFunctions(iproc,nproc,input%hx,lzd,lorbs,llborbs,comrp,&
+           max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart,lphi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if
 
   ! Get the overlap matrix.
-  if(.not.lin%useDerivativeBasisFunctions) then
+  if(.not.useDerivativeBasisFunctions) then
       call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, lphi, mad, ovrlp)
   else
       call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, lphi, lbmad, ovrlp)
@@ -200,9 +204,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       call gatherPotential(iproc, nproc, comgp)
   end if
   ! If we use the derivative basis functions the potential has to be gathered anyway.
-  if(lin%useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lbcomgp)
+  if(useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lbcomgp)
 
-  if(.not.lin%useDerivativeBasisFunctions) then
+  if(.not.useDerivativeBasisFunctions) then
 
 
      call local_potential_dimensions(lzd,lorbs,ngatherarr(0,1))
@@ -233,7 +237,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
   call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
   lzd%doHamAppl=.true.
-  if(.not.lin%useDerivativeBasisFunctions) then
+  if(.not.useDerivativeBasisFunctions) then
      allocate(confdatarrtmp(lorbs%norbp))
      call default_confinement_data(confdatarrtmp,lorbs%norbp)
      call HamiltonianApplication3(iproc,nproc,at,lorbs,&
@@ -268,12 +272,12 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(comgp, subname)
-  if(lin%useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
+  if(useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 
   ! Calculate the matrix elements <phi|H|phi>.
   call allocateCommuncationBuffersOrtho(lbcomon, subname)
-  if(.not. lin%useDerivativeBasisFunctions) then
+  if(.not. useDerivativeBasisFunctions) then
       call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, lphi, lhphi, mad, matrixElements)
   else
       call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, lphi, lhphi, lbmad, matrixElements)
@@ -319,12 +323,12 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
   ! are still needed later.
   call dcopy(llborbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-  if(lin%blocksize_pdsyev<0) then
+  if(blocksize_pdsyev<0) then
       if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
       call diagonalizeHamiltonian2(iproc, nproc, llborbs, lbop%nsubmax, matrixElements(1,1,2), ovrlp, eval)
   else
       if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
-      call dsygv_parallel(iproc, nproc, lin%blocksize_pdsyev, lin%nproc_pdsyev, mpi_comm_world, 1, 'v', 'l', llborbs%norb,&
+      call dsygv_parallel(iproc, nproc, blocksize_pdsyev, nproc_pdsyev, mpi_comm_world, 1, 'v', 'l', llborbs%norb,&
            matrixElements(1,1,2), llborbs%norb, ovrlp, llborbs%norb, eval, info)
   end if
   if(iproc==0) write(*,'(a)') 'done.'
@@ -367,7 +371,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
   ! Project the lb coefficients on the smaller subset
-  if(lin%useDerivativeBasisFunctions) then
+  if(useDerivativeBasisFunctions) then
       inc=4
   else
       inc=1

@@ -219,7 +219,8 @@ type(orthon_data):: orthpar
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
               i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%nItInnerLoop, &
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
-              lin%convCrit, lin%nItPrecond)
+              lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, lin%lphiRestart, &
+              lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev)
       else
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -229,7 +230,8 @@ type(orthon_data):: orthpar
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
               i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
               coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, & 
-              lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond)
+              lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
+              lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -407,7 +409,8 @@ type(orthon_data):: orthpar
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                       i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
                       coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
-                      lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond)
+                      lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
+                      lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -417,7 +420,8 @@ type(orthon_data):: orthpar
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                       i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
                       coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
-                      lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond)
+                      lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
+                      lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev)
               end if
           else
               call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -427,7 +431,8 @@ type(orthon_data):: orthpar
                   infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                   i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
                   coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
-                  lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond)
+                  lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
+                  lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev)
           end if
 
 

@@ -1974,12 +1974,14 @@ module module_interfaces
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
         i3s, i3xcsh, ebsMod, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
         ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr, &
-        methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond)
+        methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond, &
+        useDerivativeBasis, lphiRestart, comrp, blocksize_pdsyev, nproc_pdsyev)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit, nItInnerLoop 
       integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
+      integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
       type(p2pCommsSumrho),intent(inout):: comsr
@@ -1998,7 +2000,7 @@ module module_interfaces
       real(dp),dimension(max(lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
       type(GPU_pointers),intent(inout):: GPU
       real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
-      logical,intent(in):: updatePhi
+      logical,intent(in):: updatePhi, useDerivativeBasis
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
       integer,intent(out):: infoBasisFunctions, infoCoeff
       real(8),intent(out):: ebsMod
@@ -2012,6 +2014,8 @@ module module_interfaces
       type(localizedDIISParameters),intent(inout):: ldiis
       type(orthon_data),intent(in):: orthpar
       type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
+      real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
+      type(p2pCommsRepartition),intent(inout):: comrp
     end subroutine getLinearPsi
 
 
@@ -3537,16 +3541,17 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 !!$     end subroutine getHamiltonianMatrix2
 !!$
 
-     subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
+     subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, lzd, lorbs, lborbs, comrp, nphi, phi, phid)
      use module_base
      use module_types
      implicit none
      integer,intent(in):: iproc, nproc, nphi
      real(8),intent(in):: hgrid
-     type(locreg_descriptors),intent(in):: Glr
-     type(linearParameters),intent(inout):: lin
+     type(local_zone_descriptors),intent(in):: lzd
+     type(orbitals_data),intent(in):: lorbs, lborbs
+     type(p2pCommsRepartition),intent(inout):: comrp
      real(8),dimension(nphi),intent(in):: phi
-     real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),target,intent(out):: phid
+     real(8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(out):: phid
      end subroutine getDerivativeBasisFunctions
 
 
