@@ -554,7 +554,7 @@ character(len=3):: orbname, comment
   ldiis%trmin=1.d100
   ldiis%trold=1.d100
   alpha=ldiis%alphaSD
-  alphaDIIS=ldiis%alphaDIISx
+  alphaDIIS=ldiis%alphaDIIS
   !!!call initializeDIIS(input%lin%DIISHistMax, lzd, lorbs, lorbs%norb, ldiis)
 
   !!! Set the maximal number of iterations.
@@ -1096,7 +1096,7 @@ contains
           !if(icountSDSatur>=10 .and. ldiis%isx==0 .and. allowDIIS .or. immediateSwitchToSD) then
           if(icountSDSatur>=10 .and. ldiis%isx==0 .or. immediateSwitchToSD) then
               icountSwitch=icountSwitch+1
-              idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
+              idsx=max(ldiis%DIISHistMin,ldiis%DIISHistMax-icountSwitch)
               if(idsx>0) then
                   if(iproc==0) write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
                   icountSDSatur=0
@@ -1108,7 +1108,7 @@ contains
                   ldiis%trmin=1.d100
                   ldiis%trold=1.d100
                   alpha=ldiis%alphaSD
-                  alphaDIIS=ldiis%alphaDIISx
+                  alphaDIIS=ldiis%alphaDIIS
                   !!!call initializeDIIS(lin%DIISHistMax, lzd, lorbs, lorbs%norb, ldiis)
                   icountDIISFailureTot=0
                   icountDIISFailureCons=0
@@ -1124,8 +1124,8 @@ contains
           icountSDSatur=0
           if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3 .or. resetDIIS) .and. ldiis%isx>0) then
           !if((icountDIISFailureCons>=400 .or. icountDIISFailureTot>=600 .or. resetDIIS) .and. ldiis%isx>0) then
-              ! Switch back to SD. The initial step size is 1.d0.
-              alpha=lin%alphaSD
+              ! Switch back to SD.
+              alpha=ldiis%alphaSD
               if(iproc==0) then
                   if(icountDIISFailureCons>=2) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
                       icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
@@ -1204,9 +1204,9 @@ contains
         end do
     else
         ! DIIS
-        if(lin%alphaDIIS/=0.d0) then
+        if(lin%alphaDIIS/=1.d0) then
             !call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi, 1)
-            call dscal(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lin%alphaDIIS, lhphi, 1)
+            call dscal(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), ldiis%alphaDIIS, lhphi, 1)
         end if
         call optimizeDIIS(iproc, nproc, lorbs, lorbs, lzd, lhphi, lphi, ldiis, it)
     end if

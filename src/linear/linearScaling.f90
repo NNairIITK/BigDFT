@@ -181,6 +181,10 @@ type(orthon_data):: orthpar
   t1scc=mpi_wtime()
 
   call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%norb, ldiis)
+       ldiis%DIISHistMin=lin%DIISHistMin
+       ldiis%DIISHistMax=lin%DIISHistMax
+       ldiis%alphaSD=lin%alphaSD
+       ldiis%alphaDIIS=lin%alphaDIIS
 
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist_lowaccuracy>0) then

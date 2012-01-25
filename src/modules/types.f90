@@ -691,10 +691,10 @@ end type workarrays_quartic_convolutions
   end type inguessParameters
 
   type,public:: localizedDIISParameters
-    integer:: is, isx, mis
+    integer:: is, isx, mis, DIISHistMax, DIISHistMin
     real(8),dimension(:),pointer:: phiHist, hphiHist
     real(8),dimension(:,:,:),pointer:: mat
-    real(8):: trmin, trold, alphaSD, alphaDIISx
+    real(8):: trmin, trold, alphaSD, alphaDIIS
     logical:: switchSD
   end type localizedDIISParameters
 
