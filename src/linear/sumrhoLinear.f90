@@ -272,7 +272,7 @@ END SUBROUTINE partial_density_linear
 
 
 
-subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, orbs, comsr, coeff, phi, nrho, rho, at, nscatterarr)
+subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, orbs, comsr, coeff, nrho, rho, at, nscatterarr)
 !
 use module_base
 use module_types
@@ -287,7 +287,6 @@ type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
 type(p2pCommsSumrho),intent(inout):: comsr
 real(8),dimension(orbs%norb,norb),intent(in):: coeff
-real(8),dimension(orbs%npsidim_orbs),intent(in):: phi
 real(8),dimension(nrho),intent(out),target:: rho
 type(atoms_data),intent(in):: at
 integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -300,12 +299,12 @@ integer:: ierr, jproc, is, ie, nreceives
 integer:: nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
 real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
 real(8),dimension(:,:),allocatable:: densKern
-character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
 integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
+character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
 
 
-if(iproc==0) write(*,'(1x,a)',advance='no') 'Calculating charge density...'
+if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
 
 !lin%comsr%communComplete=.false.
 !lin%comsr%computComplete=.false.
@@ -315,15 +314,17 @@ if(iproc==0) write(*,'(1x,a)',advance='no') 'Calculating charge density...'
 allocate(densKern(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, densKern, 'densKern', subname)
 
-call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t1)
+!call mpi_barrier(mpi_comm_world, ierr)
+!call cpu_time(t1)
 ! Calculate the density kernel.
+if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
 call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), orbs%norb, &
      coeff(1,1), orbs%norb, 0.d0, densKern(1,1), orbs%norb)
-call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t2)
-time=t2-t1
-if(iproc==0) write(*,'(a,es12.4)') 'time for kernel:',time
+if(iproc==0) write(*,'(a)') 'done.'
+!call mpi_barrier(mpi_comm_world, ierr)
+!call cpu_time(t2)
+!time=t2-t1
+!if(iproc==0) write(*,'(a,es12.4)') 'time for kernel:',time
 
 
 ! Define some constant factors.
@@ -348,6 +349,7 @@ end if
 
 
 ! Check whether the communication has completed.
+if(iproc==0) write(*,'(3x,a)',advance='no') 'waiting for communication to complete... '
 call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t1)
 nfast=0
@@ -369,7 +371,7 @@ end do testLoop
 call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t2)
 time=t2-t1
-if(iproc==0) write(*,'(a,es12.4)') 'time for test:',time
+!if(iproc==0) write(*,'(a,es12.4)') 'time for test:',time
 
 ! Since mpi_test is a local function, check whether the communication has completed on all processes.
 call mpi_barrier(mpi_comm_world, ierr)
@@ -378,7 +380,7 @@ call mpiallred(comsr%communComplete(1,0), nproc*maxval(comsr%noverlaps), mpi_lan
 call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t2)
 time=t2-t1
-if(iproc==0) write(*,'(a,es12.4)') 'time for allreduce:',time
+!if(iproc==0) write(*,'(a,es12.4)') 'time for allreduce:',time
 
 
 
@@ -409,14 +411,11 @@ end do
 call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t2)
 time=t2-t1
-if(iproc==0) write(*,'(a,es12.4)') 'time for wait:',time
-!call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
-!call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
-!call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
-!call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
-                       nfast, ' could be overlapped with computation.'
-if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+!if(iproc==0) write(*,'(a,es12.4)') 'time for wait:',time
+if(iproc==0) write(*,'(a,f5.1,a)') 'done. Communication overlap ratio:',100.d0*dble(nfast)/(dble(nfast+nslow)),'%'
+!if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+!                       nfast, ' could be overlapped with computation.'
+!if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
 do iorb=1,comsr%noverlaps(iproc)
@@ -540,10 +539,10 @@ end do
 call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t2)
 time=t2-t1
-if(iproc==0) write(*,'(a,es12.4)') 'time for large loop:',time
+!if(iproc==0) write(*,'(a,es12.4)') 'time for large loop:',time
 
 call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(1x,a,es20.12)') 'done. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
+if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
 iall=-product(shape(densKern))*kind(densKern)
 deallocate(densKern, stat=istat)

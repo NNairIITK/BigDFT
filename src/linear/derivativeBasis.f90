@@ -1,7 +1,7 @@
-subroutine getDerivativeBasisFunctions2(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
+subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => getDerivativeBasisFunctions2
+use module_interfaces, exceptThisOne => getDerivativeBasisFunctions
 implicit none
 
 ! Calling arguments
@@ -13,24 +13,17 @@ real(8),dimension(nphi),intent(in):: phi
 real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),target,intent(out):: phid
 
 ! Local variables
-integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc, ierr
-integer:: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f, istLoc, istRoot
+integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc
+integer:: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f
 integer:: jjorb, jlr, jj, offset, ilr, jorb, iiorb
 real(8),dimension(0:3),parameter:: scal=1.d0
 real(8),dimension(:),allocatable:: w_f1, w_f2, w_f3
 real(8),dimension(:),pointer:: phiLoc
 real(8),dimension(:,:,:),allocatable:: w_c, phix_c, phiy_c, phiz_c
 real(8),dimension(:,:,:,:),allocatable:: w_f, phix_f, phiy_f, phiz_f
-character(len=*),parameter:: subname='getDerivativeBasisFunctions'
-integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
 logical:: repartition
+character(len=*),parameter:: subname='getDerivativeBasisFunctions'
 
-integer:: i1, i2, i3
-logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
-
-  !!do jj=1,nphi
-  !!    write(700+iproc,*) jj, phi(jj)
-  !!end do
 
   ! Determine whether the orbitals must be redistributed after the calculation of the derivatives.
   ! If each orbital has the same number of orbitals, this is never required.
@@ -280,7 +273,7 @@ contains
 
   end subroutine deallocateWorkarrays
 
-end subroutine getDerivativeBasisFunctions2
+end subroutine getDerivativeBasisFunctions
 
 
 
