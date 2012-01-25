@@ -1364,10 +1364,12 @@ subroutine deallocate_largeBasis(lb, subname)
   call dealloctae_p2pCommsRepartition(lb%comrp, subname)
   call deallocate_p2pCommsOrthonormality(lb%comon, subname)
   call deallocate_overlapParameters(lb%op, subname)
-  call deallocate_p2pCommsGatherPot(lb%comgp, subname)
+  !call deallocate_p2pCommsGatherPot(lb%comgp, subname)
+  call deallocate_p2pComms(lb%comgp, subname)
   call deallocate_matrixDescriptors(lb%mad, subname)
   call deallocate_collectiveComms(lb%collComms, subname)
-  call deallocate_p2pCommsSumrho(lb%comsr, subname)
+  !call deallocate_p2pCommsSumrho(lb%comsr, subname)
+  call deallocate_p2pComms(lb%comsr, subname)
 
 
 end subroutine deallocate_largeBasis
