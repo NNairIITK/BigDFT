@@ -1969,19 +1969,19 @@ module module_interfaces
     end subroutine apply_potentialConfinement
 
     subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
-        mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, comms, at, lin, rxyz, rxyzParab, &
+        mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, comms, at, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
-        infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
-        i3s, i3xcsh, ebsMod, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
+        infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, size_pkernel, pkernel, &
+        i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
         ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr, &
         methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond, &
-        useDerivativeBasis, lphiRestart, comrp, blocksize_pdsyev, nproc_pdsyev)
+        useDerivativeBasisFunctions, lphiRestart, comrp, blocksize_pdsyev, nproc_pdsyev)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit, nItInnerLoop 
+      integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit, nItInnerLoop
       integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
-      integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
+      integer,intent(in):: blocksize_pdsyev, nproc_pdsyev, size_pkernel
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
       type(p2pCommsSumrho),intent(inout):: comsr
@@ -1991,26 +1991,25 @@ module module_interfaces
       type(p2pCommsGatherPot):: comgp, lbcomgp
       type(communications_arrays),intent(in) :: comms
       type(atoms_data),intent(in):: at
-      type(linearParameters),intent(inout):: lin
       type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(in):: rxyz
       real(8),dimension(3,at%nat),intent(inout):: rxyzParab
       integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
-      real(dp),dimension(max(lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
+      real(dp),dimension(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
       type(GPU_pointers),intent(inout):: GPU
-      real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
-      logical,intent(in):: updatePhi, useDerivativeBasis
+      real(dp), dimension(size_pkernel),intent(in):: pkernel
+      logical,intent(in):: updatePhi, newgradient, useDerivativeBasisFunctions
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
       integer,intent(out):: infoBasisFunctions, infoCoeff
-      real(8),intent(out):: ebsMod
+      real(8),intent(out):: ebs
       real(8),intent(in):: convCrit
-      real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
-      real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),intent(inout):: lphi
+      real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
+      real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-      logical,intent(in):: communicate_lphi, newgradient
-      real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff_proj
+      logical,intent(in):: communicate_lphi
+      real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
       type(localizedDIISParameters),intent(inout):: ldiis
       type(orthon_data),intent(in):: orthpar
       type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
