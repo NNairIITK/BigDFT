@@ -1771,11 +1771,15 @@ module module_interfaces
     
   subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, mad, lin, rxyz, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
-        infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr)
+        infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, nItInnerLoop, &
+        newgradient, orthpar, confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, &
+        nItPrecond)
       use module_base
       use module_types
       implicit none
-      integer:: iproc, nproc, idsxMin, idsxMax, infoBasisFunctions, nit, nItInnerLoop
+      integer,intent(in):: iproc, nproc, nit, nItInnerLoop
+      integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
+      integer,intent(out):: infoBasisFunctions
       type(atoms_data), intent(in) :: at
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data):: lorbs, orbs
@@ -1792,7 +1796,8 @@ module module_interfaces
       type(GPU_pointers), intent(in out) :: GPU
       real(dp), dimension(:), pointer :: pkernelseq
       real(8),dimension(lin%orbs%npsidim_orbs):: lphi
-      real(8):: trH
+      real(8),intent(out):: trH
+      real(8),intent(in):: convCrit
       real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -1974,11 +1979,13 @@ module module_interfaces
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
         i3s, i3xcsh, ebsMod, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
-        ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr)
+        ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr, &
+        methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit, nItInnerLoop 
+      integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
       type(p2pCommsSumrho),intent(inout):: comsr
@@ -2001,6 +2008,7 @@ module module_interfaces
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
       integer,intent(out):: infoBasisFunctions, infoCoeff
       real(8),intent(out):: ebsMod
+      real(8),intent(in):: convCrit
       real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
       real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),intent(inout):: lphi
       type(nonlocal_psp_descriptors),intent(in):: nlpspd

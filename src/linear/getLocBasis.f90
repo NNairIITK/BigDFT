@@ -3,7 +3,8 @@ subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
-    ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr)
+    ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr, &
+    methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond)
 !
 ! Purpose:
 ! ========
@@ -63,6 +64,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit, nItInnerLoop
+integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
 type(p2pCommsSumrho),intent(inout):: comsr
@@ -85,6 +87,7 @@ logical,intent(in):: updatePhi, newgradient
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
+real(8),intent(in):: convCrit
 real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
 real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
@@ -135,7 +138,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,mad,lin,rxyz,&
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
           infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, nItInnerLoop, newgradient, &
-          orthpar, confdatarr)
+          orthpar, confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond)
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -421,7 +424,7 @@ end subroutine getLinearPsi
 subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, mad, lin, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
     infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, nItInnerLoop, newgradient, orthpar, &
-    confdatarr)
+    confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond)
 !
 ! Purpose:
 ! ========
@@ -476,7 +479,9 @@ use module_interfaces, except_this_one => getLocalizedBasis
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, infoBasisFunctions, nit, nItInnerLoop
+integer,intent(in):: iproc, nproc, nit, nItInnerLoop, methTransformOverlap, blocksize_pdgemm
+integer,intent(in):: nItPrecond
+integer,intent(out):: infoBasisFunctions
 type(atoms_data), intent(in) :: at
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data):: lorbs, orbs
@@ -493,7 +498,8 @@ real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
-real(8):: trH
+real(8),intent(out):: trH
+real(8),intent(in):: convCrit
 real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -700,7 +706,7 @@ character(len=3):: orbname, comment
       t1=mpi_wtime()
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
       call orthoconstraintNonorthogonal(iproc, nproc, input, lzd, lorbs, op, comon, mad, ovrlp, &
-           lin%methTransformOverlap, lin%blocksize_pdgemm, lphi, lhphi, lagmat)
+           methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
 
       ! Calculate modified trace
       !!tt=0.d0
@@ -738,7 +744,7 @@ character(len=3):: orbname, comment
            if(trH > trHold + 1.d-5*abs(trHold)) then
                consecutive_rejections=consecutive_rejections+1
                if(consecutive_rejections==300000) then
-                   if(fnrmMax<lin%convCrit .or. it>=nit) then
+                   if(fnrmMax<convCrit .or. it>=nit) then
                        if(it>=nit) then
                            if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                                ' iterations! Exiting loop due to consective failures of SD.'
@@ -845,7 +851,7 @@ character(len=3):: orbname, comment
           iiorb=lorbs%isorb+iorb
           ilr = lorbs%inWhichLocreg(iiorb)
           call choosePreconditioner2(iproc, nproc, lorbs, lzd%Llr(ilr), input%hx, input%hy, input%hz, &
-              lin%nItPrecond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder, confdatarr(iorb)%prefac, it, iorb, eval_zero)
+              nItPrecond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder, confdatarr(iorb)%prefac, it, iorb, eval_zero)
           ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
       end do
       !!!end if
@@ -886,7 +892,7 @@ character(len=3):: orbname, comment
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
-      if(fnrmMax<lin%convCrit .or. it>=nit) then
+      if(fnrmMax<convCrit .or. it>=nit) then
           if(it>=nit) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
