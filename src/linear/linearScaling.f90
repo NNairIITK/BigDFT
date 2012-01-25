@@ -215,23 +215,25 @@ type(orthon_data):: orthpar
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, &
               lin%comgp, lin%comgp, comms, at, rxyz, rxyz, &
-              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
+              nscatterarr, ngatherarr, rhopot, GPU,  pkernelseq, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
               i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%nItInnerLoop, &
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
               lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, lin%lphiRestart, &
-              lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev)
+              lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
+              input%nspin, input%hx, input%hy, input%hz, input%SIC)
       else
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
               lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon,&
               lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, rxyz, rxyz, &
-              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
+              nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
               i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
               coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, & 
               lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
-              lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev)
+              lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
+              input%nspin, input%hx, input%hy, input%hz, input%SIC)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -405,34 +407,37 @@ type(orthon_data):: orthpar
                   call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
                       lin%mad, lin%mad, lin%op, lin%op, lin%comon,&
                       lin%comon, lin%comgp, lin%comgp, comms, at, rxyz, rxyz, &
-                      nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
+                      nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
                       i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
                       coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
                       lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
-                      lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev)
+                      lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
+                      input%nspin, input%hx, input%hy, input%hz, input%SIC)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
                       lin%mad, lin%lb%mad, lin%op, lin%lb%op, &
                       lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, rxyz, rxyz, &
-                      nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
+                      nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
                       i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
                       coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
                       lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
-                      lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev)
+                      lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
+                      input%nspin, input%hx, input%hy, input%hz, input%SIC)
               end if
           else
               call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
                   lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, &
                   lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, rxyz, rxyz, &
-                  nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
+                  nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
                   infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
                   i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
                   coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
                   lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
-                  lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev)
+                  lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
+                  input%nspin, input%hx, input%hy, input%hz, input%SIC)
           end if
 
 

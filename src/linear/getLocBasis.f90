@@ -1,11 +1,12 @@
 subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
     mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, comms, at, rxyz, rxyzParab, &
-    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
+    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, size_pkernel, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
     ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr, &
     methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond, &
-    useDerivativeBasisFunctions, lphiRestart, comrp, blocksize_pdsyev, nproc_pdsyev)
+    useDerivativeBasisFunctions, lphiRestart, comrp, blocksize_pdsyev, nproc_pdsyev, &
+    nspin, hx, hy, hz, SIC)
 !
 ! Purpose:
 ! ========
@@ -66,7 +67,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit, nItInnerLoop
 integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
-integer,intent(in):: blocksize_pdsyev, nproc_pdsyev, size_pkernel
+integer,intent(in):: blocksize_pdsyev, nproc_pdsyev, size_pkernel, nspin
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
 type(p2pCommsSumrho),intent(inout):: comsr
@@ -76,19 +77,18 @@ type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
 type(p2pCommsGatherPot):: comgp, lbcomgp
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(3,at%nat),intent(inout):: rxyzParab
 integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
-real(dp),dimension(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
+real(dp),dimension(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*n3p,1)*nspin),intent(inout) :: rhopot
 type(GPU_pointers),intent(inout):: GPU
 real(dp), dimension(size_pkernel),intent(in):: pkernel
 logical,intent(in):: updatePhi, newgradient, useDerivativeBasisFunctions
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
-real(8),intent(in):: convCrit
+real(8),intent(in):: convCrit, hx, hy, hz
 real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
 real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
@@ -100,6 +100,7 @@ type(orthon_data),intent(in):: orthpar
 type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
 type(p2pCommsRepartition),intent(inout):: comrp
+type(SIC_data),intent(in):: SIC
 
 ! Local variables 
 integer:: istat, iall, ilr, istr, iorb, jorb, korb
@@ -142,7 +143,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
           infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, nItInnerLoop, newgradient, &
           orthpar, confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, &
-          input%hx, input%hy, input%hz, input%SIC, input%nspin, nItPrecond)
+          hx, hy, hz, SIC, nspin, nItPrecond)
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -154,7 +155,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   if(useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
       !!call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
-      call getDerivativeBasisFunctions(iproc,nproc,input%hx,lzd,lorbs,llborbs,comrp,&
+      call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
            max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart,lphi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if
@@ -212,8 +213,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
       call full_local_potential(iproc,nproc,&
            lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
-           lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,input%nspin,&
-           lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
+           lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
+           lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
            lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
   else
 
@@ -221,8 +222,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       
       call full_local_potential(iproc,nproc,&
            lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
-           lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,input%nspin,&
-           lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
+           lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
+           lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
            llborbs,lzd,2,ngatherarr,rhopot,lpot,lbcomgp)
 
   end if
@@ -240,9 +241,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
      allocate(confdatarrtmp(lorbs%norbp))
      call default_confinement_data(confdatarrtmp,lorbs%norbp)
      call HamiltonianApplication3(iproc,nproc,at,lorbs,&
-          input%hx,input%hy,input%hz,rxyz,&
+          hx,hy,hz,rxyz,&
           proj,lzd,nlpspd,confdatarrtmp,ngatherarr,Lpot,lphi,lhphi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
           pkernel=pkernelseq)
      deallocate(confdatarrtmp)
 
@@ -251,9 +252,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
      allocate(confdatarrtmp(llborbs%norbp))
      call default_confinement_data(confdatarrtmp,llborbs%norbp)
      call HamiltonianApplication3(iproc,nproc,at,llborbs,&
-          input%hx,input%hy,input%hz,rxyz,&
+          hx,hy,hz,rxyz,&
           proj,lzd,nlpspd,confdatarrtmp,ngatherarr,lpot,lphi,lhphi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
           pkernel=pkernelseq)
      deallocate(confdatarrtmp)
   end if
@@ -365,7 +366,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       end do
   end do
   ! If closed shell multiply by two.
-  if(input%nspin==1) ebs=2.d0*ebs
+  if(nspin==1) ebs=2.d0*ebs
 
 
 
