@@ -148,21 +148,25 @@ end subroutine orthonormalizeLocalized
 
 
 
-subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, lagmat)
+subroutine orthoconstraintNonorthogonal(iproc, nproc, input, lzd, orbs, op, comon, mad, ovrlp, &
+           methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(linearParameters),intent(inout):: lin
+  integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
   type(input_variables),intent(in):: input
-  real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: ovrlp
-  real(8),dimension(max(lin%orbs%npsidim_comp,lin%orbs%npsidim_orbs)),intent(in):: lphi
-  real(8),dimension(max(lin%orbs%npsidim_comp,lin%orbs%npsidim_orbs)),intent(inout):: lhphi
+  type(local_zone_descriptors),intent(in):: lzd
+  type(orbitals_Data),intent(in):: orbs
+  type(overlapParameters),intent(inout):: op
+  type(p2pCommsOrthonormality),intent(inout):: comon
   type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: lagmat
+  real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
+  real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(in):: lphi
+  real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
+  real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat
 
   ! Local variables
   integer:: istat, iall, ierr
@@ -172,7 +176,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
   character(len=*),parameter:: subname='orthoconstraintLocalized'
 
 
-  allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
+  allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
   call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
   lphiovrlp=0.d0
 
@@ -184,37 +188,37 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
   timeApply=0.d0
   timeExtract=0.d0
 
-  call allocateCommuncationBuffersOrtho(lin%comon, subname)
+  call allocateCommuncationBuffersOrtho(comon, subname)
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
   t1=mpi_wtime()
-  call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim_orbs, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
-       lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+  call extractOrbital3(iproc, nproc, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, op, &
+       lphi, comon%nsendBuf, comon%sendBuf)
   t2=mpi_wtime()
   timeExtract=t2-t1
-  call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
-  call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, lin%lzd, lin%comon%nsendbuf, &
-       lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
+  call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
+  call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
+       comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
   t1=mpi_wtime()
-  call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim_orbs, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
-       lhphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+  call extractOrbital3(iproc, nproc, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, op, &
+       lhphi, comon%nsendBuf, comon%sendBuf)
   t2=mpi_wtime()
   timeextract=timeextract+t2-t1
   t1=mpi_wtime()
-  call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
-       lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, lagmat)
+  call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
+       comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, lagmat)
   t2=mpi_wtime()
   timecalcmatrix=timecalcmatrix+t2-t1
 
   t1=mpi_wtime()
 
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%orbs, &
-       lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lagmat, ovrlp, lphiovrlp, mad, lhphi)
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, orbs, &
+       orbs%inWhichLocreg, lzd, op, comon, lagmat, ovrlp, lphiovrlp, mad, lhphi)
 
   t2=mpi_wtime()
   timeApply=t2-t1
 
-  call deallocateCommuncationBuffersOrtho(lin%comon, subname)
+  call deallocateCommuncationBuffersOrtho(comon, subname)
 
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
   deallocate(lphiovrlp, stat=istat)

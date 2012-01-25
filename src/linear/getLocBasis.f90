@@ -603,8 +603,9 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
 
       t1=mpi_wtime()
       if(.not.ldiis%switchSD .and. .not.newgradient) then
-          call unitary_optimization(iproc, nproc, lin, lzd, lorbs, at, input, op, &
-                                    comon, rxyz, lin%nItInnerLoop, kernel, lphi)
+          call unitary_optimization(iproc, nproc, lzd, lorbs, at, input, op, &
+                                    comon, mad, rxyz, lin%nItInnerLoop, kernel, &
+                                    lin%confpotorder, lin%potentialprefac, newgradient, lphi)
       end if
       t2=mpi_wtime()
       time(5)=time(5)+t2-t1
@@ -647,7 +648,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
    
 
 
-      if(lin%newgradient) then
+      if(newgradient) then
           ! NEW: modify gradient
           call allocateSendBufferOrtho(comon, subname)
           call allocateRecvBufferOrtho(comon, subname)
@@ -656,7 +657,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
                lorbs%inWhichLocreg, lzd, op, &
                lhphi, comon%nsendBuf, comon%sendBuf)
           call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lhphi, comon, tt1, tt2)
-          call collectnew(iproc, nproc, comon, lin%mad,op, lorbs, lzd, comon%nsendbuf, &
+          call collectnew(iproc, nproc, comon, mad, op, lorbs, lzd, comon%nsendbuf, &
                comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
           call build_new_linear_combinations(lzd, lorbs, op, comon%nrecvbuf, &
                comon%recvbuf, kernel, .true., lhphi)
@@ -671,7 +672,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       call allocateSendBufferOrtho(comon, subname)
       call allocateRecvBufferOrtho(comon, subname)
       ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-      call extractOrbital3(iproc, nproc, lorbs, max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), lorbs%inWhichLocreg, &
+      call extractOrbital3(iproc, nproc, lorbs, max(orbs%npsidim_orbs,orbs%npsidim_comp), lorbs%inWhichLocreg, &
            lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
       ! Post the send messages.
       call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
@@ -691,16 +692,17 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
 
       ! Gather the messages and calculate the overlap matrix.
-      call collectnew(iproc, nproc, comon, lin%mad, op, lorbs, lzd, comon%nsendbuf, &
+      call collectnew(iproc, nproc, comon, mad, op, lorbs, lzd, comon%nsendbuf, &
            comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
       call calculateOverlapMatrix3(iproc, nproc, lorbs, op, lorbs%inWhichLocreg, comon%nsendBuf, &
-           comon%sendBuf, comon%nrecvBuf, comon%recvBuf, lin%mad, ovrlp)
+           comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
       call deallocateRecvBufferOrtho(comon, subname)
       call deallocateSendBufferOrtho(comon, subname)
 
       t1=mpi_wtime()
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
-      call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, lagmat)
+      call orthoconstraintNonorthogonal(iproc, nproc, input, lzd, lorbs, op, comon, mad, ovrlp, &
+           lin%methTransformOverlap, lin%blocksize_pdgemm, lphi, lhphi, lagmat)
 
       ! Calculate modified trace
       !!tt=0.d0
@@ -2893,16 +2895,15 @@ end subroutine gatherPotential
 
 
 
-subroutine apply_orbitaldependent_potential(iproc, nproc, lin, at, input, orbs, lzd, rxyz, confpotorder, &
+subroutine apply_orbitaldependent_potential(iproc, nproc, at, input, orbs, lzd, rxyz, confpotorder, &
            potentialprefac, psi, centralLocreg, vpsi)
 use module_base
 use module_types
-use module_interfaces
+use module_interfaces, except_this_one => apply_orbitaldependent_potential
 implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, centralLocreg, confpotorder
-type(linearParameters),intent(in):: lin
 type(atoms_data),intent(in):: at
 type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
@@ -3531,7 +3532,8 @@ end function dfactorial
 
 
 !> Some description of the routine goes here
-subroutine unitary_optimization(iproc, nproc, lin, lzd, orbs, at, input, op, comon, rxyz, nit, kernel, lphi)
+subroutine unitary_optimization(iproc, nproc, lzd, orbs, at, input, op, comon, mad, rxyz, nit, kernel, &
+           confpotorder, potentialprefac, newgradient, lphi)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => unitary_optimization
@@ -3539,16 +3541,19 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nit
-type(linearParameters),intent(inout):: lin
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(in):: at
 type(input_variables),intent(in):: input !< Input parameters, to be removed
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
+type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
-real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),intent(inout):: lphi
+integer,intent(in):: confpotorder
+real(8),dimension(at%ntypes),intent(in):: potentialprefac
+logical,intent(in):: newgradient
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
 
 ! Local variables
 integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, lorb, jlr
@@ -3590,7 +3595,7 @@ allocate(tempmatc(orbs%norb,orbs%norb,2), stat=istat)
 !call memocc(istat, tempmatc, 'tempmatc', subname)
 allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-allocate(lvphi(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)), stat=istat)
+allocate(lvphi(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
 call memocc(istat, lvphi, 'lvphi', subname)
 allocate(Kmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, Kmat, 'Kmat', subname)
@@ -3644,8 +3649,8 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   !write(*,*) '1: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
 
       t1=mpi_wtime()
-      call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, &
-           lin%confpotorder, lin%potentialprefac, lphi, -1, lvphi)
+      call apply_orbitaldependent_potential(iproc, nproc, at, input, orbs, lzd, rxyz, &
+           confpotorder, potentialprefac, lphi, -1, lvphi)
       t2=mpi_wtime()
       time_convol=time_convol+t2-t1
 
@@ -3662,7 +3667,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       !call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lvphi, lin%mad, Kmat)
       !call deallocateRecvBufferOrtho(comon, subname)
       !call deallocateSendBufferOrtho(comon, subname)
-      call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, lphi, lvphi, lin%mad, Kmat)
+      call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, Kmat)
       !do iorb=1,orbs%norb
       !    do jorb=1,orbs%norb
       !        if(iproc==0) write(66,*) iorb,jorb,Kmat(jorb,iorb)
@@ -3675,14 +3680,15 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       time_matrixElements=time_matrixElements+t2-t1
 
 
-      if(lin%newgradient) then
-          call get_potential_matrices(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, lphi, potmat)
+      if(newgradient) then
+          call get_potential_matrices(iproc, nproc, at, input, orbs, lzd, op, comon, mad, rxyz, &
+               confpotorder, potentialprefac, lphi, potmat)
           !call get_potential_matrices_new(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, lphi, &
           !     nlocregOnMPI, potmatsmall)
       end if
 
 
-      if(.not.lin%newgradient) then
+      if(.not.newgradient) then
           !energyconf_0=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
           !call mpiallred(energyconf_0, 1, mpi_sum, mpi_comm_world, ierr)
           energyconf_0=0.d0
@@ -3703,7 +3709,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
                    it, energyconf_0, energyconf_trial, energyconf_der0, lstep, lstep_optimal
 
       t1=mpi_wtime()
-      if(.not.lin%newgradient) then
+      if(.not.newgradient) then
           ! Construct antisymmtric matrix Gmat
           do iorb=1,orbs%norb
               do jorb=1,orbs%norb
@@ -3810,7 +3816,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
       ! Calculate step size
       if(it==1) then
-          if(.not.lin%newgradient) then
+          if(.not.newgradient) then
               lstep=5.d-2/(maxval(eval))
           else
               lstep=1.d-4/(maxval(eval))
@@ -3866,18 +3872,18 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
       t1=mpi_wtime()
       !write(*,*) '5: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
-      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, comon%nrecvbuf, &
+      call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, &
            comon%recvbuf, tempmat3(1,1,1), .true., lphi)
       t2=mpi_wtime()
       time_lincomb=time_lincomb+t2-t1
 
       t1=mpi_wtime()
-      call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, &
-           lin%confpotorder, lin%potentialprefac, lphi, -1, lvphi)
+      call apply_orbitaldependent_potential(iproc, nproc, at, input, orbs, lzd, rxyz, &
+           confpotorder, potentialprefac, lphi, -1, lvphi)
       t2=mpi_wtime()
       time_convol=time_convol+t2-t1
 
-      if(.not.lin%newgradient) then
+      if(.not.newgradient) then
           energyconf_trial=ddot(max(orbs%npsidim_orbs,orbs%npsidim_comp), lphi(1), 1, lvphi(1), 1)
           call mpiallred(energyconf_trial, 1, mpi_sum, mpi_comm_world, ierr)
       else
@@ -3889,7 +3895,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           !call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
           !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
           !deallocate(ttmat)
-          call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, lphi, lvphi, lin%mad, Kmat)
+          call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, Kmat)
           call dcopy(comon%nrecvbuf, recvbuf, 1, comon%recvbuf, 1)
 
           energyconf_trial=0.d0
@@ -3912,7 +3918,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
       ! Calculate optimal step size
       lstep_optimal = -energyconf_der0*lstep**2/(2.d0*(energyconf_trial-energyconf_0-lstep*energyconf_der0))
-      if(.not.lin%newgradient) then
+      if(.not.newgradient) then
           lstep_optimal=min(lstep_optimal,lstep)
       else
           if(lstep_optimal<0) then
@@ -3964,7 +3970,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           end do
       end do
       t1=mpi_wtime()
-      call build_new_linear_combinations(lin%lzd, lin%orbs, lin%op, comon%nrecvbuf, &
+      call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, &
            comon%recvbuf, tempmat3(1,1,1), .true., lphi)
       t2=mpi_wtime()
       time_lincomb=time_lincomb+t2-t1
@@ -4321,22 +4327,25 @@ END SUBROUTINE flatten
 
 
 
-subroutine get_potential_matrices(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, psi, potmat)
+subroutine get_potential_matrices(iproc, nproc, at, input, orbs, lzd, op, comon, mad, rxyz, &
+           confpotorder, potentialprefac, psi, potmat)
 use module_base
 use module_types
-use module_interfaces
+use module_interfaces, eccept_this_one => get_potential_matrices
 implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linearParameters),intent(inout):: lin
 type(atoms_data),intent(in):: at
 type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
+type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat),intent(in):: rxyz
+integer,intent(in):: confpotorder
+real(8),dimension(at%ntypes),intent(in):: potentialprefac
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
 real(8),dimension(orbs%norb,orbs%norb,at%nat),intent(out):: potmat
 
@@ -4355,8 +4364,8 @@ ilrold=-1
 do iorb=1,orbs%norb
     ilr=orbs%inwhichlocreg(iorb)
     if(ilr==ilrold) cycle
-    call apply_orbitaldependent_potential(iproc, nproc, lin, at, input, lin%orbs, lin%lzd, rxyz, &
-         lin%confpotorder, lin%potentialprefac, psi, ilr, vpsi)
+    call apply_orbitaldependent_potential(iproc, nproc, at, input, orbs, lzd, rxyz, &
+         confpotorder, potentialprefac, psi, ilr, vpsi)
 
     !call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, vpsi, comon%nsendBuf, comon%sendBuf)
     !call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, vpsi, comon, tt1, tt2)
@@ -4364,7 +4373,7 @@ do iorb=1,orbs%norb
     !call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
     !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
     !deallocate(ttmat)
-    call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, comon, psi, vpsi, lin%mad, potmat(1,1,ilr))
+    call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, psi, vpsi, mad, potmat(1,1,ilr))
     ilrold=ilr
     
 end do
@@ -4461,7 +4470,8 @@ end subroutine get_potential_matrices
 
 
 
-subroutine get_potential_matrices_new2(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, psi, nlocregOnMPI, potmat)
+subroutine get_potential_matrices_new2(iproc, nproc, lin, at, input, orbs, lzd, op, comon, mad, rxyz, &
+           psi, nlocregOnMPI, potmat)
 use module_base
 use module_types
 use module_interfaces
@@ -4476,6 +4486,7 @@ type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
+type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
 real(8),dimension(orbs%norb,orbs%norb,nlocregOnMPI),intent(out):: potmat
