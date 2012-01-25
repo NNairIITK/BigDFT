@@ -135,7 +135,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
       ! Improve the trace minimizing orbitals.
-      call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,mad,lin,rxyz,&
+      call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,mad,rxyz,&
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
           infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, nItInnerLoop, newgradient, &
           orthpar, confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond)
@@ -421,7 +421,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 end subroutine getLinearPsi
 
 
-subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, mad, lin, rxyz, &
+subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, mad, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
     infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, nItInnerLoop, newgradient, orthpar, &
     confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond)
@@ -490,7 +490,6 @@ type(overlapParameters):: op
 type(p2pCommsGatherPot):: comgp
 type(input_variables):: input
 type(matrixDescriptors),intent(in):: mad
-type(linearParameters):: lin
 real(8),dimension(3,at%nat):: rxyz
 integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
@@ -1204,7 +1203,7 @@ contains
         end do
     else
         ! DIIS
-        if(lin%alphaDIIS/=1.d0) then
+        if(ldiis%alphaDIIS/=1.d0) then
             !call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi, 1)
             call dscal(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), ldiis%alphaDIIS, lhphi, 1)
         end if
