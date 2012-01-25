@@ -718,18 +718,18 @@ void FC_FUNC_(denspot_free, DENSPOT_FREE)(f90_pointer_denspotd *denspotd,
                                           f90_pointer_double *pot_ion,
                                           f90_pointer_double *rhopot,
                                           f90_pointer_double *rhocore,
-                                          f90_pointer_double *potxc);
-void FC_FUNC_(allocaterhopot, ALLOCATERHOPOT)(const guint *iproc, const guint *nproc,
-                                              const void *glr, const double *hxh,
-                                              const double *hyh, const double *hzh,
-                                              const void *in, const void *atoms,
-                                              const double *rxyz,
-                                              const double *radii,
-                                              void *denspotd, void *rhodsc,
-                                              f90_pointer_double *rhopot,
-                                              f90_pointer_double *pot_ion,
-                                              f90_pointer_double *potxc,
-                                              f90_pointer_double *rhocore);
+                                          f90_pointer_double_4D *potxc);
+void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const guint *iproc, const guint *nproc,
+                                             const void *glr, const double *hxh,
+                                             const double *hyh, const double *hzh,
+                                             const void *in, const void *atoms,
+                                             const double *rxyz,
+                                             const double *radii,
+                                             void *denspotd, void *rhodsc,
+                                             f90_pointer_double *rhopot,
+                                             f90_pointer_double *pot_ion,
+                                             f90_pointer_double_4D *potxc,
+                                             f90_pointer_double *rhocore);
 
 static BigDFT_DensPot* bigdft_denspot_init()
 {
@@ -764,13 +764,13 @@ BigDFT_DensPot* bigdft_denspot_new (const BigDFT_Atoms *atoms, const BigDFT_Glr 
   hh[0] = glr->h[0] * 0.5;
   hh[1] = glr->h[1] * 0.5;
   hh[2] = glr->h[2] * 0.5;
-  FC_FUNC_(allocaterhopot, ALLOCATERHOPOT)(&iproc, &nproc, glr->data->glr,
-                                           hh, hh + 1, hh + 2, in->data->in,
-                                           atoms->data->atoms, atoms->rxyz.data,
-                                           radii, denspot->denspotd->denspotd,
-                                           denspot->rhodsc->rhodsc, &denspot->rhopot,
-                                           &denspot->pot_ion, &denspot->potxc,
-                                           &denspot->rhocore);
+  FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(&iproc, &nproc, glr->data->glr,
+                                          hh, hh + 1, hh + 2, in->data->in,
+                                          atoms->data->atoms, atoms->rxyz.data,
+                                          radii, denspot->denspotd->denspotd,
+                                          denspot->rhodsc->rhodsc, &denspot->rhopot,
+                                          &denspot->pot_ion, &denspot->potxc,
+                                          &denspot->rhocore);
 
   return denspot;
 }

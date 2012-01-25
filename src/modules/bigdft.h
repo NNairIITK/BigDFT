@@ -194,7 +194,8 @@ typedef struct BigDFT_DensPot_
 
   /* Additional pointers. */
   f90_pointer_int nscatterarr, ngatherarr;
-  f90_pointer_double rhopot, rhocore, pot_ion, potxc;
+  f90_pointer_double rhopot, rhocore, pot_ion;
+  f90_pointer_double_4D potxc;
 
   /* Private. */
   f90_pointer_rhodsc *rhodsc;
