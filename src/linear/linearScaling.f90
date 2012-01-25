@@ -336,7 +336,7 @@ type(orthon_data):: orthpar
       ! Choose the correct confining potential and gradient method, depending on whether we are in the low accuracy
       ! or high accuracy part.
       if(lowaccur_converged) then
-          lin%potentialPrefac = lin%potentialPrefac_highaccuracy
+          !!lin%potentialPrefac = lin%potentialPrefac_highaccuracy
           do iorb=1,lin%orbs%norbp
               ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
               confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(ilr))
@@ -347,7 +347,7 @@ type(orthon_data):: orthpar
           if(nit_highaccuracy==lin%nit_highaccuracy+1) exit outerLoop
 
       else
-          lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
+          !!lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
           do iorb=1,lin%orbs%norbp
               ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
               confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(ilr))
