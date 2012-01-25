@@ -94,9 +94,6 @@ real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 real(8),dimension(3,at%nat),intent(out):: fxyz
 !real(8),intent(out):: fnoise
-real(8):: fnoise,pressure
-real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
-type(orthon_data):: orthpar
 
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
@@ -114,6 +111,10 @@ type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
 real(8),dimension(:,:),allocatable:: coeff_proj
 type(localizedDIISParameters):: ldiis
+type(confpot_data), dimension(:),allocatable :: confdatarr
+real(8):: fnoise,pressure
+real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
+type(orthon_data):: orthpar
 
 
 
@@ -132,6 +133,9 @@ type(localizedDIISParameters):: ldiis
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
        input, rxyz, nscatterarr, tag, coeff, lphi)
   lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
+  allocate(confdatarr(lin%orbs%norbp))
+  call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
+       input%hx,input%hy,input%hz,lin,lin%lzd,lin%orbs%inWhichLocreg)
 
 
   orthpar%methTransformOverlap = lin%methTransformOverlap
@@ -209,7 +213,8 @@ type(localizedDIISParameters):: ldiis
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, lin%comgp, lin%comgp, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%newgradient, orthpar)
+              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%newgradient, &
+              orthpar, confdatarr)
       else
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -217,7 +222,7 @@ type(localizedDIISParameters):: ldiis
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
               i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
-              coeff_proj, ldiis, nit, lin%newgradient, orthpar)
+              coeff_proj, ldiis, nit, lin%newgradient, orthpar, confdatarr)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -332,6 +337,10 @@ type(localizedDIISParameters):: ldiis
       ! or high accuracy part.
       if(lowaccur_converged) then
           lin%potentialPrefac = lin%potentialPrefac_highaccuracy
+          do iorb=1,lin%orbs%norbp
+              ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
+              confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(ilr))
+          end do
           lin%newgradient=.true.
           nit_highaccuracy=nit_highaccuracy+1
           nit=lin%nItBasis_highaccuracy
@@ -339,6 +348,10 @@ type(localizedDIISParameters):: ldiis
 
       else
           lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
+          do iorb=1,lin%orbs%norbp
+              ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
+              confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(ilr))
+          end do
           lin%newgradient=.false.
           nit=lin%nItBasis_lowaccuracy
       end if
@@ -385,7 +398,7 @@ type(localizedDIISParameters):: ldiis
                       nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                       i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
-                      coeff_proj, ldiis, nit, lin%newgradient, orthpar)
+                      coeff_proj, ldiis, nit, lin%newgradient, orthpar, confdatarr)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -393,7 +406,7 @@ type(localizedDIISParameters):: ldiis
                       nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                       i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
-                      coeff_proj, ldiis, nit, lin%newgradient, orthpar)
+                      coeff_proj, ldiis, nit, lin%newgradient, orthpar, confdatarr)
               end if
           else
               call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -401,7 +414,7 @@ type(localizedDIISParameters):: ldiis
                   nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                   infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                   i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
-                  coeff_proj, ldiis, nit, lin%newgradient, orthpar)
+                  coeff_proj, ldiis, nit, lin%newgradient, orthpar, confdatarr)
           end if
 
 
@@ -679,6 +692,7 @@ type(localizedDIISParameters):: ldiis
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, lphi, coeff)
   call deallocateDIIS(ldiis)
+  deallocate(confdatarr)
 
 
   iall=-product(shape(coeff_proj))*kind(coeff_proj)

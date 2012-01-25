@@ -3,7 +3,7 @@ subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
-    ldiis, nit, newgradient, orthpar)
+    ldiis, nit, newgradient, orthpar, confdatarr)
 !
 ! Purpose:
 ! ========
@@ -93,6 +93,7 @@ logical,intent(in):: communicate_lphi
 real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
 type(localizedDIISParameters),intent(inout):: ldiis
 type(orthon_data),intent(in):: orthpar
+type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
 
 ! Local variables 
 integer:: istat, iall, ilr, istr, iorb, jorb, korb
@@ -105,7 +106,7 @@ logical:: withConfinement
 type(workarr_sumrho):: w
 integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt, inc, jjorb
 real(8),dimension(:),pointer:: lpot
-type(confpot_data), dimension(:), allocatable :: confdatarr
+type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
 
@@ -134,7 +135,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,mad,lin,rxyz,&
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
           infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, newgradient, &
-          orthpar)
+          orthpar, confdatarr)
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -229,25 +230,25 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
   lzd%doHamAppl=.true.
   if(.not.lin%useDerivativeBasisFunctions) then
-     allocate(confdatarr(lorbs%norbp))
-     call default_confinement_data(confdatarr,lorbs%norbp)
+     allocate(confdatarrtmp(lorbs%norbp))
+     call default_confinement_data(confdatarrtmp,lorbs%norbp)
      call HamiltonianApplication3(iproc,nproc,at,lorbs,&
           input%hx,input%hy,input%hz,rxyz,&
-          proj,lzd,nlpspd,confdatarr,ngatherarr,Lpot,lphi,lhphi,&
+          proj,lzd,nlpspd,confdatarrtmp,ngatherarr,Lpot,lphi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
           pkernel=pkernelseq)
-     deallocate(confdatarr)
+     deallocate(confdatarrtmp)
 
   else
 
-     allocate(confdatarr(llborbs%norbp))
-     call default_confinement_data(confdatarr,llborbs%norbp)
+     allocate(confdatarrtmp(llborbs%norbp))
+     call default_confinement_data(confdatarrtmp,llborbs%norbp)
      call HamiltonianApplication3(iproc,nproc,at,llborbs,&
           input%hx,input%hy,input%hz,rxyz,&
-          proj,lzd,nlpspd,confdatarr,ngatherarr,lpot,lphi,lhphi,&
+          proj,lzd,nlpspd,confdatarrtmp,ngatherarr,lpot,lphi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
           pkernel=pkernelseq)
-     deallocate(confdatarr)
+     deallocate(confdatarrtmp)
   end if
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
   deallocate(lzd%doHamAppl, stat=istat)
@@ -419,7 +420,8 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, mad, lin, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
-    infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient, orthpar)
+    infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient, orthpar, &
+    confdatarr)
 !
 ! Purpose:
 ! ========
@@ -499,6 +501,7 @@ real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
 type(localizedDIISParameters),intent(inout):: ldiis
 logical,intent(in):: newgradient
 type(orthon_data),intent(in):: orthpar
+type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
 
 ! Local variables
 real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
@@ -520,7 +523,6 @@ real(8),dimension(5):: time
 real(8),dimension(:),pointer:: lpot
 !real(8),external :: mpi_wtime1
 character(len=3):: orbname, comment
-type(confpot_data), dimension(:), allocatable :: confdatarr
 
 
 
@@ -569,9 +571,6 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
        lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
        lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
 
-  allocate(confdatarr(lorbs%norbp))
-  call define_confinement_data(confdatarr,lorbs,rxyz,at,&
-       input%hx,input%hy,input%hz,lin,lzd,lorbs%inWhichLocreg)
 
   allocate(lphiold(size(lphi)), stat=istat)
   call memocc(istat, lphiold, 'lphiold', subname)
@@ -981,7 +980,6 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   deallocate(lpot, stat=istat)
   call memocc(istat, iall, 'lpot', subname)
 
-  deallocate(confdatarr)
 
   ! Deallocate PSP stuff
   !call free_lnlpspd(lorbs, lzd)
