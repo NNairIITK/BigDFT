@@ -5713,6 +5713,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(wp), dimension(:), pointer :: proj
        end subroutine system_initialization
 
+       subroutine nullify_p2pComms(p2pcomm)
+         use module_base
+         use module_types
+         implicit none
+         type(p2pComms),intent(out):: p2pcomm
+       end subroutine nullify_p2pComms
+
    end interface
 
 END MODULE module_interfaces

@@ -549,6 +549,17 @@ module module_types
       integer:: size_pkernelseq
   end type
 
+  !> Contains all parameters needed for point to point communication
+  type,public:: p2pComms
+    integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
+    real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
+    integer,dimension(:,:,:),pointer:: comarr
+    integer:: nsendBuf, nrecvBuf, nauxarray
+    logical,dimension(:,:),pointer:: communComplete, computComplete
+    integer,dimension(:,:),pointer:: startingindex
+    integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
+  end type p2pComms
+
 !> Contains the parameters needed for the point to point communications
 !! for sumrho in the linear scaling version.
   type,public:: p2pCommsSumrho

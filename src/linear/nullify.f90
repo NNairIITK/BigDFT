@@ -30,6 +30,29 @@ subroutine nullify_linearParameters(lin)
 end subroutine nullify_linearParameters
 
 
+subroutine nullify_p2pComms(p2pcomm)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_p2pComms
+  implicit none
+
+  ! Calling argument
+  type(p2pComms),intent(out):: p2pcomm
+
+  nullify(p2pcomm%noverlaps)
+  nullify(p2pcomm%overlaps)
+  nullify(p2pcomm%istarr)
+  nullify(p2pcomm%istrarr)
+  nullify(p2pcomm%sendBuf)
+  nullify(p2pcomm%recvBuf)
+  nullify(p2pcomm%comarr)
+  nullify(p2pcomm%communComplete)
+  nullify(p2pcomm%computComplete)
+  nullify(p2pcomm%startingindex)
+  nullify(p2pcomm%ise3)
+end subroutine nullify_p2pComms
+
+
 subroutine nullify_p2pCommsSumrho(comsr)
   use module_base
   use module_types
@@ -48,6 +71,7 @@ subroutine nullify_p2pCommsSumrho(comsr)
   nullify(comsr%comarr)
   nullify(comsr%communComplete)
   nullify(comsr%computComplete)
+  nullify(comsr%startingindex)
 end subroutine nullify_p2pCommsSumrho
 
 

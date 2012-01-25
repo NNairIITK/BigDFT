@@ -1270,6 +1270,34 @@ subroutine deallocate_expansionSegments(expseg, subname)
 end subroutine deallocate_expansionSegments
 
 
+subroutine deallocate_p2pComms(p2pcomm, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(p2pComms),intent(inout):: p2pcomm
+  character(len=*),intent(in):: subname
+
+  call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
+  call checkAndDeallocatePointer(p2pcomm%overlaps, 'p2pcomm%overlaps', subname)
+  call checkAndDeallocatePointer(p2pcomm%istarr, 'p2pcomm%istarr', subname)
+  call checkAndDeallocatePointer(p2pcomm%istrarr, 'p2pcomm%istrarr', subname)
+  call checkAndDeallocatePointer(p2pcomm%sendBuf, 'p2pcomm%sendBuf', subname)
+  call checkAndDeallocatePointer(p2pcomm%recvBuf, 'p2pcomm%recvBuf', subname)
+  call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
+  call checkAndDeallocatePointer(p2pcomm%communComplete, 'p2pcomm%communComplete', subname)
+  call checkAndDeallocatePointer(p2pcomm%computComplete, 'p2pcomm%computComplete', subname)
+  call checkAndDeallocatePointer(p2pcomm%auxarray, 'p2pcomm%auxarray', subname)
+  call checkAndDeallocatePointer(p2pcomm%startingindex, 'p2pcomm%startingindex', subname)
+  call checkAndDeallocatePointer(p2pcomm%ise3, 'p2pcomm%ise3', subname)
+
+end subroutine deallocate_p2pComms
+
+
+
+
 subroutine deallocate_p2pCommsSumrho(comsr, subname)
   use module_base
   use module_types
