@@ -3,7 +3,7 @@ subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
-    ldiis, nit, newgradient, orthpar, confdatarr)
+    ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr)
 !
 ! Purpose:
 ! ========
@@ -62,7 +62,7 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit
+integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit, nItInnerLoop
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
 type(p2pCommsSumrho),intent(inout):: comsr
@@ -134,7 +134,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,input,mad,lin,rxyz,&
           nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
-          infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, newgradient, &
+          infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, nItInnerLoop, newgradient, &
           orthpar, confdatarr)
   end if
 
@@ -420,7 +420,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, mad, lin, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
-    infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient, orthpar, &
+    infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, nItInnerLoop, newgradient, orthpar, &
     confdatarr)
 !
 ! Purpose:
@@ -476,7 +476,7 @@ use module_interfaces, except_this_one => getLocalizedBasis
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, infoBasisFunctions, nit
+integer:: iproc, nproc, infoBasisFunctions, nit, nItInnerLoop
 type(atoms_data), intent(in) :: at
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data):: lorbs, orbs
@@ -606,7 +606,7 @@ character(len=3):: orbname, comment
       t1=mpi_wtime()
       if(.not.ldiis%switchSD .and. .not.newgradient) then
           call unitary_optimization(iproc, nproc, lzd, lorbs, at, input, op, &
-                                    comon, mad, rxyz, lin%nItInnerLoop, kernel, &
+                                    comon, mad, rxyz, nItInnerLoop, kernel, &
                                     newgradient, confdatarr, lphi)
       end if
       t2=mpi_wtime()

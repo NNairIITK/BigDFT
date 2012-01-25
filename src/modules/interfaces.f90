@@ -1771,11 +1771,11 @@ module module_interfaces
     
   subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, input, mad, lin, rxyz, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
-        infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, newgradient, orthpar, confdatarr)
+        infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr)
       use module_base
       use module_types
       implicit none
-      integer:: iproc, nproc, idsxMin, idsxMax, infoBasisFunctions, nit
+      integer:: iproc, nproc, idsxMin, idsxMax, infoBasisFunctions, nit, nItInnerLoop
       type(atoms_data), intent(in) :: at
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data):: lorbs, orbs
@@ -1974,11 +1974,11 @@ module module_interfaces
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
         i3s, i3xcsh, ebsMod, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
-        ldiis, nit, newgradient, orthpar, confdatarr)
+        ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit
+      integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit, nItInnerLoop 
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
       type(p2pCommsSumrho),intent(inout):: comsr
