@@ -829,6 +829,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                 (in%iscf == SCF_KIND_DIRECT_MINIMIZATION) .or. & !direct minimisation
                 (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)  !startmix condition (hard-coded, always true by default)
 
+!----
            !calculate the self-consistent potential
            if (scpot) then
               ! Potential from electronic charge density 
@@ -940,7 +941,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
            !deallocate potential
            call free_full_potential(nproc,linflag,denspot%pot_full,subname)
-
+!----
            energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
            energy=energybs-ehart+eexcu-vexcu-eexctX-eSIC_DC+eion+edisp
 
