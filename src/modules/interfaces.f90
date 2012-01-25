@@ -1496,7 +1496,8 @@ module module_interfaces
          integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
          real(wp), dimension(max(ndimrhopot,1)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
          real(wp), dimension(:), pointer :: pot
-         type(p2pCommsGatherPot),intent(inout), optional:: comgp
+         !type(p2pCommsGatherPot),intent(inout), optional:: comgp
+         type(p2pComms),intent(inout), optional:: comgp
        END SUBROUTINE full_local_potential
 
       subroutine free_full_potential(nproc,flag,pot,subname)
@@ -1780,7 +1781,8 @@ module module_interfaces
       type(orbitals_data):: lorbs, orbs
       type(p2pCommsOrthonormality):: comon
       type(overlapParameters):: op
-      type(p2pCommsGatherPot):: comgp
+      !type(p2pCommsGatherPot):: comgp
+      type(p2pComms):: comgp
       type(matrixDescriptors),intent(in):: mad
       real(8),dimension(3,at%nat):: rxyz
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -1990,7 +1992,8 @@ module module_interfaces
       type(matrixDescriptors),intent(in):: mad, lbmad
       type(overlapParameters),intent(inout):: op, lbop
       type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
-      type(p2pCommsGatherPot):: comgp, lbcomgp
+      !type(p2pCommsGatherPot):: comgp, lbcomgp
+      type(p2pComms):: comgp, lbcomgp
       type(atoms_data),intent(in):: at
       real(8),dimension(3,at%nat),intent(in):: rxyz
       integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -3267,7 +3270,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
        type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
-       type(p2pCommsGatherPot),intent(out):: comgp
+       !type(p2pCommsGatherPot),intent(out):: comgp
+       type(p2pComms),intent(out):: comgp
        integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
        integer,intent(inout):: tag
      end subroutine initializeCommunicationPotential
@@ -3583,7 +3587,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        implicit none
        integer,intent(in):: iproc, nproc, ndimpot
        real(8),dimension(ndimpot),intent(in):: pot
-       type(p2pCommsGatherPot),intent(inout):: comgp
+       !type(p2pCommsGatherPot),intent(inout):: comgp
+       type(p2pComms),intent(inout):: comgp
      end subroutine postCommunicationsPotential
 
 
@@ -3592,7 +3597,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(p2pCommsGatherPot),intent(inout):: comgp
+       !type(p2pCommsGatherPot),intent(inout):: comgp
+       type(p2pComms),intent(inout):: comgp
      end subroutine gatherPotential
 
 
@@ -3738,7 +3744,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_base
        use module_types
        implicit none
-       type(p2pCommsGatherPot),intent(inout):: comgp
+       !type(p2pCommsGatherPot),intent(inout):: comgp
+       type(p2pComms),intent(inout):: comgp
        character(len=*),intent(in):: subname
      end subroutine allocateCommunicationsBuffersPotential
 
@@ -3747,7 +3754,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_base
        use module_types
        implicit none
-       type(p2pCommsGatherPot),intent(inout):: comgp
+       !type(p2pCommsGatherPot),intent(inout):: comgp
+       type(p2pComms),intent(inout):: comgp
        character(len=*),intent(in):: subname
      end subroutine deallocateCommunicationsBuffersPotential
 
@@ -4224,7 +4232,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc
-      type(p2pCommsGatherPot),intent(inout):: comgp
+      !type(p2pCommsGatherPot),intent(inout):: comgp
+      type(p2pComms),intent(inout):: comgp
     end subroutine cancelCommunicationPotential
 
     subroutine initCommsOrthoVariable(iproc, nproc, lzd, orbs, orbsig, onWhichAtomAll, input, op, comon, tag)

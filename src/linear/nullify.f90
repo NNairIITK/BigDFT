@@ -20,7 +20,8 @@ subroutine nullify_linearParameters(lin)
   nullify(lin%norbsPerType)
   !call nullify_p2pCommsSumrho(lin%comsr)
   call nullify_p2pComms(lin%comsr)
-  call nullify_p2pCommsGatherPot(lin%comgp)
+  !call nullify_p2pCommsGatherPot(lin%comgp)
+  call nullify_p2pComms(lin%comgp)
   call nullify_largeBasis(lin%lb)
   call nullify_local_zone_descriptors(lin%lzd)
   call nullify_p2pCommsOrthonormality(lin%comon)
@@ -103,7 +104,6 @@ subroutine nullify_largeBasis(lb)
 
   ! Calling argument
   type(largeBasis),intent(out):: lb
-  call nullify_p2pCommsGatherPot(lb%comgp)
   call nullify_communications_arrays(lb%comms)
   call nullify_communications_arrays(lb%gcomms)
   call nullify_orbitals_data(lb%orbs)
@@ -111,7 +111,8 @@ subroutine nullify_largeBasis(lb)
   call nullify_p2pCommsRepartition(lb%comrp)
   call nullify_p2pCommsOrthonormality(lb%comon)
   call nullify_overlapParameters(lb%op)
-  call nullify_p2pCommsGatherPot(lb%comgp)
+  !call nullify_p2pCommsGatherPot(lb%comgp)
+  call nullify_p2pComms(lb%comgp)
 
 end subroutine nullify_largeBasis
 
@@ -202,7 +203,8 @@ subroutine nullify_linearInputGuess(lig)
   call nullify_orbitals_data(lig%orbsGauss)
   call nullify_p2pCommsOrthonormality(lig%comon)
   call nullify_overlapParameters(lig%op)
-  call nullify_p2pCommsGatherPot(lig%comgp)
+  !call nullify_p2pCommsGatherPot(lig%comgp)
+  call nullify_p2pComms(lig%comgp)
   call nullify_matrixDescriptors(lig%mad)
 
 end subroutine nullify_linearInputGuess

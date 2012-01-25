@@ -4,7 +4,8 @@ subroutine allocateCommunicationsBuffersPotential(comgp, subname)
   implicit none
   
   ! Calling arguments
-  type(p2pCommsGatherPot),intent(inout):: comgp
+  !type(p2pCommsGatherPot),intent(inout):: comgp
+  type(p2pComms),intent(inout):: comgp
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -23,7 +24,8 @@ subroutine deallocateCommunicationsBuffersPotential(comgp, subname)
   implicit none
   
   ! Calling arguments
-  type(p2pCommsGatherPot),intent(inout):: comgp
+  !type(p2pCommsGatherPot),intent(inout):: comgp
+  type(p2pComms),intent(inout):: comgp
   character(len=*),intent(in):: subname
   
   ! Local variables

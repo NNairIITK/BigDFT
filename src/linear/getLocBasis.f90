@@ -74,7 +74,8 @@ type(p2pComms),intent(inout):: comsr
 type(matrixDescriptors),intent(in):: mad, lbmad
 type(overlapParameters),intent(inout):: op, lbop
 type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
-type(p2pCommsGatherPot):: comgp, lbcomgp
+!type(p2pCommsGatherPot):: comgp, lbcomgp
+type(p2pComms):: comgp, lbcomgp
 type(atoms_data),intent(in):: at
 real(8),dimension(3,at%nat),intent(in):: rxyz
 integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -490,7 +491,8 @@ type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data):: lorbs, orbs
 type(p2pCommsOrthonormality):: comon
 type(overlapParameters):: op
-type(p2pCommsGatherPot):: comgp
+!type(p2pCommsGatherPot):: comgp
+type(p2pComms):: comgp
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat):: rxyz
 integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -2259,7 +2261,8 @@ integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3
 !type(linearParameters),intent(inout):: lin
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
-type(p2pCommsGatherPot),intent(out):: comgp
+!type(p2pCommsGatherPot),intent(out):: comgp
+type(p2pComms),intent(out):: comgp
 integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 integer,intent(inout):: tag
 
@@ -2455,7 +2458,8 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, ndimpot
 real(8),dimension(ndimpot),intent(in):: pot
-type(p2pCommsGatherPot),intent(inout):: comgp
+!type(p2pCommsGatherPot),intent(inout):: comgp
+type(p2pComms),intent(inout):: comgp
 
 ! Local variables
 integer:: jproc, kproc, nsends, nreceives, istat, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
@@ -2544,7 +2548,8 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(p2pCommsGatherPot),intent(inout):: comgp
+!type(p2pCommsGatherPot),intent(inout):: comgp
+type(p2pComms),intent(inout):: comgp
 
 ! Local variables
 integer:: kproc, mpisource, mpidest, nfast, nslow, nsameproc, ierr, jproc

@@ -671,7 +671,8 @@ type,public:: largeBasis
     type(p2pCommsRepartition):: comrp
     type(p2pCommsOrthonormality):: comon
     type(overlapParameters):: op
-    type(p2pCommsGatherPot):: comgp
+    !type(p2pCommsGatherPot):: comgp
+    type(p2pComms):: comgp
     type(matrixDescriptors):: mad
     type(collectiveComms):: collComms
     !type(p2pCommsSumrho):: comsr
@@ -717,7 +718,8 @@ end type workarrays_quartic_convolutions
       type(orbitals_data):: orbsig, orbsGauss
       type(p2pCommsOrthonormality):: comon
       type(overlapParameters):: op
-      type(p2pCommsGatherPot):: comgp
+      !type(p2pCommsGatherPot):: comgp
+      type(p2pComms):: comgp
       type(matrixDescriptors):: mad
   end type linearInputGuess
 
@@ -745,7 +747,8 @@ end type workarrays_quartic_convolutions
     character(len=4):: mixingMethod
     !type(p2pCommsSumrho):: comsr
     type(p2pComms):: comsr
-    type(p2pCommsGatherPot):: comgp
+    !type(p2pCommsGatherPot):: comgp
+    type(p2pComms):: comgp
     type(largeBasis):: lb
     type(local_zone_descriptors):: lzd
     type(p2pCommsOrthonormality):: comon
