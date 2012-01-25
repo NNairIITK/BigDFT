@@ -1,5 +1,5 @@
 subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
-    mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, at, rxyz, rxyzParab, &
+    mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, at, rxyz, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, size_pkernel, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
@@ -76,7 +76,6 @@ type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
 type(p2pCommsGatherPot):: comgp, lbcomgp
 type(atoms_data),intent(in):: at
 real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(3,at%nat),intent(inout):: rxyzParab
 integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
 real(dp),dimension(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*n3p,1)*nspin),intent(inout) :: rhopot
