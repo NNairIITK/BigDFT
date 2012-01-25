@@ -44,6 +44,33 @@
   obj->name = (double*)tmp.data; \
   }
 
+void FC_FUNC_(f90_pointer_1d_init, F90_POINTER_1D_INIT)(f90_pointer_double *pt, guint *s);
+void FC_FUNC_(f90_pointer_2d_init, F90_POINTER_2D_INIT)(f90_pointer_double_2D *pt, guint *s);
+void FC_FUNC_(f90_pointer_3d_init, F90_POINTER_3D_INIT)(f90_pointer_double_3D *pt, guint *s);
+void FC_FUNC_(f90_pointer_4d_init, F90_POINTER_4D_INIT)(f90_pointer_double_4D *pt, guint *s);
+void FC_FUNC_(f90_pointer_5d_init, F90_POINTER_5D_INIT)(f90_pointer_double_5D *pt, guint *s);
+
+#define F90_1D_POINTER_INIT(pt) {                                       \
+  guint size_ = F90_1D_POINTER_SIZE;                                    \
+  FC_FUNC_(f90_pointer_1d_init, F90_POINTER_1D_INIT)(pt, &size_);       \
+  }
+#define F90_2D_POINTER_INIT(pt) {                                       \
+  guint size_ = F90_2D_POINTER_SIZE;                                    \
+  FC_FUNC_(f90_pointer_2d_init, F90_POINTER_2D_INIT)(pt, &size_);       \
+  }
+#define F90_3D_POINTER_INIT(pt) {                                       \
+  guint size_ = F90_3D_POINTER_SIZE;                                    \
+  FC_FUNC_(f90_pointer_3d_init, F90_POINTER_3D_INIT)(pt, &size_);       \
+  }
+#define F90_4D_POINTER_INIT(pt) {                                       \
+  guint size_ = F90_4D_POINTER_SIZE;                                    \
+  FC_FUNC_(f90_pointer_4d_init, F90_POINTER_4D_INIT)(pt, &size_);       \
+  }
+#define F90_5D_POINTER_INIT(pt) {                                       \
+  guint size_ = F90_5D_POINTER_SIZE;                                    \
+  FC_FUNC_(f90_pointer_5d_init, F90_POINTER_5D_INIT)(pt, &size_);       \
+  }
+
 void FC_FUNC_(deallocate_double_1d, DEALLOCATE_DOUBLE_1D)(f90_pointer_double *array);
 void FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(f90_pointer_double_2D *array);
 
@@ -57,6 +84,11 @@ void FC_FUNC_(read_wave_descr, READ_WAVE_DESCR)
      (int *lstat, const char* filename, int *ln, int *norbu,
       int *norbd, int *iorb, int *ispin, int *nkpt, int *ikpt, int *nspinor, int *ispinor);
 
+void FC_FUNC_(inquire_pointer, INQUIRE_POINTER)(void *pt, void *add, int *size)
+{
+  memcpy(pt, add, sizeof(void*) * *size);
+}
+
 f90_pointer_double_4D* bigdft_read_wave_to_isf(const char *filename, int iorbp,
                                                double h[3], int n[3], int *nspinor)
 {
@@ -64,7 +96,7 @@ f90_pointer_double_4D* bigdft_read_wave_to_isf(const char *filename, int iorbp,
   f90_pointer_double_4D *psiscf;
 
   psiscf = g_malloc(sizeof(f90_pointer_double_4D));
-  memset(psiscf, 0, sizeof(f90_pointer_double_4D));
+  F90_4D_POINTER_INIT(psiscf);
   
   ln = strlen(filename);
   FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
@@ -174,7 +206,7 @@ static BigDFT_Atoms* bigdft_atoms_init()
   memset(atoms, 0, sizeof(BigDFT_Atoms));
   atoms->data = g_malloc(sizeof(f90_pointer_atoms));
   memset(atoms->data, 0, sizeof(f90_pointer_atoms));
-  memset(&atoms->rxyz, 0, sizeof(f90_pointer_double_2D));
+  F90_2D_POINTER_INIT(&atoms->rxyz);
 
   return atoms;
 }
@@ -357,7 +389,7 @@ void bigdft_atoms_write(const BigDFT_Atoms *atoms, const gchar *filename)
       comment = " ";
       ln = 1;
     }
-  memset(&forces, '\0', sizeof(f90_pointer_double));
+  F90_1D_POINTER_INIT(&forces);
   ln2 = strlen(filename);
   FC_FUNC_(atoms_write, ATOMS_WRITE)(atoms->data->atoms, filename, &ln2, atoms->rxyz.data,
                                      &forces, &atoms->energy, comment, &ln);
@@ -508,7 +540,7 @@ static BigDFT_Inputs* bigdft_inputs_init()
   memset(in, 0, sizeof(BigDFT_Inputs));
   in->data = g_malloc(sizeof(f90_pointer_inputs));
   memset(in->data, 0, sizeof(f90_pointer_inputs));
-  memset(&in->qmass, 0, sizeof(f90_pointer_double));
+  F90_1D_POINTER_INIT(&in->qmass);
 
   return in;
 }
@@ -666,7 +698,7 @@ static BigDFT_Proj* bigdft_proj_init()
   memset(proj, 0, sizeof(BigDFT_Proj));
   proj->nlpspd = g_malloc(sizeof(f90_pointer_nlpspd));
   memset(proj->nlpspd, 0, sizeof(f90_pointer_nlpspd));
-  memset(&proj->proj, 0, sizeof(f90_pointer_double));
+  F90_1D_POINTER_INIT(&proj->proj);
 
   return proj;
 }
@@ -816,7 +848,7 @@ f90_pointer_double* bigdft_psolver_create_kernel(const BigDFT_Glr *glr, guint ip
   double hh[3];
 
   pkernel = g_malloc(sizeof(f90_pointer_double));
-  memset(pkernel, 0, sizeof(f90_pointer_double));
+  F90_1D_POINTER_INIT(pkernel);
 
   hh[0] = glr->h[0] * 0.5;
   hh[1] = glr->h[1] * 0.5;

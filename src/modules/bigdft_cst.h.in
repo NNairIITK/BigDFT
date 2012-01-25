@@ -66,6 +66,14 @@ typedef struct f90_pointer_double_4D_
   double *data;
   void *info[F90_4D_POINTER_SIZE - 1 - F90_4D_POINTER_SHIFT];
 } f90_pointer_double_4D;
+typedef struct f90_pointer_double_5D_
+{
+#if F90_5D_POINTER_SHIFT > 0
+  void *shift[F90_5D_POINTER_SHIFT];
+#endif
+  double *data;
+  void *info[F90_5D_POINTER_SIZE - 1 - F90_5D_POINTER_SHIFT];
+} f90_pointer_double_5D;
 typedef struct f90_pointer_int_
 {
 #if F90_1D_POINTER_SHIFT > 0
