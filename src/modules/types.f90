@@ -588,7 +588,7 @@ module module_types
 
 
 !> Contains the parameters for the communications of the derivative orbitals
-!! to mathc their partition.
+!! to match their partition.
   type,public:: p2pCommsRepartition
       integer,dimension(:,:,:),pointer:: comarr
        logical,dimension(:,:),pointer:: communComplete
