@@ -341,8 +341,8 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
      call countOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
      allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
      call memocc(istat, op%overlaps, 'op%overlaps', subname)
-     allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
-     call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
+     !!allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
+     !!call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
   else if(locregShape=='s') then
      call determine_overlap_from_descriptors(iproc, nproc, orbs, lzd, op, comon)
   end if
@@ -610,7 +610,7 @@ subroutine determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
 
   ! Initialize to some value which will never be used.
   op%overlaps=-1
-  comon%overlaps=-1
+  !!comon%overlaps=-1
 
   iiorb=0
   do jproc=0,nproc-1
@@ -637,7 +637,7 @@ subroutine determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
                  ! would get the same orbitals again. Therefore the counter is not increased
                  ! in that case.
                  ioverlapMPI=ioverlapMPI+1
-                 comon%overlaps(ioverlapMPI,jproc)=jorb
+                 !!comon%overlaps(ioverlapMPI,jproc)=jorb
               end if
            end if
         end do
@@ -671,7 +671,7 @@ subroutine determineOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, com
 
   ! Initialize to some value which will never be used.
   op%overlaps=-1
-  comon%overlaps=-1
+  !!comon%overlaps=-1
 
   iiorb=0
   do jproc=0,nproc-1
@@ -703,7 +703,7 @@ subroutine determineOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, com
                  ! would get the same orbitals again. Therefore the counter is not increased
                  ! in that case.
                  ioverlapMPI=ioverlapMPI+1
-                 comon%overlaps(ioverlapMPI,jproc)=jorb
+                 !!comon%overlaps(ioverlapMPI,jproc)=jorb
               end if
            end if
         end do
@@ -2826,8 +2826,8 @@ op%noverlapsmax=maxval(op%noverlaps)
 allocate(op%overlaps(op%noverlapsmax,orbs%norb), stat=istat)
 call memocc(istat, op%overlaps, 'op%overlaps', subname)
 comon%noverlapsmax=maxval(comon%noverlaps)
-allocate(comon%overlaps(comon%noverlapsmax,0:nproc-1), stat=istat)
-call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
+!!allocate(comon%overlaps(comon%noverlapsmax,0:nproc-1), stat=istat)
+!!call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
 allocate(op%indexInRecvBuf(orbs%norbp,orbsig%norb), stat=istat)
 call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
 allocate(op%indexInSendBuf(orbsig%norbp,orbsig%norb), stat=istat)
@@ -2947,7 +2947,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz
 
   ! Initialize to some value which will never be used.
   op%overlaps=-1
-  comon%overlaps=-1
+  !!comon%overlaps=-1
 
   iiorb=0
   do jproc=0,nproc-1
@@ -2972,7 +2972,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz
                       ! would get the same orbitals again. Therefore the counter is not increased
                       ! in that case.
                       ioverlapMPI=ioverlapMPI+1
-                      comon%overlaps(ioverlapMPI,jproc)=jorb
+                      !!comon%overlaps(ioverlapMPI,jproc)=jorb
                   end if
               end if
           end do 

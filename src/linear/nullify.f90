@@ -116,7 +116,7 @@ subroutine nullify_p2pCommsOrthonormality(comon)
   type(p2pCommsOrthonormality),intent(out):: comon
 
   nullify(comon%noverlaps)
-  nullify(comon%overlaps)
+  !!nullify(comon%overlaps)
   nullify(comon%comarr)
   nullify(comon%sendBuf)
   nullify(comon%recvBuf)

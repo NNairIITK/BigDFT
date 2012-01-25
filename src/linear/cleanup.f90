@@ -1371,7 +1371,7 @@ subroutine deallocate_p2pCommsOrthonormality(comon, subname)
   character(len=*),intent(in):: subname
 
   call checkAndDeallocatePointer(comon%noverlaps, 'comon%noverlaps', subname)
-  call checkAndDeallocatePointer(comon%overlaps, 'comon%overlaps', subname)
+  !call checkAndDeallocatePointer(comon%overlaps, 'comon%overlaps', subname)
   call checkAndDeallocatePointer(comon%comarr, 'comon%comarr', subname)
   call checkAndDeallocatePointer(comon%sendBuf, 'comon%sendBuf', subname)
   call checkAndDeallocatePointer(comon%recvBuf, 'comon%recvBuf', subname)

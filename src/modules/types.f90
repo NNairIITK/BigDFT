@@ -423,9 +423,6 @@ module module_types
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
-  !integer,dimension(:,:,:,:),pointer:: nvctr_parLIN
-  !integer, dimension(:), pointer :: ncntdLIN,ncnttLIN,ndspldLIN,ndspltLIN
-
   end type communications_arrays
 
 
@@ -579,7 +576,7 @@ module module_types
    type,public:: p2pCommsOrthonormality
        integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend, nrecvtemp, nsendtemp, isoverlap, nstepoverlap
        integer,dimension(:),pointer:: noverlaps
-       integer,dimension(:,:),pointer:: overlaps
+       !!integer,dimension(:,:),pointer:: overlaps
        integer,dimension(:,:,:),pointer:: comarr
        real(8),dimension(:),pointer:: sendBuf, recvBuf
        logical,dimension(:,:),pointer:: communComplete
