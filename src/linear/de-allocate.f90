@@ -292,7 +292,8 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc
 logical,intent(in):: with_auxarray
-type(p2pCommsSumrho),intent(inout):: comsr
+!type(p2pCommsSumrho),intent(inout):: comsr
+type(p2pComms),intent(inout):: comsr
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -326,7 +327,8 @@ use module_types
 implicit none
 
 ! Calling arguments
-type(p2pCommsSumrho),intent(inout):: comsr
+!type(p2pCommsSumrho),intent(inout):: comsr
+type(p2pComms),intent(inout):: comsr
 character(len=*),intent(in):: subname
 
 ! Local variables

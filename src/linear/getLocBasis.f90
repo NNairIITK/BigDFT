@@ -69,7 +69,8 @@ integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
 integer,intent(in):: blocksize_pdsyev, nproc_pdsyev, size_pkernel, nspin
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
-type(p2pCommsSumrho),intent(inout):: comsr
+!type(p2pCommsSumrho),intent(inout):: comsr
+type(p2pComms),intent(inout):: comsr
 type(matrixDescriptors),intent(in):: mad, lbmad
 type(overlapParameters),intent(inout):: op, lbop
 type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
@@ -2153,7 +2154,8 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(p2pCommsSumrho),intent(inout):: comsr
+!type(p2pCommsSumrho),intent(inout):: comsr
+type(p2pComms),intent(inout):: comsr
 real(8),dimension(comsr%nsendBuf),intent(inout):: sendBuf
 real(8),dimension(comsr%nrecvBuf),intent(out):: recvBuf
 

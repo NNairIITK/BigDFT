@@ -285,7 +285,8 @@ integer,intent(in):: iproc, nproc, nrho, norb
 type(local_zone_descriptors),intent(in):: lzd
 type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
-type(p2pCommsSumrho),intent(inout):: comsr
+!type(p2pCommsSumrho),intent(inout):: comsr
+type(p2pComms),intent(inout):: comsr
 real(8),dimension(orbs%norb,norb),intent(in):: coeff
 real(8),dimension(nrho),intent(out),target:: rho
 type(atoms_data),intent(in):: at

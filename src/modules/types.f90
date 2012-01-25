@@ -674,7 +674,8 @@ type,public:: largeBasis
     type(p2pCommsGatherPot):: comgp
     type(matrixDescriptors):: mad
     type(collectiveComms):: collComms
-    type(p2pCommsSumrho):: comsr
+    !type(p2pCommsSumrho):: comsr
+    type(p2pComms):: comsr
 end type largeBasis
 
 
@@ -742,7 +743,8 @@ end type workarrays_quartic_convolutions
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
     logical:: newgradient, mixedmode
     character(len=4):: mixingMethod
-    type(p2pCommsSumrho):: comsr
+    !type(p2pCommsSumrho):: comsr
+    type(p2pComms):: comsr
     type(p2pCommsGatherPot):: comgp
     type(largeBasis):: lb
     type(local_zone_descriptors):: lzd

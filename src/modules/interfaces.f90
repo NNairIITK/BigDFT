@@ -1985,7 +1985,8 @@ module module_interfaces
       integer,intent(in):: blocksize_pdsyev, nproc_pdsyev, size_pkernel, nspin
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
-      type(p2pCommsSumrho),intent(inout):: comsr
+      !type(p2pCommsSumrho),intent(inout):: comsr
+      type(p2pComms),intent(inout):: comsr
       type(matrixDescriptors),intent(in):: mad, lbmad
       type(overlapParameters),intent(inout):: op, lbop
       type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
@@ -2551,7 +2552,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(local_zone_descriptors),intent(in):: lzd
       type(orbitals_data),intent(in):: orbs
       integer,intent(inout):: tag
-      type(p2pCommsSumrho),intent(out):: comsr
+      !type(p2pCommsSumrho),intent(out):: comsr
+      type(p2pComms),intent(out):: comsr
     end subroutine initializeCommsSumrho
 
 
@@ -2852,7 +2854,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(local_zone_descriptors),intent(in):: lzd
        type(input_variables),intent(in):: input
        type(orbitals_data),intent(in):: orbs
-       type(p2pCommsSumrho),intent(inout):: comsr
+       !type(p2pCommsSumrho),intent(inout):: comsr
+       type(p2pComms),intent(inout):: comsr
        real(8),dimension(orbs%norb,norb),intent(in):: coeff
        real(8),dimension(nrho),intent(out),target:: rho
        type(atoms_data),intent(in):: at
@@ -2865,7 +2868,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(p2pCommsSumrho),intent(inout):: comsr
+       !type(p2pCommsSumrho),intent(inout):: comsr
+       type(p2pComms),intent(inout):: comsr
        real(8),dimension(comsr%nsendBuf),intent(inout):: sendBuf
        real(8),dimension(comsr%nrecvBuf),intent(out):: recvBuf
      end subroutine postCommunicationSumrho2
@@ -3696,7 +3700,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        implicit none
        integer,intent(in):: iproc
        logical,intent(in):: with_auxarray
-       type(p2pCommsSumrho),intent(inout):: comsr
+       !type(p2pCommsSumrho),intent(inout):: comsr
+       type(p2pComms),intent(inout):: comsr
        character(len=*),intent(in):: subname
      end subroutine allocateCommunicationbufferSumrho
 
@@ -3705,7 +3710,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_base
        use module_types
        implicit none
-       type(p2pCommsSumrho),intent(inout):: comsr
+       !type(p2pCommsSumrho),intent(inout):: comsr
+       type(p2pComms),intent(inout):: comsr
        character(len=*),intent(in):: subname
      end subroutine deallocateCommunicationbufferSumrho
 
@@ -3995,7 +4001,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       use module_base
       use module_types
       implicit none
-      type(p2pCommsSumrho),intent(out):: comsr
+      !type(p2pCommsSumrho),intent(out):: comsr
+      type(p2pComms),intent(out):: comsr
     end subroutine nullify_p2pCommsSumrho
 
     subroutine nullify_p2pCommsGatherPot(comgp)
