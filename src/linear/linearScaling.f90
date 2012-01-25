@@ -223,7 +223,6 @@ type(orthon_data):: orthpar
       else
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-               lin%lb%orbs, lin%lb%comsr, &
               lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon,&
               lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
