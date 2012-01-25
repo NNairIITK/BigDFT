@@ -136,7 +136,7 @@ module module_types
   type, public :: input_variables
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-          & file_mix,file_sic,file_occnum,file_igpop,file_lin, dir_output
+          file_mix,file_sic,file_occnum,file_igpop,file_lin, dir_output
      integer :: files ! existing files.
      !miscellaneous variables
      logical :: gaussian_help

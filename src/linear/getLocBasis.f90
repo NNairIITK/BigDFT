@@ -739,7 +739,7 @@ character(len=3):: orbname, comment
       ! Cycle if the trace increased (steepest descent only)
       !if(iproc==0) write(*,*) 'ldiis%switchSD, ldiis%isx', ldiis%switchSD, ldiis%isx
       if(.not. ldiis%switchSD .and. ldiis%isx==0) then
-           if(iproc==0) write(*,*) 'trH, trHold', trH, trHold
+         !if(iproc==0) write(*,*) 'trH, trHold', trH, trHold
            !if(trH>trHold) then
            if(trH > trHold + 1.d-5*abs(trHold)) then
                consecutive_rejections=consecutive_rejections+1
@@ -881,9 +881,6 @@ character(len=3):: orbname, comment
       !!!end do
       !!!deallocate(lvphiovrlp)
       !!!! ####################################################################################
-
-
-
 
 
       ! Determine the mean step size for steepest descent iterations.
