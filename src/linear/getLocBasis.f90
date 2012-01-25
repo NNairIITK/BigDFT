@@ -569,6 +569,9 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
        lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
        lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
 
+  allocate(confdatarr(lorbs%norbp))
+  call define_confinement_data(confdatarr,lorbs,rxyz,at,&
+       input%hx,input%hy,input%hz,lin,lzd,lorbs%inWhichLocreg)
 
   allocate(lphiold(size(lphi)), stat=istat)
   call memocc(istat, lphiold, 'lphiold', subname)
@@ -631,15 +634,11 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
       lzd%doHamAppl=.true.
 
-     allocate(confdatarr(lorbs%norbp))
-     call define_confinement_data(confdatarr,lorbs,rxyz,at,&
-          input%hx,input%hy,input%hz,lin,lzd,lorbs%inWhichLocreg)
       call HamiltonianApplication3(iproc,nproc,at,lorbs,&
            input%hx,input%hy,input%hz,rxyz,&
            proj,lzd,nlpspd,confdatarr,ngatherarr,lpot,lphi,lhphi,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
            pkernel=pkernelseq)
-      deallocate(confdatarr)
 
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
       deallocate(lzd%doHamAppl,stat=istat)
@@ -713,7 +712,7 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       !!        end do
       !!    end do
       !!end do
-      if(lin%newgradient) then
+      if(newgradient) then
           trH=0.d0
           do jorb=1,lorbs%norb
               do korb=1,lorbs%norb
@@ -846,8 +845,8 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
       do iorb=1,lorbs%norbp
           iiorb=lorbs%isorb+iorb
           ilr = lorbs%inWhichLocreg(iiorb)
-          call choosePreconditioner2(iproc, nproc, lorbs, lin, lzd%Llr(ilr), input%hx, input%hy, input%hz, &
-              lin%nItPrecond, lhphi(ind2), at%nat, rxyz, at, it, iorb, eval_zero)
+          call choosePreconditioner2(iproc, nproc, lorbs, lzd%Llr(ilr), input%hx, input%hy, input%hz, &
+              lin%nItPrecond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder, confdatarr(iorb)%prefac, it, iorb, eval_zero)
           ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
       end do
       !!!end if
@@ -981,6 +980,8 @@ type(confpot_data), dimension(:), allocatable :: confdatarr
   iall=-product(shape(lpot))*kind(lpot)
   deallocate(lpot, stat=istat)
   call memocc(istat, iall, 'lpot', subname)
+
+  deallocate(confdatarr)
 
   ! Deallocate PSP stuff
   !call free_lnlpspd(lorbs, lzd)
