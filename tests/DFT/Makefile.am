@@ -73,18 +73,19 @@ SIC.post-in:
           *) mode="";; \
         esac ; \
         case $* in \
-          Ca2.out*)            prec="4.e-10" ;; \
-          NaCl.out*)           prec="2.e-9" ;; \
-          SiBulk.out*)         prec="2.e-7" ;; \
-          AgBulk.out*)         prec="6.e-8" ;; \
-          SiH4.out*)           prec="5.e-9" ;; \
-	  TDDFT.out*)          prec="2.e-9" ;; \
-	  SIC*.out*)           prec="1.e-9" ;; \
-	  Mn2.out*)            prec="1.5e-10" ;; \
-          ElecField.out*)      prec="1.e-9" ;; \
-	  Linear.out*)         prec="1.e-9" ;; \
-	  Linear_withder.out*) prec="5.e-10" ;; \
-          *)                   prec="1.1e-10" ;; \
+          Ca2.out*)             prec="4.e-10" ;; \
+          NaCl.out*)            prec="2.e-9" ;; \
+          SiBulk.out*)          prec="2.e-7" ;; \
+          AgBulk.out*)          prec="6.e-8" ;; \
+          SiH4.out*)            prec="5.e-9" ;; \
+	  TDDFT.out*)           prec="2.e-9" ;; \
+	  SIC*.out*)            prec="1.e-9" ;; \
+	  Mn2.out*)             prec="1.5e-10" ;; \
+          ElecField.out*)       prec="1.e-9" ;; \
+	  Linear.out*)           prec="1.e-9" ;; \
+	  Linear_withder.out*)   prec="5.e-10" ;; \
+	  Linear_mixedmode.out*) prec="2.e-10" ;; \
+          *)                    prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 

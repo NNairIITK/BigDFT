@@ -3144,7 +3144,7 @@ subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
 end subroutine repartitionOrbitals2
 
 
-subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radii_cf)
+subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
   use module_base
   use module_types
   use module_xc
@@ -3156,7 +3156,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz,rad
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data),intent(inout) :: orbs
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
+!  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
   logical :: linear,newvalue
@@ -3420,7 +3420,7 @@ subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
 end subroutine local_potential_dimensions
 
 
-subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radii_cf)
+subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
   use module_base
   use module_types
   use deallocatePointers
@@ -3431,7 +3431,7 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz,radi
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data),intent(inout) :: orbs
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
+!  real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
   !Local variables
   character(len=*), parameter :: subname='reinitialize_Lzd_after_LIG'
   integer :: iat,ityp,nspin_ig,i_all,i_stat,i1,iis1,iie1,ilr

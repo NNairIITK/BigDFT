@@ -21,7 +21,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   real(gp) :: spinval,hfac,fi,vexi,eexi,ehi
   integer, dimension(:,:), allocatable :: nscarr_fake
   real(dp), dimension(:,:), allocatable :: rhopoti,vSICi
-  real(dp), dimension(:), pointer :: rhocore_fake
+  real(dp), dimension(:,:,:,:), pointer :: rhocore_fake
 
 
   !fake nscatterarr array for compatibility with partial_density interface
@@ -213,7 +213,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
   type(workarr_sumrho) :: w
   real(dp), dimension(:,:), allocatable :: ni,deltarho,vxci,rho,psir,wxd
   real(dp), dimension(:,:,:,:), allocatable :: fxci
-  real(dp), dimension(:), pointer :: rhocore_fake
+  real(dp), dimension(:,:,:,:), pointer :: rhocore_fake
 
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
  

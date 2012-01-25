@@ -1,5 +1,5 @@
 subroutine linearScaling(iproc,nproc,n3d,n3p,n3pi,i3s,i3xcsh,Glr,orbs,comms,at,input,&
-     rhodsc,lin,rxyz,fion,fdisp,radii_cf,nscatterarr,ngatherarr,nlpspd,proj,rhopot,GPU,&
+     rhodsc,lin,rxyz,fion,fdisp,nscatterarr,ngatherarr,nlpspd,proj,rhopot,GPU,&
      pkernelseq,pkernel,pot_ion,rhocore,potxc,&
      PSquiet,eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
 !
@@ -71,7 +71,6 @@ type(input_variables),intent(in):: input
 type(rho_descriptors),intent(inout) :: rhodsc
 real(8),dimension(3,at%nat),intent(inout):: rxyz
 real(8),dimension(3,at%nat),intent(in):: fion, fdisp
-real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 !integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
 integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
@@ -83,7 +82,7 @@ real(dp),dimension(:),pointer,intent(in):: pkernelseq
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
 real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
 !real(wp), dimension(lin%as%size_rhocore):: rhocore 
-real(wp), dimension(:),pointer,intent(in):: rhocore                  
+real(wp), dimension(:,:,:,:),pointer,intent(in):: rhocore                  
 real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
 character(len=3),intent(in):: PSquiet
 real(gp),intent(in):: eion, edisp, eexctX
@@ -173,7 +172,7 @@ type(orthon_data):: orthpar
   call inputguessConfinement(iproc, nproc, at, &
        comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
-       nscatterarr, ngatherarr, potshortcut, GPU, radii_cf, &
+       nscatterarr, ngatherarr, potshortcut, GPU, &
        tag, lphi, ehart, eexcu, vexcu)
   call mpi_barrier(mpi_comm_world, ierr)
   t2ig=mpi_wtime()
@@ -214,7 +213,8 @@ type(orthon_data):: orthpar
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
           lin%useDerivativeBasisFunctions=.false.
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
-              lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, lin%comgp, lin%comgp, comms, at, lin, rxyz, rxyz, &
+              lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, &
+              lin%comgp, lin%comgp, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
               i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%nItInnerLoop, &
@@ -223,7 +223,8 @@ type(orthon_data):: orthpar
       else
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-              lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
+              lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon,&
+              lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
               nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
               infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
               i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
@@ -400,7 +401,8 @@ type(orthon_data):: orthpar
               if(.not.withder) then
                   lin%useDerivativeBasisFunctions=.false.
                   call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
-                      lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, lin%comgp, lin%comgp, comms, at, lin, rxyz, rxyz, &
+                      lin%mad, lin%mad, lin%op, lin%op, lin%comon,&
+                      lin%comon, lin%comgp, lin%comgp, comms, at, lin, rxyz, rxyz, &
                       nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                       i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
@@ -409,7 +411,8 @@ type(orthon_data):: orthpar
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-                      lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
+                      lin%mad, lin%lb%mad, lin%op, lin%lb%op, &
+                      lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
                       nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                       i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
@@ -418,7 +421,8 @@ type(orthon_data):: orthpar
               end if
           else
               call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-                  lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
+                  lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, &
+                  lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
                   nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
                   infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
                   i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &

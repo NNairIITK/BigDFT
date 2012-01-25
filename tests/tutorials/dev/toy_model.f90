@@ -60,7 +60,7 @@ program wvl
        & atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult,Lzd%Glr)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
-  call check_linear_and_create_Lzd(iproc,nproc,inputs,Lzd,atoms,orbs,rxyz,radii_cf)
+  call check_linear_and_create_Lzd(iproc,nproc,inputs,Lzd,atoms,orbs,rxyz)
 
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))

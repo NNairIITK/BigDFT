@@ -1437,6 +1437,8 @@ subroutine deallocate_overlapParameters(op, subname)
       end do
   end do
 
+  deallocate(op%extseg,op%expseg)
+
 end subroutine deallocate_overlapParameters
 
 

@@ -218,10 +218,10 @@ subroutine timing(iproc,category,action)
         nextra=nproc
         if (.not. debugmode) nextra=2
         write(strextra,'(i5)')nextra
-        formatstring='1x,f4.1,a,1x,1pe9.2,a,'//trim(strextra)//'(1x,0pf5.2,a)'
+        formatstring='1x,f5.1,a,1x,1pe9.2,a,'//trim(strextra)//'(1x,0pf5.2,a)'
      else
         nextra=0
-        formatstring='1x,f4.1,a,1x,1pe9.2,a'
+        formatstring='1x,f5.1,a,1x,1pe9.2,a'
      end if
 
      ncounters=0
@@ -294,7 +294,7 @@ subroutine timing(iproc,category,action)
               write(60,'(2x,a,t19,a,'//trim(formatstring)//')') trim(pcnames(i))//':','[',&
                    pc,',',timecnt(i,nproc),']'
            end do
-           write(60,'(2x,a,t19,a,1x,f4.0,a,1x,1pe9.2,a)') 'Total:','[',&
+           write(60,'(2x,a,t19,a,1x,f5.1,a,1x,1pe9.2,a)') 'Total:','[',&
                 100.d0,',',sum(timecnt(1:ncounters,nproc)),']'
            !write the number of processors and the number of OpenMP threads
            nthreads = 0

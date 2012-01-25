@@ -43,7 +43,7 @@ program memguess
    integer, dimension(:,:), allocatable :: norbsc_arr
    real(gp), dimension(:,:), pointer :: rxyz
    real(wp), dimension(:), allocatable :: rhoexpo,psi
-   real(wp), dimension(:,:), pointer :: rhocoeff
+   real(wp), dimension(:,:,:,:), pointer :: rhocoeff
    real(kind=8), dimension(:,:), allocatable :: radii_cf
    logical, dimension(:,:,:), allocatable :: scorb
    real(kind=8), dimension(:), allocatable :: locrad
@@ -427,8 +427,7 @@ program memguess
          orbstst%spinsgn(iorb)=1.0_gp
       end do
 
-      call check_linear_and_create_Lzd(0,1,in,Lzd,atoms,orbstst,rxyz,&
-           radii_cf)
+      call check_linear_and_create_Lzd(0,1,in,Lzd,atoms,orbstst,rxyz)
 
       call compare_cpu_gpu_hamiltonian(0,1,in%iacceleration,atoms,&
            orbstst,nspin,in%ncong,in%ixc,&
@@ -477,7 +476,7 @@ program memguess
       nullify(G%rxyz)
       call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,rxyz,G,gbd_occ)
       !for the moment multiply the number of coefficients for each channel
-      allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
+      allocate(rhocoeff((ng*(ng+1))/2,4,1,1+ndebug),stat=i_stat)
       call memocc(i_stat,rhocoeff,'rhocoeff',subname)
       allocate(rhoexpo((ng*(ng+1))/2+ndebug),stat=i_stat)
       call memocc(i_stat,rhoexpo,'rhoexpo',subname)

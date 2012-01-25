@@ -3331,11 +3331,6 @@ end function dfactorial
 !!!!  if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
 !!!!  call mpi_barrier(mpi_comm_world, ierr)
 !!!!  call cpu_time(t1)
-!!!!  !!call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%locregShape, lin%lig%lzdig)
-!!!!  !!call full_local_potential2(iproc, nproc, lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2), &
-!!!!  !!     lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*lin%lig%lzdig%glr%d%n3i,&
-!!!!  !!     lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,1)*input%nspin, input%nspin, lin%lig%orbsig,&
-!!!!  !!     lin%lig%lzdig, ngatherarr, rhopot, lpot, 2, lin%lig%comgp)
 !!!!
 !!!!  allocate(lin%lzd%doHamAppl(lin%lzd%nlr), stat=istat)
 !!!!  call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)

@@ -167,7 +167,7 @@ END SUBROUTINE initInputguessConfinement
 subroutine inputguessConfinement(iproc, nproc, at, &
      comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
      nlpspd, proj, pkernel, pkernelseq, &
-     nscatterarr, ngatherarr, potshortcut, GPU, radii_cf,  &
+     nscatterarr, ngatherarr, potshortcut, GPU,  &
      tag, lphi, ehart, eexcu, vexcu)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
@@ -194,11 +194,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot, rhopotold
   real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
-  real(wp), dimension(:), pointer :: rhocore
+  real(wp), dimension(:,:,:,:), pointer :: rhocore
   real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
   real(dp), dimension(:), pointer :: pkernelseq
   integer, intent(in) ::potshortcut
-  real(8),dimension(at%ntypes,3),intent(in):: radii_cf
   integer,intent(inout):: tag
   real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(out):: lphi
   real(8),intent(out):: ehart, eexcu, vexcu
@@ -360,16 +359,17 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call wavefunction_dimension(lin%lig%lzdGauss,lin%lig%orbsig)
 
   ! Copy lin%lig%orbsig to lin%lig%orbsGauss, but keep the size of the orbitals in lin%lig%orbsGauss.
-  call deallocate_orbitals_data(lin%lig%orbsGauss, subname)
+  call deallocate_orbitals_data(lin%lig%orbsGauss,subname)
   ii_orbs=lin%lig%orbsGauss%npsidim_orbs
   ii_comp=lin%lig%orbsGauss%npsidim_comp
   call nullify_orbitals_data(lin%lig%orbsGauss)
-  call copy_orbitals_data(lin%lig%orbsig, lin%lig%orbsGauss, subname)
+  call copy_orbitals_data(lin%lig%orbsig,lin%lig%orbsGauss,subname)
   lin%lig%orbsGauss%npsidim_orbs=ii_orbs
   lin%lig%orbsGauss%npsidim_comp=ii_comp
 
   ! Allcoate the array holding the orbitals. lchi2 are the atomic orbitals with the larger cutoff, whereas
   ! lchi are the atomic orbitals with the smaller cutoff.
+  !print *,'here',lin%lig%orbsGauss%npsidim_orbs,lin%lig%orbsGauss%npsidim_comp
   allocate(lchi2(max(lin%lig%orbsGauss%npsidim_orbs,lin%lig%orbsGauss%npsidim_comp)),stat=istat)
   call memocc(istat,lchi2,'lchi2',subname)
   lchi2=0.d0

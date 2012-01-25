@@ -395,6 +395,8 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   call memocc(istat, op%indexExpand, 'op%indexExpand',subname)
 
   allocate(op%expseg(op%noverlapsmaxp,orbs%norbp), stat=istat)
+  !call memocc(istat, op%expseg,'op%expseg',subname)
+  
   do i1=1,orbs%norbp
       do i2=1,op%noverlapsmaxp
           call nullify_expansionSegments(op%expseg(i2,i1))
@@ -1659,7 +1661,8 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
   allocate(ovrlpCompressed_receive(mad%nvctr), stat=istat)
   call memocc(istat, ovrlpCompressed_receive, 'ovrlpCompressed_receive', subname)
   if (nproc >1) then
-     call mpi_allgatherv(ovrlpCompressed_send(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed_receive(1), &
+     call mpi_allgatherv(ovrlpCompressed_send(displs(iproc)+1), sendcounts(iproc),&
+          mpi_double_precision, ovrlpCompressed_receive(1), &
           sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
   else
      call vcopy(sendcounts(iproc),ovrlpCompressed_send(displs(iproc)+1),1,ovrlpCompressed_receive(1+displs(iproc)),1)

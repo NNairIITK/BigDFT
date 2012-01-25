@@ -247,6 +247,8 @@ subroutine nullify_orbitals_data(orbs)
   nullify(orbs%kwgts)
   nullify(orbs%kpts)
   nullify(orbs%ispot)
+  orbs%npsidim_orbs=1
+  orbs%npsidim_comp=1
 
 end subroutine nullify_orbitals_data
 
