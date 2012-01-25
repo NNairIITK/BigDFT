@@ -48,22 +48,22 @@
       <p>This tutorial is based on the first one. You should have done it to generate the wavefunctions of the N<sub>2</sub> molecule.</p>
 
       <h2>Visualise wavefunctions</h2>
-<p>The wavefunctions are output by choosing a non zero value for parameter <code>output_wf</code> in the <code>.dft</code> file. Several formats are available, but in each, only the non-null coefficient of the Daubechies wavelet representation are saved. This represent a compressed way of storing the wavefunctions (and roughly correspond to a dump of what is stored in memory during the calculation). In case you want to visualize the wavefunctions, you should translate these data in a real space grid. To post-process the wavefunctions, one need to get their value on a real space grid.</p>
+<p>The wavefunctions are output by choosing a non zero value for parameter <code>output_wf</code> in the <code>.dft</code> file. Several formats are available, but in each, only the non-null coefficient of the Daubechies wavelet representation are saved. This represents a compressed way of storing the wavefunctions (and roughly correspond to a dump of what is stored in memory during the calculation). In case you want to visualize the wavefunctions, you should translate these data in a real space grid. To post-process the wavefunctions, one need to get their value on a real space grid.</p>
 
-<p>This is done by using <code>memguess</code> with the <em>exportwf</em> argument:</p>
+<p>This is done by using <code>bigdft-tool</code> with the <em>-a exportwf</em> action:</p>
 <pre>
-user@garulfo:~/N2/$ ./memguess 1 exportwf data-LDA/wavefunction-001-NR.0001
+user@garulfo:~/N2/$ ./bigdft-tool -a export-wf data-LDA/wavefunction-k001-NR.b0001
 </pre>
-<p>It creates four files in the <code>data-LDA</code> directory.</p>
+<p>It creates four files in the current directory.</p>
 <ul>
 <li><code>wavefunction-[...].xxxx_avg_{x,y,z}</code>: which is the projection of the wavefunction value along a given axis.</li>
 <li><code>wavefunction-[...].xxxx.cube</code>: which is the values of the wavefunction (either real or imaginary part) on a regular real space mesh.</li>
 </ul>
 <p>One can then visualise the wavefunction expansions with their favorite program. Let's take <a href="http://inac.cea.fr/L_Sim/V_Sim" target="_blank">V_Sim</a> as an example. Open V_Sim with the following command line (using the cube file as a file for atomic coordinates and the same cube file for a scalar field):</p>
 <pre>
-user@garulfo:~/N2/$ v_sim -f data-LDA/wavefunction-001-NR.0001.cube data-LDA/wavefunction-001-NR.0001.cube
+user@garulfo:~/N2/$ v_sim -f wavefunction-k001-NR.b0001.cube wavefunction-k001-NR.b0001.cube
 </pre>
-<p>Go to the "iso-surface" tab and click on the "add" button on the right. It will create an iso-surface representing the half value position of the first orbital.One can use the "open" button on top-right of the tab to choose another cube file. Let's load all our five wavefunctions (after exporting them to cube files as for the first one). Then, select each of them and click on the add button to plot iso-surfaces.</p>
+<p>Go to the "iso-surface" tab and click on the "add" button on the right. It will create an iso-surface representing the half value position of the first orbital. One can use the "open" button on top-right of the tab to choose another cube file. Let's load all our five wavefunctions (after exporting them to cube files as for the first one). Then, select each of them and click on the add button to plot iso-surfaces.</p>
 <p>One can remove plotted iso-surfaces by clicking on the "remove" button on the right or simply hide them by unchecking the box on the line of the iso-surface. One may use this <a href="N2/v_sim.res" target="_blank">V_Sim resource file</a> to obtain the same rendering as for the screenshots. The orbitals should look like these:</p>
 <img src="Figures/N2-wf01.thumb.png" alt="Representation orbital 1" />
 <img src="Figures/N2-wf02.thumb.png" alt="Representation orbital 2" />
@@ -104,7 +104,7 @@ WARNING: odd number of electrons, no closed shell system
  Difference:evsum,energybs -2.1271144983362E+00 -2.1012854795290E+00
 [...]
 </pre>
-  <h4>Spin-averaged atom: spherical versus non-spherical run</h4>
+  <h3>Spin-averaged atom: spherical versus non-spherical run</h3>
   <p>Since the number of electrons of the Nitrogen atom is odd, the last orbital (the third) is only half occupied. In addition, the configuration is not spherical. Run another run by inserting the follwing information in the <code>[input].occ</code> 
   file:
   </p>
