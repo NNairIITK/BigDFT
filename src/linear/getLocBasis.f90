@@ -1,5 +1,5 @@
 subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
-    mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, comms, at, rxyz, rxyzParab, &
+    mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, at, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, size_pkernel, pkernel, &
     i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
@@ -28,7 +28,6 @@ subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
 !     nproc           total number of processes
 !     Glr             type describing the localization region
 !     orbs            type describing the physical orbitals psi
-!     comms           type containing the communication parameters for the physical orbitals psi
 !     at              type containing the paraneters for the atoms
 !     lin             type containing parameters for the linear version
 !     rxyz            the atomic positions
@@ -75,7 +74,6 @@ type(matrixDescriptors),intent(in):: mad, lbmad
 type(overlapParameters),intent(inout):: op, lbop
 type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
 type(p2pCommsGatherPot):: comgp, lbcomgp
-type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(3,at%nat),intent(inout):: rxyzParab
