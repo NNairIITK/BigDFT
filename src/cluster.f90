@@ -582,11 +582,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           denspot%PSquiet,eion,edisp,eexctX,scpot,psi,psit,&
           energy,fxyz)
 
+     ! put the infocode to 0, which means success
+     infocode=0
+
 
      !temporary allocation of the density
      allocate(denspot%rho_full(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3p*orbs%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%rho_full,'rho',subname)
-    call vcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3p*orbs%nspin,denspot%rhov(1),1,denspot%rho_full(1),1)
+     call vcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3p*orbs%nspin,denspot%rhov(1),1,denspot%rho_full(1),1)
     
     ! denspot%rho_full => denspot%rhov
 
@@ -705,6 +708,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   hz_old=hz
 
 
+  ! Skip the following part in the linear scaling case.
   if(inputpsi /= INPUT_PSI_LINEAR) then
 
      ! allocate arrays necessary for DIIS convergence acceleration
@@ -1115,7 +1119,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      deallocate(hpsi,stat=i_stat)
      call memocc(i_stat,i_all,'hpsi',subname)
 
- end if ! end of linear if
+ end if !end of linear if
 
   !deallocate psit and hpsi since it is not anymore done
   if (nproc > 1) then
@@ -1325,7 +1329,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat,i_all,'denspot%pot_full',subname)
      nullify(denspot%rho_full,denspot%pot_full)
      call timing(iproc,'Forces        ','OF')
-     stop
+     !!stop
   end if
 
   i_all=-product(shape(fion))*kind(fion)
@@ -1761,6 +1765,11 @@ contains
     if (iproc == 0) &
          &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
+    if(inputpsi ==  INPUT_PSI_LINEAR) then
+        i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
+        deallocate(atoms%rloc,stat=i_stat)
+        call memocc(i_stat,i_all,'atoms%rloc',subname)
+    end if
 
   END SUBROUTINE deallocate_before_exiting
 
