@@ -886,7 +886,7 @@ END SUBROUTINE unscramble_P
 !!   @param  nd1,nd2:  Dimensions of POT
 !!   @param  jS, nfft: starting point of the plane and number of remaining lines
 !!   @param  offset  : Offset to be defined for periodic BC (usually 0)
-!!   @param  strten  : Components of the Hartree stress tensor order: (11,22,33,12,13,23) - y and z are interchanged!
+!!   @param  strten  : Components of the Hartree stress tensor order: (11,22,33,23,13,12) !
 !!
 !! @author
 !!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
@@ -937,11 +937,11 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
            rhog2=rhog2/pi*scal**2
            !stress tensor components (diagonal part)
            strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
-           strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
            strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
-           strten(4)=strten(4)+(pxyz(1)*pxyz(2)/g2)*rhog2
-           strten(5)=strten(5)+(pxyz(1)*pxyz(3)/g2)*rhog2
-           strten(6)=strten(6)+(pxyz(2)*pxyz(3)/g2)*rhog2
+           strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+           strten(5)=strten(5)+(pxyz(1)*pxyz(2)/g2)*rhog2
+           strten(6)=strten(6)+(pxyz(1)*pxyz(3)/g2)*rhog2
+           strten(4)=strten(4)+(pxyz(2)*pxyz(3)/g2)*rhog2
 
            j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
            j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
@@ -964,11 +964,11 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
               rhog2=rhog2/pi*scal**2
               !stress tensor components (diagonal part)
               strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
-              strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
-              strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
-              strten(4)=strten(4)+(pxyz(1)*pxyz(2)/g2)*rhog2
-              strten(5)=strten(5)+(pxyz(1)*pxyz(3)/g2)*rhog2
-              strten(6)=strten(6)+(pxyz(2)*pxyz(3)/g2)*rhog2
+              strten(3)=strten(3)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+              strten(2)=strten(2)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+              strten(5)=strten(5)+(pxyz(1)*pxyz(2)/g2)*rhog2
+              strten(6)=strten(6)+(pxyz(1)*pxyz(3)/g2)*rhog2
+              strten(4)=strten(4)+(pxyz(2)*pxyz(3)/g2)*rhog2
 
               j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
               j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
@@ -994,11 +994,11 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
               rhog2=rhog2/pi*scal**2
               !stress tensor components (diagonal part)
               strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
-              strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
-              strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
-              strten(4)=strten(4)+(pxyz(1)*pxyz(2)/g2)*rhog2
-              strten(5)=strten(5)+(pxyz(1)*pxyz(3)/g2)*rhog2
-              strten(6)=strten(6)+(pxyz(2)*pxyz(3)/g2)*rhog2
+              strten(3)=strten(3)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+              strten(2)=strten(2)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+              strten(5)=strten(5)+(pxyz(1)*pxyz(2)/g2)*rhog2
+              strten(6)=strten(6)+(pxyz(1)*pxyz(3)/g2)*rhog2
+              strten(4)=strten(4)+(pxyz(2)*pxyz(3)/g2)*rhog2
 
               j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
               j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
@@ -1024,20 +1024,20 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
            rhog2=rhog2/pi*scal**2
            !stress tensor components (diagonal part)
            strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
-           strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
-           strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
-           strten(4)=strten(4)+(pxyz(1)*pxyz(2)/g2)*rhog2
-           strten(5)=strten(5)+(pxyz(1)*pxyz(3)/g2)*rhog2
-           strten(6)=strten(6)+(pxyz(2)*pxyz(3)/g2)*rhog2
+           strten(3)=strten(3)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+           strten(2)=strten(2)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+           strten(5)=strten(5)+(pxyz(1)*pxyz(2)/g2)*rhog2
+           strten(6)=strten(6)+(pxyz(1)*pxyz(3)/g2)*rhog2
+           strten(4)=strten(4)+(pxyz(2)*pxyz(3)/g2)*rhog2
            !avoid mirroring for last j3 point
            if (j3 /= n3/2+1) then
               !stress tensor components (diagonal part)
               strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
-              strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
-              strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
-              strten(4)=strten(4)+(pxyz(1)*pxyz(2)/g2)*rhog2
-              strten(5)=strten(5)+(pxyz(1)*pxyz(3)/g2)*rhog2
-              strten(6)=strten(6)+(pxyz(2)*pxyz(3)/g2)*rhog2
+              strten(3)=strten(3)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+              strten(2)=strten(2)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+              strten(5)=strten(5)+(pxyz(1)*pxyz(2)/g2)*rhog2
+              strten(6)=strten(6)+(pxyz(1)*pxyz(3)/g2)*rhog2
+              strten(4)=strten(4)+(pxyz(2)*pxyz(3)/g2)*rhog2
            end if
 
            j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)

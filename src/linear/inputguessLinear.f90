@@ -227,7 +227,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer:: norbTarget,norbpTemp,isorbTemp, nprocTemp, ncount
   integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
   type(confpot_data), dimension(:), allocatable :: confdatarr
-
+  real(dp),dimension(6) :: xcstr
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -501,7 +501,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
      call XC_potential(at%geocode,'D',iproc,nproc,&
           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,input%ixc,hxh,hyh,hzh,&
-          rhopot,eexcu,vexcu,input%nspin,rhocore,potxc)
+          rhopot,eexcu,vexcu,input%nspin,rhocore,potxc,xcstr)
 
 
      if( iand(potshortcut,4)==0) then

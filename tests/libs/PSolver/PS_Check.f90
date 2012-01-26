@@ -41,6 +41,7 @@ program PS_Check
    integer :: n_cell,ixc
    integer, dimension(4) :: nxyz
    real(wp), dimension(:,:,:,:), pointer :: rhocore
+   real(dp), dimension(6) :: xcstr
 
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -126,7 +127,7 @@ program PS_Check
       !with the global data distribution (also for xc potential)
 
       call XC_potential(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-      rhopot,eexcu,vexcu,ispden,rhocore,xc_pot)
+      rhopot,eexcu,vexcu,ispden,rhocore,xc_pot,xcstr)
       call H_potential(geocode,'G',iproc,nproc,n01,n02,n03,hx,hy,hz,&
       rhopot,pkernel,xc_pot,ehartree,offset,.false.) !optional argument
       !!$     call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
@@ -336,8 +337,8 @@ program PS_Check
       real(kind=8), dimension(:), allocatable :: test,test_xc
       real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
       real(kind=8), dimension(:), pointer :: xc_temp
+      real(dp), dimension(6) :: xcstr
       real(dp), dimension(:,:,:,:), pointer :: rhocore
-
       nullify(rhocore)
 
       call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,&
@@ -417,7 +418,7 @@ program PS_Check
       end if
 
       call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-      rhopot,eexcu,vexcu,nspden,rhocore,test_xc)
+      rhopot,eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
       call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
       rhopot,pkernel,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
       !compare the values of the analytic results (no dependence on spin)
@@ -456,7 +457,7 @@ program PS_Check
       end if
 
       call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-      rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc)
+      rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
 
       call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
       rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,offset,ixc /= 0,quiet='yes') !optional argument

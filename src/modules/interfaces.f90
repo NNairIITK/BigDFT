@@ -1386,7 +1386,7 @@ module module_interfaces
       END SUBROUTINE calculate_rhocore
 
       subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-            &   rho,exc,vxc,nspin,rhocore,potxc,dvxcdrho)
+            &   rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho)
          use module_base
          implicit none
          character(len=1), intent(in) :: geocode
@@ -1398,6 +1398,7 @@ module module_interfaces
          real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
          real(wp), dimension(*), intent(out) :: potxc
          real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
+         real(dp),dimension(6),intent(out) :: xcstr
       END SUBROUTINE XC_potential
 
       subroutine direct_minimization(iproc,nproc,in,at,& 

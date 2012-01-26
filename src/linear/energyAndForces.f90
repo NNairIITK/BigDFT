@@ -1569,7 +1569,7 @@ real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(
 character(len=3):: PSquiet
 real(8),dimension(lin%lb%orbs%norb,orbs%norb):: coeff
 real(8),intent(out):: ehart, eexcu, vexcu
-
+real(dp), dimension(6) :: xcstr
 
 ! Local variables
 real(8):: hxh, hyh, hzh, ekin_sum, epot_sum, eproj_sum, energybs, energyMod
@@ -1604,7 +1604,7 @@ if(iproc==0) write(*,'(1x,a)') '------------------------------------------------
      else
         call XC_potential(atoms%geocode,'D',iproc,nproc,&
              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
-             rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+             rhopot,eexcu,vexcu,in%nspin,rhocore,potxc,xcstr)
 
         call H_potential(atoms%geocode,'D',iproc,nproc,&
              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&

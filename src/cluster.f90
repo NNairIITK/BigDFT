@@ -879,7 +879,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               else
                  call XC_potential(atoms%geocode,'D',iproc,nproc,&
                       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-                      denspot%rhov,eexcu,vexcu,in%nspin,denspot%rho_C,denspot%V_XC)
+                      denspot%rhov,eexcu,vexcu,in%nspin,denspot%rho_C,denspot%V_XC,xcstr)
                  denspot%rhov_is=CHARGE_DENSITY
                  call H_potential(atoms%geocode,'D',iproc,nproc,&
                       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,&
@@ -1251,11 +1251,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      !xc stress, diagonal for the moment
      if (atoms%geocode=='P') then
-        xcstr(1)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
-        xcstr(2)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
-        xcstr(3)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
-        xcstr(4:6)=0.0_gp
-        !just for completeness
         if (atoms%sym%symObj >= 0) call symm_stress((iproc==0),xcstr,atoms%sym%symObj)
      end if
 
@@ -1453,7 +1448,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
            call XC_potential(atoms%geocode,'D',iproc,nproc,&
                 Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-                denspot%rhov,eexcu,vexcu,in%nspin,denspot%rho_C,denspot%V_XC,denspot%f_XC)
+                denspot%rhov,eexcu,vexcu,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
            denspot%rhov_is=CHARGE_DENSITY
 
            !select the active space if needed
