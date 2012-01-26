@@ -319,8 +319,10 @@ call memocc(istat, densKern, 'densKern', subname)
 !call cpu_time(t1)
 ! Calculate the density kernel.
 if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
+call timing(iproc,'sumrho_TMB    ','ON')
 call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), orbs%norb, &
      coeff(1,1), orbs%norb, 0.d0, densKern(1,1), orbs%norb)
+call timing(iproc,'sumrho_TMB    ','OF')
 if(iproc==0) write(*,'(a)') 'done.'
 !call mpi_barrier(mpi_comm_world, ierr)
 !call cpu_time(t2)
@@ -347,7 +349,7 @@ else
     rho=1.d-20
     !call tenminustwenty(nrho, rho, nproc)
 end if
-
+call timing(iproc,'p2pSumrho_wait','ON')
 
 ! Check whether the communication has completed.
 if(iproc==0) write(*,'(3x,a)',advance='no') 'waiting for communication to complete... '
@@ -436,9 +438,12 @@ end do
 ! Such a slice has the full extent in the x and y direction, but is limited in the z direction.
 ! The bounds of the slice are given by nscatterarr. To do so, each process has received all orbitals that
 ! extend into this slice. The number of these orbitals is given by lin%comsr%noverlaps(iproc).
-call mpi_barrier(mpi_comm_world, ierr)
+!call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t1)
 
+call timing(iproc,'p2pSumrho_wait','OF')
+
+call timing(iproc,'sumrho_TMB    ','ON')
 
 ! Bounds of the slice in global coordinates.
 is=nscatterarr(iproc,3)-14
@@ -541,6 +546,8 @@ call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t2)
 time=t2-t1
 !if(iproc==0) write(*,'(a,es12.4)') 'time for large loop:',time
+
+call timing(iproc,'sumrho_TMB    ','OF')
 
 call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
 if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
