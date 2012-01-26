@@ -191,6 +191,9 @@ type(orthon_data):: orthpar
       call initializeMixrhopotDIIS(lin%mixHist_lowaccuracy, ndimpot, mixdiis)
   end if
 
+  !end of the initialization part, will later be moved to cluster
+  call timing(iproc,'INIT','PR')
+
   if(lin%nItInguess>0) then
       ! Post communications for gathering the potential.
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -722,6 +725,8 @@ type(orthon_data):: orthpar
   deallocate(coeff_proj, stat=istat)
   call memocc(istat, iall, 'coeff_proj', subname)
 
+  ! End of linear scaling part, except of the forces.
+  call timing(iproc,'WFN_OPT','PR')
 
 
   !!!!call mpi_barrier(mpi_comm_world, ierr)

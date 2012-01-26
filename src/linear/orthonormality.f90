@@ -1134,6 +1134,8 @@ subroutine extractOrbital3(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, ph
   integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
   integer:: i, indSource, m, ii, jst, istart, iend, ncount, iseg
 
+  call timing(iproc,'extract_orbs  ','ON')
+
   indovrlp=1
   op%indexInSendBuf=0
 
@@ -1223,6 +1225,8 @@ subroutine extractOrbital3(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, ph
      write(*,'(1x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=nsendBuf+1', indovrlp, nsendBuf+1
      stop
   end if
+
+  call timing(iproc,'extract_orbs  ','OF')
 
 end subroutine extractOrbital3
 
@@ -1637,6 +1641,8 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
   integer,dimension(:),allocatable:: sendcounts, displs
 
 
+  call timing(iproc,'lovrlp_comp   ','ON')
+
   ovrlp=0.d0
 
   do iorb=1,orbs%norbp
@@ -1649,6 +1655,8 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
      end do
   end do
 
+  call timing(iproc,'lovrlp_comp   ','OF')
+
 
   allocate(ovrlpCompressed_send(mad%nvctr), stat=istat)
   call memocc(istat, ovrlpCompressed_send, 'ovrlpCompressed_send', subname)
@@ -1657,9 +1665,12 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
   call memocc(istat, sendcounts, 'sendcounts', subname)
   allocate(displs(0:nproc-1), stat=istat)
   call memocc(istat, displs, 'displs', subname)
+  call timing(iproc,'lovrlp_compr  ','ON')
   call compressMatrix2(iproc, nproc, orbs, mad, ovrlp, ovrlpCompressed_send, sendcounts, displs)
+  call timing(iproc,'lovrlp_compr  ','OF')
   allocate(ovrlpCompressed_receive(mad%nvctr), stat=istat)
   call memocc(istat, ovrlpCompressed_receive, 'ovrlpCompressed_receive', subname)
+  call timing(iproc,'lovrlp_comm   ','ON')
   if (nproc >1) then
      call mpi_allgatherv(ovrlpCompressed_send(displs(iproc)+1), sendcounts(iproc),&
           mpi_double_precision, ovrlpCompressed_receive(1), &
@@ -1667,8 +1678,11 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
   else
      call vcopy(sendcounts(iproc),ovrlpCompressed_send(displs(iproc)+1),1,ovrlpCompressed_receive(1+displs(iproc)),1)
   end if
+  call timing(iproc,'lovrlp_comm   ','OF')
 
+  call timing(iproc,'lovrlp_uncompr','ON')
   call uncompressMatrix(orbs%norb, mad, ovrlpCompressed_receive, ovrlp)
+  call timing(iproc,'lovrlp_uncompr','OF')
 
   iall=-product(shape(ovrlpCompressed_send))*kind(ovrlpCompressed_send)
   deallocate(ovrlpCompressed_send, stat=istat)
@@ -2105,7 +2119,7 @@ subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon,
   real(8):: tt, dnrm2
 
 
-  call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp, .true., lphi)
+  call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp, .true., lphi)
 
   ! Normalize
   ist=1
@@ -2273,14 +2287,14 @@ do iorb=1,orbs%norb
         ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
     end do
 end do
-call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp2, .false., lhphi)
+call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp2, .false., lhphi)
 
 do iorb=1,orbs%norb
     do jorb=1,orbs%norb
         ovrlp2(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
     end do
 end do
-call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp2, .false., lhphi)
+call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp2, .false., lhphi)
 
 
 !!call cpu_time(t1)
@@ -2426,6 +2440,8 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   real(8),dimension(:),allocatable:: eval, work
   real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp3
   real(8),dimension(:,:,:),allocatable:: tempArr
+
+  call timing(iproc,'lovrlp^-1/2   ','ON')
   
   if(methTransformOrder==0) then
 
@@ -2546,6 +2562,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
 
 end if
 
+call timing(iproc,'lovrlp^-1/2   ','OF')
 
 endsubroutine overlapPowerMinusOneHalf
 
@@ -3590,7 +3607,7 @@ call mpi_barrier(mpi_comm_world, ierr)
 
 
 
-
+call timing(iproc,'p2pOrtho_post ','ON')
 
 ! Now the sends
 isend=0
@@ -3626,6 +3643,8 @@ end do
 !!    write(*,'(a,i0,a,2(2x,i0))') 'ERROR in process ',iproc,': irecv/=comon%nrecv',irecv,comon%nsend
 !!    stop
 !!end if
+
+call timing(iproc,'p2pOrtho_post ','OF')
 
 end subroutine postCommsOverlapNew
 
@@ -3895,6 +3914,7 @@ do i=1,comon%nrecv
    indexarray(i)=i
 end do
 
+call timing(iproc,'p2pOrtho_wait ','ON')
 
 ! Wait for the sends to complete.
 if (nproc > 1) then
@@ -3951,6 +3971,10 @@ call memocc(istat, iall, 'indcomplete', subname)
 iall=-product(shape(indexarray))*kind(indexarray)
 deallocate(indexarray, stat=istat)
 call memocc(istat, iall, 'indexarray', subname)
+
+
+call timing(iproc,'p2pOrtho_wait ','OF')
+
 
 !!allocate(indcomplete(comon%nsend), stat=istat)
 !!call memocc(istat, indcomplete, 'indcomplete', subname)

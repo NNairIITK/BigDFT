@@ -2089,7 +2089,7 @@ end subroutine getFilterSextic
 
 !>  Applies the following operation: 
 !!  y = [((r-r0)^4)]*x
-subroutine ConvolQuartic4(n1, n2, n3, &
+subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, &
      nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
      hgrid, offsetx, offsety, offsetz, &
      ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
@@ -2104,7 +2104,7 @@ subroutine ConvolQuartic4(n1, n2, n3, &
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
+  integer, intent(in) :: iproc, nproc, n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
   real(gp), intent(in) :: hgrid, potentialPrefac, cprecr
   logical,intent(in):: withKinetic
   real(8),dimension(3):: rxyzConf
@@ -2200,6 +2200,7 @@ real(8):: tt7e0, tt7e1, tt7e2, tt7e3
 integer:: it=1!debug
 real(8):: t1, t2, time, t3, t4, ttt1, ttt2, time2
 
+  call timing(iproc,'convolQuartic ','ON')
 
   scale=-.5_wp/real(hgrid**2,wp)
 
@@ -3638,6 +3639,7 @@ aeff3_2=0.d0 ; beff3_2=0.d0 ; ceff3_2=0.d0 ; eeff3_2=0.0
   call memocc(istat, iall, 'zze_f7', subname)
 
 
+  call timing(iproc,'convolQuartic ','OF')
 
 
 END SUBROUTINE ConvolQuartic4

@@ -5429,10 +5429,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine unitary_optimization
 
 
-      subroutine build_new_linear_combinations(lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
+      subroutine build_new_linear_combinations(iproc, nproc, lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
         use module_base
         use module_types
         implicit none
+        integer,intent(in):: iproc, nproc
         type(local_zone_descriptors),intent(in):: lzd
         type(orbitals_data),intent(in):: orbs
         type(overlapParameters),intent(in):: op
@@ -5499,7 +5500,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine deallocate_workarrays_quartic_convolutions
 
 
-      subroutine ConvolQuartic4(n1, n2, n3, &
+      subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, &
            nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
            hgrid, offsetx, offsety, offsetz, &
            ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
@@ -5511,7 +5512,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
+        integer, intent(in) :: iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
         real(gp), intent(in) :: hgrid, potentialPrefac, cprecr
         logical,intent(in):: withKinetic
         real(8),dimension(3):: rxyzConf

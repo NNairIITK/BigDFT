@@ -667,7 +667,7 @@ character(len=3):: orbname, comment
           call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lhphi, comon, tt1, tt2)
           call collectnew(iproc, nproc, comon, mad, op, lorbs, lzd, comon%nsendbuf, &
                comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
-          call build_new_linear_combinations(lzd, lorbs, op, comon%nrecvbuf, &
+          call build_new_linear_combinations(iproc, nproc, lzd, lorbs, op, comon%nrecvbuf, &
                comon%recvbuf, kernel, .true., lhphi)
           call deallocateRecvBufferOrtho(comon, subname)
           call deallocateSendBufferOrtho(comon, subname)
@@ -2969,7 +2969,7 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
            work_conv)
 
       if(confdatarr(iorb)%potorder==4) then
-          call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+          call ConvolQuartic4(iproc,nproc,lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
                lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
                lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
                lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
@@ -3876,7 +3876,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
       t1=mpi_wtime()
       !write(*,*) '5: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
-      call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, &
+      call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, &
            comon%recvbuf, tempmat3(1,1,1), .true., lphi)
       t2=mpi_wtime()
       time_lincomb=time_lincomb+t2-t1
@@ -3974,7 +3974,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           end do
       end do
       t1=mpi_wtime()
-      call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, &
+      call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, &
            comon%recvbuf, tempmat3(1,1,1), .true., lphi)
       t2=mpi_wtime()
       time_lincomb=time_lincomb+t2-t1
@@ -4072,12 +4072,13 @@ end subroutine unitary_optimization
 
 
 
-subroutine build_new_linear_combinations(lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
+subroutine build_new_linear_combinations(iproc, nproc, lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
 use module_base
 use module_types
 implicit none
 
 !Calling arguments
+integer,intent(in):: iproc, nproc
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(overlapParameters),intent(in):: op
@@ -4092,6 +4093,7 @@ integer:: ist, jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, i, ldim, ind,
 integer:: istart, iend, iseg
 real(8):: tt
 
+   call timing(iproc,'build_lincomb ','ON')
 
       ! Build new lphi
       if(reset) then
@@ -4127,6 +4129,7 @@ real(8):: tt
 
       end do
 
+   call timing(iproc,'build_lincomb ','OF')
           
 
 end subroutine build_new_linear_combinations
