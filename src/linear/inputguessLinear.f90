@@ -1,4 +1,4 @@
-subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr, tag)
+subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxyz, nscatterarr, tag)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -13,6 +13,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   type(locreg_descriptors),intent(in) :: Glr
   type(input_variables)::input
   type(linearParameters),intent(inout):: lin
+  type(linearInputGuess),intent(inout):: lig
   integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(gp),dimension(3,at%nat),intent(in):: rxyz
   integer,intent(inout):: tag
@@ -26,8 +27,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
 
 
   ! Nullify the local zone descriptors.
-  call nullify_local_zone_descriptors(lin%lig%lzdig)
-  call nullify_local_zone_descriptors(lin%lig%lzdGauss)
+  call nullify_local_zone_descriptors(lig%lzdig)
+  call nullify_local_zone_descriptors(lig%lzdGauss)
 
   ! Allocate some arrays we need for the input guess.
   allocate(locrad(at%nat+ndebug),stat=istat)
@@ -36,8 +37,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
 
   ! Number of localization regions
-  lin%lig%lzdig%nlr=at%nat
-  lin%lig%lzdGauss%nlr=at%nat
+  lig%lzdig%nlr=at%nat
+  lig%lzdGauss%nlr=at%nat
 
   ! Spin for inputguess orbitals.
   if (input%nspin == 4) then
@@ -85,67 +86,67 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   end do
 
   ! Nullify the orbitals_data type and then determine its values.
-  call nullify_orbitals_data(lin%lig%orbsig)
+  call nullify_orbitals_data(lig%orbsig)
   !call orbitals_descriptors(iproc, nproc, norbtot, norbtot, 0, &
-  !     input%nspin, lin%orbs%nspinor, lin%orbs%nkpts, lin%orbs%kpts, lin%orbs%kwgts, lin%lig%orbsig)
+  !     input%nspin, lin%orbs%nspinor, lin%orbs%nkpts, lin%orbs%kpts, lin%orbs%kwgts, lig%orbsig)
   call orbitals_descriptors_forLinear(iproc, nproc, norbtot, norbtot, 0, &
-       input%nspin, lin%orbs%nspinor, lin%orbs%nkpts, lin%orbs%kpts, lin%orbs%kwgts, lin%lig%orbsig)
-  call repartitionOrbitals(iproc, nproc, lin%lig%orbsig%norb, lin%lig%orbsig%norb_par, &
-       lin%lig%orbsig%norbp, lin%lig%orbsig%isorb_par, lin%lig%orbsig%isorb, lin%lig%orbsig%onWhichMPI)
+       input%nspin, lin%orbs%nspinor, lin%orbs%nkpts, lin%orbs%kpts, lin%orbs%kwgts, lig%orbsig)
+  call repartitionOrbitals(iproc, nproc, lig%orbsig%norb, lig%orbsig%norb_par, &
+       lig%orbsig%norbp, lig%orbsig%isorb_par, lig%orbsig%isorb, lig%orbsig%onWhichMPI)
 
 
   ! lzdig%orbs%inWhichLocreg has been allocated in orbitals_descriptors. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
-  iall=-product(shape(lin%lig%orbsig%inWhichLocreg))*kind(lin%lig%orbsig%inWhichLocreg)
-  deallocate(lin%lig%orbsig%inWhichLocreg,stat=istat)
-  call memocc(istat,iall,'lin%lig%orbsig%inWhichLocreg',subname)
+  iall=-product(shape(lig%orbsig%inWhichLocreg))*kind(lig%orbsig%inWhichLocreg)
+  deallocate(lig%orbsig%inWhichLocreg,stat=istat)
+  call memocc(istat,iall,'lig%orbsig%inWhichLocreg',subname)
 
   ! Assign the orbitals to the localization regions.
-  call assignToLocreg2(iproc, at%nat, lin%lig%lzdig%nlr, input%nspin, norbsPerAt, rxyz, lin%lig%orbsig)
+  call assignToLocreg2(iproc, at%nat, lig%lzdig%nlr, input%nspin, norbsPerAt, rxyz, lig%orbsig)
 
   ! Maybe this could be moved to another subroutine? Or be omitted at all?
-  allocate(lin%lig%orbsig%eval(lin%orbs%norb), stat=istat)
-  call memocc(istat, lin%lig%orbsig%eval, 'lin%lig%orbsig%eval', subname)
-  lin%lig%orbsig%eval=-.5d0
+  allocate(lig%orbsig%eval(lin%orbs%norb), stat=istat)
+  call memocc(istat, lig%orbsig%eval, 'lig%orbsig%eval', subname)
+  lig%orbsig%eval=-.5d0
 
 
   ! Nullify the locreg_descriptors and then copy Glr to it.
-  call nullify_locreg_descriptors(lin%lig%lzdGauss%Glr)
-  call copy_locreg_descriptors(Glr, lin%lig%lzdGauss%Glr, subname)
+  call nullify_locreg_descriptors(lig%lzdGauss%Glr)
+  call copy_locreg_descriptors(Glr, lig%lzdGauss%Glr, subname)
 
   ! Determine the localization regions.
-  call initLocregs(iproc, nproc, at%nat, rxyz, lin%lig%lzdig, lin%lig%orbsig, input, Glr, lin%locrad, lin%locregShape)
+  call initLocregs(iproc, nproc, at%nat, rxyz, lig%lzdig, lig%orbsig, input, Glr, lin%locrad, lin%locregShape)
   !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
-  call copy_locreg_descriptors(Glr, lin%lig%lzdig%Glr, subname)
+  call copy_locreg_descriptors(Glr, lig%lzdig%Glr, subname)
 
   ! Determine the localization regions for the atomic orbitals, which have a different localization radius.
   locrad=max(12.d0,maxval(lin%locrad(:)))
-  call nullify_orbitals_data(lin%lig%orbsGauss)
-  call copy_orbitals_data(lin%lig%orbsig, lin%lig%orbsGauss, subname)
-  call initLocregs(iproc, nproc, at%nat, rxyz, lin%lig%lzdGauss, lin%lig%orbsGauss, input, Glr, locrad, lin%locregShape)
+  call nullify_orbitals_data(lig%orbsGauss)
+  call copy_orbitals_data(lig%orbsig, lig%orbsGauss, subname)
+  call initLocregs(iproc, nproc, at%nat, rxyz, lig%lzdGauss, lig%orbsGauss, input, Glr, locrad, lin%locregShape)
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
-  !!call initCommsOrtho(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%orbsGauss%inWhichLocreg, &
-  !!     input, lin%lig%op, lin%lig%comon, tag)
-  call initCommsOrtho(iproc, nproc, lin%lig%lzdig, lin%lig%orbsig, lin%lig%orbsig%inWhichLocreg, &
-       input, lin%locregShape, lin%lig%op, lin%lig%comon, tag)
+  !!call initCommsOrtho(iproc, nproc, lig%lzdGauss, lig%orbsGauss, lig%orbsGauss%inWhichLocreg, &
+  !!     input, lig%op, lig%comon, tag)
+  call initCommsOrtho(iproc, nproc, lig%lzdig, lig%orbsig, lig%orbsig%inWhichLocreg, &
+       input, lin%locregShape, lig%op, lig%comon, tag)
 
   ! Initialize the parameters needed for communicationg the potential.
-  call copy_locreg_descriptors(Glr, lin%lig%lzdig%Glr, subname)
-  call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lig%orbsig, lin%lig%lzdig, lin%lig%comgp, &
-       lin%lig%orbsig%inWhichLocreg, tag)
+  call copy_locreg_descriptors(Glr, lig%lzdig%Glr, subname)
+  call initializeCommunicationPotential(iproc, nproc, nscatterarr, lig%orbsig, lig%lzdig, lig%comgp, &
+       lig%orbsig%inWhichLocreg, tag)
 
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
-  !!call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
-  !!!call initCompressedMatmul2(lin%lig%orbsig%norb, lin%lig%mad%nseg, lin%lig%mad%keyg, lin%lig%mad%nsegmatmul, &
-  !!!      lin%lig%mad%keygmatmul, lin%lig%mad%keyvmatmul)
-  !!call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
+  !!call initMatrixCompression(iproc, nproc, lig%orbsig, lig%op, lig%mad)
+  !!!call initCompressedMatmul2(lig%orbsig%norb, lig%mad%nseg, lig%mad%keyg, lig%mad%nsegmatmul, &
+  !!!      lig%mad%keygmatmul, lig%mad%keyvmatmul)
+  !!call initCompressedMatmul3(lig%orbsig%norb, lig%mad)
 
-  !call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
-  call initMatrixCompression(iproc, nproc, lin%lig%lzdig%nlr, lin%lig%orbsig, &
-       lin%lig%op%noverlaps, lin%lig%op%overlaps, lin%lig%mad)
-  call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
+  !call initMatrixCompression(iproc, nproc, lig%orbsig, lig%op, lig%mad)
+  call initMatrixCompression(iproc, nproc, lig%lzdig%nlr, lig%orbsig, &
+       lig%op%noverlaps, lig%op%overlaps, lig%mad)
+  call initCompressedMatmul3(lig%orbsig%norb, lig%mad)
 
 
   ! Deallocate the local arrays.

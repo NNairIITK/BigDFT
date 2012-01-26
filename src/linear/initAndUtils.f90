@@ -277,7 +277,7 @@ call memocc(istat, iall, 'norbsPerAtom', subname)
 
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing input guess... '
 t1=mpi_wtime()
-call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr, tag)
+call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lin%lig, rxyz, nscatterarr, tag)
 t2=mpi_wtime()
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 

@@ -4376,7 +4376,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     !  integer,dimension(Ldim),intent(out) :: indexLpsi         !Wavefunction in localization region
     !end subroutine index_of_Lpsi_to_global2
 
-    subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr, tag)
+    subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxyz, nscatterarr, tag)
       use module_base
       use module_types
       implicit none
@@ -4386,6 +4386,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(locreg_descriptors), intent(in) :: Glr
       type(input_variables):: input
       type(linearParameters),intent(inout):: lin
+      type(linearInputGuess),intent(inout):: lig
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       integer,intent(inout):: tag
