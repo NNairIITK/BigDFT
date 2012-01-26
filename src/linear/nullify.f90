@@ -57,45 +57,45 @@ subroutine nullify_p2pComms(p2pcomm)
 end subroutine nullify_p2pComms
 
 
-subroutine nullify_p2pCommsSumrho(comsr)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsSumrho
-  implicit none
-
-  ! Calling argument
-  type(p2pCommsSumrho),intent(out):: comsr
-
-  nullify(comsr%noverlaps)
-  nullify(comsr%overlaps)
-  nullify(comsr%istarr)
-  nullify(comsr%istrarr)
-  nullify(comsr%sendBuf)
-  nullify(comsr%recvBuf)
-  nullify(comsr%comarr)
-  nullify(comsr%communComplete)
-  nullify(comsr%computComplete)
-  nullify(comsr%startingindex)
-end subroutine nullify_p2pCommsSumrho
-
-
-subroutine nullify_p2pCommsGatherPot(comgp)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsGatherPot
-  implicit none
-
-  ! Calling argument
-  type(p2pCommsGatherPot),intent(out):: comgp
-
-  nullify(comgp%noverlaps)
-  nullify(comgp%overlaps)
-  nullify(comgp%ise3)
-  nullify(comgp%comarr)
-  nullify(comgp%recvBuf)
-  nullify(comgp%communComplete)
-
-end subroutine nullify_p2pCommsGatherPot
+!!subroutine nullify_p2pCommsSumrho(comsr)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => nullify_p2pCommsSumrho
+!!  implicit none
+!!
+!!  ! Calling argument
+!!  type(p2pCommsSumrho),intent(out):: comsr
+!!
+!!  nullify(comsr%noverlaps)
+!!  nullify(comsr%overlaps)
+!!  nullify(comsr%istarr)
+!!  nullify(comsr%istrarr)
+!!  nullify(comsr%sendBuf)
+!!  nullify(comsr%recvBuf)
+!!  nullify(comsr%comarr)
+!!  nullify(comsr%communComplete)
+!!  nullify(comsr%computComplete)
+!!  nullify(comsr%startingindex)
+!!end subroutine nullify_p2pCommsSumrho
+!!
+!!
+!!subroutine nullify_p2pCommsGatherPot(comgp)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => nullify_p2pCommsGatherPot
+!!  implicit none
+!!
+!!  ! Calling argument
+!!  type(p2pCommsGatherPot),intent(out):: comgp
+!!
+!!  nullify(comgp%noverlaps)
+!!  nullify(comgp%overlaps)
+!!  nullify(comgp%ise3)
+!!  nullify(comgp%comarr)
+!!  nullify(comgp%recvBuf)
+!!  nullify(comgp%communComplete)
+!!
+!!end subroutine nullify_p2pCommsGatherPot
 
 
 subroutine nullify_largeBasis(lb)
@@ -135,24 +135,24 @@ subroutine nullify_p2pCommsRepartition(comrp)
 end subroutine nullify_p2pCommsRepartition
 
 
-subroutine nullify_p2pCommsOrthonormality(comon)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsOrthonormality
-  implicit none
-
-  ! Calling argument
-  type(p2pCommsOrthonormality),intent(out):: comon
-
-  nullify(comon%noverlaps)
-  !!nullify(comon%overlaps)
-  nullify(comon%comarr)
-  nullify(comon%sendBuf)
-  nullify(comon%recvBuf)
-  nullify(comon%communComplete)
-  nullify(comon%requests)
-
-end subroutine nullify_p2pCommsOrthonormality
+!!subroutine nullify_p2pCommsOrthonormality(comon)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => nullify_p2pCommsOrthonormality
+!!  implicit none
+!!
+!!  ! Calling argument
+!!  type(p2pCommsOrthonormality),intent(out):: comon
+!!
+!!  nullify(comon%noverlaps)
+!!  !!nullify(comon%overlaps)
+!!  nullify(comon%comarr)
+!!  nullify(comon%sendBuf)
+!!  nullify(comon%recvBuf)
+!!  nullify(comon%communComplete)
+!!  nullify(comon%requests)
+!!
+!!end subroutine nullify_p2pCommsOrthonormality
 
 
 subroutine nullify_overlapParameters(op)

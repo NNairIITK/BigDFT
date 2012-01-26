@@ -561,39 +561,39 @@ module module_types
     integer,dimension(:,:),pointer:: requests
   end type p2pComms
 
-!> Contains the parameters needed for the point to point communications
-!! for sumrho in the linear scaling version.
-  type,public:: p2pCommsSumrho
-    integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
-    real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
-    integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf, nauxarray
-    logical,dimension(:,:),pointer:: communComplete, computComplete
-    integer,dimension(:,:),pointer:: startingindex
-  end type p2pCommsSumrho
-
-!> Contains the parameters neeed for the point to point communications
-!! for gathering the potential (for the application of the Hamiltonian)
-   type,public:: p2pCommsGatherPot
-       integer,dimension(:),pointer:: noverlaps, overlaps
-       integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
-       integer,dimension(:,:,:),pointer:: comarr
-       real(8),dimension(:),pointer:: recvBuf
-       integer:: nrecvBuf
-       logical,dimension(:,:),pointer:: communComplete
-   end type p2pCommsGatherPot
-
-!> Contains the parameter needed for the point to point communication for
-!! the orthonormlization.
-   type,public:: p2pCommsOrthonormality
-       integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend
-       integer,dimension(:),pointer:: noverlaps
-       !!integer,dimension(:,:),pointer:: overlaps
-       integer,dimension(:,:,:),pointer:: comarr
-       real(8),dimension(:),pointer:: sendBuf, recvBuf
-       logical,dimension(:,:),pointer:: communComplete
-       integer,dimension(:,:),pointer:: requests
-   end type p2pCommsOrthonormality
+!!!!> Contains the parameters needed for the point to point communications
+!!!!! for sumrho in the linear scaling version.
+!!!  type,public:: p2pCommsSumrho
+!!!    integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
+!!!    real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
+!!!    integer,dimension(:,:,:),pointer:: comarr
+!!!    integer:: nsendBuf, nrecvBuf, nauxarray
+!!!    logical,dimension(:,:),pointer:: communComplete, computComplete
+!!!    integer,dimension(:,:),pointer:: startingindex
+!!!  end type p2pCommsSumrho
+!!!
+!!!!> Contains the parameters neeed for the point to point communications
+!!!!! for gathering the potential (for the application of the Hamiltonian)
+!!!   type,public:: p2pCommsGatherPot
+!!!       integer,dimension(:),pointer:: noverlaps, overlaps
+!!!       integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
+!!!       integer,dimension(:,:,:),pointer:: comarr
+!!!       real(8),dimension(:),pointer:: recvBuf
+!!!       integer:: nrecvBuf
+!!!       logical,dimension(:,:),pointer:: communComplete
+!!!   end type p2pCommsGatherPot
+!!!
+!!!!> Contains the parameter needed for the point to point communication for
+!!!!! the orthonormlization.
+!!!   type,public:: p2pCommsOrthonormality
+!!!       integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend
+!!!       integer,dimension(:),pointer:: noverlaps
+!!!       !!integer,dimension(:,:),pointer:: overlaps
+!!!       integer,dimension(:,:,:),pointer:: comarr
+!!!       real(8),dimension(:),pointer:: sendBuf, recvBuf
+!!!       logical,dimension(:,:),pointer:: communComplete
+!!!       integer,dimension(:,:),pointer:: requests
+!!!   end type p2pCommsOrthonormality
 
 
 !> Contains the parameters for the communications of the derivative orbitals
