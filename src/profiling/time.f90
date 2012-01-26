@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=51,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=54,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -74,6 +74,8 @@ module timeData
        'p2pSumrho_wait','Communications' ,'mpi_test/wait ' ,  &
        'sumrho_TMB    ','Other         ' ,'port to GPU?  ' ,  &
        'TMB_kernel    ','Linear Algebra' ,'dgemm         ' ,  &
+       'diagonal_seq  ','Linear Algebra' ,'dsygv         ' ,  &
+       'diagonal_par  ','Linear Algebra' ,'pdsygvx       ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode

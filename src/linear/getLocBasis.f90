@@ -1477,6 +1477,8 @@ real(8),dimension(:),allocatable:: work
 real(8),dimension(:,:),allocatable:: ham_band, ovrlp_band
 character(len=*),parameter:: subname='diagonalizeHamiltonian'
 
+  call timing(iproc,'diagonal_seq  ','ON')
+
   !! OLD VERSION #####################################################################################################
   ! Get the optimal work array size
   lwork=-1 
@@ -1595,6 +1597,7 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
   !!deallocate(ovrlp_band, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating ovrlp_band' 
   !!call memocc(istat, iall, 'ovrlp_band', subname)
 
+  call timing(iproc,'diagonal_seq  ','OF')
 
 end subroutine diagonalizeHamiltonian2
 
