@@ -1774,108 +1774,108 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 
-  !> Final deallocation routine (similar to 'deallocate_before_exiting') for the linear
-  !! scaling case.
-  subroutine finalDeallocationForLinear()
+  !!!!> Final deallocation routine (similar to 'deallocate_before_exiting') for the linear
+  !!!!! scaling case.
+  !!!subroutine finalDeallocationForLinear()
 
-    !if (in%idsx > 0) then
-    !   call deallocate_diis_objects(diis,subname)
-    !end if
-    !if (nproc > 1) then
-    i_all=-product(shape(psit))*kind(psit)
-    deallocate(psit,stat=i_stat)
-    call memocc(i_stat,i_all,'psit',subname)
-    !end if
+  !!!  !if (in%idsx > 0) then
+  !!!  !   call deallocate_diis_objects(diis,subname)
+  !!!  !end if
+  !!!  !if (nproc > 1) then
+  !!!  i_all=-product(shape(psit))*kind(psit)
+  !!!  deallocate(psit,stat=i_stat)
+  !!!  call memocc(i_stat,i_all,'psit',subname)
+  !!!  !end if
 
-    i_all=-product(shape(denspot%V_ext))*kind(denspot%V_ext)
-    deallocate(denspot%V_ext,stat=i_stat)
-    call memocc(i_stat,i_all,'denspot%V_ext',subname)
-!!$    if (counterions) then
-!!$       i_all=-product(shape(counter_ions))*kind(counter_ions)
-!!$       deallocate(counter_ions,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'counter_ions',subname)
-!!$    end if
+  !!!  i_all=-product(shape(denspot%V_ext))*kind(denspot%V_ext)
+  !!!  deallocate(denspot%V_ext,stat=i_stat)
+  !!!  call memocc(i_stat,i_all,'denspot%V_ext',subname)
+!!!!!$    if (counterions) then
+!!!!!$       i_all=-product(shape(counter_ions))*kind(counter_ions)
+!!!!!$       deallocate(counter_ions,stat=i_stat)
+!!!!!$       call memocc(i_stat,i_all,'counter_ions',subname)
+!!!!!$    end if
 
-    if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
-         .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-       i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
-       deallocate(denspot%pkernelseq,stat=i_stat)
-       call memocc(i_stat,i_all,'kernelseq',subname)
-    else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
-       nullify(denspot%pkernelseq)
-    end if
-
-
-    i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
-    deallocate(denspot%pkernel,stat=i_stat)
-    call memocc(i_stat,i_all,'kernel',subname)
-
-    ! calc_tail false
-    i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
-    deallocate(denspot%rhov,stat=i_stat)
-    call memocc(i_stat,i_all,'denspot%rhov',subname)
-    i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
-    deallocate(denspot%V_XC,stat=i_stat)
-    call memocc(i_stat,i_all,'denspot%V_XC',subname)
-
-    call deallocate_denspot_distribution(denspot%dpcom, subname)
-!!$    i_all=-product(shape(nscatterarr))*kind(nscatterarr)
-!!$    deallocate(nscatterarr,stat=i_stat)
-!!$    call memocc(i_stat,i_all,'nscatterarr',subname)
-!!$    i_all=-product(shape(ngatherarr))*kind(ngatherarr)
-!!$    deallocate(ngatherarr,stat=i_stat)
-!!$    call memocc(i_stat,i_all,'ngatherarr',subname)
-
-    i_all=-product(shape(fion))*kind(fion)
-    deallocate(fion,stat=i_stat)
-    call memocc(i_stat,i_all,'fion',subname)
-    i_all=-product(shape(fdisp))*kind(fdisp)
-    deallocate(fdisp,stat=i_stat)
-    call memocc(i_stat,i_all,'fdisp',subname)
+  !!!  if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
+  !!!       .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
+  !!!     i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
+  !!!     deallocate(denspot%pkernelseq,stat=i_stat)
+  !!!     call memocc(i_stat,i_all,'kernelseq',subname)
+  !!!  else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
+  !!!     nullify(denspot%pkernelseq)
+  !!!  end if
 
 
-    !i_all=-product(shape(irrzon))*kind(irrzon)
-    !deallocate(irrzon,stat=i_stat)
-    !call memocc(i_stat,i_all,'irrzon',subname)
+  !!!  i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
+  !!!  deallocate(denspot%pkernel,stat=i_stat)
+  !!!  call memocc(i_stat,i_all,'kernel',subname)
 
-    !i_all=-product(shape(phnons))*kind(phnons)
-    !deallocate(phnons,stat=i_stat)
-    !call memocc(i_stat,i_all,'phnons',subname)
+  !!!  ! calc_tail false
+  !!!  i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
+  !!!  deallocate(denspot%rhov,stat=i_stat)
+  !!!  call memocc(i_stat,i_all,'denspot%rhov',subname)
+  !!!  i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
+  !!!  deallocate(denspot%V_XC,stat=i_stat)
+  !!!  call memocc(i_stat,i_all,'denspot%V_XC',subname)
 
-    call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds,subname)
-    i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
-    deallocate(Lzd%Glr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'Glr%projflg',subname)
+  !!!  call deallocate_denspot_distribution(denspot%dpcom, subname)
+!!!!!$    i_all=-product(shape(nscatterarr))*kind(nscatterarr)
+!!!!!$    deallocate(nscatterarr,stat=i_stat)
+!!!!!$    call memocc(i_stat,i_all,'nscatterarr',subname)
+!!!!!$    i_all=-product(shape(ngatherarr))*kind(ngatherarr)
+!!!!!$    deallocate(ngatherarr,stat=i_stat)
+!!!!!$    call memocc(i_stat,i_all,'ngatherarr',subname)
 
-    i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
-    deallocate(atoms%rloc,stat=i_stat)
-    call memocc(i_stat,i_all,'atoms%rloc',subname)
+  !!!  i_all=-product(shape(fion))*kind(fion)
+  !!!  deallocate(fion,stat=i_stat)
+  !!!  call memocc(i_stat,i_all,'fion',subname)
+  !!!  i_all=-product(shape(fdisp))*kind(fdisp)
+  !!!  deallocate(fdisp,stat=i_stat)
+  !!!  call memocc(i_stat,i_all,'fdisp',subname)
 
 
-    !free GPU if it is the case
-    if (GPUconv .and. .not.(DoDavidson)) then
-       call free_gpu(GPU,orbs%norbp)
-    else if (OCLconv .and. .not.(DoDavidson)) then
-       call free_gpu_OCL(GPU,orbs,in%nspin)
-    end if
+  !!!  !i_all=-product(shape(irrzon))*kind(irrzon)
+  !!!  !deallocate(irrzon,stat=i_stat)
+  !!!  !call memocc(i_stat,i_all,'irrzon',subname)
 
-    call deallocate_comms(comms,subname)
+  !!!  !i_all=-product(shape(phnons))*kind(phnons)
+  !!!  !deallocate(phnons,stat=i_stat)
+  !!!  !call memocc(i_stat,i_all,'phnons',subname)
 
-    call deallocate_orbs(orbs,subname)
-    !call deallocate_atoms(atoms,subname) 
+  !!!  call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds,subname)
+  !!!  i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
+  !!!  deallocate(Lzd%Glr%projflg,stat=i_stat)
+  !!!  call memocc(i_stat,i_all,'Glr%projflg',subname)
 
-    i_all=-product(shape(radii_cf))*kind(radii_cf)
-    deallocate(radii_cf,stat=i_stat)
-    call memocc(i_stat,i_all,'radii_cf',subname)
+  !!!  i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
+  !!!  deallocate(atoms%rloc,stat=i_stat)
+  !!!  call memocc(i_stat,i_all,'atoms%rloc',subname)
 
-    call deallocate_Lzd_except_Glr(Lzd,subname)
-    call deallocate_proj_descr(nlpspd,subname)
 
-    i_all=-product(shape(proj))*kind(proj)
-    deallocate(proj,stat=i_stat)
-    call memocc(i_stat,i_all,'proj',subname)
+  !!!  !free GPU if it is the case
+  !!!  if (GPUconv .and. .not.(DoDavidson)) then
+  !!!     call free_gpu(GPU,orbs%norbp)
+  !!!  else if (OCLconv .and. .not.(DoDavidson)) then
+  !!!     call free_gpu_OCL(GPU,orbs,in%nspin)
+  !!!  end if
 
-  end subroutine finalDeallocationForLinear
+  !!!  call deallocate_comms(comms,subname)
+
+  !!!  call deallocate_orbs(orbs,subname)
+  !!!  !call deallocate_atoms(atoms,subname) 
+
+  !!!  i_all=-product(shape(radii_cf))*kind(radii_cf)
+  !!!  deallocate(radii_cf,stat=i_stat)
+  !!!  call memocc(i_stat,i_all,'radii_cf',subname)
+
+  !!!  call deallocate_Lzd_except_Glr(Lzd,subname)
+  !!!  call deallocate_proj_descr(nlpspd,subname)
+
+  !!!  i_all=-product(shape(proj))*kind(proj)
+  !!!  deallocate(proj,stat=i_stat)
+  !!!  call memocc(i_stat,i_all,'proj',subname)
+
+  !!!end subroutine finalDeallocationForLinear
 
 
 END SUBROUTINE cluster
