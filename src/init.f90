@@ -1322,7 +1322,8 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !  real(wp), dimension(nlpspd%nprojel) :: projtmp        !debug for debug nonlocal forces
 !  integer :: ierr                                       !for debugging
   real(8),dimension(:),pointer:: Lpot
-
+!yk
+  real(dp),dimension(6) :: xcstr
    allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
    allocate(locrad(at%nat+ndebug),stat=i_stat)
@@ -1539,7 +1540,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   
        call XC_potential(Lzd%Glr%geocode,'D',iproc,nproc,&
            Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-           rhopot,eexcu,vexcu,nspin,rhocore,potxc)
+           rhopot,eexcu,vexcu,nspin,rhocore,potxc,xcstr)
   
 !        write(*,*) 'eexcu, vexcu', eexcu, vexcu
   
@@ -1802,7 +1803,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
  
         call XC_potential(at%geocode,'D',iproc,nproc,&
              Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-             rhopot,eexcu,vexcu,nspin,rhocore,potxc)
+             rhopot,eexcu,vexcu,nspin,rhocore,potxc,xcstr)
         if( iand(potshortcut,4)==0) then
            call H_potential(at%geocode,'D',iproc,nproc,&
                 Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,&

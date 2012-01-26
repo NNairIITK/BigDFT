@@ -986,7 +986,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                else
                   call XC_potential(atoms%geocode,'D',iproc,nproc,&
                        Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-                       rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+                       rhopot,eexcu,vexcu,in%nspin,rhocore,potxc,xcstr)
 
                   call H_potential(atoms%geocode,'D',iproc,nproc,&
                       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,&
@@ -1380,11 +1380,6 @@ if (inputpsi /= -1000) then
 
    !xc stress, diagonal for the moment
    if (atoms%geocode=='P') then
-      xcstr(1)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
-      xcstr(2)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
-      xcstr(3)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
-      xcstr(4:6)=0.0_gp
-      !just for completeness
       if (atoms%sym%symObj >= 0) call symm_stress((iproc==0),xcstr,atoms%sym%symObj)
    end if
 
@@ -1579,7 +1574,7 @@ if (DoDavidson) then
 
          call XC_potential(atoms%geocode,'D',iproc,nproc,&
                 Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-         rhopot,eexcu,vexcu,in%nspin,rhocore,potxc,dvxcdrho)
+         rhopot,eexcu,vexcu,in%nspin,rhocore,potxc,xcstr,dvxcdrho)
 
          !select the active space if needed
 
