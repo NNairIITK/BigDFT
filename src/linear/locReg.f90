@@ -2943,7 +2943,7 @@ integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(out):: op
-type(p2pCommsOrthonormality),intent(out):: comon
+type(p2pComms),intent(out):: comon
 
 ! Local variables
 integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
@@ -3040,8 +3040,8 @@ overlapMatrix=.false.
 
 allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
 call memocc(istat, op%overlaps, 'op%overlaps', subname)
-allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
-call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
+!!allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
+!!call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
 
 allocate(overlaps_op(maxval(op%noverlaps),orbs%norbp), stat=istat)
 call memocc(istat, overlaps_op, 'overlaps_op', subname)
@@ -3055,7 +3055,7 @@ call memocc(istat, overlaps_comon, 'overlaps_comon', subname)
 
 ! Initialize to some value which will never be used.
 op%overlaps=-1
-comon%overlaps=-1
+!!comon%overlaps=-1
 
 iiorb=0
 ioverlapMPI=0 ! counts the overlaps for the given MPI process.
@@ -3090,12 +3090,12 @@ do jproc=1,nproc-1
     recvcnts(jproc)=comon%noverlaps(jproc)
     displs(jproc)=displs(jproc-1)+recvcnts(jproc-1)
 end do
-if (nproc > 1) then
-   call mpi_allgatherv(overlaps_comon, comon%noverlaps(iproc), mpi_integer, comon%overlaps, recvcnts, &
-        displs, mpi_integer, mpi_comm_world, ierr)
-else
-   call vcopy(comon%noverlaps(iproc),overlaps_comon(1),1,comon%overlaps(1,0),1)
-end if
+!!if (nproc > 1) then
+!!   call mpi_allgatherv(overlaps_comon, comon%noverlaps(iproc), mpi_integer, comon%overlaps, recvcnts, &
+!!        displs, mpi_integer, mpi_comm_world, ierr)
+!!else
+!!   call vcopy(comon%noverlaps(iproc),overlaps_comon(1),1,comon%overlaps(1,0),1)
+!!end if
 ii=maxval(op%noverlaps)
 displs(0)=0
 recvcnts(0)=ii*orbs%norb_par(0,0)

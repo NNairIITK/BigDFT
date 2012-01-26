@@ -69,11 +69,13 @@ integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
 integer,intent(in):: blocksize_pdsyev, nproc_pdsyev, size_pkernel, nspin
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
-type(p2pCommsSumrho),intent(inout):: comsr
+!type(p2pCommsSumrho),intent(inout):: comsr
+type(p2pComms),intent(inout):: comsr
 type(matrixDescriptors),intent(in):: mad, lbmad
 type(overlapParameters),intent(inout):: op, lbop
-type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
-type(p2pCommsGatherPot):: comgp, lbcomgp
+type(p2pComms),intent(inout):: comon, lbcomon
+!type(p2pCommsGatherPot):: comgp, lbcomgp
+type(p2pComms):: comgp, lbcomgp
 type(atoms_data),intent(in):: at
 real(8),dimension(3,at%nat),intent(in):: rxyz
 integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -487,9 +489,10 @@ integer,intent(out):: infoBasisFunctions
 type(atoms_data), intent(in) :: at
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data):: lorbs, orbs
-type(p2pCommsOrthonormality):: comon
+type(p2pComms):: comon
 type(overlapParameters):: op
-type(p2pCommsGatherPot):: comgp
+!type(p2pCommsGatherPot):: comgp
+type(p2pComms):: comgp
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat):: rxyz
 integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -2153,7 +2156,8 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(p2pCommsSumrho),intent(inout):: comsr
+!type(p2pCommsSumrho),intent(inout):: comsr
+type(p2pComms),intent(inout):: comsr
 real(8),dimension(comsr%nsendBuf),intent(inout):: sendBuf
 real(8),dimension(comsr%nrecvBuf),intent(out):: recvBuf
 
@@ -2257,7 +2261,8 @@ integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3
 !type(linearParameters),intent(inout):: lin
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
-type(p2pCommsGatherPot),intent(out):: comgp
+!type(p2pCommsGatherPot),intent(out):: comgp
+type(p2pComms),intent(out):: comgp
 integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 integer,intent(inout):: tag
 
@@ -2453,7 +2458,8 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, ndimpot
 real(8),dimension(ndimpot),intent(in):: pot
-type(p2pCommsGatherPot),intent(inout):: comgp
+!type(p2pCommsGatherPot),intent(inout):: comgp
+type(p2pComms),intent(inout):: comgp
 
 ! Local variables
 integer:: jproc, kproc, nsends, nreceives, istat, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
@@ -2542,7 +2548,8 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(p2pCommsGatherPot),intent(inout):: comgp
+!type(p2pCommsGatherPot),intent(inout):: comgp
+type(p2pComms),intent(inout):: comgp
 
 ! Local variables
 integer:: kproc, mpisource, mpidest, nfast, nslow, nsameproc, ierr, jproc
@@ -3543,7 +3550,7 @@ type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(in):: at
 type(overlapParameters),intent(inout):: op
-type(p2pCommsOrthonormality),intent(inout):: comon
+type(p2pComms),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
@@ -3569,7 +3576,7 @@ complex(8),dimension(:),allocatable:: work, expD_cmplx
 real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi, recvbuf
 real(8),dimension(:,:,:),allocatable:: tempmat3
 character(len=*),parameter:: subname='unitary_optimization'
-type(p2pCommsOrthonormality):: comon_local
+type(p2pComms):: comon_local
 
 ! Quick return if possible
 if(nit==0) return
@@ -4337,7 +4344,7 @@ type(atoms_data),intent(in):: at
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
-type(p2pCommsOrthonormality),intent(inout):: comon
+type(p2pComms),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),intent(in):: hx

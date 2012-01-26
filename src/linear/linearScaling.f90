@@ -838,7 +838,8 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(p2pCommsGatherPot),intent(inout):: comgp
+!type(p2pCommsGatherPot),intent(inout):: comgp
+type(p2pComms),intent(inout):: comgp
 
 ! Local variables
 integer:: jproc, kproc, ierr

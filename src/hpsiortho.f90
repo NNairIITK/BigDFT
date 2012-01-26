@@ -474,7 +474,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
    !integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(max(dpcom%ndimrhopot,orbs%nspin)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
    real(wp), dimension(:), pointer :: pot
-   type(p2pCommsGatherPot),intent(inout), optional:: comgp
+   !type(p2pCommsGatherPot),intent(inout), optional:: comgp
+   type(p2pComms),intent(inout), optional:: comgp
    !local variables
    character(len=*), parameter :: subname='full_local_potential'
    logical :: odp,newvalue !orbital dependent potential

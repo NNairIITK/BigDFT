@@ -424,9 +424,6 @@ module module_types
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
-  !integer,dimension(:,:,:,:),pointer:: nvctr_parLIN
-  !integer, dimension(:), pointer :: ncntdLIN,ncnttLIN,ndspldLIN,ndspltLIN
-
   end type communications_arrays
 
 
@@ -553,39 +550,51 @@ module module_types
       integer:: size_pkernelseq
   end type
 
-!> Contains the parameters needed for the point to point communications
-!! for sumrho in the linear scaling version.
-  type,public:: p2pCommsSumrho
+  !> Contains all parameters needed for point to point communication
+  type,public:: p2pComms
     integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
     real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf, nauxarray
+    integer:: nsendBuf, nrecvBuf, nauxarray, noverlapsmax, nrecv, nsend
     logical,dimension(:,:),pointer:: communComplete, computComplete
     integer,dimension(:,:),pointer:: startingindex
-  end type p2pCommsSumrho
+    integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
+    integer,dimension(:,:),pointer:: requests
+  end type p2pComms
 
-!> Contains the parameters neeed for the point to point communications
-!! for gathering the potential (for the application of the Hamiltonian)
-   type,public:: p2pCommsGatherPot
-       integer,dimension(:),pointer:: noverlaps, overlaps
-       integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
-       integer,dimension(:,:,:),pointer:: comarr
-       real(8),dimension(:),pointer:: recvBuf
-       integer:: nrecvBuf
-       logical,dimension(:,:),pointer:: communComplete
-   end type p2pCommsGatherPot
-
-!> Contains the parameter needed for the point to point communication for
-!! the orthonormlization.
-   type,public:: p2pCommsOrthonormality
-       integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend, nrecvtemp, nsendtemp, isoverlap, nstepoverlap
-       integer,dimension(:),pointer:: noverlaps
-       integer,dimension(:,:),pointer:: overlaps
-       integer,dimension(:,:,:),pointer:: comarr
-       real(8),dimension(:),pointer:: sendBuf, recvBuf
-       logical,dimension(:,:),pointer:: communComplete
-       integer,dimension(:,:),pointer:: requests
-   end type p2pCommsOrthonormality
+!!!!> Contains the parameters needed for the point to point communications
+!!!!! for sumrho in the linear scaling version.
+!!!  type,public:: p2pCommsSumrho
+!!!    integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
+!!!    real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
+!!!    integer,dimension(:,:,:),pointer:: comarr
+!!!    integer:: nsendBuf, nrecvBuf, nauxarray
+!!!    logical,dimension(:,:),pointer:: communComplete, computComplete
+!!!    integer,dimension(:,:),pointer:: startingindex
+!!!  end type p2pCommsSumrho
+!!!
+!!!!> Contains the parameters neeed for the point to point communications
+!!!!! for gathering the potential (for the application of the Hamiltonian)
+!!!   type,public:: p2pCommsGatherPot
+!!!       integer,dimension(:),pointer:: noverlaps, overlaps
+!!!       integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
+!!!       integer,dimension(:,:,:),pointer:: comarr
+!!!       real(8),dimension(:),pointer:: recvBuf
+!!!       integer:: nrecvBuf
+!!!       logical,dimension(:,:),pointer:: communComplete
+!!!   end type p2pCommsGatherPot
+!!!
+!!!!> Contains the parameter needed for the point to point communication for
+!!!!! the orthonormlization.
+!!!   type,public:: p2pCommsOrthonormality
+!!!       integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend
+!!!       integer,dimension(:),pointer:: noverlaps
+!!!       !!integer,dimension(:,:),pointer:: overlaps
+!!!       integer,dimension(:,:,:),pointer:: comarr
+!!!       real(8),dimension(:),pointer:: sendBuf, recvBuf
+!!!       logical,dimension(:,:),pointer:: communComplete
+!!!       integer,dimension(:,:),pointer:: requests
+!!!   end type p2pCommsOrthonormality
 
 
 !> Contains the parameters for the communications of the derivative orbitals
@@ -662,12 +671,15 @@ type,public:: largeBasis
     type(orbitals_data):: orbs, gorbs
     !type(local_zone_descriptors):: lzd
     type(p2pCommsRepartition):: comrp
-    type(p2pCommsOrthonormality):: comon
+    !type(p2pCommsOrthonormality):: comon
+    type(p2pComms):: comon
     type(overlapParameters):: op
-    type(p2pCommsGatherPot):: comgp
+    !type(p2pCommsGatherPot):: comgp
+    type(p2pComms):: comgp
     type(matrixDescriptors):: mad
     type(collectiveComms):: collComms
-    type(p2pCommsSumrho):: comsr
+    !type(p2pCommsSumrho):: comsr
+    type(p2pComms):: comsr
 end type largeBasis
 
 
@@ -707,9 +719,11 @@ end type workarrays_quartic_convolutions
   type,public:: linearInputGuess
       type(local_zone_descriptors):: lzdig, lzdGauss
       type(orbitals_data):: orbsig, orbsGauss
-      type(p2pCommsOrthonormality):: comon
+      !type(p2pCommsOrthonormality):: comon
+      type(p2pComms):: comon
       type(overlapParameters):: op
-      type(p2pCommsGatherPot):: comgp
+      !type(p2pCommsGatherPot):: comgp
+      type(p2pComms):: comgp
       type(matrixDescriptors):: mad
   end type linearInputGuess
 
@@ -735,11 +749,14 @@ end type workarrays_quartic_convolutions
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
     logical:: newgradient, mixedmode
     character(len=4):: mixingMethod
-    type(p2pCommsSumrho):: comsr
-    type(p2pCommsGatherPot):: comgp
+    !type(p2pCommsSumrho):: comsr
+    type(p2pComms):: comsr
+    !type(p2pCommsGatherPot):: comgp
+    type(p2pComms):: comgp
     type(largeBasis):: lb
     type(local_zone_descriptors):: lzd
-    type(p2pCommsOrthonormality):: comon
+    !type(p2pCommsOrthonormality):: comon
+    type(p2pComms):: comon
     type(overlapParameters):: op
     type(linearInputGuess):: lig
     type(matrixDescriptors):: mad

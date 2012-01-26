@@ -4,7 +4,8 @@ subroutine allocateCommunicationsBuffersPotential(comgp, subname)
   implicit none
   
   ! Calling arguments
-  type(p2pCommsGatherPot),intent(inout):: comgp
+  !type(p2pCommsGatherPot),intent(inout):: comgp
+  type(p2pComms),intent(inout):: comgp
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -23,7 +24,8 @@ subroutine deallocateCommunicationsBuffersPotential(comgp, subname)
   implicit none
   
   ! Calling arguments
-  type(p2pCommsGatherPot),intent(inout):: comgp
+  !type(p2pCommsGatherPot),intent(inout):: comgp
+  type(p2pComms),intent(inout):: comgp
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -169,7 +171,7 @@ subroutine allocateCommuncationBuffersOrtho(comon, subname)
   implicit none
 
   ! Calling arguments
-  type(p2pCommsOrthonormality),intent(inout):: comon
+  type(p2pComms),intent(inout):: comon
   character(len=*),intent(in):: subname
 
   ! Local variables
@@ -190,7 +192,7 @@ subroutine deallocateCommuncationBuffersOrtho(comon, subname)
   implicit none
 
   ! Calling arguments
-  type(p2pCommsOrthonormality),intent(inout):: comon
+  type(p2pComms),intent(inout):: comon
   character(len=*),intent(in):: subname
 
   ! Local variables
@@ -213,7 +215,7 @@ subroutine allocateSendBufferOrtho(comon, subname)
   implicit none
 
   ! Calling arguments
-  type(p2pCommsOrthonormality),intent(inout):: comon
+  type(p2pComms),intent(inout):: comon
   character(len=*),intent(in):: subname
 
   ! Local variables
@@ -232,7 +234,7 @@ subroutine deallocateSendBufferOrtho(comon, subname)
   implicit none
 
   ! Calling arguments
-  type(p2pCommsOrthonormality),intent(inout):: comon
+  type(p2pComms),intent(inout):: comon
   character(len=*),intent(in):: subname
 
   ! Local variables
@@ -252,7 +254,7 @@ subroutine allocateRecvBufferOrtho(comon, subname)
   implicit none
 
   ! Calling arguments
-  type(p2pCommsOrthonormality),intent(inout):: comon
+  type(p2pComms),intent(inout):: comon
   character(len=*),intent(in):: subname
 
   ! Local variables
@@ -271,7 +273,7 @@ subroutine deallocateRecvBufferOrtho(comon, subname)
   implicit none
 
   ! Calling arguments
-  type(p2pCommsOrthonormality),intent(inout):: comon
+  type(p2pComms),intent(inout):: comon
   character(len=*),intent(in):: subname
 
   ! Local variables
@@ -292,7 +294,8 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc
 logical,intent(in):: with_auxarray
-type(p2pCommsSumrho),intent(inout):: comsr
+!type(p2pCommsSumrho),intent(inout):: comsr
+type(p2pComms),intent(inout):: comsr
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -326,7 +329,8 @@ use module_types
 implicit none
 
 ! Calling arguments
-type(p2pCommsSumrho),intent(inout):: comsr
+!type(p2pCommsSumrho),intent(inout):: comsr
+type(p2pComms),intent(inout):: comsr
 character(len=*),intent(in):: subname
 
 ! Local variables

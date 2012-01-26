@@ -1277,7 +1277,8 @@ integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 integer,intent(inout):: tag
-type(p2pCommsSumrho),intent(out):: comsr
+!type(p2pCommsSumrho),intent(out):: comsr
+type(p2pComms),intent(out):: comsr
 
 ! Local variables
 integer:: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp

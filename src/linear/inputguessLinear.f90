@@ -684,7 +684,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Deallocate the buffers needed for communication the potential.
   call deallocateCommunicationsBuffersPotential(lin%lig%comgp, subname)
   ! Deallocate the parameters needed for the communication of the potential.
-  call deallocate_p2pCommsGatherPot(lin%lig%comgp, subname)
+  !call deallocate_p2pCommsGatherPot(lin%lig%comgp, subname)
+  call deallocate_p2pComms(lin%lig%comgp, subname)
 
 
 
@@ -775,7 +776,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
   call deallocate_matrixDescriptors(lin%lig%mad, subname)
   call deallocate_overlapParameters(lin%lig%op, subname)
-  call deallocate_p2pCommsOrthonormality(lin%lig%comon, subname)
+  !call deallocate_p2pCommsOrthonormality(lin%lig%comon, subname)
+  call deallocate_p2pComms(lin%lig%comon, subname)
 
   ! Deallocate all remaining local arrays.
   iall=-product(shape(norbsc_arr))*kind(norbsc_arr)
@@ -853,7 +855,7 @@ integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsy
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
-type(p2pCommsOrthonormality),intent(inout):: comon
+type(p2pComms),intent(inout):: comon
 type(overlapParameters),intent(inout):: op
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(orbs%npsidim_comp),intent(inout):: lchi
@@ -1142,7 +1144,7 @@ integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, jproc, i
 integer:: jorb, ierr, noverlaps, iiat, iioverlap, ioverlap, tagx, availableMemory, jj, i, ist, jst, nshift
 integer:: irecv, isend, nrecv, nsend, tag, tag0, jjproc, ind, imat, imatold, jjprocold
 type(overlapParameters):: op
-type(p2pCommsOrthonormality):: comon
+type(p2pComms):: comon
 real(8),dimension(:,:),allocatable:: hamTemp
 character(len=*),parameter:: subname='getHamiltonianMatrix6'
 real(8),dimension(:,:),allocatable:: hamTempCompressed, hamTempCompressed2
@@ -1384,7 +1386,7 @@ if(imat/=nlocregPerMPI .and. nproc >1) then
   stop
 end if
 call deallocate_overlapParameters(op, subname)
-call deallocate_p2pCommsOrthonormality(comon, subname)
+call deallocate_p2pComms(comon, subname)
 
 iall=-product(shape(hamTempCompressed))*kind(hamTempCompressed)
 deallocate(hamTempCompressed, stat=istat)
@@ -2903,7 +2905,7 @@ real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
 real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
 character(len=1),intent(in):: locregShape
 integer,intent(inout):: tag
-type(p2pCommsOrthonormality):: comonig
+type(p2pComms):: comonig
 type(overlapParameters):: opig
 type(matrixDescriptors):: madig
 real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
@@ -3008,7 +3010,7 @@ real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
 ! Local variables
 integer:: istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb, ii
 type(overlapParameters):: op
-type(p2pCommsOrthonormality):: comon
+type(p2pComms):: comon
 real(8),dimension(:),allocatable:: lchiovrlp
 character(len=*),parameter:: subname='buildLinearCombinationsVariable'
 
@@ -3063,7 +3065,7 @@ end if
 
 
 call deallocate_overlapParameters(op, subname)
-call deallocate_p2pCommsOrthonormality(comon, subname)
+call deallocate_p2pComms(comon, subname)
 
 
 iall=-product(shape(lchiovrlp))*kind(lchiovrlp)
@@ -3103,7 +3105,7 @@ integer,dimension(orbs%norb):: onWhichAtomPhi
 !!real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
 integer,intent(inout):: tag
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
-type(p2pCommsOrthonormality):: comonig
+type(p2pComms):: comonig
 type(overlapParameters):: opig
 type(matrixDescriptors):: madig
 
