@@ -27,10 +27,10 @@ module module_types
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
   integer, parameter :: INPUT_PSI_LINEAR       = 100
   integer, dimension(10), parameter :: input_psi_values = &
-       & (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
-       & INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
-       & INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
-       & INPUT_PSI_LINEAR /)
+       (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
+       INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
+       INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
+       INPUT_PSI_LINEAR /)
 
   !> Output wf parameters.
   integer, parameter :: WF_FORMAT_NONE   = 0
@@ -39,19 +39,19 @@ module module_types
   integer, parameter :: WF_FORMAT_ETSF   = 3
   integer, parameter :: WF_N_FORMAT      = 4
   character(len = 12), dimension(0:WF_N_FORMAT-1), parameter :: wf_format_names = &
-       & (/ "none        ", "plain text  ", "Fortran bin.", "ETSF        " /)
+       (/ "none        ", "plain text  ", "Fortran bin.", "ETSF        " /)
 
   !> Output grid parameters.
   integer, parameter :: OUTPUT_DENSPOT_NONE    = 0
   integer, parameter :: OUTPUT_DENSPOT_DENSITY = 1
   integer, parameter :: OUTPUT_DENSPOT_DENSPOT = 2
   character(len = 12), dimension(0:2), parameter :: OUTPUT_DENSPOT_names = &
-       & (/ "none        ", "density     ", "dens. + pot." /)
+       (/ "none        ", "density     ", "dens. + pot." /)
   integer, parameter :: OUTPUT_DENSPOT_FORMAT_TEXT = 0
   integer, parameter :: OUTPUT_DENSPOT_FORMAT_ETSF = 1
   integer, parameter :: OUTPUT_DENSPOT_FORMAT_CUBE = 2
   character(len = 4), dimension(0:2), parameter :: OUTPUT_DENSPOT_format_names = &
-       & (/ "text", "ETSF", "cube" /)
+       (/ "text", "ETSF", "cube" /)
 
   !> SCF mixing parameters. (mixing parameters to be added)
   integer, parameter :: SCF_KIND_DIRECT_MINIMIZATION = 0
@@ -63,11 +63,11 @@ module module_types
   integer, parameter :: SMEARING_DIST_COLD2 = 4  !Marzari's cold smearing  with a=-.8165 (monotonic tail)
   integer, parameter :: SMEARING_DIST_METPX = 5  !Methfessel and Paxton (same as COLD with a=0)
   character(len = 11), dimension(5), parameter :: smearing_names = &
-       & (/ "Error func.",   &    
-       &    "Fermi      ",   &
-       &    "Cold (bumb)",   &
-       &    "Cold (mono)",   &
-       &    "Meth.-Pax. " /)
+       (/ "Error func.",&
+       "Fermi      ", &
+       "Cold (bumb)", &
+       "Cold (mono)",   &
+       "Meth.-Pax. " /)
 
   !> Type used for the orthogonalisation parameter
   type, public :: orthon_data
@@ -354,6 +354,7 @@ module module_types
 !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
      integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add
+     integer :: ndimpot,ndimgrid,ndimrhopot 
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
   end type denspot_distribution
 

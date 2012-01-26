@@ -1483,18 +1483,16 @@ module module_interfaces
          real(wp), dimension(:), pointer :: psi,psivirt
        END SUBROUTINE write_eigen_objects
 
-       subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3rho_add,orbs,&
-            Lzd,iflag,ngatherarr,potential,pot,comgp)
+       subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,comgp)
          use module_base
          use module_types
          use module_xc
          implicit none
-         integer, intent(in) :: iproc,nproc,nspin,ndimpot,ndimgrid,iflag
-         integer, intent(in) :: ndimrhopot,i3rho_add
-         type(orbitals_data),intent(in):: orbs
+         integer, intent(in) :: iproc,nproc,iflag
+         type(orbitals_data),intent(in) :: orbs
          type(local_zone_descriptors),intent(in) :: Lzd
-         integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-         real(wp), dimension(max(ndimrhopot,1)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+         type(denspot_distribution), intent(inout) :: dpcom
+         real(wp), dimension(max(dpcom%ndimrhopot,orbs%nspin)), intent(in), target :: potential
          real(wp), dimension(:), pointer :: pot
          type(p2pCommsGatherPot),intent(inout), optional:: comgp
        END SUBROUTINE full_local_potential

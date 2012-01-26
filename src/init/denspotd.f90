@@ -135,7 +135,8 @@ subroutine allocateRhoPot(iproc,nproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,den
      denspot%dpcom%i3rho_add=Glr%d%n1i*Glr%d%n2i*denspot%dpcom%i3xcsh+1
   end if
   if (denspot%dpcom%n3d >0) then
-     allocate(denspot%rhov(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d*denspot%dpcom%nrhodim+ndebug),stat=i_stat)
+     allocate(denspot%rhov(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d*&
+          denspot%dpcom%nrhodim+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%rhov,'rhov',subname)
   else
      allocate(denspot%rhov(denspot%dpcom%nrhodim+ndebug),stat=i_stat)
@@ -147,6 +148,12 @@ subroutine allocateRhoPot(iproc,nproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,den
        denspot%dpcom%i3s,denspot%dpcom%i3xcsh,&
        denspot%dpcom%n3d,denspot%dpcom%n3p,denspot%rho_C)
 
+  !fill the full_local_potential dimension
+  denspot%dpcom%ndimpot=Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p
+  denspot%dpcom%ndimgrid=Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
+  denspot%dpcom%ndimrhopot=Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d*&
+       denspot%dpcom%nrhodim
+  
 END SUBROUTINE allocateRhoPot
 
 !> Create the descriptors for the density and the potential

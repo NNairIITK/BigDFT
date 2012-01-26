@@ -458,19 +458,21 @@ END SUBROUTINE SynchronizeHamiltonianApplication
 !!                   if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
 !!                   the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
 !!                   the same holds for non-collinear calculations
-subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
-     ndimrhopot,i3rho_add,orbs,&
-     Lzd,iflag,ngatherarr,potential,pot,comgp)
+subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,comgp)
+  !ndimpot,ndimgrid,nspin,&
+  !   ndimrhopot,i3rho_add,orbs,&
+  !   Lzd,iflag,ngatherarr,potential,pot,comgp)
    use module_base
    use module_types
    use module_xc
    implicit none
-   integer, intent(in) :: iproc,nproc,nspin,ndimpot,ndimgrid,iflag
-   integer, intent(in) :: ndimrhopot,i3rho_add
+   integer, intent(in) :: iproc,nproc,iflag!,nspin,ndimpot,ndimgrid
+   !integer, intent(in) :: ndimrhopot,i3rho_add
    type(orbitals_data),intent(in) :: orbs
    type(local_zone_descriptors),intent(in) :: Lzd
-   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-   real(wp), dimension(max(ndimrhopot,nspin)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+   type(denspot_distribution), intent(inout) :: dpcom
+   !integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+   real(wp), dimension(max(dpcom%ndimrhopot,orbs%nspin)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
    real(wp), dimension(:), pointer :: pot
    type(p2pCommsGatherPot),intent(inout), optional:: comgp
    !local variables
@@ -483,7 +485,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
    
    call timing(iproc,'Pot_commun    ','ON')
 
-   odp = (xc_exctXfac() /= 0.0_gp .or. (i3rho_add /= 0 .and. orbs%norbp > 0))
+   odp = (xc_exctXfac() /= 0.0_gp .or. (dpcom%i3rho_add /= 0 .and. orbs%norbp > 0))
 
    !############################################################################
    ! Build the potential on the whole simulation box
@@ -496,14 +498,14 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
       !determine the dimension of the potential array
       if (odp) then
          if (xc_exctXfac() /= 0.0_gp) then
-            npot=ndimgrid*nspin+&
-                 &   max(max(ndimgrid*orbs%norbp,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
-         else if (i3rho_add /= 0 .and. orbs%norbp > 0) then
-            npot=ndimgrid*nspin+&
-                 &   ndimgrid*max(orbs%norbp,nspin) !part which refers to SIC correction
+            npot=dpcom%ndimgrid*orbs%nspin+&
+                 &   max(max(dpcom%ndimgrid*orbs%norbp,dpcom%ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
+         else if (dpcom%i3rho_add /= 0 .and. orbs%norbp > 0) then
+            npot=dpcom%ndimgrid*orbs%nspin+&
+                 &   dpcom%ndimgrid*max(orbs%norbp,orbs%nspin) !part which refers to SIC correction
          end if
       else
-         npot=ndimgrid*nspin
+         npot=dpcom%ndimgrid*orbs%nspin
       end if
 
       !build the potential on the whole simulation box
@@ -514,32 +516,32 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
          call memocc(i_stat,pot1,'pot1',subname)
          ispot=1
          ispotential=1
-         do ispin=1,nspin
-            call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
-                 &   mpidtypw,pot1(ispot),ngatherarr(0,1),&
-                 ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
-            ispot=ispot+ndimgrid
-            ispotential=ispotential+max(1,ndimpot)
+         do ispin=1,orbs%nspin
+            call MPI_ALLGATHERV(potential(ispotential),dpcom%ndimpot,&
+                 &   mpidtypw,pot1(ispot),dpcom%ngatherarr(0,1),&
+                 dpcom%ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+            ispot=ispot+dpcom%ndimgrid
+            ispotential=ispotential+max(1,dpcom%ndimpot)
          end do
          !continue to copy the density after the potential if required
-         if (i3rho_add >0 .and. orbs%norbp > 0) then
-            ispot=ispot+i3rho_add-1
-            do ispin=1,nspin
-               call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
-                    &   mpidtypw,pot1(ispot),ngatherarr(0,1),&
-                    ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
-               ispot=ispot+ndimgrid
-               ispotential=ispotential+max(1,ndimpot)
+         if (dpcom%i3rho_add >0 .and. orbs%norbp > 0) then
+            ispot=ispot+dpcom%i3rho_add-1
+            do ispin=1,orbs%nspin
+               call MPI_ALLGATHERV(potential(ispotential),dpcom%ndimpot,&
+                    &   mpidtypw,pot1(ispot),dpcom%ngatherarr(0,1),&
+                    dpcom%ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+               ispot=ispot+dpcom%ndimgrid
+               ispotential=ispotential+max(1,dpcom%ndimpot)
             end do
          end if
       else
          if (odp) then
             allocate(pot1(npot+ndebug),stat=i_stat)
             call memocc(i_stat,pot1,'pot1',subname)
-            call dcopy(ndimgrid*nspin,potential,1,pot1,1)
-            if (i3rho_add >0 .and. orbs%norbp > 0) then
-               ispot=ndimgrid*nspin+1
-               call dcopy(ndimgrid*nspin,potential(ispot+i3rho_add),1,pot1(ispot),1)
+            call dcopy(dpcom%ndimgrid*orbs%nspin,potential,1,pot1,1)
+            if (dpcom%i3rho_add >0 .and. orbs%norbp > 0) then
+               ispot=dpcom%ndimgrid*orbs%nspin+1
+               call dcopy(dpcom%ndimgrid*orbs%nspin,potential(ispot+dpcom%i3rho_add),1,pot1(ispot),1)
             end if
          else
             pot1 => potential
@@ -642,7 +644,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
 
          ! Cut the potential into locreg pieces
          call global_to_local(Lzd%Glr,Lzd%Llr(ilr),orbs%nspin,npot,lzd%ndimpotisf,pot1,pot(istl))
-         istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin
+         istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspin
       end do
    else
       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
