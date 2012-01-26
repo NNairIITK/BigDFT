@@ -187,9 +187,7 @@ end subroutine optimizeDIIS
 
 
 
-subroutine initializeDIIS(isx, lzd, orbs, alphaSDx, alphaDIISx, norb, icountSDSatur, &
-           icountSwitch, icountDIISFailureTot, icountDIISFailureCons, &
-           ldiis, alpha, alphaDIIS)
+subroutine initializeDIIS(isx, lzd, orbs, norb, ldiis)
 use module_base
 use module_types
 implicit none
@@ -198,10 +196,7 @@ implicit none
 integer,intent(in):: isx, norb
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
-real(8),intent(in):: alphaSDx, alphaDIISx
-integer,intent(out):: icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons
 type(localizedDIISParameters),intent(out):: ldiis
-real(8),dimension(norb),intent(out):: alpha, alphaDIIS
 
 ! Local variables
 integer:: iorb, ii, istat, ilr
@@ -225,16 +220,6 @@ allocate(ldiis%phiHist(ii), stat=istat)
 call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
 allocate(ldiis%hphiHist(ii), stat=istat)
 call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
-
-! Initialize the DIIS parameters 
-icountSDSatur=0
-icountSwitch=0
-icountDIISFailureTot=0
-icountDIISFailureCons=0
-
-! Assign the step size for SD iterations.
-alpha=alphaSDx
-alphaDIIS=alphaDIISx
 
 
 end subroutine initializeDIIS

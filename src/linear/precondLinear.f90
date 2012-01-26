@@ -573,7 +573,8 @@ END SUBROUTINE applyOperator
 
 
 
-subroutine choosePreconditioner2(iproc, nproc, orbs, lin, lr, hx, hy, hz, ncong, hpsi, nat, rxyz, at, it, iorb, eval_zero)
+subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, nat, rxyz, at, &
+           confpotorder, potentialprefac, it, iorb, eval_zero)
 !
 ! Purpose:
 ! ========
@@ -602,17 +603,17 @@ subroutine choosePreconditioner2(iproc, nproc, orbs, lin, lr, hx, hy, hz, ncong,
 use module_base
 use module_types
 implicit none
-integer, intent(in) :: iproc,nproc,ncong, iorb
+integer, intent(in) :: iproc,nproc,ncong, iorb, confpotorder
 real(gp), intent(in) :: hx,hy,hz
 type(locreg_descriptors), intent(in) :: lr
 type(orbitals_data), intent(in) :: orbs
-type(linearParameters):: lin
+type(atoms_data), intent(in) :: at
+real(8),intent(in):: potentialprefac
 !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
 real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
 integer,intent(in):: nat, it
 real(8),dimension(3,nat),intent(in):: rxyz
 real(8),intent(in):: eval_zero
-type(atoms_data), intent(in) :: at
 !local variables
 integer :: inds, ncplx, ikpt, ierr, iiAt
 real(wp) :: cprecr,scpr!,eval_zero,evalmax 
@@ -685,10 +686,10 @@ real(gp) :: kx,ky,kz
               ! iiAt indicates on which atom orbital iorb is centered.
               !iiAt=lin%onWhichAtom(iorb)
               !iiAt=lin%orbs%inWhichLocregp(iorb)
-              iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
+              iiAt=orbs%inWhichLocreg(orbs%isorb+iorb)
               call solvePrecondEquation(lr,ncplx,ncong,cprecr,&
                    hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
-                   lin%potentialPrefac(at%iatype(iiAt)), lin%confPotOrder, it)
+                   potentialPrefac, confPotOrder, it)
 
            end if
 

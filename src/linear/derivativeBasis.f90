@@ -1,4 +1,4 @@
-subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
+subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, lzd, lorbs, lborbs, comrp, nphi, phi, phid)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => getDerivativeBasisFunctions
@@ -7,10 +7,11 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nphi
 real(8),intent(in):: hgrid
-type(locreg_descriptors),intent(in):: Glr
-type(linearParameters),intent(inout):: lin
+type(local_zone_descriptors),intent(in):: lzd
+type(orbitals_data),intent(in):: lorbs, lborbs
+type(p2pCommsRepartition),intent(inout):: comrp
 real(8),dimension(nphi),intent(in):: phi
-real(8),dimension(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)),target,intent(out):: phid
+real(8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(out):: phid
 
 ! Local variables
 integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc
@@ -29,7 +30,7 @@ character(len=*),parameter:: subname='getDerivativeBasisFunctions'
   ! If each orbital has the same number of orbitals, this is never required.
   repartition=.false.
   do jproc=1,nproc-1
-     if(lin%orbs%norb_par(jproc,0)/=lin%orbs%norb_par(jproc-1,0)) then 
+     if(lorbs%norb_par(jproc,0)/=lorbs%norb_par(jproc-1,0)) then 
          repartition=.true.
          exit
      end if
@@ -37,7 +38,7 @@ character(len=*),parameter:: subname='getDerivativeBasisFunctions'
 
 
   if(repartition) then
-      allocate(phiLoc(4*max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
+      allocate(phiLoc(4*max(lorbs%npsidim_orbs,lorbs%npsidim_comp)), stat=istat)
       call memocc(istat, phiLoc, 'phiLoc', subname)
   else
       phiLoc => phid
@@ -49,102 +50,102 @@ character(len=*),parameter:: subname='getDerivativeBasisFunctions'
   ist0_c=1
   ! Dimension of the first orbital on each process
   !ilr=lin%orbs%inWhichLocregp(1)
-  ilr=lin%orbs%inWhichLocreg(lin%orbs%isorb+1)
-  offset=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+  ilr=lorbs%inWhichLocreg(lorbs%isorb+1)
+  offset=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
 
   istx_c=offset+1
   isty_c=2*offset+1
   istz_c=3*offset+1
 
-  do iorb=1,lin%orbs%norbp
+  do iorb=1,lorbs%norbp
 
       !ilr=lin%orbs%inWhichLocregp(iorb)
-      iiorb=lin%orbs%isorb+iorb
-      ilr=lin%orbs%inWhichLocreg(iiorb)
+      iiorb=lorbs%isorb+iorb
+      ilr=lorbs%inWhichLocreg(iiorb)
       call allocateWorkarrays()
 
-      ist1_f=ist1_c+lin%lzd%llr(ilr)%wfd%nvctr_c
-      ist2_f=ist2_c+lin%lzd%llr(ilr)%wfd%nvctr_c
+      ist1_f=ist1_c+lzd%llr(ilr)%wfd%nvctr_c
+      ist2_f=ist2_c+lzd%llr(ilr)%wfd%nvctr_c
       ! ist0: start index of the orginal phi
-      ist0_f=ist0_c+lin%lzd%llr(ilr)%wfd%nvctr_c
+      ist0_f=ist0_c+lzd%llr(ilr)%wfd%nvctr_c
       ! istx: start index of the derivative with respect to x
-      istx_f=istx_c+lin%lzd%llr(ilr)%wfd%nvctr_c
+      istx_f=istx_c+lzd%llr(ilr)%wfd%nvctr_c
       ! isty: start index of the derivative with respect to y
-      isty_f=isty_c+lin%lzd%llr(ilr)%wfd%nvctr_c
+      isty_f=isty_c+lzd%llr(ilr)%wfd%nvctr_c
       ! istz: start index of the derivative with respect to z
-      istz_f=istz_c+lin%lzd%llr(ilr)%wfd%nvctr_c
+      istz_f=istz_c+lzd%llr(ilr)%wfd%nvctr_c
 
       ! Uncompress the wavefunction.
-      !phi(ist1_f:ist1_f+7*lin%lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
-      !phi(ist1_c:ist1_c+lin%lzd%llr(ilr)%wfd%nvctr_c-1)=0.d0
-      call uncompress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, &
-           lin%lzd%llr(ilr)%d%nfl1, lin%lzd%llr(ilr)%d%nfu1, & 
-           lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3, lin%lzd%llr(ilr)%d%nfu3,  &
-           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keygloc, lin%lzd%llr(ilr)%wfd%keyv,  &
-           lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f, &
-           lin%lzd%llr(ilr)%wfd%keygloc(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
-           lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
+      !phi(ist1_f:ist1_f+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
+      !phi(ist1_c:ist1_c+lzd%llr(ilr)%wfd%nvctr_c-1)=0.d0
+      call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, & 
+           lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3,  &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyv,  &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phi(ist1_c), phi(ist1_f), w_c, w_f, w_f1, w_f2, w_f3)
 
 
-      call createDerivativeBasis(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, &
-           lin%lzd%llr(ilr)%d%nfl1, lin%lzd%llr(ilr)%d%nfu1, lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, &
-           lin%lzd%llr(ilr)%d%nfl3, lin%lzd%llr(ilr)%d%nfu3,  &
-           hgrid, lin%lzd%llr(ilr)%bounds%kb%ibyz_c, lin%lzd%llr(ilr)%bounds%kb%ibxz_c, lin%lzd%llr(ilr)%bounds%kb%ibxy_c, &
-           lin%lzd%llr(ilr)%bounds%kb%ibyz_f, lin%lzd%llr(ilr)%bounds%kb%ibxz_f, lin%lzd%llr(ilr)%bounds%kb%ibxy_f, &
+      call createDerivativeBasis(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+           lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3,  &
+           hgrid, lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+           lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
            w_c, w_f, w_f1, w_f2, w_f3, phix_c, phix_f, phiy_c, phiy_f, phiz_c, phiz_f)
 
       ! Copy phi to phiLoc
-      call dcopy(lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)
-      ist0_c = ist0_c + 4*(lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f)
-      ist1_c = ist1_c + lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      call dcopy(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)
+      ist0_c = ist0_c + 4*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f)
+      ist1_c = ist1_c + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
 
       ! Compress the x wavefunction.
-      call compress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, &
-           lin%lzd%llr(ilr)%d%nfl1, lin%lzd%llr(ilr)%d%nfu1, &
-           lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3, lin%lzd%llr(ilr)%d%nfu3, &
-           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keygloc, lin%lzd%llr(ilr)%wfd%keyv, &
-           lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f, &
-           lin%lzd%llr(ilr)%wfd%keygloc(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
-           lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
+      call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+           lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyv, &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phix_c, phix_f, phiLoc(istx_c), phiLoc(istx_f))
-      if(iorb<lin%orbs%norbp) then
+      if(iorb<lorbs%norbp) then
           !jlr=lin%orbs%inWhichLocregp(iorb+1)
-          jlr=lin%orbs%inWhichLocreg(iiorb+1)
-          istx_c = istx_c + 3*(lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f) + &
-              lin%lzd%llr(jlr)%wfd%nvctr_c + 7*lin%lzd%llr(jlr)%wfd%nvctr_f
+          jlr=lorbs%inWhichLocreg(iiorb+1)
+          istx_c = istx_c + 3*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f) + &
+              lzd%llr(jlr)%wfd%nvctr_c + 7*lzd%llr(jlr)%wfd%nvctr_f
       end if
 
       ! Compress the y wavefunction.
-      call compress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, &
-           lin%lzd%llr(ilr)%d%nfl1, lin%lzd%llr(ilr)%d%nfu1, &
-           lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3, lin%lzd%llr(ilr)%d%nfu3, &
-           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keygloc, lin%lzd%llr(ilr)%wfd%keyv, &
-           lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f, &
-           lin%lzd%llr(ilr)%wfd%keygloc(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
-           lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
+      call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+           lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyv, &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phiy_c, phiy_f, phiLoc(isty_c), phiLoc(isty_f))
-      if(iorb<lin%orbs%norbp) then
+      if(iorb<lorbs%norbp) then
           !jlr=lin%orbs%inWhichLocregp(iorb+1)
-          jlr=lin%orbs%inWhichLocreg(iiorb+1)
-          isty_c = isty_c + 2*(lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f) + &
-              2*(lin%lzd%llr(jlr)%wfd%nvctr_c + 7*lin%lzd%llr(jlr)%wfd%nvctr_f)
+          jlr=lorbs%inWhichLocreg(iiorb+1)
+          isty_c = isty_c + 2*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f) + &
+              2*(lzd%llr(jlr)%wfd%nvctr_c + 7*lzd%llr(jlr)%wfd%nvctr_f)
       end if
 
       ! Compress the z wavefunction.
-      call compress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, &
-           lin%lzd%llr(ilr)%d%nfl1, lin%lzd%llr(ilr)%d%nfu1, &
-           lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3, lin%lzd%llr(ilr)%d%nfu3, &
-           lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keygloc, lin%lzd%llr(ilr)%wfd%keyv, &
-           lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f, &
-           lin%lzd%llr(ilr)%wfd%keygloc(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
-           lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
+      call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+           lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyv, &
+           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phiz_c, phiz_f, phiLoc(istz_c), phiLoc(istz_f))
-      if(iorb<lin%orbs%norbp) then
+      if(iorb<lorbs%norbp) then
           !jlr=lin%orbs%inWhichLocregp(iorb+1)
-          jlr=lin%orbs%inWhichLocreg(iiorb+1)
-          istz_c = istz_c + lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f + &
-              3*(lin%lzd%llr(jlr)%wfd%nvctr_c + 7*lin%lzd%llr(jlr)%wfd%nvctr_f)
+          jlr=lorbs%inWhichLocreg(iiorb+1)
+          istz_c = istz_c + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f + &
+              3*(lzd%llr(jlr)%wfd%nvctr_c + 7*lzd%llr(jlr)%wfd%nvctr_f)
       end if
 
       call deallocateWorkarrays()
@@ -154,8 +155,8 @@ character(len=*),parameter:: subname='getDerivativeBasisFunctions'
 
   if(repartition) then
       ! Communicate the orbitals to meet the partition.
-      call postCommsRepartition(iproc, nproc, lin%orbs, lin%lb%comrp, size(phiLoc), phiLoc, size(phid), phid)
-      call gatherDerivativeOrbitals(iproc, nproc, lin%orbs, lin%lb%comrp)
+      call postCommsRepartition(iproc, nproc, lorbs, comrp, size(phiLoc), phiLoc, size(phid), phid)
+      call gatherDerivativeOrbitals(iproc, nproc, lorbs, comrp)
 
       iall=-product(shape(phiLoc))*kind(phiLoc)
       deallocate(phiLoc, stat=istat)
@@ -169,16 +170,16 @@ contains
   subroutine allocateWorkarrays()
   
     ! THIS IS COPIED FROM allocate_work_arrays. Works only for free boundary.
-    nf=(lin%lzd%llr(ilr)%d%nfu1-lin%lzd%llr(ilr)%d%nfl1+1)*(lin%lzd%llr(ilr)%d%nfu2-lin%lzd%llr(ilr)%d%nfl2+1)* &
-       (lin%lzd%llr(ilr)%d%nfu3-lin%lzd%llr(ilr)%d%nfl3+1)
+    nf=(lzd%llr(ilr)%d%nfu1-lzd%llr(ilr)%d%nfl1+1)*(lzd%llr(ilr)%d%nfu2-lzd%llr(ilr)%d%nfl2+1)* &
+       (lzd%llr(ilr)%d%nfu3-lzd%llr(ilr)%d%nfl3+1)
 
     ! Allocate work arrays
-    allocate(w_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3+ndebug), stat=istat)
+    allocate(w_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3+ndebug), stat=istat)
     call memocc(istat, w_c, 'w_c', subname)
     w_c=0.d0
 
-    allocate(w_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
-                 lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3+ndebug), stat=istat)
+    allocate(w_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
+                 lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3+ndebug), stat=istat)
     call memocc(istat, w_f, 'w_f', subname)
     w_f=0.d0
   
@@ -195,30 +196,30 @@ contains
     w_f3=0.d0
   
   
-    allocate(phix_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
-                    lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
+    allocate(phix_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
+                    lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3), stat=istat)
     call memocc(istat, phix_f, 'phix_f', subname)
     phix_f=0.d0
 
-    allocate(phix_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
+    allocate(phix_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3), stat=istat)
     call memocc(istat, phix_c, 'phix_c', subname)
     phix_c=0.d0
 
-    allocate(phiy_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
-                    lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
+    allocate(phiy_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
+                    lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3), stat=istat)
     call memocc(istat, phiy_f, 'phiy_f', subname)
     phiy_f=0.d0
 
-    allocate(phiy_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
+    allocate(phiy_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3), stat=istat)
     call memocc(istat, phiy_c, 'phiy_c', subname)
     phiy_c=0.d0
 
-    allocate(phiz_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
-                    lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
+    allocate(phiz_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
+                    lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3), stat=istat)
     call memocc(istat, phiz_f, 'phiz_f', subname)
     phiz_f=0.d0
 
-    allocate(phiz_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
+    allocate(phiz_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3), stat=istat)
     call memocc(istat, phiz_c, 'phiz_c', subname)
     phiz_c=0.d0
   

@@ -1250,7 +1250,7 @@ subroutine atoms_sync(atoms, alat1, alat2, alat3, geocode, format, units)
   use module_types
   implicit none
   type(atoms_data), intent(inout) :: atoms
-  real(gp), intent(out) :: alat1, alat2, alat3
+  real(gp), intent(in) :: alat1, alat2, alat3
   character, intent(in) :: geocode(1)
   character, intent(in) :: format(5)
   character, intent(in) :: units(20)

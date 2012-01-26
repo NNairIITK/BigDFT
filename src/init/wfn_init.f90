@@ -1034,7 +1034,7 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
    !local variables
    integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx
-   !  integer :: iorb, jorb, icplx
+     integer :: iorb, jorb, icplx
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1
@@ -1070,30 +1070,30 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
                &   max(1,ncomp*nvctrp),psi(1,iorbst),max(1,ncomp*nvctrp),&
                &   (0.0_wp,0.0_wp),hamovr(imatrst,2),norbi)
          end if
-         !        open(17)
-         !        open(18)
-         !        print *,'ncplx,nspinor',ncplx,nspinor
-         !        do jorb=1,8!norbi
-         !           write(17,'(i0,1x,48(1pe10.1))')jorb,&
-         !                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,1),icplx=1,ncplx),iorb=1,8)!norbi)
-         !           write(18,'(i0,1x,48(1pe10.1))')jorb,&
-         !                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,2),icplx=1,ncplx),iorb=1,8)!norbi)
-         !        end do
-         !
-         !        close(17)
-         !        close(18)
-         !!$        stop
+!!$               open(17)
+!!$               open(18)
+!!$               print *,'ncplx,nspinor',ncplx,nspinor
+!!$               do jorb=1,norbi
+!!$                  write(17,'(i0,1x,48(1pe10.1))')jorb,&
+!!$                       ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,1),icplx=1,ncplx),iorb=1,8)!norbi)
+!!$                  write(18,'(i0,1x,48(1pe10.1))')jorb,&
+!!$                       ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,2),icplx=1,ncplx),iorb=1,8)!norbi)
+!!$               end do
+!!$         
+!!$               close(17)
+!!$               close(18)
+!!$                 stop
 
-         !!$        !print out the passage matrix (valid for one k-point only and ncplx=1)
-         !!$        print *,'HAMILTONIAN' 
-         !!$        do iorb=1,norbi
-         !!$           write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),1),jorb=1,norbi)
-         !!$        end do
-         !!$        print *,'OVERLAP' 
-         !!$        do iorb=1,norbi
-         !!$           write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),2),jorb=1,norbi)
-         !!$        end do
-
+         !print out the passage matrix (valid for one k-point only and ncplx=1)
+!!$         print *,'HAMILTONIAN' 
+!!$         do iorb=1,norbi
+!!$            write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),1),jorb=1,norbi)
+!!$         end do
+!!$         print *,'OVERLAP' 
+!!$         do iorb=1,norbi
+!!$            write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),2),jorb=1,norbi)
+!!$       end do
+!!$stop 
          iorbst=iorbst+norbi
          imatrst=imatrst+ncplx*norbi**2
       end do

@@ -217,7 +217,7 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   integer, intent(out) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
-  real(dp), dimension(:,:), pointer :: rho
+  real(dp), dimension(:,:,:,:), pointer :: rho
   real(gp), dimension(:,:), pointer :: rxyz
   integer, intent(out) ::  nat
   integer, dimension(:), pointer :: iatypes, znucl
@@ -320,7 +320,7 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      deallocate(rho,stat=i_stat)
      call memocc(i_stat,i_all,'rho',subname)
   end if
-  allocate(rho(n1i*n2i*n3i,nspin+ndebug) ,stat=i_stat)
+  allocate(rho(n1i,n2i,n3i,nspin+ndebug) ,stat=i_stat)
   call memocc(i_stat,rho,'rho',subname)
   
   call etsf_io_low_open_read(ncid, trim(filename) // ".etsf.nc", lstat, error_data = error)
@@ -332,8 +332,8 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
 
   do i3=0,2*(n3+nbz) - 1
      do i2=0,2*(n2+nby) - 1
-        i1 = nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-        call etsf_io_low_read_var(ncid, "density", rho(i1:i1 + 2*(n1+nbx) - 1, 1:nspin), &
+        !i1 = nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+        call etsf_io_low_read_var(ncid, "density", rho(nl1:nl1 + 2*(n1+nbx) - 1,i2+1,i3+1,1:nspin), & !rho(i1:i1 + 2*(n1+nbx) - 1, 1:nspin), &
              & lstat, error_data = error, start = (/ 1, 1, i2 + 1, i3 + 1, 1 /), &
              & count = (/ 1, 2*(n1+nbx), 1, 1, nspin /))
         if (.not. lstat) then

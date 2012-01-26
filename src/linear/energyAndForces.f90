@@ -1564,7 +1564,7 @@ integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(dp), dimension(lin%as%size_pkernel):: pkernel
 real(wp), dimension(lin%as%size_pot_ion):: pot_ion
 !real(wp), dimension(lin%as%size_rhocore):: rhocore 
-real(wp), dimension(:),pointer:: rhocore 
+real(wp), dimension(:,:,:,:),pointer:: rhocore 
 real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
 character(len=3):: PSquiet
 real(8),dimension(lin%lb%orbs%norb,orbs%norb):: coeff

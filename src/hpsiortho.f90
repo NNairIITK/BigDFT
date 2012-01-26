@@ -212,7 +212,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
       call local_hamiltonian_OCL(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekin_sum,epot_sum,GPU)
    else
       !local hamiltonian application for different methods
-      !print *,'here',ipotmethod,associated(pkernelSIC),ixcSIC
+      !print *,'here',ipotmethod,associated(pkernelSIC)
       call local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
            SIC%ixc,SIC%alpha,ekin_sum,epot_sum,eSIC_DC)
       !sum the external and the BS double counting terms
@@ -222,7 +222,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    if (ipotmethod == 2 .or. ipotmethod==3) then
       nullify(pkernelSIC)
    end if
-
    call timing(iproc,'ApplyLocPotKin','OF') 
 
 END SUBROUTINE LocalHamiltonianApplication
@@ -473,7 +472,8 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,&
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(max(ndimrhopot,nspin)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
    real(wp), dimension(:), pointer :: pot
-   type(p2pCommsGatherPot),intent(inout), optional:: comgp
+   !type(p2pCommsGatherPot),intent(inout), optional:: comgp
+   type(p2pComms),intent(inout), optional:: comgp
    !local variables
    character(len=*), parameter :: subname='full_local_potential'
    logical :: odp,newvalue !orbital dependent potential
@@ -715,6 +715,7 @@ subroutine free_full_potential(nproc,flag,pot,subname)
       i_all=-product(shape(pot))*kind(pot)
       deallocate(pot,stat=i_stat)
       call memocc(i_stat,i_all,'pot',subname)
+      nullify(pot)
    else
       nullify(pot)
    end if

@@ -81,6 +81,12 @@ endif
 BLACS_MODULES = modules/blacs_fake.f90
 #endif
 
+EXTRA_DIST += CUDA/precond.cu \
+	CUDA/density.cu \
+	CUDA/anasyn.cu \
+	CUDA/locpot.cu CUDA/locpot.h \
+	CUDA/kinetic.cu CUDA/kinetic.h \
+	CUDA/compress.cu
 if USE_CUDA_GPU
 sub_dirs_cuda = CUDA
 CUDA_SOURCES = CUDA/binding_s_gpu.c \
@@ -99,12 +105,6 @@ CUDA_SOURCES = CUDA/binding_s_gpu.c \
 	CUDA/check_cuda.h \
 	CUDA/read_conf_exception.h \
 	CUDA/cpp_utils.h
-EXTRA_DIST += CUDA/precond.cu \
-	CUDA/density.cu \
-	CUDA/anasyn.cu \
-	CUDA/locpot.cu CUDA/locpot.h \
-	CUDA/kinetic.cu CUDA/kinetic.h \
-	CUDA/compress.cu
 CUDA_CONV = convolutions/convolut_common_interface_cuda.f90
 CUDA_MODULES =
 else

@@ -1,5 +1,5 @@
 subroutine linearScaling(iproc,nproc,n3d,n3p,n3pi,i3s,i3xcsh,Glr,orbs,comms,at,input,&
-     rhodsc,lin,rxyz,fion,fdisp,radii_cf,nscatterarr,ngatherarr,nlpspd,proj,rhopot,GPU,&
+     rhodsc,lin,rxyz,fion,fdisp,nscatterarr,ngatherarr,nlpspd,proj,rhopot,GPU,&
      pkernelseq,pkernel,pot_ion,rhocore,potxc,&
      PSquiet,eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
 !
@@ -71,7 +71,6 @@ type(input_variables),intent(in):: input
 type(rho_descriptors),intent(inout) :: rhodsc
 real(8),dimension(3,at%nat),intent(inout):: rxyz
 real(8),dimension(3,at%nat),intent(in):: fion, fdisp
-real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 !integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
 integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
@@ -83,7 +82,7 @@ real(dp),dimension(:),pointer,intent(in):: pkernelseq
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
 real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
 !real(wp), dimension(lin%as%size_rhocore):: rhocore 
-real(wp), dimension(:),pointer,intent(in):: rhocore                  
+real(wp), dimension(:,:,:,:),pointer,intent(in):: rhocore                  
 real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
 character(len=3),intent(in):: PSquiet
 real(gp),intent(in):: eion, edisp, eexctX
@@ -94,12 +93,10 @@ real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 real(8),dimension(3,at%nat),intent(out):: fxyz
 !real(8),intent(out):: fnoise
-real(8):: fnoise,pressure
-real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
-integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing
+integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit
 real(8),dimension(:,:),pointer:: coeff
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix
 character(len=*),parameter:: subname='linearScaling'
@@ -112,6 +109,11 @@ integer:: iorb, ndimtot
 type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
 real(8),dimension(:,:),allocatable:: coeff_proj
+type(localizedDIISParameters):: ldiis
+type(confpot_data), dimension(:),allocatable :: confdatarr
+real(8):: fnoise,pressure
+real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
+type(orthon_data):: orthpar
 
 
 
@@ -130,6 +132,15 @@ real(8),dimension(:,:),allocatable:: coeff_proj
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
        input, rxyz, nscatterarr, tag, coeff, lphi)
   lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
+  allocate(confdatarr(lin%orbs%norbp))
+  call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
+       input%hx,input%hy,input%hz,lin,lin%lzd,lin%orbs%inWhichLocreg)
+
+
+  orthpar%methTransformOverlap = lin%methTransformOverlap
+  orthpar%nItOrtho = lin%nItOrtho
+  orthpar%blocksize_pdsyev = lin%blocksize_pdsyev
+  orthpar%blocksize_pdgemm = lin%blocksize_pdgemm
 
 
   call mpi_barrier(mpi_comm_world, ierr)
@@ -161,12 +172,18 @@ real(8),dimension(:,:),allocatable:: coeff_proj
   call inputguessConfinement(iproc, nproc, at, &
        comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
-       nscatterarr, ngatherarr, potshortcut, GPU, radii_cf, &
+       nscatterarr, ngatherarr, potshortcut, GPU, &
        tag, lphi, ehart, eexcu, vexcu)
   call mpi_barrier(mpi_comm_world, ierr)
   t2ig=mpi_wtime()
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
+
+  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%norb, ldiis)
+       ldiis%DIISHistMin=lin%DIISHistMin
+       ldiis%DIISHistMax=lin%DIISHistMax
+       ldiis%alphaSD=lin%alphaSD
+       ldiis%alphaDIIS=lin%alphaDIIS
 
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist_lowaccuracy>0) then
@@ -196,17 +213,27 @@ real(8),dimension(:,:),allocatable:: coeff_proj
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
           lin%useDerivativeBasisFunctions=.false.
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
-              lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, lin%comgp, lin%comgp, comms, at, lin, rxyz, rxyz, &
-              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
-              infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+              lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, &
+              lin%comgp, lin%comgp, at, rxyz, &
+              nscatterarr, ngatherarr, rhopot, GPU,  pkernelseq, updatePhi, &
+              infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
+              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%nItInnerLoop, &
+              lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
+              lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, lin%lphiRestart, &
+              lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
+              input%nspin, input%hx, input%hy, input%hz, input%SIC)
       else
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-              lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
-              nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
-              infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+              lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon,&
+              lin%lb%comon, lin%comgp, lin%lb%comgp, at, rxyz, &
+              nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
+              infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
+              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
+              coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, & 
+              lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
+              lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
+              input%nspin, input%hx, input%hy, input%hz, input%SIC)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -320,13 +347,24 @@ real(8),dimension(:,:),allocatable:: coeff_proj
       ! Choose the correct confining potential and gradient method, depending on whether we are in the low accuracy
       ! or high accuracy part.
       if(lowaccur_converged) then
-          lin%potentialPrefac = lin%potentialPrefac_highaccuracy
+          !!lin%potentialPrefac = lin%potentialPrefac_highaccuracy
+          do iorb=1,lin%orbs%norbp
+              ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
+              confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(ilr))
+          end do
           lin%newgradient=.true.
           nit_highaccuracy=nit_highaccuracy+1
+          nit=lin%nItBasis_highaccuracy
           if(nit_highaccuracy==lin%nit_highaccuracy+1) exit outerLoop
+
       else
-          lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
+          !!lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
+          do iorb=1,lin%orbs%norbp
+              ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
+              confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(ilr))
+          end do
           lin%newgradient=.false.
+          nit=lin%nItBasis_lowaccuracy
       end if
 
       ! Allocate the communication arrays for the calculation of the charge density.
@@ -367,24 +405,39 @@ real(8),dimension(:,:),allocatable:: coeff_proj
               if(.not.withder) then
                   lin%useDerivativeBasisFunctions=.false.
                   call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
-                      lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, lin%comgp, lin%comgp, comms, at, lin, rxyz, rxyz, &
-                      nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
-                      infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+                      lin%mad, lin%mad, lin%op, lin%op, lin%comon,&
+                      lin%comon, lin%comgp, lin%comgp, at, rxyz, &
+                      nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
+                      infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
+                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
+                      coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
+                      lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
+                      lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
+                      input%nspin, input%hx, input%hy, input%hz, input%SIC)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-                      lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
-                      nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
-                      infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+                      lin%mad, lin%lb%mad, lin%op, lin%lb%op, &
+                      lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, at, rxyz, &
+                      nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
+                      infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
+                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
+                      coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
+                      lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
+                      lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
+                      input%nspin, input%hx, input%hy, input%hz, input%SIC)
               end if
           else
               call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-                  lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, comms, at, lin, rxyz, rxyz, &
-                  nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, updatePhi, &
-                  infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-                  i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj)
+                  lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, &
+                  lin%lb%comon, lin%comgp, lin%lb%comgp, at, rxyz, &
+                  nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
+                  infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
+                  i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
+                  coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
+                  lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
+                  lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
+                  input%nspin, input%hx, input%hy, input%hz, input%SIC)
           end if
 
 
@@ -661,6 +714,9 @@ real(8),dimension(:,:),allocatable:: coeff_proj
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, lphi, coeff)
+  call deallocateDIIS(ldiis)
+  deallocate(confdatarr)
+
 
   iall=-product(shape(coeff_proj))*kind(coeff_proj)
   deallocate(coeff_proj, stat=istat)
@@ -782,7 +838,8 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(p2pCommsGatherPot),intent(inout):: comgp
+!type(p2pCommsGatherPot),intent(inout):: comgp
+type(p2pComms),intent(inout):: comgp
 
 ! Local variables
 integer:: jproc, kproc, ierr

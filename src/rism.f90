@@ -26,7 +26,7 @@ program rism
   real(gp), dimension(:), allocatable :: atchgs,radii
   real(gp), dimension(:,:), allocatable :: radii_cf
   real(gp), dimension(:,:), pointer :: rxyz
-  real(dp), dimension(:,:), pointer :: rho,pot,pot_ion
+  real(dp), dimension(:,:,:,:), pointer :: rho,pot,pot_ion
   character(len=5) :: gridformat
   character(len=60) :: radical
 

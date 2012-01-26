@@ -1,5 +1,5 @@
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-     blocksize_pdgemm, orbs, op, comon, lzd, input, mad, lphi, ovrlp)
+     blocksize_pdgemm, orbs, op, comon, lzd, mad, lphi, ovrlp)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
@@ -9,9 +9,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   integer,intent(in):: iproc,nproc,methTransformOverlap,nItOrtho,blocksize_dsyev,blocksize_pdgemm
   type(orbitals_data),intent(in):: orbs
   type(overlapParameters),intent(inout):: op
-  type(p2pCommsOrthonormality),intent(inout):: comon
+  type(p2pComms),intent(inout):: comon
   type(local_zone_descriptors),intent(in):: lzd
-  type(input_variables),intent(in):: input
   type(matrixDescriptors),intent(in):: mad
   real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(inout) :: lphi
   real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
@@ -148,21 +147,24 @@ end subroutine orthonormalizeLocalized
 
 
 
-subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, lagmat)
+subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, ovrlp, &
+           methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(linearParameters),intent(inout):: lin
-  type(input_variables),intent(in):: input
-  real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: ovrlp
-  real(8),dimension(max(lin%orbs%npsidim_comp,lin%orbs%npsidim_orbs)),intent(in):: lphi
-  real(8),dimension(max(lin%orbs%npsidim_comp,lin%orbs%npsidim_orbs)),intent(inout):: lhphi
+  integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
+  type(local_zone_descriptors),intent(in):: lzd
+  type(orbitals_Data),intent(in):: orbs
+  type(overlapParameters),intent(inout):: op
+  type(p2pComms),intent(inout):: comon
   type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: lagmat
+  real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
+  real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(in):: lphi
+  real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
+  real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat
 
   ! Local variables
   integer:: istat, iall, ierr
@@ -172,7 +174,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
   character(len=*),parameter:: subname='orthoconstraintLocalized'
 
 
-  allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
+  allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
   call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
   lphiovrlp=0.d0
 
@@ -184,37 +186,37 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, l
   timeApply=0.d0
   timeExtract=0.d0
 
-  call allocateCommuncationBuffersOrtho(lin%comon, subname)
+  call allocateCommuncationBuffersOrtho(comon, subname)
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
   t1=mpi_wtime()
-  call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim_orbs, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
-       lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+  call extractOrbital3(iproc, nproc, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, op, &
+       lphi, comon%nsendBuf, comon%sendBuf)
   t2=mpi_wtime()
   timeExtract=t2-t1
-  call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
-  call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, lin%lzd, lin%comon%nsendbuf, &
-       lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
+  call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
+  call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
+       comon%sendbuf, comon%nrecvbuf, comon%recvbuf, timecommunp2p, timecommuncoll, timecompress)
   t1=mpi_wtime()
-  call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim_orbs, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
-       lhphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+  call extractOrbital3(iproc, nproc, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, op, &
+       lhphi, comon%nsendBuf, comon%sendBuf)
   t2=mpi_wtime()
   timeextract=timeextract+t2-t1
   t1=mpi_wtime()
-  call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
-       lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, lagmat)
+  call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
+       comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, lagmat)
   t2=mpi_wtime()
   timecalcmatrix=timecalcmatrix+t2-t1
 
   t1=mpi_wtime()
 
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%orbs, &
-       lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lagmat, ovrlp, lphiovrlp, mad, lhphi)
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, orbs, &
+       orbs%inWhichLocreg, lzd, op, comon, lagmat, ovrlp, lphiovrlp, mad, lhphi)
 
   t2=mpi_wtime()
   timeApply=t2-t1
 
-  call deallocateCommuncationBuffersOrtho(lin%comon, subname)
+  call deallocateCommuncationBuffersOrtho(comon, subname)
 
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
   deallocate(lphiovrlp, stat=istat)
@@ -264,7 +266,7 @@ subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad
   integer,intent(in):: iproc, nproc
   type(local_zone_descriptors),intent(in):: lzd
   type(orbitals_data),intent(in):: orbs
-  type(p2pCommsOrthonormality),intent(inout):: comon_lb
+  type(p2pComms),intent(inout):: comon_lb
   type(overlapParameters),intent(inout):: op_lb
   real(8),dimension(orbs%npsidim_orbs),intent(inout):: lphi
   type(matrixDescriptors),intent(in):: mad
@@ -307,7 +309,7 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   type(input_variables),intent(in):: input
   character(len=1),intent(in):: locregShape
   type(overlapParameters),intent(out):: op
-  type(p2pCommsOrthonormality),intent(out):: comon
+  type(p2pComms),intent(out):: comon
   integer,intent(inout):: tag
 
   ! Local variables
@@ -339,8 +341,8 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
      call countOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
      allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
      call memocc(istat, op%overlaps, 'op%overlaps', subname)
-     allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
-     call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
+     !!allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
+     !!call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
   else if(locregShape=='s') then
      call determine_overlap_from_descriptors(iproc, nproc, orbs, lzd, op, comon)
   end if
@@ -393,6 +395,8 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   call memocc(istat, op%indexExpand, 'op%indexExpand',subname)
 
   allocate(op%expseg(op%noverlapsmaxp,orbs%norbp), stat=istat)
+  !call memocc(istat, op%expseg,'op%expseg',subname)
+  
   do i1=1,orbs%norbp
       do i2=1,op%noverlapsmaxp
           call nullify_expansionSegments(op%expseg(i2,i1))
@@ -473,7 +477,7 @@ subroutine countOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
   type(local_zone_descriptors),intent(in):: lzd
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(overlapParameters),intent(out):: op
-  type(p2pCommsOrthonormality),intent(out):: comon
+  type(p2pComms),intent(out):: comon
 
   ! Local variables
   integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
@@ -532,7 +536,7 @@ subroutine countOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
   type(local_zone_descriptors),intent(in):: lzd
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(overlapParameters),intent(out):: op
-  type(p2pCommsOrthonormality),intent(out):: comon
+  type(p2pComms),intent(out):: comon
 
   ! Local variables
   integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
@@ -597,7 +601,7 @@ subroutine determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
   type(local_zone_descriptors),intent(in):: lzd
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(overlapParameters),intent(out):: op
-  type(p2pCommsOrthonormality),intent(out):: comon
+  type(p2pComms),intent(out):: comon
 
   ! Local variables
   integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
@@ -606,7 +610,7 @@ subroutine determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
 
   ! Initialize to some value which will never be used.
   op%overlaps=-1
-  comon%overlaps=-1
+  !!comon%overlaps=-1
 
   iiorb=0
   do jproc=0,nproc-1
@@ -633,7 +637,7 @@ subroutine determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
                  ! would get the same orbitals again. Therefore the counter is not increased
                  ! in that case.
                  ioverlapMPI=ioverlapMPI+1
-                 comon%overlaps(ioverlapMPI,jproc)=jorb
+                 !!comon%overlaps(ioverlapMPI,jproc)=jorb
               end if
            end if
         end do
@@ -657,7 +661,7 @@ subroutine determineOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, com
   type(local_zone_descriptors),intent(in):: lzd
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(overlapParameters),intent(out):: op
-  type(p2pCommsOrthonormality),intent(out):: comon
+  type(p2pComms),intent(out):: comon
 
   ! Local variables
   integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
@@ -667,7 +671,7 @@ subroutine determineOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, com
 
   ! Initialize to some value which will never be used.
   op%overlaps=-1
-  comon%overlaps=-1
+  !!comon%overlaps=-1
 
   iiorb=0
   do jproc=0,nproc-1
@@ -699,7 +703,7 @@ subroutine determineOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, com
                  ! would get the same orbitals again. Therefore the counter is not increased
                  ! in that case.
                  ioverlapMPI=ioverlapMPI+1
-                 comon%overlaps(ioverlapMPI,jproc)=jorb
+                 !!comon%overlaps(ioverlapMPI,jproc)=jorb
               end if
            end if
         end do
@@ -799,7 +803,7 @@ subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon, tag)
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(inout):: op
-  type(p2pCommsOrthonormality),intent(out):: comon
+  type(p2pComms),intent(out):: comon
   integer,intent(inout):: tag
 
   ! Local variables
@@ -967,7 +971,7 @@ subroutine postCommsOverlap(iproc, nproc, comon)
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc
-  type(p2pCommsOrthonormality),intent(inout):: comon
+  type(p2pComms),intent(inout):: comon
 
   ! Local variables
   integer:: jproc, iorb, mpisource, istsource, ncount, mpidest, istdest, tag, nsends, nreceives, ierr
@@ -1235,7 +1239,7 @@ subroutine gatherOrbitals2(iproc, nproc, comon)
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc
-  type(p2pCommsOrthonormality),intent(inout):: comon
+  type(p2pComms),intent(inout):: comon
 
   ! Local variables
   integer:: jorb, mpisource, mpidest, nfast, nslow, nsameproc, ierr, jproc
@@ -1319,7 +1323,7 @@ subroutine gatherOrbitalsOverlapWithComput(iproc, nproc, orbs, input, lzd, op, c
   type(input_variables),intent(in):: input
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(in):: op
-  type(p2pCommsOrthonormality),intent(inout):: comon
+  type(p2pComms),intent(inout):: comon
   real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
   logical,dimension(orbs%norb,orbs%norbp),intent(out):: expanded
 
@@ -1458,7 +1462,7 @@ subroutine gatherOrbitalsOverlapWithComput2(iproc, nproc, orbs, input, lzd, op, 
   type(input_variables),intent(in):: input
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(in):: op
-  type(p2pCommsOrthonormality),intent(inout):: comon
+  type(p2pComms),intent(inout):: comon
   real(8),dimension(nsendbuf),intent(in):: sendbuf
   real(8),dimension(nrecvbuf),intent(in):: recvbuf
   real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
@@ -1657,7 +1661,8 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf
   allocate(ovrlpCompressed_receive(mad%nvctr), stat=istat)
   call memocc(istat, ovrlpCompressed_receive, 'ovrlpCompressed_receive', subname)
   if (nproc >1) then
-     call mpi_allgatherv(ovrlpCompressed_send(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed_receive(1), &
+     call mpi_allgatherv(ovrlpCompressed_send(displs(iproc)+1), sendcounts(iproc),&
+          mpi_double_precision, ovrlpCompressed_receive(1), &
           sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
   else
      call vcopy(sendcounts(iproc),ovrlpCompressed_send(displs(iproc)+1),1,ovrlpCompressed_receive(1+displs(iproc)),1)
@@ -1822,7 +1827,7 @@ subroutine expandOrbital2(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(in):: op
-  type(p2pCommsOrthonormality),intent(in):: comon
+  type(p2pComms),intent(in):: comon
   real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
 
   ! Local variables
@@ -1902,7 +1907,7 @@ subroutine expandRemainingOrbitals(iproc, nproc, orbs, input, onWhichAtom, lzd, 
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(in):: op
-  type(p2pCommsOrthonormality),intent(in):: comon
+  type(p2pComms),intent(in):: comon
   logical,dimension(orbs%norb,orbs%norbp),intent(in):: expanded
   real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
 
@@ -1954,7 +1959,7 @@ subroutine expandOneOrbital(iproc, nproc, orbsource, orbdest, orbs, input, onWhi
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(in):: op
-  type(p2pCommsOrthonormality),intent(in):: comon
+  type(p2pComms),intent(in):: comon
   real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
 
   ! Local variables
@@ -2090,7 +2095,7 @@ subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon,
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(in):: op
-  type(p2pCommsOrthonormality),intent(in):: comon
+  type(p2pComms),intent(in):: comon
   real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
   real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
   real(8),dimension(lorbs%npsidim_orbs),intent(out):: lphi
@@ -2136,7 +2141,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   integer,dimension(orbs%norb),intent(in):: onWhichAtom
   type(local_zone_descriptors),intent(in):: lzd
   type(overlapParameters),intent(in):: op
-  type(p2pCommsOrthonormality),intent(in):: comon
+  type(p2pComms),intent(in):: comon
   real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
   real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
   real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
@@ -2561,7 +2566,7 @@ type(input_variables),intent(in):: input
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
-type(p2pCommsOrthonormality),intent(in):: comon
+type(p2pComms),intent(in):: comon
 
 ! Local variables
 integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, istat
@@ -2676,7 +2681,7 @@ type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
-type(p2pCommsOrthonormality),intent(out):: comon
+type(p2pComms),intent(out):: comon
 
 ! Local variables
 integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
@@ -2757,7 +2762,7 @@ integer,intent(in):: iproc, nproc
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(overlapParameters),intent(inout):: op_lb
-type(p2pCommsOrthonormality),intent(inout):: comon_lb
+type(p2pComms),intent(inout):: comon_lb
 real(8),dimension(orbs%npsidim_orbs),intent(in):: lphi, lhphi
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(orbs%norb,orbs%norb),intent(out):: matrixElements
@@ -2799,7 +2804,7 @@ type(orbitals_data),intent(in):: orbs, orbsig
 integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 type(input_variables),intent(in):: input
 type(overlapParameters),intent(out):: op
-type(p2pCommsOrthonormality),intent(out):: comon
+type(p2pComms),intent(out):: comon
 integer,intent(inout):: tag
 
 ! Local variables
@@ -2821,8 +2826,8 @@ op%noverlapsmax=maxval(op%noverlaps)
 allocate(op%overlaps(op%noverlapsmax,orbs%norb), stat=istat)
 call memocc(istat, op%overlaps, 'op%overlaps', subname)
 comon%noverlapsmax=maxval(comon%noverlaps)
-allocate(comon%overlaps(comon%noverlapsmax,0:nproc-1), stat=istat)
-call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
+!!allocate(comon%overlaps(comon%noverlapsmax,0:nproc-1), stat=istat)
+!!call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
 allocate(op%indexInRecvBuf(orbs%norbp,orbsig%norb), stat=istat)
 call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
 allocate(op%indexInSendBuf(orbsig%norbp,orbsig%norb), stat=istat)
@@ -2878,7 +2883,7 @@ integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs, orbsig
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(out):: op
-type(p2pCommsOrthonormality),intent(out):: comon
+type(p2pComms),intent(out):: comon
 
 ! Local variables
 integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
@@ -2933,7 +2938,7 @@ integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs, orbsig
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(out):: op
-type(p2pCommsOrthonormality),intent(out):: comon
+type(p2pComms),intent(out):: comon
 
 ! Local variables
 integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
@@ -2942,7 +2947,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz
 
   ! Initialize to some value which will never be used.
   op%overlaps=-1
-  comon%overlaps=-1
+  !!comon%overlaps=-1
 
   iiorb=0
   do jproc=0,nproc-1
@@ -2967,7 +2972,7 @@ logical:: ovrlpx, ovrlpy, ovrlpz
                       ! would get the same orbitals again. Therefore the counter is not increased
                       ! in that case.
                       ioverlapMPI=ioverlapMPI+1
-                      comon%overlaps(ioverlapMPI,jproc)=jorb
+                      !!comon%overlaps(ioverlapMPI,jproc)=jorb
                   end if
               end if
           end do 
@@ -3022,7 +3027,7 @@ integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs, orbsig
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
-type(p2pCommsOrthonormality),intent(out):: comon
+type(p2pComms),intent(out):: comon
 integer,intent(inout):: tag
 
 ! Local variables
@@ -3124,7 +3129,7 @@ type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
-type(p2pCommsOrthonormality),intent(in):: comon
+type(p2pComms),intent(in):: comon
 
 ! Local variables
 integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, ierr
@@ -3168,7 +3173,7 @@ integer,intent(in):: iproc, nproc, sizePhi
 type(orbitals_data),intent(in):: orbs, orbsig
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
-type(p2pCommsOrthonormality),intent(out):: comon
+type(p2pComms),intent(out):: comon
 
 ! Local variables
 integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
@@ -3246,7 +3251,7 @@ type(orbitals_data),intent(in):: orbs, orbsig
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 real(8),dimension(sizePhi),intent(in):: phi
-type(p2pCommsOrthonormality),intent(out):: comon
+type(p2pComms),intent(out):: comon
 
 ! Local variables
 integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
@@ -3324,7 +3329,7 @@ type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
-type(p2pCommsOrthonormality),intent(in):: comon
+type(p2pComms),intent(in):: comon
 real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
 
 ! Local variables
@@ -3540,7 +3545,7 @@ type(orbitals_data),intent(in):: orbs
 type(overlapParameters),intent(in):: op
 type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: phi
-type(p2pCommsOrthonormality),intent(inout):: comon
+type(p2pComms),intent(inout):: comon
 real(8),intent(inout):: timecommun, timeextract
 
 ! Local variables
@@ -3637,7 +3642,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
-type(p2pCommsOrthonormality),intent(inout):: comon
+type(p2pComms),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 type(overlapParameters),intent(in):: op
 type(orbitals_data),intent(in):: orbs
@@ -3860,7 +3865,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
-type(p2pCommsOrthonormality),intent(inout):: comon
+type(p2pComms),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 type(overlapParameters),intent(in):: op
 type(orbitals_data),intent(in):: orbs
@@ -4036,97 +4041,97 @@ end subroutine collectnew
 
 
 
-subroutine collectnew2(iproc, nproc, comon, mad, op, orbs, input, lzd, &
-   nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => collectnew
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
-type(p2pCommsOrthonormality),intent(inout):: comon
-type(matrixDescriptors),intent(in):: mad
-type(overlapParameters),intent(in):: op
-type(orbitals_data),intent(in):: orbs
-type(input_variables),intent(in):: input
-type(local_zone_descriptors),intent(in):: lzd
-real(8),dimension(nsendbuf),intent(in):: sendbuf
-real(8),dimension(nrecvbuf),intent(inout):: recvbuf
-real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
-real(8),intent(inout):: timecommunp2p, timecommuncoll, timecompress
-
-! Local variables
-integer:: iorb, orbsource, orbdest, nrecv, nsend, ist, jst, ncount, ierr, ncomplete, i, istat, iall, jorb, ind
-real(8),dimension(:),allocatable:: ovrlpCompressed, ovrlpCompressed2, sendbuf2, temparr
-integer,dimension(:),allocatable:: sendcounts, displs, indcomplete, indexarray
-real(8):: ddot, t1, t2
-character(len=*),parameter:: subname='collectAndCalculateOverlap'
-logical,dimension(:),allocatable:: done
-logical:: received
-
-
-allocate(indexarray(comon%nrecvtemp), stat=istat)
-call memocc(istat, indexarray, 'indexarray', subname)
-do i=1,comon%nrecvtemp
-   indexarray(i)=i
-end do
-
-if (nproc > 1) then
-   ! Wait for the sends to complete.
-   t1=mpi_wtime()
-   nsend=0
-   if(comon%nsendtemp/=0) then
-      waitLoopSend: do
-         !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
-         !!nsend=nsend+ncomplete
-         !!if(nsend==comon%nsend) exit waitLoopSend
-         call mpi_waitany(comon%nsendtemp-nsend, comon%requests(1,1), ind, mpi_status_ignore, ierr)
-         nsend=nsend+1
-         do i=ind,comon%nsendtemp-nsend
-            comon%requests(i,1)=comon%requests(i+1,1)
-         end do
-         if(nsend==comon%nsendtemp) exit waitLoopSend
-      end do waitLoopSend
-   end if
-   t2=mpi_wtime()
-   timecommunp2p=timecommunp2p+t2-t1
-
-
-
-   ovrlp=0.d0
-   nrecv=0
-   if(comon%nrecvtemp/=0) then
-      waitLoopRecv: do
-         t1=mpi_wtime()
-         call mpi_waitany(comon%nrecvtemp-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
-         !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
-         !ind=1
-         t2=mpi_wtime()
-         timecommunp2p=timecommunp2p+t2-t1
-         ncomplete=1
-         received=.true.
-         if(received) then
-            nrecv=nrecv+ncomplete
-            !write(*,'(5(a,i0))') 'iproc=',iproc,': communication ',ind,' corresponding to jorb=',jorb,') has completed; moving requests from ',ind,' to ',comon%nrecv-nrecv
-            !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests before: ',comon%requests(1:comon%nrecv,2)
-            do i=ind,comon%nrecvtemp-nrecv
-               comon%requests(i,2)=comon%requests(i+1,2)
-               indexarray(i)=indexarray(i+1)
-            end do
-            !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests after: ',comon%requests(1:comon%nrecv,2)
-            if(nrecv==comon%nrecvtemp) exit waitLoopRecv
-         end if
-      end do waitLoopRecv
-   end if
-end if
-
-iall=-product(shape(indexarray))*kind(indexarray)
-deallocate(indexarray, stat=istat)
-call memocc(istat, iall, 'indexarray', subname)
-
-
-end subroutine collectnew2
+!!!subroutine collectnew2(iproc, nproc, comon, mad, op, orbs, input, lzd, &
+!!!   nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
+!!!use module_base
+!!!use module_types
+!!!use module_interfaces, exceptThisOne => collectnew
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
+!!!type(p2pCommsOrthonormality),intent(inout):: comon
+!!!type(matrixDescriptors),intent(in):: mad
+!!!type(overlapParameters),intent(in):: op
+!!!type(orbitals_data),intent(in):: orbs
+!!!type(input_variables),intent(in):: input
+!!!type(local_zone_descriptors),intent(in):: lzd
+!!!real(8),dimension(nsendbuf),intent(in):: sendbuf
+!!!real(8),dimension(nrecvbuf),intent(inout):: recvbuf
+!!!real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+!!!real(8),intent(inout):: timecommunp2p, timecommuncoll, timecompress
+!!!
+!!!! Local variables
+!!!integer:: iorb, orbsource, orbdest, nrecv, nsend, ist, jst, ncount, ierr, ncomplete, i, istat, iall, jorb, ind
+!!!real(8),dimension(:),allocatable:: ovrlpCompressed, ovrlpCompressed2, sendbuf2, temparr
+!!!integer,dimension(:),allocatable:: sendcounts, displs, indcomplete, indexarray
+!!!real(8):: ddot, t1, t2
+!!!character(len=*),parameter:: subname='collectAndCalculateOverlap'
+!!!logical,dimension(:),allocatable:: done
+!!!logical:: received
+!!!
+!!!
+!!!allocate(indexarray(comon%nrecvtemp), stat=istat)
+!!!call memocc(istat, indexarray, 'indexarray', subname)
+!!!do i=1,comon%nrecvtemp
+!!!   indexarray(i)=i
+!!!end do
+!!!
+!!!if (nproc > 1) then
+!!!   ! Wait for the sends to complete.
+!!!   t1=mpi_wtime()
+!!!   nsend=0
+!!!   if(comon%nsendtemp/=0) then
+!!!      waitLoopSend: do
+!!!         !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
+!!!         !!nsend=nsend+ncomplete
+!!!         !!if(nsend==comon%nsend) exit waitLoopSend
+!!!         call mpi_waitany(comon%nsendtemp-nsend, comon%requests(1,1), ind, mpi_status_ignore, ierr)
+!!!         nsend=nsend+1
+!!!         do i=ind,comon%nsendtemp-nsend
+!!!            comon%requests(i,1)=comon%requests(i+1,1)
+!!!         end do
+!!!         if(nsend==comon%nsendtemp) exit waitLoopSend
+!!!      end do waitLoopSend
+!!!   end if
+!!!   t2=mpi_wtime()
+!!!   timecommunp2p=timecommunp2p+t2-t1
+!!!
+!!!
+!!!
+!!!   ovrlp=0.d0
+!!!   nrecv=0
+!!!   if(comon%nrecvtemp/=0) then
+!!!      waitLoopRecv: do
+!!!         t1=mpi_wtime()
+!!!         call mpi_waitany(comon%nrecvtemp-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
+!!!         !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
+!!!         !ind=1
+!!!         t2=mpi_wtime()
+!!!         timecommunp2p=timecommunp2p+t2-t1
+!!!         ncomplete=1
+!!!         received=.true.
+!!!         if(received) then
+!!!            nrecv=nrecv+ncomplete
+!!!            !write(*,'(5(a,i0))') 'iproc=',iproc,': communication ',ind,' corresponding to jorb=',jorb,') has completed; moving requests from ',ind,' to ',comon%nrecv-nrecv
+!!!            !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests before: ',comon%requests(1:comon%nrecv,2)
+!!!            do i=ind,comon%nrecvtemp-nrecv
+!!!               comon%requests(i,2)=comon%requests(i+1,2)
+!!!               indexarray(i)=indexarray(i+1)
+!!!            end do
+!!!            !write(*,'(a,i0,a,4x,40i7)') 'iproc=',iproc,': requests after: ',comon%requests(1:comon%nrecv,2)
+!!!            if(nrecv==comon%nrecvtemp) exit waitLoopRecv
+!!!         end if
+!!!      end do waitLoopRecv
+!!!   end if
+!!!end if
+!!!
+!!!iall=-product(shape(indexarray))*kind(indexarray)
+!!!deallocate(indexarray, stat=istat)
+!!!call memocc(istat, iall, 'indexarray', subname)
+!!!
+!!!
+!!!end subroutine collectnew2
 
 
 
@@ -4144,7 +4149,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
-type(p2pCommsOrthonormality),intent(inout):: comon
+type(p2pComms),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 type(overlapParameters),intent(in):: op
 type(orbitals_data),intent(in):: orbs

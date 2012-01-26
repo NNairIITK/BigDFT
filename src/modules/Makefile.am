@@ -46,7 +46,7 @@ endif
 module_DATA = $(mod_bigdft)
 include_HEADERS = bigdft.h bigdft_cst.h
 
-EXTRA_DIST = configure.inc.in
+EXTRA_DIST = configure.inc.in bigdft_cst.h.in
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 

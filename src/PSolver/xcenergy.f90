@@ -253,7 +253,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(gp), intent(in) :: hx,hy,hz
   real(gp), intent(out) :: exc,vxc
   real(dp), dimension(*), intent(inout) :: rho
-  real(wp), dimension(:), pointer :: rhocore !associated if useful
+  real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
   real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
   !local variables
@@ -340,11 +340,11 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (associated(rhocore)) then
      if (nspin == 1) then
         !sum the complete core density for non-spin polarised calculations
-        call axpy(m1*m3*nxt,1.0_wp,rhocore(1),1,rho(1),1)
+        call axpy(m1*m3*nxt,1.0_wp,rhocore(1,1,1,1),1,rho(1),1)
      else if (nspin==2) then
         !for spin-polarised calculation consider half per spin index
-        call axpy(m1*m3*nxt,0.5_wp,rhocore(1),1,rho(1),1)
-        call axpy(m1*m3*nxt,0.5_wp,rhocore(1),1,rho(1+m1*m3*nxt),1)
+        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1),1)
+        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
      end if
   end if
 
@@ -475,14 +475,25 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (associated(rhocore)) then
      !at this stage the density is not anymore spin-polarised
      !sum the complete core density for non-spin polarised calculations
-     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1+m1*m3*i3xcsh_fake),1,rho(1),1)
+     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1,1,i3xcsh_fake,1),1,rho(1),1)
      vexcuRC=0.0_gp
-     do i=1,nxc*m3*m1
-        vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i)
+     do i3=1,nxc
+        do i2=1,m3
+           do i1=1,m1
+              !do i=1,nxc*m3*m1
+              vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
+           end do
+        end do
      end do
      if (nspin==2) then
-        do i=1,nxc*m3*m1
-           vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+        do i3=1,nxc
+           do i2=1,m3
+              do i1=1,m1
+                 !do i=1,nxc*m3*m1
+                 !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+                 vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i+m1*m3*nxc)
+              end do
+           end do
         end do
         !divide the results per two because of the spin multiplicity
         vexcuRC=0.5*vexcuRC
