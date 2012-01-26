@@ -684,7 +684,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Deallocate the buffers needed for communication the potential.
   call deallocateCommunicationsBuffersPotential(lin%lig%comgp, subname)
   ! Deallocate the parameters needed for the communication of the potential.
-  call deallocate_p2pCommsGatherPot(lin%lig%comgp, subname)
+  !call deallocate_p2pCommsGatherPot(lin%lig%comgp, subname)
+  call deallocate_p2pComms(lin%lig%comgp, subname)
 
 
 
