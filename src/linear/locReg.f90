@@ -2943,7 +2943,7 @@ integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(out):: op
-type(p2pCommsOrthonormality),intent(out):: comon
+type(p2pComms),intent(out):: comon
 
 ! Local variables
 integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3

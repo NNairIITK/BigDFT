@@ -73,7 +73,7 @@ type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
 type(p2pComms),intent(inout):: comsr
 type(matrixDescriptors),intent(in):: mad, lbmad
 type(overlapParameters),intent(inout):: op, lbop
-type(p2pCommsOrthonormality),intent(inout):: comon, lbcomon
+type(p2pComms),intent(inout):: comon, lbcomon
 !type(p2pCommsGatherPot):: comgp, lbcomgp
 type(p2pComms):: comgp, lbcomgp
 type(atoms_data),intent(in):: at
@@ -489,7 +489,7 @@ integer,intent(out):: infoBasisFunctions
 type(atoms_data), intent(in) :: at
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data):: lorbs, orbs
-type(p2pCommsOrthonormality):: comon
+type(p2pComms):: comon
 type(overlapParameters):: op
 !type(p2pCommsGatherPot):: comgp
 type(p2pComms):: comgp
@@ -3550,7 +3550,7 @@ type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(in):: at
 type(overlapParameters),intent(inout):: op
-type(p2pCommsOrthonormality),intent(inout):: comon
+type(p2pComms),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
@@ -3576,7 +3576,7 @@ complex(8),dimension(:),allocatable:: work, expD_cmplx
 real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi, recvbuf
 real(8),dimension(:,:,:),allocatable:: tempmat3
 character(len=*),parameter:: subname='unitary_optimization'
-type(p2pCommsOrthonormality):: comon_local
+type(p2pComms):: comon_local
 
 ! Quick return if possible
 if(nit==0) return
@@ -4344,7 +4344,7 @@ type(atoms_data),intent(in):: at
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
-type(p2pCommsOrthonormality),intent(inout):: comon
+type(p2pComms),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),intent(in):: hx

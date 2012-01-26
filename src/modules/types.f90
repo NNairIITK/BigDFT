@@ -554,10 +554,11 @@ module module_types
     integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
     real(8),dimension(:),pointer:: sendBuf, recvBuf, auxarray
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf, nauxarray
+    integer:: nsendBuf, nrecvBuf, nauxarray, noverlapsmax, nrecv, nsend
     logical,dimension(:,:),pointer:: communComplete, computComplete
     integer,dimension(:,:),pointer:: startingindex
     integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
+    integer,dimension(:,:),pointer:: requests
   end type p2pComms
 
 !> Contains the parameters needed for the point to point communications
@@ -585,7 +586,7 @@ module module_types
 !> Contains the parameter needed for the point to point communication for
 !! the orthonormlization.
    type,public:: p2pCommsOrthonormality
-       integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend, nrecvtemp, nsendtemp, isoverlap, nstepoverlap
+       integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend
        integer,dimension(:),pointer:: noverlaps
        !!integer,dimension(:,:),pointer:: overlaps
        integer,dimension(:,:,:),pointer:: comarr
@@ -669,7 +670,8 @@ type,public:: largeBasis
     type(orbitals_data):: orbs, gorbs
     !type(local_zone_descriptors):: lzd
     type(p2pCommsRepartition):: comrp
-    type(p2pCommsOrthonormality):: comon
+    !type(p2pCommsOrthonormality):: comon
+    type(p2pComms):: comon
     type(overlapParameters):: op
     !type(p2pCommsGatherPot):: comgp
     type(p2pComms):: comgp
@@ -716,7 +718,8 @@ end type workarrays_quartic_convolutions
   type,public:: linearInputGuess
       type(local_zone_descriptors):: lzdig, lzdGauss
       type(orbitals_data):: orbsig, orbsGauss
-      type(p2pCommsOrthonormality):: comon
+      !type(p2pCommsOrthonormality):: comon
+      type(p2pComms):: comon
       type(overlapParameters):: op
       !type(p2pCommsGatherPot):: comgp
       type(p2pComms):: comgp
@@ -751,7 +754,8 @@ end type workarrays_quartic_convolutions
     type(p2pComms):: comgp
     type(largeBasis):: lb
     type(local_zone_descriptors):: lzd
-    type(p2pCommsOrthonormality):: comon
+    !type(p2pCommsOrthonormality):: comon
+    type(p2pComms):: comon
     type(overlapParameters):: op
     type(linearInputGuess):: lig
     type(matrixDescriptors):: mad
