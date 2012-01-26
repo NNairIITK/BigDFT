@@ -159,7 +159,7 @@ typedef struct BigDFT_orbs_
 } BigDFT_Orbs;
 
 BigDFT_Orbs* bigdft_orbs_new (const BigDFT_Atoms *atoms, const BigDFT_Inputs *in,
-                              int iproc, int nproc, guint *nelec);
+                              const BigDFT_Glr *glr, int iproc, int nproc, guint *nelec);
 void         bigdft_orbs_free(BigDFT_Orbs *orbs);
 
 /*******************************/
