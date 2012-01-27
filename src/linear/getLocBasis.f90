@@ -317,8 +317,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   
 
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
-  call mpi_barrier(mpi_comm_world, ierr) !To measure the time correctly.
-  t1=mpi_wtime()
+  !!call mpi_barrier(mpi_comm_world, ierr) !To measure the time correctly.
+  !!t1=mpi_wtime()
   ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
   ! are still needed later.
   call dcopy(llborbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
@@ -350,9 +350,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       end do
       write(*,'(1x,a)') '-------------------------------------------------'
   end if
-  t2=mpi_wtime()
-  time=t2-t1
-  if(iproc==0) write(*,'(1x,a,es10.3)') 'time for diagonalizing the Hamiltonian:',time
+  !!t2=mpi_wtime()
+  !!time=t2-t1
+  !!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for diagonalizing the Hamiltonian:',time
 
 
   ! Calculate the band structure energy with matrixElements.
@@ -2618,7 +2618,7 @@ end do
 call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(a,f5.1,a)') 'done. Communication overlap ratio:',100.d0*dble(nfast)/(dble(nfast+nslow)),'%'
+!if(iproc==0) write(*,'(a,f5.1,a)') 'done. Communication overlap ratio:',100.d0*dble(nfast)/(dble(nfast+nslow)),'%'
 !if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
 !                       nfast, ' could be overlapped with computation.'
 !if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'

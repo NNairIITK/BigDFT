@@ -245,17 +245,17 @@ type(orthon_data):: orthpar
       !!    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 
       ! Calculate the charge density.
-      call cpu_time(t1)
+      !!call cpu_time(t1)
       if(lin%mixedmode) then
           call deallocateCommunicationbufferSumrho(lin%comsr, subname)
       else
           call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
       end if
-      call cpu_time(t2)
-      time=t2-t1
-      call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-      time=time/dble(nproc)
-      if(iproc==0) write(*,'(1x,a,es12.4)') 'time for sumrho:',time
+      !!call cpu_time(t2)
+      !!time=t2-t1
+      !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+      !!time=time/dble(nproc)
+      !!if(iproc==0) write(*,'(1x,a,es12.4)') 'time for sumrho:',time
 
       if(trim(lin%mixingMethod)=='dens') then
           !if(lin%mixHist==0) then
@@ -445,8 +445,8 @@ type(orthon_data):: orthpar
 
 
           ! Potential from electronic charge density
-          call mpi_barrier(mpi_comm_world, ierr)
-          call cpu_time(t1)
+          !!call mpi_barrier(mpi_comm_world, ierr)
+          !!call cpu_time(t1)
           if(lin%mixedmode) then
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%orbs, lin%comsr, &
@@ -459,10 +459,10 @@ type(orthon_data):: orthpar
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
                    coeff, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
           end if
-          call mpi_barrier(mpi_comm_world, ierr)
-          call cpu_time(t2)
-          time=t2-t1
-          if(iproc==0) write(*,'(1x,a,es10.3)') 'time for sumrho:', time
+          !!call mpi_barrier(mpi_comm_world, ierr)
+          !!call cpu_time(t2)
+          !!time=t2-t1
+          !!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for sumrho:', time
 
           ! Mix the density.
           if(trim(lin%mixingMethod)=='dens') then

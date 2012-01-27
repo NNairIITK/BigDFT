@@ -762,10 +762,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
        lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, nlocregPerMPI, tag, ham3, &
        lin%lig%comon, lin%lig%op, lin%lig%mad)
-  call cpu_time(t2)
-  time=t2-t1
-  call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-  if(iproc==0) write(*,'(1x,a,es10.3)') 'time for "buildLinearCombinations":', time/dble(nproc)
+  !!call cpu_time(t2)
+  !!time=t2-t1
+  !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+  !!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for "buildLinearCombinations":', time/dble(nproc)
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
 
