@@ -1256,7 +1256,7 @@ END SUBROUTINE createPawProjectorsArrays
 subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
       &   nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
-     nscatterarr,ngatherarr,nspin,potshortcut,symObj,GPU,input,radii_cf)
+     nscatterarr,ngatherarr,nspin,potshortcut,symObj,GPU,input)
    ! Input wavefunctions are found by a diagonalization in a minimal basis set
    ! Each processors write its initial wavefunctions into the wavefunction file
    ! The files are then read by readwave
@@ -1286,10 +1286,10 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
    real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
-   real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
+   real(wp), dimension(:), pointer :: psi,hpsi,psit
+   real(wp), dimension(:,:,:,:), pointer :: rhocore
    real(dp), dimension(:), pointer :: pkernel,pkernelseq
    integer, intent(in) ::potshortcut
-  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
    logical :: switchGPUconv,switchOCLconv
@@ -1377,7 +1377,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!experimental part for building the localisation regions
 ! ###################################################################
 
-  if(potshortcut<=0) call check_linear_and_create_Lzd(iproc,nproc,input,Lzd,at,orbse,rxyz,radii_cf)
+   if(potshortcut<=0) call check_linear_and_create_Lzd(iproc,nproc,input,Lzd,at,orbse,rxyz)
 
   if (Lzd%linear) then
 
@@ -1413,26 +1413,6 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
 
      call timing(iproc,'constrc_locreg','OF')
-
-   !determine the Lnlpspd
- !  call prepare_lnlpspd(iproc, at, input, orbse, rxyz, radii_cf, lzd)
-
-
-     !!call timing(iproc,'create_nlpspd ','ON')
-     !!allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)
-     !!do ilr=1,Lzd%nlr
-     !!   calc=.false.
-     !!   do iorb=1,orbse%norbp
-     !!      if(ilr == orbse%inwhichLocreg(iorb+orbse%isorb)) calc=.true.
-     !!   end do
-     !!   if (.not. calc) cycle         !calculate only for the locreg on this processor, without repeating for same locreg
-     !!   ! allocate projflg
-     !!   allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=i_stat)
-     !!   call memocc(i_stat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
-     !!   call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,orbse,&
-     !!    &      radii_cf,input%frmult,input%frmult,hx,hy,hz,Lzd%Gnlpspd,Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
-     !!end do
-     !!call timing(iproc,'create_nlpspd ','OF')
 
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      allocate(Lpsi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)

@@ -40,7 +40,7 @@ program PS_Check
    integer :: iproc,nproc,ierr,ispden
    integer :: n_cell,ixc
    integer, dimension(4) :: nxyz
-   real(wp), dimension(:), pointer :: rhocore
+   real(wp), dimension(:,:,:,:), pointer :: rhocore
 
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -335,7 +335,8 @@ program PS_Check
       real(kind=8) :: eexcu,vexcu,ehartree
       real(kind=8), dimension(:), allocatable :: test,test_xc
       real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
-      real(kind=8), dimension(:), pointer :: xc_temp,rhocore
+      real(kind=8), dimension(:), pointer :: xc_temp
+      real(dp), dimension(:,:,:,:), pointer :: rhocore
 
       nullify(rhocore)
 

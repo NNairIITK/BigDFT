@@ -81,6 +81,12 @@ endif
 BLACS_MODULES = modules/blacs_fake.f90
 #endif
 
+EXTRA_DIST += CUDA/precond.cu \
+	CUDA/density.cu \
+	CUDA/anasyn.cu \
+	CUDA/locpot.cu CUDA/locpot.h \
+	CUDA/kinetic.cu CUDA/kinetic.h \
+	CUDA/compress.cu
 if USE_CUDA_GPU
 sub_dirs_cuda = CUDA
 CUDA_SOURCES = CUDA/binding_s_gpu.c \
@@ -99,12 +105,6 @@ CUDA_SOURCES = CUDA/binding_s_gpu.c \
 	CUDA/check_cuda.h \
 	CUDA/read_conf_exception.h \
 	CUDA/cpp_utils.h
-EXTRA_DIST += CUDA/precond.cu \
-	CUDA/density.cu \
-	CUDA/anasyn.cu \
-	CUDA/locpot.cu CUDA/locpot.h \
-	CUDA/kinetic.cu CUDA/kinetic.h \
-	CUDA/compress.cu
 CUDA_CONV = convolutions/convolut_common_interface_cuda.f90
 CUDA_MODULES =
 else
@@ -333,11 +333,11 @@ low_level = \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
+	linear/communicatetypes.f90 \
 	linear/filterModule.f90 \
 	linear/getLocBasis.f90 \
 	linear/applyHamiltonian.f90 \
 	linear/precondLinear.f90 \
-	linear/locReg.f90 \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
 	linear/locReg_projectors.f90 \
@@ -355,8 +355,10 @@ low_level = \
 	linear/orbitalOptimization.f90 \
 	linear/mixdiis.f90 \
 	linear/copyTypes.f90 \
+	linear/de-allocate.f90 \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
+	linear/locReg.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \

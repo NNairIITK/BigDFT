@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=39,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=54,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -61,6 +61,21 @@ module timeData
        'constrc_locreg','Initialization' ,'Miscellaneous ' ,  &
        'wavefunction  ','Initialization' ,'Miscellaneous ' ,  &
        'create_nlpspd ','Initialization' ,'RMA pattern   ' ,  &
+       'p2pOrtho_post ','Communications' ,'irecv / irsend' ,  &
+       'p2pOrtho_wait ','Communications' ,'mpi_waitany   ' ,  &
+       'lovrlp_comm   ','Communications' ,'mpi_allgatherv' ,  &
+       'lovrlp_comp   ','Linear Algebra' ,'many ddots    ' ,  &
+       'lovrlp_compr  ','Other         ' ,'cut out zeros ' ,  &
+       'lovrlp_uncompr','Other         ' ,'insert zeros  ' ,  &
+       'extract_orbs  ','Other         ' ,'copy to sendb ' ,  &
+       'lovrlp^-1/2   ','Linear Algebra' ,'exact or appr ' ,  &
+       'build_lincomb ','Linear Algebra' ,'many daxpy    ' ,  &
+       'convolQuartic ','Convolutions  ' ,'No OpenCL     ' ,  &
+       'p2pSumrho_wait','Communications' ,'mpi_test/wait ' ,  &
+       'sumrho_TMB    ','Other         ' ,'port to GPU?  ' ,  &
+       'TMB_kernel    ','Linear Algebra' ,'dgemm         ' ,  &
+       'diagonal_seq  ','Linear Algebra' ,'dsygv         ' ,  &
+       'diagonal_par  ','Linear Algebra' ,'pdsygvx       ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode

@@ -768,10 +768,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
   
   ! Read the number of iterations and convergence criterion for the basis functions BF
-  comments = 'iterations with low accuracy, high accuracy ; factor for reducing the potential prefactor'
+  comments = 'iterations with low accuracy, high accuracy'
   call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/1,10000/))
-  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/1,10000/))
-  call input_var(in%lin%reducePrefactor,'5.d-3',ranges=(/0.d0,1.d0/),comment=comments)
+  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/1,10000/),comment=comments)
 
   comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
   call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/1,10000/))
@@ -813,10 +812,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   
   ! Orthogonalization of wavefunctions:
   !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
-  comments = '0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the orthonormalization ; convergence criterion'
+  comments = '0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the orthonormalization'
   call input_var(in%lin%methTransformOverlap,'0',ranges=(/0,1/))
-  call input_var(in%lin%nItOrtho,'2',ranges=(/1,100/))
-  call input_var(in%lin%convCritOrtho,'1.d-14',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(in%lin%nItOrtho,'2',ranges=(/1,100/),comment=comments)
   
   !in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
   comments='in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
@@ -832,16 +830,26 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%mixingMethod,'dens',comment=comments)
   
   !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
-  comments = 'mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &
+  comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &
               &where the potential is mixed (when optimized / not optimized)'
-  call input_var(in%lin%mixHist,'0',ranges=(/0,100/))
-  call input_var(in%lin%nItSCCWhenOptimizing,'1',ranges=(/1,1000/))
-  call input_var(in%lin%nItSCCWhenFixed,'15',ranges=(/1,1000/),comment=comments)
+  call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
+  call input_var(in%lin%nItSCCWhenOptimizing_lowaccuracy,'1',ranges=(/1,1000/))
+  call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/1,1000/),comment=comments)
 
-  comments = 'mixing parameter (when optimized / not optimized), convergence criterion'
-  call input_var(in%lin%alphaMixWhenOptimizing,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%alphaMixWhenFixed,'.5d0',ranges=(/0.d0,1.d0/))
+  comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &
+              &where the potential is mixed (when optimized / not optimized)'
+  call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/))
+  call input_var(in%lin%nItSCCWhenOptimizing_highaccuracy,'1',ranges=(/1,1000/))
+  call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/1,1000/),comment=comments)
+
+  comments = 'low accuracy: mixing parameter (when optimized / not optimized), convergence criterion'
+  call input_var(in%lin%alphaMixWhenOptimizing_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%alphaMixWhenFixed_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
+
+  comments = 'high accuracy: mixing parameter (when optimized / not optimized)'
+  call input_var(in%lin%alphaMixWhenOptimizing_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%alphaMixWhenFixed_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/),comment=comments)
 
   call input_var(in%lin%lowaccuray_converged,'1.d-11',&
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the low accuracy part')
@@ -871,6 +879,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   !!call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; &
   !!                                               &F -> slow, needs little memory')
 
+  !number of orbitals per process for trace minimization during input guess.
+  call input_var(in%lin%mixedmode,'F',comment='mixed mode (without and with derivatives)')
+
   
   ! Allocate lin pointers and atoms%rloc
   call allocateBasicArraysInputLin(atoms, in%lin)
@@ -885,7 +896,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
       call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
       call input_var(lt,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
       if(ios/=0) then
-          ! The parameters where not specified for all atom types.
+          ! The parameters were not specified for all atom types.
           if(iproc==0) then
               write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
                        & for the following atom types:"

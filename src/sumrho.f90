@@ -137,7 +137,7 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
       call local_partial_density_OCL(orbs,rhodsc%nrhotot,Lzd%Glr,hxh,hyh,hzh,orbs%nspin,psi,rho_p,GPU)
    else if(Lzd%linear) then
        if(.not.present(mapping)) then
-           if(iproc==0) write(*,'(x,a)') &
+           if(iproc==0) write(*,'(1x,a)') &
                'WARNING: mapping is not present, using fake local mapping array. Check whether this is correct!'
            allocate(localmapping(orbs%norb), stat=i_stat)
            call memocc(i_stat,localmapping,'localmapping',subname)
@@ -326,6 +326,7 @@ subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatter
   deallocate(rho_p,stat=i_stat)
   call memocc(i_stat,i_all,'rho_p',subname)
   
+
   if (nproc > 1) then
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
