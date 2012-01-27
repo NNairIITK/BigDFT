@@ -221,11 +221,11 @@
     | Processes from 0 to 5 treat 2 orbitals, |
     | processes from 6 to 7 treat 1 orbitals. |
  ------------------------------------------------------------------------------------
- Initializing localization regions... done in 1.319E-02s.
- Initializing communications sumrho... done in 3.004E-05s.
- Initializing communications potential... done in 2.098E-05s.
- Initializing communications orthonormalization... done in 7.804E-02s.
- Initializing input guess... done in 6.595E-02s.
+ Initializing localization regions... done in 1.298E-02s.
+ Initializing communications sumrho... done in 3.314E-05s.
+ Initializing communications potential... done in 2.694E-05s.
+ Initializing communications orthonormalization... done in 7.798E-02s.
+ Initializing input guess... done in 6.649E-02s.
  ################################# Memory estimator ##################################
  WARNING: The memory requirements are underestimated by about 20-30%!
  Memory requirements of the largest arrays:
@@ -244,7 +244,7 @@
  >>> estimated memory peak: 36MB
  >>> peak section: Optimization of the basis functions
  #####################################################################################
- Initializing matrix compression... done in 6.199E-05s.
+ Initializing matrix compression... done in 1.426E-03s.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 14 Atomic Input Orbitals
  Processes from 0 to 5 treat 2 inguess orbitals 
@@ -371,13 +371,13 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  Final values for fnrm, fnrmMax, trace:   1.6576903E-01  2.3279979E-01   1.3389616
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.542E+00
-     - orthonormalization: 1.020E-01= 6.6%
-     - Hamiltonian application: 2.626E-01=17.0%
-     - orthoconstraint: 5.287E-02= 3.4%
-     - preconditioning: 4.246E-01=27.5%
-     - unitary optimization: 6.623E-01=42.9%
-     - other: 3.771E-02= 2.4%
+   -total time: 1.536E+00
+     - orthonormalization: 1.029E-01= 6.7%
+     - Hamiltonian application: 2.605E-01=17.0%
+     - orthoconstraint: 5.092E-02= 3.3%
+     - preconditioning: 4.252E-01=27.7%
+     - unitary optimization: 6.608E-01=43.0%
+     - other: 3.621E-02= 2.4%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Hamiltonian application... done.
@@ -401,7 +401,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999972118E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -410,7 +410,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.03E-06   -1.64321622061196067E+01   -1.6432E+01
+   it, Delta DENS, energy, energyDiff   1   3.03E-06   -1.64321622061195995E+01   -1.6432E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -434,7 +434,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999971588E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -443,7 +443,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   9.55E-07   -1.40332447630722186E+01    2.3989E+00
+   it, Delta DENS, energy, energyDiff   2   9.55E-07   -1.40332447630722257E+01    2.3989E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -467,7 +467,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999971737E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -476,7 +476,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.28E-07   -1.43739948247752167E+01   -3.4075E-01
+   it, Delta DENS, energy, energyDiff   3   3.28E-07   -1.43739948247752451E+01   -3.4075E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -500,7 +500,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999971712E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -509,7 +509,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.72E-07   -1.42668264804619866E+01    1.0717E-01
+   it, Delta DENS, energy, energyDiff   4   1.72E-07   -1.42668264804620009E+01    1.0717E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -533,7 +533,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999971717E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -542,7 +542,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   8.27E-08   -1.42636289248938724E+01    3.1976E-03
+   it, Delta DENS, energy, energyDiff   5   8.27E-08   -1.42636289248938581E+01    3.1976E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -566,7 +566,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999971716E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -575,7 +575,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   4.19E-08   -1.42524154946915971E+01    1.1213E-02
+   it, Delta DENS, energy, energyDiff   6   4.19E-08   -1.42524154946915829E+01    1.1213E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -599,7 +599,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999971716E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -608,7 +608,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   2.08E-08   -1.42485640506387909E+01    3.8514E-03
+   it, Delta DENS, energy, energyDiff   7   2.08E-08   -1.42485640506387838E+01    3.8514E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -632,7 +632,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999971716E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -641,7 +641,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   1.04E-08   -1.42462921711980428E+01    2.2719E-03
+   it, Delta DENS, energy, energyDiff   8   1.04E-08   -1.42462921711980144E+01    2.2719E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -665,7 +665,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999971716E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -674,7 +674,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   5.22E-09   -1.42452168449569427E+01    1.0753E-03
+   it, Delta DENS, energy, energyDiff   9   5.22E-09   -1.42452168449569356E+01    1.0753E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -698,7 +698,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999971716E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -707,7 +707,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 10 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   10   2.61E-09   -1.42446664087120922E+01    5.5044E-04
+   it, Delta DENS, energy, energyDiff   10   2.61E-09   -1.42446664087120638E+01    5.5044E-04
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -731,7 +731,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999971716E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -740,7 +740,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 11 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   11   1.31E-09   -1.42443932217030209E+01    2.7319E-04
+   it, Delta DENS, energy, energyDiff   11   1.31E-09   -1.42443932217030351E+01    2.7319E-04
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -764,7 +764,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999971716E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -773,9 +773,9 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 12 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   12   6.53E-10   -1.42442561432741712E+01    1.3708E-04
+   it, Delta DENS, energy, energyDiff   12   6.53E-10   -1.42442561432741428E+01    1.3708E-04
  #############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   1   1.63E-06   -1.42442561432741712E+01   -1.4244E+01
+   itout, Delta DENSOUT, energy, energyDiff   1   1.63E-06   -1.42442561432741428E+01   -1.4244E+01
  ======================== Creation of the basis functions... ========================
  Gathering the potential...  Gathering the potential...  ----------------------------------------------------------------------------- iter=1
  Orthonormalization...it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     1    1.8920263915E+00    0.0000000000E+00    0.0000000000E+00    0.0000000E+00    0.0000000E+00
@@ -808,13 +808,13 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  Final values for fnrm, fnrmMax, trace:   2.6573594E-02  4.1016418E-02   3.4067959
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.542E+00
-     - orthonormalization: 1.005E-01= 6.5%
-     - Hamiltonian application: 2.622E-01=17.0%
-     - orthoconstraint: 5.292E-02= 3.4%
-     - preconditioning: 4.246E-01=27.5%
-     - unitary optimization: 6.640E-01=43.1%
-     - other: 3.758E-02= 2.4%
+   -total time: 1.535E+00
+     - orthonormalization: 1.030E-01= 6.7%
+     - Hamiltonian application: 2.609E-01=17.0%
+     - orthoconstraint: 5.067E-02= 3.3%
+     - preconditioning: 4.250E-01=27.7%
+     - unitary optimization: 6.590E-01=42.9%
+     - other: 3.609E-02= 2.4%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Hamiltonian application... done.
@@ -838,7 +838,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968972E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -847,7 +847,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.79E-07   -1.40884615576347585E+01    1.5579E-01
+   it, Delta DENS, energy, energyDiff   1   2.79E-07   -1.40884615576348367E+01    1.5579E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -871,7 +871,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968942E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -880,7 +880,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.69E-07   -1.42223256264063238E+01   -1.3386E-01
+   it, Delta DENS, energy, energyDiff   2   1.69E-07   -1.42223256264063096E+01   -1.3386E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -904,7 +904,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968949E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -913,7 +913,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   7.54E-08   -1.42241450257375845E+01   -1.8194E-03
+   it, Delta DENS, energy, energyDiff   3   7.54E-08   -1.42241450257375419E+01   -1.8194E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -937,7 +937,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968948E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -946,7 +946,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   3.97E-08   -1.42403398495385147E+01   -1.6195E-02
+   it, Delta DENS, energy, energyDiff   4   3.97E-08   -1.42403398495385005E+01   -1.6195E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -970,7 +970,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968948E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -979,7 +979,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.93E-08   -1.42447975104068973E+01   -4.4577E-03
+   it, Delta DENS, energy, energyDiff   5   1.93E-08   -1.42447975104068547E+01   -4.4577E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1003,7 +1003,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968948E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1012,7 +1012,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   9.79E-09   -1.42478795572766828E+01   -3.0820E-03
+   it, Delta DENS, energy, energyDiff   6   9.79E-09   -1.42478795572766685E+01   -3.0820E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1036,7 +1036,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968948E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1045,7 +1045,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   4.87E-09   -1.42492171625998481E+01   -1.3376E-03
+   it, Delta DENS, energy, energyDiff   7   4.87E-09   -1.42492171625998338E+01   -1.3376E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1069,7 +1069,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968948E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1078,7 +1078,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   2.44E-09   -1.42499335079847498E+01   -7.1635E-04
+   it, Delta DENS, energy, energyDiff   8   2.44E-09   -1.42499335079847995E+01   -7.1635E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1102,7 +1102,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968948E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1111,7 +1111,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   1.22E-09   -1.42502802974502316E+01   -3.4679E-04
+   it, Delta DENS, energy, energyDiff   9   1.22E-09   -1.42502802974501890E+01   -3.4679E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1135,7 +1135,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968948E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1144,7 +1144,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 10 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   10   6.09E-10   -1.42504563327900584E+01   -1.7604E-04
+   it, Delta DENS, energy, energyDiff   10   6.09E-10   -1.42504563327900939E+01   -1.7604E-04
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1168,7 +1168,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968948E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1177,7 +1177,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 11 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   11   3.05E-10   -1.42505437098450471E+01   -8.7377E-05
+   it, Delta DENS, energy, energyDiff   11   3.05E-10   -1.42505437098450045E+01   -8.7377E-05
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1201,7 +1201,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968948E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1210,21 +1210,21 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 12 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   12   1.52E-10   -1.42505875433812008E+01   -4.3834E-05
+   it, Delta DENS, energy, energyDiff   12   1.52E-10   -1.42505875433812506E+01   -4.3834E-05
  #############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   2   2.94E-07   -1.42505875433812008E+01   -6.3314E-03
+   itout, Delta DENSOUT, energy, energyDiff   2   2.94E-07   -1.42505875433812506E+01   -6.3314E-03
  ======================== Creation of the basis functions... ========================
  Gathering the potential...  Gathering the potential...  ----------------------------------------------------------------------------- iter=1
  Orthonormalization...it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     1    1.9813647120E+00    0.0000000000E+00    0.0000000000E+00    0.0000000E+00    0.0000000E+00
 it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     2    1.9813482169E+00    2.0903155069E+00   -1.4605846339E-03    1.8589050E+00    2.2599074E-02
-it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3    1.9813356919E+00    1.9813412846E+00   -9.2453133839E-04    4.5198148E-02    2.7093835E-02
+it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3    1.9813356919E+00    1.9813412846E+00   -9.2453133838E-04    4.5198148E-02    2.7093835E-02
  Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  2.6357188E-02  4.1645072E-02     3.1779976901
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization...it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     1    1.9805482106E+00    0.0000000000E+00    0.0000000000E+00    0.0000000E+00    0.0000000E+00
 it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     2    1.9803844918E+00    2.0073314821E+00   -2.3897794044E-03    1.8951616E+00    1.3705835E-01
-it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3    1.9803699810E+00    1.9835354229E+00   -1.6695549182E-03    2.7411669E-01    1.7382205E-02
+it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3    1.9803699810E+00    1.9835354229E+00   -1.6695549181E-03    2.7411669E-01    1.7382205E-02
  Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     2  1.5178467E-02  2.3683405E-02     3.1766077458
  DIIS informations: history length=5, consecutive failures=0, total failures=0
@@ -1238,20 +1238,20 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization...it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     1    1.9828325460E+00    0.0000000000E+00    0.0000000000E+00    0.0000000E+00    0.0000000E+00
 it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     2    1.9827741907E+00    2.0070952682E+00   -1.1482173495E-03    2.1761865E+00    1.0159599E-01
-it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3    1.9827553028E+00    1.9843812015E+00   -1.9110911925E-03    2.0319198E-01    1.9771970E-02
+it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3    1.9827553028E+00    1.9843812015E+00   -1.9110911923E-03    2.0319198E-01    1.9771970E-02
  Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     4  1.0327640E-02  2.1843136E-02     3.1757946782
  WARNING: not converged within 4 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.0327640E-02  2.1843136E-02   3.1757947
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.540E+00
-     - orthonormalization: 1.016E-01= 6.6%
-     - Hamiltonian application: 2.620E-01=17.0%
-     - orthoconstraint: 5.265E-02= 3.4%
-     - preconditioning: 4.247E-01=27.6%
-     - unitary optimization: 6.618E-01=43.0%
-     - other: 3.752E-02= 2.4%
+   -total time: 1.535E+00
+     - orthonormalization: 1.031E-01= 6.7%
+     - Hamiltonian application: 2.613E-01=17.0%
+     - orthoconstraint: 5.080E-02= 3.3%
+     - preconditioning: 4.241E-01=27.6%
+     - unitary optimization: 6.599E-01=43.0%
+     - other: 3.625E-02= 2.4%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Hamiltonian application... done.
@@ -1275,7 +1275,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968602E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1284,7 +1284,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   8.35E-08   -1.42869668571844244E+01   -3.6379E-02
+   it, Delta DENS, energy, energyDiff   1   8.35E-08   -1.42869668571845807E+01   -3.6379E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1308,7 +1308,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968611E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1317,7 +1317,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   4.39E-08   -1.42556867049025939E+01    3.1280E-02
+   it, Delta DENS, energy, energyDiff   2   4.39E-08   -1.42556867049026721E+01    3.1280E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1341,7 +1341,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968609E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1350,7 +1350,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.07E-08   -1.42578887442115700E+01   -2.2020E-03
+   it, Delta DENS, energy, energyDiff   3   2.07E-08   -1.42578887442117264E+01   -2.2020E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1374,7 +1374,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968609E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1383,7 +1383,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.06E-08   -1.42547218918715970E+01    3.1669E-03
+   it, Delta DENS, energy, energyDiff   4   1.06E-08   -1.42547218918716041E+01    3.1669E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1407,7 +1407,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968609E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1416,7 +1416,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   5.26E-09   -1.42541502029524096E+01    5.7169E-04
+   it, Delta DENS, energy, energyDiff   5   5.26E-09   -1.42541502029523741E+01    5.7169E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1440,7 +1440,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968609E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1449,7 +1449,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   2.65E-09   -1.42536211045183094E+01    5.2910E-04
+   it, Delta DENS, energy, energyDiff   6   2.65E-09   -1.42536211045184089E+01    5.2910E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1473,7 +1473,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968609E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1482,7 +1482,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   1.33E-09   -1.42534138338078264E+01    2.0727E-04
+   it, Delta DENS, energy, energyDiff   7   1.33E-09   -1.42534138338079188E+01    2.0727E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1506,7 +1506,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968609E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1515,7 +1515,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   6.66E-10   -1.42532962886620567E+01    1.1755E-04
+   it, Delta DENS, energy, energyDiff   8   6.66E-10   -1.42532962886621490E+01    1.1755E-04
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1539,7 +1539,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968609E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1548,7 +1548,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   3.33E-10   -1.42532407403633599E+01    5.5548E-05
+   it, Delta DENS, energy, energyDiff   9   3.33E-10   -1.42532407403634807E+01    5.5548E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1572,7 +1572,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968609E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1581,7 +1581,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 10 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   10   1.67E-10   -1.42532121666465628E+01    2.8574E-05
+   it, Delta DENS, energy, energyDiff   10   1.67E-10   -1.42532121666465770E+01    2.8574E-05
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1605,7 +1605,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968609E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1614,7 +1614,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 11 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   11   8.35E-11   -1.42531980595703658E+01    1.4107E-05
+   it, Delta DENS, energy, energyDiff   11   8.35E-11   -1.42531980595702805E+01    1.4107E-05
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1638,7 +1638,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999968609E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1647,9 +1647,9 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 12 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   12   4.18E-11   -1.42531909598933737E+01    7.0997E-06
+   it, Delta DENS, energy, energyDiff   12   4.18E-11   -1.42531909598932884E+01    7.0997E-06
  #############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   3   8.21E-08   -1.42531909598933737E+01   -2.6034E-03
+   itout, Delta DENSOUT, energy, energyDiff   3   8.21E-08   -1.42531909598932884E+01   -2.6034E-03
  ======================== Creation of the basis functions... ========================
  Gathering the potential...  Gathering the potential...  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
@@ -1682,13 +1682,13 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  Final values for fnrm, fnrmMax, trace:   4.0930187E-03  5.9729878E-03  -2.3119278
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.605E+00
-     - orthonormalization: 1.907E-01=11.9%
-     - Hamiltonian application: 5.094E-01=31.7%
-     - orthoconstraint: 9.202E-02= 5.7%
-     - preconditioning: 7.417E-01=46.2%
-     - unitary optimization: 2.354E-06= 0.0%
-     - other: 7.106E-02= 4.4%
+   -total time: 1.638E+00
+     - orthonormalization: 1.935E-01=11.8%
+     - Hamiltonian application: 5.047E-01=30.8%
+     - orthoconstraint: 1.303E-01= 8.0%
+     - preconditioning: 7.422E-01=45.3%
+     - unitary optimization: 2.086E-06= 0.0%
+     - other: 6.774E-02= 4.1%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Hamiltonian application... done.
@@ -1712,7 +1712,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975632E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1721,7 +1721,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.69E-06   -1.39614254560085129E+01    2.9177E-01
+   it, Delta DENS, energy, energyDiff   1   1.69E-06   -1.39614254560084703E+01    2.9177E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1745,7 +1745,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975498E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1754,7 +1754,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   8.26E-07   -1.47230045721334761E+01   -7.6158E-01
+   it, Delta DENS, energy, energyDiff   2   8.26E-07   -1.47230045721334548E+01   -7.6158E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1778,7 +1778,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975507E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1787,7 +1787,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.07E-07   -1.47732205523660980E+01   -5.0216E-02
+   it, Delta DENS, energy, energyDiff   3   4.07E-07   -1.47732205523661193E+01   -5.0216E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1811,7 +1811,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975505E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1820,7 +1820,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.05E-07   -1.48212047014861668E+01   -4.7984E-02
+   it, Delta DENS, energy, energyDiff   4   2.05E-07   -1.48212047014861099E+01   -4.7984E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1844,7 +1844,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975504E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1853,7 +1853,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.02E-07   -1.48419205045273230E+01   -2.0716E-02
+   it, Delta DENS, energy, energyDiff   5   1.02E-07   -1.48419205045272662E+01   -2.0716E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1877,7 +1877,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975504E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1886,7 +1886,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   6   5.13E-08   -1.48521758365744105E+01   -1.0255E-02
+   it, Delta DENS, energy, energyDiff   6   5.13E-08   -1.48521758365743537E+01   -1.0255E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1910,7 +1910,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975504E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1919,7 +1919,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 7 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   7   2.57E-08   -1.48572161096890625E+01   -5.0403E-03
+   it, Delta DENS, energy, energyDiff   7   2.57E-08   -1.48572161096890412E+01   -5.0403E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1943,7 +1943,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975504E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1952,7 +1952,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   8   1.28E-08   -1.48597193550823974E+01   -2.5032E-03
+   it, Delta DENS, energy, energyDiff   8   1.28E-08   -1.48597193550824542E+01   -2.5032E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -1976,7 +1976,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975504E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1985,7 +1985,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   9   6.43E-09   -1.48609667121720932E+01   -1.2474E-03
+   it, Delta DENS, energy, energyDiff   9   6.43E-09   -1.48609667121721074E+01   -1.2474E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -2009,7 +2009,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975504E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -2018,7 +2018,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 10 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   10   3.21E-09   -1.48615895083712886E+01   -6.2280E-04
+   it, Delta DENS, energy, energyDiff   10   3.21E-09   -1.48615895083712175E+01   -6.2280E-04
  #############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential...  Gathering the potential...  Hamiltonian application... done.
@@ -2042,7 +2042,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975504E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -2075,7 +2075,7 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975504E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -2084,21 +2084,21 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  at iteration 12 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   12   8.04E-10   -1.48620563617692483E+01   -1.5561E-04
+   it, Delta DENS, energy, energyDiff   12   8.04E-10   -1.48620563617693335E+01   -1.5561E-04
  #############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   4   1.60E-06   -1.48620563617692483E+01   -6.0887E-01
+   itout, Delta DENSOUT, energy, energyDiff   4   1.60E-06   -1.48620563617693335E+01   -6.0887E-01
  Posting sends / receives for the calculation of the charge density... done.
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio: 28.6%
+   waiting for communication to complete... done.
    Calculation finished. TOTAL CHARGE =   1.399999975504E+01
  ------------------------------------- Building linear combinations... done.
  ================================================
- total time for linear scaling version: 1.972E+01s
+ total time for linear scaling version: 1.959E+01s
    of which:
-             - initialization: 1.780E-01s ( 0.9%)
-             - input guess: 1.144E+00s ( 5.8%)
-             - self consistency cycle: 1.827E+01s (92.7%)
+             - initialization: 1.798E-01s ( 0.9%)
+             - input guess: 1.154E+00s ( 5.9%)
+             - self consistency cycle: 1.813E+01s (92.6%)
              - forces: 0.000E+00s ( 0.0%)
  ================================================
  ---------------------------------------------------------- Gaussian Basis Projection
@@ -2117,9 +2117,9 @@ it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal     3 
  average noise along y direction:   1.46669662E-03
  average noise along z direction:   1.71540116E-03
  total average noise            :   3.12883663E-03
- clean forces norm (Ha/Bohr): maxval=  3.410131972878E-02  fnrm2=  3.060477753625E-03
- raw forces:                  maxval=  3.476248316990E-02  fnrm2=  3.081895103667E-03
- CPU time/ELAPSED time for root process     0        20.33        20.15
+ clean forces norm (Ha/Bohr): maxval=  3.410131972877E-02  fnrm2=  3.060477753624E-03
+ raw forces:                  maxval=  3.476248316987E-02  fnrm2=  3.081895103665E-03
+ CPU time/ELAPSED time for root process     0        20.20        20.08
  Final values of the Forces for each atom
      1      C  2.95772E-02 -1.54576E-02  7.01069E-03
      2      C -2.45374E-02  2.01031E-02 -2.71408E-03
