@@ -1421,7 +1421,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
     ! Construct wavefunction inside the locregs (the orbitals are ordered by locreg)
      call timing(iproc,'wavefunction  ','ON')
-     call gaussians_to_wavelets_new2(iproc,nproc,Lzd,orbse,hx,hy,hz,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),Lpsi(1))
+     call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbse,hx,hy,hz,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),Lpsi(1))
      call timing(iproc,'wavefunction  ','OF')
 
 !#####################
@@ -1713,7 +1713,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
     call timing(iproc,'wavefunction  ','ON')   
    !use only the part of the arrays for building the hamiltonian matrix
-     call gaussians_to_wavelets_new(iproc,nproc,Lzd%Glr,orbse,hx,hy,hz,G,&
+     call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbse,hx,hy,hz,G,&
           psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
     call timing(iproc,'wavefunction  ','OF')
      i_all=-product(shape(locrad))*kind(locrad)
@@ -2071,7 +2071,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   end if  !if on linear         <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   ! reput the good wavefunction dimensions: PUT IT inside LDiagHam? 
-  call wavefunction_dimension(Lzd,orbs)
+  if(input%linear /= 'LIG') call wavefunction_dimension(Lzd,orbs)
 
    if (input%iscf /= SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
      

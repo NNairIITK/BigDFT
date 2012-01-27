@@ -570,6 +570,12 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
 !!end if
 
 
+
+     !define the localization radius for the Linear input guess
+     if(in%linear == 'LIG') then
+        atoms%rloc(ityp,:) = rcov * 10.0
+     end if
+
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
   nelec=0

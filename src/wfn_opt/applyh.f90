@@ -95,8 +95,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
   ispsi=1
   loop_orbs: do iorb=1,orbs%norbp
      ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
-     if (.not.lzd%doHamAppl(ilr) .or. &
-          ilr_orb /= ilr) then
+     if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
         ispsi=ispsi+&
              (Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor
         cycle loop_orbs

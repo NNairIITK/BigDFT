@@ -884,16 +884,16 @@ module module_interfaces
          logical, optional :: opt_fillrxyz
       END SUBROUTINE read_gaussian_information
 
-      subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
+      subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
          real(gp), intent(in) :: hx,hy,hz
          type(orbitals_data), intent(in) :: orbs
-         type(locreg_descriptors), intent(in) :: lr
+         type(local_zone_descriptors), intent(in) :: Lzd
          type(gaussian_basis), intent(inout) :: G
-         real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp), intent(out) :: psi
+         real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%norbp), intent(out) :: psi
          real(wp), dimension(:,:), pointer :: coeffs
       END SUBROUTINE restart_from_gaussians
 

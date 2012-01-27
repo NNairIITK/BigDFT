@@ -156,7 +156,7 @@ program oneatom
   !pot_ion=0.0d0
 
   !create input guess wavefunction
-  call psi_from_gaussians(iproc,nproc,atoms,orbs,Glr,rxyz,in%hx,in%hy,in%hz,in%nspin,psi)
+  call psi_from_gaussians(iproc,nproc,atoms,orbs,Lzd,rxyz,in%hx,in%hy,in%hz,in%nspin,psi)
 
 !!$  psi=0.0d0
 !!$  ttsum=0.0d0
@@ -739,7 +739,7 @@ END SUBROUTINE createPotential
 !>
 !!
 !!
-subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
+subroutine psi_from_gaussians(iproc,nproc,at,orbs,Lzd,rxyz,hx,hy,hz,nspin,psi)
   use module_base
   use module_types
   use module_interfaces
@@ -748,7 +748,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: lr
+  type(local_zone_descriptors), intent(in) :: Lzd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi
   !local variables
@@ -861,7 +861,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 
   end if
 
-  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,&
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,&
        gaucoeffs,psi)
 
   !deallocate the gaussian basis descriptors

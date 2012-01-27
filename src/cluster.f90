@@ -508,7 +508,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',&
           atoms%nat,atoms%ntypes,orbs,atoms%iatype,rxyz,gbd,gaucoeffs)
 
-     call gaussians_to_wavelets_new(iproc,nproc,Lzd%Glr,orbs,hx,hy,hz,gbd,gaucoeffs,psi)
+     call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,gbd,gaucoeffs,psi)
 
      !deallocate gaussian structure and coefficients
      call deallocate_gwf(gbd,subname)
@@ -652,7 +652,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
              &   '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
      end if
 
-     call restart_from_gaussians(iproc,nproc,orbs,Lzd%Glr,hx,hy,hz,psi,gbd,gaucoeffs)
+     call restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,gbd,gaucoeffs)
 
   case(INPUT_PSI_DISK_GAUSS)
      !reading wavefunctions from gaussian file
@@ -673,7 +673,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         stop
      end if
 
-     call restart_from_gaussians(iproc,nproc,orbs,Lzd%Glr,hx,hy,hz,psi,gbd,gaucoeffs)
+     call restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,gbd,gaucoeffs)
 
   case default
 
@@ -1206,7 +1206,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
 
         !control the accuracy of the expansion
-        call check_gaussian_expansion(iproc,nproc,orbs,Lzd%Glr,hx,hy,hz,psi,gbd,gaucoeffs)
+        call check_gaussian_expansion(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,gbd,gaucoeffs)
 
         call deallocate_gwf(gbd,subname)
         i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)

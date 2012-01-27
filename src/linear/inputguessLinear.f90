@@ -386,7 +386,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Transform the atomic orbitals to the wavelet basis.
   lchi2=0.d0
-  call gaussians_to_wavelets_new2(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, input%hx, input%hy, input%hz, G, &
+  call gaussians_to_wavelets_new(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, input%hx, input%hy, input%hz, G, &
        psigau(1,1,min(lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb)), lchi2)
 
   iall=-product(shape(psigau))*kind(psigau)
@@ -1178,6 +1178,7 @@ allocate(hamTemp(orbsig%norb,orbsig%norb), stat=istat)
 call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
+call nullify_p2pComms(comon)
 call initCommsOrtho(iproc, nproc, lzdig, orbsig, onWhichAtom, input, locregShape, op, comon, tagout)
 
 
@@ -1230,7 +1231,6 @@ do iat=1,lzdig%nlr
 
     
     if(ioverlap==noverlaps .or. iat==lzdig%nlr) then
-        
         call timing(iproc,'ig_matric_comm','ON')
         
         ! Communicate the matrices calculated so far.
@@ -1385,7 +1385,7 @@ call mpi_barrier(mpi_comm_world, ierr)
 !!    stop
 !!end if
 
-call deallocateCommuncationBuffersOrtho(comon, subname)
+!call deallocateCommuncationBuffersOrtho(comon, subname)
 if(imat/=nlocregPerMPI .and. nproc >1) then
   write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': imat/=nlocregPerMPI',imat,nlocregPerMPI
   stop
