@@ -2071,7 +2071,8 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
               jjorb=overlaps(jorb,iiorb)+ijorb
               !jjorb=overlaps(jorb,ilr)+ijorb
               ! Entry (iiorb,jjorb) is not zero.
-              if(iproc==0) write(300,'(a,8i12)') 'nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb', nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb
+              if(iproc==0) write(300,'(a,8i12)') 'nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb',&
+                            nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb
               if(jjorb==jjorbold+1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
                   mad%keyv(nseg)=mad%keyv(nseg)+1

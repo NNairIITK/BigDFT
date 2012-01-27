@@ -762,7 +762,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
        lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, nlocregPerMPI, tag, ham3, &
        lin%lig%comon, lin%lig%op, lin%lig%mad)
-  !!call cpu_time(t2)
+  !call cpu_time(t2)
   !!time=t2-t1
   !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
   !!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for "buildLinearCombinations":', time/dble(nproc)
@@ -1713,7 +1713,7 @@ type(p2pCommsOrthonormalityMatrix),intent(out):: comom
 
 ! Local variables
 integer:: ilr, jlr, klr, novrlp, korb, istat, jlrold, jjlr, jjorb, jorb, kkorb, lorb, iorb, jorbout, iiorb, iorbout
-integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ks1, ke1, ks2, ke2, ks3, ke3
+integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ks1, ke1, ks2, ke2, ks3, ke3, ilrold
 logical:: ovrlpx_ki, ovrlpy_ki, ovrlpz_ki, ovrlpx_kj, ovrlpy_kj, ovrlpz_kj, ovrlpx, ovrlpy, ovrlpz
 logical:: overlapFound
 character(len=*),parameter:: subname='determineOverlapRegionMatrix'
@@ -1810,8 +1810,11 @@ end do
 
 ! Now determine which orbitals (corresponding to basis functions) will be in the overlap localization region.
 !do ilr=1,lzd%nlr
+ilrold=-1
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
+  if(ilr==ilrold) cycle
+  ilrold=ilr
   call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   comom%olr(:,ilr)%norbinlr=0
   !do jorbout=1,comom%noverlap(ilr)
@@ -1865,8 +1868,11 @@ end do
 
 ! Determine the indices to switch from global region to localization region.
 !do ilr=1,lzd%nlr
+ilrold=-1
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
+  if(ilr==ilrold) cycle
+  ilrold=ilr
   call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   !do jorbout=1,comom%noverlap(ilr)
   do jorbout=1,comom%noverlap(iorbout)
@@ -1928,8 +1934,11 @@ allocate(comom%olrForExpansion(2,maxval(comom%noverlap(:)),lzd%nlr), stat=istat)
 call memocc(istat, comom%olrForExpansion, 'comom%olrForExpansion', subname)
 comom%olrForExpansion=55555
 !do ilr=1,lzd%nlr
+ilrold=-1
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
+  if(ilr==ilrold) cycle
+  ilrold=ilr
   !do iorb=1,comom%noverlap(ilr)
   do iorb=1,comom%noverlap(iorbout)
      !jorb=comom%overlaps(iorb,ilr)

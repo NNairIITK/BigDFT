@@ -11,11 +11,11 @@ subroutine f90_pointer_1D_init(pt_c, size_c)
 
   double precision, dimension(:), pointer :: pt_f
   interface
-     subroutine inquire_pointer(pt_c, pt_f, size_c)
+     subroutine inquire_pointer_1D(pt_c, pt_f, size_c)
        double precision, dimension(:), pointer :: pt_f
        double precision, intent(in) :: pt_c
        integer, intent(in) :: size_c
-     end subroutine inquire_pointer
+     end subroutine inquire_pointer_1D
   end interface
 
   nullify(pt_f)
@@ -29,11 +29,11 @@ subroutine f90_pointer_2D_init(pt_c, size_c)
 
   double precision, dimension(:,:), pointer :: pt_f
   interface
-     subroutine inquire_pointer(pt_c, pt_f, size_c)
+     subroutine inquire_pointer_2D(pt_c, pt_f, size_c)
        double precision, dimension(:,:), pointer :: pt_f
        double precision, intent(in) :: pt_c
        integer, intent(in) :: size_c
-     end subroutine inquire_pointer
+     end subroutine inquire_pointer_2D
   end interface
 
   nullify(pt_f)
@@ -47,11 +47,11 @@ subroutine f90_pointer_3D_init(pt_c, size_c)
 
   double precision, dimension(:,:,:), pointer :: pt_f
   interface
-     subroutine inquire_pointer(pt_c, pt_f, size_c)
+     subroutine inquire_pointer_3D(pt_c, pt_f, size_c)
        double precision, dimension(:,:,:), pointer :: pt_f
        double precision, intent(in) :: pt_c
        integer, intent(in) :: size_c
-     end subroutine inquire_pointer
+     end subroutine inquire_pointer_3D
   end interface
 
   nullify(pt_f)
@@ -65,11 +65,11 @@ subroutine f90_pointer_4D_init(pt_c, size_c)
 
   double precision, dimension(:,:,:,:), pointer :: pt_f
   interface
-     subroutine inquire_pointer(pt_c, pt_f, size_c)
+     subroutine inquire_pointer_4D(pt_c, pt_f, size_c)
        double precision, dimension(:,:,:,:), pointer :: pt_f
        double precision, intent(in) :: pt_c
        integer, intent(in) :: size_c
-     end subroutine inquire_pointer
+     end subroutine inquire_pointer_4D
   end interface
 
   nullify(pt_f)
@@ -83,11 +83,11 @@ subroutine f90_pointer_5D_init(pt_c, size_c)
 
   double precision, dimension(:,:,:,:,:), pointer :: pt_f
   interface
-     subroutine inquire_pointer(pt_c, pt_f, size_c)
+     subroutine inquire_pointer_5D(pt_c, pt_f, size_c)
        double precision, dimension(:,:,:,:,:), pointer :: pt_f
        double precision, intent(in) :: pt_c
        integer, intent(in) :: size_c
-     end subroutine inquire_pointer
+     end subroutine inquire_pointer_5D
   end interface
 
   nullify(pt_f)
