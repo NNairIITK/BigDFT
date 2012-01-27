@@ -2055,7 +2055,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
               !jjorb=overlaps(jorb,iiorb)+ijorb
               jjorb=overlaps(jorb,ilr)+ijorb
               ! Entry (iiorb,jjorb) is not zero.
-              !if(iproc==0) write(300,*) iiorb,jjorb
+              if(iproc==0) write(300,'(a,3i12)') 'nseg, iiorb, jjorb', nseg, iiorb, jjorb
               if(jjorb==jjorbold+1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
                   mad%keyv(nseg)=mad%keyv(nseg)+1
@@ -2672,12 +2672,12 @@ subroutine initCompressedMatmul3(norb, mad)
   type(matrixDescriptors),intent(inout):: mad
 
   ! Local variables
-  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
+  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i, iproc
   logical:: segment
   character(len=*),parameter:: subname='initCompressedMatmul3'
   real(8),dimension(:),allocatable:: mat1, mat2, mat3
 
-
+  call mpi_comm_rank(mpi_comm_world,iproc,istat)
 
   allocate(mat1(norb**2), stat=istat)
   call memocc(istat, mat1, 'mat1', subname)
@@ -2689,6 +2689,7 @@ subroutine initCompressedMatmul3(norb, mad)
   mat1=0.d0
   mat2=0.d0
   do iseg=1,mad%nseg
+      if(iproc==0) write(*,'(a,3i12)') 'iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)', iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)
       do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
           ! the localization region is "symmetric"
           mat1(i)=1.d0
