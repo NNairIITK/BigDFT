@@ -9,16 +9,16 @@
 
 
 !>  Control the accuracy of the expansion in gaussian
-subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
+subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: lr
+  type(local_zone_descriptors), intent(in) :: Lzd
   type(gaussian_basis), intent(in) :: G
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
+  real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
   real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeffs
   !local variables
   character(len=*), parameter :: subname='check_gaussian_expansion'
@@ -26,20 +26,20 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   real(wp) :: maxdiffp,maxdiff,orbdiff
   real(wp), dimension(:), allocatable :: workpsi
 
-  allocate(workpsi((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp+ndebug),stat=i_stat)
+  allocate(workpsi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,workpsi,'workpsi',subname)
 
   !call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,&
   !     lr%wfd,G,coeffs,workpsi)
 
-  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,coeffs,workpsi)
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,coeffs,workpsi)
 
   maxdiffp=0.0_wp
   do iorb=1,orbs%norbp
      orbdiff=0.0_wp
      !if (iorb+iproc*norbp <= norb) then
-        do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           j=i+(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+        do i=1,Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
+           j=i+(iorb-1)*(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)
            orbdiff=max(orbdiff,(psi(i,iorb)-workpsi(j))**2)
         end do
      !end if
@@ -567,73 +567,73 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
 
 END SUBROUTINE gaussians_to_wavelets
 
-subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  real(gp), intent(in) :: hx,hy,hz
-  type(locreg_descriptors), intent(in) :: lr
-  type(orbitals_data), intent(in) :: orbs
-  type(gaussian_basis), intent(in) :: G
-  real(wp), dimension(G%ncoeff,orbs%nspinor,orbs%norbp), intent(in) :: wfn_gau
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
-  !local variables
-  integer :: iorb,ierr,ispinor,ncplx
-  real(dp) :: normdev,tt,scpr,totnorm
-  real(gp) :: kx,ky,kz
+!!$subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
+!!$  use module_base
+!!$  use module_types
+!!$  implicit none
+!!$  integer, intent(in) :: iproc,nproc
+!!$  real(gp), intent(in) :: hx,hy,hz
+!!$  type(locreg_descriptors), intent(in) :: lr
+!!$  type(orbitals_data), intent(in) :: orbs
+!!$  type(gaussian_basis), intent(in) :: G
+!!$  real(wp), dimension(G%ncoeff,orbs%nspinor,orbs%norbp), intent(in) :: wfn_gau
+!!$  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
+!!$  !local variables
+!!$  integer :: iorb,ierr,ispinor,ncplx
+!!$  real(dp) :: normdev,tt,scpr,totnorm
+!!$  real(gp) :: kx,ky,kz
+!!$
+!!$  if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
+!!$       'Writing wavefunctions in wavelet form...'
+!!$
+!!$  normdev=0.0_dp
+!!$  tt=0.0_dp
+!!$  do iorb=1,orbs%norbp
+!!$     !features of the k-point ikpt
+!!$     kx=orbs%kpts(1,orbs%iokpt(iorb))
+!!$     ky=orbs%kpts(2,orbs%iokpt(iorb))
+!!$     kz=orbs%kpts(3,orbs%iokpt(iorb))
+!!$
+!!$     !evaluate the complexity of the k-point
+!!$     if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+!!$        ncplx=1
+!!$     else
+!!$        ncplx=2
+!!$     end if
+!!$     totnorm=0.0_dp
+!!$     do ispinor=1,orbs%nspinor,ncplx
+!!$        !if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
+!!$        !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
+!!$        call gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,&
+!!$             wfn_gau(1,ispinor,iorb),psi(1,ispinor,iorb))
+!!$        !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
+!!$        call wnrm_wrap(ncplx,lr%wfd%nvctr_c,lr%wfd%nvctr_f,psi(1,ispinor,iorb),scpr)
+!!$        totnorm=totnorm+scpr
+!!$     end do
+!!$     !write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx
+!!$     do ispinor=1,orbs%nspinor
+!!$        call wscal_wrap(lr%wfd%nvctr_c,lr%wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
+!!$             psi(1,ispinor,iorb))
+!!$     end do
+!!$     tt=max(tt,abs(1.0_dp-totnorm))
+!!$     !print *,'iorb,norm',totnorm
+!!$  end do
+!!$
+!!$  if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+!!$  !renormalize the orbitals
+!!$  !calculate the deviation from 1 of the orbital nor
+!!$  if (nproc > 1) then
+!!$     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+!!$  else
+!!$     normdev=tt
+!!$  end if
+!!$  if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
+!!$       'Deviation from normalization of the imported orbitals',normdev
+!!$
+!!$END SUBROUTINE gaussians_to_wavelets_new
 
-  if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
-       'Writing wavefunctions in wavelet form...'
 
-  normdev=0.0_dp
-  tt=0.0_dp
-  do iorb=1,orbs%norbp
-     !features of the k-point ikpt
-     kx=orbs%kpts(1,orbs%iokpt(iorb))
-     ky=orbs%kpts(2,orbs%iokpt(iorb))
-     kz=orbs%kpts(3,orbs%iokpt(iorb))
-
-     !evaluate the complexity of the k-point
-     if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
-        ncplx=1
-     else
-        ncplx=2
-     end if
-     totnorm=0.0_dp
-     do ispinor=1,orbs%nspinor,ncplx
-        !if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
-        !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
-        call gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,&
-             wfn_gau(1,ispinor,iorb),psi(1,ispinor,iorb))
-        !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
-        call wnrm_wrap(ncplx,lr%wfd%nvctr_c,lr%wfd%nvctr_f,psi(1,ispinor,iorb),scpr)
-        totnorm=totnorm+scpr
-     end do
-     !write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx
-     do ispinor=1,orbs%nspinor
-        call wscal_wrap(lr%wfd%nvctr_c,lr%wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
-             psi(1,ispinor,iorb))
-     end do
-     tt=max(tt,abs(1.0_dp-totnorm))
-     !print *,'iorb,norm',totnorm
-  end do
-
-  if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
-  !renormalize the orbitals
-  !calculate the deviation from 1 of the orbital nor
-  if (nproc > 1) then
-     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-  else
-     normdev=tt
-  end if
-  if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
-       'Deviation from normalization of the imported orbitals',normdev
-
-END SUBROUTINE gaussians_to_wavelets_new
-
-
-subroutine gaussians_to_wavelets_new2(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,psi)
+subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,psi)
   use module_base
   use module_types
   implicit none
@@ -657,44 +657,41 @@ subroutine gaussians_to_wavelets_new2(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,ps
   tt=0.0_dp  
   ind = 1
   ind2 = 1
-!  do ilr = 1,Lzd%nlr
-     do iorb=1,orbs%norbp
-!        if(orbs%inWhichLocreg(iorb+orbs%isorb) .ne. ilr) cycle ! do only the orbitals in this locreg
-         ilr = orbs%inWhichLocreg(iorb+orbs%isorb)
+  do iorb=1,orbs%norbp
+     ilr = orbs%inWhichLocreg(iorb+orbs%isorb)
+    !features of the k-point ikpt
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
 
-       !features of the k-point ikpt
-        kx=orbs%kpts(1,orbs%iokpt(iorb))
-        ky=orbs%kpts(2,orbs%iokpt(iorb))
-        kz=orbs%kpts(3,orbs%iokpt(iorb))
+     !evaluate the complexity of the k-point
+     if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+        ncplx=1
+     else
+        ncplx=2
+     end if
+     totnorm=0.0_dp
+     do ispinor=1,orbs%nspinor,ncplx
+        !if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
+        !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
+        call gaussians_to_wavelets_orb(ncplx,Lzd%Llr(ilr),hx,hy,hz,kx,ky,kz,G,&
+             wfn_gau(1,ispinor,iorb),psi(ind))
 
-        !evaluate the complexity of the k-point
-        if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
-           ncplx=1
-        else
-           ncplx=2
-        end if
-        totnorm=0.0_dp
-        do ispinor=1,orbs%nspinor,ncplx
-           !if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
-           !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
-           call gaussians_to_wavelets_orb(ncplx,Lzd%Llr(ilr),hx,hy,hz,kx,ky,kz,G,&
-                wfn_gau(1,ispinor,iorb),psi(ind))
-
-           !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
-           call wnrm_wrap(ncplx,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,psi(ind),scpr) 
-           totnorm=totnorm+scpr
-           ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c + 7*Lzd%Llr(ilr)%wfd%nvctr_f
-        end do
-        !write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx
-        do ispinor=1,orbs%nspinor
-           call wscal_wrap(Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
-                psi(ind2))
-           ind2 = ind2 + Lzd%Llr(ilr)%wfd%nvctr_c + 7*Lzd%Llr(ilr)%wfd%nvctr_f
-        end do
-        tt=max(tt,abs(1.0_dp-totnorm))
-        !print *,'iorb,norm',totnorm
+        !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
+        call wnrm_wrap(ncplx,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,psi(ind),scpr) 
+        totnorm=totnorm+scpr
+        ind = ind + (Lzd%Llr(ilr)%wfd%nvctr_c + 7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
      end do
-!  end do
+     !write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx
+     do ispinor=1,orbs%nspinor
+        call wscal_wrap(Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
+             psi(ind2))
+        ind2 = ind2 + (Lzd%Llr(ilr)%wfd%nvctr_c + 7*Lzd%Llr(ilr)%wfd%nvctr_f)
+     end do
+     tt=max(tt,abs(1.0_dp-totnorm))
+     !print *,'iorb,norm',totnorm
+  end do
+
   if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
   !renormalize the orbitals
   !calculate the deviation from 1 of the orbital norm
@@ -706,7 +703,7 @@ subroutine gaussians_to_wavelets_new2(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,ps
   if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
        'Deviation from normalization of the imported orbitals',normdev
 
-END SUBROUTINE gaussians_to_wavelets_new2
+END SUBROUTINE gaussians_to_wavelets_new
 
 
 

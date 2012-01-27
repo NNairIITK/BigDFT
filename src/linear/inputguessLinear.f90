@@ -429,7 +429,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !     psigau(1,1,min(lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb)), lchi2)
   !write(*,'(a,4i9)') 'iproc, lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb, lin%lig%orbsGauss%norbp', &
   !           iproc, lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb, lin%lig%orbsGauss%norbp
-  call gaussians_to_wavelets_new2(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, input%hx, input%hy, input%hz, G, &
+  call gaussians_to_wavelets_new(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, input%hx, input%hy, input%hz, G, &
        psigau(1,1,min(lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb)), lchi2)
 
   iall=-product(shape(psigau))*kind(psigau)
