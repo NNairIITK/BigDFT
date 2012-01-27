@@ -279,10 +279,84 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
         call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.false.)
      end if
   end if
+  !for linear scaling must project the wavefunctions back into the locregs
+  if(Lzd%linear) then
+     psishift1 = 1                                                                                                                                                                                             
+     totshift = 0
+     Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
+           sum(comms%ncntt(0:nproc-1)))
+     allocate(workarr(Gdim+ndebug),stat=i_stat)
+     call memocc(i_stat,workarr,'workarr',subname)
+     call razero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
+     do iorb=1,orbs%norbp
+        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+        ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+        call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
+             ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
+        psishift1 = psishift1 + ldim
+        totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
+     end do
+     !reallocate psi to the global dimensions
+     i_all=-product(shape(psi))*kind(psi)
+     deallocate(psi,stat=i_stat)
+     call memocc(i_stat,i_all,'psi',subname)
+     allocate(psi(Gdim+ndebug),stat=i_stat)
+     call memocc(i_stat,psi,'psi',subname)
+     call vcopy(Gdim,workarr(1),1,psi(1),1) !psi=work
+     i_all=-product(shape(workarr))*kind(workarr)
+     deallocate(workarr,stat=i_stat)
+     call memocc(i_stat,i_all,'workarr',subname)
 
   call timing(iproc,'Un-TransSwitch','OF')
 END SUBROUTINE untranspose_v
 
+subroutine untranspose_v2(iproc,nproc,orbs,wfd,comms,psi,&
+     work,outadd) !optional
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(communications_arrays), intent(in) :: comms
+  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
+  real(wp), dimension(:), pointer, optional :: work
+  real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
+  !local variables
+  integer :: ierr
+
+
+  call timing(iproc,'Un-TransSwitch','ON')
+
+  if (nproc > 1) then
+     !control check
+     if (.not. present(work) .or. .not. associated(work)) then
+        !if(iproc == 0) 
+             write(*,'(1x,a)')&
+             "ERROR: Unproper work array for untransposing in parallel"
+        stop
+     end if
+     call timing(iproc,'Un-TransSwitch','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+     call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndsplt,mpidtypw,  &
+          work,comms%ncntd,comms%ndspld,mpidtypw,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Un-TransSwitch','ON')
+     if (present(outadd)) then
+        call unswitch_waves_v(nproc,orbs,&
+             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,outadd)
+     else
+        call unswitch_waves_v(nproc,orbs,&
+             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,psi)
+     end if
+  else
+     if(orbs%nspinor /= 1) then
+        call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.false.)
+     end if
+  end if
+
+  call timing(iproc,'Un-TransSwitch','OF')
+END SUBROUTINE untranspose_v2
 
 subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
   !n(c) use module_base
