@@ -1194,6 +1194,7 @@ contains
     
     ! steepest descent
     if(ldiis%isx==0) then
+        call timing(iproc,'optimize_SD   ','ON')
         istart=1
         do iorb=1,lorbs%norbp
             !ilr=lorbs%inWhichLocregp(iorb)
@@ -1203,6 +1204,7 @@ contains
             call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, lphi(istart), 1)
             istart=istart+ncount
         end do
+        call timing(iproc,'optimize_SD   ','OF')
     else
         ! DIIS
         if(ldiis%alphaDIIS/=1.d0) then

@@ -774,6 +774,7 @@ real(8),intent(out):: pnrm
 integer:: i, ierr
 real(8):: tt
 
+  call timing(iproc,'mix_linear    ','ON')
 
   pnrm=0.d0
   tt=1.d0-alphaMix
@@ -785,6 +786,8 @@ real(8):: tt
   end do
   call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
   pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+
+  call timing(iproc,'mix_linear    ','OF')
 
 end subroutine mixPotential
 

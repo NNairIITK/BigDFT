@@ -1231,6 +1231,8 @@ do iat=1,lzdig%nlr
     
     if(ioverlap==noverlaps .or. iat==lzdig%nlr) then
         
+        call timing(iproc,'ig_matric_comm','ON')
+        
         ! Communicate the matrices calculated so far.
         if(iproc==0) write(*,'(1x,a)',advance='no') 'communicating matrices...'
 
@@ -1366,6 +1368,8 @@ do iat=1,lzdig%nlr
      call memocc(istat, iall, 'recvrequests', subname)
 
      if(iproc==0) write(*,'(a)') ' done.'
+
+     call timing(iproc,'ig_matric_comm','OF')
 
   end if
 
