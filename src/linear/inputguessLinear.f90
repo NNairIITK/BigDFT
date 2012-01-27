@@ -1712,18 +1712,21 @@ type(matrixLocalizationRegion),dimension(lzd%nlr),intent(in):: mlr
 type(p2pCommsOrthonormalityMatrix),intent(out):: comom
 
 ! Local variables
-integer:: ilr, jlr, klr, novrlp, korb, istat, jlrold, jjlr, jjorb, jorb, kkorb, lorb, iorb, jorbout, iiorb
+integer:: ilr, jlr, klr, novrlp, korb, istat, jlrold, jjlr, jjorb, jorb, kkorb, lorb, iorb, jorbout, iiorb, iorbout
 integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ks1, ke1, ks2, ke2, ks3, ke3
 logical:: ovrlpx_ki, ovrlpy_ki, ovrlpz_ki, ovrlpx_kj, ovrlpy_kj, ovrlpz_kj, ovrlpx, ovrlpy, ovrlpz
 logical:: overlapFound
 character(len=*),parameter:: subname='determineOverlapRegionMatrix'
 
 
-allocate(comom%noverlap(lzd%nlr), stat=istat)
+!allocate(comom%noverlap(lzd%nlr), stat=istat)
+allocate(comom%noverlap(orbs%norb), stat=istat)
 call memocc(istat, comom%noverlap, 'comom%noverlap', subname)
 
 ! First count the number of overlapping localization regions for each localization region.
-do ilr=1,lzd%nlr
+!do ilr=1,lzd%nlr
+do iorbout=1,orbs%norb
+  ilr=orbs%inwhichlocreg(iorbout)
   call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   novrlp=0
   do jorbout=1,orbs%norb
@@ -1749,15 +1752,20 @@ do ilr=1,lzd%nlr
         end do
      end do outloop1
   end do
-  comom%noverlap(ilr)=novrlp
+  !comom%noverlap(ilr)=novrlp
+  comom%noverlap(iorbout)=novrlp
   !!if(iproc==0) write(*,*) 'ilr, comom%noverlap(ilr)', ilr, comom%noverlap(ilr) 
 end do
 
 
-allocate(comom%overlaps(maxval(comom%noverlap(:)),lzd%nlr), stat=istat)
+!allocate(comom%overlaps(maxval(comom%noverlap(:)),lzd%nlr), stat=istat)
+allocate(comom%overlaps(maxval(comom%noverlap(:)),orbs%norb), stat=istat)
 call memocc(istat, comom%overlaps, 'comom%overlaps', subname)
-do ilr=1,lzd%nlr
-  comom%overlaps(:,ilr)=0
+!do ilr=1,lzd%nlr
+do iorbout=1,orbs%norb
+  ilr=orbs%inwhichlocreg(iorbout)
+  !comom%overlaps(:,ilr)=0
+  comom%overlaps(:,iorbout)=0
   call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   novrlp=0
   do jorbout=1,orbs%norb
@@ -1780,7 +1788,8 @@ do ilr=1,lzd%nlr
            jjorb=mlr(jlr)%indexInGlobal(jorb)
            if(iiorb==jjorb) then
               novrlp=novrlp+1
-              comom%overlaps(novrlp,ilr)=jorbout
+              !comom%overlaps(novrlp,ilr)=jorbout
+              comom%overlaps(novrlp,iorbout)=jorbout
               !if(iproc==0) write(*,'(2(a,i0))') 'locreg ',ilr,' overlaps with orbital ',jorbout
               exit outloop2
            end if
@@ -1800,11 +1809,15 @@ end do
 
 
 ! Now determine which orbitals (corresponding to basis functions) will be in the overlap localization region.
-do ilr=1,lzd%nlr
+!do ilr=1,lzd%nlr
+do iorbout=1,orbs%norb
+  ilr=orbs%inwhichlocreg(iorbout)
   call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   comom%olr(:,ilr)%norbinlr=0
-  do jorbout=1,comom%noverlap(ilr)
-     jjorb=comom%overlaps(jorbout,ilr)
+  !do jorbout=1,comom%noverlap(ilr)
+  do jorbout=1,comom%noverlap(iorbout)
+     !jjorb=comom%overlaps(jorbout,ilr)
+     jjorb=comom%overlaps(jorbout,iorbout)
      jlr=onWhichAtomPhi(jjorb)
 !!!! THIS IS THE ORIGINAL
      !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
@@ -1851,10 +1864,14 @@ end do
 
 
 ! Determine the indices to switch from global region to localization region.
-do ilr=1,lzd%nlr
+!do ilr=1,lzd%nlr
+do iorbout=1,orbs%norb
+  ilr=orbs%inwhichlocreg(iorbout)
   call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
-  do jorbout=1,comom%noverlap(ilr)
-     jjorb=comom%overlaps(jorbout,ilr)
+  !do jorbout=1,comom%noverlap(ilr)
+  do jorbout=1,comom%noverlap(iorbout)
+     !jjorb=comom%overlaps(jorbout,ilr)
+     jjorb=comom%overlaps(jorbout,iorbout)
      jlr=onWhichAtomPhi(jjorb)
 !!!! THIS IS THE ORIGINAL
      !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
@@ -1910,14 +1927,20 @@ end do
 allocate(comom%olrForExpansion(2,maxval(comom%noverlap(:)),lzd%nlr), stat=istat)
 call memocc(istat, comom%olrForExpansion, 'comom%olrForExpansion', subname)
 comom%olrForExpansion=55555
-do ilr=1,lzd%nlr
-  do iorb=1,comom%noverlap(ilr)
-     jorb=comom%overlaps(iorb,ilr)
+!do ilr=1,lzd%nlr
+do iorbout=1,orbs%norb
+  ilr=orbs%inwhichlocreg(iorbout)
+  !do iorb=1,comom%noverlap(ilr)
+  do iorb=1,comom%noverlap(iorbout)
+     !jorb=comom%overlaps(iorb,ilr)
+     jorb=comom%overlaps(iorb,iorbout)
      !jlr=onWhichAtom(jorb)
      jlr=onWhichAtomPhi(jorb)
      comom%olrForExpansion(1,iorb,ilr)=jlr
-     do korb=1,comom%noverlap(jlr)
-        kkorb=comom%overlaps(korb,jlr)
+     !do korb=1,comom%noverlap(jlr)
+     do korb=1,comom%noverlap(jorb)
+        !kkorb=comom%overlaps(korb,jlr)
+        kkorb=comom%overlaps(korb,jorb)
         !klr=onWhichAtom(kkorb)
         klr=onWhichAtomPhi(kkorb)
         !if(iproc==0) write(*,'(a,5i9)') 'ilr, iorb, jlr, korb, klr', ilr, iorb, jlr, korb, klr
@@ -1979,7 +2002,8 @@ do jproc=0,nproc-1
      jjorb=isorb_par(jproc)+jorb
      jlr=onWhichAtomPhi(jjorb)
      if(jlr==jlrold) cycle
-     do korb=1,comom%noverlap(jlr)
+     !do korb=1,comom%noverlap(jlr)
+     do korb=1,comom%noverlap(jjorb)
         comom%noverlapProc(jproc)=comom%noverlapProc(jproc)+1
      end do
      jlrold=jlr
@@ -2002,9 +2026,11 @@ do jproc=0,nproc-1
      jjorb=isorb_par(jproc)+jorb
      jlr=onWhichAtomPhi(jjorb)
      if(jlr==jlrold) cycle
-     do korb=1,comom%noverlap(jlr)
+     !do korb=1,comom%noverlap(jlr)
+     do korb=1,comom%noverlap(jjorb)
         jkorb=jkorb+1
-        kkorb=comom%overlaps(korb,jlr)
+        !kkorb=comom%overlaps(korb,jlr)
+        kkorb=comom%overlaps(korb,jjorb)
         mpidest=jproc
         mpisource=onWhichMPI(kkorb)
         istsource=istsourcearr(mpisource)
@@ -2107,7 +2133,8 @@ do iorb=1,norbp
   iiorb=isorb+iorb
   ilr=onWhichAtom(iiorb)
   if(ilr/=ilrold) then
-     noverlaps=noverlaps+comom%noverlap(ilr)
+     !noverlaps=noverlaps+comom%noverlap(ilr)
+     noverlaps=noverlaps+comom%noverlap(iiorb)
   end if
   ilrold=ilr
 end do
@@ -2208,7 +2235,8 @@ do iorb=1,norbp
   iiorb=isorb+iorb
   ilr=onWhichAtom(iiorb)
   if(ilr/=ilrold) then
-     noverlaps=noverlaps+comom%noverlap(ilr)
+     !noverlaps=noverlaps+comom%noverlap(ilr)
+     noverlaps=noverlaps+comom%noverlap(iiorb)
   end if
   ilrold=ilr
 end do
@@ -2559,8 +2587,10 @@ do iorb=1,norb
     ilr=onWhichAtom(iorb)
     iiproc=onWhichMPI(iorb)
     if(ilr==ilrold .and.  iiproc==iiprocold) cycle ! otherwise we would extract the same again
-    do jorb=1,comom%noverlap(ilr)
-        jjorb=comom%overlaps(jorb,ilr)
+    !do jorb=1,comom%noverlap(ilr)
+    do jorb=1,comom%noverlap(iorb)
+        !jjorb=comom%overlaps(jorb,ilr)
+        jjorb=comom%overlaps(jorb,iorb)
         jjlr=onWhichAtom(jjorb)
         jjproc=onWhichMPI(jjorb)
         korb=jjorb-isorb_par(jjproc)
@@ -2614,7 +2644,8 @@ do iorb=1,norbp
     iiorb=isorb+iorb
     ilr=onWhichAtom(iiorb)
     if(ilr==ilrold) cycle
-    do jorb=1,comom%noverlap(ilr)
+    !do jorb=1,comom%noverlap(ilr)
+    do jorb=1,comom%noverlap(iiorb)
         ijorb=ijorb+1
         klr=comom%olrForExpansion(1,jorb,ilr)
         korb=comom%olrForExpansion(2,jorb,ilr)
@@ -2668,12 +2699,15 @@ do iorb=1,norbp
     ilr=onWhichAtom(iiorb)
     if(ilr==ilrold) then
          ! Put back index if we are in the same localization region, since then we can use the same vecOvrlp again.
-         ijorb=ijorb-comom%noverlap(ilr) 
+         !ijorb=ijorb-comom%noverlap(ilr) 
+         ijorb=ijorb-comom%noverlap(iiorb) 
     end if
     ncount=mlr(ilr)%norbinlr
-    do jorb=1,comom%noverlap(ilr)
+    !do jorb=1,comom%noverlap(ilr)
+    do jorb=1,comom%noverlap(iiorb)
         ijorb=ijorb+1
-        jjorb=comom%overlaps(jorb,ilr)
+        !jjorb=comom%overlaps(jorb,ilr)
+        jjorb=comom%overlaps(jorb,iiorb)
         ovrlp(iiorb,jjorb)=ddot(ncount, vec(1,iorb), 1, vecOvrlp(1,ijorb), 1)
     end do
     ilrold=ilr
@@ -2722,12 +2756,15 @@ do iorb=1,norbp
     ilr=onWhichAtom(iiorb)
     if(ilr==ilrold) then
          ! Put back index if we are in the same localization region, since then we can use the same vecOvrlp again.
-         ijorb=ijorb-comom%noverlap(ilr) 
+         !ijorb=ijorb-comom%noverlap(ilr) 
+         ijorb=ijorb-comom%noverlap(iiorb) 
     end if
     ncount=mlr(ilr)%norbinlr
-    do jorb=1,comom%noverlap(ilr)
+    !do jorb=1,comom%noverlap(ilr)
+    do jorb=1,comom%noverlap(iiorb)
         ijorb=ijorb+1
-        jjorb=comom%overlaps(jorb,ilr)
+        !jjorb=comom%overlaps(jorb,ilr)
+        jjorb=comom%overlaps(jorb,iiorb)
         call daxpy(ncount, ovrlp(jjorb,iiorb), vecOvrlp(1,ijorb), 1, vec(1,iorb), 1)
     end do
     ilrold=ilr
@@ -2865,12 +2902,15 @@ do iorb=1,norbp
     ilr=onWhichAtom(iiorb)
     if(ilr==ilrold) then
         ! Set back the index of lphiovrlp, since we again need the same orbitals.
-        ijorb=ijorb-comom%noverlap(ilr)
+        !ijorb=ijorb-comom%noverlap(ilr)
+        ijorb=ijorb-comom%noverlap(iiorb)
     end if
     ncount=mlr(ilr)%norbinlr
-    do jorb=1,comom%noverlap(ilr)
+    !do jorb=1,comom%noverlap(ilr)
+    do jorb=1,comom%noverlap(iiorb)
         ijorb=ijorb+1
-        jjorb=comom%overlaps(jorb,ilr)
+        !jjorb=comom%overlaps(jorb,ilr)
+        jjorb=comom%overlaps(jorb,iiorb)
         call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
         call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
     end do

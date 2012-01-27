@@ -5264,8 +5264,10 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          implicit none
          integer,intent(in):: iproc, nproc, nlr
          type(orbitals_data),intent(in):: orbs
-         integer,dimension(nlr),intent(in):: noverlaps
-         integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
+         !integer,dimension(nlr),intent(in):: noverlaps
+         integer,dimension(orbs%norb),intent(in):: noverlaps
+         !integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
+         integer,dimension(maxval(noverlaps(:)),orbs%norb),intent(in):: overlaps
          type(matrixDescriptors),intent(out):: mad
        end subroutine initMatrixCompression
 

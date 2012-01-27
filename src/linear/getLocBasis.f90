@@ -4117,6 +4117,7 @@ real(8):: tt
           gdim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
           do jorb=1,op%noverlaps(iiorb)
               jjorb=op%overlaps(jorb,iiorb)
+              !jjorb=op%overlaps(jorb,ilr)
               jst=op%indexInRecvBuf(iorbref,jjorb)
               ldim=op%olr(jorb,iorbref)%wfd%nvctr_c+7*op%olr(jorb,iorbref)%wfd%nvctr_f
               tt=omat(jjorb,iiorb)

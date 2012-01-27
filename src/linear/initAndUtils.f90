@@ -1978,8 +1978,10 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
   ! Calling arguments
   integer,intent(in):: iproc, nproc, nlr
   type(orbitals_data),intent(in):: orbs
-  integer,dimension(nlr),intent(in):: noverlaps
-  integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
+  !integer,dimension(nlr),intent(in):: noverlaps
+  integer,dimension(orbs%norb),intent(in):: noverlaps
+  !integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
+  integer,dimension(maxval(noverlaps(:)),orbs%norb),intent(in):: overlaps
   type(matrixDescriptors),intent(out):: mad
   
   ! Local variables
@@ -2000,9 +2002,10 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
           ilr=orbs%inWhichLocreg(iiorb)
           ijorb=(iiorb-1)*orbs%norb
           !do jorb=1,noverlaps(iiorb)
-          do jorb=1,noverlaps(ilr)
-              !jjorb=overlaps(jorb,iiorb)+ijorb
-              jjorb=overlaps(jorb,ilr)+ijorb
+          !do jorb=1,noverlaps(ilr)
+          do jorb=1,noverlaps(iiorb)
+              jjorb=overlaps(jorb,iiorb)+ijorb
+              !jjorb=overlaps(jorb,ilr)+ijorb
               ! Entry (iiorb,jjorb) is not zero.
               !if(iproc==0) write(300,*) iiorb,jjorb
               if(jjorb==jjorbold+1) then
@@ -2063,11 +2066,12 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
           ilr=orbs%inWhichLocreg(iiorb)
           ijorb=(iiorb-1)*orbs%norb
           !do jorb=1,noverlaps(iiorb)
-          do jorb=1,noverlaps(ilr)
-              !jjorb=overlaps(jorb,iiorb)+ijorb
-              jjorb=overlaps(jorb,ilr)+ijorb
+          !do jorb=1,noverlaps(ilr)
+          do jorb=1,noverlaps(iiorb)
+              jjorb=overlaps(jorb,iiorb)+ijorb
+              !jjorb=overlaps(jorb,ilr)+ijorb
               ! Entry (iiorb,jjorb) is not zero.
-              !if(iproc==0) write(300,*) iiorb,jjorb
+              if(iproc==0) write(300,'(a,8i12)') 'nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb', nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb
               if(jjorb==jjorbold+1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
                   mad%keyv(nseg)=mad%keyv(nseg)+1
@@ -2684,12 +2688,12 @@ subroutine initCompressedMatmul3(norb, mad)
   type(matrixDescriptors),intent(inout):: mad
 
   ! Local variables
-  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
+  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i, iproc
   logical:: segment
   character(len=*),parameter:: subname='initCompressedMatmul3'
   real(8),dimension(:),allocatable:: mat1, mat2, mat3
 
-
+  call mpi_comm_rank(mpi_comm_world,iproc,istat)
 
   allocate(mat1(norb**2), stat=istat)
   call memocc(istat, mat1, 'mat1', subname)
@@ -2697,10 +2701,12 @@ subroutine initCompressedMatmul3(norb, mad)
   call memocc(istat, mat2, 'mat2', subname)
   allocate(mat3(norb**2), stat=istat)
   call memocc(istat, mat2, 'mat2', subname)
+  call mpi_barrier(mpi_comm_world,istat)
 
   mat1=0.d0
   mat2=0.d0
   do iseg=1,mad%nseg
+      if(iproc==0) write(200,'(a,3i12)') 'iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)', iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)
       do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
           ! the localization region is "symmetric"
           mat1(i)=1.d0
