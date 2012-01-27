@@ -647,6 +647,7 @@ contains
     dimension ff(3,atoms%nat),gg(3,atoms%nat),vxyz(3,atoms%nat),rxyz(3,atoms%nat),rxyz_old(3,atoms%nat),strten(6)
     type(input_variables) :: inputs_md
     character(len=4) :: fn,name
+    logical :: move_this_coordinate
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
 
@@ -667,13 +668,26 @@ contains
   ! Soften previous velocity distribution
     call soften(nsoften,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
          nproc,iproc,atoms,rst,inputs_md)
+  ! put velocities for frozen degrees of freedom to zero
+       ndfree=0.d0
+       ndfroz=0.d0
+  do iat=1,atoms%nat
+  do ixyz=1,3
+  if ( move_this_coordinate(atoms%ifrztyp(iat),ixyz) ) then
+       ndfree=ndfree+1
+  else
+       ndfroz=ndfroz+1
+       vxyz(ixyz,iat)=0.d0
+  endif
+  enddo
+  enddo
   ! normalize velocities to target ekinetic
-    call velnorm(atoms,rxyz,ekinetic,vxyz)
+    call velnorm(atoms,rxyz,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
     call razero(3*atoms%nat,gg)
 
     if(iproc==0) call torque(atoms%nat,rxyz,vxyz)
 
-    if(iproc==0) write(*,*) '# MINHOP start MD'
+    if(iproc==0) write(*,*) '# MINHOP start MD',ndfree,ndfroz
     !C inner (escape) loop
     nummax=0
     nummin=0
