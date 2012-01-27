@@ -680,7 +680,7 @@ character(len=3):: orbname, comment
       call allocateSendBufferOrtho(comon, subname)
       call allocateRecvBufferOrtho(comon, subname)
       ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-      call extractOrbital3(iproc, nproc, lorbs, max(orbs%npsidim_orbs,orbs%npsidim_comp), lorbs%inWhichLocreg, &
+      call extractOrbital3(iproc, nproc, lorbs, max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lorbs%inWhichLocreg, &
            lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
       ! Post the send messages.
       call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
