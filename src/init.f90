@@ -1248,7 +1248,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!$        call deallocate_wfd(Llr(iat)%wfd,subname)
 !!$        if (Llr(iat)%geocode=='F') then
 !!$           call deallocate_bounds(Llr(iat)%bounds,subname)
-!!$        end if
+!!        end if
      end do
 
      !i_all=-product(shape(Llr))*kind(Llr)
@@ -1296,6 +1296,8 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
     
     !This is allocated in DiagHam
     nullify(psit)
+
+    nullify(G%rxyz)
 
     call deallocate_input_wfs()
     return 
@@ -1609,10 +1611,10 @@ subroutine deallocate_input_wfs()
   i_all=-product(shape(orbse%eval))*kind(orbse%eval)
   deallocate(orbse%eval,stat=i_stat)
   call memocc(i_stat,i_all,'orbse%eval',subname)
-  
-  !deallocate the gaussian basis descriptors
-  !here we can define the subroutine which generates the coefficients for the virtual orbitals
-  call deallocate_gwf(G,subname)
+ 
+ !deallocate the gaussian basis descriptors
+ !here we can define the subroutine which generates the coefficients for the virtual orbitals
+ call deallocate_gwf(G,subname)
  
   i_all=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=i_stat)

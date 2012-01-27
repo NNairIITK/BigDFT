@@ -114,18 +114,17 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
      !write(*,'(3(a,i0),a)')&
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
   end if
-
   !allocate the gaussian coefficients for the number of orbitals which is needed
   allocate(psigau(norbe,orbse%nspinor,orbse%isorb+orbse%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,psigau,'psigau',subname)
   allocate(iorbtolr(orbse%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,iorbtolr,'iorbtolr',subname)
-
-  !fill just the interesting part of the orbital
+!
+!  !fill just the interesting part of the orbital
   call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
        iorbtolr)
-
+!
   i_all=-product(shape(scorb))*kind(scorb)
   deallocate(scorb,stat=i_stat)
   call memocc(i_stat,i_all,'scorb',subname)
@@ -216,7 +215,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
      norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
 
      norbe=norbe+norbat
-     !print *,'iat',iat,l,norbe,norbat,nl(:)
+     !print *,'iat',iat,norbe,norbat,nl(:)
      !calculate the localisation radius for the input orbitals 
      call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
           neleconf,nsccode,mxpl,mxchg,at%amu(ity))
@@ -242,7 +241,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
         end do
         norbsc_arr(iatsc,1)=iorbsc_count
         norbsc=norbsc+iorbsc_count
-        !if (iproc == 0) write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
+        !write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
      end if
 
   end do
@@ -413,7 +412,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
      end if
   end do
 
-  !print *,'nl',nl,norbe,G%ncoeff
+!  print *,'nl',nl,norbe,G%ncoeff
   if (norbe /= G%ncoeff) then
      write(*,*)'ERROR: norbe /= G%ncoeff',norbe,G%ncoeff
      stop 
@@ -520,7 +519,6 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                  !normal case, the orbital is a valence orbital
                  iorb=iorbv(ispin)
               end if
-
               do m=1,2*l-1
                  !each orbital has two electrons in the case of the 
                  !non-collinear case
@@ -554,9 +552,9 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                           else if (orbse%nspinor == 2) then
                              gaucoeff(icoeff,1,jorb)=1.0_wp
                              gaucoeff(icoeff,2,jorb)=0.0_wp
-!!$                             !we can put a phase for check with the complex wavefunction
-!!$                             gaucoeff(icoeff,1,jorb)=0.5_wp*sqrt(3.0_wp)
-!!$                             gaucoeff(icoeff,2,jorb)=0.5_wp
+!$                             !we can put a phase for check with the complex wavefunction
+!$                             gaucoeff(icoeff,1,jorb)=0.5_wp*sqrt(3.0_wp)
+!$                             gaucoeff(icoeff,2,jorb)=0.5_wp
                           else if (orbse%nspinor == 4) then
                              !assign the input orbitals according to the atomic moments
                              fac=0.5_gp
@@ -641,7 +639,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                           !here identified by the atom
                           iorbtolr(jorb)=iat 
                        endif
-                    end do
+                    end do!ikpts
                  end do
                  icoeff=icoeff+1
               end do
@@ -701,9 +699,9 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
   end if
 
 
-!  if (iproc ==0 .and. verbose > 1) then
-!     write(*,'(1x,a)')'done.'
-!  end if
+  if (iproc ==0 .and. verbose > 1) then
+     write(*,'(1x,a)')'done.'
+  end if
 
 END SUBROUTINE AtomicOrbitals
 
@@ -974,7 +972,8 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
      i_all=-product(shape(ofdcoef))*kind(ofdcoef)
      deallocate(ofdcoef,stat=i_stat)
      call memocc(i_stat,i_all,'ofdcoef',subname)
-  else if (npspcode == 10) then !HGH-K case
+  else if (npspcode == 10 .or. npspcode == 7) then !HGH-K case
+! For PAW this is a preliminary initial guess
      do l=1,lpx+1
         hsep(1,l)=psppar(l,1) !h11
         hsep(2,l)=psppar(l,4) !h12
