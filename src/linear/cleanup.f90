@@ -1534,7 +1534,6 @@ subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
   iie1=ubound(comom%olr,1)
   iis2=lbound(comom%olr,2)
   iie2=ubound(comom%olr,2)
-  write(*,'(a,4i8)') 'iis1, iie1, iis2, iie2', iis1, iie1, iis2, iie2
   do i2=iis2,iie2
       do i1=iis1,iie1
           call deallocate_matrixLocalizationRegion(comom%olr(i1,i2), subname)
