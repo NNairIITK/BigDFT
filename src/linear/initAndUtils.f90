@@ -162,6 +162,7 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! Initialize the localization regions.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
+call timing(iproc,'init_locregs  ','ON')
 t1=mpi_wtime()
 call initLocregs(iproc, nproc, at%nat, rxyz, lin%lzd, lin%orbs, input, Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
 
@@ -179,6 +180,7 @@ call memocc(istat, lphi, 'lphi', subname)
 
 
 t2=mpi_wtime()
+call timing(iproc,'init_locregs  ','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 npsidim = 0
 do iorb=1,lin%orbs%norbp
@@ -209,10 +211,12 @@ call initCoefficients(iproc, orbs, lin, coeff)
 ! Initialize the parameters for the point to point communication for the
 ! calculation of the charge density.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications sumrho... '
+call timing(iproc,'init_commSumro','ON')
 t1=mpi_wtime()
 call initializeCommsSumrho(iproc, nproc, nscatterarr, lin%lzd, lin%orbs, tag, lin%comsr)
 call initializeCommsSumrho(iproc, nproc, nscatterarr, lin%lzd, lin%lb%orbs, tag, lin%lb%comsr)
 t2=mpi_wtime()
+call timing(iproc,'init_commSumro','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 
@@ -241,20 +245,24 @@ end do
 ! potential.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications potential... '
 t1=mpi_wtime()
+call timing(iproc,'init_commPot  ','ON')
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%orbs%inWhichLocreg, tag)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lzd, lin%lb%comgp, &
      lin%lb%orbs%inWhichLocreg, tag)
 t2=mpi_wtime()
+call timing(iproc,'init_commPot  ','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 ! Initialize the parameters for the communication for the orthonormalization.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications orthonormalization... '
+call timing(iproc,'init_commOrtho','ON')
 t1=mpi_wtime()
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
      input, lin%locregShape, lin%op, lin%comon, tag)
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
      input, lin%locregShape, lin%lb%op, lin%lb%comon, tag)
 t2=mpi_wtime()
+call timing(iproc,'init_commOrtho','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 ! Initialize the parameters for the repartitioning of the orbitals.
@@ -276,9 +284,11 @@ deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing input guess... '
+call timing(iproc,'init_inguess  ','ON')
 t1=mpi_wtime()
 call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lin%lig, rxyz, nscatterarr, tag)
 t2=mpi_wtime()
+call timing(iproc,'init_inguess  ','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 
@@ -287,6 +297,7 @@ call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 
 
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing matrix compression... '
+call timing(iproc,'init_matrCompr','ON')
 t1=mpi_wtime()
 !call initMatrixCompression(iproc, nproc, lin%orbs, lin%op, lin%mad)
 call initMatrixCompression(iproc, nproc, lin%lzd%nlr, lin%orbs, lin%op%noverlaps, lin%op%overlaps, lin%mad)
@@ -296,6 +307,7 @@ call initMatrixCompression(iproc, nproc, lin%lzd%nlr, lin%lb%orbs, &
      lin%lb%op%noverlaps, lin%lb%op%overlaps, lin%lb%mad)
 call initCompressedMatmul3(lin%lb%orbs%norb, lin%lb%mad)
 t2=mpi_wtime()
+call timing(iproc,'init_matrCompr','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 
