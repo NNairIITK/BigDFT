@@ -1,12 +1,11 @@
-subroutine getLinearPsi(iproc, nproc, lzd, orbs, lorbs, llborbs, comsr, &
-    mad, lbmad, op, lbop, comon, lbcomon, comgp, lbcomgp, at, rxyz, &
-    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
-    infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, size_pkernel, pkernel, &
-    i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, &
-    ldiis, nit, nItInnerLoop, newgradient, orthpar, confdatarr, &
-    methTransformOverlap, blocksize_pdgemm, convCrit, nItPrecond, &
-    useDerivativeBasisFunctions, lphiRestart, comrp, blocksize_pdsyev, nproc_pdsyev, &
-    nspin, hx, hy, hz, SIC)
+subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
+    mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
+    GPU,updatePhi,&
+    infoBasisFunctions,infoCoeff,itSCC,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,coeff_proj,&
+    ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
+    methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
+    useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
+    hx,hy,hz,SIC)
 !
 ! Purpose:
 ! ========
@@ -64,9 +63,9 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, n3p, n3pi, n3d, i3s, i3xcsh, itSCC, nit, nItInnerLoop
+integer,intent(in):: iproc, nproc, itSCC, nit, nItInnerLoop
 integer,intent(in):: methTransformOverlap, blocksize_pdgemm, nItPrecond
-integer,intent(in):: blocksize_pdsyev, nproc_pdsyev, size_pkernel, nspin
+integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs, lorbs, llborbs
 !type(p2pCommsSumrho),intent(inout):: comsr
@@ -78,13 +77,14 @@ type(p2pComms),intent(inout):: comon, lbcomon
 type(p2pComms):: comgp, lbcomgp
 type(atoms_data),intent(in):: at
 real(8),dimension(3,at%nat),intent(in):: rxyz
-integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
-real(dp),dimension(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*n3p,1)*nspin),intent(inout) :: rhopot
+type(DFT_local_fields), intent(inout) :: denspot
+!integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
+!real(dp),dimension(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*n3p,1)*nspin),intent(inout) :: rhopot
 type(GPU_pointers),intent(inout):: GPU
-real(dp), dimension(size_pkernel),intent(in):: pkernel
+!real(dp), dimension(size_pkernel),intent(in):: pkernel
 logical,intent(in):: updatePhi, newgradient, useDerivativeBasisFunctions
-real(dp),dimension(:),pointer,intent(in):: pkernelseq
+!real(dp),dimension(:),pointer,intent(in):: pkernelseq
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
 real(8),intent(in):: convCrit, hx, hy, hz
@@ -111,7 +111,7 @@ character(len=*),parameter:: subname='getLinearPsi'
 logical:: withConfinement
 type(workarr_sumrho):: w
 integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt, inc, jjorb
-real(8),dimension(:),pointer:: lpot
+!real(8),dimension(:),pointer:: lpot
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
@@ -139,10 +139,10 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
-          nscatterarr,ngatherarr,rhopot,GPU,pkernelseq,lphi,trace,&
-          infoBasisFunctions, ovrlp, nlpspd, proj, coeff_proj, ldiis, nit, nItInnerLoop, newgradient, &
-          orthpar, confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, &
-          hx, hy, hz, SIC, nspin, nItPrecond)
+           denspot,GPU,lphi,trace,&
+          infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,newgradient,&
+          orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
+          hx,hy,hz,SIC,nItPrecond)
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -208,23 +208,25 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   if(.not.useDerivativeBasisFunctions) then
 
 
-     call local_potential_dimensions(lzd,lorbs,ngatherarr(0,1))
+     call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
 
-      call full_local_potential(iproc,nproc,&
-           lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
-           lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
-           lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
-           lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
+     call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
+     !call full_local_potential(iproc,nproc,&
+     !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
+     !     lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
+     !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
+     !     lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
   else
 
-     call local_potential_dimensions(lzd,llborbs,ngatherarr(0,1))
+     call local_potential_dimensions(lzd,llborbs,denspot%dpcom%ngatherarr(0,1))
       
-      call full_local_potential(iproc,nproc,&
-           lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
-           lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
-           lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
-           llborbs,lzd,2,ngatherarr,rhopot,lpot,lbcomgp)
-
+     call full_local_potential(iproc,nproc,llborbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,lbcomgp)
+     !call full_local_potential(iproc,nproc,&
+     !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
+     !     lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
+     !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
+     !     llborbs,lzd,2,ngatherarr,rhopot,lpot,lbcomgp)
+     
   end if
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
@@ -239,22 +241,22 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   if(.not.useDerivativeBasisFunctions) then
      allocate(confdatarrtmp(lorbs%norbp))
      call default_confinement_data(confdatarrtmp,lorbs%norbp)
-     call HamiltonianApplication3(iproc,nproc,at,lorbs,&
+     call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
           hx,hy,hz,rxyz,&
-          proj,lzd,nlpspd,confdatarrtmp,ngatherarr,Lpot,lphi,lhphi,&
+          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,lphi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
-          pkernel=pkernelseq)
+          pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
 
   else
 
      allocate(confdatarrtmp(llborbs%norbp))
      call default_confinement_data(confdatarrtmp,llborbs%norbp)
-     call HamiltonianApplication3(iproc,nproc,at,llborbs,&
+     call FullHamiltonianApplication(iproc,nproc,at,llborbs,&
           hx,hy,hz,rxyz,&
-          proj,lzd,nlpspd,confdatarrtmp,ngatherarr,lpot,lphi,lhphi,&
+          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,lphi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
-          pkernel=pkernelseq)
+          pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
   end if
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
@@ -263,9 +265,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
 
 
-  iall=-product(shape(lpot))*kind(lpot)
-  deallocate(lpot, stat=istat)
-  call memocc(istat, iall, 'lpot', subname)
+  iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
+  deallocate(denspot%pot_full, stat=istat)
+  call memocc(istat, iall, 'denspot%pot_full', subname)
 
   if(iproc==0) write(*,'(1x,a)') 'done.'
 
@@ -365,7 +367,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       end do
   end do
   ! If closed shell multiply by two.
-  if(nspin==1) ebs=2.d0*ebs
+  if(orbs%nspin==1) ebs=2.d0*ebs
 
 
 
@@ -421,14 +423,13 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   deallocate(overlapmatrix, stat=istat)
   call memocc(istat, iall, 'overlapmatrix', subname)
 
-
 end subroutine getLinearPsi
 
 
-subroutine getLocalizedBasis(iproc, nproc, at, lzd, lorbs, orbs, comon, op, comgp, mad, rxyz, &
-    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, &
-    infoBasisFunctions, ovrlp, nlpspd, proj, coeff, ldiis, nit, nItInnerLoop, newgradient, orthpar, &
-    confdatarr, methTransformOverlap, blocksize_pdgemm, convCrit, hx, hy, hz, SIC, nspin, nItPrecond)
+subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
+    denspot,GPU,lphi,trH,&
+    infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
+    confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond)
 !
 ! Purpose:
 ! ========
@@ -483,7 +484,7 @@ use module_interfaces, except_this_one => getLocalizedBasis
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nit, nItInnerLoop, methTransformOverlap, blocksize_pdgemm, nspin
+integer,intent(in):: iproc, nproc, nit, nItInnerLoop, methTransformOverlap, blocksize_pdgemm
 integer,intent(in):: nItPrecond
 integer,intent(out):: infoBasisFunctions
 type(atoms_data), intent(in) :: at
@@ -495,11 +496,12 @@ type(overlapParameters):: op
 type(p2pComms):: comgp
 type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat):: rxyz
-integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-real(dp), dimension(*), intent(inout) :: rhopot
+type(DFT_local_fields), intent(inout) :: denspot
+!integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+!real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
-real(dp), dimension(:), pointer :: pkernelseq
+!real(dp), dimension(:), pointer :: pkernelseq
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
 real(8),intent(out):: trH
 real(8),intent(in):: convCrit, hx, hy, hz
@@ -530,7 +532,7 @@ real(8),dimension(:,:),allocatable:: kernel
 logical:: withConfinement, resetDIIS, immediateSwitchToSD
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(5):: time
-real(8),dimension(:),pointer:: lpot
+!real(8),dimension(:),pointer:: lpot
 !real(8),external :: mpi_wtime1
 character(len=3):: orbname, comment
 
@@ -573,13 +575,14 @@ character(len=3):: orbname, comment
   call gatherPotential(iproc, nproc, comgp)
 
   ! Build the required potential
-  call local_potential_dimensions(lzd,lorbs,ngatherarr(0,1))
+  call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
 
-  call full_local_potential(iproc,nproc,&
-       lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
-       lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
-       lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
-       lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
+  call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
+  !call full_local_potential(iproc,nproc,&
+  !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
+  !     lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
+  !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
+  !     lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
 
 
   allocate(lphiold(size(lphi)), stat=istat)
@@ -643,11 +646,11 @@ character(len=3):: orbname, comment
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
       lzd%doHamAppl=.true.
 
-      call HamiltonianApplication3(iproc,nproc,at,lorbs,&
+      call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
            hx,hy,hz,rxyz,&
-           proj,lzd,nlpspd,confdatarr,ngatherarr,lpot,lphi,lhphi,&
+           proj,lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lphi,lhphi,&
            ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
-           pkernel=pkernelseq)
+           pkernel=denspot%pkernelseq)
 
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
       deallocate(lzd%doHamAppl,stat=istat)
@@ -983,9 +986,9 @@ character(len=3):: orbname, comment
 !!$  call memocc(istat, iall, 'lorbs%ispot', subname)
 
   ! Deallocate potential
-  iall=-product(shape(lpot))*kind(lpot)
-  deallocate(lpot, stat=istat)
-  call memocc(istat, iall, 'lpot', subname)
+  iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
+  deallocate(denspot%pot_full, stat=istat)
+  call memocc(istat, iall, 'denspot%pot_full', subname)
 
 
   ! Deallocate PSP stuff
@@ -2585,6 +2588,7 @@ testLoop: do
     exit testLoop
 end do testLoop
 
+
 ! Since mpi_test is a local function, check whether the communication has completed on all processes.
 call mpiallred(comgp%communComplete(1,0), nproc*maxval(comgp%noverlaps), mpi_land, mpi_comm_world, ierr)
 
@@ -2613,7 +2617,11 @@ end do
 call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(a,f5.1,a)') 'done. Communication overlap ratio:',100.d0*dble(nfast)/(dble(nfast+nslow)),'%'
+if (verbose > 3) then
+   if(iproc==0) write(*,'(a,f5.1,a)') 'done. Communication overlap ratio:',100.d0*dble(nfast)/(dble(nfast+nslow)),'%'
+else
+   if(iproc==0) write(*,'(a,f5.1,a)') 'done.'
+end if
 !if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
 !                       nfast, ' could be overlapped with computation.'
 !if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'

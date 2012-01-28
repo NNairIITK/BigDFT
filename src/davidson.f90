@@ -13,7 +13,7 @@
 subroutine direct_minimization(iproc,nproc,in,at,& 
      orbs,orbsv,nvirt,Lzd,comms,commsv,&
      hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
-     pkernel,psi,psivirt,nscatterarr,ngatherarr,GPU)
+     pkernel,psi,psivirt,dpcom,GPU)
    use module_base
    use module_types
    use module_interfaces, except_this_one => direct_minimization
@@ -26,9 +26,8 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    type(local_zone_descriptors),intent(in) :: Lzd
    type(orbitals_data), intent(in) :: orbs
    type(communications_arrays), intent(in) :: comms, commsv
+   type(denspot_distribution), intent(in) :: dpcom
    real(gp), intent(in) :: hx,hy,hz
-   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
    real(dp), dimension(:), pointer :: pkernel
@@ -98,7 +97,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    i3rho_add=0
    if (in%SIC%approach=='NK') then
       nrhodim=2*nrhodim
-      i3rho_add=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,4)+1
+      i3rho_add=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*dpcom%nscatterarr(iproc,4)+1
    end if
 
    if(iproc==0)write(*,'(1x,a)')"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -111,10 +110,10 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    !still the exact exchange with occorbs=.false. has to be verified
    if (exctX) then
       allocate(psirocc(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
-         &   ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
+         &   dpcom%ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
       call memocc(i_stat,psirocc,'psirocc',subname)
 
-      call prepare_psirocc(iproc,nproc,Lzd%Glr,orbs,nscatterarr(iproc,2),ngatherarr(0,1),psi,psirocc)
+      call prepare_psirocc(iproc,nproc,Lzd%Glr,orbs,dpcom%nscatterarr(iproc,2),dpcom%ngatherarr(0,1),psi,psirocc)
    else if (in%SIC%approach=='NK') then
       allocate(psirocc(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*2*orbs%nspin+ndebug),stat=i_stat)
       call memocc(i_stat,psirocc,'psirocc',subname)
@@ -192,20 +191,15 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    end if
 
    !allocate the potential in the full box
-   call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
-        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
-        orbsv,Lzd,0,ngatherarr,rhopot,pot)
+   call full_local_potential(iproc,nproc,orbsv,Lzd,0,dpcom,rhopot,pot)
+   !iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
+   !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+   !     in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
+   !     orbsv,Lzd,0,ngatherarr,rhopot,pot)
 
-   call local_potential_dimensions(Lzd,orbsv,ngatherarr(0,1))
+   call local_potential_dimensions(Lzd,orbsv,dpcom%ngatherarr(0,1))
    allocate(confdatarr(orbsv%norbp))
    call default_confinement_data(confdatarr,orbsv%norbp)
-
-
-!!$   call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-!!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,in%nspin,&
-!!$      &   Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
-!!$      &   orbsv%norb,orbsv%norbp,ngatherarr,rhopot,pot)
 
    !in the case of NK SIC, put the total density in the psirocc pointer, so that it could be reused for building the 
    !Hamiltonian Application
@@ -268,7 +262,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
       !!$          pkernel,orbs,psirocc) ! optional arguments
 
       call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-           Lzd,confdatarr,ngatherarr,pot,psivirt,hpsivirt,&
+           Lzd,confdatarr,dpcom%ngatherarr,pot,psivirt,hpsivirt,&
            ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
            pkernel,orbs,psirocc) ! optional arguments
 
@@ -419,8 +413,8 @@ subroutine direct_minimization(iproc,nproc,in,at,&
 !!   end do\n
 !!   (retranspose v and psi)\n
 subroutine davidson(iproc,nproc,in,at,&
-      &   orbs,orbsv,nvirt,Lzd,comms,commsv,&
-      &   hx,hy,hz,rxyz,rhopot,nlpspd,proj,pkernel,psi,v,nscatterarr,ngatherarr,GPU)
+     orbs,orbsv,nvirt,Lzd,comms,commsv,&
+     hx,hy,hz,rxyz,rhopot,nlpspd,proj,pkernel,psi,v,dpcom,GPU)
    use module_base
    use module_types
    use module_interfaces, except_this_one => davidson
@@ -434,9 +428,8 @@ subroutine davidson(iproc,nproc,in,at,&
    type(local_zone_descriptors), intent(in) :: Lzd
    type(orbitals_data), intent(in) :: orbs
    type(communications_arrays), intent(in) :: comms, commsv
+   type(denspot_distribution), intent(in) :: dpcom
    real(gp), intent(in) :: hx,hy,hz
-   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
    real(dp), dimension(:), pointer :: pkernel
@@ -507,7 +500,7 @@ subroutine davidson(iproc,nproc,in,at,&
    i3rho_add=0
    if (trim(in%SIC%approach)=='NK') then
       nrhodim=2*nrhodim
-      i3rho_add=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,4)+1
+      i3rho_add=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*dpcom%nscatterarr(iproc,4)+1
    end if
 
    !last index of e and hamovr are for mpi_alLzd%Glreduce. 
@@ -526,10 +519,10 @@ subroutine davidson(iproc,nproc,in,at,&
    !wavefunctions in real space, for exact exchange calculations
    if (exctX) then
       allocate(psirocc(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
-         &   ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
+         &   dpcom%ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
       call memocc(i_stat,psirocc,'psirocc',subname)
 
-      call prepare_psirocc(iproc,nproc,Lzd%Glr,orbs,nscatterarr(iproc,2),ngatherarr(0,1),psi,psirocc)
+      call prepare_psirocc(iproc,nproc,Lzd%Glr,orbs,dpcom%nscatterarr(iproc,2),dpcom%ngatherarr(0,1),psi,psirocc)
    else if (in%SIC%approach=='NK') then
       allocate(psirocc(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*2*orbs%nspin+ndebug),stat=i_stat)
       call memocc(i_stat,psirocc,'psirocc',subname)
@@ -598,16 +591,13 @@ subroutine davidson(iproc,nproc,in,at,&
    call memocc(i_stat,hv,'hv',subname)
 
    !allocate the potential in the full box
-!!$   call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-!!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,in%nspin,&
-!!$      &   Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
-!!$      &   orbsv%norb,orbsv%norbp,ngatherarr,rhopot,pot)
-   call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
-        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
-        orbsv,Lzd,0,ngatherarr,rhopot,pot)
+   call full_local_potential(iproc,nproc,orbsv,Lzd,0,dpcom,rhopot,pot)
+   !(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
+   !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+   !     in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
+   !     orbsv,Lzd,0,ngatherarr,rhopot,pot)
 
-   call local_potential_dimensions(Lzd,orbsv,ngatherarr(0,1))
+   call local_potential_dimensions(Lzd,orbsv,dpcom%ngatherarr(0,1))
    allocate(confdatarr(orbsv%norbp))
    call default_confinement_data(confdatarr,orbsv%norbp)
 
@@ -637,7 +627,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !!$       pkernel,orbs,psirocc) ! optional arguments
 
    call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-        Lzd,confdatarr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+        Lzd,confdatarr,dpcom%ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
         pkernel,orbs,psirocc) ! optional arguments
 
    call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
@@ -920,7 +910,7 @@ subroutine davidson(iproc,nproc,in,at,&
       !!$          pkernel,orbs,psirocc) ! optional argument
 
       call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-           Lzd,confdatarr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+           Lzd,confdatarr,dpcom%ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
            pkernel,orbs,psirocc) ! optional arguments
 
       call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
@@ -1194,7 +1184,7 @@ subroutine davidson(iproc,nproc,in,at,&
       !!$          pkernel,orbs,psirocc) !optional arguments
 
       call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-           Lzd,confdatarr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+           Lzd,confdatarr,dpcom%ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
            pkernel,orbs,psirocc) ! optional arguments
 
       call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&

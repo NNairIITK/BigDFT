@@ -407,7 +407,7 @@ module module_types
 
 !> All the parameters which are important for describing the orbitals
 !! Add also the objects related to k-points sampling, after symmetries applications
-  type, public :: orbitals_data
+  type, public :: orbitals_data 
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb
      integer :: npsidim_orbs,nkpts,nkptsp,iskpts,npsidim_comp
      real(gp) :: efermi,HLgap, eTS

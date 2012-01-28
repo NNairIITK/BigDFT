@@ -1,7 +1,6 @@
-subroutine linearScaling(iproc,nproc,n3d,n3p,n3pi,i3s,i3xcsh,Glr,orbs,comms,at,input,&
-     rhodsc,lin,rxyz,fion,fdisp,nscatterarr,ngatherarr,nlpspd,proj,rhopot,GPU,&
-     pkernelseq,pkernel,pot_ion,rhocore,potxc,&
-     PSquiet,eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
+subroutine linearScaling(iproc,nproc,Glr,orbs,comms,at,input,&
+     lin,rxyz,fion,fdisp,denspot,nlpspd,proj,GPU,&
+     eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
 !
 ! Purpose:
 ! ========
@@ -61,30 +60,19 @@ use module_interfaces, exceptThisOne => linearScaling
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
+integer,intent(in):: iproc, nproc
 type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(inout):: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(inout):: at
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
-type(rho_descriptors),intent(inout) :: rhodsc
 real(8),dimension(3,at%nat),intent(inout):: rxyz
 real(8),dimension(3,at%nat),intent(in):: fion, fdisp
-integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-!integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
-integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
+type(DFT_local_fields), intent(inout) :: denspot
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout), target :: rhopot
 type(GPU_pointers),intent(in out):: GPU
-real(dp),dimension(:),pointer,intent(in):: pkernelseq
-real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
-real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
-!real(wp), dimension(lin%as%size_rhocore):: rhocore 
-real(wp), dimension(:,:,:,:),pointer,intent(in):: rhocore                  
-real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
-character(len=3),intent(in):: PSquiet
 real(gp),intent(in):: eion, edisp, eexctX
 logical,intent(in):: scpot
 !real(8),dimension(orbs),intent(out):: psi
@@ -95,7 +83,7 @@ real(8),dimension(3,at%nat),intent(out):: fxyz
 !real(8),intent(out):: fnoise
 
 ! Local variables
-integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ndimpot,ist,istr,ilr,tag,itout
+integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ist,istr,ilr,tag,itout
 integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit
 real(8),dimension(:,:),pointer:: coeff
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix
@@ -130,7 +118,8 @@ type(orthon_data):: orthpar
   call mpi_barrier(mpi_comm_world, ierr)
   t1init=mpi_wtime()
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-       input, rxyz, nscatterarr, tag, coeff, lphi)
+       input, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi)
+
   lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
   allocate(confdatarr(lin%orbs%norbp))
   call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
@@ -156,9 +145,9 @@ type(orthon_data):: orthpar
   call memocc(istat, psi, 'psi', subname)
   allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
   call memocc(istat, psit, 'psit', subname)
-  allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
+  allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold, 'rhopotold', subname)
-  allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)
+  allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
   !rhopotold_out=1.d100
 
@@ -170,9 +159,8 @@ type(orthon_data):: orthpar
   call mpi_barrier(mpi_comm_world, ierr)
   t1ig=mpi_wtime()
   call inputguessConfinement(iproc, nproc, at, &
-       comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhopotold, rhocore, pot_ion,&
-       nlpspd, proj, pkernel, pkernelseq, &
-       nscatterarr, ngatherarr, potshortcut, GPU, &
+       comms, Glr, input, lin, orbs, rxyz, denspot ,rhopotold, &
+       nlpspd, proj, GPU, &
        tag, lphi, ehart, eexcu, vexcu)
   call mpi_barrier(mpi_comm_world, ierr)
   t2ig=mpi_wtime()
@@ -187,18 +175,18 @@ type(orthon_data):: orthpar
 
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist_lowaccuracy>0) then
-      ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-      call initializeMixrhopotDIIS(lin%mixHist_lowaccuracy, ndimpot, mixdiis)
+     !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
+      call initializeMixrhopotDIIS(lin%mixHist_lowaccuracy, denspot%dpcom%ndimpot, mixdiis)
   end if
 
   if(lin%nItInguess>0) then
       ! Post communications for gathering the potential.
-      ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+     !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
       call allocateCommunicationsBuffersPotential(lin%comgp, subname)
-      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
       if(lin%useDerivativeBasisFunctions) then
           call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
-          call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
       end if
 
       ! Calculate the Hamiltonian in the basis of the trace minimizing orbitals. Do not improve
@@ -215,25 +203,24 @@ type(orthon_data):: orthpar
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, &
               lin%comgp, lin%comgp, at, rxyz, &
-              nscatterarr, ngatherarr, rhopot, GPU,  pkernelseq, updatePhi, &
-              infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, coeff_proj, ldiis, nit, lin%nItInnerLoop, &
+              denspot, GPU, updatePhi, &
+              infoBasisFunctions, infoCoeff, 0, ebs, coeff, lphi, nlpspd, proj, &
+              communicate_lphi, coeff_proj, ldiis, nit, lin%nItInnerLoop, &
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
               lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, lin%lphiRestart, &
               lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
-              input%nspin, input%hx, input%hy, input%hz, input%SIC)
+              input%hx, input%hy, input%hz, input%SIC)
       else
-          call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
-          call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-              lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon,&
-              lin%lb%comon, lin%comgp, lin%lb%comgp, at, rxyz, &
-              nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
-              infoBasisFunctions, infoCoeff, 0, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
-              i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
-              coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, & 
-              lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
-              lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
-              input%nspin, input%hx, input%hy, input%hz, input%SIC)
+          call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
+          call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
+              lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
+              lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
+              denspot,GPU,updatePhi,&
+              infoBasisFunctions,infoCoeff,0, ebs,coeff,lphi,nlpspd,proj,communicate_lphi,&
+              coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
+              lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
+              lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+              input%hx,input%hy,input%hz,input%SIC)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -272,21 +259,22 @@ type(orthon_data):: orthpar
 
       if(trim(lin%mixingMethod)=='pot') then
           if(lin%mixHist_lowaccuracy==0) then
-              call mixPotential(iproc, n3p, Glr, input, lin%alphaMixWhenFixed_lowaccuracy, rhopotOld, rhopot, pnrm)
+              call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, &
+                   lin%alphaMixWhenFixed_lowaccuracy, rhopotOld, denspot%rhov, pnrm)
           else 
-              ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+              !ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
               ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
               mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
               mixdiis%is=mixdiis%is+1
-              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, &
+              call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, rhopotold, mixdiis, ndimtot, &
                    lin%alphaMixWhenFixed_lowaccuracy, 2, pnrm)
           end if
-          rhopotold_out=rhopot
+          rhopotold_out=denspot%rhov
       end if
 
       ! Copy the current potential
       if(trim(lin%mixingMethod)=='pot') then
-           call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
+           call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
       end if
   end if
 
@@ -298,14 +286,14 @@ type(orthon_data):: orthpar
   ! Allocate the communications buffers needed for the communications of teh potential and
   ! post the messages. This will send to each process the part of the potential that this process
   ! needs for the application of the Hamlitonian to all orbitals on that process.
-  ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call allocateCommunicationsBuffersPotential(lin%comgp, subname)
-  call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+  call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
   if(lin%useDerivativeBasisFunctions) then
       call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
-      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+      call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
   end if
 
 
@@ -378,8 +366,8 @@ type(orthon_data):: orthpar
           nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_lowaccuracy
           mixHist=lin%mixHist_lowaccuracy
           if(lin%mixHist_lowaccuracy==0 .and. lin%mixHist_highaccuracy>0) then
-              ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-              call initializeMixrhopotDIIS(lin%mixHist_highaccuracy, ndimpot, mixdiis)
+             !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+              call initializeMixrhopotDIIS(lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
           else if(lin%mixHist_lowaccuracy>0 .and. lin%mixHist_highaccuracy==0) then
               call deallocateMixrhopotDIIS(mixdiis)
           end if
@@ -404,40 +392,37 @@ type(orthon_data):: orthpar
           if(lin%mixedmode) then
               if(.not.withder) then
                   lin%useDerivativeBasisFunctions=.false.
-                  call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
-                      lin%mad, lin%mad, lin%op, lin%op, lin%comon,&
-                      lin%comon, lin%comgp, lin%comgp, at, rxyz, &
-                      nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
-                      infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
-                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
-                      coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
-                      lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
-                      lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
-                      input%nspin, input%hx, input%hy, input%hz, input%SIC)
+                  call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%orbs,lin%comsr,&
+                      lin%mad,lin%mad,lin%op,lin%op,lin%comon,&
+                      lin%comon,lin%comgp,lin%comgp,at,rxyz,&
+                      denspot,GPU,updatePhi,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,&
+                      coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
+                      lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
+                      lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                      input%hx,input%hy,input%hz,input%SIC)
               else
                   lin%useDerivativeBasisFunctions=.true.
-                  call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-                      lin%mad, lin%lb%mad, lin%op, lin%lb%op, &
-                      lin%comon, lin%lb%comon, lin%comgp, lin%lb%comgp, at, rxyz, &
-                      nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
-                      infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
-                      i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
-                      coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
-                      lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
-                      lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
-                      input%nspin, input%hx, input%hy, input%hz, input%SIC)
+                  call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
+                      lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
+                      lin%comon,lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
+                      denspot,GPU,updatePhi,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,&
+                      coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
+                      lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
+                      lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                      input%hx,input%hy,input%hz,input%SIC)
               end if
           else
-              call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
-                  lin%mad, lin%lb%mad, lin%op, lin%lb%op, lin%comon, &
-                  lin%lb%comon, lin%comgp, lin%lb%comgp, at, rxyz, &
-                  nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, updatePhi, &
-                  infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, lin%as%size_pkernel, pkernel, &
-                  i3s, i3xcsh, ebs, coeff, lphi, nlpspd, proj, communicate_lphi, &
-                  coeff_proj, ldiis, nit, lin%nItInnerLoop, lin%newgradient, orthpar, confdatarr, &
-                  lin%methTransformOverlap, lin%blocksize_pdgemm, lin%convCrit, lin%nItPrecond, &
-                  lin%useDerivativeBasisFunctions, lin%lphiRestart, lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
-                  input%nspin, input%hx, input%hy, input%hz, input%SIC)
+              call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
+                  lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
+                  lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
+                  denspot,GPU,updatePhi,&
+                  infoBasisFunctions,infoCoeff,itScc,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,&
+                  coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
+                  lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
+                  lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                  input%hx,input%hy,input%hz,input%SIC)
           end if
 
 
@@ -446,15 +431,21 @@ type(orthon_data):: orthpar
           call cpu_time(t1)
           if(lin%mixedmode) then
               if(.not.withder) then
-                  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%orbs, lin%comsr, &
-                       coeff, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+                  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
+                       lin%lzd, input, lin%orbs, lin%comsr, &
+                       coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                       denspot%rhov, at, denspot%dpcom%nscatterarr)
                else
-                  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
-                       coeff, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+                  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
+                       lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
+                       coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
+                       denspot%rhov, at, denspot%dpcom%nscatterarr)
                end if
           else
-              call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
-                   coeff, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+              call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
+                   lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
+                   coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                   denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
           call mpi_barrier(mpi_comm_world, ierr)
           call cpu_time(t2)
@@ -477,35 +468,39 @@ type(orthon_data):: orthpar
                   end if
               end if
               if(mixHist==0) then
-                  call mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
+                  call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, alphaMix, rhopotOld, denspot%rhov, pnrm)
               else 
-                  ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+                 !ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
                   ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
                   mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
                   mixdiis%is=mixdiis%is+1
-                  call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, 1, pnrm)
+                  call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot,&
+                       denspot%rhov, rhopotold, mixdiis, ndimtot, alphaMix, 1, pnrm)
               end if
               ! Determine the change in the density between this iteration and the last iteration in the outer loop.
               if(pnrm<selfConsistent .or. itSCC==nitSCC) then
                   pnrm_out=0.d0
-                  do i=1,Glr%d%n1i*Glr%d%n2i*n3p
-                      pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2
+                  do i=1,Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p
+                      pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
                   end do
                   call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
                   pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
-                  call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld_out(1), 1)
+                  call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld_out(1), 1)
               end if
           end if
 
           ! Copy the current charge density.
           if(trim(lin%mixingMethod)=='dens') then
-              call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
+              call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
           end if
 
           ! Calculate the new potential.
-          call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, &
-              rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-              coeff, ehart, eexcu, vexcu)
+          if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+          call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,&
+               0.5_gp*input%hx,0.5_gp*input%hy,0.5_gp*input%hz,Glr,denspot,ehart,eexcu,vexcu)
+!!$          call updatePotential(iproc, nproc, denspot%dpcom%n3d, denspot%dpcom%n3p, Glr, orbs, at, input, lin, &
+!!$              denspot%rhov, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+!!$              coeff, ehart, eexcu, vexcu)
 
           ! Calculate the total energy.
           energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
@@ -529,44 +524,46 @@ type(orthon_data):: orthpar
                   end if
               end if
               if(mixHist==0) then
-                  call mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
+                  call mixPotential(iproc, denspot%dpcom%n3p, Glr, input, alphaMix, rhopotOld, denspot%rhov, pnrm)
               else 
-                  ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+                 !ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
                   ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
                   mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
                   mixdiis%is=mixdiis%is+1
-                  call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, 2, pnrm)
+                  call mixrhopotDIIS(iproc, nproc, denspot%dpcom%ndimpot,&
+                       denspot%rhov, rhopotold, mixdiis, ndimtot, alphaMix, 2, pnrm)
               end if
 
               ! Determine the change in the density between this iteration and the last iteration 
               ! of the previous iteration in the outer loop.
               if(pnrm<selfConsistent .or. itSCC==nitSCC) then
                   pnrm_out=0.d0
-                  do i=1,Glr%d%n1i*Glr%d%n2i*n3p
-                      pnrm_out=pnrm_out+(rhopot(i)-rhopotOld_out(i))**2
+                  do i=1,Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p
+                      pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
                   end do
                   call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
                   pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
-                  call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld_out(1), 1)
+                  call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld_out(1), 1)
               end if
           end if
 
           ! Copy the current potential
           if(trim(lin%mixingMethod)=='pot') then
-               call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
+               call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
           end if
 
           ! Post communications for gathering the potential
-          ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+          !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
           call allocateCommunicationsBuffersPotential(lin%comgp, subname)
-          call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
           if(lin%useDerivativeBasisFunctions) then
               call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
-              call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
           end if
 
           ! Write some informations.
-          call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, lin%mixingMethod)
+          call printSummary(iproc, itSCC, infoBasisFunctions, &
+               infoCoeff, pnrm, energy, energyDiff, lin%mixingMethod)
           if(pnrm<selfConsistent) then
               reduceConvergenceTolerance=.true.
               exit
@@ -641,7 +638,7 @@ type(orthon_data):: orthpar
   ! in the subroutine sumrhoForLocalizedBasis2.
   call postCommunicationSumrho2(iproc, nproc, lin%lb%comsr, lin%lb%comsr%sendBuf, lin%lb%comsr%recvBuf)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
-       coeff, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, at, nscatterarr)
+       coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
 
@@ -674,19 +671,19 @@ type(orthon_data):: orthpar
   !!    fxyz, fnoise,radii_cf)
 
   !associate the density
-  rho => rhopot
+  rho => denspot%rhov
 
   !add an if statement which says whether the charge density has already been calculated
   call density_and_hpot(iproc,nproc,at%geocode,at%sym,orbs,lin%Lzd,&
-       0.5_gp*input%hx,0.5_gp*input%hy,0.5_gp*input%hz,nscatterarr,&
-       pkernel,rhodsc,GPU,psi,rho,pot,hstrten)
+       0.5_gp*input%hx,0.5_gp*input%hy,0.5_gp*input%hz,denspot%dpcom%nscatterarr,&
+       denspot%pkernel,denspot%rhod,GPU,psi,rho,pot,hstrten)
 
   !fake ewald stress tensor
   ewaldstr=0.0_gp
   xcstr=0.0_gp
   call calculate_forces(iproc,nproc,Glr,at,orbs,nlpspd,rxyz,&
-       input%hx,input%hy,input%hz,proj,i3s+i3xcsh,n3p,&
-       input%nspin,.false.,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
+       input%hx,input%hy,input%hz,proj,denspot%dpcom%i3s+denspot%dpcom%i3xcsh,denspot%dpcom%n3p,&
+       input%nspin,.false.,denspot%dpcom%ngatherarr,rho,pot,denspot%V_XC,psi,fion,fdisp,fxyz,&
        ewaldstr,hstrten,xcstr,strten,fnoise,pressure,0.0_dp)
 
   iall=-product(shape(pot))*kind(pot)

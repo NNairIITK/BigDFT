@@ -72,6 +72,60 @@ subroutine initialize_rho_descriptors(rhod)
 
 end subroutine initialize_rho_descriptors
 
+subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,dpcom,rhod)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => denspot_communications
+  implicit none
+  integer, intent(in) :: iproc, nproc
+  type(grid_dimensions), intent(in) :: grid
+  real(gp), intent(in) :: hxh, hyh, hzh
+  type(input_variables), intent(in) :: in
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  type(denspot_distribution), intent(inout) :: dpcom
+  type(rho_descriptors), intent(out) :: rhod
+  !local variables
+  character(len = *), parameter :: subname = 'denspot_communications' 
+  integer :: i_stat
+
+  ! Create descriptors for density and potentials.
+  ! ------------------
+  !these arrays should be included in the comms descriptor
+  !allocate values of the array for the data scattering in sumrho
+  !its values are ignored in the datacode='G' case
+  allocate(dpcom%nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
+  call memocc(i_stat,dpcom%nscatterarr,'nscatterarr',subname)
+  !allocate array for the communications of the potential
+  allocate(dpcom%ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,dpcom%ngatherarr,'ngatherarr',subname)
+
+  !create the descriptors for the density and the potential
+  !these descriptors should take into account the localisation regions
+  call createDensPotDescriptors(iproc,nproc,atoms,grid,hxh,hyh,hzh, &
+       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',in%ixc,in%rho_commun, &
+       dpcom%n3d,dpcom%n3p,&
+       dpcom%n3pi,dpcom%i3xcsh,dpcom%i3s, &
+       dpcom%nscatterarr,dpcom%ngatherarr,rhod)
+
+  !Allocate Charge density / Potential in real space
+  !here the full_density treatment should be put
+  dpcom%nrhodim=in%nspin
+  dpcom%i3rho_add=0
+  if (trim(in%SIC%approach)=='NK') then
+     dpcom%nrhodim=2*dpcom%nrhodim
+     dpcom%i3rho_add=grid%n1i*grid%n2i*dpcom%i3xcsh+1
+  end if
+
+  !fill the full_local_potential dimension
+  dpcom%ndimpot=grid%n1i*grid%n2i*dpcom%n3p
+  dpcom%ndimgrid=grid%n1i*grid%n2i*grid%n3i
+  dpcom%ndimrhopot=grid%n1i*grid%n2i*dpcom%n3d*&
+       dpcom%nrhodim
+
+end subroutine denspot_communications
+
 subroutine allocateRhoPot(iproc,nproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,denspot)
   use module_base
   use module_types
@@ -88,25 +142,6 @@ subroutine allocateRhoPot(iproc,nproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,den
 
   character(len = *), parameter :: subname = "allocateRhoPot"
   integer :: i_stat
-
-  ! Create descriptors for density and potentials.
-  ! ------------------
-  !these arrays should be included in the comms descriptor
-  !allocate values of the array for the data scattering in sumrho
-  !its values are ignored in the datacode='G' case
-  allocate(denspot%dpcom%nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
-  call memocc(i_stat,denspot%dpcom%nscatterarr,'nscatterarr',subname)
-  !allocate array for the communications of the potential
-  allocate(denspot%dpcom%ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
-  call memocc(i_stat,denspot%dpcom%ngatherarr,'ngatherarr',subname)
-
-  !create the descriptors for the density and the potential
-  !these descriptors should take into account the localisation regions
-  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh, &
-       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',in%ixc,in%rho_commun, &
-       denspot%dpcom%n3d,denspot%dpcom%n3p,&
-       denspot%dpcom%n3pi,denspot%dpcom%i3xcsh,denspot%dpcom%i3s, &
-       denspot%dpcom%nscatterarr,denspot%dpcom%ngatherarr,denspot%rhod)
 
   ! Allocate density and potentials.
   ! --------
@@ -126,14 +161,7 @@ subroutine allocateRhoPot(iproc,nproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,den
      allocate(denspot%V_XC(1,1,1,in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%V_XC,'V_XC',subname)
   end if
-  !Allocate Charge density / Potential in real space
-  !here the full_density treatment should be put
-  denspot%dpcom%nrhodim=in%nspin
-  denspot%dpcom%i3rho_add=0
-  if (trim(in%SIC%approach)=='NK') then
-     denspot%dpcom%nrhodim=2*denspot%dpcom%nrhodim
-     denspot%dpcom%i3rho_add=Glr%d%n1i*Glr%d%n2i*denspot%dpcom%i3xcsh+1
-  end if
+
   if (denspot%dpcom%n3d >0) then
      allocate(denspot%rhov(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d*&
           denspot%dpcom%nrhodim+ndebug),stat=i_stat)
@@ -147,12 +175,6 @@ subroutine allocateRhoPot(iproc,nproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,den
   call calculate_rhocore(iproc,atoms,Glr%d,rxyz,hxh,hyh,hzh, &
        denspot%dpcom%i3s,denspot%dpcom%i3xcsh,&
        denspot%dpcom%n3d,denspot%dpcom%n3p,denspot%rho_C)
-
-  !fill the full_local_potential dimension
-  denspot%dpcom%ndimpot=Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p
-  denspot%dpcom%ndimgrid=Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  denspot%dpcom%ndimrhopot=Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d*&
-       denspot%dpcom%nrhodim
   
 END SUBROUTINE allocateRhoPot
 

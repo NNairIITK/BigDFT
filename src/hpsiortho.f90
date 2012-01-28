@@ -36,6 +36,9 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
 
+  !put to zero hpsi array
+  call to_zero(orbs%npsidim_orbs,hpsi(1))
+
  if (.not. present(pkernel)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
          Lzd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
@@ -84,7 +87,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    real(wp), dimension(*) :: pot
    real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
    real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
-   real(wp), target, dimension(orbs%npsidim_orbs), intent(out) :: hpsi
+   real(wp), target, dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
    real(dp), dimension(:), pointer, optional :: pkernel
    type(orbitals_data), intent(in), optional :: orbsocc
@@ -470,7 +473,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
    !integer, intent(in) :: ndimrhopot,i3rho_add
    type(orbitals_data),intent(in) :: orbs
    type(local_zone_descriptors),intent(in) :: Lzd
-   type(denspot_distribution), intent(inout) :: dpcom
+   type(denspot_distribution), intent(in) :: dpcom
    !integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(max(dpcom%ndimrhopot,orbs%nspin)), intent(in), target :: potential !< Distributed potential. Might contain the density for the SIC treatments
    real(wp), dimension(:), pointer :: pot
