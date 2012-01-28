@@ -55,6 +55,7 @@ subroutine nullify_p2pComms(p2pcomm)
   nullify(p2pcomm%startingindex)
   nullify(p2pcomm%ise3)
   nullify(p2pcomm%requests)
+  nullify(p2pcomm%auxarray)
 end subroutine nullify_p2pComms
 
 

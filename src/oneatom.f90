@@ -30,6 +30,7 @@ program oneatom
   type(local_zone_descriptors) :: Lzd
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
+  type(denspot_distribution) :: denspotd
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis
   type(rho_descriptors)  :: rhodsc
@@ -206,11 +207,12 @@ program oneatom
   idsx_actual_before=diis%idsx
 
   !allocate the potential in the full box
-  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,&
-       in%nspin,&
-       Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,0,&
-       orbs,Lzd,0,ngatherarr,pot_ion,pot)
-  
+  call full_local_potential(iproc,nproc,orbs,Lzd,0,denspotd,pot_ion,pot)
+!!$  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,&
+!!$       in%nspin,&
+!!$       Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,0,&
+!!$       orbs,Lzd,0,ngatherarr,pot_ion,pot)
+!!$  
   allocate(confdatarr(orbs%norbp))
   call default_confinement_data(confdatarr,orbs%norbp)
 

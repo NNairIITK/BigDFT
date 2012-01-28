@@ -47,7 +47,6 @@ character(len=20),dimension(:),allocatable:: atomNames
 real(8):: t1, t2, tt, tt1, tt2, tt3, tt4, tt5
 integer :: npsidim
 
-
 ! Nullify all pointers
 call nullify_linearParameters(lin)
 
@@ -3215,7 +3214,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
      linear = .false.
      Lzd%nlr = 1
   end if
-
+!print *,'======>Using linear code:',linear,input%linear
   Lzd%linear = .true.
   if (.not. linear)  Lzd%linear = .false. 
 

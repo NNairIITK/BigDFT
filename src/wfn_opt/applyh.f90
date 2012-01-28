@@ -502,8 +502,8 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
 
   !put to zero the external part of psir if the potential is more little than the wavefunction
   !first part of the array
-  !$omp do collapse(2)
   do ispinor=1,nspinor
+     !$omp do 
      do i3=1,i3s-1
         do i2=1,n2i
            do i1=1,n1i
@@ -511,12 +511,12 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
            end do
         end do
      end do
+     !$omp end do
   end do
-  !$omp end do
 
   !central part of the array
-  !$omp do collapse(2)
   do ispinor=1,nspinor
+     !$omp do 
      do i3=i3s,i3e
 
         !first part
@@ -542,12 +542,13 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
         end do
 
      end do
+     !$omp end do
   end do
-  !$omp end do
+
 
   !last part of the array
-  !$omp do collapse(2)
   do ispinor=1,nspinor
+     !$omp do 
      do i3=i3e+1,n3i
         do i2=1,n2i
            do i1=1,n1i
@@ -555,12 +556,12 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
            end do
         end do
      end do
+     !$omp end do
   end do
-  !$omp end do
+
 
   !important part of the array
   if (nspinor==4) then
-
      !$omp do
      do i3=i3s,i3e
         do i2=i2s,i2e
@@ -626,8 +627,8 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
      !$omp end do
 
   else !case with nspinor /=4
-     !$omp do collapse(2)
      do ispinor=1,nspinor
+        !$omp do
         do i3=i3s,i3e
            do i2=i2s,i2e
               !thanks to the optional argument the conditional is done at compile time
@@ -651,8 +652,8 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
               end do
            end do
         end do
+        !$omp end do
      end do
-     !$omp end do
   end if
   
   !$omp critical

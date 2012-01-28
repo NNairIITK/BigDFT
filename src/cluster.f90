@@ -524,13 +524,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc, atoms,denspot%rhod,&
-          orbs,norbv,comms,Lzd,hx,hy,hz,rxyz,denspot%rhov,denspot%rho_C,&
-          denspot%V_ext,&
-          nlpspd,proj,denspot%pkernel,denspot%pkernelseq,ixc,psi,hpsi,psit,&
-          Gvirt,&
-          denspot%dpcom%nscatterarr,denspot%dpcom%ngatherarr,nspin,&
-          0,atoms%sym,GPU,in)
+     call input_wf_diag(iproc,nproc, atoms,denspot,&
+          orbs,norbv,comms,Lzd,hx,hy,hz,rxyz,&
+          nlpspd,proj,ixc,psi,hpsi,psit,&
+          Gvirt,nspin,0,atoms%sym,GPU,in)
      denspot%rhov_is=KS_POTENTIAL
 
      if (nvirt > norbv) then
@@ -572,14 +569,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      scpot=.true.
      eexctX=0.0_gp   !Exact exchange is not calculated right now 
      ! This is the main routine that does everything related to the linear scaling version.
-     call linearScaling(iproc,nproc,denspot%dpcom%n3d,&
-          denspot%dpcom%n3p,denspot%dpcom%n3pi,&
-          denspot%dpcom%i3s,denspot%dpcom%i3xcsh,Lzd%Glr,&
-          orbs,comms,atoms,in,denspot%rhod,lin,&
-          rxyz,fion,fdisp,denspot%dpcom%nscatterarr,denspot%dpcom%ngatherarr,&
-          nlpspd,proj,denspot%rhov,GPU,denspot%pkernelseq,&
-          denspot%pkernel,denspot%V_ext,denspot%rho_C,denspot%V_XC,&
-          denspot%PSquiet,eion,edisp,eexctX,scpot,psi,psit,&
+     call linearScaling(iproc,nproc,Lzd%Glr,&
+          orbs,comms,atoms,in,lin,&
+          rxyz,fion,fdisp,denspot,&
+          nlpspd,proj,GPU,eion,edisp,eexctX,scpot,psi,psit,&
           energy,fxyz)
 
      ! put the infocode to 0, which means success
@@ -885,7 +878,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                  else
                     call XC_potential(atoms%geocode,'D',iproc,nproc,&
                          Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-                         denspot%rhov,eexcu,vexcu,in%nspin,denspot%rho_C,denspot%V_XC)
+                      denspot%rhov,eexcu,vexcu,in%nspin,denspot%rho_C,denspot%V_XC,xcstr)
                     denspot%rhov_is=CHARGE_DENSITY
                     call H_potential(atoms%geocode,'D',iproc,nproc,&
                          Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,&
@@ -928,11 +921,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               linflag = 1                                 !temporary, should change the use of flag in full_local_potential2
               if(in%linear == 'OFF') linflag = 0
               if(in%linear == 'TMO') linflag = 2
-              call full_local_potential(iproc,nproc,&
-                   Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3p,&
-                   Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,in%nspin,&
-                   Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3d*denspot%dpcom%nrhodim,denspot%dpcom%i3rho_add,&
-                   orbs,Lzd,linflag,denspot%dpcom%ngatherarr,denspot%rhov,denspot%pot_full)
+           call full_local_potential(iproc,nproc,orbs,Lzd,linflag,denspot%dpcom,denspot%rhov,denspot%pot_full)
+           !call full_local_potential(iproc,nproc,&
+           !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3p,&
+           !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,in%nspin,&
+           !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3d*denspot%dpcom%nrhodim,denspot%dpcom%i3rho_add,&
+           !     orbs,Lzd,linflag,denspot%dpcom%ngatherarr,denspot%rhov,denspot%pot_full)
 
               !Must change this to fit new three routine scheme
               call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,&
@@ -1262,11 +1256,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      !xc stress, diagonal for the moment
      if (atoms%geocode=='P') then
-        xcstr(1)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
-        xcstr(2)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
-        xcstr(3)=(eexcu-vexcu)/(atoms%alat1*atoms%alat2*atoms%alat3)
-        xcstr(4:6)=0.0_gp
-        !just for completeness
         if (atoms%sym%symObj >= 0) call symm_stress((iproc==0),xcstr,atoms%sym%symObj)
      end if
 
@@ -1407,12 +1396,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            call direct_minimization(iproc,nproc,in,atoms,& 
                 orbs,orbsv,nvirt,Lzd,comms,commsv,&
                 hx,hy,hz,rxyz,denspot%rhov,nlpspd,proj, &
-                denspot%pkernelseq,psi,psivirt,denspot%dpcom%nscatterarr,denspot%dpcom%ngatherarr,GPU)
+                denspot%pkernelseq,psi,psivirt,denspot%dpcom,GPU)
         else if (in%norbv > 0) then
            call davidson(iproc,nproc,in,atoms,& 
                 orbs,orbsv,in%nvirt,Lzd,comms,commsv,&
                 hx,hy,hz,rxyz,denspot%rhov,nlpspd,proj, &
-                denspot%pkernelseq,psi,psivirt,denspot%dpcom%nscatterarr,denspot%dpcom%ngatherarr,GPU)
+                denspot%pkernelseq,psi,psivirt,denspot%dpcom,GPU)
 !!$           call constrained_davidson(iproc,nproc,in,atoms,&
 !!$                orbs,orbsv,in%nvirt,Lzd%Glr,comms,commsv,&
 !!$                hx,hy,hz,rxyz,denspot%rhov,nlpspd,proj, &
@@ -1465,7 +1454,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
            call XC_potential(atoms%geocode,'D',iproc,nproc,&
                 Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
-                denspot%rhov,eexcu,vexcu,in%nspin,denspot%rho_C,denspot%V_XC,denspot%f_XC)
+                denspot%rhov,eexcu,vexcu,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
            denspot%rhov_is=CHARGE_DENSITY
 
            !select the active space if needed
