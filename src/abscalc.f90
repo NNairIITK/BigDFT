@@ -508,6 +508,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Lzd%Glr,shift)
 
+   if ( orbsAO%nspinor.gt.1) then
+      !!  hybrid_on is not compatible with kpoints
+     Lzd%Glr%hybrid_on=.false.
+   endif
+
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
        atoms,rxyz,radii_cf,crmult,frmult,Lzd%Glr)
@@ -635,13 +640,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            PPD, Lzd%Glr  )
       call timing(iproc,'CrtPcProjects ','OF')
    endif
-
-   if ( orbsAO%nspinor.gt.1) then
-      !!  hybrid_on is not compatible with kpoints
-     Lzd%Glr%hybrid_on=.false.
-   endif
-   
-
 
    call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,&
         & eion,fion,in%dispersion,edisp,fdisp,ewaldstr,&
