@@ -26,7 +26,7 @@
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- 
+
  |... (file:withder.perf).........................................Performance Options
  |debug F                    Debug option
  |fftcache 8192              Cache size for the FFT
@@ -93,11 +93,11 @@
        Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
- 
- Number of MPI processes 8
- MPI process does not use OpenMP
+
+ Number of MPI processes 2
+ Number of maximal OpenMP threads per MPI process 2
  No material acceleration (iproc=0)
- 
+
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 100
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -121,8 +121,7 @@
  Atom Name    rloc      C1        C2        C3        C4  
         H   0.20000  -4.18024   0.72508
  Total Number of Electrons       20
- Processes from 0 to 1 treat 2 orbitals 
- Processes from 2 to 7 treat 1 orbitals 
+ Processes from 0 to 1 treat 5 orbitals 
  Total Number of Orbitals        10
  occup(1:10)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -143,17 +142,17 @@
  wavelet localization is ON
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=1296000  Kernel=1368752
+ Memory occ. per proc. (Bytes):  Density=5184000  Kernel=5377240
                                  Full Grid Arrays=9326744
  Load Balancing for Poisson Solver related operations:
- LB_density        : processors   0  -  7 work at 100%
-  LB_kernel        : processors   0  -  6 work at 100%
-                     processor         7   works at    79%
+ LB_density        : processors   0  -  1 work at 100%
+  LB_kernel        : processors   0  -  0 work at 100%
+                     processor         1   works at    98%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1215 points=     28830
    Fine resolution grid: Number of segments=        202 points=       964
- Wavefunctions memory occupation for root MPI process:     0 MB   555 KB   928 B
+ Wavefunctions memory occupation for root MPI process:     1 MB   365 KB   784 B
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       C               3                    1
@@ -164,105 +163,91 @@
  Percent of zero components =                    0
  ------------------------------------------------------------------ Memory Estimation
  Number of atoms=   11 Number of orbitals=    10 Sim. Box Dimensions=    33   35   44
- Estimation performed for 8 processors.
+ Estimation performed for 2 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     1 MB   313 KB
-              Poisson Solver Density (D):     1 MB   242 KB
+               Poisson Solver Kernel (K):     5 MB   132 KB
+              Poisson Solver Density (D):     4 MB   967 KB
      Single Wavefunction for one orbital:     0 MB   278 KB
-    All Wavefunctions for each processor:     1 MB   644 KB
-       Wavefunctions + DIIS per proc (W):    12 MB   500 KB
+    All Wavefunctions for each processor:     4 MB    74 KB
+       Wavefunctions + DIIS per proc (W):    31 MB   221 KB
      Nonlocal Pseudopotential Arrays (P):     0 MB    42 KB
     Arrays of full uncompressed grid (U):     8 MB   917 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
        ~19*K         |   W+~3*U+~ 3*D+K+P   |   ~12*D+K+W+P  |   W+~3*U+~ 3*D+K+P 
-        24MB         |        40MB          |       28MB     |            41MB
- The overall memory requirement needed for this calculation is thus: 41 MB
+        97MB         |        74MB          |       95MB     |            74MB
+ The overall memory requirement needed for this calculation is thus: 97 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 33 MB
  ion-ion interaction energy  4.99495026104655E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -20.000001305549   0.000E+00
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
- Wavefunctions memory occupation for root MPI process:     0 MB   833 KB   880 B
- Wavefunctions memory occupation for root MPI process:     2 MB   732 KB     0 B
- Wavefunctions memory occupation for root MPI process:     0 MB   833 KB   880 B
- Wavefunctions memory occupation for root MPI process:     2 MB   732 KB     0 B
- ################################# Input parameters #################################
- >>>> General parameters.
-    |           |    number of    |     prefactor for     | localization |
-    | atom type | basis functions | confinement potential |    radius    |
-    |     C     |         4       |        -1.00E+00       |     6.0000   |
-    |     H     |         1       |        -1.00E+00       |     6.0000   |
-    ----------------------------------------------------------------------
-    | mixing | mixing | iterations in |   alpha mix   | convergence crit. |  iterations   |  factor for  |  minimal  |  pot diff to   |
-    | scheme | method |  in SC cycle  | optim / fixed |    for mixing     | in outer loop | fixing basis | fix basis | exit outer SCC |
-    | dens  | linear  |    0   /  0   | 0.500 / 0.500 |    1.000E-13      |        1      |   -1.00E+00   | -1.00E+00 |   -1.00E+00    |
-    ------------------------------------------------------------------------------------------------------------------------------------
-    | use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  | transform |
-    |  basis functions   |   potential    |  input guess  | per process  | orthoconstraint | to global |
-    |         T          |       4        |        10     |       1      |       no        |      T    |
-    ----------------------------------------------------------------------
- >>>> Parameters for the optimization of the basis functions.
-    | maximal number | convergence | iterations in  | get coef- | plot  |     stop     |
-    |  of iterations |  criterion  | preconditioner | ficients  | basis | optimization |
-    |  first   else  |             |                |           |       |              |
-    |                -1                  -1  |  4.000E-05  |        5       |  ...   |   F   |  -1.000E+00  |
-    ---------------------------------------------------------------------
-    | DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |
-    |  min   max   |            |          | with SD |            | nit max   conv crit | of overlap mat |
-    |   0     5    |  1.00E+00  | 1.00E-04 |     F    | -1.000E+00 |    1       -1.0E+00  |     exact      |
-    ------------------------------------------------------------------------------------------------------
- >>>> Parameters for the optimization of the coefficients.
-    | maximal number | convergence |
-    |  of iterations |  criterion  |
-    |         1      |  -1.00E+00  | 
-    --------------------------------
- >>>> Performance options
-    | blocksize | blocksize | max proc | max proc | memory for |
-    |  pdsyev   |  pdgemm   |  pdsyev  |  pdgemm  | overlap IG |
-    |     -8    |     -8    |     1   |     1   |     100    |
- lin%locregShape:s
- nit low accur, nit high accur     2     1
- lin%nItBasis_lowaccuracy, lin%nItBasis_highaccuracy     2     4
- lin%mixedmode  F
+ |... (file:withder.lin)............................................Linear Parameters
+ |2  1           iterations with low accuracy, high accuracy                         
+ |2  4           iterations to optimize the basis functions for low accuracy and high
+ |0   4.d-       iterations in the inner loop, convergence criterion                 
+ |0  5  1.d0  1.d-DIISHistMin, DIISHistMax, step size for DIIS, step size for SD     
+ |5              number of iterations in the preconditioner                          
+ |s              cubic ('c') or spheric ('s') localization region                    
+ |-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential)       
+ |1  1           max number of process uses for pdsyev/pdsygv, pdgemm                
+ |0  1           0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for th
+ |1              in orthoconstraint: correction for non-orthogonality (0) or no corre
+ |dens           mixing method: dens or pot                                          
+ |0  1           low accuracy: mixing history (0-> SD, >0-> DIIS), number of iteratio
+ |0  1           high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterati
+ |0.5d0 0.5d0 1.d-13  low accuracy: mixing parameter (when optimized / not optimized)
+ |0.5d0 0.5d0    high accuracy: mixing parameter (when optimized / not optimized)    
+ |1.d-11         convergence criterion for the low accuracy part                     
+ |T  4           use the derivative basis functions, Order of confinement potential (
+ |10  100        number of iterations for the input guess, memory available for overl
+ |F              plot basis functions: true or false                                 
+ |T              transform to global orbitals in the end (T/F)                       
+ |1              number of orbitals per process for trace minimization during input g
+ |F              mixed mode (without and with derivatives)                           
+ |C 4 5.0d-2 3.0d-4 6.0  Atom name, number of basis functions per atom, prefactor for
+ |H 1 5.0d-2 3.0d-4 6.0  Atom name, number of basis functions per atom, prefactor for
+ Wavefunctions memory occupation for root MPI process:     2 MB   731 KB   544 B
+ Wavefunctions memory occupation for root MPI process:    10 MB   878 KB   128 B
+ Wavefunctions memory occupation for root MPI process:     2 MB   731 KB   544 B
+ Wavefunctions memory occupation for root MPI process:    10 MB   878 KB   128 B
+ ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
-    | Processes from 0 to 3 treat 3 orbitals, |
-    | processes from 4 to 7 treat 2 orbitals. |
+    | Processes from 0 to 1 treat 10 orbitals. |
  -----------------------------------------------
  >>>> Partition of the basis functions including the derivatives among the processes.
-    | Processes from 0 to 7 treat 10 orbitals. |
- ####################################################################################
- Initializing localization regions... done in 1.879E-02s.
- Initializing communications sumrho... done in 5.293E-05s.
- Initializing communications potential... done in 2.503E-05s.
- Initializing communications orthonormalization... done in 4.410E-01s.
- Initializing input guess... done in 9.808E-02s.
+    | Processes from 0 to 1 treat 40 orbitals. |
+ ------------------------------------------------------------------------------------
+ Initializing localization regions... done in 4.618E-02s.
+ Initializing communications sumrho... done in 1.659E-04s.
+ Initializing communications potential... done in 2.384E-05s.
+ Initializing communications orthonormalization... done in 3.202E+00s.
+ Initializing input guess... done in 3.712E-01s.
  ################################# Memory estimator ##################################
  WARNING: The memory requirements are underestimated by about 20-30%!
  Memory requirements of the largest arrays:
-   trace minimizing orbitals phi: 1MB
-   DIIS history of the trace minimizing orbitals phi: 3MB
+   trace minimizing orbitals phi: 3MB
+   DIIS history of the trace minimizing orbitals phi: 14MB
    The Hamiltonian applied to the orbital, i.e. hphi: 0MB
-   charge density / potential: 2MB
-   communication buffers sumrho: 16MB
-   communication buffers for gathering the potential: 7MB
-   communication buffers / workk arrays for orthonormalization: 15MB
-   auxilliary arrays for orthonormalization: 4MB
+   charge density / potential: 9MB
+   communication buffers sumrho: 86MB
+   communication buffers for gathering the potential: 8MB
+   communication buffers / workk arrays for orthonormalization: 38MB
+   auxilliary arrays for orthonormalization: 11MB
    potential / orbital in real space (Hamiltonian application): 9MB
    input guess, all orbitals: 0MB
-   input guess, communication buffers and auxilliary arrays for orthonormalization : 19MB
-   input guess, communication buffers for gathering the potential: 7MB
- >>> estimated memory peak: 40MB
- >>> peak section: Optimization of the basis functions
+   input guess, communication buffers and auxilliary arrays for orthonormalization : 49MB
+   input guess, communication buffers for gathering the potential: 8MB
+ >>> estimated memory peak: 114MB
+ >>> peak section: Calculation the Hamiltonian matrix
  #####################################################################################
- Initializing matrix compression... done in 3.710E-04s.
+ Initializing matrix compression... done in 3.510E-04s.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 20 Atomic Input Orbitals
- Processes from 0 to 3 treat 3 inguess orbitals 
- Processes from 4 to 7 treat 2 inguess orbitals 
+ Processes from 0 to 1 treat 10 inguess orbitals 
  Calculating AIO wavefunctions: 
  Generation of input wavefunction data for atom      C: 
    Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
@@ -270,13 +255,13 @@
    Elec. Configuration: s 1.00 , ... done.
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    3.17E-05
- Calculating charge density... Calculation of charge density... done. Total electronic charge=      19.999999484208
+ Calculating charge density... Calculation of charge density... done. Total electronic charge=      19.999999484206
 done.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
- Gathering the potential... done. Communication overlap ratio:  0.0%
+ Gathering the potential... done.
  Hamiltonian application for all atoms. This may take some time.
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
    atom 1...  Hamiltonian application...done.
    atom 2...  Hamiltonian application...done.
    atom 3...  Hamiltonian application...done.
@@ -288,8 +273,8 @@ done.
    atom 9...  Hamiltonian application...done.
    atom 10...  Hamiltonian application...done.
    atom 11...  Hamiltonian application...done.
-The minimization is performed using 8 processes.
- the specified memory allows to overlap 218453 iterations with communication
+The minimization is performed using 2 processes.
+ the specified memory allows to overlap 65536 iterations with communication
  Calculating Hamiltonian matrix for all atoms. This may take some time.
    Calculating matrix for atom 1... done.
    Calculating matrix for atom 2... done.
@@ -305,7 +290,7 @@ The minimization is performed using 8 processes.
  communicating matrices... jj          11
  done.
  ------------------------------- Minimizing trace in the basis of the atomic orbitals
-The minimization is performed using 8 processes.
+The minimization is performed using 2 processes.
  ============================== optmizing coefficients ==============================
  ----------------------------------------------------------------------------- iter=1
 max deviation from unity, position:  2.115004E+00  12  13
@@ -315,7 +300,7 @@ max deviation from unity, position:  4.962721E-01  13  13
  fnrm, trace, mean alpha   1.00E+00   1.2191091974198E+01  5.50E-01
  ----------------------------------------------------------------------------- iter=3
 max deviation from unity, position:  6.030121E-02  16  16
- fnrm, trace, mean alpha   3.98E-01   1.2032968207583E+01  6.05E-01
+ fnrm, trace, mean alpha   3.98E-01   1.2032968207584E+01  6.05E-01
  ----------------------------------------------------------------------------- iter=4
 max deviation from unity, position:  2.071488E-02  3  3
  fnrm, trace, mean alpha   1.54E-01   1.2005024464144E+01  6.66E-01
@@ -329,7 +314,7 @@ max deviation from unity, position:  5.977391E-03  1  1
 max deviation from unity, position:  3.071353E-03  1  1
  fnrm, trace, mean alpha   9.92E-03   1.1999791739294E+01  8.86E-01
  ----------------------------------------------------------------------------- iter=8
-max deviation from unity, position:  2.135784E-03  16  1
+max deviation from unity, position:  2.135784E-03  1  16
  fnrm, trace, mean alpha   7.08E-03   1.1999784041858E+01  9.74E-01
  ----------------------------------------------------------------------------- iter=9
 max deviation from unity, position:  2.137337E-03  1  16
@@ -340,18 +325,16 @@ max deviation from unity, position:  2.138850E-03  1  16
  WARNING: not converged within 10 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, trace:   5.9609083E-03  1.1999786E+01
  ====================================================================================
- time for "buildLinearCombinations": 1.388E-01
+ time for "buildLinearCombinations": 6.950E-01
  ------------------------------------------------------------- Input guess generated.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
- calculating derivative basis functions... statistics: - 32 point to point communications, of which 0 could be overlapped with computation.
-             - 48 copies on the same processor.
-done.
+ calculating derivative basis functions...done.
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 93.5%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -374,13 +357,13 @@ done.
    eval(17)= 4.15385E-01
    eval(18)= 4.40149E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.962E-03
- time for sumrho:  1.2500E-03
+ time for diagonalizing the Hamiltonian: 1.899E-03
+ time for sumrho:  2.0000E-02
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ======================== Creation of the basis functions... ========================
- Gathering the potential... done. Communication overlap ratio:  0.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  2.5373391E+00  3.7440603E+00    11.7895800034
@@ -392,20 +375,18 @@ done.
  Final values for fnrm, fnrmMax, trace:   2.3971358E+00  3.6851544E+00   7.1524110
  ============================= Basis functions created. =============================
  timings:
-   -total time: 5.833E-01
-     - orthonormalization: 6.540E-02=11.2%
-     - Hamiltonian application: 1.773E-01=30.4%
-     - orthoconstraint: 3.642E-02= 6.2%
-     - preconditioning: 2.797E-01=47.9%
-     - unitary optimization: 2.211E-05= 0.0%
-     - other: 2.454E-02= 4.2%
- calculating derivative basis functions... statistics: - 32 point to point communications, of which 0 could be overlapped with computation.
-             - 48 copies on the same processor.
-done.
+   -total time: 2.533E+00
+     - orthonormalization: 8.637E-02= 3.4%
+     - Hamiltonian application: 6.919E-01=27.3%
+     - orthoconstraint: 1.275E-01= 5.0%
+     - preconditioning: 1.547E+00=61.1%
+     - unitary optimization: 5.043E-05= 0.0%
+     - other: 7.943E-02= 3.1%
+ calculating derivative basis functions...done.
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -428,26 +409,26 @@ done.
    eval(17)= 4.55101E-01
    eval(18)= 4.58028E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.830E-03
+ time for diagonalizing the Hamiltonian: 1.825E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999906120E+01
- time for sumrho: 2.040E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999906111E+01
+ time for sumrho: 1.474E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.27E-06   -2.22026044417082034E+01   -2.2203E+01
+   it, Delta DENS, energy, energyDiff   1   4.27E-06   -2.22026044417018511E+01   -2.2203E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 82.6%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -470,26 +451,26 @@ done.
    eval(17)= 5.77007E-01
    eval(18)= 5.98985E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.838E-03
+ time for diagonalizing the Hamiltonian: 1.797E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999915439E+01
- time for sumrho: 2.040E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999915432E+01
+ time for sumrho: 1.477E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.11E-06   -1.91378941177419080E+01    3.0647E+00
+   it, Delta DENS, energy, energyDiff   2   2.11E-06   -1.91378941177343194E+01    3.0647E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 89.1%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -512,26 +493,26 @@ done.
    eval(17)= 5.87301E-01
    eval(18)= 6.00744E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.831E-03
+ time for diagonalizing the Hamiltonian: 1.786E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999915052E+01
- time for sumrho: 2.030E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999915043E+01
+ time for sumrho: 1.471E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   8.74E-07   -1.92422323335468661E+01   -1.0434E-01
+   it, Delta DENS, energy, energyDiff   3   8.74E-07   -1.92422323335390217E+01   -1.0434E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 82.6%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -554,26 +535,26 @@ done.
    eval(17)= 6.01774E-01
    eval(18)= 6.17580E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.835E-03
+ time for diagonalizing the Hamiltonian: 2.056E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999915489E+01
- time for sumrho: 2.040E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999915481E+01
+ time for sumrho: 1.471E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   4.38E-07   -1.90350452740014617E+01    2.0719E-01
+   it, Delta DENS, energy, energyDiff   4   4.38E-07   -1.90350452739935463E+01    2.0719E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 78.3%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -596,26 +577,26 @@ done.
    eval(17)= 6.07333E-01
    eval(18)= 6.23060E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.821E-03
+ time for diagonalizing the Hamiltonian: 1.836E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999915597E+01
- time for sumrho: 2.040E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999915588E+01
+ time for sumrho: 1.477E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   2.07E-07   -1.89778412240151937E+01    5.7204E-02
+   it, Delta DENS, energy, energyDiff   5   2.07E-07   -1.89778412240073635E+01    5.7204E-02
  ############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   1   3.40E-06   -1.89778412240151937E+01   -1.8978E+01
+   itout, Delta DENSOUT, energy, energyDiff   1   3.40E-06   -1.89778412240073635E+01   -1.8978E+01
  ======================== Creation of the basis functions... ========================
- Gathering the potential... done. Communication overlap ratio:  0.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  2.3803617E+00  3.6612521E+00    11.1001467082
@@ -627,20 +608,18 @@ done.
  Final values for fnrm, fnrmMax, trace:   7.6205094E-01  1.0322108E+00   7.5323640
  ============================= Basis functions created. =============================
  timings:
-   -total time: 5.824E-01
-     - orthonormalization: 6.405E-02=11.0%
-     - Hamiltonian application: 1.779E-01=30.6%
-     - orthoconstraint: 3.620E-02= 6.2%
-     - preconditioning: 2.798E-01=48.0%
-     - unitary optimization: 8.374E-06= 0.0%
-     - other: 2.434E-02= 4.2%
- calculating derivative basis functions... statistics: - 32 point to point communications, of which 0 could be overlapped with computation.
-             - 48 copies on the same processor.
-done.
+   -total time: 2.480E+00
+     - orthonormalization: 8.293E-02= 3.3%
+     - Hamiltonian application: 6.675E-01=26.9%
+     - orthoconstraint: 1.287E-01= 5.2%
+     - preconditioning: 1.521E+00=61.3%
+     - unitary optimization: 2.503E-06= 0.0%
+     - other: 7.960E-02= 3.2%
+ calculating derivative basis functions...done.
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -663,26 +642,26 @@ done.
    eval(17)= 5.57141E-01
    eval(18)= 5.60530E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.846E-03
+ time for diagonalizing the Hamiltonian: 1.988E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999943810E+01
- time for sumrho: 2.040E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999943801E+01
+ time for sumrho: 1.476E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.28E-06   -2.12183432129219085E+01   -2.2405E+00
+   it, Delta DENS, energy, energyDiff   1   2.28E-06   -2.12183432129149878E+01   -2.2405E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 73.9%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -705,26 +684,26 @@ done.
    eval(17)= 5.57499E-01
    eval(18)= 5.67877E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.822E-03
+ time for diagonalizing the Hamiltonian: 2.104E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999944144E+01
- time for sumrho: 2.030E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999944135E+01
+ time for sumrho: 1.477E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   7.43E-07   -2.07023885153251257E+01    5.1595E-01
+   it, Delta DENS, energy, energyDiff   2   7.43E-07   -2.07023885153180629E+01    5.1595E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 82.6%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -747,26 +726,26 @@ done.
    eval(17)= 5.45527E-01
    eval(18)= 5.53633E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.828E-03
+ time for diagonalizing the Hamiltonian: 1.779E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999943815E+01
- time for sumrho: 2.040E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999943806E+01
+ time for sumrho: 1.473E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.92E-07   -2.09376861706128921E+01   -2.3530E-01
+   it, Delta DENS, energy, energyDiff   3   3.92E-07   -2.09376861706063266E+01   -2.3530E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 84.8%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -789,26 +768,26 @@ done.
    eval(17)= 5.41492E-01
    eval(18)= 5.49851E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.829E-03
+ time for diagonalizing the Hamiltonian: 1.778E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999943736E+01
- time for sumrho: 2.040E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999943727E+01
+ time for sumrho: 1.478E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.82E-07   -2.09703068148176186E+01   -3.2621E-02
+   it, Delta DENS, energy, energyDiff   4   1.82E-07   -2.09703068148110248E+01   -3.2621E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 78.3%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -831,26 +810,26 @@ done.
    eval(17)= 5.39291E-01
    eval(18)= 5.47546E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.828E-03
+ time for diagonalizing the Hamiltonian: 1.778E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999943684E+01
- time for sumrho: 2.030E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999943677E+01
+ time for sumrho: 1.473E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   8.98E-08   -2.09984826737166514E+01   -2.8176E-02
+   it, Delta DENS, energy, energyDiff   5   8.98E-08   -2.09984826737098302E+01   -2.8176E-02
  ############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   2   1.76E-06   -2.09984826737166514E+01   -2.0206E+00
+   itout, Delta DENSOUT, energy, energyDiff   2   1.76E-06   -2.09984826737098302E+01   -2.0206E+00
  ======================== Creation of the basis functions... ========================
- Gathering the potential... done. Communication overlap ratio:  0.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  2.5386903E-01  2.8702056E-01    -2.4636655736
@@ -870,20 +849,18 @@ done.
  Final values for fnrm, fnrmMax, trace:   1.1075883E-02  1.2597038E-02  -2.9097315
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.234E+00
-     - orthonormalization: 1.568E-01=12.7%
-     - Hamiltonian application: 3.931E-01=31.8%
-     - orthoconstraint: 7.200E-02= 5.8%
-     - preconditioning: 5.607E-01=45.4%
-     - unitary optimization: 8.941E-07= 0.0%
-     - other: 5.176E-02= 4.2%
- calculating derivative basis functions... statistics: - 32 point to point communications, of which 0 could be overlapped with computation.
-             - 48 copies on the same processor.
-done.
+   -total time: 5.099E+00
+     - orthonormalization: 1.656E-01= 3.2%
+     - Hamiltonian application: 1.470E+00=28.8%
+     - orthoconstraint: 2.549E-01= 5.0%
+     - preconditioning: 3.048E+00=59.8%
+     - unitary optimization: 3.099E-06= 0.0%
+     - other: 1.600E-01= 3.1%
+ calculating derivative basis functions...done.
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -906,26 +883,26 @@ done.
    eval(17)= 5.27982E-01
    eval(18)= 5.37437E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.840E-03
+ time for diagonalizing the Hamiltonian: 1.806E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999951906E+01
- time for sumrho: 2.040E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999951896E+01
+ time for sumrho: 1.477E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.32E-06   -1.99182028443173920E+01    1.0803E+00
+   it, Delta DENS, energy, energyDiff   1   2.32E-06   -1.99182028443104997E+01    1.0803E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 84.8%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -948,26 +925,26 @@ done.
    eval(17)= 4.42967E-01
    eval(18)= 4.57950E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.851E-03
+ time for diagonalizing the Hamiltonian: 1.797E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999951945E+01
- time for sumrho: 2.040E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999951937E+01
+ time for sumrho: 1.469E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.22E-06   -2.13881447077320814E+01   -1.4699E+00
+   it, Delta DENS, energy, energyDiff   2   1.22E-06   -2.13881447077237681E+01   -1.4699E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 78.3%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -990,26 +967,26 @@ done.
    eval(17)= 4.24559E-01
    eval(18)= 4.39341E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.858E-03
+ time for diagonalizing the Hamiltonian: 2.375E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999951833E+01
- time for sumrho: 2.030E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999951827E+01
+ time for sumrho: 1.469E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   5.73E-07   -2.15211106126514409E+01   -1.3297E-01
+   it, Delta DENS, energy, energyDiff   3   5.73E-07   -2.15211106126440370E+01   -1.3297E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 84.8%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1032,26 +1009,26 @@ done.
    eval(17)= 4.14692E-01
    eval(18)= 4.29333E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.855E-03
+ time for diagonalizing the Hamiltonian: 1.820E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999951754E+01
- time for sumrho: 2.040E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999951747E+01
+ time for sumrho: 1.474E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.83E-07   -2.16269153462984178E+01   -1.0580E-01
+   it, Delta DENS, energy, energyDiff   4   2.83E-07   -2.16269153462906587E+01   -1.0580E-01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
- Gathering the potential... done. Communication overlap ratio: 93.5%
- Gathering the potential... done. Communication overlap ratio:100.0%
- Gathering the potential... done. Communication overlap ratio:100.0%
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Gathering the potential... done.
  Hamiltonian application... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1074,51 +1051,51 @@ done.
    eval(17)= 4.10160E-01
    eval(18)= 4.24756E-01
  -------------------------------------------------
- time for diagonalizing the Hamiltonian: 1.855E-03
+ time for diagonalizing the Hamiltonian: 1.805E-03
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio:100.0%
-   Calculation finished. TOTAL CHARGE =   1.999999951716E+01
- time for sumrho: 2.470E+00
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999951708E+01
+ time for sumrho: 1.473E+01
  ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for communicating the potential... done.
  ############################################################################################
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.39E-07   -2.16728512568310663E+01   -4.5936E-02
+   it, Delta DENS, energy, energyDiff   5   1.39E-07   -2.16728512568230656E+01   -4.5936E-02
  ############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   3   2.13E-06   -2.16728512568310663E+01   -6.7437E-01
+   itout, Delta DENSOUT, energy, energyDiff   3   2.13E-06   -2.16728512568230656E+01   -6.7437E-01
  Posting sends / receives for the calculation of the charge density... done.
  Calculating charge density...
    calculating the density kernel... done.
-   waiting for communication to complete... done. Communication overlap ratio: 45.8%
-   Calculation finished. TOTAL CHARGE =   1.999999951716E+01
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.999999951708E+01
  ------------------------------------- Building linear combinations... done.
  ================================================
- total time for linear scaling version: 4.690E+01s
+ total time for linear scaling version: 2.919E+02s
    of which:
-             - initialization: 5.884E-01s ( 1.3%)
-             - input guess: 1.580E+00s ( 3.4%)
-             - self consistency cycle: 4.237E+01s (90.3%)
+             - initialization: 3.698E+00s ( 1.3%)
+             - input guess: 5.811E+00s ( 2.0%)
+             - self consistency cycle: 2.665E+02s (91.3%)
              - forces: 0.000E+00s ( 0.0%)
  ================================================
- PSolver, free  BC, dimensions:    97  101  119   proc    8 ... done.
+ PSolver, free  BC, dimensions:    97  101  119   proc    2 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
  average noise along x direction:   2.30396811E-03
  average noise along y direction:   6.89118061E-03
  average noise along z direction:  -5.90160846E-03
  total average noise            :   9.36085582E-03
- clean forces norm (Ha/Bohr): maxval=  1.795103191713E-02  fnrm2=  1.025635741688E-03
- raw forces:                  maxval=  2.160378265058E-02  fnrm2=  1.217830148658E-03
+ clean forces norm (Ha/Bohr): maxval=  1.795103191711E-02  fnrm2=  1.025635741686E-03
+ raw forces:                  maxval=  2.160378265056E-02  fnrm2=  1.217830148656E-03
  Force values for all atoms in x, y, z direction.
    1      C   9.7792250449E-04 -8.0586644741E-03 -7.8279100994E-03
    2      C  -2.9541220683E-04  1.0799990261E-02 -1.4335706780E-02
    3      C  -1.1252063443E-03  8.2947848312E-03  8.2833831423E-03
-   4      H  -6.0948228525E-04  7.1889660515E-03 -7.3186888982E-04
+   4      H  -6.0948228525E-04  7.1889660515E-03 -7.3186888981E-04
    5      H  -6.1485158913E-03 -3.7040297810E-03 -1.5573317226E-03
    6      H   6.4275404289E-03 -4.3161984536E-03 -1.7322313320E-03
    7      H  -4.7772059193E-03  2.6549273575E-03  4.0814110759E-03
@@ -1127,12 +1104,12 @@ done.
    10      H   3.5581836696E-03 -6.1192774347E-03  5.8295696955E-03
    11      H  -1.4201643387E-04 -3.7216326841E-03 -1.8140072931E-03
  ================================================
- total time for linear scaling version: 4.696E+01s
+ total time for linear scaling version: 2.922E+02s
    of which:
-             - initialization: 5.884E-01s ( 1.3%)
-             - input guess: 1.580E+00s ( 3.4%)
-             - self consistency cycle: 4.237E+01s (90.2%)
-             - forces: 8.681E-02s ( 0.2%)
+             - initialization: 3.698E+00s ( 1.3%)
+             - input guess: 5.811E+00s ( 2.0%)
+             - self consistency cycle: 2.665E+02s (91.2%)
+             - forces: 3.686E-01s ( 0.1%)
  ================================================
  Final values of the Forces for each atom
      1      C  9.77923E-04 -8.05866E-03 -7.82791E-03
@@ -1147,6 +1124,6 @@ done.
     10      H  3.55818E-03 -6.11928E-03  5.82957E-03
     11      H -1.42016E-04 -3.72163E-03 -1.81401E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 18085 allocations and 18085 deallocations, remaining memory(B): 0
- memory occupation peak: 164 MB
- for the array  ovrlp2 in the routine applyOrthoconstraintNonorthogonal2
+ 50716 allocations and 50716 deallocations, remaining memory(B): 0
+ memory occupation peak: 689 MB
+ for the array  ovrlpCompressed_receive in the routine calculateOverlapMatrix3
