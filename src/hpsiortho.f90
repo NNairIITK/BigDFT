@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-     proj,Lzd,nlpspd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
+     proj,Lzd,nlpspd,confdatarr,ngatherarr,pot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
      pkernel,orbsocc,psirocc)
   use module_base
@@ -28,7 +28,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(Lzd%Lnprojel), intent(in) :: proj
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
-  real(wp), dimension(lzd%ndimpotisf) :: Lpot
+  real(wp), dimension(lzd%ndimpotisf) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
   real(wp), target, dimension(orbs%npsidim_orbs), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
@@ -36,20 +36,20 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
 
-  !put to zero hpsi array
+  !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
   call to_zero(orbs%npsidim_orbs,hpsi(1))
 
  if (.not. present(pkernel)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
-         Lzd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
+         Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
          ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU)
  else if (present(pkernel) .and. .not. present(orbsocc)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
-         Lzd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
+         Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
          ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel=pkernel)
  else if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
-         Lzd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
+         Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
          ekin_sum,epot_sum,eexctX,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
  else
     stop 'HamiltonianApplication, argument error'

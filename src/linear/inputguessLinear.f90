@@ -626,13 +626,14 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           end if
       end do
       if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'atom ', iat, '... '
+
       if(.not.skip(iat)) then
           ii=ii+1
           if(lin%nItInguess>0) then
              allocate(confdatarr(lin%lig%orbsig%norbp))
              call define_confinement_data(confdatarr,lin%lig%orbsig,rxyz,at,&
                   input%hx,input%hy,input%hz,lin,lin%lig%lzdig,onWhichAtomTemp)
-
+             call to_zero(lin%lig%orbsig%npsidim_orbs,lhchi(1,ii))
              call LocalHamiltonianApplication(iproc,nproc,at,lin%lig%orbsig,&
                   input%hx,input%hy,input%hz,&
                   lin%lig%lzdig,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lchi,lhchi(1,ii),&

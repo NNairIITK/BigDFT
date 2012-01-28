@@ -916,12 +916,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            if(in%linear == 'OFF') linflag = 0
            if(in%linear == 'TMO') linflag = 2
            call full_local_potential(iproc,nproc,orbs,Lzd,linflag,denspot%dpcom,denspot%rhov,denspot%pot_full)
-           !call full_local_potential(iproc,nproc,&
-           !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3p,&
-           !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,in%nspin,&
-           !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3d*denspot%dpcom%nrhodim,denspot%dpcom%i3rho_add,&
-           !     orbs,Lzd,linflag,denspot%dpcom%ngatherarr,denspot%rhov,denspot%pot_full)
 
+           call to_zero(orbs%npsidim_orbs,hpsi(1))
            !Must change this to fit new three routine scheme
            call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,&
                 Lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&

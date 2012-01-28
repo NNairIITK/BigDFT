@@ -1471,11 +1471,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      !spin adaptation for the IG in the spinorial case
      orbse%nspin=nspin
     call full_local_potential(iproc,nproc,orbse,Lzd,1,denspot%dpcom,denspot%rhov,denspot%pot_full)
-!!$         lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
-!!$         lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
-!!$         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add, &
-!!$         orbse, Lzd,1,&
-!!$         ngatherarr, rhopot, Lpot)
     orbse%nspin=nspin_ig
 
     allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
@@ -1486,10 +1481,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
     call memocc(i_stat,Lhpsi,'Lhpsi',subname)
 
     ! the loop on locreg is inside LinearHamiltonianApplication
-!    call LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,orbse,hx,hy,hz,rxyz,&
-!     proj,ngatherarr,pot,Lpsi,Lhpsi,&
-!     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel=pkernelseq)
-
 
     withConfinement=.false.
     call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
@@ -1834,31 +1825,14 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !spin adaptation for the IG in the spinorial case
    orbse%nspin=nspin
    call full_local_potential(iproc,nproc,orbse,Lzd,0,denspot%dpcom,denspot%rhov,denspot%pot_full)
-   !(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-   !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,&
-   !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
-    !    i3rho_add,orbse,Lzd,0,ngatherarr,rhopot,pot)
    orbse%nspin=nspin_ig
 
    call default_confinement_data(confdatarr,orbse%norbp)
-
-   if(.false.) then
-
-      call LocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,&
-           Lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
-           ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=denspot%pkernelseq)
-
-      call NonLocalHamiltonianApplication(iproc,at,orbse,hx,hy,hz,rxyz,&
-           proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
-
-      call SynchronizeHamiltonianApplication(nproc,orbse,Lzd,GPU,hpsi,&
-           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
-   end if
-    
-    call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-         proj,Lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
-         ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
-         pkernel=denspot%pkernelseq)
+   
+   call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+        proj,Lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
+        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+        pkernel=denspot%pkernelseq)
     !restore the good value
     call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
  

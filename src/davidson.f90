@@ -257,19 +257,20 @@ subroutine direct_minimization(iproc,nproc,in,at,&
       !terminate SCF loop if forced to switch more than once from DIIS to SD
       !endloop=endloop .or. ndiis_sd_sw > 2
 
-      !!$     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-      !!$          nlpspd,proj,Lzd%Glr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
-      !!$          pkernel,orbs,psirocc) ! optional arguments
+      call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+           proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,psivirt,hpsivirt,&
+           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+           pkernel,orbs,psirocc)
 
-      call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-           Lzd,confdatarr,dpcom%ngatherarr,pot,psivirt,hpsivirt,&
-           ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
-           pkernel,orbs,psirocc) ! optional arguments
-
-      call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
-           proj,Lzd,nlpspd,psivirt,hpsivirt,eproj_sum)
-
-      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hpsivirt,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+!!$      call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
+!!$           Lzd,confdatarr,dpcom%ngatherarr,pot,psivirt,hpsivirt,&
+!!$           ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+!!$           pkernel,orbs,psirocc) ! optional arguments
+!!$
+!!$      call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$           proj,Lzd,nlpspd,psivirt,hpsivirt,eproj_sum)
+!!$
+!!$      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hpsivirt,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
       energybs=ekin_sum+epot_sum+eproj_sum
       !n(c) energy_old=energy
@@ -622,18 +623,19 @@ subroutine davidson(iproc,nproc,in,at,&
    !experimental: add parabolic potential to the hamiltonian
    !call add_parabolic_potential(at%geocode,at%nat,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
 
-   !!$  call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-   !!$       nlpspd,proj,Lzd%Glr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
-   !!$       pkernel,orbs,psirocc) ! optional arguments
+   call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+        proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+        pkernel,orbs,psirocc)
 
-   call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-        Lzd,confdatarr,dpcom%ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
-        pkernel,orbs,psirocc) ! optional arguments
-
-   call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
-        proj,Lzd,nlpspd,v,hv,eproj_sum)
-
-   call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+!!$   call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
+!!$        Lzd,confdatarr,dpcom%ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+!!$        pkernel,orbs,psirocc) ! optional arguments
+!!$
+!!$   call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$        proj,Lzd,nlpspd,v,hv,eproj_sum)
+!!$
+!!$   call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
 
    !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -905,18 +907,19 @@ subroutine davidson(iproc,nproc,in,at,&
       allocate(hg(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,hg,'hg',subname)
 
-      !!$     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-      !!$          nlpspd,proj,Lzd%Glr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
-      !!$          pkernel,orbs,psirocc) ! optional argument
+      call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+           proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,g,hg,&
+           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+           pkernel,orbs,psirocc)
 
-      call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-           Lzd,confdatarr,dpcom%ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
-           pkernel,orbs,psirocc) ! optional arguments
-
-      call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
-           proj,Lzd,nlpspd,g,hg,eproj_sum)
-
-      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hg,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+!!$      call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
+!!$           Lzd,confdatarr,dpcom%ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+!!$           pkernel,orbs,psirocc) ! optional arguments
+!!$
+!!$      call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$           proj,Lzd,nlpspd,g,hg,eproj_sum)
+!!$
+!!$      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hg,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
 
       !transpose  g and hg
@@ -1183,15 +1186,21 @@ subroutine davidson(iproc,nproc,in,at,&
       !!$          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
       !!$          pkernel,orbs,psirocc) !optional arguments
 
-      call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
-           Lzd,confdatarr,dpcom%ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
-           pkernel,orbs,psirocc) ! optional arguments
+      call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+           proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+           pkernel,orbs,psirocc)
 
-      call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
-           proj,Lzd,nlpspd,v,hv,eproj_sum)
 
-      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hv,&
-           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+!!$      call LocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,&
+!!$           Lzd,confdatarr,dpcom%ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,&
+!!$           pkernel,orbs,psirocc) ! optional arguments
+!!$
+!!$      call NonLocalHamiltonianApplication(iproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$           proj,Lzd,nlpspd,v,hv,eproj_sum)
+!!$
+!!$      call SynchronizeHamiltonianApplication(nproc,orbsv,Lzd,GPU,hv,&
+!!$           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
 
       !transpose  v and hv

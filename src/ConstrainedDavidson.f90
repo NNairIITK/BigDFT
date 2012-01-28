@@ -275,14 +275,18 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   ! End orthogonality cycle: 
   ! ****************************************
 
-
  
   ! ****************************************
   ! Hamiltonian application:
   !
   !   compute H|v> => hv, <v|H|v> => e(:,1) and <v|P|v> => e(:,2)
   !
-  stop 'Update HamiltonianApplication call'
+  !stop 'Update HamiltonianApplication call'
+!!$  call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$       proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+!!$       ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$       pkernel,orbs,psirocc)
+
 !!$  call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
 !!$       nlpspd,proj,Lzd%Glr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
 !!$       pkernel,orbs,psirocc) ! optional arguments
@@ -558,7 +562,12 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! apply hamiltonian on gradients
      !
-     stop 'Luigi should work here.'
+     !stop 'Luigi should work here.'
+!!$     call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$          proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,g,hg,&
+!!$          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$          pkernel,orbs,psirocc)
+
      !call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
      !     nlpspd,proj,Lzd%Glr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
      !     pkernel,orbs,psirocc) 
@@ -809,7 +818,12 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      !   compute H|v> => hv 
      !
-     stop 'Here again'
+     !stop 'Here again'
+!!$     call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$          proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+!!$          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$          pkernel,orbs,psirocc)
+
      !call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
      !     nlpspd,proj,Lzd%Glr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
      !     pkernel,orbs,psirocc)
