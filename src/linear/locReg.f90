@@ -3110,6 +3110,9 @@ else
    call vcopy(ii*orbs%norbp,overlaps_op(1,1),1,op%overlaps(1,1),1)
 end if
 
+do iorb=1,orbs%norb
+end do
+
 
 iall=-product(shape(overlapMatrix))*kind(overlapMatrix)
 deallocate(overlapMatrix, stat=istat)

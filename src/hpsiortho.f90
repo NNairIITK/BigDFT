@@ -788,7 +788,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   end if
 
   !transpose the hpsi wavefunction
-  call transpose_v2(iproc,nproc,orbs,Lzd,comms,hpsi,work=psi)
+   call transpose_v2(iproc,nproc,orbs,Lzd,comms,hpsi,work=psi)
 
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
@@ -803,7 +803,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
 
   !retranspose the hpsi wavefunction
-  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=psi)
+   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=psi)
 
   !after having calcutated the trace of the hamiltonian, the functional have to be defined
   !new value without the trace, to be added in hpsitopsi
@@ -817,6 +817,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   !band structure energy 
   !this can be done only if the occupation numbers are all equal
   tt=(energybs-trH)/trH
+!print *,'tt,energybs,trH',tt,energybs,trH
   if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
        &   (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
      !write this warning only if the system is closed shell

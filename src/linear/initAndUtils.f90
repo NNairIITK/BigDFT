@@ -161,6 +161,7 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! Initialize the localization regions.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
+call timing(iproc,'init_locregs  ','ON')
 t1=mpi_wtime()
 call initLocregs(iproc, nproc, at%nat, rxyz, lin%lzd, lin%orbs, input, Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
 
@@ -178,6 +179,7 @@ call memocc(istat, lphi, 'lphi', subname)
 
 
 t2=mpi_wtime()
+call timing(iproc,'init_locregs  ','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 npsidim = 0
 do iorb=1,lin%orbs%norbp
@@ -208,10 +210,12 @@ call initCoefficients(iproc, orbs, lin, coeff)
 ! Initialize the parameters for the point to point communication for the
 ! calculation of the charge density.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications sumrho... '
+call timing(iproc,'init_commSumro','ON')
 t1=mpi_wtime()
 call initializeCommsSumrho(iproc, nproc, nscatterarr, lin%lzd, lin%orbs, tag, lin%comsr)
 call initializeCommsSumrho(iproc, nproc, nscatterarr, lin%lzd, lin%lb%orbs, tag, lin%lb%comsr)
 t2=mpi_wtime()
+call timing(iproc,'init_commSumro','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 
@@ -240,20 +244,24 @@ end do
 ! potential.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications potential... '
 t1=mpi_wtime()
+call timing(iproc,'init_commPot  ','ON')
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%orbs%inWhichLocreg, tag)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lzd, lin%lb%comgp, &
      lin%lb%orbs%inWhichLocreg, tag)
 t2=mpi_wtime()
+call timing(iproc,'init_commPot  ','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 ! Initialize the parameters for the communication for the orthonormalization.
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications orthonormalization... '
+call timing(iproc,'init_commOrtho','ON')
 t1=mpi_wtime()
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
      input, lin%locregShape, lin%op, lin%comon, tag)
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
      input, lin%locregShape, lin%lb%op, lin%lb%comon, tag)
 t2=mpi_wtime()
+call timing(iproc,'init_commOrtho','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 ! Initialize the parameters for the repartitioning of the orbitals.
@@ -275,9 +283,11 @@ deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing input guess... '
+call timing(iproc,'init_inguess  ','ON')
 t1=mpi_wtime()
-call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr, tag)
+call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lin%lig, rxyz, nscatterarr, tag)
 t2=mpi_wtime()
+call timing(iproc,'init_inguess  ','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 
@@ -286,6 +296,7 @@ call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 
 
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing matrix compression... '
+call timing(iproc,'init_matrCompr','ON')
 t1=mpi_wtime()
 !call initMatrixCompression(iproc, nproc, lin%orbs, lin%op, lin%mad)
 call initMatrixCompression(iproc, nproc, lin%lzd%nlr, lin%orbs, lin%op%noverlaps, lin%op%overlaps, lin%mad)
@@ -295,6 +306,7 @@ call initMatrixCompression(iproc, nproc, lin%lzd%nlr, lin%lb%orbs, &
      lin%lb%op%noverlaps, lin%lb%op%overlaps, lin%lb%mad)
 call initCompressedMatmul3(lin%lb%orbs%norb, lin%lb%mad)
 t2=mpi_wtime()
+call timing(iproc,'init_matrCompr','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 
@@ -1965,8 +1977,10 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
   ! Calling arguments
   integer,intent(in):: iproc, nproc, nlr
   type(orbitals_data),intent(in):: orbs
-  integer,dimension(nlr),intent(in):: noverlaps
-  integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
+  !integer,dimension(nlr),intent(in):: noverlaps
+  integer,dimension(orbs%norb),intent(in):: noverlaps
+  !integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
+  integer,dimension(maxval(noverlaps(:)),orbs%norb),intent(in):: overlaps
   type(matrixDescriptors),intent(out):: mad
   
   ! Local variables
@@ -1987,9 +2001,10 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
           ilr=orbs%inWhichLocreg(iiorb)
           ijorb=(iiorb-1)*orbs%norb
           !do jorb=1,noverlaps(iiorb)
-          do jorb=1,noverlaps(ilr)
-              !jjorb=overlaps(jorb,iiorb)+ijorb
-              jjorb=overlaps(jorb,ilr)+ijorb
+          !do jorb=1,noverlaps(ilr)
+          do jorb=1,noverlaps(iiorb)
+              jjorb=overlaps(jorb,iiorb)+ijorb
+              !jjorb=overlaps(jorb,ilr)+ijorb
               ! Entry (iiorb,jjorb) is not zero.
               !if(iproc==0) write(300,*) iiorb,jjorb
               if(jjorb==jjorbold+1) then
@@ -2050,11 +2065,13 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
           ilr=orbs%inWhichLocreg(iiorb)
           ijorb=(iiorb-1)*orbs%norb
           !do jorb=1,noverlaps(iiorb)
-          do jorb=1,noverlaps(ilr)
-              !jjorb=overlaps(jorb,iiorb)+ijorb
-              jjorb=overlaps(jorb,ilr)+ijorb
+          !do jorb=1,noverlaps(ilr)
+          do jorb=1,noverlaps(iiorb)
+              jjorb=overlaps(jorb,iiorb)+ijorb
+              !jjorb=overlaps(jorb,ilr)+ijorb
               ! Entry (iiorb,jjorb) is not zero.
-              !if(iproc==0) write(300,*) iiorb,jjorb
+              if(iproc==0) write(300,'(a,8i12)') 'nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb',&
+                            nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb
               if(jjorb==jjorbold+1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
                   mad%keyv(nseg)=mad%keyv(nseg)+1
@@ -2671,12 +2688,12 @@ subroutine initCompressedMatmul3(norb, mad)
   type(matrixDescriptors),intent(inout):: mad
 
   ! Local variables
-  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
+  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i, iproc
   logical:: segment
   character(len=*),parameter:: subname='initCompressedMatmul3'
   real(8),dimension(:),allocatable:: mat1, mat2, mat3
 
-
+  call mpi_comm_rank(mpi_comm_world,iproc,istat)
 
   allocate(mat1(norb**2), stat=istat)
   call memocc(istat, mat1, 'mat1', subname)
@@ -2684,10 +2701,12 @@ subroutine initCompressedMatmul3(norb, mad)
   call memocc(istat, mat2, 'mat2', subname)
   allocate(mat3(norb**2), stat=istat)
   call memocc(istat, mat2, 'mat2', subname)
+  call mpi_barrier(mpi_comm_world,istat)
 
   mat1=0.d0
   mat2=0.d0
   do iseg=1,mad%nseg
+      if(iproc==0) write(200,'(a,3i12)') 'iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)', iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)
       do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
           ! the localization region is "symmetric"
           mat1(i)=1.d0
@@ -3470,6 +3489,8 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
 !!$     end if
      call nullify_locreg_descriptors(Lzd%Llr(1))
      
+     !Copy the Glr to the Llr(1)
+     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      !nullify all pointers
      do ilr=1,Lzd%nlr
         nullify(Lzd%Llr(ilr)%projflg)
@@ -3494,11 +3515,10 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
         nullify(Lzd%Llr(ilr)%bounds%gb%ibzxx_f)
         nullify(Lzd%Llr(ilr)%bounds%gb%ibxxyy_f)
      end do
-
-     !Copy the Glr to the Llr(1)
-     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat) 
+      
      allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
      call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
+     Lzd%doHamAppl = .true.
      call copy_locreg_descriptors(Lzd%Glr, Lzd%Llr(1), subname)
   
      !Reinitiliaze inwhichlocreg

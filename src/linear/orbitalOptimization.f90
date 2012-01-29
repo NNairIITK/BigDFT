@@ -21,6 +21,8 @@ real(8),dimension(:),allocatable:: rhs, work
 integer,dimension(:),allocatable:: ipiv
 character(len=*),parameter:: subname='optimizeDIIS'
 
+call timing(iproc,'optimize_DIIS ','ON')
+
 ! Allocate the local arrays.
 allocate(mat(ldiis%isx+1,ldiis%isx+1), stat=istat)
 call memocc(istat, mat, 'mat', subname)
@@ -180,6 +182,7 @@ iall=-product(shape(ipiv))*kind(ipiv)
 deallocate(ipiv, stat=istat)
 call memocc(istat, iall, 'ipiv', subname)
 
+call timing(iproc,'optimize_DIIS ','OF')
 
 
 end subroutine optimizeDIIS

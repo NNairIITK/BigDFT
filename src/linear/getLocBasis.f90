@@ -319,8 +319,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   
 
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
-  call mpi_barrier(mpi_comm_world, ierr) !To measure the time correctly.
-  t1=mpi_wtime()
+  !!call mpi_barrier(mpi_comm_world, ierr) !To measure the time correctly.
+  !!t1=mpi_wtime()
   ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
   ! are still needed later.
   call dcopy(llborbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
@@ -352,9 +352,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       end do
       write(*,'(1x,a)') '-------------------------------------------------'
   end if
-  t2=mpi_wtime()
-  time=t2-t1
-  if(iproc==0) write(*,'(1x,a,es10.3)') 'time for diagonalizing the Hamiltonian:',time
+  !!t2=mpi_wtime()
+  !!time=t2-t1
+  !!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for diagonalizing the Hamiltonian:',time
 
 
   ! Calculate the band structure energy with matrixElements.
@@ -670,7 +670,7 @@ character(len=3):: orbname, comment
           call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lhphi, comon, tt1, tt2)
           call collectnew(iproc, nproc, comon, mad, op, lorbs, lzd, comon%nsendbuf, &
                comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
-          call build_new_linear_combinations(lzd, lorbs, op, comon%nrecvbuf, &
+          call build_new_linear_combinations(iproc, nproc, lzd, lorbs, op, comon%nrecvbuf, &
                comon%recvbuf, kernel, .true., lhphi)
           call deallocateRecvBufferOrtho(comon, subname)
           call deallocateSendBufferOrtho(comon, subname)
@@ -1197,6 +1197,7 @@ contains
     
     ! steepest descent
     if(ldiis%isx==0) then
+        call timing(iproc,'optimize_SD   ','ON')
         istart=1
         do iorb=1,lorbs%norbp
             !ilr=lorbs%inWhichLocregp(iorb)
@@ -1206,6 +1207,7 @@ contains
             call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, lphi(istart), 1)
             istart=istart+ncount
         end do
+        call timing(iproc,'optimize_SD   ','OF')
     else
         ! DIIS
         if(ldiis%alphaDIIS/=1.d0) then
@@ -1480,6 +1482,8 @@ real(8),dimension(:),allocatable:: work
 real(8),dimension(:,:),allocatable:: ham_band, ovrlp_band
 character(len=*),parameter:: subname='diagonalizeHamiltonian'
 
+  call timing(iproc,'diagonal_seq  ','ON')
+
   !! OLD VERSION #####################################################################################################
   ! Get the optimal work array size
   lwork=-1 
@@ -1598,6 +1602,7 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
   !!deallocate(ovrlp_band, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating ovrlp_band' 
   !!call memocc(istat, iall, 'ovrlp_band', subname)
 
+  call timing(iproc,'diagonal_seq  ','OF')
 
 end subroutine diagonalizeHamiltonian2
 
@@ -2977,7 +2982,7 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
            work_conv)
 
       if(confdatarr(iorb)%potorder==4) then
-          call ConvolQuartic4(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+          call ConvolQuartic4(iproc,nproc,lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
                lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
                lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
                lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, & 
@@ -3884,7 +3889,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
       t1=mpi_wtime()
       !write(*,*) '5: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
-      call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, &
+      call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, &
            comon%recvbuf, tempmat3(1,1,1), .true., lphi)
       t2=mpi_wtime()
       time_lincomb=time_lincomb+t2-t1
@@ -3982,7 +3987,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           end do
       end do
       t1=mpi_wtime()
-      call build_new_linear_combinations(lzd, orbs, op, comon%nrecvbuf, &
+      call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, &
            comon%recvbuf, tempmat3(1,1,1), .true., lphi)
       t2=mpi_wtime()
       time_lincomb=time_lincomb+t2-t1
@@ -4080,12 +4085,13 @@ end subroutine unitary_optimization
 
 
 
-subroutine build_new_linear_combinations(lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
+subroutine build_new_linear_combinations(iproc, nproc, lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
 use module_base
 use module_types
 implicit none
 
 !Calling arguments
+integer,intent(in):: iproc, nproc
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(overlapParameters),intent(in):: op
@@ -4100,6 +4106,7 @@ integer:: ist, jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, i, ldim, ind,
 integer:: istart, iend, iseg
 real(8):: tt
 
+   call timing(iproc,'build_lincomb ','ON')
 
       ! Build new lphi
       if(reset) then
@@ -4118,6 +4125,7 @@ real(8):: tt
           gdim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
           do jorb=1,op%noverlaps(iiorb)
               jjorb=op%overlaps(jorb,iiorb)
+              !jjorb=op%overlaps(jorb,ilr)
               jst=op%indexInRecvBuf(iorbref,jjorb)
               ldim=op%olr(jorb,iorbref)%wfd%nvctr_c+7*op%olr(jorb,iorbref)%wfd%nvctr_f
               tt=omat(jjorb,iiorb)
@@ -4135,6 +4143,7 @@ real(8):: tt
 
       end do
 
+   call timing(iproc,'build_lincomb ','OF')
           
 
 end subroutine build_new_linear_combinations
