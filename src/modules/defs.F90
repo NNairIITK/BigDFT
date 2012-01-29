@@ -195,8 +195,8 @@ module module_defs
       integer :: provided
       call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
       if (provided /= 1 .or. ierr/=0) then
-         write(*,*)'MPI_THREAD_FUNNELED not supported, switching to normal'
-         call MPI_INIT(ierr)
+         write(*,*)'MPI_THREAD_FUNNELED not supported!',provided,ierr
+	 !call MPI_INIT(ierr)
       else
           mpi_thread_funneled_is_supported=.true.
       endif

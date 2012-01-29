@@ -15,7 +15,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi)
   use module_base
   use module_types
-  use module_interfaces!, fake_name => psitohpsi
+  use module_interfaces, fake_name => psitohpsi
   use Poisson_Solver
   use m_ab6_mixing
   implicit none
