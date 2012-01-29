@@ -716,7 +716,7 @@ type(orthon_data):: orthpar
   call deallocateLinear(iproc, lin, lphi, coeff)
   call deallocateDIIS(ldiis)
   deallocate(confdatarr)
-
+  call deallocateBasicArrays(at,lin)
 
   iall=-product(shape(coeff_proj))*kind(coeff_proj)
   deallocate(coeff_proj, stat=istat)

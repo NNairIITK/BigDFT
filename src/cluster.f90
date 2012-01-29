@@ -1750,11 +1750,11 @@ contains
     if (iproc == 0) &
          &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
-    if(inputpsi ==  INPUT_PSI_LINEAR) then
-        i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
-        deallocate(atoms%rloc,stat=i_stat)
-        call memocc(i_stat,i_all,'atoms%rloc',subname)
-    end if
+!!$    if(inputpsi ==  INPUT_PSI_LINEAR) then
+!!$        i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
+!!$        deallocate(atoms%rloc,stat=i_stat)
+!!$        call memocc(i_stat,i_all,'atoms%rloc',subname)
+!!$    end if
 
   END SUBROUTINE deallocate_before_exiting
 

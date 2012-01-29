@@ -37,7 +37,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(:), pointer, optional :: psirocc
 
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
-  call to_zero(orbs%npsidim_orbs,hpsi(1))
+  if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
 
  if (.not. present(pkernel)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
