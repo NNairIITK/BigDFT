@@ -51,13 +51,16 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      nthread_max=1
      ithread=0
      nthread=1
-     !$ if (mpi_thread_funneled_is_supported) then
      !$ nthread_max=omp_get_max_threads()
      !initialize nested approach
      !$ if (nthread_max > 1) then
      !$   call OMP_SET_NESTED(.true.) 
      !$   call OMP_SET_MAX_ACTIVE_LEVELS(2)
+     !$ if (mpi_thread_funneled_is_supported) then
      !$   call OMP_SET_NUM_THREADS(2)
+     !$ else
+     !$   call OMP_SET_NUM_THREADS(1)
+     !$ end if
      !$ end if
      !print *,'how many threads ?' ,nthread_max
      !$OMP PARALLEL DEFAULT(shared), PRIVATE(ithread,nthread)
@@ -65,7 +68,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      !$ nthread=omp_get_num_threads() !this should be 2
      !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
      ! thread 0 does mpi communication 
-     !$ end if
      if (ithread == 0) then
        !communicate density 
         call communicate_density(iproc,nproc,orbs%nspin,hxh,hyh,hzh,Lzd,&
@@ -83,9 +85,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
              proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
 
      end if
-     !$ if (mpi_thread_funneled_is_supported) then
      !$OMP END PARALLEL
-     !$ end if
 
      !here the density can be mixed
      if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then

@@ -688,12 +688,12 @@ module module_interfaces
       END SUBROUTINE CalculateTailCorrection
 
       !added for abinit compatilbility
-      subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,&
-            &   n1_old,n2_old,n3_old,rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
+      subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,&
+           n1_old,n2_old,n3_old,rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
          !n(c) use module_base
          use module_types
          implicit none
-         integer, intent(in) :: iproc,n1_old,n2_old,n3_old,n1,n2,n3
+         integer, intent(in) :: n1_old,n2_old,n3_old,n1,n2,n3
          real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
          type(wavefunctions_descriptors), intent(in) :: wfd
          type(atoms_data), intent(in) :: at
