@@ -5734,6 +5734,34 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer, intent(in) ::potshortcut
        end subroutine extract_potential_for_spectra
 
+       subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
+            nlpspd,proj,rxyz,linflag,exctxpar,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
+            ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi)
+         use module_base
+         use module_types
+         use m_ab6_mixing
+         implicit none
+         logical, intent(in) :: scf
+         integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
+         real(gp), intent(in) :: hx,hy,hz,hxh,hyh,hzh,alphamix
+         type(atoms_data), intent(in) :: atoms
+         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+         type(orbitals_data), intent(in) :: orbs
+         type(local_zone_descriptors), intent(in) :: Lzd
+         type(ab6_mixing_object), intent(in) :: mix
+         type(DFT_local_fields), intent(inout) :: denspot
+         type(SIC_data), intent(in) :: SIC
+         character(len=*), intent(in) :: exctxpar
+         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+         real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+         type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
+         type(GPU_pointers), intent(inout) :: GPU
+         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+         real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,ehart,eexcu,vexcu,rpnrm
+         real(gp), dimension(6), intent(out) :: xcstr
+         real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
+       end subroutine psitohpsi
+
    end interface
 
 END MODULE module_interfaces
