@@ -1747,7 +1747,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   call timing(iproc,'wavefunction  ','ON')   
   !use only the part of the arrays for building the hamiltonian matrix
-  call gaussians_to_wavelets_new(iproc,nproc,Lzd%Glr,orbse,hx,hy,hz,G,&
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbse,hx,hy,hz,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
   call timing(iproc,'wavefunction  ','OF')
   i_all=-product(shape(locrad))*kind(locrad)

@@ -1278,11 +1278,11 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   use module_types
   use deallocatePointers
   implicit none
-  
+
   ! Calling arguments
   type(p2pComms),intent(inout):: p2pcomm
   character(len=*),intent(in):: subname
-
+  integer :: ierr
   call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
   call checkAndDeallocatePointer(p2pcomm%overlaps, 'p2pcomm%overlaps', subname)
   call checkAndDeallocatePointer(p2pcomm%istarr, 'p2pcomm%istarr', subname)
@@ -1353,7 +1353,7 @@ subroutine deallocate_largeBasis(lb, subname)
   use deallocatePointers
   use module_interfaces, exceptThisOne => deallocate_largeBasis
   implicit none
-  
+
   ! Calling arguments
   type(largeBasis),intent(inout):: lb
   character(len=*),intent(in):: subname
@@ -1383,7 +1383,7 @@ subroutine dealloctae_p2pCommsRepartition(comrp, subname)
   use module_types
   use deallocatePointers
   implicit none
-  
+
   ! Calling arguments
   type(p2pCommsRepartition),intent(inout):: comrp
   character(len=*),intent(in):: subname

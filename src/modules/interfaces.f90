@@ -884,16 +884,16 @@ module module_interfaces
          logical, optional :: opt_fillrxyz
       END SUBROUTINE read_gaussian_information
 
-      subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
+      subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
          real(gp), intent(in) :: hx,hy,hz
          type(orbitals_data), intent(in) :: orbs
-         type(locreg_descriptors), intent(in) :: lr
+         type(local_zone_descriptors), intent(in) :: Lzd
          type(gaussian_basis), intent(inout) :: G
-         real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp), intent(out) :: psi
+         real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%norbp), intent(out) :: psi
          real(wp), dimension(:,:), pointer :: coeffs
       END SUBROUTINE restart_from_gaussians
 
@@ -4341,7 +4341,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     !  integer,dimension(Ldim),intent(out) :: indexLpsi         !Wavefunction in localization region
     !end subroutine index_of_Lpsi_to_global2
 
-    subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr, tag)
+    subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxyz, nscatterarr, tag)
       use module_base
       use module_types
       implicit none
@@ -4351,6 +4351,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(locreg_descriptors), intent(in) :: Glr
       type(input_variables):: input
       type(linearParameters),intent(inout):: lin
+      type(linearInputGuess),intent(inout):: lig
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       integer,intent(inout):: tag
@@ -5228,8 +5229,10 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          implicit none
          integer,intent(in):: iproc, nproc, nlr
          type(orbitals_data),intent(in):: orbs
-         integer,dimension(nlr),intent(in):: noverlaps
-         integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
+         !integer,dimension(nlr),intent(in):: noverlaps
+         integer,dimension(orbs%norb),intent(in):: noverlaps
+         !integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
+         integer,dimension(maxval(noverlaps(:)),orbs%norb),intent(in):: overlaps
          type(matrixDescriptors),intent(out):: mad
        end subroutine initMatrixCompression
 
@@ -5393,10 +5396,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine unitary_optimization
 
 
-      subroutine build_new_linear_combinations(lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
+      subroutine build_new_linear_combinations(iproc, nproc, lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
         use module_base
         use module_types
         implicit none
+        integer,intent(in):: iproc, nproc
         type(local_zone_descriptors),intent(in):: lzd
         type(orbitals_data),intent(in):: orbs
         type(overlapParameters),intent(in):: op
@@ -5463,7 +5467,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine deallocate_workarrays_quartic_convolutions
 
 
-      subroutine ConvolQuartic4(n1, n2, n3, &
+      subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, &
            nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
            hgrid, offsetx, offsety, offsetz, &
            ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
@@ -5475,7 +5479,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
+        integer, intent(in) :: iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
         real(gp), intent(in) :: hgrid, potentialPrefac, cprecr
         logical,intent(in):: withKinetic
         real(8),dimension(3):: rxyzConf

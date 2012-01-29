@@ -179,6 +179,9 @@ type(orthon_data):: orthpar
       call initializeMixrhopotDIIS(lin%mixHist_lowaccuracy, denspot%dpcom%ndimpot, mixdiis)
   end if
 
+  !end of the initialization part, will later be moved to cluster
+  call timing(iproc,'INIT','PR')
+
   if(lin%nItInguess>0) then
       ! Post communications for gathering the potential.
      !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
@@ -229,17 +232,17 @@ type(orthon_data):: orthpar
       !!    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj, communicate_lphi, coeff_proj)
 
       ! Calculate the charge density.
-      call cpu_time(t1)
+      !!call cpu_time(t1)
       if(lin%mixedmode) then
           call deallocateCommunicationbufferSumrho(lin%comsr, subname)
       else
           call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
       end if
-      call cpu_time(t2)
-      time=t2-t1
-      call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-      time=time/dble(nproc)
-      if(iproc==0) write(*,'(1x,a,es12.4)') 'time for sumrho:',time
+      !!call cpu_time(t2)
+      !!time=t2-t1
+      !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+      !!time=time/dble(nproc)
+      !!if(iproc==0) write(*,'(1x,a,es12.4)') 'time for sumrho:',time
 
       if(trim(lin%mixingMethod)=='dens') then
           !if(lin%mixHist==0) then
@@ -427,8 +430,8 @@ type(orthon_data):: orthpar
 
 
           ! Potential from electronic charge density
-          call mpi_barrier(mpi_comm_world, ierr)
-          call cpu_time(t1)
+          !!call mpi_barrier(mpi_comm_world, ierr)
+          !!call cpu_time(t1)
           if(lin%mixedmode) then
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
@@ -447,10 +450,10 @@ type(orthon_data):: orthpar
                    coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                    denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
-          call mpi_barrier(mpi_comm_world, ierr)
-          call cpu_time(t2)
-          time=t2-t1
-          if(iproc==0) write(*,'(1x,a,es10.3)') 'time for sumrho:', time
+          !!call mpi_barrier(mpi_comm_world, ierr)
+          !!call cpu_time(t2)
+          !!time=t2-t1
+          !!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for sumrho:', time
 
           ! Mix the density.
           if(trim(lin%mixingMethod)=='dens') then
@@ -670,40 +673,40 @@ type(orthon_data):: orthpar
   !!    proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, lphi, coeff, rhopot, &
   !!    fxyz, fnoise,radii_cf)
 
-  !associate the density
-  rho => denspot%rhov
+  !!!!associate the density
+  !!!rho => rhopot
 
-  !add an if statement which says whether the charge density has already been calculated
-  call density_and_hpot(iproc,nproc,at%geocode,at%sym,orbs,lin%Lzd,&
-       0.5_gp*input%hx,0.5_gp*input%hy,0.5_gp*input%hz,denspot%dpcom%nscatterarr,&
-       denspot%pkernel,denspot%rhod,GPU,psi,rho,pot,hstrten)
+  !!!!add an if statement which says whether the charge density has already been calculated
+  !!!call density_and_hpot(iproc,nproc,at%geocode,at%sym,orbs,lin%Lzd,&
+  !!!     0.5_gp*input%hx,0.5_gp*input%hy,0.5_gp*input%hz,nscatterarr,&
+  !!!     pkernel,rhodsc,GPU,psi,rho,pot,hstrten)
 
-  !fake ewald stress tensor
-  ewaldstr=0.0_gp
-  xcstr=0.0_gp
-  call calculate_forces(iproc,nproc,Glr,at,orbs,nlpspd,rxyz,&
-       input%hx,input%hy,input%hz,proj,denspot%dpcom%i3s+denspot%dpcom%i3xcsh,denspot%dpcom%n3p,&
-       input%nspin,.false.,denspot%dpcom%ngatherarr,rho,pot,denspot%V_XC,psi,fion,fdisp,fxyz,&
-       ewaldstr,hstrten,xcstr,strten,fnoise,pressure,0.0_dp)
+  !!!!fake ewald stress tensor
+  !!!ewaldstr=0.0_gp
+  !!!xcstr=0.0_gp
+  !!!call calculate_forces(iproc,nproc,Glr,at,orbs,nlpspd,rxyz,&
+  !!!     input%hx,input%hy,input%hz,proj,i3s+i3xcsh,n3p,&
+  !!!     input%nspin,.false.,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
+  !!!     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,0.0_dp)
 
-  iall=-product(shape(pot))*kind(pot)
-  deallocate(pot,stat=istat)
-  call memocc(istat,iall,'pot',subname)
+!  iall=-product(shape(pot))*kind(pot)
+!  deallocate(pot,stat=istat)
+!  call memocc(istat,iall,'pot',subname)
   !no need of deallocating rho
   nullify(rho,pot)
 
-  if(iproc==0) then
-     write(*,'(1x,a)') 'Force values for all atoms in x, y, z direction.'
-     do iat=1,at%nat
-        write(*,'(3x,i0,1x,a6,1x,3(1x,es17.10))') &
-             iat,trim(at%atomnames(at%iatype(iat))),(fxyz(j,iat),j=1,3)
-     end do
-  end if
+  !!if(iproc==0) then
+  !!   write(*,'(1x,a)') 'Force values for all atoms in x, y, z direction.'
+  !!   do iat=1,at%nat
+  !!      write(*,'(3x,i0,1x,a6,1x,3(1x,es17.10))') &
+  !!           iat,trim(at%atomnames(at%iatype(iat))),(fxyz(j,iat),j=1,3)
+  !!   end do
+  !!end if
 
 
 !!$  call calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
 !!$       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rhopot, psi, fxyz, fnoise)
-  call mpi_barrier(mpi_comm_world, ierr)
+  !!call mpi_barrier(mpi_comm_world, ierr)
   t2force=mpi_wtime()
   timeforce=t2force-t1force
 
@@ -713,25 +716,27 @@ type(orthon_data):: orthpar
   call deallocateLinear(iproc, lin, lphi, coeff)
   call deallocateDIIS(ldiis)
   deallocate(confdatarr)
-
+  call deallocateBasicArrays(at,lin)
 
   iall=-product(shape(coeff_proj))*kind(coeff_proj)
   deallocate(coeff_proj, stat=istat)
   call memocc(istat, iall, 'coeff_proj', subname)
 
+  ! End of linear scaling part, except of the forces.
+  call timing(iproc,'WFN_OPT','PR')
 
 
-  call mpi_barrier(mpi_comm_world, ierr)
-  t2tot=mpi_wtime()
-  timetot=t2tot-t1tot
-  if(iproc==0) write(*,'(1x,a)') '================================================'
-  if(iproc==0) write(*,'(1x,a,es10.3,a)') 'total time for linear scaling version:',timetot,'s'
-  if(iproc==0) write(*,'(3x,a)') 'of which:'
-  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- initialization:',timeinit,'s (',timeinit/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- input guess:',timeig,'s (',timeig/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- self consistency cycle:',timescc,'s (',timescc/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- forces:',timeforce,'s (',timeforce/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(1x,a)') '================================================'
+  !!!!call mpi_barrier(mpi_comm_world, ierr)
+  !!t2tot=mpi_wtime()
+  !!timetot=t2tot-t1tot
+  !!if(iproc==0) write(*,'(1x,a)') '================================================'
+  !!if(iproc==0) write(*,'(1x,a,es10.3,a)') 'total time for linear scaling version:',timetot,'s'
+  !!if(iproc==0) write(*,'(3x,a)') 'of which:'
+  !!if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- initialization:',timeinit,'s (',timeinit/timetot*100.d0,'%)'
+  !!if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- input guess:',timeig,'s (',timeig/timetot*100.d0,'%)'
+  !!if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- self consistency cycle:',timescc,'s (',timescc/timetot*100.d0,'%)'
+  !!if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- forces:',timeforce,'s (',timeforce/timetot*100.d0,'%)'
+  !!if(iproc==0) write(*,'(1x,a)') '================================================'
 
 end subroutine linearScaling
 
@@ -766,6 +771,7 @@ real(8),intent(out):: pnrm
 integer:: i, ierr
 real(8):: tt
 
+  call timing(iproc,'mix_linear    ','ON')
 
   pnrm=0.d0
   tt=1.d0-alphaMix
@@ -777,6 +783,8 @@ real(8):: tt
   end do
   call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
   pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+
+  call timing(iproc,'mix_linear    ','OF')
 
 end subroutine mixPotential
 

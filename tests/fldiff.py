@@ -130,7 +130,8 @@ if bigdft:
             or "statistics:" in line \
             or "total time:" in line \
             or "DIIS" in line \
-            or "Communication overlap ratio" in line
+            or "Communication overlap ratio" in line \
+	    or "Gathering the potential" in line
 #	    or "GEOPT" in line
 elif neb:
     # Test if the line should not be compared (NEB output)

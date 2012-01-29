@@ -51,6 +51,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      nthread_max=1
      ithread=0
      nthread=1
+     !$ if (mpi_thread_funneled_is_supported) then
      !$ nthread_max=omp_get_max_threads()
      !initialize nested approach
      !$ if (nthread_max > 1) then
@@ -64,6 +65,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      !$ nthread=omp_get_num_threads() !this should be 2
      !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
      ! thread 0 does mpi communication 
+     !$ end if
      if (ithread == 0) then
        !communicate density 
         call communicate_density(iproc,nproc,orbs%nspin,hxh,hyh,hzh,Lzd,&
@@ -72,15 +74,18 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      end if
      if (ithread > 0 .or. nthread==1) then
         ! Only the remaining threads do computations, 
-        !$ if (nthread_max > 1) call OMP_SET_NUM_THREADS(nthread_max-1)
-
+        !$ if (nthread_max > 1 .and. mpi_thread_funneled_is_supported) then
+        !$ call OMP_SET_NUM_THREADS(nthread_max-1)
+        !$ end if
         !nonlocal hamiltonian
         if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
         call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
              proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
 
      end if
+     !$ if (mpi_thread_funneled_is_supported) then
      !$OMP END PARALLEL
+     !$ end if
 
      !here the density can be mixed
      if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
@@ -218,7 +223,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(:), pointer, optional :: psirocc
 
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
-  call to_zero(orbs%npsidim_orbs,hpsi(1))
+  if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
 
  if (.not. present(pkernel)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
@@ -969,7 +974,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   end if
 
   !transpose the hpsi wavefunction
-  call transpose_v2(iproc,nproc,orbs,Lzd,comms,hpsi,work=psi)
+   call transpose_v2(iproc,nproc,orbs,Lzd,comms,hpsi,work=psi)
 
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
@@ -984,7 +989,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   call orthoconstraint(iproc,nproc,orbs,comms,psit,hpsi,trH) !n(m)
 
   !retranspose the hpsi wavefunction
-  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=psi)
+   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,hpsi,work=psi)
 
   !after having calcutated the trace of the hamiltonian, the functional have to be defined
   !new value without the trace, to be added in hpsitopsi
@@ -998,6 +1003,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Lzd,hx,
   !band structure energy 
   !this can be done only if the occupation numbers are all equal
   tt=(energybs-trH)/trH
+!print *,'tt,energybs,trH',tt,energybs,trH
   if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
        &   (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
      !write this warning only if the system is closed shell

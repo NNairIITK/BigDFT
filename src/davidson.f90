@@ -148,7 +148,7 @@ subroutine direct_minimization(iproc,nproc,in,at,&
    orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
 
    !prepare the v array starting from a set of gaussians
-   call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd%Glr,commsv,rxyz,hx,hy,hz,in%nspin,&
+   call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,hx,hy,hz,in%nspin,&
       &   psivirt)
 
    if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
@@ -558,7 +558,7 @@ subroutine davidson(iproc,nproc,in,at,&
    orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
 
    !prepare the v array starting from a set of gaussians
-   call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd%Glr,commsv,rxyz,hx,hy,hz,in%nspin,v)
+   call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,hx,hy,hz,in%nspin,v)
 
    if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
    !project v such that they are orthogonal to all occupied psi
@@ -1481,7 +1481,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
 END SUBROUTINE update_psivirt
 
 
-subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nspin,psivirt)
+subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,nspin,psivirt)
    use module_base
    use module_types
    use module_interfaces
@@ -1490,7 +1490,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
-   type(locreg_descriptors), intent(in) :: lr
+   type(local_zone_descriptors), intent(in) :: Lzd
    type(communications_arrays), intent(in) :: comms
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psivirt
@@ -1648,7 +1648,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
 
    end if
 
-   call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,&
+   call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,&
       &   gaucoeffs,psivirt)
 
    !deallocate the gaussian basis descriptors
@@ -1670,19 +1670,19 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
          do ispinor=1,orbs%nspinor
             !pseudo-random frequency (from 0 to 10*2pi)
             rfreq=real(jorb,wp)/real(orbs%norb*orbs%nkpts,wp)*62.8318530717958648_wp
-            do iseg=1,lr%wfd%nseg_c
-               call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+            do iseg=1,Lzd%Glr%wfd%nseg_c
+               call segments_to_grid(Lzd%Glr%wfd%keyv(iseg),Lzd%Glr%wfd%keygloc(1,iseg),Lzd%Glr%d,i0,i1,i2,i3,jj)
                do i=i0,i1
-                  ind_c=i-i0+jj+((iorb-1)*orbs%nspinor+ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+                  ind_c=i-i0+jj+((iorb-1)*orbs%nspinor+ispinor-1)*(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)
                   psivirt(ind_c)=psivirt(ind_c)+0.5_wp*&
                      &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
                end do
             end do
-            do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-               call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+            do iseg=Lzd%Glr%wfd%nseg_c+1,Lzd%Glr%wfd%nseg_c+Lzd%Glr%wfd%nseg_f
+               call segments_to_grid(Lzd%Glr%wfd%keyv(iseg),Lzd%Glr%wfd%keygloc(1,iseg),Lzd%Glr%d,i0,i1,i2,i3,jj)
                do i=i0,i1
-                  ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)+&
-                     &   ((iorb-1)*orbs%nspinor+ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+                  ind_f=Lzd%Glr%wfd%nvctr_c+7*(i-i0+jj-1)+&
+                     &   ((iorb-1)*orbs%nspinor+ispinor-1)*(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)
                   psivirt(ind_f+1)=psivirt(ind_f+1)+0.4_wp*&
                      &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
                   psivirt(ind_f+2)=psivirt(ind_f+2)+0.35_wp*&
@@ -1702,7 +1702,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
          end do
       end do
       !after having added random background, precondition the wavefunctions with an ncong of 10
-      call preconditionall(orbs,lr,hx,hy,hz,10,psivirt,gnrm_fake,gnrm_fake)
+      call preconditionall(orbs,Lzd%Glr,hx,hy,hz,10,psivirt,gnrm_fake,gnrm_fake)
    end if
 
    !transpose v
@@ -1713,7 +1713,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
    end if
 
    !transpose the wavefunction in wavelet basis
-   call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psivirt,work=psiw)
+   call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psivirt,work=psiw)
 
    !here one has to decide whether leave things like that or
    !multiply the transposed wavefunctions by the matrix of the coefficients
