@@ -372,18 +372,19 @@ program MINHOP
 
 !C check whether CPU time exceeded
      tleft=1.d100
-        if(iproc==0 .and. CPUcheck)then
+       if(iproc==0 .and. CPUcheck)then
         open(unit=55,file='CPUlimit_global',status='unknown')
-        read(55,*,end=555) cpulimit ; cpulimit=cpulimit*3600
-        write(*,'(a,i5,i3,2(1x,e9.2))') 'iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
-        close(55)
+        read(55,*,end=555) cpulimit 
+        cpulimit=cpulimit*3600
+        write(*,'(a,i5,i3,2(1x,e9.2))') '# iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
         call cpu_time(tcpu2)
         tleft=cpulimit-(tcpu2-tcpu1)
-     end if
+       end if
 555    continue
+       close(55)
        call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
        if (tleft < 0.d0) then
-       write(*,*) 'CPU time exceeded',tleft
+       if(iproc==0) write(*,*) '# CPU time exceeded',iproc,tleft
        goto 3000
        endif
           CPUcheck=.true.
