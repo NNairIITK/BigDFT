@@ -1131,7 +1131,8 @@ contains
           icountDIISFailureCons=icountDIISFailureCons+1
           icountDIISFailureTot=icountDIISFailureTot+1
           icountSDSatur=0
-          if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3 .or. resetDIIS) .and. ldiis%isx>0) then
+          !if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3 .or. resetDIIS) .and. ldiis%isx>0) then
+          if((icountDIISFailureCons>=200 .or. icountDIISFailureTot>=300 .or. resetDIIS) .and. ldiis%isx>0) then
           !if((icountDIISFailureCons>=400 .or. icountDIISFailureTot>=600 .or. resetDIIS) .and. ldiis%isx>0) then
               ! Switch back to SD.
               alpha=ldiis%alphaSD
