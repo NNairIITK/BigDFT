@@ -595,6 +595,7 @@ character(len=3):: orbname, comment
   immediateSwitchToSD=.false.
   t1tot=mpi_wtime()
   consecutive_rejections=0
+  trHold=1.d100
   iterLoop: do it=1,nit
       fnrmMax=0.d0
       fnrm=0.d0
