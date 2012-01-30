@@ -752,33 +752,34 @@ character(len=3):: orbname, comment
       if(.not. ldiis%switchSD .and. ldiis%isx==0) then
          !if(iproc==0) write(*,*) 'trH, trHold', trH, trHold
            !if(trH>trHold) then
-           if(trH > trHold + 1.d-5*abs(trHold)) then
+           if(trH > trHold + 1.d-3*abs(trHold)) then
                consecutive_rejections=consecutive_rejections+1
-               if(consecutive_rejections==300000) then
-                   if(fnrmMax<convCrit .or. it>=nit) then
-                       if(it>=nit) then
-                           if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
-                               ' iterations! Exiting loop due to consective failures of SD.'
-                           if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', &
-                                        fnrm, fnrmMax, trHold
-                           infoBasisFunctions=-1
-                       else
-                           if(iproc==0) then
-                               write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
-                               write (*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', &
-                               fnrm, fnrmMax, trHold
-                           end if
-                           infoBasisFunctions=it
-                       end if
-                       if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. &
-                                    &============================='
-                       !!if(lin%plotBasisFunctions) then
-                       !!    call plotOrbitals(iproc, lorbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-                       !!        .5d0*input%hy, .5d0*input%hz, 1)
-                       !!end if
-                       exit iterLoop
-                   end if
-               end if
+               !!if(consecutive_rejections==300000) then
+               !!    if(fnrmMax<convCrit .or. it>=nit) then
+               !!        if(it>=nit) then
+               !!            if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
+               !!                ' iterations! Exiting loop due to consective failures of SD.'
+               !!            if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', &
+               !!                         fnrm, fnrmMax, trHold
+               !!            infoBasisFunctions=-1
+               !!        else
+               !!            if(iproc==0) then
+               !!                write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
+               !!                write (*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', &
+               !!                fnrm, fnrmMax, trHold
+               !!            end if
+               !!            infoBasisFunctions=it
+               !!        end if
+               !!        if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. &
+               !!                     &============================='
+               !!        !!if(lin%plotBasisFunctions) then
+               !!        !!    call plotOrbitals(iproc, lorbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+               !!        !!        .5d0*input%hy, .5d0*input%hz, 1)
+               !!        !!end if
+               !!        exit iterLoop
+               !!    end if
+               !!end if
+               if(iproc==0) write(*,'(a,2es20.12)') 'trH, trHold', trH, trHold
                if(consecutive_rejections<=3) then
                    alpha=alpha*.5d0
                    call dcopy(size(lphi), lphiold, 1, lphi, 1)
