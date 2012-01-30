@@ -522,7 +522,7 @@ real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha,gnrm,gnrm_zero,gnrmMax,t1,t2
 real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress, energyconf_0, energyconf_trial
 real(8):: trHold
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, consecutive_rejections
-integer :: icountDIISFailureCons,itBest
+integer :: icountDIISFailureCons,itBest, ncnt
 integer:: istat,istart,ierr,ii,it,iall,ind1,ind2,jorb,ist,iiorb
 integer:: gdim,ilr,ncount,offset,istsource,istdest,korb
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS,lhphi,lhphiold
@@ -610,9 +610,27 @@ character(len=3):: orbname, comment
           write(*,'(1x,a)',advance='no') 'Orthonormalization...'
       end if
       t1=mpi_wtime()
-      if(.not.ldiis%switchSD) call orthonormalizeLocalized(iproc, nproc, orthpar%methTransformOverlap, orthpar%nItOrtho, &
+      if(.not.ldiis%switchSD) then
+           call orthonormalizeLocalized(iproc, nproc, &
+           orthpar%methTransformOverlap, orthpar%nItOrtho, &
            orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, lorbs, op, comon, lzd, &
            mad, lphi, ovrlp)
+           !!if(.not.newgradient) call orthonormalizeLocalized(iproc, nproc, &
+           !!orthpar%methTransformOverlap, orthpar%nItOrtho, &
+           !!orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, lorbs, op, comon, lzd, &
+           !!mad, lphi, ovrlp)
+           !!if(newgradient) then
+           !!    ist=1
+           !!    do iorb=1,lorbs%norbp
+           !!        iiorb=lorbs%isorb+iorb
+           !!        ilr=lorbs%inwhichlocreg(iiorb)
+           !!        ncnt=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+           !!        tt=ddot(ncnt, lphi(ist), 1, lphi(ist), 1)
+           !!        call dscal(ncnt, 1.d0/sqrt(tt), lphi(ist), 1)
+           !!        ist=ist+ncnt
+           !!    end do
+           !!end if
+      end if
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1
 
@@ -716,8 +734,25 @@ character(len=3):: orbname, comment
 
       t1=mpi_wtime()
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
+      !!if(.not.newgradient .or. it<=10) call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
+      !!     methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
       call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
            methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
+      !!! EXPERIMENTAL -- USE ONLY DIAGONAL PART
+      !!if(newgradient .and. it>10) then
+      !!    call allocateCommuncationBuffersOrtho(comon, subname)
+      !!    call getMatrixElements2(iproc, nproc, lzd, lorbs, op, comon, lphi, lhphi, mad, lagmat)
+      !!    call deallocateCommuncationBuffersOrtho(comon, subname)
+      !!    ist=1
+      !!    do iorb=1,lorbs%norbp
+      !!        iiorb=lorbs%isorb+iorb
+      !!        ilr=lorbs%inwhichlocreg(iiorb)
+      !!        ncnt=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !!        tt=lagmat(iiorb,iiorb)
+      !!        call daxpy(ncnt, -tt, lhphi(ist), 1, lphi(ist), 1)
+      !!        ist=ist+ncnt
+      !!    end do
+      !!end if
 
       ! Calculate modified trace
       !!tt=0.d0
@@ -752,7 +787,7 @@ character(len=3):: orbname, comment
       if(.not. ldiis%switchSD .and. ldiis%isx==0) then
          !if(iproc==0) write(*,*) 'trH, trHold', trH, trHold
            !if(trH>trHold) then
-           if(trH > trHold + 1.d-3*abs(trHold)) then
+           if(trH > trHold + 1.d-5*abs(trHold)) then
                consecutive_rejections=consecutive_rejections+1
                !!if(consecutive_rejections==300000) then
                !!    if(fnrmMax<convCrit .or. it>=nit) then
@@ -783,8 +818,10 @@ character(len=3):: orbname, comment
                if(consecutive_rejections<=3) then
                    alpha=alpha*.5d0
                    call dcopy(size(lphi), lphiold, 1, lphi, 1)
-                   if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and cycle'
-                   cycle iterLoop
+                   !if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and cycle'
+                   !cycle iterLoop
+                   if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and exit'
+                   exit iterLoop
                else
                    consecutive_rejections=0
                end if
@@ -1131,8 +1168,8 @@ contains
           icountDIISFailureCons=icountDIISFailureCons+1
           icountDIISFailureTot=icountDIISFailureTot+1
           icountSDSatur=0
-          !if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3 .or. resetDIIS) .and. ldiis%isx>0) then
-          if((icountDIISFailureCons>=200 .or. icountDIISFailureTot>=300 .or. resetDIIS) .and. ldiis%isx>0) then
+          if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3 .or. resetDIIS) .and. ldiis%isx>0) then
+          !if((icountDIISFailureCons>=200 .or. icountDIISFailureTot>=300 .or. resetDIIS) .and. ldiis%isx>0) then
           !if((icountDIISFailureCons>=400 .or. icountDIISFailureTot>=600 .or. resetDIIS) .and. ldiis%isx>0) then
               ! Switch back to SD.
               alpha=ldiis%alphaSD
