@@ -388,6 +388,8 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
 !        Llr(ilr)%wfd%keyvglob(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
         Llr(ilr)%outofzone(:))
 
+   deallocate(keyvglob)
+
 END SUBROUTINE determine_wfd_periodicity
 
 
@@ -1357,7 +1359,7 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
     keygloc(2,iseg) = keyg_loc(2,loc)
     keyg_loc(1,loc) = maxval(keyg_loc) + 1
     keyvloc(iseg) = keyvglob(loc)
-    print *,'iseg,keyvglob,keyglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
+!    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
  end do
  deallocate(keyg_loc)
 
