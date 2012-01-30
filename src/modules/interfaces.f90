@@ -2594,15 +2594,16 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine num_segkeys_periodic
 
     subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-     nseg_loc,nvctr_loc,keyg_loc,keyg_glob,keyv_loc,outofzone)
+     nseg_loc,nvctr_loc,keygloc,keyglob,keyvloc,keyvglob,outofzone)
      implicit none
      integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
      integer, dimension(nseg), intent(in) :: keyv
      integer, dimension(2,nseg), intent(in) :: keyg
      integer, dimension(3), intent(in) :: outofzone
-     integer, dimension(nseg_loc), intent(out) :: keyv_loc
-     integer, dimension(2,nseg_loc), intent(out) :: keyg_loc
-     integer, dimension(2,nseg_loc), intent(out) :: keyg_glob
+     integer, dimension(nseg_loc), intent(out) :: keyvloc
+     integer, dimension(nseg_loc), intent(out) :: keyvglob
+     integer, dimension(2,nseg_loc), intent(out) :: keygloc
+     integer, dimension(2,nseg_loc), intent(out) :: keyglob
      end subroutine segkeys_periodic
 
     subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr)

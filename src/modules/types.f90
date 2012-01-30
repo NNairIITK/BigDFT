@@ -261,6 +261,7 @@ module module_types
      integer, dimension(:,:), pointer :: keyglob
      integer, dimension(:,:), pointer :: keygloc
      integer, dimension(:), pointer :: keyv
+!     integer, dimension(:), pointer :: keyvloc,keyvglob
   end type wavefunctions_descriptors
 
 !>  Grid dimensions in old different wavelet basis

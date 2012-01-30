@@ -1061,7 +1061,6 @@ END SUBROUTINE local_overlap_matrices
 !! FUNCTION: Tranform one wavefunction between Global region and localisation region
 !!
 !! WARNING: 
-!!         Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
 !! SOURCE:
 !!
 subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)

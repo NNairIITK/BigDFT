@@ -177,7 +177,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
            sum(comms%ncntt(0:nproc-1)))
      allocate(workarr(Gdim+ndebug),stat=i_stat)
      call memocc(i_stat,workarr,'workarr',subname)
-     call razero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
+     call razero(Gdim,workarr)
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
@@ -279,53 +279,29 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
         call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.false.)
      end if
   end if
-  !for linear scaling must project the wavefunctions back into the locregs
-  if(Lzd%linear) then
-     psishift1 = 1                                                                                                                                                                                             
-     totshift = 0
-     Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
-           sum(comms%ncntt(0:nproc-1)))
-     allocate(workarr(Gdim+ndebug),stat=i_stat)
-     call memocc(i_stat,workarr,'workarr',subname)
-     call razero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
-     do iorb=1,orbs%norbp
-        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-        ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-        call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
-             ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
-        psishift1 = psishift1 + ldim
-        totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
-     end do
-     !reallocate psi to the global dimensions
-     i_all=-product(shape(psi))*kind(psi)
-     deallocate(psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi',subname)
-     allocate(psi(Gdim+ndebug),stat=i_stat)
-     call memocc(i_stat,psi,'psi',subname)
-     call vcopy(Gdim,workarr(1),1,psi(1),1) !psi=work
-     i_all=-product(shape(workarr))*kind(workarr)
-     deallocate(workarr,stat=i_stat)
-     call memocc(i_stat,i_all,'workarr',subname)
 
   call timing(iproc,'Un-TransSwitch','OF')
 END SUBROUTINE untranspose_v
 
-subroutine untranspose_v2(iproc,nproc,orbs,wfd,comms,psi,&
+subroutine untranspose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
      work,outadd) !optional
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
-  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(local_zone_descriptors), intent(in) :: Lzd
   type(communications_arrays), intent(in) :: comms
-  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
+  real(wp), dimension(:), pointer :: psi !< Input psi should always be in global region, while output psi is in locregs
   real(wp), dimension(:), pointer, optional :: work
   real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
   !local variables
-  integer :: ierr
+  character(len=*), parameter :: subname='untranspose_v2'
+  integer :: ierr,i_all,i_stat
+  integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
+  real(wp), dimension(:), pointer :: workarr
 
-
+  ! Input psi should always be in global region !
   call timing(iproc,'Un-TransSwitch','ON')
 
   if (nproc > 1) then
@@ -344,15 +320,47 @@ subroutine untranspose_v2(iproc,nproc,orbs,wfd,comms,psi,&
      call timing(iproc,'Un-TransSwitch','ON')
      if (present(outadd)) then
         call unswitch_waves_v(nproc,orbs,&
-             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,outadd)
+             Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),work,outadd)
      else
         call unswitch_waves_v(nproc,orbs,&
-             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,psi)
+             Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),work,psi)
      end if
   else
      if(orbs%nspinor /= 1) then
-        call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.false.)
+        call psitransspi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs,psi,.false.)
      end if
+  end if
+
+  !for linear scaling must project the wavefunctions back into the locregs
+  if(Lzd%linear) then
+     psishift1 = 1 
+     totshift = 0
+     Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
+           sum(comms%ncntt(0:nproc-1)))
+     allocate(workarr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
+     call memocc(i_stat,workarr,'workarr',subname)
+     call razero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
+     do iorb=1,orbs%norbp
+        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+        ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+        if(present(outadd)) then
+            call psi_to_locreg2(iproc, nproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), outadd(psishift1))
+        else
+            call psi_to_locreg2(iproc, nproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), workarr(psishift1))
+        end if
+        psishift1 = psishift1 + ldim
+        totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
+     end do
+     !reallocate psi to the locreg dimensions
+     i_all=-product(shape(psi))*kind(psi)
+     deallocate(psi,stat=i_stat)
+     call memocc(i_stat,i_all,'psi',subname)
+     allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
+     call memocc(i_stat,psi,'psi',subname)
+     call vcopy(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr(1),1,psi(1),1) !psi=work
+     i_all=-product(shape(workarr))*kind(workarr)
+     deallocate(workarr,stat=i_stat)
+     call memocc(i_stat,i_all,'workarr',subname)
   end if
 
   call timing(iproc,'Un-TransSwitch','OF')
