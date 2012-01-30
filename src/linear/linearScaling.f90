@@ -167,11 +167,6 @@ type(orthon_data):: orthpar
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
 
-  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%norb, ldiis)
-       ldiis%DIISHistMin=lin%DIISHistMin
-       ldiis%DIISHistMax=lin%DIISHistMax
-       ldiis%alphaSD=lin%alphaSD
-       ldiis%alphaDIIS=lin%alphaDIIS
 
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist_lowaccuracy>0) then
@@ -315,6 +310,13 @@ type(orthon_data):: orthpar
   lowaccur_converged=.false.
 
   outerLoop: do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
+
+
+      call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%norb, ldiis)
+      ldiis%DIISHistMin=lin%DIISHistMin
+      ldiis%DIISHistMax=lin%DIISHistMax
+      ldiis%alphaSD=lin%alphaSD
+      ldiis%alphaDIIS=lin%alphaDIIS
 
       updatePhi=.true.
       selfConsistent=lin%convCritMix
@@ -591,6 +593,9 @@ type(orthon_data):: orthpar
       !!if(abs(pnrm_out)<lin%convCritMixOut) exit
       energyoldout=energy
 
+      ! Deallocate DIIS structures.
+      call deallocateDIIS(ldiis)
+
   end do outerLoop
 
 
@@ -714,7 +719,6 @@ type(orthon_data):: orthpar
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, lphi, coeff)
-  call deallocateDIIS(ldiis)
   deallocate(confdatarr)
 
 
