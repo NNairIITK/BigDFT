@@ -1252,6 +1252,7 @@ END SUBROUTINE determine_boxbounds_sphere
 
 subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
      nseg_loc,nvctr_loc,keygloc,keyglob,keyvloc,keyvglob,outofzone)
+  use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
   integer, dimension(nseg), intent(in) :: keyv
@@ -1262,8 +1263,10 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   integer, dimension(2,nseg_loc), intent(out) :: keygloc
   integer, dimension(2,nseg_loc), intent(out) :: keyglob
   !local variables
+  character(len=*),parameter :: subname = 'segkeys_periodic'
   logical :: go1,go2,go3,lseg
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
+  integer :: i_stat, i_all
   integer :: ngridp,ngridlob,loc
   integer, allocatable :: keyg_loc(:,:)
 
@@ -1274,7 +1277,8 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   n3l=i3ec-i3sc
 
 
-  allocate(keyg_loc(2,nseg_loc))
+  allocate(keyg_loc(2,nseg_loc),stat=i_stat)
+  call memocc(i_stat,keyg_loc,'keyg_loc',subname)
 
   !control variable
   nvctr_check=0
@@ -1361,7 +1365,10 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
     keyvloc(iseg) = keyvglob(loc)
 !    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
  end do
- deallocate(keyg_loc)
+
+ i_all = -product(shape(keyg_loc))*kind(keyg_loc)
+ deallocate(keyg_loc, stat = i_stat)
+ call memocc(i_stat,i_all,'keyg_loc',subname)
 
 END SUBROUTINE segkeys_periodic
                                      
@@ -3191,6 +3198,9 @@ if (nproc > 1) then
 else
    call vcopy(ii*orbs%norbp,overlaps_op(1,1),1,op%overlaps(1,1),1)
 end if
+
+do iorb=1,orbs%norb
+end do
 
 
 iall=-product(shape(overlapMatrix))*kind(overlapMatrix)

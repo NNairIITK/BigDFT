@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=54,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=67,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -76,6 +76,19 @@ module timeData
        'TMB_kernel    ','Linear Algebra' ,'dgemm         ' ,  &
        'diagonal_seq  ','Linear Algebra' ,'dsygv         ' ,  &
        'diagonal_par  ','Linear Algebra' ,'pdsygvx       ' ,  &
+       'lovrlp^-1     ','Linear Algebra' ,'exact or appr ' ,  &
+       'lagmat_orthoco','Linear Algebra' ,'dgemm seq/par ' ,  &
+       'optimize_DIIS ','Other         ' ,'Other         ' ,  &
+       'optimize_SD   ','Other         ' ,'Other         ' ,  &
+       'mix_linear    ','Other         ' ,'Other         ' ,  &
+       'mix_DIIS      ','Other         ' ,'Other         ' ,  &
+       'ig_matric_comm','Communications' ,'mpi p2p       ' ,  &
+       'init_locregs  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_commSumro','Initialization' ,'Miscellaneous ' ,  &
+       'init_commPot  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_commOrtho','Initialization' ,'Miscellaneous ' ,  &
+       'init_inguess  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_matrCompr','Initialization' ,'Miscellaneous ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode

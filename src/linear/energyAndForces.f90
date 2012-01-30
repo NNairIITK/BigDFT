@@ -1495,12 +1495,7 @@ subroutine createIonicPotentialModified(geocode,iproc,nproc,at,lin, iiAt, rxyz,&
 END SUBROUTINE createIonicPotentialModified
 
 
-
-
-
-subroutine updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, &
-    rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    coeff, ehart, eexcu, vexcu)
+subroutine updatePotential(iproc,nproc,geocode,ixc,nspin,hxh,hyh,hzh,Glr,denspot,ehart,eexcu,vexcu)
 !
 ! Purpose:
 ! ========
@@ -1553,76 +1548,67 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, n3d, n3p, sizeLphir, sizePhibuffr
-type(locreg_descriptors) :: Glr
-type(orbitals_data):: orbs
-type(atoms_data):: atoms
-type(input_variables):: in
-type(linearParameters):: lin
-real(dp), dimension(lin%as%size_rhopot) :: rhopot
-integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-real(dp), dimension(lin%as%size_pkernel):: pkernel
-real(wp), dimension(lin%as%size_pot_ion):: pot_ion
-!real(wp), dimension(lin%as%size_rhocore):: rhocore 
-real(wp), dimension(:,:,:,:),pointer:: rhocore 
-real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
-character(len=3):: PSquiet
-real(8),dimension(lin%lb%orbs%norb,orbs%norb):: coeff
+integer:: iproc,nproc,ixc,nspin
+real(gp), intent(in) :: hxh,hyh,hzh
+character(len=1), intent(in) :: geocode
+type(locreg_descriptors), intent(in) :: Glr
+type(DFT_local_fields), intent(inout) :: denspot
 real(8),intent(out):: ehart, eexcu, vexcu
 
-
 ! Local variables
-real(8):: hxh, hyh, hzh, ekin_sum, epot_sum, eproj_sum, energybs, energyMod
+character(len=*), parameter :: subname='updatePotential'
+logical :: nullifyVXC
+real(8):: ekin_sum, epot_sum, eproj_sum, energybs, energyMod
 real(8):: energyMod2, ehartMod, t1, t2, time
-integer:: istat, iall, infoCoeff, ilr, ierr
+integer:: istat, iall, infoCoeff, ilr, ierr, sizeLphir, sizePhibuffr
+real(dp), dimension(6) :: xcstr
 
+nullifyVXC=.false.
 
+if(nspin==4) then
+   !this wrapper can be inserted inside the poisson solver 
+   call PSolverNC(geocode,'D',iproc,nproc,&
+        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,denspot%dpcom%n3d,&
+        ixc,hxh,hyh,hzh,&
+        denspot%rhov,denspot%pkernel,denspot%V_ext,ehart,eexcu,vexcu,0.d0,.true.,4)
+else
+   if (.not. associated(denspot%V_XC)) then   
+      !Allocate XC potential
+      if (denspot%dpcom%n3p >0) then
+         allocate(denspot%V_XC(Glr%d%n1i,Glr%d%n2i,denspot%dpcom%n3p,nspin+ndebug),stat=istat)
+         call memocc(istat,denspot%V_XC,'denspot%V_XC',subname)
+      else
+         allocate(denspot%V_XC(1,1,1,1+ndebug),stat=istat)
+         call memocc(istat,denspot%V_XC,'denspot%V_XC',subname)
+      end if
+      nullifyVXC=.true.
+   end if
 
-hxh=0.5d0*in%hx
-hyh=0.5d0*in%hy
-hzh=0.5d0*in%hz
+   call XC_potential(geocode,'D',iproc,nproc,&
+        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+        denspot%rhov,eexcu,vexcu,nspin,denspot%rho_C,denspot%V_XC,xcstr)
+   
+   call H_potential(geocode,'D',iproc,nproc,&
+        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+        denspot%rhov,denspot%pkernel,denspot%V_ext,ehart,0.0_dp,.true.,&
+        quiet=denspot%PSquiet) !optional argument
+   
+   !sum the two potentials in rhopot array
+   !fill the other part, for spin, polarised
+   if (nspin == 2) then
+      call dcopy(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,denspot%rhov(1),1,&
+           denspot%rhov(1+Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p),1)
+   end if
+   !spin up and down together with the XC part
+   call axpy(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p*nspin,1.0_dp,denspot%V_XC(1,1,1,1),1,&
+        denspot%rhov(1),1)
+   if (nullifyVXC) then
+      iall=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
+      deallocate(denspot%V_XC,stat=istat)
+      call memocc(istat,iall,'denspot%V_XC',subname)
+   end if
 
-
-if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
-
-  !calculate the self-consistent potential
-     !!! Potential from electronic charge density
-     !!call cpu_time(t1)
-     !!call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
-     !!     rhopot, atoms, nscatterarr)
-     !!call cpu_time(t2)
-     !!time=t2-t1
-     !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-     !!!!if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
-
-
-     if(orbs%nspinor==4) then
-        !this wrapper can be inserted inside the poisson solver 
-        call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
-             in%ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-     else
-        call XC_potential(atoms%geocode,'D',iproc,nproc,&
-             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
-             rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
-
-        call H_potential(atoms%geocode,'D',iproc,nproc,&
-             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
-             quiet=PSquiet) !optional argument
-
-        !sum the two potentials in rhopot array
-        !fill the other part, for spin, polarised
-        if (in%nspin == 2) then
-           call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
-                rhopot(1+Glr%d%n1i*Glr%d%n2i*n3p),1)
-        end if
-        !spin up and down together with the XC part
-        call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
-             rhopot(1),1)
-
-     end if
-
+end if
 
 end subroutine updatePotential
 

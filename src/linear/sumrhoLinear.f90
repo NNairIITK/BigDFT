@@ -415,7 +415,11 @@ call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t2)
 time=t2-t1
 !if(iproc==0) write(*,'(a,es12.4)') 'time for wait:',time
-if(iproc==0) write(*,'(a,f5.1,a)') 'done. Communication overlap ratio:',100.d0*dble(nfast)/(dble(nfast+nslow)),'%'
+if (verbose >3) then
+   if(iproc==0) write(*,'(a,f5.1,a)') 'done. Communication overlap ratio:',100.d0*dble(nfast)/(dble(nfast+nslow)),'%'
+else
+   if(iproc==0) write(*,'(a,f5.1,a)') 'done.'
+end if
 !if(iproc==0) write(*,'(1x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
 !                       nfast, ' could be overlapped with computation.'
 !if(iproc==0) write(*,'(1x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'

@@ -141,6 +141,8 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   end if
 
   !calculate the descriptors for rho and the potentials.
+  call denspot_communications(iproc,nproc,Lzd%Glr%d,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       in,atoms,rxyz,radii_cf,denspot%dpcom,denspot%rhod)
   !allocate the arrays.
   call allocateRhoPot(iproc,nproc,Lzd%Glr,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
        in,atoms,rxyz,radii_cf,denspot)

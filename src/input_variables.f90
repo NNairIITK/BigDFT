@@ -884,6 +884,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
 
   
   ! Allocate lin pointers and atoms%rloc
+  call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(atoms, in%lin)
   
   ! Now read in the parameters specific for each atom type.

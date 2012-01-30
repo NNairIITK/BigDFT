@@ -2182,6 +2182,8 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   call mpi_barrier(mpi_comm_world, ierr)
   call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, orbs, ovrlp2)
 
+  call timing(iproc,'lagmat_orthoco','ON')
+
 !!!! test: replace ovrlp2 by unity ##########################
 !!!write(*,*) 'ATTENTION: test: replace ovrlp2 by unity'
 !!!write(*,*) 'ATTENTION: test: delete off-diagonal elements of lagmat'
@@ -2280,6 +2282,7 @@ call cpu_time(t2)
 time_dsymm=t2-t1
 
 
+  call timing(iproc,'lagmat_orthoco','OF')
 
 
 do iorb=1,orbs%norb
@@ -2361,6 +2364,7 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
   character(len=*),parameter:: subname='overlapPowerMinusOne'
   real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp3
 
+  call timing(iproc,'lovrlp^-1     ','ON')
 
   if(iorder==0) then
 
@@ -2417,6 +2421,7 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
       stop
 end if
 
+  call timing(iproc,'lovrlp^-1     ','OF')
 
 end subroutine overlapPowerMinusOne
 

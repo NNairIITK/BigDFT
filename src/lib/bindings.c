@@ -84,10 +84,29 @@ void FC_FUNC_(read_wave_descr, READ_WAVE_DESCR)
      (int *lstat, const char* filename, int *ln, int *norbu,
       int *norbd, int *iorb, int *ispin, int *nkpt, int *ikpt, int *nspinor, int *ispinor);
 
-void FC_FUNC_(inquire_pointer, INQUIRE_POINTER)(void *pt, void *add, int *size)
+     //Duplicate functions in C due to multiple interface definition in Fortran
+void FC_FUNC_(inquire_pointer1, INQUIRE_POINTER1)(void *pt, void *add, int *size)
 {
   memcpy(pt, add, sizeof(void*) * *size);
 }
+void FC_FUNC_(inquire_pointer2, INQUIRE_POINTER2)(void *pt, void *add, int *size)
+{
+  memcpy(pt, add, sizeof(void*) * *size);
+}
+void FC_FUNC_(inquire_pointer3, INQUIRE_POINTER3)(void *pt, void *add, int *size)
+{
+  memcpy(pt, add, sizeof(void*) * *size);
+}
+void FC_FUNC_(inquire_pointer4, INQUIRE_POINTER4)(void *pt, void *add, int *size)
+{
+  memcpy(pt, add, sizeof(void*) * *size);
+}
+void FC_FUNC_(inquire_pointer5, INQUIRE_POINTER5)(void *pt, void *add, int *size)
+{
+  memcpy(pt, add, sizeof(void*) * *size);
+}
+
+
 
 f90_pointer_double_4D* bigdft_read_wave_to_isf(const char *filename, int iorbp,
                                                double h[3], int n[3], int *nspinor)

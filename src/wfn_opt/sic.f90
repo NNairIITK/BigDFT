@@ -22,7 +22,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   integer, dimension(:,:), allocatable :: nscarr_fake
   real(dp), dimension(:,:), allocatable :: rhopoti,vSICi
   real(dp), dimension(:,:,:,:), pointer :: rhocore_fake
-
+  real(dp), dimension(6) :: xcstr
 
   !fake nscatterarr array for compatibility with partial_density interface
   !monoprocessor calculation
@@ -120,7 +120,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
      else
         call XC_potential(lr%geocode,'D',0,1,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
-             rhopoti,eexi,vexi,orbs%nspin,rhocore_fake,vSICi) 
+             rhopoti,eexi,vexi,orbs%nspin,rhocore_fake,vSICi,xcstr) 
 
         call H_potential(lr%geocode,'D',0,1,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
@@ -214,7 +214,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
   real(dp), dimension(:,:), allocatable :: ni,deltarho,vxci,rho,psir,wxd
   real(dp), dimension(:,:,:,:), allocatable :: fxci
   real(dp), dimension(:,:,:,:), pointer :: rhocore_fake
-
+  real(dp), dimension(6) :: xcstr
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
  
   !stop for non-collinear case (lacking of unified XC routine)
@@ -276,7 +276,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
      !put the XC potential in the wxd term, which is the same for all the orbitals
      call XC_potential(lr%geocode,'D',0,1,&
           lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
-          deltarho,eexu,vexu,orbs%nspin,rhocore_fake,wxd)
+          deltarho,eexu,vexu,orbs%nspin,rhocore_fake,wxd,xcstr)
 
      if (.not. virtual) then
         !rescale wxd, pay attention to the occupation of the orbitals
@@ -350,7 +350,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
         !calculate its vXC and fXC
         call XC_potential(lr%geocode,'D',0,1,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
-             deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,fxci)
+             deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr,fxci)
 
         !copy the relevant part of Vxc[rhoref] in the potential
         if (.not. savewxd) &
@@ -415,7 +415,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
            !calculate its XC potential
            call XC_potential(lr%geocode,'D',0,1,&
                 lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
-                deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci) 
+                deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr) 
            !saves the values for the double-counting term
            eSIC_DC=eSIC_DC+eexi-eexu+eSIC_DCi
 

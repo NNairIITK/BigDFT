@@ -46,7 +46,7 @@ NaCl.psp: HGH/psppar.Na HGH/psppar.Cl
 Ca2.psp: psppar.Ca
 Mn2.psp: psppar.Mn
 H2O-CP2K.psp: HGH/psppar.H HGH/psppar.O
-SiBulk.psp: HGH/psppar.Si
+SiBulk.psp: HGH-K/psppar.Si
 AgBulk.psp: HGH/psppar.Ag
 Davidson-SiH4.psp: psppar.H psppar.Si
 Graphene.psp: psppar.C
@@ -85,6 +85,7 @@ SIC.post-in:
 	  Linear.out*)           prec="1.e-9" ;; \
 	  Linear_withder.out*)   prec="5.e-10" ;; \
 	  Linear_mixedmode.out*) prec="2.e-10" ;; \
+          Linear_large.out*)    prec="5.e-10" ;; \
           *)                    prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
