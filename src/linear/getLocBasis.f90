@@ -512,7 +512,7 @@ real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
 type(localizedDIISParameters),intent(inout):: ldiis
 logical,intent(in):: newgradient
 type(orthon_data),intent(in):: orthpar
-type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
+type(confpot_data), dimension(lorbs%norbp),intent(inout) :: confdatarr
 type(SIC_data) :: SIC !<parameters for the SIC methods
 
 ! Local variables
@@ -617,10 +617,13 @@ character(len=3):: orbname, comment
 
 
       t1=mpi_wtime()
-      if(.not.ldiis%switchSD .and. .not.newgradient) then
+      !if(.not.ldiis%switchSD .and. .not.newgradient) then
+      if(.not.ldiis%switchSD .and. newgradient) then
+          confdatarr%prefac=1.5d-2
           call unitary_optimization(iproc, nproc, lzd, lorbs, at, op, &
                                     comon, mad, rxyz, nItInnerLoop, kernel, &
                                     newgradient, confdatarr, hx, lphi)
+          confdatarr%prefac=0.d0
       end if
       t2=mpi_wtime()
       time(5)=time(5)+t2-t1
@@ -3697,111 +3700,111 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       time_matrixElements=time_matrixElements+t2-t1
 
 
-      if(newgradient) then
-          call get_potential_matrices(iproc, nproc, at, orbs, lzd, op, comon, mad, rxyz, &
-               confdatarr, hx, lphi, potmat)
-          !call get_potential_matrices_new(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, lphi, &
-          !     nlocregOnMPI, potmatsmall)
-      end if
+      !!if(newgradient) then
+      !!    call get_potential_matrices(iproc, nproc, at, orbs, lzd, op, comon, mad, rxyz, &
+      !!         confdatarr, hx, lphi, potmat)
+      !!    !call get_potential_matrices_new(iproc, nproc, lin, at, input, orbs, lzd, op, comon, rxyz, lphi, &
+      !!    !     nlocregOnMPI, potmatsmall)
+      !!end if
 
 
-      if(.not.newgradient) then
+      !!if(.not.newgradient) then
           !energyconf_0=ddot(orbs%npsidim, lphi(1), 1, lvphi(1), 1)
           !call mpiallred(energyconf_0, 1, mpi_sum, mpi_comm_world, ierr)
           energyconf_0=0.d0
           do iorb=1,orbs%norb
               energyconf_0 = energyconf_0 + Kmat(iorb,iorb)
           end do
-      else
-          energyconf_0=0.d0
-          do iorb=1,orbs%norb
-              do jorb=1,orbs%norb
-                  energyconf_0 = energyconf_0 + kernel(jorb,iorb)*Kmat(jorb,iorb)
-                  !energyconf_0 = energyconf_0 + kernel(jorb,iorb)*Kmat(iorb,jorb)
-              end do
-          end do
-      end if
+      !!else
+      !!    energyconf_0=0.d0
+      !!    do iorb=1,orbs%norb
+      !!        do jorb=1,orbs%norb
+      !!            energyconf_0 = energyconf_0 + kernel(jorb,iorb)*Kmat(jorb,iorb)
+      !!            !energyconf_0 = energyconf_0 + kernel(jorb,iorb)*Kmat(iorb,jorb)
+      !!        end do
+      !!    end do
+      !!end if
       if(iproc==0) write(*,'(a,i6,3es20.10,2es17.7)') &
                    'it, energyconf_0, energyvonf_trial, energyconf_der0, lstep, lstep_optimal', &
                    it, energyconf_0, energyconf_trial, energyconf_der0, lstep, lstep_optimal
 
       t1=mpi_wtime()
-      if(.not.newgradient) then
+      !!if(.not.newgradient) then
           ! Construct antisymmtric matrix Gmat
           do iorb=1,orbs%norb
               do jorb=1,orbs%norb
                   gmat(jorb,iorb)=2.d0*(Kmat(jorb,iorb)-Kmat(iorb,jorb))
               end do
           end do 
-      else
-          !!! THIS IS THE OLD VERSION #############################################################################
-          do iorb=1,orbs%norb
-              ilr=orbs%inwhichlocreg(iorb)
-              do jorb=1,orbs%norb
-                  jlr=orbs%inwhichlocreg(jorb)
-                  tt=0.d0
-                  do lorb=1,orbs%norb
-                      tt = tt + kernel(jorb,lorb)*Kmat(lorb,iorb) - kernel(iorb,lorb)*Kmat(lorb,jorb) + &
-                                kernel(jorb,lorb)*potmat(lorb,iorb,jlr) - kernel(iorb,lorb)*potmat(lorb,jorb,ilr)
-                  end do
-                  gmat(jorb,iorb)=-tt
-                  !if(iproc==0) then
-                  !    write(77,*) iorb, jorb, gmat(jorb,iorb)
-                  !end if
-              end do
-          end do 
-          ! ########################################################################################################
-          !!! THIS IS THE NEW VERSION
-          !!gmat=0.d0
-          !!ii=0
-          !!ilrold=-1
-          !!do iorb=1,orbs%norbp
-          !!    iiorb=orbs%isorb+iorb
-          !!    ilr=orbs%inwhichlocreg(iiorb)
-          !!    if(ilr>ilrold) then
-          !!        ii=ii+1
-          !!    end if
-          !!    do jorb=1,orbs%norb
-          !!        jlr=orbs%inwhichlocreg(jorb)
-          !!        tt=0.d0
-          !!        do lorb=1,orbs%norb
-          !!            !tt = tt + kernel(jorb,lorb)*Kmat(lorb,iiorb) - kernel(iiorb,lorb)*Kmat(lorb,jorb) + &
-          !!            !          - kernel(iiorb,lorb)*potmat(lorb,jorb,ilr)
-          !!            tt = tt + kernel(jorb,lorb)*Kmat(lorb,iiorb) - kernel(iiorb,lorb)*Kmat(lorb,jorb) + &
-          !!                      - kernel(iiorb,lorb)*potmatsmall(lorb,jorb,ii)
-          !!        end do
-          !!        gmat(jorb,iiorb)=-tt
-          !!    end do
-          !!    ilrold=ilr
-          !!end do 
-          !!do iorb=1,orbs%norb
-          !!    ilr=orbs%inwhichlocreg(iorb)
-          !!    jlrold=-1
-          !!    jj=0
-          !!    do jorb=1,orbs%norbp
-          !!        jjorb=orbs%isorb+jorb
-          !!        jlr=orbs%inwhichlocreg(jjorb)
-          !!        if(jlr>jlrold) then
-          !!            jj=jj+1
-          !!        end if
-          !!        tt=0.d0
-          !!        do lorb=1,orbs%norb
-          !!            !tt = tt + kernel(jjorb,lorb)*potmat(lorb,iorb,jlr)
-          !!            tt = tt + kernel(jjorb,lorb)*potmatsmall(lorb,iorb,jj)
-          !!        end do
-          !!        gmat(jjorb,iorb)=gmat(jjorb,iorb)-tt
-          !!        jlrold=jlr
-          !!    end do
-          !!end do 
-          !!call mpiallred(gmat(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-          !!do iorb=1,orbs%norb
-          !!    do jorb=1,orbs%norb
-          !!        if(iproc==0) then
-          !!            write(77,*) iorb, jorb, gmat(jorb,iorb)
-          !!        end if
-          !!    end do
-          !!end do
-      end if
+      !!else
+      !!    !!! THIS IS THE OLD VERSION #############################################################################
+      !!    do iorb=1,orbs%norb
+      !!        ilr=orbs%inwhichlocreg(iorb)
+      !!        do jorb=1,orbs%norb
+      !!            jlr=orbs%inwhichlocreg(jorb)
+      !!            tt=0.d0
+      !!            do lorb=1,orbs%norb
+      !!                tt = tt + kernel(jorb,lorb)*Kmat(lorb,iorb) - kernel(iorb,lorb)*Kmat(lorb,jorb) + &
+      !!                          kernel(jorb,lorb)*potmat(lorb,iorb,jlr) - kernel(iorb,lorb)*potmat(lorb,jorb,ilr)
+      !!            end do
+      !!            gmat(jorb,iorb)=-tt
+      !!            !if(iproc==0) then
+      !!            !    write(77,*) iorb, jorb, gmat(jorb,iorb)
+      !!            !end if
+      !!        end do
+      !!    end do 
+      !!    ! ########################################################################################################
+      !!    !!! THIS IS THE NEW VERSION
+      !!    !!gmat=0.d0
+      !!    !!ii=0
+      !!    !!ilrold=-1
+      !!    !!do iorb=1,orbs%norbp
+      !!    !!    iiorb=orbs%isorb+iorb
+      !!    !!    ilr=orbs%inwhichlocreg(iiorb)
+      !!    !!    if(ilr>ilrold) then
+      !!    !!        ii=ii+1
+      !!    !!    end if
+      !!    !!    do jorb=1,orbs%norb
+      !!    !!        jlr=orbs%inwhichlocreg(jorb)
+      !!    !!        tt=0.d0
+      !!    !!        do lorb=1,orbs%norb
+      !!    !!            !tt = tt + kernel(jorb,lorb)*Kmat(lorb,iiorb) - kernel(iiorb,lorb)*Kmat(lorb,jorb) + &
+      !!    !!            !          - kernel(iiorb,lorb)*potmat(lorb,jorb,ilr)
+      !!    !!            tt = tt + kernel(jorb,lorb)*Kmat(lorb,iiorb) - kernel(iiorb,lorb)*Kmat(lorb,jorb) + &
+      !!    !!                      - kernel(iiorb,lorb)*potmatsmall(lorb,jorb,ii)
+      !!    !!        end do
+      !!    !!        gmat(jorb,iiorb)=-tt
+      !!    !!    end do
+      !!    !!    ilrold=ilr
+      !!    !!end do 
+      !!    !!do iorb=1,orbs%norb
+      !!    !!    ilr=orbs%inwhichlocreg(iorb)
+      !!    !!    jlrold=-1
+      !!    !!    jj=0
+      !!    !!    do jorb=1,orbs%norbp
+      !!    !!        jjorb=orbs%isorb+jorb
+      !!    !!        jlr=orbs%inwhichlocreg(jjorb)
+      !!    !!        if(jlr>jlrold) then
+      !!    !!            jj=jj+1
+      !!    !!        end if
+      !!    !!        tt=0.d0
+      !!    !!        do lorb=1,orbs%norb
+      !!    !!            !tt = tt + kernel(jjorb,lorb)*potmat(lorb,iorb,jlr)
+      !!    !!            tt = tt + kernel(jjorb,lorb)*potmatsmall(lorb,iorb,jj)
+      !!    !!        end do
+      !!    !!        gmat(jjorb,iorb)=gmat(jjorb,iorb)-tt
+      !!    !!        jlrold=jlr
+      !!    !!    end do
+      !!    !!end do 
+      !!    !!call mpiallred(gmat(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+      !!    !!do iorb=1,orbs%norb
+      !!    !!    do jorb=1,orbs%norb
+      !!    !!        if(iproc==0) then
+      !!    !!            write(77,*) iorb, jorb, gmat(jorb,iorb)
+      !!    !!        end if
+      !!    !!    end do
+      !!    !!end do
+      !!end if
       t2=mpi_wtime()
       time_matrixmodification=time_matrixmodification+t2-t1
 
@@ -3833,11 +3836,11 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
       ! Calculate step size
       if(it==1) then
-          if(.not.newgradient) then
+          !!if(.not.newgradient) then
               lstep=5.d-2/(maxval(eval))
-          else
-              lstep=1.d-4/(maxval(eval))
-          end if
+          !!else
+          !!    lstep=1.d-4/(maxval(eval))
+          !!end if
       else
           lstep=2.d0*lstep_optimal
           !lstep=1.d-3/(maxval(eval))
@@ -3900,29 +3903,29 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       t2=mpi_wtime()
       time_convol=time_convol+t2-t1
 
-      if(.not.newgradient) then
+      !!if(.not.newgradient) then
           energyconf_trial=ddot(max(orbs%npsidim_orbs,orbs%npsidim_comp), lphi(1), 1, lvphi(1), 1)
           call mpiallred(energyconf_trial, 1, mpi_sum, mpi_comm_world, ierr)
-      else
+      !!else
 
-          call dcopy(comon%nrecvbuf, comon%recvbuf, 1, recvbuf, 1)
-          !call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
-          !call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
-          !allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
-          !call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
-          !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
-          !deallocate(ttmat)
-          call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, Kmat)
-          call dcopy(comon%nrecvbuf, recvbuf, 1, comon%recvbuf, 1)
+      !!    call dcopy(comon%nrecvbuf, comon%recvbuf, 1, recvbuf, 1)
+      !!    !call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+      !!    !call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
+      !!    !allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
+      !!    !call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
+      !!    !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
+      !!    !deallocate(ttmat)
+      !!    call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, Kmat)
+      !!    call dcopy(comon%nrecvbuf, recvbuf, 1, comon%recvbuf, 1)
 
-          energyconf_trial=0.d0
-          do iorb=1,orbs%norb
-              do jorb=1,orbs%norb
-                  energyconf_trial = energyconf_trial + kernel(jorb,iorb)*Kmat(jorb,iorb)
-                  !energyconf_trial = energyconf_trial + kernel(jorb,iorb)*Kmat(iorb,jorb)
-              end do
-          end do
-      end if
+      !!    energyconf_trial=0.d0
+      !!    do iorb=1,orbs%norb
+      !!        do jorb=1,orbs%norb
+      !!            energyconf_trial = energyconf_trial + kernel(jorb,iorb)*Kmat(jorb,iorb)
+      !!            !energyconf_trial = energyconf_trial + kernel(jorb,iorb)*Kmat(iorb,jorb)
+      !!        end do
+      !!    end do
+      !!end if
 
       ! Calculate the gradient of the confinement
       energyconf_der0=0.d0
@@ -3935,15 +3938,15 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
       ! Calculate optimal step size
       lstep_optimal = -energyconf_der0*lstep**2/(2.d0*(energyconf_trial-energyconf_0-lstep*energyconf_der0))
-      if(.not.newgradient) then
+      !!if(.not.newgradient) then
           lstep_optimal=min(lstep_optimal,lstep)
-      else
-          if(lstep_optimal<0) then
-              lstep_optimal=lstep
-          else
-              lstep_optimal=min(lstep_optimal,lstep)
-          end if
-      end if
+      !!else
+      !!    if(lstep_optimal<0) then
+      !!        lstep_optimal=lstep
+      !!    else
+      !!        lstep_optimal=min(lstep_optimal,lstep)
+      !!    end if
+      !!end if
 
       t1=mpi_wtime()
       ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
