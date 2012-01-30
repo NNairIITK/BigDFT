@@ -535,6 +535,7 @@ real(8),dimension(5):: time
 !real(8),dimension(:),pointer:: lpot
 !real(8),external :: mpi_wtime1
 character(len=3):: orbname, comment
+real(8),dimension(:),allocatable:: lvphiovrlp
 
 
 
@@ -638,7 +639,7 @@ character(len=3):: orbname, comment
       t1=mpi_wtime()
       !if(.not.ldiis%switchSD .and. .not.newgradient) then
       if(.not.ldiis%switchSD .and. newgradient) then
-          confdatarr%prefac=1.5d-2
+          confdatarr%prefac=2.0d-2
           call unitary_optimization(iproc, nproc, lzd, lorbs, at, op, &
                                     comon, mad, rxyz, nItInnerLoop, kernel, &
                                     newgradient, confdatarr, hx, lphi)
@@ -820,8 +821,8 @@ character(len=3):: orbname, comment
                    call dcopy(size(lphi), lphiold, 1, lphi, 1)
                    !if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and cycle'
                    !cycle iterLoop
-                   if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and exit'
-                   exit iterLoop
+                   !if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and exit'
+                   !exit iterLoop
                else
                    consecutive_rejections=0
                end if
@@ -988,23 +989,25 @@ character(len=3):: orbname, comment
 
 
 
-      !!! plot the orbitals -- EXPERIMENTAL ##################################################
-      !!allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
-      !!ist=1
-      !!write(comment,'(i3.3)') it
-      !!do iorb=1,lorbs%norbp
-      !!    iiorb=iorb+lorbs%isorb
-      !!    ilr=lorbs%inwhichlocreg(iiorb)
-      !!    lvphiovrlp=0.d0
-      !!    call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
-      !!         lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, input%nspin, &
-      !!         lzd%Glr, lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
-      !!    call plotOrbitals(iproc, orbs, lzd%Glr, lvphiovrlp, at%nat, rxyz, lorbs%inwhichlocreg, &
-      !!         .5d0*input%hx, .5d0*input%hy, .5d0*input%hz, it)
-      !!    ist=ist+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-      !!end do
-      !!deallocate(lvphiovrlp)
-      !!! ####################################################################################
+      ! plot the orbitals -- EXPERIMENTAL ##################################################
+      if(newgradient) then
+          allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
+          ist=1
+          write(comment,'(i3.3)') it
+          do iorb=1,lorbs%norbp
+              iiorb=iorb+lorbs%isorb
+              ilr=lorbs%inwhichlocreg(iiorb)
+              lvphiovrlp=0.d0
+              call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
+                   lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, 1, &
+                   lzd%Glr, lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
+              call plotOrbitals(iproc, orbs, lzd%Glr, lvphiovrlp, at%nat, rxyz, lorbs%inwhichlocreg, &
+                   .5d0*hx, .5d0*hy, .5d0*hz, it)
+              ist=ist+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+          end do
+          deallocate(lvphiovrlp)
+      end if
+      ! ####################################################################################
 
 
 
