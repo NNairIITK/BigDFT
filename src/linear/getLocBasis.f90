@@ -541,7 +541,7 @@ real(8),dimension(5):: time
 character(len=3):: orbname, comment
 real(8),dimension(:),allocatable:: lvphiovrlp
 real(8),dimension(:),pointer:: phiWork
-real(8),dimension(:),allocatable:: phi, lphilarge
+real(8),dimension(:),allocatable:: phi, hphi, lphilarge
 integer:: jst, istl, istg, nvctrp, ldim
 
 
@@ -831,8 +831,112 @@ integer:: jst, istl, istg, nvctrp, ldim
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
       !!if(.not.newgradient .or. it<=10) call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
       !!     methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
+
+      if(iproc==0) write(*,*) 'WARNING: COMMENTED!'
       call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
            methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
+
+      !!!    allocate(phi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
+      !!!    allocate(hphi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
+      !!!    allocate(phiWork(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat)
+      !!!    istl=1
+      !!!    istg=1
+      !!!    phi=0.d0
+      !!!    hphi=0.d0
+      !!!    do iorb=1,lorbs%norbp
+      !!!        iiorb=iorb+lorbs%isorb
+      !!!        ilr=lorbs%inwhichlocreg(iiorb)
+      !!!        call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
+      !!!             lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, 1, &
+      !!!             lzd%Glr, lzd%Llr(ilr), lphi(istl), phi(istg))
+      !!!        call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
+      !!!             lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, 1, &
+      !!!             lzd%Glr, lzd%Llr(ilr), lhphi(istl), hphi(istg))
+      !!!        istl=istl+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !!!        istg=istg+lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
+      !!!    end do
+      !!!    call transpose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, phi, work=phiWork)
+      !!!    call transpose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, hphi, work=phiWork)
+      !!!    nvctrp=sum(comms%nvctr_par(iproc,1:lorbs%nkptsp))*lorbs%nspinor
+      !!!    ist=1
+      !!!    do iorb=1,lorbs%norb
+      !!!        jst=1
+      !!!        do jorb=1,lorbs%norb
+      !!!            lagmat(jorb,iorb)=ddot(nvctrp, phi(jst), 1, hphi(ist), 1)
+      !!!            jst=jst+nvctrp
+      !!!        end do
+      !!!        ist=ist+nvctrp
+      !!!    end do
+      !!!    call mpiallred(lagmat(1,1), lorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+      !!!    do iorb=1,lorbs%norb
+      !!!        do jorb=1,lorbs%norb
+      !!!            write(450,*) iorb,jorb,lagmat(jorb,iorb)
+      !!!        end do
+      !!!    end do
+      !!!    do iorb=1,lorbs%norb
+      !!!        do jorb=1,lorbs%norb
+      !!!            write(460,*) iorb,jorb,lagmat(jorb,iorb)
+      !!!        end do
+      !!!    end do
+      !!!    call dgemm('n', 'n', nvctrp, lorbs%norb, lorbs%norb, -.5d0, phi(1), &
+      !!!                         nvctrp, lagmat(1,1), lorbs%norb, 1.d0, hphi(1), nvctrp)
+      !!!    call dgemm('n', 't', nvctrp, lorbs%norb, lorbs%norb, -.5d0, phi(1), &
+      !!!                         nvctrp, lagmat(1,1), lorbs%norb, 1.d0, hphi(1), nvctrp)
+      !!!    call untranspose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, phi, work=phiWork)
+      !!!    call untranspose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, hphi, work=phiWork)
+
+      !!!    ! transfrom the large locreg
+      !!!    ind1=1
+      !!!    ind2=1
+      !!!    allocate(lphilarge(lin%orbslarge%npsidim_orbs), stat=istat)
+      !!!    lphilarge=0.d0
+      !!!    do iorb=1,lin%orbslarge%norbp
+      !!!        !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
+      !!!        ilr = lin%orbslarge%inWhichLocreg(lin%orbslarge%isorb+iorb)
+      !!!        ldim=lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
+      !!!        gdim=lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
+      !!!        !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
+      !!!        !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
+      !!!        !call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
+      !!!        call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%lzdlarge%llr(ilr), lzd%glr, hphi(ind1), lphilarge(ind2))
+      !!!        ind1=ind1+lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
+      !!!        ind2=ind2+lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
+      !!!    end do
+      !!!    !lphilarge=1.d-4
+      !!!    call unitary_optimization(iproc, nproc, lin%lzdlarge, lin%orbslarge, at, lin%oplarge, &
+      !!!                              lin%comonlarge, lin%madlarge, rxyz, nItInnerLoop, kernel, &
+      !!!                              newgradient, confdatarr, hx, lphilarge)
+
+      !!!    ! Transform back to small locreg
+      !!!    ind1=1
+      !!!    ind2=1
+      !!!    lhphi=0.d0
+      !!!    do iorb=1,lin%orbs%norbp
+      !!!        !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
+      !!!        ilr = lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
+      !!!        ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !!!        gdim=lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
+      !!!        !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
+      !!!        !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
+      !!!        !call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
+      !!!        call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lin%lzdlarge%llr(ilr), lphilarge(ind1), lhphi(ind2))
+      !!!        ind1=ind1+lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
+      !!!        ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !!!    end do
+
+      !!!    deallocate(lphilarge)
+      !!!    deallocate(phiWork, stat=istat)
+      !!!    deallocate(phi, stat=istat)
+      !!!    deallocate(hphi, stat=istat)
+
+
+
+
+
+
+
+
+
       !!! EXPERIMENTAL -- USE ONLY DIAGONAL PART
       !!if(newgradient .and. it>10) then
       !!    call allocateCommuncationBuffersOrtho(comon, subname)
