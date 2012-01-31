@@ -5,7 +5,7 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
     methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
     useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC)
+    hx,hy,hz,SIC,comms,lin)
 !
 ! Purpose:
 ! ========
@@ -100,6 +100,8 @@ type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
 type(p2pCommsRepartition),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
+type(communications_arrays),intent(in):: comms
+type(linearParameters),intent(in):: lin
 
 ! Local variables 
 integer:: istat, iall, ilr, istr, iorb, jorb, korb
@@ -142,7 +144,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
            denspot,GPU,lphi,trace,&
           infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,newgradient,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
-          hx,hy,hz,SIC,nItPrecond)
+          hx,hy,hz,SIC,nItPrecond,comms,lin)
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -429,7 +431,7 @@ end subroutine getLinearPsi
 subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
     denspot,GPU,lphi,trH,&
     infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
-    confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond)
+    confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond, comms, lin)
 !
 ! Purpose:
 ! ========
@@ -514,6 +516,8 @@ logical,intent(in):: newgradient
 type(orthon_data),intent(in):: orthpar
 type(confpot_data), dimension(lorbs%norbp),intent(inout) :: confdatarr
 type(SIC_data) :: SIC !<parameters for the SIC methods
+type(communications_arrays),intent(in):: comms
+type(linearParameters),intent(inout):: lin
 
 ! Local variables
 real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
@@ -536,6 +540,9 @@ real(8),dimension(5):: time
 !real(8),external :: mpi_wtime1
 character(len=3):: orbname, comment
 real(8),dimension(:),allocatable:: lvphiovrlp
+real(8),dimension(:),pointer:: phiWork
+real(8),dimension(:),allocatable:: phi, lphilarge
+integer:: jst, istl, istg, nvctrp, ldim
 
 
 
@@ -631,7 +638,94 @@ real(8),dimension(:),allocatable:: lvphiovrlp
            !!        ist=ist+ncnt
            !!    end do
            !!end if
+           
+          allocate(phi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
+          allocate(phiWork(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat)
+          istl=1
+          istg=1
+          phi=0.d0
+          do iorb=1,lorbs%norbp
+              iiorb=iorb+lorbs%isorb
+              ilr=lorbs%inwhichlocreg(iiorb)
+              call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
+                   lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, 1, &
+                   lzd%Glr, lzd%Llr(ilr), lphi(istl), phi(istg))
+              istl=istl+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+              istg=istg+lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
+          end do
+          call transpose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, phi, work=phiWork)
+          nvctrp=sum(comms%nvctr_par(iproc,1:lorbs%nkptsp))*lorbs%nspinor
+          ist=1
+          do iorb=1,lorbs%norb
+              jst=1
+              do jorb=1,lorbs%norb
+                  ovrlp(jorb,iorb)=ddot(nvctrp, phi(jst), 1, phi(ist), 1)
+                  jst=jst+nvctrp
+              end do
+              ist=ist+nvctrp
+          end do
+          call mpiallred(ovrlp(1,1), lorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+          do iorb=1,lorbs%norb
+              do jorb=1,lorbs%norb
+                  write(400,*) iorb,jorb,ovrlp(jorb,iorb)
+              end do
+          end do
+          call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, orthpar%methTransformOverlap, orthpar%blocksize_pdsyev, &
+               orthpar%blocksize_pdgemm, lorbs%norb, mad, ovrlp)
+          do iorb=1,lorbs%norb
+              do jorb=1,lorbs%norb
+                  write(410,*) iorb,jorb,ovrlp(jorb,iorb)
+              end do
+          end do
+          call dgemm('n', 'n', nvctrp, lorbs%norb, lorbs%norb, 1.d0, phi(1), &
+                               nvctrp, ovrlp(1,1), lorbs%norb, 0.d0, phiWork(1), nvctrp)
+          call dcopy(lorbs%norb*nvctrp, phiWork(1), 1, phi(1), 1)
+          call untranspose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, phi, work=phiWork)
+
+          ! transfrom the large locreg
+          ind1=1
+          ind2=1
+          allocate(lphilarge(lin%orbslarge%npsidim_orbs), stat=istat)
+          lphilarge=0.d0
+          do iorb=1,lin%orbslarge%norbp
+              !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
+              ilr = lin%orbslarge%inWhichLocreg(lin%orbslarge%isorb+iorb)
+              ldim=lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
+              gdim=lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
+              !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
+              !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
+              !call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
+              call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%lzdlarge%llr(ilr), lzd%glr, phi(ind1), lphilarge(ind2))
+              ind1=ind1+lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
+              ind2=ind2+lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
+          end do
+          !lphilarge=1.d-4
+          call unitary_optimization(iproc, nproc, lin%lzdlarge, lin%orbslarge, at, lin%oplarge, &
+                                    lin%comonlarge, lin%madlarge, rxyz, nItInnerLoop, kernel, &
+                                    newgradient, confdatarr, hx, lphilarge)
+
+          ! Transform back to small locreg
+          ind1=1
+          ind2=1
+          lphi=0.d0
+          do iorb=1,lin%orbs%norbp
+              !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
+              ilr = lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
+              ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+              gdim=lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
+              !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
+              !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
+              !call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
+              call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lin%lzdlarge%llr(ilr), lphilarge(ind1), lphi(ind2))
+              ind1=ind1+lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
+              ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+          end do
+
+          deallocate(lphilarge)
+          deallocate(phiWork, stat=istat)
+          deallocate(phi, stat=istat)
       end if
+
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1
 

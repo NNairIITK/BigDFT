@@ -1770,7 +1770,7 @@ module module_interfaces
       subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
            denspot,GPU,lphi,trH,&
            infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
-           confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond)
+           confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,comms,lin)
         use module_base
         use module_types
 
@@ -1807,6 +1807,8 @@ module module_interfaces
         type(orthon_data),intent(in):: orthpar
         type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
         type(SIC_data) :: SIC !<parameters for the SIC methods
+        type(communications_arrays),intent(in):: comms
+        type(linearParameters),intent(in):: lin
       end subroutine getLocalizedBasis
 
 
@@ -1982,7 +1984,7 @@ module module_interfaces
          ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
          methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
          useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
-         hx,hy,hz,SIC)
+         hx,hy,hz,SIC,comms,lin)
       use module_base
       use module_types
       implicit none
@@ -2020,6 +2022,8 @@ module module_interfaces
       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
       type(p2pCommsRepartition),intent(inout):: comrp
       type(SIC_data),intent(in):: SIC
+      type(communications_arrays),intent(in):: comms
+      type(linearParameters),intent(in):: lin
     end subroutine getLinearPsi
 
 

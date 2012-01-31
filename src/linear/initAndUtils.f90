@@ -59,6 +59,7 @@ call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 ! Number of localization regions.
 lin%nlr=at%nat
 lin%lzd%nlr=at%nat
+lin%lzdlarge%nlr=at%nat
 
 ! Allocate the basic arrays that are needed for reading the input parameters.
 call allocateBasicArrays(at, lin)
@@ -92,6 +93,10 @@ call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspi
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, &
      lin%gorbs%norbp, lin%gorbs%isorb_par, lin%gorbs%isorb, lin%gorbs%onWhichMPI)
+call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+     input%nkpt, input%kpt, input%wkpt, lin%orbslarge)
+call repartitionOrbitals(iproc, nproc, lin%orbslarge%norb, lin%orbslarge%norb_par,&
+     lin%orbslarge%norbp, lin%orbslarge%isorb_par, lin%orbslarge%isorb, lin%orbslarge%onWhichMPI)
 
 
 
@@ -152,10 +157,15 @@ iall=-product(shape(lin%lb%orbs%inWhichLocreg))*kind(lin%lb%orbs%inWhichLocreg)
 deallocate(lin%lb%orbs%inWhichLocreg, stat=istat)
 call memocc(istat, iall, 'lin%lb%orbs%inWhichLocreg', subname)
 
+iall=-product(shape(lin%orbslarge%inWhichLocreg))*kind(lin%orbslarge%inWhichLocreg)
+deallocate(lin%orbslarge%inWhichLocreg, stat=istat)
+call memocc(istat, iall, 'lin%orbslarge%inWhichLocreg', subname)
+
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%lb%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
+call assignToLocreg2(iproc, at%nat, lin%lzdlarge%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbslarge)
 
 
 
@@ -164,10 +174,15 @@ if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions..
 call timing(iproc,'init_locregs  ','ON')
 t1=mpi_wtime()
 call initLocregs(iproc, nproc, at%nat, rxyz, lin%lzd, lin%orbs, input, Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
+lin%locrad=3.d0*lin%locrad
+call initLocregs(iproc, nproc, at%nat, rxyz, lin%lzdlarge, lin%orbslarge, input, Glr, lin%locrad, lin%locregShape)
+lin%locrad=lin%locrad/3.d0
 
 ! Copy Glr to lin%lzd
 call nullify_locreg_descriptors(lin%lzd%Glr)
 call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
+call nullify_locreg_descriptors(lin%lzdlarge%Glr)
+call copy_locreg_descriptors(Glr, lin%lzdlarge%Glr, subname)
 
 
 ! Initialize collective communications
@@ -195,6 +210,15 @@ do iorb=1,lin%lb%orbs%norbp
  npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
 end do
 lin%lb%orbs%npsidim_orbs=max(npsidim,1)
+
+
+npsidim = 0
+do iorb=1,lin%orbslarge%norbp
+ ilr=lin%orbslarge%inwhichlocreg(iorb+lin%orbslarge%isorb)
+ npsidim = npsidim + lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
+end do
+lin%orbslarge%npsidim_orbs=max(npsidim,1)
+
 
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
@@ -260,6 +284,8 @@ call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
      input, lin%locregShape, lin%op, lin%comon, tag)
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
      input, lin%locregShape, lin%lb%op, lin%lb%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lzdlarge, lin%orbslarge, lin%orbslarge%inWhichLocreg,&
+     input, lin%locregShape, lin%oplarge, lin%comonlarge, tag)
 t2=mpi_wtime()
 call timing(iproc,'init_commOrtho','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
@@ -305,6 +331,9 @@ call initCompressedMatmul3(lin%orbs%norb, lin%mad)
 call initMatrixCompression(iproc, nproc, lin%lzd%nlr, lin%lb%orbs, &
      lin%lb%op%noverlaps, lin%lb%op%overlaps, lin%lb%mad)
 call initCompressedMatmul3(lin%lb%orbs%norb, lin%lb%mad)
+call initMatrixCompression(iproc, nproc, lin%lzdlarge%nlr, lin%orbslarge, &
+     lin%oplarge%noverlaps, lin%oplarge%overlaps, lin%madlarge)
+call initCompressedMatmul3(lin%orbslarge%norb, lin%madlarge)
 t2=mpi_wtime()
 call timing(iproc,'init_matrCompr','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
