@@ -84,7 +84,7 @@ void FC_FUNC_(read_wave_descr, READ_WAVE_DESCR)
      (int *lstat, const char* filename, int *ln, int *norbu,
       int *norbd, int *iorb, int *ispin, int *nkpt, int *ikpt, int *nspinor, int *ispinor);
 
-     //Duplicate functions in C due to multiple interface definition in Fortran
+ /* Duplicate functions in C due to multiple interface definition in Fortran */
 void FC_FUNC_(inquire_pointer1, INQUIRE_POINTER1)(void *pt, void *add, int *size)
 {
   memcpy(pt, add, sizeof(void*) * *size);

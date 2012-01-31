@@ -78,8 +78,11 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
         ! Only the remaining threads do computations, 
         !$ if (nthread_max > 1 .and. mpi_thread_funneled_is_supported) then
         !$ call OMP_SET_NUM_THREADS(nthread_max-1)
+        !$ else if (.not. mpi_thread_funneled_is_supported) then
+        !$ call OMP_SET_NUM_THREADS(nthread_max)
         !$ end if
         !nonlocal hamiltonian
+        !print *,'NonLocalHamiltonian with nthread:' ,omp_get_max_threads(),nthread_max
         if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
         call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
              proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
