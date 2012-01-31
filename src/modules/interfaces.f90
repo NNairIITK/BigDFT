@@ -553,7 +553,7 @@ module module_interfaces
          real(wp), dimension(*) :: pot
          real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
          real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
-         real(wp), target, dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+         real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
          type(GPU_pointers), intent(inout) :: GPU
          real(dp), dimension(:), pointer, optional :: pkernel
          type(orbitals_data), intent(in), optional :: orbsocc
@@ -4926,7 +4926,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
        real(wp), dimension(lzd%ndimpotisf) :: Lpot
        real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
-       real(wp), target, dimension(orbs%npsidim_orbs), intent(out) :: hpsi
+       real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
        real(dp), dimension(:), pointer, optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
