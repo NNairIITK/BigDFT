@@ -11,7 +11,7 @@
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
 !! Otherwise, rhov array is filled by the self-consistent density
 subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
-     nlpspd,proj,rxyz,linflag,exctxpar,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
+     nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
      ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi)
   use module_base
   use module_types
@@ -21,6 +21,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   implicit none
   logical, intent(in) :: scf
   integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
+  character(len=3), intent(in) :: unblock_comms
   real(gp), intent(in) :: hx,hy,hz,hxh,hyh,hzh,alphamix
   type(atoms_data), intent(in) :: atoms
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -40,32 +41,49 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='psitohpsi'
+  logical :: unblock_comms_den,unblock_comms_pot,whilepot
   integer :: nthread_max,ithread,nthread,irhotot_add,irho_add,ispin
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
+
+  !in the default case, non local hamiltonian is done after potential creation
+  whilepot=.true.
+
+  nthread_max=1
+  ithread=0
+  nthread=1
+  !control if we have the possibility of using OMP to de-synchronize communication
+  !$ nthread_max=omp_get_max_threads()
+  
+
+  !decide the communication strategy
+  unblock_comms_den=mpi_thread_funneled_is_supported .and. unblock_comms=='DEN' .and. &
+      nthread_max > 1 .and. scf ! density is done only if scf is present
+  if (unblock_comms_den) whilepot=.false. !anticipate the NlHamiltonian if density should be overlapped
+
+  unblock_comms_pot=mpi_thread_funneled_is_supported .and. unblock_comms=='POT' .and. &
+      nthread_max > 1 .and. whilepot
 
   !calculate the self-consistent potential
   if (scf) then
      ! Potential from electronic charge density 
      call sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
           GPU,atoms%sym,denspot%rhod,psi,denspot%rho_psi)
-     nthread_max=1
-     ithread=0
-     nthread=1
-     !$ nthread_max=omp_get_max_threads()
-     !initialize nested approach
-     !$ if (nthread_max > 1) then
+
+     !initialize nested approach 
+     !this has always to be done for using OMP parallelization in the 
+     !projector case
+     !if nesting is not supported, a bigdft_nesting routine should be defined
      !$   call OMP_SET_NESTED(.true.) 
      !$   call OMP_SET_MAX_ACTIVE_LEVELS(2)
-     !$ if (mpi_thread_funneled_is_supported) then
+     !$ if (unblock_comms_den) then
      !$   call OMP_SET_NUM_THREADS(2)
      !$ else
      !$   call OMP_SET_NUM_THREADS(1)
      !$ end if
-     !$ end if
      !print *,'how many threads ?' ,nthread_max
      !$OMP PARALLEL DEFAULT(shared), PRIVATE(ithread,nthread)
      !$ ithread=omp_get_thread_num()
-     !$ nthread=omp_get_num_threads() !this should be 2
+     !$ nthread=omp_get_num_threads() !this should be 2 if active
      !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
      ! thread 0 does mpi communication 
      if (ithread == 0) then
@@ -74,21 +92,28 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
              denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
      end if
-     if (ithread > 0 .or. nthread==1) then
-        ! Only the remaining threads do computations, 
-        !$ if (nthread_max > 1 .and. mpi_thread_funneled_is_supported) then
+     if (ithread > 0 .or. nthread==1 .and. .not. whilepot) then
+        ! Only the remaining threads do computations (if active) 
+        !$ if (unblock_comms_den) then
         !$ call OMP_SET_NUM_THREADS(nthread_max-1)
-        !$ else if (.not. mpi_thread_funneled_is_supported) then
+        !$ else 
         !$ call OMP_SET_NUM_THREADS(nthread_max)
         !$ end if
+
         !nonlocal hamiltonian
-        !print *,'NonLocalHamiltonian with nthread:' ,omp_get_max_threads(),nthread_max
+        !$ if (verbose > 2 .and. iproc==0)&
+        !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
         if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
         call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
              proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
-
      end if
      !$OMP END PARALLEL
+     !finalize the communication scheme
+     !$   call OMP_SET_NESTED(.false.) 
+     !$   call OMP_SET_NUM_THREADS(nthread_max)
+     ithread=0
+     nthread=1
+  
 
      !here the density can be mixed
      if (iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
@@ -175,14 +200,49 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
   !temporary, to be corrected with comms structure
   if (exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
 
-  call full_local_potential(iproc,nproc,orbs,Lzd,linflag,&
-       denspot%dpcom,denspot%rhov,denspot%pot_full)
+  !initialize nested approach 
+  !this has always to be done for using OMP parallelization in the 
+  !projector case
+  !if nesting is not supported, a bigdft_nesting routine should be defined
+  !$   call OMP_SET_NESTED(.true.) 
+  !$   call OMP_SET_MAX_ACTIVE_LEVELS(2)
+  !$ if (unblock_comms_pot) then
+  !$   call OMP_SET_NUM_THREADS(2)
+  !$ else
+  !$   call OMP_SET_NUM_THREADS(1)
+  !$ end if
+  !print *,'how many threads ?' ,nthread_max
+  !$OMP PARALLEL DEFAULT(shared), PRIVATE(ithread,nthread)
+  !$ ithread=omp_get_thread_num()
+  !$ nthread=omp_get_num_threads() !this should be 2 if active
+  !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
+  ! thread 0 does mpi communication 
+  if (ithread == 0) then
+     call full_local_potential(iproc,nproc,orbs,Lzd,linflag,&
+          denspot%dpcom,denspot%rhov,denspot%pot_full)
+     !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
+  end if
+  if (ithread > 0 .or. nthread==1 .and. whilepot) then
+     ! Only the remaining threads do computations (if active) 
+     !$ if (unblock_comms_pot) then
+     !$ call OMP_SET_NUM_THREADS(nthread_max-1)
+     !$ else 
+     !$ call OMP_SET_NUM_THREADS(nthread_max)
+     !$ end if
 
-  if (.not. scf) then
+     !nonlocal hamiltonian
+     !$ if (verbose > 2 .and. iproc==0)&
+     !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
      if (orbs%npsidim_orbs >0) call to_zero(orbs%npsidim_orbs,hpsi(1))
      call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
           proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
   end if
+  !$OMP END PARALLEL
+  !finalize the communication scheme
+  !$   call OMP_SET_NESTED(.false.) 
+  !$   call OMP_SET_NUM_THREADS(nthread_max)
+  ithread=0
+  nthread=1
 
   call LocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,&
        Lzd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
@@ -219,7 +279,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
   real(wp), dimension(lzd%ndimpotisf) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
-  real(wp), target, dimension(orbs%npsidim_orbs), intent(out) :: hpsi
+  real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(:), pointer, optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
@@ -276,7 +336,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    real(wp), dimension(*) :: pot
    real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
    real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
-   real(wp), target, dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+   real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
    real(dp), dimension(:), pointer, optional :: pkernel
    type(orbitals_data), intent(in), optional :: orbsocc
@@ -392,9 +452,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    !       call random_number(psi(i))
    !  end do
    if(OCLconv .and. ASYNCconv) then
-      allocate(GPU%hpsi_ASYNC((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
+      allocate(GPU%hpsi_ASYNC(max(1,(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp)),stat=i_stat)
       call memocc(i_stat,GPU%hpsi_ASYNC,'GPU%hpsi_ASYNC',subname)
-      call to_zero((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,hpsi(1))
+!      call to_zero((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%hpsi_ASYNC(1))!hpsi(1))
    else if (OCLconv) then
       GPU%hpsi_ASYNC => hpsi
    end if

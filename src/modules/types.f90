@@ -210,6 +210,9 @@ module module_types
      !!   OP2P (Overlap Point-to-Point)
      character(len=4) :: exctxpar
 
+     !> paradigm for unblocking global communications via OMP_NESTING
+     character(len=3) :: unblock_comms
+
      !> communication scheme for the density
      !!  DBL traditional scheme with double precision
      !!  MIX mixed single-double precision scheme (requires rho_descriptors)
@@ -261,6 +264,7 @@ module module_types
      integer, dimension(:,:), pointer :: keyglob
      integer, dimension(:,:), pointer :: keygloc
      integer, dimension(:), pointer :: keyv
+!     integer, dimension(:), pointer :: keyvloc,keyvglob
   end type wavefunctions_descriptors
 
 !>  Grid dimensions in old different wavelet basis

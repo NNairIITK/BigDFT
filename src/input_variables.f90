@@ -884,6 +884,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
 
   
   ! Allocate lin pointers and atoms%rloc
+  call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(atoms, in%lin)
   
   ! Now read in the parameters specific for each atom type.
@@ -1469,7 +1470,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("methortho", 0, (/ 0, 1, 2 /), &
        & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
   call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
-
+  call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
+       inputs%unblock_comms)
   call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
   
   !verbosity of the output

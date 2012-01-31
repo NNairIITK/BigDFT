@@ -86,9 +86,9 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
 
      ! wavefunction after application of the self-interaction potential
      if (ipotmethod == 2 .or. ipotmethod == 3) then
-     allocate(vsicpsir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,vsicpsir,'vsicpsir',subname)
-  end if
+        allocate(vsicpsir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,vsicpsir,'vsicpsir',subname)
+     end if
 
   !n(c) etest=0.0_gp
 
@@ -141,7 +141,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
 
      !apply the potential to the psir wavefunction and calculate potential energy
      call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
-          pot(orbs%ispot(iorb)),psir,epot,confdatarr(iorb))
+          pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb))
      !this ispot has to be better defined inside denspot structure
 
      !ODP treatment (valid only for the nlr=1 case)
@@ -163,7 +163,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
         !accumulate the Double-Counted SIC energy
         eSIC_DC=eSIC_DC+alphaSIC*orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eSICi
      end if
-     
+
      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
      !k-point values, if present
      kx=orbs%kpts(1,orbs%iokpt(iorb))
@@ -213,7 +213,6 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
 
 !!$  select case(lr%geocode)
 !!$  case('F')
-
   if (present(confdata) .and. confdata%potorder /=0) then
      if (lr%geocode == 'F') then
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&

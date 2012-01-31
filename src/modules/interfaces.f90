@@ -553,7 +553,7 @@ module module_interfaces
          real(wp), dimension(*) :: pot
          real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
          real(gp), intent(inout) :: eexctX !used to activate the OP2P scheme
-         real(wp), target, dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+         real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
          type(GPU_pointers), intent(inout) :: GPU
          real(dp), dimension(:), pointer, optional :: pkernel
          type(orbitals_data), intent(in), optional :: orbsocc
@@ -2573,15 +2573,16 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine num_segkeys_periodic
 
     subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-     nseg_loc,nvctr_loc,keyg_loc,keyg_glob,keyv_loc,outofzone)
+     nseg_loc,nvctr_loc,keygloc,keyglob,keyvloc,keyvglob,outofzone)
      implicit none
      integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
      integer, dimension(nseg), intent(in) :: keyv
      integer, dimension(2,nseg), intent(in) :: keyg
      integer, dimension(3), intent(in) :: outofzone
-     integer, dimension(nseg_loc), intent(out) :: keyv_loc
-     integer, dimension(2,nseg_loc), intent(out) :: keyg_loc
-     integer, dimension(2,nseg_loc), intent(out) :: keyg_glob
+     integer, dimension(nseg_loc), intent(out) :: keyvloc
+     integer, dimension(nseg_loc), intent(out) :: keyvglob
+     integer, dimension(2,nseg_loc), intent(out) :: keygloc
+     integer, dimension(2,nseg_loc), intent(out) :: keyglob
      end subroutine segkeys_periodic
 
     subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr)
@@ -4925,7 +4926,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
        real(wp), dimension(lzd%ndimpotisf) :: Lpot
        real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
-       real(wp), target, dimension(orbs%npsidim_orbs), intent(out) :: hpsi
+       real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
        real(dp), dimension(:), pointer, optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
@@ -5739,7 +5740,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine extract_potential_for_spectra
 
        subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
-            nlpspd,proj,rxyz,linflag,exctxpar,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
+            nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
             ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi)
          use module_base
          use module_types
@@ -5748,6 +5749,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          logical, intent(in) :: scf
          integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
          real(gp), intent(in) :: hx,hy,hz,hxh,hyh,hzh,alphamix
+         character(len=3), intent(in) :: unblock_comms
          type(atoms_data), intent(in) :: atoms
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          type(orbitals_data), intent(in) :: orbs

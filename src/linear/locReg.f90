@@ -282,6 +282,7 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
   integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   character(len=*), parameter :: subname='determine_wfd_periodicity'
+  integer, allocatable :: keyvglob(:)  
 
    !starting point of locreg (always inside locreg)
    isdir(1) = Llr(ilr)%ns1
@@ -361,13 +362,18 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
    !allocate the wavefunction descriptors following the needs
    call allocate_wfd(Llr(ilr)%wfd,subname)
 
+   allocate(keyvglob(Llr(ilr)%wfd%nseg_c+Llr(ilr)%wfd%nseg_f))   !for tests should remove
+
    !Now, fill the descriptors:
    !coarse part
    call segkeys_periodic(Glr%d%n1,Glr%d%n2,Glr%d%n3,isdir(1),iedir(1),&
         isdir(2),iedir(2),isdir(3),iedir(3),&
         Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),&
         Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c,&
-        Llr(ilr)%wfd%keygloc(1,1),Llr(ilr)%wfd%keyglob(1,1),Llr(ilr)%wfd%keyv(1),Llr(ilr)%outofzone(:))
+        Llr(ilr)%wfd%keygloc(1,1),Llr(ilr)%wfd%keyglob(1,1),Llr(ilr)%wfd%keyv(1),&
+        keyvglob(1),&
+!        Llr(ilr)%wfd%keyvglob(1),&
+        Llr(ilr)%outofzone(:))
 
    !fine part
    call segkeys_periodic(Glr%d%n1,Glr%d%n2,Glr%d%n3,isdir(1),iedir(1),&
@@ -377,7 +383,12 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
         Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f,&
         Llr(ilr)%wfd%keygloc(1,Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
         Llr(ilr)%wfd%keyglob(1,Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
-        Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),Llr(ilr)%outofzone(:))
+        Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
+        keyvglob(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
+!        Llr(ilr)%wfd%keyvglob(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
+        Llr(ilr)%outofzone(:))
+
+   deallocate(keyvglob)
 
 END SUBROUTINE determine_wfd_periodicity
 
@@ -1240,25 +1251,34 @@ END SUBROUTINE determine_boxbounds_sphere
 
 
 subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-     nseg_loc,nvctr_loc,keyg_loc,keyg_glob,keyv_loc,outofzone)
+     nseg_loc,nvctr_loc,keygloc,keyglob,keyvloc,keyvglob,outofzone)
+  use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
   integer, dimension(nseg), intent(in) :: keyv
   integer, dimension(2,nseg), intent(in) :: keyg
   integer, dimension(3), intent(in) :: outofzone
-  integer, dimension(nseg_loc), intent(out) :: keyv_loc
-  integer, dimension(2,nseg_loc), intent(out) :: keyg_loc
-  integer, dimension(2,nseg_loc), intent(out) :: keyg_glob
+  integer, dimension(nseg_loc), intent(out) :: keyvglob
+  integer, dimension(nseg_loc), intent(out) :: keyvloc
+  integer, dimension(2,nseg_loc), intent(out) :: keygloc
+  integer, dimension(2,nseg_loc), intent(out) :: keyglob
   !local variables
+  character(len=*),parameter :: subname = 'segkeys_periodic'
   logical :: go1,go2,go3,lseg
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
-  integer :: ngridp,ngridlob
+  integer :: i_stat, i_all
+  integer :: ngridp,ngridlob,loc
+  integer, allocatable :: keyg_loc(:,:)
 
   !dimensions of the localisation region (O:nIl)
   ! must be smaller or equal to simulation box dimensions
   n1l=i1ec-i1sc
   n2l=i2ec-i2sc
   n3l=i3ec-i3sc
+
+
+  allocate(keyg_loc(2,nseg_loc),stat=i_stat)
+  call memocc(i_stat,keyg_loc,'keyg_loc',subname)
 
   !control variable
   nvctr_check=0
@@ -1303,8 +1323,8 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
 !             print *,'         check:',i,i2,i3,i1l,i2l,i3l,ngridp
              nsrt=nsrt+1
              keyg_loc(1,nsrt)=ngridp
-             keyg_glob(1,nsrt)=ngridlob
-             keyv_loc(nsrt)=nvctr_check
+             keyglob(1,nsrt)=ngridlob
+             keyvglob(nsrt)=nvctr_check
           end if
           lseg=.true.
         else
@@ -1312,7 +1332,7 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
 !              print *,'in        else:',i,i2,i3,i1l,i2l,i3l,ngridp
               nend=nend+1
               keyg_loc(2,nend)=ngridp
-              keyg_glob(2,nend)=ngridlob
+              keyglob(2,nend)=ngridlob
               lseg=.false.
            end if
         end if
@@ -1321,7 +1341,7 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
 !        print *,'in second else:',i,i2,i3,i1l,i2l,i3l,ngridp
         nend=nend+1
         keyg_loc(2,nend)=ngridp
-        keyg_glob(2,nend)=ngridlob
+        keyglob(2,nend)=ngridlob
      end if
   end do
 
@@ -1335,9 +1355,78 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
      stop
   end if
 
+ ! Now build the keyvloc where we replace the segments in order for the loc
+ do iseg = 1, nseg_loc
+    !sorting the keyg_loc
+    loc = minloc(keyg_loc(1,:),1)
+    keygloc(1,iseg) = keyg_loc(1,loc)
+    keygloc(2,iseg) = keyg_loc(2,loc)
+    keyg_loc(1,loc) = maxval(keyg_loc) + 1
+    keyvloc(iseg) = keyvglob(loc)
+!    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
+ end do
+
+ i_all = -product(shape(keyg_loc))*kind(keyg_loc)
+ deallocate(keyg_loc, stat = i_stat)
+ call memocc(i_stat,i_all,'keyg_loc',subname)
+
 END SUBROUTINE segkeys_periodic
                                      
-
+!> This routine generates the keyglob, keygloc and keyv for the localization regions using periodic boundary conditions
+!! The keys are continous is the localization region (keygloc), while they are inverted global region (keyglob). 
+!!subroutine segkeys_periodic_loc(Glr,Llr,logrid,keygloc,keyglob,keyv)
+!!  implicit none
+!!  type(locreg_descriptors), intent(in) :: Glr
+!!  type(locreg_descriptors), intent(in) :: Llr
+!!  integer, dimension(2,nseg), intent(out) :: keygloc
+!!  integer, dimension(2,nseg), intent(out) :: keyglob
+!!  integer, dimension(nseg), intent(out) :: keyv
+!!  !local variables
+!!  logical :: plogrid
+!!  integer :: i1,i2,i3,i,j,k,nsrt,nend, mvctr
+!!  integer :: ngridloc,ngridglob
+!!
+!!  mvctr = 0
+!!  do k = 1, Llr%d%n3
+!!     i3 = modulo(Llr%ns3 + k, Glr%d%n3)
+!!     do j = 1, Llr%d%n2
+!!        i2 = modulo(Llr%ns2 + k, Glr%d%n2)
+!!        plogrid=.false.
+!!        do i = 1, Llr%d%n1
+!!           i1 = modulo(Llr%ns1 + k, Glr%d%n1)
+!!           ngridloc = k*(Llr%d%n2+1)*(Llr%d%n1+1) + j*(Llr%d%n1+1) + i + 1
+!!           ngridglob = i3*(Glr%d%n2+1)*(Glr%d%n1+1) + i2*(Glr%d%n1+1) + i1 +1
+!!           if (logrid(i1,i2,i3)) then
+!!              mvctr=mvctr+1
+!!              if (.not. plogrid) then
+!!                 nsrt=nsrt+1
+!!                 keygloc(1,nsrt)=ngridloc
+!!                 keyglob(1,nsrt)=ngridglob
+!!                 keyv(nsrt)=mvctr
+!!              endif
+!!           else
+!!              if (plogrid) then
+!!                 nend=nend+1
+!!                 keygloc(2,nend)=ngridloc-1
+!!                 keyglob(2,nend)=ngridglob-1
+!!              endif
+!!           endif
+!!           plogrid=logrid(i1,i2,i3)
+!!        end do
+!!        if (plogrid) then
+!!           nend=nend+1
+!!           keygloc(2,nend)=ngridloc
+!!           keyglob(2,nend)=ngridglob
+!!        endif
+!!     end do
+!!  end do
+!!
+!!  if (nend /= nsrt) then 
+!!     write(*,*) 'nend , nsrt',nend,nsrt
+!!     stop 'nend <> nsrt'
+!!  endif
+!!
+!!END SUBROUTINE segkeys_periodic_loc
 
 
 
@@ -3672,11 +3761,6 @@ integer:: ii
   ix = ii - iy * (n1+1)
 
 end subroutine get_coordinates
-
-
-
-
-
 
 function check_whether_locregs_overlap(llr_i, llr_j, glr)
 use module_base
