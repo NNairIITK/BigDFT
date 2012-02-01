@@ -16,6 +16,7 @@ program wvl
   real(wp), dimension(:), pointer   :: psi, psir
 
   type(rho_descriptors)                :: rhodsc
+  type(denspot_distribution)           :: dpcom
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   type(GPU_pointers)                   :: GPU
   
@@ -60,7 +61,11 @@ program wvl
        & atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult,Lzd%Glr)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
-  call check_linear_and_create_Lzd(iproc,nproc,inputs,Lzd,atoms,orbs,rxyz,radii_cf)
+  call check_linear_and_create_Lzd(iproc,nproc,inputs,Lzd,atoms,orbs,rxyz)
+
+  call denspot_communications(iproc,nproc,Lzd%Glr%d,0.5_gp*inputs%hx,0.5_gp*inputs%hy,0.5_gp*inputs%hz,&
+       inputs,atoms,rxyz,radii_cf,dpcom,rhodsc)
+
 
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))
@@ -193,10 +198,11 @@ program wvl
        & n3pi,i3s+i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
        & pkernel,pot_ion,psoffset)
   !allocate the potential in the full box
-  call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p, &
-       & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,inputs%nspin, &
-       & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3d,0, &
-       & orbs,Lzd,0,ngatherarr,pot_ion,potential)
+  call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,pot_ion,potential)
+!!$  call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p, &
+!!$       & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,inputs%nspin, &
+!!$       & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3d,0, &
+!!$       & orbs,Lzd,0,ngatherarr,pot_ion,potential)
   epot_sum = 0._dp
   do i = 1, orbs%norbp, 1
      call daub_to_isf(Lzd%Glr,wisf, &

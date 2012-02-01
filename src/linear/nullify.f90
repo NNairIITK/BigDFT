@@ -18,56 +18,102 @@ subroutine nullify_linearParameters(lin)
   call nullify_communications_arrays(lin%comms)
   call nullify_communications_arrays(lin%gcomms)
   nullify(lin%norbsPerType)
-  call nullify_p2pCommsSumrho(lin%comsr)
-  call nullify_p2pCommsGatherPot(lin%comgp)
+  !call nullify_p2pCommsSumrho(lin%comsr)
+  call nullify_p2pComms(lin%comsr)
+  !call nullify_p2pCommsGatherPot(lin%comgp)
+  call nullify_p2pComms(lin%comgp)
   call nullify_largeBasis(lin%lb)
   call nullify_local_zone_descriptors(lin%lzd)
-  call nullify_p2pCommsOrthonormality(lin%comon)
+  !call nullify_p2pCommsOrthonormality(lin%comon)
+  call nullify_p2pComms(lin%comon)
   call nullify_overlapParameters(lin%op)
   call nullify_linearInputGuess(lin%lig)
   call nullify_matrixDescriptors(lin%mad)
 
 end subroutine nullify_linearParameters
 
-
-subroutine nullify_p2pCommsSumrho(comsr)
+subroutine nullifyInputLinparameters(lin)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsSumrho
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  type(linearInputParameters),intent(inout):: lin
+
+  nullify(lin%locrad)
+  nullify(lin%potentialPrefac)
+  nullify(lin%potentialPrefac_lowaccuracy)
+  nullify(lin%potentialPrefac_highaccuracy)
+  nullify(lin%norbsPerType)
+
+end subroutine nullifyInputLinparameters
+
+
+subroutine nullify_p2pComms(p2pcomm)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_p2pComms
   implicit none
 
   ! Calling argument
-  type(p2pCommsSumrho),intent(out):: comsr
+  type(p2pComms),intent(out):: p2pcomm
 
-  nullify(comsr%noverlaps)
-  nullify(comsr%overlaps)
-  nullify(comsr%istarr)
-  nullify(comsr%istrarr)
-  nullify(comsr%sendBuf)
-  nullify(comsr%recvBuf)
-  nullify(comsr%comarr)
-  nullify(comsr%communComplete)
-  nullify(comsr%computComplete)
-end subroutine nullify_p2pCommsSumrho
+  nullify(p2pcomm%noverlaps)
+  nullify(p2pcomm%overlaps)
+  nullify(p2pcomm%istarr)
+  nullify(p2pcomm%istrarr)
+  nullify(p2pcomm%sendBuf)
+  nullify(p2pcomm%recvBuf)
+  nullify(p2pcomm%auxarray)
+  nullify(p2pcomm%comarr)
+  nullify(p2pcomm%communComplete)
+  nullify(p2pcomm%computComplete)
+  nullify(p2pcomm%startingindex)
+  nullify(p2pcomm%ise3)
+  nullify(p2pcomm%requests)
+end subroutine nullify_p2pComms
 
 
-subroutine nullify_p2pCommsGatherPot(comgp)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsGatherPot
-  implicit none
-
-  ! Calling argument
-  type(p2pCommsGatherPot),intent(out):: comgp
-
-  nullify(comgp%noverlaps)
-  nullify(comgp%overlaps)
-  nullify(comgp%ise3)
-  nullify(comgp%comarr)
-  nullify(comgp%recvBuf)
-  nullify(comgp%communComplete)
-
-end subroutine nullify_p2pCommsGatherPot
+!!subroutine nullify_p2pCommsSumrho(comsr)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => nullify_p2pCommsSumrho
+!!  implicit none
+!!
+!!  ! Calling argument
+!!  type(p2pCommsSumrho),intent(out):: comsr
+!!
+!!  nullify(comsr%noverlaps)
+!!  nullify(comsr%overlaps)
+!!  nullify(comsr%istarr)
+!!  nullify(comsr%istrarr)
+!!  nullify(comsr%sendBuf)
+!!  nullify(comsr%recvBuf)
+!!  nullify(comsr%comarr)
+!!  nullify(comsr%communComplete)
+!!  nullify(comsr%computComplete)
+!!  nullify(comsr%startingindex)
+!!end subroutine nullify_p2pCommsSumrho
+!!
+!!
+!!subroutine nullify_p2pCommsGatherPot(comgp)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => nullify_p2pCommsGatherPot
+!!  implicit none
+!!
+!!  ! Calling argument
+!!  type(p2pCommsGatherPot),intent(out):: comgp
+!!
+!!  nullify(comgp%noverlaps)
+!!  nullify(comgp%overlaps)
+!!  nullify(comgp%ise3)
+!!  nullify(comgp%comarr)
+!!  nullify(comgp%recvBuf)
+!!  nullify(comgp%communComplete)
+!!
+!!end subroutine nullify_p2pCommsGatherPot
 
 
 subroutine nullify_largeBasis(lb)
@@ -78,15 +124,16 @@ subroutine nullify_largeBasis(lb)
 
   ! Calling argument
   type(largeBasis),intent(out):: lb
-  call nullify_p2pCommsGatherPot(lb%comgp)
   call nullify_communications_arrays(lb%comms)
   call nullify_communications_arrays(lb%gcomms)
   call nullify_orbitals_data(lb%orbs)
   call nullify_orbitals_data(lb%gorbs)
   call nullify_p2pCommsRepartition(lb%comrp)
-  call nullify_p2pCommsOrthonormality(lb%comon)
+  !call nullify_p2pCommsOrthonormality(lb%comon)
+  call nullify_p2pComms(lb%comon)
   call nullify_overlapParameters(lb%op)
-  call nullify_p2pCommsGatherPot(lb%comgp)
+  !call nullify_p2pCommsGatherPot(lb%comgp)
+  call nullify_p2pComms(lb%comgp)
 
 end subroutine nullify_largeBasis
 
@@ -106,24 +153,24 @@ subroutine nullify_p2pCommsRepartition(comrp)
 end subroutine nullify_p2pCommsRepartition
 
 
-subroutine nullify_p2pCommsOrthonormality(comon)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsOrthonormality
-  implicit none
-
-  ! Calling argument
-  type(p2pCommsOrthonormality),intent(out):: comon
-
-  nullify(comon%noverlaps)
-  nullify(comon%overlaps)
-  nullify(comon%comarr)
-  nullify(comon%sendBuf)
-  nullify(comon%recvBuf)
-  nullify(comon%communComplete)
-  nullify(comon%requests)
-
-end subroutine nullify_p2pCommsOrthonormality
+!!subroutine nullify_p2pCommsOrthonormality(comon)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => nullify_p2pCommsOrthonormality
+!!  implicit none
+!!
+!!  ! Calling argument
+!!  type(p2pCommsOrthonormality),intent(out):: comon
+!!
+!!  nullify(comon%noverlaps)
+!!  !!nullify(comon%overlaps)
+!!  nullify(comon%comarr)
+!!  nullify(comon%sendBuf)
+!!  nullify(comon%recvBuf)
+!!  nullify(comon%communComplete)
+!!  nullify(comon%requests)
+!!
+!!end subroutine nullify_p2pCommsOrthonormality
 
 
 subroutine nullify_overlapParameters(op)
@@ -175,9 +222,11 @@ subroutine nullify_linearInputGuess(lig)
   call nullify_local_zone_descriptors(lig%lzdGauss)
   call nullify_orbitals_data(lig%orbsig)
   call nullify_orbitals_data(lig%orbsGauss)
-  call nullify_p2pCommsOrthonormality(lig%comon)
+  !call nullify_p2pCommsOrthonormality(lig%comon)
+  call nullify_p2pComms(lig%comon)
   call nullify_overlapParameters(lig%op)
-  call nullify_p2pCommsGatherPot(lig%comgp)
+  !call nullify_p2pCommsGatherPot(lig%comgp)
+  call nullify_p2pComms(lig%comgp)
   call nullify_matrixDescriptors(lig%mad)
 
 end subroutine nullify_linearInputGuess
@@ -247,6 +296,8 @@ subroutine nullify_orbitals_data(orbs)
   nullify(orbs%kwgts)
   nullify(orbs%kpts)
   nullify(orbs%ispot)
+  orbs%npsidim_orbs=1
+  orbs%npsidim_comp=1
 
 end subroutine nullify_orbitals_data
 

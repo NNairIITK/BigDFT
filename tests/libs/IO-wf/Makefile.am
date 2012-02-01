@@ -65,6 +65,8 @@ clean.in:
 	  done ; \
         fi
 
+check_lib_c check_lib: $(top_builddir)/src/libbigdft.a
+
 #Check read and write by doing twice run
 write_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz write.dft 
 	$(MAKE) in

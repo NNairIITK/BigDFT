@@ -381,6 +381,80 @@
 !!  end subroutine calculate_energy_and_gradient_new
 
 
+!> Allocate diis objects
+subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subname) !n(m)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: subname
+  integer, intent(in) :: idsx,npsidim,nkptsp,nspinor !n(m)
+  real(gp), intent(in) :: alphadiis
+  type(diis_objects), intent(inout) :: diis
+  !local variables
+  integer :: i_stat,ncplx,ngroup
+
+  !calculate the number of complex components
+  if (nspinor > 1) then
+     ncplx=2
+  else
+     ncplx=1
+  end if
+
+  !always better to allow real combination of the wavefunctions
+  ncplx=1
+
+  !add the possibility of more than one diis group
+  ngroup=1
+
+  allocate(diis%psidst(npsidim*idsx+ndebug),stat=i_stat)
+  call memocc(i_stat,diis%psidst,'psidst',subname)
+  allocate(diis%hpsidst(npsidim*idsx+ndebug),stat=i_stat)
+  call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
+  allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)
+  call memocc(i_stat,diis%ads,'ads',subname)
+  call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
+
+  !initialize scalar variables
+  !diis initialisation variables
+  diis%alpha=alphadiis
+  diis%alpha_max=alphadiis
+  diis%energy=1.d10
+  !minimum value of the energy during the minimisation procedure
+  diis%energy_min=1.d10
+  !previous value already fulfilled
+  diis%energy_old=diis%energy
+  !local variable for the diis history
+  diis%idsx=idsx
+  !logical control variable for switch DIIS-SD
+  diis%switchSD=.false.
+
+
+END SUBROUTINE allocate_diis_objects
+
+
+!> De-Allocate diis objects
+subroutine deallocate_diis_objects(diis,subname)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: subname
+  type(diis_objects), intent(inout) :: diis
+  !local variables
+  integer :: i_all,i_stat
+
+  i_all=-product(shape(diis%psidst))*kind(diis%psidst)
+  deallocate(diis%psidst,stat=i_stat)
+  call memocc(i_stat,i_all,'psidst',subname)
+  i_all=-product(shape(diis%hpsidst))*kind(diis%hpsidst)
+  deallocate(diis%hpsidst,stat=i_stat)
+  call memocc(i_stat,i_all,'hpsidst',subname)
+  i_all=-product(shape(diis%ads))*kind(diis%ads)
+  deallocate(diis%ads,stat=i_stat)
+  call memocc(i_stat,i_all,'ads',subname)
+
+END SUBROUTINE deallocate_diis_objects
+
+
 !> Mix the electronic density or the potential using DIIS
 subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
      & n1,n2,n3,ucvol,rpnrm,nscatterarr)

@@ -1242,25 +1242,25 @@ subroutine atoms_set_name(atoms, ityp, name)
   implicit none
   type(atoms_data), intent(inout) :: atoms
   integer, intent(in) :: ityp
-  character(len = 20), intent(in) :: name
+  character, intent(in) :: name(20)
 
-  atoms%atomnames(ityp) = name
+  write(atoms%atomnames(ityp), "(20A1)") name
 END SUBROUTINE atoms_set_name
 subroutine atoms_sync(atoms, alat1, alat2, alat3, geocode, format, units)
   use module_types
   implicit none
   type(atoms_data), intent(inout) :: atoms
-  real(gp), intent(out) :: alat1, alat2, alat3
-  character(len = 1), intent(in) :: geocode
-  character(len = 5), intent(in) :: format
-  character(len = 20), intent(in) :: units
+  real(gp), intent(in) :: alat1, alat2, alat3
+  character, intent(in) :: geocode(1)
+  character, intent(in) :: format(5)
+  character, intent(in) :: units(20)
 
   atoms%alat1 = alat1
   atoms%alat2 = alat2
   atoms%alat3 = alat3
-  atoms%geocode = geocode
-  atoms%format = format
-  atoms%units = units
+  atoms%geocode = geocode(1)
+  write(atoms%format, "(5A1)") format
+  write(atoms%units, "(20A1)") units
 END SUBROUTINE atoms_sync
 
 ! Accessors for bindings.
@@ -1412,13 +1412,13 @@ subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
-  character(len = 1), intent(out) :: geocode
-  character(len = 5), intent(out) :: format
-  character(len = 20), intent(out) :: units
+  character, intent(out) :: geocode(1)
+  character, intent(out) :: format(5)
+  character, intent(out) :: units(20)
 
-  geocode = atoms%geocode
-  format = atoms%format
-  units = atoms%units
+  write(geocode, "(A1)") atoms%geocode
+  write(format, "(5A1)") atoms%format
+  write(units, "(20A1)") atoms%units
 END SUBROUTINE atoms_copy_geometry_data
 subroutine atoms_copy_psp_data(atoms, natsc, donlcc)
   use module_types
@@ -1435,16 +1435,19 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   implicit none
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: ityp
-  character(len = 20), intent(out) :: name
+  character, intent(out) :: name(20)
   integer, intent(out) :: ln
-  !local variables
-  integer :: lnt
-  character(len=20) :: namet
 
-  lnt=min(len(trim(atoms%atomnames(ityp))),20)
+  integer :: i
+
+  ln=min(len(trim(atoms%atomnames(ityp))),20)
   !print *,'lnt2',lnt
-  name(1:lnt)=atoms%atomnames(ityp)(1:lnt)
-  ln = len(trim(name))
+  do i = 1, ln, 1
+     name(i) = atoms%atomnames(ityp)(i:i)
+  end do
+  do i = ln + 1, 20, 1
+     name(i) = ' '
+  end do
 END SUBROUTINE atoms_copy_name
 subroutine atoms_copy_alat(atoms, alat1, alat2, alat3)
   use module_types
@@ -1460,35 +1463,92 @@ subroutine atoms_write(atoms, filename, filelen, rxyz, forces, energy, comment, 
   use module_types
   implicit none
   integer, intent(in) :: ln, filelen
-  character(len=ln), intent(in) :: comment
-  character(len=filelen), intent(in) :: filename
+  character, intent(in) :: comment(ln)
+  character, intent(in) :: filename(filelen)
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(:,:), pointer :: forces
 
-  integer :: iunit
+  integer :: iunit, i
+  character(len = 1024) :: comment_, filename_
 
-  if (trim(filename) == "stdout") then
+  write(filename_, "(A)") " "
+  do i = 1, filelen
+     write(filename_(i:i), "(A1)") filename(i)
+  end do
+  if (trim(filename_) == "stdout") then
      iunit = 6
   else
-     open(unit=9,file=trim(filename)//'.'//trim(atoms%format))
+     open(unit=9,file=trim(filename_)//'.'//trim(atoms%format))
      iunit = 9
   end if
+  write(comment_, "(A)") " "
+  do i = 1, ln
+     write(comment_(i:i), "(A1)") comment(i)
+  end do
 
   if (trim(atoms%format) == "xyz") then
-     call wtxyz(iunit,energy,rxyz,atoms,comment)
+     call wtxyz(iunit,energy,rxyz,atoms,comment_)
      if (associated(forces)) call wtxyz_forces(iunit,forces,atoms)
   else if (trim(atoms%format) == "ascii") then
-     call wtascii(iunit,energy,rxyz,atoms,comment)
+     call wtascii(iunit,energy,rxyz,atoms,comment_)
      if (associated(forces)) call wtascii_forces(iunit,forces,atoms)
   else
      write(*,*) "Error, unknown file format."
      stop
   end if
 
-  if (trim(filename) /= "stdout") then
+  if (trim(filename_) /= "stdout") then
      close(unit=9)
   end if
 END SUBROUTINE atoms_write
 
+subroutine symmetry_set_irreductible_zone(sym, n1i, n2i, n3i, nspin)
+  use module_base
+  use module_types
+  use m_ab6_kpoints
+  use m_ab6_symmetry
+  implicit none
+  type(symmetry_data), intent(inout) :: sym
+  integer, intent(in) :: n1i, n2i, n3i, nspin
+
+  character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
+  integer :: i_stat, nsym, i_all
+
+  if (associated(sym%irrzon)) then
+     i_all=-product(shape(sym%irrzon))*kind(sym%irrzon)
+     deallocate(sym%irrzon,stat=i_stat)
+     call memocc(i_stat,i_all,'irrzon',subname)
+     nullify(sym%irrzon)
+  end if
+
+  if (associated(sym%phnons)) then
+     i_all=-product(shape(sym%phnons))*kind(sym%phnons)
+     deallocate(sym%phnons,stat=i_stat)
+     call memocc(i_stat,i_all,'phnons',subname)
+     nullify(sym%phnons)
+  end if
+
+  if (sym%symObj >= 0) then
+     call symmetry_get_n_sym(sym%symObj, nsym, i_stat)
+     if (nsym > 1) then
+        ! Current third dimension is set to 1 always
+        ! since nspin == nsppol always in BigDFT
+        allocate(sym%irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
+        call memocc(i_stat,sym%irrzon,'irrzon',subname)
+        allocate(sym%phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
+        call memocc(i_stat,sym%phnons,'phnons',subname)
+        call kpoints_get_irreductible_zone(sym%irrzon, sym%phnons, &
+             &   n1i, n2i, n3i, nspin, nspin, sym%symObj, i_stat)
+     end if
+  end if
+
+  if (.not. associated(sym%irrzon)) then
+     ! Allocate anyway to small size other size the bounds check does not pass.
+     allocate(sym%irrzon(1,2,1+ndebug),stat=i_stat)
+     call memocc(i_stat,sym%irrzon,'irrzon',subname)
+     allocate(sym%phnons(2,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,sym%phnons,'phnons',subname)
+  end if
+END SUBROUTINE symmetry_set_irreductible_zone

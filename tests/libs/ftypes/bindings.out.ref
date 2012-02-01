@@ -26,7 +26,9 @@ Test BigDFT_Glr structure creation.
  Atoms 4, coord.   7.380000  10.620000   7.380000 ' H', type 2
  Box is in 18.000000 18.000000 18.000000
  Shift is  -7.380000 -7.380000 -7.380000
- Grid is          40        40        40
+ Geocode is  F
+ Grid is            40        40        40
+ Int grid is       111       111       111
 Test calculation of grid points.
  Coarse grid has   37617 points.
  Fine grid has      2143 points.
@@ -35,6 +37,13 @@ Test BigDFT_Inputs structure creation.
  Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
 Test BigDFT_Orbs structure creation.
  System has 8 electrons.
+Test BigDFT_Proj structure creation.
+ System has 5 projectors, and 63000 elements.
+Test Poisson solver kernel creation.
+Test Poisson solver kernel free.
+ Ok
+Test BigDFT_Proj free.
+ Ok
 Test BigDFT_Orbs free.
  Ok
 Test BigDFT_Inputs free.

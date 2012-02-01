@@ -18,7 +18,7 @@ int main(guint argc, char **argv)
   double *radii, peak;
   BigDFT_Glr *glr;
   double h[3] = {0.45, 0.45, 0.45};
-  int *cgrid, *fgrid;
+  guint *cgrid, *fgrid;
 #define CRMULT 5.
 #define FRMULT 8.
   BigDFT_Inputs *in;

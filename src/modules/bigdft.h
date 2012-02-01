@@ -13,26 +13,6 @@
 
 #include <bigdft_cst.h>
 
-/***************************/
-/* Generic pointer arrays. */
-/***************************/
-typedef struct f90_pointer_double_
-{
-#if POINTER_SHIFT_SIZE > 0
-  void *shift[POINTER_SHIFT_SIZE];
-#endif
-  double *data;
-  void *info[F90_POINTER_SIZE];
-} f90_pointer_double;
-typedef struct f90_pointer_int_
-{
-#if POINTER_SHIFT_SIZE > 0
-  void *shift[POINTER_SHIFT_SIZE];
-#endif
-  int *data;
-  void *info[F90_POINTER_SIZE];
-} f90_pointer_int;
-
 /********************************/
 /* BigDFT_Atoms data structure. */
 /********************************/
@@ -52,7 +32,7 @@ typedef struct BigDFT_Atoms_
   double *radii_cf, *amu, *aocc, *psppar, *nlccpar, *ig_nlccpar;
 
   /* Coordinates. */
-  f90_pointer_double rxyz;
+  f90_pointer_double_2D rxyz;
   double shift[3];
 
   /* Additional fields. */
@@ -214,7 +194,8 @@ typedef struct BigDFT_DensPot_
 
   /* Additional pointers. */
   f90_pointer_int nscatterarr, ngatherarr;
-  f90_pointer_double rhopot, rhocore, pot_ion, potxc;
+  f90_pointer_double rhopot, rhocore, pot_ion;
+  f90_pointer_double_4D potxc;
 
   /* Private. */
   f90_pointer_rhodsc *rhodsc;
@@ -238,11 +219,11 @@ void bigdft_psolver_free_kernel(f90_pointer_double *pkernel);
 /******************/
 double bigdft_memory_peak(int nproc, BigDFT_Glr *lr, BigDFT_Inputs *in,
                           BigDFT_Orbs *orbs, BigDFT_Proj *proj);
-int* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
+guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
                           double mult, double h[3]);
-f90_pointer_double* bigdft_read_wave_to_isf(const gchar *filename, int iorbp,
+f90_pointer_double_4D* bigdft_read_wave_to_isf(const gchar *filename, int iorbp,
                                             double h[3], int n[3], int *nspinor);
-void bigdft_free_wave_to_isf(f90_pointer_double *psiscf);
+void bigdft_free_wave_to_isf(f90_pointer_double_4D *psiscf);
 gboolean bigdft_read_wave_descr(const gchar *filename, int *norbu,
                                 int *norbd, int *nkpt, int *nspinor,
                                 int *iorb, int *ispin, int *ikpt, int *ispinor);

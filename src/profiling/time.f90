@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=39,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=67,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -61,6 +61,34 @@ module timeData
        'constrc_locreg','Initialization' ,'Miscellaneous ' ,  &
        'wavefunction  ','Initialization' ,'Miscellaneous ' ,  &
        'create_nlpspd ','Initialization' ,'RMA pattern   ' ,  &
+       'p2pOrtho_post ','Communications' ,'irecv / irsend' ,  &
+       'p2pOrtho_wait ','Communications' ,'mpi_waitany   ' ,  &
+       'lovrlp_comm   ','Communications' ,'mpi_allgatherv' ,  &
+       'lovrlp_comp   ','Linear Algebra' ,'many ddots    ' ,  &
+       'lovrlp_compr  ','Other         ' ,'cut out zeros ' ,  &
+       'lovrlp_uncompr','Other         ' ,'insert zeros  ' ,  &
+       'extract_orbs  ','Other         ' ,'copy to sendb ' ,  &
+       'lovrlp^-1/2   ','Linear Algebra' ,'exact or appr ' ,  &
+       'build_lincomb ','Linear Algebra' ,'many daxpy    ' ,  &
+       'convolQuartic ','Convolutions  ' ,'No OpenCL     ' ,  &
+       'p2pSumrho_wait','Communications' ,'mpi_test/wait ' ,  &
+       'sumrho_TMB    ','Other         ' ,'port to GPU?  ' ,  &
+       'TMB_kernel    ','Linear Algebra' ,'dgemm         ' ,  &
+       'diagonal_seq  ','Linear Algebra' ,'dsygv         ' ,  &
+       'diagonal_par  ','Linear Algebra' ,'pdsygvx       ' ,  &
+       'lovrlp^-1     ','Linear Algebra' ,'exact or appr ' ,  &
+       'lagmat_orthoco','Linear Algebra' ,'dgemm seq/par ' ,  &
+       'optimize_DIIS ','Other         ' ,'Other         ' ,  &
+       'optimize_SD   ','Other         ' ,'Other         ' ,  &
+       'mix_linear    ','Other         ' ,'Other         ' ,  &
+       'mix_DIIS      ','Other         ' ,'Other         ' ,  &
+       'ig_matric_comm','Communications' ,'mpi p2p       ' ,  &
+       'init_locregs  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_commSumro','Initialization' ,'Miscellaneous ' ,  &
+       'init_commPot  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_commOrtho','Initialization' ,'Miscellaneous ' ,  &
+       'init_inguess  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_matrCompr','Initialization' ,'Miscellaneous ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
@@ -218,10 +246,10 @@ subroutine timing(iproc,category,action)
         nextra=nproc
         if (.not. debugmode) nextra=2
         write(strextra,'(i5)')nextra
-        formatstring='1x,f4.1,a,1x,1pe9.2,a,'//trim(strextra)//'(1x,0pf5.2,a)'
+        formatstring='1x,f5.1,a,1x,1pe9.2,a,'//trim(strextra)//'(1x,0pf5.2,a)'
      else
         nextra=0
-        formatstring='1x,f4.1,a,1x,1pe9.2,a'
+        formatstring='1x,f5.1,a,1x,1pe9.2,a'
      end if
 
      ncounters=0
@@ -294,7 +322,7 @@ subroutine timing(iproc,category,action)
               write(60,'(2x,a,t19,a,'//trim(formatstring)//')') trim(pcnames(i))//':','[',&
                    pc,',',timecnt(i,nproc),']'
            end do
-           write(60,'(2x,a,t19,a,1x,f4.0,a,1x,1pe9.2,a)') 'Total:','[',&
+           write(60,'(2x,a,t19,a,1x,f5.1,a,1x,1pe9.2,a)') 'Total:','[',&
                 100.d0,',',sum(timecnt(1:ncounters,nproc)),']'
            !write the number of processors and the number of OpenMP threads
            nthreads = 0
