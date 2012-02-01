@@ -5740,7 +5740,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine extract_potential_for_spectra
 
        subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphamix,mix,ixc,&
-            nlpspd,proj,rxyz,linflag,exctxpar,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
+            nlpspd,proj,rxyz,linflag,exctxpar,unblock_comms,hx,hy,hz,Lzd,orbs,SIC,confdatarr,GPU,psi,&
             ekin_sum,epot_sum,eexctX,eSIC_DC,eproj_sum,ehart,eexcu,vexcu,rpnrm,xcstr,hpsi)
          use module_base
          use module_types
@@ -5749,6 +5749,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          logical, intent(in) :: scf
          integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag
          real(gp), intent(in) :: hx,hy,hz,hxh,hyh,hzh,alphamix
+         character(len=3), intent(in) :: unblock_comms
          type(atoms_data), intent(in) :: atoms
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          type(orbitals_data), intent(in) :: orbs

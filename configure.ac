@@ -118,7 +118,7 @@ end]], withmpi=yes, withmpi=no)
     MPI_INCLUDE=$ac_mpi_include
     MPI_LDFLAGS=$ac_mpi_ldflags
 
-    dnl Test for MPI_INIT_THREAD.
+    dnl Test for MPI_INIT_THREAD. Use link instead of run due to execution prob.
     AC_MSG_CHECKING([for MPI_INIT_THREAD availability])
     AC_LINK_IFELSE([[
 program main
@@ -129,8 +129,9 @@ integer :: ierr,provided
 include "mpif.h"
 
 call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
+write(*, "(I1)", advance = "NO") provided
 end
-]], withmpinithread=yes, withmpinithread=no)
+]], withmpinithread=yes, withmpinithread=no, withmpinithread=yes)
     AC_MSG_RESULT([$withmpinithread])
 
     if test x"$withmpinithread" = x"yes" ; then

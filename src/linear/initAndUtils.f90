@@ -3292,6 +3292,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
      Lzd%doHamAppl = .true. 
      !for now, always true because we want to calculate the hamiltonians for all locregs
      if(.not. Lzd%linear) then
+        Lzd%lintyp = 0
         !copy Glr to Llr(1)
 
         call nullify_locreg_descriptors(Lzd%Llr(1))
@@ -3301,6 +3302,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
 
         !call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
      else 
+        Lzd%lintyp = 1
         ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
         call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
 
@@ -3328,6 +3330,8 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
         !determine the Local nlpspd
 !        call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf,'c', Lzd)
      end if
+  else
+     Lzd%lintyp = 2
   end if
 
   !########################################################################

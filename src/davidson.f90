@@ -1951,8 +1951,8 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
          write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
          write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
 
-         call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psivirt(ind:))
-         call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psivirt(ind:))
+         call plot_wf(orbname,1,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
+         call plot_wf(denname,2,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
 
       end do
 
@@ -1964,8 +1964,8 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
             write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
             write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
 
-            call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:))
-            call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:))
+            call plot_wf(orbname,1,1.0_wp,at,lr,hx,hy,hz,rxyz,psi(ind:))
+            call plot_wf(denname,2,1.0_wp,at,lr,hx,hy,hz,rxyz,psi(ind:))
 
          endif
       end do

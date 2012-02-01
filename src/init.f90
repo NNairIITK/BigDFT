@@ -1633,20 +1633,18 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    !spin adaptation for the IG in the spinorial case
    orbse%nspin=nspin
-   call full_local_potential(iproc,nproc,orbse,Lzd,0,denspot%dpcom,denspot%rhov,denspot%pot_full)
+   call full_local_potential(iproc,nproc,orbse,Lzd,Lzd%lintyp,denspot%dpcom,denspot%rhov,denspot%pot_full)
    orbse%nspin=nspin_ig
 
-   call default_confinement_data(confdatarr,orbse%norbp)
-   
    call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
         proj,Lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
         ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
         pkernel=denspot%pkernelseq)
     !restore the good value
     call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
- 
+
      !deallocate potential
-     call free_full_potential(nproc,0,denspot%pot_full,subname)
+     call free_full_potential(nproc,Lzd%lintyp,denspot%pot_full,subname)
 
      i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
      deallocate(orbse%ispot,stat=i_stat)
