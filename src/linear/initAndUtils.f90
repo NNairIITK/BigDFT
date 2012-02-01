@@ -3533,6 +3533,7 @@ subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
   else if(input%linear == 'LIG') then
      ! Reiniatilise Lzd on OFF mode
      ! First deallocate all the unwanted structures
+     Lzd%lintyp = 0
      Lzd%linear = .false.
      Lzd%nlr = 1
 !     Lzd%Lpsidimtot=orbs%npsidim
