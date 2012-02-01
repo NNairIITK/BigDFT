@@ -155,7 +155,7 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
   integer :: i1,i2,i3,i,l,j
-  real(wp) :: tt1,tt2,c
+  real(wp) :: tt1,tt2,c,enerp
   real(wp), dimension(3) :: scale,scale1
   real(wp), dimension(2,lowfil:lupfil,3) :: fil  
 
@@ -208,8 +208,9 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
 
   ener=0._wp
 !$omp parallel default (private) shared(x,y,ener,fil,c,n1,n2,n3)
+  enerp=0._wp
 
-!$omp do reduction(+:ener)
+!$omp do 
 
   do i3=0,n3
      ! (1/2) d^2/dx^2
@@ -224,7 +225,7 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-         ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+         enerp=enerp+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
@@ -242,14 +243,14 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-         ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+         enerp=enerp+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
   enddo
 !$omp enddo
 
-!$omp do reduction(+:ener)
+!$omp do 
   ! + (1/2) d^2/dz^2
   do i2=0,n2
      do i1=0,n1
@@ -263,11 +264,14 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-         ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+         enerp=enerp+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
   enddo
 !$omp enddo
+!$omp critical
+ener=ener+enerp
+!$omp end critical
 !  ener=ener*.5_wp
 !$omp end parallel  
 END SUBROUTINE convolut_kinetic_slab_T_k
