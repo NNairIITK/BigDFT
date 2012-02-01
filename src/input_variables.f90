@@ -2790,9 +2790,10 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         !end do
         GPU%ndevices=min(GPU%ndevices,nproc_node)
         if (iproc == 0) then
-           write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node:',GPU%ndevices
+           write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',min(GPU%ndevices,nproc_node),GPU%ndevices
         end if
         !the number of devices is the min between the number of processes per node
+        GPU%ndevices=min(GPU%ndevices,nproc_node)
         OCLconv=.true.
      end if
   else

@@ -428,6 +428,11 @@ program memguess
 
       call check_linear_and_create_Lzd(0,1,in,Lzd,atoms,orbstst,rxyz)
 
+      !for the given processor (this is only the cubic strategy)
+      orbstst%npsidim_orbs=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
+      orbstst%npsidim_comp=1
+
+
       call compare_cpu_gpu_hamiltonian(0,1,in%iacceleration,atoms,&
            orbstst,nspin,in%ncong,in%ixc,&
            Lzd,hx,hy,hz,rxyz,ntimes)
@@ -530,8 +535,8 @@ program memguess
    !call deallocate_proj_descr(nlpspd,subname)
 
    call MemoryEstimator(nproc,in%idsx,Lzd%Glr,&
-      &   atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
-   in%nspin,in%itrpmax,in%iscf,peakmem)
+        atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+        in%nspin,in%itrpmax,in%iscf,peakmem)
 
    !add the comparison between cuda hamiltonian and normal one if it is the case
 
@@ -847,7 +852,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    real(kind=8) :: CPUtime,GPUtime
    type(gaussian_basis) :: G
    type(GPU_pointers) :: GPU
-   integer, dimension(:,:), allocatable :: nscatterarr
+   integer, dimension(:,:), allocatable :: nscatterarr,nscatterarr
    real(wp), dimension(:,:,:,:), allocatable :: pot,rho
    real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
    real(wp), dimension(:,:,:), allocatable :: overlap
@@ -884,6 +889,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    call memocc(i_stat,hpsi,'hpsi',subname)
 
    call razero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
+   call razero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,hpsi)
 
    !convert the gaussians in wavelets
    call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,Lzd%Glr%d,&
@@ -899,7 +905,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
 
    !deallocate the gaussian basis descriptors
    call deallocate_gwf(G,subname)
-print *,'pot',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin
+
    !allocate and initialise the potential and the density
    allocate(pot(Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,pot,'pot',subname)
@@ -909,6 +915,9 @@ print *,'pot',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin
    !here the potential can be used for building the density
    allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
    call memocc(i_stat,nscatterarr,'nscatterarr',subname)
+   allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
+   call memocc(i_stat,nscatterarr,'nscatterarr',subname)
+
    !normally nproc=1
    do jproc=0,nproc-1
       call PS_dim4allocation(at%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,&
@@ -918,6 +927,9 @@ print *,'pot',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin
       nscatterarr(jproc,3)=i3s+i3xcsh-1
       nscatterarr(jproc,4)=i3xcsh
    end do
+
+   ngatherarr(:,1)=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(:,2)
+   ngatherarr(:,2)=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(:,3)
 
    !components of the charge density
    if (orbs%nspinor ==4) then
@@ -938,6 +950,8 @@ print *,'pot',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin
    else
       nrhotot=Lzd%Glr%d%n3i
    end if
+
+   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
    !allocate the necessary objects on the GPU
    !set initialisation of GPU part 
@@ -981,7 +995,7 @@ print *,'pot',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin
    do j=1,ntimes
       !switch between GPU/CPU treatment of the density
       if (GPUconv) then
-         call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
+         call local_partial_density_GPU(orbs,nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
       else if (OCLconv) then
          call local_partial_density_OCL(orbs,nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
       end if
@@ -994,12 +1008,17 @@ print *,'pot',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin
    i_all=-product(shape(nscatterarr))*kind(nscatterarr)
    deallocate(nscatterarr,stat=i_stat)
    call memocc(i_stat,i_all,'nscatterarr',subname)
+   i_all=-product(shape(ngatherarr))*kind(ngatherarr)
+   deallocate(ngatherarr,stat=i_stat)
+   call memocc(i_stat,i_all,'ngatherarr',subname)
+
+
 
    !compare the results between the different actions of the hamiltonian
    !check the differences between the results
    call compare_data_and_gflops(CPUtime,GPUtime,&
-      &   real(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,kind=8)*192.d0,pot,rho,&
-   Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,ntimes*orbs%norbp,.false.,Rden)
+        & real(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,kind=8)*192.d0,pot,rho,&
+        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,ntimes*orbs%norbp,.false.,Rden)
 
    i_all=-product(shape(rho))*kind(rho)
    deallocate(rho,stat=i_stat)
