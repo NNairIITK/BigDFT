@@ -857,6 +857,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
 
    call default_confinement_data(confdatarr,orbs%norbp)
 
+
    !nullify pkernelSIC pointer
    nullify(fake_pkernelSIC)
 
@@ -886,7 +887,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
 
    !convert the gaussians in wavelets
    call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,Lzd%Glr%d,&
-        hx,hy,hz,Lzd%Glr%wfd,G,gaucoeffs,psi)
+           hx,hy,hz,Lzd%Glr%wfd,G,gaucoeffs,psi)
 
    i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
    deallocate(gaucoeffs,stat=i_stat)
@@ -898,7 +899,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
 
    !deallocate the gaussian basis descriptors
    call deallocate_gwf(G,subname)
-
+print *,'pot',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin
    !allocate and initialise the potential and the density
    allocate(pot(Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,pot,'pot',subname)

@@ -264,7 +264,7 @@ module module_types
      integer, dimension(:,:), pointer :: keyglob
      integer, dimension(:,:), pointer :: keygloc
      integer, dimension(:), pointer :: keyv
-!     integer, dimension(:), pointer :: keyvloc,keyvglob
+     integer, dimension(:), pointer :: keyvloc,keyvglob
   end type wavefunctions_descriptors
 
 !>  Grid dimensions in old different wavelet basis
@@ -458,6 +458,7 @@ module module_types
   type,public:: local_zone_descriptors
     logical :: linear                         !< if true, use linear part of the code
     integer :: nlr                            !< Number of localization regions 
+    integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
 !    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
     integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
     integer :: Lnprojel                       !< Total number of projector elements

@@ -1301,21 +1301,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    real(dp), dimension(:,:), pointer :: rho_p
    real(wp), dimension(:,:,:), pointer :: psigau
    type(confpot_data), dimension(:), allocatable :: confdatarr
-! #### Linear Scaling Variables
-  integer :: ilr,ityp
-  logical :: calc                           
-  real(dp),dimension(:),pointer:: Lpsi,Lhpsi
-  logical :: linear, withConfinement
-!  integer :: dim1,dim2                    !debug plotting local wavefunctions
-!  real(dp) :: factor                      !debug plotting local wavefunctions
-!  integer,dimension(at%nat) :: projflg    !debug nonlocal_forces
-!  type(local_zone_descriptors) :: Lzd                 
-  integer,dimension(:),allocatable :: norbsc
-  logical,dimension(:),allocatable:: calculateBounds
-!  real(gp), dimension(3,at%nat) :: fsep                 !debug for debug nonlocal_forces
-!  real(wp), dimension(nlpspd%nprojel) :: projtmp        !debug for debug nonlocal forces
-!  integer :: ierr                                       !for debugging
-!  real(8),dimension(:),pointer:: Lpot
 !yk
   real(dp),dimension(6) :: xcstr
   integer :: i!,iorb,jorb,icplx
@@ -1633,7 +1618,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    !spin adaptation for the IG in the spinorial case
    orbse%nspin=nspin
-   call full_local_potential(iproc,nproc,orbse,Lzd,0,denspot%dpcom,denspot%rhov,denspot%pot_full)
+   call full_local_potential(iproc,nproc,orbse,Lzd,Lzd%lintyp,denspot%dpcom,denspot%rhov,denspot%pot_full)
    orbse%nspin=nspin_ig
 
    call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
@@ -1644,7 +1629,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
     call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
 
      !deallocate potential
-     call free_full_potential(nproc,0,denspot%pot_full,subname)
+     call free_full_potential(nproc,Lzd%lintyp,denspot%pot_full,subname)
 
      i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
      deallocate(orbse%ispot,stat=i_stat)
