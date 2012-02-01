@@ -4712,6 +4712,18 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   time_matrixmodification=0.d0
   time_matrixElements=0.d0
   t1_tot=mpi_wtime()
+
+  ! Initialize Umat
+  do iorb=1,orbs%norb
+      do jorb=1,orbs%norb
+          if(jorb==iorb) then
+              Umat(jorb,iorb)=1.d0
+          else
+              Umat(jorb,iorb)=0.d0
+          end if
+      end do
+  end do
+
   innerLoop: do it=1,nit
 
   !write(*,*) '1: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
@@ -4989,8 +5001,10 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       t2=mpi_wtime()
       time_matrixmodification=time_matrixmodification+t2-t1
 
-      !TEMPORARY
-      call dcopy(orbs%norb**2, tempmat3(1,1,1), 1, Umat(1,1), 1)
+      ! Update Umat
+      call dcopy(orbs%norb**2, Umat(1,1), 1, tempmat3(1,1,2), 1)
+      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,2), orbs%norb, &
+           tempmat3(1,1,1), orbs%norb, 0.d0, Umat(1,1), orbs%norb)
 
       t1=mpi_wtime()
       !write(*,*) '5: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
