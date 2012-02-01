@@ -312,7 +312,8 @@ type(orthon_data):: orthpar
   outerLoop: do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
 
 
-      call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%norb, ldiis)
+      !!call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%norb, ldiis)
+      call initializeDIIS(lin%DIISHistMax, lin%lzdlarge, lin%orbslarge, lin%orbslarge%norb, ldiis)
       ldiis%DIISHistMin=lin%DIISHistMin
       ldiis%DIISHistMax=lin%DIISHistMax
       ldiis%alphaSD=lin%alphaSD

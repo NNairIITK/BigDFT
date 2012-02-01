@@ -227,6 +227,9 @@ lin%orbs%eval=-.5d0
 allocate(lin%lb%orbs%eval(lin%lb%orbs%norb), stat=istat)
 call memocc(istat, lin%lb%orbs%eval, 'lin%lb%orbs%eval', subname)
 lin%lb%orbs%eval=-.5d0
+allocate(lin%orbslarge%eval(lin%orbslarge%norb), stat=istat)
+call memocc(istat, lin%orbslarge%eval, 'lin%orbslarge%eval', subname)
+lin%orbslarge%eval=-.5d0
 
 ! Initialize the coefficients.
 call initCoefficients(iproc, orbs, lin, coeff)
