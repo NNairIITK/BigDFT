@@ -577,7 +577,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
                     rr=sqrt(r2)
 
                     call splint(rholoc%msz(ityp),rholoc%rad(:,ityp),&
-&                    rholoc%d(:,1,ityp),rholoc%d(:,2,ityp),1,rr,raux)
+&                    rholoc%d(:,1,ityp),rholoc%d(:,2,ityp),1,rr,raux,ierr)
 
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                        ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i

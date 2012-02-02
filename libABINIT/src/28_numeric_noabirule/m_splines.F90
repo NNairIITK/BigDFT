@@ -706,7 +706,7 @@ subroutine splint(nspline,xspline,yspline,ysplin2,nfit,xfit,yfit,ierr)
    if (k==nspline+1) my_err=my_err+1 ! xfit not found 
  end do ! i
 
- if (PRESENT(ierr)) ierr=my_err
+ ierr=my_err
 
 end subroutine splint
 !!***

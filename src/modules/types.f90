@@ -227,9 +227,9 @@ module module_types
 !> Contains arguments needed for \rho_local for WVL+PAW
 
   type, public :: rholoc_objects
-    integer ,dimension(:)    ,pointer:: msz ! mesh size for local rho
-    real(gp),dimension(:,:,:),pointer::d! local rho and derivatives
-    real(gp),dimension(:,:)  ,pointer::rad!radial mesh for local rho
+    integer ,pointer,dimension(:)    :: msz ! mesh size for local rho
+    real(gp),pointer,dimension(:,:,:)::d! local rho and derivatives
+    real(gp),pointer,dimension(:,:)  ::rad!radial mesh for local rho
   end type rholoc_objects
   
 !>  Non local pseudopotential descriptors

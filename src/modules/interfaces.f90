@@ -1350,6 +1350,24 @@ module module_interfaces
        real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
      END SUBROUTINE XC_potential
 
+
+     subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+          rho,exc,vxc,nspin,rhocore,use_rhocore,potxc,use_dvxcdrho,dvxcdrho)
+       use module_base
+       implicit none
+       character(len=1), intent(in) :: geocode
+       character(len=1), intent(in) :: datacode
+       integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
+       real(gp), intent(in) :: hx,hy,hz
+       real(gp), intent(out) :: exc,vxc
+       real(dp), dimension(*), intent(inout) :: rho
+       real(wp), dimension(:), pointer :: rhocore !associated if useful
+       real(wp), dimension(*), intent(out) :: potxc
+       real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
+       logical,intent(in)::use_rhocore,use_dvxcdrho
+     END SUBROUTINE XC_potential_test
+
+
      subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
