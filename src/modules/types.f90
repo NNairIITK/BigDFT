@@ -263,7 +263,7 @@ module module_types
 !     integer, dimension(:,:), pointer :: keyg
      integer, dimension(:,:), pointer :: keyglob
      integer, dimension(:,:), pointer :: keygloc
-     integer, dimension(:), pointer :: keyv
+!     integer, dimension(:), pointer :: keyv
      integer, dimension(:), pointer :: keyvloc,keyvglob
   end type wavefunctions_descriptors
 
@@ -980,7 +980,9 @@ END SUBROUTINE deallocate_orbs
 
     nullify(rst%Lzd%Glr%wfd%keyglob)
     nullify(rst%Lzd%Glr%wfd%keygloc)
-    nullify(rst%Lzd%Glr%wfd%keyv)
+!    nullify(rst%Lzd%Glr%wfd%keyv)
+    nullify(rst%Lzd%Glr%wfd%keyvloc)
+    nullify(rst%Lzd%Glr%wfd%keyvglob)
 
     nullify(rst%gbd%nshell)
     nullify(rst%gbd%ndoc)
@@ -1063,8 +1065,12 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,wfd%keyglob,'keyglob',subname)
     allocate(wfd%keygloc(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keygloc,'keygloc',subname)
-    allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
-    call memocc(i_stat,wfd%keyv,'keyv',subname)
+ !!   allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+ !!   call memocc(i_stat,wfd%keyv,'keyv',subname)
+    allocate(wfd%keyvloc(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    call memocc(i_stat,wfd%keyvloc,'keyvloc',subname)
+    allocate(wfd%keyvglob(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    call memocc(i_stat,wfd%keyvglob,'keyvglob',subname)
 
   END SUBROUTINE allocate_wfd
 
@@ -1097,10 +1103,29 @@ END SUBROUTINE deallocate_orbs
           nullify(wfd%keygloc)
        end if
     end if
-    if (associated(wfd%keyv)) then
-       i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
-       deallocate(wfd%keyv,stat=i_stat)
-       call memocc(i_stat,i_all,'wfd%keyv',subname)
+!    if (associated(wfd%keyv)) then
+!       i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
+!       deallocate(wfd%keyv,stat=i_stat)
+!       call memocc(i_stat,i_all,'wfd%keyv',subname)
+!    end if
+    if (associated(wfd%keyvloc, target= wfd%keyvglob)) then
+       i_all=-product(shape(wfd%keyvloc))*kind(wfd%keyvloc)
+       deallocate(wfd%keyvloc,stat=i_stat)
+       call memocc(i_stat,i_all,'wfd%keyvloc',subname)
+       nullify(wfd%keyvloc)
+    else
+       if (associated(wfd%keyvloc)) then
+          i_all=-product(shape(wfd%keyvloc))*kind(wfd%keyvloc)
+          deallocate(wfd%keyvloc,stat=i_stat)
+          call memocc(i_stat,i_all,'wfd%keyvloc',subname)
+          nullify(wfd%keyvloc)
+       end if
+       if (associated(wfd%keyvglob)) then
+          i_all=-product(shape(wfd%keyvglob))*kind(wfd%keyvglob)
+          deallocate(wfd%keyvglob,stat=i_stat)
+          call memocc(i_stat,i_all,'wfd%keyvglob',subname)
+          nullify(wfd%keyvglob)
+       end if
     end if
   END SUBROUTINE deallocate_wfd
 
@@ -1406,7 +1431,9 @@ END SUBROUTINE deallocate_orbs
 ! nullify the wfd of Glr
    nullify(Lzd%Glr%wfd%keyglob)
    nullify(Lzd%Glr%wfd%keygloc)
-   nullify(Lzd%Glr%wfd%keyv)
+!   nullify(Lzd%Glr%wfd%keyv)
+   nullify(Lzd%Glr%wfd%keyvloc)
+   nullify(Lzd%Glr%wfd%keyvglob)
 
 ! nullify the Gnlpspd
 !   call deallocate_proj_descr(Lzd%Gnlpspd,subname)

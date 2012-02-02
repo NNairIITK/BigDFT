@@ -282,7 +282,6 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
   integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   character(len=*), parameter :: subname='determine_wfd_periodicity'
-  integer, allocatable :: keyvglob(:)  
 
    !starting point of locreg (always inside locreg)
    isdir(1) = Llr(ilr)%ns1
@@ -346,12 +345,12 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
    !coarse part
    call num_segkeys_periodic(Glr%d%n1,Glr%d%n2,Glr%d%n3,isdir(1),iedir(1),isdir(2),&
           iedir(2),isdir(3),iedir(3),Glr%wfd%nseg_c,Glr%wfd%nvctr_c,&
-          Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),nseg_c,nvctr_c,Llr(ilr)%outofzone(:))
+          Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),nseg_c,nvctr_c,Llr(ilr)%outofzone(:))
    !fine part
    call num_segkeys_periodic(Glr%d%n1,Glr%d%n2,Glr%d%n3,isdir(1),iedir(1),isdir(2),&
           iedir(2),isdir(3),iedir(3),Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
           Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-          Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),nseg_f,nvctr_f,Llr(ilr)%outofzone(:))
+          Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),nseg_f,nvctr_f,Llr(ilr)%outofzone(:))
 
    ! Assign the values to Llr
    Llr(ilr)%wfd%nseg_c = nseg_c
@@ -362,33 +361,28 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
    !allocate the wavefunction descriptors following the needs
    call allocate_wfd(Llr(ilr)%wfd,subname)
 
-   allocate(keyvglob(Llr(ilr)%wfd%nseg_c+Llr(ilr)%wfd%nseg_f))   !for tests should remove
-
    !Now, fill the descriptors:
    !coarse part
    call segkeys_periodic(Glr%d%n1,Glr%d%n2,Glr%d%n3,isdir(1),iedir(1),&
         isdir(2),iedir(2),isdir(3),iedir(3),&
-        Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),&
+        Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),&
         Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c,&
-        Llr(ilr)%wfd%keygloc(1,1),Llr(ilr)%wfd%keyglob(1,1),Llr(ilr)%wfd%keyv(1),&
-        keyvglob(1),&
-!        Llr(ilr)%wfd%keyvglob(1),&
+        Llr(ilr)%wfd%keygloc(1,1),Llr(ilr)%wfd%keyglob(1,1),Llr(ilr)%wfd%keyvloc(1),&
+        Llr(ilr)%wfd%keyvglob(1),&
         Llr(ilr)%outofzone(:))
 
    !fine part
    call segkeys_periodic(Glr%d%n1,Glr%d%n2,Glr%d%n3,isdir(1),iedir(1),&
         isdir(2),iedir(2),isdir(3),iedir(3),Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
         Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-        Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+        Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
         Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f,&
         Llr(ilr)%wfd%keygloc(1,Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
         Llr(ilr)%wfd%keyglob(1,Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
-        Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
-        keyvglob(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
-!        Llr(ilr)%wfd%keyvglob(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
+        Llr(ilr)%wfd%keyvloc(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
+        Llr(ilr)%wfd%keyvglob(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
         Llr(ilr)%outofzone(:))
 
-   deallocate(keyvglob)
 
 END SUBROUTINE determine_wfd_periodicity
 
@@ -445,7 +439,7 @@ subroutine determine_locregSphere(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calcula
      ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
      call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
           cutoff, llr(ilr)%locregCenter, &
-           glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyv, isx, isy, isz, iex, iey, iez)
+           glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
 
      ln1 = iex-isx
      ln2 = iey-isy
@@ -671,7 +665,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               cutoff, llr(ilr)%locregCenter, &
-               glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyv, isx, isy, isz, iex, iey, iez)
+               glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
     
          ln1 = iex-isx
          ln2 = iey-isy
@@ -971,7 +965,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
         hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
         Glr%wfd%nseg_c, Glr%wfd%keygloc(1,1), &
-        Glr%wfd%keyv(1), &
+        Glr%wfd%keyvloc(1), &
         llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c)
 
    !fine part
@@ -982,7 +976,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
         hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
         glr%wfd%nseg_f, Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
-        Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+        Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
         llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
 
 
@@ -998,8 +992,9 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
         llr(ilr)%wfd%nseg_c, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
         Glr%wfd%nseg_c, Glr%wfd%keygloc(1,1), &
-        Glr%wfd%keyv(1), &
-        llr(ilr)%wfd%keygloc(1,1),llr(ilr)%wfd%keyglob(1,1), llr(ilr)%wfd%keyv(1))
+        Glr%wfd%keyvloc(1), &
+        llr(ilr)%wfd%keygloc(1,1),llr(ilr)%wfd%keyglob(1,1), &
+        llr(ilr)%wfd%keyvloc(1), llr(ilr)%wfd%keyvglob(1))
 
    !fine part
    call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
@@ -1009,10 +1004,11 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
         llr(ilr)%wfd%nseg_f, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
         Glr%wfd%nseg_f, Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-        Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+        Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
         llr(ilr)%wfd%keygloc(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         llr(ilr)%wfd%keyglob(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
-        llr(ilr)%wfd%keyv(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)))
+        llr(ilr)%wfd%keyvloc(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
+        llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)))
 
 
 END SUBROUTINE determine_wfdSphere
@@ -1361,6 +1357,7 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
     loc = minloc(keyg_loc(1,:),1)
     keygloc(1,iseg) = keyg_loc(1,loc)
     keygloc(2,iseg) = keyg_loc(2,loc)
+!print *,'iseg,keygloc,keyg_loc',iseg,keygloc(1,loc),keygloc(2,loc),keyg_loc(1,iseg),keyg_loc(2,iseg)
     keyg_loc(1,loc) = maxval(keyg_loc) + 1
     keyvloc(iseg) = keyvglob(loc)
 !    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
@@ -1432,7 +1429,8 @@ END SUBROUTINE segkeys_periodic
 
 subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, &
      locrad, locregCenter, &
-     nsegglob, keygglob, keyvglob, keyg_loc, keyg_glob, keyv)
+     nsegglob, keygglob, keyvglob, keyg_loc, keyg_glob, keyv_loc, keyv_glob)
+  use module_base
   implicit none
   integer,intent(in):: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob
   real(8):: hx, hy, hz, locrad
@@ -1440,13 +1438,17 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   integer,dimension(2,nsegglob),intent(in):: keygglob
   integer,dimension(nsegglob),intent(in):: keyvglob
   integer,dimension(2,nseg),intent(out):: keyg_loc, keyg_glob
-  integer,dimension(nseg),intent(out):: keyv
+  integer,dimension(nseg),intent(out):: keyv_loc, keyv_glob
   !local variables
+  character(len=*),parameter :: subname = 'segkeys_Sphere'
   integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, i2old, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
-  integer:: i1l, i2l, i3l, ii1, ii2, ii3
+  integer:: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc
   real(8):: cut, dx, dy, dz
   logical:: segment
+  integer, allocatable :: keygloc(:,:)
 
+  allocate(keygloc(2,nseg),stat=istat)
+  call memocc(istat,keygloc,'keygloc',subname)
 
   !dimensions of the localisation region (O:nIl)
   ! must be smaller or equal to simulation box dimensions
@@ -1505,15 +1507,15 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
               nvctr=nvctr+1
               if(.not.segment) then
                   nstart=nstart+1
-                  keyg_loc(1,nstart)=igridpoint
+                  keygloc(1,nstart)=igridpoint
                   keyg_glob(1,nstart)=igridglob
-                  keyv(nstart)=nvctr
+                  keyv_glob(nstart)=nvctr
                   segment=.true.
               end if
           else
               if(segment) then
                   nend=nend+1
-                  keyg_loc(2,nend)=igridpoint-1
+                  keygloc(2,nend)=igridpoint-1
                   keyg_glob(2,nend)=igridglob-1
                   segment=.false.
               end if
@@ -1522,13 +1524,12 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
       if(segment) then
           ! Close the segment
           nend=nend+1
-          keyg_loc(2,nend)=igridpoint
+          keygloc(2,nend)=igridpoint
           keyg_glob(2,nend)=igridglob
           segment=.false.
       end if
       i2old=i2
   end do
-
 
   if (nend /= nstart) then
      write(*,*) 'nend , nstart',nend,nstart
@@ -1539,6 +1540,20 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
      stop 'nseg <> nstart'
   endif
 
+  ! Now build the keyvloc where we replace the segments in order for the loc
+  do iseg = 1, nseg
+     !sorting the keyg_loc
+     loc = minloc(keygloc(1,:),1)
+     keyg_loc(1,iseg) = keygloc(1,loc)
+     keyg_loc(2,iseg) = keygloc(2,loc)
+!    print *,'iseg,keygloc,keyg_loc',iseg,keygloc(1,loc),keygloc(2,loc),keyg_loc(1,iseg),keyg_loc(2,iseg)
+     keygloc(1,loc) = maxval(keygloc) + 1
+     keyv_loc(iseg) = keyv_glob(loc)
+!    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
+  end do
+  iall = -product(shape(keygloc))*kind(keygloc)
+  deallocate(keygloc,stat=istat)
+  call memocc(istat,iall,'keygloc',subname)
 
 END SUBROUTINE segkeys_Sphere
 
@@ -1890,13 +1905,13 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 !       First calculate the number of points and segments for the region
 !       Coarse part:
         call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-         Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),&
+         Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),&
          Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c)
 !       Fine part:
         call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
          Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-         Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+         Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
          Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f)
 
 !       Now allocate the wavefunction descriptors (keyg,keyv) following the needs
@@ -1905,17 +1920,17 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 !       At last, fill the wavefunction descriptors
 !       Coarse part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),&
+          Glr%wfd%nseg_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),&
           Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c,&
-          Olr(index)%wfd%keygloc(1,1),Olr(index)%wfd%keyv(1))
+          Olr(index)%wfd%keygloc(1,1),Olr(index)%wfd%keyvloc(1))
 !       Fine part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
           Glr%wfd%nseg_f,&
           Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-          Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+          Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f,&
           Olr(index)%wfd%keygloc(1,Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)),&
-          Olr(index)%wfd%keyv(Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)))
+          Olr(index)%wfd%keyvloc(Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)))
 
 !       If the localisation region is isolated build also the bounds
         if (Olr(index)%geocode=='F') then
@@ -2180,13 +2195,13 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 !       First calculate the number of points and segments for the region
 !       Coarse part:
         call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-         Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),&
+         Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),&
          Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c)
 !       Fine part:
         call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
          Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-         Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+         Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
          Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f)
 
 !       Now allocate the wavefunction descriptors (keyg,keyv) following the needs
@@ -2195,17 +2210,17 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 !       At last, fill the wavefunction descriptors
 !       Coarse part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),&
+          Glr%wfd%nseg_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),&
           Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c,&
-          Olr(index)%wfd%keygloc(1,1),Olr(index)%wfd%keyv(1))
+          Olr(index)%wfd%keygloc(1,1),Olr(index)%wfd%keyvloc(1))
 !       Fine part
         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
           Glr%wfd%nseg_f,&
           Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-          Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+          Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f,&
           Olr(index)%wfd%keygloc(1,Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)),&
-          Olr(index)%wfd%keyv(Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)))
+          Olr(index)%wfd%keyvloc(Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)))
 
 !       If the localisation region is isolated build also the bounds
         !!!if (Olr(index)%geocode=='F') then
@@ -2245,279 +2260,280 @@ END SUBROUTINE get_overlap_region_periodic2
 
 
 
-subroutine get_overlap_region_periodic2Sphere(alr,blr,Glr,hx,hy,hz,isovrlp,Llr,nlr,Olr)
-
-  use module_base
-  use module_types
-
- implicit none
-
-  !#######################################
-  ! Subroutine Scalar Arguments
-  !#######################################
-  integer, intent(in) :: alr,blr              ! index of the two localization regions
-  integer, intent(in) :: nlr                  ! number of localization regions
-  real(8),intent(in):: hx, hy, hz
-  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
-  integer, intent(in) :: isovrlp              ! Number of overlap regions
-  !########################################
-  !Subroutine Array Arguments
-  !########################################
-  type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors
-  type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr ! Overlap localization regions
-  !#############################################
-  !local variables
-  !############################################
-  integer :: axmin,axmax,aymin,aymax,azmin,azmax ! bounds of localization region A
-  integer :: bxmin,bxmax,bymin,bymax,bzmin,bzmax ! bounds of localization region B
-  integer :: isx,isy,isz,iex,iey,iez             ! bounds of the overlap region
-  character(len=*), parameter :: subname='get_overlap_region_periodic2'
-  !# NEW
-  integer :: ii,azones,bzones,i_stat,i_all,index
-  integer :: izones,jzones
-  integer,allocatable :: astart(:,:),aend(:,:),bstart(:,:),bend(:,:)
-  logical :: go1,go2,go3
-
-  azones = 1
-  bzones = 1
-! Calculate the number of regions to cut alr and blr
-  do ii=1,3
-     if(Llr(alr)%outofzone(ii) > 0) azones = azones * 2
-     if(Llr(blr)%outofzone(ii) > 0) bzones = bzones * 2
-  end do
-
-
-!allocate astart and aend
-  allocate(astart(3,azones),stat=i_stat)
-  call memocc(i_stat,astart,'astart',subname)
-  allocate(aend(3,azones),stat=i_stat)
-  call memocc(i_stat,aend,'aend',subname)
-
-!FRACTURE THE FIRST LOCALIZATION REGION
-  call fracture_periodic_zone(azones,Glr,Llr(alr),Llr(alr)%outofzone(:),astart,aend)
-
-!allocate bstart and bend
-  allocate(bstart(3,bzones),stat=i_stat)
-  call memocc(i_stat,bstart,'bstart',subname)
-  allocate(bend(3,bzones),stat=i_stat)
-  call memocc(i_stat,bend,'bend',subname)
-
-!FRACTURE SECOND LOCREG
-  call fracture_periodic_zone(bzones,Glr,Llr(blr),Llr(blr)%outofzone(:),bstart,bend)
-
-! Now check the number of overlapping zones
-  index = 0
-  do izones=1,azones
-    do jzones=1,bzones
-      go1 = (bstart(1,jzones) .le. aend(1,izones) .and. bend(1,jzones) .ge. astart(1,izones))
-      go2 = (bstart(2,jzones) .le. aend(2,izones) .and. bend(2,jzones) .ge. astart(2,izones))
-      go3 = (bstart(3,jzones) .le. aend(3,izones) .and. bend(3,jzones) .ge. astart(3,izones))
-      if(go1 .and. go2 .and. go3) then
-        index = index + 1
-
-! Now construct the Overlap localization region descriptor
-! only if there is an overlap. The following only works
-! when the previous test is successful. Note also that
-! isx, isy and isz are necessarily in the Glr by construction
-! of the Llrs, so don't need to test them.
-
-        ! Determine the limits of the overlap region
-        isx = max(astart(1,izones),bstart(1,jzones))
-        isy = max(astart(2,izones),bstart(2,jzones))
-        isz = max(astart(3,izones),bstart(3,jzones))
-
-        iex = min(aend(1,izones),bend(1,jzones))
-        iey = min(aend(2,izones),bend(2,jzones))
-        iez = min(aend(3,izones),bend(3,jzones))
-
-!       Checks to assign the geometric code of the overlap region (TO DO,could be interesting for Pascal?)
-!       This could change the values of the bounds, so do it here
-!       for now, in sandbox,put free boundary to all zones
-        Olr(index)%geocode = 'F'
-
-!       Values for the starting point of the cube
-        Olr(index)%ns1 = isx
-        Olr(index)%ns2 = isy
-        Olr(index)%ns3 = isz
-
-!       Dimensions of the overlap region
-        Olr(index)%d%n1 = iex - isx
-        Olr(index)%d%n2 = iey - isy
-        Olr(index)%d%n3 = iez - isz
-
-!       Dimensions of the fine grid inside the overlap region
-        if (isx < iex) then
-           Olr(index)%d%nfl1=max(isx,Glr%d%nfl1)-isx
-           Olr(index)%d%nfu1=min(iex,Glr%d%nfu1)-isx
-        else
-           write(*,*)'4: Yet to be implemented (little effort?), isx, iex', isx, iex
-           stop
-        end if
-
-        if (isy < iey) then
-           Olr(index)%d%nfl2=max(isy,Glr%d%nfl2)-isy
-           Olr(index)%d%nfu2=min(iey,Glr%d%nfu2)-isy
-        else
-           write(*,*)'5: Yet to be implemented (little effort?)'
-           stop
-        end if
-
-        if (isz < iez) then
-           Olr(index)%d%nfl3=max(isz,Glr%d%nfl3)-isz
-           Olr(index)%d%nfu3=min(iez,Glr%d%nfu3)-isz
-        else
-           write(*,*)'6: Yet to be implemented (little effort?)'
-           stop
-        end if
-
-!       Dimensions of the interpolating scaling function grid
-!       (geocode already taken into acount because it is simple)
-        select case(Olr(index)%geocode)
-        case('F')
-          Olr(index)%d%n1i=2*Olr(index)%d%n1+31
-          Olr(index)%d%n2i=2*Olr(index)%d%n2+31
-          Olr(index)%d%n3i=2*Olr(index)%d%n3+31
-        case('S')
-          Olr(index)%d%n1i=2*Olr(index)%d%n1+2
-          Olr(index)%d%n2i=2*Olr(index)%d%n2+31
-          Olr(index)%d%n3i=2*Olr(index)%d%n3+2
-        case('P')
-          Olr(index)%d%n1i=2*Olr(index)%d%n1+2
-          Olr(index)%d%n2i=2*Olr(index)%d%n2+2
-          Olr(index)%d%n3i=2*Olr(index)%d%n3+2
-        end select
-
-!       Now define the wavefunction descriptors inside the overlap region
-!       First calculate the number of points and segments for the region
-!       Coarse part:
-        !call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-        ! Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
-        ! Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c)
-        !!call num_segkeys_overlapSphere(olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
-        !!     olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
-        !!     olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
-        !!     hx, hy, hz, llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
-        !!     olr(index)%wfd%nseg_c, olr(index)%wfd%nvctr_c)
-        call num_segkeys_sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
-             llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
-             olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
-             olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
-             olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
-             hx, hy, hz, llr(blr)%locrad, llr(blr)%locregCenter, &
-             llr(alr)%wfd%nseg_c, llr(alr)%wfd%keygloc(1,1), &
-             llr(alr)%wfd%keyv(1), &
-             olr(index)%wfd%nseg_c, olr(index)%wfd%nvctr_c)
-        
-!       Fine part:
-        !call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-        ! Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
-        ! Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-        ! Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-        ! Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f)
-        !!call num_segkeys_overlapSphere(olr(index)%d%nfl1, olr(index)%d%nfu1, &
-        !!     olr(index)%d%nfl2, olr(index)%d%nfu2, &
-        !!     olr(index)%d%nfl3, olr(index)%d%nfu3, &
-        !!     hx, hy, hz, llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
-        !!     olr(index)%wfd%nseg_f, olr(index)%wfd%nvctr_f)
-        call num_segkeys_sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
-             llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
-             olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
-             olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
-             olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
-             hx, hy, hz, llr(blr)%locrad, llr(blr)%locregCenter, &
-             llr(alr)%wfd%nseg_f, llr(alr)%wfd%keygloc(1,llr(alr)%wfd%nseg_c+min(1,llr(alr)%wfd%nseg_f)), &
-             llr(alr)%wfd%keyv(llr(alr)%wfd%nseg_c+min(1,llr(alr)%wfd%nseg_f)), &
-             olr(index)%wfd%nseg_f, olr(index)%wfd%nvctr_f)
-
-!       Now allocate the wavefunction descriptors (keyg,keyv) following the needs
-        call allocate_wfd(Olr(index)%wfd,subname)
-
-!       At last, fill the wavefunction descriptors
-!       Coarse part
-        !call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-        !  Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
-        !  Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c,&
-        !  Olr(index)%wfd%keyg(1,1),Olr(index)%wfd%keyv(1))
-        !!call segkeys_overlapSphere(olr(index)%d%n1, olr(index)%d%n2, olr(index)%d%n3, &
-        !!     olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
-        !!     olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
-        !!     olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
-        !!     olr(index)%wfd%nseg_c, hx, hy, hz, &
-        !!     llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
-        !!     olr(index)%wfd%keyg(1,1), olr(index)%wfd%keyv(1))
-        call segkeys_Sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
-             llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
-             olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
-             olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
-             olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
-             olr(index)%wfd%nseg_c, hx, hy, hz, llr(blr)%locrad, llr(blr)%locregCenter, &
-             llr(alr)%wfd%nseg_c, llr(alr)%wfd%keygloc(1,1), &
-             llr(alr)%wfd%keyv(1), &
-             olr(index)%wfd%keygloc(1,1),olr(index)%wfd%keyglob(1,1), &
-             olr(index)%wfd%keyv(1))
-
-!       Fine part
-        !call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-        !  Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
-        !  Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-        !  Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-        !  Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f,&
-        !  Olr(index)%wfd%keyg(1,Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)),&
-        !  Olr(index)%wfd%keyv(Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)))
-        !!call segkeys_overlapSphere(olr(index)%d%n1, olr(index)%d%n2, olr(index)%d%n3, &
-        !!     olr(index)%d%nfl1, olr(index)%d%nfu1, &
-        !!     olr(index)%d%nfl2, olr(index)%d%nfu2, &
-        !!     olr(index)%d%nfl3, olr(index)%d%nfu3, &
-        !!     olr(index)%wfd%nseg_f, hx, hy, hz, &
-        !!     llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
-        !!     olr(index)%wfd%keyg(1,olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)), &
-        !!     olr(index)%wfd%keyv(olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)))
-        call segkeys_Sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
-             llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
-             olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
-             olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
-             olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
-             olr(index)%wfd%nseg_f, hx, hy, hz, llr(blr)%locrad, llr(blr)%locregCenter, &
-             llr(alr)%wfd%nseg_f, llr(alr)%wfd%keygloc(1,llr(alr)%wfd%nseg_c+min(1,llr(alr)%wfd%nseg_f)), &
-             llr(alr)%wfd%keyv(llr(alr)%wfd%nseg_c+min(1,llr(alr)%wfd%nseg_f)), &
-             olr(index)%wfd%keygloc(1,olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)), &
-             olr(index)%wfd%keyglob(1,olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)), &
-             olr(index)%wfd%keyv(olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)))
-
-!       If the localisation region is isolated build also the bounds
-        !!!if (Olr(index)%geocode=='F') then
-        !!!   call locreg_bounds(Olr(index)%d%n1,Olr(index)%d%n2,Olr(index)%d%n3,&
-        !!!     Olr(index)%d%nfl1,Olr(index)%d%nfu1,Olr(index)%d%nfl2,Olr(index)%d%nfu2,&
-        !!!     Olr(index)%d%nfl3,Olr(index)%d%nfu3,Olr(index)%wfd,Olr(index)%bounds)
-
-        !!!end if
-     end if ! go1 .and. go2 .and. go3
-   end do !jzones
- end do !izones
-
-! Deallocation block
-  i_all = -product(shape(astart))*kind(astart)
-  deallocate(astart,stat=i_stat)
-  call memocc(i_stat,i_all,'astart',subname)
-  i_all = -product(shape(aend))*kind(aend)
-  deallocate(aend,stat=i_stat)
-  call memocc(i_stat,i_all,'aend',subname)
-  i_all = -product(shape(bstart))*kind(bstart)
-  deallocate(bstart,stat=i_stat)
-  call memocc(i_stat,i_all,'bstart',subname)
-  i_all = -product(shape(bend))*kind(bend)
-  deallocate(bend,stat=i_stat)
-  call memocc(i_stat,i_all,'bend',subname)
-
-! Check on the number of zones
-  if (index /= isovrlp) then
-      write(*,'(a,i0,a,i0,a)')&
-          'ERROR: problem in get_overlap_region_periodic; index: ',index,' not equal to isovrlp: ',isovrlp,'&
-          &. The number of overlap descriptors constructed does not correspond to the number of overlap regions.'
-     stop
-  end if
-
-END SUBROUTINE get_overlap_region_periodic2Sphere
+!!subroutine get_overlap_region_periodic2Sphere(alr,blr,Glr,hx,hy,hz,isovrlp,Llr,nlr,Olr)
+!!
+!!  use module_base
+!!  use module_types
+!!
+!! implicit none
+!!
+!!  !#######################################
+!!  ! Subroutine Scalar Arguments
+!!  !#######################################
+!!  integer, intent(in) :: alr,blr              ! index of the two localization regions
+!!  integer, intent(in) :: nlr                  ! number of localization regions
+!!  real(8),intent(in):: hx, hy, hz
+!!  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+!!  integer, intent(in) :: isovrlp              ! Number of overlap regions
+!!  !########################################
+!!  !Subroutine Array Arguments
+!!  !########################################
+!!  type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors
+!!  type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr ! Overlap localization regions
+!!  !#############################################
+!!  !local variables
+!!  !############################################
+!!  integer :: axmin,axmax,aymin,aymax,azmin,azmax ! bounds of localization region A
+!!  integer :: bxmin,bxmax,bymin,bymax,bzmin,bzmax ! bounds of localization region B
+!!  integer :: isx,isy,isz,iex,iey,iez             ! bounds of the overlap region
+!!  character(len=*), parameter :: subname='get_overlap_region_periodic2'
+!!  !# NEW
+!!  integer :: ii,azones,bzones,i_stat,i_all,index
+!!  integer :: izones,jzones
+!!  integer,allocatable :: astart(:,:),aend(:,:),bstart(:,:),bend(:,:)
+!!  logical :: go1,go2,go3
+!!
+!!  azones = 1
+!!  bzones = 1
+!!! Calculate the number of regions to cut alr and blr
+!!  do ii=1,3
+!!     if(Llr(alr)%outofzone(ii) > 0) azones = azones * 2
+!!     if(Llr(blr)%outofzone(ii) > 0) bzones = bzones * 2
+!!  end do
+!!
+!!
+!!!allocate astart and aend
+!!  allocate(astart(3,azones),stat=i_stat)
+!!  call memocc(i_stat,astart,'astart',subname)
+!!  allocate(aend(3,azones),stat=i_stat)
+!!  call memocc(i_stat,aend,'aend',subname)
+!!
+!!!FRACTURE THE FIRST LOCALIZATION REGION
+!!  call fracture_periodic_zone(azones,Glr,Llr(alr),Llr(alr)%outofzone(:),astart,aend)
+!!
+!!!allocate bstart and bend
+!!  allocate(bstart(3,bzones),stat=i_stat)
+!!  call memocc(i_stat,bstart,'bstart',subname)
+!!  allocate(bend(3,bzones),stat=i_stat)
+!!  call memocc(i_stat,bend,'bend',subname)
+!!
+!!!FRACTURE SECOND LOCREG
+!!  call fracture_periodic_zone(bzones,Glr,Llr(blr),Llr(blr)%outofzone(:),bstart,bend)
+!!
+!!! Now check the number of overlapping zones
+!!  index = 0
+!!  do izones=1,azones
+!!    do jzones=1,bzones
+!!      go1 = (bstart(1,jzones) .le. aend(1,izones) .and. bend(1,jzones) .ge. astart(1,izones))
+!!      go2 = (bstart(2,jzones) .le. aend(2,izones) .and. bend(2,jzones) .ge. astart(2,izones))
+!!      go3 = (bstart(3,jzones) .le. aend(3,izones) .and. bend(3,jzones) .ge. astart(3,izones))
+!!      if(go1 .and. go2 .and. go3) then
+!!        index = index + 1
+!!
+!!! Now construct the Overlap localization region descriptor
+!!! only if there is an overlap. The following only works
+!!! when the previous test is successful. Note also that
+!!! isx, isy and isz are necessarily in the Glr by construction
+!!! of the Llrs, so don't need to test them.
+!!
+!!        ! Determine the limits of the overlap region
+!!        isx = max(astart(1,izones),bstart(1,jzones))
+!!        isy = max(astart(2,izones),bstart(2,jzones))
+!!        isz = max(astart(3,izones),bstart(3,jzones))
+!!
+!!        iex = min(aend(1,izones),bend(1,jzones))
+!!        iey = min(aend(2,izones),bend(2,jzones))
+!!        iez = min(aend(3,izones),bend(3,jzones))
+!!
+!!!       Checks to assign the geometric code of the overlap region (TO DO,could be interesting for Pascal?)
+!!!       This could change the values of the bounds, so do it here
+!!!       for now, in sandbox,put free boundary to all zones
+!!        Olr(index)%geocode = 'F'
+!!
+!!!       Values for the starting point of the cube
+!!        Olr(index)%ns1 = isx
+!!        Olr(index)%ns2 = isy
+!!        Olr(index)%ns3 = isz
+!!
+!!!       Dimensions of the overlap region
+!!        Olr(index)%d%n1 = iex - isx
+!!        Olr(index)%d%n2 = iey - isy
+!!        Olr(index)%d%n3 = iez - isz
+!!
+!!!       Dimensions of the fine grid inside the overlap region
+!!        if (isx < iex) then
+!!           Olr(index)%d%nfl1=max(isx,Glr%d%nfl1)-isx
+!!           Olr(index)%d%nfu1=min(iex,Glr%d%nfu1)-isx
+!!        else
+!!           write(*,*)'4: Yet to be implemented (little effort?), isx, iex', isx, iex
+!!           stop
+!!        end if
+!!
+!!        if (isy < iey) then
+!!           Olr(index)%d%nfl2=max(isy,Glr%d%nfl2)-isy
+!!           Olr(index)%d%nfu2=min(iey,Glr%d%nfu2)-isy
+!!        else
+!!           write(*,*)'5: Yet to be implemented (little effort?)'
+!!           stop
+!!        end if
+!!
+!!        if (isz < iez) then
+!!           Olr(index)%d%nfl3=max(isz,Glr%d%nfl3)-isz
+!!           Olr(index)%d%nfu3=min(iez,Glr%d%nfu3)-isz
+!!        else
+!!           write(*,*)'6: Yet to be implemented (little effort?)'
+!!           stop
+!!        end if
+!!
+!!!       Dimensions of the interpolating scaling function grid
+!!!       (geocode already taken into acount because it is simple)
+!!        select case(Olr(index)%geocode)
+!!        case('F')
+!!          Olr(index)%d%n1i=2*Olr(index)%d%n1+31
+!!          Olr(index)%d%n2i=2*Olr(index)%d%n2+31
+!!          Olr(index)%d%n3i=2*Olr(index)%d%n3+31
+!!        case('S')
+!!          Olr(index)%d%n1i=2*Olr(index)%d%n1+2
+!!          Olr(index)%d%n2i=2*Olr(index)%d%n2+31
+!!          Olr(index)%d%n3i=2*Olr(index)%d%n3+2
+!!        case('P')
+!!          Olr(index)%d%n1i=2*Olr(index)%d%n1+2
+!!          Olr(index)%d%n2i=2*Olr(index)%d%n2+2
+!!          Olr(index)%d%n3i=2*Olr(index)%d%n3+2
+!!        end select
+!!
+!!!       Now define the wavefunction descriptors inside the overlap region
+!!!       First calculate the number of points and segments for the region
+!!!       Coarse part:
+!!        !call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+!!        ! Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+!!        ! Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c)
+!!        !!call num_segkeys_overlapSphere(olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
+!!        !!     olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
+!!        !!     olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
+!!        !!     hx, hy, hz, llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
+!!        !!     olr(index)%wfd%nseg_c, olr(index)%wfd%nvctr_c)
+!!        call num_segkeys_sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
+!!             llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
+!!             olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
+!!             olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
+!!             olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
+!!             hx, hy, hz, llr(blr)%locrad, llr(blr)%locregCenter, &
+!!             llr(alr)%wfd%nseg_c, llr(alr)%wfd%keygloc(1,1), &
+!!             llr(alr)%wfd%keyvloc(1), &
+!!             olr(index)%wfd%nseg_c, olr(index)%wfd%nvctr_c)
+!!        
+!!!       Fine part:
+!!        !call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+!!        ! Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+!!        ! Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+!!        ! Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+!!        ! Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f)
+!!        !!call num_segkeys_overlapSphere(olr(index)%d%nfl1, olr(index)%d%nfu1, &
+!!        !!     olr(index)%d%nfl2, olr(index)%d%nfu2, &
+!!        !!     olr(index)%d%nfl3, olr(index)%d%nfu3, &
+!!        !!     hx, hy, hz, llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
+!!        !!     olr(index)%wfd%nseg_f, olr(index)%wfd%nvctr_f)
+!!        call num_segkeys_sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
+!!             llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
+!!             olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
+!!             olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
+!!             olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
+!!             hx, hy, hz, llr(blr)%locrad, llr(blr)%locregCenter, &
+!!             llr(alr)%wfd%nseg_f, llr(alr)%wfd%keygloc(1,llr(alr)%wfd%nseg_c+min(1,llr(alr)%wfd%nseg_f)), &
+!!             llr(alr)%wfd%keyvloc(llr(alr)%wfd%nseg_c+min(1,llr(alr)%wfd%nseg_f)), &
+!!             olr(index)%wfd%nseg_f, olr(index)%wfd%nvctr_f)
+!!
+!!!       Now allocate the wavefunction descriptors (keyg,keyv) following the needs
+!!        call allocate_wfd(Olr(index)%wfd,subname)
+!!
+!!!       At last, fill the wavefunction descriptors
+!!!       Coarse part
+!!        !call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+!!        !  Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+!!        !  Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c,&
+!!        !  Olr(index)%wfd%keyg(1,1),Olr(index)%wfd%keyv(1))
+!!        !!call segkeys_overlapSphere(olr(index)%d%n1, olr(index)%d%n2, olr(index)%d%n3, &
+!!        !!     olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
+!!        !!     olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
+!!        !!     olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
+!!        !!     olr(index)%wfd%nseg_c, hx, hy, hz, &
+!!        !!     llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
+!!        !!     olr(index)%wfd%keyg(1,1), olr(index)%wfd%keyv(1))
+!!        call segkeys_Sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
+!!             llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
+!!             olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
+!!             olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
+!!             olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
+!!             olr(index)%wfd%nseg_c, hx, hy, hz, llr(blr)%locrad, llr(blr)%locregCenter, &
+!!             llr(alr)%wfd%nseg_c, llr(alr)%wfd%keygloc(1,1), &
+!!             llr(alr)%wfd%keyvloc(1), &
+!!             olr(index)%wfd%keygloc(1,1),olr(index)%wfd%keyglob(1,1), &
+!!             olr(index)%wfd%keyvloc(1),olr(index)%wfd%keyvglob(1))
+!!
+!!!       Fine part
+!!        !call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+!!        !  Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+!!        !  Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+!!        !  Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+!!        !  Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f,&
+!!        !  Olr(index)%wfd%keyg(1,Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)),&
+!!        !  Olr(index)%wfd%keyv(Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)))
+!!        !!call segkeys_overlapSphere(olr(index)%d%n1, olr(index)%d%n2, olr(index)%d%n3, &
+!!        !!     olr(index)%d%nfl1, olr(index)%d%nfu1, &
+!!        !!     olr(index)%d%nfl2, olr(index)%d%nfu2, &
+!!        !!     olr(index)%d%nfl3, olr(index)%d%nfu3, &
+!!        !!     olr(index)%wfd%nseg_f, hx, hy, hz, &
+!!        !!     llr(alr)%locrad, llr(blr)%locrad, llr(alr)%locregCenter, llr(blr)%locregCenter, &
+!!        !!     olr(index)%wfd%keyg(1,olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)), &
+!!        !!     olr(index)%wfd%keyv(olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)))
+!!        call segkeys_Sphere(llr(alr)%d%n1, llr(alr)%d%n2, llr(alr)%d%n3, &
+!!             llr(alr)%ns1, llr(alr)%ns2, llr(alr)%ns3, &
+!!             olr(index)%ns1, olr(index)%ns1+olr(index)%d%n1, &
+!!             olr(index)%ns2, olr(index)%ns2+olr(index)%d%n2, &
+!!             olr(index)%ns3, olr(index)%ns3+olr(index)%d%n3, &
+!!             olr(index)%wfd%nseg_f, hx, hy, hz, llr(blr)%locrad, llr(blr)%locregCenter, &
+!!             llr(alr)%wfd%nseg_f, llr(alr)%wfd%keygloc(1,llr(alr)%wfd%nseg_c+min(1,llr(alr)%wfd%nseg_f)), &
+!!             llr(alr)%wfd%keyvloc(llr(alr)%wfd%nseg_c+min(1,llr(alr)%wfd%nseg_f)), &
+!!             olr(index)%wfd%keygloc(1,olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)), &
+!!             olr(index)%wfd%keyglob(1,olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)), &
+!!             olr(index)%wfd%keyvloc(olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)), &
+!!             olr(index)%wfd%keyvglob(olr(index)%wfd%nseg_c+min(1,olr(index)%wfd%nseg_f)))
+!!
+!!!       If the localisation region is isolated build also the bounds
+!!        !!!if (Olr(index)%geocode=='F') then
+!!        !!!   call locreg_bounds(Olr(index)%d%n1,Olr(index)%d%n2,Olr(index)%d%n3,&
+!!        !!!     Olr(index)%d%nfl1,Olr(index)%d%nfu1,Olr(index)%d%nfl2,Olr(index)%d%nfu2,&
+!!        !!!     Olr(index)%d%nfl3,Olr(index)%d%nfu3,Olr(index)%wfd,Olr(index)%bounds)
+!!
+!!        !!!end if
+!!     end if ! go1 .and. go2 .and. go3
+!!   end do !jzones
+!! end do !izones
+!!
+!!! Deallocation block
+!!  i_all = -product(shape(astart))*kind(astart)
+!!  deallocate(astart,stat=i_stat)
+!!  call memocc(i_stat,i_all,'astart',subname)
+!!  i_all = -product(shape(aend))*kind(aend)
+!!  deallocate(aend,stat=i_stat)
+!!  call memocc(i_stat,i_all,'aend',subname)
+!!  i_all = -product(shape(bstart))*kind(bstart)
+!!  deallocate(bstart,stat=i_stat)
+!!  call memocc(i_stat,i_all,'bstart',subname)
+!!  i_all = -product(shape(bend))*kind(bend)
+!!  deallocate(bend,stat=i_stat)
+!!  call memocc(i_stat,i_all,'bend',subname)
+!!
+!!! Check on the number of zones
+!!  if (index /= isovrlp) then
+!!      write(*,'(a,i0,a,i0,a)')&
+!!          'ERROR: problem in get_overlap_region_periodic; index: ',index,' not equal to isovrlp: ',isovrlp,'&
+!!          &. The number of overlap descriptors constructed does not correspond to the number of overlap regions.'
+!!     stop
+!!  end if
+!!
+!!END SUBROUTINE get_overlap_region_periodic2Sphere
 
 
 
@@ -2778,7 +2794,8 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
      nullify(Llr(ilr)%projflg)
      nullify(Llr(ilr)%wfd%keygloc)
      nullify(Llr(ilr)%wfd%keyglob)
-     nullify(Llr(ilr)%wfd%keyv)
+     nullify(Llr(ilr)%wfd%keyvloc)
+     nullify(Llr(ilr)%wfd%keyvglob)
      nullify(Llr(ilr)%bounds%ibyyzz_r)
      nullify(Llr(ilr)%bounds%kb%ibyz_c)
      nullify(Llr(ilr)%bounds%kb%ibxz_c)
@@ -3079,7 +3096,7 @@ overlapMatrix=.false.
                      lzd%llr(jlr)%ns1, lzd%llr(jlr)%ns2, lzd%llr(jlr)%ns3, &
                      lzd%glr%ns1, lzd%glr%ns2, lzd%glr%ns3, &
                      lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_c, &
-                     lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyv, lzd%llr(jlr)%wfd%keygloc, lzd%llr(jlr)%wfd%keyv, &
+                     lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc, lzd%llr(jlr)%wfd%keygloc, lzd%llr(jlr)%wfd%keyvloc, &
                      n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ovrlp)
                 if(n1_ovrlp>0 .and. n2_ovrlp>0 .and. n3_ovrlp>0) then
                     ! There is really an overlap
@@ -3277,7 +3294,7 @@ call overlapbox_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_j%ns1, llr_j%ns2, llr_j%ns3, &
      glr%ns1, glr%ns2, glr%ns3, &
      llr_i%wfd%nseg_c, llr_j%wfd%nseg_c, &
-     llr_i%wfd%keygloc, llr_i%wfd%keyv, llr_j%wfd%keygloc, llr_j%wfd%keyv, &
+     llr_i%wfd%keygloc, llr_i%wfd%keyvloc, llr_j%wfd%keygloc, llr_j%wfd%keyvloc, &
      olr%d%n1, olr%d%n2, olr%d%n3, olr%ns1, olr%ns2, olr%ns3, olr%wfd%nseg_c)
 
 ! Now the fine region.
@@ -3288,8 +3305,8 @@ call overlapbox_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      llr_j%ns1, llr_j%ns2, llr_j%ns3, &
      glr%ns1, glr%ns2, glr%ns3, &
      llr_i%wfd%nseg_f, llr_j%wfd%nseg_f, &
-     llr_i%wfd%keygloc(1,llr_i%wfd%nseg_c+min(1,llr_i%wfd%nseg_f)), llr_i%wfd%keyv(llr_i%wfd%nseg_c+min(1,llr_i%wfd%nseg_f)), &
-     llr_j%wfd%keygloc(1,llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), llr_j%wfd%keyv(llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), &
+     llr_i%wfd%keygloc(1,llr_i%wfd%nseg_c+min(1,llr_i%wfd%nseg_f)), llr_i%wfd%keyvloc(llr_i%wfd%nseg_c+min(1,llr_i%wfd%nseg_f)), &
+     llr_j%wfd%keygloc(1,llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), llr_j%wfd%keyvloc(llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), &
      n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, olr%wfd%nseg_f)
 
      ! Determine the boundary for the fine part.
@@ -3333,8 +3350,8 @@ call overlapdescriptors_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      glr%ns1, glr%ns2, glr%ns3, &
      olr%ns1, olr%ns2, olr%ns3, &
      llr_i%wfd%nseg_c, llr_j%wfd%nseg_c, olr%wfd%nseg_c, &
-     llr_i%wfd%keygloc, llr_i%wfd%keyv, llr_j%wfd%keygloc, llr_j%wfd%keyv, &
-     olr%wfd%keygloc, olr%wfd%keyv, &
+     llr_i%wfd%keygloc, llr_i%wfd%keyvloc, llr_j%wfd%keygloc, llr_j%wfd%keyvloc, &
+     olr%wfd%keygloc, olr%wfd%keyvloc, &
      olr%wfd%nvctr_c)
 
 ! Fill the descriptors for the fine part.
@@ -3347,9 +3364,9 @@ call overlapdescriptors_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
      glr%ns1, glr%ns2, glr%ns3, &
      olr%ns1, olr%ns2, olr%ns3, &
      llr_i%wfd%nseg_f, llr_j%wfd%nseg_f, olr%wfd%nseg_f, &
-     llr_i%wfd%keygloc(1,llr_i%wfd%nseg_c+min(1,llr_i%wfd%nseg_f)), llr_i%wfd%keyv(llr_i%wfd%nseg_c+min(1,llr_i%wfd%nseg_f)), &
-     llr_j%wfd%keygloc(1,llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), llr_j%wfd%keyv(llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), &
-     olr%wfd%keygloc(1,olr%wfd%nseg_c+min(1,olr%wfd%nseg_f)), olr%wfd%keyv(olr%wfd%nseg_c+min(1,olr%wfd%nseg_f)), &
+     llr_i%wfd%keygloc(1,llr_i%wfd%nseg_c+min(1,llr_i%wfd%nseg_f)), llr_i%wfd%keyvloc(llr_i%wfd%nseg_c+min(1,llr_i%wfd%nseg_f)), &
+     llr_j%wfd%keygloc(1,llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), llr_j%wfd%keyvloc(llr_j%wfd%nseg_c+min(1,llr_j%wfd%nseg_f)), &
+     olr%wfd%keygloc(1,olr%wfd%nseg_c+min(1,olr%wfd%nseg_f)), olr%wfd%keyvloc(olr%wfd%nseg_c+min(1,olr%wfd%nseg_f)), &
      olr%wfd%nvctr_f)
 
 
@@ -3602,6 +3619,7 @@ end subroutine overlapbox_from_descriptors
 !>                    *_j refers to overlap region j (input)
 !>                    *_g refers to the global region (input)
 !>                    *_k refers to the overlap region (input/output)
+!> SHOULD NOW CHANGE THIS BECAUSE GLOBAL COORDINATES ARE NOW ALWAYS AVAILABLE
 subroutine overlapdescriptors_from_descriptors(n1_i, n2_i, n3_i, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, n1_k, n2_k, n3_k, &
            ns1_i, ns2_i, ns3_i, ns1_j, ns2_j, ns3_j, ns1_g, ns2_g, ns3_g, ns1_k, ns2_k, ns3_k, &
            nseg_i, nseg_j, nseg_k, &
@@ -3721,6 +3739,11 @@ integer:: ii, ix, iy, iz, ixg, iyg, izg, istg
   ix = ii - iy * (n1a+1)
 
   ! Transform ix, iy, iz to the coordinates with respect to localization region B
+  ! WARNING: MODULO ONLY CORRECT WHEN COMPARING TO GLR
+  ! FOR NOW THIS FUNCTION ALWAYS DOES THIS... SHOULD DISAPEAR NOW THE KEYGLOB IS DEFINED
+!!  izg = modulo(iz + nshift3, n3b)
+!!  iyg = modulo(iy + nshift2, n2b)
+!!  ixg = modulo(ix + nshift1, n1b)
   izg = iz + nshift3
   iyg = iy + nshift2
   ixg = ix + nshift1
@@ -3783,7 +3806,7 @@ integer:: n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ov
        llr_j%ns1, llr_j%ns2, llr_j%ns3, &
        glr%ns1, glr%ns2, glr%ns3, &
        llr_i%wfd%nseg_c, llr_j%wfd%nseg_c, &
-       llr_i%wfd%keygloc, llr_i%wfd%keyv, llr_j%wfd%keygloc, llr_j%wfd%keyv, &
+       llr_i%wfd%keygloc, llr_i%wfd%keyvloc, llr_j%wfd%keygloc, llr_j%wfd%keyvloc, &
        n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ovrlp)
 
   ! n1_ovrlp, n2_ovrlp, n3_ovrlp are the dimensions of the overlap localization regions.
@@ -3827,7 +3850,7 @@ logical:: go1, go2, go3
           Llr_j%ns1, Llr_j%ns2, Llr_j%ns3, &
           Glr%ns1, Glr%ns2, Glr%ns3, &
           Llr_i%wfd%nseg_c, Llr_j%wfd%nseg_c, &
-          Llr_i%wfd%keygloc, Llr_i%wfd%keyv, Llr_j%wfd%keygloc, Llr_j%wfd%keyv, &
+          Llr_i%wfd%keygloc, Llr_i%wfd%keyvloc, Llr_j%wfd%keygloc, Llr_j%wfd%keyvloc, &
           n1_ovrlp, n2_ovrlp, n3_ovrlp, ns1_ovrlp, ns2_ovrlp, ns3_ovrlp, nseg_ovrlp)
 
      ! n1_ovrlp, n2_ovrlp, n3_ovrlp are the dimensions of the overlap localization regions.

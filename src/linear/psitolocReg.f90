@@ -91,7 +91,7 @@ subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
            icheck = icheck + 1
            ! loop over the orbitals
            do iorbs=1,orbs%norbp*orbs%nspinor
-              lpsi(icheck+lincrement*(iorbs-1))=psi(Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1))
+              lpsi(icheck+lincrement*(iorbs-1))=psi(Glr%wfd%keyvloc(isegG)+offset+ix+Gincrement*(iorbs-1))
            end do
         end do
      end do
@@ -139,7 +139,7 @@ subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
            do igrid=0,6
               do iorbs=1,orbs%norbp*orbs%nspinor
                  lpsi(start+icheck+lincrement*(iorbs-1)+igrid*lfinc)=&
-&                psi(Gstart+Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc)
+&                psi(Gstart+Glr%wfd%keyvloc(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc)
               end do
            end do
         end do
@@ -391,7 +391,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 !              do ispin=1,nspin
 !                 Gindex = Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+shift+spinshift*(ispin-1)
 !                 Lindex = icheck+lincrement*(iorbs-1)+lincrement*norb*(ispin-1)
-                 Gindex = Glr%wfd%keyv(isegG)+offset+ix+shift!+spinshift*(ispin-1)
+                 Gindex = Glr%wfd%keyvloc(isegG)+offset+ix+shift!+spinshift*(ispin-1)
                  Lindex = icheck!+lincrement*norb*(ispin-1)
                  psi(Gindex) = psi(Gindex) + lpsi(Lindex)
 !              end do
@@ -444,7 +444,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 !                   Gindex = Gstart+Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc+&
 !                            shift + spinshift*(ispin-1)
 !                   Lindex = start+icheck+lincrement*(iorbs-1)+igrid*lfinc + lincrement*norb*(ispin-1) 
-                   Gindex=Gstart+Glr%wfd%keyv(isegG)+offset+ix+igrid*Gfinc+shift!+spinshift*(ispin-1)
+                   Gindex=Gstart+Glr%wfd%keyvloc(isegG)+offset+ix+igrid*Gfinc+shift!+spinshift*(ispin-1)
                    Lindex=start+icheck+igrid*lfinc !+ lincrement*norb*(ispin-1)
                    psi(Gindex) = psi(Gindex) + lpsi(Lindex)
 !                end do
@@ -1145,7 +1145,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
         ! WARNING: index goes from 0 to length because it is the offset of the element
         do ix = 0,length
            icheck = icheck + 1
-           lpsi(icheck) = gpsi(Glr%wfd%keyv(isegG)+offset+ix)
+           lpsi(icheck) = gpsi(Glr%wfd%keyvloc(isegG)+offset+ix)
            !!! loop over the orbitals
            !!do iorbs=1,orbs%norbp*orbs%nspinor
            !!   lpsi(icheck+lincrement*(iorbs-1))=psi(Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1))
@@ -1194,7 +1194,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
         do ix = 0,length
            icheck = icheck + 1
            do igrid=1,7
-              lpsi(start+(icheck-1)*7+igrid) = gpsi(Gstart+(Glr%wfd%keyv(isegG)+offset+ix-1)*7+igrid)
+              lpsi(start+(icheck-1)*7+igrid) = gpsi(Gstart+(Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid)
               !lpsi(start+(icheck-1)*7+igrid) = gpsi(Gstart+(Glr%wfd%keyv(isegG)+ix-1)*7+offset+igrid)
               !!do iorbs=1,orbs%norbp*orbs%nspinor
               !!   lpsi(start+icheck+lincrement*(iorbs-1)+igrid*lfinc)=&
@@ -1315,7 +1315,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
            icheck = icheck + 1
            ! loop over the orbitals
            do ispin=1,nspin
-              Gindex = Glr%wfd%keyv(isegG)+offset+ix+spinshift*(ispin-1)
+              Gindex = Glr%wfd%keyvloc(isegG)+offset+ix+spinshift*(ispin-1)
               Lindex = icheck+lincrement*norb*(ispin-1)
               psi(Gindex) = psi(Gindex) + lpsi(Lindex)
            end do
@@ -1381,7 +1381,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
            !!end do
            do igrid=1,7
               do ispin = 1, nspin
-                 Gindex = Gstart + (Glr%wfd%keyv(isegG)+offset+ix-1)*7+igrid + spinshift*(ispin-1)
+                 Gindex = Gstart + (Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid + spinshift*(ispin-1)
                  Lindex = start+(icheck-1)*7+igrid + lincrement*norb*(ispin-1) 
                  psi(Gindex) = psi(Gindex) + lpsi(Lindex)
               end do
@@ -1640,7 +1640,7 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
            icheck = icheck + 1
            ! loop over the orbitals
            do ispin=1,nspin
-              Gindex = Glr%wfd%keyv(isegG)+offset+ix+spinshift*(ispin-1)
+              Gindex = Glr%wfd%keyvloc(isegG)+offset+ix+spinshift*(ispin-1)
               Lindex = icheck+lincrement*norb*(ispin-1)
               !psi(Gindex) = psi(Gindex) + lpsi(Lindex)
               indexLpsi(Lindex)=Gindex
@@ -1710,7 +1710,7 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
            !!end do
            do igrid=1,7
               do ispin = 1, nspin
-                 Gindex = Gstart + (Glr%wfd%keyv(isegG)+offset+ix-1)*7+igrid + spinshift*(ispin-1)
+                 Gindex = Gstart + (Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid + spinshift*(ispin-1)
                  Lindex = start+(icheck-1)*7+igrid + lincrement*norb*(ispin-1) 
                  !psi(Gindex) = psi(Gindex) + lpsi(Lindex)
                  indexLpsi(Lindex)=Gindex
@@ -1827,7 +1827,7 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
         do ix = 0,length
            icheck = icheck + 1
            !lpsi(icheck) = gpsi(Glr%wfd%keyv(isegG)+offset+ix)
-           indexLpsi(icheck)=Glr%wfd%keyv(isegG)+offset+ix
+           indexLpsi(icheck)=Glr%wfd%keyvloc(isegG)+offset+ix
            !!! loop over the orbitals
            !!do iorbs=1,orbs%norbp*orbs%nspinor
            !!   lpsi(icheck+lincrement*(iorbs-1))=psi(Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1))
@@ -1877,7 +1877,7 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
            icheck = icheck + 1
            do igrid=1,7
               !lpsi(start+(icheck-1)*7+igrid) = gpsi(Gstart+(Glr%wfd%keyv(isegG)+offset+ix-1)*7+igrid)
-              indexLpsi(start+(icheck-1)*7+igrid) = Gstart+(Glr%wfd%keyv(isegG)+offset+ix-1)*7+igrid
+              indexLpsi(start+(icheck-1)*7+igrid) = Gstart+(Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid
               !lpsi(start+(icheck-1)*7+igrid) = gpsi(Gstart+(Glr%wfd%keyv(isegG)+ix-1)*7+offset+igrid)
               !!do iorbs=1,orbs%norbp*orbs%nspinor
               !!   lpsi(start+icheck+lincrement*(iorbs-1)+igrid*lfinc)=&

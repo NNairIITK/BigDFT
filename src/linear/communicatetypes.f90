@@ -173,7 +173,8 @@ if(iproc/=root) call allocate_wfd(wfd,subname)
 ! Communicate the arrays
 call mpi_bcast(wfd%keyglob, 2*(wfd%nseg_c+wfd%nseg_f), mpi_integer, root, mpi_comm_world, ierr)
 call mpi_bcast(wfd%keygloc, 2*(wfd%nseg_c+wfd%nseg_f), mpi_integer, root, mpi_comm_world, ierr)
-call mpi_bcast(wfd%keyv, wfd%nseg_c+wfd%nseg_f, mpi_integer, root, mpi_comm_world, ierr)
+call mpi_bcast(wfd%keyvloc, wfd%nseg_c+wfd%nseg_f, mpi_integer, root, mpi_comm_world, ierr)
+call mpi_bcast(wfd%keyvglob, wfd%nseg_c+wfd%nseg_f, mpi_integer, root, mpi_comm_world, ierr)
 
 
 

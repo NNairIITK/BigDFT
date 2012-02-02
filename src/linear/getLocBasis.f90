@@ -2974,10 +2974,10 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
            lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
            lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
            lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
-           lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyv,  & 
+           lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  & 
            lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
            lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
            scal, psi(ist_c), psi(ist_f), &
            work_conv)
 
@@ -3016,10 +3016,10 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
            lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
            lzd%llr(Ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
            lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
-           lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyv,  & 
+           lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  & 
            lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
            lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
            scal, work_conv%y_c, work_conv%y_f, vpsi(ist_c), vpsi(ist_f))
 
       call deallocate_workarrays_quartic_convolutions(lzd%llr(ilr), subname, work_conv)

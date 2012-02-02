@@ -1079,8 +1079,15 @@ subroutine deallocate_wavefunctions_descriptors(wfd, subname)
      call checkAndDeallocatePointer(wfd%keygloc, 'wfd%keygloc', subname)
      nullify(wfd%keygloc)
   end if
-  call checkAndDeallocatePointer(wfd%keyv, 'wfd%keyv', subname)
-
+  if(associated(wfd%keyvglob, target = wfd%keyvloc)) then
+     call checkAndDeallocatePointer(wfd%keyvglob, 'wfd%keyvglob', subname)
+     nullify(wfd%keyvglob)
+  else
+     call checkAndDeallocatePointer(wfd%keyvglob, 'wfd%keyvglob', subname)
+     nullify(wfd%keyvglob)
+     call checkAndDeallocatePointer(wfd%keyvloc, 'wfd%keyvloc', subname)
+     nullify(wfd%keyvloc)
+  end if
 end subroutine deallocate_wavefunctions_descriptors
 
 

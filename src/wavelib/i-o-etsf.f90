@@ -1201,7 +1201,7 @@ contains
     ! coarse part
     coeff_map = 0
     do iseg = 1, wfd%nseg_c
-       jj = wfd%keyv(iseg)
+       jj = wfd%keyvloc(iseg)
        j0 = wfd%keygloc(1, iseg)
        j1 = wfd%keygloc(2, iseg)
        ii = j0 - 1
@@ -1219,7 +1219,7 @@ contains
     end do
     ! fine part
     do iseg = 1, wfd%nseg_f
-       jj = wfd%keyv(wfd%nseg_c + iseg)
+       jj = wfd%keyvloc(wfd%nseg_c + iseg)
        j0 = wfd%keygloc(1, wfd%nseg_c + iseg)
        j1 = wfd%keygloc(2, wfd%nseg_c + iseg)
        ii = j0 - 1

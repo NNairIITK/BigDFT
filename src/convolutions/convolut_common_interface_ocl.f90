@@ -111,11 +111,11 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   call ocl_create_read_buffer(GPU%context,wfd%nseg_c*4,GPU%keyv_c)
   call ocl_create_read_buffer(GPU%context,wfd%nseg_f*4*2,GPU%keyg_f)
   call ocl_create_read_buffer(GPU%context,wfd%nseg_f*4,GPU%keyv_f)
-  call ocl_enqueue_write_buffer(GPU%queue,GPU%keyg_c,wfd%nseg_c*2*4,wfd%keyglob)
-  call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_c,wfd%nseg_c*4,wfd%keyv)
+  call ocl_enqueue_write_buffer(GPU%queue,GPU%keyg_c,wfd%nseg_c*2*4,wfd%keygloc)
+  call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_c,wfd%nseg_c*4,wfd%keyvloc)
   if (wfd%nseg_f > 0) then
-     call ocl_enqueue_write_buffer(GPU%queue,GPU%keyg_f,wfd%nseg_f*2*4,wfd%keyglob(1,wfd%nseg_c+1))
-     call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_f,wfd%nseg_f*4,wfd%keyv(wfd%nseg_c+1))
+     call ocl_enqueue_write_buffer(GPU%queue,GPU%keyg_f,wfd%nseg_f*2*4,wfd%keygloc(1,wfd%nseg_c+1))
+     call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_f,wfd%nseg_f*4,wfd%keyvloc(wfd%nseg_c+1))
   end if
 
   !for preconditioner

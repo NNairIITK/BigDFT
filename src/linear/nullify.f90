@@ -350,7 +350,8 @@ subroutine nullify_wavefunctions_descriptors(wfd)
   !if(associated(wfd%keyg)) then
      nullify(wfd%keygloc)
      nullify(wfd%keyglob)
-     nullify(wfd%keyv)
+     nullify(wfd%keyvloc)
+     nullify(wfd%keyvglob)
   !end if
 end subroutine nullify_wavefunctions_descriptors
 

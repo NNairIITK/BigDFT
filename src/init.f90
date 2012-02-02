@@ -196,16 +196,20 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    ! now fill the wavefunction descriptor arrays
    ! coarse grid quantities
    call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c, &
-        & Glr%wfd%keyglob(1,1),Glr%wfd%keyv(1))
+        & Glr%wfd%keyglob(1,1),Glr%wfd%keyvglob(1))
    ! fine grid quantities
    if (Glr%wfd%nseg_f > 0) then
       call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f, &
-           & Glr%wfd%keyglob(1,Glr%wfd%nseg_c+1), Glr%wfd%keyv(Glr%wfd%nseg_c+1))
+           & Glr%wfd%keyglob(1,Glr%wfd%nseg_c+1), Glr%wfd%keyvglob(Glr%wfd%nseg_c+1))
    end if
    i_all = -product(shape(Glr%wfd%keygloc))*kind(Glr%wfd%keygloc)
    deallocate(Glr%wfd%keygloc,stat=i_stat)
    call memocc(i_stat,i_all,'Glr%wfd%keygloc',subname)
    Glr%wfd%keygloc => Glr%wfd%keyglob
+   i_all = -product(shape(Glr%wfd%keyvloc))*kind(Glr%wfd%keyvloc)
+   deallocate(Glr%wfd%keyvloc,stat=i_stat)
+   call memocc(i_stat,i_all,'Glr%wfd%keyvloc',subname)
+   Glr%wfd%keyvloc => Glr%wfd%keyvglob
  
    ! Copy the information of keyglob to keygloc for Glr (just pointing leads to problem during the deallocation of wfd)
 !!$   do i = lbound(Glr%wfd%keyglob,1),ubound(Glr%wfd%keyglob,1)
@@ -356,7 +360,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
 
          call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,&
               nlpspd%plr(iat)%wfd%nseg_c,&
-              nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keyv(1))
+              nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keyvglob(1))
 
         call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),nlpspd%plr(iat)%wfd%nseg_c,&
              nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keygloc(1,1))
@@ -399,7 +403,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
 !!$            logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
             call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                  logrid,mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
-                 nlpspd%plr(iat)%wfd%keyv(iseg))
+                 nlpspd%plr(iat)%wfd%keyvglob(iseg))
 
             call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
                  nlpspd%plr(iat)%wfd%keygloc(1,iseg)) 
@@ -459,7 +463,7 @@ subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   i
    call allocate_wfd(Plr%wfd,subname)
 
    call vcopy(Plr%wfd%nseg_c+Plr%wfd%nseg_f,&
-        PPD%pc_nlpspd%plr(iat)%wfd%keyv(1),1,Plr%wfd%keyv(1),1)
+        PPD%pc_nlpspd%plr(iat)%wfd%keyvglob(1),1,Plr%wfd%keyvglob(1),1)
    call vcopy(2*(Plr%wfd%nseg_c+Plr%wfd%nseg_f),&
         PPD%pc_nlpspd%plr(iat)%wfd%keyglob(1,1),1,Plr%wfd%keyglob(1,1),1)
 
@@ -553,7 +557,7 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
    call allocate_wfd(Plr%wfd,subname)
 
    call vcopy(Plr%wfd%nseg_c+Plr%wfd%nseg_f,&
-        PAWD%paw_nlpspd%plr(iat)%wfd%keyv(1),1,Plr%wfd%keyv(1),1)
+        PAWD%paw_nlpspd%plr(iat)%wfd%keyvglob(1),1,Plr%wfd%keyvglob(1),1)
    call vcopy(2*(Plr%wfd%nseg_c+Plr%wfd%nseg_f),&
         PAWD%paw_nlpspd%plr(iat)%wfd%keyglob(1,1),1,Plr%wfd%keyglob(1,1),1)
 
@@ -761,7 +765,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
          call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
 !!$         logrid,mseg,PPD%pc_nlpspd%keyg_p(1,iseg),PPD%pc_nlpspd%keyv_p(iseg))
-         logrid,mseg,PPD%pc_nlpspd%plr(iat)%wfd%keyglob(1,1),PPD%pc_nlpspd%plr(iat)%wfd%keyv(1))
+         logrid,mseg,PPD%pc_nlpspd%plr(iat)%wfd%keyglob(1,1),PPD%pc_nlpspd%plr(iat)%wfd%keyvglob(1))
 
 !!$         mvctr =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
          mvctr =PPD%pc_nlpspd%plr(iat)%wfd%nvctr_c
@@ -789,7 +793,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
                  logrid,mseg,&
 !!$                 PPD%pc_nlpspd%keyg_p(1,iseg),PPD%pc_nlpspd%keyv_p(iseg))
                  PPD%pc_nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
-                 PPD%pc_nlpspd%plr(iat)%wfd%keyv(iseg))
+                 PPD%pc_nlpspd%plr(iat)%wfd%keyvglob(iseg))
 
             mvctr =PPD%pc_nlpspd%plr(iat)%wfd%nvctr_f!PPD%pc_nlpspd%nvctr_p(2*iat)-PPD%pc_nlpspd%nvctr_p(2*iat-1)
 
@@ -1092,7 +1096,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
                  logrid,mseg,&
 !!$                 PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
                  PAWD%paw_nlpspd%plr(iat)%wfd%keyglob(1,1),&
-                 PAWD%paw_nlpspd%plr(iat)%wfd%keyv(1))
+                 PAWD%paw_nlpspd%plr(iat)%wfd%keyvglob(1))
 
             mvctr =PAWD%paw_nlpspd%plr(iat)%wfd%nvctr_c!PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
 
@@ -1119,7 +1123,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
                     logrid,mseg,&
 !!$               PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
                     PAWD%paw_nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
-                    PAWD%paw_nlpspd%plr(iat)%wfd%keyv(iseg))
+                    PAWD%paw_nlpspd%plr(iat)%wfd%keyvglob(iseg))
                
                mvctr =PAWD%paw_nlpspd%plr(iat)%wfd%nvctr_f!PAWD%paw_nlpspd%nvctr_p(2*iat)-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
             end if

@@ -1782,7 +1782,7 @@ subroutine compress_and_accumulate_standard(grid,wfd,psig_c,psig_f,psi)
   ! coarse part
   !$omp do
   do iseg=1,wfd%nseg_c
-     jj=wfd%keyv(iseg)
+     jj=wfd%keyvloc(iseg)
      j0=wfd%keygloc(1,iseg)
      j1=wfd%keygloc(2,iseg)
      ii=j0-1
@@ -1799,7 +1799,7 @@ subroutine compress_and_accumulate_standard(grid,wfd,psig_c,psig_f,psi)
   ! fine part
   !$omp do
   do iseg=wfd%nseg_c+1,wfd%nseg_c+wfd%nseg_f
-     jj=wfd%keyv(iseg)
+     jj=wfd%keyvloc(iseg)
      j0=wfd%keygloc(1,iseg)
      j1=wfd%keygloc(2,iseg)
      ii=j0-1
@@ -1850,7 +1850,7 @@ subroutine compress_and_accumulate_mixed(grid,wfd,psig,psi)
   ! coarse part
   !$omp do
   do iseg=1,wfd%nseg_c
-     jj=wfd%keyv(iseg)
+     jj=wfd%keyvloc(iseg)
      j0=wfd%keygloc(1,iseg)
      j1=wfd%keygloc(2,iseg)
      ii=j0-1
@@ -1867,7 +1867,7 @@ subroutine compress_and_accumulate_mixed(grid,wfd,psig,psi)
   ! fine part
   !$omp do
   do iseg=wfd%nseg_c+1,wfd%nseg_c+wfd%nseg_f
-     jj=wfd%keyv(iseg)
+     jj=wfd%keyvloc(iseg)
      j0=wfd%keygloc(1,iseg)
      j1=wfd%keygloc(2,iseg)
      ii=j0-1
