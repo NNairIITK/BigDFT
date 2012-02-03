@@ -1812,7 +1812,7 @@ module module_interfaces
 
 
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-          input, rxyz, nscatterarr, tag, coeff, lphi)
+          input, rxyz, nscatterarr, tag, coeff, lphi, confdatarr)
       use module_base
       use module_types
       implicit none
@@ -1829,6 +1829,7 @@ module module_interfaces
       integer,intent(inout):: tag
       real(8),dimension(:,:),pointer,intent(out):: coeff
       real(8),dimension(:),pointer,intent(out):: lphi
+      type(confpot_data), dimension(:),pointer,intent(out) :: confdatarr
     end subroutine allocateAndInitializeLinear
 
 
@@ -5766,6 +5767,17 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(gp), dimension(6), intent(out) :: xcstr
          real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
        end subroutine psitohpsi
+
+       subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Localnorb, rxyz, inwhichlocreg)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb
+         integer,dimension(nlr),intent(in):: Localnorb
+         integer,dimension(0:nproc-1),intent(in):: norb_par
+         real(8),dimension(3,nlr),intent(in):: rxyz
+         integer,dimension(:),pointer,intent(out):: inwhichlocreg
+       end subroutine assignToLocreg2
 
    end interface
 

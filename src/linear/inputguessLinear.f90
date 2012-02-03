@@ -102,7 +102,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
   call memocc(istat,iall,'lig%orbsig%inWhichLocreg',subname)
 
   ! Assign the orbitals to the localization regions.
-  call assignToLocreg2(iproc, at%nat, lig%lzdig%nlr, input%nspin, norbsPerAt, rxyz, lig%orbsig)
+  call assignToLocreg2(iproc, nproc, lig%orbsig%norb, lig%orbsig%norb_par, at%nat, lig%lzdig%nlr, &
+       input%nspin, norbsPerAt, rxyz, lig%orbsig%inwhichlocreg)
 
   ! Maybe this could be moved to another subroutine? Or be omitted at all?
   allocate(lig%orbsig%eval(lin%orbs%norb), stat=istat)

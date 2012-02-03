@@ -754,7 +754,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   logical,dimension(atoms%ntypes) :: parametersSpecified
   logical :: found
   character(len=20):: atomname
-  integer :: itype, jtype, ios, ierr, iat, npt
+  integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
   real(gp):: ppl, pph, lt
   real(gp),dimension(atoms%ntypes) :: locradType
 
@@ -928,11 +928,24 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
           stop
       end if
   end do
-  
-  ! Assign the localization radius to each atom.
+
+  nlr=0
   do iat=1,atoms%nat
       itype=atoms%iatype(iat)
-      in%lin%locrad(iat)=locradType(itype)
+      nlr=nlr+in%lin%norbsPerType(itype)
+  end do
+  allocate(in%lin%locrad(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad,'in%lin%locrad',subname)
+
+  
+  ! Assign the localization radius to each atom.
+  iiorb=0
+  do iat=1,atoms%nat
+      itype=atoms%iatype(iat)
+      do iorb=1,in%lin%norbsPerType(itype)
+          iiorb=iiorb+1
+          in%lin%locrad(iiorb)=locradType(itype)
+      end do
   end do
   
 

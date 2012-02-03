@@ -1,7 +1,7 @@
 !> This subroutine initializes all parameters needed for the linear scaling version
 !! and allocate all arrays.
 subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-    input, rxyz, nscatterarr, tag, coeff, lphi)
+    input, rxyz, nscatterarr, tag, coeff, lphi, confdatarr)
 ! Calling arguments:
 ! ==================
 !   Input arguments:
@@ -38,13 +38,16 @@ integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3
 integer,intent(inout):: tag
 real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
+type(confpot_data), dimension(:),pointer,intent(out) :: confdatarr
 
 ! Local variables
 integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb, ii, ist, ncnt
-integer,dimension(:),allocatable:: norbsPerAtom
+integer,dimension(:),allocatable:: norbsPerLocreg, norbsPerAtom
+integer,dimension(:),pointer:: onwhichatom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
 real(8):: t1, t2, tt, tt1, tt2, tt3, tt4, tt5
+real(8),dimension(:,:),allocatable:: locregCenter
 integer :: npsidim
 
 ! Nullify all pointers
@@ -53,31 +56,58 @@ call nullify_linearParameters(lin)
 ! Allocate all local arrays.
 allocate(atomNames(at%ntypes), stat=istat)
 call memocc(istat, atomNames, 'atomNames', subname)
-allocate(norbsPerAtom(at%nat), stat=istat)
-call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
+!!allocate(norbsPerLocreg(at%nat), stat=istat)
+!!call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
 
-! Number of localization regions.
-lin%nlr=at%nat
-lin%lzd%nlr=at%nat
-!!lin%lzdlarge%nlr=at%nat
 
-! Allocate the basic arrays that are needed for reading the input parameters.
-call allocateBasicArrays(at, lin)
 
 ! Read in all parameters related to the linear scaling version.
 !call readLinearParameters(iproc, nproc, input%file_lin, lin, at, atomNames)
 call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
-call copy_linearInputParameters_to_linearParameters(at%ntypes, at%nat, input, lin)
 
-call deallocateBasicArraysInput(at, input%lin)
+allocate(norbsPerAtom(at%nat), stat=istat)
+call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 
 ! Count the number of basis functions.
 norb=0
 do iat=1,at%nat
     ityp=at%iatype(iat)
-    norbsPerAtom(iat)=lin%norbsPerType(ityp)
-    norb=norb+norbsPerAtom(iat)
+    norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
+    !norb=norb+norbsPerLocreg(iat)
+    norb=norb+input%lin%norbsPerType(ityp)
 end do
+
+! Number of localization regions.
+!!lin%nlr=at%nat
+!!lin%lzd%nlr=at%nat
+lin%nlr=norb
+lin%lzd%nlr=norb
+!!lin%lzdlarge%nlr=at%nat
+
+allocate(locregCenter(3,lin%lzd%nlr), stat=istat)
+call memocc(istat, locregCenter, 'locregCenter', subname)
+ilr=0
+do iat=1,at%nat
+    ityp=at%iatype(iat)
+    do iorb=1,input%lin%norbsPerType(ityp)
+        ilr=ilr+1
+        locregCenter(:,ilr)=rxyz(:,iat)
+    end do
+end do
+
+
+! Allocate the basic arrays that are needed for reading the input parameters.
+call allocateBasicArrays(at, lin)
+
+!call copy_linearInputParameters_to_linearParameters(at%ntypes, at%nat, input, lin)
+call copy_linearInputParameters_to_linearParameters(at%ntypes, lin%lzd%nlr, input, lin)
+
+call deallocateBasicArraysInput(at, input%lin)
+
+allocate(norbsPerLocreg(lin%lzd%nlr), stat=istat)
+call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
+norbsPerLocreg=1 !should be norbsPerLocreg
+
 
 ! Distribute the basis functions among the processors.
 norbu=norb
@@ -162,11 +192,15 @@ call memocc(istat, iall, 'lin%lb%orbs%inWhichLocreg', subname)
 !!deallocate(lin%orbslarge%inWhichLocreg, stat=istat)
 !!call memocc(istat, iall, 'lin%orbslarge%inWhichLocreg', subname)
 
-call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbs)
-if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
-call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%lb%orbs)
-if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
-!!call assignToLocreg2(iproc, at%nat, lin%lzdlarge%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbslarge)
+!!call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerLocreg, rxyz, lin%orbs)
+call assignToLocreg2(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, at%nat, lin%lzd%nlr, &
+     input%nspin, norbsPerLocreg, locregCenter, lin%orbs%inwhichlocreg)
+if(lin%useDerivativeBasisFunctions) norbsPerLocreg=4*norbsPerLocreg
+!call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerLocreg, rxyz, lin%lb%orbs)
+call assignToLocreg2(iproc, nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par, at%nat, lin%lzd%nlr, &
+     input%nspin, norbsPerLocreg, locregCenter, lin%lb%orbs%inwhichlocreg)
+if(lin%useDerivativeBasisFunctions) norbsPerLocreg=norbsPerLocreg/4
+!!call assignToLocreg2(iproc, at%nat, lin%lzdlarge%nlr, input%nspin, norbsPerLocreg, rxyz, lin%orbslarge)
 
 
 
@@ -174,11 +208,32 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
 call timing(iproc,'init_locregs  ','ON')
 t1=mpi_wtime()
-call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lin%lzd, lin%orbs, &
+!!call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lin%lzd, lin%orbs, &
+!!     Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
+call initLocregs(iproc, nproc, lin%lzd%nlr, locregCenter, input%hx, input%hy, input%hz, lin%lzd, lin%orbs, &
      Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
 !!lin%locrad=3.d0*lin%locrad
 !!call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lin%lzdlarge, lin%orbslarge, Glr, lin%locrad, lin%locregShape)
 !!lin%locrad=lin%locrad/3.d0
+
+
+! for onwhichatom
+!allocate(onwhichatom(lin%orbs%norb), stat=istat)
+!call memocc(istat, onwhichatom, 'onwhichatom', subname)
+call assignToLocreg2(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, at%nat, at%nat, &
+     input%nspin, norbsPerAtom, rxyz, onwhichatom)
+
+  lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
+  allocate(confdatarr(lin%orbs%norbp))
+  call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
+       input%hx,input%hy,input%hz,lin,lin%lzd,onwhichatom)
+
+iall=-product(shape(onwhichatom))*kind(onwhichatom)
+deallocate(onwhichatom, stat=istat)
+call memocc(istat, iall, 'onwhichatom', subname)
+
+
+
 
 ! Copy Glr to lin%lzd
 call nullify_locreg_descriptors(lin%lzd%Glr)
@@ -311,6 +366,9 @@ iall=-product(shape(atomNames))*kind(atomNames)
 deallocate(atomNames, stat=istat)
 call memocc(istat, iall, 'atomNames', subname)
 
+iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
+deallocate(norbsPerLocreg, stat=istat)
+call memocc(istat, iall, 'norbsPerLocreg', subname)
 iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
 deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
@@ -406,6 +464,11 @@ call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdGauss%cutoffwei
 !!    call plotGrid(iproc, nproc, lin%lb%orbs%norb, lin%orbs%nspinor, input%nspin, iiorb, lin%lzd%llr(ilr), &
 !!    lin%lzd%glr, at, rxyz, input%hx, input%hy, input%hz)
 !!end do
+
+
+iall=-product(shape(locregCenter))*kind(locregCenter)
+deallocate(locregCenter, stat=istat)
+call memocc(istat, iall, 'locregCenter', subname)
 
 
 end subroutine allocateAndInitializeLinear
@@ -1583,6 +1646,7 @@ subroutine allocateBasicArraysInputLin(at, lin)
   implicit none
   
   ! Calling arguments
+  integer:: nlr
   type(atoms_data),intent(inout):: at
   type(linearInputParameters),intent(inout):: lin
   
@@ -1602,8 +1666,8 @@ subroutine allocateBasicArraysInputLin(at, lin)
   allocate(lin%potentialPrefac_highaccuracy(at%ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
 
-  allocate(lin%locrad(at%nat),stat=istat)
-  call memocc(istat,lin%locrad,'lin%locrad',subname)
+  !!allocate(lin%locrad(nlr),stat=istat)
+  !!call memocc(istat,lin%locrad,'lin%locrad',subname)
 
   allocate(at%rloc(at%ntypes,3), stat=istat)
   call memocc(istat, at%rloc, 'at%rloc', subname)
@@ -3897,18 +3961,18 @@ end subroutine initCollectiveComms
 
 
 
-subroutine copy_linearInputParameters_to_linearParameters(ntypes, nat, input, lin)
+subroutine copy_linearInputParameters_to_linearParameters(ntypes, nlr, input, lin)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: ntypes, nat
+  integer,intent(in):: ntypes, nlr
   type(input_variables),intent(in):: input
   type(linearParameters),intent(out):: lin
 
   ! Local variables
-  integer:: itype, iat
+  integer:: itype, ilr
 
   lin%nit_lowaccuracy = input%lin%nit_lowaccuracy
   lin%nit_highaccuracy = input%lin%nit_highaccuracy
@@ -3960,8 +4024,8 @@ subroutine copy_linearInputParameters_to_linearParameters(ntypes, nat, input, li
   lin%potentialPrefac=-1.d0
 
   ! Assign the localization radius to each atom.
-  do iat=1,nat
-      lin%locrad(iat) = input%lin%locrad(iat)
+  do ilr=1,nlr
+      lin%locrad(ilr) = input%lin%locrad(ilr)
   end do
   
 end subroutine copy_linearInputParameters_to_linearParameters

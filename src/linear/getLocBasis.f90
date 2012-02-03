@@ -1428,6 +1428,7 @@ type(matrixDescriptors):: madlarge
       call destroy_new_locregs()
   end if
 
+  ! thi svalue cannot be determined
 
 
   iall=-product(shape(lphiold))*kind(lphiold)
@@ -1537,14 +1538,15 @@ contains
            end if
            !write(*,'(a,2i8,3es16.6)') 'MAIN: iproc, iorb, locregCenter(:,iorb)', iproc, iorb, locregCenter(:,iorb)
        end do
-       call assignToLocreg2(iproc, at%nat, lzdlarge%nlr, nspin, norbsPerAtom, locregCenter, orbslarge)
+       call assignToLocreg2(iproc, nproc, orbslarge%norb, orbslarge%norb_par, at%nat, lzdlarge%nlr, &
+            nspin, norbsPerAtom, locregCenter, orbslarge%inwhichlocreg)
        deallocate(norbsPerAtom, stat=istat)
        !locrad=3.d0*lin%locrad
        allocate(locrad(lzdlarge%nlr), stat=istat)
        locrad=24.d0
        write(*,'(a,i7,20i5)') 'iproc, orbslarge%inwhichlocreg', iproc, orbslarge%inwhichlocreg
        write(*,'(a,3i8)') 'iproc, orbslarge%norbp, orbslarge%isorb', iproc, orbslarge%norbp, orbslarge%isorb
-       call initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, lzd%Glr, locrad, 's')
+       call     initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, lzd%Glr, locrad, 's')
        deallocate(locrad, stat=istat)
        deallocate(locregCenter, stat=istat)
        !locrad=lin%locrad/3.d0
@@ -5708,6 +5710,10 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lzphi, mad, Z)
           write(400+iproc,*) X
           write(410+iproc,*) X0
+
+          do iorb=1,orbs%norb
+              if(iproc==0) write(*,'(a,i5,3f10.4)') 'START: iorb, centers: ', iorb, X(iorb,iorb), Y(iorb,iorb), Z(iorb,iorb)
+          end do
       else
         call dgemm('t', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,1), orbs%norb, &
              X(1,1), orbs%norb, 0.d0, tempmat3(1,1,2), orbs%norb)
@@ -5725,18 +5731,19 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
              tempmat3(1,1,1), orbs%norb, 0.d0, Z(1,1), orbs%norb)
       end if
 
+      h=0.d0
       m=0.d0
       n=0.d0
-      y=0.d0
-      z=0.d0
-      y0=0.d0
-      z0=0.d0
+      !!y=0.d0
+      !!z=0.d0
+      !!y0=0.d0
+      !!z0=0.d0
 
-      tt=0.d0
-      do iorb=1,orbs%norb
-          tt = tt + (X(iorb,iorb)-X0(iorb,iorb))**2 + (Y(iorb,iorb)-Y0(iorb,iorb))**2 + (Z(iorb,iorb)-Z0(iorb,iorb))**2
-      end do
-      if(iproc==0) write(*,'(a,es16.7)') 'difference to locreg center', tt
+      !!tt=0.d0
+      !!do iorb=1,orbs%norb
+      !!    tt = tt + (X(iorb,iorb)-X0(iorb,iorb))**2 + (Y(iorb,iorb)-Y0(iorb,iorb))**2 + (Z(iorb,iorb)-Z0(iorb,iorb))**2
+      !!end do
+      !!if(iproc==0) write(*,'(a,es16.7)') 'difference to locreg center', tt
 
       ! Build the matrices Xd, Yd, Zd
       do iorb=1,orbs%norb
@@ -6186,6 +6193,13 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
 
   end do innerLoop
+
+
+
+  do iorb=1,orbs%norb
+      if(iproc==0) write(*,'(a,i5,3f10.4)') 'END: iorb, centers: ', iorb, X(iorb,iorb), Y(iorb,iorb), Z(iorb,iorb)
+  end do
+
 
   t2_tot=mpi_wtime()
   time_tot=t2_tot-t1_tot

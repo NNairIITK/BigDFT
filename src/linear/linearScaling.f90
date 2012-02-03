@@ -98,7 +98,7 @@ type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
 real(8),dimension(:,:),allocatable:: coeff_proj
 type(localizedDIISParameters):: ldiis
-type(confpot_data), dimension(:),allocatable :: confdatarr
+type(confpot_data), dimension(:),pointer :: confdatarr
 real(8):: fnoise,pressure
 real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 type(orthon_data):: orthpar
@@ -118,12 +118,14 @@ type(orthon_data):: orthpar
   call mpi_barrier(mpi_comm_world, ierr)
   t1init=mpi_wtime()
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-       input, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi)
+       input, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi, confdatarr)
 
-  lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
-  allocate(confdatarr(lin%orbs%norbp))
-  call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,lin,lin%lzd,lin%orbs%inWhichLocreg)
+  !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
+  !!allocate(confdatarr(lin%orbs%norbp))
+  !!!use a temporary array onwhichatom instead of inwhichlocreg
+  !!
+  !!call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
+  !!     input%hx,input%hy,input%hz,lin,lin%lzd,lin%orbs%inWhichLocreg)
 
 
   orthpar%methTransformOverlap = lin%methTransformOverlap

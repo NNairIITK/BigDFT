@@ -265,16 +265,17 @@ subroutine wavefunction_dimension(Lzd,orbs)
 end subroutine wavefunction_dimension
 
 
-subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
+subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Localnorb, rxyz, inwhichlocreg)
   use module_base
   use module_types
   implicit none
 
-  integer,intent(in):: nlr,iproc,nspin,natom
+  integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb
   integer,dimension(nlr),intent(in):: Localnorb
+  integer,dimension(0:nproc-1),intent(in):: norb_par
   !real(8),dimension(3,natom),intent(in):: rxyz
   real(8),dimension(3,nlr),intent(in):: rxyz
-  type(orbitals_data),intent(inout):: orbse
+  integer,dimension(:),pointer, intent(out):: inwhichlocreg
 
   ! Local variables
   integer:: iat, jproc, iiOrb, iorb, jorb, jat, iiat, i_stat, i_all
@@ -286,8 +287,8 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
 
 !!!! NEW VERSION #################################################################
   !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
-  allocate(orbse%inWhichLocreg(orbse%norb),stat=i_stat)
-  call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
+  allocate(inWhichLocreg(norb),stat=i_stat)
+  call memocc(i_stat,inWhichLocreg,'inWhichLocreg',subname)
   !allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
   !call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
   allocate(covered(nlr), stat=i_stat)
@@ -368,14 +369,15 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
 
   covered=.false.
   covered(iiat)=.true.
-  orbse%inWhichLocreg(1)=iiat
+  inWhichLocreg(1)=iiat
   iiorb=1
 
-  do iorb=2,orbse%norb
+  do iorb=2,norb
 
       ! Switch to the next MPI process if the numbers of orbitals for a given
       ! MPI process is reached.
-      if(jorb==orbse%norb_par(jproc,0)) then
+      !if(jorb==norb_par(jproc,0)) then
+      if(jorb==norb_par(jproc)) then
           jproc=jproc+1
           jorb=0
       end if
@@ -410,7 +412,7 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
       iiOrb=iiOrb+1
       !if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
       !orbse%inWhichLocreg(iorb)=jat
-      orbse%inWhichLocreg(iorb)=iiat
+      inWhichLocreg(iorb)=iiat
   end do
 
   i_all=-product(shape(covered))*kind(covered)
