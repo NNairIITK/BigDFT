@@ -875,32 +875,16 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
   
   ! Local variables
   integer:: istat, iall, iis1, iie1, i1
-  
-  
-!  call deallocate_orbitals_data(lzd%orbs, subname)
-  
-!  iis1=lbound(lzd%lorbs,1)
-!  iie1=ubound(lzd%lorbs,1)
-!  do i1=iis1,iie1
-!      call deallocate_orbitals_data(lzd%lorbs(i1), subname)
-!  end do
-  
-!  call deallocate_communications_arrays(lzd%comms, subname)
 
   call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
-
-  !call deallocate_nonlocal_psp_descriptors(lzd%Gnlpspd, subname)
 
   if(associated(lzd%llr)) then  
      iis1=lbound(lzd%llr,1)
      iie1=ubound(lzd%llr,1)
      !write(*,*) 'iis1,iie1',iis1,iie1
      do i1=iis1,iie1
-         !if(associated(lzd%llr(i1)%projflg)) then
-         !    nullify(lzd%llr(i1)%projflg)
-         !end if
          call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
          !write(*,*) 'i1',i1
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
@@ -908,15 +892,6 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
      deallocate(lzd%llr)
      nullify(lzd%llr)
   end if
-!  if(associated(lzd%lnlpspd)) then 
-!     iis1=lbound(lzd%lnlpspd,1)
-!     iie1=ubound(lzd%lnlpspd,1)
-!     do i1=iis1,iie1
-!        call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-!     end do
-!     deallocate(lzd%lnlpspd)
-!     nullify(lzd%lnlpspd)
-!  end if
 
   call checkAndDeallocatePointer(lzd%cutoffweight, 'cutoffweight', subname)
 

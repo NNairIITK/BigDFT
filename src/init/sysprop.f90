@@ -122,15 +122,9 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
+
   ! See if linear scaling should be activated and build the correct Lzd 
-  ! There is a copy of this inside the LCAO input guess because the norbs changes
-  ! and so the inwhichlocreg also ==> different distribution for the locregs
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LCAO_GAUSS) then
-     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
-  else
-     Lzd%nlr = 1
-     Lzd%linear = .false.
-  end if
+  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
@@ -1366,7 +1360,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   ! allocate inwhichlocreg
   allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
-  ! default for inwhichlocreg (any orbital is sit on the same function)
+  ! default for inwhichlocreg (all orbitals are situated in the same locreg)
   orbs%inwhichlocreg = 1
 
   !initialize the starting point of the potential for each orbital (to be removed?)

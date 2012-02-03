@@ -534,11 +534,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         nvirt = norbv
      end if
 
-     !Check if we must use linear scaling for total SCF
-     !change the Lzd structure accordingly, also orbs%inwhichlocreg
-     call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms,orbs,rxyz) 
-     call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
-
   case(INPUT_PSI_LINEAR)
 
      !this does not work with ndebug activated

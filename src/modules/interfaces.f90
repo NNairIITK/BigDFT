@@ -2771,14 +2771,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr 
      end subroutine
 
-     subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
+     subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
           psi,hpsi,psit,orthpar,passmat,& !mandatory
           orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,nproc,natsc,nspin
-       type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs
+       type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs after LIG
+       type(local_zone_descriptors) :: Lzde                                 !> Information about the locregs for LIG
        type(communications_arrays), target, intent(in) :: comms
        type(orbitals_data), target, intent(inout) :: orbs
        type(input_variables):: input
@@ -5665,17 +5666,30 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
        end subroutine check_linear_and_create_Lzd
 
-       subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
+       subroutine create_LzdLIG(iproc,nproc,input,Glr,atoms,orbs,rxyz,Lzd)
          use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
          type(input_variables), intent(in) :: input
+         type(locreg_descriptors), intent(in) :: Glr
          type(local_zone_descriptors), intent(inout) :: Lzd
          type(atoms_data), intent(in) :: atoms
          type(orbitals_data),intent(inout) :: orbs
          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-       end subroutine reinitialize_Lzd_after_LIG
+       end subroutine create_LzdLIG
+
+!!       subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
+!!         use module_base
+!!         use module_types
+!!         implicit none
+!!         integer, intent(in) :: iproc,nproc
+!!         type(input_variables), intent(in) :: input
+!!         type(local_zone_descriptors), intent(inout) :: Lzd
+!!         type(atoms_data), intent(in) :: atoms
+!!         type(orbitals_data),intent(inout) :: orbs
+!!         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+!!       end subroutine reinitialize_Lzd_after_LIG
 
        subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
             inputpsi,input_wf_format,orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
