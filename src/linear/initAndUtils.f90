@@ -59,7 +59,7 @@ call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 ! Number of localization regions.
 lin%nlr=at%nat
 lin%lzd%nlr=at%nat
-lin%lzdlarge%nlr=at%nat
+!!lin%lzdlarge%nlr=at%nat
 
 ! Allocate the basic arrays that are needed for reading the input parameters.
 call allocateBasicArrays(at, lin)
@@ -93,10 +93,10 @@ call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspi
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, &
      lin%gorbs%norbp, lin%gorbs%isorb_par, lin%gorbs%isorb, lin%gorbs%onWhichMPI)
-call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
-     input%nkpt, input%kpt, input%wkpt, lin%orbslarge)
-call repartitionOrbitals(iproc, nproc, lin%orbslarge%norb, lin%orbslarge%norb_par,&
-     lin%orbslarge%norbp, lin%orbslarge%isorb_par, lin%orbslarge%isorb, lin%orbslarge%onWhichMPI)
+!!call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+!!     input%nkpt, input%kpt, input%wkpt, lin%orbslarge)
+!!call repartitionOrbitals(iproc, nproc, lin%orbslarge%norb, lin%orbslarge%norb_par,&
+!!     lin%orbslarge%norbp, lin%orbslarge%isorb_par, lin%orbslarge%isorb, lin%orbslarge%onWhichMPI)
 
 
 
@@ -157,15 +157,15 @@ iall=-product(shape(lin%lb%orbs%inWhichLocreg))*kind(lin%lb%orbs%inWhichLocreg)
 deallocate(lin%lb%orbs%inWhichLocreg, stat=istat)
 call memocc(istat, iall, 'lin%lb%orbs%inWhichLocreg', subname)
 
-iall=-product(shape(lin%orbslarge%inWhichLocreg))*kind(lin%orbslarge%inWhichLocreg)
-deallocate(lin%orbslarge%inWhichLocreg, stat=istat)
-call memocc(istat, iall, 'lin%orbslarge%inWhichLocreg', subname)
+!!iall=-product(shape(lin%orbslarge%inWhichLocreg))*kind(lin%orbslarge%inWhichLocreg)
+!!deallocate(lin%orbslarge%inWhichLocreg, stat=istat)
+!!call memocc(istat, iall, 'lin%orbslarge%inWhichLocreg', subname)
 
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%lb%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
-call assignToLocreg2(iproc, at%nat, lin%lzdlarge%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbslarge)
+!!call assignToLocreg2(iproc, at%nat, lin%lzdlarge%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbslarge)
 
 
 
@@ -173,16 +173,17 @@ call assignToLocreg2(iproc, at%nat, lin%lzdlarge%nlr, input%nspin, norbsPerAtom,
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
 call timing(iproc,'init_locregs  ','ON')
 t1=mpi_wtime()
-call initLocregs(iproc, nproc, at%nat, rxyz, lin%lzd, lin%orbs, input, Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
-lin%locrad=3.d0*lin%locrad
-call initLocregs(iproc, nproc, at%nat, rxyz, lin%lzdlarge, lin%orbslarge, input, Glr, lin%locrad, lin%locregShape)
-lin%locrad=lin%locrad/3.d0
+call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lin%lzd, lin%orbs, &
+     Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
+!!lin%locrad=3.d0*lin%locrad
+!!call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lin%lzdlarge, lin%orbslarge, Glr, lin%locrad, lin%locregShape)
+!!lin%locrad=lin%locrad/3.d0
 
 ! Copy Glr to lin%lzd
 call nullify_locreg_descriptors(lin%lzd%Glr)
 call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
-call nullify_locreg_descriptors(lin%lzdlarge%Glr)
-call copy_locreg_descriptors(Glr, lin%lzdlarge%Glr, subname)
+!!call nullify_locreg_descriptors(lin%lzdlarge%Glr)
+!!call copy_locreg_descriptors(Glr, lin%lzdlarge%Glr, subname)
 
 
 ! Initialize collective communications
@@ -212,12 +213,12 @@ end do
 lin%lb%orbs%npsidim_orbs=max(npsidim,1)
 
 
-npsidim = 0
-do iorb=1,lin%orbslarge%norbp
- ilr=lin%orbslarge%inwhichlocreg(iorb+lin%orbslarge%isorb)
- npsidim = npsidim + lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
-end do
-lin%orbslarge%npsidim_orbs=max(npsidim,1)
+!!npsidim = 0
+!!do iorb=1,lin%orbslarge%norbp
+!! ilr=lin%orbslarge%inwhichlocreg(iorb+lin%orbslarge%isorb)
+!! npsidim = npsidim + lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
+!!end do
+!!lin%orbslarge%npsidim_orbs=max(npsidim,1)
 
 
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
@@ -227,9 +228,9 @@ lin%orbs%eval=-.5d0
 allocate(lin%lb%orbs%eval(lin%lb%orbs%norb), stat=istat)
 call memocc(istat, lin%lb%orbs%eval, 'lin%lb%orbs%eval', subname)
 lin%lb%orbs%eval=-.5d0
-allocate(lin%orbslarge%eval(lin%orbslarge%norb), stat=istat)
-call memocc(istat, lin%orbslarge%eval, 'lin%orbslarge%eval', subname)
-lin%orbslarge%eval=-.5d0
+!!allocate(lin%orbslarge%eval(lin%orbslarge%norb), stat=istat)
+!!call memocc(istat, lin%orbslarge%eval, 'lin%orbslarge%eval', subname)
+!!lin%orbslarge%eval=-.5d0
 
 ! Initialize the coefficients.
 call initCoefficients(iproc, orbs, lin, coeff)
@@ -283,12 +284,12 @@ if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications orthonormalization... '
 call timing(iproc,'init_commOrtho','ON')
 t1=mpi_wtime()
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
-     input, lin%locregShape, lin%op, lin%comon, tag)
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
-     input, lin%locregShape, lin%lb%op, lin%lb%comon, tag)
-call initCommsOrtho(iproc, nproc, lin%lzdlarge, lin%orbslarge, lin%orbslarge%inWhichLocreg,&
-     input, lin%locregShape, lin%oplarge, lin%comonlarge, tag)
+call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
+     lin%locregShape, lin%op, lin%comon, tag)
+call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
+     lin%locregShape, lin%lb%op, lin%lb%comon, tag)
+!!call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lin%lzdlarge, lin%orbslarge, lin%orbslarge%inWhichLocreg,&
+!!     lin%locregShape, lin%oplarge, lin%comonlarge, tag)
 t2=mpi_wtime()
 call timing(iproc,'init_commOrtho','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
@@ -334,9 +335,9 @@ call initCompressedMatmul3(lin%orbs%norb, lin%mad)
 call initMatrixCompression(iproc, nproc, lin%lzd%nlr, lin%lb%orbs, &
      lin%lb%op%noverlaps, lin%lb%op%overlaps, lin%lb%mad)
 call initCompressedMatmul3(lin%lb%orbs%norb, lin%lb%mad)
-call initMatrixCompression(iproc, nproc, lin%lzdlarge%nlr, lin%orbslarge, &
-     lin%oplarge%noverlaps, lin%oplarge%overlaps, lin%madlarge)
-call initCompressedMatmul3(lin%orbslarge%norb, lin%madlarge)
+!!call initMatrixCompression(iproc, nproc, lin%lzdlarge%nlr, lin%orbslarge, &
+!!     lin%oplarge%noverlaps, lin%oplarge%overlaps, lin%madlarge)
+!!call initCompressedMatmul3(lin%orbslarge%norb, lin%madlarge)
 t2=mpi_wtime()
 call timing(iproc,'init_matrCompr','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
@@ -1612,7 +1613,7 @@ end subroutine allocateBasicArraysInputLin
 !> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
 !! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
 !subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
-subroutine initLocregs(iproc, nproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape, lborbs)
+subroutine initLocregs(iproc, nproc, nat, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => initLocregs
@@ -1621,9 +1622,9 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nat
 real(8),dimension(3,nat),intent(in):: rxyz
+real(8),intent(in):: hx, hy, hz
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(inout):: orbs
-type(input_variables),intent(in):: input
 type(locreg_descriptors),intent(in):: Glr
 real(8),dimension(lzd%nlr),intent(in):: locrad
 character(len=1),intent(in):: locregShape
@@ -1633,7 +1634,7 @@ type(orbitals_data),optional,intent(inout):: lborbs
 
 ! Local variables
 integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
-character(len=*),parameter:: subname='initLocregs2'
+character(len=*),parameter:: subname='initLocregs'
 logical,dimension(:),allocatable:: calculateBounds
 
 ! Allocate the array of localisation regions
@@ -1672,11 +1673,11 @@ end do
  end do
 
  if(locregShape=='c') then
-     call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr, calculateBounds)
+     call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, hx, hy, hz, Glr, lzd%Llr, calculateBounds)
  else if(locregShape=='s') then
      !!call determine_locregSphere(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, &
      !!     Glr, lzd%Llr, calculateBounds)
-     call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, &
+     call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
           Glr, lzd%Llr, calculateBounds)
  end if
 

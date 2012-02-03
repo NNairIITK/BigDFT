@@ -1770,7 +1770,7 @@ module module_interfaces
       subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
            denspot,GPU,lphi,trH,&
            infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
-           confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,comms,lin)
+           confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond)
         use module_base
         use module_types
 
@@ -1807,8 +1807,6 @@ module module_interfaces
         type(orthon_data),intent(in):: orthpar
         type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
         type(SIC_data) :: SIC !<parameters for the SIC methods
-        type(communications_arrays),intent(in):: comms
-        type(linearParameters),intent(in):: lin
       end subroutine getLocalizedBasis
 
 
@@ -1984,7 +1982,7 @@ module module_interfaces
          ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
          methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
          useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
-         hx,hy,hz,SIC,comms,lin)
+         hx,hy,hz,SIC)
       use module_base
       use module_types
       implicit none
@@ -2022,8 +2020,6 @@ module module_interfaces
       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
       type(p2pCommsRepartition),intent(inout):: comrp
       type(SIC_data),intent(in):: SIC
-      type(communications_arrays),intent(in):: comms
-      type(linearParameters),intent(in):: lin
     end subroutine getLinearPsi
 
 
@@ -3051,15 +3047,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters),intent(inout):: op
      end subroutine determineOverlapDescriptors
      
-     subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locregShape, op, comon, tag)
+     subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, orbs, onWhichAtomAll, locregShape, op, comon, tag)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc
+       integer,intent(in):: iproc, nproc, nspin
+       real(8),intent(in):: hx, hy, hz
        type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
-       type(input_variables),intent(in):: input
        character(len=1),intent(in):: locregShape
        type(overlapParameters),intent(out):: op
        type(p2pComms),intent(out):: comon
@@ -4115,15 +4111,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(matrixLocalizationRegion),intent(out):: mlr
     end subroutine nullify_matrixLocalizationRegion
 
-    subroutine initLocregs(iproc, nproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape, lborbs)
+    subroutine initLocregs(iproc, nproc, nat, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, nat
       real(8),dimension(3,nat),intent(in):: rxyz
+      real(8),intent(in):: hx, hy, hz
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(inout):: orbs
-      type(input_variables),intent(in):: input
       type(locreg_descriptors),intent(in):: Glr
       real(8),dimension(lzd%nlr),intent(in):: locrad
       character(len=1),intent(in):: locregShape
@@ -5416,13 +5412,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine build_new_linear_combinations
 
 
-      subroutine indicesForExpansion(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon)
+      subroutine indicesForExpansion(iproc, nproc, nspin, orbs, onWhichAtom, lzd, op, comon)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc
+        integer,intent(in):: iproc, nproc, nspin
         type(orbitals_data),intent(in):: orbs
-        type(input_variables),intent(in):: input
         integer,dimension(orbs%norb),intent(in):: onWhichAtom
         type(local_zone_descriptors),intent(in):: lzd
         type(overlapParameters),intent(inout):: op

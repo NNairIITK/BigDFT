@@ -742,7 +742,7 @@ end type workarrays_quartic_convolutions
     real(8):: lowaccuray_converged
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold
     real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
-    type(orbitals_data):: orbs, gorbs, orbslarge
+    type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
@@ -754,12 +754,12 @@ end type workarrays_quartic_convolutions
     !type(p2pCommsGatherPot):: comgp
     type(p2pComms):: comgp
     type(largeBasis):: lb
-    type(local_zone_descriptors):: lzd, lzdlarge
+    type(local_zone_descriptors):: lzd
     !type(p2pCommsOrthonormality):: comon
-    type(p2pComms):: comon, comonlarge
-    type(overlapParameters):: op, oplarge
+    type(p2pComms):: comon
+    type(overlapParameters):: op
     type(linearInputGuess):: lig
-    type(matrixDescriptors):: mad, madlarge
+    type(matrixDescriptors):: mad
     character(len=1):: locregShape
     type(collectiveComms):: collComms
   end type linearParameters

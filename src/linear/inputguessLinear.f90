@@ -115,7 +115,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
   call copy_locreg_descriptors(Glr, lig%lzdGauss%Glr, subname)
 
   ! Determine the localization regions.
-  call initLocregs(iproc, nproc, at%nat, rxyz, lig%lzdig, lig%orbsig, input, Glr, lin%locrad, lin%locregShape)
+  call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lig%lzdig, &
+       lig%orbsig, Glr, lin%locrad, lin%locregShape)
   !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
   call copy_locreg_descriptors(Glr, lig%lzdig%Glr, subname)
 
@@ -123,14 +124,15 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
   locrad=max(12.d0,maxval(lin%locrad(:)))
   call nullify_orbitals_data(lig%orbsGauss)
   call copy_orbitals_data(lig%orbsig, lig%orbsGauss, subname)
-  call initLocregs(iproc, nproc, at%nat, rxyz, lig%lzdGauss, lig%orbsGauss, input, Glr, locrad, lin%locregShape)
+  call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lig%lzdGauss, &
+       lig%orbsGauss, Glr, locrad, lin%locregShape)
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
   !!call initCommsOrtho(iproc, nproc, lig%lzdGauss, lig%orbsGauss, lig%orbsGauss%inWhichLocreg, &
   !!     input, lig%op, lig%comon, tag)
-  call initCommsOrtho(iproc, nproc, lig%lzdig, lig%orbsig, lig%orbsig%inWhichLocreg, &
-       input, lin%locregShape, lig%op, lig%comon, tag)
+  call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lig%lzdig, lig%orbsig, &
+       lig%orbsig%inWhichLocreg, lin%locregShape, lig%op, lig%comon, tag)
 
   ! Initialize the parameters needed for communicationg the potential.
   call copy_locreg_descriptors(Glr, lig%lzdig%Glr, subname)
@@ -1162,7 +1164,8 @@ call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
 call nullify_p2pComms(comon)
-call initCommsOrtho(iproc, nproc, lzdig, orbsig, onWhichAtom, input, locregShape, op, comon, tagout)
+call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lzdig, orbsig, &
+     onWhichAtom, locregShape, op, comon, tagout)
 
 
 call allocateCommuncationBuffersOrtho(comon, subname)
