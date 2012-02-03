@@ -478,7 +478,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rx
 !
 use module_base
 use module_types
-use deallocatePointers
 use module_interfaces, except_this_one => getLocalizedBasis
 !  use Poisson_Solver
 !use allocModule
@@ -691,16 +690,17 @@ type(matrixDescriptors):: madlarge
       call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
       allocate(ldiis%hphiHist(ii), stat=istat)
       call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+
+      allocate(phi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
+      allocate(phiWork(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat)
+      allocate(lphilarge(orbslarge%npsidim_orbs), stat=istat)
+      allocate(lhphilarge(orbslarge%npsidim_orbs), stat=istat)
+      allocate(lhphilargeold(orbslarge%npsidim_orbs), stat=istat)
+      allocate(lphilargeold(orbslarge%npsidim_orbs), stat=istat)
+      allocate(Umat(lorbs%norb,lorbs%norb), stat=istat)
+      allocate(kernelold(lorbs%norb,lorbs%norb), stat=istat)
   end if
 
-  allocate(phi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
-  allocate(phiWork(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat)
-  allocate(lphilarge(orbslarge%npsidim_orbs), stat=istat)
-  allocate(lhphilarge(orbslarge%npsidim_orbs), stat=istat)
-  allocate(lhphilargeold(orbslarge%npsidim_orbs), stat=istat)
-  allocate(lphilargeold(orbslarge%npsidim_orbs), stat=istat)
-  allocate(Umat(lorbs%norb,lorbs%norb), stat=istat)
-  allocate(kernelold(lorbs%norb,lorbs%norb), stat=istat)
 
   iterLoop: do it=1,nit
       fnrmMax=0.d0
@@ -1501,16 +1501,17 @@ type(matrixDescriptors):: madlarge
       call deallocate_overlapParameters(oplarge, subname)
       call deallocate_p2pComms(comonlarge, subname)
       call deallocate_matrixDescriptors(madlarge, subname)
+
+      deallocate(lphilarge)
+      deallocate(lhphilarge)
+      deallocate(lhphilargeold)
+      deallocate(lphilargeold)
+      deallocate(phiWork, stat=istat)
+      deallocate(phi, stat=istat)
+      deallocate(Umat, stat=istat)
+      deallocate(kernelold, stat=istat)
   end if
 
-  deallocate(lphilarge)
-  deallocate(lhphilarge)
-  deallocate(lhphilargeold)
-  deallocate(lphilargeold)
-  deallocate(phiWork, stat=istat)
-  deallocate(phi, stat=istat)
-  deallocate(Umat, stat=istat)
-  deallocate(kernelold, stat=istat)
 
 
   iall=-product(shape(lphiold))*kind(lphiold)
