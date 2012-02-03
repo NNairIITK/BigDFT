@@ -32,6 +32,23 @@ subroutine nullify_linearParameters(lin)
 
 end subroutine nullify_linearParameters
 
+subroutine nullifyInputLinparameters(lin)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  type(linearInputParameters),intent(inout):: lin
+
+  nullify(lin%locrad)
+  nullify(lin%potentialPrefac)
+  nullify(lin%potentialPrefac_lowaccuracy)
+  nullify(lin%potentialPrefac_highaccuracy)
+  nullify(lin%norbsPerType)
+
+end subroutine nullifyInputLinparameters
+
 
 subroutine nullify_p2pComms(p2pcomm)
   use module_base
@@ -55,7 +72,6 @@ subroutine nullify_p2pComms(p2pcomm)
   nullify(p2pcomm%startingindex)
   nullify(p2pcomm%ise3)
   nullify(p2pcomm%requests)
-  nullify(p2pcomm%auxarray)
 end subroutine nullify_p2pComms
 
 

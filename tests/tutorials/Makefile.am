@@ -12,9 +12,10 @@ TESTDIRS = CH4 \
 
 EXTRA_DIST = $(TESTDIRS) \
      Figures \
-     H1A-Basics.html \
-     H1B-Basic_surfaces.html \
-     H1C-Basic_post_processing.html \
+     H1A_first_run.html \
+     H1B_grid_cv.html \
+     H1C_basic_surfaces.html \
+     H1D_wfn_plot.html \
      H2A-GPU.html \
      H2B-scalability.html \
      H2C-BART.html \

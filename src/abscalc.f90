@@ -508,6 +508,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Lzd%Glr,shift)
 
+   if ( orbsAO%nspinor.gt.1) then
+      !!  hybrid_on is not compatible with kpoints
+     Lzd%Glr%hybrid_on=.false.
+   endif
+
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
        atoms,rxyz,radii_cf,crmult,frmult,Lzd%Glr)
@@ -635,13 +640,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            PPD, Lzd%Glr  )
       call timing(iproc,'CrtPcProjects ','OF')
    endif
-
-   if ( orbsAO%nspinor.gt.1) then
-      !!  hybrid_on is not compatible with kpoints
-     Lzd%Glr%hybrid_on=.false.
-   endif
-   
-
 
    call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,&
         & eion,fion,in%dispersion,edisp,fdisp,ewaldstr,&
@@ -1749,7 +1747,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   call timing(iproc,'wavefunction  ','ON')   
   !use only the part of the arrays for building the hamiltonian matrix
-  call gaussians_to_wavelets_new(iproc,nproc,Lzd%Glr,orbse,hx,hy,hz,G,&
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbse,hx,hy,hz,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
   call timing(iproc,'wavefunction  ','OF')
   i_all=-product(shape(locrad))*kind(locrad)

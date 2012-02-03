@@ -85,6 +85,7 @@ SIC.post-in:
 	  Linear.out*)           prec="1.e-9" ;; \
 	  Linear_withder.out*)   prec="5.e-10" ;; \
 	  Linear_mixedmode.out*) prec="2.e-10" ;; \
+          Linear_large.out*)    prec="5.e-10" ;; \
           *)                    prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

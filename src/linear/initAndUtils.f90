@@ -69,6 +69,7 @@ call allocateBasicArrays(at, lin)
 call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
 call copy_linearInputParameters_to_linearParameters(at%ntypes, at%nat, input, lin)
 
+call deallocateBasicArraysInput(at, input%lin)
 
 ! Count the number of basis functions.
 norb=0
@@ -240,7 +241,9 @@ call initCoefficients(iproc, orbs, lin, coeff)
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications sumrho... '
 call timing(iproc,'init_commSumro','ON')
 t1=mpi_wtime()
+call nullify_p2pcomms(lin%comsr)
 call initializeCommsSumrho(iproc, nproc, nscatterarr, lin%lzd, lin%orbs, tag, lin%comsr)
+call nullify_p2pcomms(lin%lb%comsr)
 call initializeCommsSumrho(iproc, nproc, nscatterarr, lin%lzd, lin%lb%orbs, tag, lin%lb%comsr)
 t2=mpi_wtime()
 call timing(iproc,'init_commSumro','OF')
@@ -1523,8 +1526,8 @@ subroutine allocateBasicArrays(at, lin)
   allocate(lin%locrad(lin%nlr),stat=istat)
   call memocc(istat,lin%locrad,'lin%locrad',subname)
 
-  allocate(at%rloc(at%ntypes,3), stat=istat)
-  call memocc(istat, at%rloc, 'at%rloc', subname)
+  !allocate(at%rloc(at%ntypes,3), stat=istat)
+  !call memocc(istat, at%rloc, 'at%rloc', subname)
 
 end subroutine allocateBasicArrays
 
@@ -1542,29 +1545,29 @@ subroutine deallocateBasicArrays(at, lin)
   character(len=*),parameter:: subname='deallocateBasicArrays'
  
   if(associated(lin%potentialPrefac)) then
-    print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
+    !print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
     i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-    print *,'i_all',i_all
+    !print *,'i_all',i_all
     deallocate(lin%potentialPrefac,stat=i_stat)
     call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
     nullify(lin%potentialPrefac)
   end if 
   if(associated(lin%norbsPerType)) then
-    print *,'lin%norbsPerType',associated(lin%norbsPerType)
+    !print *,'lin%norbsPerType',associated(lin%norbsPerType)
     i_all = -product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
     deallocate(lin%norbsPerType,stat=i_stat)
     call memocc(i_stat,i_all,'lin%norbsPerType',subname)
     nullify(lin%norbsPerType)
   end if 
   if(associated(lin%locrad)) then
-    print *,'lin%locrad',associated(lin%locrad)
+    !print *,'lin%locrad',associated(lin%locrad)
     i_all = -product(shape(lin%locrad))*kind(lin%locrad)
     deallocate(lin%locrad,stat=i_stat)
     call memocc(i_stat,i_all,'lin%locrad',subname)
     nullify(lin%locrad)
   end if 
   if(associated(at%rloc)) then
-    print *,'at%rloc',associated(at%rloc)
+     !print *,'at%rloc',associated(at%rloc)
     i_all = -product(shape(at%rloc))*kind(at%rloc)
     deallocate(at%rloc,stat=i_stat)
     call memocc(i_stat,i_all,'at%rloc',subname)
@@ -1588,24 +1591,88 @@ subroutine allocateBasicArraysInputLin(at, lin)
   character(len=*),parameter:: subname='allocateBasicArrays'
   
   allocate(lin%norbsPerType(at%ntypes), stat=istat)
-!  call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
+  call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
   
   allocate(lin%potentialPrefac(at%ntypes), stat=istat)
-!  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
+  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 
   allocate(lin%potentialPrefac_lowaccuracy(at%ntypes), stat=istat)
-!  call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
+  call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
 
   allocate(lin%potentialPrefac_highaccuracy(at%ntypes), stat=istat)
-!  call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
+  call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
 
   allocate(lin%locrad(at%nat),stat=istat)
-!  call memocc(istat,lin%locrad,'lin%locrad',subname)
+  call memocc(istat,lin%locrad,'lin%locrad',subname)
 
   allocate(at%rloc(at%ntypes,3), stat=istat)
-!  call memocc(istat, at%rloc, 'at%rloc', subname)
+  call memocc(istat, at%rloc, 'at%rloc', subname)
 
 end subroutine allocateBasicArraysInputLin
+
+subroutine deallocateBasicArraysInput(at, lin)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(atoms_data),intent(inout):: at
+  type(linearinputParameters),intent(inout):: lin
+  
+  ! Local variables
+  integer:: i_stat,i_all
+  character(len=*),parameter:: subname='deallocateBasicArrays'
+ 
+  if(associated(lin%potentialPrefac)) then
+!    print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
+    i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
+    !print *,'i_all',i_all
+    deallocate(lin%potentialPrefac,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
+    nullify(lin%potentialPrefac)
+  end if 
+  if(associated(lin%potentialPrefac_lowaccuracy)) then
+!    print *,'lin%potentialPrefac_lowaccuracy',associated(lin%potentialPrefac_lowaccuracy)
+    i_all = -product(shape(lin%potentialPrefac_lowaccuracy))*kind(lin%potentialPrefac_lowaccuracy)
+    !print *,'i_all',i_all
+    deallocate(lin%potentialPrefac_lowaccuracy,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%potentialPrefac_lowaccuracy',subname)
+    nullify(lin%potentialPrefac_lowaccuracy)
+  end if 
+  if(associated(lin%potentialPrefac_highaccuracy)) then
+!    print *,'lin%potentialPrefac_highaccuracy',associated(lin%potentialPrefac_highaccuracy)
+    i_all = -product(shape(lin%potentialPrefac_highaccuracy))*kind(lin%potentialPrefac_highaccuracy)
+    !print *,'i_all',i_all
+    deallocate(lin%potentialPrefac_highaccuracy,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%potentialPrefac_highaccuracy',subname)
+    nullify(lin%potentialPrefac_highaccuracy)
+  end if 
+
+  if(associated(lin%norbsPerType)) then
+!    print *,'lin%norbsPerType',associated(lin%norbsPerType)
+    i_all = -product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
+    deallocate(lin%norbsPerType,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%norbsPerType',subname)
+    nullify(lin%norbsPerType)
+  end if 
+  if(associated(lin%locrad)) then
+!    print *,'lin%locrad',associated(lin%locrad)
+    i_all = -product(shape(lin%locrad))*kind(lin%locrad)
+    deallocate(lin%locrad,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%locrad',subname)
+    nullify(lin%locrad)
+  end if 
+    if(associated(at%rloc)) then
+!    print *,'at%rloc',associated(at%rloc)
+    i_all = -product(shape(at%rloc))*kind(at%rloc)
+    !print *,'i_all',i_all
+    deallocate(at%rloc,stat=i_stat)
+    call memocc(i_stat,i_all,'at%rloc',subname)
+    nullify(at%rloc)
+  end if 
+
+
+end subroutine deallocateBasicArraysInput
 
 
 
