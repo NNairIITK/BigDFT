@@ -21,9 +21,11 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
   ! Local variables
   character(len=*), parameter :: subname='initInputguessConfinement'
   real(gp), dimension(:),allocatable:: locrad
-  integer,dimension(:),allocatable:: norbsPerAt
+  real(gp),dimension(:,:),allocatable:: locregCenter
+  integer,dimension(:),allocatable:: norbsPerAt, norbsPerLocreg
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  integer:: ist, iadd, ii, jj, norbtot, istat, iall, iat, nspin_ig, norbat
+  integer:: ist, iadd, ii, jj, norbtot, istat, iall, iat, nspin_ig, norbat, ityp, ilr, iorb
+ 
 
 
   ! Nullify the local zone descriptors.
@@ -35,10 +37,12 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
   call memocc(istat,locrad,'locrad',subname)
   allocate(norbsPerAt(at%nat), stat=istat)
   call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
+  allocate(norbsPerLocreg(lin%lzd%nlr), stat=istat)
+  call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
 
   ! Number of localization regions
-  lig%lzdig%nlr=at%nat
-  lig%lzdGauss%nlr=at%nat
+  !!lig%lzdig%nlr=at%nat
+  !!lig%lzdGauss%nlr=at%nat
 
   ! Spin for inputguess orbitals.
   if (input%nspin == 4) then
@@ -85,6 +89,11 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
       norbtot=norbtot+jj
   end do
 
+  lig%lzdig%nlr=norbtot
+  lig%lzdGauss%nlr=norbtot
+
+  norbsPerLocreg=1
+
   ! Nullify the orbitals_data type and then determine its values.
   call nullify_orbitals_data(lig%orbsig)
   !call orbitals_descriptors(iproc, nproc, norbtot, norbtot, 0, &
@@ -95,6 +104,19 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
        lig%orbsig%norbp, lig%orbsig%isorb_par, lig%orbsig%isorb, lig%orbsig%onWhichMPI)
 
 
+  allocate(locregCenter(3,lig%orbsig%norb), stat=istat)
+  call memocc(istat, locregCenter, 'locregCenter', subname)
+
+  ilr=0
+  do iat=1,at%nat
+      ityp=at%iatype(iat)
+      do iorb=1,lin%norbsPerType(ityp)
+          ilr=ilr+1
+          locregCenter(:,ilr)=rxyz(:,iat)
+      end do
+  end do
+
+
   ! lzdig%orbs%inWhichLocreg has been allocated in orbitals_descriptors. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
   iall=-product(shape(lig%orbsig%inWhichLocreg))*kind(lig%orbsig%inWhichLocreg)
@@ -102,8 +124,10 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
   call memocc(istat,iall,'lig%orbsig%inWhichLocreg',subname)
 
   ! Assign the orbitals to the localization regions.
+  !!call assignToLocreg2(iproc, nproc, lig%orbsig%norb, lig%orbsig%norb_par, at%nat, lig%lzdig%nlr, &
+  !!     input%nspin, norbsPerAt, rxyz, lig%orbsig%inwhichlocreg)
   call assignToLocreg2(iproc, nproc, lig%orbsig%norb, lig%orbsig%norb_par, at%nat, lig%lzdig%nlr, &
-       input%nspin, norbsPerAt, rxyz, lig%orbsig%inwhichlocreg)
+       input%nspin, norbsPerLocreg, locregCenter, lig%orbsig%inwhichlocreg)
 
   ! Maybe this could be moved to another subroutine? Or be omitted at all?
   allocate(lig%orbsig%eval(lin%orbs%norb), stat=istat)
@@ -116,7 +140,9 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
   call copy_locreg_descriptors(Glr, lig%lzdGauss%Glr, subname)
 
   ! Determine the localization regions.
-  call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lig%lzdig, &
+  !!call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lig%lzdig, &
+  !!     lig%orbsig, Glr, lin%locrad, lin%locregShape)
+  call initLocregs(iproc, nproc, lig%lzdig%nlr, locregCenter, input%hx, input%hy, input%hz, lig%lzdig, &
        lig%orbsig, Glr, lin%locrad, lin%locregShape)
   !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
   call copy_locreg_descriptors(Glr, lig%lzdig%Glr, subname)
@@ -125,7 +151,9 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
   locrad=max(12.d0,maxval(lin%locrad(:)))
   call nullify_orbitals_data(lig%orbsGauss)
   call copy_orbitals_data(lig%orbsig, lig%orbsGauss, subname)
-  call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lig%lzdGauss, &
+  !!call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lig%lzdGauss, &
+  !!     lig%orbsGauss, Glr, locrad, lin%locregShape)
+  call initLocregs(iproc, nproc, lig%lzdGauss%nlr, locregCenter, input%hx, input%hy, input%hz, lig%lzdGauss, &
        lig%orbsGauss, Glr, locrad, lin%locregShape)
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
@@ -159,6 +187,12 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
   iall=-product(shape(norbsPerAt))*kind(norbsPerAt)
   deallocate(norbsPerAt,stat=istat)
   call memocc(istat,iall,'norbsPerAt',subname)
+  iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
+  deallocate(norbsPerLocreg,stat=istat)
+  call memocc(istat,iall,'norbsPerLocreg',subname)
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter,stat=istat)
+  call memocc(istat,iall,'locregCenter',subname)
 
 END SUBROUTINE initInputguessConfinement
 
