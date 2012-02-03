@@ -232,7 +232,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
         end if
      end do
   end if
-  nlpspd%nprojel=nkptsproj*nlpspd%nprojel
+  nlpspd%nprojel=nkptsproj*nlpspd%nprojel*G%ncplx
 
   !print *,'iproc,nkptsproj',iproc,nkptsproj,nlpspd%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
 
@@ -663,7 +663,6 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,G,mproj)
            mproj=mproj+2*l-1
         end do
      end do
-     mproj=mproj*G%ncplx
   end if
 
 END SUBROUTINE numb_proj
