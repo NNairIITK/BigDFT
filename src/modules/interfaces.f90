@@ -3049,15 +3049,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters),intent(inout):: op
      end subroutine determineOverlapDescriptors
      
-     subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locregShape, op, comon, tag)
+     subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, orbs, onWhichAtomAll, locregShape, op, comon, tag)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc
+       integer,intent(in):: iproc, nproc, nspin
+       real(8),intent(in):: hx, hy, hz
        type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
-       type(input_variables),intent(in):: input
        character(len=1),intent(in):: locregShape
        type(overlapParameters),intent(out):: op
        type(p2pComms),intent(out):: comon
@@ -4113,15 +4113,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(matrixLocalizationRegion),intent(out):: mlr
     end subroutine nullify_matrixLocalizationRegion
 
-    subroutine initLocregs(iproc, nproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape, lborbs)
+    subroutine initLocregs(iproc, nproc, nat, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, nat
       real(8),dimension(3,nat),intent(in):: rxyz
+      real(8),intent(in):: hx, hy, hz
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(inout):: orbs
-      type(input_variables),intent(in):: input
       type(locreg_descriptors),intent(in):: Glr
       real(8),dimension(lzd%nlr),intent(in):: locrad
       character(len=1),intent(in):: locregShape
@@ -5414,13 +5414,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine build_new_linear_combinations
 
 
-      subroutine indicesForExpansion(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon)
+      subroutine indicesForExpansion(iproc, nproc, nspin, orbs, onWhichAtom, lzd, op, comon)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc
+        integer,intent(in):: iproc, nproc, nspin
         type(orbitals_data),intent(in):: orbs
-        type(input_variables),intent(in):: input
         integer,dimension(orbs%norb),intent(in):: onWhichAtom
         type(local_zone_descriptors),intent(in):: lzd
         type(overlapParameters),intent(inout):: op

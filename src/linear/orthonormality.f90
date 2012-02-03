@@ -295,18 +295,18 @@ end subroutine getOverlapMatrix2
 
 
 
-subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locregShape, op, comon, tag)
+subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, orbs, onWhichAtomAll, locregShape, op, comon, tag)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => initCommsOrtho
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
+  integer,intent(in):: iproc, nproc, nspin
+  real(8),intent(in):: hx, hy, hz
   type(local_zone_descriptors),intent(in):: lzd
   type(orbitals_data),intent(in):: orbs
   integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
-  type(input_variables),intent(in):: input
   character(len=1),intent(in):: locregShape
   type(overlapParameters),intent(out):: op
   type(p2pComms),intent(out):: comon
@@ -372,7 +372,7 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
   if(locregShape=='c') then
      call determineOverlapDescriptors(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, op)
   else if(locregShape=='s') then
-     call determineOverlapDescriptorsSphere(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, input%hx, input%hy, input%hz, op)
+     call determineOverlapDescriptorsSphere(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, hx, hy, hz, op)
   end if
   !t2=mpi_wtime()
   !time=t2-t1
@@ -402,7 +402,7 @@ subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, locreg
           call nullify_expansionSegments(op%expseg(i2,i1))
       end do
   end do
-  call indicesForExpansion(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon)
+  call indicesForExpansion(iproc, nproc, nspin, orbs, onWhichAtomAll, lzd, op, comon)
   !t2=mpi_wtime()
   !time=t2-t1
   !if(iproc==0) write(*,'(a,es10.2)') 'time for indicesForExpansion: ',time
@@ -2575,16 +2575,15 @@ endsubroutine overlapPowerMinusOneHalf
 
 
 
-subroutine indicesForExpansion(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon)
+subroutine indicesForExpansion(iproc, nproc, nspin, orbs, onWhichAtom, lzd, op, comon)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => indicesForExpansion
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, nspin
 type(orbitals_data),intent(in):: orbs
-type(input_variables),intent(in):: input
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
@@ -2610,7 +2609,7 @@ do iorb=1,orbs%norbp
         ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iiorb), comon%recvBuf(jst), lphiovrlp(ind))
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), comon%recvBuf(jst), lphiovrlp(ind))
-        call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, &
+        call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, nspin, &
              lzd%llr(ilr), op%olr(jorb,iorb), op%indexExpand(jst))
 
         call countExpansionSegments(ldim, op%indexExpand(jst), op%expseg(jorb,iorb)%nseg)

@@ -826,6 +826,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               linflag = 1                                 !temporary, should change the use of flag in full_local_potential2
               if(in%linear == 'OFF') linflag = 0
               if(in%linear == 'TMO') linflag = 2
+           !     orbs,Lzd,linflag,denspot%dpcom%ngatherarr,denspot%rhov,denspot%pot_full)
 
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,hxh,hyh,hzh,itrp,in%iscf,in%alphamix,mix,in%ixc,&
                 nlpspd,proj,rxyz,linflag,in%exctxpar,in%unblock_comms,hx,hy,hz,Lzd,orbs,in%SIC,confdatarr,GPU,psi,&
