@@ -573,7 +573,7 @@ END SUBROUTINE applyOperator
 
 
 
-subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, nat, rxyz, at, &
+subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, nlr, rxyz, at, &
            confpotorder, potentialprefac, it, iorb, eval_zero)
 !
 ! Purpose:
@@ -611,8 +611,8 @@ type(atoms_data), intent(in) :: at
 real(8),intent(in):: potentialprefac
 !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
 real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
-integer,intent(in):: nat, it
-real(8),dimension(3,nat),intent(in):: rxyz
+integer,intent(in):: nlr, it
+real(8),dimension(3,nlr),intent(in):: rxyz
 real(8),intent(in):: eval_zero
 !local variables
 integer :: inds, ncplx, ikpt, ierr, iiAt
@@ -687,8 +687,11 @@ real(gp) :: kx,ky,kz
               !iiAt=lin%onWhichAtom(iorb)
               !iiAt=lin%orbs%inWhichLocregp(iorb)
               iiAt=orbs%inWhichLocreg(orbs%isorb+iorb)
+              !!!call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
+              !!!     hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
+              !!!     potentialPrefac, confPotOrder, it)
               call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-                   hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
+                   hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
                    potentialPrefac, confPotOrder, it)
 
            end if

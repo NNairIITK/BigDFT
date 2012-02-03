@@ -264,12 +264,14 @@ subroutine nullify_local_zone_descriptors(lzd)
   !call nullify_orbitals_data(lzd%orbs)
   !nullify(lzd%lorbs)
   !call nullify_communications_arrays(lzd%comms)
+  nullify(lzd%rxyz)
   call nullify_locreg_descriptors(lzd%glr)
 !  call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
   nullify(lzd%llr)
 !  nullify(lzd%lnlpspd)
   nullify(lzd%doHamAppl)
   !call nullify_matrixMinimization(lzd%matmin)
+  nullify(lzd%cutoffweight)
   
 end subroutine nullify_local_zone_descriptors
 

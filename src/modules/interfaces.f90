@@ -4112,12 +4112,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(matrixLocalizationRegion),intent(out):: mlr
     end subroutine nullify_matrixLocalizationRegion
 
-    subroutine initLocregs(iproc, nproc, nat, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
+    subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc, nat
-      real(8),dimension(3,nat),intent(in):: rxyz
+      integer,intent(in):: iproc, nproc, nlr
+      real(8),dimension(3,nlr),intent(in):: rxyz
       real(8),intent(in):: hx, hy, hz
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(inout):: orbs

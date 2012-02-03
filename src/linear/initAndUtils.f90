@@ -1680,15 +1680,15 @@ end subroutine deallocateBasicArraysInput
 !> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
 !! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
 !subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
-subroutine initLocregs(iproc, nproc, nat, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
+subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => initLocregs
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nat
-real(8),dimension(3,nat),intent(in):: rxyz
+integer,intent(in):: iproc, nproc, nlr
+real(8),dimension(3,nlr),intent(in):: rxyz
 real(8),intent(in):: hx, hy, hz
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(inout):: orbs

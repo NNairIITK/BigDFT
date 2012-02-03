@@ -302,6 +302,7 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
   ymax=-1.d100
   zmax=-1.d100
   do iat=1,nlr
+  !write(*,'(a,2i8,3es16.7)') 'iproc, iat, rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)', iproc, iat, rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
       if(rxyz(1,iat)<xmin) then
           xmin=rxyz(1,iat)
           iatxmin=iat

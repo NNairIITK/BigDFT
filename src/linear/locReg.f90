@@ -856,6 +856,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
         ! Check whether the bounds shall be calculated. Do this only if the currect process handles
         ! orbitals in the current localization region.
         if(.not.calculateBounds(ilr)) then
+            write(*,'(a,i0,a,i0)') 'process ',iproc,' deletes bounds for locreg ',ilr
             call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
         end if
     end if
