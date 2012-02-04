@@ -1,7 +1,7 @@
 !> This subroutine initializes all parameters needed for the linear scaling version
 !! and allocate all arrays.
 subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-    input, rxyz, nscatterarr, tag, coeff, lphi, confdatarr)
+    input, rxyz, nscatterarr, tag, coeff, lphi, confdatarr, onwhichatom)
 ! Calling arguments:
 ! ==================
 !   Input arguments:
@@ -39,11 +39,11 @@ integer,intent(inout):: tag
 real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
 type(confpot_data), dimension(:),pointer,intent(out) :: confdatarr
+integer,dimension(:),pointer:: onwhichatom
 
 ! Local variables
 integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb, ii, ist, ncnt
 integer,dimension(:),allocatable:: norbsPerLocreg, norbsPerAtom
-integer,dimension(:),pointer:: onwhichatom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
 real(8):: t1, t2, tt, tt1, tt2, tt3, tt4, tt5
@@ -228,9 +228,6 @@ call assignToLocreg2(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, at%nat, at%
   call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
        input%hx,input%hy,input%hz,lin,lin%lzd,onwhichatom)
 
-iall=-product(shape(onwhichatom))*kind(onwhichatom)
-deallocate(onwhichatom, stat=istat)
-call memocc(istat, iall, 'onwhichatom', subname)
 
 
 

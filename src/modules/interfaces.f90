@@ -1812,7 +1812,7 @@ module module_interfaces
 
 
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-          input, rxyz, nscatterarr, tag, coeff, lphi, confdatarr)
+          input, rxyz, nscatterarr, tag, coeff, lphi, confdatarr, onwhichatom)
       use module_base
       use module_types
       implicit none
@@ -1830,6 +1830,7 @@ module module_interfaces
       real(8),dimension(:,:),pointer,intent(out):: coeff
       real(8),dimension(:),pointer,intent(out):: lphi
       type(confpot_data), dimension(:),pointer,intent(out) :: confdatarr
+      integer,dimension(:),pointer:: onwhichatom
     end subroutine allocateAndInitializeLinear
 
 
@@ -4387,13 +4388,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(orbs%npsidim_comp),intent(inout):: lchi
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
-    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbs, comms, at, Glr, input, norbsPerType, &
-      onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
+    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, orbs, comms, at, Glr, input, norbsPerType, &
+      onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, nlocregPerMPI
-      type(orbitals_data),intent(in):: orbsig, orbs
+      type(orbitals_data),intent(in):: orbsig, orbs, orbsGauss
       type(communications_arrays),intent(in):: comms
       type(atoms_data),intent(in):: at
       type(locreg_descriptors),intent(in):: Glr
@@ -4404,7 +4405,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
       real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp)):: lchi
       real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)):: lphi
-      real(8),dimension(3,at%nat):: rxyz
+      !real(8),dimension(3,at%nat):: rxyz
+      real(8),dimension(3,lzdig%nlr):: locregCenter
       integer,dimension(orbs%norb):: onWhichAtomPhi
       integer,intent(inout):: tag
       real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3

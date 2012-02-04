@@ -93,7 +93,7 @@ logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray
 real(8),dimension(:),pointer:: lphi
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
-integer:: iorb, ndimtot
+integer:: iorb, ndimtot, iiat
 type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
 real(8),dimension(:,:),allocatable:: coeff_proj
@@ -102,6 +102,7 @@ type(confpot_data), dimension(:),pointer :: confdatarr
 real(8):: fnoise,pressure
 real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 type(orthon_data):: orthpar
+integer,dimension(:),pointer:: onwhichatom
 
 
 
@@ -118,7 +119,7 @@ type(orthon_data):: orthpar
   call mpi_barrier(mpi_comm_world, ierr)
   t1init=mpi_wtime()
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-       input, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi, confdatarr)
+       input, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi, confdatarr, onwhichatom)
 
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
   !!allocate(confdatarr(lin%orbs%norbp))
@@ -155,6 +156,8 @@ type(orthon_data):: orthpar
 
   allocate(coeff_proj(lin%orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, coeff_proj, 'coeff_proj', subname)
+
+  write(*,'(a,100i6)') 'lin%orbs%inwhichlocreg', lin%orbs%inwhichlocreg
 
 
   potshortcut=0 ! What is this?
@@ -346,7 +349,9 @@ type(orthon_data):: orthpar
           !!lin%potentialPrefac = lin%potentialPrefac_highaccuracy
           do iorb=1,lin%orbs%norbp
               ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
-              confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(ilr))
+              iiat=onwhichatom(lin%orbs%isorb+iorb)
+              !confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(ilr))
+              confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
           end do
           lin%newgradient=.true.
           nit_highaccuracy=nit_highaccuracy+1
@@ -357,7 +362,9 @@ type(orthon_data):: orthpar
           !!lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
           do iorb=1,lin%orbs%norbp
               ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
-              confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(ilr))
+              iiat=onwhichatom(lin%orbs%isorb+iorb)
+              !confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(ilr))
+              confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
           end do
           lin%newgradient=.false.
           nit=lin%nItBasis_lowaccuracy
