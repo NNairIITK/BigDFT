@@ -363,12 +363,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       do iorb=1,norbsPerAt(iat)
           iiorb=iiorb+1
           ! Search the corresponding entry in inwhichlocreg
-          do jorb=1,lin%lig%orbsig%norb
+          do jorb=1,lin%lig%orbsGauss%norb
               if(covered(jorb)) cycle
-              jlr=lin%lig%orbsig%inwhichlocreg(jorb)
-              if( lin%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
-                  lin%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
-                  lin%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
+              !jlr=lin%lig%orbsig%inwhichlocreg(jorb)
+              jlr=lin%lig%orbsGauss%inwhichlocreg(jorb)
+              if( lin%lig%lzdGauss%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
+                  lin%lig%lzdGauss%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
+                  lin%lig%lzdGauss%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
                   covered(jorb)=.true.
                   mapping(iiorb)=jorb
                   !if(iproc==0) write(666,*) iiorb, mapping(iiorb)
@@ -379,8 +380,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   end do
 
   ! Inverse mapping
-  do iorb=1,lin%lig%orbsig%norb
-      do jorb=1,lin%lig%orbsig%norb
+  do iorb=1,lin%lig%orbsGauss%norb
+      do jorb=1,lin%lig%orbsGauss%norb
           if(mapping(jorb)==iorb) then
               inversemapping(iorb)=jorb
               !if(iproc==0) write(888,*) iorb, inversemapping(iorb)
@@ -505,11 +506,22 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Create the potential. First calculate the charge density.
   if(iproc==0) write(*,'(1x,a)',advance='no') 'Calculating charge density...'
 
-  call sumrho(iproc,nproc,lin%lig%orbsig,lin%lig%lzdig,&
+  !!! copy the occupation numbers
+  !!do iorb=1,lin%lig%orbsig%norbp
+  !!    lin%lig%orbsig%occup(iorb)=lin%lig%orbsGauss%occup(iorb)
+  !!end do
+
+  !!call sumrho(iproc,nproc,lin%lig%orbsig,lin%lig%lzdig,&
+  !!     hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
+  !!     GPU,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
+  call sumrho(iproc,nproc,lin%lig%orbsGauss,lin%lig%lzdGauss,&
        hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
        GPU,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
   call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,lin%lig%lzdGauss,&
        denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
+  do istat=1,size(denspot%rhov)
+      write(4000+iproc,*) istat, denspot%rhov(istat)
+  end do 
 
   if(iproc==0) write(*,'(a)') 'done.'
 
@@ -660,6 +672,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   call full_local_potential(iproc,nproc,lin%lig%orbsig,lin%lig%lzdig,2,&
        denspot%dpcom,denspot%rhov,denspot%pot_full,lin%lig%comgp)
+
+  do istat=1,size(denspot%pot_full)
+      write(3000+iproc,*) istat, denspot%pot_full(istat)
+  end do 
 
 !!$  call full_local_potential(iproc,nproc,&
 !!$       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2),&
