@@ -1193,14 +1193,20 @@ subroutine atoms_new_from_file(lstat, atoms, rxyz, filename, ln)
    logical, intent(out) :: lstat
    type(atoms_data), pointer :: atoms
    integer, intent(in) :: ln
-   character(len = ln), intent(in) :: filename
+   character, intent(in) :: filename(ln)
    real(gp), dimension(:,:), pointer :: rxyz
 
-   integer :: status
+   integer :: status, i
+   character(len = 1024) :: filename_
+
+   write(filename_, "(A)") " "
+   do i = 1, ln
+      write(filename_(i:i), "(A1)") filename(i)
+   end do
 
    lstat = .true.
    allocate(atoms)
-   call read_atomic_file(filename, 0, atoms, rxyz, status)
+   call read_atomic_file(trim(filename_), 0, atoms, rxyz, status)
    lstat = (status == 0)
 END SUBROUTINE atoms_new_from_file
 !> Deallocate a new atoms_data type, for bindings.
