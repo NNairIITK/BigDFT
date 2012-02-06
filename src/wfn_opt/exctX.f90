@@ -1013,7 +1013,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
 
      end do
 
-     call mpiallred(ndatas(1,0,1),2*nproc*ngroup,MPI_SUM,MPI_COMM_WORLD,ierr)
+     if (nproc > 1) call mpiallred(ndatas(1,0,1),2*nproc*ngroup,MPI_SUM,MPI_COMM_WORLD,ierr)
      !if(iproc ==0)print *,'iproc,datas',iproc,ndatas
 
      do igroup=1,ngroupp
@@ -1298,7 +1298,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   end do
   
   !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-  call mpiallred(eexctX,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   
   !the exact exchange energy is half the Hartree energy (which already has another half)
   eexctX=-exctXfac*eexctX

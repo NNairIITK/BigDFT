@@ -22,7 +22,7 @@ program conv_check_ocl
    !local variables
    character(len=*), parameter :: subname='conv_check'
    integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,itimes !n(c) ndim
-   integer :: l,ierror,i1s,i1e
+   integer :: l,ierror,i1s,i1e,device_number
    integer :: nvctr_cf,nseg,iseg !n(c) n1s,n1e,ndats,ndate
    real(wp) :: tt,scale
    real(gp) :: CPUtime,GPUtime,ekin
@@ -62,7 +62,7 @@ program conv_check_ocl
       stop
    end if
 
-   call ocl_create_gpu_context(context)
+   call ocl_create_gpu_context(context,device_number)
    call ocl_build_programs(context)
    call ocl_create_command_queue(queue,context)
    call init_event_list
@@ -815,7 +815,7 @@ program conv_check_ocl
       call nanosec(tsc0)
       do itimes=1,ntimes
          call convolut_kinetic_per_c(n1bis-1,n2bis-1,n3bis-1,(/0.1d0,.1d0,.1d0/),&
-            &   psi_k_in_a,psi_k_out_a,1.d0)
+              psi_k_in_a,psi_k_out_a,1.d0)
       end do
       call nanosec(tsc1)
 

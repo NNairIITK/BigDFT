@@ -139,8 +139,8 @@ void FC_FUNC(extractnextcompress, EXTRACTNEXTCOMPRESS)(const char *archive, int 
                                                        int *extract, char ext[6])
 {
   char *arFilename, *addFilename;
-  int len;
 #ifdef HAVE_LIB_ARCHIVE
+  int len;
   struct archive_entry *entry;
   const void *buff;
   size_t size;
@@ -151,7 +151,9 @@ void FC_FUNC(extractnextcompress, EXTRACTNEXTCOMPRESS)(const char *archive, int 
 
   arFilename = strndup(archive, (size_t)*lgAr);
   addFilename = strndup(filename, (size_t)*lgF);
+#ifdef HAVE_LIB_ARCHIVE
   len = strlen(addFilename);
+#endif
 
   *extract = 0;
   _openArchive_(arFilename);
@@ -218,14 +220,16 @@ void FC_FUNC(opennextcompress, OPENNEXTCOMPRESS)(const char *archive, int *lgAr,
                                                  int *extract, char ext[6])
 {
   char *arFilename, *addFilename;
-  int len;
 #ifdef HAVE_LIB_ARCHIVE
+  int len;
   struct archive_entry *entry;
 #endif
 
   arFilename = strndup(archive, (size_t)*lgAr);
   addFilename = strndup(filename, (size_t)*lgF);
+#ifdef HAVE_LIB_ARCHIVE
   len = strlen(addFilename);
+#endif
 
   *extract = 0;
   _openArchive_(arFilename);
@@ -266,14 +270,16 @@ void FC_FUNC(extractnextline, EXTRACTNEXTLINE)(char line[150], int *eof)
   do
     {
       if (!buff)
-        r = archive_read_data_block(_posinp_, &buff, &size, &offset);
-      if (r != ARCHIVE_OK)
         {
-          buff = (void*)0;
-          pos = 0;
-          if (!jdx)
-            *eof = 1;
-          return;
+          r = archive_read_data_block(_posinp_, &buff, &size, &offset);
+          if (r != ARCHIVE_OK)
+            {
+              buff = (void*)0;
+              pos = 0;
+              if (!jdx)
+                *eof = 1;
+              return;
+            }
         }
       vals = (char*)buff;
       for (idx = pos; idx < size; idx++)

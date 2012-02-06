@@ -29,7 +29,10 @@
       write(*,'(1x,a)')'You have chosen the periodic Poisson solver: which function do you want to use?'
       write(*,'(1x,a)')'Type "S" for surfaces type and "F" for free type'
       read(5,*)afunc
-
+   elseif (solvertype == 'W') then
+      write(*,'(1x,a)')'You have chosen the Poisson solver for wires boundary conditions: which function do you want to use?'
+      write(*,'(1x,a)')'Type "S" for surfaces type and "F" for free type'
+      read(5,*)afunc
    else
       afunc=solvertype
    end if
@@ -92,7 +95,7 @@
       write(*,'(2(1x,a,1pe25.16))')'intrhoF=',intrhoF,'intpotF=',intpotF
    end if
 
-   if (solvertype == 'P') then
+   if (solvertype == 'P' .or. solvertype == 'W') then
       write(*,'(1x,a)')'Which value of the zero-th fourier component do you want to put for the solution?'
       read(5,*)offset
    end if
@@ -110,7 +113,7 @@
    !offset=0.d0!3.053506154731705d0*n1*n2*n3*hgrid**3
    
    call cpu_time(t0)
-   call createKernel(0,1,solvertype,n1,n2,n3,hgrid,hgrid,hgrid,isf_order,kernel)
+   call createKernel(0,1,solvertype,n1,n2,n3,hgrid,hgrid,hgrid,isf_order,kernel,.true.)
    call cpu_time(t1)
 
    call cpu_time(t2)
@@ -150,14 +153,14 @@
       i3=n3/2
       i1=n1/2
       do i2=1,n2
-         write(11,'(i0,3(2x,1pe27.16))')i2,rhoF(i1,i2,i3),potF(i1,i2,i3),rhopot(i1,i2,i3)
+         write(11,'(i0,3(2x,1pe27.16e3))')i2,rhoF(i1,i2,i3),potF(i1,i2,i3),rhopot(i1,i2,i3)
       end do
    else if (afunc=='S') then
       !plot the functions
       i3=n3/2
       i1=n1/2
       do i2=1,n2
-         write(11,'(i0,3(2x,1pe27.16))')i2,rhoS(i1,i2,i3),potS(i1,i2,i3),rhopot(i1,i2,i3)
+         write(11,'(i0,3(2x,1pe27.16e3))')i2,rhoS(i1,i2,i3),potS(i1,i2,i3),rhopot(i1,i2,i3)
       end do
    end if
 
@@ -205,10 +208,10 @@
       do i2=1,n2
          y=real(i2,kind=8)*hgrid-0.5d0*length
          !call functions(y,1.d0/(2.d0*sigma**2),zero,fy,fy2,2)
-         call functions(y,length,zero,fy,fy2,5)
+         call functions(y,length,zero,fy,fy2,6)
          do i1=1,n1
             x=real(i1,kind=8)*hgrid-0.5d0*length
-            call functions(x,length,zero,fx,fx2,6)
+            call functions(x,length,zero,fx,fx2,5)
             r2=x**2+y**2+z**2
             rhoF(i1,i2,i3)=exp(-r2/a2)
             rhoS(i1,i2,i3)=fx2*fy*fz+fx*fy2*fz+fx*fy*fz2

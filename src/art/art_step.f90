@@ -649,7 +649,7 @@ subroutine lanczos_step ( current_energy, a1, liter, get_proj )
     end if
     try = try + 1 
                                       ! exit criteria 
-    if ( fperp < FTHRESHOLD .or. m_perp > MAXIPERP .or. &
+    if ( fperp < FTHRESHOLD .or. m_perp >= MAXIPERP .or. &
        & (try > 12 .or. (liter < 2 .and. try > 2 ) ) ) exit While_perpi
     
   end do  While_perpi 

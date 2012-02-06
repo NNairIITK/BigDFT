@@ -7,30 +7,27 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
 !> Lanczos diagonalization
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
-      &   radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
+      &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
       &   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
-      &   in , PAWD , orbs )! aggiunger a interface
+      &   in , PAWD , orbs )! add to interface
    use module_base
    use module_types
    use lanczos_interface
    use lanczos_base
    use module_interfaces ,except_this_one => xabs_lanczos
-
    implicit none
-
-   integer, intent(in) :: iproc,nproc,ndimpot,nspin
+   integer, intent(in) :: iproc,nproc,nspin
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in), target :: at
    type(nonlocal_psp_descriptors), intent(in), target :: nlpspd
-   type(locreg_descriptors), intent(in), target :: lr
-   integer, dimension(0:nproc-1,2), intent(in), target :: ngatherarr 
+   type(local_zone_descriptors), intent(in), target :: Lzd
+   type(denspot_distribution), intent(in), target :: dpcom
    real(gp), dimension(3,at%nat), intent(in), target :: rxyz
    real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
    real(wp), dimension(nlpspd%nprojel), intent(in), target :: proj
-   real(wp), dimension(max(ndimpot,1),nspin), target :: potential
+   real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
 
    real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum
    type(GPU_pointers), intent(inout) , target :: GPU
@@ -54,13 +51,13 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
    if (GPUconv) then
-      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
-         &   hx,hy,hz,lr%wfd,orbs,GPU)
+      call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
+         &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
    end if
    GPU%full_locham=.true.
    if (OCLconv) then
-      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-         &   in%nspin,lr%wfd,orbs,GPU)
+      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%geocode,&
+         &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
       if (iproc == 0) write(*,*) 'GPU data allocated'
    end if
 
@@ -71,7 +68,9 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    orbs%spinsgn(1:orbs%norb)=1.0_gp
    orbs%eval(1:orbs%norb)=1.0_gp
    !call allocate_comms(nproc,ha%comms,subname)
-   call orbitals_communicators(iproc,nproc,lr,orbs,ha%comms)  
+   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
+
+   call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
 
    allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
@@ -86,9 +85,12 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
       print *, " You'll have to generated the patch with pseudo"
       STOP     
    endif
-   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
-      &   lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
-      &   orbs%norb,orbs%norbp,ngatherarr,potential,pot)
+
+   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,potential,pot)
+
+!!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
+!!$        orbs,Lzd,0,ngatherarr,potential,pot)
 
    ha%in_iat_absorber=in_iat_absorber
    ha%Labsorber  = in%L_absorber
@@ -103,9 +105,9 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%radii_cf=>radii_cf
    ha%nlpspd=>nlpspd !!
    ha%proj=>proj !!
-   ha%lr=>lr !!!
-   ha%ngatherarr=>ngatherarr
-   ha%ndimpot=ndimpot
+   ha%Lzd=>Lzd !!!
+   ha%ngatherarr=>dpcom%ngatherarr
+   ha%ndimpot=dpcom%ndimpot
    ha%potential=>pot
    ha%ekin_sum=ekin_sum
    ha%epot_sum=epot_sum
@@ -170,14 +172,14 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    deallocate(Gabs_coeffs,stat=i_stat)
    call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
-   call free_full_potential(nproc,pot,subname)
+   call free_full_potential(nproc,0,pot,subname)
 
 END SUBROUTINE xabs_lanczos
 
 
 !> Chebychev polynomials to calculate the density of states
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
-      &   radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
+      &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
       &   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
 
    use module_base
@@ -188,16 +190,16 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    use module_interfaces, except_this_one => xabs_chebychev
 
    implicit none
-   integer  :: iproc,nproc,ndimpot,nspin
+   integer  :: iproc,nproc,nspin
    real(gp)  :: hx,hy,hz
    type(atoms_data), target :: at
    type(nonlocal_psp_descriptors), target :: nlpspd
-   type(locreg_descriptors), target :: lr
-   integer, dimension(0:nproc-1,2), target :: ngatherarr 
+   type(local_zone_descriptors), target :: Lzd
+   type(denspot_distribution), intent(in), target :: dpcom
    real(gp), dimension(3,at%nat), target :: rxyz
    real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
    real(wp), dimension(nlpspd%nprojel), target :: proj
-   real(wp), dimension(max(ndimpot,1),nspin), target :: potential
+   real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
 
    real(gp) :: ekin_sum,epot_sum,eproj_sum
    type(GPU_pointers), intent(inout) , target :: GPU
@@ -225,15 +227,15 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    Pi=acos(-1.0_gp)
 
    if (GPUconv) then
-      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
-         &   hx,hy,hz,lr%wfd,orbs,GPU)
+      call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
+         &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
    end if
 
    GPU%full_locham=.true.
 
    if (OCLconv) then
-      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-         &   in%nspin,lr%wfd,orbs,GPU)
+      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%geocode,&
+         &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
       if (iproc == 0) write(*,*)&
          &   'GPU data allocated'
    end if
@@ -244,7 +246,9 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    orbs%spinsgn(1:orbs%norb*orbs%nkpts )=1.0_gp
    orbs%eval(1:orbs%norb*orbs%nkpts )=1.0_gp
 
-   call orbitals_communicators(iproc,nproc,lr,orbs,ha%comms)  
+   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
+
+   call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
 
    if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
    else
@@ -254,9 +258,11 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
       print *, " You'll have to generated the patch with pseudo"
       STOP     
    endif
-   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
-      &   lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
-      &   orbs%norb,orbs%norbp,ngatherarr,potential,pot)
+
+   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,potential,pot)
+!!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
+!!$        orbs,Lzd,0,ngatherarr,potential,pot)
 
    !associate hamapp_arg pointers
    ha%in_iat_absorber=in_iat_absorber
@@ -272,9 +278,9 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%radii_cf=>radii_cf
    ha%nlpspd=>nlpspd !!
    ha%proj=>proj !!
-   ha%lr=>lr !!!
-   ha%ngatherarr=>ngatherarr
-   ha%ndimpot=ndimpot
+   ha%Lzd=>Lzd !!!
+   ha%ngatherarr=>dpcom%ngatherarr
+   ha%ndimpot=dpcom%ndimpot
    ha%potential=>pot
    ha%ekin_sum=ekin_sum
    ha%epot_sum=epot_sum
@@ -299,8 +305,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    !!$     accontentati_di=1
    !!$     
    !!$     cercacount = LB_cerca( 10, shift, tol, set_EP_shift, EP_allocate_for_eigenprob, EP_make_dummy_vectors, &
-      &   !!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
-      &   !!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
+!!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
+!!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
    !!$     
    !!$     if(iproc==0) then
    !!$        print *, " maximal eigenvalues " 
@@ -313,8 +319,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    !!$     
    !!$     
    !!$     cercacount = LB_cerca( 10, shift, tol, set_EP_shift, EP_allocate_for_eigenprob, EP_make_dummy_vectors, &
-      &   !!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
-      &   !!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
+         !!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
+         !!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
    !!$     
    !!$     if(iproc==0) then
    !!$        print *, " minima eigenvalues" 
@@ -371,7 +377,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
       enddo
    endif
 
-   call free_full_potential(nproc,pot,subname)
+   call free_full_potential(nproc,0,pot,subname)
    nullify(ha%potential)
 
 
@@ -425,7 +431,7 @@ END SUBROUTINE xabs_chebychev
 
 !> Finds the spectra solving  (H-omega)x=b
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
-      &   radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
+      &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
       &   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
       &   in , rhoXanes, PAWD , PPD, orbs )
    use module_base
@@ -437,20 +443,18 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
    implicit none
 
-   integer  :: iproc,nproc,ndimpot,nspin
+   integer  :: iproc,nproc,nspin
    real(gp)  :: hx,hy,hz
    type(atoms_data), target :: at
    type(nonlocal_psp_descriptors), target :: nlpspd
-   type(locreg_descriptors), target :: lr
-
+   type(local_zone_descriptors), target :: Lzd
    type(pcproj_data_type), target ::PPD
-
-   integer, dimension(0:nproc-1,2), target :: ngatherarr 
+   type(denspot_distribution), intent(in), target :: dpcom
    real(gp), dimension(3,at%nat), target :: rxyz
    real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
    real(wp), dimension(nlpspd%nprojel), target :: proj
-   real(wp), dimension(max(ndimpot,1),nspin), target :: potential
-   real(wp), dimension(max(ndimpot,1),nspin), target :: rhoXanes
+   real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
+   real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: rhoXanes
 
    real(gp) :: ekin_sum,epot_sum,eproj_sum
    type(GPU_pointers), intent(inout) , target :: GPU
@@ -473,7 +477,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    real(gp) , pointer ::potentialclone(:,:)
 
    if( iand( in%potshortcut,16)>0) then
-      allocate(potentialclone(max(ndimpot,1),nspin+ndebug),stat=i_stat)
+      allocate(potentialclone(max(dpcom%ndimpot,1),nspin+ndebug),stat=i_stat)
       call memocc(i_stat,potentialclone,'potentialclone',subname)
       potentialclone=potential
    endif
@@ -481,13 +485,13 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    if(iproc==0) print *, " IN ROUTINE xabs_cg "
 
    if (GPUconv) then
-      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
-         &   hx,hy,hz,lr%wfd,orbs,GPU)
+      call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
+         &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
    end if
    GPU%full_locham=.true.
    if (OCLconv) then
-      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
-         &   in%nspin,lr%wfd,orbs,GPU)
+      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%geocode,&
+         &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
       if (iproc == 0) write(*,*)&
          &   'GPU data allocated'
    end if
@@ -499,7 +503,9 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    orbs%spinsgn(1:orbs%norb)=1.0_gp
    orbs%eval(1:orbs%norb)=1.0_gp
    !call allocate_comms(nproc,ha%comms,subname)
-   call orbitals_communicators(iproc,nproc,lr,orbs,ha%comms)  
+   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
+
+   call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
 
    allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
@@ -513,9 +519,11 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
       print *, " You'll have to generated the patch with pseudo"
       STOP     
    endif
-   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
-      &   lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
-      &   orbs%norb,orbs%norbp,ngatherarr,potential,pot)
+   
+   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,potential,pot)
+!!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
+!!$        orbs,Lzd,0,ngatherarr,potential,pot)
 
    ha%in_iat_absorber=in_iat_absorber
    ha%Labsorber  = in%L_absorber
@@ -530,9 +538,9 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%radii_cf=>radii_cf
    ha%nlpspd=>nlpspd !!
    ha%proj=>proj !!
-   ha%lr=>lr !!!
-   ha%ngatherarr=>ngatherarr
-   ha%ndimpot=ndimpot
+   ha%Lzd=>Lzd !!!
+   ha%ngatherarr=>dpcom%ngatherarr
+   ha%ndimpot=dpcom%ndimpot
    ha%potential=>pot
    ha%ekin_sum=ekin_sum
    ha%epot_sum=epot_sum
@@ -566,7 +574,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
          if( iand( in%potshortcut,16)>0) then
             potential=potentialclone
-            do j=1, ndimpot
+            do j=1, dpcom%ndimpot
 
                if( mod(j-1,100)==0) then
                   print *, " dirac_hara punto",j
@@ -622,7 +630,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
       call memocc(i_stat,i_all,'potentialclone',subname)
    endif
 
-   call free_full_potential(nproc,pot,subname)
+   call free_full_potential(nproc,0,pot,subname)
    nullify(ha%potential)
 
 END SUBROUTINE xabs_cg

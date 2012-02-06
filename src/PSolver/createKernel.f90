@@ -24,6 +24,9 @@
 !!                    The density is supposed to be periodic in all the three directions,
 !!                    then all the dimensions must be compatible with the FFT.
 !!                    No need for setting up the kernel.
+!!              - 'W' Wires BC.
+!!                    The density is supposed to be periodic in z direction, 
+!!                    which has to be compatible with the FFT.
 !!    @param iproc,nproc number of process, number of processes
 !!    @param n01,n02,n03 dimensions of the real space grid to be hit with the Poisson Solver
 !!    @param itype_scf   order of the interpolating scaling functions used in the decomposition
@@ -40,8 +43,7 @@
 !!    To avoid that, one can properly define the kernel dimensions by adding 
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
-subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,&
-     quiet) !optional arguments
+subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
   use module_base, only: ndebug
   implicit none
  ! include 'mpif.h'
@@ -49,28 +51,13 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
   integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
   real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), pointer :: kernel(:)
-  character(len=3), intent(in), optional :: quiet
+  logical, intent(in) :: wrtmsg
   !local variables
   character(len=*), parameter :: subname='createKernel'
-  logical :: wrtmsg
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
   integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
 
   call timing(iproc,'PSolvKernel   ','ON')
-
-  !do not write anything on screen if quiet is set to yes
-  if (present(quiet)) then
-     if(quiet == 'yes' .or. quiet == 'YES') then
-        wrtmsg=.false.
-     else if(quiet == 'no' .or. quiet == 'NO') then
-        wrtmsg=.true.
-     else
-        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
-        stop
-     end if
-  else
-     wrtmsg=.true.
-  end if
 
   if (iproc==0 .and. wrtmsg) write(*,'(1x,a)')&
           '------------------------------------------------------------ Poisson Kernel Creation'
@@ -115,6 +102,7 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
 
      !Build the Kernel
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+
      allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
      call memocc(i_stat,kernel,'kernel',subname)
 
@@ -123,6 +111,21 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
 
      !last plane calculated for the density and the kernel
      nlimd=n2/2
+     nlimk=n3/2+1
+     
+  else if (geocode == 'W') then
+
+     if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
+          'Calculating Poisson solver kernel, wires BC...'
+
+     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+
+     allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
+     call memocc(i_stat,kernel,'kernel',subname)
+
+     call Wires_Kernel(iproc,nproc,n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,kernel)
+
+     nlimd=n2
      nlimk=n3/2+1
 
   else
@@ -150,8 +153,8 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
      if (nproc > 1) then
         write(*,'(1x,a)')&
              'Load Balancing for Poisson Solver related operations:'
-        jhd=1000
-        jzd=1000
+        jhd=10000
+        jzd=10000
         npd=0
         load_balancing: do jproc=0,nproc-1
            !print *,'jproc,jfull=',jproc,jproc*md2/nproc,(jproc+1)*md2/nproc
@@ -167,14 +170,14 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
         end do load_balancing
         write(*,'(1x,a,i3,a)')&
              'LB_density        : processors   0  -',jfd,' work at 100%'
-        if (jfd < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')&
+        if (jfd < nproc-1) write(*,'(1x,a,i5,a,i5,1a)')&
              '                    processor     ',jhd,&
              '   works at ',npd,'%'
-        if (jhd < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')&
+        if (jhd < nproc-1) write(*,'(1x,a,i5,1a,i5,a)')&
              '                    processors ',&
              jzd,'  -',nproc-1,' work at   0%'
-        jhk=1000
-        jzk=1000
+        jhk=10000
+        jzk=10000
         npk=0
         if (geocode /= 'P') then
            load_balancingk: do jproc=0,nproc-1
@@ -191,10 +194,10 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
            end do load_balancingk
            write(*,'(1x,a,i3,a)')&
                 ' LB_kernel        : processors   0  -',jfk,' work at 100%'
-           if (jfk < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')&
+           if (jfk < nproc-1) write(*,'(1x,a,i5,a,i5,1a)')&
                 '                    processor     ',jhk,&
                 '   works at ',npk,'%'
-           if (jhk < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')&
+           if (jhk < nproc-1) write(*,'(1x,a,i5,1a,i5,a)')&
                 '                    processors ',jzk,'  -',nproc-1,&
                 ' work at   0%'
         end if

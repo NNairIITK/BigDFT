@@ -32,7 +32,7 @@ program conv_check_fft
   character(len=*), parameter :: subname='conv_check_fft'
   !n(c) character(len=50) :: chain
   integer :: i,i_stat,j,i1,i2,i3,ntimes,i_all !n(c) i_all,i1_max,i_max,it0,it1,ndim,itimes
-  integer :: l,ierror !n(c) i1s,i1e,count_rate,count_max
+  integer :: l,ierror,device_number !n(c) i1s,i1e,count_rate,count_max
   real(wp) :: tt,scale
   real(gp) :: CPUtime,GPUtime,ekin,ehartree !n(c) v,p,comp
   !n(c) real(gp), dimension(3) :: hgridh
@@ -76,7 +76,7 @@ program conv_check_fft
      stop
   end if
 
-  call ocl_create_gpu_context(context)
+  call ocl_create_gpu_context(context,device_number)
   call customize_fft((/n1,n2,n3/))
   call ocl_build_programs(context)
   call ocl_create_command_queue(queue,context)
@@ -128,11 +128,8 @@ program conv_check_fft
 
    !initialize rhopots
    call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot(1),1)
-!   call to_zero(2*n1*n2*n3,rhopot2(1))
    call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot2(1),1)
 
-   !call to_zero(2*n1*n2*n3,rhopot2(1))
-   !call to_zero(n1*n2*n3,rhopot(1))
 
    !the input and output arrays must be reverted in this implementation
    do i=1,n2*n3
@@ -275,7 +272,7 @@ program conv_check_fft
    !Poisson Solver
     write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver, dimensions:',n1,n2,n3
    !calculate the kernel in parallel for each processor
-   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,quiet='yes') 
+   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,.false.) 
 
    !call to_zero(size(pkernel),pkernel(1))
    !pkernel(1:size(pkernel))=1.0_dp
@@ -317,7 +314,6 @@ program conv_check_fft
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
-!   call vcopy(n1*n2*n3,psi_cuda(1,1,1,1),2,rhopot2(1),1)
    call compare_3D_results(n1, n2, n3, rhopot(1), rhopot2(1), maxdiff, 3.d-7)
    call compare_time(CPUtime,GPUtime,n1*n2*n3,2*5 * (log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
