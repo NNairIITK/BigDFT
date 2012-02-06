@@ -781,10 +781,10 @@ end type workarrays_quartic_convolutions
 
 !> Contains the information needed for the preconditioner
   type, public :: precond_data
-    integer :: confPotOrder                           !> The order of the algebraic expression for Confinement potential
-    integer :: ncong                                  !> Number of CG iterations for the preconditioning equation
-    logical, dimension(:), pointer :: withConfPot     !> Use confinement potentials
-    real(8), dimension(:), pointer :: potentialPrefac !> Prefactor for the potential: Prefac * f(r) 
+    integer :: confPotOrder                           !< The order of the algebraic expression for Confinement potential
+    integer :: ncong                                  !< Number of CG iterations for the preconditioning equation
+    logical, dimension(:), pointer :: withConfPot     !< Use confinement potentials
+    real(8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potential: Prefac * f(r) 
   end type precond_data
 
 !> Information for the confining potential to be used in TMB scheme
