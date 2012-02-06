@@ -43,7 +43,7 @@ program WaCo
    real(kind=8), allocatable :: at_pos(:,:)
    real(kind=8), allocatable :: umn(:,:), rho(:,:), rhoprime(:,:)
    integer :: i, j, k, np,i_all
-   character :: seedname*16
+   character(len=16) :: seedname
    logical :: calc_only_A
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_poj, n_nnkpts, n_excb, n_at, n_bands, s

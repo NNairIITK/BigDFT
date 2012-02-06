@@ -12,6 +12,7 @@
  - <b> memguess                </b>   Used by bigdft-tool script
  - <b> NEB                     </b>   Nudge-Elastic Band method (saddle point determination)
  - <b> oneatom                 </b>   Test program which runs non-self consistent calculations
+ - <b> sandbox                 </b>   Test for development purpose
  - <b> splsad                  </b>   Spline Saddle search program
  - <b> rism                    </b>   Test program to calculate atomic charge with York's method
  - <b> test_forces             </b>   Test program
