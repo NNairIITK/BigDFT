@@ -22,6 +22,8 @@ real(8),dimension(:),allocatable:: rhs, work, rhopotres
 integer,dimension(:),allocatable:: ipiv
 character(len=*),parameter:: subname='optimizeDIIS'
 
+call timing(iproc,'mix_DIIS      ','ON')
+
 ! Allocate the local arrays.
 allocate(mat(mixdiis%isx+1,mixdiis%isx+1), stat=istat)
 call memocc(istat, mat, 'mat', subname)
@@ -165,6 +167,7 @@ iall=-product(shape(rhopotres))*kind(rhopotres)
 deallocate(rhopotres, stat=istat)
 call memocc(istat, iall, 'rhopotres', subname)
 
+call timing(iproc,'mix_DIIS      ','OF')
 
 end subroutine mixrhopotDIIS
 

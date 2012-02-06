@@ -30,6 +30,7 @@ program oneatom
   type(local_zone_descriptors) :: Lzd
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
+  type(denspot_distribution) :: denspotd
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis
   type(rho_descriptors)  :: rhodsc
@@ -103,7 +104,7 @@ program oneatom
   !allocate communications arrays
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
-  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz,radii_cf)
+  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
 
   allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
   call memocc(i_stat,nscatterarr,'nscatterarr',subname)
@@ -156,7 +157,7 @@ program oneatom
   !pot_ion=0.0d0
 
   !create input guess wavefunction
-  call psi_from_gaussians(iproc,nproc,atoms,orbs,Glr,rxyz,in%hx,in%hy,in%hz,in%nspin,psi)
+  call psi_from_gaussians(iproc,nproc,atoms,orbs,Lzd,rxyz,in%hx,in%hy,in%hz,in%nspin,psi)
 
 !!$  psi=0.0d0
 !!$  ttsum=0.0d0
@@ -206,11 +207,12 @@ program oneatom
   idsx_actual_before=diis%idsx
 
   !allocate the potential in the full box
-  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,&
-       in%nspin,&
-       Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,0,&
-       orbs,Lzd,0,ngatherarr,pot_ion,pot)
-  
+  call full_local_potential(iproc,nproc,orbs,Lzd,0,denspotd,pot_ion,pot)
+!!$  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,&
+!!$       in%nspin,&
+!!$       Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,0,&
+!!$       orbs,Lzd,0,ngatherarr,pot_ion,pot)
+!!$  
   allocate(confdatarr(orbs%norbp))
   call default_confinement_data(confdatarr,orbs%norbp)
 
@@ -739,7 +741,7 @@ END SUBROUTINE createPotential
 !>
 !!
 !!
-subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
+subroutine psi_from_gaussians(iproc,nproc,at,orbs,Lzd,rxyz,hx,hy,hz,nspin,psi)
   use module_base
   use module_types
   use module_interfaces
@@ -748,7 +750,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: lr
+  type(local_zone_descriptors), intent(in) :: Lzd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi
   !local variables
@@ -861,7 +863,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 
   end if
 
-  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,&
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,G,&
        gaucoeffs,psi)
 
   !deallocate the gaussian basis descriptors

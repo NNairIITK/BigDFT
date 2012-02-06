@@ -490,7 +490,7 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   integer,dimension(:),allocatable:: iwork, ifail, icluster
   character(len=*),parameter:: subname='dsygv_parallel'
   
-  
+ call timing(iproc,'diagonal_par  ','ON') 
   
   ! Block size for scalapack
   mbrow=blocksize
@@ -659,5 +659,6 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
       call mpi_bcast(info, 1, mpi_integer, 0, mpi_comm_world, ierr)
   end if
 
+ call timing(iproc,'diagonal_par  ','OF') 
 
 end subroutine dsygv_parallel

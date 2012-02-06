@@ -9,25 +9,25 @@
 
 !> Lanczos diagonalization
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
-      &   radii_cf,nlpspd,proj,Lzd,ngatherarr,ndimpot,potential,&
+      &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
       &   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
-      &   in , PAWD , orbs )! aggiunger a interface
+      &   in , PAWD , orbs )! add to interface
    use module_base
    use module_types
    use lanczos_interface
    use lanczos_base
    use module_interfaces ,except_this_one => xabs_lanczos
    implicit none
-   integer, intent(in) :: iproc,nproc,ndimpot,nspin
+   integer, intent(in) :: iproc,nproc,nspin
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in), target :: at
    type(nonlocal_psp_descriptors), intent(in), target :: nlpspd
    type(local_zone_descriptors), intent(in), target :: Lzd
-   integer, dimension(0:nproc-1,2), intent(in), target :: ngatherarr 
+   type(denspot_distribution), intent(in), target :: dpcom
    real(gp), dimension(3,at%nat), intent(in), target :: rxyz
    real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
    real(wp), dimension(nlpspd%nprojel), intent(in), target :: proj
-   real(wp), dimension(max(ndimpot,1),nspin), target :: potential
+   real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
 
    real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum
    type(GPU_pointers), intent(inout) , target :: GPU
@@ -70,7 +70,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    !call allocate_comms(nproc,ha%comms,subname)
    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
+   call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
 
    allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
@@ -85,9 +85,12 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
       print *, " You'll have to generated the patch with pseudo"
       STOP     
    endif
-   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
-        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
-        orbs,Lzd,0,ngatherarr,potential,pot)
+
+   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,potential,pot)
+
+!!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
+!!$        orbs,Lzd,0,ngatherarr,potential,pot)
 
    ha%in_iat_absorber=in_iat_absorber
    ha%Labsorber  = in%L_absorber
@@ -103,8 +106,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%nlpspd=>nlpspd !!
    ha%proj=>proj !!
    ha%Lzd=>Lzd !!!
-   ha%ngatherarr=>ngatherarr
-   ha%ndimpot=ndimpot
+   ha%ngatherarr=>dpcom%ngatherarr
+   ha%ndimpot=dpcom%ndimpot
    ha%potential=>pot
    ha%ekin_sum=ekin_sum
    ha%epot_sum=epot_sum
@@ -176,7 +179,7 @@ END SUBROUTINE xabs_lanczos
 
 !> Chebychev polynomials to calculate the density of states
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
-      &   radii_cf,nlpspd,proj,Lzd,ngatherarr,ndimpot,potential,&
+      &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
       &   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
 
    use module_base
@@ -187,16 +190,16 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    use module_interfaces, except_this_one => xabs_chebychev
 
    implicit none
-   integer  :: iproc,nproc,ndimpot,nspin
+   integer  :: iproc,nproc,nspin
    real(gp)  :: hx,hy,hz
    type(atoms_data), target :: at
    type(nonlocal_psp_descriptors), target :: nlpspd
    type(local_zone_descriptors), target :: Lzd
-   integer, dimension(0:nproc-1,2), target :: ngatherarr 
+   type(denspot_distribution), intent(in), target :: dpcom
    real(gp), dimension(3,at%nat), target :: rxyz
    real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
    real(wp), dimension(nlpspd%nprojel), target :: proj
-   real(wp), dimension(max(ndimpot,1),nspin), target :: potential
+   real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
 
    real(gp) :: ekin_sum,epot_sum,eproj_sum
    type(GPU_pointers), intent(inout) , target :: GPU
@@ -245,7 +248,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
+   call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
 
    if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
    else
@@ -256,9 +259,10 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
       STOP     
    endif
 
-   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
-        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
-        orbs,Lzd,0,ngatherarr,potential,pot)
+   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,potential,pot)
+!!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
+!!$        orbs,Lzd,0,ngatherarr,potential,pot)
 
    !associate hamapp_arg pointers
    ha%in_iat_absorber=in_iat_absorber
@@ -275,8 +279,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%nlpspd=>nlpspd !!
    ha%proj=>proj !!
    ha%Lzd=>Lzd !!!
-   ha%ngatherarr=>ngatherarr
-   ha%ndimpot=ndimpot
+   ha%ngatherarr=>dpcom%ngatherarr
+   ha%ndimpot=dpcom%ndimpot
    ha%potential=>pot
    ha%ekin_sum=ekin_sum
    ha%epot_sum=epot_sum
@@ -427,7 +431,7 @@ END SUBROUTINE xabs_chebychev
 
 !> Finds the spectra solving  (H-omega)x=b
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
-      &   radii_cf,nlpspd,proj,Lzd,ngatherarr,ndimpot,potential,&
+      &   radii_cf,nlpspd,proj,Lzd,dpcom,potential,&
       &   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
       &   in , rhoXanes, PAWD , PPD, orbs )
    use module_base
@@ -439,18 +443,18 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
    implicit none
 
-   integer  :: iproc,nproc,ndimpot,nspin
+   integer  :: iproc,nproc,nspin
    real(gp)  :: hx,hy,hz
    type(atoms_data), target :: at
    type(nonlocal_psp_descriptors), target :: nlpspd
    type(local_zone_descriptors), target :: Lzd
    type(pcproj_data_type), target ::PPD
-   integer, dimension(0:nproc-1,2), target :: ngatherarr 
+   type(denspot_distribution), intent(in), target :: dpcom
    real(gp), dimension(3,at%nat), target :: rxyz
    real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
    real(wp), dimension(nlpspd%nprojel), target :: proj
-   real(wp), dimension(max(ndimpot,1),nspin), target :: potential
-   real(wp), dimension(max(ndimpot,1),nspin), target :: rhoXanes
+   real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
+   real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: rhoXanes
 
    real(gp) :: ekin_sum,epot_sum,eproj_sum
    type(GPU_pointers), intent(inout) , target :: GPU
@@ -473,7 +477,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    real(gp) , pointer ::potentialclone(:,:)
 
    if( iand( in%potshortcut,16)>0) then
-      allocate(potentialclone(max(ndimpot,1),nspin+ndebug),stat=i_stat)
+      allocate(potentialclone(max(dpcom%ndimpot,1),nspin+ndebug),stat=i_stat)
       call memocc(i_stat,potentialclone,'potentialclone',subname)
       potentialclone=potential
    endif
@@ -501,7 +505,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    !call allocate_comms(nproc,ha%comms,subname)
    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
+   call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
 
    allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
@@ -515,9 +519,11 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
       print *, " You'll have to generated the patch with pseudo"
       STOP     
    endif
-   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
-        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
-        orbs,Lzd,0,ngatherarr,potential,pot)
+   
+   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,potential,pot)
+!!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
+!!$        orbs,Lzd,0,ngatherarr,potential,pot)
 
    ha%in_iat_absorber=in_iat_absorber
    ha%Labsorber  = in%L_absorber
@@ -533,8 +539,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%nlpspd=>nlpspd !!
    ha%proj=>proj !!
    ha%Lzd=>Lzd !!!
-   ha%ngatherarr=>ngatherarr
-   ha%ndimpot=ndimpot
+   ha%ngatherarr=>dpcom%ngatherarr
+   ha%ndimpot=dpcom%ndimpot
    ha%potential=>pot
    ha%ekin_sum=ekin_sum
    ha%epot_sum=epot_sum
@@ -568,7 +574,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
          if( iand( in%potshortcut,16)>0) then
             potential=potentialclone
-            do j=1, ndimpot
+            do j=1, dpcom%ndimpot
 
                if( mod(j-1,100)==0) then
                   print *, " dirac_hara punto",j

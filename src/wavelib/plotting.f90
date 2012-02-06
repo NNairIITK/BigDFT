@@ -544,7 +544,7 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   integer, intent(out) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
-  real(dp), dimension(:,:), pointer :: rho
+  real(dp), dimension(:,:,:,:), pointer :: rho
   real(gp), dimension(:,:), pointer, optional :: rxyz
   integer, intent(out), optional ::  nat
   integer, dimension(:), pointer, optional :: iatypes, znucl
@@ -676,7 +676,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
   character(len=*), parameter :: subname='read_potential_from_disk'
   integer :: n1t,n2t,n3t,nspint,ierror,ierr,i_all,i_stat,ispin
   real(gp) :: hxt,hyt,hzt
-  real(dp), dimension(:,:), pointer :: pot_from_disk
+  real(dp), dimension(:,:,:,:), pointer :: pot_from_disk
 
   !only the first processor should read this
   if (iproc == 0) then
@@ -692,19 +692,19 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
         call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
      end if
   else
-     allocate(pot_from_disk(1,nspin+ndebug),stat=i_stat)
+     allocate(pot_from_disk(1,1,1,nspin+ndebug),stat=i_stat)
      call memocc(i_stat,pot_from_disk,'pot_from_disk',subname)
   end if
 
   if (nproc > 1) then
      do ispin=1,nspin
-        call MPI_SCATTERV(pot_from_disk(1,ispin),&
+        call MPI_SCATTERV(pot_from_disk(1,1,1,ispin),&
              ngatherarr(0,1),ngatherarr(0,2),mpidtypd, &
              pot(1,1,1,ispin),&
              n1i*n2i*n3p,mpidtypd,0,MPI_COMM_WORLD,ierr)
      end do
   else
-     call vcopy(n1i*n2i*n3i*nspin,pot_from_disk(1,1),1,pot(1,1,1,1),1)
+     call vcopy(n1i*n2i*n3i*nspin,pot_from_disk(1,1,1,1),1,pot(1,1,1,1),1)
   end if
 
   i_all=-product(shape(pot_from_disk))*kind(pot_from_disk)
@@ -725,7 +725,7 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   integer, intent(out) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
-  real(dp), dimension(:,:), pointer :: rho
+  real(dp), dimension(:,:,:,:), pointer :: rho
   real(gp), dimension(:,:), pointer   :: rxyz
   integer, intent(out)   ::  nat
   integer, dimension(:), pointer   :: iatypes, znucl
@@ -768,12 +768,12 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      call read_cube_header(filename//trim(suffix),geocode,nspin,n1i,n2i,n3i,hxh,hyh,hzh,&
           rho,nat,rxyz, iatypes, znucl) 
      !fill the pointer which was just allocated
-     call read_cube_field(filename//trim(suffix),geocode,n1i,n2i,n3i,rho(1,ia))
+     call read_cube_field(filename//trim(suffix),geocode,n1i,n2i,n3i,rho(1,1,1,ia))
     
      suffix='-down'
      message='spin down'
      ia=2
-     call read_cube_field(filename//trim(suffix),geocode,n1i,n2i,n3i,rho(1,ia)) 
+     call read_cube_field(filename//trim(suffix),geocode,n1i,n2i,n3i,rho(1,1,1,ia)) 
   end if
 
 contains
@@ -788,7 +788,7 @@ contains
     integer, intent(in) :: nspin
     integer, intent(out) :: n1i,n2i,n3i
     real(gp), intent(out) :: hxh,hyh,hzh
-    real(dp), dimension(:,:), pointer :: rho
+    real(dp), dimension(:,:,:,:), pointer :: rho
     integer, intent(out) :: nat
     real(gp), dimension(:,:), pointer :: rxyz
     integer, dimension(:), pointer :: iatypes, znucl
@@ -851,7 +851,7 @@ contains
        call memocc(i_stat,i_all,'rho',subname)
     end if
 
-    allocate(rho(n1i*n2i*n3i,nspin+ndebug) ,stat=i_stat)
+    allocate(rho(n1i,n2i,n3i,nspin+ndebug) ,stat=i_stat)
     call memocc(i_stat,rho,'rho',subname)
 
     do iat=1,nat

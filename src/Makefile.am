@@ -333,16 +333,15 @@ low_level = \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
+	linear/communicatetypes.f90 \
 	linear/filterModule.f90 \
 	linear/getLocBasis.f90 \
 	linear/applyHamiltonian.f90 \
 	linear/precondLinear.f90 \
-	linear/locReg.f90 \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
 	linear/locReg_projectors.f90 \
 	linear/LinearForces.f90 \
-	linear/tmp_HamiltonianApplication.f90 \
 	linear/transposition.f90 \
 	linear/linearScaling.f90 \
 	linear/energyAndForces.f90 \
@@ -355,8 +354,10 @@ low_level = \
 	linear/orbitalOptimization.f90 \
 	linear/mixdiis.f90 \
 	linear/copyTypes.f90 \
+	linear/de-allocate.f90 \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
+	linear/locReg.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \

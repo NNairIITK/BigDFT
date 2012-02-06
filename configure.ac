@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.20],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.21],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -118,6 +118,29 @@ end]], withmpi=yes, withmpi=no)
     MPI_INCLUDE=$ac_mpi_include
     MPI_LDFLAGS=$ac_mpi_ldflags
 
+    dnl Test for MPI_INIT_THREAD. Use link instead of run due to execution prob.
+    AC_MSG_CHECKING([for MPI_INIT_THREAD availability])
+    AC_LINK_IFELSE([[
+program main
+implicit none
+
+integer :: ierr,provided
+
+include "mpif.h"
+
+call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
+write(*, "(I1)", advance = "NO") provided
+end
+]], withmpinithread=yes, withmpinithread=no, withmpinithread=yes)
+    AC_MSG_RESULT([$withmpinithread])
+
+    if test x"$withmpinithread" = x"yes" ; then
+      ac_with_mpinithread="yes"
+      AC_DEFINE([HAVE_MPI_INIT_THREAD], [1], [use MPI_INIT_THREAD])
+    else
+      ac_with_mpinithread="no"
+    fi
+
     dnl Test for MPI2.
     AC_MSG_CHECKING([for MPI 2 capabilities])
     AC_LINK_IFELSE([[
@@ -141,6 +164,7 @@ end
     else
       ac_with_mpi2="no"
     fi
+
 
   else
     AC_MSG_WARN([MPI is not working and has been disabled.])
@@ -814,6 +838,7 @@ Options:
    | include dir.:           $MPI_INCLUDE
    | linker flags:           $MPI_LDFLAGS
    | linked libraries:       $MPI_LIBS
+   | MPI_INIT_THREAD avail:  $ac_with_mpinithread
    | MPI2 support:           $ac_with_mpi2
   With optimised conv.:      $ac_use_opti_convolut
   With Cuda GPU conv.:       $ac_use_cuda_gpu

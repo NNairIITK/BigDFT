@@ -7,6 +7,159 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+!>Initialize the objects needed for the computation: basis sets, allocate required space
+subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
+     inputpsi,input_wf_format,orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
+  use module_base
+  use module_types
+  use module_interfaces, fake_name => system_initialization
+  use Poisson_Solver
+  use module_xc
+  use vdwcorrection
+  implicit none
+  integer, intent(in) :: iproc,nproc 
+  type(input_variables), intent(in) :: in 
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+  integer, intent(out) :: inputpsi !<strategy for wavefunction input guess
+  integer, intent(out) :: input_wf_format !< format of input wavefunctions
+  type(orbitals_data), intent(out) :: orbs
+  type(local_zone_descriptors), intent(out) :: Lzd
+  type(DFT_local_fields), intent(out) :: denspot
+  type(nonlocal_psp_descriptors), intent(out) :: nlpspd
+  type(communications_arrays), intent(out) :: comms
+  real(gp), dimension(3), intent(out) :: hgrids !< grid spacings of the daubechies grid
+  real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
+  real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
+  real(wp), dimension(:), pointer :: proj
+  !local variables
+  logical :: onefile
+  integer :: nelec,ndegree_ip
+  real(gp) :: peakmem
+
+  ! Initialise XC calculation
+  if (in%ixc < 0) then
+     call xc_init(in%ixc, XC_MIXED, in%nspin)
+  else
+     call xc_init(in%ixc, XC_ABINIT, in%nspin)
+  end if
+
+  !character string for quieting the Poisson solver
+
+  if (iproc == 0) call xc_dump()
+
+  call initialize_DFT_local_fields(denspot)
+
+  if (iproc==0) then
+     write( *,'(1x,a)')&
+          &   '------------------------------------------------------------------ System Properties'
+  end if
+
+  call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
+
+  inputpsi=in%inputPsiId
+
+  input_wf_format=WF_FORMAT_NONE !default value
+
+  !for the inputPsiId==2 case, check 
+  !if the wavefunctions are all present
+  !otherwise switch to normal input guess
+  if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
+     ! Test ETSF file.
+     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
+     if (onefile) then
+        input_wf_format= WF_FORMAT_ETSF
+     else
+        call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
+     end if
+     if (input_wf_format == WF_FORMAT_NONE) then
+        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        inputpsi=INPUT_PSI_LCAO
+     end if
+  end if
+
+  call nullify_locreg_descriptors(Lzd%Glr)
+
+  !initial values
+  hgrids(1)=in%hx
+  hgrids(2)=in%hy
+  hgrids(3)=in%hz
+  
+
+  ! Determine size alat of overall simulation cell and shift atom positions
+  ! then calculate the size in units of the grid space
+  call system_size(iproc,atoms,rxyz,radii_cf,in%crmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),&
+       Lzd%Glr,shift)
+
+  ! A message about dispersion forces.
+  call vdwcorrection_initializeparams(in%ixc, in%dispersion)
+  if (iproc == 0) call vdwcorrection_warnings(atoms, in)
+
+  !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
+  ndegree_ip=16 !default value 
+  call createKernel(iproc,nproc,atoms%geocode,&
+       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       ndegree_ip,denspot%pkernel,(verbose > 1))
+
+  !create the sequential kernel if the exctX parallelisation scheme requires it
+  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
+       .and. nproc > 1) then
+     call createKernel(0,1,atoms%geocode,&
+          Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+          ndegree_ip,denspot%pkernelseq,.false.)
+  else 
+     denspot%pkernelseq => denspot%pkernel
+  end if
+
+  ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
+  call createWavefunctionsDescriptors(iproc,hgrids(1),hgrids(2),hgrids(3),atoms,&
+       rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr)
+
+  !allocate communications arrays (allocate it before Projectors because of the definition
+  !of iskpts and nkptsp)
+  call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
+
+  ! Calculate all projectors, or allocate array for on-the-fly calculation
+  call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
+       radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
+  ! See if linear scaling should be activated and build the correct Lzd 
+  ! There is a copy of this inside the LCAO input guess because the norbs changes
+  ! and so the inwhichlocreg also ==> different distribution for the locregs
+  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LCAO_GAUSS) then
+     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
+  else
+     Lzd%nlr = 1
+     Lzd%linear = .false.
+  end if
+
+  !calculate the partitioning of the orbitals between the different processors
+  !memory estimation, to be rebuilt in a more modular way
+  if (iproc==0 .and. verbose > 0) then
+     call MemoryEstimator(nproc,in%idsx,Lzd%Glr,&
+          atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+          in%nspin,in%itrpmax,in%iscf,peakmem)
+  end if
+
+  !calculate the descriptors for rho and the potentials.
+  call denspot_communications(iproc,nproc,Lzd%Glr%d,&
+       0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       in,atoms,rxyz,radii_cf,denspot%dpcom,denspot%rhod)
+
+  !allocate the arrays.
+  call allocateRhoPot(iproc,nproc,Lzd%Glr,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       in,atoms,rxyz,radii_cf,denspot)
+
+  call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
+
+  !check the communication distribution
+  call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+
+  !calculate the irreductible zone for this region, if necessary.
+  call symmetry_set_irreductible_zone(atoms%sym,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
+
+  !---end of system definition routine
+end subroutine system_initialization
+
 
 !>  Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
@@ -39,10 +192,10 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
   type(atoms_data), intent(in) :: at
   type(grid_dimensions), intent(in) :: d
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(:), pointer :: rhocore
+  real(wp), dimension(:,:,:,:), pointer :: rhocore
   !local variables
   character(len=*), parameter :: subname='calculate_rhocore'
-  integer :: ityp,iat,i_stat,j3,i1,i2,ind,ierr
+  integer :: ityp,iat,i_stat,j3,i1,i2,ierr!,ind
   real(wp) :: tt
   real(gp) :: rx,ry,rz,rloc,cutoff
   
@@ -61,10 +214,10 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     allocate(rhocore(d%n1i*d%n2i*n3d+ndebug),stat=i_stat)
+     allocate(rhocore(d%n1i,d%n2i,n3d,1+ndebug),stat=i_stat)
      call memocc(i_stat,rhocore,'rhocore',subname)
      !initalise it 
-     call razero(d%n1i*d%n2i*n3d,rhocore)
+     call to_zero(d%n1i*d%n2i*n3d,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%nat
         ityp=at%iatype(iat)
@@ -95,8 +248,8 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
      do j3=1,n3p
         do i2=1,d%n2i
            do i1=1,d%n1i
-              ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
-              tt=tt+rhocore(ind)
+              !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+              tt=tt+rhocore(i1,i2,j3+i3xcsh-1,1)
            enddo
         enddo
      enddo
@@ -420,6 +573,12 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
 !!     end if
 !!end if
 
+
+
+     !define the localization radius for the Linear input guess
+     if(in%linear == 'LIG') then
+        atoms%rloc(ityp,:) = rcov * 10.0
+     end if
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms

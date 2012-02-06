@@ -49,7 +49,7 @@
 !!   (retranspose v and psi)\n
 subroutine constrained_davidson(iproc,nproc,in,at,& 
      orbs,orbsv,nvirt,Lzd,comms,commsv,&
-     hx,hy,hz,rxyz,rhopot,psi,v,nscatterarr,ngatherarr,GPU)
+     hx,hy,hz,rxyz,rhopot,psi,v,dpcom,GPU)
   use module_base
   use module_types
   use module_interfaces, except_this_one => constrained_davidson
@@ -62,9 +62,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms, commsv
+  type(denspot_distribution), intent(in) :: dpcom
   real(gp), intent(in) :: hx,hy,hz
-  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: rhopot
   type(orbitals_data), intent(inout) :: orbsv
@@ -131,7 +130,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   i3rho_add=0
   if (in%SIC%approach=='NK') then
      nrhodim=2*nrhodim
-     i3rho_add=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,4)+1
+     i3rho_add=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*dpcom%nscatterarr(iproc,4)+1
   end if
 
   !last index of e and hamovr are for mpi_alLzd%Glreduce. 
@@ -148,10 +147,10 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !wavefunctions in real space, for exact exchange calculations
   if (exctX) then
      allocate(psirocc(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
-          ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
+          dpcom%ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
      call memocc(i_stat,psirocc,'psirocc',subname)
 
-     call prepare_psirocc(iproc,nproc,Lzd%Glr,orbs,nscatterarr(iproc,2),ngatherarr(0,1),psi,psirocc)
+     call prepare_psirocc(iproc,nproc,Lzd%Glr,orbs,dpcom%nscatterarr(iproc,2),dpcom%ngatherarr(0,1),psi,psirocc)
   end if
 
   
@@ -181,14 +180,15 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
 
 
   ! prepare the v array starting from a set of gaussians
-  call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd%Glr,commsv,rxyz,hx,hy,hz,in%nspin,v)
+  call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,hx,hy,hz,in%nspin,v)
 
 
   ! allocate the potential in the full box
-   call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
-        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
-        orbsv,Lzd,0,ngatherarr,rhopot,pot)
+   call full_local_potential(iproc,nproc,orbsv,Lzd,0,dpcom,rhopot,pot)
+!!$   call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*dpcom%nscatterarr(iproc,2),&
+!!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*dpcom%nscatterarr(iproc,1)*nrhodim,i3rho_add,&
+!!$        orbsv,Lzd,0,dpcom%ngatherarr,rhopot,pot)
    
   
   ! **********************************************
@@ -275,14 +275,18 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   ! End orthogonality cycle: 
   ! ****************************************
 
-
  
   ! ****************************************
   ! Hamiltonian application:
   !
   !   compute H|v> => hv, <v|H|v> => e(:,1) and <v|P|v> => e(:,2)
   !
-  stop 'Update HamiltonianApplication call'
+  !stop 'Update HamiltonianApplication call'
+!!$  call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$       proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+!!$       ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$       pkernel,orbs,psirocc)
+
 !!$  call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
 !!$       nlpspd,proj,Lzd%Glr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
 !!$       pkernel,orbs,psirocc) ! optional arguments
@@ -558,7 +562,12 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! apply hamiltonian on gradients
      !
-     stop 'Luigi should work here.'
+     !stop 'Luigi should work here.'
+!!$     call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$          proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,g,hg,&
+!!$          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$          pkernel,orbs,psirocc)
+
      !call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
      !     nlpspd,proj,Lzd%Glr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
      !     pkernel,orbs,psirocc) 
@@ -809,7 +818,12 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      !   compute H|v> => hv 
      !
-     stop 'Here again'
+     !stop 'Here again'
+!!$     call FullHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+!!$          proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+!!$          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
+!!$          pkernel,orbs,psirocc)
+
      !call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
      !     nlpspd,proj,Lzd%Glr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
      !     pkernel,orbs,psirocc)
