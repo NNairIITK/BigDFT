@@ -639,6 +639,7 @@ void FC_FUNC_(orbs_free, ORBS_FREE)(f90_pointer_orbs *orbs);
 void FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(int *iproc, int *nproc,
                                                               int *verb, void *in, void *atoms,
                                                               void *orbs, int *nelec);
+void FC_FUNC_(orbs_comm, ORBS_COMM)(void *orbs, void *glr, const int *iproc, const int *nproc);
 void FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(void *orbs, int *norb,
                                                         int *norbp, int *norbu,
                                                         int *norbd, int *nspin,
@@ -664,7 +665,7 @@ static void bigdft_orbs_dispose(BigDFT_Orbs *orbs)
 }
 
 BigDFT_Orbs* bigdft_orbs_new(const BigDFT_Atoms *atoms, const BigDFT_Inputs *in,
-                             int iproc, int nproc, guint *nelec)
+                             const BigDFT_Glr *glr, int iproc, int nproc, guint *nelec)
 {
   BigDFT_Orbs *orbs;
   int nelec_, verb = 0;
@@ -676,6 +677,7 @@ BigDFT_Orbs* bigdft_orbs_new(const BigDFT_Atoms *atoms, const BigDFT_Inputs *in,
                                                            orbs->data->orbs, &nelec_);
   if (nelec)
     *nelec = nelec_;
+  FC_FUNC_(orbs_comm, ORBS_COMM)(orbs->data->orbs, glr->data->glr, &iproc, &nproc);
   
   FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(orbs->data->orbs, &orbs->norb,
                                                      &orbs->norbp, &orbs->norbu,

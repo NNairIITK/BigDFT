@@ -547,12 +547,10 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   integer :: norbuempty,norbdempty
   integer :: nt,ntu,ntd,ityp,ierror,ispinsum,i_stat
   integer :: ispol,ichg,ichgsum,norbe,norbat,nspin
-  real(gp) :: rcov
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
   type(linearParameters) :: lin
   character(len=20),dimension(atoms%ntypes):: atomNames
-
 
 !!if(in%inputPsiId==100) then
 !!     norbitals=0
@@ -572,13 +570,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
 !!         end do
 !!     end if
 !!end if
-
-
-
-     !define the localization radius for the Linear input guess
-     if(in%linear == 'LIG') then
-        atoms%rloc(ityp,:) = rcov * 10.0
-     end if
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
