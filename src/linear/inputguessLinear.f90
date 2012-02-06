@@ -1398,7 +1398,9 @@ do iat=1,lzdig%nlr
                           tag=tag0+iproc
                           isend=isend+1
                           !write(*,'(3(a,i0))') 'process ',iproc,' sends data to process ',jjproc,' with tag ',tag
-                          call mpi_isend(hamTempCompressed(1,iioverlap), sendcounts(iproc), &
+                          !!call mpi_isend(hamTempCompressed(1,iioverlap), sendcounts(iproc), &
+                          !!     mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
+                          call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
                                mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
                        !else if (nproc ==1) then
                        !   call vcopy(sendcounts(iproc),hamTempCompressed(1,iioverlap),1,&
@@ -1407,12 +1409,16 @@ do iat=1,lzdig%nlr
                           tag=tag0+iproc
                           isend=isend+1
                           !write(*,'(3(a,i0))') 'Aprocess ',iproc,' sends data to process ',jjproc,' with tag ',tag
-                          call mpi_isend(hamTempCompressed(1,iioverlap), sendcounts(iproc), &
+                          !call mpi_isend(hamTempCompressed(1,iioverlap), sendcounts(iproc), &
+                          !     mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
+                          call mpi_isend(hamTempCompressed(1,iorb), sendcounts(iproc), &
                                mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
                        else if (nproc == 1) then
                           imat=imat+1
-                          write(*,*) 'iioverlap, imat', iioverlap, imat
-                          call vcopy(sendcounts(iproc),hamTempCompressed(1,iioverlap),1,&
+                          write(*,'(a,3i9)') 'iioverlap, ilr, imat', iioverlap, ilr, imat
+                          !call vcopy(sendcounts(iproc),hamTempCompressed(1,iioverlap),1,&
+                          !     hamTempCompressed2(displs(iproc)+1,imat),1)
+                          call vcopy(sendcounts(iproc),hamTempCompressed(1,iorb),1,&
                                hamTempCompressed2(displs(iproc)+1,imat),1)
                        end if
                         tag0=tag0+1
@@ -3462,6 +3468,7 @@ end do
           do iorb=1,ip%norb_par(iproc)
               ilr=onWhichAtom(ip%isorb+iorb)
               iilr=matmin%inWhichLocregOnMPI(iorb)
+              if(it==1) write(*,'(a,3i8,es16.7)') 'iorb, ilr, iilr, hamextract(1,1,iilr)', iorb, ilr, iilr, hamextract(1,1,iilr)
               !!if(ilr>ilrold) then
               !!    iilr=iilr+1
               !!    ilrold=ilr
