@@ -1310,9 +1310,9 @@ do iat=1,lzdig%nlr
             end do
         end do
         call compressMatrixPerProcess(iproc, nproc, orbsig, mad, hamTemp, sendcounts(iproc), hamTempCompressed(1,ioverlap))
-        do istat=1,orbsig%norb**2
-                write(50000+1000*iproc+iat,*) istat,iall,hamTempCompressed(istat,ioverlap)
-        end do
+        !!do istat=1,orbsig%norb**2
+        !!        write(50000+1000*iproc+iat,*) istat,iall,hamTempCompressed(istat,ioverlap)
+        !!end do
 
     else
         call razero(sendcounts(iproc), hamTempCompressed(1,ioverlap))
@@ -1454,9 +1454,9 @@ do iat=1,lzdig%nlr
      ! Uncompress the matrices
      do i=imatold,imat
         !call uncompressMatrix(orbs%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
-        do istat=1,orbsig%norb**2
-                write(60000+1000*iproc+i,*) istat,iall,hamTempCompressed2(istat,i)
-        end do
+        !!do istat=1,orbsig%norb**2
+        !!        write(60000+1000*iproc+i,*) istat,iall,hamTempCompressed2(istat,i)
+        !!end do
         call uncompressMatrix(orbsig%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
      end do
      imatold=imat+1
