@@ -398,7 +398,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,lin%lig%orbsGauss%norb,at,rxyz,nvirt,nspin_ig,&
        lin%lig%lzdGauss%nlr, norbsPerAt, mapping, &
        orbs,lin%lig%orbsGauss,norbsc_arr,locrad,G,psigau,eks)
-       write(*,'(a,i5,4x,100i5)') 'iproc, lin%lig%orbsGauss%inwhichlocreg', iproc, lin%lig%orbsGauss%inwhichlocreg
+       !write(*,'(a,i5,4x,100i5)') 'iproc, lin%lig%orbsGauss%inwhichlocreg', iproc, lin%lig%orbsGauss%inwhichlocreg
   ! Since inputguess_gaussian_orbitals overwrites lin%lig%orbsig,we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
   call repartitionOrbitals(iproc,nproc,lin%lig%orbsGauss%norb,lin%lig%orbsGauss%norb_par,&
@@ -519,9 +519,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        GPU,at%sym,denspot%rhod,lchi2,denspot%rho_psi,inversemapping)
   call communicate_density(iproc,nproc,input%nspin,hxh,hyh,hzh,lin%lig%lzdGauss,&
        denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
-  do istat=1,size(denspot%rhov)
-      write(4000+iproc,*) istat, denspot%rhov(istat)
-  end do 
+  !!do istat=1,size(denspot%rhov)
+  !!    write(4000+iproc,*) istat, denspot%rhov(istat)
+  !!end do 
 
   if(iproc==0) write(*,'(a)') 'done.'
 
@@ -663,7 +663,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   lhchi=0.d0
 
 
-  if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all atoms. This may take some time.'
+  if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application for all locregs. This may take some time.'
   call mpi_barrier(mpi_comm_world,ierr)
   call cpu_time(t1)
 
@@ -673,9 +673,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call full_local_potential(iproc,nproc,lin%lig%orbsig,lin%lig%lzdig,2,&
        denspot%dpcom,denspot%rhov,denspot%pot_full,lin%lig%comgp)
 
-  do istat=1,size(denspot%pot_full)
-      write(3000+iproc,*) istat, denspot%pot_full(istat)
-  end do 
+  !!do istat=1,size(denspot%pot_full)
+  !!    write(3000+iproc,*) istat, denspot%pot_full(istat)
+  !!end do 
 
 !!$  call full_local_potential(iproc,nproc,&
 !!$       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2),&
@@ -714,7 +714,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
               lin%lig%lzdig%doHamAppl(jlr)=.false.
           end if
       end do
-      if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'atom ', ilr, '... '
+      if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'locreg ', ilr, '... '
 
       if(.not.skip(ilr)) then
           ii=ii+1
@@ -741,7 +741,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       end if
       if(iproc==0) write(*,'(a)') 'done.'
       do istat=1,size(lchi)
-          write(100*(iproc+1)+ii,*) lchi(istat), lhchi(istat,ii)
+          write(1200*(iproc+1)+ii,*) lchi(istat), lhchi(istat,ii)
       end do
   end do
 
@@ -1292,7 +1292,7 @@ imatold=1
 imat=0
 do iat=1,lzdig%nlr
 
-    if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Calculating matrix for atom ', iat, '... '
+    if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Calculating matrix for locreg ', iat, '... '
 
     ioverlap=mod(iat-1,noverlaps)+1
 
@@ -1305,9 +1305,9 @@ do iat=1,lzdig%nlr
         call calculateOverlapMatrix3Partial(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, &
              comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
         do istat=1,orbsig%norb
-            do iall=1,orbsig%norb
-                write(40000+1000*iproc+iat,*) istat,iall,hamTemp(iall,istat)
-            end do
+            !!do iall=1,orbsig%norb
+            !!    write(40000+1000*iproc+iat,*) istat,iall,hamTemp(iall,istat)
+            !!end do
         end do
         call compressMatrixPerProcess(iproc, nproc, orbsig, mad, hamTemp, sendcounts(iproc), hamTempCompressed(1,ioverlap))
         !!do istat=1,orbsig%norb**2
@@ -1381,7 +1381,7 @@ do iat=1,lzdig%nlr
                 iiat=iioverlap+nshift
                 ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
                 ! in calculating the input guess, this check has to be done only for those processes.
-                write(*,'(a,6i8)') 'iorb, ilr, jjproc, iiat, ilrold, jjprocold', iorb, ilr, jjproc, iiat, ilrold, jjprocold
+                !write(*,'(a,6i8)') 'iorb, ilr, jjproc, iiat, ilrold, jjprocold', iorb, ilr, jjproc, iiat, ilrold, jjprocold
                 if(iproc<nprocTemp) then
                     if(ilr==ilrold .and. jjproc==jjprocold) cycle
                     if(ilr==iiat) then
@@ -1415,7 +1415,7 @@ do iat=1,lzdig%nlr
                                mpi_double_precision, jjproc, tag, mpi_comm_world, sendrequests(isend), ierr)
                        else if (nproc == 1) then
                           imat=imat+1
-                          write(*,'(a,3i9)') 'iioverlap, ilr, imat', iioverlap, ilr, imat
+                          !write(*,'(a,3i9)') 'iioverlap, ilr, imat', iioverlap, ilr, imat
                           !call vcopy(sendcounts(iproc),hamTempCompressed(1,iioverlap),1,&
                           !     hamTempCompressed2(displs(iproc)+1,imat),1)
                           call vcopy(sendcounts(iproc),hamTempCompressed(1,iorb),1,&
@@ -3468,7 +3468,7 @@ end do
           do iorb=1,ip%norb_par(iproc)
               ilr=onWhichAtom(ip%isorb+iorb)
               iilr=matmin%inWhichLocregOnMPI(iorb)
-              if(it==1) write(*,'(a,3i8,es16.7)') 'iorb, ilr, iilr, hamextract(1,1,iilr)', iorb, ilr, iilr, hamextract(1,1,iilr)
+              !if(it==1) write(*,'(a,3i8,es16.7)') 'iorb, ilr, iilr, hamextract(1,1,iilr)', iorb, ilr, iilr, hamextract(1,1,iilr)
               !!if(ilr>ilrold) then
               !!    iilr=iilr+1
               !!    ilrold=ilr

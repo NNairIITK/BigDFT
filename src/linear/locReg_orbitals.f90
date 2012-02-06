@@ -289,6 +289,7 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
   allocate(inWhichLocreg(norb),stat=i_stat)
   call memocc(i_stat,inWhichLocreg,'inWhichLocreg',subname)
+  inWhichLocreg=-1
   !allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
   !call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
   allocate(covered(nlr), stat=i_stat)
@@ -392,7 +393,11 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
           dmin=1.d100
           minvalue=1.d100
           do iat=1,nlr
-              if(covered(iat)) cycle
+              !!write(*,'(a,i8,a,l3)') 'iproc, iorb, minvalue, iiat, covered', iproc, ' covered(iat) ', covered(iat)
+              if(covered(iat)) then
+                  !!write(*,'(a,i8,a,i4)') 'iproc, iorb, minvalue, iiat, covered', iproc, 'cycles for iat=',iat
+                  cycle
+              end if
               tt = (rxyz(1,iat)-rxyz(1,jat))**2 + (rxyz(2,iat)-rxyz(2,jat))**2 + (rxyz(3,iat)-rxyz(3,jat))**2
               !if(tt<dmin) then
               if(rxyz(idir,iat)<minvalue) then
@@ -412,6 +417,7 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
       iiOrb=iiOrb+1
       !if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
       !orbse%inWhichLocreg(iorb)=jat
+      !!write(*,'(a,2i8,es16.8,i8,20l3)') 'iproc, iorb, minvalue, iiat, covered', iproc, iorb, minvalue, iiat, covered
       inWhichLocreg(iorb)=iiat
   end do
 

@@ -1396,25 +1396,26 @@ type(matrixDescriptors):: madlarge
 
 
 
-      ! plot the orbitals -- EXPERIMENTAL ##################################################
-      if(newgradient) then
-          allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
-          ist=1
-          write(comment,'(i3.3)') it
-          do iorb=1,lorbs%norbp
-              iiorb=iorb+lorbs%isorb
-              ilr=lorbs%inwhichlocreg(iiorb)
-              lvphiovrlp=0.d0
-              call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
-                   lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, 1, &
-                   lzd%Glr, lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
-              call plotOrbitals(iproc, orbs, lzd%Glr, lvphiovrlp, at%nat, rxyz, lorbs%inwhichlocreg, &
-                   .5d0*hx, .5d0*hy, .5d0*hz, it)
-              ist=ist+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-          end do
-          deallocate(lvphiovrlp)
-      end if
-      ! ####################################################################################
+      !!! plot the orbitals -- EXPERIMENTAL ##################################################
+      !! Modify this (rxyz is not correct...)
+      !!if(newgradient) then
+      !!    allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
+      !!    ist=1
+      !!    write(comment,'(i3.3)') it
+      !!    do iorb=1,lorbs%norbp
+      !!        iiorb=iorb+lorbs%isorb
+      !!        ilr=lorbs%inwhichlocreg(iiorb)
+      !!        lvphiovrlp=0.d0
+      !!        call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
+      !!             lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, 1, &
+      !!             lzd%Glr, lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
+      !!        call plotOrbitals(iproc, orbs, lzd%Glr, lvphiovrlp, at%nat, rxyz, lorbs%inwhichlocreg, &
+      !!             .5d0*hx, .5d0*hy, .5d0*hz, it)
+      !!        ist=ist+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !!    end do
+      !!    deallocate(lvphiovrlp)
+      !!end if
+      !!! ####################################################################################
 
 
 
@@ -1496,8 +1497,8 @@ contains
        call nullify_matrixDescriptors(madlarge)
 
        tag=1
-       lzdlarge%nlr=at%nat
-       !lzdlarge%nlr=lorbs%norb
+       !lzdlarge%nlr=at%nat
+       lzdlarge%nlr=lorbs%norb
        norbu=lorbs%norb
        norbd=0
        nspin=1
@@ -1513,13 +1514,15 @@ contains
        allocate(norbsPerAtom(lzdlarge%nlr), stat=istat)
        allocate(locregCenter(3,lzdlarge%nlr), stat=istat)
        norbsPerAtom=0
-       do iorb=1,lorbs%norb
+       locregCenter=0.d0
+       do iorb=1,lorbs%norbp
+           iiorb=lorbs%isorb+iorb
            if(lzdlarge%nlr==at%nat) then
                !old version, for debugging
                ilr=lorbs%inwhichlocreg(iorb)
            else if(lzdlarge%nlr==lorbs%norb) then
                ! new version
-               ilr=iorb
+               ilr=iiorb
            else
                stop 'should not happen'
            end if
@@ -1532,20 +1535,27 @@ contains
                locregCenter(:,ilr)=rxyz(:,ilr)
            else if(lzdlarge%nlr==lorbs%norb) then
                ! new version
-               locregCenter(:,iorb)=rxyz(:,ilr)
+               !locregCenter(:,iorb)=rxyz(:,ilr)
+               locregCenter(:,iiorb)=confdatarr(iorb)%rxyzConf
            else
                stop 'should not happen'
            end if
            !write(*,'(a,2i8,3es16.6)') 'MAIN: iproc, iorb, locregCenter(:,iorb)', iproc, iorb, locregCenter(:,iorb)
        end do
+       call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
+       call mpiallred(norbsperAtom(1), lzdlarge%nlr, mpi_sum, mpi_comm_world, ierr)
+       !!do iorb=1,lorbs%norb
+       !!    if(iproc==0) write(*,'(a,i6,3es16.6)') 'iorb, locregCenter(:,iorb)', iorb, locregCenter(:,iorb)
+       !!    if(iproc==0) write(*,*) 'iorb, norbsPerAtom(iorb)', iorb, norbsPerAtom(iorb)
+       !!end do
        call assignToLocreg2(iproc, nproc, orbslarge%norb, orbslarge%norb_par, at%nat, lzdlarge%nlr, &
             nspin, norbsPerAtom, locregCenter, orbslarge%inwhichlocreg)
        deallocate(norbsPerAtom, stat=istat)
        !locrad=3.d0*lin%locrad
        allocate(locrad(lzdlarge%nlr), stat=istat)
        locrad=24.d0
-       write(*,'(a,i7,20i5)') 'iproc, orbslarge%inwhichlocreg', iproc, orbslarge%inwhichlocreg
-       write(*,'(a,3i8)') 'iproc, orbslarge%norbp, orbslarge%isorb', iproc, orbslarge%norbp, orbslarge%isorb
+       !!write(*,'(a,i7,20i5)') 'iproc, orbslarge%inwhichlocreg', iproc, orbslarge%inwhichlocreg
+       !!write(*,'(a,3i8)') 'iproc, orbslarge%norbp, orbslarge%isorb', iproc, orbslarge%norbp, orbslarge%isorb
        call     initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, lzd%Glr, locrad, 's')
        deallocate(locrad, stat=istat)
        deallocate(locregCenter, stat=istat)
