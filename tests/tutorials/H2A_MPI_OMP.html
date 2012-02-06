@@ -158,7 +158,7 @@ WFN_OPT:          #     % ,  Time (s), Max, Min Load (relative)
           </ol>
           The speedup of the code with OpenMP threads (MPI processes) is then defined as the ratio of time required to perform the operations operations of a given counter (WFN_OPT in our case) of a reference run with the one using more cores (MPI processes and OpenMP threads).
 <u>NOTE</u>: Be aware that the code appends the <code>time.yaml</code> file when a new job runs in a folder which already contains a <code>time.yaml</code> file.</li>
-<li>      Collect timing data from the file <code>time.yaml</code>. We have provided a simple ruby script to collect all the relevant data in the <code>time.prc</code> file. This script is is called <code>process_time.rb</code> and is given <a href="scalability/process_time.rb">here</a> 
+<li>      Collect timing data from the file <code>time.yaml</code>. We have provided a simple ruby script to collect all the relevant data in the <code>time.yaml</code> file. This script is called <code>process_time.rb</code> and is given <a href="scalability/process_time.rb">here</a> 
 
 It is launched like this:
 <pre>
