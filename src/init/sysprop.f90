@@ -13,7 +13,6 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
-  use Poisson_Solver
   use module_xc
   use vdwcorrection
   implicit none
@@ -34,7 +33,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   real(wp), dimension(:), pointer :: proj
   !local variables
   logical :: onefile
-  integer :: nelec,ndegree_ip
+  integer :: nelec
   real(gp) :: peakmem
 
   ! Initialise XC calculation
@@ -43,9 +42,6 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   else
      call xc_init(in%ixc, XC_ABINIT, in%nspin)
   end if
-
-  !character string for quieting the Poisson solver
-
   if (iproc == 0) call xc_dump()
 
   call initialize_DFT_local_fields(denspot)
@@ -55,7 +51,9 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
           &   '------------------------------------------------------------------ System Properties'
   end if
 
-  call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
+  call read_atomic_variables(trim(in%file_igpop),iproc,in,atoms,radii_cf)
+
+  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
 
   inputpsi=in%inputPsiId
 
@@ -83,8 +81,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   !initial values
   hgrids(1)=in%hx
   hgrids(2)=in%hy
-  hgrids(3)=in%hz
-  
+  hgrids(3)=in%hz  
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
@@ -95,21 +92,9 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
   if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
-  !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-  ndegree_ip=16 !default value 
-  call createKernel(iproc,nproc,atoms%geocode,&
-       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-       ndegree_ip,denspot%pkernel,(verbose > 1))
-
-  !create the sequential kernel if the exctX parallelisation scheme requires it
-  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
-       .and. nproc > 1) then
-     call createKernel(0,1,atoms%geocode,&
-          Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-          ndegree_ip,denspot%pkernelseq,.false.)
-  else 
-     denspot%pkernelseq => denspot%pkernel
-  end if
+  ! Create the Poisson solver kernels.
+  call system_createKernels(iproc, nproc, (verbose > 1), atoms%geocode, &
+       & Lzd%Glr%d, hgrids, in, denspot)
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call createWavefunctionsDescriptors(iproc,hgrids(1),hgrids(2),hgrids(3),atoms,&
@@ -122,6 +107,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
+
   ! See if linear scaling should be activated and build the correct Lzd 
   ! There is a copy of this inside the LCAO input guess because the norbs changes
   ! and so the inwhichlocreg also ==> different distribution for the locregs
@@ -160,6 +146,36 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   !---end of system definition routine
 end subroutine system_initialization
 
+subroutine system_createKernels(iproc, nproc, verb, geocode, d, hgrids, in, denspot)
+  use module_types
+  use module_xc
+  use Poisson_Solver
+  implicit none
+  integer, intent(in) :: iproc, nproc
+  logical, intent(in) :: verb
+  character, intent(in) :: geocode
+  type(grid_dimensions), intent(in) :: d
+  real(gp), intent(in) :: hgrids(3)
+  type(input_variables), intent(in) :: in
+  type(DFT_local_fields), intent(inout) :: denspot
+
+  integer, parameter :: ndegree_ip = 16
+
+  !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
+  call createKernel(iproc,nproc,geocode,&
+       d%n1i,d%n2i,d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       ndegree_ip,denspot%pkernel,verb)
+
+  !create the sequential kernel if the exctX parallelisation scheme requires it
+  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
+       .and. nproc > 1) then
+     call createKernel(0,1,geocode,&
+          d%n1i,d%n2i,d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+          ndegree_ip,denspot%pkernelseq,.false.)
+  else 
+     denspot%pkernelseq => denspot%pkernel
+  end if
+END SUBROUTINE system_createKernels
 
 !>  Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
@@ -545,12 +561,10 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   logical :: exists
   integer :: iat,iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty
-  integer :: nt,ntu,ntd,ityp,ierror,ispinsum,i_stat
+  integer :: nt,ntu,ntd,ityp,ierror,ispinsum
   integer :: ispol,ichg,ichgsum,norbe,norbat,nspin
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
-  type(linearParameters) :: lin
-  character(len=20),dimension(atoms%ntypes):: atomNames
 
 !!if(in%inputPsiId==100) then
 !!     norbitals=0

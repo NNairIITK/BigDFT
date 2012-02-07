@@ -321,6 +321,7 @@ low_level = \
 	lib/bindings_api.h \
 	lib/bindings.c lib/bindings.h \
 	lib/bindings_atoms.c \
+	lib/bindings_localfields.c \
 	lib/bindingsf.f90 \
 	$(flush_files) \
 	$(etsf_files) \

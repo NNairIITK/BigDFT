@@ -27,7 +27,7 @@ int main(guint argc, char **argv)
   BigDFT_Inputs *in;
   BigDFT_Orbs *orbs;
   BigDFT_Proj *proj;
-  f90_pointer_double *pkernel;
+  BigDFT_LocalFields *denspot;
 
   int out_pipe[2], stdout_fileno_old;
 
@@ -151,7 +151,8 @@ int main(guint argc, char **argv)
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
   proj = bigdft_proj_new(atoms, glr, orbs, radii, in->frmult);
-  fprintf(stdout, " System has %d projectors, and %d elements.\n", proj->nproj, proj->nprojel);
+  fprintf(stdout, " System has %d projectors, and %d elements.\n",
+          proj->nproj, proj->nprojel);
 
   if (argc > 2)
     {
@@ -162,12 +163,22 @@ int main(guint argc, char **argv)
       fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
     }
 
-  fprintf(stdout, "Test Poisson solver kernel creation.\n");
-  pkernel = bigdft_psolver_create_kernel(glr, 0, 1);
+  fprintf(stdout, "Test BigDFT_LocalFields creation.\n");
+  denspot = bigdft_localfields_new(atoms, glr, in, radii, 0, 1);
+  fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
+          denspot->h[0], denspot->h[1], denspot->h[2],
+          denspot->rhov_is, denspot->psoffset);
 
-  fprintf(stdout, "Test Poisson solver kernel free.\n");
-  bigdft_psolver_free_kernel(pkernel);
+  fprintf(stdout, "Test BigDFT_LocalFields free.\n");
+  bigdft_localfields_free(denspot);
   fprintf(stdout, " Ok\n");
+
+  /* fprintf(stdout, "Test Poisson solver kernel creation.\n"); */
+  /* pkernel = bigdft_psolver_create_kernel(glr, 0, 1); */
+
+  /* fprintf(stdout, "Test Poisson solver kernel free.\n"); */
+  /* bigdft_psolver_free_kernel(pkernel); */
+  /* fprintf(stdout, " Ok\n"); */
 
   fprintf(stdout, "Test BigDFT_Proj free.\n");
   bigdft_proj_free(proj);

@@ -13,25 +13,20 @@
 
 #include <bigdft_cst.h>
 
-#ifndef GLIB_MAJOR_VERSION
-#define GObject void
-#endif
-
 /********************************/
 /* BigDFT_Atoms data structure. */
 /********************************/
 #ifdef GLIB_MAJOR_VERSION
-#define BIGDFT_ATOMS_TYPE           (bigdft_atoms_get_type())
-#define BIGDFT_ATOMS(obj)           (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_ATOMS_TYPE, BigDFT_Atoms))
-#define BIGDFT_ATOMS_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST(klass, BIGDFT_ATOMS_TYPE, BigDFT_AtomsClass))  
-#define BIGDFT_ATOMS_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS(obj, BIGDFT_ATOMS_TYPE, BigDFT_AtomsClass))
+#define BIGDFT_ATOMS_TYPE    (bigdft_atoms_get_type())
+#define BIGDFT_ATOMS(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_ATOMS_TYPE, BigDFT_Atoms))
 typedef struct BigDFT_AtomsClass_
 {
   GObjectClass parent;
 } BigDFT_AtomsClass;
 #else
-#define BIGDFT_ATOMS_TYPE         (999)
-#define BIGDFT_ATOMS(obj)         ((BigDFT_Atoms*)obj)
+#define BIGDFT_ATOMS_TYPE    (999)
+#define BIGDFT_ATOMS(obj)    ((BigDFT_Atoms*)obj)
 #endif
 typedef struct BigDFT_Atoms_
 {
@@ -90,7 +85,6 @@ typedef enum
     SMEARING_DIST_METPX = 5
   } BigDFT_Smearing;
 
-typedef struct f90_pointer_inputs_ f90_pointer_inputs;
 typedef struct BigDFT_Inputs_
 {
   /* TODO: bindings to values... */
@@ -116,7 +110,7 @@ typedef struct BigDFT_Inputs_
   f90_pointer_double qmass;
 
   /* Private. */
-  f90_pointer_inputs *data;
+  void *data;
 } BigDFT_Inputs;
 
 #define BIGDFT_INPUTS_NONE    0
@@ -136,7 +130,6 @@ void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *a
 /******************************/
 /* BigDFT_Glr data structure. */
 /******************************/
-typedef struct f90_pointer_glr_ f90_pointer_glr;
 typedef struct BigDFT_glr_
 {
   gchar geocode;
@@ -146,7 +139,8 @@ typedef struct BigDFT_glr_
   /* TODO: bindings to values... */
 
   /* Private. */
-  f90_pointer_glr *data;
+  void *d;
+  void *data;
 } BigDFT_Glr;
 
 BigDFT_Glr* bigdft_glr_new                 (BigDFT_Atoms *atoms, double *radii, double h[3],
@@ -208,34 +202,58 @@ void         bigdft_proj_free(BigDFT_Proj *proj);
 /**********************************/
 /* BigDFT_DensPot data structure. */
 /**********************************/
-typedef struct f90_pointer_rhodsc_ f90_pointer_rhodsc;
-typedef struct f90_pointer_denspotd_ f90_pointer_denspotd;
-typedef struct BigDFT_DensPot_
+typedef enum
+  {
+    BIGDFT_RHO_IS_EMPTY              = -1980,
+    BIGDFT_RHO_IS_ELECTRONIC_DENSITY = -1979,
+    BIGDFT_RHO_IS_CHARGE_DENSITY     = -1978,
+    BIGDFT_RHO_IS_KS_POTENTIAL       = -1977,
+    BIGDFT_RHO_IS_HARTREE_POTENTIAL  = -1976
+  } BigDFT_RhoIs;
+
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_LOCALFIELDS_TYPE    (bigdft_localfields_get_type())
+#define BIGDFT_LOCALFIELDS(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_LOCALFIELDS_TYPE, BigDFT_LocalFields))
+typedef struct BigDFT_LocalFieldsClass_
 {
-  /* TODO: bindings to values... */
-  guint n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add;
+  GObjectClass parent;
+} BigDFT_LocalFieldsClass;
+#else
+#define BIGDFT_LOCALFIELDS_TYPE    (999)
+#define BIGDFT_LOCALFIELDS(obj)    ((BigDFT_LocalFields*)obj)
+#endif
+typedef struct BigDFT_LocalFields_
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+#endif
+  /* bindings to values... */
+  BigDFT_RhoIs rhov_is;
+  double psoffset;
+  double h[3];
 
   /* Additional pointers. */
-  f90_pointer_int nscatterarr, ngatherarr;
-  f90_pointer_double rhopot, rhocore, pot_ion;
-  f90_pointer_double_4D potxc;
+  f90_pointer_double rhov, rho_full, pot_full;
+  f90_pointer_double_2D rho_psi;
+  f90_pointer_double_4D rho_c, v_ext, v_xc, vloc_ks, f_xc;
+  f90_pointer_double pkernel, pkernelseq;
 
   /* Private. */
-  f90_pointer_rhodsc *rhodsc;
-  f90_pointer_denspotd *denspotd;
-} BigDFT_DensPot;
+  void *rhod;
+  void *dpcom;
+  void *data;
 
-BigDFT_DensPot* bigdft_denspot_new (const BigDFT_Atoms *atoms, const BigDFT_Glr *glr,
-                                    const BigDFT_Inputs *in, const double *radii,
-                                    guint iproc, guint nproc);
-void            bigdft_denspot_free(BigDFT_DensPot *denspotd);
+  /* GObject machinery. */
+  gboolean dispose_has_run;
+} BigDFT_LocalFields;
 
-/*******************/
-/* Poisson solver. */
-/*******************/
-f90_pointer_double* bigdft_psolver_create_kernel(const BigDFT_Glr *glr, guint iproc,
-                                                 guint nproc);
-void bigdft_psolver_free_kernel(f90_pointer_double *pkernel);
+BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Atoms *atoms,
+                                            const BigDFT_Glr *glr,
+                                            const BigDFT_Inputs *in,
+                                            const double *radii,
+                                            guint iproc, guint nproc);
+void                bigdft_localfields_free(BigDFT_LocalFields *denspotd);
 
 /******************/
 /* Miscellaneous. */

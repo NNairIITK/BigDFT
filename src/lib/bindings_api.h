@@ -48,4 +48,19 @@ void FC_FUNC_(atoms_write, ATOMS_WRITE)(void *atoms, const gchar *filename, int 
                                         double *rxyz, f90_pointer_double *forces,
                                         const double *energy, const gchar *comment, int *ln);
 
+
+void FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(void *denspotd,
+                                                void *rhod, void *dpcom);
+void FC_FUNC_(localfields_free, LOCALFIELDS_FREE)(void *denspotd);
+void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const guint *iproc,
+                                             const void *glr, const double *hxh,
+                                             const double *hyh, const double *hzh,
+                                             const void *in, const void *atoms,
+                                             const double *rxyz,
+                                             void *denspotd);
+void FC_FUNC(system_createkernels, SYSTEM_CREATEKERNELS)
+     (const guint *iproc, const guint *nproc, const guint *verb,
+      const gchar *geocode, const void *d, const double *hh, 
+      const void *in, void *denspot);
+
 #endif

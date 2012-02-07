@@ -232,5 +232,14 @@ module module_private_api
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
        real(gp), dimension(:,:), pointer :: forces
      END SUBROUTINE atoms_write
+
+     subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, psoffset)
+       use module_types
+       implicit none
+       type(DFT_local_fields), intent(in) :: denspot
+       integer, intent(out) :: rhov_is
+       real(gp), intent(out) :: hgrid(3)
+       real(dp), intent(out) :: psoffset
+     END SUBROUTINE localfields_copy_metadata
   END INTERFACE
 END MODULE module_private_api

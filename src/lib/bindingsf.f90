@@ -133,13 +133,15 @@ subroutine deallocate_double_2D(array)
   end if
 end subroutine deallocate_double_2D
 
-subroutine glr_new(glr)
+subroutine glr_new(glr, d)
   use module_types
   implicit none
   type(locreg_descriptors), pointer :: glr
+  type(grid_dimensions), pointer :: d
 
   allocate(glr)
   call nullify_locreg_descriptors(glr)
+  d => glr%d
 end subroutine glr_new
 subroutine glr_free(glr)
   use module_types
@@ -216,6 +218,7 @@ subroutine inputs_set_radical(in, rad, ln)
 end subroutine inputs_set_radical
 subroutine inputs_parse_params(in, iproc, dump)
   use module_types
+  use module_xc
   implicit none
   type(input_variables), intent(inout) :: in
   integer, intent(in) :: iproc
@@ -228,6 +231,14 @@ subroutine inputs_parse_params(in, iproc, dump)
   call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
   call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
   call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
+
+  ! Initialise XC calculation
+  if (in%ixc < 0) then
+     call xc_init(in%ixc, XC_MIXED, in%nspin)
+  else
+     call xc_init(in%ixc, XC_ABINIT, in%nspin)
+  end if
+  if (dump) call xc_dump()
 end subroutine inputs_parse_params
 subroutine inputs_parse_add(in, atoms, iproc, dump)
   use module_types
@@ -360,8 +371,9 @@ subroutine orbs_comm(orbs, lr, iproc, nproc)
 
   type(communications_arrays) :: comms
 
-  write(*,*) "TODO: remove me!"
   call orbitals_communicators(iproc,nproc,lr,orbs,comms)
+  write(*,*) "TODO: remove me!"
+  call deallocate_comms(comms,"orbs_comm")
 end subroutine orbs_comm
 subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, npsidim, &
      & nkpts, nkptsp, isorb, iskpts)
@@ -415,46 +427,76 @@ subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   nprojel = nlpspd%nprojel
 END SUBROUTINE proj_get_dimensions
 
-subroutine denspot_new(denspotd, rhodsc)
+subroutine localfields_new(denspotd, rhod, dpcom)
   use module_types
   implicit none
-  type(denspot_distribution), pointer :: denspotd
-  type(rho_descriptors), pointer :: rhodsc
+  type(DFT_local_fields), pointer :: denspotd
+  type(denspot_distribution), pointer :: dpcom
+  type(rho_descriptors), pointer :: rhod
 
   allocate(denspotd)
-  allocate(rhodsc)
-END SUBROUTINE denspot_new
-subroutine denspot_free(denspotd, rhodsc, pot_ion, rhopot, potxc, rhocore)
+  rhod => denspotd%rhod
+  dpcom => denspotd%dpcom
+END SUBROUTINE localfields_new
+subroutine localfields_free(denspotd)
   use module_types
   use m_profiling
   implicit none
-  type(denspot_distribution), pointer :: denspotd
-  type(rho_descriptors), pointer :: rhodsc
-  real(dp), dimension(:), pointer :: pot_ion, rhopot
-  real(kind = 8), dimension(:), pointer :: rhocore
-  real(kind = 8), dimension(:,:,:,:), pointer :: potxc
-
+  type(DFT_local_fields), pointer :: denspotd
+  
+  character(len = *), parameter :: subname = "localfields_free"
   integer :: i_stat, i_all
 
-  call deallocate_rho_descriptors(rhodsc, "denspot_free")
-  deallocate(rhodsc)
+  call deallocate_rho_descriptors(denspotd%rhod, subname)
+  call deallocate_denspot_distribution(denspotd%dpcom, subname)
+  
+  if (associated(denspotd%V_ext)) then
+     i_all=-product(shape(denspotd%V_ext))*kind(denspotd%V_ext)
+     deallocate(denspotd%V_ext,stat=i_stat)
+     call memocc(i_stat,i_all,'denspotd%V_ext',subname)
+  end if
 
-  call deallocate_denspot_distribution(denspotd, "denspot_free")
+!!$  if (associated(denspotd%pkernelseq)) then
+!!$     i_all=-product(shape(denspotd%pkernelseq))*kind(denspotd%pkernelseq)
+!!$     deallocate(denspotd%pkernelseq,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'kernelseq',subname)
+!!$  end if
+
+  if (associated(denspotd%pkernel)) then
+     i_all=-product(shape(denspotd%pkernel))*kind(denspotd%pkernel)
+     deallocate(denspotd%pkernel,stat=i_stat)
+     call memocc(i_stat,i_all,'kernel',subname)
+  end if
+
+  if (associated(denspotd%rhov)) then
+     i_all=-product(shape(denspotd%rhov))*kind(denspotd%rhov)
+     deallocate(denspotd%rhov,stat=i_stat)
+     call memocc(i_stat,i_all,'denspotd%rhov',subname)
+  end if
+
+  if (associated(denspotd%V_XC)) then
+     i_all=-product(shape(denspotd%V_XC))*kind(denspotd%V_XC)
+     deallocate(denspotd%V_XC,stat=i_stat)
+     call memocc(i_stat,i_all,'denspotd%V_XC',subname)
+  end if
+
+  if(associated(denspotd%rho_C)) then
+     i_all=-product(shape(denspotd%rho_C))*kind(denspotd%rho_C)
+     deallocate(denspotd%rho_C,stat=i_stat)
+     call memocc(i_stat,i_all,'denspotd%rho_C',subname)
+  end if
+
   deallocate(denspotd)
+END SUBROUTINE localfields_free
+subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, psoffset)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  integer, intent(out) :: rhov_is
+  real(gp), intent(out) :: hgrid(3)
+  real(dp), intent(out) :: psoffset
 
-  i_all=-product(shape(pot_ion))*kind(pot_ion)
-  deallocate(pot_ion,stat=i_stat)
-  call memocc(i_stat,i_all,'pot_ion',"denspot_free")
-
-  i_all=-product(shape(rhopot))*kind(rhopot)
-  deallocate(rhopot,stat=i_stat)
-  call memocc(i_stat,i_all,'rhopot',"denspot_free")
-
-  i_all=-product(shape(rhocore))*kind(rhocore)
-  deallocate(rhocore,stat=i_stat)
-  call memocc(i_stat,i_all,'rhocore',"denspot_free")
-
-  i_all=-product(shape(potxc))*kind(potxc)
-  deallocate(potxc,stat=i_stat)
-  call memocc(i_stat,i_all,'potxc',"denspot_free")
-END SUBROUTINE denspot_free
+  rhov_is = denspot%rhov_is
+  hgrid = denspot%hgrids
+  psoffset = denspot%psoffset
+END SUBROUTINE localfields_copy_metadata
