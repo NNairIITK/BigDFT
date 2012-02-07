@@ -1539,6 +1539,8 @@ contains
 
 
     subroutine create_new_locregs()
+
+       if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
        call nullify_local_zone_descriptors(lzdlarge)
        call nullify_orbitals_data(orbslarge)
        call nullify_overlapParameters(oplarge)
@@ -1603,7 +1605,8 @@ contains
        !locrad=3.d0*lin%locrad
        allocate(locrad(lzdlarge%nlr), stat=istat)
        !locrad=7.d0
-       locrad=lzd%llr(:)%locrad
+       !locrad=2.d0*lzd%llr(:)%locrad
+       locrad=1.d0*lzd%llr(:)%locrad
        !!write(*,'(a,i7,20i5)') 'iproc, orbslarge%inwhichlocreg', iproc, orbslarge%inwhichlocreg
        !!write(*,'(a,3i8)') 'iproc, orbslarge%norbp, orbslarge%isorb', iproc, orbslarge%norbp, orbslarge%isorb
        call initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, lzd%Glr, locrad, 's')

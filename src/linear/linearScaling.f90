@@ -360,7 +360,11 @@ integer,dimension(:),pointer:: onwhichatom
           lin%newgradient=.true.
           nit_highaccuracy=nit_highaccuracy+1
           nit=lin%nItBasis_highaccuracy
-          if(nit_highaccuracy==lin%nit_highaccuracy+1) exit outerLoop
+          if(nit_highaccuracy==lin%nit_highaccuracy+1) then
+              ! Deallocate DIIS structures.
+              call deallocateDIIS(ldiis)
+              exit outerLoop
+          end if
 
       else
           !!lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
