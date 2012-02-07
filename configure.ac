@@ -81,6 +81,12 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
+dnl Look for GLib and friends for bindings.
+PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0, [have_glib=yes], [have_glib=no])
+if test x"$have_glib" = x"yes" ; then
+  AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
+fi
+
 dnl Enable or not MPI.
 ac_use_mpi="yes"
 AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enabled by default).]),
@@ -729,7 +735,7 @@ AC_LANG_POP(C)
 
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 

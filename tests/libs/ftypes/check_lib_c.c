@@ -1,4 +1,7 @@
 #include <config.h>
+
+#include <glib-object.h>
+
 #include <bigdft.h>
 
 #include <string.h>
@@ -27,6 +30,10 @@ int main(guint argc, char **argv)
   f90_pointer_double *pkernel;
 
   int out_pipe[2], stdout_fileno_old;
+
+#ifdef HAVE_GLIB
+  g_type_init();
+#endif
 
   fprintf(stdout, "Test BigDFT_Atoms structure creation.\n");
   atoms = bigdft_atoms_new();
@@ -70,7 +77,11 @@ int main(guint argc, char **argv)
             radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
   g_free(radii);
   fprintf(stdout, "Test BigDFT_Atoms free.\n");
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(atoms));
+#else
   bigdft_atoms_free(atoms);
+#endif
   fprintf(stdout, " Ok\n");
 
   if (argc > 1)

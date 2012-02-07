@@ -13,12 +13,31 @@
 
 #include <bigdft_cst.h>
 
+#ifndef GLIB_MAJOR_VERSION
+#define GObject void
+#endif
+
 /********************************/
 /* BigDFT_Atoms data structure. */
 /********************************/
-typedef struct f90_pointer_atoms_ f90_pointer_atoms;
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_ATOMS_TYPE           (bigdft_atoms_get_type())
+#define BIGDFT_ATOMS(obj)           (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_ATOMS_TYPE, BigDFT_Atoms))
+#define BIGDFT_ATOMS_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST(klass, BIGDFT_ATOMS_TYPE, BigDFT_AtomsClass))  
+#define BIGDFT_ATOMS_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS(obj, BIGDFT_ATOMS_TYPE, BigDFT_AtomsClass))
+typedef struct BigDFT_AtomsClass_
+{
+  GObjectClass parent;
+} BigDFT_AtomsClass;
+#else
+#define BIGDFT_ATOMS_TYPE         (999)
+#define BIGDFT_ATOMS(obj)         ((BigDFT_Atoms*)obj)
+#endif
 typedef struct BigDFT_Atoms_
 {
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+#endif
   /* Bindings to values, obtained by copy. Update them with
      bigdft_atoms_sync(). */
   gchar geocode, format[6], units[21];
@@ -40,8 +59,12 @@ typedef struct BigDFT_Atoms_
   double energy;
 
   /* Private. */
-  f90_pointer_atoms *data;
+  void *data;
+
+  /* GObject machinery. */
+  gboolean dispose_has_run;
 } BigDFT_Atoms;
+
 
 BigDFT_Atoms* bigdft_atoms_new();
 BigDFT_Atoms* bigdft_atoms_new_from_file   (const gchar *filename);
