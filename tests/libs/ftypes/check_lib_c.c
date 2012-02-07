@@ -135,7 +135,7 @@ int main(guint argc, char **argv)
   bigdft_inputs_parse_additional(in, atoms);
 
   fprintf(stdout, "Test BigDFT_Orbs structure creation.\n");
-  orbs = bigdft_orbs_new(atoms, in, 0, 1, &nelec);
+  orbs = bigdft_orbs_new(atoms, in, glr, 0, 1, &nelec);
   fprintf(stdout, " System has %d electrons.\n", nelec);
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
