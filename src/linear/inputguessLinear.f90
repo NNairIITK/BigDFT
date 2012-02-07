@@ -874,8 +874,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !!call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
   !!     lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, nlocregPerMPI, tag, ham3, &
   !!     lin%lig%comon, lin%lig%op, lin%lig%mad)
-  call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%lig%orbsGauss, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
-       lin%lig%orbsig%inWhichLocreg, lchi, lphi, locregCenter, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, nlocregPerMPI, tag, ham3, &
+  call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%lig%orbsGauss, lin%orbs, &
+       lin%comms, at, Glr, input, lin%norbsPerType, &
+       lin%lig%orbsig%inWhichLocreg, lchi, lphi, locregCenter, lin%orbs%inWhichLocreg, lin, &
+       lin%lig%lzdig, nlocregPerMPI, tag, ham3, &
        lin%lig%comon, lin%lig%op, lin%lig%mad)
   !call cpu_time(t2)
   !!time=t2-t1
