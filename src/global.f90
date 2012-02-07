@@ -2020,9 +2020,13 @@ end subroutine fixfrag_posvel
 subroutine give_rcov(iproc,atoms,nat,rcov)
   !    use module_base
   use module_types
+  implicit none
+  !Arguments
+  integer, intent(in) :: iproc,nat
   type(atoms_data), intent(in) :: atoms
   real(kind=8), intent(out) :: rcov(nat)
-  integer, intent(in) :: iproc
+  !Local variables
+  integer :: iat
 
   do iat=1,nat
      if (trim(atoms%atomnames(atoms%iatype(iat)))=='H') then

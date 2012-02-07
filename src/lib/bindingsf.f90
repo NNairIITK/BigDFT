@@ -1,6 +1,6 @@
 subroutine memocc_report()
   use m_profiling, only: mreport => memocc_report
-
+  implicit none
   call mreport()
 end subroutine memocc_report
 

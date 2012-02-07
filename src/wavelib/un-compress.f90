@@ -1758,9 +1758,10 @@ END SUBROUTINE uncompress_per_f_short
 !! note that psig should be put to zero outside segment regions
 subroutine uncompress_standard_scal(grid,wfd,scal,psi,psig_c,psig_f)
   use module_base
+  use module_types
   implicit none
   type(grid_dimensions), intent(in) :: grid
-  type(wavefunction_descriptors), intent(in) :: wfd
+  type(wavefunctions_descriptors), intent(in) :: wfd
   real(wp), dimension(0:3), intent(in) :: scal
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(in) :: psi
   real(wp), dimension(0:grid%n1,0:grid%n2,0:grid%n3), intent(inout) :: psig_c
@@ -1778,8 +1779,8 @@ subroutine uncompress_standard_scal(grid,wfd,scal,psi,psig_c,psig_f)
   !$omp do
   do iseg=1,wfd%nseg_c
      jj=wfd%keyv(iseg)
-     j0=wfd%keyg(1,iseg)
-     j1=wfd%keyg(2,iseg)
+     j0=wfd%keygloc(1,iseg)
+     j1=wfd%keygloc(2,iseg)
      ii=j0-1
      i3=ii/((grid%n1+1)*(grid%n2+1))
      ii=ii-i3*(grid%n1+1)*(grid%n2+1)
@@ -1787,7 +1788,7 @@ subroutine uncompress_standard_scal(grid,wfd,scal,psi,psig_c,psig_f)
      i0=ii-i2*(grid%n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-        psig_c(i,i2,i3)=psi_c(i-i0+jj)*scal(0)
+        psig_c(i,i2,i3)=psi(i-i0+jj)*scal(0)
      enddo
   enddo
   !$omp enddo
@@ -1795,8 +1796,8 @@ subroutine uncompress_standard_scal(grid,wfd,scal,psi,psig_c,psig_f)
   !$omp do
   do iseg=wfd%nseg_c+1,wfd%nseg_c+wfd%nseg_f
      jj=wfd%keyv(iseg)
-     j0=wfd%keyg(1,iseg)
-     j1=wfd%keyg(2,iseg)
+     j0=wfd%keygloc(1,iseg)
+     j1=wfd%keygloc(2,iseg)
      ii=j0-1
      i3=ii/((grid%n1+1)*(grid%n2+1))
      ii=ii-i3*(grid%n1+1)*(grid%n2+1)
@@ -1805,19 +1806,19 @@ subroutine uncompress_standard_scal(grid,wfd,scal,psi,psig_c,psig_f)
      i1=i0+j1-j0
      do i=i0,i1
         psig_f(1,i,i2,i3)=&
-             psi_f(1+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(1)
+             psi(1+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(1)
         psig_f(2,i,i2,i3)=&
-             psi_f(2+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(1)
+             psi(2+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(1)
         psig_f(3,i,i2,i3)=&
-             psi_f(3+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(2)
+             psi(3+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(2)
         psig_f(4,i,i2,i3)=&
-             psi_f(4+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(1)
+             psi(4+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(1)
         psig_f(5,i,i2,i3)=&
-             psi_f(5+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(2)
+             psi(5+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(2)
         psig_f(6,i,i2,i3)=&
-             psi_f(6+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(2)
+             psi(6+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(2)
         psig_f(7,i,i2,i3)=&
-             psi_f(7+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(3)
+             psi(7+7*(i-i0+jj-1)+wfd%nvctr_c)*scal(3)
      enddo
   enddo
  !$omp enddo

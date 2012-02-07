@@ -1357,6 +1357,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
 END SUBROUTINE take_psi_from_file
 
 subroutine deprecation_message()
+   implicit none
    write(*, "(15x,A)") "+--------------------------------------------+"
    write(*, "(15x,A)") "|                                            |"
    write(*, "(15x,A)") "| /!\ memguess is deprecated since 1.6.0 /!\ |"

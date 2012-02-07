@@ -1515,6 +1515,7 @@ END SUBROUTINE get_atbound
 
 
 subroutine is_overlap(a,b,x,y,overlap)
+   implicit none
    integer,intent(in) :: a,b,x,y
    logical,intent(out) :: overlap
 

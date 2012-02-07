@@ -1,5 +1,15 @@
-!determine a set of localisation regions from the centers and the radii.
-!cut in cubes the global reference system
+!> @file
+!! Locallisation regions
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Determine a set of localisation regions from the centers and the radii.
+!! cut in cubes the global reference system
 subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)!,outofzone)
   use module_base
   use module_types
@@ -249,15 +259,11 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calc
 END SUBROUTINE determine_locreg_periodic
 
 
-!#############################################################################################################################################
-!!****f* BigDFT/overlap_region
-!#############################################################################################################################################
-!! FUNCTION: Determines the the wavefunction descriptors,wfd, and fine grid upper limit of locreg taking into account the pediodicity
+!> Determines the the wavefunction descriptors,wfd, and fine grid upper limit of locreg 
+!! taking into account the pediodicity
 !!          
-!! WARNING: We assign Llr%nfl and llr%nfu with respect to the origin of the local zone, like in determine_locreg. 
-!!         
-!! SOURCE:
-!!
+!! @warning
+!!    We assign Llr%nfl and llr%nfu with respect to the origin of the local zone, like in determine_locreg. 
 subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
 
   use module_base
@@ -265,19 +271,15 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
  
   implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in) :: ilr,nlr
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   type(locreg_descriptors),dimension(nlr),intent(inout) :: Llr  ! Localization grid descriptors 
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
 !  integer,dimension(3,nlr),intent(in) :: outofzone  ! array indicating the directions in which the locreg exceeds the Glr
-  !#############################################
+
   !local variables
-  !############################################
   integer :: ii
   integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
@@ -391,10 +393,6 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
    deallocate(keyvglob)
 
 END SUBROUTINE determine_wfd_periodicity
-
-
-
-
 
 
 subroutine determine_locregSphere(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)!,outofzone)
@@ -614,7 +612,6 @@ subroutine determine_locregSphere(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calcula
   end do !on ilr
 
 END SUBROUTINE determine_locregSphere
-
 
 
 subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)!,outofzone)
@@ -865,19 +862,11 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
 END SUBROUTINE determine_locregSphere_parallel
 
 
-
-
-
-
-!#############################################################################################################################################
-!!****f* BigDFT/overlap_region
-!#############################################################################################################################################
-!! FUNCTION: Determines the the wavefunction descriptors,wfd, and fine grid upper limit of locreg taking into account the pediodicity
+!> Determines the the wavefunction descriptors,wfd, and fine grid upper limit of locreg 
+!! taking into account the pediodicity
 !!          
-!! WARNING: We assign Llr%nfl and llr%nfu with respect to the origin of the local zone, like in determine_locreg. 
-!!         
-!! SOURCE:
-!!
+!! @warning
+!!    We assign Llr%nfl and llr%nfu with respect to the origin of the local zone, like in determine_locreg. 
 subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
 
   use module_base
@@ -885,20 +874,16 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
  
   implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in) :: ilr,nlr
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   real(8),intent(in):: hx, hy, hz
   type(locreg_descriptors),dimension(nlr),intent(inout) :: Llr  ! Localization grid descriptors 
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
 !  integer,dimension(3,nlr),intent(in) :: outofzone  ! array indicating the directions in which the locreg exceeds the Glr
-  !#############################################
+
   !local variables
-  !############################################
   integer :: ii
   integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
@@ -1018,15 +1003,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
 END SUBROUTINE determine_wfdSphere
 
 
-!#############################################################################################################################################
-!!****f* BigDFT/num_segkeys_periodic
-!#############################################################################################################################################
-!! FUNCTION: Calculates the number of segments and elements in localisation region
-!!          
-!! WARNING:   
-!!         
-!! SOURCE:
-!!
+!> Calculates the number of segments and elements in localisation region
 subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
      nseg_loc,nvctr_loc,outofzone)
   implicit none
@@ -1102,8 +1079,6 @@ subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvct
   end if
 
 END SUBROUTINE num_segkeys_periodic
-
-
 
 
 subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, hx, hy, hz, &
@@ -1183,9 +1158,6 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, n
 END SUBROUTINE num_segkeys_sphere
 
 
-
-
-
 subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, hx, hy, hz, locrad, locregCenter, &
            nsegglob, keygglob, keyvglob, ixmin, iymin, izmin, ixmax, iymax, izmax)
   implicit none
@@ -1245,9 +1217,6 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
 
 
 END SUBROUTINE determine_boxbounds_sphere
-
-
-
 
 
 subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
@@ -1371,9 +1340,10 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
  call memocc(i_stat,i_all,'keyg_loc',subname)
 
 END SUBROUTINE segkeys_periodic
-                                     
-!> This routine generates the keyglob, keygloc and keyv for the localization regions using periodic boundary conditions
-!! The keys are continous is the localization region (keygloc), while they are inverted global region (keyglob). 
+
+
+!!!> This routine generates the keyglob, keygloc and keyv for the localization regions using periodic boundary conditions
+!!!! The keys are continous is the localization region (keygloc), while they are inverted global region (keyglob). 
 !!subroutine segkeys_periodic_loc(Glr,Llr,logrid,keygloc,keyglob,keyv)
 !!  implicit none
 !!  type(locreg_descriptors), intent(in) :: Glr
@@ -1427,7 +1397,6 @@ END SUBROUTINE segkeys_periodic
 !!  endif
 !!
 !!END SUBROUTINE segkeys_periodic_loc
-
 
 
 subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, &
@@ -1543,20 +1512,8 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
 END SUBROUTINE segkeys_Sphere
 
 
-
-
-
-
-
-!#############################################################################################################################################
-!!****f* BigDFT/overlap_region
-!#############################################################################################################################################
-!! FUNCTION: Determines the number of intersection regions between locregs, taking into account the periodicity of the system.
-!!          
-!! WARNING: 
-!!         
-!! SOURCE:
-!!
+!> Determines the number of intersection regions between locregs, 
+!! taking into account the periodicity of the system.
 subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr)!,outofzone)
 
   use module_base
@@ -1564,21 +1521,17 @@ subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr)!,outofzone)
  
   implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer, intent(in) :: alr,blr              ! index of the two localization regions
   integer, intent(in) :: nlr                  ! number of localization regions
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   integer, intent(out) :: isovrlp             ! Integer giving the number of overlaps (max 8 with periodicity)
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
 !  integer,dimension(3,nlr),intent(in) :: outofzone  ! array indicating the directions in which the locreg exceeds the Glr
   type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors 
-  !#############################################
+
   !local variables
-  !############################################
   integer :: ii,azones,bzones,i_stat,i_all
   integer :: izones,jzones
   integer,allocatable :: astart(:,:),aend(:,:),bstart(:,:),bend(:,:)
@@ -1644,17 +1597,10 @@ subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr)!,outofzone)
   
 END SUBROUTINE get_number_of_overlap_region
 
-!#############################################################################################################################################
-!!****f* BigDFT/fracture_periodic_zone
-!#############################################################################################################################################
-!! FUNCTION: Divides the locreg into zones contained inside the simulation box, by applying the primitive vectors
-!!           It returns: astart(3,nzones) which is the starting points of the different zones (max. 8)
-!!                       aend(3,nzones) which is the ending points of the different zones (max. 8)
-!!          
-!! WARNING: 
-!!         
-!! SOURCE:
-!!
+
+!> Divides the locreg into zones contained inside the simulation box, by applying the primitive vectors
+!! It returns: astart(3,nzones) which is the starting points of the different zones (max. 8)
+!!             aend(3,nzones) which is the ending points of the different zones (max. 8)
 subroutine fracture_periodic_zone(nzones,Glr,Llr,outofzone,astart,aend)
 
   use module_base
@@ -1662,21 +1608,17 @@ subroutine fracture_periodic_zone(nzones,Glr,Llr,outofzone,astart,aend)
  
   implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in) :: nzones
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   type(locreg_descriptors),intent(in) :: Llr  ! Localization grid descriptors 
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
   integer,dimension(3),intent(in) :: outofzone  ! array indicating the directions in which the locreg exceeds the Glr
   integer,dimension(3,nzones),intent(out) :: astart !
   integer,dimension(3,nzones),intent(out) :: aend !
-  !#############################################
+  
   !local variables
-  !############################################
   integer :: ii,index,jj
   integer,dimension(3) :: alrs,alre,Gend,Gstart,period
   character(len=*), parameter :: subname='fracture_periodic_zone'
@@ -1739,13 +1681,8 @@ subroutine fracture_periodic_zone(nzones,Glr,Llr,outofzone,astart,aend)
 END SUBROUTINE fracture_periodic_zone
 
 
-!##############################################################################################################################################
-!!****f* BigDFT/get_overlap_region
-!##############################################################################################################################################
-!! FUNCTION Given two localization regions, A and B, this routine returns a localization region corresponding to the intersection of A & B. 
-!!
-!! SOURCE
-!!
+!> Given two localization regions, A and B, this routine returns a localization region 
+!! corresponding to the intersection of A & B. 
 subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 
   use module_base
@@ -1753,21 +1690,17 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
  
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer, intent(in) :: alr,blr              ! index of the two localization regions
   integer, intent(in) :: nlr                  ! number of localization regions
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   integer, intent(in) :: isovrlp              ! Number of overlap regions
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
   type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors 
   type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr ! Overlap localization regions
-  !#############################################
+  
   !local variables
-  !############################################
   integer :: axmin,axmax,aymin,aymax,azmin,azmax ! bounds of localization region A
   integer :: bxmin,bxmax,bymin,bymax,bzmin,bzmax ! bounds of localization region B
   integer :: isx,isy,isz,iex,iey,iez             ! bounds of the overlap region
@@ -1953,10 +1886,10 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
   end if
 
 END SUBROUTINE get_overlap_region_periodic
-!%***
 
-!determine a set of localisation regions from the centers and the radii.
-!cut in cubes the global reference system
+
+!> Determine a set of localisation regions from the centers and the radii.
+!! cut in cubes the global reference system
 subroutine check_linear_inputguess(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,linear)
   use module_base
   use module_types
@@ -2027,14 +1960,10 @@ subroutine check_linear_inputguess(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,linear)
       
 end subroutine check_linear_inputguess
 
-!##############################################################################################################################################
-!!****f* BigDFT/get_overlap_region2
-!##############################################################################################################################################
-!! FUNCTION Given two localization regions, A and B, this routine returns a localization region corresponding to the intersection of A & B.
-!!          This is the same as get_overlap_region_periodic, but does not allocate the bound arrays to save memory.
-!!
-!! SOURCE
-!!
+
+!> Given two localization regions, A and B, this routine returns a localization region 
+!! corresponding to the intersection of A & B.
+!! This is the same as get_overlap_region_periodic, but does not allocate the bound arrays to save memory.
 subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 
   use module_base
@@ -2042,21 +1971,17 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer, intent(in) :: alr,blr              ! index of the two localization regions
   integer, intent(in) :: nlr                  ! number of localization regions
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   integer, intent(in) :: isovrlp              ! Number of overlap regions
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
   type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors
   type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr ! Overlap localization regions
-  !#############################################
+  
   !local variables
-  !############################################
   integer :: axmin,axmax,aymin,aymax,azmin,azmax ! bounds of localization region A
   integer :: bxmin,bxmax,bymin,bymax,bzmin,bzmax ! bounds of localization region B
   integer :: isx,isy,isz,iex,iey,iez             ! bounds of the overlap region
@@ -2243,8 +2168,6 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 END SUBROUTINE get_overlap_region_periodic2
 
 
-
-
 subroutine get_overlap_region_periodic2Sphere(alr,blr,Glr,hx,hy,hz,isovrlp,Llr,nlr,Olr)
 
   use module_base
@@ -2252,22 +2175,18 @@ subroutine get_overlap_region_periodic2Sphere(alr,blr,Glr,hx,hy,hz,isovrlp,Llr,n
 
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer, intent(in) :: alr,blr              ! index of the two localization regions
   integer, intent(in) :: nlr                  ! number of localization regions
   real(8),intent(in):: hx, hy, hz
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   integer, intent(in) :: isovrlp              ! Number of overlap regions
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
   type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors
   type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr ! Overlap localization regions
-  !#############################################
+  
   !local variables
-  !############################################
   integer :: axmin,axmax,aymin,aymax,azmin,azmax ! bounds of localization region A
   integer :: bxmin,bxmax,bymin,bymax,bzmin,bzmax ! bounds of localization region B
   integer :: isx,isy,isz,iex,iey,iez             ! bounds of the overlap region
@@ -2520,10 +2439,6 @@ subroutine get_overlap_region_periodic2Sphere(alr,blr,Glr,hx,hy,hz,isovrlp,Llr,n
 END SUBROUTINE get_overlap_region_periodic2Sphere
 
 
-
-
-
-
 subroutine parallel_repartition_locreg(iproc,nproc,nlr,nlr_par,islr_par)
   implicit none
   integer, intent(in) :: iproc,nproc,nlr
@@ -2731,8 +2646,8 @@ END SUBROUTINE parallel_repartition_locreg
 !!end subroutine
 
 
-!determine a set of localisation regions from the centers and the radii.
-!cut in cubes the global reference system
+!> Determine a set of localisation regions from the centers and the radii.
+!! cut in cubes the global reference system
 subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,orbs,calculateBounds)!,outofzone)
   use module_base
   use module_types
@@ -3017,11 +2932,7 @@ END SUBROUTINE determine_locreg_parallel
 
 
 
-
-
-
-
-! Count for each orbital and each process the number of overlapping orbitals.
+!> Count for each orbital and each process the number of overlapping orbitals.
 subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, lzd, op, comon)
 use module_base
 use module_types
@@ -3357,9 +3268,6 @@ call overlapdescriptors_from_descriptors(llr_i%d%n1, llr_i%d%n2, llr_i%d%n3, &
 end subroutine determine_overlapdescriptors_from_descriptors
 
 
-
-
-
 subroutine check_overlapregion(glr, llr_i, llr_j, olr)
 use module_base
 use module_types
@@ -3447,11 +3355,9 @@ type(locreg_descriptors),intent(in):: glr, llr_i, llr_j, olr
 end subroutine check_overlapregion
 
 
-
-
 !> Returns the starting and ending indices (on the coarse grid) of a given localization region.
-!  Attention: There is a similar routine that uses "is1=lr%ns1+1" instead of "is1=lr%ns1".
-!  Check why there is a difference of 1.
+!! Attention: There is a similar routine that uses "is1=lr%ns1+1" instead of "is1=lr%ns1".
+!! Check why there is a difference of 1.
 subroutine get_start_and_end_indices(lr, is1, ie1, is2, ie2, is3, ie3)
 use module_base
 use module_types
@@ -3469,9 +3375,6 @@ integer,intent(out):: is1, ie1, is2, ie2, is3, ie3
   ie3=lr%ns3+lr%d%n3
 
 end subroutine get_start_and_end_indices
-
-
-
 
 
 !> Gives the dimensions of the overlap box resulting from the overlap of two wavefunction descriptors and
@@ -3593,15 +3496,13 @@ n3_k=kzemax-ns3_k
 end subroutine overlapbox_from_descriptors
 
 
-
-
 !> Creates the overlap descriptor from two input overlap descriptors. The dimension of the overlap box (i.e.
-!> ns1_k,ns2_k,ns3_k (starting indices) and n1_k,n2_k,n3_k (length) have to be determined earlier (using
-!> the subroutine overlapbox_from_descriptors)).
-!> Calling arguments: *_i refers to overlap region i (input)
-!>                    *_j refers to overlap region j (input)
-!>                    *_g refers to the global region (input)
-!>                    *_k refers to the overlap region (input/output)
+!! ns1_k,ns2_k,ns3_k (starting indices) and n1_k,n2_k,n3_k (length) have to be determined earlier (using
+!! the subroutine overlapbox_from_descriptors)).
+!! Calling arguments: *_i refers to overlap region i (input)
+!!                    *_j refers to overlap region j (input)
+!!                    *_g refers to the global region (input)
+!!                    *_k refers to the overlap region (input/output)
 subroutine overlapdescriptors_from_descriptors(n1_i, n2_i, n3_i, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, n1_k, n2_k, n3_k, &
            ns1_i, ns2_i, ns3_i, ns1_j, ns2_j, ns3_j, ns1_g, ns2_g, ns3_g, ns1_k, ns2_k, ns3_k, &
            nseg_i, nseg_j, nseg_k, &
@@ -3695,14 +3596,12 @@ nvctr_k=knvctr
 end subroutine overlapdescriptors_from_descriptors
 
 
-
-
 !> Transform an index from localization region A to localization region B.
-! Calling arguments:
-!   ist: index to transform (with respcet to coordinate system of locreg A)
-!   n1a, n2a, n3a:             box size of locreg A
-!   n1b, n2b, n3b:             box size of locreg B
-!   nshift1, nshift2, nshift3: nsa-nsb, where nsa,nsb are the starting points of the boxes of A,B (for all 3 dimensions)
+!! Calling arguments:
+!!   ist: index to transform (with respcet to coordinate system of locreg A)
+!!   n1a, n2a, n3a:             box size of locreg A
+!!   n1b, n2b, n3b:             box size of locreg B
+!!   nshift1, nshift2, nshift3: nsa-nsb, where nsa,nsb are the starting points of the boxes of A,B (for all 3 dimensions)
 function transform_index(ist, n1a, n2a, n3a, n1b, n2b, n3b, nshift1, nshift2, nshift3)
 implicit none
 
@@ -3735,13 +3634,11 @@ end function transform_index
 
 
 
-
-
 !> Get the coordinates of ist with respect to its localization region
-! Calling arguments:
-!   ist          index for which coordinates shall be calculated
-!   n1, n2, n3   box sizes
-!   ix, iy, iz   coordinates of ist
+!! Calling arguments:
+!!  ist          index for which coordinates shall be calculated
+!!  n1, n2, n3   box sizes
+!!  ix, iy, iz   coordinates of ist
 subroutine get_coordinates(ist, n1, n2, n3, ix, iy, iz)
 implicit none
 
@@ -3761,6 +3658,7 @@ integer:: ii
   ix = ii - iy * (n1+1)
 
 end subroutine get_coordinates
+
 
 function check_whether_locregs_overlap(llr_i, llr_j, glr)
 use module_base
@@ -3841,6 +3739,7 @@ logical:: go1, go2, go3
   end if
 
 end subroutine check_overlap
+
 
 subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
 use module_base
