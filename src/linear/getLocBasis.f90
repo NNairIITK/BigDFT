@@ -862,6 +862,14 @@ type(matrixDescriptors):: madlarge
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
       lzd%doHamAppl=.true.
 
+      !!do iorb=1,lorbs%norbp
+      !!     iiorb=lorbs%isorb+iorb
+      !!     if(newgradient) then
+      !!         write(*,'(a,i5,es12.4,3i8)') 'iiorb, confdatarr(iorb)%prefac, confdatarr(iorb)%ioffset', iiorb, confdatarr(iorb)%prefac, confdatarr(iorb)%ioffset
+      !!         write(*,'(a,2i8,3es16.6)') 'iproc, iorb, confdatarr(iorb)%rxyzConf', iproc, iorb, confdatarr(iorb)%rxyzConf
+      !!     end if
+      !!end do
+
       call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
            hx,hy,hz,rxyz,&
            proj,lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lphi,lhphi,&
@@ -1202,13 +1210,15 @@ type(matrixDescriptors):: madlarge
       istart=1
       do iorb=1,lorbs%norbp
           !ilr=lorbs%inWhichLocregp(iorb)
-          iiorb=lorbs%isorb+iorb
-          ilr=lorbs%inWhichLocreg(iiorb)
           if(.not.newgradient) then
+              iiorb=lorbs%isorb+iorb
+              ilr=lorbs%inWhichLocreg(iiorb)
               ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
               if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
               fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
           else
+              iiorb=orbslarge%isorb+iorb
+              ilr=orbslarge%inWhichLocreg(iiorb)
               ncount=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
               if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilargeold(istart), 1)
               fnrmArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilarge(istart), 1)
@@ -1418,13 +1428,15 @@ type(matrixDescriptors):: madlarge
           do iorb=1,lorbs%norbp
               !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
               ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
+              ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
+              write(*,'(a,4i8)') 'iproc, iorb, ilr, ilrlarge', iproc, iorb, ilr, ilrlarge
               ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-              gdim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+              gdim=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
               !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
               !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
               !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-              call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilr), lphilarge(ind1), lphi(ind2))
-              ind1=ind1+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+              call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), lphilarge(ind1), lphi(ind2))
+              ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
               ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
           end do
       end if
@@ -1590,10 +1602,10 @@ contains
        deallocate(norbsPerAtom, stat=istat)
        !locrad=3.d0*lin%locrad
        allocate(locrad(lzdlarge%nlr), stat=istat)
-       locrad=24.d0
+       locrad=12.d0
        !!write(*,'(a,i7,20i5)') 'iproc, orbslarge%inwhichlocreg', iproc, orbslarge%inwhichlocreg
        !!write(*,'(a,3i8)') 'iproc, orbslarge%norbp, orbslarge%isorb', iproc, orbslarge%norbp, orbslarge%isorb
-       call     initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, lzd%Glr, locrad, 's')
+       call initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, lzd%Glr, locrad, 's')
        deallocate(locrad, stat=istat)
        deallocate(locregCenter, stat=istat)
        !locrad=lin%locrad/3.d0
@@ -1621,9 +1633,9 @@ contains
        deallocate(ldiis%hphiHist, stat=istat)
        call memocc(istat, iall, 'ldiis%hphiHist', subname)
        ii=0
-       do iorb=1,lorbs%norbp
+       do iorb=1,orbslarge%norbp
            !ilr=onWhichAtom(iorb)
-           ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
+           ilr=orbslarge%inwhichlocreg(orbslarge%isorb+iorb)
            ii=ii+ldiis%isx*(lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f)
        end do
        allocate(ldiis%phiHist(ii), stat=istat)

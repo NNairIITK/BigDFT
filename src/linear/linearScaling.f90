@@ -351,7 +351,7 @@ integer,dimension(:),pointer:: onwhichatom
               ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
               iiat=onwhichatom(lin%orbs%isorb+iorb)
               !confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(ilr))
-              confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+              confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(iiat))
           end do
           lin%newgradient=.true.
           nit_highaccuracy=nit_highaccuracy+1
