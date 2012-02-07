@@ -404,10 +404,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call repartitionOrbitals(iproc,nproc,lin%lig%orbsGauss%norb,lin%lig%orbsGauss%norb_par,&
        lin%lig%orbsGauss%norbp,lin%lig%orbsGauss%isorb_par,lin%lig%orbsGauss%isorb,lin%lig%orbsGauss%onWhichMPI)
 
-  ! Maybe this could be moved to another subroutine? Or be omitted at all?
-  allocate(lin%lig%orbsig%eval(lin%orbs%norb), stat=istat)
-  call memocc(istat, lin%lig%orbsig%eval, 'lin%lig%orbsig%eval', subname)
-  lin%lig%orbsig%eval=-.5d0
+  !!! Maybe this could be moved to another subroutine? Or be omitted at all?
+  !!allocate(lin%lig%orbsig%eval(lin%orbs%norb), stat=istat)
+  !!call memocc(istat, lin%lig%orbsig%eval, 'lin%lig%orbsig%eval', subname)
+  !!lin%lig%orbsig%eval=-.5d0
 
 
   !dimension of the wavefunctions

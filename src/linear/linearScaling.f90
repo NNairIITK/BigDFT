@@ -146,8 +146,12 @@ integer,dimension(:),pointer:: onwhichatom
   end if
   allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
   call memocc(istat, psi, 'psi', subname)
-  allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
-  call memocc(istat, psit, 'psit', subname)
+  if(nproc>1) then
+      allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
+      call memocc(istat, psit, 'psit', subname)
+  else
+      psit => psi
+  end if
   allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold, 'rhopotold', subname)
   allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin), stat=istat)
@@ -622,6 +626,9 @@ integer,dimension(:),pointer:: onwhichatom
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
+  iall=-product(shape(onwhichatom))*kind(onwhichatom)
+  deallocate(onwhichatom, stat=istat)
+  call memocc(istat, iall, 'onwhichatom', subname)
 
   if(lin%mixHist_highaccuracy>0) then
       call deallocateMixrhopotDIIS(mixdiis)

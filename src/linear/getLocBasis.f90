@@ -1555,9 +1555,6 @@ contains
             lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge)
        call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
             orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
-       iall=-product(shape(orbslarge%inWhichLocreg))*kind(orbslarge%inWhichLocreg)
-       deallocate(orbslarge%inWhichLocreg, stat=istat)
-       call memocc(istat, iall, 'orbslarge%inWhichLocreg', subname)
 
        !! THIS MUS BE MODIFIED
        allocate(norbsPerAtom(lzdlarge%nlr), stat=istat)
@@ -1597,6 +1594,9 @@ contains
        !!    if(iproc==0) write(*,'(a,i6,3es16.6)') 'iorb, locregCenter(:,iorb)', iorb, locregCenter(:,iorb)
        !!    if(iproc==0) write(*,*) 'iorb, norbsPerAtom(iorb)', iorb, norbsPerAtom(iorb)
        !!end do
+       iall=-product(shape(orbslarge%inWhichLocreg))*kind(orbslarge%inWhichLocreg)
+       deallocate(orbslarge%inWhichLocreg, stat=istat)
+       call memocc(istat, iall, 'orbslarge%inWhichLocreg', subname)
        call assignToLocreg2(iproc, nproc, orbslarge%norb, orbslarge%norb_par, at%nat, lzdlarge%nlr, &
             nspin, norbsPerAtom, locregCenter, orbslarge%inwhichlocreg)
        deallocate(norbsPerAtom, stat=istat)
