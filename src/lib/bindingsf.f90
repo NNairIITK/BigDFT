@@ -500,3 +500,27 @@ subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, psoffset)
   hgrid = denspot%hgrids
   psoffset = denspot%psoffset
 END SUBROUTINE localfields_copy_metadata
+subroutine localfields_get_rhov(denspot, rhov)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:), pointer :: rhov
+
+  rhov => denspot%rhov
+END SUBROUTINE localfields_get_rhov
+subroutine localfields_get_v_ext(denspot, v_ext)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:,:,:,:), pointer :: v_ext
+
+  v_ext => denspot%v_ext
+END SUBROUTINE localfields_get_v_ext
+subroutine localfields_get_v_xc(denspot, v_xc)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:,:,:,:), pointer :: v_xc
+
+  v_xc => denspot%v_xc
+END SUBROUTINE localfields_get_v_xc

@@ -234,10 +234,9 @@ typedef struct BigDFT_LocalFields_
   double h[3];
 
   /* Additional pointers. */
-  f90_pointer_double rhov, rho_full, pot_full;
-  f90_pointer_double_2D rho_psi;
-  f90_pointer_double_4D rho_c, v_ext, v_xc, vloc_ks, f_xc;
-  f90_pointer_double pkernel, pkernelseq;
+  double *rhov, *v_ext, *v_xc;
+  /* TODO, see when these are associated. */
+  /* double *rho_full, *pot_full, *rho_psi, *rho_c, *vloc_ks, *f_xc; */
 
   /* Private. */
   void *rhod;

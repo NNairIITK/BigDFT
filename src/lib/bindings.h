@@ -38,6 +38,12 @@
   FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
   obj->name = (double*)tmp.data; \
   }
+#define GET_ATTR_DBL_4D(obj,OBJ,name,NAME) {       \
+  f90_pointer_double_4D tmp; \
+  memset(&tmp, 0, sizeof(f90_pointer_double_4D)); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  obj->name = (double*)tmp.data; \
+  }
 
 void FC_FUNC_(f90_pointer_1d_init, F90_POINTER_1D_INIT)(f90_pointer_double *pt, guint *s);
 void FC_FUNC_(f90_pointer_2d_init, F90_POINTER_2D_INIT)(f90_pointer_double_2D *pt, guint *s);

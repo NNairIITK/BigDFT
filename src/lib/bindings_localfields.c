@@ -39,20 +39,6 @@ static void bigdft_localfields_init(BigDFT_LocalFields *obj)
 #else
   memset(obj, 0, sizeof(BigDFT_LocalFields));
 #endif
-  obj->rhod  = (void*)0;
-  obj->dpcom = (void*)0;
-  obj->data  = (void*)0;
-  F90_1D_POINTER_INIT(&obj->rhov);
-  F90_1D_POINTER_INIT(&obj->rho_full);
-  F90_1D_POINTER_INIT(&obj->pot_full);
-  F90_1D_POINTER_INIT(&obj->pkernel);
-  F90_1D_POINTER_INIT(&obj->pkernelseq);
-  F90_2D_POINTER_INIT(&obj->rho_psi);
-  F90_4D_POINTER_INIT(&obj->rho_c);
-  F90_4D_POINTER_INIT(&obj->v_ext);
-  F90_4D_POINTER_INIT(&obj->v_xc);
-  F90_4D_POINTER_INIT(&obj->vloc_ks);
-  F90_4D_POINTER_INIT(&obj->f_xc);
   FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(&obj->data, &obj->rhod, &obj->dpcom);
   FC_FUNC_(initialize_dft_local_fields, INITIALIZE_DFT_LOCAL_FIELDS)(obj->data);
 }
@@ -86,35 +72,39 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Atoms *atoms,
                                             const double *radii,
                                             guint iproc, guint nproc)
 {
-  BigDFT_LocalFields *denspot;
+  BigDFT_LocalFields *localfields;
   double hh[3];
   guint ndegree_ip = 16, verb = 0;
 
 #ifdef HAVE_GLIB
-  denspot = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
+  localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
 #else
-  denspot = g_malloc(sizeof(BigDFT_LocalFields));
-  memset(denspot, 0, sizeof(BigDFT_LocalFields));
-  bigdft_localfields_init(denspot);
+  localfields = g_malloc(sizeof(BigDFT_LocalFields));
+  memset(localfields, 0, sizeof(BigDFT_LocalFields));
+  bigdft_localfields_init(localfields);
 #endif
   hh[0] = glr->h[0] * 0.5;
   hh[1] = glr->h[1] * 0.5;
   hh[2] = glr->h[2] * 0.5;
   FC_FUNC_(denspot_communications, DENSPOT_COMMUNICATIONS)
     (&iproc, &nproc, glr->d, hh, hh + 1, hh + 2, in->data,
-     atoms->data, atoms->rxyz.data, radii, denspot->dpcom, denspot->rhod);
+     atoms->data, atoms->rxyz.data, radii, localfields->dpcom, localfields->rhod);
   FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(&iproc, glr->data,
                                           hh, hh + 1, hh + 2, in->data,
                                           atoms->data, atoms->rxyz.data,
-                                          denspot->data);
+                                          localfields->data);
   FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)
-    (denspot->data, &denspot->rhov_is, denspot->h, &denspot->psoffset);
+    (localfields->data, &localfields->rhov_is, localfields->h,
+     &localfields->psoffset);
+  GET_ATTR_DBL   (localfields, LOCALFIELDS, rhov,  RHOV);
+  GET_ATTR_DBL_4D(localfields, LOCALFIELDS, v_ext, V_EXT);
+  GET_ATTR_DBL_4D(localfields, LOCALFIELDS, v_xc,  V_XC);
   
   FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
     (&iproc, &nproc, &verb, &glr->geocode, glr->d, hh,
-     in->data, denspot->data);
+     in->data, localfields->data);
 
-  return denspot;
+  return localfields;
 }
 void bigdft_localfields_free(BigDFT_LocalFields *denspot)
 {
