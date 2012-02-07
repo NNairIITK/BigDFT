@@ -751,6 +751,13 @@ type(matrixDescriptors):: madlarge
                  orthpar%methTransformOverlap, orthpar%nItOrtho, &
                  orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbslarge, oplarge, comonlarge, lzdlarge, &
                  madlarge, lphilarge, ovrlp)
+             if(iproc==0) then
+                 do istat=1,orbslarge%norb
+                     do iall=1,orbslarge%norb
+                         write(500,*) istat, iall, ovrlp(iall,istat)
+                     end do
+                 end do
+             end if
             !!confdatarr%prefac=1.0d-4
             !!call unitary_optimization(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
             !!                          comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
@@ -807,6 +814,9 @@ type(matrixDescriptors):: madlarge
                 !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
                 !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
                 call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), lphilarge(ind1), lphi(ind2))
+                do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
+                    write(510+iproc,*) istat, lphi(istat)
+                end do
                 ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
                 ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
             end do
@@ -861,6 +871,14 @@ type(matrixDescriptors):: madlarge
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
       deallocate(lzd%doHamAppl,stat=istat)
       call memocc(istat,iall,'lzd%doHamAppl',subname)
+      ind2=1
+      do iorb=1,lorbs%norbp
+          ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
+          do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
+          if(newgradient) write(530+iproc,*) istat, lhphi(istat)
+          end do
+          ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      end do
 
    
 
@@ -873,13 +891,32 @@ type(matrixDescriptors):: madlarge
           call extractOrbital3(iproc, nproc, lorbs, max(lorbs%npsidim_orbs,lorbs%npsidim_comp), &
                lorbs%inWhichLocreg, lzd, op, &
                lhphi, comon%nsendBuf, comon%sendBuf)
+          do istat=1,comon%nsendbuf
+              write(560+iproc,*) comon%sendbuf(istat)
+          end do
           call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lhphi, comon, tt1, tt2)
           call collectnew(iproc, nproc, comon, mad, op, lorbs, lzd, comon%nsendbuf, &
                comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
+          do istat=1,comon%nrecvbuf
+              write(550+iproc,*) comon%recvbuf(istat)
+          end do
           call build_new_linear_combinations(iproc, nproc, lzd, lorbs, op, comon%nrecvbuf, &
                comon%recvbuf, kernel, .true., lhphi)
           call deallocateRecvBufferOrtho(comon, subname)
           call deallocateSendBufferOrtho(comon, subname)
+          do iorb=1,lorbs%norb
+              do jorb=1,lorbs%norb
+                  write(540,*) iorb,jorb,kernel(jorb,iorb)
+              end do
+          end do
+          ind2=1
+          do iorb=1,lorbs%norbp
+              ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
+              do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
+                  write(520+iproc,*) istat, lhphi(istat)
+              end do
+              ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+          end do
       end if
 
 
