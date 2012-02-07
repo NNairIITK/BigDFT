@@ -3738,16 +3738,20 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   end if
 END SUBROUTINE clean_forces
 
+
+!> Symmetrize stress
 !@todo: modifiy the arguments of this routine
 subroutine symm_stress(dump,tens,symobj)
   use defs_basis
   use module_base, only: verbose,gp
   use m_ab6_symmetry
   use module_types
+  implicit none
+  !Arguments
   logical, intent(in) :: dump
   integer, intent(in) :: symobj
   real(gp), dimension(6), intent(inout) :: tens
-  !local variables
+  !Local variables
   integer, pointer  :: sym(:,:,:)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)

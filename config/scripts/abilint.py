@@ -2312,16 +2312,17 @@ class Header_Routine(Code):
     def analyze(self,line,iter_code):
         "Analyze the header"
         Code.analyze(self)
-        #Remove comments
-        line = self.re_comment.sub('',line)
         self.add_code(line)
-        while self.re_continuation.search(line):
+        #Remove comments at the end of the line only for analysis
+        code_an = self.re_comment.sub('',line)
+        while self.re_continuation.search(line) or self.re_comment_match.match(line):
             line = iter_code.next()
+            self.add_code(line)
             #Remove comments
             line = self.re_comment.sub('',line)
-            self.add_code(line)
+            code_an += line
         #Analyze the header
-        search = self.re_startblock.match(self.code).groupdict()
+        search = self.re_startblock.match(code_an).groupdict()
         self.parent.type = search['type']
         self.parent.name = search['name']
         args = search['arguments']
@@ -2816,9 +2817,16 @@ class Declaration(Code):
                     self.message.fatal("\n%s\n--> Strange declaration!\n" % line\
                         + "Analysis Error in %s/%s\n" % (self.parent.dir,self.parent.file))
             #Declaration -- lists of variables
-            decl = decl.lower().strip()
+            decl0 = decl.lower().strip()
             liste = liste.strip()
             for (name,var) in split_variables(liste):
+                if "character" in decl0 and '*' in name:
+                    #The name is not correct
+                    (var,l) = name.split('*')
+                    (name,l) = name.split('*')
+                    decl = decl0.replace("character","character(len="+l+")")
+                else:
+                    decl = decl0
                 if self.dict_vars.has_key(name):
                     self.dict_vars[name].update(decl,truename=var)
                 else:
@@ -2935,11 +2943,10 @@ class Declaration(Code):
                         for unfound_module in unfound_modules:
                             texte += " %s" % unfound_module
                         message("%s\n   " % texte \
-                                + " The modules '%s' are not found and" % module \
+                                + " This modules are not found and"  \
                                 + " the argument '%s' depends on '%s' which could be in these modules." \
                                 % (arg.name,name))
                     else:
-                        print self.parent.use_modules
                         message("%s\n[%s/%s:%s]:" % \
                                            (texte,self.parent.dir,self.parent.file,self.parent.name) \
                                 + " The argument '%s' depends on '%s'" % (arg.name,name) \
@@ -3478,6 +3485,13 @@ class Fortran_Type(Declaration):
         message += self.code
         self.message.write(message,verbose=-10)
     #
+    def get_dependencies(self):
+        "Give a list of variables on which depends the variable in dimension, kind or type"
+        self.dependencies = set()
+        for child in self.children:
+            self.dependencies.update(child.get_dependencies())
+        return self.dependencies
+    #
     def has_type(self):
         return True
     #
@@ -3859,7 +3873,9 @@ bigdft_include = { "mpif.h": mpif_file,
 
 
 #Exclude files (*/*.f90)
-bigdft_exclude = [ "unused", "tools", "PSolver/base.f90", "ABINIT-moldyn/others.F90", "lib/lbfgs.f90" ]
+bigdft_exclude = [ "unused", "tools", "PSolver/base.f90", \
+                   "others.F90",\
+                   "lib/lbfgs.f90", "wavelib/i-o-etsf.f90" ]
 
 
 #Files to generate generic routines
@@ -3940,7 +3956,8 @@ if __name__ == "__main__":
     NEW = args[1]
     #Create the project and read all files
     bigdft = Project(OLD,name="BigDFT",\
-                     pat_dir=["src","src/*"],pat_file=["*.F90","*.f90", "*.inc"],\
+                     pat_dir=["src","src/*","libABINIT","libABINIT/src","libABINIT/src/*"],\
+                     pat_file=["*.F90","*.f90", "*.inc"],\
                      logfile="abilint.log",\
                      exclude=bigdft_exclude,given_include=bigdft_include,\
                      File_Class=bigdft_File_Class)

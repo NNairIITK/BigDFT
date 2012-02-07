@@ -2022,9 +2022,9 @@ subroutine give_rcov(iproc,atoms,nat,rcov)
   use module_types
   implicit none
   !Arguments
+  integer, intent(in) :: iproc,nat
   type(atoms_data), intent(in) :: atoms
   real(kind=8), intent(out) :: rcov(nat)
-  integer, intent(in) :: iproc
   !Local variables
   integer :: iat
 
