@@ -228,8 +228,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !real(kind=8) :: crmult,frmult,cpmult,fpmult
   real(gp) :: evsum,pressure
   real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,eSIC_DC,rpnrm,gnrm,gnrm_zero
-  real(gp) :: energybs,tt,tel
-  real(kind=8) :: ttsum
+  real(gp) :: energybs,tel
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
@@ -383,13 +382,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   allocate(confdatarr(orbs%norbp))
   call default_confinement_data(confdatarr,orbs%norbp)
 
-  !avoid allocation of the eigenvalues array in case of restart
-  if (in%inputPsiId /= INPUT_PSI_MEMORY_WVL .and. &
-       & in%inputPsiId /= INPUT_PSI_MEMORY_GAUSS) then
-     allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-     call memocc(i_stat,orbs%eval,'eval',subname)
-  end if
-
   !start the optimization
   !yaml output
   if (iproc==0) then
@@ -397,7 +389,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      yaml_indent=yaml_indent+1 !hash table element
   end if
 
-
+  !avoid allocation of the eigenvalues array in case of restart
+  if (in%inputPsiId /= INPUT_PSI_MEMORY_WVL .and. &
+       & in%inputPsiId /= INPUT_PSI_MEMORY_GAUSS) then
+     allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+     call memocc(i_stat,orbs%eval,'eval',subname)
+  end if
   !all the input formats need to allocate psi except the LCAO input_guess
   ! WARNING: at the moment the linear scaling version allocates psi in the same
   ! way as the LCAO input guess, so it is not necessary to allocate it here.
@@ -407,71 +404,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      allocate(psi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
   end if
-
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
   case(INPUT_PSI_EMPTY)
      call input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
           & in%band_structure_filename, in%nspin, atoms, Lzd%Glr%d, denspot)
   case(INPUT_PSI_RANDOM)
-
-     if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '------------------------------------------------ Random wavefunctions initialization'
-     end if
-
-     !random initialisation of the wavefunctions
-
-     psi=0.0d0
-     ttsum=0.0d0
-     do i=1,max(orbs%npsidim_comp,orbs%npsidim_orbs)
-        do j=0,iproc-1
-           call random_number(tt)
-        end do
-        call random_number(tt)
-        psi(i)=real(tt,wp)*0.01_wp
-        ttsum=ttsum+psi(i)
-        do j=iproc+1,nproc
-           call random_number(tt)
-        end do
-     end do
-
-     orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
-
+     call input_wf_random(iproc, nproc, psi, orbs)
   case(INPUT_PSI_CP2K)
-
-     !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
-     !and calculate eigenvalues
-     if (iproc == 0) then
-        write(*,'(1x,a)')&
-             &   '--------------------------------------------------------- Import Gaussians from CP2K'
-     end if
-
-     if (in%nspin /= 1) then
-        if (iproc==0) then
-           write(*,'(1x,a)')&
-                &   'Gaussian importing is possible only for non-spin polarised calculations'
-           write(*,'(1x,a)')&
-                &   'The reading rules of CP2K files for spin-polarised orbitals are not implemented'
-        end if
-        stop
-     end if
-
-     call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',&
-          atoms%nat,atoms%ntypes,orbs,atoms%iatype,rxyz,gbd,gaucoeffs)
-
-     call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,gbd,gaucoeffs,psi)
-
-     !deallocate gaussian structure and coefficients
-     call deallocate_gwf(gbd,subname)
-     i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
-     deallocate(gaucoeffs,stat=i_stat)
-     call memocc(i_stat,i_all,'gaucoeffs',subname)
-     nullify(gbd%rxyz)
-
-     !call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
-     orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
-
+     call input_wf_cp2k(iproc, nproc, in%nspin, atoms, rxyz, Lzd, &
+          & hx, hy, hz, psi, orbs)
   case(INPUT_PSI_LCAO)
 
      nspin=in%nspin

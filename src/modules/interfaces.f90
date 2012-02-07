@@ -423,6 +423,29 @@ module module_interfaces
          real(kind=8), dimension(:), pointer :: hpsi, psit
        END SUBROUTINE input_wf_empty
 
+       subroutine input_wf_random(iproc, nproc, psi, orbs)
+         use module_defs
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc, nproc
+         type(orbitals_data), intent(inout) :: orbs
+         real(wp), dimension(:), pointer :: psi
+       END SUBROUTINE input_wf_random
+
+       subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
+            & hx, hy, hz, psi, orbs)
+         use module_defs
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc, nproc, nspin
+         type(atoms_data), intent(in) :: atoms
+         real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
+         type(local_zone_descriptors), intent(in) :: Lzd
+         real(gp), intent(in) :: hx, hy, hz
+         type(orbitals_data), intent(inout) :: orbs
+         real(wp), dimension(:), pointer :: psi
+       END SUBROUTINE input_wf_cp2k
+
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
             orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
             nlpspd,proj,ixc,psi,hpsi,psit,G,&

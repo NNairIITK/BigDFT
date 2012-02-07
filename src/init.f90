@@ -1323,6 +1323,97 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   end if
 END SUBROUTINE input_wf_empty
 
+subroutine input_wf_random(iproc, nproc, psi, orbs)
+  use module_defs
+  use module_types
+  implicit none
+
+  integer, intent(in) :: iproc, nproc
+  type(orbitals_data), intent(inout) :: orbs
+  real(wp), dimension(:), pointer :: psi
+
+  integer :: i, j
+  real(wp) :: ttsum, tt
+
+  if (iproc == 0) then
+     write( *,'(1x,a)')&
+          &   '------------------------------------------------ Random wavefunctions initialization'
+  end if
+
+  !random initialisation of the wavefunctions
+
+  psi=0.0d0
+  ttsum=0.0d0
+  do i=1,max(orbs%npsidim_comp,orbs%npsidim_orbs)
+     do j=0,iproc-1
+        call random_number(tt)
+     end do
+     call random_number(tt)
+     psi(i)=real(tt,wp)*0.01_wp
+     ttsum=ttsum+psi(i)
+     do j=iproc+1,nproc
+        call random_number(tt)
+     end do
+  end do
+
+  orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
+
+END SUBROUTINE input_wf_random
+
+subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
+     & hx, hy, hz, psi, orbs)
+  use module_defs
+  use module_types
+  use module_interfaces, except_this_one => input_wf_cp2k
+  implicit none
+
+  integer, intent(in) :: iproc, nproc, nspin
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
+  type(local_zone_descriptors), intent(in) :: Lzd
+  real(gp), intent(in) :: hx, hy, hz
+  type(orbitals_data), intent(inout) :: orbs
+  real(wp), dimension(:), pointer :: psi
+
+  character(len = *), parameter :: subname = "input_wf_cp2k"
+  integer :: i_stat, i_all
+  type(gaussian_basis) :: gbd
+  real(wp), dimension(:,:), pointer :: gaucoeffs
+
+  !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
+  !and calculate eigenvalues
+  if (iproc == 0) then
+     write(*,'(1x,a)')&
+          &   '--------------------------------------------------------- Import Gaussians from CP2K'
+  end if
+
+  if (nspin /= 1) then
+     if (iproc==0) then
+        write(*,'(1x,a)')&
+             &   'Gaussian importing is possible only for non-spin polarised calculations'
+        write(*,'(1x,a)')&
+             &   'The reading rules of CP2K files for spin-polarised orbitals are not implemented'
+     end if
+     stop
+  end if
+
+  call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',&
+       atoms%nat,atoms%ntypes,orbs,atoms%iatype,rxyz,gbd,gaucoeffs)
+
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,hx,hy,hz,gbd,gaucoeffs,psi)
+
+  !deallocate gaussian structure and coefficients
+  call deallocate_gwf(gbd,subname)
+  i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
+  deallocate(gaucoeffs,stat=i_stat)
+  call memocc(i_stat,i_all,'gaucoeffs',subname)
+  nullify(gbd%rxyz)
+
+  !call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
+  orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
+
+END SUBROUTINE input_wf_cp2k
+
 !> Input guess wavefunction diagonalization
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
      orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
