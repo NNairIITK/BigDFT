@@ -534,7 +534,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
   logical, intent(in) :: verb
-  type(atoms_data), intent(in) :: atoms
+  type(atoms_data), intent(inout) :: atoms
   integer, intent(out) :: nelec
   type(orbitals_data), intent(inout) :: orbs
   !local variables
