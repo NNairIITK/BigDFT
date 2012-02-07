@@ -7045,6 +7045,7 @@ end subroutine get_potential_matrices
 subroutine apply_position_operators(iproc, nproc, orbs, lzd, hx, hy, hz, psi, xpsi, ypsi, zpsi)
 use module_base
 use module_types
+use module_interfaces, except_this_one => apply_position_operators
 implicit none
 
 ! Calling arguments
