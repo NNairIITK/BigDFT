@@ -215,12 +215,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !character(len=3) :: PSquiet
   character(len=5) :: gridformat, wfformat, final_out
   character(len=500) :: errmess
-  logical :: endloop,endlooprp,onefile,refill_proj,withConfinement !,potential_from_disk=.false.
+  logical :: endloop,endlooprp,refill_proj !,potential_from_disk=.false.
   logical :: DoDavidson,DoLastRunThings=.false.,lcs,scpot
   integer :: ixc,ncong,ncongt,nspin,icycle,potden,input_wf_format
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
-  integer :: ndegree_ip,j,i,npoints,irhotot_add,irho_add
-  integer :: n1_old,n2_old,n3_old,n1,n2,n3,ispin
+  integer :: j,i,npoints
+  integer :: n1_old,n2_old,n3_old,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,nproctiming
   real :: tcpu0,tcpu1
@@ -411,56 +411,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
   case(INPUT_PSI_EMPTY)
-     !allocate fake psit and hpsi
-     allocate(hpsi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsi,'hpsi',subname)
-     if (nproc > 1) then
-        allocate(psit(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
-        call memocc(i_stat,psit,'psit',subname)
-     else
-        psit => psi
-     end if
-     !fill the rhopot array with the read potential if needed
-     if (trim(in%band_structure_filename) /= '') then
-        !only the first processor should read this
-        if (iproc == 0) then
-           write(*,'(1x,a)')'Reading local potential from file:'//trim(in%band_structure_filename)
-           call read_density(trim(in%band_structure_filename),atoms%geocode,&
-                n1i,n2i,n3i,nspin,hxh,hyh,hzh,denspot%Vloc_KS)
-           if (nspin /= in%nspin) stop
-        else
-           allocate(denspot%Vloc_KS(1,1,1,in%nspin+ndebug),stat=i_stat)
-           call memocc(i_stat,denspot%Vloc_KS,'Vloc_KS',subname)
-        end if
-       
-        if (nproc > 1) then
-           do ispin=1,in%nspin
-              call MPI_SCATTERV(denspot%Vloc_KS(1,1,1,ispin),&
-                   denspot%dpcom%ngatherarr(0,1),denspot%dpcom%ngatherarr(0,2),&
-                   mpidtypw,denspot%rhov((ispin-1)*&
-                   Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3p+1),&
-                   Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3p,mpidtypw,0,&
-                   MPI_COMM_WORLD,ierr)
-           end do
-        else
-           call vcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,&
-                denspot%Vloc_KS(1,1,1,1),1,denspot%rhov(1),1)
-        end if
-        !now the meaning is KS potential
-        denspot%rhov_is=KS_POTENTIAL
-
-        i_all=-product(shape(denspot%Vloc_KS))*kind(denspot%Vloc_KS)
-        deallocate(denspot%Vloc_KS,stat=i_stat)
-        call memocc(i_stat,i_all,'Vloc_KS',subname)
-
-        !add pot_ion potential to the local_potential
-        !do ispin=1,in%nspin
-        !   !spin up and down together with the XC part
-        !   call axpy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p,1.0_dp,pot_ion(1),1,&
-        !        rhopot((ispin-1)*Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p+1),1)
-        !end do
-     end if
-
+     call input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
+          & in%band_structure_filename, in%nspin, atoms, Lzd%Glr%d, denspot)
   case(INPUT_PSI_RANDOM)
 
      if (iproc == 0) then

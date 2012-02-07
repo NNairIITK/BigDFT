@@ -132,8 +132,8 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
        in,atoms,rxyz,radii_cf,denspot%dpcom,denspot%rhod)
 
   !allocate the arrays.
-  call allocateRhoPot(iproc,nproc,Lzd%Glr,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-       in,atoms,rxyz,radii_cf,denspot)
+  call allocateRhoPot(iproc,Lzd%Glr,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       in,atoms,rxyz,denspot)
 
   call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
 
@@ -1023,7 +1023,6 @@ subroutine read_atomic_variables(fileocc,iproc,in,atoms,radii_cf)
   !     call allocateBasicArrays(atoms, lin)
   !     call readLinearParameters(iproc, nproc, lin, atoms, atomNames)
   !  end if
-
 
 END SUBROUTINE read_atomic_variables
 

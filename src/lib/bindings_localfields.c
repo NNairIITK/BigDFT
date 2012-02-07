@@ -101,9 +101,9 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Atoms *atoms,
   FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)
     (localfields->data, &localfields->rhov_is, localfields->h,
      &localfields->psoffset);
-  GET_ATTR_DBL   (localfields, LOCALFIELDS, rhov,       RHOV);
-  GET_ATTR_DBL_4D(localfields, LOCALFIELDS, v_ext,      V_EXT);
-  GET_ATTR_DBL_4D(localfields, LOCALFIELDS, v_xc,       V_XC);
+  GET_ATTR_DBL   (localfields, LOCALFIELDS, rhov,  RHOV);
+  GET_ATTR_DBL_4D(localfields, LOCALFIELDS, v_ext, V_EXT);
+  GET_ATTR_DBL_4D(localfields, LOCALFIELDS, v_xc,  V_XC);
   
   FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
     (&iproc, &nproc, &verb, &glr->geocode, glr->d, hh,

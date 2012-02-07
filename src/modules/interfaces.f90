@@ -407,6 +407,22 @@ module module_interfaces
          real(wp), dimension(*), intent(inout) :: pot_ion
        END SUBROUTINE createIonicPotential
 
+       subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
+            & band_structure_filename, input_spin, atoms, d, denspot)
+         use module_defs
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc, nproc
+         type(orbitals_data), intent(in) :: orbs
+         character(len = *), intent(in) :: band_structure_filename
+         integer, intent(in) :: input_spin
+         type(atoms_data), intent(in) :: atoms
+         type(grid_dimensions), intent(in) :: d
+         type(DFT_local_fields), intent(inout) :: denspot
+         real(wp), dimension(:), pointer :: psi
+         real(kind=8), dimension(:), pointer :: hpsi, psit
+       END SUBROUTINE input_wf_empty
+
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
             orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
             nlpspd,proj,ixc,psi,hpsi,psit,G,&
@@ -1717,17 +1733,16 @@ module module_interfaces
         type(rho_descriptors), intent(out) :: rhod
       end subroutine denspot_communications
 
-      subroutine allocateRhoPot(iproc,nproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,denspot)
+      subroutine allocateRhoPot(iproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,denspot)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc, nproc
+        integer, intent(in) :: iproc
         type(locreg_descriptors), intent(in) :: Glr
         real(gp), intent(in) :: hxh, hyh, hzh
         type(input_variables), intent(in) :: in
         type(atoms_data), intent(in) :: atoms
         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-        real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
         type(DFT_local_fields), intent(inout) :: denspot
       END SUBROUTINE allocateRhoPot
 
