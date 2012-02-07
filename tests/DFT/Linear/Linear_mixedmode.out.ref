@@ -221,11 +221,11 @@
  >>>> Partition of the basis functions including the derivatives among the processes.
     | Processes from 0 to 7 treat 7 orbitals. |
  ------------------------------------------------------------------------------------
- Initializing localization regions... done in 2.070E-02s.
- Initializing communications sumrho... done in 4.601E-05s.
- Initializing communications potential... done in 3.099E-05s.
- Initializing communications orthonormalization... done in 3.266E-01s.
- Initializing input guess... done in 7.566E-02s.
+ Initializing localization regions... done in 2.091E-02s.
+ Initializing communications sumrho... done in 4.792E-05s.
+ Initializing communications potential... done in 3.290E-05s.
+ Initializing communications orthonormalization... done in 3.250E-01s.
+ Initializing input guess... done in 8.560E-02s.
  ################################# Memory estimator ##################################
  WARNING: The memory requirements are underestimated by about 20-30%!
  Memory requirements of the largest arrays:
@@ -244,7 +244,7 @@
  >>> estimated memory peak: 36MB
  >>> peak section: Optimization of the basis functions
  #####################################################################################
- Initializing matrix compression... done in 2.139E-04s.
+ Initializing matrix compression... done in 2.301E-04s.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 14 Atomic Input Orbitals
  Processes from 0 to 5 treat 2 inguess orbitals 
@@ -386,13 +386,13 @@ max deviation from unity, position:  6.953439E-04  2  2
  Final values for fnrm, fnrmMax, trace:   5.0278184E-02  5.6044085E-02   1.1131884
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.291E+00
-     - orthonormalization: 1.511E-01=11.7%
-     - Hamiltonian application: 3.793E-01=29.4%
-     - orthoconstraint: 7.772E-02= 6.0%
-     - preconditioning: 6.266E-01=48.5%
-     - unitary optimization: 2.682E-07= 0.0%
-     - other: 5.647E-02= 4.4%
+   -total time: 1.359E+00
+     - orthonormalization: 1.667E-01=12.3%
+     - Hamiltonian application: 4.035E-01=29.7%
+     - orthoconstraint: 8.854E-02= 6.5%
+     - preconditioning: 6.372E-01=46.9%
+     - unitary optimization: 5.066E-07= 0.0%
+     - other: 6.323E-02= 4.7%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -739,13 +739,13 @@ max deviation from unity, position:  6.953439E-04  2  2
  Final values for fnrm, fnrmMax, trace:   1.0140613E-02  1.2418933E-02   3.0095816
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.291E+00
-     - orthonormalization: 1.506E-01=11.7%
-     - Hamiltonian application: 3.800E-01=29.4%
-     - orthoconstraint: 7.767E-02= 6.0%
-     - preconditioning: 6.267E-01=48.5%
-     - unitary optimization: 2.384E-07= 0.0%
-     - other: 5.610E-02= 4.3%
+   -total time: 1.355E+00
+     - orthonormalization: 1.658E-01=12.2%
+     - Hamiltonian application: 4.035E-01=29.8%
+     - orthoconstraint: 8.840E-02= 6.5%
+     - preconditioning: 6.344E-01=46.8%
+     - unitary optimization: 0.000E+00= 0.0%
+     - other: 6.299E-02= 4.6%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1092,13 +1092,13 @@ max deviation from unity, position:  6.953439E-04  2  2
  Final values for fnrm, fnrmMax, trace:   1.5417302E-03  2.1319097E-03   2.9137883
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.289E+00
-     - orthonormalization: 1.501E-01=11.6%
-     - Hamiltonian application: 3.801E-01=29.5%
-     - orthoconstraint: 7.776E-02= 6.0%
-     - preconditioning: 6.248E-01=48.5%
-     - unitary optimization: 3.874E-07= 0.0%
-     - other: 5.621E-02= 4.4%
+   -total time: 1.355E+00
+     - orthonormalization: 1.659E-01=12.2%
+     - Hamiltonian application: 4.032E-01=29.8%
+     - orthoconstraint: 8.832E-02= 6.5%
+     - preconditioning: 6.348E-01=46.8%
+     - unitary optimization: 2.682E-07= 0.0%
+     - other: 6.286E-02= 4.6%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1445,13 +1445,13 @@ max deviation from unity, position:  6.953439E-04  2  2
  Final values for fnrm, fnrmMax, trace:   1.3805367E-03  1.9895331E-03   2.9423206
  ============================= Basis functions created. =============================
  timings:
-   -total time: 1.291E+00
-     - orthonormalization: 1.510E-01=11.7%
-     - Hamiltonian application: 3.798E-01=29.4%
-     - orthoconstraint: 7.763E-02= 6.0%
-     - preconditioning: 6.260E-01=48.5%
-     - unitary optimization: 5.066E-07= 0.0%
-     - other: 5.624E-02= 4.4%
+   -total time: 1.356E+00
+     - orthonormalization: 1.668E-01=12.3%
+     - Hamiltonian application: 4.028E-01=29.7%
+     - orthoconstraint: 8.841E-02= 6.5%
+     - preconditioning: 6.356E-01=46.9%
+     - unitary optimization: 2.384E-07= 0.0%
+     - other: 6.277E-02= 4.6%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -1771,6 +1771,7 @@ max deviation from unity, position:  6.953439E-04  2  2
  ======================== Creation of the basis functions... ========================
  Gathering the potential... done.
  Gathering the potential... done.
+ creating new locregs...
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
  iter, fnrm, fnrmMax, trace     1  1.6914773E-01  1.8932531E-01    -2.0674797788
@@ -1818,13 +1819,13 @@ Preconditioning.
  Final values for fnrm, fnrmMax, trace:   4.3384068E-03  5.7296790E-03  -2.3537870
  ============================= Basis functions created. =============================
  timings:
-   -total time: 2.330E+00
-     - orthonormalization: 2.540E-01=10.9%
-     - Hamiltonian application: 7.122E-01=30.6%
-     - orthoconstraint: 1.513E-01= 6.5%
-     - preconditioning: 1.044E+00=44.8%
-     - unitary optimization: 3.576E-07= 0.0%
-     - other: 1.688E-01= 7.2%
+   -total time: 2.456E+00
+     - orthonormalization: 2.776E-01=11.3%
+     - Hamiltonian application: 7.647E-01=31.1%
+     - orthoconstraint: 1.715E-01= 7.0%
+     - preconditioning: 1.060E+00=43.1%
+     - unitary optimization: 1.490E-07= 0.0%
+     - other: 1.826E-01= 7.4%
  calculating derivative basis functions... statistics: - 24 point to point communications, of which 0 could be overlapped with computation.
              - 32 copies on the same processor.
 done.
@@ -2169,11 +2170,11 @@ done.
    Calculation finished. TOTAL CHARGE =   1.399999973639E+01
  ------------------------------------- Building linear combinations... done.
  ================================================
- total time for linear scaling version: 3.676E+01s
+ total time for linear scaling version: 3.376E+01s
    of which:
-             - initialization: 4.578E-01s ( 1.2%)
-             - input guess: 1.496E+00s ( 4.1%)
-             - self consistency cycle: 3.327E+01s (90.5%)
+             - initialization: 4.581E-01s ( 1.4%)
+             - input guess: 1.543E+00s ( 4.6%)
+             - self consistency cycle: 3.052E+01s (90.4%)
              - forces: 0.000E+00s ( 0.0%)
  ================================================
  ---------------------------------------------------------- Gaussian Basis Projection
@@ -2194,7 +2195,7 @@ done.
  total average noise            :   1.39833190E-02
  clean forces norm (Ha/Bohr): maxval=  2.113810553133E-02  fnrm2=  7.693079092028E-04
  raw forces:                  maxval=  2.603711772992E-02  fnrm2=  9.720134768701E-04
- CPU time/ELAPSED time for root process     0        37.37        37.12
+ CPU time/ELAPSED time for root process     0        34.37        34.24
  Final values of the Forces for each atom
      1      C -1.63924E-02  1.32894E-02 -1.22437E-03
      2      C -1.25426E-03 -2.68664E-03  1.50128E-03
@@ -2205,6 +2206,6 @@ done.
      7      H  7.03263E-03 -3.92599E-03 -1.54880E-04
      8      H  5.58924E-03 -3.59272E-03  1.45830E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 34306 allocations and 34303 deallocations, remaining memory(B): 2670720
+ 34306 allocations and 34306 deallocations, remaining memory(B): 0
  memory occupation peak: 125 MB
  for the array  ovrlpCompressed_receive in the routine calculateOverlapMatrix3
