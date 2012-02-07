@@ -1142,6 +1142,7 @@ subroutine scalar_kmeans_diffIG(nIG,crit,nel,vect,string,nbuf)
 end subroutine scalar_kmeans_diffIG
 
 subroutine init_random_seed(shuffler)
+  implicit none
   integer, intent(in) :: shuffler
   integer :: i, n, clock
   integer, dimension(:), allocatable :: seed

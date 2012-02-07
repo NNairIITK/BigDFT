@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 06/02/2012
+# Date: 07/02/2012
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -1739,6 +1739,8 @@ class Module(Code):
         self.use_modules = set()
         #There is a contains statement
         self.contains = True
+        #True if already analyzed
+        self.analyzed_variables = False
         #Gestion of the cache
         #1 - Time stamp
         if self.parent:
@@ -1832,6 +1834,11 @@ class Module(Code):
     #
     def analyze_variables(self,project):
         "Analyze the variables of the routine"
+        if self.analyzed_variables:
+            #Already done
+            return
+        else:
+            self.analyzed_variables = True
         self.Declaration.analyze_variables(self.Implicit.dict,project)
         #If it is inside a module i.e. the parent is a module, then
         if isinstance(self.parent,Module):
@@ -1841,18 +1848,22 @@ class Module(Code):
             self.Declaration.dict_vars.update(self.parent.Declaration.dict_vars)
             #Add also the private variables
             self.Declaration.dict_vars.update(self.parent.Declaration.dict_vars_private)
-        #Special case for a super module (no contains and no variable or interface declarations)
-        if not self.contains and len(self.Declaration.dict_vars) == 0:
-            #Add the variables of the modules as its own variables
-            print self.name,self.file,self.dir
-            sys.exit(1)
+        #Add the variables of the modules as its own variables
+        for module in self.use_modules:
+            a = project.modules.get(module)
+            if a:
+                a.analyze_variables(project)
+                self.Declaration.dict_vars.update(a.Declaration.dict_vars)
+            else:
+                self.message.warning("[%s/%s:%s] The module '%s' is missing!" \
+                    % (self.dir,self.file,self.name,a))
     #
     def dependencies(self,project):
         "Build the dependencies from the list of use"
         dependencies = set()
         dirs = set()
-        for mod in self.use_modules:
-            a = project.modules.get(mod)
+        for module in self.use_modules:
+            a = project.modules.get(module)
             if a:
                 if a.dir == self.dir:
                     #Only dependencies of modules with the same directories
@@ -2301,9 +2312,13 @@ class Header_Routine(Code):
     def analyze(self,line,iter_code):
         "Analyze the header"
         Code.analyze(self)
+        #Remove comments
+        line = self.re_comment.sub('',line)
         self.add_code(line)
         while self.re_continuation.search(line):
             line = iter_code.next()
+            #Remove comments
+            line = self.re_comment.sub('',line)
             self.add_code(line)
         #Analyze the header
         search = self.re_startblock.match(self.code).groupdict()
@@ -2316,8 +2331,6 @@ class Header_Routine(Code):
             if args == '()':
                 args = None
         if args:
-            #Remove comments
-            args = self.re_comment.sub('',args)
             self.arguments = self.re_inarg.sub('',args)
             self.arguments = self.arguments.split(',')
         else:
@@ -2926,8 +2939,7 @@ class Declaration(Code):
                                 + " the argument '%s' depends on '%s' which could be in these modules." \
                                 % (arg.name,name))
                     else:
-                        bigdft.modules['module_defs'].Declaration.dict_vars['gp'].display_information()
-                        print bigdft.modules['module_base'].Declaration.dict_vars
+                        print self.parent.use_modules
                         message("%s\n[%s/%s:%s]:" % \
                                            (texte,self.parent.dir,self.parent.file,self.parent.name) \
                                 + " The argument '%s' depends on '%s'" % (arg.name,name) \

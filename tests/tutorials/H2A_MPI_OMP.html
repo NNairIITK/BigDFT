@@ -187,7 +187,7 @@ The timing values can then be copied inside a file and plotted with the script <
       <img class="figureR" src="Figures/B80-internode.png" width="550" alt="Internode behaviour of B80 run, Keeneland" />
 <ul>
   <li>On one node only, even if net communication time is really little, efficiency goes rapidly down when we increase the number of cores used. This is an effect caused by intranode bandwidth limitation. In other terms, data are processed faster than how memory can copy them.</li>
-<li> On One node, best time-to-solution is achieved by parallelizing only with MPI (provided the memory for doing this is available). 
+<li> On one node, best time-to-solution is achieved by parallelizing only with MPI (provided the memory for doing this is available). 
 This fact is not anymore true for internode runs, where the presence on OMP allows to reduce the time spent in communication (less messages have to pass through the network). </li>
 <li> In this machine, for this network, communication time is in absolute always the same, and this is responsible for lower efficiency at high number of processes.
 A closer inspection reveals that this is due to MPI_ALLTOALL operations.</li>

@@ -927,7 +927,7 @@ END SUBROUTINE applylocpotkinone
 
 !> Applies all the projectors onto a single wavefunction
 !! Input: psi_c,psi_f
-!! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
+!! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initialized to zero at the beginning)
 subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
      nprojel,nproj,&
      !nseg_p,keyg_p,keyv_p,nvctr_p,&
