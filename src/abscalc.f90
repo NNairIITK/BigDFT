@@ -527,6 +527,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
   call timing(iproc,'CrtProjectors ','ON')
+  proj_tmp%ncplx=1
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj,proj_tmp)
   call timing(iproc,'CrtProjectors ','OF')

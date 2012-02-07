@@ -525,7 +525,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   real(gp), intent(in):: ecut_pc
 
   type(pcproj_data_type) ::PPD
-
+  type(gaussian_basis) :: proj_G !dummy here
   type(locreg_descriptors),  intent(in):: Glr
 
   
@@ -592,9 +592,9 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid,'logrid',subname)
 
-
+  proj_G%ncplx=1
   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,Pcpmult,fpmult,rxyz,radii_cf,&
-       logrid,at,orbs,PPD%pc_nlpspd)
+       logrid,at,orbs,PPD%pc_nlpspd,proj_G)
 
   ! the above routine counts atomic projector and the number of their element for psp
   ! We must therefore correct , later, nlpspd%nprojel  and nlpspd%nproj

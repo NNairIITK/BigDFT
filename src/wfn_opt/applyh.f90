@@ -713,10 +713,11 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
         enddo
 !    PAW case
      else
+        i=0
         do i_shell=1,G%nshltot
            l=G%nam(i_shell)
-           do j=1,G%ndoc(i_shell)
-              i=1 !Use only i=1 for PAW
+           i=i+1 !projector index
+           do j=1,G%ndoc(i_shell) !Gaussian expansion for that projector
               call applyprojector(ncplx,l,i,at%psppar(0,0,ityp),at%npspcode(ityp),&
                    wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
                    mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
