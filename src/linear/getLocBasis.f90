@@ -1864,12 +1864,14 @@ contains
         istart=1
         do iorb=1,lorbs%norbp
             !ilr=lorbs%inWhichLocregp(iorb)
-            iiorb=lorbs%isorb+iorb
-            ilr=lorbs%inWhichLocreg(iiorb)
             if(.not.newgradient) then
+                iiorb=lorbs%isorb+iorb
+                ilr=lorbs%inWhichLocreg(iiorb)
                 ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
                 call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, lphi(istart), 1)
             else
+                iiorb=orbslarge%isorb+iorb
+                ilr=orbslarge%inWhichLocreg(iiorb)
                 ncount=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
                 call daxpy(ncount, -alpha(iorb), lhphilarge(istart), 1, lphilarge(istart), 1)
             end if
