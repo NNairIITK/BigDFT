@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                (Ver 1.6-dev.20)
+                           ggggg       i         BBBB                (Ver 1.6-dev.21)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -40,6 +40,7 @@
  |ig_tol  1.00E-04           Input guess: Tolerance criterion
  |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  |rho_commun DBL             Density communication scheme
+ |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
  |linear OFF                 Linear Input Guess approach
  |verbosity 2                verbosity of the output 0=low, 2=high
  |psp_onfly F                Calculate pseudopotential projectors on the fly
@@ -232,11 +233,11 @@
  >>>> Partition of the basis functions including the derivatives among the processes.
     | Processes from 0 to 7 treat 19 orbitals. |
  ------------------------------------------------------------------------------------
- Initializing localization regions... done in 1.989E-02s.
- Initializing communications sumrho... done in 9.394E-05s.
- Initializing communications potential... done in 3.195E-05s.
- Initializing communications orthonormalization... done in 4.300E-01s.
- Initializing input guess... done in 9.654E-02s.
+ Initializing localization regions... done in 3.298E-02s.
+ Initializing communications sumrho... done in 1.101E-04s.
+ Initializing communications potential... done in 3.600E-05s.
+ Initializing communications orthonormalization... done in 5.810E-01s.
+ Initializing input guess... done in 1.271E-01s.
  ################################# Memory estimator ##################################
  WARNING: The memory requirements are underestimated by about 20-30%!
  Memory requirements of the largest arrays:
@@ -246,16 +247,16 @@
    charge density / potential: 3MB
    communication buffers sumrho: 12MB
    communication buffers for gathering the potential: 9MB
-   communication buffers / workk arrays for orthonormalization: 7MB
+   communication buffers / workk arrays for orthonormalization: 9MB
    auxilliary arrays for orthonormalization: 2MB
    potential / orbital in real space (Hamiltonian application): 5MB
    input guess, all orbitals: 0MB
-   input guess, communication buffers and auxilliary arrays for orthonormalization : 8MB
+   input guess, communication buffers and auxilliary arrays for orthonormalization : 11MB
    input guess, communication buffers for gathering the potential: 9MB
- >>> estimated memory peak: 33MB
+ >>> estimated memory peak: 36MB
  >>> peak section: Optimization of the basis functions
  #####################################################################################
- Initializing matrix compression... done in 6.190E-02s.
+ Initializing matrix compression... done in 1.663E-03s.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 38 Atomic Input Orbitals
  Processes from 0 to 5 treat 5 inguess orbitals 
@@ -272,52 +273,88 @@ done.
  PSolver, free  BC, dimensions:   143   97   93   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  Gathering the potential... done.
- Hamiltonian application for all atoms. This may take some time.
+ Hamiltonian application for all locregs. This may take some time.
  Gathering the potential... done.
-   atom 1...  Hamiltonian application...done.
-   atom 2...  Hamiltonian application...done.
-   atom 3...  Hamiltonian application...done.
-   atom 4...  Hamiltonian application...done.
-   atom 5...    no Hamiltonian application required... done.
-   atom 6...    no Hamiltonian application required... done.
-   atom 7...  Hamiltonian application...done.
-   atom 8...  Hamiltonian application...done.
-   atom 9...  Hamiltonian application...done.
-   atom 10...  Hamiltonian application...done.
-   atom 11...  Hamiltonian application...done.
-   atom 12...  Hamiltonian application...done.
-   atom 13...  Hamiltonian application...done.
-   atom 14...  Hamiltonian application...done.
-   atom 15...  Hamiltonian application...done.
-   atom 16...    no Hamiltonian application required... done.
-   atom 17...    no Hamiltonian application required... done.
-   atom 18...    no Hamiltonian application required... done.
-   atom 19...    no Hamiltonian application required... done.
-   atom 20...    no Hamiltonian application required... done.
+   locreg 1...  Hamiltonian application...done.
+   locreg 2...  Hamiltonian application...done.
+   locreg 3...  Hamiltonian application...done.
+   locreg 4...  Hamiltonian application...done.
+   locreg 5...  Hamiltonian application...done.
+   locreg 6...  Hamiltonian application...done.
+   locreg 7...  Hamiltonian application...done.
+   locreg 8...  Hamiltonian application...done.
+   locreg 9...  Hamiltonian application...done.
+   locreg 10...  Hamiltonian application...done.
+   locreg 11...  Hamiltonian application...done.
+   locreg 12...  Hamiltonian application...done.
+   locreg 13...  Hamiltonian application...done.
+   locreg 14...  Hamiltonian application...done.
+   locreg 15...  Hamiltonian application...done.
+   locreg 16...  Hamiltonian application...done.
+   locreg 17...  Hamiltonian application...done.
+   locreg 18...  Hamiltonian application...done.
+   locreg 19...  Hamiltonian application...done.
+   locreg 20...  Hamiltonian application...done.
+   locreg 21...  Hamiltonian application...done.
+   locreg 22...  Hamiltonian application...done.
+   locreg 23...  Hamiltonian application...done.
+   locreg 24...  Hamiltonian application...done.
+   locreg 25...  Hamiltonian application...done.
+   locreg 26...    no Hamiltonian application required... done.
+   locreg 27...    no Hamiltonian application required... done.
+   locreg 28...    no Hamiltonian application required... done.
+   locreg 29...    no Hamiltonian application required... done.
+   locreg 30...    no Hamiltonian application required... done.
+   locreg 31...    no Hamiltonian application required... done.
+   locreg 32...    no Hamiltonian application required... done.
+   locreg 33...    no Hamiltonian application required... done.
+   locreg 34...    no Hamiltonian application required... done.
+   locreg 35...    no Hamiltonian application required... done.
+   locreg 36...    no Hamiltonian application required... done.
+   locreg 37...    no Hamiltonian application required... done.
+   locreg 38...    no Hamiltonian application required... done.
 The minimization is performed using 8 processes.
  the specified memory allows to overlap 71234 iterations with communication
  Calculating Hamiltonian matrix for all atoms. This may take some time.
-   Calculating matrix for atom 1... done.
-   Calculating matrix for atom 2... done.
-   Calculating matrix for atom 3... done.
-   Calculating matrix for atom 4... done.
-   Calculating matrix for atom 5... done.
-   Calculating matrix for atom 6... done.
-   Calculating matrix for atom 7... done.
-   Calculating matrix for atom 8... done.
-   Calculating matrix for atom 9... done.
-   Calculating matrix for atom 10... done.
-   Calculating matrix for atom 11... done.
-   Calculating matrix for atom 12... done.
-   Calculating matrix for atom 13... done.
-   Calculating matrix for atom 14... done.
-   Calculating matrix for atom 15... done.
-   Calculating matrix for atom 16... done.
-   Calculating matrix for atom 17... done.
-   Calculating matrix for atom 18... done.
-   Calculating matrix for atom 19... done.
-   Calculating matrix for atom 20... done.
- communicating matrices... jj          20
+   Calculating matrix for locreg 1... done.
+   Calculating matrix for locreg 2... done.
+   Calculating matrix for locreg 3... done.
+   Calculating matrix for locreg 4... done.
+   Calculating matrix for locreg 5... done.
+   Calculating matrix for locreg 6... done.
+   Calculating matrix for locreg 7... done.
+   Calculating matrix for locreg 8... done.
+   Calculating matrix for locreg 9... done.
+   Calculating matrix for locreg 10... done.
+   Calculating matrix for locreg 11... done.
+   Calculating matrix for locreg 12... done.
+   Calculating matrix for locreg 13... done.
+   Calculating matrix for locreg 14... done.
+   Calculating matrix for locreg 15... done.
+   Calculating matrix for locreg 16... done.
+   Calculating matrix for locreg 17... done.
+   Calculating matrix for locreg 18... done.
+   Calculating matrix for locreg 19... done.
+   Calculating matrix for locreg 20... done.
+   Calculating matrix for locreg 21... done.
+   Calculating matrix for locreg 22... done.
+   Calculating matrix for locreg 23... done.
+   Calculating matrix for locreg 24... done.
+   Calculating matrix for locreg 25... done.
+   Calculating matrix for locreg 26... done.
+   Calculating matrix for locreg 27... done.
+   Calculating matrix for locreg 28... done.
+   Calculating matrix for locreg 29... done.
+   Calculating matrix for locreg 30... done.
+   Calculating matrix for locreg 31... done.
+   Calculating matrix for locreg 32... done.
+   Calculating matrix for locreg 33... done.
+   Calculating matrix for locreg 34... done.
+   Calculating matrix for locreg 35... done.
+   Calculating matrix for locreg 36... done.
+   Calculating matrix for locreg 37... done.
+   Calculating matrix for locreg 38... done.
+ communicating matrices... jj          38
  done.
  ------------------------------- Minimizing trace in the basis of the atomic orbitals
 The minimization is performed using 8 processes.
@@ -344,10 +381,10 @@ max deviation from unity, position:  4.740469E-03  1  1
 max deviation from unity, position:  3.727305E-03  7  15
  fnrm, trace, mean alpha   1.05E-01   1.5052498314063E+01  8.55E-01
  ----------------------------------------------------------------------------- iter=8
-max deviation from unity, position:  4.018720E-03  15  7
+max deviation from unity, position:  4.018720E-03  7  15
  fnrm, trace, mean alpha   1.02E-01   1.5052804410448E+01  9.20E-01
  ----------------------------------------------------------------------------- iter=9
-max deviation from unity, position:  4.319155E-03  15  7
+max deviation from unity, position:  4.319155E-03  7  15
  fnrm, trace, mean alpha   9.90E-02   1.5052840771019E+01  9.86E-01
  ---------------------------------------------------------------------------- iter=10
 max deviation from unity, position:  4.631064E-03  7  15
@@ -362,10 +399,10 @@ max deviation from unity, position:  5.289478E-03  7  15
 max deviation from unity, position:  5.634572E-03  7  15
  fnrm, trace, mean alpha   8.63E-02   1.5052523677753E+01  1.42E+00
  ---------------------------------------------------------------------------- iter=14
-max deviation from unity, position:  5.988797E-03  15  7
+max deviation from unity, position:  5.988797E-03  7  15
  fnrm, trace, mean alpha   8.29E-02   1.5052437732022E+01  1.56E+00
  ---------------------------------------------------------------------------- iter=15
-max deviation from unity, position:  6.350620E-03  15  7
+max deviation from unity, position:  6.350620E-03  7  15
  fnrm, trace, mean alpha   7.94E-02   1.5052356366201E+01  1.72E+00
  ---------------------------------------------------------------------------- iter=16
 max deviation from unity, position:  6.718582E-03  7  15
@@ -374,7 +411,7 @@ max deviation from unity, position:  6.718582E-03  7  15
 max deviation from unity, position:  7.090682E-03  7  15
  fnrm, trace, mean alpha   7.24E-02   1.5052203894555E+01  2.08E+00
  ---------------------------------------------------------------------------- iter=18
-max deviation from unity, position:  7.465645E-03  15  7
+max deviation from unity, position:  7.465645E-03  7  15
  fnrm, trace, mean alpha   6.88E-02   1.5052125485001E+01  2.14E+00
  ---------------------------------------------------------------------------- iter=19
 max deviation from unity, position:  7.840220E-03  7  15
@@ -429,13 +466,13 @@ max deviation from unity, position:  8.216493E-03  7  15
  Final values for fnrm, fnrmMax, trace:   7.0475073E-01  1.1103703E+00   5.1718585
  ============================= Basis functions created. =============================
  timings:
-   -total time: 3.958E-01
-     - orthonormalization: 3.275E-02= 8.3%
-     - Hamiltonian application: 1.434E-01=36.2%
-     - orthoconstraint: 2.139E-02= 5.4%
-     - preconditioning: 1.844E-01=46.6%
-     - unitary optimization: 2.071E-05= 0.0%
-     - other: 1.390E-02= 3.5%
+   -total time: 4.372E-01
+     - orthonormalization: 4.008E-02= 9.2%
+     - Hamiltonian application: 1.542E-01=35.3%
+     - orthoconstraint: 3.553E-02= 8.1%
+     - preconditioning: 1.854E-01=42.4%
+     - unitary optimization: 0.000E+00= 0.0%
+     - other: 2.204E-02= 5.0%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -472,7 +509,7 @@ max deviation from unity, position:  8.216493E-03  7  15
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.10E-06   -4.65319733443273833E+01   -4.6532E+01
+   it, Delta DENS, energy, energyDiff   1   5.10E-06   -4.65319733443276391E+01   -4.6532E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -510,7 +547,7 @@ max deviation from unity, position:  8.216493E-03  7  15
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.83E-06   -3.95356485008309733E+01    6.9963E+00
+   it, Delta DENS, energy, energyDiff   2   1.83E-06   -3.95356485008306606E+01    6.9963E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -548,9 +585,9 @@ max deviation from unity, position:  8.216493E-03  7  15
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   7.51E-07   -4.00101756695079018E+01   -4.7453E-01
+   it, Delta DENS, energy, energyDiff   3   7.51E-07   -4.00101756695081008E+01   -4.7453E-01
  ############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   1   2.94E-06   -4.00101756695079018E+01   -4.0010E+01
+   itout, Delta DENSOUT, energy, energyDiff   1   2.94E-06   -4.00101756695081008E+01   -4.0010E+01
  ======================== Creation of the basis functions... ========================
  Gathering the potential... done.
  Gathering the potential... done.
@@ -565,13 +602,13 @@ max deviation from unity, position:  8.216493E-03  7  15
  Final values for fnrm, fnrmMax, trace:   1.0719650E-01  1.4563911E-01  -5.5437444
  ============================= Basis functions created. =============================
  timings:
-   -total time: 4.056E-01
-     - orthonormalization: 3.121E-02= 7.7%
-     - Hamiltonian application: 1.542E-01=38.0%
-     - orthoconstraint: 2.053E-02= 5.1%
-     - preconditioning: 1.847E-01=45.5%
-     - unitary optimization: 3.576E-07= 0.0%
-     - other: 1.496E-02= 3.7%
+   -total time: 5.595E-01
+     - orthonormalization: 4.127E-02= 7.4%
+     - Hamiltonian application: 1.707E-01=30.5%
+     - orthoconstraint: 3.894E-02= 7.0%
+     - preconditioning: 1.836E-01=32.8%
+     - unitary optimization: 2.384E-07= 0.0%
+     - other: 1.250E-01=22.3%
  calculating derivative basis functions... statistics: - 24 point to point communications, of which 0 could be overlapped with computation.
              - 128 copies on the same processor.
 done.
@@ -613,7 +650,7 @@ done.
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.74E-06   -5.03953371467477496E+01   -1.0385E+01
+   it, Delta DENS, energy, energyDiff   1   2.74E-06   -5.03953371467480338E+01   -1.0385E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -653,7 +690,7 @@ done.
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.65E-06   -3.85476790280114585E+01    1.1848E+01
+   it, Delta DENS, energy, energyDiff   2   2.65E-06   -3.85476790280112880E+01    1.1848E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -693,9 +730,9 @@ done.
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   5.54E-07   -4.20427739210043399E+01   -3.4951E+00
+   it, Delta DENS, energy, energyDiff   3   5.54E-07   -4.20427739210047093E+01   -3.4951E+00
  ############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   2   1.60E-06   -4.20427739210043399E+01   -2.0326E+00
+   itout, Delta DENSOUT, energy, energyDiff   2   1.60E-06   -4.20427739210047093E+01   -2.0326E+00
  Posting sends / receives for the calculation of the charge density... done.
  Calculating charge density...
    calculating the density kernel... done.
@@ -703,11 +740,11 @@ done.
    Calculation finished. TOTAL CHARGE =   3.799999398975E+01
  ------------------------------------- Building linear combinations... done.
  ================================================
- total time for linear scaling version: 2.515E+01s
+ total time for linear scaling version: 2.334E+01s
    of which:
-             - initialization: 6.261E-01s ( 2.5%)
-             - input guess: 2.074E+00s ( 8.2%)
-             - self consistency cycle: 1.846E+01s (73.4%)
+             - initialization: 7.703E-01s ( 3.3%)
+             - input guess: 3.598E+00s (15.4%)
+             - self consistency cycle: 1.505E+01s (64.5%)
              - forces: 0.000E+00s ( 0.0%)
  ================================================
  ---------------------------------------------------------- Gaussian Basis Projection
@@ -726,9 +763,9 @@ done.
  average noise along y direction:  -1.91069835E-02
  average noise along z direction:   5.84583466E-03
  total average noise            :   6.32795778E-02
- clean forces norm (Ha/Bohr): maxval=  4.797488751562E-02  fnrm2=  2.408667488795E-02
- raw forces:                  maxval=  5.177287142940E-02  fnrm2=  2.816240081743E-02
- CPU time/ELAPSED time for root process     0        26.18        22.39
+ clean forces norm (Ha/Bohr): maxval=  4.797488751564E-02  fnrm2=  2.408667488797E-02
+ raw forces:                  maxval=  5.177287142939E-02  fnrm2=  2.816240081746E-02
+ CPU time/ELAPSED time for root process     0        24.38        24.33
  Final values of the Forces for each atom
      1      C  1.57221E-02 -3.63324E-03  2.82551E-03
      2      C  3.45774E-02 -1.67130E-04  1.01928E-03
@@ -751,6 +788,6 @@ done.
     19      H -1.23319E-02  2.11028E-02 -3.43849E-02
     20      H -4.54006E-02 -1.52069E-02  3.02080E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 21909 allocations and 21909 deallocations, remaining memory(B): 0
- memory occupation peak: 140 MB
+ 28029 allocations and 28029 deallocations, remaining memory(B): 0
+ memory occupation peak: 154 MB
  for the array  work in the routine overlapPowerMinusOneHalf
