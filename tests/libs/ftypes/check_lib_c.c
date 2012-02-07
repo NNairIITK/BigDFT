@@ -169,16 +169,12 @@ int main(guint argc, char **argv)
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
 
+  fprintf(stdout, " Calculate ionic potential.\n");
+  bigdft_localfields_create_effective_ionic_pot(denspot, in, 0, 1);
+
   fprintf(stdout, "Test BigDFT_LocalFields free.\n");
   bigdft_localfields_free(denspot);
   fprintf(stdout, " Ok\n");
-
-  /* fprintf(stdout, "Test Poisson solver kernel creation.\n"); */
-  /* pkernel = bigdft_psolver_create_kernel(glr, 0, 1); */
-
-  /* fprintf(stdout, "Test Poisson solver kernel free.\n"); */
-  /* bigdft_psolver_free_kernel(pkernel); */
-  /* fprintf(stdout, " Ok\n"); */
 
   fprintf(stdout, "Test BigDFT_Proj free.\n");
   bigdft_proj_free(proj);

@@ -238,7 +238,12 @@ typedef struct BigDFT_LocalFields_
   /* TODO, see when these are associated. */
   /* double *rho_full, *pot_full, *rho_psi, *rho_c, *vloc_ks, *f_xc; */
 
+  /* Pointers on building objects. */
+  const BigDFT_Atoms *atoms;
+  const BigDFT_Glr *glr;
+
   /* Private. */
+  double *pkernel, *pkernelseq;
   void *rhod;
   void *dpcom;
   void *data;
@@ -253,6 +258,9 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Atoms *atoms,
                                             const double *radii,
                                             guint iproc, guint nproc);
 void                bigdft_localfields_free(BigDFT_LocalFields *denspotd);
+void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
+                                                   const BigDFT_Inputs *in,
+                                                   guint iproc, guint nproc);
 
 /******************/
 /* Miscellaneous. */

@@ -512,7 +512,7 @@ subroutine localfields_get_v_ext(denspot, v_ext)
   use module_types
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
-  real(dp), dimension(:,:,:,:), pointer :: v_ext
+  real(wp), dimension(:,:,:,:), pointer :: v_ext
 
   v_ext => denspot%v_ext
 END SUBROUTINE localfields_get_v_ext
@@ -520,7 +520,23 @@ subroutine localfields_get_v_xc(denspot, v_xc)
   use module_types
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
-  real(dp), dimension(:,:,:,:), pointer :: v_xc
+  real(wp), dimension(:,:,:,:), pointer :: v_xc
 
   v_xc => denspot%v_xc
 END SUBROUTINE localfields_get_v_xc
+subroutine localfields_get_pkernel(denspot, pkernel)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:), pointer :: pkernel
+
+  pkernel => denspot%pkernel
+END SUBROUTINE localfields_get_pkernel
+subroutine localfields_get_pkernelseq(denspot, pkernelseq)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:), pointer :: pkernelseq
+
+  pkernelseq => denspot%pkernelseq
+END SUBROUTINE localfields_get_pkernelseq
