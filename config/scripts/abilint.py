@@ -495,7 +495,7 @@ def build_declaration(dict_vars):
 class Project:
     "Class to define a project which is a set of directories and files."
     def __init__(self,dir,pat_dir=['*'],pat_file=["*"],exclude=[],name="",logfile="project.log",\
-                 given_include=dict(),File_Class=dict()):
+                 given_include=dict(),File_Class=dict(),style_comment="robodoc"):
         "Initialisation"
         self.ROOT = dir
         self.re_ROOT = re.compile("^"+self.ROOT+"/")
@@ -525,6 +525,8 @@ class Project:
         self.ftypes = dict()
         #Number of copied files
         self.copied = 0
+        #Style of the comments for the documentation
+        self.style_comment = style_comment
         #Data which are saved for a new process
         self.cached = dict()
         #Message in the case of routines with the same name and building of interfaces
@@ -1335,19 +1337,21 @@ class File_F90(File):
         self.message.write("]\n",verbose=10)
     #
     def analyze_comments(self,project,edition=False):
-        "Analyze comments to detect robodoc headers and footers"
+        "Analyze comments to detect headers and footers (robodoc or doxygen style)"
         temp_structs = self.children
         self.children = []
         for struct in temp_structs:
             if isinstance(struct,Comment):
                 #Detect robodc comments, split comments if necessary and add to children of self
-                struct.detect_robodoc_comment()
+                if project.style_comment == "robodoc":
+                    struct.detect_robodoc_comment()
             else:
                 #Add the structure
                 self.children.append(struct)
-        #We have splitted the comments. Now we build robodoc structure
-        #(Robodoc_Header -- [comment] -- Routine -- Robodoc_Footer)
-        self.build_robodoc_structure()
+        if project.style_comment == "robodoc":
+            #We have splitted the comments. Now we build robodoc structure
+            #(Robodoc_Header -- [comment] -- Routine -- Robodoc_Footer)
+            self.build_robodoc_structure()
         #Finally, analyze comment
         for struct in self.children:
             if isinstance(struct,Comment):
@@ -3960,7 +3964,8 @@ if __name__ == "__main__":
                      pat_file=["*.F90","*.f90", "*.inc"],\
                      logfile="abilint.log",\
                      exclude=bigdft_exclude,given_include=bigdft_include,\
-                     File_Class=bigdft_File_Class)
+                     File_Class=bigdft_File_Class,\
+                     style_comment="doxygen")
     bigdft.message.write("(%d directories, %d files)" \
             % (len(bigdft.dirs),len(bigdft.files)),verbose=-10)
     bigdft.message.done()
