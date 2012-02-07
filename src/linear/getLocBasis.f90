@@ -1802,11 +1802,13 @@ contains
                  istdest=1
                  do iorb=1,lorbs%norbp
                      !ilr=lorbs%inWhichLocregp(iorb)
-                     iiorb=lorbs%isorb+iorb
-                     ilr=lorbs%inWhichLocreg(iiorb)
                      if(.not.newgradient) then
+                         iiorb=lorbs%isorb+iorb
+                         ilr=lorbs%inWhichLocreg(iiorb)
                          ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
                      else
+                         iiorb=orbslarge%isorb+iorb
+                         ilr=orbslarge%inWhichLocreg(iiorb)
                          ncount=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
                      end if
                      istsource=offset+ii*ncount+1
