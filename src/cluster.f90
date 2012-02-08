@@ -217,9 +217,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   character(len=500) :: errmess
   logical :: endloop,endlooprp,refill_proj !,potential_from_disk=.false.
   logical :: DoDavidson,DoLastRunThings=.false.,lcs,scpot
-  integer :: ixc,ncong,ncongt,nspin,icycle,potden,input_wf_format
+  integer :: ncong,ncongt,icycle,potden
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
-  integer :: j,i,npoints
+  integer :: i,npoints
   integer :: n1_old,n2_old,n3_old,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,nproctiming
@@ -230,11 +230,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,eSIC_DC,rpnrm,gnrm,gnrm_zero
   real(gp) :: energybs,tel
   real(gp) :: edisp ! Dispersion energy
+  type(grid_dimensions) :: d_old
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms, commsv
   type(orbitals_data) :: orbsv
-  type(gaussian_basis) :: Gvirt
   type(diis_objects) :: diis
   !type(denspot_distribution) :: denspotd
   real(gp), dimension(3) :: shift,hgrids
@@ -263,7 +263,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer :: nkptv, nvirtu, nvirtd, linflag
   real(gp), dimension(:), allocatable :: wkptv
   !type(rho_descriptors) :: rhodsc
-  type(linearParameters):: lin
+  type(linearParameters) :: lin
   type(confpot_data), dimension(:), allocatable :: confdatarr
 
   ! ----------------------------------
@@ -275,12 +275,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !Hence WARNING: these variables are copied, in case of an update the new value should be 
   !reassigned inside the structure
 
-  ixc=in%ixc
   gnrm_cv=in%gnrm_cv
   ncong=in%ncong
   rbuf=in%rbuf
   ncongt=in%ncongt
-  nspin=in%nspin
 
   write(gridformat, "(A)") ""
   select case (in%output_denspot_format)
@@ -347,7 +345,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   call system_initialization(iproc,nproc,in,atoms,rxyz,&
-     inputpsi,input_wf_format,orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
+       orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
 
   hx=hgrids(1)
   hy=hgrids(2)
@@ -366,6 +364,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   n2=Lzd%Glr%d%n2
   n3=Lzd%Glr%d%n3
 
+  d_old%n1 = n1_old
+  d_old%n2 = n2_old
+  d_old%n3 = n3_old
+
   !here calculate the ionic energy and forces accordingly
   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,&
        eion,fion,in%dispersion,edisp,fdisp,ewaldstr,denspot%psoffset,&
@@ -382,59 +384,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   allocate(confdatarr(orbs%norbp))
   call default_confinement_data(confdatarr,orbs%norbp)
 
-  !start the optimization
   !yaml output
   if (iproc==0) then
      !      write(70,'(a,a)')repeat(' ',yaml_indent),'Electronic Ground State: '
      yaml_indent=yaml_indent+1 !hash table element
   end if
 
-  !avoid allocation of the eigenvalues array in case of restart
-  if (in%inputPsiId /= INPUT_PSI_MEMORY_WVL .and. &
-       & in%inputPsiId /= INPUT_PSI_MEMORY_GAUSS) then
-     allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-     call memocc(i_stat,orbs%eval,'eval',subname)
-  end if
-  !all the input formats need to allocate psi except the LCAO input_guess
-  ! WARNING: at the moment the linear scaling version allocates psi in the same
-  ! way as the LCAO input guess, so it is not necessary to allocate it here.
-  ! Maybe to be changed later.
-  !if (inputpsi /= 0) then
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR) then
-     allocate(psi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
-     call memocc(i_stat,psi,'psi',subname)
-  end if
-  ! INPUT WAVEFUNCTIONS, added also random input guess
-  select case(inputpsi)
-  case(INPUT_PSI_EMPTY)
-     call input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
-          & in%band_structure_filename, in%nspin, atoms, Lzd%Glr%d, denspot)
-  case(INPUT_PSI_RANDOM)
-     call input_wf_random(iproc, nproc, psi, orbs)
-  case(INPUT_PSI_CP2K)
-     call input_wf_cp2k(iproc, nproc, in%nspin, atoms, rxyz, Lzd, &
-          & hx, hy, hz, psi, orbs)
-  case(INPUT_PSI_LCAO)
-
-     nspin=in%nspin
-     !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc, atoms,denspot,&
-          orbs,norbv,comms,Lzd,hx,hy,hz,rxyz,&
-          nlpspd,proj,ixc,psi,hpsi,psit,&
-          Gvirt,nspin,0,atoms%sym,GPU,in)
-     denspot%rhov_is=KS_POTENTIAL
-
-     if (nvirt > norbv) then
-        nvirt = norbv
-     end if
-
-     !Check if we must use linear scaling for total SCF
-     !change the Lzd structure accordingly, also orbs%inwhichlocreg
-     call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms,orbs,rxyz) 
+  !obtain initial wavefunctions.
+  if (in%inputPsiId /= INPUT_PSI_LINEAR) then
+     call input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
+     & denspot, nlpspd, proj, orbs, comms, psi, hpsi, psit, inputpsi, &
+     & gbd, gaucoeffs, wfd_old, psi_old, d_old, hx_old, hy_old, hz_old, rxyz_old, norbv)
+  else
+     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
      call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
-
-  case(INPUT_PSI_LINEAR)
-
      !this does not work with ndebug activated
      lin%as%size_rhopot=size(denspot%rhov)
      lin%as%size_potxc(1)=size(denspot%V_XC,1)
@@ -469,118 +432,27 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           nlpspd,proj,GPU,eion,edisp,eexctX,scpot,psi,psit,&
           energy,fxyz)
 
-     ! put the infocode to 0, which means success
-     infocode=0
-
-
      !temporary allocation of the density
      allocate(denspot%rho_full(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3p*orbs%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,denspot%rho_full,'rho',subname)
      call vcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*denspot%dpcom%n3p*orbs%nspin,denspot%rhov(1),1,denspot%rho_full(1),1)
-    
-    ! denspot%rho_full => denspot%rhov
+
+     ! denspot%rho_full => denspot%rhov
 
      !!call finalDeallocationForLinear()
 
      !!return
+  end if
 
+  if (inputpsi == INPUT_PSI_LCAO) then
+     !Check if we must use linear scaling for total SCF
+     !change the Lzd structure accordingly, also orbs%inwhichlocreg
+     call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms,orbs,rxyz) 
+     call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
+  end if
 
-  case(INPUT_PSI_MEMORY_WVL)
-     !these parts should be reworked for the non-collinear spin case
-
-     !restart from previously calculated wavefunctions, in memory
-     if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '-------------------------------------------------------------- Wavefunctions Restart'
-     end if
-
-     call reformatmywaves(iproc,orbs,atoms,hx_old,hy_old,hz_old,&
-          n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,hx,hy,hz,n1,n2,n3,rxyz,&
-          Lzd%Glr%wfd,psi)
-
-     call deallocate_wfd(wfd_old,subname)
-
-     i_all=-product(shape(psi_old))*kind(psi_old)
-     deallocate(psi_old,stat=i_stat)
-     call memocc(i_stat,i_all,'psi_old',subname)
-
-  case(INPUT_PSI_DISK_WVL)
-     !restart from previously calculated wavefunctions, on disk
-     if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '---------------------------------------------------- Reading Wavefunctions from disk'
-     end if
-
-     !since each processor read only few eigenvalues, initialise them to zero for all
-     call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
-
-     call readmywaves(iproc,trim(in%dir_output) // "wavefunction", input_wf_format, &
-          & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Lzd%Glr%wfd,psi)
-
-     !reduce the value for all the eigenvectors
-     call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
-
-     if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
-        !recalculate orbitals occupation numbers
-        call evaltoocc(iproc,nproc,.false.,in%Tel,orbs,in%occopt)
-        !read potential depending of the mixing scheme
-        !considered as optional in the mixing case
-        !inquire(file=trim(in%dir_output)//'local_potential.cube',exist=potential_from_disk)
-        !if (potential_from_disk)  then
-        !   call read_potential_from_disk(iproc,nproc,trim(in%dir_output)//'local_potential.cube',&
-        !        atoms%geocode,ngatherarr,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,n3p,in%nspin,hxh,hyh,hzh,rhopot)
-        !end if
-     end if
-
-  case(INPUT_PSI_MEMORY_GAUSS)
-     !restart from previously calculated gaussian coefficients
-     if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
-     end if
-
-     call restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,gbd,gaucoeffs)
-
-  case(INPUT_PSI_DISK_GAUSS)
-     !reading wavefunctions from gaussian file
-     if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '------------------------------------------- Reading Wavefunctions from gaussian file'
-     end if
-
-     call read_gaussian_information(orbs,gbd,gaucoeffs,trim(in%dir_output) // 'wavefunctions.gau')
-     !associate the new positions, provided that the atom number is good
-     if (gbd%nat == atoms%nat) then
-        gbd%rxyz=>rxyz
-     else
-        !        if (iproc == 0) then
-        write( *,*)&
-             &   ' ERROR: the atom number does not coincide with the number of gaussian centers'
-        !        end if
-        stop
-     end if
-
-     call restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,gbd,gaucoeffs)
-
-  case default
-
-     !     if (iproc == 0) then
-     write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
-     call input_psi_help()
-     stop
-     !     end if
-
-  end select
-
-  !all the input format need first_orthon except the LCAO input_guess
-  ! WARNING: at the momemt the linear scaling version does not need first_orthon.
-  ! hpsi and psit have been allocated during the LCAO input guess.
-  ! Maybe to be changed later.
-  !if (inputpsi /= 0 .and. inputpsi /=-1000) then
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR .and. &
-       & inputpsi /= INPUT_PSI_EMPTY) then
-     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi,hpsi,psit,in%orthpar)
+  if (in%nvirt > norbv) then
+     nvirt = norbv
   end if
 
   !save the new atomic positions in the rxyz_old array
@@ -594,7 +466,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   hy_old=hy
   hz_old=hz
 
-
+  !start the optimization
   ! Skip the following part in the linear scaling case.
   if(inputpsi /= INPUT_PSI_LINEAR) then
 
@@ -1017,8 +889,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      i_all=-product(shape(hpsi))*kind(hpsi)
      deallocate(hpsi,stat=i_stat)
      call memocc(i_stat,i_all,'hpsi',subname)
-
- end if !end of linear if
+  else
+     ! put the infocode to 0, which means success
+     infocode=0
+  end if !end of linear if
 
   !deallocate psit and hpsi since it is not anymore done
   if (nproc > 1) then
@@ -1358,7 +1232,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
            end if
 
            call XC_potential(atoms%geocode,'D',iproc,nproc,&
-                Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
+                Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
                 denspot%rhov,eexcu,vexcu,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
            denspot%rhov_is=CHARGE_DENSITY
 

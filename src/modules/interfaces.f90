@@ -446,6 +446,40 @@ module module_interfaces
          real(wp), dimension(:), pointer :: psi
        END SUBROUTINE input_wf_cp2k
 
+       subroutine input_wf_memory(iproc, atoms, &
+            & rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
+            & rxyz, hx, hy, hz, d, wfd, psi, orbs)
+         use module_defs
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc
+         type(atoms_data), intent(in) :: atoms
+         real(gp), dimension(3, atoms%nat), intent(in) :: rxyz, rxyz_old
+         real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
+         type(grid_dimensions), intent(in) :: d, d_old
+         type(wavefunctions_descriptors), intent(in) :: wfd
+         type(wavefunctions_descriptors), intent(inout) :: wfd_old
+         type(orbitals_data), intent(in) :: orbs
+         real(wp), dimension(:), pointer :: psi, psi_old
+       END SUBROUTINE input_wf_memory
+
+       subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
+            & in, atoms, rxyz, rxyz_old, wfd, orbs, psi)
+         use module_defs
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc, nproc, input_wf_format
+         type(grid_dimensions), intent(in) :: d
+         real(gp), intent(in) :: hx, hy, hz
+         type(input_variables), intent(in) :: in
+         type(atoms_data), intent(in) :: atoms
+         real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
+         real(gp), dimension(3, atoms%nat), intent(out) :: rxyz_old
+         type(wavefunctions_descriptors), intent(in) :: wfd
+         type(orbitals_data), intent(inout) :: orbs
+         real(wp), dimension(:), pointer :: psi
+       END SUBROUTINE input_wf_disk
+
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
             orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,&
             nlpspd,proj,ixc,psi,hpsi,psit,G,&
@@ -461,7 +495,7 @@ module module_interfaces
          integer, intent(in) :: iproc,nproc,ixc
          integer, intent(inout) :: nspin,nvirt
          real(gp), intent(in) :: hx,hy,hz
-         type(atoms_data), intent(inout) :: at
+         type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(inout) :: orbs
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          type(local_zone_descriptors), intent(inout) :: Lzd
@@ -477,7 +511,34 @@ module module_interfaces
          integer, intent(in) ::potshortcut
        end subroutine input_wf_diag
 
-      subroutine reformatmywaves(iproc,orbs,at,&
+       subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
+            & denspot, nlpspd, proj, orbs, comms, psi, hpsi, psit, inputpsi, &
+            & gbd, gaucoeffs, wfd_old, psi_old, d_old, hx_old, hy_old, hz_old, rxyz_old, norbv)
+         use module_defs
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc, nproc
+         type(input_variables), intent(in) :: in
+         type(local_zone_descriptors), intent(inout) :: Lzd
+         type(GPU_pointers), intent(inout) :: GPU
+         real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
+         type(atoms_data), intent(in) :: atoms
+         real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
+         type(orbitals_data), intent(inout) :: orbs
+         type(communications_arrays), intent(in) :: comms
+         type(DFT_local_fields), intent(inout) :: denspot
+         real(wp), dimension(:), pointer :: psi,hpsi,psit,psi_old
+         integer, intent(out) :: inputpsi, norbv
+         type(wavefunctions_descriptors), intent(in) :: wfd_old
+         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+         real(kind=8), dimension(:), pointer :: proj
+         type(gaussian_basis), intent(inout) :: gbd
+         real(wp), dimension(:,:), pointer :: gaucoeffs
+         type(grid_dimensions), intent(in) :: d_old
+         real(gp), dimension(3, atoms%nat), intent(inout) :: rxyz_old
+       END SUBROUTINE input_wf
+
+       subroutine reformatmywaves(iproc,orbs,at,&
             &   hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
          hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
          !n(c) use module_base
@@ -943,7 +1004,7 @@ module module_interfaces
          implicit none
          integer, intent(in) :: iproc,nproc,nspin
          integer, intent(inout) :: nvirt
-       type(atoms_data), intent(inout) :: at
+         type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(in) :: orbs
          real(gp), dimension(3,at%nat), intent(in) :: rxyz
          real(gp), intent(out) :: eks
@@ -2477,7 +2538,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       !Arguments
       integer, intent(in) :: nspin,nspinor
       integer, intent(out) :: norbe,norbsc
-      type(atoms_data), intent(inout) :: at
+      type(atoms_data), intent(in) :: at
       logical, dimension(4,2,at%natsc), intent(out) :: scorb
       integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
       real(gp), dimension(at%nat), intent(out) :: locrad
@@ -5716,7 +5777,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine reinitialize_Lzd_after_LIG
 
        subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
-            inputpsi,input_wf_format,orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
+            orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
          use module_base
          use module_types
          implicit none
@@ -5724,8 +5785,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(input_variables), intent(in) :: in 
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-         integer, intent(out) :: inputpsi !<strategy for wavefunction input guess
-         integer, intent(out) :: input_wf_format !< format of input wavefunctions
          type(orbitals_data), intent(out) :: orbs
          type(local_zone_descriptors), intent(out) :: Lzd
          type(DFT_local_fields), intent(out) :: denspot

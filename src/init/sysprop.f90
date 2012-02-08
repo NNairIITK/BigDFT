@@ -9,7 +9,7 @@
 
 !>Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
-     inputpsi,input_wf_format,orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
+     orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
@@ -20,8 +20,6 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   type(input_variables), intent(in) :: in 
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-  integer, intent(out) :: inputpsi !<strategy for wavefunction input guess
-  integer, intent(out) :: input_wf_format !< format of input wavefunctions
   type(orbitals_data), intent(out) :: orbs
   type(local_zone_descriptors), intent(out) :: Lzd
   type(DFT_local_fields), intent(out) :: denspot
@@ -32,7 +30,6 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
   !local variables
-  logical :: onefile
   integer :: nelec
   real(gp) :: peakmem
 
@@ -54,27 +51,6 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call read_atomic_variables(trim(in%file_igpop),iproc,in,atoms,radii_cf)
 
   call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
-
-  inputpsi=in%inputPsiId
-
-  input_wf_format=WF_FORMAT_NONE !default value
-
-  !for the inputPsiId==2 case, check 
-  !if the wavefunctions are all present
-  !otherwise switch to normal input guess
-  if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
-     ! Test ETSF file.
-     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
-     if (onefile) then
-        input_wf_format= WF_FORMAT_ETSF
-     else
-        call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
-     end if
-     if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-        inputpsi=INPUT_PSI_LCAO
-     end if
-  end if
 
   call nullify_locreg_descriptors(Lzd%Glr)
 
@@ -108,16 +84,6 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
 
-  ! See if linear scaling should be activated and build the correct Lzd 
-  ! There is a copy of this inside the LCAO input guess because the norbs changes
-  ! and so the inwhichlocreg also ==> different distribution for the locregs
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LCAO_GAUSS) then
-     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
-  else
-     Lzd%nlr = 1
-     Lzd%linear = .false.
-  end if
-
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
   if (iproc==0 .and. verbose > 0) then
@@ -135,13 +101,11 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call allocateRhoPot(iproc,Lzd%Glr,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
        in,atoms,rxyz,denspot)
 
-  call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
+  !calculate the irreductible zone for this region, if necessary.
+  call symmetry_set_irreductible_zone(atoms%sym,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   !check the communication distribution
   call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
-
-  !calculate the irreductible zone for this region, if necessary.
-  call symmetry_set_irreductible_zone(atoms%sym,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   !---end of system definition routine
 end subroutine system_initialization

@@ -72,9 +72,9 @@ report:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
 	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-    if test -n "$$name" && test -f input.perf && ! grep -qs ACCEL "$$name" ; then \
+	if test -n "$$name" && test -f input.perf && ! grep -qs ACCEL "$$name" ; then \
 	   cat input.perf >> $$name.perf ; \
-    fi ; \
+	fi ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
 	if test -f input.perf.bak ; then mv -f input.perf.bak input.perf ; fi 
 	name=`basename $@ .out` ; \
