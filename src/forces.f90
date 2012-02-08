@@ -1,13 +1,14 @@
 !>  @file
 !!  Routines to calculate the local part of atomic forces
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2012 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
 
+!> Calculate atomic forces via finite differences (test purpose)
 subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
@@ -278,6 +279,8 @@ contains
 
 end subroutine forces_via_finite_differences
 
+
+!> Calculate atomic forces
 subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset)
@@ -307,11 +310,9 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
 
-
   call to_zero(6,strten(1))
 
   call to_zero(6*4,strtens(1,1))
-
 
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,strtens(1,1),charge)
@@ -362,8 +363,9 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      messages(4)='PSP Long Range'
      !here we should add the pretty printings
      do i=1,4
-        if (atoms%sym%symObj >= 0) call symm_stress((iproc==0),strtens(1,i),atoms%sym%symObj)
-        if (iproc==0 .and. verbose>2)&
+        if (atoms%sym%symObj >= 0) &
+           call symmetrize_stress((iproc==0).and.(verbose > 2),strtens(1,i),atoms%sym%symObj)
+        if (iproc==0 .and. verbose > 2)&
              call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
         do j=1,6
            strten(j)=strten(j)+strtens(j,i)
@@ -398,8 +400,9 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   ! Apply symmetries when needed
-  if (atoms%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
+  if (atoms%sym%symObj >= 0) call symmetrize_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
+
 
 !> calculate the contribution to the forces given by the core density charge
 subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
@@ -540,6 +543,8 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
   end if
 end subroutine rhocore_forces
 
+
+!> Write information about the stress tensor
 subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   use module_base
   implicit none
@@ -564,7 +569,7 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
 end subroutine write_strten_info
 
 
-!>   Calculates the local forces acting on the atoms belonging to iproc
+!> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
   use module_base
@@ -756,9 +761,9 @@ charge=charge*hxh*hyh*hzh
 END SUBROUTINE local_forces
 
 
-!>  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
-!!  belonging to iproc and adds them to the force array
-!!   recalculate the projectors at the end if refill flag is .true.
+!> Calculates the nonlocal forces on all atoms arising from the wavefunctions 
+!! belonging to iproc and adds them to the force array
+!! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      orbs,nlpspd,proj,wfd,psi,fsep,refill,strten)
   use module_base
@@ -1140,7 +1145,7 @@ end do
 END SUBROUTINE nonlocal_forces
 
 
-!>   Calculates the coefficient of derivative of projectors
+!> Calculates the coefficient of derivative of projectors
 subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)
   implicit none
   integer, intent(in) :: l,i,m,nterm_max
@@ -3739,9 +3744,9 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
 END SUBROUTINE clean_forces
 
 
-!> Symmetrize stress
+!> Symmetrize stress (important with special k points)
 !@todo: modifiy the arguments of this routine
-subroutine symm_stress(dump,tens,symobj)
+subroutine symmetrize_stress(dump,tens,symobj)
   use defs_basis
   use module_base, only: verbose,gp
   use m_ab6_symmetry
@@ -3765,7 +3770,7 @@ subroutine symm_stress(dump,tens,symobj)
   if (nsym < 2) return
 
   if (dump)&
-       write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, "symmetries."
+       write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, " symmetries."
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
@@ -3800,14 +3805,11 @@ subroutine symm_stress(dump,tens,symobj)
   tens(5)=symtens(1,3)
   tens(6)=symtens(1,2)
 
-!  if (iproc == 0 .and. verbose > 2) then
-!     write(*,*) '=== SYMMETRISED ==='
-!     write(*,*) tens(:)
-!  end if
+end subroutine symmetrize_stress
 
-end subroutine symm_stress
 
-subroutine symmetrise_forces(iproc, fxyz, at)
+!> Symmetrize the atomic forces (needed with special k points)
+subroutine symmetrize_forces(iproc, fxyz, at)
   use defs_basis
   use m_ab6_symmetry
   use module_types
@@ -3831,7 +3833,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
-  if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
+  if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrize forces with ", nsym, " symmetries."
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
@@ -3872,7 +3874,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   do ia = 1, at%nat
      fxyz(:, ia) = fxyz(:, ia) * alat
   end do
-end subroutine symmetrise_forces
+end subroutine symmetrize_forces
 
 
 subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,&

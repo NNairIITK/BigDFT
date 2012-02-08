@@ -71,10 +71,10 @@ subroutine density_and_hpot(iproc,nproc,geocode,symObj,orbs,Lzd,hxh,hyh,hzh,nsca
   call H_potential(geocode,'D',iproc,nproc,&
        Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,vh,&
        pkernel,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
-  !in principle symmetrization of the stress tensor is not needed since the density has been 
-  !already symmetrized
 
-  if (symObj%symObj >= 0 .and. geocode=='P') call symm_stress((iproc==0),hstrten,symObj%symObj)
+  !In principle symmetrization of the stress tensor is not needed since the density has been 
+  !already symmetrized
+  if (symObj%symObj >= 0 .and. geocode=='P') call symmetrize_stress((iproc==0),hstrten,symObj%symObj)
 
 end subroutine density_and_hpot
 
@@ -167,7 +167,7 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
    !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
    !probably previous line is not suitable due to the fact that a extra communication would be needed
    if (symObj%symObj >= 0) then
-      call symmetrise_density(0,1,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,orbs%nspin,& !n(m)
+      call symmetrize_density(0,1,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,orbs%nspin,& !n(m)
       Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
          &   rho_p,symObj%symObj,symObj%irrzon,symObj%phnons)
    end if
@@ -683,7 +683,7 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
 END SUBROUTINE partial_density_free
 
 
-subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nspin,nrho,rho,& !n(c) nscatterarr (arg:6)
+subroutine symmetrize_density(iproc,nproc,n1i,n2i,n3i,nspin,nrho,rho,& !n(c) nscatterarr (arg:6)
    symObj,irrzon,phnons)
    use module_base!, only: gp,dp,wp,ndebug,memocc
    use m_ab6_symmetry
@@ -695,7 +695,7 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nspin,nrho,rho,& !n(c) nsc
    integer, dimension(n1i*n2i*n3i,2,1), intent(in) :: irrzon 
    real(dp), dimension(2,n1i*n2i*n3i,1), intent(in) :: phnons 
    !local variables
-   character(len=*), parameter :: subname='symmetrise_density'
+   character(len=*), parameter :: subname='symmetrize_density'
    integer :: errno, ispden, nsym_used, nSym, isym, imagn, r2,i_stat,i_all,inzee,isign
    integer :: nd2, izone_max, numpt, izone, rep, nup, iup, ind, j, j1, j2, j3,i1,i2,i3
    real(dp) :: rhosu1, rhosu2
@@ -880,7 +880,7 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nspin,nrho,rho,& !n(c) nsc
    deallocate(rhog,stat=i_stat)
    call memocc(i_stat,i_all,'rhog',subname)
 
-END SUBROUTINE symmetrise_density
+END SUBROUTINE symmetrize_density
 
 
 !> Compress the electronic density
