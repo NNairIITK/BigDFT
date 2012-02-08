@@ -281,7 +281,7 @@ end subroutine getDerivativeBasisFunctions
 
 
 
-subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lin)
+subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
 use module_base
 use module_types
 implicit none
@@ -289,7 +289,9 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 integer,intent(inout):: tag
-type(linearParameters),intent(inout):: lin
+type(orbitals_data),intent(in):: lorbs, llborbs
+type(local_zone_descriptors),intent(in):: lzd
+type(p2pCommsRepartition),intent(out):: comrp
 
 ! Local variables
 integer:: jproc, jorb, kproc, korb, istat, mpidest, mpisource, istdest, istsource, ncount, jlr, klr, norbdest, jjorb, iall
@@ -301,15 +303,15 @@ character(len=*),parameter:: subname='initializeRepartitionOrbitals'
 !  - move(1,i,j)=k -> orbital i on process j has to be sent to process k
 !  - move(2,i,j)=l -> orbital i on process j has to be sent to position l (orbital number l)
 
-allocate(move(2,4*maxval(lin%orbs%norb_par(:,0)),0:nproc-1), stat=istat)
+allocate(move(2,4*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, move, 'move', subname)
 
 kproc=0
 korb=0
 do jproc=0,nproc-1
-    do jorb=1,4*lin%orbs%norb_par(jproc,0)
+    do jorb=1,4*lorbs%norb_par(jproc,0)
         korb=korb+1
-        if(korb>lin%lb%orbs%norb_par(kproc,0)) then
+        if(korb>llborbs%norb_par(kproc,0)) then
             kproc=kproc+1
             korb=1
         end if
@@ -319,32 +321,32 @@ do jproc=0,nproc-1
 end do
 
 
-allocate(lin%lb%comrp%communComplete(4*maxval(lin%orbs%norb_par(:,0)),0:nproc-1), stat=istat)
-call memocc(istat, lin%lb%comrp%communComplete, 'lin%lb%comrp%communComplete', subname)
+allocate(comrp%communComplete(4*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
+call memocc(istat, comrp%communComplete, 'comrp%communComplete', subname)
 
 
 
-allocate(lin%lb%comrp%comarr(8,4*maxval(lin%orbs%norb_par(:,0)),0:nproc-1), stat=istat)
-call memocc(istat, lin%lb%comrp%comarr, 'lin%lb%comrp%comarr', subname)
+allocate(comrp%comarr(8,4*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
+call memocc(istat, comrp%comarr, 'comrp%comarr', subname)
 
 ! Determine the indices of starting and receive buffer.
 do jproc=0,nproc-1
     istsource=1
-    do jorb=1,4*lin%orbs%norb_par(jproc,0)
+    do jorb=1,4*lorbs%norb_par(jproc,0)
         jjorb=ceiling(dble(jorb)/4.d0)
-        jlr=lin%orbs%inWhichLocreg(jjorb+lin%orbs%isorb_par(jproc))
+        jlr=lorbs%inWhichLocreg(jjorb+lorbs%isorb_par(jproc))
         mpisource=jproc
-        ncount=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
+        ncount=lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
         mpidest=move(1,jorb,jproc)
         norbdest=move(2,jorb,jproc)
         istdest=1
         do korb=1,norbdest-1
-            klr=lin%lb%orbs%inWhichLocreg(korb+lin%lb%orbs%isorb_par(mpidest))
-            istdest=istdest+lin%lzd%llr(klr)%wfd%nvctr_c+7*lin%lzd%llr(klr)%wfd%nvctr_f
+            klr=llborbs%inWhichLocreg(korb+llborbs%isorb_par(mpidest))
+            istdest=istdest+lzd%llr(klr)%wfd%nvctr_c+7*lzd%llr(klr)%wfd%nvctr_f
         end do
         tag=tag+1
         !write(*,'(7(a,i0))') 'init on iproc=',iproc,': process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,'; tag=',tag
-        call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, lin%lb%comrp%comarr(1,jorb,jproc))
+        call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comrp%comarr(1,jorb,jproc))
         istsource=istsource+ncount
     end do
 end do

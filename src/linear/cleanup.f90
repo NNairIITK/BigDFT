@@ -1363,7 +1363,7 @@ subroutine deallocate_largeBasis(lb, subname)
   call deallocate_orbitals_data(lb%orbs, subname)
   call deallocate_orbitals_data(lb%gorbs, subname)
   !call deallocate_local_zone_descriptors(lb%lzd, subname)
-  call dealloctae_p2pCommsRepartition(lb%comrp, subname)
+  call deallocate_p2pCommsRepartition(lb%comrp, subname)
   !call deallocate_p2pCommsOrthonormality(lb%comon, subname)
   call deallocate_p2pComms(lb%comon, subname)
   call deallocate_overlapParameters(lb%op, subname)
@@ -1378,7 +1378,7 @@ subroutine deallocate_largeBasis(lb, subname)
 end subroutine deallocate_largeBasis
 
 
-subroutine dealloctae_p2pCommsRepartition(comrp, subname)
+subroutine deallocate_p2pCommsRepartition(comrp, subname)
   use module_base
   use module_types
   use deallocatePointers
@@ -1391,7 +1391,7 @@ subroutine dealloctae_p2pCommsRepartition(comrp, subname)
   call checkAndDeallocatePointer(comrp%comarr, 'comrp%comarr', subname)
   call checkAndDeallocatePointer(comrp%communComplete, 'comrp%communComplete', subname)
 
-end subroutine dealloctae_p2pCommsRepartition
+end subroutine deallocate_p2pCommsRepartition
 
 
 

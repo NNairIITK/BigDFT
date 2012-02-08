@@ -2021,7 +2021,8 @@ module module_interfaces
       type(localizedDIISParameters),intent(inout):: ldiis
       type(orthon_data),intent(in):: orthpar
       type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
-      real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
+      !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
+      real(8),dimension(:),pointer,intent(inout)::lphiRestart
       type(p2pCommsRepartition),intent(inout):: comrp
       type(SIC_data),intent(in):: SIC
     end subroutine getLinearPsi
@@ -3246,13 +3247,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,intent(inout):: tag
      end subroutine initializeCommunicationPotential
 
-     subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lin)
+     subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
        integer,intent(inout):: tag
-       type(linearParameters),intent(inout):: lin
+       type(orbitals_data),intent(in):: lorbs, llborbs
+       type(local_zone_descriptors),intent(in):: lzd
+       type(p2pCommsRepartition),intent(out):: comrp
      end subroutine initializeRepartitionOrbitals
 
      subroutine postCommsRepartition(iproc, nproc, orbs, comrp, nsendBuf, sendBuf, nrecvBuf, recvBuf)
@@ -4148,13 +4151,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       character(len=*),intent(in):: subname
     end subroutine deallocate_largeBasis
     
-    subroutine dealloctae_p2pCommsRepartition(comrp, subname)
+    subroutine deallocate_p2pCommsRepartition(comrp, subname)
       use module_base
       use module_types
       implicit none
       type(p2pCommsRepartition),intent(inout):: comrp
       character(len=*),intent(in):: subname
-    end subroutine dealloctae_p2pCommsRepartition
+    end subroutine deallocate_p2pCommsRepartition
     
     !!subroutine deallocate_p2pCommsOrthonormality(comon, subname)
     !!  use module_base
@@ -5854,7 +5857,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine MLWFnew
 
 
-       subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, &
+       subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, withder, &
                     ldiis, lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
          use module_base
@@ -5869,6 +5872,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(3,nlr),intent(in):: locregCenter
          real(8),dimension(nlr):: locrad
          integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+         logical,intent(in):: withder
          type(localizedDIISParameters),intent(inout):: ldiis
          type(local_zone_descriptors),intent(out):: lzdlarge
          type(orbitals_data),intent(out):: orbslarge
