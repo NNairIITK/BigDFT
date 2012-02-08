@@ -114,12 +114,14 @@ norbu=norb
 norbd=0
 !call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
 !     input%nkpt, input%kpt, input%wkpt, lin%orbs)
+call nullify_orbitals_data(lin%orbs)
 call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
 call repartitionOrbitals(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par,&
      lin%orbs%norbp, lin%orbs%isorb_par, lin%orbs%isorb, lin%orbs%onWhichMPI)
 !call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
 !     input%nkpt, input%kpt, input%wkpt, lin%gorbs)
+call nullify_orbitals_data(lin%gorbs)
 call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, &
@@ -144,12 +146,14 @@ else
     norbd=0
 end if
 !call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
+call nullify_orbitals_data(lin%lb%orbs)
 call orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,input%nspin,&
      orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
 call repartitionOrbitals(iproc, nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par,&
      lin%lb%orbs%norbp, lin%lb%orbs%isorb_par, lin%lb%orbs%isorb, lin%lb%orbs%onWhichMPI)
 !call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
 !     lin%lb%gorbs)
+call nullify_orbitals_data(lin%lb%gorbs)
 call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin,&
      orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
      lin%lb%gorbs)
