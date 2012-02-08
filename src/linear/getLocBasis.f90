@@ -763,9 +763,11 @@ type(matrixDescriptors):: madlarge
             !!                          comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
             !!                          newgradient, confdatarr, hx, lphilarge)
             !!confdatarr%prefac=0.0d0
+            allocate(locregCenter(3,lzdlarge%nlr), stat=istat)
             call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                                       comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-                                      newgradient, confdatarr, hx, lphilarge, Umat)
+                                      newgradient, confdatarr, hx, lphilarge, Umat, locregCenter)
+            deallocate(locregCenter, stat=istat)
             if(nItInnerLoop>0) then                          
                  kernelold=kernel
                  do iorb=1,lorbs%norb
@@ -1387,9 +1389,11 @@ type(matrixDescriptors):: madlarge
            !!                          comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
            !!                          newgradient, confdatarr, hx, lphilarge)
            !!confdatarr%prefac=0.0d0
+           allocate(locregCenter(3,lzdlarge%nlr), stat=istat)
            call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                                      comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-                                     newgradient, confdatarr, hx, lphilarge, Umat)
+                                     newgradient, confdatarr, hx, lphilarge, Umat, locregCenter)
+           deallocate(locregCenter, stat=istat)
            if(nItInnerLoop>0) then
                kernelold=kernel
                do iorb=1,lorbs%norb
@@ -1647,8 +1651,8 @@ contains
        allocate(ldiis%hphiHist(ii), stat=istat)
        call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
 
-       allocate(phi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
-       allocate(phiWork(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat)
+       !!allocate(phi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
+       !!allocate(phiWork(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat)
        allocate(lphilarge(orbslarge%npsidim_orbs), stat=istat)
        allocate(lhphilarge(orbslarge%npsidim_orbs), stat=istat)
        allocate(lhphilargeold(orbslarge%npsidim_orbs), stat=istat)
@@ -1671,8 +1675,8 @@ contains
       deallocate(lhphilarge)
       deallocate(lhphilargeold)
       deallocate(lphilargeold)
-      deallocate(phiWork, stat=istat)
-      deallocate(phi, stat=istat)
+      !!deallocate(phiWork, stat=istat)
+      !!deallocate(phi, stat=istat)
       deallocate(Umat, stat=istat)
       deallocate(kernelold, stat=istat)
 
@@ -4766,7 +4770,7 @@ subroutine MLWF(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, 
            newgradient, confdatarr, hx, lphi, Umat)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => unitary_optimization
+use module_interfaces, exceptThisOne => MLWF
 implicit none
 
 ! Calling arguments
@@ -5466,10 +5470,10 @@ end subroutine MLWF
 
 
 subroutine MLWFnew(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, &
-           newgradient, confdatarr, hx, lphi, Umat)
+           newgradient, confdatarr, hx, lphi, Umat, centers)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => unitary_optimization
+use module_interfaces, exceptThisOne => MLWFnew
 implicit none
 
 ! Calling arguments
@@ -5487,6 +5491,7 @@ real(8),intent(in):: hx
 type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
 real(8),dimension(orbs%norb,orbs%norb),intent(out):: Umat
+real(8),dimension(3,lzd%nlr),intent(out):: centers
 
 ! Local variables
 integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, lorb, jlr
@@ -6277,6 +6282,9 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
   do iorb=1,orbs%norb
       if(iproc==0) write(*,'(a,i5,3f10.4)') 'END: iorb, centers: ', iorb, X(iorb,iorb), Y(iorb,iorb), Z(iorb,iorb)
+      centers(1,iorb)=X(iorb,iorb)
+      centers(2,iorb)=Y(iorb,iorb)
+      centers(3,iorb)=Z(iorb,iorb)
   end do
 
 
