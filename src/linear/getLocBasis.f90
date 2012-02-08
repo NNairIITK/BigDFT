@@ -89,7 +89,8 @@ integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
 real(8),intent(in):: convCrit, hx, hy, hz
 real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
-real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
+!real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
+real(8),dimension(:),pointer,intent(inout):: lphi
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 logical,intent(in):: communicate_lphi
@@ -102,7 +103,7 @@ type(p2pCommsRepartition),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
 
 ! Local variables 
-integer:: istat, iall, ilr, istr, iorb, jorb, korb
+integer:: istat, iall, ilr, istr, iorb, jorb, korb, tag
 real(8),dimension(:),allocatable:: eval, lhphi
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, overlapmatrix
 real(8),dimension(:,:,:),allocatable:: matrixElements
@@ -143,6 +144,14 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,newgradient,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
           hx,hy,hz,SIC,nItPrecond)
+      if(newgradient) then
+          tag=1
+          call deallocateCommunicationbufferSumrho(comsr, subname)
+          call deallocate_p2pComms(comsr, subname)
+          call nullify_p2pComms(comsr)
+          call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, llborbs, tag, comsr)
+          call allocateCommunicationbufferSumrho(iproc, .false., comsr, subname)
+      end if
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -502,7 +511,8 @@ type(DFT_local_fields), intent(inout) :: denspot
 !real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 !real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
+!real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
+real(8),dimension(:),pointer,intent(inout):: lphi
 real(8),intent(out):: trH
 real(8),intent(in):: convCrit, hx, hy, hz
 real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
@@ -546,6 +556,9 @@ type(overlapParameters):: oplarge
 type(p2pComms):: comonlarge
 type(p2pComms):: comgplarge
 type(matrixDescriptors):: madlarge
+
+! automatic array, for debugging
+real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
 
@@ -635,6 +648,7 @@ type(matrixDescriptors):: madlarge
           locregCenter(:,iiorb)=confdatarr(iorb)%rxyzConf
       end do
       call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
+      locregCenterTemp=locregCenter
       call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
            2.d0*lzd%llr(:)%locrad, denspot%dpcom%nscatterarr, ldiis, &
            lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
@@ -779,9 +793,11 @@ type(matrixDescriptors):: madlarge
             !!                          comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
             !!                          newgradient, confdatarr, hx, lphilarge)
             !!confdatarr%prefac=0.0d0
+
             call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-                                      comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-                                      newgradient, confdatarr, hx, lphilarge, Umat, locregCenter)
+                 comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
+                 newgradient, confdatarr, hx, lphilarge, Umat, locregCenter)
+
             if(nItInnerLoop>0) then                          
                  kernelold=kernel
                  do iorb=1,lorbs%norb
@@ -836,8 +852,14 @@ type(matrixDescriptors):: madlarge
                 ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
                 ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
             end do
+            call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+            call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenterTemp, &
+                 2.d0*lzd%llr(:)%locrad, denspot%dpcom%nscatterarr, ldiis, &
+                 lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
 
-      end if
+        end if
 
       end if
 
@@ -1196,7 +1218,8 @@ type(matrixDescriptors):: madlarge
                    if(.not. newgradient) then
                        call dcopy(size(lphi), lphiold, 1, lphi, 1)
                    else
-                       call dcopy(size(lphilarge), lphilargeold, 1, lphilarge, 1)
+                       ! this makes no sense
+                       !call dcopy(size(lphilarge), lphilargeold, 1, lphilarge, 1)
                    end if
                    !if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and cycle'
                    !cycle iterLoop
@@ -1236,7 +1259,9 @@ type(matrixDescriptors):: madlarge
               iiorb=orbslarge%isorb+iorb
               ilr=orbslarge%inWhichLocreg(iiorb)
               ncount=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-              if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilargeold(istart), 1)
+              !if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilargeold(istart), 1)
+              ! The following line is nonsense, but it is not possible otherwise (since the shape of the locregs may change)
+              if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilarge(istart), 1)
               fnrmArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilarge(istart), 1)
           end if
           istart=istart+ncount
@@ -1307,6 +1332,8 @@ type(matrixDescriptors):: madlarge
              call choosePreconditioner2(iproc, nproc, orbslarge, lzdlarge%llr(ilr), hx, hy, hz, &
                  nItPrecond, lhphilarge(ind2), lzdlarge%nlr, rxyz, at, confdatarr(iorb)%potorder, &
                  confdatarr(iorb)%prefac, it, iorb, eval_zero)
+             write(*,'(a,i7,es16.6)') 'iiorb, ddot1', iiorb, ddot(lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, lphilarge(ind2), 1, lphilarge(ind2), 1)
+             write(*,'(a,i7,es16.6)') 'iiorb, ddot2', iiorb, ddot(lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, lhphilarge(ind2), 1, lhphilarge(ind2), 1)
              ind2=ind2+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
          end if
       end do
@@ -1455,6 +1482,13 @@ type(matrixDescriptors):: madlarge
               ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
               ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
           end do
+
+           call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+           call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenterTemp, &
+                2.d0*lzd%llr(:)%locrad, denspot%dpcom%nscatterarr, ldiis, &
+                lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                lphilarge, lhphilarge, lhphilargeold, lphilargeold)
       end if
 
 
@@ -1978,6 +2012,11 @@ character(len=*),parameter:: subname='create_new_locregs'
    call memocc(istat, lhphilargeold, 'lhphilargeold', subname)
    allocate(lphilargeold(orbslarge%npsidim_orbs), stat=istat)
    call memocc(istat, lphilargeold, 'lphilargeold', subname)
+
+   lphilarge=0.d0
+   lhphilarge=0.d0
+   lhphilargeold=0.d0
+   lphilargeold=0.d0
 
 end subroutine create_new_locregs
 

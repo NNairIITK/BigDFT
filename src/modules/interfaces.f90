@@ -1795,7 +1795,8 @@ module module_interfaces
         !real(dp), dimension(*), intent(inout) :: rhopot
         type(GPU_pointers), intent(inout) :: GPU
         !real(dp), dimension(:), pointer :: pkernelseq
-        real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
+        !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
+        real(8),dimension(:),pointer,intent(inout):: lphi
         real(8),intent(out):: trH
         real(8),intent(in):: convCrit, hx, hy, hz
         real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
@@ -2011,7 +2012,8 @@ module module_interfaces
       real(8),intent(out):: ebs
       real(8),intent(in):: convCrit, hx, hy, hz
       real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
-      real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
+      !real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
+      real(8),dimension(:),pointer,intent(inout):: lphi
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       logical,intent(in):: communicate_lphi
