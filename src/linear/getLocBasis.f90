@@ -538,7 +538,7 @@ real(8),dimension(5):: time
 character(len=3):: orbname, comment
 real(8),dimension(:),allocatable:: lvphiovrlp, locrad
 real(8),dimension(:),pointer:: phiWork
-real(8),dimension(:),allocatable:: phi, hphi, lphilarge, lhphilarge, lhphilargeold, lphilargeold
+real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold
 integer:: jst, istl, istg, nvctrp, ldim, nspin, norbu, norbd, tag, npsidim, ilrlarge
 type(local_zone_descriptors):: lzdlarge
 type(orbitals_data):: orbslarge
@@ -610,6 +610,12 @@ type(matrixDescriptors):: madlarge
   call memocc(istat, lphiold, 'lphiold', subname)
   allocate(lagmat(lorbs%norb,lorbs%norb), stat=istat)
   call memocc(istat, lagmat, 'lagmat', subname)
+  allocate(Umat(lorbs%norb,lorbs%norb), stat=istat)
+  call memocc(istat, Umat, 'Umat', subname)
+  allocate(kernelold(lorbs%norb,lorbs%norb), stat=istat)
+  call memocc(istat, kernelold, 'kernelold', subname)
+  allocate(locregCenter(3,lzd%nlr), stat=istat)
+  call memocc(istat, locregCenter, 'locregCenter', subname)
 
   time=0.d0
   resetDIIS=.false.
@@ -622,7 +628,15 @@ type(matrixDescriptors):: madlarge
 
   ! Initialize largestructures if required
   if(newgradient) then
-      call create_new_locregs()
+      locregCenter=0.d0
+      do iorb=1,lorbs%norbp
+          iiorb=lorbs%isorb+iorb
+          locregCenter(:,iiorb)=confdatarr(iorb)%rxyzConf
+      end do
+      call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
+      call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, 2.d0*lzd%llr(:)%locrad, ldiis, &
+           lzdlarge, orbslarge, oplarge, comonlarge, madlarge, &
+           lphilarge, lhphilarge, lhphilargeold, lphilargeold)
   end if
 
 
@@ -763,11 +777,9 @@ type(matrixDescriptors):: madlarge
             !!                          comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
             !!                          newgradient, confdatarr, hx, lphilarge)
             !!confdatarr%prefac=0.0d0
-            allocate(locregCenter(3,lzdlarge%nlr), stat=istat)
             call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                                       comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
                                       newgradient, confdatarr, hx, lphilarge, Umat, locregCenter)
-            deallocate(locregCenter, stat=istat)
             if(nItInnerLoop>0) then                          
                  kernelold=kernel
                  do iorb=1,lorbs%norb
@@ -815,7 +827,7 @@ type(matrixDescriptors):: madlarge
                 !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
                 !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
                 !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-                call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), lphilarge(ind1), lphi(ind2))
+                call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
                 !!do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
                 !!    write(510+iproc,*) istat, lphi(istat)
                 !!end do
@@ -1389,11 +1401,9 @@ type(matrixDescriptors):: madlarge
            !!                          comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
            !!                          newgradient, confdatarr, hx, lphilarge)
            !!confdatarr%prefac=0.0d0
-           allocate(locregCenter(3,lzdlarge%nlr), stat=istat)
            call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                                      comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
                                      newgradient, confdatarr, hx, lphilarge, Umat, locregCenter)
-           deallocate(locregCenter, stat=istat)
            if(nItInnerLoop>0) then
                kernelold=kernel
                do iorb=1,lorbs%norb
@@ -1439,7 +1449,7 @@ type(matrixDescriptors):: madlarge
               !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
               !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
               !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-              call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), lphilarge(ind1), lphi(ind2))
+              call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
               ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
               ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
           end do
@@ -1479,7 +1489,8 @@ type(matrixDescriptors):: madlarge
   end do iterLoop
 
   if(newgradient) then
-      call destroy_new_locregs()
+      call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, &
+           lphilarge, lhphilarge, lhphilargeold, lphilargeold)
   end if
 
   ! thi svalue cannot be determined
@@ -1491,6 +1502,15 @@ type(matrixDescriptors):: madlarge
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
   call memocc(istat, iall, 'lagmat', subname)
+  iall=-product(shape(Umat))*kind(Umat)
+  deallocate(Umat, stat=istat)
+  call memocc(istat, iall, 'Umat', subname)
+  iall=-product(shape(kernelold))*kind(kernelold)
+  deallocate(kernelold, stat=istat)
+  call memocc(istat, iall, 'kernelold', subname)
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter, stat=istat)
+  call memocc(istat, iall, 'locregCenter', subname)
 
 
 !!$  iall=-product(shape(lorbs%ispot))*kind(lorbs%ispot)
@@ -1542,145 +1562,8 @@ type(matrixDescriptors):: madlarge
 contains
 
 
-    subroutine create_new_locregs()
-
-       if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
-       call nullify_local_zone_descriptors(lzdlarge)
-       call nullify_orbitals_data(orbslarge)
-       call nullify_overlapParameters(oplarge)
-       call nullify_p2pComms(comonlarge)
-       call nullify_matrixDescriptors(madlarge)
-
-       tag=1
-       !lzdlarge%nlr=at%nat
-       lzdlarge%nlr=lorbs%norb
-       norbu=lorbs%norb
-       norbd=0
-       nspin=1
-       call orbitals_descriptors_forLinear(iproc, nproc, lorbs%norb, norbu, norbd, nspin, orbs%nspinor,&
-            lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge)
-       call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
-            orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
-
-       !! THIS MUS BE MODIFIED
-       allocate(norbsPerAtom(lzdlarge%nlr), stat=istat)
-       allocate(locregCenter(3,lzdlarge%nlr), stat=istat)
-       norbsPerAtom=0
-       locregCenter=0.d0
-       do iorb=1,lorbs%norbp
-           iiorb=lorbs%isorb+iorb
-           if(lzdlarge%nlr==at%nat) then
-               !old version, for debugging
-               ilr=lorbs%inwhichlocreg(iorb)
-           else if(lzdlarge%nlr==lorbs%norb) then
-               ! new version
-               ilr=iiorb
-           else
-               stop 'should not happen'
-           end if
-           !ilrlarge=orbslarge%inwhichlocreg(iorb)
-           norbsPerAtom(ilr)=norbsPerAtom(ilr)+1
-
-           ilr=lorbs%inwhichlocreg(iorb)
-           if(lzdlarge%nlr==at%nat) then
-               !old version, for debugging
-               locregCenter(:,ilr)=rxyz(:,ilr)
-           else if(lzdlarge%nlr==lorbs%norb) then
-               ! new version
-               !locregCenter(:,iorb)=rxyz(:,ilr)
-               locregCenter(:,iiorb)=confdatarr(iorb)%rxyzConf
-           else
-               stop 'should not happen'
-           end if
-           !write(*,'(a,2i8,3es16.6)') 'MAIN: iproc, iorb, locregCenter(:,iorb)', iproc, iorb, locregCenter(:,iorb)
-       end do
-       call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
-       call mpiallred(norbsperAtom(1), lzdlarge%nlr, mpi_sum, mpi_comm_world, ierr)
-       !!do iorb=1,lorbs%norb
-       !!    if(iproc==0) write(*,'(a,i6,3es16.6)') 'iorb, locregCenter(:,iorb)', iorb, locregCenter(:,iorb)
-       !!    if(iproc==0) write(*,*) 'iorb, norbsPerAtom(iorb)', iorb, norbsPerAtom(iorb)
-       !!end do
-       iall=-product(shape(orbslarge%inWhichLocreg))*kind(orbslarge%inWhichLocreg)
-       deallocate(orbslarge%inWhichLocreg, stat=istat)
-       call memocc(istat, iall, 'orbslarge%inWhichLocreg', subname)
-       call assignToLocreg2(iproc, nproc, orbslarge%norb, orbslarge%norb_par, at%nat, lzdlarge%nlr, &
-            nspin, norbsPerAtom, locregCenter, orbslarge%inwhichlocreg)
-       deallocate(norbsPerAtom, stat=istat)
-       !locrad=3.d0*lin%locrad
-       allocate(locrad(lzdlarge%nlr), stat=istat)
-       !locrad=7.d0
-       locrad=2.d0*lzd%llr(:)%locrad
-       !locrad=1.d0*lzd%llr(:)%locrad
-       !!write(*,'(a,i7,20i5)') 'iproc, orbslarge%inwhichlocreg', iproc, orbslarge%inwhichlocreg
-       !!write(*,'(a,3i8)') 'iproc, orbslarge%norbp, orbslarge%isorb', iproc, orbslarge%norbp, orbslarge%isorb
-       call initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, lzd%Glr, locrad, 's')
-       deallocate(locrad, stat=istat)
-       deallocate(locregCenter, stat=istat)
-       !locrad=lin%locrad/3.d0
-       call nullify_locreg_descriptors(lzdlarge%Glr)
-       call copy_locreg_descriptors(lzd%Glr, lzdlarge%Glr, subname)
-       npsidim = 0
-       do iorb=1,orbslarge%norbp
-        ilr=orbslarge%inwhichlocreg(iorb+orbslarge%isorb)
-        npsidim = npsidim + lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-       end do
-       allocate(orbslarge%eval(orbslarge%norb), stat=istat)
-       call memocc(istat, orbslarge%eval, 'orbslarge%eval', subname)
-       orbslarge%eval=-.5d0
-       orbslarge%npsidim_orbs=max(npsidim,1)
-       call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzdlarge, orbslarge, orbslarge%inWhichLocreg,&
-            's', oplarge, comonlarge, tag)
-       call initMatrixCompression(iproc, nproc, lzdlarge%nlr, orbslarge, &
-            oplarge%noverlaps, oplarge%overlaps, madlarge)
-       call initCompressedMatmul3(orbslarge%norb, madlarge)
-
-       iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
-       deallocate(ldiis%phiHist, stat=istat)
-       call memocc(istat, iall, 'ldiis%phiHist', subname)
-       iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
-       deallocate(ldiis%hphiHist, stat=istat)
-       call memocc(istat, iall, 'ldiis%hphiHist', subname)
-       ii=0
-       do iorb=1,orbslarge%norbp
-           !ilr=onWhichAtom(iorb)
-           ilr=orbslarge%inwhichlocreg(orbslarge%isorb+iorb)
-           ii=ii+ldiis%isx*(lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f)
-       end do
-       allocate(ldiis%phiHist(ii), stat=istat)
-       call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
-       allocate(ldiis%hphiHist(ii), stat=istat)
-       call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
-
-       !!allocate(phi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
-       !!allocate(phiWork(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat)
-       allocate(lphilarge(orbslarge%npsidim_orbs), stat=istat)
-       allocate(lhphilarge(orbslarge%npsidim_orbs), stat=istat)
-       allocate(lhphilargeold(orbslarge%npsidim_orbs), stat=istat)
-       allocate(lphilargeold(orbslarge%npsidim_orbs), stat=istat)
-       allocate(Umat(lorbs%norb,lorbs%norb), stat=istat)
-       allocate(kernelold(lorbs%norb,lorbs%norb), stat=istat)
-
-    end subroutine create_new_locregs
 
 
-
-    subroutine destroy_new_locregs()
-      call deallocate_local_zone_descriptors(lzdlarge, subname)
-      call deallocate_orbitals_data(orbslarge, subname)
-      call deallocate_overlapParameters(oplarge, subname)
-      call deallocate_p2pComms(comonlarge, subname)
-      call deallocate_matrixDescriptors(madlarge, subname)
-
-      deallocate(lphilarge)
-      deallocate(lhphilarge)
-      deallocate(lhphilargeold)
-      deallocate(lphilargeold)
-      !!deallocate(phiWork, stat=istat)
-      !!deallocate(phi, stat=istat)
-      deallocate(Umat, stat=istat)
-      deallocate(kernelold, stat=istat)
-
-    end subroutine destroy_new_locregs
 
 
 
@@ -1977,6 +1860,201 @@ contains
 
 
 end subroutine getLocalizedBasis
+
+
+
+subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, ldiis, &
+           lzdlarge, orbslarge, oplarge, comonlarge, madlarge, &
+           lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+use module_base
+use module_types
+use module_interfaces, except_this_one => create_new_locregs
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, nlr
+real(8),intent(in):: hx, hy, hz
+type(orbitals_data),intent(in):: lorbs
+type(locreg_descriptors),intent(in):: glr
+real(8),dimension(3,nlr),intent(in):: locregCenter
+real(8),dimension(nlr):: locrad
+type(localizedDIISParameters),intent(inout):: ldiis
+type(local_zone_descriptors),intent(out):: lzdlarge
+type(orbitals_data),intent(out):: orbslarge
+type(overlapParameters),intent(out):: oplarge
+type(p2pComms),intent(out):: comonlarge
+type(matrixDescriptors),intent(out):: madlarge
+real(8),dimension(:),pointer,intent(out):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
+
+! Local variables
+integer:: tag, norbu, norbd, nspin, iorb, iiorb, ilr, npsidim, ii, istat, iall, ierr
+integer,dimension(:),allocatable:: norbsPerAtom
+character(len=*),parameter:: subname='create_new_locregs'
+
+
+   if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
+   call nullify_local_zone_descriptors(lzdlarge)
+   call nullify_orbitals_data(orbslarge)
+   call nullify_overlapParameters(oplarge)
+   call nullify_p2pComms(comonlarge)
+   call nullify_matrixDescriptors(madlarge)
+
+   tag=1
+   !lzdlarge%nlr=at%nat
+   lzdlarge%nlr=lorbs%norb
+   norbu=lorbs%norb
+   norbd=0
+   nspin=1
+   call orbitals_descriptors_forLinear(iproc, nproc, lorbs%norb, norbu, norbd, nspin, lorbs%nspinor,&
+        lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge)
+   call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
+        orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
+
+   !! THIS MUS BE MODIFIED
+   allocate(norbsPerAtom(lzdlarge%nlr), stat=istat)
+   !allocate(locregCenter(3,lzdlarge%nlr), stat=istat)
+   norbsPerAtom=0
+   !locregCenter=0.d0
+   do iorb=1,lorbs%norbp
+       iiorb=lorbs%isorb+iorb
+       !!if(lzdlarge%nlr==at%nat) then
+       !!    !old version, for debugging
+       !!    ilr=lorbs%inwhichlocreg(iorb)
+       !!else if(lzdlarge%nlr==lorbs%norb) then
+           ! new version
+           ilr=iiorb
+       !!else
+       !!    stop 'should not happen'
+       !!end if
+       !ilrlarge=orbslarge%inwhichlocreg(iorb)
+       norbsPerAtom(ilr)=norbsPerAtom(ilr)+1
+
+       ilr=lorbs%inwhichlocreg(iorb)
+       !!if(lzdlarge%nlr==at%nat) then
+       !!    !old version, for debugging
+       !!    locregCenter(:,ilr)=rxyz(:,ilr)
+       !!else if(lzdlarge%nlr==lorbs%norb) then
+       !!    ! new version
+       !!    !locregCenter(:,iorb)=rxyz(:,ilr)
+       !!    locregCenter(:,iiorb)=confdatarr(iorb)%rxyzConf
+       !!else
+       !!    stop 'should not happen'
+       !!end if
+       !write(*,'(a,2i8,3es16.6)') 'MAIN: iproc, iorb, locregCenter(:,iorb)', iproc, iorb, locregCenter(:,iorb)
+   end do
+   !!call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
+   call mpiallred(norbsperAtom(1), lzdlarge%nlr, mpi_sum, mpi_comm_world, ierr)
+   !!do iorb=1,lorbs%norb
+   !!    if(iproc==0) write(*,'(a,i6,3es16.6)') 'iorb, locregCenter(:,iorb)', iorb, locregCenter(:,iorb)
+   !!    if(iproc==0) write(*,*) 'iorb, norbsPerAtom(iorb)', iorb, norbsPerAtom(iorb)
+   !!end do
+   iall=-product(shape(orbslarge%inWhichLocreg))*kind(orbslarge%inWhichLocreg)
+   deallocate(orbslarge%inWhichLocreg, stat=istat)
+   call memocc(istat, iall, 'orbslarge%inWhichLocreg', subname)
+   call assignToLocreg2(iproc, nproc, orbslarge%norb, orbslarge%norb_par, 0, lzdlarge%nlr, &
+        nspin, norbsPerAtom, locregCenter, orbslarge%inwhichlocreg)
+   deallocate(norbsPerAtom, stat=istat)
+   !locrad=3.d0*lin%locrad
+   !allocate(locrad(lzdlarge%nlr), stat=istat)
+   !locrad=7.d0
+   !locrad=2.d0*lzd%llr(:)%locrad
+   !locrad=1.d0*lzd%llr(:)%locrad
+   !!write(*,'(a,i7,20i5)') 'iproc, orbslarge%inwhichlocreg', iproc, orbslarge%inwhichlocreg
+   !!write(*,'(a,3i8)') 'iproc, orbslarge%norbp, orbslarge%isorb', iproc, orbslarge%norbp, orbslarge%isorb
+   call initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, Glr, locrad, 's')
+   !deallocate(locrad, stat=istat)
+   !deallocate(locregCenter, stat=istat)
+   !locrad=lin%locrad/3.d0
+   call nullify_locreg_descriptors(lzdlarge%Glr)
+   call copy_locreg_descriptors(Glr, lzdlarge%Glr, subname)
+   npsidim = 0
+   do iorb=1,orbslarge%norbp
+    ilr=orbslarge%inwhichlocreg(iorb+orbslarge%isorb)
+    npsidim = npsidim + lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+   end do
+   allocate(orbslarge%eval(orbslarge%norb), stat=istat)
+   call memocc(istat, orbslarge%eval, 'orbslarge%eval', subname)
+   orbslarge%eval=-.5d0
+   orbslarge%npsidim_orbs=max(npsidim,1)
+   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzdlarge, orbslarge, orbslarge%inWhichLocreg,&
+        's', oplarge, comonlarge, tag)
+   call initMatrixCompression(iproc, nproc, lzdlarge%nlr, orbslarge, &
+        oplarge%noverlaps, oplarge%overlaps, madlarge)
+   call initCompressedMatmul3(orbslarge%norb, madlarge)
+
+   iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
+   deallocate(ldiis%phiHist, stat=istat)
+   call memocc(istat, iall, 'ldiis%phiHist', subname)
+   iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
+   deallocate(ldiis%hphiHist, stat=istat)
+   call memocc(istat, iall, 'ldiis%hphiHist', subname)
+   ii=0
+   do iorb=1,orbslarge%norbp
+       !ilr=onWhichAtom(iorb)
+       ilr=orbslarge%inwhichlocreg(orbslarge%isorb+iorb)
+       ii=ii+ldiis%isx*(lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f)
+   end do
+   allocate(ldiis%phiHist(ii), stat=istat)
+   call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
+   allocate(ldiis%hphiHist(ii), stat=istat)
+   call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+
+   !!allocate(phi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
+   !!allocate(phiWork(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat)
+   allocate(lphilarge(orbslarge%npsidim_orbs), stat=istat)
+   call memocc(istat, lphilarge, 'lphilarge', subname)
+   allocate(lhphilarge(orbslarge%npsidim_orbs), stat=istat)
+   call memocc(istat, lhphilarge, 'lhphilarge', subname)
+   allocate(lhphilargeold(orbslarge%npsidim_orbs), stat=istat)
+   call memocc(istat, lhphilargeold, 'lhphilargeold', subname)
+   allocate(lphilargeold(orbslarge%npsidim_orbs), stat=istat)
+   call memocc(istat, lphilargeold, 'lphilargeold', subname)
+   !!allocate(Umat(lorbs%norb,lorbs%norb), stat=istat)
+   !!allocate(kernelold(lorbs%norb,lorbs%norb), stat=istat)
+
+end subroutine create_new_locregs
+
+
+
+subroutine destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, &
+           lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => destroy_new_locregs
+  implicit none
+
+  ! Calling arguments
+  type(local_zone_descriptors),intent(inout):: lzdlarge
+  type(orbitals_data),intent(inout):: orbslarge
+  type(overlapParameters),intent(inout):: oplarge
+  type(p2pComms),intent(inout):: comonlarge
+  type(matrixDescriptors),intent(inout):: madlarge
+  real(8),dimension(:),pointer,intent(inout):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
+
+  ! Local variables
+  integer:: istat, iall
+  character(len=*),parameter:: subname='destroy_new_locregs'
+
+  call deallocate_local_zone_descriptors(lzdlarge, subname)
+  call deallocate_orbitals_data(orbslarge, subname)
+  call deallocate_overlapParameters(oplarge, subname)
+  call deallocate_p2pComms(comonlarge, subname)
+  call deallocate_matrixDescriptors(madlarge, subname)
+
+  iall=-product(shape(lphilarge))*kind(lphilarge)
+  deallocate(lphilarge, stat=istat)
+  call memocc(istat, iall, 'lphilarge', subname)
+  iall=-product(shape(lhphilarge))*kind(lhphilarge)
+  deallocate(lhphilarge, stat=istat)
+  call memocc(istat, iall, 'lhphilarge', subname)
+  iall=-product(shape(lhphilargeold))*kind(lhphilargeold)
+  deallocate(lhphilargeold, stat=istat)
+  call memocc(istat, iall, 'lhphilargeold', subname)
+  iall=-product(shape(lphilargeold))*kind(lphilargeold)
+  deallocate(lphilargeold, stat=istat)
+  call memocc(istat, iall, 'lphilargeold', subname)
+
+end subroutine destroy_new_locregs
 
 
 
