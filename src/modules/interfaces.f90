@@ -5852,8 +5852,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine MLWFnew
 
 
-       subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, ldiis, &
-                    lzdlarge, orbslarge, oplarge, comonlarge, madlarge, &
+       subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, &
+                    ldiis, lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
          use module_base
          use module_types
@@ -5866,16 +5866,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(locreg_descriptors),intent(in):: glr
          real(8),dimension(3,nlr),intent(in):: locregCenter
          real(8),dimension(nlr):: locrad
+         integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          type(localizedDIISParameters),intent(inout):: ldiis
          type(local_zone_descriptors),intent(out):: lzdlarge
          type(orbitals_data),intent(out):: orbslarge
          type(overlapParameters),intent(out):: oplarge
          type(p2pComms),intent(out):: comonlarge
          type(matrixDescriptors),intent(out):: madlarge
+         type(p2pComms),intent(out):: comgplarge
          real(8),dimension(:),pointer,intent(out):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
        end subroutine create_new_locregs
 
-       subroutine destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, &
+       subroutine destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                   lphilarge, lhphilarge, lhphilargeold, lphilargeold)
          use module_base
          use module_types
@@ -5885,6 +5887,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(overlapParameters),intent(inout):: oplarge
          type(p2pComms),intent(inout):: comonlarge
          type(matrixDescriptors),intent(inout):: madlarge
+         type(p2pComms),intent(inout):: comgplarge
          real(8),dimension(:),pointer,intent(inout):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
        end subroutine destroy_new_locregs
 
