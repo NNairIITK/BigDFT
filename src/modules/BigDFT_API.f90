@@ -11,7 +11,6 @@
 !>  Module which contains all information about:
 !!  - types (data structures)
 !!  - interfaces
-!!
 module BigDFT_API
   use module_base
   use module_types

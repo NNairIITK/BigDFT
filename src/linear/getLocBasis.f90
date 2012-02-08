@@ -1,3 +1,57 @@
+!> @file
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!>  This subroutine creates the orbitals psi out of a linear combination of localized basis functions
+!!   phi. To do so, it proceeds as follows:
+!!    1. Create the basis functions (with subroutine 'getLocalizedBasis')
+!!    2. Write the Hamiltonian in this new basis.
+!!    3. Diagonalize this Hamiltonian matrix.
+!!    4. Build the new linear combinations. 
+!!   The basis functions are localized by adding a confining quartic potential to the ordinary DFT 
+!!   Hamiltonian. There is no self consistency cycle for the potential, i.e. the basis functionsi
+!!   are optimized with a fixed potential.
+!!
+!! Calling arguments:
+!! ==================
+!!   Input arguments:
+!!   ----------------
+!!     @param iproc           process ID
+!!     @param nproc           total number of processes
+!!     @param Glr             type describing the localization region
+!!     @param orbs            type describing the physical orbitals psi
+!!     @param at              type containing the paraneters for the atoms
+!!     @param lin             type containing parameters for the linear version
+!!     @param rxyz            the atomic positions
+!!     @param rxyzParab       the center of the confinement potential (at the moment identical rxyz)
+!!     @param nscatterarr     ???
+!!     @param ngatherarr      ???
+!!     @param nlpsp           ???
+!!     @param rhopot          the charge density
+!!     @param GPU             parameters for GPUs
+!!     @param input           type containing some very general parameters
+!!     @param pkernelseq      ???
+!!     @param n3p             ???
+!!     @param itSCC           iteration in the self consistency cycle
+!!  Input/Output arguments
+!!  ---------------------
+!!     @param phi             the localized basis functions. It is assumed that they have been initialized
+!!                     somewhere else
+!!   Output arguments
+!!   ----------------
+!!     @param psi             the physical orbitals, which will be a linear combinations of the localized
+!!                            basis functions phi
+!!     @param psit            psi transposed
+!!     @param infoBasisFunctions  indicated wheter the basis functions converged to the specified limit (value is the
+!!                         number of iterations it took to converge) or whether the iteration stopped due to 
+!!                         the iteration limit (value is -1). This info is returned by 'getLocalizedBasis'
+!!     @param infoCoeff           the same as infoBasisFunctions, just for the coefficients. This value is returned
+!!                         by 'optimizeCoefficients'
 subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
     GPU,updatePhi,&
@@ -6,55 +60,7 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
     useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
     hx,hy,hz,SIC)
-!
-! Purpose:
-! ========
-!   This subroutine creates the orbitals psi out of a linear combination of localized basis functions
-!   phi. To do so, it proceeds as follows:
-!    1. Create the basis functions (with subroutine 'getLocalizedBasis')
-!    2. Write the Hamiltonian in this new basis.
-!    3. Diagonalize this Hamiltonian matrix.
-!    4. Build the new linear combinations. 
-!   The basis functions are localized by adding a confining quartic potential to the ordinary DFT 
-!   Hamiltonian. There is no self consistency cycle for the potential, i.e. the basis functionsi
-!   are optimized with a fixed potential.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     iproc           process ID
-!     nproc           total number of processes
-!     Glr             type describing the localization region
-!     orbs            type describing the physical orbitals psi
-!     at              type containing the paraneters for the atoms
-!     lin             type containing parameters for the linear version
-!     rxyz            the atomic positions
-!     rxyzParab       the center of the confinement potential (at the moment identical rxyz)
-!     nscatterarr     ???
-!     ngatherarr      ???
-!     nlpsp           ???
-!     rhopot          the charge density
-!     GPU             parameters for GPUs
-!     input           type containing some very general parameters
-!     pkernelseq      ???
-!     n3p             ???
-!     itSCC           iteration in the self consistency cycle
-!  Input/Output arguments
-!  ---------------------
-!     phi             the localized basis functions. It is assumed that they have been initialized
-!                     somewhere else
-!   Output arguments
-!   ----------------
-!     psi             the physical orbitals, which will be a linear combinations of the localized
-!                     basis functions phi
-!     psit            psi transposed
-!     infoBasisFunctions  indicated wheter the basis functions converged to the specified limit (value is the
-!                         number of iterations it took to converge) or whether the iteration stopped due to 
-!                         the iteration limit (value is -1). This info is returned by 'getLocalizedBasis'
-!     infoCoeff           the same as infoBasisFunctions, just for the coefficients. This value is returned
-!                         by 'optimizeCoefficients'
-!
+
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => getLinearPsi
@@ -4339,10 +4345,6 @@ real(gp) :: epot_p, epot, values, valuesold
 write(*,*) 'values',values/valuesold
 
 END SUBROUTINE flatten
-!!***
-
-
-
 
 
 subroutine get_potential_matrices(iproc, nproc, at, orbs, lzd, op, comon, mad, rxyz, &

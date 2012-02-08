@@ -474,8 +474,6 @@ def build_declaration(dict_vars):
     line = ""
     type = ""
     for (order,name) in locals:
-        print order, name
-        dict_vars[name].display_information()
         (decl,var) = dict_vars[name].build_declaration()
         if decl == "subroutine":
             print "subroutine",var,"stop"

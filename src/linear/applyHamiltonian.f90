@@ -1,41 +1,38 @@
+!>   Routine for applying the local potentials. Supports the non-collinear case, the buffer for tails 
+!!   and different Boundary Conditions. Optimal also for the complex wavefuntion case.
+!!   The potential includes also the confinement potential.
+!!
+!! Calling arguments:
+!! ==================
+!!   Input arguments:
+!!   ----------------
+!!     n1
+!!     n2
+!!     n3
+!!     nl1
+!!     nl2
+!!     nl3
+!!     nbuf                       ???
+!!     nspinor                    real or complex?
+!!     npot
+!!     pot                        the potential to be applied. The confinement potential
+!!                                  will be applied on the fly.
+!!     ibyyzz_r (optional)
+!!     rxyzConfinement            the center for the confinement potential
+!!     hxh                        the grid spacing in x direction divided by 2
+!!     hyh                        the grid spacing in y direction divided by 2
+!!     hzh                        the grid spacing in z direction divided by 2
+!!     potentialPrefac            the prefactor for the confinement potential
+!!   Input / Output arguments:
+!!   -------------------------
+!!     psir                       wave function om real space grid
+!!   Output arguments:
+!!   -----------------
+!!     epot                       potential energy
+!!
 subroutine apply_potentialConfinement2(iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, &
      rxyzConfinement, hxh, hyh, hzh, potentialPrefac, confPotOrder, offsetx, offsety, offsetz, &
      ibyyzz_r) !optional
-!
-! Purpose:
-! ========
-!   Routine for applying the local potentials. Supports the non-collinear case, the buffer for tails 
-!   and different Boundary Conditions. Optimal also for the complex wavefuntion case.
-!   The potential includes also the confinement potential.
-!
-! Calling arguments:
-! ==================
-!   Input arguments:
-!   ----------------
-!     n1
-!     n2
-!     n3
-!     nl1
-!     nl2
-!     nl3
-!     nbuf                       ???
-!     nspinor                    real or complex?
-!     npot
-!     pot                        the potential to be applied. The confinement potential
-!                                  will be applied on the fly.
-!     ibyyzz_r (optional)
-!     rxyzConfinement            the center for the confinement potential
-!     hxh                        the grid spacing in x direction divided by 2
-!     hyh                        the grid spacing in y direction divided by 2
-!     hzh                        the grid spacing in z direction divided by 2
-!     potentialPrefac            the prefactor for the confinement potential
-!   Input / Output arguments:
-!   -------------------------
-!     psir                       wave function om real space grid
-!   Output arguments:
-!   -----------------
-!     epot                       potential energy
-!
 use module_base
 implicit none
 integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot, confPotOrder, offsetx, offsety, offsetz
@@ -218,7 +215,6 @@ real(gp) :: epot_p
 !!!$omp end parallel
 
 END SUBROUTINE apply_potentialConfinement2
-!!***
 
 
 
@@ -1345,4 +1341,3 @@ real(gp) :: epot_p, epot
 !!!$omp end parallel
 
 END SUBROUTINE apply_confinement
-!!***

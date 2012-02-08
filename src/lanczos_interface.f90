@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>   Interface for routines which handle diagonalization
+!> Interface for routines which handle diagonalization
 module lanczos_interface
    use module_base
    use module_types
@@ -746,9 +746,7 @@ nullify(Qvect,dumQvect)
 
 
 
-  !>   Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
-  !!
-  !!
+  !> Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
   subroutine wscal_f_spectra(mvctr_f,psi_f,hx,hy,hz,ene, gamma)
      ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
      use module_base
@@ -790,13 +788,9 @@ nullify(Qvect,dumQvect)
 
 
 
-  !!****f* BigDFT/prec_fft_fast_spectra
-  !! FUNCTION
-  !!   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
-  !!   x_c is the right hand side on input and the solution on output
-  !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
-  !! SOURCE : adapted from prec_fft_fast
-  !! 
+  !> Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
+  !! x_c is the right hand side on input and the solution on output
+  !! This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
   subroutine prec_fft_fast_spectra(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
         &   ene, gamma,hx,hy,hz,hpsi,&
         &   kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
@@ -839,10 +833,6 @@ nullify(Qvect,dumQvect)
      call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
   END SUBROUTINE prec_fft_fast_spectra
-  !!***
-
-
-
 
 
   subroutine EP_precondition(p,i, ene, gamma)
@@ -991,11 +981,7 @@ nullify(Qvect,dumQvect)
         endif
      endif
 
-
-
      call deallocate_work_arrays('P',.true.,1,w)
-
-
 
   END SUBROUTINE EP_precondition
 

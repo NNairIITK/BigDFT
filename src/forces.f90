@@ -3957,7 +3957,7 @@ orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
   call deallocate_work_arrays_locham(lr,wrk_lh)
 
 END SUBROUTINE local_hamiltonian_stress
-!!***
+
 
 subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,tens)
   use module_base

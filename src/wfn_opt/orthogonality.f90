@@ -2256,17 +2256,8 @@ subroutine dimension_ovrlpFixedNorb(nspin,orbs,ndimovrlp,norb)
 END SUBROUTINE dimension_ovrlpFixedNorb
 
 
-
-
-
-
-
-!!****f* BigDFT/orthoconstraint
-!! FUNCTION
-!!   Orthogonality routine, for all the orbitals
-!!   Uses wavefunctions in their transposed form
-!! SOURCE
-!!
+!> Orthogonality routine, for all the orbitals
+!! Uses wavefunctions in their transposed form
 subroutine orthoconstraintNotSymmetric(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum,lagMatDiag)
   use module_base
   use module_types
@@ -2287,9 +2278,7 @@ subroutine orthoconstraintNotSymmetric(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprs
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: alag
 
-
-integer:: istart, jstart
-
+  integer:: istart, jstart
 
   !separate the orthogonalisation procedure for up and down orbitals 
   !and for different k-points
@@ -2450,27 +2439,10 @@ integer:: istart, jstart
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthoconstraintNotSymmetric
-!!***
 
 
-
-
-
-
-
-!!!!!!! FUNCTION
-!!!!!!!    Orthogonality routine, for all the orbitals
-!!!!!!!    Uses wavefunctions in their transposed form
-!!!!!!!
-!!!!!!! COPYRIGHT
-!!!!!!!    Copyright (C) 2007-2010 BigDFT group
-!!!!!!!    This file is distributed under the terms of the
-!!!!!!!    GNU General Public License, see ~/COPYING file
-!!!!!!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!!!!!!    For the list of contributors, see ~/AUTHORS 
-!!!!!!!
-!!!!!!! SOURCE
-!!!!!!!
+!!!!!!> Orthogonality routine, for all the orbitals
+!!!!!!! Uses wavefunctions in their transposed form
 !!!!!!subroutine orthogonalizeLIN(iproc,nproc,orbs,comms,wfd,psi,input)
 !!!!!subroutine orthogonalizeLIN(iproc, lproc, uproc, norbPerGroup, orbs, comms, psi, input, newComm)
 !!!!!  use module_base
@@ -2598,9 +2570,6 @@ END SUBROUTINE orthoconstraintNotSymmetric
 !!!!!  call timing(iproc,trim(category)//'_comput','OF')
 !!!!!  
 !!!!!END SUBROUTINE orthogonalizeLIN
-!!!!!!!***
-!!!!!
-!!!!!
 !!!!!
 !!!!!
 !!!!!subroutine getOverlapLIN(iproc,nproc,nspin,norbIn,orbs,comms,&
@@ -2719,8 +2688,6 @@ END SUBROUTINE orthoconstraintNotSymmetric
 !!!!!  ! without defining group of processors.
 !!!!!
 !!!!!end subroutine getOverlapLIN
-!!!!!
-!!!!!
 !!!!!
 !!!!!
 !!!!!subroutine orbitals_and_componentsLIN(iproc,ikptp,ispin,orbs,comms,nvctrp,norb,norbs,ncomp,nspinor, jproc, iorb)

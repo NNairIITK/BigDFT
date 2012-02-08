@@ -962,8 +962,8 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   deallocate(adsw,stat=i_stat)
   call memocc(i_stat,i_all,'adsw',subname)
 
-
 END SUBROUTINE diisstp
+
 
 subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   use module_base
@@ -1060,22 +1060,6 @@ function s2d_dot(ndim,x,dx,y,dy)
 end function s2d_dot
 
 
-
-
-
-
-
-
-!!****f* BigDFT/psimix
-!! FUNCTION
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
 subroutine psimixVariable(iproc,nproc,orbs,comms,diis,diisArr, hpsit,psit, quiet)
   use module_base
   use module_types
@@ -1148,14 +1132,11 @@ subroutine psimixVariable(iproc,nproc,orbs,comms,diis,diisArr, hpsit,psit, quiet
   endif
 
 END SUBROUTINE psimixVariable
-!!***
 
 
-
-! diis subroutine:
-! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
-! using  the previous iteration points psidst and the associated error 
-! vectors (preconditioned gradients) hpsidst
+!> Calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
+!! using  the previous iteration points psidst and the associated error 
+!! vectors (preconditioned gradients) hpsidst
 subroutine diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit,quiet)
   use module_base
   use module_types

@@ -2,7 +2,7 @@
 !! parameters from the interatomic potential
 !! @author
 !!   Fedwa El-Mellouhi, Normand Mousseau February 2006
-!!   Copyright (C) 2010-2011 BigDFT group, Normand Mousseau
+!!   Copyright (C) 2010-2012 BigDFT group, Normand Mousseau
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -29,6 +29,7 @@ module parameters
 END MODULE parameters
 
 
+!> Module which define the radius cut of SW potential
 module cutoff
    use parameters
    implicit none
