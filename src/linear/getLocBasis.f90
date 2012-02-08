@@ -1605,8 +1605,8 @@ contains
        !locrad=3.d0*lin%locrad
        allocate(locrad(lzdlarge%nlr), stat=istat)
        !locrad=7.d0
-       !locrad=2.d0*lzd%llr(:)%locrad
-       locrad=1.d0*lzd%llr(:)%locrad
+       locrad=2.d0*lzd%llr(:)%locrad
+       !locrad=1.d0*lzd%llr(:)%locrad
        !!write(*,'(a,i7,20i5)') 'iproc, orbslarge%inwhichlocreg', iproc, orbslarge%inwhichlocreg
        !!write(*,'(a,3i8)') 'iproc, orbslarge%norbp, orbslarge%isorb', iproc, orbslarge%norbp, orbslarge%isorb
        call initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, lzd%Glr, locrad, 's')
@@ -6147,12 +6147,12 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,2), orbs%norb, &
            tempmat3(1,1,1), orbs%norb, 0.d0, Umat(1,1), orbs%norb)
 
-      t1=mpi_wtime()
-      !write(*,*) '5: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
-      call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, &
-           comon%recvbuf, tempmat3(1,1,1), .true., lphi)
-      t2=mpi_wtime()
-      time_lincomb=time_lincomb+t2-t1
+      !!t1=mpi_wtime()
+      !!!write(*,*) '5: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
+      !!call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, &
+      !!     comon%recvbuf, tempmat3(1,1,1), .true., lphi)
+      !!t2=mpi_wtime()
+      !!time_lincomb=time_lincomb+t2-t1
 
       !!$$t1=mpi_wtime()
       !!$$call apply_orbitaldependent_potential(iproc, nproc, at, orbs, lzd, rxyz, &
@@ -6260,6 +6260,18 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
 
   end do innerLoop
+
+
+  t1=mpi_wtime()
+  !write(*,*) '5: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
+  call extractOrbital3(iproc, nproc, orbs, orbs%npsidim_orbs, orbs%inWhichLocreg, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
+  call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, tt1, tt2)
+  call collectnew(iproc, nproc, comon, mad, op, orbs, lzd, comon%nsendbuf, &
+       comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
+  call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, &
+       comon%recvbuf, Umat(1,1), .true., lphi)
+  t2=mpi_wtime()
+  time_lincomb=time_lincomb+t2-t1
 
 
 
