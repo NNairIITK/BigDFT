@@ -1526,7 +1526,6 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
      stop
   end if
 
-  write(*,'(a,i7,6x,100i8)') 'sub1: iproc, orbs%norb_par(:,0)', iproc, orbs%norb_par(:,0)
 
 
 
@@ -1548,7 +1547,6 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
   ! Modify these values
   call repartitionOrbitals2(iproc, nproc, orbs%norb, orbs%norb_par, orbs%norbp, orbs%isorb)
 
-  write(*,'(a,i7,6x,100i8)') 'sub2: iproc, orbs%norb_par(:,0)', iproc, orbs%norb_par(:,0)
 
   allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
@@ -1626,7 +1624,6 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
   call MPI_Initialized(mpiflag,ierr)
   if(mpiflag /= 0) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
 
-  write(*,'(a,i7,6x,100i8)') 'sub3: iproc, orbs%norb_par(:,0)', iproc, orbs%norb_par(:,0)
   
 
 END SUBROUTINE orbitals_descriptors_forLinear

@@ -191,16 +191,16 @@ integer,dimension(:),allocatable:: orbsperlocreg
           norb=norbu
           norbd=0
           nspin=1
-          write(*,*) 'norb, norbu, norbd', norb, norbu, norbd
-          write(*,*) '2: iproc, lorbs%nkpts', iproc, lorbs%nkpts
-          write(*,'(a,i5,1000es10.2)') '2: iproc, lorbs%kpts', iproc, lorbs%kpts
-          write(*,'(a,i5,1000es10.2)') '2: iproc, lorbs%kwgts', iproc, lorbs%kwgts
+          !!write(*,*) 'norb, norbu, norbd', norb, norbu, norbd
+          !!write(*,*) '2: iproc, lorbs%nkpts', iproc, lorbs%nkpts
+          !!write(*,'(a,i5,1000es10.2)') '2: iproc, lorbs%kpts', iproc, lorbs%kpts
+          !!write(*,'(a,i5,1000es10.2)') '2: iproc, lorbs%kwgts', iproc, lorbs%kwgts
           call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
                lorbs%nkpts, lorbs%kpts, lorbs%kwgts, llborbs)
-          write(*,'(a,8i9,10x,8i9)') 'FIRST: lorbs%norb_par, llborbs%norb_par', lorbs%norb_par, llborbs%norb_par
+          !write(*,'(a,8i9,10x,8i9)') 'FIRST: lorbs%norb_par, llborbs%norb_par', lorbs%norb_par, llborbs%norb_par
           call repartitionOrbitals(iproc, nproc, llborbs%norb, llborbs%norb_par,&
                llborbs%norbp, llborbs%isorb_par, llborbs%isorb, llborbs%onWhichMPI)
-          write(*,'(a,8i9,10x,8i9)') 'SECOND: lorbs%norb_par, llborbs%norb_par', lorbs%norb_par, llborbs%norb_par
+          !write(*,'(a,8i9,10x,8i9)') 'SECOND: lorbs%norb_par, llborbs%norb_par', lorbs%norb_par(:,0), llborbs%norb_par(:,0)
 
           allocate(orbsperlocreg(lzd%nlr), stat=istat)
           call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
@@ -281,6 +281,11 @@ integer,dimension(:),allocatable:: orbsperlocreg
            max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart,lphi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if
+
+  !!if(newgradient) then
+  !!   call mpi_barrier(mpi_comm_world, ierr)
+  !!   stop
+  !!end if
 
   ! Get the overlap matrix.
   if(.not.useDerivativeBasisFunctions) then
