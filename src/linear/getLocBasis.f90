@@ -105,8 +105,8 @@ type(p2pCommsRepartition),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
 
 ! Local variables 
-integer:: istat, iall, ilr, istr, iorb, jorb, korb, tag, norbu, norbd, nspin, npsidim, norb
-real(8),dimension(:),allocatable:: eval, lhphi
+integer:: istat, iall, ilr, istr, iorb, jorb, korb, tag, norbu, norbd, nspin, npsidim, norb, nlr
+real(8),dimension(:),allocatable:: eval, lhphi, locrad
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, overlapmatrix, locregCenter
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time,eSIC_DC
@@ -117,6 +117,7 @@ integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt, inc, jjorb
 !real(8),dimension(:),pointer:: lpot
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 integer,dimension(:),allocatable:: orbsperlocreg
+type(locreg_descriptors):: glr_tmp
 
 
 
@@ -130,9 +131,9 @@ integer,dimension(:),allocatable:: orbsperlocreg
   allocate(ovrlp(llborbs%norb,llborbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
-  write(*,*) '1: iproc, lorbs%nkpts', iproc, lorbs%nkpts
-  write(*,'(a,i5,1000es10.2)') '1: iproc, lorbs%kpts', iproc, lorbs%kpts
-  write(*,'(a,i5,1000es10.2)') '1: iproc, lorbs%kwgts', iproc, lorbs%kwgts
+  !!write(*,*) '1: iproc, lorbs%nkpts', iproc, lorbs%nkpts
+  !!write(*,'(a,i5,1000es10.2)') '1: iproc, lorbs%kpts', iproc, lorbs%kpts
+  !!write(*,'(a,i5,1000es10.2)') '1: iproc, lorbs%kwgts', iproc, lorbs%kwgts
 
   ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then
@@ -162,6 +163,11 @@ integer,dimension(:),allocatable:: orbsperlocreg
 
   if(updatePhi .or. itSCC==0) then
       if(newgradient) then
+
+          ! Cancel the communication of the potential
+          call cancelCommunicationPotential(iproc, nproc, lbcomgp)
+          call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
+
           ! Reallocate lphiRestart, since its size might have changed
           iall=-product(shape(lphiRestart))*kind(lphiRestart)
           deallocate(lphiRestart, stat=istat)
@@ -234,6 +240,25 @@ integer,dimension(:),allocatable:: orbsperlocreg
 
           call assignToLocreg2(iproc, nproc, llborbs%norb, llborbs%norb_par, 0, lzd%nlr, &
                nspin, orbsperlocreg, locregCenter, llborbs%inwhichlocreg)
+
+          ! Recreate lzd, since it has to contain the bounds also for the derivatives
+          ! First copy to some temporary structure
+          allocate(locrad(lzd%nlr), stat=istat)
+          call memocc(istat, locrad, 'locrad', subname)
+          call nullify_locreg_descriptors(glr_tmp)
+          call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
+          nlr=lzd%nlr
+          locrad=lzd%llr(:)%locrad
+          call deallocate_local_zone_descriptors(lzd, subname)
+          call nullify_local_zone_descriptors(lzd)
+          call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, lorbs, glr_tmp, locrad, 's', llborbs)
+          call nullify_locreg_descriptors(lzd%glr)
+          call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
+          call deallocate_locreg_descriptors(glr_tmp, subname)
+          iall=-product(shape(locrad))*kind(locrad)
+          deallocate(locrad, stat=istat)
+          call memocc(istat, iall, 'locrad', subname)
+
           iall=-product(shape(locregCenter))*kind(locregCenter)
           deallocate(locregCenter, stat=istat)
           call memocc(istat, iall, 'locregCenter', subname)
@@ -250,7 +275,7 @@ integer,dimension(:),allocatable:: orbsperlocreg
           call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
           llborbs%eval=-.5d0
           llborbs%npsidim_orbs=max(npsidim,1)
-          write(*,'(a,i5,4x,100i5)') 'llborbs%norb, llborbs%inwhichlocreg', llborbs%norb, llborbs%inwhichlocreg
+          !!write(*,'(a,i5,4x,100i5)') 'llborbs%norb, llborbs%inwhichlocreg', llborbs%norb, llborbs%inwhichlocreg
           call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, llborbs, llborbs%inWhichLocreg,&
                's', lbop, lbcomon, tag)
           call initMatrixCompression(iproc, nproc, lzd%nlr, llborbs, &
@@ -260,9 +285,15 @@ integer,dimension(:),allocatable:: orbsperlocreg
           call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, llborbs, &
                lzd, lbcomgp, llborbs%inWhichLocreg, tag)
 
+          ! Communicate the potential
+          call allocateCommunicationsBuffersPotential(lbcomgp, subname)
+          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
+
 
       end if
+      !!write(*,'(a,2i8)') 'size(lphi), size(lphiRestart)', size(lphi), size(lphiRestart)
       call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1), 1, lphiRestart(1), 1)
+
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
@@ -271,6 +302,16 @@ integer,dimension(:),allocatable:: orbsperlocreg
       !!call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
 
       if(newgradient) then
+
+          ! Reallocate lphi, since it is now allocated without the derivatives
+          iall=-product(shape(lphi))*kind(lphi)
+          deallocate(lphi, stat=istat)
+          call memocc(istat, iall, 'lphi', subname)
+
+          allocate(lphi(llborbs%npsidim_orbs), stat=istat)
+          call memocc(istat, lphi, 'lphi', subname)
+
+
 
           call deallocate_p2pCommsRepartition(comrp, subname)
           call nullify_p2pCommsRepartition(comrp)
@@ -981,6 +1022,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  lphi, lhphi, lhphiold, lphiold)
 
 
+            !call deallocateCommunicationsBuffersPotential(comgp, subname)
             call allocateCommunicationsBuffersPotential(comgp, subname)
             call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
 
@@ -1107,7 +1149,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           deallocate(denspot%pot_full, stat=istat)
           call memocc(istat, iall, 'denspot%pot_full', subname)
 
-          call allocateCommunicationsBuffersPotential(comgp, subname)
+          !call allocateCommunicationsBuffersPotential(comgp, subname)
       end if
 
 
