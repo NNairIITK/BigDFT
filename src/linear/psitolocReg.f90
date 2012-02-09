@@ -1269,7 +1269,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   character(len=*), parameter :: subname='Lpsi_to_global'
   integer :: i_stat,i_all
   integer :: start,Gstart,Lindex
-  integer :: lfinc,Gfinc,spinshift,ispin,Gindex
+  integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
 
 ! Define integers
   nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
@@ -1287,17 +1287,21 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 !####################################################
 ! Do coarse region
 !####################################################
+  isegstart=1
   do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
 
-! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
-     do isegG = 1,Glr%wfd%nseg_c
+     ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)... DONE
+     do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
         if((lmin > Gmax) .or. (lmax < Gmin)) cycle
 
         ! Define the offset between the two segments
@@ -1346,18 +1350,22 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   lfinc  = Llr%wfd%nvctr_f
   Gfinc = Glr%wfd%nvctr_f
 
+  isegstart=Glr%wfd%nseg_c+1
   do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
 
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
-     do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+     do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
         if((lmin > Gmax) .or. (lmax < Gmin)) cycle
 
         offset = lmin - Gmin
@@ -1589,7 +1597,7 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
   character(len=*), parameter :: subname='index_of_Lpsi_to_global'
   integer :: i_stat,i_all
   integer :: start,Gstart,Lindex
-  integer :: lfinc,Gfinc,spinshift,ispin,Gindex
+  integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
   ! debug
   integer:: lxs, lys, lzs, lxe, lye, lze, gxe, gye, gze, locallength, actuallength
 
@@ -1608,20 +1616,29 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
 !####################################################
 ! Do coarse region
 !####################################################
+  isegstart=1
   do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
 
      locallength=lmax-lmin+1
      actuallength=0
-! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
-     do isegG = 1,Glr%wfd%nseg_c
+     ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)... DONE!
+     !do isegG = 1,Glr%wfd%nseg_c
+     do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
+        if((lmin > Gmax) .or. (lmax < Gmin)) then
+            cycle
+        end if
+        !!if(iproc==0) write(*,'(a,4i9)') 'iproc, isegloc, isegstart, isegG', iproc, isegloc, isegstart, isegG
+        !!if(isegG<isegstart) write(*,*) 'ERROR: isegG, isegstart', isegG, isegstart
 
         ! Define the offset between the two segments
         offset = lmin - Gmin
@@ -1675,19 +1692,26 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
   lfinc  = Llr%wfd%nvctr_f
   Gfinc = Glr%wfd%nvctr_f
 
+  isegstart=Glr%wfd%nseg_c+1
   do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
 
-! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
-     do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+     ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)... DONE!
+     !do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+     do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
+        if((lmin > Gmax) .or. (lmax < Gmin)) then
+            cycle
+        end if
 
         offset = lmin - Gmin
         if(offset < 0) offset = 0
