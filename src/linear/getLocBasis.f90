@@ -900,6 +900,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
             call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
+             !!do iorb=1,lorbs%norb
+             !!    write(*,'(a,2i8,3es12.4,4x,3es12.4)') 'iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)', &
+             !!        iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)
+             !!end do
             call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
                  locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
@@ -7347,11 +7351,11 @@ real(gp) :: epot_p, epot
                  do ispinor=1,nspinor
                     do i1=i1s,i1e
                        if(dir=='x') then
-                           tt=dble(i1)
+                           tt=dble(i1)*hxh
                        else if(dir=='y') then
-                           tt=dble(i2)
+                           tt=dble(i2)*hyh
                        else if(dir=='z') then
-                           tt=dble(i3)
+                           tt=dble(i3)*hzh
                        else
                            stop 'wrong direction!'
                        end if
