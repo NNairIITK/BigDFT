@@ -151,14 +151,6 @@ type(locreg_descriptors):: glr_tmp
           infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,newgradient,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
           hx,hy,hz,SIC,nItPrecond)
-      if(newgradient) then
-          tag=1
-          call deallocateCommunicationbufferSumrho(comsr, subname)
-          call deallocate_p2pComms(comsr, subname)
-          call nullify_p2pComms(comsr)
-          call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, llborbs, tag, comsr)
-          call allocateCommunicationbufferSumrho(iproc, .false., comsr, subname)
-      end if
   end if
 
   if(updatePhi .or. itSCC==0) then
@@ -292,6 +284,14 @@ type(locreg_descriptors):: glr_tmp
               call allocateCommunicationsBuffersPotential(lbcomgp, subname)
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
           end if
+
+
+          tag=1
+          call deallocateCommunicationbufferSumrho(comsr, subname)
+          call deallocate_p2pComms(comsr, subname)
+          call nullify_p2pComms(comsr)
+          call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, llborbs, tag, comsr)
+          call allocateCommunicationbufferSumrho(iproc, .false., comsr, subname)
 
 
       end if
@@ -694,7 +694,7 @@ real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
 real(8) :: t2tot,timetot,tt1,tt2,tt3,tt4,tt5
 real(8):: tt,ddot,fnrm,fnrmMax,meanAlpha,gnrm,gnrm_zero,gnrmMax,t1,t2
 real(8) :: timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress, energyconf_0, energyconf_trial
-real(8):: trHold
+real(8):: trHold, factor
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, consecutive_rejections
 integer :: icountDIISFailureCons,itBest, ncnt, lorb
 integer:: istat,istart,ierr,ii,it,iall,ind1,ind2,jorb,ist,iiorb
@@ -709,7 +709,7 @@ real(8),dimension(5):: time
 !real(8),dimension(:),pointer:: lpot
 !real(8),external :: mpi_wtime1
 character(len=3):: orbname, comment
-real(8),dimension(:),allocatable:: lvphiovrlp, locrad
+real(8),dimension(:),allocatable:: lvphiovrlp, locrad, locrad_tmp
 real(8),dimension(:),pointer:: phiWork
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
 integer:: jst, istl, istg, nvctrp, ldim, nspin, norbu, norbd, tag, npsidim, ilrlarge
@@ -789,6 +789,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   call memocc(istat, kernelold, 'kernelold', subname)
   allocate(locregCenter(3,lzd%nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
+  allocate(locrad(lzd%nlr), stat=istat)
+  call memocc(istat, locrad, 'locrad', subname)
+  allocate(locrad_tmp(lzd%nlr), stat=istat)
+  call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
   time=0.d0
   resetDIIS=.false.
@@ -796,7 +800,15 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   t1tot=mpi_wtime()
   consecutive_rejections=0
   trHold=1.d100
+ 
+  do ilr=1,lzd%nlr
+      locrad(ilr)=lzd%llr(ilr)%locrad
+  end do
 
+
+
+  ! ration of large locreg and standard locreg
+  factor=2.d0
 
 
   ! Initialize largestructures if required
@@ -808,11 +820,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       end do
       call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
       locregCenterTemp=locregCenter
+      locrad_tmp=factor*locrad
       call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
-           2.d0*lzd%llr(:)%locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
+           locrad_tmp, denspot%dpcom%nscatterarr, .false., ldiis, &
            lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
   end if
+
 
 
   iterLoop: do it=1,nit
@@ -887,7 +901,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
             call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
             call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenterTemp, &
-                 lzdlarge%llr(:)%locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
+                 locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
 
@@ -919,8 +933,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
             end do
             call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+            locrad_tmp=factor*locrad
             call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenterTemp, &
-                 2.d0*lzd%llr(:)%locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
+                 locrad_tmp, denspot%dpcom%nscatterarr, .false., ldiis, &
                  lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
 
@@ -1445,7 +1460,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
             call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
             call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenterTemp, &
-                 lzdlarge%llr(:)%locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
+                 locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
           ! Transform back to localization region
@@ -1471,8 +1486,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
            call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+           locrad_tmp=factor*locrad
            call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenterTemp, &
-                2.d0*lzd%llr(:)%locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
+                locrad_tmp, denspot%dpcom%nscatterarr, .false., ldiis, &
                 lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
       end if
@@ -1547,6 +1563,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
+
+  iall=-product(shape(locrad))*kind(locrad)
+  deallocate(locrad, stat=istat)
+  call memocc(istat, iall, 'locrad', subname)
+  iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
+  deallocate(locrad_tmp, stat=istat)
+  call memocc(istat, iall, 'locrad_tmp', subname)
 
 
 !!$  iall=-product(shape(lorbs%ispot))*kind(lorbs%ispot)
