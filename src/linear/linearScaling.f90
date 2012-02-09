@@ -365,6 +365,8 @@ integer,dimension(:),pointer:: onwhichatom
               call deallocateDIIS(ldiis)
               exit outerLoop
           end if
+          ! only use steepest descent
+          ldiis%isx=0
 
       else
           !!lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
