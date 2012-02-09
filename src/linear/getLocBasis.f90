@@ -765,28 +765,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   ldiis%trold=1.d100
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
-  !!!call initializeDIIS(input%lin%DIISHistMax, lzd, lorbs, lorbs%norb, ldiis)
-
-  !!! Set the maximal number of iterations.
-  !!if(lin%newgradient) then
-  !!    nit=lin%nItBasis_highaccuracy
-  !!else
-  !!    nit=lin%nItBasis_lowaccuracy
-  !!end if
-
-  !!!! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
-  !!!! The messages for this point to point communication have been posted in the subroutine linearScaling.
-  !!!call gatherPotential(iproc, nproc, comgp)
-
-  !!!! Build the required potential
-  !!!call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
-
-  !!!call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
-  !!!!call full_local_potential(iproc,nproc,&
-  !!!!     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
-  !!!!     lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
-  !!!!     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
-  !!!!     lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
 
 
   if(.not.newgradient) then
@@ -798,11 +776,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
 
       call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
-      !call full_local_potential(iproc,nproc,&
-      !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
-      !     lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
-      !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
-      !     lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
   end if
 
 
@@ -873,84 +846,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
          else
 
-
-           !!if(.not.newgradient) call orthonormalizeLocalized(iproc, nproc, &
-           !!orthpar%methTransformOverlap, orthpar%nItOrtho, &
-           !!orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, lorbs, op, comon, lzd, &
-           !!mad, lphi, ovrlp)
-           !!if(newgradient) then
-           !!    ist=1
-           !!    do iorb=1,lorbs%norbp
-           !!        iiorb=lorbs%isorb+iorb
-           !!        ilr=lorbs%inwhichlocreg(iiorb)
-           !!        ncnt=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-           !!        tt=ddot(ncnt, lphi(ist), 1, lphi(ist), 1)
-           !!        call dscal(ncnt, 1.d0/sqrt(tt), lphi(ist), 1)
-           !!        ist=ist+ncnt
-           !!    end do
-           !!end if
-           
-          !!!!istl=1
-          !!!!istg=1
-          !!!!phi=0.d0
-          !!!!do iorb=1,lorbs%norbp
-          !!!!    iiorb=iorb+lorbs%isorb
-          !!!!    ilr=lorbs%inwhichlocreg(iiorb)
-          !!!!    call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
-          !!!!         lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, 1, &
-          !!!!         lzd%Glr, lzd%Llr(ilr), lphi(istl), phi(istg))
-          !!!!    istl=istl+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-          !!!!    istg=istg+lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
-          !!!!end do
-          !!!!call transpose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, phi, work=phiWork)
-          !!!!nvctrp=sum(comms%nvctr_par(iproc,1:lorbs%nkptsp))*lorbs%nspinor
-          !!!!ist=1
-          !!!!do iorb=1,lorbs%norb
-          !!!!    jst=1
-          !!!!    do jorb=1,lorbs%norb
-          !!!!        ovrlp(jorb,iorb)=ddot(nvctrp, phi(jst), 1, phi(ist), 1)
-          !!!!        jst=jst+nvctrp
-          !!!!    end do
-          !!!!    ist=ist+nvctrp
-          !!!!end do
-          !!!!call mpiallred(ovrlp(1,1), lorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-          !!!!do iorb=1,lorbs%norb
-          !!!!    do jorb=1,lorbs%norb
-          !!!!        write(400,*) iorb,jorb,ovrlp(jorb,iorb)
-          !!!!    end do
-          !!!!end do
-          !!!!call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, orthpar%methTransformOverlap, orthpar%blocksize_pdsyev, &
-          !!!!     orthpar%blocksize_pdgemm, lorbs%norb, mad, ovrlp)
-          !!!!do iorb=1,lorbs%norb
-          !!!!    do jorb=1,lorbs%norb
-          !!!!        write(410,*) iorb,jorb,ovrlp(jorb,iorb)
-          !!!!    end do
-          !!!!end do
-          !!!!call dgemm('n', 'n', nvctrp, lorbs%norb, lorbs%norb, 1.d0, phi(1), &
-          !!!!                     nvctrp, ovrlp(1,1), lorbs%norb, 0.d0, phiWork(1), nvctrp)
-          !!!!call dcopy(lorbs%norb*nvctrp, phiWork(1), 1, phi(1), 1)
-          !!!!call untranspose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, phi, work=phiWork)
-
-          !!!!! transform the large locreg
-          !!!!ind1=1
-          !!!!ind2=1
-          !!!!lphilarge=0.d0
-          !!!!do iorb=1,orbslarge%norbp
-          !!!!    !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
-          !!!!    ilr = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
-          !!!!    ldim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-          !!!!    gdim=lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
-          !!!!    !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
-          !!!!    !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
-          !!!!    !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-          !!!!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1), lphilarge(ind2))
-          !!!!    ind1=ind1+lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
-          !!!!    ind2=ind2+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-          !!!!end do
-          !!!!!lphilarge=1.d-4
-
-
-
             lphilarge=0.d0
             istl=1
             istg=1
@@ -959,10 +854,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                 ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
                 ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
                 gdim=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
-                !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
-                !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-                !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilr), lphi(ind1), lphilarge(ind2))
                 nspin=1
                 call Lpsi_to_global2(iproc, nproc, ldim, gdim, lorbs%norb, lorbs%nspinor, nspin, lzdlarge%llr(ilrlarge), &
                      lzd%llr(ilr), lphi(istl), lphilarge(istg))
@@ -973,18 +864,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  orthpar%methTransformOverlap, orthpar%nItOrtho, &
                  orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbslarge, oplarge, comonlarge, lzdlarge, &
                  madlarge, lphilarge, ovrlp)
-             if(iproc==0) then
-                 !!do istat=1,orbslarge%norb
-                 !!    do iall=1,orbslarge%norb
-                 !!        write(500,*) istat, iall, ovrlp(iall,istat)
-                 !!    end do
-                 !!end do
-             end if
-            !!confdatarr%prefac=1.0d-4
-            !!call unitary_optimization(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-            !!                          comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-            !!                          newgradient, confdatarr, hx, lphilarge)
-            !!confdatarr%prefac=0.0d0
 
             call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                  comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
@@ -995,33 +874,14 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  do iorb=1,lorbs%norb
                      do jorb=1,lorbs%norb
                          tt=0.d0
-                         !!tt2=0.d0
                          do korb=1,lorbs%norb
                              do lorb=1,lorbs%norb
-                                 !tt=tt+kernelold(korb,lorb)*Umat(jorb,korb)*Umat(iorb,lorb)
-                                 !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
                                  tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
                              end do
-                             !!tt2=tt2+Umat(iorb,korb)*Umat(jorb,korb)
                          end do
-                         !!if(iproc==0) write(*,'(a,2i8,es16.7)') 'iorb, jorb, tt2', iorb, jorb, tt2
                          kernel(jorb,iorb)=tt
                      end do
                  end do
-                 !!kernelold=kernel
-                 !!do iorb=1,lorbs%norb
-                 !!    do jorb=1,lorbs%norb
-                 !!        tt=0.d0
-                 !!        !!tt2=0.d0
-                 !!        do korb=1,lorbs%norb
-                 !!            do lorb=1,lorbs%norb
-                 !!                !tt=tt+kernelold(korb,lorb)*Umat(jorb,korb)*Umat(iorb,lorb)
-                 !!                tt=tt+kernelold(korb,jorb)*Umat(korb,lorb)*Umat(iorb,lorb)
-                 !!            end do
-                 !!        end do
-                 !!        kernel(jorb,iorb)=tt
-                 !!    end do
-                 !!end do
              end if
 
             call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
@@ -1105,14 +965,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
       lzd%doHamAppl=.true.
 
-      !!do iorb=1,lorbs%norbp
-      !!     iiorb=lorbs%isorb+iorb
-      !!     if(newgradient) then
-      !!         write(*,'(a,i5,es12.4,3i8)') 'iiorb, confdatarr(iorb)%prefac, confdatarr(iorb)%ioffset', iiorb, confdatarr(iorb)%prefac, confdatarr(iorb)%ioffset
-      !!         write(*,'(a,2i8,3es16.6)') 'iproc, iorb, confdatarr(iorb)%rxyzConf', iproc, iorb, confdatarr(iorb)%rxyzConf
-      !!     end if
-      !!end do
-
 
 
       if(newgradient) then
@@ -1124,11 +976,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
 
           call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
-          !call full_local_potential(iproc,nproc,&
-          !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
-          !     lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
-          !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
-          !     lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
       end if
 
 
@@ -1163,41 +1010,27 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       end if
 
 
-      if(newgradient) then
-          ! NEW: modify gradient
-          call allocateSendBufferOrtho(comon, subname)
-          call allocateRecvBufferOrtho(comon, subname)
-          ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-          call extractOrbital3(iproc, nproc, lorbs, max(lorbs%npsidim_orbs,lorbs%npsidim_comp), &
-               lorbs%inWhichLocreg, lzd, op, &
-               lhphi, comon%nsendBuf, comon%sendBuf)
-          !!do istat=1,comon%nsendbuf
-          !!    write(560+iproc,*) comon%sendbuf(istat)
-          !!end do
-          call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lhphi, comon, tt1, tt2)
-          call collectnew(iproc, nproc, comon, mad, op, lorbs, lzd, comon%nsendbuf, &
-               comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
-          !!do istat=1,comon%nrecvbuf
-          !!    write(550+iproc,*) comon%recvbuf(istat)
-          !!end do
-          call build_new_linear_combinations(iproc, nproc, lzd, lorbs, op, comon%nrecvbuf, &
-               comon%recvbuf, kernel, .true., lhphi)
-          call deallocateRecvBufferOrtho(comon, subname)
-          call deallocateSendBufferOrtho(comon, subname)
-          !!do iorb=1,lorbs%norb
-          !!    do jorb=1,lorbs%norb
-          !!        write(540,*) iorb,jorb,kernel(jorb,iorb)
-          !!    end do
-          !!end do
-          ind2=1
-          do iorb=1,lorbs%norbp
-              ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
-              !!do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
-              !!    write(520+iproc,*) istat, lhphi(istat)
-              !!end do
-              ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-          end do
-      end if
+      !!!if(newgradient) then
+      !!!    ! NEW: modify gradient
+      !!!    call allocateSendBufferOrtho(comon, subname)
+      !!!    call allocateRecvBufferOrtho(comon, subname)
+      !!!    ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+      !!!    call extractOrbital3(iproc, nproc, lorbs, max(lorbs%npsidim_orbs,lorbs%npsidim_comp), &
+      !!!         lorbs%inWhichLocreg, lzd, op, &
+      !!!         lhphi, comon%nsendBuf, comon%sendBuf)
+      !!!    call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lhphi, comon, tt1, tt2)
+      !!!    call collectnew(iproc, nproc, comon, mad, op, lorbs, lzd, comon%nsendbuf, &
+      !!!         comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
+      !!!    call build_new_linear_combinations(iproc, nproc, lzd, lorbs, op, comon%nrecvbuf, &
+      !!!         comon%recvbuf, kernel, .true., lhphi)
+      !!!    call deallocateRecvBufferOrtho(comon, subname)
+      !!!    call deallocateSendBufferOrtho(comon, subname)
+      !!!    ind2=1
+      !!!    do iorb=1,lorbs%norbp
+      !!!        ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
+      !!!        ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !!!    end do
+      !!!end if
 
 
       t2=mpi_wtime()
@@ -1264,127 +1097,37 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               istl=istl+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
               istg=istg+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
           end do
+
+
+          if(newgradient) then
+              ! NEW: modify gradient
+              call allocateSendBufferOrtho(comonlarge, subname)
+              call allocateRecvBufferOrtho(comonlarge, subname)
+              ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+              call extractOrbital3(iproc, nproc, orbslarge, max(orbslarge%npsidim_orbs,orbslarge%npsidim_comp), &
+                   orbslarge%inWhichLocreg, lzdlarge, oplarge, &
+                   lhphilarge, comonlarge%nsendBuf, comonlarge%sendBuf)
+              call postCommsOverlapNew(iproc, nproc, orbslarge, oplarge, lzdlarge, lhphilarge, comonlarge, tt1, tt2)
+              call collectnew(iproc, nproc, comonlarge, madlarge, oplarge, orbslarge, lzdlarge, comonlarge%nsendbuf, &
+                   comonlarge%sendbuf, comonlarge%nrecvbuf, comonlarge%recvbuf, tt3, tt4, tt5)
+              call build_new_linear_combinations(iproc, nproc, lzdlarge, orbslarge, oplarge, comonlarge%nrecvbuf, &
+                   comonlarge%recvbuf, kernel, .true., lhphilarge)
+              call deallocateRecvBufferOrtho(comonlarge, subname)
+              call deallocateSendBufferOrtho(comonlarge, subname)
+              ind2=1
+              do iorb=1,orbslarge%norbp
+                  ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
+                  ind2=ind2+lzd%llr(ilrlarge)%wfd%nvctr_c+7*lzd%llr(ilrlarge)%wfd%nvctr_f
+              end do
+          end if
+
+
           call orthoconstraintNonorthogonal(iproc, nproc, lzdlarge, orbslarge, &
                oplarge, comonlarge, madlarge, ovrlp, &
                orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, lphilarge, lhphilarge, lagmat)
       end if
 
-      !!!    allocate(phi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
-      !!!    allocate(hphi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
-      !!!    allocate(phiWork(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat)
-      !!!    istl=1
-      !!!    istg=1
-      !!!    phi=0.d0
-      !!!    hphi=0.d0
-      !!!    do iorb=1,lorbs%norbp
-      !!!        iiorb=iorb+lorbs%isorb
-      !!!        ilr=lorbs%inwhichlocreg(iiorb)
-      !!!        call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
-      !!!             lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, 1, &
-      !!!             lzd%Glr, lzd%Llr(ilr), lphi(istl), phi(istg))
-      !!!        call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
-      !!!             lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, 1, &
-      !!!             lzd%Glr, lzd%Llr(ilr), lhphi(istl), hphi(istg))
-      !!!        istl=istl+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-      !!!        istg=istg+lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
-      !!!    end do
-      !!!    call transpose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, phi, work=phiWork)
-      !!!    call transpose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, hphi, work=phiWork)
-      !!!    nvctrp=sum(comms%nvctr_par(iproc,1:lorbs%nkptsp))*lorbs%nspinor
-      !!!    ist=1
-      !!!    do iorb=1,lorbs%norb
-      !!!        jst=1
-      !!!        do jorb=1,lorbs%norb
-      !!!            lagmat(jorb,iorb)=ddot(nvctrp, phi(jst), 1, hphi(ist), 1)
-      !!!            jst=jst+nvctrp
-      !!!        end do
-      !!!        ist=ist+nvctrp
-      !!!    end do
-      !!!    call mpiallred(lagmat(1,1), lorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-      !!!    do iorb=1,lorbs%norb
-      !!!        do jorb=1,lorbs%norb
-      !!!            write(450,*) iorb,jorb,lagmat(jorb,iorb)
-      !!!        end do
-      !!!    end do
-      !!!    do iorb=1,lorbs%norb
-      !!!        do jorb=1,lorbs%norb
-      !!!            write(460,*) iorb,jorb,lagmat(jorb,iorb)
-      !!!        end do
-      !!!    end do
-      !!!    call dgemm('n', 'n', nvctrp, lorbs%norb, lorbs%norb, -.5d0, phi(1), &
-      !!!                         nvctrp, lagmat(1,1), lorbs%norb, 1.d0, hphi(1), nvctrp)
-      !!!    call dgemm('n', 't', nvctrp, lorbs%norb, lorbs%norb, -.5d0, phi(1), &
-      !!!                         nvctrp, lagmat(1,1), lorbs%norb, 1.d0, hphi(1), nvctrp)
-      !!!    call untranspose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, phi, work=phiWork)
-      !!!    call untranspose_v(iproc, nproc, lorbs, lzd%glr%wfd, comms, hphi, work=phiWork)
 
-      !!!    ! transfrom the large locreg
-      !!!    ind1=1
-      !!!    ind2=1
-      !!!    allocate(lphilarge(orbslarge%npsidim_orbs), stat=istat)
-      !!!    lphilarge=0.d0
-      !!!    do iorb=1,orbslarge%norbp
-      !!!        !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
-      !!!        ilr = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
-      !!!        ldim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-      !!!        gdim=lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
-      !!!        !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
-      !!!        !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
-      !!!        !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-      !!!        call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, hphi(ind1), lphilarge(ind2))
-      !!!        ind1=ind1+lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
-      !!!        ind2=ind2+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-      !!!    end do
-      !!!    !lphilarge=1.d-4
-      !!!    call unitary_optimization(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-      !!!                              comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-      !!!                              newgradient, confdatarr, hx, lphilarge)
-
-      !!!    ! Transform back to small locreg
-      !!!    ind1=1
-      !!!    ind2=1
-      !!!    lhphi=0.d0
-      !!!    do iorb=1,lin%orbs%norbp
-      !!!        !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
-      !!!        ilr = lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
-      !!!        ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-      !!!        gdim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-      !!!        !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
-      !!!        !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
-      !!!        !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-      !!!        call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilr), lphilarge(ind1), lhphi(ind2))
-      !!!        ind1=ind1+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-      !!!        ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-      !!!    end do
-
-      !!!    deallocate(lphilarge)
-      !!!    deallocate(phiWork, stat=istat)
-      !!!    deallocate(phi, stat=istat)
-      !!!    deallocate(hphi, stat=istat)
-
-
-
-
-
-
-
-
-
-      !!! EXPERIMENTAL -- USE ONLY DIAGONAL PART
-      !!if(newgradient .and. it>10) then
-      !!    call allocateCommuncationBuffersOrtho(comon, subname)
-      !!    call getMatrixElements2(iproc, nproc, lzd, lorbs, op, comon, lphi, lhphi, mad, lagmat)
-      !!    call deallocateCommuncationBuffersOrtho(comon, subname)
-      !!    ist=1
-      !!    do iorb=1,lorbs%norbp
-      !!        iiorb=lorbs%isorb+iorb
-      !!        ilr=lorbs%inwhichlocreg(iiorb)
-      !!        ncnt=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-      !!        tt=lagmat(iiorb,iiorb)
-      !!        call daxpy(ncnt, -tt, lhphi(ist), 1, lphi(ist), 1)
-      !!        ist=ist+ncnt
-      !!    end do
-      !!end if
 
       ! Calculate modified trace
       !!tt=0.d0
