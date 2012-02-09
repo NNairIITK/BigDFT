@@ -778,7 +778,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   
   ! Convergence criterion
   comments= 'iterations in the inner loop, convergence criterion'
-  call input_var(in%lin%nItInnerLoop,'0',ranges=(/0,1000/))
+  call input_var(in%lin%nItInnerLoop,'0',ranges=(/0,1000000/))
   call input_var(in%lin%convCrit,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
