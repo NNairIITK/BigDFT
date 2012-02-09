@@ -808,7 +808,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   ! ration of large locreg and standard locreg
-  factor=2.d0
+  factor=300.d0
 
 
   ! Initialize largestructures if required
@@ -881,7 +881,14 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
             call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                  comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-                 newgradient, confdatarr, hx, lphilarge, Umat, locregCenter)
+                 newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+            do ilr=1,lzd%nlr
+                tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
+                    +(locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
+                    +(locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 
+                tt=sqrt(tt)
+                if(iproc==0) write(*,'(a,i5,es16.4)') '1: ilr, tt', ilr, tt
+            end do
 
             if(nItInnerLoop>0) then                          
                  kernelold=kernel
@@ -942,6 +949,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  locrad_tmp, denspot%dpcom%nscatterarr, .false., ldiis, &
                  lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+            locregCenterTemp=locregCenter
 
         end if
 
@@ -1428,7 +1436,41 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            !!confdatarr%prefac=0.0d0
            call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                                      comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-                                     newgradient, confdatarr, hx, lphilarge, Umat, locregCenter)
+                                     newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+           do ilr=1,lzd%nlr
+               tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
+                   +(locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
+                   +(locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 
+               tt=sqrt(tt)
+               if(iproc==0) write(*,'(a,i5,es16.4)') '2: ilr, tt', ilr, tt
+               if( floor(locregCenter(1,ilr)/hx) < 0 .or. ceiling(locregCenter(1,ilr)/hx) > lzd%glr%d%n1 ) then
+                   if(iproc==0) then
+                       write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
+                           ' is outside of box in x direction! Box limits=',0,lzd%glr%d%n1,&
+                           ', center=',floor(locregCenter(1,ilr)/hx),ceiling(locregCenter(1,ilr)/hx)
+                   end if
+                   call mpi_barrier(mpi_comm_world, ierr)
+                   stop
+               end if
+               if( floor(locregCenter(2,ilr)/hx) < 0 .or. ceiling(locregCenter(2,ilr)/hy) > lzd%glr%d%n2 ) then
+                   if(iproc==0) then
+                       write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
+                           'is outside of box in y direction! Box limits=',0,lzd%glr%d%n2,&
+                           ', center=',floor(locregCenter(2,ilr)/hy),ceiling(locregCenter(2,ilr)/hy)
+                   end if
+                   call mpi_barrier(mpi_comm_world, ierr)
+                   stop
+               end if
+               if( floor(locregCenter(3,ilr)/hz) < 0 .or. ceiling(locregCenter(3,ilr)/hz) > lzd%glr%d%n3 ) then
+                   if(iproc==0) then
+                       write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
+                           'is outside of box in x direction! Box limits=',0,lzd%glr%d%n3,&
+                           ', center=',floor(locregCenter(3,ilr)/hz),ceiling(locregCenter(3,ilr)/hz)
+                   end if
+                   call mpi_barrier(mpi_comm_world, ierr)
+                   stop
+               end if
+           end do
            if(nItInnerLoop>0) then
                kernelold=kernel
                do iorb=1,lorbs%norb
@@ -1495,6 +1537,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                 locrad_tmp, denspot%dpcom%nscatterarr, .false., ldiis, &
                 lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+           locregCenterTemp=locregCenter
       end if
 
 
@@ -5596,7 +5639,7 @@ end subroutine unitary_optimization
 
 
 subroutine MLWFnew(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, &
-           newgradient, confdatarr, hx, lphi, Umat, centers)
+           newgradient, confdatarr, hx, locregCenters, maxDispl, lphi, Umat, centers)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => MLWFnew
@@ -5613,15 +5656,16 @@ type(matrixDescriptors),intent(in):: mad
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
 logical,intent(in):: newgradient
-real(8),intent(in):: hx
+real(8),intent(in):: hx, maxDispl
 type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
+real(8),dimension(3,lzd%nlr),intent(in):: locregCenters
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
 real(8),dimension(orbs%norb,orbs%norb),intent(out):: Umat
 real(8),dimension(3,lzd%nlr),intent(out):: centers
 
 ! Local variables
 integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, lorb, jlr
-integer:: nlocregOnMPI, jlrold, jj, ii
+integer:: nlocregOnMPI, jlrold, jj, ii, ncnt
 real(8):: trace, lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
 real(8):: tt1, tt2, tt3, tt4, tt5, tt
 real(8):: t1, t2, t1_tot, t2_tot, omega
@@ -5631,7 +5675,7 @@ complex(8):: ttc
 real(8),dimension(:,:),allocatable:: gmat, hamtrans, ttmat, Kmat, X, Y, Z, Xd, Yd, Zd
 real(8),dimension(:,:),allocatable:: commutX1, commutY1, commutZ1, commutX2, commutY2, commutZ2, commutX3, commutY3, commutZ3
 real(8),dimension(:,:),allocatable:: Xprime, Yprime, Zprime, Xprimesquare, Yprimesquare, Zprimesquare
-real(8),dimension(:,:),allocatable:: X0, H, gHmat, Y0, M, gMmat, Z0, N, gNmat
+real(8),dimension(:,:),allocatable:: X0, H, gHmat, Y0, M, gMmat, Z0, N, gNmat, centers_start, centers_end
 real(8),dimension(:,:),allocatable:: HXd, HXdsquare, HXdX0, HX0, HX0square, Xdsquare, XdX0, X0square
 real(8),dimension(:,:),allocatable:: MYd, MYdsquare, MYdY0, MY0, MY0square, Ydsquare, YdY0, Y0square
 real(8),dimension(:,:),allocatable:: NZd, NZdsquare, NZdZ0, NZ0, NZ0square, Zdsquare, ZdZ0, Z0square
@@ -5639,7 +5683,7 @@ real(8),dimension(:,:,:),allocatable:: potmat, potmatsmall
 complex(8),dimension(:,:),allocatable:: gmatc, omatc
 complex(8),dimension(:,:,:),allocatable:: tempmatc
 complex(8),dimension(:),allocatable:: work, expD_cmplx
-real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi, recvbuf, lxphi, lyphi, lzphi
+real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi, recvbuf, lxphi, lyphi, lzphi, normarr
 real(8),dimension(:,:,:),allocatable:: tempmat3
 character(len=*),parameter:: subname='MLWFnew'
 type(p2pComms):: comon_local
@@ -5798,6 +5842,12 @@ call memocc(istat, commutZ3, 'commutZ3', subname)
 !!allocate(Z0square(orbs%norb,orbs%norb), stat=istat)
 !!call memocc(istat, Z0square, 'Z0square', subname)
 
+allocate(centers_start(3,lzd%nlr), stat=istat)
+call memocc(istat, centers_start, 'centers_start', subname)
+allocate(centers_end(3,lzd%nlr), stat=istat)
+call memocc(istat, centers_end, 'centers_end', subname)
+allocate(normarr(orbs%norb), stat=istat)
+call memocc(istat, normarr, 'normarr', subname)
 
 
 ! Count how many locregs each process handles
@@ -5869,6 +5919,19 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   !!call mpiallred(Y0(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
   !!call mpiallred(Z0(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 
+
+  ! Calculate the norm of all basis functions
+  normarr=0.d0
+  ist=1
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      ncnt=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      normarr(iiorb)=ddot(ncnt, lphi(ist), 1, lphi(ist), 1)
+      ist=ist+ncnt
+  end do
+  call mpiallred(normarr(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
+
   innerLoop: do it=1,nit
 
   !write(*,*) '1: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
@@ -5911,6 +5974,9 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
           do iorb=1,orbs%norb
               if(iproc==0) write(*,'(a,i5,3f10.4)') 'START: iorb, centers: ', iorb, X(iorb,iorb), Y(iorb,iorb), Z(iorb,iorb)
+              centers_start(1,iorb)=X(iorb,iorb)
+              centers_start(2,iorb)=Y(iorb,iorb)
+              centers_start(3,iorb)=Z(iorb,iorb)
           end do
       else
         call dgemm('t', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,1), orbs%norb, &
@@ -5928,6 +5994,17 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
         call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,2), orbs%norb, &
              tempmat3(1,1,1), orbs%norb, 0.d0, Z(1,1), orbs%norb)
       end if
+
+      ! Check the deviation from the center of the original localization region
+      do ilr=1,lzd%nlr
+          tt = (locregCenters(1,ilr)-X(ilr,ilr)/normarr(ilr))**2 &
+              +(locregCenters(2,ilr)-Y(ilr,ilr)/normarr(ilr))**2 &
+              +(locregCenters(3,ilr)-Z(ilr,ilr)/normarr(ilr))**2 
+          tt=sqrt(tt)
+          if(tt>maxDispl) then
+              if(iproc==0) write(*,'(a,i0,2x,es11.2)') 'WARNING: too large displacement for locreg ',ilr,tt
+          end if
+      end do
 
       !!h=0.d0
       !!m=0.d0
@@ -6410,9 +6487,20 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
   do iorb=1,orbs%norb
       if(iproc==0) write(*,'(a,i5,3f10.4)') 'END: iorb, centers: ', iorb, X(iorb,iorb), Y(iorb,iorb), Z(iorb,iorb)
-      centers(1,iorb)=X(iorb,iorb)
-      centers(2,iorb)=Y(iorb,iorb)
-      centers(3,iorb)=Z(iorb,iorb)
+      centers(1,iorb)=X(iorb,iorb)/normarr(iorb)
+      centers(2,iorb)=Y(iorb,iorb)/normarr(iorb)
+      centers(3,iorb)=Z(iorb,iorb)/normarr(iorb)
+      centers_end(1,iorb)=X(iorb,iorb)/normarr(iorb)
+      centers_end(2,iorb)=Y(iorb,iorb)/normarr(iorb)
+      centers_end(3,iorb)=Z(iorb,iorb)/normarr(iorb)
+  end do
+
+  do iorb=1,lzd%nlr
+      tt = (centers_start(1,iorb)-centers_end(1,iorb))**2 &
+          +(centers_start(2,iorb)-centers_end(2,iorb))**2 &
+          +(centers_start(3,iorb)-centers_end(3,iorb))**2 
+      tt=sqrt(tt)
+      if(iproc==0) write(*,'(a,i5,es9.2)') 'iorb, shift of the center: ', iorb, tt
   end do
 
 
@@ -6674,6 +6762,15 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   !!deallocate(Z0square, stat=istat)
   !!call memocc(istat, iall, 'Z0square', subname)
 
+  iall=-product(shape(centers_start))*kind(centers_start)
+  deallocate(centers_start, stat=istat)
+  call memocc(istat, iall, 'centers_start', subname)
+  iall=-product(shape(centers_end))*kind(centers_end)
+  deallocate(centers_end, stat=istat)
+  call memocc(istat, iall, 'centers_end', subname)
+  iall=-product(shape(normarr))*kind(normarr)
+  deallocate(normarr, stat=istat)
+  call memocc(istat, iall, 'normarr', subname)
 
 
   call deallocateRecvBufferOrtho(comon, subname)

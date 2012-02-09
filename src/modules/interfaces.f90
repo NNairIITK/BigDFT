@@ -5812,32 +5812,33 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: xpsi, ypsi, zpsi
        end subroutine apply_position_operators
 
-       subroutine MLWF(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, &
-                    newgradient, confdatarr, hx, lphi, Umat)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc, nit
-         type(local_zone_descriptors),intent(in):: lzd
-         type(orbitals_data),intent(in):: orbs
-         type(atoms_data),intent(in):: at
-         type(overlapParameters),intent(inout):: op
-         type(p2pComms),intent(inout):: comon
-         type(matrixDescriptors),intent(in):: mad
-         real(8),dimension(3,at%nat),intent(in):: rxyz
-         real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
-         logical,intent(in):: newgradient
-         real(8),intent(in):: hx
-         type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
-         real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
-         real(8),dimension(orbs%norb,orbs%norb),intent(out):: Umat
-       end subroutine MLWF
+       !!subroutine MLWF(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, &
+       !!             newgradient, confdatarr, hx, locregCenters, lphi, Umat)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  integer,intent(in):: iproc, nproc, nit
+       !!  type(local_zone_descriptors),intent(in):: lzd
+       !!  type(orbitals_data),intent(in):: orbs
+       !!  type(atoms_data),intent(in):: at
+       !!  type(overlapParameters),intent(inout):: op
+       !!  type(p2pComms),intent(inout):: comon
+       !!  type(matrixDescriptors),intent(in):: mad
+       !!  real(8),dimension(3,at%nat),intent(in):: rxyz
+       !!  real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
+       !!  logical,intent(in):: newgradient
+       !!  real(8),intent(in):: hx, maxDispl
+       !!  type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
+       !!  real(8),dimension(3,lzd%nlr),intent(in):: locregCenters
+       !!  real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
+       !!  real(8),dimension(orbs%norb,orbs%norb),intent(out):: Umat
+       !!end subroutine MLWF
 
 
 
 
        subroutine MLWFnew(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, &
-                    newgradient, confdatarr, hx, lphi, Umat, centers)
+                    newgradient, confdatarr, hx, locregCenters, maxDispl, lphi, Umat, centers)
          use module_base
          use module_types
          implicit none
@@ -5851,8 +5852,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(3,at%nat),intent(in):: rxyz
          real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
          logical,intent(in):: newgradient
-         real(8),intent(in):: hx
+         real(8),intent(in):: hx, maxDispl
          type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
+         real(8),dimension(3,lzd%nlr),intent(in):: locregCenters
          real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
          real(8),dimension(orbs%norb,orbs%norb),intent(out):: Umat
          real(8),dimension(3,lzd%nlr),intent(out):: centers
