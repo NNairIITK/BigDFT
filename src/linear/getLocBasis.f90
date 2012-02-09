@@ -900,10 +900,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
             call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
-             !!do iorb=1,lorbs%norb
-             !!    write(*,'(a,2i8,3es12.4,4x,3es12.4)') 'iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)', &
-             !!        iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)
-             !!end do
+             do iorb=1,lorbs%norb
+                 write(*,'(a,2i8,3es12.4,4x,3es12.4)') 'iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)', &
+                     iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)
+             end do
             call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
                  locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
@@ -5878,7 +5878,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       !!     confdatarr, hx, lphi, -1, lvphi)
 
       if(it==1) then
-          call apply_position_operators(iproc, nproc, orbs, lzd, hx, hx, hx, lphi, lxphi, lyphi, lzphi)
+          call apply_position_operators(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, lxphi, lyphi, lzphi)
 
           !!!h=0.d0
           !!!m=0.d0
@@ -7197,7 +7197,7 @@ end subroutine get_potential_matrices
 
 
 
-subroutine apply_position_operators(iproc, nproc, orbs, lzd, hx, hy, hz, psi, xpsi, ypsi, zpsi)
+subroutine apply_position_operators(iproc, nproc, orbs, lzd, hx, hy, hz, confdatarr, psi, xpsi, ypsi, zpsi)
 use module_base
 use module_types
 use module_interfaces, except_this_one => apply_position_operators
@@ -7208,6 +7208,7 @@ integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 real(8),intent(in):: hx, hy, hz
+type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psi
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: xpsi, ypsi, zpsi
 
@@ -7263,19 +7264,19 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
 
      call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
      call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
-          hxh, hyh, hzh, 'x', &
+          hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'x', &
           lzd%llr(ilr)%bounds%ibyyzz_r) !optional
      call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, xpsi(1+oidx))
 
      call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
      call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
-          hxh, hyh, hzh, 'y', &
+          hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'y', &
           lzd%llr(ilr)%bounds%ibyyzz_r) !optional
      call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, ypsi(1+oidx))
 
      call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
      call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
-          hxh, hyh, hzh, 'z', &
+          hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'z', &
           lzd%llr(ilr)%bounds%ibyyzz_r) !optional
      call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, zpsi(1+oidx))
 
@@ -7299,11 +7300,12 @@ end subroutine apply_position_operators
 
 
 subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
-     hxh, hyh, hzh, dir, &
+     hxh, hyh, hzh, ioffset, dir, &
      ibyyzz_r) !optional
 use module_base
 implicit none
 integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
+integer,dimension(3),intent(in):: ioffset
 real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
 integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
 real(8),intent(in):: hxh, hyh, hzh
@@ -7351,11 +7353,11 @@ real(gp) :: epot_p, epot
                  do ispinor=1,nspinor
                     do i1=i1s,i1e
                        if(dir=='x') then
-                           tt=dble(i1)*hxh
+                           tt=dble(i1+ioffset(1))*hxh
                        else if(dir=='y') then
-                           tt=dble(i2)*hyh
+                           tt=dble(i2+ioffset(2))*hyh
                        else if(dir=='z') then
-                           tt=dble(i3)*hzh
+                           tt=dble(i3+ioffset(3))*hzh
                        else
                            stop 'wrong direction!'
                        end if

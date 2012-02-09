@@ -5787,18 +5787,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine assignToLocreg2
 
        subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
-              hxh, hyh, hzh, dir, &
+              hxh, hyh, hzh, ioffset, dir, &
               ibyyzz_r) !optional
          use module_base
          implicit none
          integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
+         integer,dimension(3),intent(in):: ioffset
          real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
          integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
          real(8),intent(in):: hxh, hyh, hzh
          character(len=1),intent(in):: dir
        end subroutine position_operator
 
-       subroutine apply_position_operators(iproc, nproc, orbs, lzd, hx, hy, hz, psi, xpsi, ypsi, zpsi)
+       subroutine apply_position_operators(iproc, nproc, orbs, lzd, hx, hy, hz, confdatarr, psi, xpsi, ypsi, zpsi)
          use module_base
          use module_types
          implicit none
@@ -5806,6 +5807,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          real(8),intent(in):: hx, hy, hz
+         type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
          real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psi
          real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: xpsi, ypsi, zpsi
        end subroutine apply_position_operators
