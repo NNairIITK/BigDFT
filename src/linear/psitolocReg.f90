@@ -1099,7 +1099,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   character(len=*), parameter :: subname='psi_to_locreg'
   integer :: i_stat,i_all
   integer :: start,Gstart
-  integer :: lfinc,Gfinc
+  integer :: lfinc,Gfinc,isegstart
 
 ! Define integers
   nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
@@ -1119,18 +1119,23 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 !####################################################
 ! Do coarse region
 !####################################################
-  do isegloc = 1,Llr%wfd%nseg_c
+  isegstart=1
+  local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
  
-! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
-     do isegG = 1,Glr%wfd%nseg_c
+     ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)... DONE
+     global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
+        if(Gmin > lmax) cycle local_loop_c
+        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
         
         ! Define the offset between the two segments
         offset = lmin - Gmin
@@ -1151,8 +1156,8 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
            !!   lpsi(icheck+lincrement*(iorbs-1))=psi(Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1))
            !!end do
         end do
-     end do
-  end do
+     end do global_loop_c
+  end do local_loop_c
 
 ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_c) then
@@ -1170,19 +1175,24 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   lfinc  = Llr%wfd%nvctr_f
   Gfinc = Glr%wfd%nvctr_f
 
-  do isegloc = Llr%wfd%nseg_c+1,nseg
+  isegstart=Glr%wfd%nseg_c+1
+  local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
  
-! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
-     do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+     ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO).. DONE
+     global_loop_f: do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
+        if(Gmin > lmax) cycle local_loop_f
+        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_f
 
         offset = lmin - Gmin
         if(offset < 0) offset = 0
@@ -1202,8 +1212,8 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
               !!end do
            end do
         end do
-     end do
-  end do
+     end do global_loop_f
+  end do local_loop_f
   
  ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f) then
@@ -1288,12 +1298,12 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 ! Do coarse region
 !####################################################
   isegstart=1
-  do isegloc = 1,Llr%wfd%nseg_c
+  local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
 
      ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)... DONE
-     do isegG = isegstart,Glr%wfd%nseg_c
+     global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
 
@@ -1302,7 +1312,8 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+        if(Gmin > lmax) cycle local_loop_c
+        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
 
         ! Define the offset between the two segments
         offset = lmin - Gmin
@@ -1331,8 +1342,8 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
            !!   end do
            !!end do
         end do
-     end do
-  end do
+     end do global_loop_c
+  end do local_loop_c
 
 ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_c) then
@@ -1351,12 +1362,12 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   Gfinc = Glr%wfd%nvctr_f
 
   isegstart=Glr%wfd%nseg_c+1
-  do isegloc = Llr%wfd%nseg_c+1,nseg
+  local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
 
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
-     do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+     global_loop_f: do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
@@ -1366,7 +1377,8 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+        if(Gmin > lmax) cycle local_loop_f
+        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_f
 
         offset = lmin - Gmin
         if(offset < 0) offset = 0
@@ -1395,8 +1407,8 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
               end do
            end do
         end do
-     end do
-  end do
+     end do global_loop_f
+  end do local_loop_f
 
  ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f) then
@@ -1617,7 +1629,7 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
 ! Do coarse region
 !####################################################
   isegstart=1
-  do isegloc = 1,Llr%wfd%nseg_c
+  local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
 
@@ -1625,7 +1637,7 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
      actuallength=0
      ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)... DONE!
      !do isegG = 1,Glr%wfd%nseg_c
-     do isegG = isegstart,Glr%wfd%nseg_c
+     global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
 
@@ -1634,9 +1646,8 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if((lmin > Gmax) .or. (lmax < Gmin)) then
-            cycle
-        end if
+        if(Gmin > lmax) cycle local_loop_c
+        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
         !!if(iproc==0) write(*,'(a,4i9)') 'iproc, isegloc, isegstart, isegG', iproc, isegloc, isegstart, isegG
         !!if(isegG<isegstart) write(*,*) 'ERROR: isegG, isegstart', isegG, isegstart
 
@@ -1670,11 +1681,11 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
            !!   end do
            !!end do
         end do
-     end do
+     end do global_loop_c
      if(locallength/=actuallength) then
          write(*,'(2(a,i0),a)') 'ERROR: locallength = ',locallength, ' /= ', actuallength, ' = actuallength' 
      end if
-  end do
+  end do local_loop_c
 
 ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_c) then
@@ -1693,13 +1704,13 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
   Gfinc = Glr%wfd%nvctr_f
 
   isegstart=Glr%wfd%nseg_c+1
-  do isegloc = Llr%wfd%nseg_c+1,nseg
+  local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
 
      ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)... DONE!
      !do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
-     do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+     global_loop_f: do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
@@ -1709,9 +1720,8 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if((lmin > Gmax) .or. (lmax < Gmin)) then
-            cycle
-        end if
+        if(Gmin > lmax) cycle local_loop_f
+        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_f
 
         offset = lmin - Gmin
         if(offset < 0) offset = 0
@@ -1741,8 +1751,8 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
               end do
            end do
         end do
-     end do
-  end do
+     end do global_loop_f
+  end do local_loop_f
 
  ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f) then
@@ -1804,7 +1814,7 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
   character(len=*), parameter :: subname='psi_to_locreg'
   integer :: i_stat,i_all
   integer :: start,Gstart
-  integer :: lfinc,Gfinc
+  integer :: lfinc,Gfinc,isegstart
 
 ! Define integers
   nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
@@ -1824,18 +1834,23 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
 !####################################################
 ! Do coarse region
 !####################################################
-  do isegloc = 1,Llr%wfd%nseg_c
+  isegstart=1
+  local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
  
-! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
-     do isegG = 1,Glr%wfd%nseg_c
+     ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO).. DONE
+     global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
+        if(Gmin > lmax) cycle local_loop_c
+        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
         
         ! Define the offset between the two segments
         offset = lmin - Gmin
@@ -1857,8 +1872,8 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
            !!   lpsi(icheck+lincrement*(iorbs-1))=psi(Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1))
            !!end do
         end do
-     end do
-  end do
+     end do global_loop_c
+  end do local_loop_c
 
 ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_c) then
@@ -1876,19 +1891,24 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
   lfinc  = Llr%wfd%nvctr_f
   Gfinc = Glr%wfd%nvctr_f
 
-  do isegloc = Llr%wfd%nseg_c+1,nseg
+  isegstart=Glr%wfd%nseg_c+1
+  local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
  
 ! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
-     do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+     global_loop_f: do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
         ! if not, cycle
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
+        if(Gmin > lmax) cycle local_loop_f
+        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_f
 
         offset = lmin - Gmin
         if(offset < 0) offset = 0
@@ -1909,8 +1929,8 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
               !!end do
            end do
         end do
-     end do
-  end do
+     end do global_loop_f
+  end do local_loop_f
   
  ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f) then
