@@ -750,7 +750,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
   ! Initialize the arrays and variable needed for DIIS.
   if(newgradient .and. ldiis%isx>0) then
-      if(iproc==0) write(*,'(1x,a)') 'ERROR: if newgradient is true, only steepest descent is allowed since the locreg shapes may change!'
+      if(iproc==0) write(*,'(1x,a)') 'ERROR: if newgradient is true, only steepest descent is &
+                                      &allowed since the locreg shapes may change!'
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if
