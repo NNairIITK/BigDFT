@@ -1753,6 +1753,90 @@ subroutine fracture_periodic_zone(nzones,Glr,Llr,outofzone,astart,aend)
 
 END SUBROUTINE fracture_periodic_zone
 
+subroutine fracture_periodic_zone_ISF(nzones,Glr,Llr,outofzone,astart,aend)
+
+  use module_base
+  use module_types
+
+  implicit none
+
+  !#######################################
+  ! Subroutine Scalar Arguments
+  !#######################################
+  integer,intent(in) :: nzones
+  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+  type(locreg_descriptors),intent(in) :: Llr  ! Localization grid descriptors 
+  !########################################
+  !Subroutine Array Arguments
+  !########################################
+  integer,dimension(3),intent(in) :: outofzone  ! array indicating the directions in which the locreg exceeds the Glr
+  integer,dimension(3,nzones),intent(out) :: astart !
+  integer,dimension(3,nzones),intent(out) :: aend !
+  !#############################################
+  !local variables
+  !############################################
+  integer :: ii,index,jj
+  integer,dimension(3) :: alrs,alre,Gend,Gstart,period
+  character(len=*), parameter :: subname='fracture_periodic_zone_ISF'
+
+! Start and end of Global region
+  Gstart(1) = Glr%nsi1
+  Gstart(2) = Glr%nsi2
+  Gstart(3) = Glr%nsi3
+  Gend(1) = Glr%nsi1 + Glr%d%n1i
+  Gend(2) = Glr%nsi2 + Glr%d%n2i
+  Gend(3) = Glr%nsi3 + Glr%d%n3i
+
+! Periodicity of the system
+  period(1) = Glr%d%n1i + 1
+  period(2) = Glr%d%n2i + 1
+  period(3) = Glr%d%n3i + 1
+
+! Start and end of local region
+  alrs(1) = Llr%nsi1
+  alrs(2) = Llr%nsi2
+  alrs(3) = Llr%nsi3
+  alre(1) = Llr%nsi1 + Llr%d%n1i
+  alre(2) = Llr%nsi2 + Llr%d%n2i
+  alre(3) = Llr%nsi3 + Llr%d%n3i
+
+  if(outofzone(1) < 0 .and. outofzone(2) < 0 .and. outofzone(3) < 0 ) then !Nothing to do
+     astart(1,1) = alrs(1)
+     astart(2,1) = alrs(2)
+     astart(3,1) = alrs(3)
+     aend(1,1) = alre(1)
+     aend(2,1) = alre(2)
+     aend(3,1) = alre(3)
+     return
+  end if
+
+!assign the first zone (necessarily without shift) and initiliaze the others
+  do ii=1,3
+     astart(ii,:) = alrs(ii)
+     aend(ii,:) = min(Gend(ii),alre(ii))
+  end do
+
+!assign the other zones
+  index = 2
+  do ii=1,2
+     if(outofzone(ii) > 0) then    !Translation: X,Y
+        astart(ii,index) =  Gstart(ii)
+        aend(ii,index) = modulo(alre(ii),period(ii))
+        index = index + 1
+     end if
+     do jj=ii+1,2
+        if(outofzone(ii) > 0 .and. outofzone(jj) > 0) then  !Translation: X+Y
+           astart(ii,index) = Gstart(ii)
+           astart(jj,index) = Gstart(jj)
+           aend(ii,index) = modulo(alre(ii),period(ii))
+           aend(jj,index) = modulo(alre(jj),period(jj))
+           index = index + 1
+        end if
+     end do
+  end do
+
+END SUBROUTINE fracture_periodic_zone_ISF
+
 
 !##############################################################################################################################################
 !!****f* BigDFT/get_overlap_region
@@ -3897,3 +3981,63 @@ do i = 1 , 2
 end do
 
 end subroutine transform_keyglob_to_keygloc
+
+subroutine transform_ISFcoordinates(direction,iin1,iin2,iin3,Glr,Llr,iout1,iout2,iout3,ishift1, ishift2, ishift3)
+use module_types
+implicit none
+integer, intent(in) :: direction                      !< integer specifying the direction of the transformation (0 from local to global, 1 from global to local)
+integer, intent(in) :: iin1, iin2, iin3               !< the input coordinate
+type(locreg_descriptors), intent(in) :: Glr           !< global region descriptors
+type(locreg_descriptors), intent(in) :: Llr           !< Localization regiondescriptors
+integer, intent(out) :: iout1, iout2, iout3           !< ouput coordinates
+integer, intent(out) :: ishift1, ishift2, ishift3     !< shift between coordinates: in_coord + shift = out_coord
+
+!This routines supposes that the specified coordinate is part of both regions.
+if(direction==0) then
+!from local to global
+iout1 = iin1 -(Glr%nsi1 - Llr%nsi1)
+ishift1 = Llr%nsi1 - Glr%nsi1
+iout2 = iin2 -(Glr%nsi2 - Llr%nsi2)
+ishift2 = Llr%nsi2 - Glr%nsi2
+iout3 = iin3 -(Glr%nsi3 - Llr%nsi3)
+ishift3 = Llr%nsi3 - Glr%nsi3
+if(iout1 > Glr%nsi1 + Glr%d%n1i .and. Glr%geocode/='F') then
+   iout1 = modulo(iout1,Glr%d%n1i+1)+Glr%nsi1
+   ishift1 = ishift1 - Glr%d%n1i
+end if
+if(iout2 > Glr%nsi2 + Glr%d%n2i .and. Glr%geocode=='P') then
+   iout2 = modulo(iout2,Glr%d%n2i+1)+Glr%nsi2
+   ishift2 = ishift2 - Glr%d%n2i
+end if
+if(iout3 > Glr%nsi3 + Glr%d%n3i .and. Glr%geocode/='F') then
+   iout3 = modulo(iout3,Glr%d%n3i+1)+Glr%nsi3
+   ishift3 = ishift3 - Glr%d%n3i
+end if
+
+else if(direction==1) then
+!from global to local
+iout1 = iin1 -(Llr%nsi1 - Glr%nsi1)
+ishift1 = Glr%nsi1 - Llr%nsi1
+iout2 = iin2 -(Llr%nsi2 - Glr%nsi2)
+ishift2 = Glr%nsi2 - Llr%nsi2
+iout3 = iin3 -(Llr%nsi3 - Glr%nsi3)
+ishift3 = Glr%nsi3 - Llr%nsi3
+if(iout1 < 0 .and. Glr%geocode/='F') then
+   iout1 = iin1 + Glr%d%n1i - Llr%nsi1
+   ishift1 = ishift1 + Glr%d%n1i 
+end if
+if(iout2 < 0 .and. Glr%geocode=='P') then
+   iout2 = iin2 + Glr%d%n2i - Llr%nsi2
+   ishift2 = ishift2 + Glr%d%n2i 
+end if
+if(iout3 < 0 .and. Glr%geocode/='F') then
+   iout3 = iin3 + Glr%d%n3i - Llr%nsi3
+   ishift3 = ishift3 + Glr%d%n3i 
+end if
+
+else
+STOP 'transform_ISFcoordinates: wrong descriptor, should be 0 or 1'
+end if
+
+end subroutine transform_ISFcoordinates
+

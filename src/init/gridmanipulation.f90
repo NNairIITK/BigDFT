@@ -238,6 +238,9 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    Glr%ns1=0
    Glr%ns2=0
    Glr%ns3=0
+   Glr%nsi1=0
+   Glr%nsi2=0
+   Glr%nsi3=0
 
    !while using k-points this condition should be disabled
    !evaluate if the conditiond for the hybrid evaluation if periodic BC hold

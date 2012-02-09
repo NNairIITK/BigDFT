@@ -1330,28 +1330,40 @@ type(p2pComms),intent(out):: comsr
 ! Local variables
 integer:: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp
 integer:: i1s, i1e, i2s, i2e, ii, jlr, iiorb, istri, jorb, jjorb, istrj
+integer:: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
 character(len=*),parameter:: subname='initializeCommsSumrho'
 
+! Buffer sizes 
+call ext_buffers(lzd%Glr%geocode /= 'F',nbl1,nbr1)
+call ext_buffers(lzd%Glr%geocode == 'P',nbl2,nbr2)
+call ext_buffers(lzd%Glr%geocode /= 'F',nbl3,nbr3)
 
 ! First count the number of overlapping orbitals for each slice.
 allocate(comsr%noverlaps(0:nproc-1),stat=istat)
 call memocc(istat,comsr%noverlaps,'comsr%noverlaps',subname)
 do jproc=0,nproc-1
-    is=nscatterarr(jproc,3)-14
+    is=nscatterarr(jproc,3) 
     ie=is+nscatterarr(jproc,1)-1
-    !if(iproc==0) write(*,'(a,3i8)') 'jproc,is,ie',jproc,is,ie
     ioverlap=0
     do iorb=1,orbs%norb
         ilr=orbs%inWhichLocreg(iorb)
-        i3s=2*lzd%Llr(ilr)%ns3-14
+        i3s=lzd%Llr(ilr)%nsi3 
         i3e=i3s+lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
-            ioverlap=ioverlap+1
+            ioverlap=ioverlap+1                                                                                                                                                                                
+        end if
+        !For periodicity
+        if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+          i3s = Lzd%Glr%nsi3
+          i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+          if(i3s<=ie .and. i3e>=is) then
+              ioverlap=ioverlap+1
+          end if
         end if
     end do
     comsr%noverlaps(jproc)=ioverlap
-    !if(iproc==0) write(*,'(a,2i8)') 'jproc,comsr%noverlaps(jproc)',jproc,comsr%noverlaps(jproc)
 end do
+
 ! Do the initialization concerning the calculation of the charge density.
 allocate(comsr%istarr(0:nproc-1),stat=istat)
 call memocc(istat,comsr%istarr,'comsr%istarr',subname)
@@ -1364,38 +1376,51 @@ call memocc(istat,comsr%overlaps,'comsr%overlaps',subname)
 allocate(comsr%comarr(9,maxval(comsr%noverlaps),0:nproc-1),stat=istat)
 call memocc(istat,comsr%comarr,'coms%commsSumrho',subname)
 
-
 comsr%istarr=1
 comsr%istrarr=1
 comsr%nrecvBuf=0
 do jproc=0,nproc-1
-    is=nscatterarr(jproc,3)-14
+    is=nscatterarr(jproc,3)
     ie=is+nscatterarr(jproc,1)-1
     ioverlap=0
     do iorb=1,orbs%norb
         ilr=orbs%inWhichLocreg(iorb)
-        i3s=2*lzd%Llr(ilr)%ns3-14
+        i3s=lzd%Llr(ilr)%nsi3
         i3e=i3s+lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
             ioverlap=ioverlap+1
             tag=tag+1
             is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
             n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
-            is3ovrlp=is3ovrlp-2*lzd%Llr(ilr)%ns3+15
-            !call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), tag, lin, comsr%comarr(1,ioverlap,jproc))
-            !!call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
-            !!     tag, lin%nlr, lzd%Llr,&
-            !!     orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+            is3ovrlp=is3ovrlp-lzd%Llr(ilr)%nsi3+1
             call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
                  tag, lzd%nlr, lzd%Llr,&
                  orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
             if(iproc==jproc) then
-                !comsr%sizePhibuffr = comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
                 comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
                 comsr%overlaps(ioverlap)=iorb
-                                                        !lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
             end if
             comsr%istrarr(jproc) = comsr%istrarr(jproc) + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+        end if
+        !For periodicity
+        if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+          i3s = Lzd%Glr%nsi3
+          i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+          if(i3s<=ie .and. i3e>=is) then
+              ioverlap=ioverlap+1
+              tag=tag+1
+              is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+              n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+              is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 !should I put -nbl3 here
+              call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
+                   tag, lzd%nlr, lzd%Llr,&
+                   orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+              if(iproc==jproc) then
+                  comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+                  comsr%overlaps(ioverlap)=iorb
+              end if
+              comsr%istrarr(jproc) = comsr%istrarr(jproc) + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+          end if 
         end if
     end do
 end do
@@ -1408,6 +1433,29 @@ allocate(comsr%communComplete(maxval(comsr%noverlaps(:)),0:nproc-1), stat=istat)
 call memocc(istat, comsr%communComplete, 'comsr%communComplete', subname)
 allocate(comsr%computComplete(maxval(comsr%noverlaps(:)),0:nproc-1), stat=istat)
 call memocc(istat, comsr%computComplete, 'comsr%computComplete', subname)
+allocate(comsr%startingindex(comsr%noverlaps(iproc),2), stat=istat)
+call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
+
+is=nscatterarr(iproc,3) 
+ie=is+nscatterarr(iproc,1)-1
+do ioverlap = 1, comsr%noverlaps(iproc)
+   iorb = comsr%overlaps(ioverlap) 
+   ilr = orbs%inWhichLocreg(iorb)
+   i3s=lzd%Llr(ilr)%nsi3  
+   i3e=i3s+lzd%Llr(ilr)%d%n3i-1
+   if(i3s<=ie .and. i3e>=is) then
+      comsr%startingindex(ioverlap,1) = max(is,i3s) 
+      comsr%startingindex(ioverlap,2) = min(ie,i3e)
+   end if
+   if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+      i3s = Lzd%Glr%nsi3
+      i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+      if(i3s<=ie .and. i3e>=is) then
+         comsr%startingindex(ioverlap,1) = max(is,i3s) 
+         comsr%startingindex(ioverlap,2) = min(ie,i3e)
+      end if
+   end if
+end do
 
 
 ! Calculate the dimension of the wave function for each process.
@@ -1415,7 +1463,6 @@ call memocc(istat, comsr%computComplete, 'comsr%computComplete', subname)
 ! ('npsidimr') case.
 comsr%nsendBuf=0
 do iorb=1,orbs%norbp
-    !ilr=orbs%inWhichLocregp(iorb)
     ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
     comsr%nsendBuf=comsr%nsendBuf+lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i*orbs%nspinor
 end do
@@ -1430,36 +1477,35 @@ end do
 
 
 ! Determine the size of the auxiliary array
-allocate(comsr%startingindex(comsr%noverlaps(iproc),comsr%noverlaps(iproc)), stat=istat)
-call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
-
-! Bounds of the slice in global coordinates.
-comsr%nauxarray=0
-is=nscatterarr(iproc,3)-14
-ie=is+nscatterarr(iproc,1)-1
-
-do iorb=1,comsr%noverlaps(iproc)
-    iiorb=comsr%overlaps(iorb) !global index of orbital iorb
-    ilr=comsr%comarr(4,iorb,iproc) !localization region of orbital iorb
-    istri=comsr%comarr(6,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
-    !do jorb=1,comsr%noverlaps(iproc)
-    do jorb=iorb,comsr%noverlaps(iproc)
-        jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
-        jlr=comsr%comarr(4,jorb,iproc) !localization region of orbital jorb
-        istrj=comsr%comarr(6,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
-        ! Bounds of the overlap of orbital iorb and jorb in global coordinates.
-        i1s=max(2*lzd%llr(ilr)%ns1-14,2*lzd%llr(jlr)%ns1-14)
-        i1e=min(2*lzd%llr(ilr)%ns1-14+lzd%llr(ilr)%d%n1i-1,2*lzd%llr(jlr)%ns1-14+lzd%llr(jlr)%d%n1i-1)
-        i2s=max(2*lzd%llr(ilr)%ns2-14,2*lzd%llr(jlr)%ns2-14)
-        i2e=min(2*lzd%llr(ilr)%ns2-14+lzd%llr(ilr)%d%n2i-1,2*lzd%llr(jlr)%ns2-14+lzd%llr(jlr)%d%n2i-1)
-        i3s=max(2*lzd%llr(ilr)%ns3-14,2*lzd%llr(jlr)%ns3-14,is)
-        i3e=min(2*lzd%llr(ilr)%ns3-14+lzd%llr(ilr)%d%n3i-1,2*lzd%llr(jlr)%ns3-14+lzd%llr(jlr)%d%n3i-1,ie)
-
-        comsr%startingindex(jorb,iorb)=comsr%nauxarray+1
-        ii=(i1e-i1s+1)*(i2e-i2s+1)*(i3e-i3s+1)
-        comsr%nauxarray = comsr%nauxarray + ii
-    end do
-end do
+!!allocate(comsr%startingindex(comsr%noverlaps(iproc),comsr%noverlaps(iproc)), stat=istat)
+!!call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
+!!
+!!! Bounds of the slice in global coordinates.
+!!comsr%nauxarray=0
+!!is=nscatterarr(iproc,3) ! should I put -nbl3
+!!ie=is+nscatterarr(iproc,1)-1
+!!do iorb=1,comsr%noverlaps(iproc)
+!!    iiorb=comsr%overlaps(iorb) !global index of orbital iorb
+!!    ilr=comsr%comarr(4,iorb,iproc) !localization region of orbital iorb
+!!    istri=comsr%comarr(6,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
+!!    !do jorb=1,comsr%noverlaps(iproc)
+!!    do jorb=iorb,comsr%noverlaps(iproc)
+!!        jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
+!!        jlr=comsr%comarr(4,jorb,iproc) !localization region of orbital jorb
+!!        istrj=comsr%comarr(6,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
+!!        ! Bounds of the overlap of orbital iorb and jorb in global coordinates.
+!!        i1s=max(lzd%llr(ilr)%nsi1,lzd%llr(jlr)%nsi1)
+!!        i1e=min(lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%llr(jlr)%nsi1+lzd%llr(jlr)%d%n1i-1)
+!!        i2s=max(lzd%llr(ilr)%nsi2,lzd%llr(jlr)%nsi2)
+!!        i2e=min(lzd%llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%llr(jlr)%nsi2+lzd%llr(jlr)%d%n2i-1)
+!!        i3s=max(lzd%llr(ilr)%nsi3,lzd%llr(jlr)%nsi3,is)
+!!        i3e=min(lzd%llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%llr(jlr)%nsi3+lzd%llr(jlr)%d%n3i-1,ie)
+!!
+!!        comsr%startingindex(jorb,iorb)=comsr%nauxarray+1
+!!        ii=(i1e-i1s+1)*(i2e-i2s+1)*(i3e-i3s+1)
+!!        comsr%nauxarray = comsr%nauxarray + ii
+!!    end do
+!!end do
 
 end subroutine initializeCommsSumrho
 
