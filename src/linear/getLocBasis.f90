@@ -165,8 +165,10 @@ type(locreg_descriptors):: glr_tmp
       if(newgradient) then
 
           ! Cancel the communication of the potential
-          call cancelCommunicationPotential(iproc, nproc, lbcomgp)
-          call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
+          if(useDerivativeBasisFunctions) then
+              call cancelCommunicationPotential(iproc, nproc, lbcomgp)
+              call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
+          end if
 
           ! Reallocate lphiRestart, since its size might have changed
           iall=-product(shape(lphiRestart))*kind(lphiRestart)
@@ -286,8 +288,10 @@ type(locreg_descriptors):: glr_tmp
                lzd, lbcomgp, llborbs%inWhichLocreg, tag)
 
           ! Communicate the potential
-          call allocateCommunicationsBuffersPotential(lbcomgp, subname)
-          call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
+          if(useDerivativeBasisFunctions) then
+              call allocateCommunicationsBuffersPotential(lbcomgp, subname)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
+          end if
 
 
       end if
