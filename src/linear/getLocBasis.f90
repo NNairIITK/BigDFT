@@ -148,13 +148,13 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
 
       ! Improve the trace minimizing orbitals.
-      write(*,*) 'before calling getLocalizedBasis: size(lphi)',size(lphi)
+      write(*,'(a,2i9)') 'before calling getLocalizedBasis: size(lphi), lorbs%npsidim_orbs',size(lphi), lorbs%npsidim_orbs
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
            denspot,GPU,lphi,trace,&
           infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,newgradient,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
           hx,hy,hz,SIC,nItPrecond)
-      write(*,*) 'after calling getLocalizedBasis: size(lphi)',size(lphi)
+      write(*,'(a,2i9)') 'after calling getLocalizedBasis: size(lphi), lorbs%npsidim_orbs',size(lphi), lorbs%npsidim_orbs
   end if
 
 
@@ -233,14 +233,17 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
           allocate(locregCenter(3,lzd%nlr), stat=istat)
           call memocc(istat, locregCenter, 'locregCenter', subname)
-          locregCenter=0.d0
-          do iorb=1,lorbs%norbp
-              iiorb=lorbs%isorb+iorb
-              ilr=lorbs%inwhichlocreg(iiorb)
-              !locregCenter(:,iiorb)=confdatarr(iorb)%rxyzConf
-              locregCenter(:,ilr)=confdatarr(iorb)%rxyzConf
+          !!locregCenter=0.d0
+          !!do iorb=1,lorbs%norbp
+          !!    iiorb=lorbs%isorb+iorb
+          !!    ilr=lorbs%inwhichlocreg(iiorb)
+          !!    !locregCenter(:,iiorb)=confdatarr(iorb)%rxyzConf
+          !!    locregCenter(:,ilr)=confdatarr(iorb)%rxyzConf
+          !!end do
+          !!call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
+          do ilr=1,lzd%nlr
+              locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
           end do
-          call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
 
           call assignToLocreg2(iproc, nproc, llborbs%norb, llborbs%norb_par, 0, lzd%nlr, &
                nspin, orbsperlocreg, locregCenter, llborbs%inwhichlocreg)
@@ -338,7 +341,9 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
   if(updatePhi .and. newgradient) then
 
-      !!write(*,*) 'before reallocation: iproc, size(lphi)', iproc, size(lphi)
+      write(*,*) 'before reallocation: iproc, size(lphi)', iproc, size(lphi)
+      write(*,'(a,3i9)') 'size(lphi), lorbs%npsidim_orbs, llborbs%npsidim_orbs',&
+                         size(lphi), lorbs%npsidim_orbs, llborbs%npsidim_orbs
       ! Reallocate lphi, since it is now allocated without the derivatives
       iall=-product(shape(lphi))*kind(lphi)
       deallocate(lphi, stat=istat)
@@ -346,7 +351,7 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
       allocate(lphi(llborbs%npsidim_orbs), stat=istat)
       call memocc(istat, lphi, 'lphi', subname)
-      !!write(*,*) ' after reallocation: iproc, size(lphi)', iproc, size(lphi)
+      write(*,*) ' after reallocation: iproc, size(lphi)', iproc, size(lphi)
       !!write(*,'(a,4i9)') 'lorbs%npsidim_orbs, lorbs%npsidim_comp, llborbs%npsidim_orbs, llborbs%npsidim_comp', &
       !!            lorbs%npsidim_orbs, lorbs%npsidim_comp, llborbs%npsidim_orbs, llborbs%npsidim_comp
 
@@ -449,6 +454,11 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
      !     llborbs,lzd,2,ngatherarr,rhopot,lpot,lbcomgp)
      
   end if
+
+  !!if(newgradient) then
+  !!    call mpi_barrier(mpi_comm_world, ierr)
+  !!    stop
+  !!end if
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
@@ -979,14 +989,17 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
   ! Initialize largestructures if required
   if(newgradient) then
-      locregCenter=0.d0
-      do iorb=1,lorbs%norbp
-          iiorb=lorbs%isorb+iorb
-          ilr=lorbs%inwhichlocreg(iiorb)
-          !locregCenter(:,iiorb)=confdatarr(iorb)%rxyzConf
-          locregCenter(:,ilr)=confdatarr(iorb)%rxyzConf
+      !!locregCenter=0.d0
+      !!do iorb=1,lorbs%norbp
+      !!    iiorb=lorbs%isorb+iorb
+      !!    ilr=lorbs%inwhichlocreg(iiorb)
+      !!    !locregCenter(:,iiorb)=confdatarr(iorb)%rxyzConf
+      !!    locregCenter(:,ilr)=confdatarr(iorb)%rxyzConf
+      !!end do
+      !!call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
+      do ilr=1,lzd%nlr
+          locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
       end do
-      call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
       locregCenterTemp=locregCenter
       locrad_tmp=factor*locrad
       call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
@@ -1118,6 +1131,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
+                 write(*,'(a,2i9)') 'sub 1: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
 
 
             !call deallocateCommunicationsBuffersPotential(comgp, subname)
@@ -1714,6 +1728,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
+                 write(*,'(a,2i9)') 'sub 2: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
           ! Transform back to localization region
           ! Transform back to small locreg
           ind1=1
