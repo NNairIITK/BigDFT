@@ -322,7 +322,7 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
       !!write(*,'(a,4i8)') 'lorbs%npsidim_orbs, lorbs%npsidim_comp, size(lphi), size(lphiRestart)', &
       !!                   lorbs%npsidim_orbs, lorbs%npsidim_comp, size(lphi), size(lphiRestart)
       !call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1), 1, lphiRestart(1), 1)
-      call dcopy(lorbs%npsidim_orbs, lphi(1), 1, lphiRestart(1), 1)
+      !!call dcopy(lorbs%npsidim_orbs, lphi(1), 1, lphiRestart(1), 1)
           !!write(*,*) 'HERE1.4 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
           !!write(*,*) 'HERE1.4 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
 
@@ -333,6 +333,8 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
           !!write(*,*) 'HERE2 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
           !!write(*,*) 'HERE2 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
 
+  ! Keep the value of lphi for the next iteration
+  call dcopy(lorbs%npsidim_orbs, lphi(1), 1, lphiRestart(1), 1)
 
   if(updatePhi .and. newgradient) then
 
@@ -348,9 +350,10 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
       !!write(*,'(a,4i9)') 'lorbs%npsidim_orbs, lorbs%npsidim_comp, llborbs%npsidim_orbs, llborbs%npsidim_comp', &
       !!            lorbs%npsidim_orbs, lorbs%npsidim_comp, llborbs%npsidim_orbs, llborbs%npsidim_comp
 
+      if(.not.useDerivativeBasisFunctions) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
   end if
       
-  call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
+  !!call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
 
           !!write(*,*) 'HERE3 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
           !!write(*,*) 'HERE3 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
