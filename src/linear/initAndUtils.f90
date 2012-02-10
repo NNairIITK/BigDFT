@@ -1350,7 +1350,7 @@ do jproc=0,nproc-1
         i3s=lzd%Llr(ilr)%nsi3 
         i3e=i3s+lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
-            ioverlap=ioverlap+1                                                                                                                                                                                
+            ioverlap=ioverlap+1        
         end if
         !For periodicity
         if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
@@ -1375,6 +1375,8 @@ call memocc(istat,comsr%overlaps,'comsr%overlaps',subname)
 
 allocate(comsr%comarr(9,maxval(comsr%noverlaps),0:nproc-1),stat=istat)
 call memocc(istat,comsr%comarr,'coms%commsSumrho',subname)
+allocate(comsr%startingindex(comsr%noverlaps(iproc),2), stat=istat)
+call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
 
 comsr%istarr=1
 comsr%istrarr=1
@@ -1393,6 +1395,10 @@ do jproc=0,nproc-1
             is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
             n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
             is3ovrlp=is3ovrlp-lzd%Llr(ilr)%nsi3+1
+            if(jproc == iproc) then
+               comsr%startingindex(ioverlap,1) = max(is,i3s) 
+               comsr%startingindex(ioverlap,2) = min(ie,i3e)
+            end if
             call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
                  tag, lzd%nlr, lzd%Llr,&
                  orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
@@ -1412,6 +1418,10 @@ do jproc=0,nproc-1
               is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
               n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
               is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 !should I put -nbl3 here
+              if(jproc == iproc) then
+                 comsr%startingindex(ioverlap,1) = max(is,i3s) 
+                 comsr%startingindex(ioverlap,2) = min(ie,i3e)
+              end if
               call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
                    tag, lzd%nlr, lzd%Llr,&
                    orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
@@ -1433,29 +1443,25 @@ allocate(comsr%communComplete(maxval(comsr%noverlaps(:)),0:nproc-1), stat=istat)
 call memocc(istat, comsr%communComplete, 'comsr%communComplete', subname)
 allocate(comsr%computComplete(maxval(comsr%noverlaps(:)),0:nproc-1), stat=istat)
 call memocc(istat, comsr%computComplete, 'comsr%computComplete', subname)
-allocate(comsr%startingindex(comsr%noverlaps(iproc),2), stat=istat)
-call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
 
-is=nscatterarr(iproc,3) 
-ie=is+nscatterarr(iproc,1)-1
-do ioverlap = 1, comsr%noverlaps(iproc)
-   iorb = comsr%overlaps(ioverlap) 
-   ilr = orbs%inWhichLocreg(iorb)
-   i3s=lzd%Llr(ilr)%nsi3  
-   i3e=i3s+lzd%Llr(ilr)%d%n3i-1
-   if(i3s<=ie .and. i3e>=is) then
-      comsr%startingindex(ioverlap,1) = max(is,i3s) 
-      comsr%startingindex(ioverlap,2) = min(ie,i3e)
-   end if
-   if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
-      i3s = Lzd%Glr%nsi3
-      i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
-      if(i3s<=ie .and. i3e>=is) then
-         comsr%startingindex(ioverlap,1) = max(is,i3s) 
-         comsr%startingindex(ioverlap,2) = min(ie,i3e)
-      end if
-   end if
-end do
+!!is=nscatterarr(iproc,3) 
+!!ie=is+nscatterarr(iproc,1)-1
+!!do ioverlap = 1, comsr%noverlaps(iproc)
+!!   iorb = comsr%overlaps(ioverlap) 
+!!   ilr = orbs%inWhichLocreg(iorb)
+!!   i3s=lzd%Llr(ilr)%nsi3  
+!!   i3e=i3s+lzd%Llr(ilr)%d%n3i-1
+!!   if(i3s<=ie .and. i3e>=is) then
+!!   end if
+!!   if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+!!      i3s = Lzd%Glr%nsi3
+!!      i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+!!      if(i3s<=ie .and. i3e>=is) then
+!!         comsr%startingindex(ioverlap,1) = max(is,i3s) 
+!!         comsr%startingindex(ioverlap,2) = min(ie,i3e)
+!!      end if
+!!   end if
+!!end do
 
 
 ! Calculate the dimension of the wave function for each process.

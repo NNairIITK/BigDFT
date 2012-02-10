@@ -2585,28 +2585,28 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      integer, dimension(2,nseg_loc), intent(out) :: keyglob
      end subroutine segkeys_periodic
 
-    subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr)
-     use module_base
-     use module_types
-     implicit none
-     integer, intent(in) :: alr,blr              
-     integer, intent(in) :: nlr                  
-     type(locreg_descriptors),intent(in) :: Glr  
-     integer, intent(out) :: isovrlp           
-     type(locreg_descriptors), dimension(nlr), intent(in) :: Llr       
-    end subroutine get_number_of_overlap_region
+    !!$subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr)
+    !!$ use module_base
+    !!$ use module_types
+    !!$ implicit none
+    !!$ integer, intent(in) :: alr,blr              
+    !!$ integer, intent(in) :: nlr                  
+    !!$ type(locreg_descriptors),intent(in) :: Glr  
+    !!$ integer, intent(out) :: isovrlp           
+    !!$ type(locreg_descriptors), dimension(nlr), intent(in) :: Llr       
+    !!$end subroutine get_number_of_overlap_region
 
-    subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
-     use module_base
-     use module_types
-     implicit none
-     integer, intent(in) :: alr,blr           
-     integer, intent(in) :: nlr                
-     type(locreg_descriptors),intent(in) :: Glr 
-     integer, intent(in) :: isovrlp              
-     type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  
-     type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr 
-    end subroutine get_overlap_region_periodic
+    !!$subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
+    !!$ use module_base
+    !!$ use module_types
+    !!$ implicit none
+    !!$ integer, intent(in) :: alr,blr           
+    !!$ integer, intent(in) :: nlr                
+    !!$ type(locreg_descriptors),intent(in) :: Glr 
+    !!$ integer, intent(in) :: isovrlp              
+    !!$ type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  
+    !!$ type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr 
+    !!$end subroutine get_overlap_region_periodic
 
 !!$    subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !!$       radii_cf,cpmult,fpmult,hx,hy,hz,locregShape,nlpspd,Lnlpspd,projflg)

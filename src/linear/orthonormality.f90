@@ -480,9 +480,10 @@ subroutine countOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
   type(p2pComms),intent(out):: comon
 
   ! Local variables
-  integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
-  integer:: js1, je1, js2, je2, js3, je3, iiorb
-  logical:: ovrlpx, ovrlpy, ovrlpz
+  integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
+!  integer ::  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
+!  logical:: ovrlpx, ovrlpy, ovrlpz
+   logical :: isoverlap
 
   iiorb=0
   do jproc=0,nproc-1
@@ -492,16 +493,18 @@ subroutine countOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
         ioverlaporb=0 ! counts the overlaps for the given orbital.
         iiorb=iiorb+1 ! counts the total orbitals
         ilr=onWhichAtom(iiorb)
-        call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+ !       call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
         do jorb=1,orbs%norb
            jlr=onWhichAtom(jorb)
-           call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+!           call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+           call check_overlap_cubic_periodic(lzd%Glr,lzd%llr(ilr),lzd%llr(jlr),isoverlap) 
+!           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
            !if(iproc==0) write(*,'(a,6i5,5x,6i5,5x,3l)') 'is1, ie1, is2, ie2, is3, ie3   js1, je1, js2, je2, js3, je3  ovrlpx, ovrlpy, ovrlpz', &
            !  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ovrlpx, ovrlpy, ovrlpz
-           if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!           if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+            if(isoverlap) then
               ioverlaporb=ioverlaporb+1
               if(ilr/=ilrold) then
                  ! if ilr==ilrold, we are in the same localization region, so the MPI prosess
@@ -539,8 +542,8 @@ subroutine countOverlapsSphere(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
   type(p2pComms),intent(out):: comon
 
   ! Local variables
-  integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
-  integer:: js1, je1, js2, je2, js3, je3, iiorb
+  integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
+  integer ::  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   logical:: ovrlpx, ovrlpy, ovrlpz
   real(8):: dx, dy, dz, rr
 
@@ -604,9 +607,10 @@ subroutine determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
   type(p2pComms),intent(out):: comon
 
   ! Local variables
-  integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, is1, ie1, is2, ie2, is3, ie3
-  integer:: js1, je1, js2, je2, js3, je3, iiorb
-  logical:: ovrlpx, ovrlpy, ovrlpz
+  integer:: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold, iiorb
+!  integer ::  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
+!  logical:: ovrlpx, ovrlpy, ovrlpz
+  logical :: isoverlap
 
   ! Initialize to some value which will never be used.
   op%overlaps=-1
@@ -620,16 +624,18 @@ subroutine determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
         ioverlaporb=0 ! counts the overlaps for the given orbital.
         iiorb=iiorb+1 ! counts the total orbitals
         ilr=onWhichAtom(iiorb)
-        call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!        call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
         do jorb=1,orbs%norb
            jlr=onWhichAtom(jorb)
-           call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+!           call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+           call check_overlap_cubic_periodic(lzd%Glr,lzd%llr(ilr),lzd%llr(jlr),isoverlap)
+!           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
            !if(iproc==0) write(*,'(a,6i5,5x,6i5,5x,3l)') 'is1, ie1, is2, ie2, is3, ie3   js1, je1, js2, je2, js3, je3  ovrlpx, ovrlpy, ovrlpz', &
            !  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ovrlpx, ovrlpy, ovrlpz
-           if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!           if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+           if(isoverlap) then
               ioverlaporb=ioverlaporb+1
               op%overlaps(ioverlaporb,iiorb)=jorb
               if(ilr/=ilrold) then
