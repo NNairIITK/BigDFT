@@ -773,8 +773,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,10000/),comment=comments)
 
   comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
-  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/1,10000/))
-  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/1,10000/),comment=comments)
+  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,10000/))
+  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,10000/),comment=comments)
   
   ! Convergence criterion
   comments= 'iterations in the inner loop, convergence criterion'
