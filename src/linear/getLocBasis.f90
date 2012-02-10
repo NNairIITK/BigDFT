@@ -273,8 +273,8 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
           npsidim = 0
           do iorb=1,llborbs%norbp
            ilr=llborbs%inwhichlocreg(iorb+llborbs%isorb)
-           write(*,'(a,3i9)') 'iproc, llborbs%inwhichlocreg(iorb+llborbs%isorb), lorbs%inwhichlocreg(iorb+lorbs%isorb)', &
-                       iproc, llborbs%inwhichlocreg(iorb+llborbs%isorb), lorbs%inwhichlocreg(iorb+lorbs%isorb)
+           !!write(*,'(a,3i9)') 'iproc, llborbs%inwhichlocreg(iorb+llborbs%isorb), lorbs%inwhichlocreg(iorb+lorbs%isorb)', &
+           !!            iproc, llborbs%inwhichlocreg(iorb+llborbs%isorb), lorbs%inwhichlocreg(iorb+lorbs%isorb)
            npsidim = npsidim + lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
           end do
           allocate(llborbs%eval(llborbs%norb), stat=istat)
@@ -284,16 +284,16 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
           !!write(*,'(a,i5,4x,100i5)') 'llborbs%norb, llborbs%inwhichlocreg', llborbs%norb, llborbs%inwhichlocreg
           call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, llborbs, llborbs%inWhichLocreg,&
                's', lbop, lbcomon, tag)
-          write(*,*) 'HERE1 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
-          write(*,*) 'HERE1 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE1 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE1 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
           call initMatrixCompression(iproc, nproc, lzd%nlr, llborbs, &
                lbop%noverlaps, lbop%overlaps, lbmad)
           call initCompressedMatmul3(llborbs%norb, lbmad)
 
           call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, llborbs, &
                lzd, lbcomgp, llborbs%inWhichLocreg, tag)
-          write(*,*) 'HERE1.1 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
-          write(*,*) 'HERE1.1 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE1.1 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE1.1 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
 
           ! Communicate the potential
           if(useDerivativeBasisFunctions) then
@@ -304,8 +304,8 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
           end if
 
-          write(*,*) 'HERE1.2 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
-          write(*,*) 'HERE1.2 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE1.2 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE1.2 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
 
           tag=1
           call deallocateCommunicationbufferSumrho(comsr, subname)
@@ -314,29 +314,29 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
           call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, llborbs, tag, comsr)
           call allocateCommunicationbufferSumrho(iproc, .false., comsr, subname)
 
-          write(*,*) 'HERE1.3 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
-          write(*,*) 'HERE1.3 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE1.3 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE1.3 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
 
 
       end if
-      write(*,'(a,4i8)') 'lorbs%npsidim_orbs, lorbs%npsidim_comp, size(lphi), size(lphiRestart)', &
-                         lorbs%npsidim_orbs, lorbs%npsidim_comp, size(lphi), size(lphiRestart)
+      !!write(*,'(a,4i8)') 'lorbs%npsidim_orbs, lorbs%npsidim_comp, size(lphi), size(lphiRestart)', &
+      !!                   lorbs%npsidim_orbs, lorbs%npsidim_comp, size(lphi), size(lphiRestart)
       !call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1), 1, lphiRestart(1), 1)
       call dcopy(lorbs%npsidim_orbs, lphi(1), 1, lphiRestart(1), 1)
-          write(*,*) 'HERE1.4 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
-          write(*,*) 'HERE1.4 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE1.4 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE1.4 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
 
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   !write(*,*) 'associated(lin%lb%comrp%communComplete)', associated(lin%lb%comrp%communComplete)
-          write(*,*) 'HERE2 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
-          write(*,*) 'HERE2 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE2 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE2 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
 
 
-  if(newgradient) then
+  if(updatePhi .and. newgradient) then
 
-      write(*,*) 'before reallocation: iproc, size(lphi)', iproc, size(lphi)
+      !!write(*,*) 'before reallocation: iproc, size(lphi)', iproc, size(lphi)
       ! Reallocate lphi, since it is now allocated without the derivatives
       iall=-product(shape(lphi))*kind(lphi)
       deallocate(lphi, stat=istat)
@@ -344,14 +344,16 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
       allocate(lphi(llborbs%npsidim_orbs), stat=istat)
       call memocc(istat, lphi, 'lphi', subname)
-      write(*,*) ' after reallocation: iproc, size(lphi)', iproc, size(lphi)
-      write(*,'(a,4i9)') 'lorbs%npsidim_orbs, lorbs%npsidim_comp, llborbs%npsidim_orbs, llborbs%npsidim_comp', &
-                  lorbs%npsidim_orbs, lorbs%npsidim_comp, llborbs%npsidim_orbs, llborbs%npsidim_comp
+      !!write(*,*) ' after reallocation: iproc, size(lphi)', iproc, size(lphi)
+      !!write(*,'(a,4i9)') 'lorbs%npsidim_orbs, lorbs%npsidim_comp, llborbs%npsidim_orbs, llborbs%npsidim_comp', &
+      !!            lorbs%npsidim_orbs, lorbs%npsidim_comp, llborbs%npsidim_orbs, llborbs%npsidim_comp
 
   end if
+      
+  call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
 
-          write(*,*) 'HERE3 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
-          write(*,*) 'HERE3 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE3 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE3 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
 
   if(useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
       !!call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
@@ -387,7 +389,7 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
           iiorb=llborbs%isorb+iorb
           ilr=llborbs%inWhichLocreg(iiorb)
           call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
-          write(*,'(a,5i12)') 'iorb, ist, istr, size(lphi), size(comsr%sendBuf)', iorb, ist, istr, size(lphi), size(comsr%sendBuf)
+          !!write(*,'(a,5i12)') 'iorb, ist, istr, size(lphi), size(comsr%sendBuf)', iorb, ist, istr, size(lphi), size(comsr%sendBuf)
           call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
           call deallocate_work_arrays_sumrho(w)
           ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
@@ -403,7 +405,7 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
       ! in the subroutine sumrhoForLocalizedBasis2.
       call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
   end if
-write(*,*) 'iproc, llborbs%npsidim_orbs', iproc, llborbs%npsidim_orbs
+!!write(*,*) 'iproc, llborbs%npsidim_orbs', iproc, llborbs%npsidim_orbs
   !!if(newgradient) then
   !!   call mpi_barrier(mpi_comm_world, ierr)
   !!   stop
@@ -492,120 +494,120 @@ write(*,*) 'iproc, llborbs%npsidim_orbs', iproc, llborbs%npsidim_orbs
   if(useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 
-          write(*,*) 'HERE10 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
-          write(*,*) 'HERE10 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE10 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
+          !!write(*,*) 'HERE10 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
 
-!##################################################################################################
-if(newgradient) then
-  ilrold=-1
-  iiprocold=-1
-  do iorb=1,lorbs%norb
-     ilr=lorbs%inwhichlocreg(iorb)
-     iiproc=lorbs%onWhichMPI(iorb)
-     if(ilr==ilrold .and. iiproc==iiprocold) cycle ! otherwise we would extract the same again
-     do jorb=1,op%noverlaps(iorb)
-        jjorb=op%overlaps(jorb,iorb)
-        jjlr=lorbs%inwhichlocreg(jjorb)
-        jjproc=lorbs%onWhichMPI(jjorb)
-        if(iproc==jjproc) then
-           ! Get the correct descriptors
-           korb=jjorb-orbs%isorb
-           !write(*,'(a,5i8)') 'iorb, jorb, jjorb, jjproc, korb', iorb, jorb, jjorb, jjproc, korb
-           do i=1,op%noverlaps(jjorb)
-              !write(*,'(a,5i8)') 'iproc, iorb, korb, i, op%overlaps(i,korb)', iproc, iorb, korb, i, op%overlaps(i,korb)
-              if(op%overlaps(i,jjorb)==iorb) then
-                 lorb=i
-                 exit
-              end if
-           end do
-           !write(*,'(a,5i9)') 'iproc, iorb, jorb, korb, lorb', iproc, iorb, jorb, korb, lorb
-           gdim=lzd%llr(jjlr)%wfd%nvctr_c+7*lzd%llr(jjlr)%wfd%nvctr_f
-           ldim=op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
-           ind=1
-           do kkorb=lorbs%isorb+1,jjorb-1
-              klr=lorbs%inwhichlocreg(kkorb)
-              ind = ind + lzd%llr(klr)%wfd%nvctr_c + 7*lzd%llr(klr)%wfd%nvctr_f
-           end do
-            !! THIS IS THE NEWEST VERSION
-            jst=0
-            do iseg=1,op%extseg(lorb,korb)%nseg
-                istart=op%extseg(lorb,korb)%segborders(1,iseg)
-                iend=op%extseg(lorb,korb)%segborders(2,iseg)
-                ncount=iend-istart+1
-                write(100,'(a,10i8)') 'iorb, ilr, jorb, jjorb, jjlr, lorb, korb, iseg, istart, iend', &
-                       iorb, ilr, jorb, jjorb, jjlr, lorb, korb, iseg, istart, iend
-                !!call dcopy(ncount, phi(ind+istart-1), 1, sendBuf(indovrlp+jst), 1)
-                jst=jst+ncount
-           end do
-           op%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
-           indovrlp=indovrlp+op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
-        end if
-     end do
-     ilrold=ilr
-     iiprocold=iiproc
-
-  end do
-
-
-  ilrold=-1
-  iiprocold=-1
-  do iorb=1,llborbs%norb
-     ilr=llborbs%inwhichlocreg(iorb)
-     iiproc=llborbs%onWhichMPI(iorb)
-     if(ilr==ilrold .and. iiproc==iiprocold) cycle ! otherwise we would extract the same again
-     do jorb=1,lbop%noverlaps(iorb)
-        jjorb=lbop%overlaps(jorb,iorb)
-        jjlr=llborbs%inwhichlocreg(jjorb)
-        jjproc=llborbs%onWhichMPI(jjorb)
-        if(iproc==jjproc) then
-           ! Get the correct descriptors
-           korb=jjorb-orbs%isorb
-           !write(*,'(a,5i8)') 'iorb, jorb, jjorb, jjproc, korb', iorb, jorb, jjorb, jjproc, korb
-           do i=1,lbop%noverlaps(jjorb)
-              !write(*,'(a,5i8)') 'iproc, iorb, korb, i, lbop%overlaps(i,korb)', iproc, iorb, korb, i, lbop%overlaps(i,korb)
-              if(lbop%overlaps(i,jjorb)==iorb) then
-                 lorb=i
-                 exit
-              end if
-           end do
-           !write(*,'(a,5i9)') 'iproc, iorb, jorb, korb, lorb', iproc, iorb, jorb, korb, lorb
-           gdim=lzd%llr(jjlr)%wfd%nvctr_c+7*lzd%llr(jjlr)%wfd%nvctr_f
-           ldim=lbop%olr(lorb,korb)%wfd%nvctr_c+7*lbop%olr(lorb,korb)%wfd%nvctr_f
-           ind=1
-           do kkorb=llborbs%isorb+1,jjorb-1
-              klr=llborbs%inwhichlocreg(kkorb)
-              ind = ind + lzd%llr(klr)%wfd%nvctr_c + 7*lzd%llr(klr)%wfd%nvctr_f
-           end do
-            !! THIS IS THE NEWEST VERSION
-            jst=0
-            do iseg=1,lbop%extseg(lorb,korb)%nseg
-                istart=lbop%extseg(lorb,korb)%segborders(1,iseg)
-                iend=lbop%extseg(lorb,korb)%segborders(2,iseg)
-                ncount=iend-istart+1
-                write(200,'(a,10i8)') 'iorb, ilr, jorb, jjorb, jjlr, lorb, korb, iseg, istart, iend', &
-                       iorb, ilr, jorb, jjorb, jjlr, lorb, korb, iseg, istart, iend
-                !!call dclbopy(ncount, phi(ind+istart-1), 1, sendBuf(indovrlp+jst), 1)
-                jst=jst+ncount
-           end do
-           lbop%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
-           indovrlp=indovrlp+lbop%olr(lorb,korb)%wfd%nvctr_c+7*lbop%olr(lorb,korb)%wfd%nvctr_f
-        end if
-     end do
-     ilrold=ilr
-     iiprocold=iiproc
-
-  end do
-
-  do i=1,size(op%indexExtract)
-      write(110,*) i, op%indexExtract(i)
-  end do
-
-  do i=1,size(lbop%indexExtract)
-      write(210,*) i, lbop%indexExtract(i)
-  end do
-
-end if
-!##################################################################################################
+!!!!!!##################################################################################################
+!!!!!if(newgradient) then
+!!!!!  ilrold=-1
+!!!!!  iiprocold=-1
+!!!!!  do iorb=1,lorbs%norb
+!!!!!     ilr=lorbs%inwhichlocreg(iorb)
+!!!!!     iiproc=lorbs%onWhichMPI(iorb)
+!!!!!     if(ilr==ilrold .and. iiproc==iiprocold) cycle ! otherwise we would extract the same again
+!!!!!     do jorb=1,op%noverlaps(iorb)
+!!!!!        jjorb=op%overlaps(jorb,iorb)
+!!!!!        jjlr=lorbs%inwhichlocreg(jjorb)
+!!!!!        jjproc=lorbs%onWhichMPI(jjorb)
+!!!!!        if(iproc==jjproc) then
+!!!!!           ! Get the correct descriptors
+!!!!!           korb=jjorb-orbs%isorb
+!!!!!           !write(*,'(a,5i8)') 'iorb, jorb, jjorb, jjproc, korb', iorb, jorb, jjorb, jjproc, korb
+!!!!!           do i=1,op%noverlaps(jjorb)
+!!!!!              !write(*,'(a,5i8)') 'iproc, iorb, korb, i, op%overlaps(i,korb)', iproc, iorb, korb, i, op%overlaps(i,korb)
+!!!!!              if(op%overlaps(i,jjorb)==iorb) then
+!!!!!                 lorb=i
+!!!!!                 exit
+!!!!!              end if
+!!!!!           end do
+!!!!!           !write(*,'(a,5i9)') 'iproc, iorb, jorb, korb, lorb', iproc, iorb, jorb, korb, lorb
+!!!!!           gdim=lzd%llr(jjlr)%wfd%nvctr_c+7*lzd%llr(jjlr)%wfd%nvctr_f
+!!!!!           ldim=op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
+!!!!!           ind=1
+!!!!!           do kkorb=lorbs%isorb+1,jjorb-1
+!!!!!              klr=lorbs%inwhichlocreg(kkorb)
+!!!!!              ind = ind + lzd%llr(klr)%wfd%nvctr_c + 7*lzd%llr(klr)%wfd%nvctr_f
+!!!!!           end do
+!!!!!            !! THIS IS THE NEWEST VERSION
+!!!!!            jst=0
+!!!!!            do iseg=1,op%extseg(lorb,korb)%nseg
+!!!!!                istart=op%extseg(lorb,korb)%segborders(1,iseg)
+!!!!!                iend=op%extseg(lorb,korb)%segborders(2,iseg)
+!!!!!                ncount=iend-istart+1
+!!!!!                write(100,'(a,10i8)') 'iorb, ilr, jorb, jjorb, jjlr, lorb, korb, iseg, istart, iend', &
+!!!!!                       iorb, ilr, jorb, jjorb, jjlr, lorb, korb, iseg, istart, iend
+!!!!!                !!call dcopy(ncount, phi(ind+istart-1), 1, sendBuf(indovrlp+jst), 1)
+!!!!!                jst=jst+ncount
+!!!!!           end do
+!!!!!           op%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
+!!!!!           indovrlp=indovrlp+op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
+!!!!!        end if
+!!!!!     end do
+!!!!!     ilrold=ilr
+!!!!!     iiprocold=iiproc
+!!!!!
+!!!!!  end do
+!!!!!
+!!!!!
+!!!!!  ilrold=-1
+!!!!!  iiprocold=-1
+!!!!!  do iorb=1,llborbs%norb
+!!!!!     ilr=llborbs%inwhichlocreg(iorb)
+!!!!!     iiproc=llborbs%onWhichMPI(iorb)
+!!!!!     if(ilr==ilrold .and. iiproc==iiprocold) cycle ! otherwise we would extract the same again
+!!!!!     do jorb=1,lbop%noverlaps(iorb)
+!!!!!        jjorb=lbop%overlaps(jorb,iorb)
+!!!!!        jjlr=llborbs%inwhichlocreg(jjorb)
+!!!!!        jjproc=llborbs%onWhichMPI(jjorb)
+!!!!!        if(iproc==jjproc) then
+!!!!!           ! Get the correct descriptors
+!!!!!           korb=jjorb-orbs%isorb
+!!!!!           !write(*,'(a,5i8)') 'iorb, jorb, jjorb, jjproc, korb', iorb, jorb, jjorb, jjproc, korb
+!!!!!           do i=1,lbop%noverlaps(jjorb)
+!!!!!              !write(*,'(a,5i8)') 'iproc, iorb, korb, i, lbop%overlaps(i,korb)', iproc, iorb, korb, i, lbop%overlaps(i,korb)
+!!!!!              if(lbop%overlaps(i,jjorb)==iorb) then
+!!!!!                 lorb=i
+!!!!!                 exit
+!!!!!              end if
+!!!!!           end do
+!!!!!           !write(*,'(a,5i9)') 'iproc, iorb, jorb, korb, lorb', iproc, iorb, jorb, korb, lorb
+!!!!!           gdim=lzd%llr(jjlr)%wfd%nvctr_c+7*lzd%llr(jjlr)%wfd%nvctr_f
+!!!!!           ldim=lbop%olr(lorb,korb)%wfd%nvctr_c+7*lbop%olr(lorb,korb)%wfd%nvctr_f
+!!!!!           ind=1
+!!!!!           do kkorb=llborbs%isorb+1,jjorb-1
+!!!!!              klr=llborbs%inwhichlocreg(kkorb)
+!!!!!              ind = ind + lzd%llr(klr)%wfd%nvctr_c + 7*lzd%llr(klr)%wfd%nvctr_f
+!!!!!           end do
+!!!!!            !! THIS IS THE NEWEST VERSION
+!!!!!            jst=0
+!!!!!            do iseg=1,lbop%extseg(lorb,korb)%nseg
+!!!!!                istart=lbop%extseg(lorb,korb)%segborders(1,iseg)
+!!!!!                iend=lbop%extseg(lorb,korb)%segborders(2,iseg)
+!!!!!                ncount=iend-istart+1
+!!!!!                write(200,'(a,10i8)') 'iorb, ilr, jorb, jjorb, jjlr, lorb, korb, iseg, istart, iend', &
+!!!!!                       iorb, ilr, jorb, jjorb, jjlr, lorb, korb, iseg, istart, iend
+!!!!!                !!call dclbopy(ncount, phi(ind+istart-1), 1, sendBuf(indovrlp+jst), 1)
+!!!!!                jst=jst+ncount
+!!!!!           end do
+!!!!!           lbop%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
+!!!!!           indovrlp=indovrlp+lbop%olr(lorb,korb)%wfd%nvctr_c+7*lbop%olr(lorb,korb)%wfd%nvctr_f
+!!!!!        end if
+!!!!!     end do
+!!!!!     ilrold=ilr
+!!!!!     iiprocold=iiproc
+!!!!!
+!!!!!  end do
+!!!!!
+!!!!!  do i=1,size(op%indexExtract)
+!!!!!      write(110,*) i, op%indexExtract(i)
+!!!!!  end do
+!!!!!
+!!!!!  do i=1,size(lbop%indexExtract)
+!!!!!      write(210,*) i, lbop%indexExtract(i)
+!!!!!  end do
+!!!!!
+!!!!!end if
+!!!!!!##################################################################################################
 
 
 
