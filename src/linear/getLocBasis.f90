@@ -882,7 +882,7 @@ character(len=3):: orbname, comment
 real(8),dimension(:),allocatable:: lvphiovrlp, locrad, locrad_tmp
 real(8),dimension(:),pointer:: phiWork
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
-integer:: jst, istl, istg, nvctrp, ldim, nspin, norbu, norbd, tag, npsidim, ilrlarge
+integer:: jst, istl, istg, nvctrp, ldim, nspin, norbu, norbd, tag, npsidim, ilrlarge, icenter, nl1, nl2, nl3
 type(local_zone_descriptors):: lzdlarge
 type(orbitals_data):: orbslarge
 type(overlapParameters):: oplarge
@@ -993,8 +993,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       !!call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
       do ilr=1,lzd%nlr
           locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
+          if(iproc==0) write(*,'(a,i6,3f11.4)') 'ilr, locregCenter(:,ilr)', ilr, locregCenter(:,ilr)
       end do
       locregCenterTemp=locregCenter
+
       locrad_tmp=factor*locrad
       call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
            locrad_tmp, denspot%dpcom%nscatterarr, .false., ldiis, &
@@ -1054,6 +1056,22 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbslarge, oplarge, comonlarge, lzdlarge, &
                  madlarge, lphilarge, ovrlp)
 
+            ! Update confdatarr...
+            do iorb=1,orbslarge%norbp
+               iiorb=orbslarge%isorb+iorb
+               ilr=orbslarge%inWhichlocreg(iiorb)
+               icenter=orbslarge%inwhichlocreg(iiorb)
+               !confdatarr(iorb)%potorder=lin%confpotorder
+               !confdatarr(iorb)%prefac=lin%potentialprefac(at%iatype(icenter))
+               !confdatarr(iorb)%hh(1)=.5_gp*hx
+               !confdatarr(iorb)%hh(2)=.5_gp*hy
+               !confdatarr(iorb)%hh(3)=.5_gp*hz
+               confdatarr(iorb)%rxyzConf(1:3)=locregCenterTemp(1:3,icenter)
+               call my_geocode_buffers(lzdlarge%Llr(ilr)%geocode,nl1,nl2,nl3)
+               confdatarr(iorb)%ioffset(1)=lzdlarge%llr(ilr)%nsi1-nl1-1
+               confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
+               confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
+            end do
             call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                  comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
                  newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
@@ -1646,6 +1664,23 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            !!                          comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
            !!                          newgradient, confdatarr, hx, lphilarge)
            !!confdatarr%prefac=0.0d0
+
+           ! Update confdatarr...
+           do iorb=1,orbslarge%norbp
+              iiorb=orbslarge%isorb+iorb
+              ilr=orbslarge%inWhichlocreg(iiorb)
+              icenter=orbslarge%inwhichlocreg(iiorb)
+              !confdatarr(iorb)%potorder=lin%confpotorder
+              !confdatarr(iorb)%prefac=lin%potentialprefac(at%iatype(icenter))
+              !confdatarr(iorb)%hh(1)=.5_gp*hx
+              !confdatarr(iorb)%hh(2)=.5_gp*hy
+              !confdatarr(iorb)%hh(3)=.5_gp*hz
+              confdatarr(iorb)%rxyzConf(1:3)=locregCenterTemp(1:3,icenter)
+              call my_geocode_buffers(lzdlarge%Llr(ilr)%geocode,nl1,nl2,nl3)
+              confdatarr(iorb)%ioffset(1)=lzdlarge%llr(ilr)%nsi1-nl1-1
+              confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
+              confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
+           end do
            call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                                      comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
                                      newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
@@ -1888,6 +1923,25 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 contains
 
 
+
+    subroutine my_geocode_buffers(geocode,nl1,nl2,nl3)
+      implicit none
+      integer, intent(in) :: nl1,nl2,nl3
+      character(len=1), intent(in) :: geocode
+      !local variables
+      logical :: perx,pery,perz
+      integer :: nr1,nr2,nr3
+
+      !conditions for periodicity in the three directions
+      perx=(geocode /= 'F')
+      pery=(geocode == 'P')
+      perz=(geocode /= 'F')
+
+      call ext_buffers(perx,nl1,nr1)
+      call ext_buffers(pery,nl2,nr2)
+      call ext_buffers(perz,nl3,nr3)
+
+    end subroutine my_geocode_buffers
 
 
 
@@ -6187,7 +6241,9 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           !!write(410+iproc,*) X0
 
           do iorb=1,orbs%norb
-              if(iproc==0) write(*,'(a,i5,3f10.4)') 'START: iorb, centers: ', iorb, X(iorb,iorb), Y(iorb,iorb), Z(iorb,iorb)
+              if(iproc==0) write(*,'(a,i5,3f10.4,4x,3f10.4)') 'START: iorb, centers: ', &
+                iorb, X(iorb,iorb)/normarr(iorb), Y(iorb,iorb)/normarr(iorb), Z(iorb,iorb)/normarr(iorb), &
+                locregCenters(1,iorb),  locregCenters(2,iorb), locregCenters(3,iorb)
               centers_start(1,iorb)=X(iorb,iorb)/normarr(iorb)
               centers_start(2,iorb)=Y(iorb,iorb)/normarr(iorb)
               centers_start(3,iorb)=Z(iorb,iorb)/normarr(iorb)
@@ -7542,6 +7598,12 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
   oidx = 0
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+
+     iiorb=orbs%isorb+iorb
+     write(*,'(a,4i8,4x,3i6)') 'iproc, iorb, iiorb, ilr, confdatarr(iorb)%ioffset(:)', &
+         iproc, iorb, iiorb, ilr, confdatarr(iorb)%ioffset(:)
+     write(*,'(a,3i8,6i6)') 'iproc, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3', &
+         1, lzd%llr(ilr)%d%n1i, 1, lzd%llr(ilr)%d%n2i, 1, lzd%llr(ilr)%d%n3i
   
      !initialise the work arrays
      call initialize_work_arrays_sumrho(lzd%llr(ilr), work_sr)
