@@ -5786,18 +5786,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer,dimension(:),pointer,intent(out):: inwhichlocreg
        end subroutine assignToLocreg2
 
-       subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
-              hxh, hyh, hzh, ioffset, dir, &
-              ibyyzz_r) !optional
-         use module_base
-         implicit none
-         integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
-         integer,dimension(3),intent(in):: ioffset
-         real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
-         integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
-         real(8),intent(in):: hxh, hyh, hzh
-         character(len=1),intent(in):: dir
-       end subroutine position_operator
+       !!!subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
+       !!!       hxh, hyh, hzh, ioffset, dir, &
+       !!!       ibyyzz_r) !optional
+       !!!  use module_base
+       !!!  implicit none
+       !!!  integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
+       !!!  integer,dimension(3),intent(in):: ioffset
+       !!!  real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+       !!!  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+       !!!  real(8),intent(in):: hxh, hyh, hzh
+       !!!  character(len=1),intent(in):: dir
+       !!!end subroutine position_operator
 
        subroutine apply_position_operators(iproc, nproc, orbs, lzd, hx, hy, hz, confdatarr, psi, xpsi, ypsi, zpsi)
          use module_base
@@ -5900,6 +5900,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(p2pComms),intent(inout):: comgplarge
          real(8),dimension(:),pointer,intent(inout):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
        end subroutine destroy_new_locregs
+
+       subroutine position_operators(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,&
+            psirx, psiry, psirz, &
+            confdata,ibyyzz_r) !optional
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor
+         integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
+         real(wp), dimension(n1i,n2i,n3i,nspinor), intent(in) :: psir !< real-space wfn in lr
+         real(wp), dimension(n1i,n2i,n3i,nspinor), intent(out) :: psirx, psiry, psirz !< x,y,z operator applied to real-space wfn in lr
+         type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+         integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
+       end subroutine position_operators
 
    end interface
 

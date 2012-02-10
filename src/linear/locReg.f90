@@ -3516,12 +3516,18 @@ n2_k=0
 n3_k=0
 nseg_k=0
 
+
+! Quick return if possible
+if(nseg_i==0 .or. nseg_j==0) return
+
 ! Initialize some counters
-iseg=1
-jseg=1
+iseg=min(1,nseg_i)
+jseg=min(1,nseg_j)
 kxemax=0
 kyemax=0
 kzemax=0
+
+
 
 
 segment_loop: do
@@ -3629,11 +3635,14 @@ integer:: iend, jend, kend, iendg, jendg, kendg, transform_index
 character(len=1):: increase
 
 ! Initialize some counters
-iseg=1
-jseg=1
+iseg=min(1,nseg_i)
+jseg=min(1,nseg_j)
 kseg=0
 knvctr=0
 nvctr_k=0
+
+! Quick return if possible
+if(nseg_i==0 .or. nseg_j==0) return
 
 segment_loop: do
 

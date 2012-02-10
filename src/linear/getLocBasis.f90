@@ -153,6 +153,7 @@ type(locreg_descriptors):: glr_tmp
           hx,hy,hz,SIC,nItPrecond)
   end if
 
+
   if(updatePhi .or. itSCC==0) then
       if(newgradient) then
 
@@ -160,6 +161,9 @@ type(locreg_descriptors):: glr_tmp
           if(useDerivativeBasisFunctions) then
               call cancelCommunicationPotential(iproc, nproc, lbcomgp)
               call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
+          else
+              call cancelCommunicationPotential(iproc, nproc, comgp)
+              call deallocateCommunicationsBuffersPotential(comgp, subname)
           end if
 
           ! Reallocate lphiRestart, since its size might have changed
@@ -283,6 +287,9 @@ type(locreg_descriptors):: glr_tmp
           if(useDerivativeBasisFunctions) then
               call allocateCommunicationsBuffersPotential(lbcomgp, subname)
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
+          else
+              call allocateCommunicationsBuffersPotential(comgp, subname)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
           end if
 
 
@@ -302,35 +309,42 @@ type(locreg_descriptors):: glr_tmp
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   !write(*,*) 'associated(lin%lb%comrp%communComplete)', associated(lin%lb%comrp%communComplete)
+
+
+  if(newgradient) then
+
+      write(*,*) 'before reallocation: size(lphi)', size(lphi)
+      ! Reallocate lphi, since it is now allocated without the derivatives
+      iall=-product(shape(lphi))*kind(lphi)
+      deallocate(lphi, stat=istat)
+      call memocc(istat, iall, 'lphi', subname)
+
+      allocate(lphi(llborbs%npsidim_orbs), stat=istat)
+      call memocc(istat, lphi, 'lphi', subname)
+      write(*,*) ' after reallocation: size(lphi)', size(lphi)
+
+  end if
+write(*,*) 'iproc, llborbs%npsidim_orbs', iproc, llborbs%npsidim_orbs
+  if(newgradient) then
+     call mpi_barrier(mpi_comm_world, ierr)
+     stop
+  end if
+
+
   if(useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
       !!call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
 
-      if(newgradient) then
 
-          ! Reallocate lphi, since it is now allocated without the derivatives
-          iall=-product(shape(lphi))*kind(lphi)
-          deallocate(lphi, stat=istat)
-          call memocc(istat, iall, 'lphi', subname)
+      call deallocate_p2pCommsRepartition(comrp, subname)
+      call nullify_p2pCommsRepartition(comrp)
+      call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
 
-          allocate(lphi(llborbs%npsidim_orbs), stat=istat)
-          call memocc(istat, lphi, 'lphi', subname)
-
-
-
-          call deallocate_p2pCommsRepartition(comrp, subname)
-          call nullify_p2pCommsRepartition(comrp)
-          call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
-      end if
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
       call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
            max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart,lphi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if
 
-  !!if(newgradient) then
-  !!   call mpi_barrier(mpi_comm_world, ierr)
-  !!   stop
-  !!end if
 
   ! Get the overlap matrix.
   if(.not.useDerivativeBasisFunctions) then
@@ -351,6 +365,7 @@ type(locreg_descriptors):: glr_tmp
           iiorb=llborbs%isorb+iorb
           ilr=llborbs%inWhichLocreg(iiorb)
           call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+          write(*,'(a,5i12)') 'iorb, ist, istr, size(lphi), size(comsr%sendBuf)', iorb, ist, istr, size(lphi), size(comsr%sendBuf)
           call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
           call deallocate_work_arrays_sumrho(w)
           ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
@@ -371,8 +386,9 @@ type(locreg_descriptors):: glr_tmp
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
   ! Gather the potential (it has been posted in the subroutine linearScaling) if the basis functions
-  ! have not been updated (in that case it was gathered there).
-  if(.not.updatePhi) then
+  ! have not been updated (in that case it was gathered there). If newgradient is true, it has to be
+  ! gathered as well since the locregs changed.
+  if(.not.updatePhi .or. newgradient) then
       call gatherPotential(iproc, nproc, comgp)
   end if
   ! If we use the derivative basis functions the potential has to be gathered anyway.
@@ -882,6 +898,41 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
             call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                  comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
                  newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+            do ilr=1,lzd%nlr
+                tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
+                    +(locregCenter(2,ilr)-locregCenterTemp(2,ilr))**2 &
+                    +(locregCenter(3,ilr)-locregCenterTemp(3,ilr))**2 
+                tt=sqrt(tt)
+                if(iproc==0) write(*,'(a,3es13.4)') 'new centers:',locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
+                if(iproc==0) write(*,'(a,i5,es16.4)') '2: ilr, tt', ilr, tt
+                if( floor(locregCenter(1,ilr)/hx) < 0 .or. ceiling(locregCenter(1,ilr)/hx) > lzd%glr%d%n1 ) then
+                    if(iproc==0) then
+                        write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
+                            ' is outside of box in x direction! Box limits=',0,lzd%glr%d%n1,&
+                            ', center=',floor(locregCenter(1,ilr)/hx),ceiling(locregCenter(1,ilr)/hx)
+                    end if
+                    call mpi_barrier(mpi_comm_world, ierr)
+                    stop
+                end if
+                if( floor(locregCenter(2,ilr)/hx) < 0 .or. ceiling(locregCenter(2,ilr)/hy) > lzd%glr%d%n2 ) then
+                    if(iproc==0) then
+                        write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
+                            'is outside of box in y direction! Box limits=',0,lzd%glr%d%n2,&
+                            ', center=',floor(locregCenter(2,ilr)/hy),ceiling(locregCenter(2,ilr)/hy)
+                    end if
+                    call mpi_barrier(mpi_comm_world, ierr)
+                    stop
+                end if
+                if( floor(locregCenter(3,ilr)/hz) < 0 .or. ceiling(locregCenter(3,ilr)/hz) > lzd%glr%d%n3 ) then
+                    if(iproc==0) then
+                        write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
+                            'is outside of box in x direction! Box limits=',0,lzd%glr%d%n3,&
+                            ', center=',floor(locregCenter(3,ilr)/hz),ceiling(locregCenter(3,ilr)/hz)
+                    end if
+                    call mpi_barrier(mpi_comm_world, ierr)
+                    stop
+                end if
+            end do
             do ilr=1,lzd%nlr
                 tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
                     +(locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
@@ -1439,9 +1490,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                                      newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
            do ilr=1,lzd%nlr
                tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
-                   +(locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
-                   +(locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 
+                   +(locregCenter(2,ilr)-locregCenterTemp(2,ilr))**2 &
+                   +(locregCenter(3,ilr)-locregCenterTemp(3,ilr))**2 
                tt=sqrt(tt)
+               if(iproc==0) write(*,'(a,3es13.4)') 'new centers:',locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
                if(iproc==0) write(*,'(a,i5,es16.4)') '2: ilr, tt', ilr, tt
                if( floor(locregCenter(1,ilr)/hx) < 0 .or. ceiling(locregCenter(1,ilr)/hx) > lzd%glr%d%n1 ) then
                    if(iproc==0) then
@@ -5974,9 +6026,9 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
           do iorb=1,orbs%norb
               if(iproc==0) write(*,'(a,i5,3f10.4)') 'START: iorb, centers: ', iorb, X(iorb,iorb), Y(iorb,iorb), Z(iorb,iorb)
-              centers_start(1,iorb)=X(iorb,iorb)
-              centers_start(2,iorb)=Y(iorb,iorb)
-              centers_start(3,iorb)=Z(iorb,iorb)
+              centers_start(1,iorb)=X(iorb,iorb)/normarr(iorb)
+              centers_start(2,iorb)=Y(iorb,iorb)/normarr(iorb)
+              centers_start(3,iorb)=Z(iorb,iorb)/normarr(iorb)
           end do
       else
         call dgemm('t', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,1), orbs%norb, &
@@ -7312,14 +7364,15 @@ real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: xpsi, 
 ! Local variables
 integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, ist_c, ist_f, ist, iiorb, iall, ierr
 real(8):: hxh, hyh, hzh, ddot, tt, t1, t2, time
-real(8),dimension(:,:),allocatable:: psir, vpsir
+real(8),dimension(:,:),allocatable:: psir, psirx, psiry, psirz
 type(workarr_sumrho):: work_sr
 real(8),dimension(0:3),parameter:: scal=1.d0
 real(8),dimension(:,:,:),allocatable:: ypsitemp_c
 real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
 character(len=*),parameter:: subname='apply_orbitaldependent_potential'
+integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
 
-
+  ishift=(/0,0,0/)
 
   xpsi=0.d0
   ypsi=0.d0
@@ -7335,9 +7388,18 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
      allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psir,'psir',subname)
      call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
-     allocate(vpsir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,vpsir,'vpsir',subname)
-     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,vpsir)
+
+     allocate(psirx(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,psirx,'psirx',subname)
+     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psirx)
+
+     allocate(psiry(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,psiry,'psiry',subname)
+     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psiry)
+
+     allocate(psirz(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,psirz,'psirz',subname)
+     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psirz)
 
      !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
      !the psir wavefunction is given in the spinorial form
@@ -7358,32 +7420,55 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
      !!     rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
      !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3,  &
      !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+     call position_operators(lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
+                             lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
+                             ishift, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, orbs%nspinor, &
+                             psir, psirx, psiry, psirz, &
+                             confdatarr(iorb), lzd%llr(ilr)%bounds%ibyyzz_r) !optional
 
-     call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
-     call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
-          hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'x', &
-          lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-     call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, xpsi(1+oidx))
+     call isf_to_daub(lzd%llr(ilr), work_sr, psirx, xpsi(1+oidx))
+     call isf_to_daub(lzd%llr(ilr), work_sr, psiry, ypsi(1+oidx))
+     call isf_to_daub(lzd%llr(ilr), work_sr, psirz, zpsi(1+oidx))
 
-     call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
-     call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
-          hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'y', &
-          lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-     call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, ypsi(1+oidx))
+     !!call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
+     !!call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
+     !!     hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'x', &
+     !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+     !!call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, xpsi(1+oidx))
 
-     call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
-     call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
-          hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'z', &
-          lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-     call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, zpsi(1+oidx))
+     !!call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
+     !!call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
+     !!     hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'y', &
+     !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+     !!call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, ypsi(1+oidx))
+
+     !!call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
+     !!call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
+     !!     hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'z', &
+     !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+     !!call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, zpsi(1+oidx))
+
+     !!iall=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+     !!write(*,'(a,i5,es16.4)') 'iorb, ddot x', iorb, ddot(iall, xpsi(1+oidx), 1, psi(1+oidx), 1)
+     !!write(*,'(a,i5,es16.4)') 'iorb, ddot y', iorb, ddot(iall, ypsi(1+oidx), 1, psi(1+oidx), 1)
+     !!write(*,'(a,i5,es16.4)') 'iorb, ddot z', iorb, ddot(iall, zpsi(1+oidx), 1, psi(1+oidx), 1)
 
 
      i_all=-product(shape(psir))*kind(psir)
      deallocate(psir,stat=i_stat)
      call memocc(i_stat,i_all,'psir',subname)
-     i_all=-product(shape(vpsir))*kind(vpsir)
-     deallocate(vpsir,stat=i_stat)
-     call memocc(i_stat,i_all,'vpsir',subname)
+
+     i_all=-product(shape(psirx))*kind(psirx)
+     deallocate(psirx,stat=i_stat)
+     call memocc(i_stat,i_all,'psirx',subname)
+
+     i_all=-product(shape(psiry))*kind(psiry)
+     deallocate(psiry,stat=i_stat)
+     call memocc(i_stat,i_all,'psiry',subname)
+
+     i_all=-product(shape(psirz))*kind(psirz)
+     deallocate(psirz,stat=i_stat)
+     call memocc(i_stat,i_all,'psirz',subname)
 
      call deallocate_work_arrays_sumrho(work_sr)
 
@@ -7396,100 +7481,332 @@ end subroutine apply_position_operators
 
 
 
-subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
-     hxh, hyh, hzh, ioffset, dir, &
-     ibyyzz_r) !optional
-use module_base
-implicit none
-integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
-integer,dimension(3),intent(in):: ioffset
-real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
-integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
-real(8),intent(in):: hxh, hyh, hzh
-character(len=1),intent(in):: dir
-!local variables
-integer :: i1,i2,i3,i1s,i1e,ispinor, order
-real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
-real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
-real(gp) :: epot_p, epot
+!!!!!subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
+!!!!!     hxh, hyh, hzh, ioffset, dir, &
+!!!!!     ibyyzz_r) !optional
+!!!!!use module_base
+!!!!!implicit none
+!!!!!integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
+!!!!!integer,dimension(3),intent(in):: ioffset
+!!!!!real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+!!!!!integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+!!!!!real(8),intent(in):: hxh, hyh, hzh
+!!!!!character(len=1),intent(in):: dir
+!!!!!!local variables
+!!!!!integer :: i1,i2,i3,i1s,i1e,ispinor, order
+!!!!!real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+!!!!!real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
+!!!!!real(gp) :: epot_p, epot
+!!!!!
+!!!!!
+!!!!!  !the Tail treatment is allowed only in the Free BC case
+!!!!!  if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
+!!!!!
+!!!!!
+!!!!!
+!!!!!!!!$omp parallel default(private)&
+!!!!!!!!$omp shared(psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
+!!!!!  !case without bounds
+!!!!!  i1s=-14*nl1
+!!!!!  i1e=2*n1+1+15*nl1
+!!!!!  !epot_p=0._gp
+!!!!!!!!$omp do
+!!!!!  do i3=-14*nl3,2*n3+1+15*nl3
+!!!!!     if (i3 >= -14+2*nbuf .and. i3 <= 2*n3+16-2*nbuf) then !check for the nbuf case
+!!!!!        do i2=-14*nl2,2*n2+1+15*nl2
+!!!!!           if (i2 >= -14+2*nbuf .and. i2 <= 2*n2+16-2*nbuf) then !check for the nbuf case
+!!!!!              !this if statement is inserted here for avoiding code duplication
+!!!!!              !it is to be seen whether the code results to be too much unoptimised
+!!!!!              if (present(ibyyzz_r)) then
+!!!!!                 !in this case we are surely in Free BC
+!!!!!                 !the min is to avoid to calculate for no bounds
+!!!!!                 do i1=-14+2*nbuf,min(ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3))-14-1
+!!!!!                    psir(i1,i2,i3,:)=0.0_wp
+!!!!!                 enddo
+!!!!!                 i1s=max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf)
+!!!!!                 i1e=min(ibyyzz_r(2,i2,i3)-14,2*n1+16-2*nbuf)
+!!!!!              end if
+!!!!!              !write(*,'(a,5i8)') 'iproc, i1, i2, i1s, i1e', iproc, i1, i2, i1s, i1e
+!!!!!
+!!!!!              !here we put the branchments wrt to the spin
+!!!!!              if (nspinor == 4) then
+!!!!!                 stop 'this part is not yet implemented'
+!!!!!              else
+!!!!!                 do ispinor=1,nspinor
+!!!!!                    do i1=i1s,i1e
+!!!!!                       if(dir=='x') then
+!!!!!                           tt=dble(i1+ioffset(1))*hxh
+!!!!!                       else if(dir=='y') then
+!!!!!                           tt=dble(i2+ioffset(2))*hyh
+!!!!!                       else if(dir=='z') then
+!!!!!                           tt=dble(i3+ioffset(3))*hzh
+!!!!!                       else
+!!!!!                           stop 'wrong direction!'
+!!!!!                       end if
+!!!!!                       tt=tt*psir(i1,i2,i3,ispinor)
+!!!!!                       if(dir=='x') write(100,'(4i9,es11.2,es16.5)') ioffset(1), i1, i2, i3, tt, psir(i1,i2,i3,ispinor)
+!!!!!                       psir(i1,i2,i3,ispinor)=tt
+!!!!!                    end do
+!!!!!                 end do
+!!!!!              end if
+!!!!!
+!!!!!              if (present(ibyyzz_r)) then
+!!!!!                 !the max is to avoid the calculation for no bounds
+!!!!!                 do i1=max(ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3))-14+1,2*n1+16-2*nbuf
+!!!!!                    psir(i1,i2,i3,:)=0.0_wp
+!!!!!                 enddo
+!!!!!              end if
+!!!!!
+!!!!!           else
+!!!!!              do i1=-14,2*n1+16
+!!!!!                 psir(i1,i2,i3,:)=0.0_wp
+!!!!!              enddo
+!!!!!           endif
+!!!!!        enddo
+!!!!!     else
+!!!!!        do i2=-14,2*n2+16
+!!!!!           do i1=-14,2*n1+16
+!!!!!              psir(i1,i2,i3,:)=0.0_wp
+!!!!!           enddo
+!!!!!        enddo
+!!!!!     endif
+!!!!!  enddo
+!!!!!!!!$omp end do
+!!!!!
+!!!!!!!!$omp end parallel
+!!!!!
+!!!!!END SUBROUTINE position_operator
 
 
-  !the Tail treatment is allowed only in the Free BC case
-  if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
 
 
+subroutine position_operators(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,&
+     psirx, psiry, psirz, &
+     confdata,ibyyzz_r) !optional
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor
+  integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
+  real(wp), dimension(n1i,n2i,n3i,nspinor), intent(in) :: psir !< real-space wfn in lr
+  real(wp), dimension(n1i,n2i,n3i,nspinor), intent(out) :: psirx, psiry, psirz !< x,y,z operator applied to real-space wfn in lr
+  type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
+  !local variables
+  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
+  real(wp):: ttx, tty, ttz, potx, poty, potz
 
-!!!$omp parallel default(private)&
-!!!$omp shared(psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
+
+  !loop on wavefunction
+  !calculate the limits in all the directions
+  !regions in which both the potential and wavefunctions are defined
+  i3s=max(1,ishift(3)+1)
+  i3e=min(n3i,n3ip+ishift(3))
+  i2s=max(1,ishift(2)+1)
+  i2e=min(n2i,n2ip+ishift(2))
+  i1s=max(1,ishift(1)+1)
+  i1e=min(n1i,n1ip+ishift(1))
+
+
+  !$omp parallel default(none)&
+  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
+  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
+  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
+
+!!$  !$omp parallel default(private)&
+!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+!!$  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)
   !case without bounds
-  i1s=-14*nl1
-  i1e=2*n1+1+15*nl1
-  !epot_p=0._gp
-!!!$omp do
-  do i3=-14*nl3,2*n3+1+15*nl3
-     if (i3 >= -14+2*nbuf .and. i3 <= 2*n3+16-2*nbuf) then !check for the nbuf case
-        do i2=-14*nl2,2*n2+1+15*nl2
-           if (i2 >= -14+2*nbuf .and. i2 <= 2*n2+16-2*nbuf) then !check for the nbuf case
-              !this if statement is inserted here for avoiding code duplication
-              !it is to be seen whether the code results to be too much unoptimised
-              if (present(ibyyzz_r)) then
-                 !in this case we are surely in Free BC
-                 !the min is to avoid to calculate for no bounds
-                 do i1=-14+2*nbuf,min(ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3))-14-1
-                    psir(i1,i2,i3,:)=0.0_wp
-                 enddo
-                 i1s=max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf)
-                 i1e=min(ibyyzz_r(2,i2,i3)-14,2*n1+16-2*nbuf)
-              end if
-              !write(*,'(a,5i8)') 'iproc, i1, i2, i1s, i1e', iproc, i1, i2, i1s, i1e
 
-              !here we put the branchments wrt to the spin
-              if (nspinor == 4) then
-                 stop 'this part is not yet implemented'
+
+  !put to zero the external part of psir if the potential is more little than the wavefunction
+  !first part of the array
+  do ispinor=1,nspinor
+     !$omp do 
+     do i3=1,i3s-1
+        do i2=1,n2i
+           do i1=1,n1i
+             psirx(i1,i2,i3,ispinor)=0.0_wp 
+             psiry(i1,i2,i3,ispinor)=0.0_wp 
+             psirz(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+        end do
+     end do
+     !$omp end do
+  end do
+
+  !central part of the array
+  do ispinor=1,nspinor
+     !$omp do 
+     do i3=i3s,i3e
+
+        !first part
+        do i2=1,i2s-1
+           do i1=1,n1i
+              psirx(i1,i2,i3,ispinor)=0.0_wp 
+              psiry(i1,i2,i3,ispinor)=0.0_wp 
+              psirz(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+        end do
+        !central part
+        do i2=i2s,i2e
+           do i1=1,i1s-1
+              psirx(i1,i2,i3,ispinor)=0.0_wp 
+              psiry(i1,i2,i3,ispinor)=0.0_wp 
+              psirz(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+           do i1=i1e+1,n1i
+              psirx(i1,i2,i3,ispinor)=0.0_wp 
+              psiry(i1,i2,i3,ispinor)=0.0_wp 
+              psirz(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+        end do
+        !last part
+        do i2=i2e+1,n2i
+           do i1=1,n1i
+              psirx(i1,i2,i3,ispinor)=0.0_wp 
+              psiry(i1,i2,i3,ispinor)=0.0_wp 
+              psirz(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+        end do
+
+     end do
+     !$omp end do
+  end do
+
+
+  !last part of the array
+  do ispinor=1,nspinor
+     !$omp do 
+     do i3=i3e+1,n3i
+        do i2=1,n2i
+           do i1=1,n1i
+              psirx(i1,i2,i3,ispinor)=0.0_wp 
+              psiry(i1,i2,i3,ispinor)=0.0_wp 
+              psirz(i1,i2,i3,ispinor)=0.0_wp 
+           end do
+        end do
+     end do
+     !$omp end do
+  end do
+
+
+  !important part of the array
+  if (nspinor==4) then
+      stop 'not yet implemented for nspinor==4!'
+     !!!$omp do
+     !!do i3=i3s,i3e
+     !!   do i2=i2s,i2e
+     !!      !thanks to the optional argument the conditional is done at compile time
+     !!      if (present(ibyyzz_r)) then
+     !!         i1st=max(i1s,ibyyzz_r(1,i2-15,i3-15)+1) !in bounds coordinates
+     !!         i1et=min(i1e,ibyyzz_r(2,i2-15,i3-15)+1) !in bounds coordinates
+     !!      else
+     !!         i1st=i1s
+     !!         i1et=i1e
+     !!      end if
+     !!      !no need of setting up to zero values outside wavefunction bounds
+     !!      do i1=i1st,i1et
+     !!         !wavefunctions
+     !!         psir1=psir(i1,i2,i3,1)
+     !!         psir2=psir(i1,i2,i3,2)
+     !!         psir3=psir(i1,i2,i3,3)
+     !!         psir4=psir(i1,i2,i3,4)
+     !!         !potentials + confining term
+     !!         pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
+     !!         pot2=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),2)+cp(i1,i2,i3)
+     !!         pot3=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),3)+cp(i1,i2,i3)
+     !!         pot4=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),4)+cp(i1,i2,i3)
+
+     !!         !diagonal terms
+     !!         tt11=pot1*psir1 !p1
+     !!         tt22=pot1*psir2 !p2
+     !!         tt33=pot4*psir3 !p3
+     !!         tt44=pot4*psir4 !p4
+     !!         !Rab*Rb
+     !!         tt13=pot2*psir3 !p1
+     !!         !Iab*Ib
+     !!         tt14=pot3*psir4 !p1
+     !!         !Rab*Ib
+     !!         tt23=pot2*psir4 !p2
+     !!         !Iab*Rb
+     !!         tt24=pot3*psir3 !p2
+     !!         !Rab*Ra
+     !!         tt31=pot2*psir1 !p3
+     !!         !Iab*Ia
+     !!         tt32=pot3*psir2 !p3
+     !!         !Rab*Ia
+     !!         tt41=pot2*psir2 !p4
+     !!         !Iab*Ra
+     !!         tt42=pot3*psir1 !p4
+
+     !!         !value of the potential energy
+     !!         epot_p=epot_p+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
+     !!              2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+2.0_gp*tt32*psir3
+
+     !!         !wavefunction update
+     !!         !p1=h1p1+h2p3-h3p4
+     !!         !p2=h1p2+h2p4+h3p3
+     !!         !p3=h2p1+h3p2+h4p3
+     !!         !p4=h2p2-h3p1+h4p4
+     !!         psir(i1,i2,i3,1)=tt11+tt13-tt14
+     !!         psir(i1,i2,i3,2)=tt22+tt23+tt24
+     !!         psir(i1,i2,i3,3)=tt33+tt31+tt32
+     !!         psir(i1,i2,i3,4)=tt44+tt41-tt42
+     !!      end do
+     !!   end do
+     !!end do
+     !!!$omp end do
+
+  else !case with nspinor /=4
+     do ispinor=1,nspinor
+        !$omp do
+        do i3=i3s,i3e
+           do i2=i2s,i2e
+              !thanks to the optional argument the conditional is done at compile time
+              if (present(ibyyzz_r)) then
+                 i1st=max(i1s,ibyyzz_r(1,i2-15,i3-15)+1) !in bounds coordinates
+                 i1et=min(i1e,ibyyzz_r(2,i2-15,i3-15)+1) !in bounds coordinates
               else
-                 do ispinor=1,nspinor
-                    do i1=i1s,i1e
-                       if(dir=='x') then
-                           tt=dble(i1+ioffset(1))*hxh
-                       else if(dir=='y') then
-                           tt=dble(i2+ioffset(2))*hyh
-                       else if(dir=='z') then
-                           tt=dble(i3+ioffset(3))*hzh
-                       else
-                           stop 'wrong direction!'
-                       end if
-                       tt=tt*psir(i1,i2,i3,ispinor)
-                       psir(i1,i2,i3,ispinor)=tt
-                    end do
-                 end do
+                 i1st=i1s
+                 i1et=i1e
               end if
+              !no need of setting up to zero values outside wavefunction bounds
+              do i1=i1st,i1et
+                 psir1=psir(i1,i2,i3,ispinor)
+                 !the local potential is always real (npot=1) + confining term
+                 !!pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
+                 potx=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)
+                 poty=confdata%hh(2)*real(i2+confdata%ioffset(2),wp)
+                 potz=confdata%hh(3)*real(i3+confdata%ioffset(3),wp)
 
-              if (present(ibyyzz_r)) then
-                 !the max is to avoid the calculation for no bounds
-                 do i1=max(ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3))-14+1,2*n1+16-2*nbuf
-                    psir(i1,i2,i3,:)=0.0_wp
-                 enddo
-              end if
+                 ttx=potx*psir1
+                 tty=poty*psir1
+                 ttz=potz*psir1
 
-           else
-              do i1=-14,2*n1+16
-                 psir(i1,i2,i3,:)=0.0_wp
-              enddo
-           endif
-        enddo
-     else
-        do i2=-14,2*n2+16
-           do i1=-14,2*n1+16
-              psir(i1,i2,i3,:)=0.0_wp
-           enddo
-        enddo
-     endif
-  enddo
-!!!$omp end do
+                 psirx(i1,i2,i3,ispinor)=ttx
+                 psiry(i1,i2,i3,ispinor)=tty
+                 psirz(i1,i2,i3,ispinor)=ttz
+              end do
+           end do
+        end do
+        !$omp end do
+     end do
+  end if
+  
+  
+  !$omp end parallel
 
-!!!$omp end parallel
 
-END SUBROUTINE position_operator
+END SUBROUTINE position_operators
+
+
+
+
 
 
 
