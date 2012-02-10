@@ -2750,11 +2750,6 @@ do iorb=1,orbs%norb
             call determineExpansionSegments(ldim, op%indexExtract(indovrlp), op%extseg(lorb,korb)%nseg, &
                  op%extseg(lorb,korb)%segborders)
 
-do i=1,op%extseg(lorb,korb)%nseg
-  write(300,'(a,5i9)') 'lorb, korb, i, segborders(1,i), segborders(2,i)', &
-      lorb, korb, i, op%extseg(lorb,korb)%segborders(1,i), op%extseg(lorb,korb)%segborders(2,i)
-end do
-
             op%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
             indovrlp=indovrlp+op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
         end if
@@ -3586,7 +3581,6 @@ real(8):: t1, t2
 ! First only post receives
 irecv=0
 do jproc=0,nproc-1
-write(*,'(a,3i6)') 'iproc, comon%noverlaps(jproc), size(comon%comarr,2)', iproc, comon%noverlaps(jproc), size(comon%comarr,2)
     do jorb=1,comon%noverlaps(jproc)
         mpisource=comon%comarr(1,jorb,jproc)
         istsource=comon%comarr(2,jorb,jproc)

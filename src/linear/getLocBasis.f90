@@ -148,13 +148,11 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
 
       ! Improve the trace minimizing orbitals.
-      write(*,'(a,2i9)') 'before calling getLocalizedBasis: size(lphi), lorbs%npsidim_orbs',size(lphi), lorbs%npsidim_orbs
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
            denspot,GPU,lphi,trace,&
           infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,newgradient,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
           hx,hy,hz,SIC,nItPrecond)
-      write(*,'(a,2i9)') 'after calling getLocalizedBasis: size(lphi), lorbs%npsidim_orbs',size(lphi), lorbs%npsidim_orbs
   end if
 
 
@@ -341,9 +339,6 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
   if(updatePhi .and. newgradient) then
 
-      write(*,*) 'before reallocation: iproc, size(lphi)', iproc, size(lphi)
-      write(*,'(a,3i9)') 'size(lphi), lorbs%npsidim_orbs, llborbs%npsidim_orbs',&
-                         size(lphi), lorbs%npsidim_orbs, llborbs%npsidim_orbs
       ! Reallocate lphi, since it is now allocated without the derivatives
       iall=-product(shape(lphi))*kind(lphi)
       deallocate(lphi, stat=istat)
@@ -351,7 +346,6 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
       allocate(lphi(llborbs%npsidim_orbs), stat=istat)
       call memocc(istat, lphi, 'lphi', subname)
-      write(*,*) ' after reallocation: iproc, size(lphi)', iproc, size(lphi)
       !!write(*,'(a,4i9)') 'lorbs%npsidim_orbs, lorbs%npsidim_comp, llborbs%npsidim_orbs, llborbs%npsidim_comp', &
       !!            lorbs%npsidim_orbs, lorbs%npsidim_comp, llborbs%npsidim_orbs, llborbs%npsidim_comp
 
