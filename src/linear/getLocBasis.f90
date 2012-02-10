@@ -978,7 +978,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   ! ration of large locreg and standard locreg
-  factor=300.d0
+  factor=2.d0
 
 
   ! Initialize largestructures if required
