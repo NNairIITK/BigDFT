@@ -238,7 +238,6 @@ subroutine inputs_parse_params(in, iproc, dump)
   else
      call xc_init(in%ixc, XC_ABINIT, in%nspin)
   end if
-  if (dump) call xc_dump()
 end subroutine inputs_parse_params
 subroutine inputs_parse_add(in, atoms, iproc, dump)
   use module_types

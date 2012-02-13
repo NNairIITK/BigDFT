@@ -33,24 +33,14 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   integer :: nelec
   real(gp) :: peakmem
 
-  ! Initialise XC calculation
-  if (in%ixc < 0) then
-     call xc_init(in%ixc, XC_MIXED, in%nspin)
-  else
-     call xc_init(in%ixc, XC_ABINIT, in%nspin)
-  end if
+  ! Dump XC functionals.
   if (iproc == 0) call xc_dump()
-
-  call initialize_DFT_local_fields(denspot)
 
   if (iproc==0) then
      write( *,'(1x,a)')&
           &   '------------------------------------------------------------------ System Properties'
   end if
-
   call read_atomic_variables(trim(in%file_igpop),iproc,in,atoms,radii_cf)
-
-  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
 
   call nullify_locreg_descriptors(Lzd%Glr)
 
@@ -68,6 +58,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
   if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
+  call initialize_DFT_local_fields(denspot)
   ! Create the Poisson solver kernels.
   call system_createKernels(iproc, nproc, (verbose > 1), atoms%geocode, &
        & Lzd%Glr%d, hgrids, in, denspot)
@@ -76,9 +67,12 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call createWavefunctionsDescriptors(iproc,hgrids(1),hgrids(2),hgrids(3),atoms,&
        rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr)
 
+  ! Create orbs data structure.
+  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
+  ! Done orbs
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&

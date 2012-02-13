@@ -153,7 +153,6 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
     ! Shake atoms, if required.
   call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
-
   ! Update atoms with symmetry information
   call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%elecfield)
 
@@ -1075,7 +1074,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
 
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
-          comment='Equivalent legth of K-space resolution (Bohr)')
+          comment='Equivalent length of K-space resolution (Bohr)')
      call kpoints_get_auto_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
