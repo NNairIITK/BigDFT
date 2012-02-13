@@ -81,6 +81,7 @@ module m_ab6_symmetry
   public :: symmetry_set_field
   public :: symmetry_set_jellium
   public :: symmetry_set_periodicity
+  public :: symmetry_set_n_sym
 
   public :: symmetry_get_from_id
   public :: symmetry_get_n_atoms
@@ -197,7 +198,7 @@ contains
     call get_item(token, id)
     if (associated(token)) then
        sym => token%data
-       if (sym%nSym < 0) then
+       if (sym%nSym <= 0) then
           ! We do the computation of the matrix part.
           call compute_matrices(sym, errno)
        end if
@@ -217,7 +218,7 @@ contains
     nullify(sym%spinAt)
     nullify(sym%typeAt)
     sym%tolsym   = tol8
-    sym%nSym     = -1
+    sym%nSym     = 0
     nullify(sym%sym)
     nullify(sym%symAfm)
     nullify(sym%transNon)
@@ -310,7 +311,7 @@ contains
 
     ! We unset all the computed symmetries
     token%data%nBravSym = -1
-    token%data%nSym     = -1
+    token%data%nSym     = 0
   end subroutine symmetry_set_tolerance
 
   subroutine symmetry_set_lattice(id, rprimd, errno)
@@ -346,7 +347,7 @@ contains
 
     ! We unset all the computed symmetries
     token%data%nBravSym = -1
-    token%data%nSym     = -1
+    token%data%nSym     = 0
   end subroutine symmetry_set_lattice
 
   subroutine symmetry_set_structure(id, nAtoms, typeAt, xRed, errno)
@@ -387,7 +388,7 @@ contains
     token%data%xRed   = xRed
 
     ! We unset only the symmetries
-    token%data%nSym     = -1
+    token%data%nSym     = 0
     if (associated(token%data%indexingAtoms)) deallocate(token%data%indexingAtoms)
   end subroutine symmetry_set_structure
 
@@ -429,7 +430,7 @@ contains
     token%data%spinAt = spinAt
 
     ! We unset only the symmetries
-    token%data%nSym     = -1
+    token%data%nSym     = 0
   end subroutine symmetry_set_spin
 
   subroutine symmetry_set_collinear_spin(id, nAtoms, spinAt, errno)
@@ -470,7 +471,7 @@ contains
     token%data%spinAt = real(reshape(spinAt, (/ 1, nAtoms /)), dp)
 
     ! We unset only the symmetries
-    token%data%nSym     = -1
+    token%data%nSym     = 0
   end subroutine symmetry_set_collinear_spin
 
   subroutine symmetry_set_spin_orbit(id, withSpinOrbit, errno)
@@ -498,7 +499,7 @@ contains
     token%data%withSpinOrbit = withSpinOrbit
 
     ! We unset only the symmetries
-    token%data%nSym     = -1
+    token%data%nSym     = 0
   end subroutine symmetry_set_spin_orbit
 
   subroutine symmetry_set_field(id, field, errno)
@@ -528,7 +529,7 @@ contains
 
     ! We unset all the computed symmetries
     token%data%nBravSym = -1
-    token%data%nSym     = -1
+    token%data%nSym     = 0
   end subroutine symmetry_set_field
 
   subroutine symmetry_set_jellium(id, jellium, errno)
@@ -556,7 +557,7 @@ contains
     token%data%withJellium = jellium
 
     ! We unset only the symmetries
-    token%data%nSym     = -1
+    token%data%nSym     = 0
   end subroutine symmetry_set_jellium
 
   subroutine symmetry_set_periodicity(id, periodic, errno)
@@ -733,28 +734,36 @@ contains
        use_inversion = 1
     end if
 
-    if (AB_DBG) write(0,*) "AB symmetry: call ABINIT symfind."
-    call symfind(berryopt, sym%field, sym%gprimd, jellslab, AB6_MAX_SYMMETRIES, &
-         & sym%nAtoms, noncol, sym%nBravSym, sym%nSym, sym%bravSym, spinAt_, &
-         & symAfm_, sym_, transNon_, sym%tolsym, sym%typeAt, &
-         & use_inversion, sym%xRed)
-    if (AB_DBG) write(0,*) "AB symmetry: call ABINIT OK."
-    if (AB_DBG) write(0, "(A,I3)") "  nSym:", sym%nSym
-    if (associated(sym%sym)) deallocate(sym%sym)
-    if (associated(sym%symAfm)) deallocate(sym%symAfm)
-    if (associated(sym%transNon)) deallocate(sym%transNon)
-    allocate(sym%sym(3, 3, sym%nSym))
-    sym%sym(:,:,:) = sym_(:,:, 1:sym%nSym)
-    allocate(sym%symAfm(sym%nSym))
-    sym%symAfm(:) = symAfm_(1:sym%nSym)
-    allocate(sym%transNon(3, sym%nSym))
-    sym%transNon(:,:) = transNon_(:, 1:sym%nSym)
+    if (sym%nsym == 0) then
+       if (AB_DBG) write(0,*) "AB symmetry: call ABINIT symfind."
+       call symfind(berryopt, sym%field, sym%gprimd, jellslab, AB6_MAX_SYMMETRIES, &
+            & sym%nAtoms, noncol, sym%nBravSym, sym%nSym, sym%bravSym, spinAt_, &
+            & symAfm_, sym_, transNon_, sym%tolsym, sym%typeAt, &
+            & use_inversion, sym%xRed)
+       if (AB_DBG) write(0,*) "AB symmetry: call ABINIT OK."
+       if (AB_DBG) write(0, "(A,I3)") "  nSym:", sym%nSym
+       if (associated(sym%sym)) deallocate(sym%sym)
+       if (associated(sym%symAfm)) deallocate(sym%symAfm)
+       if (associated(sym%transNon)) deallocate(sym%transNon)
+       allocate(sym%sym(3, 3, sym%nSym))
+       sym%sym(:,:,:) = sym_(:,:, 1:sym%nSym)
+       allocate(sym%symAfm(sym%nSym))
+       sym%symAfm(:) = symAfm_(1:sym%nSym)
+       allocate(sym%transNon(3, sym%nSym))
+       sym%transNon(:,:) = transNon_(:, 1:sym%nSym)
+    else if (sym%nsym < 0) then
+       sym%nsym = -sym%nsym
+       sym_(:,:, 1:sym%nSym) = sym%sym(:,:,:)
+       transNon_(:, 1:sym%nSym) = sym%transNon(:,:)
+       symAfm_(1:sym%nSym) = sym%symAfm(:)
+    end if
 
     if (sym%withSpin == 1) then
        deallocate(spinAt_)
     end if
-
+    
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT symanal."
+    write(*,*) 
     call symanal(sym%bravais, 0, sym%genAfm, AB6_MAX_SYMMETRIES, sym%nSym, &
          & sym%pointGroupMagn, sym%rprimd, sym%spaceGroup, symAfm_, &
          & sym_, transNon_, sym%tolsym)
@@ -792,13 +801,56 @@ contains
        return
     end if
 
-    if (token%data%nSym < 0) then
+    if (token%data%nSym <= 0) then
        ! We do the computation of the matrix part.
        call compute_matrices(token%data, errno)
     end if
 
     nSym = token%data%nSym
   end subroutine symmetry_get_n_sym
+
+  subroutine symmetry_set_n_sym(id, nSym, sym, transNon, symAfm, errno)
+    !scalars
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
+    integer, intent(in)  :: id
+    integer, intent(in)  :: nSym
+    integer, intent(in)  :: sym(3, 3, nSym)
+    real(dp), intent(in) :: transNon(3, nSym)
+    integer, intent(in)  :: symAfm(nSym)
+    integer, intent(out) :: errno
+
+    type(symmetry_list), pointer :: token
+
+    if (AB_DBG) write(0,*) "AB symmetry: call get nSym."
+
+    errno = AB6_NO_ERROR
+    call get_item(token, id)
+    if (.not. associated(token)) then
+       errno = AB6_ERROR_OBJ
+       return
+    end if
+
+    if (nSym <= 0) then
+       errno = AB6_ERROR_ARG
+       return
+    else
+       allocate(token%data%sym(3, 3, nSym))
+       token%data%sym(:,:,:) = sym(:,:,:)
+       allocate(token%data%symAfm(nSym))
+       token%data%symAfm(:) = symAfm(:)
+       allocate(token%data%transNon(3, nSym))
+       token%data%transNon(:,:) = transNon(:,:)
+
+       token%data%nsym = -nSym
+    end if
+
+    ! We do the computation of the matrix part.
+    call compute_matrices(token%data, errno)
+  end subroutine symmetry_set_n_sym
 
   subroutine symmetry_get_matrices(id, nSym, sym, transNon, symAfm, errno)
 
@@ -825,7 +877,7 @@ contains
        return
     end if
 
-    if (token%data%nSym < 0) then
+    if (token%data%nSym <= 0) then
        ! We do the computation of the matrix part.
        call compute_matrices(token%data, errno)
     end if
@@ -861,7 +913,7 @@ contains
        return
     end if
 
-    if (token%data%nSym < 0) then
+    if (token%data%nSym <= 0) then
        ! We do the computation of the matrix part.
        call compute_matrices(token%data, errno)
     end if

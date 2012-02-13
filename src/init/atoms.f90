@@ -217,58 +217,47 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
 
   ! Calculate the symmetries, if needed
   if (atoms%geocode /= 'F') then
-     if (.not. disableSym) then
-        if (atoms%sym%symObj < 0) then
-           call symmetry_new(atoms%sym%symObj)
-        end if
-        ! New values
-        rprimd(:,:) = 0
-        rprimd(1,1) = atoms%alat1
-        rprimd(2,2) = atoms%alat2
-        if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
-        rprimd(3,3) = atoms%alat3
-        call symmetry_set_lattice(atoms%sym%symObj, rprimd, ierr)
-        allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
-        call memocc(i_stat,xRed,'xRed',subname)
-        xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
-        xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
-        xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
-        call symmetry_set_structure(atoms%sym%symObj, atoms%nat, atoms%iatype, xRed, ierr)
-        i_all=-product(shape(xRed))*kind(xRed)
-        deallocate(xRed,stat=i_stat)
-        call memocc(i_stat,i_all,'xRed',subname)
-        if (atoms%geocode == 'S') then
-           !!for the moment symmetries are not allowed in surfaces BC
-           write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
-           stop
-           call symmetry_set_periodicity(atoms%sym%symObj, &
-                & (/ .true., .false., .true. /), ierr)
-        else if (atoms%geocode == 'F') then
-           call symmetry_set_periodicity(atoms%sym%symObj, &
-                & (/ .false., .false., .false. /), ierr)
-        end if
-        !if (all(in%elecfield(:) /= 0)) then
-        !     ! I'm not sure what this subroutine does!
-        !   call symmetry_set_field(atoms%sym%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
-        !elseif (in%elecfield(2) /= 0) then
-        !   call symmetry_set_field(atoms%sym%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
-        if (elecfield(2) /= 0) then
-           call symmetry_set_field(atoms%sym%symObj, (/ 0._gp, elecfield(2), 0._gp /), ierr)
-        end if
-     else
-        call deallocate_symmetry(atoms%sym, subname)
+     if (atoms%sym%symObj < 0) then
         call symmetry_new(atoms%sym%symObj)
-        rprimd(1,1) = 0.5d0
-        rprimd(2,1) = 1d0
-        rprimd(3,1) = 1d0
-        rprimd(1,2) = 2d0
-        rprimd(2,2) = 0d0
-        rprimd(3,2) = 1d0
-        rprimd(1,3) = 3d0
-        rprimd(2,3) = 0d0
-        rprimd(3,3) = 1d0
-        call symmetry_set_lattice(atoms%sym%symObj, rprimd, ierr)
-        call symmetry_set_structure(atoms%sym%symObj, 3, (/ 1,2,3 /), rprimd / 4.d0, ierr)
+     end if
+     ! New values
+     rprimd(:,:) = 0
+     rprimd(1,1) = atoms%alat1
+     rprimd(2,2) = atoms%alat2
+     if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
+     rprimd(3,3) = atoms%alat3
+     call symmetry_set_lattice(atoms%sym%symObj, rprimd, ierr)
+     allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,xRed,'xRed',subname)
+     xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
+     xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
+     xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
+     call symmetry_set_structure(atoms%sym%symObj, atoms%nat, atoms%iatype, xRed, ierr)
+     i_all=-product(shape(xRed))*kind(xRed)
+     deallocate(xRed,stat=i_stat)
+     call memocc(i_stat,i_all,'xRed',subname)
+     if (atoms%geocode == 'S') then
+        !!for the moment symmetries are not allowed in surfaces BC
+        write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
+        stop
+        call symmetry_set_periodicity(atoms%sym%symObj, &
+             & (/ .true., .false., .true. /), ierr)
+     else if (atoms%geocode == 'F') then
+        call symmetry_set_periodicity(atoms%sym%symObj, &
+             & (/ .false., .false., .false. /), ierr)
+     end if
+     !if (all(in%elecfield(:) /= 0)) then
+     !     ! I'm not sure what this subroutine does!
+     !   call symmetry_set_field(atoms%sym%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
+     !elseif (in%elecfield(2) /= 0) then
+     !   call symmetry_set_field(atoms%sym%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
+     if (elecfield(2) /= 0) then
+        call symmetry_set_field(atoms%sym%symObj, (/ 0._gp, elecfield(2), 0._gp /), ierr)
+     end if
+     if (disableSym) then
+        call symmetry_set_n_sym(atoms%sym%symObj, 1, &
+             & reshape((/ 1, 0, 0, 0, 1, 0, 0, 0, 1 /), (/ 3 ,3, 1 /)), &
+             & reshape((/ 0.d0, 0.d0, 0.d0 /), (/ 3, 1/)), (/ 1 /), ierr)
      end if
   else
      call deallocate_symmetry(atoms%sym, subname)
