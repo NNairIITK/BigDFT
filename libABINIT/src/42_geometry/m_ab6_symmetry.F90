@@ -763,7 +763,6 @@ contains
     end if
     
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT symanal."
-    write(*,*) 
     call symanal(sym%bravais, 0, sym%genAfm, AB6_MAX_SYMMETRIES, sym%nSym, &
          & sym%pointGroupMagn, sym%rprimd, sym%spaceGroup, symAfm_, &
          & sym_, transNon_, sym%tolsym)
