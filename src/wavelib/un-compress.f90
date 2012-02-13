@@ -1826,6 +1826,66 @@ subroutine uncompress_standard_scal(grid,wfd,scal,psi,psig_c,psig_f)
 
 END SUBROUTINE uncompress_standard_scal
 
+subroutine compress_standard_scal(grid,wfd,scal,psig_c,psig_f,psi)
+  use module_base
+  use module_types
+  implicit none
+  type(grid_dimensions), intent(in) :: grid
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  real(wp), dimension(0:3), intent(in) :: scal
+  real(wp), dimension(0:grid%n1,0:grid%n2,0:grid%n3), intent(in) :: psig_c
+  real(wp), dimension(7,grid%nfl1:grid%nfu1,grid%nfl2:grid%nfu2,grid%nfl3:grid%nfu3), intent(in) :: psig_f
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(inout) :: psi
+  !local variables
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+
+  !$omp parallel default(shared) &
+  !$omp private(iseg,jj,j0,j1,ii,i1,i2,i3,i0,i)
+
+  ! coarse part
+  !$omp do
+  do iseg=1,wfd%nseg_c
+     jj=wfd%keyv(iseg)
+     j0=wfd%keygloc(1,iseg)
+     j1=wfd%keygloc(2,iseg)
+     ii=j0-1
+     i3=ii/((grid%n1+1)*(grid%n2+1))
+     ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+     i2=ii/(grid%n1+1)
+     i0=ii-i2*(grid%n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi(i-i0+jj)=psig_c(i,i2,i3)*scal(0)
+     enddo
+  enddo
+  !$omp enddo
+  ! fine part
+  !$omp do
+  do iseg=wfd%nseg_c+1,wfd%nseg_c+wfd%nseg_f
+     jj=wfd%keyv(iseg)
+     j0=wfd%keygloc(1,iseg)
+     j1=wfd%keygloc(2,iseg)
+     ii=j0-1
+     i3=ii/((grid%n1+1)*(grid%n2+1))
+     ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+     i2=ii/(grid%n1+1)
+     i0=ii-i2*(grid%n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi(1+7*(i-i0+jj-1)+wfd%nvctr_c)=psig_f(1,i,i2,i3)*scal(1)
+        psi(2+7*(i-i0+jj-1)+wfd%nvctr_c)=psig_f(2,i,i2,i3)*scal(1)
+        psi(3+7*(i-i0+jj-1)+wfd%nvctr_c)=psig_f(3,i,i2,i3)*scal(2)
+        psi(4+7*(i-i0+jj-1)+wfd%nvctr_c)=psig_f(4,i,i2,i3)*scal(1)
+        psi(5+7*(i-i0+jj-1)+wfd%nvctr_c)=psig_f(5,i,i2,i3)*scal(2)
+        psi(6+7*(i-i0+jj-1)+wfd%nvctr_c)=psig_f(6,i,i2,i3)*scal(2)
+        psi(7+7*(i-i0+jj-1)+wfd%nvctr_c)=psig_f(7,i,i2,i3)*scal(3)
+     enddo
+  enddo
+  !$omp enddo
+  !$omp end parallel
+
+end subroutine compress_standard_scal
+
 
 !> Compress the wavefunction psig and accumulate the result on the psi array
 !! The wavefunction psig is distributed in the standard form (coarse and fine arrays)

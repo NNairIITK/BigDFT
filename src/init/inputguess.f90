@@ -778,7 +778,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
          !positions for the nlcc arrays
          call nlcc_start_position(ity,at,ngv,ngc,islcc)
-
+         !print *,'debug',ity,ngv,ngc,islcc,at%nlccpar(:,:),'acc',shape(at%nlccpar),'end'
+         !eliminate the nlcc parameters from the IG, since XC is always LDA
+         ngv=0
+         ngc=0
          call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
             &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
             &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
@@ -1230,7 +1233,6 @@ subroutine AtomicOrbitals_forLinear(iproc,at,rxyz,mapping,norbe,orbse,norbsc,&
 
          !positions for the nlcc arrays
          call nlcc_start_position(ity,at,ngv,ngc,islcc)
-
          call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
             &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
             &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
