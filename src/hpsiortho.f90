@@ -2091,6 +2091,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    allocate(pwork(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,pwork,'pwork',subname)
 
+
    do iorb=1,orbs%norbp
       ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
       !valkpt=real(512*ikpt,wp)
