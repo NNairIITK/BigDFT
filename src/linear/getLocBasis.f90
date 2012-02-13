@@ -994,7 +994,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   ! ration of large locreg and standard locreg
-  factor=3.d0
+  factor=300.d0
 
   ! always use the same inwhichlocreg
   inwhichlocreg_reference = lorbs%inwhichlocreg
@@ -1190,6 +1190,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                 !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
                 !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
                 !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
+                write(*,'(a,3i5,2(4x,3es16.4))') '1: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter', &
+                    iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter
                 call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), &
                      lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
                 !!do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
@@ -1809,6 +1811,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
               !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
               !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
+               write(*,'(a,3i5,2(4x,3es16.4))') '2: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter', &
+                   iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter
               call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), &
                    lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
               ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
