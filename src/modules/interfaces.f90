@@ -5799,11 +5799,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        !!!  character(len=1),intent(in):: dir
        !!!end subroutine position_operator
 
-       subroutine apply_position_operators(iproc, nproc, orbs, lzd, hx, hy, hz, confdatarr, psi, xpsi, ypsi, zpsi)
+       subroutine apply_position_operators(iproc, nproc, orbs, lzd, hx, hy, hz, confdatarr, psi, order, xpsi, ypsi, zpsi)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc
+         integer,intent(in):: iproc, nproc, order
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          real(8),intent(in):: hx, hy, hz
@@ -5902,8 +5902,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(:),pointer,intent(inout):: lphilarge, lhphilarge, lhphilargeold, lphilargeold
        end subroutine destroy_new_locregs
 
-       subroutine position_operators(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,&
-            psirx, psiry, psirz, &
+       subroutine get_cutoff_weight(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,&
+            cutoff, weight_in, weight_out, &
             confdata,ibyyzz_r) !optional
          use module_base
          use module_types
@@ -5911,10 +5911,28 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor
          integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
          real(wp), dimension(n1i,n2i,n3i,nspinor), intent(in) :: psir !< real-space wfn in lr
+         real(8),intent(in):: cutoff
+         real(8),intent(out):: weight_in, weight_out
+         type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+         integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
+       end subroutine get_cutoff_weight
+
+
+       subroutine position_operators(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,order,&
+            psirx, psiry, psirz, &
+            confdata,ibyyzz_r) !optional
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor,order
+         integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
+         real(wp), dimension(n1i,n2i,n3i,nspinor), intent(in) :: psir !< real-space wfn in lr
          real(wp), dimension(n1i,n2i,n3i,nspinor), intent(out) :: psirx, psiry, psirz !< x,y,z operator applied to real-space wfn in lr
          type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
          integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
        end subroutine position_operators
+
+
 
    end interface
 

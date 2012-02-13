@@ -994,7 +994,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   ! ration of large locreg and standard locreg
-  factor=300.d0
+  factor=3.d0
 
   ! always use the same inwhichlocreg
   inwhichlocreg_reference = lorbs%inwhichlocreg
@@ -1094,9 +1094,15 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
                confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
             end do
+
+            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                 lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+
             call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                  comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
                  newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+                 !!write(*,*) "ATTENTION HERE!!!"
+                 !!locregCenter=locregCenterTemp
             do ilr=1,lzd%nlr
                 tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
                     +(locregCenter(2,ilr)-locregCenterTemp(2,ilr))**2 &
@@ -1190,8 +1196,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                 !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
                 !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
                 !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-                write(*,'(a,3i5,2(4x,3es16.4))') '1: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter', &
-                    iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter
+                write(*,'(a,3i5,2(4x,3es16.4))') '1: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:ilrlarge)', &
+                    iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)
                 call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), &
                      lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
                 !!do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
@@ -1200,6 +1206,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                 ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
                 ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
             end do
+            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                 lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+
             call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
             locrad_tmp=factor*locrad
@@ -1208,6 +1217,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
             locregCenterTemp=locregCenter
+
 
         end if
 
@@ -1710,9 +1720,15 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
               confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
            end do
+
+           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+
            call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                 comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
                 newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+                 !!write(*,*) "ATTENTION HERE!!!"
+                 !!locregCenter=locregCenterTemp
            do ilr=1,lzd%nlr
                tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
                    +(locregCenter(2,ilr)-locregCenterTemp(2,ilr))**2 &
@@ -1811,13 +1827,16 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
               !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
               !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-               write(*,'(a,3i5,2(4x,3es16.4))') '2: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter', &
-                   iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter
+               write(*,'(a,3i5,2(4x,3es16.4))') '2: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)', &
+                   iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)
               call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), &
                    lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
               ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
               ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
           end do
+
+           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
 
            call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -5978,14 +5997,14 @@ real(8),dimension(3,lzd%nlr),intent(out):: centers
 
 ! Local variables
 integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, lorb, jlr
-integer:: nlocregOnMPI, jlrold, jj, ii, ncnt
+integer:: nlocregOnMPI, jlrold, jj, ii, ncnt, order
 real(8):: trace, lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
-real(8):: tt1, tt2, tt3, tt4, tt5, tt
+real(8):: tt1, tt2, tt3, tt4, tt5, tt, var
 real(8):: t1, t2, t1_tot, t2_tot, omega
 real(8):: time_convol, time_commun, time_lincomb, time_linalg, time_matrixmodification, time_exponential, time_tot
 real(8):: time_matrixelements, rspread, locdiff
 complex(8):: ttc
-real(8),dimension(:,:),allocatable:: gmat, hamtrans, ttmat, Kmat, X, Y, Z, Xd, Yd, Zd
+real(8),dimension(:,:),allocatable:: gmat, hamtrans, ttmat, Kmat, X, Y, Z, Xd, Yd, Zd, X2, Y2, Z2
 real(8),dimension(:,:),allocatable:: commutX1, commutY1, commutZ1, commutX2, commutY2, commutZ2, commutX3, commutY3, commutZ3
 real(8),dimension(:,:),allocatable:: Xprime, Yprime, Zprime, Xprimesquare, Yprimesquare, Zprimesquare
 real(8),dimension(:,:),allocatable:: X0, H, gHmat, Y0, M, gMmat, Z0, N, gNmat, centers_start, centers_end
@@ -5996,7 +6015,7 @@ real(8),dimension(:,:,:),allocatable:: potmat, potmatsmall
 complex(8),dimension(:,:),allocatable:: gmatc, omatc
 complex(8),dimension(:,:,:),allocatable:: tempmatc
 complex(8),dimension(:),allocatable:: work, expD_cmplx
-real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi, recvbuf, lxphi, lyphi, lzphi, normarr
+real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi, lxphi, lyphi, lzphi, normarr
 real(8),dimension(:,:,:),allocatable:: tempmat3
 character(len=*),parameter:: subname='MLWFnew'
 type(p2pComms):: comon_local
@@ -6026,8 +6045,8 @@ allocate(lvphi(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
 call memocc(istat, lvphi, 'lvphi', subname)
 allocate(Kmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, Kmat, 'Kmat', subname)
-allocate(recvbuf(comon%nrecvbuf), stat=istat)
-call memocc(istat, recvbuf, 'recvbuf', subname)
+!!allocate(recvbuf(comon%nrecvbuf), stat=istat)
+!!call memocc(istat, recvbuf, 'recvbuf', subname)
 
 allocate(potmat(orbs%norb,orbs%norb,at%nat), stat=istat)
 call memocc(istat, potmat, 'potmat', subname)
@@ -6045,6 +6064,12 @@ allocate(Y(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, Y, 'Y', subname)
 allocate(Z(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, Z, 'Z', subname)
+allocate(X2(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, X2, 'X2', subname)
+allocate(Y2(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, Y2, 'Y2', subname)
+allocate(Z2(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, Z2, 'Z2', subname)
 allocate(Xd(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, Xd, 'Xd', subname)
 allocate(Yd(orbs%norb,orbs%norb), stat=istat)
@@ -6254,36 +6279,20 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       !!     confdatarr, hx, lphi, -1, lvphi)
 
       if(it==1) then
-          call apply_position_operators(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, lxphi, lyphi, lzphi)
-
-          !!!h=0.d0
-          !!!m=0.d0
-          !!!n=0.d0
-
-          !!t2=mpi_wtime()
-          !!time_convol=time_convol+t2-t1
-
-          !!t1=mpi_wtime()
-          !allocate(ttmat(lin%orbs%norb,lin%orbs%norb))
-          !call collectnew(iproc, nproc, comon, lin%mad,lin%op, lin%orbs, input, lin%lzd, comon%nsendbuf, &
-          !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ttmat, tt3, tt4, tt5)
-          !deallocate(ttmat)
-          !write(*,*) '2: iproc, associated(comon%recvbuf)', iproc, associated(comon%recvbuf)
-          !!t2=mpi_wtime()
-          !!time_commun=time_commun+t2-t1
-
-          !!t1=mpi_wtime()
-          !call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lvphi, lin%mad, Kmat)
-          !call deallocateRecvBufferOrtho(comon, subname)
-          !call deallocateSendBufferOrtho(comon, subname)
-          !!call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, Kmat)
-
+          order=1
+          call apply_position_operators(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, order, lxphi, lyphi, lzphi)
           ! Build the matrices X, Y, Z
           call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lxphi, mad, X)
           call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lyphi, mad, Y)
           call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lzphi, mad, Z)
-          !!write(400+iproc,*) X
-          !!write(410+iproc,*) X0
+
+          order=2
+          call apply_position_operators(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, order, lxphi, lyphi, lzphi)
+          ! Build the matrices X, Y, Z
+          call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lxphi, mad, X2)
+          call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lyphi, mad, Y2)
+          call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lzphi, mad, Z2)
+
 
           do iorb=1,orbs%norb
               ilr=orbs%inwhichlocreg(iorb)
@@ -6309,7 +6318,37 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
              Z(1,1), orbs%norb, 0.d0, tempmat3(1,1,2), orbs%norb)
         call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,2), orbs%norb, &
              tempmat3(1,1,1), orbs%norb, 0.d0, Z(1,1), orbs%norb)
+
+
+        call dgemm('t', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,1), orbs%norb, &
+             X2(1,1), orbs%norb, 0.d0, tempmat3(1,1,2), orbs%norb)
+        call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,2), orbs%norb, &
+             tempmat3(1,1,1), orbs%norb, 0.d0, X2(1,1), orbs%norb)
+
+        call dgemm('t', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,1), orbs%norb, &
+             Y2(1,1), orbs%norb, 0.d0, tempmat3(1,1,2), orbs%norb)
+        call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,2), orbs%norb, &
+             tempmat3(1,1,1), orbs%norb, 0.d0, Y2(1,1), orbs%norb)
+
+        call dgemm('t', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,1), orbs%norb, &
+             Z2(1,1), orbs%norb, 0.d0, tempmat3(1,1,2), orbs%norb)
+        call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,2), orbs%norb, &
+             tempmat3(1,1,1), orbs%norb, 0.d0, Z2(1,1), orbs%norb)
       end if
+
+      ! New calculation of the spread
+      !tt=0.d0
+      var=0.d0
+      do iorb=1,orbs%norb
+          if(iproc==0) write(*,'(a,i7,6es15.6)') 'iorb, diagonal part of X,Y,Z,X2,Y2,Z2', &
+              iorb, X(iorb,iorb), Y(iorb,iorb), Z(iorb,iorb), X2(iorb,iorb), Y2(iorb,iorb), Z2(iorb,iorb)
+          tt = X2(iorb,iorb)/normarr(iorb) + Y2(iorb,iorb)/normarr(iorb) + Z2(iorb,iorb)/normarr(iorb) &
+              -X(iorb,iorb)**2/normarr(iorb) - Y(iorb,iorb)**2/normarr(iorb) - Z(iorb,iorb)**2/normarr(iorb)
+          var=var+tt
+          !if(iproc==0) write(*,'(a,i8,es15.6)') 'iorb, variance', iorb, tt
+      end do
+      if(iproc==0) write(*,'(a,i6,es18.8)') 'it, total variance', it, var
+      !if(iproc==0) write(*,'(a,es18.8)') 'NEW SPREAD: ',tt
 
       ! Check the deviation from the center of the original localization region
       !do ilr=1,lzd%nlr
@@ -6890,9 +6929,9 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   iall=-product(shape(Kmat))*kind(Kmat)
   deallocate(Kmat, stat=istat)
   call memocc(istat, iall, 'Kmat', subname)
-  iall=-product(shape(recvbuf))*kind(recvbuf)
-  deallocate(recvbuf, stat=istat)
-  call memocc(istat, iall, 'recvbuf', subname)
+  !!iall=-product(shape(recvbuf))*kind(recvbuf)
+  !!deallocate(recvbuf, stat=istat)
+  !!call memocc(istat, iall, 'recvbuf', subname)
 
   iall=-product(shape(potmat))*kind(potmat)
   deallocate(potmat, stat=istat)
@@ -6923,6 +6962,15 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   iall=-product(shape(Z))*kind(Z)
   deallocate(Z, stat=istat)
   call memocc(istat, iall, 'Z', subname)
+  iall=-product(shape(X2))*kind(X2)
+  deallocate(X2, stat=istat)
+  call memocc(istat, iall, 'X2', subname)
+  iall=-product(shape(Y2))*kind(Y2)
+  deallocate(Y2, stat=istat)
+  call memocc(istat, iall, 'Y2', subname)
+  iall=-product(shape(Z2))*kind(Z2)
+  deallocate(Z2, stat=istat)
+  call memocc(istat, iall, 'Z2', subname)
   iall=-product(shape(Xd))*kind(Xd)
   deallocate(Xd, stat=istat)
   call memocc(istat, iall, 'Xd', subname)
@@ -7617,14 +7665,14 @@ end subroutine get_potential_matrices
 
 
 
-subroutine apply_position_operators(iproc, nproc, orbs, lzd, hx, hy, hz, confdatarr, psi, xpsi, ypsi, zpsi)
+subroutine apply_position_operators(iproc, nproc, orbs, lzd, hx, hy, hz, confdatarr, psi, order, xpsi, ypsi, zpsi)
 use module_base
 use module_types
 use module_interfaces, except_this_one => apply_position_operators
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, order
 type(orbitals_data),intent(in):: orbs
 type(local_zone_descriptors),intent(in):: lzd
 real(8),intent(in):: hx, hy, hz
@@ -7700,7 +7748,7 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
      call position_operators(lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
                              lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
                              ishift, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, orbs%nspinor, &
-                             psir, psirx, psiry, psirz, &
+                             psir, order, psirx, psiry, psirz, &
                              confdatarr(iorb), lzd%llr(ilr)%bounds%ibyyzz_r) !optional
 
      call isf_to_daub(lzd%llr(ilr), work_sr, psirx, xpsi(1+oidx))
@@ -7857,13 +7905,13 @@ end subroutine apply_position_operators
 
 
 
-subroutine position_operators(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,&
+subroutine position_operators(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,order,&
      psirx, psiry, psirz, &
      confdata,ibyyzz_r) !optional
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor
+  integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor,order
   integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
   real(wp), dimension(n1i,n2i,n3i,nspinor), intent(in) :: psir !< real-space wfn in lr
   real(wp), dimension(n1i,n2i,n3i,nspinor), intent(out) :: psirx, psiry, psirz !< x,y,z operator applied to real-space wfn in lr
@@ -8057,9 +8105,9 @@ subroutine position_operators(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,ps
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
                  !!pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
-                 potx=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)
-                 poty=confdata%hh(2)*real(i2+confdata%ioffset(2),wp)
-                 potz=confdata%hh(3)*real(i3+confdata%ioffset(3),wp)
+                 potx=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)**order
+                 poty=confdata%hh(2)*real(i2+confdata%ioffset(2),wp)**order
+                 potz=confdata%hh(3)*real(i3+confdata%ioffset(3),wp)**order
 
                  ttx=potx*psir1
                  tty=poty*psir1
@@ -8104,3 +8152,311 @@ res=AB-BA
 
 end subroutine commutator
 
+
+
+
+
+
+
+
+subroutine check_cutoff(iproc, nproc, orbs, lzd, hx, hy, hz, locrad, confdatarr, psi)
+use module_base
+use module_types
+use module_interfaces, except_this_one => apply_position_operators
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbs
+type(local_zone_descriptors),intent(in):: lzd
+real(8),intent(in):: hx, hy, hz, locrad
+type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psi
+
+! Local variables
+integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, ist_c, ist_f, ist, iiorb, iall, ierr
+real(8):: hxh, hyh, hzh, ddot, tt, t1, t2, time, weight_in, weight_out
+real(8),dimension(:,:),allocatable:: psir, psirx, psiry, psirz
+type(workarr_sumrho):: work_sr
+real(8),dimension(0:3),parameter:: scal=1.d0
+real(8),dimension(:,:,:),allocatable:: ypsitemp_c
+real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
+character(len=*),parameter:: subname='apply_orbitaldependent_potential'
+integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
+
+  ishift=(/0,0,0/)
+
+  oidx = 0
+  do iorb=1,orbs%norbp
+     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+
+  
+     !initialise the work arrays
+     call initialize_work_arrays_sumrho(lzd%llr(ilr), work_sr)
+
+     ! Wavefunction in real space
+     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,psir,'psir',subname)
+     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
+
+     call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
+     !apply the potential to the psir wavefunction and calculate potential energy
+     !icenter=confinementCenter(iorb)
+     !components of the potential
+     npot=orbs%nspinor
+     if (orbs%nspinor == 2) npot=1
+
+     call get_cutoff_weight(lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
+                             lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
+                             ishift, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, orbs%nspinor, &
+                             psir, locrad, weight_in, weight_out, &
+                             confdatarr(iorb), lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+
+     write(*,'(a,2i8,3es16.6)') 'iproc, iorb, weight_in, weight_out, ratio', &
+         iproc, iorb, weight_in, weight_out, weight_in/(weight_in+weight_out)
+
+     i_all=-product(shape(psir))*kind(psir)
+     deallocate(psir,stat=i_stat)
+     call memocc(i_stat,i_all,'psir',subname)
+
+     call deallocate_work_arrays_sumrho(work_sr)
+
+     oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+
+  enddo
+
+
+end subroutine check_cutoff
+
+
+
+subroutine get_cutoff_weight(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,&
+     cutoff, weight_in, weight_out, &
+     confdata,ibyyzz_r) !optional
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor
+  integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
+  real(wp), dimension(n1i,n2i,n3i,nspinor), intent(in) :: psir !< real-space wfn in lr
+  real(8),intent(in):: cutoff
+  real(8),intent(out):: weight_in, weight_out
+  type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
+  !local variables
+  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
+  real(wp):: ttx, tty, ttz, cutoff2
+
+  ! Square of the cutoff radius
+  cutoff2=cutoff**2
+
+  ! Initialize return values
+  weight_in=0.d0
+  weight_out=0.d0
+
+
+  !loop on wavefunction
+  !calculate the limits in all the directions
+  !regions in which both the potential and wavefunctions are defined
+  i3s=max(1,ishift(3)+1)
+  i3e=min(n3i,n3ip+ishift(3))
+  i2s=max(1,ishift(2)+1)
+  i2e=min(n2i,n2ip+ishift(2))
+  i1s=max(1,ishift(1)+1)
+  i1e=min(n1i,n1ip+ishift(1))
+
+
+  !$omp parallel default(none)&
+  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
+  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
+  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
+
+!!$  !$omp parallel default(private)&
+!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+!!$  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)
+  !case without bounds
+
+
+  !!!put to zero the external part of psir if the potential is more little than the wavefunction
+  !!!first part of the array
+  !!do ispinor=1,nspinor
+  !!   !$omp do 
+  !!   do i3=1,i3s-1
+  !!      do i2=1,n2i
+  !!         do i1=1,n1i
+  !!           psirx(i1,i2,i3,ispinor)=0.0_wp 
+  !!           psiry(i1,i2,i3,ispinor)=0.0_wp 
+  !!           psirz(i1,i2,i3,ispinor)=0.0_wp 
+  !!         end do
+  !!      end do
+  !!   end do
+  !!   !$omp end do
+  !!end do
+
+  !!!central part of the array
+  !!do ispinor=1,nspinor
+  !!   !$omp do 
+  !!   do i3=i3s,i3e
+
+  !!      !first part
+  !!      do i2=1,i2s-1
+  !!         do i1=1,n1i
+  !!            psirx(i1,i2,i3,ispinor)=0.0_wp 
+  !!            psiry(i1,i2,i3,ispinor)=0.0_wp 
+  !!            psirz(i1,i2,i3,ispinor)=0.0_wp 
+  !!         end do
+  !!      end do
+  !!      !central part
+  !!      do i2=i2s,i2e
+  !!         do i1=1,i1s-1
+  !!            psirx(i1,i2,i3,ispinor)=0.0_wp 
+  !!            psiry(i1,i2,i3,ispinor)=0.0_wp 
+  !!            psirz(i1,i2,i3,ispinor)=0.0_wp 
+  !!         end do
+  !!         do i1=i1e+1,n1i
+  !!            psirx(i1,i2,i3,ispinor)=0.0_wp 
+  !!            psiry(i1,i2,i3,ispinor)=0.0_wp 
+  !!            psirz(i1,i2,i3,ispinor)=0.0_wp 
+  !!         end do
+  !!      end do
+  !!      !last part
+  !!      do i2=i2e+1,n2i
+  !!         do i1=1,n1i
+  !!            psirx(i1,i2,i3,ispinor)=0.0_wp 
+  !!            psiry(i1,i2,i3,ispinor)=0.0_wp 
+  !!            psirz(i1,i2,i3,ispinor)=0.0_wp 
+  !!         end do
+  !!      end do
+
+  !!   end do
+  !!   !$omp end do
+  !!end do
+
+
+  !!!last part of the array
+  !!do ispinor=1,nspinor
+  !!   !$omp do 
+  !!   do i3=i3e+1,n3i
+  !!      do i2=1,n2i
+  !!         do i1=1,n1i
+  !!            psirx(i1,i2,i3,ispinor)=0.0_wp 
+  !!            psiry(i1,i2,i3,ispinor)=0.0_wp 
+  !!            psirz(i1,i2,i3,ispinor)=0.0_wp 
+  !!         end do
+  !!      end do
+  !!   end do
+  !!   !$omp end do
+  !!end do
+
+
+  !important part of the array
+  if (nspinor==4) then
+      stop 'not yet implemented for nspinor==4!'
+     !!!$omp do
+     !!do i3=i3s,i3e
+     !!   do i2=i2s,i2e
+     !!      !thanks to the optional argument the conditional is done at compile time
+     !!      if (present(ibyyzz_r)) then
+     !!         i1st=max(i1s,ibyyzz_r(1,i2-15,i3-15)+1) !in bounds coordinates
+     !!         i1et=min(i1e,ibyyzz_r(2,i2-15,i3-15)+1) !in bounds coordinates
+     !!      else
+     !!         i1st=i1s
+     !!         i1et=i1e
+     !!      end if
+     !!      !no need of setting up to zero values outside wavefunction bounds
+     !!      do i1=i1st,i1et
+     !!         !wavefunctions
+     !!         psir1=psir(i1,i2,i3,1)
+     !!         psir2=psir(i1,i2,i3,2)
+     !!         psir3=psir(i1,i2,i3,3)
+     !!         psir4=psir(i1,i2,i3,4)
+     !!         !potentials + confining term
+     !!         pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
+     !!         pot2=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),2)+cp(i1,i2,i3)
+     !!         pot3=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),3)+cp(i1,i2,i3)
+     !!         pot4=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),4)+cp(i1,i2,i3)
+
+     !!         !diagonal terms
+     !!         tt11=pot1*psir1 !p1
+     !!         tt22=pot1*psir2 !p2
+     !!         tt33=pot4*psir3 !p3
+     !!         tt44=pot4*psir4 !p4
+     !!         !Rab*Rb
+     !!         tt13=pot2*psir3 !p1
+     !!         !Iab*Ib
+     !!         tt14=pot3*psir4 !p1
+     !!         !Rab*Ib
+     !!         tt23=pot2*psir4 !p2
+     !!         !Iab*Rb
+     !!         tt24=pot3*psir3 !p2
+     !!         !Rab*Ra
+     !!         tt31=pot2*psir1 !p3
+     !!         !Iab*Ia
+     !!         tt32=pot3*psir2 !p3
+     !!         !Rab*Ia
+     !!         tt41=pot2*psir2 !p4
+     !!         !Iab*Ra
+     !!         tt42=pot3*psir1 !p4
+
+     !!         !value of the potential energy
+     !!         epot_p=epot_p+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
+     !!              2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+2.0_gp*tt32*psir3
+
+     !!         !wavefunction update
+     !!         !p1=h1p1+h2p3-h3p4
+     !!         !p2=h1p2+h2p4+h3p3
+     !!         !p3=h2p1+h3p2+h4p3
+     !!         !p4=h2p2-h3p1+h4p4
+     !!         psir(i1,i2,i3,1)=tt11+tt13-tt14
+     !!         psir(i1,i2,i3,2)=tt22+tt23+tt24
+     !!         psir(i1,i2,i3,3)=tt33+tt31+tt32
+     !!         psir(i1,i2,i3,4)=tt44+tt41-tt42
+     !!      end do
+     !!   end do
+     !!end do
+     !!!$omp end do
+
+  else !case with nspinor /=4
+     do ispinor=1,nspinor
+        !$omp do
+        do i3=i3s,i3e
+           do i2=i2s,i2e
+              !thanks to the optional argument the conditional is done at compile time
+              if (present(ibyyzz_r)) then
+                 i1st=max(i1s,ibyyzz_r(1,i2-15,i3-15)+1) !in bounds coordinates
+                 i1et=min(i1e,ibyyzz_r(2,i2-15,i3-15)+1) !in bounds coordinates
+              else
+                 i1st=i1s
+                 i1et=i1e
+              end if
+              !no need of setting up to zero values outside wavefunction bounds
+              do i1=i1st,i1et
+                 psir1=psir(i1,i2,i3,ispinor)
+                 !the local potential is always real (npot=1) + confining term
+                 !!pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
+                 ttx=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1))**2
+                 tty=(confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2))**2
+                 ttz=(confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3))**2
+                 tt=ttx+tty+ttz
+                 !write(1000,*) tt, cutoff2, psir1**2
+                 if(tt>cutoff2) then
+                     weight_out=weight_out+psir1**2
+                 else
+                     weight_in=weight_in+psir1**2
+                 end if
+              end do
+           end do
+        end do
+        !$omp end do
+     end do
+  end if
+  
+  
+  !$omp end parallel
+
+
+END SUBROUTINE get_cutoff_weight
