@@ -150,7 +150,12 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
 
   !check the communication distribution
-  call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+  if(inputpsi/=INPUT_PSI_LINEAR) then
+      call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+  else
+      ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
+      if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
+  end if
 
   !calculate the irreductible zone for this region, if necessary.
   call symmetry_set_irreductible_zone(atoms%sym,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
