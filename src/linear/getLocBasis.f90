@@ -113,7 +113,7 @@ real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
 type(workarr_sumrho):: w
-integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt, inc, jjorb
+integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt, inc, jjorb, ii
 !real(8),dimension(:),pointer:: lpot
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 integer,dimension(:),allocatable:: orbsperlocreg
@@ -245,6 +245,20 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
           call assignToLocreg2(iproc, nproc, llborbs%norb, llborbs%norb_par, 0, lzd%nlr, &
                nspin, orbsperlocreg, locregCenter, llborbs%inwhichlocreg)
+
+          ! Assign inwhichlocreg manually
+          if(useDerivativeBasisFunctions) then
+              norb=4
+          else
+              norb=1
+          end if
+          ii=0
+          do iorb=1,lorbs%norb
+              do i=1,norb
+                  ii=ii+1
+                  llborbs%inwhichlocreg(ii)=lorbs%inwhichlocreg(iorb)
+              end do
+          end do
 
           ! Recreate lzd, since it has to contain the bounds also for the derivatives
           ! First copy to some temporary structure
