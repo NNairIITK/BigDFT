@@ -96,5 +96,6 @@ interfaces.o: base.o types.o xc.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
+private_api.o: base.o types.o interfaces.o
 
 $(mod_bigdft) : base.o types.o interfaces.o
