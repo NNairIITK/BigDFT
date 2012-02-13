@@ -5862,7 +5862,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
        subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, withder, &
-                    ldiis, lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                    inwhichlocreg_reference, ldiis, lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
          use module_base
          use module_types
@@ -5877,6 +5877,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(nlr):: locrad
          integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          logical,intent(in):: withder
+         integer,dimension(lorbs%norb),intent(in):: inwhichlocreg_reference
          type(localizedDIISParameters),intent(inout):: ldiis
          type(local_zone_descriptors),intent(out):: lzdlarge
          type(orbitals_data),intent(out):: orbslarge

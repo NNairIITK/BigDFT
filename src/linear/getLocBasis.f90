@@ -869,7 +869,7 @@ integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, consecu
 integer :: icountDIISFailureCons,itBest, ncnt, lorb
 integer:: istat,istart,ierr,ii,it,iall,ind1,ind2,jorb,ist,iiorb
 integer:: gdim,ilr,ncount,offset,istsource,istdest,korb
-integer,dimension(:),allocatable:: norbsPerAtom
+integer,dimension(:),allocatable:: norbsPerAtom, inwhichlocreg_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat, Umat
 real(8),dimension(:,:),allocatable:: kernel, kernelold, locregCenter
@@ -963,6 +963,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   call memocc(istat, locrad, 'locrad', subname)
   allocate(locrad_tmp(lzd%nlr), stat=istat)
   call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+  allocate(inwhichlocreg_reference(lorbs%norb), stat=istat)
+  call memocc(istat, inwhichlocreg_reference, 'inwhichlocreg_reference', subname)
 
   time=0.d0
   resetDIIS=.false.
@@ -978,7 +980,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   ! ration of large locreg and standard locreg
-  factor=2.d0
+  factor=3.d0
+
+  ! always use the same inwhichlocreg
+  inwhichlocreg_reference = lorbs%inwhichlocreg
 
 
   ! Initialize largestructures if required
@@ -991,7 +996,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       !!    locregCenter(:,ilr)=confdatarr(iorb)%rxyzConf
       !!end do
       !!call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
-      do ilr=1,lzd%nlr
+      !do ilr=1,lzd%nlr
+      do iorb=1,lorbs%norb
+          !iiorb=lorbs%isorb+iorb
+          ilr=lorbs%inwhichlocreg(iorb)
           locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
           if(iproc==0) write(*,'(a,i6,3f11.4)') 'ilr, locregCenter(:,ilr)', ilr, locregCenter(:,ilr)
       end do
@@ -999,7 +1007,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
       locrad_tmp=factor*locrad
       call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
-           locrad_tmp, denspot%dpcom%nscatterarr, .false., ldiis, &
+           locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
   end if
@@ -1080,7 +1088,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                     +(locregCenter(2,ilr)-locregCenterTemp(2,ilr))**2 &
                     +(locregCenter(3,ilr)-locregCenterTemp(3,ilr))**2 
                 tt=sqrt(tt)
-                if(iproc==0) write(*,'(a,3es13.4)') 'new centers:',locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
+                if(iproc==0) write(*,'(a,i5,3es13.4)') 'ilr, new centers:', &
+                     ilr, locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
                 if(iproc==0) write(*,'(a,i5,es16.4)') '2: ilr, tt', ilr, tt
                 if( floor(locregCenter(1,ilr)/hx) < 0 .or. ceiling(locregCenter(1,ilr)/hx) > lzd%glr%d%n1 ) then
                     if(iproc==0) then
@@ -1140,10 +1149,14 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                      iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)
              end do
             call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
-                 locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
+                 locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
                  write(*,'(a,2i9)') 'sub 1: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
+            do iorb=1,lorbs%norb
+                ilr=lorbs%inwhichlocreg(iorb)
+                write(*,'(a,2i6,3x,3es16.4)') '1: iorb, ilr, center', iorb, ilr, lzd%llr(ilr)%locregCenter
+            end do
 
 
             !call deallocateCommunicationsBuffersPotential(comgp, subname)
@@ -1175,7 +1188,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
             locrad_tmp=factor*locrad
             call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
-                 locrad_tmp, denspot%dpcom%nscatterarr, .false., ldiis, &
+                 locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                  lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
             locregCenterTemp=locregCenter
@@ -1682,14 +1695,15 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
            end do
            call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-                                     comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-                                     newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+                comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
+                newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
            do ilr=1,lzd%nlr
                tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
                    +(locregCenter(2,ilr)-locregCenterTemp(2,ilr))**2 &
                    +(locregCenter(3,ilr)-locregCenterTemp(3,ilr))**2 
                tt=sqrt(tt)
-               if(iproc==0) write(*,'(a,3es13.4)') 'new centers:',locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
+               if(iproc==0) write(*,'(a,i5,3es13.4)') 'ilr, new centers:', &
+                    ilr, locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
                if(iproc==0) write(*,'(a,i5,es16.4)') '2: ilr, tt', ilr, tt
                if( floor(locregCenter(1,ilr)/hx) < 0 .or. ceiling(locregCenter(1,ilr)/hx) > lzd%glr%d%n1 ) then
                    if(iproc==0) then
@@ -1754,10 +1768,18 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
             call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
             call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
-                 locrad, denspot%dpcom%nscatterarr, .false., ldiis, &
+                 locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
                  write(*,'(a,2i9)') 'sub 2: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
+          if(iproc==0) then
+              do iorb=1,lorbs%norb
+                  ilr=lorbs%inwhichlocreg(iorb)
+                  write(*,'(a,2i8)') 'lorbs%inwhichlocreg(iorb), orbslarge%inwhichlocreg(iorb)', &
+                      lorbs%inwhichlocreg(iorb), orbslarge%inwhichlocreg(iorb)
+                  write(*,'(a,2i6,3x,3es16.4)') '2: iorb, ilr, center', iorb, ilr, lzd%llr(ilr)%locregCenter
+              end do
+          end if
           ! Transform back to localization region
           ! Transform back to small locreg
           ind1=1
@@ -1783,7 +1805,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
            locrad_tmp=factor*locrad
            call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
-                locrad_tmp, denspot%dpcom%nscatterarr, .false., ldiis, &
+                locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                 lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
            locregCenterTemp=locregCenter
@@ -1866,6 +1888,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
   deallocate(locrad_tmp, stat=istat)
   call memocc(istat, iall, 'locrad_tmp', subname)
+  iall=-product(shape(inwhichlocreg_reference))*kind(inwhichlocreg_reference)
+  deallocate(inwhichlocreg_reference, stat=istat)
+  call memocc(istat, iall, 'inwhichlocreg_reference', subname)
 
 
 !!$  iall=-product(shape(lorbs%ispot))*kind(lorbs%ispot)
@@ -2244,7 +2269,7 @@ end subroutine getLocalizedBasis
 
 
 subroutine create_new_locregs(iproc, nproc, nlr, hx, hy, hz, lorbs, glr, locregCenter, locrad, nscatterarr, withder, &
-           ldiis, lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+           inwhichlocreg_reference, ldiis, lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
 use module_base
 use module_types
@@ -2260,6 +2285,7 @@ real(8),dimension(3,nlr),intent(in):: locregCenter
 real(8),dimension(nlr):: locrad
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 logical,intent(in):: withder
+integer,dimension(lorbs%norb),intent(in):: inwhichlocreg_reference
 type(localizedDIISParameters),intent(inout):: ldiis
 type(local_zone_descriptors),intent(out):: lzdlarge
 type(orbitals_data),intent(out):: orbslarge
@@ -2298,26 +2324,27 @@ character(len=*),parameter:: subname='create_new_locregs'
    call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
         orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
 
-   allocate(orbsperlocreg(lzdlarge%nlr), stat=istat)
-   call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
-   !!orbsperlocreg=0
-   !!do iorb=1,lorbs%norbp
-   !!    iiorb=lorbs%isorb+iorb
-   !!    ilr=iiorb
-   !!    orbsperlocreg(ilr)=orbsperlocreg(ilr)+1
-   !!end do
-   !!call mpiallred(orbsperlocreg(1), lzdlarge%nlr, mpi_sum, mpi_comm_world, ierr)
-   do iorb=1,lzdlarge%nlr
-       orbsperlocreg(iorb)=1
-   end do
-   iall=-product(shape(orbslarge%inWhichLocreg))*kind(orbslarge%inWhichLocreg)
-   deallocate(orbslarge%inWhichLocreg, stat=istat)
-   call memocc(istat, iall, 'orbslarge%inWhichLocreg', subname)
-   call assignToLocreg2(iproc, nproc, orbslarge%norb, orbslarge%norb_par, 0, lzdlarge%nlr, &
-        nspin, orbsperlocreg, locregCenter, orbslarge%inwhichlocreg)
-   iall=-product(shape(orbsperlocreg))*kind(orbsperlocreg)
-   deallocate(orbsperlocreg, stat=istat)
-   call memocc(istat, iall, 'orbsperlocreg', subname)
+   !!!!allocate(orbsperlocreg(lzdlarge%nlr), stat=istat)
+   !!!!call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
+   !!!!!!orbsperlocreg=0
+   !!!!!!do iorb=1,lorbs%norbp
+   !!!!!!    iiorb=lorbs%isorb+iorb
+   !!!!!!    ilr=iiorb
+   !!!!!!    orbsperlocreg(ilr)=orbsperlocreg(ilr)+1
+   !!!!!!end do
+   !!!!!!call mpiallred(orbsperlocreg(1), lzdlarge%nlr, mpi_sum, mpi_comm_world, ierr)
+   !!!!do iorb=1,lzdlarge%nlr
+   !!!!    orbsperlocreg(iorb)=1
+   !!!!end do
+   !!!!iall=-product(shape(orbslarge%inWhichLocreg))*kind(orbslarge%inWhichLocreg)
+   !!!!deallocate(orbslarge%inWhichLocreg, stat=istat)
+   !!!!call memocc(istat, iall, 'orbslarge%inWhichLocreg', subname)
+   !!!!call assignToLocreg2(iproc, nproc, orbslarge%norb, orbslarge%norb_par, 0, lzdlarge%nlr, &
+   !!!!     nspin, orbsperlocreg, locregCenter, orbslarge%inwhichlocreg)
+   !!!iall=-product(shape(orbsperlocreg))*kind(orbsperlocreg)
+   !!!deallocate(orbsperlocreg, stat=istat)
+   !!!call memocc(istat, iall, 'orbsperlocreg', subname)
+   orbslarge%inwhichlocreg = inwhichlocreg_reference
 
    call initLocregs(iproc, nproc, lzdlarge%nlr, locregCenter, hx, hy, hz, lzdlarge, orbslarge, Glr, locrad, 's')
    call nullify_locreg_descriptors(lzdlarge%Glr)
@@ -6241,9 +6268,10 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           !!write(410+iproc,*) X0
 
           do iorb=1,orbs%norb
-              if(iproc==0) write(*,'(a,i5,3f10.4,4x,3f10.4)') 'START: iorb, centers: ', &
-                iorb, X(iorb,iorb)/normarr(iorb), Y(iorb,iorb)/normarr(iorb), Z(iorb,iorb)/normarr(iorb), &
-                locregCenters(1,iorb),  locregCenters(2,iorb), locregCenters(3,iorb)
+              ilr=orbs%inwhichlocreg(iorb)
+              if(iproc==0) write(*,'(a,2i5,3f10.4,4x,3f10.4)') 'START: iorb, ilr, centers: ', &
+                iorb, ilr, X(iorb,iorb)/normarr(iorb), Y(iorb,iorb)/normarr(iorb), Z(iorb,iorb)/normarr(iorb), &
+                locregCenters(1,ilr),  locregCenters(2,ilr), locregCenters(3,ilr)
               centers_start(1,iorb)=X(iorb,iorb)/normarr(iorb)
               centers_start(2,iorb)=Y(iorb,iorb)/normarr(iorb)
               centers_start(3,iorb)=Z(iorb,iorb)/normarr(iorb)
@@ -6266,10 +6294,12 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       end if
 
       ! Check the deviation from the center of the original localization region
-      do ilr=1,lzd%nlr
-          tt = (locregCenters(1,ilr)-X(ilr,ilr)/normarr(ilr))**2 &
-              +(locregCenters(2,ilr)-Y(ilr,ilr)/normarr(ilr))**2 &
-              +(locregCenters(3,ilr)-Z(ilr,ilr)/normarr(ilr))**2 
+      !do ilr=1,lzd%nlr
+      do iorb=1,orbs%norb
+          ilr=orbs%inwhichlocreg(iorb)
+          tt = (locregCenters(1,ilr)-X(iorb,iorb)/normarr(iorb))**2 &
+              +(locregCenters(2,ilr)-Y(iorb,iorb)/normarr(iorb))**2 &
+              +(locregCenters(3,ilr)-Z(iorb,iorb)/normarr(iorb))**2 
           tt=sqrt(tt)
           if(tt>maxDispl) then
               if(iproc==0) write(*,'(a,i0,2x,es11.2)') 'WARNING: too large displacement for locreg ',ilr,tt
@@ -6756,10 +6786,15 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
 
   do iorb=1,orbs%norb
-      if(iproc==0) write(*,'(a,i5,3f10.4)') 'END: iorb, centers: ', iorb, X(iorb,iorb), Y(iorb,iorb), Z(iorb,iorb)
-      centers(1,iorb)=X(iorb,iorb)/normarr(iorb)
-      centers(2,iorb)=Y(iorb,iorb)/normarr(iorb)
-      centers(3,iorb)=Z(iorb,iorb)/normarr(iorb)
+      ilr=orbs%inwhichlocreg(iorb)
+      if(iproc==0) write(*,'(a,2i5,3f10.4)') 'END: iorb, ilr, centers: ', &
+          iorb, ilr, X(iorb,iorb)/normarr(iorb), Y(iorb,iorb)/normarr(iorb), Z(iorb,iorb)/normarr(iorb)
+      !!centers(1,iorb)=X(iorb,iorb)/normarr(iorb)
+      !!centers(2,iorb)=Y(iorb,iorb)/normarr(iorb)
+      !!centers(3,iorb)=Z(iorb,iorb)/normarr(iorb)
+      centers(1,ilr)=X(iorb,iorb)/normarr(iorb)
+      centers(2,ilr)=Y(iorb,iorb)/normarr(iorb)
+      centers(3,ilr)=Z(iorb,iorb)/normarr(iorb)
       centers_end(1,iorb)=X(iorb,iorb)/normarr(iorb)
       centers_end(2,iorb)=Y(iorb,iorb)/normarr(iorb)
       centers_end(3,iorb)=Z(iorb,iorb)/normarr(iorb)
