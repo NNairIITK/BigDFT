@@ -5932,7 +5932,57 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
        end subroutine position_operators
 
+       subroutine apply_r_operators(iproc, nproc, orbs, lzd, hx, hy, hz, confdatarr, psi, order, vpsi)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, order
+         type(orbitals_data),intent(in):: orbs
+         type(local_zone_descriptors),intent(in):: lzd
+         real(8),intent(in):: hx, hy, hz
+         type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
+         real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psi
+         real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: vpsi
+       end subroutine apply_r_operators
 
+       subroutine r_operator(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,order,&
+            confdata,ibyyzz_r) !optional
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor,order
+         integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
+         real(wp), dimension(n1i,n2i,n3i,nspinor), intent(inout) :: psir !< real-space wfn in lr
+         type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+         integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
+       end subroutine r_operator
+
+       subroutine apply_rminusmu_operator(iproc, nproc, orbs, lzd, hx, hy, hz, confdatarr, psi, centers, vpsi)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(orbitals_data),intent(in):: orbs
+         type(local_zone_descriptors),intent(in):: lzd
+         real(8),intent(in):: hx, hy, hz
+         type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
+         real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in):: psi
+         real(8),dimension(3,lzd%nlr),intent(in):: centers
+         real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: vpsi
+       end subroutine apply_rminusmu_operator
+
+       subroutine rminusmu_operator(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,mu,&
+            confdata,ibyyzz_r) !optional
+         use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor
+         integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
+         real(wp), dimension(n1i,n2i,n3i,nspinor), intent(inout) :: psir !< real-space wfn in lr
+         real(8),dimension(3):: mu
+         type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+         integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
+       end subroutine rminusmu_operator
 
    end interface
 
