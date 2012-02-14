@@ -1095,10 +1095,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
             end do
 
-            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
             call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                 6.d0, confdatarr, lphilarge)
+                 lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+            !!     6.d0, confdatarr, lphilarge)
 
             !!!write(*,*) 'ATTENTION DEBUG!'
             !!!lphilarge=1.d0
@@ -1116,53 +1116,53 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
             !!!locregCenterTemp(2,:)=1.407408E+01! 1.504249d1
             !!!locregCenterTemp(3,:)=1.407408E+01! 1.504260d1
 
-            !! Plot basis functions
-            call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, at%nat,locregCenter , lorbs%inwhichlocreg, .5d0*hx, &
-                .5d0*hy, .5d0*hz, it)
-            ! plot the orbitals -- EXPERIMENTAL ##################################################
-            allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
-            ist=1
-            write(comment,'(i3.3)') it
-            do iorb=1,orbslarge%norbp
-                iiorb=iorb+orbslarge%isorb
-                ilr=orbslarge%inwhichlocreg(iiorb)
-                write(orbname,'(i3.3)') iiorb
-                write(*,'(a,i0)') 'plotting orbital ',iiorb
-                lvphiovrlp=0.d0
-                call Lpsi_to_global2(iproc, nproc, lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, &
-                     lzdlarge%glr%wfd%nvctr_c+7*lzdlarge%glr%wfd%nvctr_f, orbslarge%norb, orbslarge%nspinor, nspin, &
-                     lzdlarge%Glr, lzdlarge%Llr(ilr), lphilarge(ist), lvphiovrlp(1))
-                call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lzdlarge%glr, hx, hx, hx, rxyz, lvphiovrlp(1))
-                ist=ist+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-            end do
-            deallocate(lvphiovrlp)
-            ! ####################################################################################
+            !!!! Plot basis functions
+            !!call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, at%nat,locregCenter , lorbs%inwhichlocreg, .5d0*hx, &
+            !!    .5d0*hy, .5d0*hz, it)
+            !!! plot the orbitals -- EXPERIMENTAL ##################################################
+            !!allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
+            !!ist=1
+            !!write(comment,'(i3.3)') it
+            !!do iorb=1,orbslarge%norbp
+            !!    iiorb=iorb+orbslarge%isorb
+            !!    ilr=orbslarge%inwhichlocreg(iiorb)
+            !!    write(orbname,'(i3.3)') iiorb
+            !!    write(*,'(a,i0)') 'plotting orbital ',iiorb
+            !!    lvphiovrlp=0.d0
+            !!    call Lpsi_to_global2(iproc, nproc, lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, &
+            !!         lzdlarge%glr%wfd%nvctr_c+7*lzdlarge%glr%wfd%nvctr_f, orbslarge%norb, orbslarge%nspinor, nspin, &
+            !!         lzdlarge%Glr, lzdlarge%Llr(ilr), lphilarge(ist), lvphiovrlp(1))
+            !!    call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lzdlarge%glr, hx, hx, hx, rxyz, lvphiovrlp(1))
+            !!    ist=ist+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+            !!end do
+            !!deallocate(lvphiovrlp)
+            !!! ####################################################################################
 
             call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                  comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
                  newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
 
                  !!write(*,*) "ATTENTION HERE!!!"
-            call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, at%nat,locregCenter , lorbs%inwhichlocreg, .5d0*hx, &
-                .5d0*hy, .5d0*hz, 100+it)
-            ! plot the orbitals -- EXPERIMENTAL ##################################################
-            allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
-            ist=1
-            write(comment,'(i3.3)') 100+it
-            do iorb=1,orbslarge%norbp
-                iiorb=iorb+orbslarge%isorb
-                ilr=orbslarge%inwhichlocreg(iiorb)
-                write(orbname,'(i3.3)') iiorb
-                write(*,'(a,i0)') 'plotting orbital ',iiorb
-                lvphiovrlp=0.d0
-                call Lpsi_to_global2(iproc, nproc, lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, &
-                     lzdlarge%glr%wfd%nvctr_c+7*lzdlarge%glr%wfd%nvctr_f, orbslarge%norb, orbslarge%nspinor, nspin, &
-                     lzdlarge%Glr, lzdlarge%Llr(ilr), lphilarge(ist), lvphiovrlp(1))
-                call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lzdlarge%glr, hx, hx, hx, rxyz, lvphiovrlp(1))
-                ist=ist+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-            end do
-            deallocate(lvphiovrlp)
-            ! ####################################################################################
+            !!call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, at%nat,locregCenter , lorbs%inwhichlocreg, .5d0*hx, &
+            !!    .5d0*hy, .5d0*hz, 100+it)
+            !!! plot the orbitals -- EXPERIMENTAL ##################################################
+            !!allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
+            !!ist=1
+            !!write(comment,'(i3.3)') 100+it
+            !!do iorb=1,orbslarge%norbp
+            !!    iiorb=iorb+orbslarge%isorb
+            !!    ilr=orbslarge%inwhichlocreg(iiorb)
+            !!    write(orbname,'(i3.3)') iiorb
+            !!    write(*,'(a,i0)') 'plotting orbital ',iiorb
+            !!    lvphiovrlp=0.d0
+            !!    call Lpsi_to_global2(iproc, nproc, lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, &
+            !!         lzdlarge%glr%wfd%nvctr_c+7*lzdlarge%glr%wfd%nvctr_f, orbslarge%norb, orbslarge%nspinor, nspin, &
+            !!         lzdlarge%Glr, lzdlarge%Llr(ilr), lphilarge(ist), lvphiovrlp(1))
+            !!    call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lzdlarge%glr, hx, hx, hx, rxyz, lvphiovrlp(1))
+            !!    ist=ist+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+            !!end do
+            !!deallocate(lvphiovrlp)
+            !!! ####################################################################################
 
                  !!locregCenter=locregCenterTemp
             do ilr=1,lzd%nlr
@@ -1285,10 +1285,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
                confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
             end do
-            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
             call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                 6.d0, confdatarr, lphilarge)
+                 lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+            !!     6.d0, confdatarr, lphilarge)
 
             call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -1802,10 +1802,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
            end do
 
-           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                6.d0, confdatarr, lphilarge)
+                lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+           !!     6.d0, confdatarr, lphilarge)
 
            !! EXPERIMENTAL: normalize lphilarge
            ist=1
@@ -1946,10 +1946,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
               confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
            end do
-           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                6.d0, confdatarr, lphilarge)
+                lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+           !!     6.d0, confdatarr, lphilarge)
 
            call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -6496,7 +6496,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           !tt = R2(iorb,iorb)/normarr(iorb)-R(iorb,iorb)**2/normarr(iorb)
           tt = R2(iorb,iorb)/normarr(iorb)-(R(iorb,iorb)/normarr(iorb))**2
           var=var+tt
-          if(iproc==0) write(*,'(a,i8,es15.6)') 'iorb, tt', iorb, tt
+          !if(iproc==0) write(*,'(a,i8,es15.6)') 'iorb, tt', iorb, tt
       end do
       if(iproc==0) write(*,'(a,i6,es18.8)') 'it, total variance', it, var
       !if(iproc==0) write(*,'(a,es18.8)') 'NEW SPREAD: ',tt
