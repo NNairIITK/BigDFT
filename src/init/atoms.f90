@@ -237,9 +237,11 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
      deallocate(xRed,stat=i_stat)
      call memocc(i_stat,i_all,'xRed',subname)
      if (atoms%geocode == 'S') then
-        !!for the moment symmetries are not allowed in surfaces BC
-        write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
-        stop
+        if (.not. disableSym) then
+           !!for the moment symmetries are not allowed in surfaces BC
+           write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
+           stop
+        end if
         call symmetry_set_periodicity(atoms%sym%symObj, &
              & (/ .true., .false., .true. /), ierr)
      else if (atoms%geocode == 'F') then
