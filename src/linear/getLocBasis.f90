@@ -1095,13 +1095,75 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
             end do
 
+            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
             call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                 lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+                 6.d0, confdatarr, lphilarge)
+
+            !!!write(*,*) 'ATTENTION DEBUG!'
+            !!!lphilarge=1.d0
+            !!!!! EXPERIMENTAL: normalize lphilarge
+            !!!ist=1
+            !!!do iorb=1,orbslarge%norbp
+            !!!    iiorb=orbslarge%isorb+iorb
+            !!!    ilr=orbslarge%inwhichlocreg(iiorb)
+            !!!    ncnt=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
+            !!!    tt=dnrm2(ncnt, lphilarge(ist), 1)
+            !!!    call dscal(ncnt, 1/tt, lphilarge(ist), 1)
+            !!!    ist=ist+ncnt
+            !!!end do
+            !!!locregCenterTemp(1,:)=1.407408E+01! 1.601698d1
+            !!!locregCenterTemp(2,:)=1.407408E+01! 1.504249d1
+            !!!locregCenterTemp(3,:)=1.407408E+01! 1.504260d1
+
+            !! Plot basis functions
+            call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, at%nat,locregCenter , lorbs%inwhichlocreg, .5d0*hx, &
+                .5d0*hy, .5d0*hz, it)
+            ! plot the orbitals -- EXPERIMENTAL ##################################################
+            allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
+            ist=1
+            write(comment,'(i3.3)') it
+            do iorb=1,orbslarge%norbp
+                iiorb=iorb+orbslarge%isorb
+                ilr=orbslarge%inwhichlocreg(iiorb)
+                write(orbname,'(i3.3)') iiorb
+                write(*,'(a,i0)') 'plotting orbital ',iiorb
+                lvphiovrlp=0.d0
+                call Lpsi_to_global2(iproc, nproc, lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, &
+                     lzdlarge%glr%wfd%nvctr_c+7*lzdlarge%glr%wfd%nvctr_f, orbslarge%norb, orbslarge%nspinor, nspin, &
+                     lzdlarge%Glr, lzdlarge%Llr(ilr), lphilarge(ist), lvphiovrlp(1))
+                call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lzdlarge%glr, hx, hx, hx, rxyz, lvphiovrlp(1))
+                ist=ist+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+            end do
+            deallocate(lvphiovrlp)
+            ! ####################################################################################
 
             call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                  comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
                  newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+
                  !!write(*,*) "ATTENTION HERE!!!"
+            call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, at%nat,locregCenter , lorbs%inwhichlocreg, .5d0*hx, &
+                .5d0*hy, .5d0*hz, 100+it)
+            ! plot the orbitals -- EXPERIMENTAL ##################################################
+            allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
+            ist=1
+            write(comment,'(i3.3)') 100+it
+            do iorb=1,orbslarge%norbp
+                iiorb=iorb+orbslarge%isorb
+                ilr=orbslarge%inwhichlocreg(iiorb)
+                write(orbname,'(i3.3)') iiorb
+                write(*,'(a,i0)') 'plotting orbital ',iiorb
+                lvphiovrlp=0.d0
+                call Lpsi_to_global2(iproc, nproc, lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, &
+                     lzdlarge%glr%wfd%nvctr_c+7*lzdlarge%glr%wfd%nvctr_f, orbslarge%norb, orbslarge%nspinor, nspin, &
+                     lzdlarge%Glr, lzdlarge%Llr(ilr), lphilarge(ist), lvphiovrlp(1))
+                call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lzdlarge%glr, hx, hx, hx, rxyz, lvphiovrlp(1))
+                ist=ist+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+            end do
+            deallocate(lvphiovrlp)
+            ! ####################################################################################
+
                  !!locregCenter=locregCenterTemp
             do ilr=1,lzd%nlr
                 tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
@@ -1223,8 +1285,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
                confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
             end do
+            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
             call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                 lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+                 6.d0, confdatarr, lphilarge)
 
             call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -1738,8 +1802,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
            end do
 
+           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+                6.d0, confdatarr, lphilarge)
 
            !! EXPERIMENTAL: normalize lphilarge
            ist=1
@@ -1880,8 +1946,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
               confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
            end do
+           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+                6.d0, confdatarr, lphilarge)
 
            call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -6428,7 +6496,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           !tt = R2(iorb,iorb)/normarr(iorb)-R(iorb,iorb)**2/normarr(iorb)
           tt = R2(iorb,iorb)/normarr(iorb)-(R(iorb,iorb)/normarr(iorb))**2
           var=var+tt
-          !if(iproc==0) write(*,'(a,i8,es15.6)') 'iorb, variance', iorb, tt
+          if(iproc==0) write(*,'(a,i8,es15.6)') 'iorb, tt', iorb, tt
       end do
       if(iproc==0) write(*,'(a,i6,es18.8)') 'it, total variance', it, var
       !if(iproc==0) write(*,'(a,es18.8)') 'NEW SPREAD: ',tt
@@ -7872,6 +7940,9 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
      !psi(1+oidx+lzd%llr(ilr)%wfd%nvctr_c:1+oidx+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
 
      call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
+     !!do i_stat=1,Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
+     !!    write(1000+iproc,'(i9,es18.7,i9)') i_stat, psir(i_stat,1), Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
+     !!end do
      !apply the potential to the psir wavefunction and calculate potential energy
      hxh=.5d0*hx
      hyh=.5d0*hy
@@ -8245,9 +8316,9 @@ subroutine position_operators(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,ps
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
                  !!pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
-                 potx=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)**order
-                 poty=confdata%hh(2)*real(i2+confdata%ioffset(2),wp)**order
-                 potz=confdata%hh(3)*real(i3+confdata%ioffset(3),wp)**order
+                 potx=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp))**order
+                 poty=(confdata%hh(2)*real(i2+confdata%ioffset(2),wp))**order
+                 potz=(confdata%hh(3)*real(i3+confdata%ioffset(3),wp))**order
 
                  ttx=potx*psir1
                  tty=poty*psir1
@@ -8345,6 +8416,8 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
      !components of the potential
      npot=orbs%nspinor
      if (orbs%nspinor == 2) npot=1
+
+     write(*,'(a,2i8,3es16.7)') 'iproc, iorb, confdatarr(iorb)%rxyzConf', iproc, iorb, confdatarr(iorb)%rxyzConf
 
      call get_cutoff_weight(lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
                              lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
@@ -8670,6 +8743,8 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
      !psi(1+oidx+lzd%llr(ilr)%wfd%nvctr_c:1+oidx+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
 
      call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
+     !!!write(*,*) 'WARNING DEBUG in r_operator'
+     !!!psir=1.d0/sqrt(dble(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i))
      !apply the potential to the psir wavefunction and calculate potential energy
      hxh=.5d0*hx
      hyh=.5d0*hy
@@ -8948,9 +9023,9 @@ subroutine r_operator(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,order
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
                  !!pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
-                 ttx=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)**2
-                 tty=confdata%hh(2)*real(i2+confdata%ioffset(2),wp)**2
-                 ttz=confdata%hh(3)*real(i3+confdata%ioffset(3),wp)**2
+                 ttx=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp))**2
+                 tty=(confdata%hh(2)*real(i2+confdata%ioffset(2),wp))**2
+                 ttz=(confdata%hh(3)*real(i3+confdata%ioffset(3),wp))**2
 
                  tt = ttx+tty+ttz
 
@@ -9043,6 +9118,8 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
      !psi(1+oidx+lzd%llr(ilr)%wfd%nvctr_c:1+oidx+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1)=0.d0
 
      call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
+     !!!write(*,*) 'WARNING DEBUG in rminusmu_operator'
+     !!!psir=1.d0/sqrt(dble(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i))
      !apply the potential to the psir wavefunction and calculate potential energy
      hxh=.5d0*hx
      hyh=.5d0*hy
@@ -9057,6 +9134,7 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
      !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3,  &
      !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
      mu(1:3) = centers(1:3,ilr)
+     write(*,'(a,2i8,3es18.7)') 'iproc, iorb, mu', iproc, iorb, mu
      call rminusmu_operator(lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
                              lzd%llr(ilr)%d%n1i, lzd%llr(ilr)%d%n2i, lzd%llr(ilr)%d%n3i, &
                              ishift, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, orbs%nspinor, &
