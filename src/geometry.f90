@@ -85,7 +85,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
      if (trim(parmin%approach)=='AB6MD') fmt = '(i5.5)'
      write(fn4,fmt) ncount_bigdft
      write(comment,'(a)')'INITIAL CONFIGURATION '
-     call write_atomic_file(trim(outfile)//'_'//trim(fn4),epot,pos,at,trim(comment))
+     call write_atomic_file(trim(in%dir_output)//trim(outfile)//'_'//trim(fn4),epot,pos,at,trim(comment),forces=fxyz)
      write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
   end if
 
@@ -421,6 +421,7 @@ END SUBROUTINE transforce_forfluct
 subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
@@ -578,7 +579,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 !             & fmax,'fnrm=',    fnrm    ,'fluct=', fluct
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm)
-        call write_atomic_file('posout_'//fn4,epot,x,at,trim(comment))
+        call write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epot,x,at,trim(comment),forces=f)
      endif
 
      call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
@@ -621,6 +622,7 @@ END SUBROUTINE rundiis
 subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail) 
   use module_base
   use module_types
+  use module_interfaces
   use minpar
 
   implicit none
@@ -695,7 +697,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
      if (iproc == 0) then
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
-        call  write_atomic_file('posout_'//fn4,epred,pospred,at,trim(comment))
+        call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epred,pospred,at,trim(comment),forces=fpred)
      endif
      if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
      if (iproc==0.and.parmin%verbosity > 0) & 
@@ -724,6 +726,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
         !Exit from the loop (the calculation is finished).
         exit Big_loop
      endif
+     close(16)
 
 !Update variables
      fcur=fpred
@@ -752,7 +755,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
      endif
      nstep=nstep+1
 
-     if (iproc==0) write(10,*) epred, vnrm*0.5d0
+     !if (iproc==0) write(10,*) epred, vnrm*0.5d0
    end do Big_loop
 
 

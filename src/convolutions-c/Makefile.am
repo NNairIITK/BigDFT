@@ -53,10 +53,7 @@ convolution_sse_t_LDFLAGS = -lrt -lpapi
 
 conv_check_SOURCES = conv_check.f90 
 conv_check_LDADD = ../libbigdft.a ../PSolver/libpoissonsolver.a $(libs_dgemmsy) libbasec.a libbasef.a
-conv_check_LDFLAGS = -lpthread -lstdc++ -lrt 
-
-
-#-lpapi
+conv_check_LDFLAGS = -lpthread -lstdc++ -lrt -lpapi
 
 check_conv: conv_check
 	echo 1 128 128 204900 204900 10 > fort.1

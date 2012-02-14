@@ -78,22 +78,29 @@ contains
        !only the root processor parse the file
        if (iproc==0) then
           open(unit = 1, file = trim(filename), status = 'old')
-          i = 1
+          i=0
           parse_file: do 
+             i=i+1
              lines(i)=repeat(' ',max_length) !initialize lines
              read(1, fmt = '(a)', iostat = ierror) lines(i)
              !eliminate leading blanks from the line
+             !print *,'here',i,lines(i),ierror,trim(lines(i)),'len',len(trim(lines(i)))
              lines(i)=adjustl(lines(i))
              if (ierror /= 0) exit parse_file
-             i = i + 1
           end do parse_file
           close(1)
-          nlines=i-1
+          !check if the last line has 
+          if(len(trim(lines(i))) > 0) then
+             nlines=i
+          else
+             nlines=i-1
+          end if
        end if
        !broadcast the number of lines
        if (lmpinit) call MPI_BCAST(nlines,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (1) '
        nlines_total=nlines
+
        !broadcast all the lines
        if (lmpinit) call MPI_BCAST(lines,nmax_lines*nlines,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (2) '
@@ -831,6 +838,7 @@ contains
     integer :: i, j, ierror, ierr
 
     write(var, "(A)") default
+
     call find(name, i, j)
     if (i > 0) then
        read(inout_lines(i)(j + 2:), fmt = *, iostat = ierror) var
@@ -869,7 +877,7 @@ contains
     integer, intent(out) :: var
 
     integer :: i, j, ierror, ierr
-
+    
     var = default
     call find(name, i, j)
     if (i > 0) then

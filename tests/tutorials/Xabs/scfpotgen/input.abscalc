@@ -1,0 +1,8 @@
+     1   meaning  :  1 tchebychev 2 Lanczos : 3 Cg
+      1   absorber atom number 
+   1    L_absorber  orbital moment of the final electron  npaw_absorber
+   0.0     0.0       1.0     and its component
+      1                           pot short_cut
+      1                         number of Hamiltonian multiplications 
+0.0
+Zb_            
