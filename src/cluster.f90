@@ -216,7 +216,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   logical :: endloop,endlooprp,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
   integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden,input_wf_format
-  integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
+  integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before,iatyp
   integer :: nelec,ndegree_ip,j,i,npoints,nrhodim,i3rho_add,irhotot_add,irho_add
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ispin
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
@@ -232,7 +232,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms, commsv
   type(orbitals_data) :: orbsv
-  type(gaussian_basis) :: Gvirt,proj_G
+  type(gaussian_basis) :: Gvirt
+  type(gaussian_basis),dimension(atoms%ntypes)::proj_G
+  type(paw_objects)::paw
   type(diis_objects) :: diis
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -264,6 +266,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
 
   ! ----------------------------------
+  !Nullify paw object (only used for PAW)
+  paw%usepaw=0
+  nullify(paw%paw_ij%dij)
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -299,7 +304,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end select
      
   !proj_G is dummy here, it is only used for PAW
-  call nullify_gaussian_basis(proj_G)
+  do iatyp=1,atoms%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
 
   norbv=abs(in%norbv)
   nvirt=in%nvirt
@@ -417,7 +424,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj,proj_G)
+       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_G,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
   !calculate the partitioning of the orbitals between the different processors
@@ -978,7 +985,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
 
            call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-                nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G)
+                nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G,paw)
 
            call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -1395,7 +1402,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
            call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbsv,&
-                radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj,proj_G) 
+                radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_G,proj) 
            call timing(iproc,'CrtProjectors ','OF') 
 
         else

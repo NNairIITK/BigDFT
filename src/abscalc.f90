@@ -329,7 +329,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer :: nelec,ndegree_ip,j
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,ierr,inputpsi
+  integer :: iatyp,iat,i_all,i_stat,ierr,inputpsi
   real :: tcpu0,tcpu1
   real(gp), dimension(3) :: shift
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
@@ -342,7 +342,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   type(gaussian_basis) :: Gvirt
   type(rho_descriptors)  :: rhodsc
   type(rholoc_objects)::rholoc_tmp
-  type(gaussian_basis)::proj_tmp
+  type(gaussian_basis),dimension(atoms%ntypes)::proj_tmp
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:,:), allocatable :: radii_cf,fion
@@ -528,8 +528,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   call timing(iproc,'CrtProjectors ','ON')
   proj_tmp%ncplx=1
+  do iatyp=1,atoms%ntypes
+    call nullify_gaussian_basis(proj_tmp(iatyp))
+  end do
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj,proj_tmp)
+       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_tmp,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
   if(sum(atoms%paw_NofL).gt.0) then

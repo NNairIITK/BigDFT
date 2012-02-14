@@ -219,7 +219,7 @@ END SUBROUTINE createWavefunctionsDescriptors
 
 !>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
-     radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj,G)
+     radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,G,proj)
   use module_base
   use module_types
   implicit none
@@ -227,7 +227,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  type(gaussian_basis),intent(in) :: G
+  type(gaussian_basis),dimension(at%ntypes),intent(in) :: G
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
@@ -264,7 +264,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
   ! After having determined the size of the projector descriptor arrays fill them
   do iat=1,at%nat
-     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,G,mproj)
+     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,G(at%iatype(iat)),mproj)
      if (mproj.ne.0) then 
 
         ! coarse grid quantities
@@ -525,14 +525,14 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   real(gp), intent(in):: ecut_pc
 
   type(pcproj_data_type) ::PPD
-  type(gaussian_basis) :: proj_G !dummy here
+  type(gaussian_basis),dimension(at%ntypes) :: proj_G !dummy here
   type(locreg_descriptors),  intent(in):: Glr
 
   
   !local variables
   character(len=*), parameter :: subname='createPcProjectorsArrays'
   integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj, mvctr
-  integer :: iat,i_stat,i_all,iseg, istart_c
+  integer :: iat,i_stat,i_all,iseg, istart_c,iatyp
   logical, dimension(:,:,:), allocatable :: logrid
 
 
@@ -592,7 +592,10 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid,'logrid',subname)
 
-  proj_G%ncplx=1
+  do iatyp=1,at%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+
   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,Pcpmult,fpmult,rxyz,radii_cf,&
        logrid,at,orbs,PPD%pc_nlpspd,proj_G)
 
@@ -1161,7 +1164,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   type(communications_arrays), intent(in) :: comms
   type(GPU_pointers), intent(inout) :: GPU
   type(input_variables):: input
-  type(gaussian_basis),intent(in)::proj_G
+  type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -1185,8 +1188,12 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   real(wp), dimension(:), allocatable :: potxc,passmat
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
+  type(paw_objects)::paw
   real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:,:,:), pointer :: psigau
+
+  !Nullify paw object
+  nullify(paw%paw_ij%dij)
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -1489,7 +1496,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
        Glr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
 
   call NonLocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-       nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G)
+       nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G,paw)
 
   call SynchronizeHamiltonianApplication(nproc,orbse,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 

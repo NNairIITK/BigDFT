@@ -26,7 +26,7 @@ program memguess
   logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: norbgpu,nspin_ig,ng
+  integer :: norbgpu,nspin_ig,ng,iatyp
   real(gp) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
@@ -35,7 +35,7 @@ program memguess
   type(locreg_descriptors) :: Glr
   type(nonlocal_psp_descriptors) :: nlpspd
   type(gaussian_basis) :: G !basis for davidson IG
-  type(gaussian_basis) :: proj_G !dummy here
+  type(gaussian_basis),dimension(:),allocatable :: proj_G !dummy here
   real(gp), dimension(3) :: shift
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
@@ -398,11 +398,17 @@ program memguess
 
   allocate(logrid(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid,'logrid',subname)
+ 
+  allocate(proj_G(atoms%ntypes))
+  do iatyp=1,atoms%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
 
-  proj_G%ncplx=1 
   call localize_projectors(0,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,&
        in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd,proj_G)
-  
+ 
+  deallocate(proj_G)
+ 
   !allocations for arrays holding the data descriptors
   !just for modularity
   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
