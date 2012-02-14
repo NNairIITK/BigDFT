@@ -39,16 +39,23 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !local variables
   character(len=*), parameter :: subname='direct_minimization'
   logical :: msg,exctX,occorbs,endloop !extended output
-  integer :: occnorb, occnorbu, occnorbd,nrhodim,i3rho_add
+  integer :: occnorb, occnorbu, occnorbd,nrhodim,i3rho_add,iatyp
   integer :: i_stat,i_all,iter,ikpt,idsx_actual_before,ndiis_sd_sw
   real(gp) :: gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC
   real(gp) :: energy,energy_old,energybs,evsum
   type(diis_objects) :: diis
+  type(gaussian_basis),dimension(at%ntypes)::proj_G
+  type(paw_objects)::paw
   real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt,pot
 
   !supplementary messages
   msg=.false.
 
+  !nullify paw objects:
+  nullify(paw%paw_ij%dij)
+  do iatyp=1,at%ntypes
+  call nullify_gaussian_basis(proj_G(iatyp))
+  end do
   !logical flag which control to othogonalise wrt the occupied orbitals or not
   if (orbs%nkpts /= orbsv%nkpts) then
      occorbs=.false.
@@ -259,7 +266,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           pkernel,orbs,psirocc) ! optional arguments
 
      call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,psivirt,hpsivirt,eproj_sum)
+          nlpspd,proj,lr,psivirt,hpsivirt,eproj_sum,proj_G,paw)
 
      call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hpsivirt,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -433,7 +440,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   character(len=8) :: prteigu,prteigd !format for eigenvalues printing
   logical :: msg,exctX,occorbs !extended output
   integer :: occnorb, occnorbu, occnorbd,nrhodim,i3rho_add
-  integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor
+  integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor,iatyp
   integer :: ise,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,gnrm_fake
   integer, dimension(:,:), allocatable :: ndimovrlp
@@ -441,6 +448,14 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   real(wp), dimension(:), allocatable :: hv,g,hg,ew
   real(wp), dimension(:,:,:), allocatable :: e
   real(wp), dimension(:), pointer :: psiw,psirocc,pot
+  type(gaussian_basis),dimension(at%ntypes)::proj_G
+  type(paw_objects)::paw
+ 
+  !Nullify PAW objects
+  do iatyp=1,at%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+  nullify(paw%paw_ij%dij)
 
   !logical flag which control to othogonalise wrt the occupied orbitals or not
   if (orbs%nkpts /= orbsv%nkpts) then
@@ -613,7 +628,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
        pkernel,orbs,psirocc) ! optional arguments
 
   call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-       nlpspd,proj,lr,v,hv,eproj_sum)
+       nlpspd,proj,lr,v,hv,eproj_sum,proj_G,paw)
 
   call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -898,7 +913,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
           pkernel,orbs,psirocc) ! optional arguments
 
      call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,g,hg,eproj_sum)
+          nlpspd,proj,lr,g,hg,eproj_sum,proj_G,paw)
 
      call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hg,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -1172,7 +1187,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
           pkernel,orbs,psirocc) ! optional arguments
 
      call NonLocalHamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,v,hv,eproj_sum)
+          nlpspd,proj,lr,v,hv,eproj_sum,proj_G,paw)
 
      call SynchronizeHamiltonianApplication(nproc,orbsv,lr,GPU,hv,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 

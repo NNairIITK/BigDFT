@@ -592,6 +592,10 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
   !local variables
   integer :: iat,nwarnings,iproj,iorb
   integer :: istart_c,idir,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
+  type(gaussian_basis)::G
+
+  !G is only used in PAW
+  call nullify_gaussian_basis(G)
   
   !put idir=0, no derivative
   idir=0
@@ -617,14 +621,14 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      do iat=1,at%nat
         istart_c=1
         call atom_projector(ikpt,iat,idir,istart_c,iproj,&
-             n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+             n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings,G)
 
         !apply the projector to all the orbitals belonging to the processor
         ispsi=ispsi_k
         do iorb=isorb,ieorb
            istart_c=1
            call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,&
-                proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+                proj,psi(ispsi),hpsi(ispsi),eproj_sum,G)
            ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*nspinor
         end do
 
@@ -649,7 +653,7 @@ END SUBROUTINE applyprojectorsonthefly
 
 
 !>   Applies the projector associated on a given atom on a corresponding orbital
-subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,eproj)
+subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,eproj,G)
   use module_base
   use module_types
   implicit none
@@ -658,19 +662,28 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(gaussian_basis), intent(in) :: G
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(in) :: psi
   integer, intent(inout) :: istart_c
   real(gp), intent(inout) :: eproj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   !local variables
-  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx
+  integer :: i_shell
+  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i
+  integer :: ncplx,ncplx_k,j
   real(gp) :: eproj_spinor
 
   !complex functions or not
   !this should be decided as a function of the orbital
   !features of the k-point ikpt
-  call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
+  call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx_k)
+
+  if(G%ncplx==2 .or. ncplx_k == 2) then
+     ncplx=2
+  else
+     ncplx=1
+  end if
 
   istart_c_i=istart_c
   do ispinor=1,orbs%nspinor,ncplx
@@ -683,19 +696,37 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
      mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
      mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
      jseg_c=nlpspd%nseg_p(2*iat-2)+1
-     !GTH and HGH pseudopotentials
-     do l=1,4
-        do i=1,3
-           if (at%psppar(l,i,ityp) /= 0.0_gp) then
+     !
+!    HGH or GTH case:
+     if(.not. any(at%npspcode(:)==7)) then 
+        do l=1,4
+           do i=1,3
+              if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                 call applyprojector(ncplx,l,i,at%psppar(0,0,ityp),at%npspcode(ityp),&
+                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
+                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                      nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
+                      psi(1,ispinor),hpsi(1,ispinor),eproj_spinor)
+                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
+              end if
+           enddo
+        enddo
+!    PAW case
+     else
+        i=0
+        do i_shell=1,G%nshltot
+           l=G%nam(i_shell)
+           i=i+1 !projector index
+           do j=1,G%ndoc(i_shell) !Gaussian expansion for that projector
               call applyprojector(ncplx,l,i,at%psppar(0,0,ityp),at%npspcode(ityp),&
                    wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
                    mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                    nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
                    psi(1,ispinor),hpsi(1,ispinor),eproj_spinor)
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
-           end if
-        enddo
-     enddo
+           end do
+        end do
+     end if 
      eproj=eproj+&
           orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_spinor
   end do

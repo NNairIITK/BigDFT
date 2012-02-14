@@ -18,7 +18,7 @@ program wvl
   type(rho_descriptors)                :: rhodsc
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   type(GPU_pointers)                   :: GPU
-  
+  type(rholoc_objects)                 :: rholoc_tmp
   integer :: i, j, ierr, iproc, nproc, nelec
   integer :: n3d,n3p,n3pi,i3xcsh,i3s
   real(dp) :: nrm, epot_sum
@@ -180,7 +180,7 @@ program wvl
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Glr%d%n1,Glr%d%n2,Glr%d%n3, &
        & n3pi,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i, &
-       & pkernel,pot_ion,psoffset,0,.false.)
+       & pkernel,pot_ion,psoffset,0,.false.,rholoc_tmp)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p, &
        & Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,inputs%nspin, &

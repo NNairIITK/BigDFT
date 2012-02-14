@@ -1025,7 +1025,15 @@ END SUBROUTINE EP_set_random_interna
    integer, intent(in) :: p,i
    real(gp) ene, gamma, mene
    !Local variables
-   integer :: k
+   integer :: k,iatyp
+   type(gaussian_basis),dimension(ha%at%ntypes)::proj_G
+   type(paw_objects)::paw
+   
+   !Nullify PAW pointers:
+   nullify(paw%paw_ij%dij)
+   do iatyp=1,ha%at%ntypes
+      call nullify_gaussian_basis(proj_G(iatyp))
+   end do
    
    if( ha%nproc > 1) then
       if(i>=0) then
@@ -1059,7 +1067,7 @@ END SUBROUTINE EP_set_random_interna
          ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
     call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G,paw)
 
     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
          ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
@@ -1080,7 +1088,7 @@ END SUBROUTINE EP_set_random_interna
          ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
     call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G,paw)
 
     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
          ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
@@ -1150,7 +1158,15 @@ END SUBROUTINE EP_set_random_interna
     integer, intent(in) :: p,i
     !Local variables
     integer :: k
+    type(gaussian_basis),dimension(ha%at%ntypes)::proj_G
+    type(paw_objects)::paw
     
+    !nullify PAW objects:
+    nullify(paw%paw_ij%dij)
+    do k=1,ha%at%ntypes
+       call nullify_gaussian_basis(proj_G(k))
+    end do    
+
     if( ha%nproc > 1) then
        if(i>=0) then
           call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
@@ -1187,7 +1203,7 @@ END SUBROUTINE EP_set_random_interna
          ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
     call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum)
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G,paw)
 
     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
          ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
@@ -1424,6 +1440,7 @@ END SUBROUTINE EP_set_random_interna
    integer, parameter :: nterm_max=3
    logical :: maycalc
    integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,nterm,ierr,ispinor
+   integer :: icplx_xp
    real(dp) :: normdev,tt,scpr,totnorm
    real(gp) :: rx,ry,rz
    integer, dimension(nterm_max) :: lx,ly,lz
@@ -1432,6 +1449,7 @@ END SUBROUTINE EP_set_random_interna
 
    if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
 
+   icplx_xp =1 !2 only for PAW 
    allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
    call memocc(i_stat,tpsi,'tpsi',subname)
 
@@ -1483,7 +1501,7 @@ END SUBROUTINE EP_set_random_interna
             end do loop_calc
             if (maycalc) then
                call crtonewave(geocode,grid%n1,grid%n2,grid%n3,ng,nterm,lx,ly,lz,fac_arr,&
-                    G%xp(iexpo),G%psiat(iexpo),&
+                    G%xp(icplx_xp,iexpo),G%psiat(icplx_xp,iexpo),&
                     rx,ry,rz,hx,hy,hz,&
                     0,grid%n1,0,grid%n2,0,grid%n3,&
                     grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 

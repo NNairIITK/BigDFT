@@ -219,7 +219,7 @@ END SUBROUTINE createWavefunctionsDescriptors
 
 !>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
-     radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+     radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,G,proj)
   use module_base
   use module_types
   implicit none
@@ -227,6 +227,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
+  type(gaussian_basis),dimension(at%ntypes),intent(in) :: G
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
@@ -251,7 +252,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   call memocc(i_stat,logrid,'logrid',subname)
 
   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
-       logrid,at,orbs,nlpspd)
+       logrid,at,orbs,nlpspd,G)
 
   ! allocations for arrays holding the projectors and their data descriptors
   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
@@ -263,7 +264,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
   ! After having determined the size of the projector descriptor arrays fill them
   do iat=1,at%nat
-     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
+     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,G(at%iatype(iat)),mproj)
      if (mproj.ne.0) then 
 
         ! coarse grid quantities
@@ -524,14 +525,14 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   real(gp), intent(in):: ecut_pc
 
   type(pcproj_data_type) ::PPD
-
+  type(gaussian_basis),dimension(at%ntypes) :: proj_G !dummy here
   type(locreg_descriptors),  intent(in):: Glr
 
   
   !local variables
   character(len=*), parameter :: subname='createPcProjectorsArrays'
   integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj, mvctr
-  integer :: iat,i_stat,i_all,iseg, istart_c
+  integer :: iat,i_stat,i_all,iseg, istart_c,iatyp
   logical, dimension(:,:,:), allocatable :: logrid
 
 
@@ -591,9 +592,12 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid,'logrid',subname)
 
+  do iatyp=1,at%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
 
   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,Pcpmult,fpmult,rxyz,radii_cf,&
-       logrid,at,orbs,PPD%pc_nlpspd)
+       logrid,at,orbs,PPD%pc_nlpspd,proj_G)
 
   ! the above routine counts atomic projector and the number of their element for psp
   ! We must therefore correct , later, nlpspd%nprojel  and nlpspd%nproj
@@ -1137,7 +1141,8 @@ END SUBROUTINE createPawProjectorsArrays
 subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
      nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
-     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
+     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,&
+     GPU,input,proj_G)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -1159,6 +1164,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   type(communications_arrays), intent(in) :: comms
   type(GPU_pointers), intent(inout) :: GPU
   type(input_variables):: input
+  type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -1182,8 +1188,12 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   real(wp), dimension(:), allocatable :: potxc,passmat
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
+  type(paw_objects)::paw
   real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:,:,:), pointer :: psigau
+
+  !Nullify paw object
+  nullify(paw%paw_ij%dij)
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -1245,7 +1255,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 !!$        call deallocate_wfd(Llr(iat)%wfd,subname)
 !!$        if (Llr(iat)%geocode=='F') then
 !!$           call deallocate_bounds(Llr(iat)%bounds,subname)
-!!$        end if
+!!        end if
      end do
 
      !i_all=-product(shape(Llr))*kind(Llr)
@@ -1284,6 +1294,22 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
   call memocc(i_stat,i_all,'locrad',subname)
+
+! IF PAW: return
+  if(any(at%npspcode(:)==7)) then
+    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+    allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
+    call memocc(i_stat,hpsi,'hpsi',subname)
+    
+    !This is allocated in DiagHam
+    nullify(psit)
+
+    nullify(G%rxyz)
+
+    call deallocate_input_wfs()
+    return 
+  end if
+
 
   !check the size of the rhopot array related to NK SIC
   nrhodim=nspin
@@ -1446,22 +1472,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
         OCLconv=.true.
      end if
 
-     call deallocate_orbs(orbse,subname)
-     i_all=-product(shape(orbse%eval))*kind(orbse%eval)
-     deallocate(orbse%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'orbse%eval',subname)
-
-     
-     !deallocate the gaussian basis descriptors
-     call deallocate_gwf(G,subname)
-    
-     i_all=-product(shape(psigau))*kind(psigau)
-     deallocate(psigau,stat=i_stat)
-     call memocc(i_stat,i_all,'psigau',subname)
-     call deallocate_comms(commse,subname)
-     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-     deallocate(norbsc_arr,stat=i_stat)
-     call memocc(i_stat,i_all,'norbsc_arr',subname)
+    call deallocate_input_wfs()
  
     return 
  end if
@@ -1485,7 +1496,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
        Glr,ngatherarr,pot,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
 
   call NonLocalHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-       nlpspd,proj,Glr,psi,hpsi,eproj_sum)
+       nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G,paw)
 
   call SynchronizeHamiltonianApplication(nproc,orbse,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -1584,11 +1595,6 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
   end if
 
-  call deallocate_comms(commse,subname)
-
-  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-  deallocate(norbsc_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'norbsc_arr',subname)
 
   if (iproc == 0) then
      !gaussian estimation valid only for Free BC
@@ -1601,17 +1607,33 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      end if
   endif
 
-  !here we can define the subroutine which generates the coefficients for the virtual orbitals
-  call deallocate_gwf(G,subname)
 
-  i_all=-product(shape(psigau))*kind(psigau)
-  deallocate(psigau,stat=i_stat)
-  call memocc(i_stat,i_all,'psigau',subname)
+  call deallocate_input_wfs()
+
+contains
+
+subroutine deallocate_input_wfs()
 
   call deallocate_orbs(orbse,subname)
   i_all=-product(shape(orbse%eval))*kind(orbse%eval)
   deallocate(orbse%eval,stat=i_stat)
   call memocc(i_stat,i_all,'orbse%eval',subname)
+ 
+ !deallocate the gaussian basis descriptors
+ !here we can define the subroutine which generates the coefficients for the virtual orbitals
+ call deallocate_gwf(G,subname)
+ 
+  i_all=-product(shape(psigau))*kind(psigau)
+  deallocate(psigau,stat=i_stat)
+  call memocc(i_stat,i_all,'psigau',subname)
 
+  call deallocate_comms(commse,subname)
+
+  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
+  deallocate(norbsc_arr,stat=i_stat)
+  call memocc(i_stat,i_all,'norbsc_arr',subname)
+
+end subroutine deallocate_input_wfs
      
 END SUBROUTINE input_wf_diag
+

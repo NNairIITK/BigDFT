@@ -303,13 +303,14 @@ module module_interfaces
      END SUBROUTINE createWavefunctionsDescriptors
 
      subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
-          radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+          radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,G,proj)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,n1,n2,n3
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(in) :: orbs
+       type(gaussian_basis),dimension(at%ntypes),intent(in) :: G
        real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
        real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
        real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
@@ -417,7 +418,7 @@ module module_interfaces
 
      subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
           hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
-          correct_offset)
+          correct_offset,rholoc)
        use module_base
        use module_types
        implicit none
@@ -430,12 +431,15 @@ module module_interfaces
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(dp), dimension(*), intent(in) :: pkernel
        real(wp), dimension(*), intent(inout) :: pot_ion
+       type(rholoc_objects),intent(in)::rholoc
+
      END SUBROUTINE createIonicPotential
 
      subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
-          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
+          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,&
+          GPU,input,proj_G)
        use module_base
        use module_types
        implicit none
@@ -450,6 +454,7 @@ module module_interfaces
        type(communications_arrays), intent(in) :: comms
        type(GPU_pointers), intent(inout) :: GPU
        type(input_variables):: input
+       type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G
        integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -550,7 +555,7 @@ module module_interfaces
       END SUBROUTINE LocalHamiltonianApplication
 
       subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-           nlpspd,proj,lr,psi,hpsi,eproj_sum)
+           nlpspd,proj,lr,psi,hpsi,eproj_sum,G,paw)
         use module_base
         use module_types
         implicit none
@@ -560,6 +565,8 @@ module module_interfaces
         type(orbitals_data),  intent(in) :: orbs
         type(locreg_descriptors), intent(in) :: lr 
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+        type(gaussian_basis),dimension(at%ntypes),intent(in)::G !projectors in gaussian basis (for PAW)
+        type(paw_objects),intent(in)::paw
         real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
         real(gp), dimension(3,at%nat), intent(in) :: rxyz
         real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
@@ -1343,6 +1350,24 @@ module module_interfaces
        real(wp), dimension(*), intent(out) :: potxc
        real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
      END SUBROUTINE XC_potential
+
+
+     subroutine XC_potential_test(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+          rho,exc,vxc,nspin,rhocore,use_rhocore,potxc,use_dvxcdrho,dvxcdrho)
+       use module_base
+       implicit none
+       character(len=1), intent(in) :: geocode
+       character(len=1), intent(in) :: datacode
+       integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
+       real(gp), intent(in) :: hx,hy,hz
+       real(gp), intent(out) :: exc,vxc
+       real(dp), dimension(*), intent(inout) :: rho
+       real(wp), dimension(:), pointer :: rhocore !associated if useful
+       real(wp), dimension(*), intent(out) :: potxc
+       real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
+       logical,intent(in)::use_rhocore,use_dvxcdrho
+     END SUBROUTINE XC_potential_test
+
 
      subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&

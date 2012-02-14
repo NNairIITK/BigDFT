@@ -329,7 +329,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer :: nelec,ndegree_ip,j
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,ierr,inputpsi
+  integer :: iatyp,iat,i_all,i_stat,ierr,inputpsi
   real :: tcpu0,tcpu1
   real(gp), dimension(3) :: shift
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
@@ -341,6 +341,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   type(communications_arrays) :: comms
   type(gaussian_basis) :: Gvirt
   type(rho_descriptors)  :: rhodsc
+  type(rholoc_objects)::rholoc_tmp
+  type(gaussian_basis),dimension(atoms%ntypes)::proj_tmp
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:,:), allocatable :: radii_cf,fion
@@ -525,8 +527,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
   call timing(iproc,'CrtProjectors ','ON')
+  proj_tmp%ncplx=1
+  do iatyp=1,atoms%ntypes
+    call nullify_gaussian_basis(proj_tmp(iatyp))
+  end do
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_tmp,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
   if(sum(atoms%paw_NofL).gt.0) then
@@ -608,7 +614,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,0,&
-       .false.)
+       .false.,rholoc_tmp)
 
   !this can be inserted inside the IonicEnergyandForces routine
   !(after insertion of the non-regression test)
@@ -729,7 +735,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
           orbsAO,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in)
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, &
+          GPU,in,proj_tmp)
      
      
      
@@ -811,7 +818,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call input_wf_diag(iproc,nproc,atoms,rhodsc,&
           orbsAO,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in)
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, &
+          phnons, GPU, in,proj_tmp)
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
