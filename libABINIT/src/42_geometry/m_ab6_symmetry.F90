@@ -44,6 +44,7 @@ module m_ab6_symmetry
      integer :: nBravSym
      integer :: bravais(11), bravSym(3, 3, AB6_MAX_SYMMETRIES)
      ! The symmetry matrices
+     logical  :: auto
      integer  :: nSym
      integer, pointer  :: sym(:,:,:)
      real(dp), pointer :: transNon(:,:)
@@ -218,6 +219,7 @@ contains
     nullify(sym%spinAt)
     nullify(sym%typeAt)
     sym%tolsym   = tol8
+    sym%auto     = .true.
     sym%nSym     = 0
     nullify(sym%sym)
     nullify(sym%symAfm)
@@ -311,7 +313,9 @@ contains
 
     ! We unset all the computed symmetries
     token%data%nBravSym = -1
-    token%data%nSym     = 0
+    if (token%data%auto) then
+       token%data%nSym  = 0
+    end if
   end subroutine symmetry_set_tolerance
 
   subroutine symmetry_set_lattice(id, rprimd, errno)
@@ -347,7 +351,9 @@ contains
 
     ! We unset all the computed symmetries
     token%data%nBravSym = -1
-    token%data%nSym     = 0
+    if (token%data%auto) then
+       token%data%nSym  = 0
+    end if
   end subroutine symmetry_set_lattice
 
   subroutine symmetry_set_structure(id, nAtoms, typeAt, xRed, errno)
@@ -388,7 +394,9 @@ contains
     token%data%xRed   = xRed
 
     ! We unset only the symmetries
-    token%data%nSym     = 0
+    if (token%data%auto) then
+       token%data%nSym = 0
+    end if
     if (associated(token%data%indexingAtoms)) deallocate(token%data%indexingAtoms)
   end subroutine symmetry_set_structure
 
@@ -430,7 +438,9 @@ contains
     token%data%spinAt = spinAt
 
     ! We unset only the symmetries
-    token%data%nSym     = 0
+    if (token%data%auto) then
+       token%data%nSym  = 0
+    end if
   end subroutine symmetry_set_spin
 
   subroutine symmetry_set_collinear_spin(id, nAtoms, spinAt, errno)
@@ -471,7 +481,9 @@ contains
     token%data%spinAt = real(reshape(spinAt, (/ 1, nAtoms /)), dp)
 
     ! We unset only the symmetries
-    token%data%nSym     = 0
+    if (token%data%auto) then
+       token%data%nSym  = 0
+    end if
   end subroutine symmetry_set_collinear_spin
 
   subroutine symmetry_set_spin_orbit(id, withSpinOrbit, errno)
@@ -499,7 +511,9 @@ contains
     token%data%withSpinOrbit = withSpinOrbit
 
     ! We unset only the symmetries
-    token%data%nSym     = 0
+    if (token%data%auto) then
+       token%data%nSym  = 0
+    end if
   end subroutine symmetry_set_spin_orbit
 
   subroutine symmetry_set_field(id, field, errno)
@@ -529,7 +543,9 @@ contains
 
     ! We unset all the computed symmetries
     token%data%nBravSym = -1
-    token%data%nSym     = 0
+    if (token%data%auto) then
+       token%data%nSym  = 0
+    end if
   end subroutine symmetry_set_field
 
   subroutine symmetry_set_jellium(id, jellium, errno)
@@ -557,7 +573,9 @@ contains
     token%data%withJellium = jellium
 
     ! We unset only the symmetries
-    token%data%nSym     = 0
+    if (token%data%auto) then
+       token%data%nSym  = 0
+    end if
   end subroutine symmetry_set_jellium
 
   subroutine symmetry_set_periodicity(id, periodic, errno)
@@ -844,6 +862,7 @@ contains
        allocate(token%data%transNon(3, nSym))
        token%data%transNon(:,:) = transNon(:,:)
 
+       token%data%auto = .false.
        token%data%nsym = -nSym
     end if
 
