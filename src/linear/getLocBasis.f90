@@ -1013,7 +1013,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   ! ration of large locreg and standard locreg
-  factor=1.01d0
+  factor=1.2d0
   factor2=2.d0
 
   ! always use the same inwhichlocreg
@@ -1044,8 +1044,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-      locrad_tmp=factor2*locrad
 
+      locrad_tmp=factor2*locrad
       call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
            locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
            lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
@@ -1185,6 +1185,25 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
             !!call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
             !!     comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
             !!     newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+
+
+            ! Update confdatarr...
+            do iorb=1,orbslarge2%norbp
+               iiorb=orbslarge2%isorb+iorb
+               ilr=orbslarge2%inWhichlocreg(iiorb)
+               icenter=orbslarge2%inwhichlocreg(iiorb)
+               !confdatarr(iorb)%potorder=lin%confpotorder
+               !confdatarr(iorb)%prefac=lin%potentialprefac(at%iatype(icenter))
+               !confdatarr(iorb)%hh(1)=.5_gp*hx
+               !confdatarr(iorb)%hh(2)=.5_gp*hy
+               !confdatarr(iorb)%hh(3)=.5_gp*hz
+               confdatarr(iorb)%rxyzConf(1:3)=locregCenterTemp(1:3,icenter)
+               call my_geocode_buffers(lzdlarge2%Llr(ilr)%geocode,nl1,nl2,nl3)
+               confdatarr(iorb)%ioffset(1)=lzdlarge2%llr(ilr)%nsi1-nl1-1
+               confdatarr(iorb)%ioffset(2)=lzdlarge2%llr(ilr)%nsi2-nl2-1
+               confdatarr(iorb)%ioffset(3)=lzdlarge2%llr(ilr)%nsi3-nl3-1
+            end do
+            !!!!call random_number(lphilarge2)
             call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
                  comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
                  newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
@@ -1277,6 +1296,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  write(*,'(a,2i8,3es12.4,4x,3es12.4)') 'iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)', &
                      iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)
              end do
+
             call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
                  locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
@@ -1286,6 +1306,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                 ilr=lorbs%inwhichlocreg(iorb)
                 write(*,'(a,2i6,3x,3es16.4)') '1: iorb, ilr, center', iorb, ilr, lzd%llr(ilr)%locregCenter
             end do
+            !!call mpi_barrier(mpi_comm_world, ierr)
+            !!stop
 
 
             !call deallocateCommunicationsBuffersPotential(comgp, subname)
@@ -1915,6 +1937,23 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            !!call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
            !!     comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
            !!     newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+
+            ! Update confdatarr...
+            do iorb=1,orbslarge2%norbp
+               iiorb=orbslarge2%isorb+iorb
+               ilr=orbslarge2%inWhichlocreg(iiorb)
+               icenter=orbslarge2%inwhichlocreg(iiorb)
+               !confdatarr(iorb)%potorder=lin%confpotorder
+               !confdatarr(iorb)%prefac=lin%potentialprefac(at%iatype(icenter))
+               !confdatarr(iorb)%hh(1)=.5_gp*hx
+               !confdatarr(iorb)%hh(2)=.5_gp*hy
+               !confdatarr(iorb)%hh(3)=.5_gp*hz
+               confdatarr(iorb)%rxyzConf(1:3)=locregCenterTemp(1:3,icenter)
+               call my_geocode_buffers(lzdlarge2%Llr(ilr)%geocode,nl1,nl2,nl3)
+               confdatarr(iorb)%ioffset(1)=lzdlarge2%llr(ilr)%nsi1-nl1-1
+               confdatarr(iorb)%ioffset(2)=lzdlarge2%llr(ilr)%nsi2-nl2-1
+               confdatarr(iorb)%ioffset(3)=lzdlarge2%llr(ilr)%nsi3-nl3-1
+            end do
            call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
                 comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
                 newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
@@ -7159,6 +7198,9 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       centers_end(2,iorb)=Y(iorb,iorb)/normarr(iorb)
       centers_end(3,iorb)=Z(iorb,iorb)/normarr(iorb)
   end do
+
+  !!write(*,*) 'ATTENTION DEBUG'
+  !!centers=locregCenters
 
   do iorb=1,lzd%nlr
       tt = (centers_start(1,iorb)-centers_end(1,iorb))**2 &
