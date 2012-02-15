@@ -1515,10 +1515,6 @@ contains
        call memocc(i_stat,i_all,'denspot%rho_C',subname)
     end if
 
-    ! Free the libXC stuff if necessary.
-    call xc_end()
-
-
     !deallocate the mixing
     if (in%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
        call ab6_mixing_deallocate(mix)
