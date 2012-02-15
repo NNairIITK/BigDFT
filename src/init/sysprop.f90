@@ -198,7 +198,8 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 !!$        filename = 'nlcc.'//at%atomnames(ityp)
 !!$        inquire(file=filename,exist=exists)
 !!$        if (exists) then
-        if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or. at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
+        if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
+             at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
            if (iproc == 0) write(*,'(1x,a)',advance='no')&
                 'NLCC: calculate core density for atom: '//&
                 trim(at%atomnames(ityp))//';'
@@ -223,10 +224,11 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
         do i2=1,d%n2i
            do i1=1,d%n1i
               !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
-              tt=tt+rhocore(i1,i2,j3+i3xcsh-1,1)
+              tt=tt+rhocore(i1,i2,j3+i3xcsh,1)
            enddo
         enddo
      enddo
+
      call mpiallred(tt,1,MPI_SUM,MPI_COMM_WORLD,ierr)
      tt=tt*hxh*hyh*hzh
      if (iproc == 0) write(*,'(1x,a,f15.7)') &
@@ -294,7 +296,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
      end if
      filename ='nlcc.'//atoms%atomnames(ityp)
      call nlcc_dim_from_file(filename, atoms%nlcc_ngv(ityp), &
-          & atoms%nlcc_ngc(ityp), nlcc_dim, exists)
+          atoms%nlcc_ngc(ityp), nlcc_dim, exists)
      atoms%donlcc = (atoms%donlcc .or. exists)
   end do
   
@@ -318,7 +320,6 @@ subroutine init_atomic_values(verb, atoms, ixc)
      nullify(atoms%paw_nofgaussians,atoms%paw_Greal,atoms%paw_Gimag)
      nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
   end if
-
   !process the nlcc parameters if present 
   !(allocation is performed also with zero size)
   allocate(atoms%nlccpar(0:4,max(nlcc_dim,1)+ndebug),stat=i_stat)
@@ -446,18 +447,25 @@ subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
      !associate the number of gaussians
      open(unit=79,file=filename,status='unknown')
      read(79,*)ngv
-     if (ngv==0) ngv=UNINITIALIZED(1)
-     dim=dim+(ngv*(ngv+1)/2)
-     do ig=1,(ngv*(ngv+1))/2
-        read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
-     end do
+     if (ngv==0) then 
+        ngv=UNINITIALIZED(1)
+     else
+        dim=dim+(ngv*(ngv+1)/2)
+        do ig=1,(ngv*(ngv+1))/2
+           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
+        end do
+     end if
      read(79,*)ngc
-     if (ngc==0) ngc=UNINITIALIZED(1)
-     dim=dim+(ngc*(ngc+1))/2
-     !better to read values in a fake array
-     do ig=1,(ngc*(ngc+1))/2
-        read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
-     end do
+     if (ngc==0) then
+        ngc=UNINITIALIZED(1)
+     else
+        dim=dim+(ngc*(ngc+1))/2
+
+        !better to read values in a fake array
+        do ig=1,(ngc*(ngc+1))/2
+           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
+        end do
+     end if
      !no need to go further for the moment
      close(unit=79)
   else

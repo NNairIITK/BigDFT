@@ -1,12 +1,16 @@
-!#############################################################################################################################################
-!!****f* BigDFT/psi_to_locreg
-!#############################################################################################################################################
-!! FUNCTION: Tranform wavefunction between Global region and localisation region
-!!
-!! WARNING: 
-!!         Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
-!! SOURCE:
-!!
+!> @file
+!! Wavefunction put into a localisation region
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Tranform wavefunction between Global region and localisation region
+!! @warning 
+!!     Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
 subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
 
   use module_base
@@ -14,23 +18,19 @@ subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
  
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer, intent(in) :: nlr                  ! number of localization regions
   integer :: ilr           ! index of the localization region we are considering
   integer :: ldim          ! dimension of lpsi 
   type(orbitals_data),intent(in) :: orbs      ! orbital descriptor
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
   type(locreg_descriptors), dimension(nlr), intent(in) :: Olr  ! Localization grid descriptors 
   real(wp),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%norbp*orbs%nspinor),intent(in) :: psi       !Wavefunction (compressed format)
   real(wp),dimension(ldim),intent(inout) :: lpsi !Wavefunction in localization region
-  !#############################################
+  
   !local variables
-  !############################################
   integer :: igrid,isegloc,isegG,ix,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
@@ -157,21 +157,15 @@ subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
   call memocc(i_stat,i_all,'keymask',subname)
 
 END SUBROUTINE psi_to_locreg
-!%***
 
-!#############################################################################################################################################
-!!****f* BigDFT/shift_locreg_indexes
-!#############################################################################################################################################
-!! FUNCTION:
-!!        Find the shift necessary for the indexes of every segment of Blr
-!!        to make them compatible with the indexes of Alr. These shifts are
-!!        returned in the array keymask(nseg), where nseg should be the number
-!!        of segments in Blr.
-!! WARNING: 
-!!         This routine supposes that the region Blr is contained in the region Alr.
-!!         This should always be the case, if we concentrate on the overlap between two regions.
-!! SOURCE:
-!!
+
+!> Find the shift necessary for the indexes of every segment of Blr
+!!   to make them compatible with the indexes of Alr. These shifts are
+!!   returned in the array keymask(nseg), where nseg should be the number
+!!   of segments in Blr.
+!! @warning 
+!!   This routine supposes that the region Blr is contained in the region Alr.
+!!   This should always be the case, if we concentrate on the overlap between two regions.
 subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
 
   use module_base
@@ -179,15 +173,12 @@ subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
  
  implicit none
 
-!############################
 ! Arguments
-!############################
  type(locreg_descriptors),intent(in) :: Alr,Blr   ! The two localization regions
  integer,intent(in) :: nseg
  integer,intent(out) :: keymask(2,nseg)
-!#############################
+
 ! Local variable
-!#############################
  integer :: iseg      !integer for the loop
  integer :: Bindex    !starting index of segments in Blr
  integer :: x,y,z     !coordinates of start of segments in Blr 
@@ -234,17 +225,10 @@ subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
  end do
 
 END SUBROUTINE shift_locreg_indexes
-!%***
 
-!#############################################################################################################################################
-!!****f* BigDFT/global_to_local
-!#############################################################################################################################################
-!! FUNCTION: Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
-!!        
-!! WARNING: The quantity must not be stored in a compressed form.
-!!
-!! SOURCE:
-!!
+
+!> Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
+!! @warning: The quantity must not be stored in a compressed form.
 subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
 
  use module_base
@@ -252,9 +236,7 @@ subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
  
  implicit none
 
-!############################
 ! Arguments
-!############################
  type(locreg_descriptors),intent(in) :: Llr   ! Local localization region
  type(locreg_descriptors),intent(in) :: Glr   ! Global localization region
  integer, intent(in) :: size_rho  ! size of rho array
@@ -262,9 +244,8 @@ subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
  integer, intent(in) :: nspin  !number of spins
  real(wp),dimension(size_rho),intent(in) :: rho  ! quantity in global region
  real(wp),dimension(size_Lrho),intent(out) :: Lrho ! piece of quantity in local region
-!#############################
+
 ! Local variable
-!#############################
  integer :: ispin,i1,i2,i3  !integer for loops
  integer :: indSmall, indSpin, indLarge ! indexes for the arrays
  
@@ -296,16 +277,10 @@ subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
 END SUBROUTINE global_to_local
 
 
-!#############################################################################################################################################
-!!****f* BigDFT/Lpsi_to_global
-!#############################################################################################################################################
-!! FUNCTION: Tranform wavefunction between localisation region and the global region
-!!
-!! WARNING: 
-!!         Psi must be initialized to zero before entering this routine. Each Lpsi is added to the corresponding place in Global.
-!!         Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
-!! SOURCE:
-!!
+!> Tranform wavefunction between localisation region and the global region
+!! @warning 
+!!     Psi must be initialized to zero before entering this routine. Each Lpsi is added to the corresponding place in Global.
+!!     Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
 subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 
   use module_base
@@ -313,9 +288,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer :: Gdim          ! dimension of psi 
   integer :: Ldim          ! dimension of lpsi
   integer :: norb          ! number of orbitals
@@ -324,14 +297,12 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
   integer :: shift         ! shift to correct place in locreg
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
   real(wp),dimension(Gdim),intent(inout) :: psi       !Wavefunction (compressed format)
   real(wp),dimension(Ldim),intent(in) :: lpsi         !Wavefunction in localization region
-  !#############################################
+  
   !local variables
-  !############################################
   integer :: igrid,isegloc,isegG,ix,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
@@ -464,19 +435,8 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
   call memocc(i_stat,i_all,'keymask',subname)
 
 END SUBROUTINE Lpsi_to_global
-!%***
 
 
-
-!#############################################################################################################################################
-!!****f* BigDFT/overlap_matrix_for_locreg
-!#############################################################################################################################################
-!! FUNCTION: 
-!!
-!! WARNING: 
-!!
-!! SOURCE:
-!!
 subroutine overlap_matrix_for_locreg(ilr,nlr,nspin,psidim1,psishift1,npsidim,at,orbsi,Glr,Llr,Lpsi,&
            Lhpsi,Localnorb,Lnorbovr,outofzone,dim_Lhamovr,Lhamovr)
 
@@ -485,9 +445,7 @@ subroutine overlap_matrix_for_locreg(ilr,nlr,nspin,psidim1,psishift1,npsidim,at,
 
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in) :: ilr          ! index of current locreg
   integer,intent(in) :: nlr          ! number of localization regions 
   integer,intent(in) :: nspin        ! number of spins
@@ -500,17 +458,15 @@ subroutine overlap_matrix_for_locreg(ilr,nlr,nspin,psidim1,psishift1,npsidim,at,
   type(orbitals_data),intent(in) :: orbsi      ! orbital descriptor   
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   type(locreg_descriptors),dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors 
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
   real(wp),dimension(npsidim),intent(in) :: Lpsi       ! Wavefunction (compressed format)
   real(wp),dimension(npsidim),intent(in) :: Lhpsi      ! Wavefunction in localization region
   integer,dimension(nlr),intent(in) :: Localnorb       ! Number of orbitals in each locreg
   integer,dimension(3,nlr),intent(in) :: outofzone     ! Periodicity of the localization regions
   real(wp),dimension(dim_Lhamovr,2,orbsi%nkpts),intent(out) :: Lhamovr           ! Local Hamiltonian/Overlap matrix
-  !########################################
+  
   ! Local Variables
-  !########################################
   integer :: ilr2,iolr,i_all,i_stat,psidim2,psishift2
   integer :: isovrlp           ! number of overlap regions (periodicity)
   integer :: ndim_hamovr       ! dimension of hamiltonian and overlap matrix
@@ -715,17 +671,7 @@ subroutine overlap_matrix_for_locreg(ilr,nlr,nspin,psidim1,psishift1,npsidim,at,
   end do
 
 END SUBROUTINE overlap_matrix_for_locreg
-!%***
 
-!!$!#############################################################################################################################################
-!!$!!****f* BigDFT/overlap_matrix_between_locreg
-!!$!#############################################################################################################################################
-!!$!! FUNCTION: 
-!!$!!
-!!$!! WARNING: 
-!!$!!
-!!$!! SOURCE:
-!!$!!
 !!$subroutine overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nspin,orbscToAtom,psidim1,psidim2,psishift1,psishift2,&
 !!$           Lzd,orbs,Lpsi,Lhpsi,dim_Lhamovr,Lhamovr)
 !!$
@@ -734,9 +680,7 @@ END SUBROUTINE overlap_matrix_for_locreg
 !!$
 !!$ implicit none
 !!$
-!!$  !#######################################
 !!$  ! Subroutine Scalar Arguments
-!!$  !#######################################
 !!$  integer,intent(in) :: ilr,ilr2                     ! index of current locregs
 !!$  integer,intent(in) :: isovrlp                      ! number of overlaps(because of periodicity)
 !!$  integer,intent(in) :: nspin                        ! number of spins
@@ -747,16 +691,14 @@ END SUBROUTINE overlap_matrix_for_locreg
 !!$  integer,intent(in) :: dim_Lhamovr                  ! dimension of the Local Hamiltonian/Overlap Matrix
 !!$  type(local_zone_descriptors), intent(in) :: Lzd   ! Descriptors of regions for linear scaling
 !!$  type(orbitals_data),intent(in) :: orbs
-!!$  !########################################
+!!$
 !!$  !Subroutine Array Arguments
-!!$  !########################################
 !!$  integer , dimension(Lzd%nlr,nspin),intent(in) :: orbscToAtom
 !!$  real(wp),dimension(Lzd%Lpsidimtot),intent(in) :: Lpsi       ! Wavefunction (compressed format)
 !!$  real(wp),dimension(Lzd%Lpsidimtot),intent(in) :: Lhpsi      ! Wavefunction in localization region
 !!$  real(wp),dimension(nspin*dim_Lhamovr,2,orbs%nkpts),intent(out) :: Lhamovr           ! Local Hamiltonian/Overlap matrix
-!!$  !########################################
+!!$
 !!$  ! Local Variables
-!!$  !########################################
 !!$  integer :: iolr,i_all,i_stat
 !!$  integer :: ldim,ldim1,ldim2
 !!$  integer :: i1,i2,i3,ispin
@@ -900,7 +842,7 @@ END SUBROUTINE overlap_matrix_for_locreg
 !!$  end if
 !!$
 !!$END SUBROUTINE overlap_matrix_between_locreg
-!!$!%***
+
 
 subroutine local_overlap_matrices(norbe,norb1,norb2,nvctrp,nspin,nspinor,ndim_hamovr,hamovr,psi,psi2,hpsi,&
                                   iorbst,iorbst2,imatrst)
@@ -947,6 +889,7 @@ subroutine local_overlap_matrices(norbe,norb1,norb2,nvctrp,nspin,nspinor,ndim_ha
      imatrst =imatrst+ncplx*norb1*norb2
 
 END SUBROUTINE local_overlap_matrices
+
 
 !!$subroutine semicore_overlap_matrices(ilr,nspin,nspinor,norbtot,Lzd,orbs,orbscToAtom,ndim_hamovr,hamovr,scstr,psi,hpsi)
 !!$  use module_base
@@ -1054,15 +997,7 @@ END SUBROUTINE local_overlap_matrices
 !!$END SUBROUTINE semicore_overlap_matrices
 
 
-
-!#############################################################################################################################################
-!!****f* BigDFT/psi_to_locreg2
-!#############################################################################################################################################
-!! FUNCTION: Tranform one wavefunction between Global region and localisation region
-!!
-!! WARNING: 
-!! SOURCE:
-!!
+!> Tranform one wavefunction between Global region and localisation region
 subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
   use module_base
@@ -1070,23 +1005,19 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
  
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in) :: iproc                  ! process ID
   integer,intent(in) :: nproc                  ! number of processes
   integer,intent(in) :: ldim          ! dimension of lpsi 
   integer,intent(in) :: gdim          ! dimension of gpsi 
   type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
   real(wp),dimension(gdim),intent(in) :: gpsi       !Wavefunction (compressed format)
   real(wp),dimension(ldim),intent(out) :: lpsi   !Wavefunction in localization region
-  !#############################################
+  
   !local variables
-  !############################################
   integer :: igrid,isegloc,isegG,ix,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
@@ -1216,20 +1147,12 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   call memocc(i_stat,i_all,'keymask',subname)
 
 END SUBROUTINE psi_to_locreg2
-!%***
 
 
-
-!#############################################################################################################################################
-!!****f* BigDFT/Lpsi_to_global2
-!#############################################################################################################################################
-!! FUNCTION: Tranform wavefunction between localisation region and the global region
-!!
-!! WARNING: 
-!!         Psi must be initialized to zero before entering this routine. Each Lpsi is added to the corresponding place in Global.
-!!         Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
-!! SOURCE:
-!!
+!> Tranform wavefunction between localisation region and the global region
+!! @warning 
+!!    Psi must be initialized to zero before entering this routine. Each Lpsi is added to the corresponding place in Global.
+!!    Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
 !subroutine Lpsi_to_global2(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)
 
@@ -1238,9 +1161,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in):: iproc, nproc
   integer :: Gdim          ! dimension of psi 
   integer :: Ldim          ! dimension of lpsi
@@ -1249,14 +1170,12 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   integer :: nspin         ! number of spins 
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
   real(wp),dimension(Gdim),intent(inout) :: psi       !Wavefunction (compressed format)
   real(wp),dimension(Ldim),intent(in) :: lpsi         !Wavefunction in localization region
-  !#############################################
+  
   !local variables
-  !############################################
   integer :: igrid,isegloc,isegG,ix,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
@@ -1401,17 +1320,11 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   call memocc(i_stat,i_all,'keymask',subname)
 
 END SUBROUTINE Lpsi_to_global2
-!%***
 
-!#############################################################################################################################################
-!!****f* BigDFT/global_to_local_parallel
-!#############################################################################################################################################
-!! FUNCTION: Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
-!!        
-!! WARNING: The quantity must not be stored in a compressed form.
-!!
-!! SOURCE:
-!!
+
+!> Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
+!! @warning       
+!!    The quantity must not be stored in a compressed form.
 subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3s,i3e)
 
  use module_base
@@ -1419,9 +1332,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
  
  implicit none
 
-!############################
 ! Arguments
-!############################
  type(locreg_descriptors),intent(in) :: Llr   ! Local localization region
  type(locreg_descriptors),intent(in) :: Glr   ! Global localization region
  integer, intent(in) :: size_rho  ! size of rho array
@@ -1430,9 +1341,8 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
  real(wp),dimension(size_rho),intent(in) :: rho  ! quantity in global region
  real(wp),dimension(size_Lrho),intent(out) :: Lrho ! piece of quantity in local region
  integer,intent(in):: i3s, i3e ! starting and ending indices on z direction (related to distribution of rho when parallel)
-!#############################
+
 ! Local variable
-!#############################
  integer :: ispin,i1,i2,i3  !integer for loops
  integer :: indSmall, indSpin, indLarge ! indexes for the arrays
  
@@ -1468,16 +1378,11 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
 END SUBROUTINE global_to_local_parallel
 
 
-!#############################################################################################################################################
-!!****f* BigDFT/local_to_global_parallel
-!#############################################################################################################################################
-!! FUNCTION: "Inserts" a quantity which is stored in the localized region into the glocal region.
+!> "Inserts" a quantity which is stored in the localized region into the glocal region.
 !!        
-!! WARNING: The quantity must not be stored in a compressed form. The output (rho) must be initialized to zero
-!!          before entering this subroutine.
-!!
-!! SOURCE:
-!!
+!! @warning
+!!    The quantity must not be stored in a compressed form. The output (rho) must be initialized to zero
+!!    before entering this subroutine.
 subroutine local_to_global_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3s,i3e)
 
  use module_base
@@ -1485,9 +1390,7 @@ subroutine local_to_global_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
  
  implicit none
 
-!############################
 ! Arguments
-!############################
  type(locreg_descriptors),intent(in) :: Llr   ! Local localization region
  type(locreg_descriptors),intent(in) :: Glr   ! Global localization region
  integer, intent(in) :: size_rho  ! size of rho array
@@ -1496,9 +1399,8 @@ subroutine local_to_global_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
  real(wp),dimension(size_rho),intent(out) :: rho  ! quantity in global region
  real(wp),dimension(size_Lrho),intent(in) :: Lrho ! piece of quantity in local region
  integer,intent(in):: i3s, i3e ! starting and ending indices on z direction (related to distribution of rho when parallel)
-!#############################
+
 ! Local variable
-!#############################
  integer :: ispin,i1,i2,i3  !integer for loops
  integer :: indSmall, indSpin, indLarge ! indexes for the arrays
  
@@ -1535,22 +1437,14 @@ subroutine local_to_global_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
 END SUBROUTINE local_to_global_parallel
 
 
-
-
-
-
-
-!#############################################################################################################################################
-!!****f* BigDFT/Lpsi_to_global2
-!#############################################################################################################################################
-!! FUNCTION: Tranform wavefunction between localisation region and the global region. Only assigns the indices for this transformation:
-!!           indexLpsi(i)=j means that element i of the localization region muss be copied to position j in the global region.
+!> Tranform wavefunction between localisation region and the global region. 
+!! Only assigns the indices for this transformation:
+!! indexLpsi(i)=j means that element i of the localization region muss be copied to position j in the global region.
 !!
-!! WARNING: 
-!!         Psi must be initialized to zero before entering this routine. Each Lpsi is added to the corresponding place in Global.
-!!         Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
-!! SOURCE:
-!!
+!! @warning 
+!!     Psi must be initialized to zero before entering this routine. 
+!!     Each Lpsi is added to the corresponding place in Global.
+!!     Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
 !subroutine Lpsi_to_global2(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, indexLpsi)
 
@@ -1559,9 +1453,7 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
 
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in):: iproc, nproc
   integer :: Gdim          ! dimension of psi 
   integer :: Ldim          ! dimension of lpsi
@@ -1570,13 +1462,11 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
   integer :: nspin         ! number of spins 
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
   integer,dimension(Ldim),intent(out) :: indexLpsi         !Wavefunction in localization region
-  !#############################################
+  
   !local variables
-  !############################################
   integer :: igrid,isegloc,isegG,ix,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
@@ -1731,20 +1621,16 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
   call memocc(i_stat,i_all,'keymask',subname)
 
 END SUBROUTINE index_of_Lpsi_to_global2
-!%***
 
 
-
-!#############################################################################################################################################
-!!****f* BigDFT/psi_to_locreg2
-!#############################################################################################################################################
-!! FUNCTION: Tranform wavefunction between global region and the localization region. Only assigns the indices for this transformation:
-!!           indexLpsi(i)=j means that element i of the localization region must be copied from position j in the global region.
+!> Tranform wavefunction between global region and the localization region. 
+!! Only assigns the indices for this transformation:
+!! indexLpsi(i)=j means that element i of the localization region must be copied 
+!! from position j in the global region.
 !!
-!! WARNING: 
-!!         Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
-!! SOURCE:
-!!
+!! @warning 
+!!     Only coded for sequential, not parallel cases 
+!!     For parallel should change increment and loc_psi dimensions
 subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi)
 
   use module_base
@@ -1752,22 +1638,18 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
  
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in) :: iproc                  ! process ID
   integer,intent(in) :: nproc                  ! number of processes
   integer,intent(in) :: ldim          ! dimension of lpsi 
   integer,intent(in) :: gdim          ! dimension of gpsi 
   type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
-  !########################################
+  
   !Subroutine Array Arguments
-  !########################################
   integer,dimension(ldim),intent(out) :: indexLpsi   !Wavefunction in localization region
-  !#############################################
+  
   !local variables
-  !############################################
   integer :: igrid,isegloc,isegG,ix,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
@@ -1899,4 +1781,3 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
   call memocc(i_stat,i_all,'keymask',subname)
 
 END SUBROUTINE index_of_psi_to_locreg2
-!%***

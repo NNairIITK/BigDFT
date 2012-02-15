@@ -479,12 +479,13 @@ call to_zero(6,wbstr(1))
   if (associated(rhocore)) then
      !at this stage the density is not anymore spin-polarised
      !sum the complete core density for non-spin polarised calculations
-     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1,1,i3xcsh_fake,1),1,rho(1),1)
+     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1,1,i3xcsh_fake+1,1),1,rho(1),1)
      vexcuRC=0.0_gp
      do i3=1,nxc
         do i2=1,m3
            do i1=1,m1
               !do i=1,nxc*m3*m1
+              i=i1+(i2-1)*m1+(i3-1)*m1*m3
               vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
            end do
         end do
@@ -495,6 +496,7 @@ call to_zero(6,wbstr(1))
               do i1=1,m1
                  !do i=1,nxc*m3*m1
                  !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+                 i=i1+(i2-1)*m1+(i3-1)*m1*m3
                  vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i+m1*m3*nxc)
               end do
            end do

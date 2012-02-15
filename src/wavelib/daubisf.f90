@@ -1,7 +1,7 @@
 !> @file
 !!  Daubechies to Interpolation scaling functions routines
 !! @author
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2012 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -329,10 +329,10 @@ subroutine deallocate_work_arrays_locham(lr,w)
 END SUBROUTINE deallocate_work_arrays_locham
 
 
-!>  Transforms a wavefunction written in Daubechies basis into a 
-!!  real space wavefunction in interpolating scaling functions on a finer grid
-!!  does the job for all supported BC. Saves the results on the work arrays
-!!  which are reused in the isf_to_daub_kinetic routine
+!> Transforms a wavefunction written in Daubechies basis into a 
+!! real space wavefunction in interpolating scaling functions on a finer grid
+!! does the job for all supported BC. Saves the results on the work arrays
+!! which are reused in the isf_to_daub_kinetic routine
 subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   use module_base
   use module_types

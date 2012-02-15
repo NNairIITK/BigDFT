@@ -213,7 +213,7 @@ END SUBROUTINE free_gpu_OCL
 subroutine daub_to_isf_OCL(lr,psi,psi_r,GPU)
   use module_base
   use module_types
-  
+  implicit none
   type(locreg_descriptors), intent(in) :: lr
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)), intent(in) :: psi
@@ -266,7 +266,7 @@ END SUBROUTINE daub_to_isf_OCL
 subroutine isf_to_daub_OCL(lr,psi_r,psi,GPU)
   use module_base
   use module_types
-  
+  implicit none
   type(locreg_descriptors), intent(in) :: lr
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)), intent(out) :: psi
