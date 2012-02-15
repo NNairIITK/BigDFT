@@ -994,8 +994,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   ! ration of large locreg and standard locreg
-  !factor=300.d0
-  factor=1.d0
+  factor=2.d0
 
   ! always use the same inwhichlocreg
   inwhichlocreg_reference = lorbs%inwhichlocreg
@@ -1074,19 +1073,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                 istl=istl+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
                 istg=istg+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
             end do
-            !!write(*,*) 'WARNING DEBUG: COMMENTED ORTHONORMALIZATION'
             call orthonormalizeLocalized(iproc, nproc, &
                  orthpar%methTransformOverlap, orthpar%nItOrtho, &
                  orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbslarge, oplarge, comonlarge, lzdlarge, &
                  madlarge, lphilarge, ovrlp)
-!!do istat=1,size(lphilarge)
-!!    write(100+iproc,*) istat, lphilarge(istat)
-!!end do
-!!do istat=1,lorbs%norb
-!!    do iall=1,lorbs%norb
-!!        write(200+iproc,*) ovrlp(iall,istat)
-!!    end do
-!!end do
 
             ! Update confdatarr...
             do iorb=1,orbslarge%norbp
@@ -1278,9 +1268,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                 ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
                 ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
             end do
-!!do istat=1,size(lphi)
-!!    write(110+iproc,*) istat, lphi(istat)
-!!end do
 
             ! Update confdatarr...
             do iorb=1,orbslarge%norbp
@@ -1907,6 +1894,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
             call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
+                 write(*,*) 'calling create_new_locregs..., iproc', iproc
             call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
                  locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
@@ -1961,12 +1949,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            end do
            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
                 lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
-           write(*,*) 'after check_cutoff', iproc
            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
            !!     6.d0, confdatarr, lphilarge)
+           write(*,*) 'after check_cutoff, iproc', iproc
 
            call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+           write(*,*) 'after destroy_new_locregs, iproc', iproc
            locrad_tmp=factor*locrad
            call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
                 locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
@@ -2466,12 +2455,15 @@ character(len=*),parameter:: subname='create_new_locregs'
 
 
    if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
+   write(*,*) 'before nullifying, iproc', iproc
    call nullify_local_zone_descriptors(lzdlarge)
    call nullify_orbitals_data(orbslarge)
    call nullify_overlapParameters(oplarge)
    call nullify_p2pComms(comonlarge)
    call nullify_matrixDescriptors(madlarge)
    call nullify_p2pComms(comgplarge)
+
+   write(*,*) 'after nullifying, iproc', iproc
 
    tag=1
    lzdlarge%nlr=nlr
@@ -2483,8 +2475,10 @@ character(len=*),parameter:: subname='create_new_locregs'
    norb=norbu
    norbd=0
    nspin=1
+   write(*,*) 'calling orbitals_descriptors_forLinear, iproc', iproc
    call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
         lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge)
+   write(*,*) 'after orbitals_descriptors_forLinear, iproc', iproc
    call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
         orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
 
@@ -6613,8 +6607,6 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           !!              - (NZdsquare(iorb,iorb)-2.d0*NZdZ0(iorb,iorb)+NZ0square(iorb,iorb))
           omega = omega + Xprimesquare(iorb,iorb)+Yprimesquare(iorb,iorb)+Zprimesquare(iorb,iorb) 
           rspread = rspread + Xprimesquare(iorb,iorb)+Yprimesquare(iorb,iorb)+Zprimesquare(iorb,iorb)
-          if(iproc==0) write(*,'(a,i8,es16.7)') 'iorb, omega(iorb)', &
-              iorb, Xprimesquare(iorb,iorb)+Yprimesquare(iorb,iorb)+Zprimesquare(iorb,iorb)
       end do
       !if(iproc==0) write(*,'(a,i7,2es16.7)') 'it, omega, lstep', it, omega, lstep
 

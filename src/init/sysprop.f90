@@ -1514,7 +1514,9 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
 !!$  call memocc(i_stat,i_all,'mykpts',subname)
 
   !new system for k-point repartition
+  write(*,*) 'before kpts_to_procs_via_obj, iproc;', iproc
   call kpts_to_procs_via_obj(nproc,orbs%nkpts,norb,norb_par)
+  write(*,*) 'after kpts_to_procs_via_obj, iproc;', iproc
   !assign the values for norb_par and check the distribution
   norb_tot=0
   do jproc=0,nproc-1
@@ -1550,7 +1552,9 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
   orbs%norbd=norbd
 
   ! Modify these values
+  write(*,*) 'before repartitionOrbitals2, iproc', iproc
   call repartitionOrbitals2(iproc, nproc, orbs%norb, orbs%norb_par, orbs%norbp, orbs%isorb)
+  write(*,*) 'after repartitionOrbitals2, iproc', iproc
 
 
   allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
