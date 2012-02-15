@@ -174,7 +174,7 @@ END SUBROUTINE LocalHamiltonianApplication
 !> routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
 subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-     nlpspd,proj,lr,psi,hpsi,eproj_sum,G,paw)
+     nlpspd,proj,lr,psi,hpsi,eproj_sum,G)
   use module_base
   use module_types
   implicit none
@@ -184,8 +184,9 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(orbitals_data),  intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr 
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(gaussian_basis),dimension(at%ntypes),intent(in)::G !projectors in gaussian basis (for PAW)
-  type(paw_objects),intent(in)::paw
+!  type(gaussian_basis),dimension(at%ntypes),intent(in)::G !projectors in gaussian basis (for PAW)
+  type(gaussian_basis),intent(in)::G
+!  type(paw_objects),intent(in)::paw
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi

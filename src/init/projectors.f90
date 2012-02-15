@@ -18,7 +18,8 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-  type(gaussian_basis),dimension(at%ntypes),intent(in)::G
+  !type(gaussian_basis),dimension(at%ntypes),intent(in)::G
+  type(gaussian_basis),intent(in)::G
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
@@ -45,7 +46,8 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   if (iproc ==0) then
      !print the number of projectors to be created
      do ityp=1,at%ntypes
-        call numb_proj(ityp,at%ntypes,at%psppar,at%npspcode,G(ityp),mproj)
+        !call numb_proj(ityp,at%ntypes,at%psppar,at%npspcode,G(ityp),mproj)
+        call numb_proj(ityp,at%ntypes,at%psppar,at%npspcode,G,mproj)
         natyp=0
         do iat=1,at%nat
            if (at%iatype(iat) == ityp) natyp=natyp+1
@@ -57,7 +59,8 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
 
   do iat=1,at%nat
 
-     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,G(at%iatype(iat)),mproj)
+!     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,G(at%iatype(iat)),mproj)
+     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,G,mproj)
      if (mproj /= 0) then 
 
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
@@ -234,7 +237,8 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   end if
   nlpspd%nprojel=nkptsproj*nlpspd%nprojel
 
-  if(at%npspcode(1)==7)nlpspd%nprojel=nlpspd%nprojel*G(1)%ncplx
+!  if(at%npspcode(1)==7)nlpspd%nprojel=nlpspd%nprojel*G(1)%ncplx
+  if(at%npspcode(1)==7)nlpspd%nprojel=nlpspd%nprojel*G%ncplx
 
   !print *,'iproc,nkptsproj',iproc,nkptsproj,nlpspd%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
 

@@ -32,8 +32,9 @@ program oneatom
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis
   type(rho_descriptors)  :: rhodsc
-  type(gaussian_basis),dimension(:),allocatable::proj_G
-  type(paw_objects)::paw
+!  type(gaussian_basis),dimension(:),allocatable::proj_G
+  type(gaussian_basis)::proj_G
+  !type(paw_objects)::paw
   character(len=4) :: itername
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -68,11 +69,12 @@ program oneatom
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
 ! Nullify paw objects:
-  nullify(paw%paw_ij%dij)
-  allocate(proj_G(atoms%ntypes))
-  do iatyp=1,atoms%ntypes
-     call nullify_gaussian_basis(proj_G(iatyp))
-  end do
+  !nullify(paw%paw_ij%dij)
+  !allocate(proj_G(atoms%ntypes))
+  !do iatyp=1,atoms%ntypes
+  !   call nullify_gaussian_basis(proj_G(iatyp))
+  !end do
+  call nullify_gaussian_basis(proj_G)
 
   call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
@@ -229,7 +231,7 @@ program oneatom
           Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU)
 
      call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G,paw)
+          nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G)
 
      call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 
@@ -287,7 +289,7 @@ program oneatom
   
   call deallocate_diis_objects(diis,subname)
 
-  deallocate(proj_G)
+  !deallocate(proj_G)
 
   if (nproc > 1) then
      i_all=-product(shape(psit))*kind(psit)

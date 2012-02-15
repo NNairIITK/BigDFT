@@ -35,7 +35,8 @@ program memguess
   type(locreg_descriptors) :: Glr
   type(nonlocal_psp_descriptors) :: nlpspd
   type(gaussian_basis) :: G !basis for davidson IG
-  type(gaussian_basis),dimension(:),allocatable :: proj_G !dummy here
+  !type(gaussian_basis),dimension(:),allocatable :: proj_G !dummy here
+  type(gaussian_basis):: proj_G !dummy here
   real(gp), dimension(3) :: shift
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
@@ -399,15 +400,16 @@ program memguess
   allocate(logrid(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid,'logrid',subname)
  
-  allocate(proj_G(atoms%ntypes))
-  do iatyp=1,atoms%ntypes
-     call nullify_gaussian_basis(proj_G(iatyp))
-  end do
+  !allocate(proj_G(atoms%ntypes))
+  !do iatyp=1,atoms%ntypes
+  !   call nullify_gaussian_basis(proj_G(iatyp))
+  !end do
+  call nullify_gaussian_basis(proj_G)
 
   call localize_projectors(0,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,&
        in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd,proj_G)
  
-  deallocate(proj_G)
+  !deallocate(proj_G)
  
   !allocations for arrays holding the data descriptors
   !just for modularity

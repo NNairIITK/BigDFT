@@ -233,8 +233,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   type(communications_arrays) :: comms, commsv
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
-  type(gaussian_basis),dimension(atoms%ntypes)::proj_G
-  type(paw_objects)::paw
+  !type(gaussian_basis),dimension(atoms%ntypes)::proj_G
+  type(gaussian_basis)::proj_G
+!  type(paw_objects)::paw
   type(diis_objects) :: diis
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -267,8 +268,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   ! ----------------------------------
   !Nullify paw object (only used for PAW)
-  paw%usepaw=0
-  nullify(paw%paw_ij%dij)
+  !paw%usepaw=0
+  !nullify(paw%paw_ij%dij)
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -304,9 +305,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end select
      
   !proj_G is dummy here, it is only used for PAW
-  do iatyp=1,atoms%ntypes
-     call nullify_gaussian_basis(proj_G(iatyp))
-  end do
+  !do iatyp=1,atoms%ntypes
+  !   call nullify_gaussian_basis(proj_G(iatyp))
+  !end do
+  call nullify_gaussian_basis(proj_G)
 
   norbv=abs(in%norbv)
   nvirt=in%nvirt
@@ -985,7 +987,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eSIC_DC,in%SIC,GPU,pkernel=pkernelseq)
 
            call NonLocalHamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-                nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G,paw)
+                nlpspd,proj,Glr,psi,hpsi,eproj_sum,proj_G)
 
            call SynchronizeHamiltonianApplication(nproc,orbs,Glr,GPU,hpsi,ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
 

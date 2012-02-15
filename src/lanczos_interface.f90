@@ -1026,14 +1026,16 @@ END SUBROUTINE EP_set_random_interna
    real(gp) ene, gamma, mene
    !Local variables
    integer :: k,iatyp
-   type(gaussian_basis),dimension(ha%at%ntypes)::proj_G
-   type(paw_objects)::paw
+   !type(gaussian_basis),dimension(ha%at%ntypes)::proj_G
+   type(gaussian_basis)::proj_G
+   !type(paw_objects)::paw
    
    !Nullify PAW pointers:
-   nullify(paw%paw_ij%dij)
-   do iatyp=1,ha%at%ntypes
-      call nullify_gaussian_basis(proj_G(iatyp))
-   end do
+   !nullify(paw%paw_ij%dij)
+   !do iatyp=1,ha%at%ntypes
+   !   call nullify_gaussian_basis(proj_G(iatyp))
+   !end do
+   call nullify_gaussian_basis(proj_G)
    
    if( ha%nproc > 1) then
       if(i>=0) then
@@ -1067,7 +1069,7 @@ END SUBROUTINE EP_set_random_interna
          ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
     call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G,paw)
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G)
 
     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
          ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
@@ -1088,7 +1090,7 @@ END SUBROUTINE EP_set_random_interna
          ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
     call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G,paw)
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G)
 
     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
          ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
@@ -1158,14 +1160,16 @@ END SUBROUTINE EP_set_random_interna
     integer, intent(in) :: p,i
     !Local variables
     integer :: k
-    type(gaussian_basis),dimension(ha%at%ntypes)::proj_G
-    type(paw_objects)::paw
+!    type(gaussian_basis),dimension(ha%at%ntypes)::proj_G
+    type(gaussian_basis)::proj_G
+    !type(paw_objects)::paw
     
     !nullify PAW objects:
-    nullify(paw%paw_ij%dij)
-    do k=1,ha%at%ntypes
-       call nullify_gaussian_basis(proj_G(k))
-    end do    
+    !nullify(paw%paw_ij%dij)
+    !do k=1,ha%at%ntypes
+    !   call nullify_gaussian_basis(proj_G(k))
+    !end do    
+    call nullify_gaussian_basis(proj_G)
 
     if( ha%nproc > 1) then
        if(i>=0) then
@@ -1203,7 +1207,7 @@ END SUBROUTINE EP_set_random_interna
          ha%epot_sum,ha%eexctX,ha%eSIC_DC,ha%SIC,ha%GPU)
 
     call NonLocalHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G,paw)
+         ha%rxyz,ha%nlpspd,ha%proj,ha%lr,  Qvect_tmp    ,  wrk  ,ha%eproj_sum,proj_G)
 
     call SynchronizeHamiltonianApplication(ha%nproc,ha%orbs,ha%lr,ha%GPU,wrk,&
          ha%ekin_sum,ha%epot_sum,ha%eproj_sum,ha%eSIC_DC,ha%eexctX)
