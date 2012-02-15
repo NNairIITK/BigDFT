@@ -7,6 +7,176 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+!> Denspot initialization
+subroutine initialize_DFT_local_fields(denspot)
+  use module_base
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(out) :: denspot
+  !local variables
+  integer :: i
+
+  nullify(denspot%rho_C,denspot%V_ext,denspot%Vloc_KS,denspot%rho_psi)
+  nullify(denspot%V_XC,denspot%pkernel,denspot%pkernelseq)
+  nullify(denspot%f_XC,denspot%rho_full,denspot%pot_full,denspot%rhov)
+
+  denspot%psoffset=0.0_gp
+
+  do i=1,3
+     denspot%hgrids(i)=uninitialized(denspot%hgrids(i))
+  end do
+  if (verbose >1) then
+     denspot%PSquiet='NO '
+  else
+     denspot%PSquiet='YES'
+  end if
+
+  call initialize_rho_descriptors(denspot%rhod)
+  call initialize_denspot_distribution(denspot%dpcom)
+
+end subroutine initialize_DFT_local_fields
+
+subroutine initialize_denspot_distribution(dpcom)
+  use module_base
+  use module_types
+  implicit none
+  type(denspot_distribution), intent(out) :: dpcom
+  
+  dpcom%n3d      =uninitialized(dpcom%n3d)      
+  dpcom%n3p      =uninitialized(dpcom%n3p)      
+  dpcom%n3pi     =uninitialized(dpcom%n3pi)     
+  dpcom%i3xcsh   =uninitialized(dpcom%i3xcsh)   
+  dpcom%i3s      =uninitialized(dpcom%i3s)      
+  dpcom%nrhodim  =uninitialized(dpcom%nrhodim)  
+  dpcom%i3rho_add=uninitialized(dpcom%i3rho_add)
+
+  nullify(dpcom%nscatterarr,dpcom%ngatherarr)
+  
+end subroutine initialize_denspot_distribution
+
+subroutine initialize_rho_descriptors(rhod)
+  use module_base
+  use module_types
+  implicit none
+  type(rho_descriptors), intent(out) :: rhod
+
+  rhod%geocode='X' !fake value
+  rhod%icomm=1 !< lda case
+  rhod%nrhotot=uninitialized(rhod%nrhotot)
+  rhod%n_csegs=uninitialized(rhod%n_csegs)
+  rhod%n_fsegs=uninitialized(rhod%n_fsegs)
+  rhod%dp_size=uninitialized(rhod%dp_size)
+  rhod%sp_size=uninitialized(rhod%sp_size)
+  
+  nullify(rhod%spkey,rhod%dpkey,rhod%cseg_b,rhod%fseg_b)
+
+end subroutine initialize_rho_descriptors
+
+subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,dpcom,rhod)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => denspot_communications
+  implicit none
+  integer, intent(in) :: iproc, nproc
+  type(grid_dimensions), intent(in) :: grid
+  real(gp), intent(in) :: hxh, hyh, hzh
+  type(input_variables), intent(in) :: in
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  type(denspot_distribution), intent(inout) :: dpcom
+  type(rho_descriptors), intent(out) :: rhod
+  !local variables
+  character(len = *), parameter :: subname = 'denspot_communications' 
+  integer :: i_stat
+
+  ! Create descriptors for density and potentials.
+  ! ------------------
+  !these arrays should be included in the comms descriptor
+  !allocate values of the array for the data scattering in sumrho
+  !its values are ignored in the datacode='G' case
+  allocate(dpcom%nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
+  call memocc(i_stat,dpcom%nscatterarr,'nscatterarr',subname)
+  !allocate array for the communications of the potential
+  allocate(dpcom%ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,dpcom%ngatherarr,'ngatherarr',subname)
+
+  !create the descriptors for the density and the potential
+  !these descriptors should take into account the localisation regions
+  call createDensPotDescriptors(iproc,nproc,atoms,grid,hxh,hyh,hzh, &
+       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',in%ixc,in%rho_commun, &
+       dpcom%n3d,dpcom%n3p,&
+       dpcom%n3pi,dpcom%i3xcsh,dpcom%i3s, &
+       dpcom%nscatterarr,dpcom%ngatherarr,rhod)
+
+  !Allocate Charge density / Potential in real space
+  !here the full_density treatment should be put
+  dpcom%nrhodim=in%nspin
+  dpcom%i3rho_add=0
+  if (trim(in%SIC%approach)=='NK') then
+     dpcom%nrhodim=2*dpcom%nrhodim
+     dpcom%i3rho_add=grid%n1i*grid%n2i*dpcom%i3xcsh+1
+  end if
+
+  !fill the full_local_potential dimension
+  dpcom%ndimpot=grid%n1i*grid%n2i*dpcom%n3p
+  dpcom%ndimgrid=grid%n1i*grid%n2i*grid%n3i
+  dpcom%ndimrhopot=grid%n1i*grid%n2i*dpcom%n3d*&
+       dpcom%nrhodim
+
+end subroutine denspot_communications
+
+subroutine allocateRhoPot(iproc,nproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,denspot)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => allocateRhoPot
+  implicit none
+  integer, intent(in) :: iproc, nproc
+  type(locreg_descriptors), intent(in) :: Glr
+  real(gp), intent(in) :: hxh, hyh, hzh
+  type(input_variables), intent(in) :: in
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  type(DFT_local_fields), intent(inout) :: denspot
+
+  character(len = *), parameter :: subname = "allocateRhoPot"
+  integer :: i_stat
+
+  ! Allocate density and potentials.
+  ! --------
+  !allocate ionic potential
+  if (denspot%dpcom%n3pi > 0) then
+     allocate(denspot%V_ext(Glr%d%n1i,Glr%d%n2i,denspot%dpcom%n3pi,1+ndebug),stat=i_stat)
+     call memocc(i_stat,denspot%V_ext,'V_ext',subname)
+  else
+     allocate(denspot%V_ext(1,1,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,denspot%V_ext,'pot_ion',subname)
+  end if
+  !Allocate XC potential
+  if (denspot%dpcom%n3p >0) then
+     allocate(denspot%V_XC(Glr%d%n1i,Glr%d%n2i,denspot%dpcom%n3p,in%nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,denspot%V_XC,'V_XC',subname)
+  else
+     allocate(denspot%V_XC(1,1,1,in%nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,denspot%V_XC,'V_XC',subname)
+  end if
+
+  if (denspot%dpcom%n3d >0) then
+     allocate(denspot%rhov(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d*&
+          denspot%dpcom%nrhodim+ndebug),stat=i_stat)
+     call memocc(i_stat,denspot%rhov,'rhov',subname)
+  else
+     allocate(denspot%rhov(denspot%dpcom%nrhodim+ndebug),stat=i_stat)
+     call memocc(i_stat,denspot%rhov,'rhov',subname)
+  end if
+  !check if non-linear core correction should be applied, and allocate the 
+  !pointer if it is the case
+  call calculate_rhocore(iproc,atoms,Glr%d,rxyz,hxh,hyh,hzh, &
+       denspot%dpcom%i3s,denspot%dpcom%i3xcsh,&
+       denspot%dpcom%n3d,denspot%dpcom%n3p,denspot%rho_C)
+  
+END SUBROUTINE allocateRhoPot
 
 !> Create the descriptors for the density and the potential
 subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
@@ -87,8 +257,99 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
      endif
   end if
 
+  !calculate dimensions of the complete array to be allocated before the reduction procedure
+  if (rhodsc%icomm==1) then
+     rhodsc%nrhotot=0
+     do jproc=0,nproc-1
+        rhodsc%nrhotot=rhodsc%nrhotot+nscatterarr(jproc,1)
+     end do
+  else
+     rhodsc%nrhotot=gdim%n3i
+  end if
 
 END SUBROUTINE createDensPotDescriptors
+
+!> routine which initialised the potential data
+subroutine default_confinement_data(confdatarr,norbp)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: norbp
+  type(confpot_data), dimension(norbp), intent(out) :: confdatarr
+  !local variables
+  integer :: iorb
+
+  !initialize the confdatarr
+  do iorb=1,norbp
+     confdatarr(iorb)%potorder=0
+     !the rest is not useful
+     confdatarr(iorb)%prefac     =UNINITIALIZED(confdatarr(iorb)%prefac)     
+     confdatarr(iorb)%hh(1)      =UNINITIALIZED(confdatarr(iorb)%hh(1))      
+     confdatarr(iorb)%hh(2)      =UNINITIALIZED(confdatarr(iorb)%hh(2))      
+     confdatarr(iorb)%hh(3)      =UNINITIALIZED(confdatarr(iorb)%hh(3))      
+     confdatarr(iorb)%rxyzConf(1)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(1))
+     confdatarr(iorb)%rxyzConf(2)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(2))
+     confdatarr(iorb)%rxyzConf(3)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(3))
+     confdatarr(iorb)%ioffset(1) =UNINITIALIZED(confdatarr(iorb)%ioffset(1)) 
+     confdatarr(iorb)%ioffset(2) =UNINITIALIZED(confdatarr(iorb)%ioffset(2)) 
+     confdatarr(iorb)%ioffset(3) =UNINITIALIZED(confdatarr(iorb)%ioffset(3)) 
+
+  end do
+end subroutine default_confinement_data
+
+subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,lin,Lzd,confinementCenter)
+  use module_base
+  use module_types
+  implicit none
+  real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(linearParameters), intent(in) :: lin
+  type(local_zone_descriptors), intent(in) :: Lzd
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  integer, dimension(orbs%norb), intent(in) :: confinementCenter
+  type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
+  !local variables
+  integer :: iorb,nl1,nl2,nl3,icenter,ilr
+
+  !initialize the confdatarr
+  do iorb=1,orbs%norbp
+     ilr=orbs%inWhichlocreg(orbs%isorb+iorb)
+     icenter=confinementCenter(orbs%isorb+iorb)
+     confdatarr(iorb)%potorder=lin%confpotorder
+     confdatarr(iorb)%prefac=lin%potentialprefac(at%iatype(icenter))
+     confdatarr(iorb)%hh(1)=.5_gp*hx
+     confdatarr(iorb)%hh(2)=.5_gp*hy
+     confdatarr(iorb)%hh(3)=.5_gp*hz
+     confdatarr(iorb)%rxyzConf(1:3)=rxyz(1:3,icenter)
+     call geocode_buffers(Lzd%Llr(ilr)%geocode,nl1,nl2,nl3)
+     confdatarr(iorb)%ioffset(1)=lzd%llr(ilr)%nsi1-nl1-1
+     confdatarr(iorb)%ioffset(2)=lzd%llr(ilr)%nsi2-nl2-1
+     confdatarr(iorb)%ioffset(3)=lzd%llr(ilr)%nsi3-nl3-1
+  end do
+
+contains
+
+    subroutine geocode_buffers(geocode,nl1,nl2,nl3)
+      implicit none
+      integer, intent(in) :: nl1,nl2,nl3
+      character(len=1), intent(in) :: geocode
+      !local variables
+      logical :: perx,pery,perz
+      integer :: nr1,nr2,nr3
+
+      !conditions for periodicity in the three directions
+      perx=(geocode /= 'F')
+      pery=(geocode == 'P')
+      perz=(geocode /= 'F')
+
+      call ext_buffers(perx,nl1,nr1)
+      call ext_buffers(pery,nl2,nr2)
+      call ext_buffers(perz,nl3,nr3)
+
+    end subroutine geocode_buffers
+  
+end subroutine define_confinement_data
 
 
 !> Partition the orbitals between processors to ensure load balancing
@@ -115,7 +376,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
   character(len=*), parameter :: subname='orbitals_communicators'
   logical :: yesorb,yescomp
   integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
-  integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info,jkpt
+  integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info,jkpt,nB,nKB,nMB
   integer, dimension(:), allocatable :: mykpts
   logical, dimension(:), allocatable :: GPU_for_comp
   integer, dimension(:,:), allocatable :: nvctr_par,norb_par !<for all the components and orbitals (with k-pts)
@@ -248,6 +509,8 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
      stop
   end if
 
+!write(*,'(a,i2,3x,8i7,i10)') 'iproc, nvctr_par(jproc), sum', iproc, (nvctr_par(jproc,1), jproc=0,nproc-1), sum(nvctr_par(:,1))
+!write(*,*) 'iproc, (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp', iproc, (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp
   !some checks
   !check the distribution
   do ikpts=1,orbs%nkpts
@@ -277,6 +540,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
   
   !print*,'check',orbs%ikptproc(:)
 
+!write(*,*) 'orbs%norb_par',orbs%norb_par
 
   !calculate the number of k-points treated by each processor in both
   ! the component distribution and the orbital distribution.
@@ -320,7 +584,8 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
      end if
      jkpte=min((jsorb+orbs%norb_par(jproc,0)-1)/orbs%norb+1,orbs%nkpts)
      if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc,0) /=0) then
-        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution ends after the components one'
+        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,&
+             ' the orbital k-points distribution ends after the components one'
         print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
         stop
      end if
@@ -428,16 +693,24 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
   call memocc(i_stat,i_all,'mykpts',subname)
 
   !calculate the dimension of the wavefunction
-  !for the given processor
-  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
-       sum(comms%ncntt(0:nproc-1)))
+  !for the given processor (this is only the cubic strategy)
+  orbs%npsidim_orbs=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor
+  orbs%npsidim_comp=sum(comms%ncntt(0:nproc-1))
+    
+!!$  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
+!!$       sum(comms%ncntt(0:nproc-1)))
 
-  if (iproc == 0) write(*,'(1x,a,i0)') &
-       'Wavefunctions memory occupation for root processor (Bytes): ',&
-       orbs%npsidim*8
+
+  nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
+  nMB=nB/1024/1024
+  nKB=(nB-nMB*1024*1024)/1024
+  nB=modulo(nB,1024)
+
+  if (iproc == 0) write(*,'(1x,a,3(i5,a))') &
+       'Wavefunctions memory occupation for root MPI process: ',&
+       nMB,' MB ',nKB,' KB ',nB,' B'
 
 END SUBROUTINE orbitals_communicators
-
 
 !> Print the distribution schemes
 subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)

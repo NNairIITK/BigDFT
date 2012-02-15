@@ -243,7 +243,7 @@ end function spherical_gaussian_value
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
 subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rho,exc,vxc,nspin,rhocore,potxc,dvxcdrho)
+     rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho)
   use module_base
   use Poisson_Solver
   implicit none
@@ -253,9 +253,10 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(gp), intent(in) :: hx,hy,hz
   real(gp), intent(out) :: exc,vxc
   real(dp), dimension(*), intent(inout) :: rho
-  real(wp), dimension(:), pointer :: rhocore !associated if useful
+  real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
   real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
+  real(dp), dimension(6), intent(out) :: xcstr
   !local variables
   character(len=*), parameter :: subname='XC_potential'
   logical :: wrtmsg
@@ -271,8 +272,11 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(dp), dimension(:,:,:,:), allocatable :: vxci
   real(gp), dimension(:), allocatable :: energies_mpi
   real(dp), dimension(:,:,:,:), pointer :: dvxci
-
+  real(dp), dimension(6) :: wbstr
   call timing(iproc,'Exchangecorr  ','ON')
+
+call to_zero(6,xcstr(1))
+call to_zero(6,wbstr(1))
 
   wrtmsg=.false.
   !calculate the dimensions wrt the geocode
@@ -335,16 +339,16 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      call timing(iproc,'Exchangecorr  ','OF')
      return
   end if
-
+  
   !if rhocore is associated we should add it on the charge density
   if (associated(rhocore)) then
      if (nspin == 1) then
         !sum the complete core density for non-spin polarised calculations
-        call axpy(m1*m3*nxt,1.0_wp,rhocore(1),1,rho(1),1)
+        call axpy(m1*m3*nxt,1.0_wp,rhocore(1,1,1,1),1,rho(1),1)
      else if (nspin==2) then
         !for spin-polarised calculation consider half per spin index
-        call axpy(m1*m3*nxt,0.5_wp,rhocore(1),1,rho(1),1)
-        call axpy(m1*m3*nxt,0.5_wp,rhocore(1),1,rho(1+m1*m3*nxt),1)
+        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1),1)
+        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
      end if
   end if
 
@@ -413,14 +417,13 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !if (present(dvxcdrho)) then
   !   write(*,*)'Array of second derivatives of Exc allocated, dimension',ndvxc,m1,m3,nwb
   !end if
-
   if (istart+1 <= m2) then 
      if(datacode=='G' .and. &
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
-        !allocation of an auxiliary array for avoiding the shift 
+        !allocation of an auxiliary array for avoiding the shift
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho_G,vxci,&
-             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
+             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
         !restoring the density on the original form
         do ispin=1,nspin
            do i3=1,nxt
@@ -439,7 +442,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      else
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),vxci,&
-             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
+             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
      end if
   else
      !presumably the vxc should be initialised
@@ -447,7 +450,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      eexcuLOC=0.0_dp
      vexcuLOC=0.0_dp
   end if
-   
   !the value of the shift depends of the distributed i/o or not
   if ((datacode=='G' .and. nproc == 1) .or. datacode == 'D') then
      !copy the relevant part of vxci on the output potxc
@@ -477,14 +479,27 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (associated(rhocore)) then
      !at this stage the density is not anymore spin-polarised
      !sum the complete core density for non-spin polarised calculations
-     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1+m1*m3*i3xcsh_fake),1,rho(1),1)
+     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1,1,i3xcsh_fake+1,1),1,rho(1),1)
      vexcuRC=0.0_gp
-     do i=1,nxc*m3*m1
-        vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i)
+     do i3=1,nxc
+        do i2=1,m3
+           do i1=1,m1
+              !do i=1,nxc*m3*m1
+              i=i1+(i2-1)*m1+(i3-1)*m1*m3
+              vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
+           end do
+        end do
      end do
      if (nspin==2) then
-        do i=1,nxc*m3*m1
-           vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+        do i3=1,nxc
+           do i2=1,m3
+              do i1=1,m1
+                 !do i=1,nxc*m3*m1
+                 !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+                 i=i1+(i2-1)*m1+(i3-1)*m1*m3
+                 vexcuRC=vexcuRC+rhocore(i1,i2,i3+i3xcsh_fake,1)*potxc(i+m1*m3*nxc)
+              end do
+           end do
         end do
         !divide the results per two because of the spin multiplicity
         vexcuRC=0.5*vexcuRC
@@ -510,6 +525,13 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      exc=energies_mpi(1)
      vxc=energies_mpi(2)
 
+!XC-stress term
+  if (geocode == 'P') then
+     xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
+     call mpiallred(wbstr(1),6,MPI_SUM,MPI_COMM_WORLD,ierr)
+     wbstr=wbstr/real(n01*n02*n03,dp)
+     xcstr(:)=xcstr(:)+wbstr(:)
+  end if
      i_all=-product(shape(energies_mpi))*kind(energies_mpi)
      deallocate(energies_mpi,stat=i_stat)
      call memocc(i_stat,i_all,'energies_mpi',subname)
@@ -563,6 +585,14 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   else
      exc=real(eexcuLOC,gp)
      vxc=real(vexcuLOC,gp)
+
+!XC-stress term
+   if (geocode == 'P') then
+    xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
+    wbstr=wbstr/real(n01*n02*n03,dp)
+    xcstr(:)=xcstr(:)+wbstr(:)
+   end if
+
   end if
 
   i_all=-product(shape(vxci))*kind(vxci)
@@ -623,7 +653,7 @@ END SUBROUTINE XC_potential
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
 subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
-     nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nspden)
+     nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nspden,wbstr)
 
   use module_base
   use module_xc
@@ -639,6 +669,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(m1,m3,nwb,nspden), intent(out) :: vxci
   real(dp), dimension(m1,m3,nwb,ndvxc), intent(out) :: dvxci
   real(dp), intent(out) :: exc,vxc
+  real(dp), dimension(6), intent(inout) :: wbstr
 
   !Local variables----------------
   character(len=*), parameter :: subname='xc_energy'
@@ -682,7 +713,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
      allocate(dvxcdgr(1,1,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
   end if
-
+  
   !Allocations
   allocate(exci(m1,m3,nwb+ndebug),stat=i_stat)
   call memocc(i_stat,exci,'exci',subname)
@@ -697,12 +728,14 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr)
   else if (abs(order) == 2) then
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr,dvxci)
+  
   end if
+wbstr(:)=0._dp
   if (use_gradient) then
      !do not calculate the White-Bird term in the Leeuwen Baerends XC case
      if (ixc/=13) then
         call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,3,gradient,&
-             real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci)
+             real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci,wbstr)
      end if
 
      !restore the density array in the good position if it was shifted for the parallel GGA
@@ -896,7 +929,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc
   logical :: use_gradient
-
+  real(dp),dimension(6) :: wbstr
   !check for the dimensions
   if (nwb/=nxcl+nxc+nxcr-2 .or. nxt/=nwbr+nwb+nwbl) then
      print *,'the XC dimensions are not correct'
@@ -1030,7 +1063,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         !do not calculate the White-Bird term in the Leeuwen Baerends XC case
         if (ixc/=13) then
            call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,nvxcdgr,gradient,&
-                real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci)
+                real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci,wbstr)
         end if
 
         !restore the density array in the good position if it was shifted for the parallel GGA
@@ -1291,7 +1324,8 @@ END SUBROUTINE xc_energy
 !> Correct the XC potential with the White-Bird formula, to be used for the 
 !! GGA case. Works either in parallel of in serial, by proper change of the 
 !! arguments.
-subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,hx,hy,hz,dvxcdgr,wb_vxc)
+subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,&
+gradient,hx,hy,hz,dvxcdgr,wb_vxc,wbstr)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -1300,6 +1334,7 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   real(dp), dimension(n01,n02,n03,2*nspden-1,0:3), intent(in) :: gradient
   real(dp), dimension(n01,n02,n03,nvxcdgr), intent(in) :: dvxcdgr
   real(dp), dimension(n01,n02,n03,nspden), intent(inout) :: wb_vxc
+  real(dp), dimension(6),intent(inout) :: wbstr
   !Local variables
   character(len=*), parameter :: subname='vxcpostprocessing'
   integer :: i1,i2,i3,dir_i,i_all,i_stat
@@ -1379,6 +1414,9 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   !end of spin-polarized if statement
   end if
 
+! wb-stress
+  if (geocode == 'P') call wb_stress(n01,n02,n03,n3eff,wbl,nspden,f_i,gradient,wbstr)
+
   !let us now calculate the gradient and correct the result
   call wb_correction(geocode,n01,n02,n03,n3eff,wbl,wbr,f_i,hx,hy,hz,nspden,wb_vxc)
 
@@ -1388,3 +1426,40 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   call memocc(i_stat,i_all,'f_i',subname)
 
 END SUBROUTINE vxcpostprocessing
+
+subroutine wb_stress(n1,n2,n3,n3eff,wbl,nsp,f_i,gradient,wbstr)
+ use module_base
+ implicit none
+  integer, intent(in) :: n1,n2,n3,nsp,n3eff,wbl
+  real(dp), dimension(n1,n2,n3,3,nsp) :: f_i
+  real(dp), dimension(n1,n2,n3,2*nsp-1,0:3), intent(in) :: gradient
+ real(dp),dimension(6),intent(out) :: wbstr
+ integer :: i1,i2,i3,isp
+
+wbstr=0._dp
+!seq: 11 22 33 12 13 23
+do isp=1,nsp
+           do i3=wbl,n3eff+wbl-1
+              do i2=1,n2
+                 do i1=1,n1
+        wbstr(1) = wbstr(1)-gradient(i1,i2,i3,isp,1)*f_i(i1,i2,i3,1,isp)
+        wbstr(2) = wbstr(2)-gradient(i1,i2,i3,isp,2)*f_i(i1,i2,i3,2,isp)
+        wbstr(3) = wbstr(3)-gradient(i1,i2,i3,isp,3)*f_i(i1,i2,i3,3,isp)
+        wbstr(6) = wbstr(6)-gradient(i1,i2,i3,isp,1)*f_i(i1,i2,i3,2,isp)
+        wbstr(5) = wbstr(5)-gradient(i1,i2,i3,isp,1)*f_i(i1,i2,i3,3,isp)
+        wbstr(4) = wbstr(4)-gradient(i1,i2,i3,isp,2)*f_i(i1,i2,i3,3,isp)
+                 end do
+              end do
+           end do
+end do
+! unpol case: up+dn=2*up
+if (nsp==1) wbstr=wbstr*2._gp
+
+!wbstress=wbstress/real(n1*n2*n3,gp)
+
+!write(*,*) 'WB-correction to stress'
+!write(*,*) wbstress(1:3)
+!write(*,*) wbstress(4:6)
+
+end subroutine wb_stress
+

@@ -47,8 +47,9 @@ module module_input
 
    contains
 
-   subroutine input_set_file(iproc, filename, exists,comment_file_usage)
+   subroutine input_set_file(iproc, dump, filename, exists,comment_file_usage)
       integer, intent(in) :: iproc
+      logical, intent(in) :: dump
       character(len = *), intent(in) :: filename,comment_file_usage
       logical, intent(out) :: exists
 
@@ -142,9 +143,9 @@ module module_input
       end if
       iline_written=iline_written+1
 
-      output = (iproc == 0)
+      output = (iproc == 0) .and. dump
       !dump the 0-th line on the screen
-      if (iproc == 0) then
+      if (iproc == 0 .and. dump) then
          write(*,'(a)') inout_lines(0)
       end if
       !!$    output = (iproc == 0)

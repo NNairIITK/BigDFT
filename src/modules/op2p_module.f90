@@ -13,8 +13,8 @@ module overlap_point_to_point
    use module_base
    implicit none
 
-   private !< By default variables are internal to the module
-
+   !By default variables are internal to the module
+   private
    public :: initialize_OP2P_descriptors,OP2P_communication,OP2P_descriptors,free_OP2P_descriptors
 
    type OP2P_descriptors

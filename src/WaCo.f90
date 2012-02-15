@@ -1,3 +1,13 @@
+!> @file
+!! Wannier constructor
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 program WaCo
 
    use module_base
@@ -43,7 +53,7 @@ program WaCo
    real(kind=8), allocatable :: at_pos(:,:)
    real(kind=8), allocatable :: umn(:,:), rho(:,:), rhoprime(:,:)
    integer :: i, j, k, np,i_all
-   character :: seedname*16
+   character(len=16) :: seedname
    logical :: calc_only_A
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_poj, n_nnkpts, n_excb, n_at, n_bands, s
@@ -784,8 +794,8 @@ stop
            if(.false.) then
               open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown')
               call writeonewave(ifile,.false.,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,  & 
-                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),  & 
-                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keyg(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1), & 
+                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyv(1),  & 
+                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1), & 
                    wann(1),wann(Glr%wfd%nvctr_c+1), 0.d0)
            else
               ! should be write_wave_etsf  (only one orbital)
@@ -1107,7 +1117,7 @@ subroutine scalar_kmeans_diffIG(nIG,crit,nel,vect,string,nbuf)
      end do
   end do loop_iter
 
-  write(*,'(A,x,i4.4,x,A)') 'Convergence reached in',iter,'iterations.'
+  write(*,'(A,1x,i4.4,1x,A)') 'Convergence reached in',iter,'iterations.'
   write(*,'(A,A,A,1x,i4.4,1x,A)') 'The ',trim(string),' can be clustered in',nbuf,'elements:'
   do i = 1, nbuf
      minold = huge(minold)
@@ -1142,6 +1152,7 @@ subroutine scalar_kmeans_diffIG(nIG,crit,nel,vect,string,nbuf)
 end subroutine scalar_kmeans_diffIG
 
 subroutine init_random_seed(shuffler)
+  implicit none
   integer, intent(in) :: shuffler
   integer :: i, n, clock
   integer, dimension(:), allocatable :: seed

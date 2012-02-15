@@ -43,6 +43,7 @@ PSPS = psppar.H \
        HGH-K/psppar.N \
        HGH-K/psppar.O \
        HGH-K/psppar.Ti \
+       extra/psppar.H \
        Xabs/psppar.Fe
 
 INS = $(TESTDIRS:=.in)
@@ -71,11 +72,13 @@ report:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
 	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-    if test -n "$$name" && test -f input.perf && ! grep -qs ACCEL "$$name" ; then \
-	   cat input.perf >> $$name.perf ; \
+    if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
+    if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
+	   if test -f $$file ; then cp $$file $$file.bak ;  fi ; \
+	   cat accel.perf >> $$file ; \
     fi ; \
-	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
-	if test -f input.perf.bak ; then mv -f input.perf.bak input.perf ; fi 
+	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
+	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out:
@@ -117,27 +120,27 @@ $(PSPS):
 %.clean:
 	@dir=`basename $@ .clean` ; \
 	rm -f $$dir.* ; \
-        if test x"$(srcdir)" = x"." ; then \
-	  cd $$dir ; \
-	  for i in psppar.* ; do \
-	    if test -L $i ; then \
-	      rm -f $i ; \
-	    fi ; \
-	  done ; \
-          rm -f *.out *.mon *.report default* *.prc; \
-	  rm -fr data data-*; \
-	  rm -f velocities.xyz pdos.dat td_spectra.txt ; \
-	  rm -f bfgs_eigenvalues.dat frequencies.res frequencies.xyz hessian.dat ; \
-	  rm -f *.NEB.dat *.NEB.int *.NEB.restart *.NEB.log ; \
-	  rm -f electronic_density.cube ACF.dat AVF.dat BCF.dat ; \
-	  rm -f anchorpoints* fort.* nogt.* path*.xyz vogt.* ; \
-	  rm -f latest.pos.force.*.dat fort.* CPUlimit test ; \
-	  rm -f cheb_spectra_* alphabeta* b2B_xanes.* local_potentialb2B* ; \
-	  $(MAKE) -f ../Makefile $$dir".post-clean"; \
-        else \
-          rm -rf $$dir ; \
-        fi ; \
-        echo "Clean in "$$dir
+    if test x"$(srcdir)" = x"." ; then \
+	   cd $$dir ; \
+	   for i in psppar.* ; do \
+	       if test -L $i ; then \
+	          rm -f $i ; \
+	       fi ; \
+	   done ; \
+       rm -f *.out *.mon *.report default* *.prc; \
+	   rm -fr data data-*; accel.perf \
+	   rm -f velocities.xyz pdos.dat td_spectra.txt ; \
+	   rm -f bfgs_eigenvalues.dat frequencies.res frequencies.xyz hessian.dat ; \
+	   rm -f *.NEB.dat *.NEB.int *.NEB.restart *.NEB.log ; \
+	   rm -f electronic_density.cube ACF.dat AVF.dat BCF.dat ; \
+	   rm -f anchorpoints* fort.* nogt.* path*.xyz vogt.* ; \
+	   rm -f latest.pos.force.*.dat fort.* CPUlimit test ; \
+	   rm -f cheb_spectra_* alphabeta* b2B_xanes.* local_potentialb2B* ; \
+	   $(MAKE) -f ../Makefile $$dir".post-clean"; \
+    else \
+       rm -rf $$dir ; \
+    fi ; \
+    echo "Clean in "$$dir
 
 %.post-in: ;
 %.psp: ;
@@ -157,14 +160,8 @@ $(INS): in_message
           if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
           for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
         fi ; \
-	    if ! test -f $(srcdir)/$$dir/input.perf ; then \
-	       rm -f $$dir/input.perf ; \
-		   touch $$dir/input.perf ; \
-		else \
-		   cp $(srcdir)/$$dir/input.perf $$dir/input.perf.bak ;  \
-	    fi ; \
-	    if test -n "$(run_ocl)" && ! grep -qs ACCEL $$dir/input.perf ; then \
-	       echo "ACCEL OCLGPU" >> $$dir/input.perf ; \
+	    if test -n "$(run_ocl)" ; then \
+	       echo "ACCEL OCLGPU" > $$dir/accel.perf ; \
 	    fi ; \
         cd $$dir && $(MAKE) -f ../Makefile $$dir".psp"; \
         $(MAKE) -f ../Makefile $$dir".post-in"; \

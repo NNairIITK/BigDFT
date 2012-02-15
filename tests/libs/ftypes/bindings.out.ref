@@ -1,0 +1,62 @@
+Test BigDFT_Atoms structure creation.
+Test BigDFT_Atoms structure set n types.
+Test BigDFT_Atoms structure syncing.
+Test BigDFT_Atoms structure set n atoms.
+Test BigDFT_Atoms structure direct access.
+Test BigDFT_Atoms pseudo-potential on the fly.
+ Type 0, radii 1.215576 0.221786 0.221786
+ Type 1, radii 1.463418 0.200000 0.200000
+Test BigDFT_Atoms free.
+ Ok
+Test BigDFT_Atoms structure creation from file.
+ Atom 0, coord. 1.620000 1.620000 1.620000, type 1
+ Atom 1, coord. 3.240000 3.240000 3.240000, type 2
+ Atom 2, coord. 0.000000 0.000000 3.240000, type 2
+ Atom 3, coord. 3.240000 0.000000 0.000000, type 2
+ Atom 4, coord. 0.000000 3.240000 0.000000, type 2
+ Box [F], is in 0.000000 0.000000 0.000000
+Test BigDFT_Atoms pseudo-potential evaluation.
+ Type 0, radii 1.806025 0.435634 0.435634
+ Type 1, radii 1.463418 0.200000 0.200000
+Test BigDFT_Glr structure creation.
+ Atoms 0, coord.   9.000000   9.000000   9.000000 'Si', type 1
+ Atoms 1, coord.  10.620000  10.620000  10.620000 ' H', type 2
+ Atoms 2, coord.   7.380000   7.380000  10.620000 ' H', type 2
+ Atoms 3, coord.  10.620000   7.380000   7.380000 ' H', type 2
+ Atoms 4, coord.   7.380000  10.620000   7.380000 ' H', type 2
+ Box is in 18.000000 18.000000 18.000000
+ Shift is  -7.380000 -7.380000 -7.380000
+ Geocode is  F
+ Grid is            40        40        40
+ Int grid is       111       111       111
+Test calculation of grid points.
+ Coarse grid has   37617 points.
+ Fine grid has      2143 points.
+Test BigDFT_Inputs structure creation.
+ Read 'test.dft' file: 1
+ Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
+Test BigDFT_Orbs structure creation.
+ System has 8 electrons.
+Test BigDFT_Proj structure creation.
+ System has 5 projectors, and 63000 elements.
+Test Poisson solver kernel creation.
+Test Poisson solver kernel free.
+ Ok
+Test BigDFT_Proj free.
+ Ok
+Test BigDFT_Orbs free.
+ Ok
+Test BigDFT_Inputs free.
+ Ok
+Test BigDFT_Glr free.
+ Ok
+Test BigDFT_Atoms free.
+ Ok
+# BigDFT file - Test from memory generation.
+ 0.50000000000000000E+01 0.00000000000000000E+00 0.50000000000000000E+01
+ 0.00000000000000000E+00 0.00000000000000000E+00 0.50000000000000000E+01
+#keyword: bohr
+#keyword: freeBC
+  0.00000000000000000E+00  0.00000000000000000E+00  0.00000000000000000E+00  O                                                     
+  5.00000000000000000E-01  0.00000000000000000E+00  5.00000000000000000E-01  H                                                     
+ -5.00000000000000000E-01  0.00000000000000000E+00  5.00000000000000000E-01  H                                                     

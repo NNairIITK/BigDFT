@@ -45,6 +45,8 @@ module module_defs
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
 
+  logical :: mpi_thread_funneled_is_supported=.false. !< control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
+
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine
@@ -153,7 +155,7 @@ module module_defs
      module procedure scal_simple,scal_double
   end interface
   interface vcopy
-     module procedure copy_simple,copy_double,copy_double_to_simple,&
+     module procedure copy_integer,copy_simple,copy_double,copy_double_to_simple,&
           copy_complex_real_simple,copy_complex_real_double
   end interface
   interface c_vscal
@@ -185,6 +187,23 @@ module module_defs
   end interface
 
   contains
+
+    subroutine bigdft_mpi_init(ierr)
+      implicit none
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI_INIT_THREAD
+      integer :: provided
+      call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
+      if (provided /= 1 .or. ierr/=0) then
+         !write(*,*)'MPI_THREAD_FUNNELED not supported!',provided,ierr
+	 !call MPI_INIT(ierr)
+      else
+          mpi_thread_funneled_is_supported=.true.
+      endif
+#else
+      call MPI_INIT(ierr)      
+#endif
+    end subroutine bigdft_mpi_init
     
     !interface for MPI_ALLREDUCE operations
     subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -208,7 +227,7 @@ module module_defs
 
       !not appropriate for integers, to be seen if it works
       call scopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_INTEGER,mpi_op,mpi_comm,ierr)
       
@@ -240,7 +259,7 @@ module module_defs
       call memocc(i_stat,copybuf,'copybuf',subname)
       
       call scopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_REAL,mpi_op,mpi_comm,ierr)
       
@@ -272,7 +291,7 @@ module module_defs
       call memocc(i_stat,copybuf,'copybuf',subname)
       
       call dcopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
       
@@ -305,7 +324,7 @@ module module_defs
 
       !not appropriate for logical, to be seen if it works
       call scopy(ntot,buffer,1,copybuf,1) 
-
+      ierr=0 !put just for MPIfake compatibility
       call MPI_ALLREDUCE(copybuf,buffer,ntot,&
            MPI_LOGICAL,mpi_op,mpi_comm,ierr)
       
@@ -653,6 +672,15 @@ module module_defs
       !call to BLAS routine
       call DCOPY(n,dx,incx,dy,incy)
     end subroutine copy_complex_real_double
+
+    subroutine copy_integer(n,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: incx,incy,n
+      integer, intent(in) :: dx
+      integer, intent(out) :: dy
+      !custom blas routine
+      call icopy(n,dx,incx,dy,incy)
+    end subroutine copy_integer
 
     subroutine copy_simple(n,dx,incx,dy,incy)
       implicit none

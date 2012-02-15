@@ -3173,6 +3173,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
 
    use BigDFT_API
    use Poisson_Solver
+   implicit none
    ! I/O variables
    type(locreg_descriptors), intent(in) :: Glr
    type(orbitals_data), intent(inout) :: orbs,orbsv,orbsb 
@@ -3184,7 +3185,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    ! Local variables
    logical :: perx,pery,perz
    integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
-   integer :: nb, i, j, k, n_bands, i_stat
+   integer :: nb, i, j, k, n_bands, i_stat, ind, i_all
    character :: s_c*1, nk_c*3, seedname*10,filename*60
    character(len=*), parameter :: subname='write_unk_bin'
    real(wp), dimension(nx*ny*nz) :: psir

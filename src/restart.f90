@@ -34,8 +34,10 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   call allocate_wfd(wfd_old,subname)
 
   do iseg=1,wfd_old%nseg_c+wfd_old%nseg_f
-     wfd_old%keyg(1,iseg)    = wfd%keyg(1,iseg)
-     wfd_old%keyg(2,iseg)    = wfd%keyg(2,iseg)
+     wfd_old%keyglob(1,iseg)    = wfd%keyglob(1,iseg) 
+     wfd_old%keyglob(2,iseg)    = wfd%keyglob(2,iseg)
+     wfd_old%keygloc(1,iseg)    = wfd%keygloc(1,iseg)
+     wfd_old%keygloc(2,iseg)    = wfd%keygloc(2,iseg)
      wfd_old%keyv(iseg)      = wfd%keyv(iseg)
   enddo
   !deallocation
@@ -216,8 +218,8 @@ subroutine reformatmywaves(iproc,orbs,at,&
         ! coarse part
         do iseg=1,wfd_old%nseg_c
            jj=wfd_old%keyv(iseg)
-           j0=wfd_old%keyg(1,iseg)
-           j1=wfd_old%keyg(2,iseg)
+           j0=wfd_old%keygloc(1,iseg)
+           j1=wfd_old%keygloc(2,iseg)
            ii=j0-1
            i3=ii/((n1_old+1)*(n2_old+1))
            ii=ii-i3*(n1_old+1)*(n2_old+1)
@@ -232,8 +234,8 @@ subroutine reformatmywaves(iproc,orbs,at,&
         ! fine part
         do iseg=1,wfd_old%nseg_f
            jj=wfd_old%keyv(wfd_old%nseg_c + iseg)
-           j0=wfd_old%keyg(1,wfd_old%nseg_c + iseg)
-           j1=wfd_old%keyg(2,wfd_old%nseg_c + iseg)
+           j0=wfd_old%keygloc(1,wfd_old%nseg_c + iseg)
+           j1=wfd_old%keygloc(2,wfd_old%nseg_c + iseg)
            ii=j0-1
            i3=ii/((n1_old+1)*(n2_old+1))
            ii=ii-i3*(n1_old+1)*(n2_old+1)
@@ -426,7 +428,7 @@ subroutine verify_file_presence(filerad,orbs,iformat)
   call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
  
   if (allfiles) then
-     iformat=1
+     iformat=WF_FORMAT_PLAIN
      return
   end if
 
@@ -450,12 +452,12 @@ subroutine verify_file_presence(filerad,orbs,iformat)
   end if
 
   if (allfiles) then
-     iformat=2
+     iformat=WF_FORMAT_BINARY
      return
   end if
 
   !otherwise, switch to normal input guess
-  iformat=0
+  iformat=WF_FORMAT_NONE
 
 end subroutine verify_file_presence
 
@@ -591,8 +593,8 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
            call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
                 & orbs,iorb,ispinor,iorb_out)           
            call writeonewave(99,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
-                & at%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
-                wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
+                at%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyv(1),  & 
+                wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
                 psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
                 orbs%eval(iorb+orbs%isorb))
            close(99)
@@ -617,24 +619,30 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
   implicit none
 
   integer, intent(in) :: ln
-  character(len = ln), intent(in) :: filename
+  character, intent(in) :: filename(ln)
   integer, intent(in) :: iorbp
   integer, intent(out) :: n1, n2, n3, nspinor
   real(gp), intent(out) :: hx, hy, hz
   real(wp), dimension(:,:,:,:), pointer :: psiscf
   logical, intent(out) :: lstat
 
-  integer :: wave_format_from_filename, iformat
+  character(len = 1024) :: filename_
+  integer :: wave_format_from_filename, iformat, i
   
+  write(filename_, "(A)") " "
+  do i = 1, ln, 1
+     filename_(i:i) = filename(i)
+  end do
+
   ! Find format from name.
-  iformat = wave_format_from_filename(1, filename)
+  iformat = wave_format_from_filename(1, trim(filename_))
 
   ! Call proper wraping routine.
   if (iformat == WF_FORMAT_ETSF) then
-     call readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
+     call readwavetoisf_etsf(lstat, trim(filename_), iorbp, hx, hy, hz, &
           & n1, n2, n3, nspinor, psiscf)
   else
-     call readwavetoisf(lstat, filename, (iformat == WF_FORMAT_PLAIN), hx, hy, hz, &
+     call readwavetoisf(lstat, trim(filename_), (iformat == WF_FORMAT_PLAIN), hx, hy, hz, &
           & n1, n2, n3, nspinor, psiscf)
   end if
 END SUBROUTINE read_wave_to_isf
@@ -656,26 +664,32 @@ subroutine read_wave_descr(lstat, filename, ln, &
   use module_types
   implicit none
   integer, intent(in) :: ln
-  character(len = ln), intent(in) :: filename
+  character, intent(in) :: filename(ln)
   integer, intent(out) :: norbu, norbd, nkpt, nspinor
   integer, intent(out) :: iorbs, ispins, ikpts, ispinor
   logical, intent(out) :: lstat
 
-  integer :: wave_format_from_filename, iformat
+  character(len = 1024) :: filename_
+  integer :: wave_format_from_filename, iformat, i
   character(len = 1024) :: testf
   
+  write(filename_, "(A)") " "
+  do i = 1, ln, 1
+     filename_(i:i) = filename(i)
+  end do
+
   ! Find format from name.
-  iformat = wave_format_from_filename(1, filename)
+  iformat = wave_format_from_filename(1, trim(filename_))
 
   ! Call proper wraping routine.
   if (iformat == WF_FORMAT_ETSF) then
-     call readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
+     call readwavedescr_etsf(lstat, trim(filename_), norbu, norbd, nkpt, nspinor)
      iorbs = 1
      ispins = 1
      ikpts = 1
      ispinor = 1
   else
-     call readwavedescr(lstat, filename, iorbs, ispins, ikpts, ispinor, nspinor, testf)
+     call readwavedescr(lstat, trim(filename_), iorbs, ispins, ikpts, ispinor, nspinor, testf)
      norbu = 0
      norbd = 0
      nkpt = 0

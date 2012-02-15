@@ -79,6 +79,7 @@ subroutine standard_inputfile_names(inputs, radical)
   inputs%file_sic=trim(rad) // '.sic'
   inputs%file_occnum=trim(rad) // '.occ'
   inputs%file_igpop=trim(rad) // '.occup'
+  inputs%file_lin=trim(rad) // '.lin'
 
   if (trim(rad) == "input") then
      inputs%dir_output="data"
@@ -116,7 +117,7 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   call read_input_parameters(iproc,inputs, atoms, rxyz)
 
   ! Read associated pseudo files.
-  call init_atomic_values(iproc, atoms, inputs%ixc)
+  call init_atomic_values((iproc == 0), atoms, inputs%ixc)
 END SUBROUTINE read_input_variables
 
 
@@ -136,55 +137,28 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
   !Local variables
-  real(gp) :: tt
-  integer :: iat,ierr
+  integer :: ierr
 
   ! Default for inputs (should not be necessary if all the variables comes from the parsing)
   call default_input_variables(inputs)
-  ! Read performance input variables (if given)
-  call perf_input_variables(iproc,.true.,trim(inputs%file_perf),inputs)
-  ! Read dft input variables
-  call dft_input_variables_new(iproc,.true.,trim(inputs%file_dft),inputs)
-  ! Update atoms with symmetry information
-  call update_symmetries(inputs, atoms, rxyz)
-  ! Read k-points input variables (if given)
-  call kpt_input_variables_new(iproc,trim(inputs%file_kpt),inputs,atoms)
-  !call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
-  ! Mixing input variables (if given)
-  call mix_input_variables_new(iproc,.true.,trim(inputs%file_mix),inputs)
-  ! Read geometry optimisation option
-  call geopt_input_variables_new(iproc,.true.,trim(inputs%file_geopt),inputs)
-  ! Read tddft variables
-  call tddft_input_variables_new(iproc,.true.,trim(inputs%file_tddft),inputs)
-  ! Read sic variables
-  call sic_input_variables_new(iproc,.true.,trim(inputs%file_sic),inputs)
-
-
-  ! Shake atoms if required.
-  if (inputs%randdis > 0.d0) then
-     do iat=1,atoms%nat
-        if (atoms%ifrztyp(iat) == 0) then
-           call random_number(tt)
-           rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
-           call random_number(tt)
-           rxyz(2,iat)=rxyz(2,iat)+inputs%randdis*tt
-           call random_number(tt)
-           rxyz(3,iat)=rxyz(3,iat)+inputs%randdis*tt
-        end if
-     enddo
+  ! Read linear variables
+  ! Parse all input files, independent from atoms.
+  call inputs_parse_params(inputs, iproc, .true.)
+  if(inputs%inputpsiid==100) DistProjApply=.true.
+  if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') then
+     !only on the fly calculation
+     DistProjApply=.true.
+     call lin_input_variables_new(iproc,trim(inputs%file_lin),inputs,atoms)
   end if
+    ! Shake atoms, if required.
+  call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
-  !atoms inside the box.
-  do iat=1,atoms%nat
-     if (atoms%geocode == 'P') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-     else if (atoms%geocode == 'S') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-     end if
-  end do
+
+  ! Update atoms with symmetry information
+  call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%elecfield)
+
+  ! Parse input files depending on atoms.
+  call inputs_parse_add(inputs, atoms, iproc, .true.)
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
@@ -201,8 +175,8 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Stop code for unproper input variables combination.
   if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym .and. atoms%geocode == 'S') then
      if (iproc==0) then
-         write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
-         write(*,'(1x,a)')  'Forces are not implemented with symmetry support, disable symmetry please (T)'
+        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
      end if
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
@@ -311,7 +285,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
 
   !dft parameters, needed for the SCF part
-  call input_set_file(iproc,trim(filename),exists,'DFT Calculation Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'DFT Calculation Parameters')  
   if (exists) in%files = in%files + INPUTS_DFT
   !call the variable, its default value, the line ends if there is a comment
 
@@ -359,7 +333,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12/),input_iostat=ierror)
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100/),input_iostat=ierror)
   ! Validate inputPsiId value (Can be added via error handling exception)
   if (ierror /=0 .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
@@ -466,7 +440,7 @@ subroutine mix_input_variables_new(iproc,dump,filename,in)
   logical :: exists
 
   !Mix parameters, needed for the SCF poart with Davidson
-  call input_set_file(iproc,trim(filename),exists,'Mixing Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Mixing Parameters')  
   if (exists) in%files = in%files + INPUTS_MIX
   !call the variable, its default value, the line ends if there is a comment
 
@@ -536,7 +510,7 @@ subroutine geopt_input_variables_new(iproc,dump,filename,in)
   in%strtarget(:)=0.0_gp
 
   !geometry input parameters
-  call input_set_file(iproc,trim(filename),exists,'Geometry Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Geometry Parameters')  
   if (exists) in%files = in%files + INPUTS_GEOPT
   !call the variable, its default value, the line ends if there is a comment
 !  if (.not. exists) then
@@ -752,7 +726,7 @@ subroutine sic_input_variables_new(iproc,dump,filename,in)
   !n(c) character(len=*), parameter :: subname='sic_input_variables'
 
   !Self-Interaction Correction input parameters
-  call input_set_file(iproc,trim(filename),exists,'SIC Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'SIC Parameters')  
   if (exists) in%files = in%files + INPUTS_SIC
 
   call input_var(in%SIC%approach,'NONE',exclusive=(/'NONE','PZ  ','NK  '/),comment='SIC method: NONE, PZ, NK')
@@ -762,6 +736,209 @@ subroutine sic_input_variables_new(iproc,dump,filename,in)
   call input_free((iproc == 0) .and. dump)
 
 END SUBROUTINE sic_input_variables_new
+
+!> Read linear input parameters
+subroutine lin_input_variables_new(iproc,filename,in,atoms)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  type(atoms_data), intent(inout) :: atoms
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='lin_input_variables'
+  character(len=132) :: comments
+  logical,dimension(atoms%ntypes) :: parametersSpecified
+  logical :: found
+  character(len=20):: atomname
+  integer :: itype, jtype, ios, ierr, iat, npt
+  real(gp):: ppl, pph, lt
+  real(gp),dimension(atoms%ntypes) :: locradType
+
+  ! Begin by nullifying all the pointers
+  nullify(in%lin%potentialPrefac)
+  nullify(in%lin%locrad)
+  nullify(in%lin%norbsPerType)
+  nullify(atoms%rloc)
+
+  !Linear input parameters
+  call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
+  
+  ! Read the number of iterations and convergence criterion for the basis functions BF
+  comments = 'iterations with low accuracy, high accuracy'
+  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/1,10000/))
+  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/1,10000/),comment=comments)
+
+  comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
+  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/1,10000/))
+  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/1,10000/),comment=comments)
+  
+  ! Convergence criterion
+  comments= 'iterations in the inner loop, convergence criterion'
+  call input_var(in%lin%nItInnerLoop,'0',ranges=(/0,1000/))
+  call input_var(in%lin%convCrit,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  
+  ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
+  comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'
+  call input_var(in%lin%DIISHistMin,'0',ranges=(/0,100/))
+  call input_var(in%lin%DIISHistMax,'5',ranges=(/1,100/))
+  call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,1.0_gp/))
+  call input_var(in%lin%alphaSD,'1.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  
+  ! lin%startWithSD, lin%startDIIS
+  !comments = 'start with SD, start criterion for DIIS'
+  !call input_var(in%lin%startWithSD,'F')
+  !call input_var(in%lin%startDIIS,'2.d2',ranges=(/1.d0,1.d3/),comment=comments)
+  
+  !number of iterations in the preconditioner : lin%nItPrecond
+  call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment='number of iterations in the preconditioner')
+  
+  !getCoeff: 'diag' or 'min'
+  comments="cubic ('c') or spheric ('s') localization region"
+  !call input_var(in%lin%getCoeff,'diag')
+  call input_var(in%lin%locregShape,'s',comment=comments)
+  
+  !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential)'
+  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,100/))
+  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/),comment=comments)
+  
+  !max number of process uses for pdsyev/pdsygv, pdgemm
+  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100/))
+  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
+  
+  ! Orthogonalization of wavefunctions:
+  !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
+  comments = '0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the orthonormalization'
+  call input_var(in%lin%methTransformOverlap,'0',ranges=(/0,1/))
+  call input_var(in%lin%nItOrtho,'2',ranges=(/1,100/),comment=comments)
+  
+  !in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
+  comments='in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+  call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
+  
+  !!! max number of iterations in the minimization of the coefficients, convergence criterion
+  !!comments='max number of iterations in the minimization of the coefficients, convergence criterion'
+  !!call input_var(in%lin%nItCoeff,'2000',ranges=(/1,10000/))
+  !!call input_var(in%lin%convCritCoeff,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  
+  !mixing method: dens or pot
+  comments='mixing method: dens or pot'
+  call input_var(in%lin%mixingMethod,'dens',comment=comments)
+  
+  !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
+  comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &
+              &where the potential is mixed (when optimized / not optimized)'
+  call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
+  call input_var(in%lin%nItSCCWhenOptimizing_lowaccuracy,'1',ranges=(/1,1000/))
+  call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/1,1000/),comment=comments)
+
+  comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &
+              &where the potential is mixed (when optimized / not optimized)'
+  call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/))
+  call input_var(in%lin%nItSCCWhenOptimizing_highaccuracy,'1',ranges=(/1,1000/))
+  call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/1,1000/),comment=comments)
+
+  comments = 'low accuracy: mixing parameter (when optimized / not optimized), convergence criterion'
+  call input_var(in%lin%alphaMixWhenOptimizing_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%alphaMixWhenFixed_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
+
+  comments = 'high accuracy: mixing parameter (when optimized / not optimized)'
+  call input_var(in%lin%alphaMixWhenOptimizing_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%alphaMixWhenFixed_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/),comment=comments)
+
+  call input_var(in%lin%lowaccuray_converged,'1.d-11',&
+       ranges=(/0.d0,1.d0/),comment='convergence criterion for the low accuracy part')
+  
+  !use the derivative basis functions, order of confinement potential
+  comments='use the derivative basis functions, Order of confinement potential (4 or 6)'
+  call input_var(in%lin%useDerivativeBasisFunctions,'F')
+  call input_var(in%lin%ConfPotOrder,'4',comment=comments)
+  
+  !number of iterations for the input guess
+  comments='number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)'
+  call input_var(in%lin%nItInguess,'100',ranges=(/1,10000/))
+  call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
+  
+  !plot basis functions: true or false
+  comments='plot basis functions: true or false'
+  call input_var(in%lin%plotBasisFunctions,'F',comment=comments)
+  
+  !transform to global orbitals in the end (T/F)
+  comments='transform to global orbitals in the end (T/F)'
+  call input_var(in%lin%transformToGlobal,'F',comment=comments)
+  
+  !number of orbitals per process for trace minimization during input guess.
+  comments='number of orbitals per process for trace minimization during input guess.'
+  call input_var(in%lin%norbsPerProcIG,'1',ranges=(/1,10000/),comment=comments)
+
+  !!call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; &
+  !!                                               &F -> slow, needs little memory')
+
+  !number of orbitals per process for trace minimization during input guess.
+  call input_var(in%lin%mixedmode,'F',comment='mixed mode (without and with derivatives)')
+
+  
+  ! Allocate lin pointers and atoms%rloc
+  call nullifyInputLinparameters(in%lin)
+  call allocateBasicArraysInputLin(atoms, in%lin)
+  
+  ! Now read in the parameters specific for each atom type.
+  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, localization radius'
+  parametersSpecified=.false.
+  do itype=1,atoms%ntypes
+      call input_var(atomname,'C',input_iostat=ios)
+      call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
+      call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+      call input_var(lt,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+      if(ios/=0) then
+          ! The parameters were not specified for all atom types.
+          if(iproc==0) then
+              write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
+                       & for the following atom types:"
+              do jtype=1,atoms%ntypes
+                  if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
+              end do
+          end if
+          call mpi_barrier(mpi_comm_world, ierr)
+          stop
+      end if
+      ! The reading was succesful. Check whether this atom type is actually present.
+      found=.false.
+      do jtype=1,atoms%ntypes
+          if(trim(atomname)==trim(atoms%atomnames(jtype))) then
+              found=.true.
+              parametersSpecified(jtype)=.true.
+              in%lin%norbsPerType(jtype)=npt
+              in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
+              in%lin%potentialPrefac_highaccuracy(jtype)=pph
+              locradType(jtype)=lt
+              atoms%rloc(jtype,:)=locradType(jtype)
+          end if
+      end do
+      if(.not.found) then
+          if(iproc==0) write(*,'(1x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
+                     "', which is not present in the file containing the atomic coordinates."
+          call mpi_barrier(mpi_comm_world, ierr)
+          stop
+      end if
+  end do
+  
+  ! Assign the localization radius to each atom.
+  do iat=1,atoms%nat
+      itype=atoms%iatype(iat)
+      in%lin%locrad(iat)=locradType(itype)
+  end do
+  
+
+  call input_free((iproc==0))
+
+END SUBROUTINE lin_input_variables_new
 
 
 !> Assign default values for TDDFT variables
@@ -790,7 +967,7 @@ subroutine tddft_input_variables_new(iproc,dump,filename,in)
   !n(c) character(len=*), parameter :: subname='tddft_input_variables'
 
   !TD-DFT parameters
-  call input_set_file(iproc,trim(filename),exists,'TD-DFT Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'TD-DFT Parameters')  
   if (exists) in%files = in%files + INPUTS_TDDFT
   !call the variable, its default value, the line ends if there is a comment
 
@@ -849,89 +1026,7 @@ contains
 
 END SUBROUTINE tddft_input_variables
 
-
-!> Calculate symmetries and update
-subroutine update_symmetries(in, atoms, rxyz)
-  use module_base
-  use module_types
-  use defs_basis
-  use m_ab6_symmetry
-  implicit none
-  type(input_variables), intent(in) :: in
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  !local variables
-  character(len=*), parameter :: subname='update_symmetries'
-  integer :: i_stat, ierr, i_all
-  real(gp) :: rprimd(3, 3)
-  real(gp), dimension(:,:), allocatable :: xRed
-
-  ! Calculate the symmetries, if needed
-  if (atoms%geocode /= 'F') then
-     if (.not. in%disableSym) then
-        if (atoms%symObj < 0) then
-           call symmetry_new(atoms%symObj)
-        end if
-        ! New values
-        rprimd(:,:) = 0
-        rprimd(1,1) = atoms%alat1
-        rprimd(2,2) = atoms%alat2
-        if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
-        rprimd(3,3) = atoms%alat3
-        call symmetry_set_lattice(atoms%symObj, rprimd, ierr)
-        allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
-        call memocc(i_stat,xRed,'xRed',subname)
-        xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
-        xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
-        xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
-        call symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
-        i_all=-product(shape(xRed))*kind(xRed)
-        deallocate(xRed,stat=i_stat)
-        call memocc(i_stat,i_all,'xRed',subname)
-        if (atoms%geocode == 'S') then
-           !!for the moment symmetries are not allowed in surfaces BC
-           write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
-           stop
-           call symmetry_set_periodicity(atoms%symObj, &
-                & (/ .true., .false., .true. /), ierr)
-        else if (atoms%geocode == 'F') then
-           call symmetry_set_periodicity(atoms%symObj, &
-                & (/ .false., .false., .false. /), ierr)
-        end if
-        !if (all(in%elecfield(:) /= 0)) then
-        !     ! I'm not sure what this subroutine does!
-        !   call symmetry_set_field(atoms%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
-        !elseif (in%elecfield(2) /= 0) then
-        !   call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
-        if (in%elecfield(2) /= 0) then
-           call symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
-        end if
-     else
-        if (atoms%symObj >= 0) then
-           call symmetry_free(atoms%symObj)
-        end if
-        call symmetry_new(atoms%symObj)
-        rprimd(1,1) = 0.5d0
-        rprimd(2,1) = 1d0
-        rprimd(3,1) = 1d0
-        rprimd(1,2) = 2d0
-        rprimd(2,2) = 0d0
-        rprimd(3,2) = 1d0
-        rprimd(1,3) = 3d0
-        rprimd(2,3) = 0d0
-        rprimd(3,3) = 1d0
-        call symmetry_set_lattice(atoms%symObj, rprimd, ierr)
-        call symmetry_set_structure(atoms%symObj, 3, (/ 1,2,3 /), rprimd / 4.d0, ierr)
-     end if
-  else
-     if (atoms%symObj >= 0) then
-        call symmetry_free(atoms%symObj)
-     end if
-     atoms%symObj = -1
-  end if
-END SUBROUTINE update_symmetries
-
-subroutine kpt_input_variables_new(iproc,filename,in,atoms)
+subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
   use module_base
   use module_types
   use defs_basis
@@ -940,6 +1035,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
+  logical, intent(in) :: dump
   type(input_variables), intent(inout) :: in
   type(atoms_data), intent(in) :: atoms
   !local variables
@@ -954,13 +1050,10 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   in%nkpt=1
   in%nkptv=0
   in%ngroups_kptv=1
-  nullify(in%kpt)
-  nullify(in%wkpt)
-  nullify(in%kptv)
-  nullify(in%nkptsv_group)
+  call free_kpt_variables(in)
 
   !dft parameters, needed for the SCF part
-  call input_set_file(iproc,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
   if (exists) in%files = in%files + INPUTS_KPT
   !call the variable, its default value, the line ends if there is a comment
 
@@ -983,7 +1076,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
           comment='Equivalent legth of K-space resolution (Bohr)')
-     call kpoints_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_auto_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1006,7 +1099,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
         call input_var(shiftk(2,i),'0.')
         call input_var(shiftk(3,i),'0.',comment=' ')
      end do
-     call kpoints_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_mp_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1116,7 +1209,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
      end if
   end if
   
-  call input_free((iproc == 0))
+  call input_free((iproc == 0) .and. dump)
   !control whether we are giving k-points to Free BC
   if (atoms%geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
      if (iproc==0) write(*,*)&
@@ -1196,7 +1289,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   if (trim(type) == "auto" .or. trim(type) == "Auto" .or. trim(type) == "AUTO") then
      read(1,*,iostat=ierror) kptrlen
      call check()
-     call kpoints_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_auto_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1214,7 +1307,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         read(1,*,iostat=ierror) shiftk(:, i)
         call check()
      end do
-     call kpoints_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_mp_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1348,10 +1441,12 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
-  integer :: iline,ierror,ierr,blocks(2)
+  integer :: ierr,blocks(2)
 
-  call input_set_file(iproc, filename, exists,'Performance Options')
+  call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
+  !Use Linear sclaing methods
+  inputs%linear='OFF'
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
@@ -1375,7 +1470,10 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("methortho", 0, (/ 0, 1, 2 /), &
        & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
   call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
-
+  call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
+       inputs%unblock_comms)
+  call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
+  
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
      & "verbosity of the output 0=low, 2=high",inputs%verbosity)
@@ -1389,6 +1487,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   end if
 
   call input_free(dump)
+    
 
   !Block size used for the orthonormalization
   inputs%orthpar%bsLow = blocks(1)
@@ -1415,20 +1514,14 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   end if
 END SUBROUTINE perf_input_variables
 
-
-!>  Free all dynamically allocated memory from the input variable structure.
-subroutine free_input_variables(in)
+!>  Free all dynamically allocated memory from the kpt input file.
+subroutine free_kpt_variables(in)
   use module_base
   use module_types
   implicit none
   type(input_variables), intent(inout) :: in
-  character(len=*), parameter :: subname='free_input_variables'
+  character(len=*), parameter :: subname='free_kpt_variables'
   integer :: i_stat, i_all
-  if (associated(in%qmass)) then
-     i_all=-product(shape(in%qmass))*kind(in%qmass)
-     deallocate(in%qmass,stat=i_stat)
-     call memocc(i_stat,i_all,'in%qmass',subname)
-  end if
   if (associated(in%kpt)) then
      i_all=-product(shape(in%kpt))*kind(in%kpt)
      deallocate(in%kpt,stat=i_stat)
@@ -1449,6 +1542,26 @@ subroutine free_input_variables(in)
      deallocate(in%nkptsv_group,stat=i_stat)
      call memocc(i_stat,i_all,'in%nkptsv_group',subname)
   end if
+  nullify(in%kpt)
+  nullify(in%wkpt)
+  nullify(in%kptv)
+  nullify(in%nkptsv_group)
+end subroutine free_kpt_variables
+
+!>  Free all dynamically allocated memory from the input variable structure.
+subroutine free_input_variables(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  character(len=*), parameter :: subname='free_input_variables'
+  integer :: i_stat, i_all
+  if (associated(in%qmass)) then
+     i_all=-product(shape(in%qmass))*kind(in%qmass)
+     deallocate(in%qmass,stat=i_stat)
+     call memocc(i_stat,i_all,'in%qmass',subname)
+  end if
+  call free_kpt_variables(in)
 
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
@@ -1471,9 +1584,6 @@ subroutine abscalc_input_variables_default(in)
   in%abscalc_bottomshift=0
   in%abscalc_S_do_cg=.false.
   in%abscalc_Sinv_do_cg=.false.
-
-
-
 END SUBROUTINE abscalc_input_variables_default
 
 
@@ -1605,7 +1715,7 @@ subroutine frequencies_input_variables_new(iproc,dump,filename,in)
   !n(c) integer, parameter :: iunit=111
 
   !Frequencies parameters
-  call input_set_file(iproc,trim(filename),exists,'Frequencies Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Frequencies Parameters')  
   if (exists) in%files = in%files + INPUTS_FREQ
   !call the variable, its default value, the line ends if there is a comment
 
@@ -1696,12 +1806,13 @@ END SUBROUTINE frequencies_input_variables
 
 !> Fill the arrays occup and spinsgn
 !! if iunit /=0 this means that the file 'input.occ' does exist and it opens
-subroutine occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
+subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
   use module_base
   use module_input
   implicit none
   ! Arguments
-  integer, intent(in) :: nelec,nspin,iproc,norb,norbu,iunit,norbuempty,norbdempty
+  logical, intent(in) :: verb
+  integer, intent(in) :: nelec,nspin,norb,norbu,iunit,norbuempty,norbdempty
   real(gp), dimension(norb), intent(out) :: occup,spinsgn
   ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1,i
@@ -1814,7 +1925,7 @@ subroutine occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,no
            end if
         end if
      end do
-     if (iproc==0) then
+     if (verb) then
         write(*,'(1x,a,i0,a)') &
              'The occupation numbers are read from the file "input.occ" (',nt,' lines read)'
      end if
@@ -1840,7 +1951,7 @@ subroutine occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,no
         end do
      end if
   end if
-  if (iproc==0) then 
+  if (verb) then 
      write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
      iorb1=1
      rocc=occup(1)
@@ -2029,7 +2140,9 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
    call check_atoms_positions(iproc,atoms,rxyz)
 
    ! We delay the calculation of the symmetries.
-   atoms%symObj = -1
+   atoms%sym%symObj = -1
+   nullify(atoms%sym%irrzon)
+   nullify(atoms%sym%phnons)
 
    ! rm temporary file.
    if (.not.archive) then
@@ -2038,63 +2151,6 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status)
       !!$     call unlinkExtract(trim(filename), len(trim(filename)))
    end if
 END SUBROUTINE read_atomic_file
-
-
-
-
-!> Check the position of atoms
-subroutine check_atoms_positions(iproc,atoms,rxyz)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc
-  type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  !local variables
-  logical :: dowrite
-  integer :: iat,nateq,jat,j
-
-  nateq=0
-  do iat=1,atoms%nat
-     do jat=iat+1,atoms%nat
-        if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
-             (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
-           nateq=nateq+1
-           write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
-                ' (',trim(atoms%atomnames(atoms%iatype(iat))),') and ',&
-                jat,' (',trim(atoms%atomnames(atoms%iatype(jat))),&
-                ') have the same positions'
-        end if
-     end do
-  end do
-  if (nateq /= 0) then
-     if (iproc == 0) then
-        write(*,'(1x,a)')'Control your posinp file, cannot proceed'
-        write(*,'(1x,a)',advance='no')&
-             'Writing tentative alternative positions in the file posinp_alt...'
-        open(unit=9,file='posinp_alt')
-        write(9,'(1x,a)')' ??? atomicd0'
-        write(9,*)
-        do iat=1,atoms%nat
-           dowrite=.true.
-           do jat=iat+1,atoms%nat
-              if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
-                   (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
-                 dowrite=.false.
-              end if
-           end do
-           if (dowrite) & 
-                write(9,'(a2,4x,3(1x,1pe21.14))')trim(atoms%atomnames(atoms%iatype(iat))),&
-                (rxyz(j,iat),j=1,3)
-        end do
-        close(9)
-        write(*,'(1x,a)')' done.'
-        write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
-     end if
-     stop 'check_atoms_positions'
-  end if
-END SUBROUTINE check_atoms_positions
-
 
 !> Write an atomic file
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
@@ -2109,19 +2165,17 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   !local variables
   character(len = 15) :: arFile
 
+  open(unit=9,file=trim(filename)//'.'//trim(atoms%format))
   if (atoms%format == "xyz") then
-     open(unit=9,file=trim(filename)//'.xyz')
      call wtxyz(9,energy,rxyz,atoms,comment)
      if (present(forces)) call wtxyz_forces(9,forces,atoms)
   else if (atoms%format == "ascii") then
-     open(unit=9,file=trim(filename)//'.ascii')
      call wtascii(9,energy,rxyz,atoms,comment)
      if (present(forces)) call wtascii_forces(9,forces,atoms)
   else
      write(*,*) "Error, unknown file format."
      stop
   end if
-
   close(unit=9)
 
   ! Add to archive
@@ -2230,8 +2284,8 @@ subroutine print_general_parameters(nproc,input,atoms)
 
   ! The additional data column
   if (atoms%geocode /= 'F' .and. .not. input%disableSym) then
-     call symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
-     call symmetry_get_group(atoms%symObj, spaceGroup, &
+     call symmetry_get_matrices(atoms%sym%symObj, nSym, sym, transNon, symAfm, ierr)
+     call symmetry_get_group(atoms%sym%symObj, spaceGroup, &
           & spaceGroupId, pointGroupMagn, genAfm, ierr)
      if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
      write(add(1), '(a,i0)')       "N. sym.   = ", nSym
@@ -2687,7 +2741,8 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
   integer, intent(in):: iacceleration,iproc
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
+  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node,jproc,namelen
+  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
 
   if (iacceleration == 1) then
      call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
@@ -2724,10 +2779,22 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
         !initialize the id_proc per node
         call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
+        !initialize the opencl context for any process in the node
+        !call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+        !do jproc=0,mproc-1
+        !   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+        !   if (iproc == jproc) then
+        !      print '(a,a,i4,i4)','Initializing for node: ',trim(nodename_local),iproc,GPU%id_proc
         call init_acceleration_OCL(GPU)
+        !   end if
+        !end do
+        GPU%ndevices=min(GPU%ndevices,nproc_node)
         if (iproc == 0) then
-           write(*,'(1x,a)') 'OpenCL support activated (iproc=0)'
+           write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
+                min(GPU%ndevices,nproc_node),GPU%ndevices
         end if
+        !the number of devices is the min between the number of processes per node
+        GPU%ndevices=min(GPU%ndevices,nproc_node)
         OCLconv=.true.
      end if
   else
@@ -2902,6 +2969,8 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   call check_atoms_positions(iproc,atoms,rxyz)
 
   ! We delay the calculation of the symmetries.
-  atoms%symObj = -1
+  atoms%sym%symObj = -1
+  nullify(atoms%sym%irrzon)
+  nullify(atoms%sym%phnons)
 
 END SUBROUTINE initialize_atomic_file

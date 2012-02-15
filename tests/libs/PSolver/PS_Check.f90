@@ -40,7 +40,8 @@ program PS_Check
    integer :: iproc,nproc,ierr,ispden
    integer :: n_cell,ixc
    integer, dimension(4) :: nxyz
-   real(wp), dimension(:), pointer :: rhocore
+   real(wp), dimension(:,:,:,:), pointer :: rhocore
+   real(dp), dimension(6) :: xcstr
 
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -89,7 +90,7 @@ program PS_Check
    itype_scf=16
 
    !calculate the kernel in parallel for each processor
-   call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,quiet='yes')
+   call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
 
    !Allocations, considering also spin density
    !Density
@@ -126,7 +127,7 @@ program PS_Check
       !with the global data distribution (also for xc potential)
 
       call XC_potential(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-      rhopot,eexcu,vexcu,ispden,rhocore,xc_pot)
+      rhopot,eexcu,vexcu,ispden,rhocore,xc_pot,xcstr)
       call H_potential(geocode,'G',iproc,nproc,n01,n02,n03,hx,hy,hz,&
       rhopot,pkernel,xc_pot,ehartree,offset,.false.) !optional argument
       !!$     call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
@@ -163,7 +164,7 @@ program PS_Check
          call memocc(i_stat,i_all,'pkernel',subname)
 
          !calculate the kernel 
-         call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,quiet='yes')
+         call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
 
          call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
          offset,ehartree,eexcu,vexcu,&
@@ -335,8 +336,9 @@ program PS_Check
       real(kind=8) :: eexcu,vexcu,ehartree
       real(kind=8), dimension(:), allocatable :: test,test_xc
       real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
-      real(kind=8), dimension(:), pointer :: xc_temp,rhocore
-
+      real(kind=8), dimension(:), pointer :: xc_temp
+      real(dp), dimension(6) :: xcstr
+      real(dp), dimension(:,:,:,:), pointer :: rhocore
       nullify(rhocore)
 
       call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,&
@@ -416,7 +418,7 @@ program PS_Check
       end if
 
       call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-      rhopot,eexcu,vexcu,nspden,rhocore,test_xc)
+      rhopot,eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
       call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
       rhopot,pkernel,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
       !compare the values of the analytic results (no dependence on spin)
@@ -455,7 +457,7 @@ program PS_Check
       end if
 
       call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-      rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc)
+      rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
 
       call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
       rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,offset,ixc /= 0,quiet='yes') !optional argument

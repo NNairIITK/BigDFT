@@ -75,6 +75,18 @@ endif
 
 # Additional sources.
 # ------------------
+#if USE_BLACS
+#BLACS_MODULES = 
+#else
+BLACS_MODULES = modules/blacs_fake.f90
+#endif
+
+EXTRA_DIST += CUDA/precond.cu \
+	CUDA/density.cu \
+	CUDA/anasyn.cu \
+	CUDA/locpot.cu CUDA/locpot.h \
+	CUDA/kinetic.cu CUDA/kinetic.h \
+	CUDA/compress.cu
 if USE_CUDA_GPU
 sub_dirs_cuda = CUDA
 CUDA_SOURCES = CUDA/binding_s_gpu.c \
@@ -93,12 +105,6 @@ CUDA_SOURCES = CUDA/binding_s_gpu.c \
 	CUDA/check_cuda.h \
 	CUDA/read_conf_exception.h \
 	CUDA/cpp_utils.h
-EXTRA_DIST += CUDA/precond.cu \
-	CUDA/density.cu \
-	CUDA/anasyn.cu \
-	CUDA/locpot.cu CUDA/locpot.h \
-	CUDA/kinetic.cu CUDA/kinetic.h \
-	CUDA/compress.cu
 CUDA_CONV = convolutions/convolut_common_interface_cuda.f90
 CUDA_MODULES =
 else
@@ -202,8 +208,9 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	-I$(srcdir)/PSolver -I$(srcdir)/wavelib -I$(srcdir)/convolutions \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
-AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules
-AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules -Imodules
+#AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
+AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
 
 if USE_MPI
 mpi_source =
@@ -248,9 +255,11 @@ modules_source = modules/base.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
+	modules/vdwcorrection.f90 \
 	$(CUDA_MODULES) \
 	$(LIBXC_MODULES) \
-	$(PS_MODULES)
+	$(PS_MODULES) \
+	$(BLACS_MODULES)
 modules_objects = $(modules_source:.f90=.o)
 
 #objects which depends from module_types
@@ -268,7 +277,6 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	vdwcorrection.f90 \
 	lanczos_interface.f90 \
 	lanczos_base.f90 \
 	lanczos.f90 \
@@ -323,6 +331,33 @@ low_level = \
 	wavelib/daubisf.f90 \
 	profiling/time.f90 \
 	profiling/memoryestimator.f90 \
+	linear/cleanup.f90 \
+	linear/nullify.f90 \
+	linear/communicatetypes.f90 \
+	linear/filterModule.f90 \
+	linear/getLocBasis.f90 \
+	linear/applyHamiltonian.f90 \
+	linear/precondLinear.f90 \
+	linear/psitolocReg.f90 \
+	linear/locReg_orbitals.f90 \
+	linear/locReg_projectors.f90 \
+	linear/LinearForces.f90 \
+	linear/transposition.f90 \
+	linear/linearScaling.f90 \
+	linear/energyAndForces.f90 \
+	linear/convolutions.f90 \
+	linear/initAndUtils.f90 \
+	linear/sumrhoLinear.f90 \
+	linear/inputguessLinear.f90 \
+	linear/psitolocReg.f90 \
+	linear/orthonormality.f90 \
+	linear/orbitalOptimization.f90 \
+	linear/mixdiis.f90 \
+	linear/copyTypes.f90 \
+	linear/de-allocate.f90 \
+	linear/derivativeBasis.f90 \
+	linear/parallelLinAlg.f90 \
+	linear/locReg.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \
@@ -351,6 +386,9 @@ splsad_LDADD = @LIBS_DEPENDENCIES@
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
 rism_LDADD = @LIBS_DEPENDENCIES@
+
+#sandbox_SOURCES = sandbox.f90
+#sandbox_LDADD = @LIBS_DEPENDENCIES@
 
 oneatom_SOURCES = oneatom.f90
 oneatom_LDADD = @LIBS_DEPENDENCIES@
@@ -397,7 +435,7 @@ check:
 #dependencies
 $(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o WaCo.o: $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
+cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 

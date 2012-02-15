@@ -1,7 +1,7 @@
 !> @file
 !!  Daubechies to Interpolation scaling functions routines
 !! @author
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2012 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -329,10 +329,10 @@ subroutine deallocate_work_arrays_locham(lr,w)
 END SUBROUTINE deallocate_work_arrays_locham
 
 
-!>  Transforms a wavefunction written in Daubechies basis into a 
-!!  real space wavefunction in interpolating scaling functions on a finer grid
-!!  does the job for all supported BC. Saves the results on the work arrays
-!!  which are reused in the isf_to_daub_kinetic routine
+!> Transforms a wavefunction written in Daubechies basis into a 
+!! real space wavefunction in interpolating scaling functions on a finer grid
+!! does the job for all supported BC. Saves the results on the work arrays
+!! which are reused in the isf_to_daub_kinetic routine
 subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   use module_base
   use module_types
@@ -364,9 +364,9 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
         call uncompress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  & 
              lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-             lr%wfd%keyg(1,1),lr%wfd%keyv(1),  & 
+             lr%wfd%keygloc(1,1),lr%wfd%keyv(1),  & 
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
+             lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
              scal,psi(1,idx),psi(lr%wfd%nvctr_c+i_f,idx),  &
              w%x_c(1,idx),w%x_f(1,idx),&
              w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
@@ -386,9 +386,9 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
      do idx=1,nspinor
         call uncompress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-             lr%wfd%keyg(1,1),lr%wfd%keyv(1),   &
+             lr%wfd%keygloc(1,1),lr%wfd%keyv(1),   &
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
+             lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
              psi(1,idx),psi(lr%wfd%nvctr_c+i_f,idx),w%x_c(1,idx),psir(1,idx))
 
         call convolut_magic_n_slab(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,w%x_c(1,idx),psir(1,idx),w%y_c(1,idx)) 
@@ -402,9 +402,9 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
         do idx=1,nspinor
            call uncompress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                lr%wfd%keyg(1,1),lr%wfd%keyv(1),   &
+                lr%wfd%keygloc(1,1),lr%wfd%keyv(1),   &
                 lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
+                lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
                 psi(1,idx),psi(lr%wfd%nvctr_c+i_f,idx),w%x_c(1,idx),w%x_f(1,idx),&
                 w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),&
                 lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3)
@@ -420,9 +420,9 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
         do idx=1,nspinor
            call uncompress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                lr%wfd%keyg(1,1),lr%wfd%keyv(1),   &
+                lr%wfd%keygloc(1,1),lr%wfd%keyv(1),   &
                 lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
+                lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
                 psi(1,idx),psi(lr%wfd%nvctr_c+i_f,idx),w%x_c(1,idx),psir(1,idx))
 
            call convolut_magic_n_per(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,w%x_c(1,idx),psir(1,idx),w%y_c(1,idx)) 
@@ -483,16 +483,13 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
 
      do idx=1,nspinor
 
-        !call timing(iproc,'CrtProjectors ','ON') !temporary
         call comb_shrink(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
              w%w1,w%w2,psir(1,idx),&
              lr%bounds%kb%ibxy_c,lr%bounds%sb%ibzzx_c,lr%bounds%sb%ibyyzz_c,&
              lr%bounds%sb%ibxy_ff,lr%bounds%sb%ibzzx_f,lr%bounds%sb%ibyyzz_f,&
              w%y_c(1,idx),w%y_f(1,idx))
-        !call timing(iproc,'CrtProjectors ','OF') !temporary
 
-        !call timing(iproc,'Forces        ','ON') !temporary
         call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
              hx,&        !here the grid spacings are supposed to be equal
@@ -502,17 +499,17 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
              w%y_c(1,idx),w%y_f(1,idx),ekino, &
              w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
         ekin=ekin+ekino
-        !call timing(iproc,'Forces        ','OF') !temporary
-        !call timing(iproc,'Tail          ','ON') !temporary
 
-        call compress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
-             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-             lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
-             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
-             scal,w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx))
-        !call timing(iproc,'Tail          ','OF') !temporary
+        !new compression routine in standard form
+        call compress_and_accumulate_standard(lr%d,lr%wfd,&
+             w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx))
+!!$        call compress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+!!$             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$             lr%wfd%keygloc(1,1),lr%wfd%keyv(1),&
+!!$             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$             lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
+!!$             scal,w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx))
 
      end do
 
@@ -546,12 +543,18 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
              w%y_c,psir,.false.)
 
         do idx=1,nspinor
-           call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
-                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                lr%wfd%keyg(1,1),lr%wfd%keyv(1),   & 
-                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
-                w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
+           !new compression routine in mixed form
+           call analyse_slab_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                w%y_c(1,idx),psir(1,idx))
+           call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                psir(1,idx),hpsi(1,idx))
+
+!!$           call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                lr%wfd%keygloc(1,1),lr%wfd%keyv(1),   & 
+!!$                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
+!!$                w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
         end do
         
      else
@@ -565,12 +568,18 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
                 hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
            ekin=ekin+ekino
 
-           call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
-                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                lr%wfd%keyg(1,1),lr%wfd%keyv(1),   & 
-                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
-                w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
+           !new compression routine in mixed form
+           call analyse_slab_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                w%y_c(1,idx),psir(1,idx))
+           call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                psir(1,idx),hpsi(1,idx))
+
+!!$           call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                lr%wfd%keygloc(1,1),lr%wfd%keyv(1),   & 
+!!$                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
+!!$                w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
         end do
      end if
 
@@ -598,13 +607,16 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
             kstrten=kstrten+kstrteno
             !ekin=ekin+ekino
 
-           call compress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
-                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
-                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), & 
-                w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),&
-                lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3)
+            call compress_and_accumulate_standard(lr%d,lr%wfd,&
+                 w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx))
+
+!!$           call compress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                lr%wfd%keygloc(1,1),lr%wfd%keyv(1),& 
+!!$                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), & 
+!!$                w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),&
+!!$                lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3)
         end do
      else
 
@@ -639,12 +651,18 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
                 w%y_c,psir,.false.)
 
            do idx=1,nspinor
-              call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                   lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
-                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),&
-                   w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
+
+              call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   w%y_c(1,idx),psir(1,idx))
+              call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                   psir(1,idx),hpsi(1,idx))
+
+!!$              call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                   lr%wfd%keygloc(1,1),lr%wfd%keyv(1),& 
+!!$                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                   lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),&
+!!$                   w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
            end do
         else
            !first calculate the proper arrays then transpose them before passing to the
@@ -658,12 +676,17 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
                    hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno)
               kstrten=kstrten+kstrteno
 
-              call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                   lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
-                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),& 
-                   w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
+              call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   w%y_c(1,idx),psir(1,idx))
+              call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                   psir(1,idx),hpsi(1,idx))
+
+!!$              call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                   lr%wfd%keygloc(1,1),lr%wfd%keyv(1),& 
+!!$                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                   lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),& 
+!!$                   w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
            end do
         end if
 
@@ -878,9 +901,9 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
      call uncompress_forstandard_short(lr%d%n1,lr%d%n2,lr%d%n3,&
           lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
-          lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),  & 
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keygloc(1,1),lr%wfd%keyv(1),  & 
           lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-          lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), &
+          lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), &
           scal,psi(1),psi(lr%wfd%nvctr_c+i_f),&
           w%x_c,w%x_f)
 
@@ -895,9 +918,9 @@ subroutine daub_to_isf(lr,w,psi,psir)
      if (lr%hybrid_on) then
         ! hybrid case
         call uncompress_per_f_short(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,&
-             lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
+             lr%wfd%nvctr_c,lr%wfd%keygloc(1,1),lr%wfd%keyv(1),& 
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), &
+             lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), &
              psi(1),psi(lr%wfd%nvctr_c+i_f),&
              w%x_c,w%x_f,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3)
@@ -907,9 +930,9 @@ subroutine daub_to_isf(lr,w,psi,psir)
              w%nw1,w%nw2,w%w1,w%w2,w%x_c,w%x_f,psir,lr%bounds%gb)
      else
         call uncompress_per(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,&
-             lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
+             lr%wfd%nvctr_c,lr%wfd%keygloc(1,1),lr%wfd%keyv(1),&
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),&
+             lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),&
              psi,psi(lr%wfd%nvctr_c+i_f),&
              w%x_c,psir)
 
@@ -919,8 +942,8 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
   case('S')
      call uncompress_slab(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-          lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
-          lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),&
+          lr%wfd%keygloc(1,1),lr%wfd%keyv(1),&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),&
           lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), &
           psi(1),psi(lr%wfd%nvctr_c+i_f),w%x_c,&
           psir)
@@ -968,9 +991,9 @@ subroutine isf_to_daub(lr,w,psir,psi)
      call compress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
           lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
           lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-          lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
+          lr%wfd%keygloc(1,1),lr%wfd%keyv(1),&
           lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-          lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
+          lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
           scal,w%x_c,w%x_f,psi(1),psi(lr%wfd%nvctr_c+i_f))
   case('S')
 
@@ -979,9 +1002,9 @@ subroutine isf_to_daub(lr,w,psir,psi)
      
      call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
           lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-          lr%wfd%keyg(1,1),lr%wfd%keyv(1),   & 
+          lr%wfd%keygloc(1,1),lr%wfd%keyv(1),   & 
           lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-          lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
+          lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
           w%x_c(1),psi(1),psi(lr%wfd%nvctr_c+i_f),psir(1))
 
   case('P')
@@ -994,9 +1017,9 @@ subroutine isf_to_daub(lr,w,psir,psi)
 
         call compress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-             lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
+             lr%wfd%keygloc(1,1),lr%wfd%keyv(1),& 
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), & 
+             lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), & 
              w%x_c(1),w%x_f(1),psi(1),psi(lr%wfd%nvctr_c+i_f),&
              lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3)
      else
@@ -1005,9 +1028,9 @@ subroutine isf_to_daub(lr,w,psir,psi)
              psir(1),w%x_c(1))
         call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-             lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
+             lr%wfd%keygloc(1,1),lr%wfd%keyv(1),& 
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),& 
+             lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),& 
              w%x_c(1),psi(1),psi(lr%wfd%nvctr_c+i_f),psir(1))
      end if
         

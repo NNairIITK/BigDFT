@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="iso-8859-15"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <title>Tutorial: Visualising output</title>
+    <meta name="copyright" content="&#169; 2004-2011 CEA" />
+    <link rel="author" type="text/html" href="http://www.cea.fr" hreflang="fr" lang="fr" />
+    <link rel="stylesheet" type="text/css" href="../styles/original.css" />
+  </head>
+
+  <body>
+
+    <div class="header">
+      <div class="visuLogo">
+        <img src="../images/logo_header.png" alt="" width="102" height="80" />
+      </div>
+      <!-- %%VERSION%% -->
+    </div>
+
+    <!-- %%MENU%% -->
+
+    <div class="main"><a name="top" id="top"></a>
+
+      <div class="floatingmenu">
+        <a style="float:left;" href="H1C_basic_surfaces.html">&lt;&nbsp;prev. lesson</a>
+        <a style="float:right;" href="H2A_MPI_OMP.html">Second Group&nbsp;&gt;</a>
+
+        <h2>Content of this lesson</h2>
+        <ul>
+          <li>Visualise wavefunctions</li>
+	  <li>Spin polarized calculations</li>
+        </ul>
+        <h2>Material</h2>
+        <ul style="float:left;margin-right:1em;">
+          <li>N<sub>2</sub>/<a href="N2/posinp.xyz" target="_blank">posinp.xyz</a></li>
+        </ul>
+        <ul style="float:left;margin-right:1em;">
+          <li>N<sub>2</sub>/<a href="N2/psppar.N" target="_blank">psppar.N</a></li>
+        </ul>
+      </div>
+
+      <p class="warn">This lesson has been created for current stable version. Earlier
+        versions are fully capable of running this tutorial but input files may
+        have to be changed according to possible earlier formats.</p>
+
+      <h1>Basics of BigDFT: visualising wavefunctions</h1>
+
+      <p>This tutorial is based on the first one. You should have done it to generate the wavefunctions of the N<sub>2</sub> molecule.</p>
+
+      <h2>Visualise wavefunctions</h2>
+<p>The wavefunctions are output by choosing a non zero value for parameter <code>output_wf</code> in the <code>.dft</code> file. Several formats are available, but in each, only the non-null coefficient of the Daubechies wavelet representation are saved. This represents a compressed way of storing the wavefunctions (and roughly correspond to a dump of what is stored in memory during the calculation). In case you want to visualize the wavefunctions, you should translate these data in a real space grid. To post-process the wavefunctions, one need to get their value on a real space grid.</p>
+
+<p>This is done by using <code>bigdft-tool</code> with the <em>-a exportwf</em> action:</p>
+<pre>
+user@garulfo:~/N2/$ ./bigdft-tool -a export-wf data-LDA/wavefunction-k001-NR.b0001
+</pre>
+<p>It creates four files in the current directory.</p>
+<ul>
+<li><code>wavefunction-[...].xxxx_avg_{x,y,z}</code>: which is the projection of the wavefunction value along a given axis.</li>
+<li><code>wavefunction-[...].xxxx.cube</code>: which is the values of the wavefunction (either real or imaginary part) on a regular real space mesh.</li>
+</ul>
+<p>One can then visualise the wavefunction expansions with their favorite program. Let's take <a href="http://inac.cea.fr/L_Sim/V_Sim" target="_blank">V_Sim</a> as an example. Open V_Sim with the following command line (using the cube file as a file for atomic coordinates and the same cube file for a scalar field):</p>
+<pre>
+user@garulfo:~/N2/$ v_sim -f wavefunction-k001-NR.b0001.cube wavefunction-k001-NR.b0001.cube
+</pre>
+<p>Go to the "iso-surface" tab and click on the "add" button on the right. It will create an iso-surface representing the half value position of the first orbital. One can use the "open" button on top-right of the tab to choose another cube file. Let's load all our five wavefunctions (after exporting them to cube files as for the first one). Then, select each of them and click on the add button to plot iso-surfaces.</p>
+<p>One can remove plotted iso-surfaces by clicking on the "remove" button on the right or simply hide them by unchecking the box on the line of the iso-surface. One may use this <a href="N2/v_sim.res" target="_blank">V_Sim resource file</a> to obtain the same rendering as for the screenshots. The orbitals should look like these:</p>
+<img src="Figures/N2-wf01.thumb.png" alt="Representation orbital 1" />
+<img src="Figures/N2-wf02.thumb.png" alt="Representation orbital 2" />
+<img src="Figures/N2-wf03.thumb.png" alt="Representation orbital 3" />
+<img src="Figures/N2-wf04.thumb.png" alt="Representation orbital 4" />
+<img src="Figures/N2-wf05.thumb.png" alt="Representation orbital 5" />
+<p>As on the eigenvalues printed at the end of the calculation, one can see that the orbitals labelled 3 and 4 (the two &pi; orbitals) are clearly degenerated:</p>
+<pre>
+ e(   1)= -1.03032489370326E+00 2.0000
+ e(   2)= -4.95465225967267E-01 2.0000
+ e(   3)= -4.30176175111339E-01 2.0000
+ e(   4)= -4.30175870652628E-01 2.0000
+ e(   5)= -3.80429461838816E-01 2.0000
+</pre>
+<div class="exercice">
+  <p><b>Exercise</b>: Plot also the orbitals obtained in the Hartree-Fock calculation. Using the average on the z axis, compare the expansion of the &sigma; orbitals.
+</div>
+
+
+  <h2>Spin polarized calculations on the isolated Nitrogen atom</h2>
+
+  <h3>Spherical Isolated Atom calculation: adding occupation numbers</h3>
+  <p>A rather common functionality which is desirable is to control at hand the occupation numbers of the Kohn-Sham orbitals.
+ In BigDFT, this can be done with the <code>[input].occ</code> file, where <code>[input]</code> is the name of the calculation (which is indeed <code>input</code> if the name is not provided). Let us try to see how this can be used.</p>
+      <p>First of all, let us perform a calculation of the isolated Nitrogen atom. To do this, modify posinp such that only one atom is considered. Clearly, its actual position does not matter. Run a BigDFT calculation, with the same input file as the LDA case of before. This will run the N atom system in a spin-averaged case. However, you should notice several messages in the screen output: </p>
+<pre>
+[...]
+WARNING: odd number of electrons, no closed shell system
+[...]
+--------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   6.75020929031E+00 -9.80422570119E+00  9.52730931346E-01
+ final ehart, eexcu,  vexcu   8.17020231438E+00 -2.18843884745E+00 -2.86507737449E+00
+ FINAL iter,total energy,gnrm     8  -9.59484926687149198E+00  5.15E-05
+ --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+ e(   1)= -6.76300135330237E-01 2.0000
+ e(   2)= -2.66781082160980E-01 2.0000
+ e(   3)= -2.40952063353801E-01 1.0000
+ Difference:evsum,energybs -2.1271144983362E+00 -2.1012854795290E+00
+[...]
+</pre>
+  <h3>Spin-averaged atom: spherical versus non-spherical run</h3>
+  <p>Since the number of electrons of the Nitrogen atom is odd, the last orbital (the third) is only half occupied. In addition, the configuration is not spherical. Run another run by inserting the follwing information in the <code>[input].occ</code> 
+  file:
+  </p>
+  <pre>
+4
+1 2.
+2 1.
+3 1.
+4 1.
+</pre>
+  <p>
+The first line is the number of orbital you put in the system. Then the association orbital-occupation number are written in the other lines. You migh also put only lines which refer to orbitals which have non-default occupation number (2 in this case). See if the energy lowers: it should. Moreover, the warnings of the previous output are now completed by additional information:
+</p>
+<pre>
+[...]
+WARNING: odd number of electrons, no closed shell system
+The occupation numbers are read from the file "input.occ" (4 lines read)
+Total Number of Orbitals         4
+occup(1)= 2.0000
+occup(2:4)= 1.0000
+[...]
+--------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   6.77542530012E+00 -9.86912485779E+00  9.53383895463E-01
+ final ehart, eexcu,  vexcu   8.14497978312E+00 -2.15988903127E+00 -2.82730378186E+00
+ FINAL iter,total energy,gnrm     8  -9.61788069474253327E+00  3.76E-05
+ --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+ e(   1)= -6.74794648720006E-01 2.0000
+ e(   2)= -2.63575870275992E-01 1.0000
+ e(   3)= -2.63575870275992E-01 1.0000
+ e(   4)= -2.63574648371196E-01 1.0000
+ Difference:evsum,energybs -2.1403156863632E+00 -2.1403156622103E+00
+[...]
+</pre>
+  <h3>Perform a spin-polarized calculation: adding a spin</h3>
+<p> Now you can add the (collinear) spin degree of freedom to the system. Since it is a single atom, Hund's rule implies also a given polarization. According to this, this should generate a up-down collinear polarization of 3 electrons. To control that, create an input file in which <code>nspin</code> and <code>mpol</code> </p> become respectively 2 (collinear spin treatment) and 3 (difference between up and down polarization). 
+  <h4>Decide the Input Guess polarization</h4>
+The code will not work immediately, since it will ask for a Input Guess polarization of the system:
+<pre>
+Total Number of Electrons        5
+Spin-polarized calculation
+ERROR: Total input polarisation (found 0) must be equal to norbu-norbd.
+With norb=5 and mpol=3 norbu-norbd=3
+</pre>
+In BigDFT, this input polarization might be added by putting the corresponding value for any atom in the <code>posinp.xyz</code> file:
+  <pre>
+1 angstroem
+free
+N 0. 0. 0. 3
+</pre> 
+Then the calculation can run. You can see that the energy is remarkably lower than in the best possible spin-averaged run:
+<pre>
+--------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   7.03464034486E+00 -1.01505536418E+01  9.16339342495E-01
+ final ehart, eexcu,  vexcu   8.26953088669E+00 -2.31961067758E+00 -3.04713509766E+00
+ FINAL iter,total energy,gnrm     9  -9.74158042107937305E+00  7.88E-05
+ --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+ Total magnetisation:  3.000000
+ e(   1,u)= -7.21890615568107E-01 1.0000      1.0000 e(   1,d)= -5.50477513768522E-01
+ e(   2,u)= -3.09068827964518E-01 1.0000
+ e(   3,u)= -3.09068827964516E-01 1.0000
+ e(   4,u)= -3.09068169210905E-01 1.0000
+</pre>
+
+  <div class="exercice">
+        <p><b>Exercise</b>: Charge the Nitrogen atom (say, remove one electron) and compare the energies of the system in symmetric spin-averaged configuration with respect to the spin-polarized case.</p>
+        <p class="answer">Hint: The <code>[input].occ</code> file might also accept fractional number written as actual fractions, e.g. 2/3 instead as 0.666666</p>
+  </div>
+</div>
+
+    <div class="footer">Authors (Luigi D Genovese A cea D fr) (Damien D Caliste A cea D fr)
+      |
+      <a href="http://validator.w3.org/check/referer" title="Check HTML compliance with W3C norms">XHTML1.0</a> - 
+      <a href="http://jigsaw.w3.org/css-validator/check/referer" title="Check CSS compliance with W3C norms">CSS2</a>
+      |
+      <!-- hhmts start -->
+      Last modified: Sun Oct 16 19:03:37 CEST 2011
+      <!-- hhmts end -->
+    </div>
+
+  </body>
+</html>
