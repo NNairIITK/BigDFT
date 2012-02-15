@@ -396,6 +396,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      & denspot, nlpspd, proj, orbs, comms, psi, hpsi, psit, inputpsi, &
      & gbd, gaucoeffs, wfd_old, psi_old, d_old, hx_old, hy_old, hz_old, rxyz_old, norbv)
   else
+     inputpsi = in%inputPsiId
      call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
      call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
      !this does not work with ndebug activated
