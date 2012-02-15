@@ -886,7 +886,7 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
   type(workarr_precond), intent(inout) :: w
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  y
   !local variables
-  logical :: sseprecond=.true.
+  logical :: sseprecond=.false.
   integer :: idx,nf
 
   if (lr%geocode == 'F') then
@@ -895,15 +895,15 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
         if (sseprecond) then
            call uncompress_standard_scal(lr%d,lr%wfd,scal,x(1,idx),&
                 w%xpsig_c,w%xpsig_f)
-        
-           call Convolkinetic_SSE(lr%d%n1,lr%d%n2,lr%d%n3, &
-                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-                cprecr,hx,&
-                lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
-                lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
-                w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f)
+!commented out, not working correctly        
+!!$           call Convolkinetic_SSE(lr%d%n1,lr%d%n2,lr%d%n3, &
+!!$                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+!!$                cprecr,hx,&
+!!$                lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+!!$                lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
+!!$                w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f)
            
-           call compress_standard_scal(lr%d,lr%wfd,scal,,w%ypsig_c,w%ypsig_f,&
+           call compress_standard_scal(lr%d,lr%wfd,scal,w%ypsig_c,w%ypsig_f,&
                 y(1,idx))
 
         else
