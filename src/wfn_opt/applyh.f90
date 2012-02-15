@@ -1233,44 +1233,10 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 !!$  allocate(wproj(mbvctr_c+7*mbvctr_f,ncplx+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,wproj,'wproj',subname)
 
-<<<<<<< TREE
-  iaseg_f=min(wfd%nseg_f,1)
-  ibseg_f=min(mbseg_f,1)
-
-  keyag_c_lin = wfd%keyg(1,:)!speed up access in hunt subroutine by consecutive arrangement in memory
-  keyag_f_lin = wfd%keyg(1,wfd%nseg_c+iaseg_f:wfd%nseg_c+iaseg_f+wfd%nseg_f-1)!speed up access in hunt subroutine by consecutive arrangement in memory
-
-
-  iaseg0_c = 1
-  iaseg0_f = 1
-
-  do ibseg=1,mbseg_c
-    call hunt1(keyag_c_lin,wfd%nseg_c,nlpspd%keyg_p(ibseg*2-1,jseg_c),iaseg0_c(ibseg))
-  enddo
-
-  do ibseg=1,mbseg_f
-    call hunt1(keyag_f_lin,wfd%nseg_f,nlpspd%keyg_p((mbseg_c+ibseg_f-1)*2+ibseg*2-1,jseg_c),iaseg0_f(ibseg))
-  enddo
-
-=======
->>>>>>> MERGE-SOURCE
   !calculate the scalar product with all the projectors of the atom
   call to_zero(4*7*3*4,cproj(1,1,1,1))
   !index for performing the calculation with all the projectors
   istart_c_i=istart_c
-<<<<<<< TREE
-  do ispinor=1,orbs%nspinor,ncplx
-     !loop over all the channels (from s to f)
-     do l=1,4
-        !loop over all the projectors of the channel
-        do i=1,3
-           !loop over all the components of the projector
-           if (at%psppar(l,i,ityp) /= 0.0_gp) then
-              do m=1,2*l-1
-                 !loop over all the components of the wavefunction
-                 call wpdot_wrap1(ncplx,  &
-                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
-=======
   !loop over all the channels (from s to f)
   do l=1,4
      !loop over all the projectors of the channel
@@ -1283,20 +1249,13 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                  call wpdot_wrap(ncplx,  &
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                       wfd%keyv,wfd%keyglob,&
->>>>>>> MERGE-SOURCE
                       psi(1,ispinor), &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                       plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
                       plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c_i),&
-<<<<<<< TREE
-                      cproj(ispinor,m,i,l),iaseg0_c,iaseg0_f,&
-                      keyag_c_lin,keyag_f_lin)
-                 istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
-=======
                       cproj(ispinor,m,i,l))
                  !print *,'ispinor,m,l,i,iat',ispinor,m,l,i,iat,cproj(ispinor,m,i,l)
->>>>>>> MERGE-SOURCE
               end do
            end if
         end do
