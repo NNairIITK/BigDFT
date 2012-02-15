@@ -70,6 +70,15 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
      !if(iproc==0) write(*,*) 'deviation from unity:', maxError
      timeoverlap=timeoverlap+t4-t3
 
+     !!open(unit=888)
+     !!do iall=1,orbs%norb
+     !!  do istat=1,orbs%norb
+     !!    read(888,*) ovrlp(istat,iall)
+     !!    !write(888,*) ovrlp(istat,iall)
+     !!  end do
+     !!end do
+     !!close(unit=888)
+
      t3=mpi_wtime()
      call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, blocksize_dsyev, &
           blocksize_pdgemm, orbs%norb, mad, ovrlp)
