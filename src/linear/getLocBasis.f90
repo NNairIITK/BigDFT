@@ -1095,10 +1095,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
             end do
 
-            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                 lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
             !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-            !!     6.d0, confdatarr, lphilarge)
+            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                 6.d0, confdatarr, lphilarge)
 
             !!!write(*,*) 'ATTENTION DEBUG!'
             !!!lphilarge=1.d0
@@ -1117,7 +1117,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
             !!!locregCenterTemp(3,:)=1.407408E+01! 1.504260d1
 
             !!!! Plot basis functions
-            !!call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, at%nat,locregCenter , lorbs%inwhichlocreg, .5d0*hx, &
+            !!call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, lzd%nlr, locregCenter, lorbs%inwhichlocreg, .5d0*hx, &
             !!    .5d0*hy, .5d0*hz, it)
             !!! plot the orbitals -- EXPERIMENTAL ##################################################
             !!allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
@@ -1142,8 +1142,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
                  newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
 
-                 !!write(*,*) "ATTENTION HERE!!!"
-            !!call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, at%nat,locregCenter , lorbs%inwhichlocreg, .5d0*hx, &
+            !!     !!write(*,*) "ATTENTION HERE!!!"
+            !!call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, lzd%nlr, locregCenter, lorbs%inwhichlocreg, .5d0*hx, &
             !!    .5d0*hy, .5d0*hz, 100+it)
             !!! plot the orbitals -- EXPERIMENTAL ##################################################
             !!allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
@@ -1285,10 +1285,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
                confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
             end do
-            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                 lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
             !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-            !!     6.d0, confdatarr, lphilarge)
+            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                 6.d0, confdatarr, lphilarge)
 
             call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -1802,16 +1802,16 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
            end do
 
-           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-           !!     6.d0, confdatarr, lphilarge)
+           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                6.d0, confdatarr, lphilarge)
 
            !! EXPERIMENTAL: normalize lphilarge
            ist=1
            do iorb=1,orbslarge%norbp
                iiorb=orbslarge%isorb+iorb
-               ilr=orbslarge%inwhichlocreg(iiorb)
+               ilrlarge=orbslarge%inwhichlocreg(iiorb)
                ncnt=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
                tt=dnrm2(ncnt, lphilarge(ist), 1)
                call dscal(ncnt, 1/tt, lphilarge(ist), 1)
@@ -1894,7 +1894,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
             call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
-                 write(*,*) 'calling create_new_locregs..., iproc', iproc
             call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
                  locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
@@ -1947,15 +1946,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
               confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
            end do
-           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-           !!     6.d0, confdatarr, lphilarge)
-           write(*,*) 'after check_cutoff, iproc', iproc
+           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                6.d0, confdatarr, lphilarge)
 
            call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-           write(*,*) 'after destroy_new_locregs, iproc', iproc
            locrad_tmp=factor*locrad
            call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
                 locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
@@ -2455,15 +2452,12 @@ character(len=*),parameter:: subname='create_new_locregs'
 
 
    if(iproc==0) write(*,'(x,a)') 'creating new locregs...'
-   write(*,*) 'before nullifying, iproc', iproc
    call nullify_local_zone_descriptors(lzdlarge)
    call nullify_orbitals_data(orbslarge)
    call nullify_overlapParameters(oplarge)
    call nullify_p2pComms(comonlarge)
    call nullify_matrixDescriptors(madlarge)
    call nullify_p2pComms(comgplarge)
-
-   write(*,*) 'after nullifying, iproc', iproc
 
    tag=1
    lzdlarge%nlr=nlr
@@ -2475,10 +2469,8 @@ character(len=*),parameter:: subname='create_new_locregs'
    norb=norbu
    norbd=0
    nspin=1
-   write(*,*) 'calling orbitals_descriptors_forLinear, iproc', iproc
    call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
         lorbs%nkpts, lorbs%kpts, lorbs%kwgts, orbslarge)
-   write(*,*) 'after orbitals_descriptors_forLinear, iproc', iproc
    call repartitionOrbitals(iproc, nproc, orbslarge%norb, orbslarge%norb_par,&
         orbslarge%norbp, orbslarge%isorb_par, orbslarge%isorb, orbslarge%onWhichMPI)
 
@@ -6504,7 +6496,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           !tt = R2(iorb,iorb)/normarr(iorb)-R(iorb,iorb)**2/normarr(iorb)
           tt = R2(iorb,iorb)/normarr(iorb)-(R(iorb,iorb)/normarr(iorb))**2
           var=var+tt
-          !if(iproc==0) write(*,'(a,i8,es15.6)') 'iorb, tt', iorb, tt
+          if(iproc==0) write(*,'(a,i8,es15.6)') 'iorb, tt', iorb, tt
       end do
       if(iproc==0) write(*,'(a,i6,es18.8)') 'it, total variance', it, var
       !if(iproc==0) write(*,'(a,es18.8)') 'NEW SPREAD: ',tt
