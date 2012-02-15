@@ -13,13 +13,7 @@ TESTDIRS = C \
 	  TiSmear \
 	  O2-Spin \
 	  TDDFT \
-<<<<<<< TREE
-	  ElectField \
-	  SIC
-=======
 	  ElectField 
-
->>>>>>> MERGE-SOURCE
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -61,12 +55,6 @@ OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 ElectField.psp: HGH-K/psppar.H HGH-K/psppar.O
 TDDFT.psp: psppar.N
-<<<<<<< TREE
-SIC.psp: HGH/psppar.H \
-	HGH/psppar.C \
-	HGH/psppar.O \
-	HGH/psppar.N
-=======
 Linear.psp Linear_withder.psp: HGH/psppar.C extra/psppar.H
 Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
 #SIC.psp: HGH/psppar.H \
@@ -77,7 +65,6 @@ Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
 SIC.post-in:
 	if [ ! -d data-PZ ] ; then mkdir data-PZ; fi
 	mv wavefunctions.gau data-PZ/
->>>>>>> MERGE-SOURCE
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
@@ -85,18 +72,6 @@ SIC.post-in:
           *) mode="";; \
         esac ; \
         case $* in \
-<<<<<<< TREE
-          Ca2.out*)         prec="4.e-10" ;; \
-          NaCl.out*)        prec="2.e-9" ;; \
-          SiBulk.out*)      prec="2.e-7" ;; \
-          AgBulk.out*)      prec="6.e-8" ;; \
-          SiH4.out*)        prec="5.e-9" ;; \
-	  TDDFT.out*)       prec="2.e-9" ;; \
-	  SIC*.out*)        prec="1.e-9" ;; \
-	  Mn2.out*)         prec="1.5e-10" ;; \
-          ElecField.out*)   prec="1.e-9" ;; \
-          *)                prec="1.1e-10" ;; \
-=======
           Ca2.out*)             prec="4.e-10" ;; \
           NaCl.out*)            prec="2.e-9" ;; \
           SiBulk.out*)          prec="2.e-7" ;; \
@@ -111,7 +86,6 @@ SIC.post-in:
 	  Linear_mixedmode.out*) prec="2.e-10" ;; \
           Linear_large.out*)    prec="5.e-10" ;; \
           *)                    prec="1.1e-10" ;; \
->>>>>>> MERGE-SOURCE
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
