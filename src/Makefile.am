@@ -317,7 +317,6 @@ low_level = \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
 	lib/lbfgs.f90 \
-	lib/bindings.c \
 	lib/bindingsf.f90 \
 	$(flush_files) \
 	$(etsf_files) \
@@ -365,6 +364,8 @@ low_level = \
 
 # C objects
 c_level = posfiles.c \
+	lib/bindings.c \
+	convolutions/convolut_ib_sse.c \
 	$(CUDA_SOURCES)
 
 libdft_common_a_SOURCES = \
