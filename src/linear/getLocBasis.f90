@@ -1013,8 +1013,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   ! ration of large locreg and standard locreg
-  factor=1.0d0
-  factor2=1.5d0
+  factor=1.5d0
+  factor2=200.0d0
 
   ! always use the same inwhichlocreg
   inwhichlocreg_reference = lorbs%inwhichlocreg
@@ -1121,10 +1121,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
             !!   confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
             !!end do
 
-            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                 lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
             !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-            !!     6.d0, confdatarr, lphilarge)
+            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                 6.d0, confdatarr, lphilarge)
 
             !!!write(*,*) 'ATTENTION DEBUG!'
             !!!lphilarge=1.d0
@@ -1275,6 +1275,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                 if(iproc==0) write(*,'(a,i5,es16.4)') '1: ilr, tt', ilr, tt
             end do
 
+            write(*,*) 'WARNING: CHECK HERE THE INDICES OF UMAT!!'
             if(nItInnerLoop>0) then                          
                  kernelold=kernel
                  do iorb=1,lorbs%norb
@@ -1283,6 +1284,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                          do korb=1,lorbs%norb
                              do lorb=1,lorbs%norb
                                  tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
+                                 !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
                              end do
                          end do
                          kernel(jorb,iorb)=tt
@@ -1373,10 +1375,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
                confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
             end do
-            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                 lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
             !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-            !!     6.d0, confdatarr, lphilarge)
+            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                 6.d0, confdatarr, lphilarge)
 
             call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -1903,10 +1905,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
            end do
 
-           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-           !!     6.d0, confdatarr, lphilarge)
+           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                6.d0, confdatarr, lphilarge)
 
            !! EXPERIMENTAL: normalize lphilarge
            ist=1
@@ -2000,6 +2002,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                    stop
                end if
            end do
+           write(*,*) 'WARNING CHECK INDICES OF UMAT!!'
            if(nItInnerLoop>0) then
                kernelold=kernel
                do iorb=1,lorbs%norb
@@ -2010,6 +2013,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                                !tt=tt+kernelold(korb,lorb)*Umat(jorb,korb)*Umat(iorb,lorb)
                                !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
                                tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
+                               !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
                            end do
                        end do
                        kernel(jorb,iorb)=tt
@@ -2106,10 +2110,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               confdatarr(iorb)%ioffset(2)=lzdlarge%llr(ilr)%nsi2-nl2-1
               confdatarr(iorb)%ioffset(3)=lzdlarge%llr(ilr)%nsi3-nl3-1
            end do
-           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-           !!     6.d0, confdatarr, lphilarge)
+           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+                6.d0, confdatarr, lphilarge)
 
            call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -7152,6 +7156,23 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   end do innerLoop
 
 
+  !!!!!! EXPERIMENTAL
+  !!!!write(*,*) 'WARNING: TRANSPOSE UMAT!!!!'
+  !!!!call dcopy(orbs%norb**2, Umat(1,1), 1, tempmat3(1,1,1), 1)
+  !!!!do iorb=1,orbs%norb
+  !!!!    do jorb=1,orbs%norb
+  !!!!        Umat(jorb,iorb)=tempmat3(iorb,jorb,1)
+  !!!!    end do
+  !!!!end do
+
+
+  if(iproc==0) then
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              write(999,*) iorb,jorb,Umat(jorb,iorb)
+          end do
+      end do
+  end if
 
 
   t1=mpi_wtime()
