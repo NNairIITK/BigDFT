@@ -196,7 +196,8 @@ module module_types
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
-     real(gp) :: projrad   !<coarse radius of the projectors in units of the maxrad
+     real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
+     real(gp) :: symTol    !< Tolerance for symmetry detection.
      character(len=3) :: linear
 
      !orthogonalisation data

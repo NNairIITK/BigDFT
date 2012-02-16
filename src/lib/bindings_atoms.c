@@ -212,13 +212,14 @@ void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc)
     (atoms->data, (int*)(&atoms->natsc), (int*)(&atoms->donlcc));
 }
 
-void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active, double elecfield[3])
+void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active,
+                                 double tol, double elecfield[3])
 {
   int disable;
 
   disable = (!active);
   FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(atoms->data, atoms->rxyz.data,
-                                                       &disable, elecfield);
+                                                       &disable, &tol, elecfield);
 }
 
 void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)

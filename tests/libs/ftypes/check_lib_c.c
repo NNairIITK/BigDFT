@@ -142,7 +142,7 @@ int main(guint argc, char **argv)
   fprintf(stdout, " Input variables are %f %f %f  -  %f %f  -  %d\n",
           in->h[0], in->h[1], in->h[2], in->crmult, in->frmult, in->ixc);
 
-  bigdft_atoms_set_symmetries(atoms, !in->disableSym, in->elecfield);
+  bigdft_atoms_set_symmetries(atoms, !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, atoms);
 
   fprintf(stdout, "Test BigDFT_Orbs structure creation.\n");

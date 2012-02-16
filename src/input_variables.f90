@@ -154,7 +154,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
   ! Update atoms with symmetry information
-  call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%elecfield)
+  call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%symTol, inputs%elecfield)
 
   ! Parse input files depending on atoms.
   call inputs_parse_add(inputs, atoms%sym, atoms%geocode, &
@@ -1484,6 +1484,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
   call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
+  call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
   
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &

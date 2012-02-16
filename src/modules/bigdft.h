@@ -67,7 +67,7 @@ void          bigdft_atoms_set_n_atoms     (BigDFT_Atoms *atoms, guint nat);
 void          bigdft_atoms_set_n_types     (BigDFT_Atoms *atoms, guint ntypes);
 void          bigdft_atoms_set_psp         (BigDFT_Atoms *atoms, int ixc);
 void          bigdft_atoms_set_symmetries  (BigDFT_Atoms *atoms, gboolean active,
-                                            double elecfield[3]);
+                                            double tol, double elecfield[3]);
 void          bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis);
 void          bigdft_atoms_sync            (BigDFT_Atoms *atoms);
 double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms);

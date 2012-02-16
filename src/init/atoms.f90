@@ -199,7 +199,7 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
 END SUBROUTINE allocate_atoms_ntypes
 
 !> Calculate symmetries and update
-subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
+subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   use module_base
   use module_types
   use defs_basis
@@ -208,6 +208,7 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   logical, intent(in) :: disableSym
+  real(gp), intent(in) :: tol
   real(gp), intent(in) :: elecfield(3)
   !local variables
   character(len=*), parameter :: subname='atoms_set_symmetries'
@@ -220,6 +221,8 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
      if (atoms%sym%symObj < 0) then
         call symmetry_new(atoms%sym%symObj)
      end if
+     ! Adjust tolerance
+     if (tol > 0._gp) call symmetry_set_tolerance(atoms%sym%symObj, tol, ierr)
      ! New values
      rprimd(:,:) = 0
      rprimd(1,1) = atoms%alat1
