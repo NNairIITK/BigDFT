@@ -464,7 +464,6 @@ do iorb=1,comsr%noverlaps(iproc)
         jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
         jlr=comsr%comarr(4,jorb,iproc) !localization region of orbital jorb
         istrj=comsr%comarr(6,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
-        
 
         azones = 1
         bzones = 1
@@ -517,7 +516,7 @@ do iorb=1,comsr%noverlaps(iproc)
                       j2d=i2 + jshift2 !y coordinate of orbital jorb with respect to the overlap box
                       indi2=i2d*lzd%llr(ilr)%d%n1i !y-part of the index of orbital iorb in the 1-dim receive buffer
                       indj2=j2d*lzd%llr(jlr)%d%n1i !y-part of the index of orbital jorb in the 1-dim receive buffer
-                      indl2=(i2-1)*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
+                      indl2=i2*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
                       m=mod(i1e-i1s+1,4)
                       if(m/=0) then
                           ! The following five variables hold some intermediate results to speed up the code.
@@ -525,7 +524,7 @@ do iorb=1,comsr%noverlaps(iproc)
                           j1d0= jshift1
                           indri0 = indi3 + indi2 + istri + 1
                           indrj0 = indj3 + indj2 + istrj + 1
-                          indLarge0 = indl3 + indl2 + 1
+                          indLarge0 = indl3 + indl2 + 1 
                           do i1=i1s,i1s+m-1
                               i1d=i1d0+i1 !x coordinate of orbital iorb with respect to the overlap box
                               j1d=j1d0+i1 !x coordinate of orbital jorb with respect to the overlap box

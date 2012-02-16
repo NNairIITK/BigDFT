@@ -1800,7 +1800,7 @@ subroutine fracture_periodic_zone_ISF(nzones,Glr,Llr,outofzone,astart,aend)
   alre(2) = Llr%nsi2 + Llr%d%n2i
   alre(3) = Llr%nsi3 + Llr%d%n3i
 
-  if(outofzone(1) < 0 .and. outofzone(2) < 0 .and. outofzone(3) < 0 ) then !Nothing to do
+  if(outofzone(1) <= 0 .and. outofzone(2) <= 0 .and. outofzone(3) <= 0 ) then !Nothing to do
      astart(1,1) = alrs(1)
      astart(2,1) = alrs(2)
      astart(3,1) = alrs(3)
