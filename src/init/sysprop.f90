@@ -30,7 +30,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
   !local variables
-  integer :: nelec
+  integer :: nelec,nB,nKB,nMB
   real(gp) :: peakmem
 
   ! Dump XC functionals.
@@ -72,6 +72,15 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
+  if (iproc == 0) then
+     nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
+     nMB=nB/1024/1024
+     nKB=(nB-nMB*1024*1024)/1024
+     nB=modulo(nB,1024)
+     write(*,'(1x,a,3(i5,a))') &
+       'Wavefunctions memory occupation for root MPI process: ',&
+       nMB,' MB ',nKB,' KB ',nB,' B'
+  end if
   ! Done orbs
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
