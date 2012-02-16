@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
   <head>
-    <title>Tutorial: studying a surface</title>
+    <title>Tutorial: Studying a surface</title>
     <meta name="copyright" content="&#169; 2004-2011 CEA" />
     <link rel="author" type="text/html" href="http://www.cea.fr" hreflang="fr" lang="fr" />
     <link rel="stylesheet" type="text/css" href="../styles/original.css" />
@@ -22,8 +22,8 @@
     <div class="main"><a name="top" id="top"></a>
 
       <div class="floatingmenu">
-        <a href="H1A-Basics.html">&lt;&nbsp;prev. lesson</a>
-        <a style="float:right;" href="H1C-Basic_post_processing.html">Next lesson &gt;</a> 
+        <a href="H1B_grid_cv.html">&lt;&nbsp;prev. lesson</a>
+        <a style="float:right;" href="H1D_wfn_plot.html">Next lesson &gt;</a> 
         <h2>Content of this lesson</h2>
         <ul>
           <li>Defining a surface configuration</li>
@@ -43,7 +43,7 @@
         versions are fully capable of running this tutorial but input files may
         have to be changed according to possible earlier formats.</p>
 
-      <h1>Studying surfaces with BigDFT: an ideal monolayer of water molecules</h1>
+      <h1>Basics of BigDFT: surface calculations with an ideal monolayer of water molecules</h1>
 
       <p>The purpose of this lesson is to introduce the surface
         calculation, the output of different scalar field like the local
@@ -112,11 +112,11 @@ Box Sizes=  6.61404E+00  2.31000E+01  5.66918E+00           19        66        
       <img class="figureR" src="Figures/H2O-dipolarE.png" alt="local potential the along y axis" />
       <p>Thanks to the Green function treatment in the Poisson solver,
         we've seen that's it's possible to exactly treat the dipolar moment in
-        a box, add a charge (<i>cf.</i> <a href="basics-1.html" target="_blank">previous
+        a box, add a charge (<i>cf.</i> <a href="H1B_grid_cv.html" target="_blank">previous
           tutorial</a>) but it is also possible to add an electric field. To do
         this, set the second value of the fourth line of <code>input.dft</code>:</p>
       <pre>
-0 0.010 charge of the system, Electric field</pre>
+0 0.0 0.010 0.0 charge of the system, Electric field</pre>
       <p>The unit for the electric field is hartree per bohr and the
         direction of the field is always the y direction (even for non surface calculations).</p>
 

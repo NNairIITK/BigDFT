@@ -9,7 +9,7 @@
 int main(int argc, char **argv)
 {
   char *filename;
-  f90_pointer_double *psiscf;
+  f90_pointer_double_4D *psiscf;
   int n[3], nspinor;
   int i, j, k, ind, ntot, norbu, norbd, nkpt;
   int iorb, ispin, ikpt, ispinor;

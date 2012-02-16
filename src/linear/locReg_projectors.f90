@@ -1,12 +1,14 @@
-!#############################################################################################################################################
-!!****f* BigDFT/nlpspd_to_locreg
-!#############################################################################################################################################
-!! FUNCTION: Transform projector descriptors between Global region and localisation region
-!!
-!! WARNING: 
-!!         
-!! SOURCE:
-!!
+!> @file
+!! Operations for projectors of PSP with localisation region
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Transform projector descriptors between Global region and localisation region
 subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,locregShape,nlpspd,Lnlpspd,projflg)
 
@@ -274,19 +276,12 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
   end do
 
 END SUBROUTINE nlpspd_to_locreg
-!%***
 
-!#############################################################################################################################################
-!!****f* BigDFT/number_of_projectors_in_locreg
-!#############################################################################################################################################
-!! FUNCTION: Calculates the number of projectors with components in the locreg
-!!           It also returns a vector, projflg, which identifies the atoms with projectors inside the region
-!!                      projflg = 0, no projectors in locreg
-!!                      projflg = nproj, nproj projectors from atom iatom in locreg
-!! WARNING: 
-!!         
-!! SOURCE:
-!!
+
+!> Calculates the number of projectors with components in the locreg
+!! It also returns a vector, projflg, which identifies the atoms with projectors inside the region
+!! projflg = 0, no projectors in locreg
+!! projflg = nproj, nproj projectors from atom iatom in locreg
 subroutine number_of_projectors_in_locreg(atoms,cpmult,fpmult,Glr,hx,hy,hz,Llr,nlpspd,&
 &          mproj,projflg,natp,radii_cf,rxyz)
 
@@ -295,9 +290,7 @@ subroutine number_of_projectors_in_locreg(atoms,cpmult,fpmult,Glr,hx,hy,hz,Llr,n
  
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   real(gp),intent(in) :: cpmult,fpmult,hx,hy,hz  ! grid descriptions
   type(atoms_data),intent(in) :: atoms        ! atoms descriptor
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
@@ -305,15 +298,11 @@ subroutine number_of_projectors_in_locreg(atoms,cpmult,fpmult,Glr,hx,hy,hz,Llr,n
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd  ! global descriptors for the projectors
   integer,intent(out) :: mproj  ! number of projectors
   integer,intent(out) :: natp   ! number of atoms having projectors in region
-  !#######################################
   ! Subroutine Array Arguments
-  !#######################################
   integer,dimension(atoms%nat),intent(out) :: projflg ! flag which is equal to the number of projectors with components inside locreg for each atom
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz !atomic positions
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf  ! radii of the different atom types
-  !#######################################
   ! Local Variables
-  !#######################################
   integer :: iatom,ii,izone                 ! integer for loop
   integer :: bound(1:2,1:3)           ! bound of locreg
   integer :: nproj                    ! temporary number of projectors
@@ -356,17 +345,10 @@ subroutine number_of_projectors_in_locreg(atoms,cpmult,fpmult,Glr,hx,hy,hz,Llr,n
   end do
 
 END SUBROUTINE number_of_projectors_in_locreg
-!%***
 
-!#############################################################################################################################################
-!!****f* BigDFT/check_projector_intersect_with_locreg
-!#############################################################################################################################################
-!! FUNCTION: Returns the limits of the various folded projector zones.
-!!           
-!! WARNING: Works only for overlaps (i.e. boundaries must be inside simulation box) 
-!!         
-!! SOURCE:
-!!
+
+!> Returns the limits of the various folded projector zones.
+!! @warning: Works only for overlaps (i.e. boundaries must be inside simulation box) 
 subroutine check_projector_intersect_with_locreg(atoms,pmult,Glr,hx,hy,hz,iatom,Llr,radii_cf,rxyz,intersect)
 
   use module_base
@@ -374,9 +356,7 @@ subroutine check_projector_intersect_with_locreg(atoms,pmult,Glr,hx,hy,hz,iatom,
  
   implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in) :: iatom     !number of atom we are treating
   real(gp),intent(in) :: hx,hy,hz   ! grid spacing
   real(gp),intent(in) :: pmult     ! factor for the radius of projector
@@ -385,13 +365,9 @@ subroutine check_projector_intersect_with_locreg(atoms,pmult,Glr,hx,hy,hz,iatom,
   type(locreg_descriptors),intent(in) :: Glr ! global region descriptor
   type(locreg_descriptors),intent(in) :: Llr ! local region descriptor
   logical,intent(out) :: intersect !.true. if projector intersects zone
-  !#######################################
   ! Subroutine Array Arguments
-  !#######################################
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz !atomic positions
-  !#######################################
   ! Local Variables
-  !#######################################
   integer :: i1,i2,i3  !integer for loops
   real(gp) :: dx1,dx2,dy1,dy2,dz1,dz2 !two distance in X,Y,Z
   real(gp) :: rad !radius of projectors
@@ -445,17 +421,9 @@ subroutine check_projector_intersect_with_locreg(atoms,pmult,Glr,hx,hy,hz,iatom,
   end do
 
 END SUBROUTINE check_projector_intersect_with_locreg
-!%***
 
-!#############################################################################################################################################
-!!****f* BigDFT/number_of_projector_elements_in_locreg
-!#############################################################################################################################################
-!! FUNCTION: Calculates the number of segments (mseg) and elements (mvctr) of projectors in locreg
-!!           
-!! WARNING: 
-!!         
-!! SOURCE:
-!!
+
+!> Calculates the number of segments (mseg) and elements (mvctr) of projectors in locreg
 subroutine number_of_projector_elements_in_locreg(iatom,igrid,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg,mvctr)
 
   use module_base
@@ -463,9 +431,7 @@ subroutine number_of_projector_elements_in_locreg(iatom,igrid,atoms,Glr,Llr,logr
  
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in) :: iatom  ! current atom
   integer,intent(in) :: igrid  ! treat coarse (1) or fine (2) grid
   type(atoms_data),intent(in) :: atoms        ! atoms descriptor
@@ -475,13 +441,11 @@ subroutine number_of_projector_elements_in_locreg(iatom,igrid,atoms,Glr,Llr,logr
   integer,intent(in) :: mproj  ! number of projectors
   integer,intent(out):: mseg   ! number of segments
   integer,intent(out):: mvctr  ! number of elements
-  !#######################################
+
   ! Subroutine Array Arguments
-  !#######################################
   logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid
-  !#######################################
+  
   ! Local Variables
-  !#######################################
   integer :: i1,i2,i3  ! integers for loops
   integer :: nl1,nl2,nl3,nu1,nu2,nu3   ! rename the bounds of projectors coarse grid
   integer :: nend,nsrt,mvctri,nsrti,nendi
@@ -645,9 +609,6 @@ subroutine number_of_projector_elements_in_locreg(iatom,igrid,atoms,Glr,Llr,logr
   end if
 
 END SUBROUTINE number_of_projector_elements_in_locreg
-!%***
-
-
 
 
 subroutine number_of_projector_elements_in_locregSphere(iatom,igrid,atoms,Glr,Llr,logrid,nlpspd,&
@@ -658,9 +619,7 @@ subroutine number_of_projector_elements_in_locregSphere(iatom,igrid,atoms,Glr,Ll
  
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in) :: iatom  ! current atom
   integer,intent(in) :: igrid  ! treat coarse (1) or fine (2) grid
   type(atoms_data),intent(in) :: atoms        ! atoms descriptor
@@ -672,13 +631,11 @@ subroutine number_of_projector_elements_in_locregSphere(iatom,igrid,atoms,Glr,Ll
   integer,intent(in) :: mproj  ! number of projectors
   integer,intent(out):: mseg   ! number of segments
   integer,intent(out):: mvctr  ! number of elements
-  !#######################################
+  
   ! Subroutine Array Arguments
-  !#######################################
   logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid
-  !#######################################
+  
   ! Local Variables
-  !#######################################
   integer :: i1,i2,i3  ! integers for loops
   integer :: nl1,nl2,nl3,nu1,nu2,nu3   ! rename the bounds of projectors coarse grid
   integer :: nend,nsrt,mvctri,nsrti,nendi
@@ -855,24 +812,9 @@ subroutine number_of_projector_elements_in_locregSphere(iatom,igrid,atoms,Glr,Ll
 END SUBROUTINE number_of_projector_elements_in_locregSphere
 
 
-
-
-
-
-
-
-
-
-!#############################################################################################################################################
-!!****f* BigDFT/ projector_box_in_locreg
-!#############################################################################################################################################
-!! FUNCTION: Calculates the bounds of the box of the projector in locreg
-!!           bounds(1,:,:) for coarse grid
-!!           bounds(2,:,:) for fine grid
-!! WARNING: 
-!!         
-!! SOURCE:
-!!
+!> Calculates the bounds of the box of the projector in locreg
+!!   bounds(1,:,:) for coarse grid
+!!   bounds(2,:,:) for fine grid
 subroutine projector_box_in_locreg(iatom,Glr,Llr,nlpspd,bounds)
 
   use module_base
@@ -880,17 +822,14 @@ subroutine projector_box_in_locreg(iatom,Glr,Llr,nlpspd,bounds)
  
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in) :: iatom  ! current atom
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd  ! global descriptors for the projectors
   integer,dimension(1:2,1:2,1:3),intent(out) :: bounds
-  !#######################################
+  
   ! Local Variables
-  !#######################################
   integer :: ii
   integer,dimension(1:2,1:3) :: Cnl,Fnl,Lnl
   
@@ -957,17 +896,9 @@ subroutine projector_box_in_locreg(iatom,Glr,Llr,nlpspd,bounds)
   end do
 
 END SUBROUTINE projector_box_in_locreg
-!%***
 
-!#############################################################################################################################################
-!!****f* BigDFT/allocate_Lnlpspd
-!#############################################################################################################################################
-!! FUNCTION:  Allocates most of the arrays in Lnlpspd 
-!!
-!! WARNING: 
-!!         
-!! SOURCE:
-!!
+
+!> Allocates most of the arrays in Lnlpspd 
 subroutine allocate_Lnlpspd(natom,Lnlpspd,subname)
 
   use module_base
@@ -975,15 +906,12 @@ subroutine allocate_Lnlpspd(natom,Lnlpspd,subname)
  
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   integer,intent(in) :: natom
   type(nonlocal_psp_descriptors),intent(inout) :: Lnlpspd  ! Local descriptors for the projectors
   character(len=*), intent(in) :: subname
-  !#######################################
+  
   ! Local Variables 
-  !#######################################
   integer :: i_stat,ierr
 
   Lnlpspd%natoms=natom
@@ -1007,17 +935,9 @@ subroutine allocate_Lnlpspd(natom,Lnlpspd,subname)
 !!$  call memocc(i_stat,Lnlpspd%nboxp_f,'nbox_f',subname)
 
 END SUBROUTINE allocate_Lnlpspd
-!%***
 
-!#############################################################################################################################################
-!!****f* BigDFT/allocate_Lnlpspd
-!#############################################################################################################################################
-!! FUNCTION:  Deallocates most of the arrays in Lnlpspd 
-!!
-!! WARNING: 
-!!         
-!! SOURCE:
-!!
+
+!> Deallocates most of the arrays in Lnlpspd 
 subroutine deallocate_Lnlpspd(Lnlpspd,subname)
 
   use module_base
@@ -1025,14 +945,11 @@ subroutine deallocate_Lnlpspd(Lnlpspd,subname)
 
  implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
   type(nonlocal_psp_descriptors),intent(inout) :: Lnlpspd  ! Local descriptors for the projectors
   character(len=*), intent(in) :: subname
-  !#######################################
+  
   ! Local Variables 
-  !#######################################
   integer :: i_stat,i_all
 
   call deallocate_proj_descr(Lnlpspd,subname)
@@ -1045,20 +962,9 @@ subroutine deallocate_Lnlpspd(Lnlpspd,subname)
 !!$  nullify(Lnlpspd%keyv_p)
 
 END SUBROUTINE deallocate_Lnlpspd
-!%***
 
 
-
-!#############################################################################################################################################
-!!****f* BigDFT/allocate_projd
-!#############################################################################################################################################
-!! FUNCTION: allocates the keyg_p and keyv_p descriptors for the projectors
-!!          
-!!           
-!! WARNING: 
-!!         
-!! SOURCE:
-!!
+!!$!> allocates the keyg_p and keyv_p descriptors for the projectors
 !!$subroutine allocate_projd(mseg,Lnlpspd,subname)
 !!$
 !!$  use module_base
@@ -1066,15 +972,12 @@ END SUBROUTINE deallocate_Lnlpspd
 !!$ 
 !!$ implicit none
 !!$
-!!$  !#######################################
 !!$  ! Subroutine Scalar Arguments
-!!$  !#######################################
 !!$  integer,intent(in) :: mseg
 !!$  type(nonlocal_psp_descriptors),intent(inout) :: Lnlpspd  ! Local descriptors for the projectors
 !!$  character(len=*), intent(in) :: subname
-!!$  !#######################################
+!!$
 !!$  ! Local Variables 
-!!$  !#######################################
 !!$  integer :: i_stat
 !!$  allocate(Lnlpspd%keyg_p(2,mseg),stat=i_stat)
 !!$  call memocc(i_stat,Lnlpspd%keyg_p,'keyg_p',subname)
@@ -1082,19 +985,9 @@ END SUBROUTINE deallocate_Lnlpspd
 !!$  call memocc(i_stat,Lnlpspd%keyv_p,'keyv_p',subname)
 !!$
 !!$END SUBROUTINE allocate_projd
-!%***
 
 
-!#############################################################################################################################################
-!!****f* BigDFT/apply_local_projectors
-!#############################################################################################################################################
-!! FUNCTION: Fills the projector pointer and applies the projectors to the wavefunctions
-!!           
-!!           
-!! WARNING: 
-!!         
-!! SOURCE:
-!!
+!!$!> FUNCTION: Fills the projector pointer and applies the projectors to the wavefunctions
 !!$subroutine apply_local_projectors(iorb,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,projflg,psi,rxyz,hpsi,eproj)
 !!$
 !!$
@@ -1104,9 +997,7 @@ END SUBROUTINE deallocate_Lnlpspd
 !!$ 
 !!$  implicit none
 !!$
-!!$  !#######################################
 !!$  ! Subroutine Scalar Arguments
-!!$  !#######################################
 !!$  integer, intent(in) :: iorb,nspin,iproc
 !!$  real(gp), intent(in) :: hx,hy,hz
 !!$  type(atoms_data),intent(in) :: atoms
@@ -1114,16 +1005,14 @@ END SUBROUTINE deallocate_Lnlpspd
 !!$  type(nonlocal_psp_descriptors),intent(in) :: Lnlpspd  ! Local descriptors for the projectors
 !!$  type(orbitals_data),intent(in) :: orbs
 !!$  real(gp), intent(inout) :: eproj
-!!$  !#######################################
+!!$
 !!$  ! Subroutine Array Arguments
-!!$  !#######################################
 !!$  integer,dimension(atoms%nat),intent(in) :: projflg
 !!$  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor),intent(in) :: psi  !local wavefunction
 !!$  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor),intent(inout):: hpsi ! local |p><p|Psi>
 !!$  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-!!$  !#######################################
+!!$ 
 !!$  ! Local Variables 
-!!$  !#######################################
 !!$  integer :: ikpt,istart_c,ncplx,jseg_c,iproj,iat,ityp,l,i,nwarnings
 !!$  integer :: isorb,ieorb,nspinor,istart_o,ispinor
 !!$  integer :: nels,ipsi,ii,iatom,iel,i_all,i_stat
@@ -1277,11 +1166,9 @@ END SUBROUTINE deallocate_Lnlpspd
 !!$    call memocc(i_stat,i_all,'Lproj',subname)
 !!$
 !!$END SUBROUTINE apply_local_projectors
-!%***
 
-!> BigDFT/projector
-!!
-!!
+
+!> Do local projector
 subroutine local_projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,Llr,&
      hx,hy,hz,kx,ky,kz,ncplx,&
      mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,nwarnings)
@@ -1368,16 +1255,8 @@ subroutine local_projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,Llr,&
   enddo
 END SUBROUTINE local_projector
 
-!!$!#############################################################################################################################################
-!!$!!****f* BigDFT/apply_local_projectors2
-!!$!#############################################################################################################################################
-!!$!! FUNCTION: Fills the projector pointer and applies the projectors to the wavefunctions
-!!$!!           
-!!$!!           
-!!$!! WARNING: 
-!!$!!         
-!!$!! SOURCE:
-!!$!!
+
+!!$!> Fills the projector pointer and applies the projectors to the wavefunctions
 !!$subroutine apply_local_projectors2(ilr,iproc,localnorb,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,projflg,psi,rxyz,hpsi,eproj)
 !!$
 !!$  use module_base
@@ -1386,9 +1265,7 @@ END SUBROUTINE local_projector
 !!$
 !!$  implicit none
 !!$
-!!$  !#######################################
 !!$  ! Subroutine Scalar Arguments
-!!$  !#######################################
 !!$  integer, intent(in) :: ilr,nspin,iproc,localnorb
 !!$  real(gp), intent(in) :: hx,hy,hz
 !!$  type(atoms_data),intent(in) :: atoms
@@ -1396,18 +1273,16 @@ END SUBROUTINE local_projector
 !!$  type(nonlocal_psp_descriptors),intent(in) :: Lnlpspd  ! Local descriptors for the projectors
 !!$  type(orbitals_data),intent(in) :: orbs
 !!$  real(gp), intent(inout) :: eproj
-!!$  !#######################################
+!!$ 
 !!$  ! Subroutine Array Arguments
-!!$  !#######################################
 !!$  integer,dimension(atoms%nat),intent(in) :: projflg
 !!$  !real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(in) :: psi  !local wavefunction
 !!$  !real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(inout):: hpsi ! local |p><p|Psi>
 !!$  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*localnorb*nspin),intent(in) :: psi  !local wavefunction
 !!$  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*localnorb*nspin),intent(inout):: hpsi ! local |p><p|Psi>
 !!$  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-!!$  !#######################################
+!!$
 !!$  ! Local Variables 
-!!$  !#######################################
 !!$  integer :: ikpt,istart_c,ncplx,jseg_c,iproj,iat,ityp,l,i,nwarnings
 !!$  integer :: isorb,ieorb,nspinor,iorb,istart_o,ispinor
 !!$  integer :: nels,ipsi,ii,iatom,iel
@@ -1591,24 +1466,20 @@ END SUBROUTINE local_projector
 !
 !  implicit none
 !
-!  !#######################################
 !  ! Subroutine Scalar Arguments
-!  !#######################################
 !  integer, intent(in) :: iproc
 !  real(gp), intent(in) :: hx,hy,hz
 !  type(atoms_data),intent(in) :: atoms
 !  type(local_zone_descriptors),intent(in) :: Lzd
 !  type(orbitals_data),intent(in) :: orbs
 !  real(gp), intent(inout) :: eproj
-!  !#######################################
+!
 !  ! Subroutine Array Arguments
-!  !#######################################
 !  real(wp),dimension(Lzd%Lpsidimtot),intent(in) :: psi  !local wavefunction
 !  real(wp),dimension(Lzd%Lpsidimtot),intent(inout):: hpsi ! H|Psi> + |p><p|Psi>
 !  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-!  !#######################################
+!
 !  ! Local Variables 
-!  !#######################################
 !  logical :: newvalue
 !  integer :: ikpt,istart_c,ncplx,jseg_c,iproj,iat,ityp,l,i,nwarnings
 !  integer :: isorb,ieorb,nspinor,istart_o,ispinor

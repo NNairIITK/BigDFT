@@ -10,14 +10,78 @@
 #define g_free(A)   free(A)
 #define guint unsigned int
 #define gchar char
+#define GObject void
 #endif
-
-#define F90_POINTER_SIZE 18
 
 #define BIGDFT_STRING_VERSION "@PACKAGE_VERSION@"
 #define BIGDFT_MAJOR_VERSION 1
 #define BIGDFT_MINOR_VERSION 6
 
-#define POINTER_SHIFT_SIZE @POINTER_SHIFT_SIZE@
+#define F90_1D_POINTER_SHIFT @F90_1D_POINTER_SHIFT@
+#define F90_1D_POINTER_SIZE  @F90_1D_POINTER_SIZE@
+
+#define F90_2D_POINTER_SHIFT @F90_2D_POINTER_SHIFT@
+#define F90_2D_POINTER_SIZE  @F90_2D_POINTER_SIZE@
+
+#define F90_3D_POINTER_SHIFT @F90_3D_POINTER_SHIFT@
+#define F90_3D_POINTER_SIZE  @F90_3D_POINTER_SIZE@
+
+#define F90_4D_POINTER_SHIFT @F90_4D_POINTER_SHIFT@
+#define F90_4D_POINTER_SIZE  @F90_4D_POINTER_SIZE@
+
+#define F90_5D_POINTER_SHIFT @F90_5D_POINTER_SHIFT@
+#define F90_5D_POINTER_SIZE  @F90_5D_POINTER_SIZE@
+
+/***************************/
+/* Generic pointer arrays. */
+/***************************/
+typedef struct f90_pointer_double_
+{
+#if F90_1D_POINTER_SHIFT > 0
+  void *shift[F90_1D_POINTER_SHIFT];
+#endif
+  double *data;
+  void *info[F90_1D_POINTER_SIZE - 1 - F90_1D_POINTER_SHIFT];
+} f90_pointer_double;
+typedef struct f90_pointer_double_2D_
+{
+#if F90_2D_POINTER_SHIFT > 0
+  void *shift[F90_2D_POINTER_SHIFT];
+#endif
+  double *data;
+  void *info[F90_2D_POINTER_SIZE - 1 - F90_2D_POINTER_SHIFT];
+} f90_pointer_double_2D;
+typedef struct f90_pointer_double_3D_
+{
+#if F90_3D_POINTER_SHIFT > 0
+  void *shift[F90_3D_POINTER_SHIFT];
+#endif
+  double *data;
+  void *info[F90_3D_POINTER_SIZE - 1 - F90_3D_POINTER_SHIFT];
+} f90_pointer_double_3D;
+typedef struct f90_pointer_double_4D_
+{
+#if F90_4D_POINTER_SHIFT > 0
+  void *shift[F90_4D_POINTER_SHIFT];
+#endif
+  double *data;
+  void *info[F90_4D_POINTER_SIZE - 1 - F90_4D_POINTER_SHIFT];
+} f90_pointer_double_4D;
+typedef struct f90_pointer_double_5D_
+{
+#if F90_5D_POINTER_SHIFT > 0
+  void *shift[F90_5D_POINTER_SHIFT];
+#endif
+  double *data;
+  void *info[F90_5D_POINTER_SIZE - 1 - F90_5D_POINTER_SHIFT];
+} f90_pointer_double_5D;
+typedef struct f90_pointer_int_
+{
+#if F90_1D_POINTER_SHIFT > 0
+  void *shift[F90_1D_POINTER_SHIFT];
+#endif
+  int *data;
+  void *info[F90_1D_POINTER_SIZE - 1 - F90_1D_POINTER_SHIFT];
+} f90_pointer_int;
 
 #endif

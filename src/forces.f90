@@ -32,7 +32,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-          &   psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
+          &   psi,Lzd,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
        implicit none
@@ -40,7 +40,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
        integer, intent(out) :: infocode
        real(gp), intent(inout) :: hx_old,hy_old,hz_old
        type(input_variables), intent(in) :: in
-       type(locreg_descriptors), intent(inout) :: Glr
+       type(local_zone_descriptors), intent(inout) :: Lzd
        type(atoms_data), intent(inout) :: atoms
        type(gaussian_basis), intent(inout) :: gbd
        type(orbitals_data), intent(inout) :: orbs
@@ -159,7 +159,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            inputs%inputPsiId=1
            !here we should call cluster
            call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz_fake,strten,fnoise,&
-                rst%psi,rst%Lzd%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
+                rst%psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
                 rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
 
            !assign the quantity which should be differentiated
@@ -342,6 +342,19 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
      call mpiallred(charge,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
 
+  !add to the forces the ionic and dispersion contribution 
+  if (.not. experimental_modulebase_var_onlyfion) then !normal case
+     do iat=1,atoms%nat
+        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
+        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
+        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
+     enddo
+  else
+     call vcopy(3*atoms%nat,fion(1,1),1,fxyz(1,1),1)
+  end if
+  !clean the center mass shift and the torque in isolated directions
+  call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+
   !volume element for local stress
   strtens(:,1)=strtens(:,1)/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)
   strtens(1:3,1)=strtens(1:3,1)+charge*psoffset&
@@ -385,18 +398,6 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
 !!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
 !!$  endif
 
-  !add to the forces the ionic and dispersion contribution 
-  if (.not. experimental_modulebase_var_onlyfion) then !normal case
-     do iat=1,atoms%nat
-        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
-        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
-        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
-     enddo
-  else
-     call vcopy(3*atoms%nat,fion(1,1),1,fxyz(1,1),1)
-  end if
-  !clean the center mass shift and the torque in isolated directions
-  call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   ! Apply symmetries when needed
   if (atoms%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
@@ -551,8 +552,8 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   
   write(*,'(1x,a)')'Stress Tensor, '//trim(message)//' contribution (Ha/Bohr^3):'
   write(*,'(1x,t10,10x,a,t30,10x,a,t50,10x,a)')'x','y','z'
-  write(*,'(1x,a,t10,1pe20.12,t30,1pe20.12,t50,1pe20.12)')'x',strten(1),strten(4),strten(5)
-  write(*,'(1x,a,t30,1pe20.12,t50,1pe20.12)')'y',strten(2),strten(6)
+  write(*,'(1x,a,t10,1pe20.12,t30,1pe20.12,t50,1pe20.12)')'x',strten(1),strten(6),strten(5)
+  write(*,'(1x,a,t30,1pe20.12,t50,1pe20.12)')'y',strten(2),strten(4)
   write(*,'(1x,a,t50,1pe20.12)')'z',strten(3)
 
   if (fullinfo) then
@@ -736,9 +737,9 @@ charge=charge*hxh*hyh*hzh
      locstrten(1)=locstrten(1)+Txx/rloc/rloc
      locstrten(2)=locstrten(2)+Tyy/rloc/rloc
      locstrten(3)=locstrten(3)+Tzz/rloc/rloc
-     locstrten(4)=locstrten(4)+Txy/rloc/rloc
+     locstrten(4)=locstrten(4)+Tyz/rloc/rloc
      locstrten(5)=locstrten(5)+Txz/rloc/rloc
-     locstrten(6)=locstrten(6)+Tyz/rloc/rloc
+     locstrten(6)=locstrten(6)+Txy/rloc/rloc
 !!!     !only for testing purposes, printing the components of the forces for each atoms
 !!!     write(10+iat,'(2(1x,3(1x,1pe12.5)))') &
 !!!          (hxh*hyh*hzh*prefactor)*fxerf,(hxh*hyh*hzh*prefactor)*fyerf,&
@@ -789,7 +790,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   integer :: ierr,ilr
-  real(gp), dimension(9) :: sab
+  real(gp), dimension(6) :: sab
 
   call to_zero(6,strten(1)) 
 
@@ -801,14 +802,14 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 
   !  allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  allocate(scalprod(2,0:12,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
+  allocate(scalprod(2,0:9,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
   call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
 
 
   Enl=0._gp
   !strten=0.d0
-  vol=hx*real((lr%d%n1+1),gp)*hy*real((lr%d%n2+1),gp)*hz*real((lr%d%n3+1),gp)
+  vol=real(at%alat1*at%alat2*at%alat3,gp)
   sab=0.d0
 
   !calculate the coefficients for the off-diagonal terms
@@ -866,7 +867,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
            jseg_c=1
            jseg_f=1
 
-           do idir=0,12
+           do idir=0,9
 !!$           mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
 !!$           mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
 !!$           jseg_c=nlpspd%nseg_p(2*iat-2)+1
@@ -925,7 +926,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 
   else
      !calculate all the scalar products for each direction and each orbitals
-     do idir=0,12
+     do idir=0,9
 
         if (idir /= 0) then !for the first run the projectors are already allocated
            call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
@@ -1040,7 +1041,7 @@ sab=0.0_gp
 
 Enl=Enl+sp0*sp0*at%psppar(l,i,ityp)*&
 orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                            do idir=4,12 !for stress
+                            do idir=4,9 !for stress
 strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
 sab(idir-3)=&
 sab(idir-3)+&   
@@ -1080,7 +1081,7 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
 
 Enl=Enl+2.0_gp*sp0i*sp0j*hij&
 *orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                  do idir=4,12
+                                  do idir=4,9
 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
 spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
 sab(idir-3)=&
@@ -1101,17 +1102,13 @@ sab(idir-3)+&
         !orbital-dependent factor for the forces
         orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*2.0_gp
 
-!seq: strten(1:6) =  11 22 33 12 13 23 
+!seq: strten(1:6) =  11 22 33 23 13 12 
 strten(1)=strten(1)+sab(1)/vol 
-strten(2)=strten(2)+sab(5)/vol 
-strten(3)=strten(3)+sab(9)/vol 
-! symmetrize tensor ( 12 -> (12+21)/2 )
-!strten(4)=strten(4)+(sab(2)+sab(4))/2._gp/vol
-!strten(5)=strten(5)+(sab(6)+sab(8))/2._gp/vol
-!strten(6)=strten(6)+(sab(3)+sab(7))/2._gp/vol
-strten(4)=strten(4)+sab(2)/vol
-strten(5)=strten(5)+sab(3)/vol
-strten(6)=strten(6)+sab(6)/vol
+strten(2)=strten(2)+sab(2)/vol 
+strten(3)=strten(3)+sab(3)/vol 
+strten(4)=strten(4)+sab(5)/vol
+strten(5)=strten(5)+sab(6)/vol
+strten(6)=strten(6)+sab(4)/vol
         do iat=1,at%nat
            fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
            fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
@@ -3742,16 +3739,20 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   end if
 END SUBROUTINE clean_forces
 
+
+!> Symmetrize stress
 !@todo: modifiy the arguments of this routine
 subroutine symm_stress(dump,tens,symobj)
   use defs_basis
   use module_base, only: verbose,gp
   use m_ab6_symmetry
   use module_types
+  implicit none
+  !Arguments
   logical, intent(in) :: dump
   integer, intent(in) :: symobj
   real(gp), dimension(6), intent(inout) :: tens
-  !local variables
+  !Local variables
   integer, pointer  :: sym(:,:,:)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
@@ -3780,13 +3781,13 @@ subroutine symm_stress(dump,tens,symobj)
            symtens(k,l)=&
                 symtens(k,l)+&
                 sym(1,k,isym)*tens(1)*sym(1,l,isym)+&
-                sym(1,k,isym)*tens(4)*sym(2,l,isym)+&
+                sym(1,k,isym)*tens(6)*sym(2,l,isym)+&
                 sym(1,k,isym)*tens(5)*sym(3,l,isym)+&
-                sym(2,k,isym)*tens(4)*sym(1,l,isym)+&
+                sym(2,k,isym)*tens(6)*sym(1,l,isym)+&
                 sym(2,k,isym)*tens(2)*sym(2,l,isym)+&
-                sym(2,k,isym)*tens(6)*sym(3,l,isym)+&
+                sym(2,k,isym)*tens(4)*sym(3,l,isym)+&
                 sym(3,k,isym)*tens(5)*sym(1,l,isym)+&
-                sym(3,k,isym)*tens(6)*sym(2,l,isym)+&
+                sym(3,k,isym)*tens(4)*sym(2,l,isym)+&
                 sym(3,k,isym)*tens(3)*sym(3,l,isym)
         end do
      end do
@@ -3796,9 +3797,9 @@ subroutine symm_stress(dump,tens,symobj)
   tens(1)=symtens(1,1)
   tens(2)=symtens(2,2)
   tens(3)=symtens(3,3)
-  tens(4)=symtens(1,2)
+  tens(4)=symtens(2,3)
   tens(5)=symtens(1,3)
-  tens(6)=symtens(2,3)
+  tens(6)=symtens(1,2)
 
 !  if (iproc == 0 .and. verbose > 2) then
 !     write(*,*) '=== SYMMETRISED ==='
@@ -4070,9 +4071,9 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
                  tens(1)=tens(1)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(1)+potg)
                  tens(2)=tens(2)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(2)+potg)
                  tens(3)=tens(3)-(rhore+rhoim)*(potg2*2.0_gp*p(3)*p(3)+potg)
-                 tens(4)=tens(4)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(2))
+                 tens(6)=tens(6)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(2))
                  tens(5)=tens(5)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(3))
-                 tens(6)=tens(6)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(3))
+                 tens(4)=tens(4)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(3))
 
               end if  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! g2 /=0
            end do !i1

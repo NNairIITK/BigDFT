@@ -540,15 +540,19 @@ idir2=mod(idir-1,3)+1
 
 ! sequence: 11 21 31 12 22 32 13 23 33 
 
-if (idir > 3) then
-        if (idir < 7) then
-lx(iterm)=lx(iterm)+1
-        else if (idir < 10) then
-ly(iterm)=ly(iterm)+1
-        else 
-lz(iterm)=lz(iterm)+1
-        endif
-end if
+!if (idir > 3) then
+!        if (idir < 7) then
+!lx(iterm)=lx(iterm)+1
+!        else if (idir < 10) then
+!ly(iterm)=ly(iterm)+1
+!        else 
+!lz(iterm)=lz(iterm)+1
+!        endif
+!endif
+!seq : 11 22 33 12 23 13
+if (idir == 4 .or. idir == 9) lx(iterm)=lx(iterm)+1
+if (idir == 5 .or. idir == 7) ly(iterm)=ly(iterm)+1
+if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
 
         end do
      end if

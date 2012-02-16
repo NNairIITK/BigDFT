@@ -8,7 +8,8 @@ EXTRA_DIST = \
 	read.dft \
 	posinp.xyz \
 	write.out.ref \
-	read.out.ref
+	read.out.ref \
+        check_lib.out.ref
 
 PPFILES = psppar.O
 
@@ -64,6 +65,8 @@ clean.in:
 	    rm -f $$i ; \
 	  done ; \
         fi
+
+check_lib_c check_lib: $(top_builddir)/src/libbigdft.a
 
 #Check read and write by doing twice run
 write_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz write.dft 
