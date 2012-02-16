@@ -237,11 +237,6 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
      deallocate(xRed,stat=i_stat)
      call memocc(i_stat,i_all,'xRed',subname)
      if (atoms%geocode == 'S') then
-        if (.not. disableSym) then
-           !!for the moment symmetries are not allowed in surfaces BC
-           write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
-           stop
-        end if
         call symmetry_set_periodicity(atoms%sym%symObj, &
              & (/ .true., .false., .true. /), ierr)
      else if (atoms%geocode == 'F') then
@@ -1161,10 +1156,11 @@ END SUBROUTINE charge_and_spol
 
 ! Init routine for bindings
 !> Allocate a new atoms_data type, for bindings.
-subroutine atoms_new(atoms)
+subroutine atoms_new(atoms, sym)
   use module_types
   implicit none
   type(atoms_data), pointer :: atoms
+  type(symmetry_data), pointer :: sym
   
   allocate(atoms)
   atoms%geocode = "F"
@@ -1175,6 +1171,7 @@ subroutine atoms_new(atoms)
   atoms%sym%symObj = -1
   nullify(atoms%sym%irrzon)
   nullify(atoms%sym%phnons)
+  sym => atoms%sym
 END SUBROUTINE atoms_new
 subroutine atoms_new_from_file(lstat, atoms, rxyz, filename, ln)
    use module_base
