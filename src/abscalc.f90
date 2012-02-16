@@ -342,8 +342,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   type(gaussian_basis) :: Gvirt
   type(rho_descriptors)  :: rhodsc
   type(rholoc_objects)::rholoc_tmp
-!  type(gaussian_basis),dimension(atoms%ntypes)::proj_tmp
-  type(gaussian_basis)::proj_tmp
+  type(gaussian_basis),dimension(atoms%ntypes)::proj_tmp
+!  type(gaussian_basis)::proj_tmp
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:,:), allocatable :: radii_cf,fion
@@ -528,10 +528,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
   call timing(iproc,'CrtProjectors ','ON')
-  !do iatyp=1,atoms%ntypes
-  !  call nullify_gaussian_basis(proj_tmp(iatyp))
-  !end do
-  call nullify_gaussian_basis(proj_tmp)
+  do iatyp=1,atoms%ntypes
+    call nullify_gaussian_basis(proj_tmp(iatyp))
+  end do
+  !call nullify_gaussian_basis(proj_tmp)
 
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_tmp,proj)

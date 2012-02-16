@@ -590,12 +590,15 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
   real(gp), intent(out) :: eproj_sum
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !local variables
-  integer :: iat,nwarnings,iproj,iorb
+  integer :: iat,nwarnings,iproj,iorb,iatyp
   integer :: istart_c,idir,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
-  type(gaussian_basis)::G
+  type(gaussian_basis),dimension(at%ntypes)::proj_G
+  type(paw_objects)::paw
 
   !G is only used in PAW
-  call nullify_gaussian_basis(G)
+  do iatyp=1,at%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
   
   !put idir=0, no derivative
   idir=0
@@ -621,14 +624,14 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      do iat=1,at%nat
         istart_c=1
         call atom_projector(ikpt,iat,idir,istart_c,iproj,&
-             n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings,G)
+             n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings,proj_G(iat))
 
         !apply the projector to all the orbitals belonging to the processor
         ispsi=ispsi_k
         do iorb=isorb,ieorb
            istart_c=1
            call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,&
-                proj,psi(ispsi),hpsi(ispsi),eproj_sum,G)
+                proj,psi(ispsi),hpsi(ispsi),eproj_sum,proj_G(iat),paw)
            ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*nspinor
         end do
 
@@ -653,7 +656,7 @@ END SUBROUTINE applyprojectorsonthefly
 
 
 !>   Applies the projector associated on a given atom on a corresponding orbital
-subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,eproj,G)
+subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,eproj,proj_G,paw)
   use module_base
   use module_types
   implicit none
@@ -662,12 +665,13 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(gaussian_basis), intent(in) :: G
+  type(gaussian_basis), intent(in) :: proj_G
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(in) :: psi
   integer, intent(inout) :: istart_c
   real(gp), intent(inout) :: eproj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
+  type(paw_objects),intent(in)::paw
   !local variables
   integer :: i_shell
   integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i
@@ -679,7 +683,7 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   !features of the k-point ikpt
   call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx_k)
 
-  if(G%ncplx==2 .or. ncplx_k == 2) then
+  if(proj_G%ncplx==2 .or. ncplx_k == 2) then
      ncplx=2
   else
      ncplx=1
@@ -713,18 +717,16 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
         enddo
 !    PAW case
      else
-        i=0
-        do i_shell=1,G%nshltot
-           l=G%nam(i_shell)
-           i=i+1 !projector index
-           do j=1,G%ndoc(i_shell) !Gaussian expansion for that projector
-              call applyprojector(ncplx,l,i,at%psppar(0,0,ityp),at%npspcode(ityp),&
-                   wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
-                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                   nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
-                   psi(1,ispinor),hpsi(1,ispinor),eproj_spinor)
-              istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
-           end do
+        call applyprojector_paw(ncplx,&
+             wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
+             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+             nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
+             psi(1,ispinor),hpsi(1,ispinor),eproj_spinor,proj_G,paw%paw_ij(iat),&
+             proj_G,paw%indlmn(:,:,at%iatype(iat)),paw%lmnmax)
+        
+        do i_shell=1,proj_G%nshltot
+           l=proj_G%nam(i_shell)
+            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
         end do
      end if 
      eproj=eproj+&
@@ -732,6 +734,122 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   end do
 END SUBROUTINE apply_atproj_iorb
 
+subroutine applyprojector_paw(ncplx,l,&
+     nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
+     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,psi,hpsi,eproj,&
+     proj_G,paw_ij,indlmn,lmnmax)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: l,ncplx,lmnmax
+  integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer, dimension(mbseg_c+mbseg_f), intent(in) :: keyv_p
+  integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keyg_p
+  integer, dimension(6,lmnmax),intent(in)::indlmn
+  real(wp), dimension(*), intent(in) :: proj
+  real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(in) :: psi
+  type(gaussian_basis),intent(in)::proj_G
+  type(paw_ij_objects),intent(in)::paw_ij
+  real(gp), intent(inout) :: eproj
+  real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: hpsi
+  !local variables
+  integer :: i_shell,j_shell,ilmn,jlmn,klmn,i0lmn,j0lmn
+  integer :: i_l,j_l,klmnc,i_m,j_m
+  integer :: istart_i,istart_j,icplx
+  real(dp), dimension(2) :: scpr,scprp,scpr_i,scprp_i,scpr_j,scprp_j
+  real(gp) :: dij
+
+
+  istart_i=1
+
+! Diagonal projectors:
+  ilmn=0
+  do i_shell=1,proj_G%nshltot
+     i_l=proj_G%nam(i_shell)
+     do i_m=1,2*i_l-1
+        ilmn=ilmn+1
+        i0lmn=ilmn*(ilmn-1)/2
+        klmn=i0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
+        dij=paw_ij%dij(klmnc,1)
+
+        call wpdot_wrap(ncplx,  &
+             nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
+             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_i),scpr)
+  
+        do icplx=1,ncplx
+           scprp(icplx)=scpr(icplx)*real(dij)
+           eproj=eproj+real(scprp(icplx),gp)*real(scpr(icplx),gp)
+        end do
+
+        call waxpy_wrap(ncplx,scprp,&
+             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_i),&
+             nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
+
+        !print *,'scprp,m,l,i',scprp,m,l,i
+        istart_i=istart_i+(mbvctr_c+7*mbvctr_f)*ncplx
+     end do
+  enddo
+!
+!  istart_i=1
+!
+! Off diagonal projectors:
+!  jlmn=0
+!  do j_shell=1,proj_G%nshltot
+!     j_l=proj_G%nam(j_shell)
+!     do j_m=1,2*j_l-1
+!        jlmn=jlmn+1
+!        j0lmn=jlmn*(jlmn-1)/2
+!         ilmn=0
+!         do i_shell=1,i_shell
+!            i_l=proj_G%nam(i_shell)
+!            do i_m=1,2*i_l-1
+!              ilmn=ilmn+1
+!              i0lmn=ilmn*(ilmn-1)/2
+!              klmn=j0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
+!              dij=paw_ij%dij(klmnc,1)
+!        !offdiagonal HGH term
+!        if (npspcode == 3) then !traditional HGH convention
+!           hij=offdiagarr(i,j-i,l)*psppar(l,j)
+!        else !HGH-K convention
+!           hij=psppar(l,i+j+1)
+!        end if
+!
+!        !starting addresses of the projectors
+!        istart_c_i=istart_c-(2*l-1)*(mbvctr_c+7*mbvctr_f)*ncplx
+!        istart_c_j=istart_c_i+(j-i)*(2*l-1)*(mbvctr_c+7*mbvctr_f)*ncplx
+!        do m=1,2*l-1
+!           call wpdot_wrap(ncplx,nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
+!                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c_j),scpr_j)
+!
+!           call wpdot_wrap(ncplx,nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
+!                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c_i),scpr_i)
+!
+!           do icplx=1,ncplx
+!              scprp_j(icplx)=scpr_j(icplx)*hij
+!              scprp_i(icplx)=scpr_i(icplx)*hij
+!              !scpr_i*h_ij*scpr_j+scpr_j*h_ij*scpr_i
+!              eproj=eproj+2._gp*hij*real(scpr_j(icplx),gp)*real(scpr_i(icplx),gp)
+!           end do
+!
+!           !|hpsi>=|hpsi>+h_ij (<p_i|psi>|p_j>+<p_j|psi>|p_i>)
+!           call waxpy_wrap(ncplx,scprp_j,&
+!                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,&
+!                proj(istart_c_i),&
+!                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
+!
+!           call waxpy_wrap(ncplx,scprp_i,&
+!                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!                keyv_p,keyg_p,proj(istart_c_j),&
+!                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
+!
+!           istart_c_j=istart_c_j+(mbvctr_c+7*mbvctr_f)*ncplx
+!           istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
+!        enddo
+!     end do loop_j
+!  end if
+END SUBROUTINE applyprojector_paw
 
 subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&

@@ -630,7 +630,7 @@ module module_types
     integer :: ntypes
     integer :: usepaw
     integer,dimension(:,:,:),pointer::indlmn
-    type(paw_ij_objects) :: paw_ij
+    type(paw_ij_objects),dimension(:),allocatable :: paw_ij
   end type paw_objects
 
 contains

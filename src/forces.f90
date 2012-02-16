@@ -664,14 +664,14 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
-!  type(gaussian_basis),dimension(at%ntypes)::G
-  type(gaussian_basis)::proj_G
+  type(gaussian_basis),dimension(at%ntypes)::proj_G
+!  type(gaussian_basis)::proj_G
 
   !G is only used for PAW
-  !do iatyp=1,at%ntypes
-  !  call nullify_gaussian_basis(proj_G(iatyp))
-  !end do
-  call nullify_gaussian_basis(proj_G)
+  do iatyp=1,at%ntypes
+    call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+  !call nullify_gaussian_basis(proj_G)
 
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return

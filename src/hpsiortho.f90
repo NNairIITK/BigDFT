@@ -174,7 +174,7 @@ END SUBROUTINE LocalHamiltonianApplication
 !> routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
 subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-     nlpspd,proj,lr,psi,hpsi,eproj_sum,G)
+     nlpspd,proj,lr,psi,hpsi,eproj_sum,proj_G,paw)
   use module_base
   use module_types
   implicit none
@@ -184,9 +184,8 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(orbitals_data),  intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr 
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-!  type(gaussian_basis),dimension(at%ntypes),intent(in)::G !projectors in gaussian basis (for PAW)
-  type(gaussian_basis),intent(in)::G
-!  type(paw_objects),intent(in)::paw
+  type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+  type(paw_objects),intent(in)::paw
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
@@ -227,14 +226,14 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
         do iat=1,at%nat
            istart_c=1
            call atom_projector(ikpt,iat,0,istart_c,iproj,&
-                lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings,G)
+                lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings,proj_G)
 
            !apply the projector to all the orbitals belonging to the processor
            ispsi=ispsi_k
            do iorb=isorb,ieorb
               istart_c=1
               call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,lr%wfd,nlpspd,&
-                   proj,psi(ispsi),hpsi(ispsi),eproj_sum,G)
+                   proj,psi(ispsi),hpsi(ispsi),eproj_sum,proj_G,paw)
               ispsi=ispsi+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*nspinor
            end do
 
@@ -249,7 +248,7 @@ subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
            istart_c=istart_ck
            do iat=1,at%nat
               call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,lr%wfd,nlpspd,&
-                   proj,psi(ispsi),hpsi(ispsi),eproj_sum,G)           
+                   proj,psi(ispsi),hpsi(ispsi),eproj_sum,proj_G,paw)           
            end do
            ispsi=ispsi+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*nspinor
         end do

@@ -303,15 +303,15 @@ module module_interfaces
      END SUBROUTINE createWavefunctionsDescriptors
 
      subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
-          radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,G,proj)
+          radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_G,proj)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,n1,n2,n3
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(in) :: orbs
-!       type(gaussian_basis),dimension(at%ntypes),intent(in) :: G
-       type(gaussian_basis),intent(in) :: G
+       type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G
+!       type(gaussian_basis),intent(in) :: proj_G
        real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
        real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
        real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
@@ -455,8 +455,8 @@ module module_interfaces
        type(communications_arrays), intent(in) :: comms
        type(GPU_pointers), intent(inout) :: GPU
        type(input_variables):: input
-       !type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G
-       type(gaussian_basis),intent(in) :: proj_G
+       type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G
+!       type(gaussian_basis),intent(in) :: proj_G
        integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -557,7 +557,7 @@ module module_interfaces
       END SUBROUTINE LocalHamiltonianApplication
 
       subroutine NonLocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-           nlpspd,proj,lr,psi,hpsi,eproj_sum,G)
+           nlpspd,proj,lr,psi,hpsi,eproj_sum,proj_G,paw)
         use module_base
         use module_types
         implicit none
@@ -567,9 +567,9 @@ module module_interfaces
         type(orbitals_data),  intent(in) :: orbs
         type(locreg_descriptors), intent(in) :: lr 
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-        !type(gaussian_basis),dimension(at%ntypes),intent(in)::G !projectors in gaussian basis (for PAW)
-        type(gaussian_basis),intent(in)::G !projectors in gaussian basis (for PAW)
-        !type(paw_objects),intent(in)::paw
+        type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+        !type(gaussian_basis),intent(in)::G !projectors in gaussian basis (for PAW)
+        type(paw_objects),intent(in)::paw
         real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
         real(gp), dimension(3,at%nat), intent(in) :: rxyz
         real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
