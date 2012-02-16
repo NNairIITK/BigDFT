@@ -6435,7 +6435,7 @@ real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: lphi
 
 ! Local variables
 integer:: ist, jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, i, ldim, ind, indout, gdim, iorbref, m, ii
-integer:: istart, iend, iseg
+integer:: istart, iend, iseg, start, ifine, igrid, irecv, kseg, kold, kstart, kend 
 real(8):: tt
 
    call timing(iproc,'build_lincomb ','ON')
@@ -6459,15 +6459,48 @@ real(8):: tt
               jjorb=op%overlaps(jorb,iiorb)
               !jjorb=op%overlaps(jorb,ilr)
               jst=op%indexInRecvBuf(iorbref,jjorb)
-              ldim=op%olr(jorb,iorbref)%wfd%nvctr_c+7*op%olr(jorb,iorbref)%wfd%nvctr_f
+              ldim=op%wfd_overlap(jorb,iorbref)%nvctr_c+7*op%wfd_overlap(jorb,iorbref)%nvctr_f
               tt=omat(jjorb,iiorb)
               !!tt=tt*lzd%cutoffweight(jjorb,iiorb)
-              do iseg=1,op%expseg(jorb,iorbref)%nseg
-                  istart=op%expseg(jorb,iorbref)%segborders(1,iseg)
-                  iend=op%expseg(jorb,iorbref)%segborders(2,iseg)
+              !Coarse part
+              kold=1
+              do iseg=1,op%wfd_overlap(jorb,iorbref)%nseg_c
+                  istart=op%wfd_overlap(jorb,iorbref)%keyglob(1,iseg)
+                  iend=op%wfd_overlap(jorb,iorbref)%keyglob(2,iseg)
                   ncount=iend-istart+1
-                  call daxpy(ncount, tt, recvBuf(jst), 1, lphi(indout+istart-1), 1)
-                  jst=jst+ncount
+                  inner_loop: do kseg=kold,lzd%llr(ilr)%wfd%nseg_c
+                     kstart = lzd%llr(ilr)%wfd%keyglob(1,kseg)
+                     kend   = lzd%llr(ilr)%wfd%keyglob(2,kseg)
+                     if(kstart <= iend .and. kend >= istart) then 
+                        kold = kseg + 1
+                        start = lzd%llr(ilr)%wfd%keyvglob(kseg) + max(0,istart-kstart)
+                        call daxpy(ncount, tt, recvBuf(jst), 1, lphi(indout+start-1), 1)
+                        jst=jst+ncount
+                        exit inner_loop
+                     end if
+                  end do inner_loop
+              end do
+              ! Fine part
+              kold = 1
+              jst=op%indexInRecvBuf(iorbref,jjorb)              
+              do iseg=1,op%wfd_overlap(jorb,iorbref)%nseg_f
+                 istart=op%wfd_overlap(jorb,iorbref)%keyglob(1,iseg+op%wfd_overlap(jorb,iorbref)%nseg_c)
+                 iend=op%wfd_overlap(jorb,iorbref)%keyglob(2,iseg+op%wfd_overlap(jorb,iorbref)%nseg_c)
+                 start = op%wfd_overlap(jorb,iorbref)%keyvglob(iseg+op%wfd_overlap(jorb,iorbref)%nseg_c)
+                 ncount=7*(iend-istart+1)
+                 inner_loop2: do kseg=kold,lzd%llr(ilr)%wfd%nseg_f
+                    kstart = lzd%llr(ilr)%wfd%keyglob(1,kseg+lzd%llr(ilr)%wfd%nseg_c)
+                    kend   = lzd%llr(ilr)%wfd%keyglob(2,kseg+lzd%llr(ilr)%wfd%nseg_c)
+                    if(kstart <= iend .and. kend >= istart) then 
+                       kold = kseg + 1
+                       start = lzd%llr(ilr)%wfd%nvctr_c+(lzd%llr(ilr)%wfd%keyvglob(kseg+lzd%llr(ilr)%wfd%nseg_c) +&
+                              max(0,istart-kstart)-1)*7
+                       call daxpy(ncount, tt, recvBuf(jst+op%wfd_overlap(jorb,iorbref)%nvctr_c), 1,&
+                               lphi(indout+start), 1)
+                       jst=jst+ncount
+                       exit inner_loop2
+                    end if
+                  end do inner_loop2
               end do
           end do
           indout=indout+gdim
@@ -6946,7 +6979,19 @@ real(8),dimension(0:3),parameter:: scal=1.d0
 real(8),dimension(:,:,:),allocatable:: ypsitemp_c
 real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
 character(len=*),parameter:: subname='apply_orbitaldependent_potential'
-
+interface
+subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
+     hxh, hyh, hzh, dir, &
+     ibyyzz_r) !optional
+use module_base
+implicit none
+integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
+real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+real(8),intent(in):: hxh, hyh, hzh
+character(len=1),intent(in):: dir
+integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+end subroutine
+end interface
 
 
   xpsi=0.d0

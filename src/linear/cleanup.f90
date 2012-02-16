@@ -1240,19 +1240,19 @@ end subroutine deallocate_matrixLocalizationRegion
 
 
 
-subroutine deallocate_expansionSegments(expseg, subname)
-  use module_base
-  use module_types
-  use deallocatePointers
-  implicit none
-  
-  ! Calling arguments
-  type(expansionSegments),intent(inout):: expseg
-  character(len=*),intent(in):: subname
-  
-  call checkAndDeallocatePointer(expseg%segborders, 'expseg%segborders', subname)
-
-end subroutine deallocate_expansionSegments
+!!subroutine deallocate_expansionSegments(expseg, subname)
+!!  use module_base
+!!  use module_types
+!!  use deallocatePointers
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  type(expansionSegments),intent(inout):: expseg
+!!  character(len=*),intent(in):: subname
+!!  
+!!  call checkAndDeallocatePointer(expseg%segborders, 'expseg%segborders', subname)
+!!
+!!end subroutine deallocate_expansionSegments
 
 
 subroutine deallocate_p2pComms(p2pcomm, subname)
@@ -1413,48 +1413,48 @@ subroutine deallocate_overlapParameters(op, subname)
   integer:: iis1, iie1, iis2, iie2, i1, i2
 
   call checkAndDeallocatePointer(op%noverlaps, 'op%noverlaps', subname)
-  call checkAndDeallocatePointer(op%indexExpand, 'op%indexExpand', subname)
-  call checkAndDeallocatePointer(op%indexExtract, 'op%indexExtract', subname)
+!  call checkAndDeallocatePointer(op%indexExpand, 'op%indexExpand', subname)
+!  call checkAndDeallocatePointer(op%indexExtract, 'op%indexExtract', subname)
   call checkAndDeallocatePointer(op%overlaps, 'op%overlaps', subname)
   call checkAndDeallocatePointer(op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
   call checkAndDeallocatePointer(op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
 
-  iis1=lbound(op%olr,1)
-  iie1=ubound(op%olr,1)
-  iis2=lbound(op%olr,2)
-  iie2=ubound(op%olr,2)
+  iis1=lbound(op%wfd_overlap,1)
+  iie1=ubound(op%wfd_overlap,1)
+  iis2=lbound(op%wfd_overlap,2)
+  iie2=ubound(op%wfd_overlap,2)
   do i2=iis2,iie2
       do i1=iis1,iie1
-          call deallocate_locreg_descriptors2(op%olr(i1,i2), subname)
+          call deallocate_wavefunctions_descriptors(op%wfd_overlap(i1,i2), subname)
       end do
   end do
-  deallocate(op%olr)
-  nullify(op%olr)
+  deallocate(op%wfd_overlap)
+  nullify(op%wfd_overlap)
 
 
-  iis1=lbound(op%expseg,1)
-  iie1=ubound(op%expseg,1)
-  iis2=lbound(op%expseg,2)
-  iie2=ubound(op%expseg,2)
-  do i2=iis2,iie2
-      do i1=iis1,iie1
-          call deallocate_expansionSegments(op%expseg(i1,i2), subname)
-      end do
-  end do
+!!  iis1=lbound(op%expseg,1)
+!!  iie1=ubound(op%expseg,1)
+!!  iis2=lbound(op%expseg,2)
+!!  iie2=ubound(op%expseg,2)
+!!  do i2=iis2,iie2
+!!      do i1=iis1,iie1
+!!          call deallocate_expansionSegments(op%expseg(i1,i2), subname)
+!!      end do
+!!  end do
 
 
-  iis1=lbound(op%extseg,1)
-  iie1=ubound(op%extseg,1)
-  iis2=lbound(op%extseg,2)
-  iie2=ubound(op%extseg,2)
-  do i2=iis2,iie2
-      do i1=iis1,iie1
-          call deallocate_expansionSegments(op%extseg(i1,i2), subname)
-      end do
-  end do
+!!  iis1=lbound(op%extseg,1)
+!!  iie1=ubound(op%extseg,1)
+!!  iis2=lbound(op%extseg,2)
+!!  iie2=ubound(op%extseg,2)
+!!  do i2=iis2,iie2
+!!      do i1=iis1,iie1
+!!          call deallocate_expansionSegments(op%extseg(i1,i2), subname)
+!!      end do
+!!  end do
 
-  deallocate(op%extseg,op%expseg)
+!!  deallocate(op%extseg,op%expseg)
 
 end subroutine deallocate_overlapParameters
 

@@ -183,29 +183,30 @@ subroutine nullify_overlapParameters(op)
   type(overlapParameters),intent(out):: op
 
   nullify(op%noverlaps)
-  nullify(op%indexExpand)
-  nullify(op%indexExtract)
+!  nullify(op%indexExpand)
+!  nullify(op%indexExtract)
   nullify(op%overlaps)
   nullify(op%indexInRecvBuf)
   nullify(op%indexInSendBuf)
-  nullify(op%olr)
-  nullify(op%expseg)
+  !nullify(op%olr)
+  nullify(op%wfd_overlap)
+!  nullify(op%expseg)
 
 end subroutine nullify_overlapParameters
 
 
-subroutine nullify_expansionSegments(expseg)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_expansionSegments
-  implicit none
-
-  ! Calling argument
-  type(expansionSegments),intent(out):: expseg
-
-  nullify(expseg%segborders)
-
-end subroutine nullify_expansionSegments
+!!subroutine nullify_expansionSegments(expseg)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => nullify_expansionSegments
+!!  implicit none
+!!
+!!  ! Calling argument
+!!  type(expansionSegments),intent(out):: expseg
+!!
+!!  nullify(expseg%segborders)
+!!
+!!end subroutine nullify_expansionSegments
 
 
 
