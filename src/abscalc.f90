@@ -592,7 +592,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       &   (verbose > 1))
 
    !calculate the irreductible zone for this region, if necessary.
-   call symmetry_set_irreductible_zone(atoms%sym,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
+   call symmetry_set_irreductible_zone(atoms%sym,atoms%geocode,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
 !!$   !calculate the irreductible zone for this region, if necessary.
 !!$   if (atoms%sym%symObj >= 0) then

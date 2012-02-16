@@ -105,7 +105,8 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
        in,atoms,rxyz,denspot)
 
   !calculate the irreductible zone for this region, if necessary.
-  call symmetry_set_irreductible_zone(atoms%sym,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
+  call symmetry_set_irreductible_zone(atoms%sym,atoms%geocode, &
+       & Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   !check the communication distribution
   call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
