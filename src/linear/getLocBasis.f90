@@ -6333,7 +6333,7 @@ character(len=*),parameter:: subname='MLWFnew'
 type(p2pComms):: comon_local
 
 ! Quick return if possible
-if(nit==0) return
+!if(nit==0) return
 
 allocate(gmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, gmat, 'gmat', subname)
