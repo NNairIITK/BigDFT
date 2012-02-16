@@ -1274,9 +1274,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                     +(locregCenter(2,ilr)-locregCenterTemp(2,ilr))**2 &
                     +(locregCenter(3,ilr)-locregCenterTemp(3,ilr))**2 
                 tt=sqrt(tt)
-                if(iproc==0) write(*,'(a,i5,3es13.4)') 'ilr, new centers:', &
-                     ilr, locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
-                if(iproc==0) write(*,'(a,i5,es16.4)') '2: ilr, tt', ilr, tt
+                !!if(iproc==0) write(*,'(a,i5,3es13.4)') 'ilr, new centers:', &
+                !!     ilr, locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
+                !!if(iproc==0) write(*,'(a,i5,es16.4)') '2: ilr, tt', ilr, tt
                 if( floor(locregCenter(1,ilr)/hx) < 0 .or. ceiling(locregCenter(1,ilr)/hx) > lzd%glr%d%n1 ) then
                     if(iproc==0) then
                         write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
@@ -1310,10 +1310,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                     +(locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
                     +(locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 
                 tt=sqrt(tt)
-                if(iproc==0) write(*,'(a,i5,es16.4)') '1: ilr, tt', ilr, tt
+                !!if(iproc==0) write(*,'(a,i5,es16.4)') '1: ilr, tt', ilr, tt
             end do
 
-            write(*,*) 'WARNING: CHECK HERE THE INDICES OF UMAT!!'
+            !write(*,*) 'WARNING: CHECK HERE THE INDICES OF UMAT!!'
             if(nItInnerLoop>0) then                          
                  kernelold=kernel
                  do iorb=1,lorbs%norb
@@ -1332,20 +1332,20 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
             call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
-             do iorb=1,lorbs%norb
-                 write(*,'(a,2i8,3es12.4,4x,3es12.4)') 'iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)', &
-                     iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)
-             end do
+             !!do iorb=1,lorbs%norb
+             !!    write(*,'(a,2i8,3es12.4,4x,3es12.4)') 'iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)', &
+             !!        iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)
+             !!end do
 
             call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
                  locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
-                 write(*,'(a,2i9)') 'sub 1: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
-            do iorb=1,lorbs%norb
-                ilr=lorbs%inwhichlocreg(iorb)
-                write(*,'(a,2i6,3x,3es16.4)') '1: iorb, ilr, center', iorb, ilr, lzd%llr(ilr)%locregCenter
-            end do
+            !!     write(*,'(a,2i9)') 'sub 1: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
+            !!do iorb=1,lorbs%norb
+            !!    ilr=lorbs%inwhichlocreg(iorb)
+            !!    write(*,'(a,2i6,3x,3es16.4)') '1: iorb, ilr, center', iorb, ilr, lzd%llr(ilr)%locregCenter
+            !!end do
             !!call mpi_barrier(mpi_comm_world, ierr)
             !!stop
 
@@ -1368,8 +1368,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                     !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
                     !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
                     !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-                    write(*,'(a,3i5,2(4x,3es16.4))') '1: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:ilrlarge)', &
-                        iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)
+                    !!write(*,'(a,3i5,2(4x,3es16.4))') '1: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:ilrlarge)', &
+                    !!    iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)
                     call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), &
                          lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
                     !!do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
@@ -1392,8 +1392,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                     !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
                     !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
                     !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-                    write(*,'(a,3i5,2(4x,3es16.4))') '1: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:ilrlarge)', &
-                        iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)
+                    !write(*,'(a,3i5,2(4x,3es16.4))') '1: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:ilrlarge)', &
+                    !    iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)
                     call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), &
                          lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
                     !!do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
@@ -2051,9 +2051,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                    +(locregCenter(2,ilr)-locregCenterTemp(2,ilr))**2 &
                    +(locregCenter(3,ilr)-locregCenterTemp(3,ilr))**2 
                tt=sqrt(tt)
-               if(iproc==0) write(*,'(a,i5,3es13.4)') 'ilr, new centers:', &
-                    ilr, locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
-               if(iproc==0) write(*,'(a,i5,es16.4)') '2: ilr, tt', ilr, tt
+               !!if(iproc==0) write(*,'(a,i5,3es13.4)') 'ilr, new centers:', &
+               !!     ilr, locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
+               !!if(iproc==0) write(*,'(a,i5,es16.4)') '2: ilr, tt', ilr, tt
                if( floor(locregCenter(1,ilr)/hx) < 0 .or. ceiling(locregCenter(1,ilr)/hx) > lzd%glr%d%n1 ) then
                    if(iproc==0) then
                        write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
@@ -2082,7 +2082,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                    stop
                end if
            end do
-           write(*,*) 'WARNING CHECK INDICES OF UMAT!!'
+           !write(*,*) 'WARNING CHECK INDICES OF UMAT!!'
            if(nItInnerLoop>0) then
                kernelold=kernel
                do iorb=1,lorbs%norb
@@ -2122,15 +2122,15 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
-                 write(*,'(a,2i9)') 'sub 2: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
-          if(iproc==0) then
-              do iorb=1,lorbs%norb
-                  ilr=lorbs%inwhichlocreg(iorb)
-                  write(*,'(a,2i8)') 'lorbs%inwhichlocreg(iorb), orbslarge%inwhichlocreg(iorb)', &
-                      lorbs%inwhichlocreg(iorb), orbslarge%inwhichlocreg(iorb)
-                  write(*,'(a,2i6,3x,3es16.4)') '2: iorb, ilr, center', iorb, ilr, lzd%llr(ilr)%locregCenter
-              end do
-          end if
+          !!       write(*,'(a,2i9)') 'sub 2: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
+          !!if(iproc==0) then
+          !!    do iorb=1,lorbs%norb
+          !!        ilr=lorbs%inwhichlocreg(iorb)
+          !!        write(*,'(a,2i8)') 'lorbs%inwhichlocreg(iorb), orbslarge%inwhichlocreg(iorb)', &
+          !!            lorbs%inwhichlocreg(iorb), orbslarge%inwhichlocreg(iorb)
+          !!        write(*,'(a,2i6,3x,3es16.4)') '2: iorb, ilr, center', iorb, ilr, lzd%llr(ilr)%locregCenter
+          !!    end do
+          !!end if
 
           if(secondLocreg) then
               ! Transform back to localization region
@@ -2148,8 +2148,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                   !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge2)', &
                   !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge2)
                   !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge2%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge2(ind2:ind2+ldim-1))
-                   write(*,'(a,3i5,2(4x,3es16.4))') '2: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge2)', &
-                       iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge2)
+                   !!write(*,'(a,3i5,2(4x,3es16.4))') '2: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge2)', &
+                   !!    iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge2)
                   call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge2%llr(ilrlarge2), &
                        lphilarge2(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
                   ind1=ind1+lzdlarge2%llr(ilrlarge2)%wfd%nvctr_c+7*lzdlarge2%llr(ilrlarge2)%wfd%nvctr_f
@@ -2169,8 +2169,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                   !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
                   !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
                   !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-                   write(*,'(a,3i5,2(4x,3es16.4))') '2: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)', &
-                       iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)
+                   !!write(*,'(a,3i5,2(4x,3es16.4))') '2: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)', &
+                   !!    iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)
                   call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), &
                        lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
                   ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
@@ -2257,6 +2257,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
   end do iterLoop
 
+
+
+
   if(newgradient) then
       !!! Create new logrecs taking incto account the derivatives
       !!ii=lorbs%npsidim_orbs
@@ -2277,6 +2280,14 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           call destroy_new_locregs(lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
                lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
           call deallocateDIIS(ldiis2)
+      end if
+
+      ! Write the locreg centers
+      if(iproc==0) then
+          write(*,'(1x,a)') 'the new centers of the localization regions:'
+          do ilr=1,lzd%nlr
+              write(*,'(3x,i7,3es24.12)') ilr, lzd%llr(ilr)%locregCenter(1:3)
+          end do
       end if
   end if
 
@@ -6653,23 +6664,23 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       ist=ist+ncnt
   end do
   call mpiallred(normarr(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
-  if(iproc==0) then
-      do iorb=1,orbs%norb
-          write(*,'(a,i6,es16.6)') 'new norm before loop: iorb, normarr(iorb)', iorb, normarr(iorb)
-      end do
-  end if
+  !!if(iproc==0) then
+  !!    do iorb=1,orbs%norb
+  !!        write(*,'(a,i6,es16.6)') 'new norm before loop: iorb, normarr(iorb)', iorb, normarr(iorb)
+  !!    end do
+  !!end if
 
 
-  ! OTHER CHECK
-  call apply_rminusmu_operator(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, locregCenters, lvphi)
-  call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, R2)
-  ! New calculation of the spread
-  var=0.d0
-  do iorb=1,orbs%norb
-      tt = R2(iorb,iorb)/normarr(iorb)
-      var=var+tt
-  end do
-  if(iproc==0) write(*,'(a,es18.8)') 'FIRST: total variance', var
+  !!! OTHER CHECK
+  !!call apply_rminusmu_operator(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, locregCenters, lvphi)
+  !!call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, R2)
+  !!! New calculation of the spread
+  !!var=0.d0
+  !!do iorb=1,orbs%norb
+  !!    tt = R2(iorb,iorb)/normarr(iorb)
+  !!    var=var+tt
+  !!end do
+  !!!!if(iproc==0) write(*,'(a,es18.8)') 'FIRST: total variance', var
 
   innerLoop: do it=1,nit
 
@@ -6705,9 +6716,9 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
           do iorb=1,orbs%norb
               ilr=orbs%inwhichlocreg(iorb)
-              if(iproc==0) write(*,'(a,2i5,3f10.4,4x,3f10.4)') 'START: iorb, ilr, centers: ', &
-                iorb, ilr, X(iorb,iorb)/normarr(iorb), Y(iorb,iorb)/normarr(iorb), Z(iorb,iorb)/normarr(iorb), &
-                locregCenters(1,ilr),  locregCenters(2,ilr), locregCenters(3,ilr)
+              !!if(iproc==0) write(*,'(a,2i5,3f10.4,4x,3f10.4)') 'START: iorb, ilr, centers: ', &
+              !!  iorb, ilr, X(iorb,iorb)/normarr(iorb), Y(iorb,iorb)/normarr(iorb), Z(iorb,iorb)/normarr(iorb), &
+              !!  locregCenters(1,ilr),  locregCenters(2,ilr), locregCenters(3,ilr)
               centers_start(1,iorb)=X(iorb,iorb)/normarr(iorb)
               centers_start(2,iorb)=Y(iorb,iorb)/normarr(iorb)
               centers_start(3,iorb)=Z(iorb,iorb)/normarr(iorb)
@@ -7262,13 +7273,13 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   !!!!end do
 
 
-  if(iproc==0) then
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              write(999,*) iorb,jorb,Umat(jorb,iorb)
-          end do
-      end do
-  end if
+  !!if(iproc==0) then
+  !!    do iorb=1,orbs%norb
+  !!        do jorb=1,orbs%norb
+  !!            write(999,*) iorb,jorb,Umat(jorb,iorb)
+  !!        end do
+  !!    end do
+  !!end if
 
 
   t1=mpi_wtime()
@@ -7294,11 +7305,11 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       ist=ist+ncnt
   end do
   call mpiallred(normarr(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
-  if(iproc==0) then
-      do iorb=1,orbs%norb
-          write(*,'(a,i6,es16.6)') 'new norm after loop: iorb, normarr(iorb)', iorb, normarr(iorb)
-      end do
-  end if
+  !!if(iproc==0) then
+  !!    do iorb=1,orbs%norb
+  !!        write(*,'(a,i6,es16.6)') 'new norm after loop: iorb, normarr(iorb)', iorb, normarr(iorb)
+  !!    end do
+  !!end if
 
   ! Recalculate X,Y,Z
   order=1
@@ -7309,39 +7320,39 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
   call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lzphi, mad, Z)
 
 
-  !!! CHECK #####################################
-  order=1
-  call apply_r_operators(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, order, lvphi)
-  call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, R)
-
-  order=2
-  call apply_r_operators(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, order, lvphi)
-  call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, R2)
-
-  call dgemm('t', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,1), orbs%norb, &
-       R(1,1), orbs%norb, 0.d0, tempmat3(1,1,2), orbs%norb)
-  call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,2), orbs%norb, &
-       tempmat3(1,1,1), orbs%norb, 0.d0, R(1,1), orbs%norb)
-
-  call dgemm('t', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,1), orbs%norb, &
-       R2(1,1), orbs%norb, 0.d0, tempmat3(1,1,2), orbs%norb)
-  call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,2), orbs%norb, &
-       tempmat3(1,1,1), orbs%norb, 0.d0, R2(1,1), orbs%norb)
-
-  ! New calculation of the spread
-  var=0.d0
-  do iorb=1,orbs%norb
-      tt = R2(iorb,iorb)/normarr(iorb)-(R(iorb,iorb)/normarr(iorb))**2
-      var=var+tt
-  end do
-  if(iproc==0) write(*,'(a,es18.8)') 'FINAL: total variance', var
+!!!  !!! CHECK #####################################
+!!!  order=1
+!!!  call apply_r_operators(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, order, lvphi)
+!!!  call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, R)
+!!!
+!!!  order=2
+!!!  call apply_r_operators(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, order, lvphi)
+!!!  call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, R2)
+!!!
+!!!  call dgemm('t', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,1), orbs%norb, &
+!!!       R(1,1), orbs%norb, 0.d0, tempmat3(1,1,2), orbs%norb)
+!!!  call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,2), orbs%norb, &
+!!!       tempmat3(1,1,1), orbs%norb, 0.d0, R(1,1), orbs%norb)
+!!!
+!!!  call dgemm('t', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,1), orbs%norb, &
+!!!       R2(1,1), orbs%norb, 0.d0, tempmat3(1,1,2), orbs%norb)
+!!!  call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tempmat3(1,1,2), orbs%norb, &
+!!!       tempmat3(1,1,1), orbs%norb, 0.d0, R2(1,1), orbs%norb)
+!!!
+!!!  ! New calculation of the spread
+!!!  var=0.d0
+!!!  do iorb=1,orbs%norb
+!!!      tt = R2(iorb,iorb)/normarr(iorb)-(R(iorb,iorb)/normarr(iorb))**2
+!!!      var=var+tt
+!!!  end do
+!!!  if(iproc==0) write(*,'(a,es18.8)') 'FINAL: total variance', var
 
 
 
   do iorb=1,orbs%norb
       ilr=orbs%inwhichlocreg(iorb)
-      if(iproc==0) write(*,'(a,2i5,3f10.4)') 'END: iorb, ilr, centers: ', &
-          iorb, ilr, X(iorb,iorb)/normarr(iorb), Y(iorb,iorb)/normarr(iorb), Z(iorb,iorb)/normarr(iorb)
+      !!if(iproc==0) write(*,'(a,2i5,3f10.4)') 'END: iorb, ilr, centers: ', &
+      !!    iorb, ilr, X(iorb,iorb)/normarr(iorb), Y(iorb,iorb)/normarr(iorb), Z(iorb,iorb)/normarr(iorb)
       !!centers(1,iorb)=X(iorb,iorb)/normarr(iorb)
       !!centers(2,iorb)=Y(iorb,iorb)/normarr(iorb)
       !!centers(3,iorb)=Z(iorb,iorb)/normarr(iorb)
@@ -7361,30 +7372,30 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           +(centers_start(2,iorb)-centers_end(2,iorb))**2 &
           +(centers_start(3,iorb)-centers_end(3,iorb))**2 
       tt=sqrt(tt)
-      if(iproc==0) write(*,'(a,i5,es9.2)') 'iorb, shift of the center: ', iorb, tt
+      !!if(iproc==0) write(*,'(a,i5,es9.2)') 'iorb, shift of the center: ', iorb, tt
   end do
 
 
-  ! OTHER CHECK
-  call apply_rminusmu_operator(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, centers, lvphi)
-  call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, R2)
-  ! New calculation of the spread
-  var=0.d0
-  do iorb=1,orbs%norb
-      tt = R2(iorb,iorb)/normarr(iorb)
-      var=var+tt
-  end do
-  if(iproc==0) write(*,'(a,es18.8)') 'FINAL2: total variance', var
-
-  call apply_rminusmu_operator(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, locregCenters, lvphi)
-  call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, R2)
-  ! New calculation of the spread
-  var=0.d0
-  do iorb=1,orbs%norb
-      tt = R2(iorb,iorb)/normarr(iorb)
-      var=var+tt
-  end do
-  if(iproc==0) write(*,'(a,es18.8)') 'FINAL3: total variance', var
+!!  ! OTHER CHECK
+!!  call apply_rminusmu_operator(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, centers, lvphi)
+!!  call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, R2)
+!!  ! New calculation of the spread
+!!  var=0.d0
+!!  do iorb=1,orbs%norb
+!!      tt = R2(iorb,iorb)/normarr(iorb)
+!!      var=var+tt
+!!  end do
+!!  if(iproc==0) write(*,'(a,es18.8)') 'FINAL2: total variance', var
+!!
+!!  call apply_rminusmu_operator(iproc, nproc, orbs, lzd, hx, hx, hx, confdatarr, lphi, locregCenters, lvphi)
+!!  call getMatrixElements2(iproc, nproc, lzd, orbs, op, comon, lphi, lvphi, mad, R2)
+!!  ! New calculation of the spread
+!!  var=0.d0
+!!  do iorb=1,orbs%norb
+!!      tt = R2(iorb,iorb)/normarr(iorb)
+!!      var=var+tt
+!!  end do
+!!  if(iproc==0) write(*,'(a,es18.8)') 'FINAL3: total variance', var
 
 
 
@@ -8216,7 +8227,7 @@ type(workarr_sumrho):: work_sr
 real(8),dimension(0:3),parameter:: scal=1.d0
 real(8),dimension(:,:,:),allocatable:: ypsitemp_c
 real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
-character(len=*),parameter:: subname='apply_orbitaldependent_potential'
+character(len=*),parameter:: subname='apply_position_operators'
 integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
 
   ishift=(/0,0,0/)
@@ -8229,10 +8240,10 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
 
      iiorb=orbs%isorb+iorb
-     write(*,'(a,4i8,4x,3i6)') 'iproc, iorb, iiorb, ilr, confdatarr(iorb)%ioffset(:)', &
-         iproc, iorb, iiorb, ilr, confdatarr(iorb)%ioffset(:)
-     write(*,'(a,3i8,6i6)') 'iproc, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3', &
-         1, lzd%llr(ilr)%d%n1i, 1, lzd%llr(ilr)%d%n2i, 1, lzd%llr(ilr)%d%n3i
+     !!write(*,'(a,4i8,4x,3i6)') 'iproc, iorb, iiorb, ilr, confdatarr(iorb)%ioffset(:)', &
+     !!    iproc, iorb, iiorb, ilr, confdatarr(iorb)%ioffset(:)
+     !!write(*,'(a,3i8,6i6)') 'iproc, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3', &
+     !!    1, lzd%llr(ilr)%d%n1i, 1, lzd%llr(ilr)%d%n2i, 1, lzd%llr(ilr)%d%n3i
   
      !initialise the work arrays
      call initialize_work_arrays_sumrho(lzd%llr(ilr), work_sr)

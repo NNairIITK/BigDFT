@@ -1627,7 +1627,6 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
       end if
   end do
   call MPI_Initialized(mpiflag,ierr)
-  write(*,*) 'mpiflag, iproc', mpiflag, iproc
   if(mpiflag /= 0) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
 
   
