@@ -1012,8 +1012,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
 
-  ! ration of large locreg and standard locreg
-  factor=1.5d0
+  ! ratio of large locreg and standard locreg
+  factor=3.0d0
   factor2=200.0d0
 
   ! always use the same inwhichlocreg
@@ -6585,6 +6585,11 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       ist=ist+ncnt
   end do
   call mpiallred(normarr(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
+  if(iproc==0) then
+      do iorb=1,orbs%norb
+          write(*,'(a,i6,es16.6)') 'new norm before loop: iorb, normarr(iorb)', iorb, normarr(iorb)
+      end do
+  end if
 
 
   ! OTHER CHECK
@@ -7013,7 +7018,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       !!$$    lstep=2.d0*lstep_optimal
       !!$$    !lstep=1.d-3/(maxval(eval))
       !!$$end if
-      lstep=-1.d-3/(maxval(eval))
+      lstep=-2.d-3/(maxval(eval))
 
       t1=mpi_wtime()
       ! Calculate exp(-i*l*D) (with D diagonal matrix of eigenvalues).
