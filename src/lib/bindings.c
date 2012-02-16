@@ -219,7 +219,8 @@ void FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(void *in, char *geopt_approach
 void FC_FUNC_(inputs_parse_params, INPUTS_PARSE_PARAMS)(void *in,
                                                         int *iproc, int *dump);
 void FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(const void *in, int *files);
-void FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(void *in, void *atoms,
+void FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(void *in, const void *sym,
+                                                  const gchar *geocode, const double *alat,
                                                   int *iproc, int *dump);
 
 static BigDFT_Inputs* bigdft_inputs_init()
@@ -291,7 +292,8 @@ void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms)
 {
   int iproc = 0, dump = 0;
 
-  FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(in->data, atoms->data, &iproc, &dump);
+  FC_FUNC_(inputs_parse_add, INPUTS_PARSE_ADD)(in->data, atoms->sym, &atoms->geocode,
+                                               atoms->alat, &iproc, &dump);
   FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
 
   /* FC_FUNC_(inputs_get_kpt, INPUTS_GET_KPT)(); */

@@ -32,6 +32,7 @@ typedef struct BigDFT_Atoms_
 {
 #ifdef GLIB_MAJOR_VERSION
   GObject parent;
+  gboolean dispose_has_run;
 #endif
   /* Bindings to values, obtained by copy. Update them with
      bigdft_atoms_sync(). */
@@ -55,9 +56,7 @@ typedef struct BigDFT_Atoms_
 
   /* Private. */
   void *data;
-
-  /* GObject machinery. */
-  gboolean dispose_has_run;
+  void *sym;
 } BigDFT_Atoms;
 
 

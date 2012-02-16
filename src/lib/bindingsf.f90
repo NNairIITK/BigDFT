@@ -239,16 +239,18 @@ subroutine inputs_parse_params(in, iproc, dump)
      call xc_init(in%ixc, XC_ABINIT, in%nspin)
   end if
 end subroutine inputs_parse_params
-subroutine inputs_parse_add(in, atoms, iproc, dump)
+subroutine inputs_parse_add(in, sym, geocode, alat, iproc, dump)
   use module_types
   implicit none
   type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(in) :: atoms
+  type(symmetry_data), intent(in) :: sym
+  character, intent(in) :: geocode
+  real(gp), intent(in) :: alat(3)
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
 
   ! Read k-points input variables (if given)
-  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,atoms)
+  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,sym,geocode,alat)
 end subroutine inputs_parse_add
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &

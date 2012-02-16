@@ -40,13 +40,13 @@ static void bigdft_atoms_init(BigDFT_Atoms *atoms)
 }
 static void bigdft_atoms_dispose(GObject *obj)
 {
+#ifdef HAVE_GLIB
   BigDFT_Atoms *atoms = BIGDFT_ATOMS(obj);
 
   if (atoms->dispose_has_run)
     return;
   atoms->dispose_has_run = TRUE;
 
-#ifdef HAVE_GLIB
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_atoms_parent_class)->dispose(obj);
 #endif
@@ -105,7 +105,7 @@ BigDFT_Atoms* bigdft_atoms_new()
   memset(atoms, 0, sizeof(BigDFT_Atoms));
   bigdft_atoms_init(atoms);
 #endif
-  FC_FUNC_(atoms_new, ATOMS_NEW)(&atoms->data);
+  FC_FUNC_(atoms_new, ATOMS_NEW)(&atoms->data, &atoms->sym);
 
   return atoms;
 }

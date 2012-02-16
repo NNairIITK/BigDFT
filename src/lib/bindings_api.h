@@ -1,7 +1,7 @@
 #ifndef BINDINGS_API_H
 #define BINDINGS_API_H
 
-void FC_FUNC_(atoms_new, ATOMS_NEW)(void *atoms);
+void FC_FUNC_(atoms_new, ATOMS_NEW)(void *atoms, void *sym);
 void FC_FUNC_(atoms_free, ATOMS_FREE)(void *atoms);
 void FC_FUNC_(atoms_new_from_file, ATOMS_NEW_FROM_FILE)(int *lstat, void *atoms,
                                                         f90_pointer_double_2D *rxyz,
