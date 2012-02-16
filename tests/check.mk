@@ -72,11 +72,11 @@ report:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
 	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-    if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
-    if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
-	   if test -f $$file ; then cp $$file $$file.bak ;  fi ; \
+	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
+	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
+	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
 	   cat accel.perf >> $$file ; \
-    fi ; \
+	fi ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
 	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	name=`basename $@ .out` ; \
@@ -128,7 +128,7 @@ $(PSPS):
 	       fi ; \
 	   done ; \
        rm -f *.out *.mon *.report default* *.prc; \
-	   rm -fr data data-*; accel.perf \
+	   rm -fr data data-*; rm -f accel.perf; \
 	   rm -f velocities.xyz pdos.dat td_spectra.txt ; \
 	   rm -f bfgs_eigenvalues.dat frequencies.res frequencies.xyz hessian.dat ; \
 	   rm -f *.NEB.dat *.NEB.int *.NEB.restart *.NEB.log ; \
@@ -160,9 +160,9 @@ $(INS): in_message
           if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
           for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
         fi ; \
-	    if test -n "$(run_ocl)" ; then \
-	       echo "ACCEL OCLGPU" > $$dir/accel.perf ; \
-	    fi ; \
+	if test -n "$(run_ocl)" ; then \
+	  echo "ACCEL OCLGPU" > $$dir/accel.perf ; \
+	fi ; \
         cd $$dir && $(MAKE) -f ../Makefile $$dir".psp"; \
         $(MAKE) -f ../Makefile $$dir".post-in"; \
         echo "Input prepared in "$$dir" dir. make $$dir.run available"

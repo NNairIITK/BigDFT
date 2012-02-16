@@ -17,7 +17,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    implicit none
    integer, intent(in) :: iproc,nproc,nspin
    integer, intent(inout) :: nvirt
-  type(atoms_data), intent(inout) :: at
+   type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(gp), intent(out) :: eks
@@ -493,7 +493,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    !Arguments
    integer, intent(in) :: nspin,nspinor
    integer, intent(out) :: norbe,norbsc
-   type(atoms_data), intent(inout) :: at
+   type(atoms_data), intent(in) :: at
    logical, dimension(4,2,at%natsc), intent(out) :: scorb
    integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
    real(gp), dimension(at%nat), intent(out) :: locrad
@@ -504,7 +504,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    integer :: ity,i,iatsc,iat,lsc
    integer :: nsccode,mxpl,mxchg
    integer :: norbat,iorbsc_count,niasc,nlsc
-   real(gp) :: rcov,rprb,ehomo
+   real(gp) :: rcov,rprb,ehomo,amu
    !integer, dimension(nmax,lmax+1) :: neleconf
    real(kind=8), dimension(nmax,lmax+1) :: neleconf
    integer, dimension(lmax+1) :: nl
@@ -525,7 +525,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
       !print *,'iat',iat,l,norbe,norbat,nl(:)
       !calculate the localisation radius for the input orbitals 
       call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
-         &   neleconf,nsccode,mxpl,mxchg,at%amu(ity))
+         &   neleconf,nsccode,mxpl,mxchg,amu)
       locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
       nsccode=at%iasctype(iat)
       if (nsccode/=0) then !the atom has some semicore orbitals

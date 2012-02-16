@@ -10,6 +10,7 @@
 #define g_free(A)   free(A)
 #define guint unsigned int
 #define gchar char
+#define GObject void
 #endif
 
 #define BIGDFT_STRING_VERSION "@PACKAGE_VERSION@"

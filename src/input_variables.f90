@@ -153,7 +153,6 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
     ! Shake atoms, if required.
   call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
-
   ! Update atoms with symmetry information
   call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%elecfield)
 
@@ -750,7 +749,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   !local variables
   logical :: exists
   character(len=*), parameter :: subname='lin_input_variables'
-  character(len=132) :: comments
+  character(len=256) :: comments
   logical,dimension(atoms%ntypes) :: parametersSpecified
   logical :: found
   character(len=20):: atomname
@@ -1075,7 +1074,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
 
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
-          comment='Equivalent legth of K-space resolution (Bohr)')
+          comment='Equivalent length of K-space resolution (Bohr)')
      call kpoints_get_auto_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
@@ -1552,6 +1551,7 @@ end subroutine free_kpt_variables
 subroutine free_input_variables(in)
   use module_base
   use module_types
+  use module_xc
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
@@ -1562,6 +1562,9 @@ subroutine free_input_variables(in)
      call memocc(i_stat,i_all,'in%qmass',subname)
   end if
   call free_kpt_variables(in)
+
+  ! Free the libXC stuff if necessary, related to the choice of in%ixc.
+  call xc_end()
 
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
@@ -2468,12 +2471,12 @@ subroutine print_dft_parameters(in,atoms)
 
 END SUBROUTINE print_dft_parameters
 
-subroutine write_input_parameters(in,atoms)
+subroutine write_input_parameters(in) !,atoms)
   use module_base
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  type(atoms_data), intent(in) :: atoms
+!  type(atoms_data), intent(in) :: atoms
   !local variables
   character(len = 11) :: potden
   !start yaml output
@@ -2741,8 +2744,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
   integer, intent(in):: iacceleration,iproc
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node,jproc,namelen
-  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
 
   if (iacceleration == 1) then
      call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)

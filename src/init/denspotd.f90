@@ -126,18 +126,17 @@ subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,rad
 
 end subroutine denspot_communications
 
-subroutine allocateRhoPot(iproc,nproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,denspot)
+subroutine allocateRhoPot(iproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,denspot)
   use module_base
   use module_types
   use module_interfaces, except_this_one => allocateRhoPot
   implicit none
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc
   type(locreg_descriptors), intent(in) :: Glr
   real(gp), intent(in) :: hxh, hyh, hzh
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(DFT_local_fields), intent(inout) :: denspot
 
   character(len = *), parameter :: subname = "allocateRhoPot"

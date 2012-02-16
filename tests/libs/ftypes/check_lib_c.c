@@ -1,4 +1,7 @@
 #include <config.h>
+
+#include <glib-object.h>
+
 #include <bigdft.h>
 
 #include <string.h>
@@ -24,9 +27,13 @@ int main(guint argc, char **argv)
   BigDFT_Inputs *in;
   BigDFT_Orbs *orbs;
   BigDFT_Proj *proj;
-  f90_pointer_double *pkernel;
+  BigDFT_LocalFields *denspot;
 
   int out_pipe[2], stdout_fileno_old;
+
+#ifdef HAVE_GLIB
+  g_type_init();
+#endif
 
   fprintf(stdout, "Test BigDFT_Atoms structure creation.\n");
   atoms = bigdft_atoms_new();
@@ -70,7 +77,11 @@ int main(guint argc, char **argv)
             radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
   g_free(radii);
   fprintf(stdout, "Test BigDFT_Atoms free.\n");
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(atoms));
+#else
   bigdft_atoms_free(atoms);
+#endif
   fprintf(stdout, " Ok\n");
 
   if (argc > 1)
@@ -140,7 +151,8 @@ int main(guint argc, char **argv)
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
   proj = bigdft_proj_new(atoms, glr, orbs, radii, in->frmult);
-  fprintf(stdout, " System has %d projectors, and %d elements.\n", proj->nproj, proj->nprojel);
+  fprintf(stdout, " System has %d projectors, and %d elements.\n",
+          proj->nproj, proj->nprojel);
 
   if (argc > 2)
     {
@@ -151,11 +163,17 @@ int main(guint argc, char **argv)
       fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
     }
 
-  fprintf(stdout, "Test Poisson solver kernel creation.\n");
-  pkernel = bigdft_psolver_create_kernel(glr, 0, 1);
+  fprintf(stdout, "Test BigDFT_LocalFields creation.\n");
+  denspot = bigdft_localfields_new(atoms, glr, in, radii, 0, 1);
+  fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
+          denspot->h[0], denspot->h[1], denspot->h[2],
+          denspot->rhov_is, denspot->psoffset);
 
-  fprintf(stdout, "Test Poisson solver kernel free.\n");
-  bigdft_psolver_free_kernel(pkernel);
+  fprintf(stdout, " Calculate ionic potential.\n");
+  bigdft_localfields_create_effective_ionic_pot(denspot, in, 0, 1);
+
+  fprintf(stdout, "Test BigDFT_LocalFields free.\n");
+  bigdft_localfields_free(denspot);
   fprintf(stdout, " Ok\n");
 
   fprintf(stdout, "Test BigDFT_Proj free.\n");
