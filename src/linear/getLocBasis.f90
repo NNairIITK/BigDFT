@@ -954,20 +954,22 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   alphaDIIS=ldiis%alphaDIIS
 
   ! Copy parameters to ldiis2 (needed for debugging)
-  ldiis2%is=ldiis%is
-  ldiis2%isx=ldiis%isx
-  ldiis2%mis=ldiis%mis
-  ldiis2%DIISHistMax=ldiis%DIISHistMax
-  ldiis2%DIISHistMin=ldiis%DIISHistMin
-  ldiis2%trmin=ldiis%trmin
-  ldiis2%trold=ldiis%trold
-  ldiis2%alphaSD=ldiis%alphaSD
-  ldiis2%alphaDIIS=ldiis%alphaDIIS
-  ldiis2%switchSD=ldiis%switchSD
-  allocate(ldiis2%phiHist(1), stat=istat)
-  call memocc(istat, ldiis2%phiHist, 'ldiis2%phiHist', subname)
-  allocate(ldiis2%hphiHist(1), stat=istat)
-  call memocc(istat, ldiis2%hphiHist, 'ldiis2%hphiHist', subname)
+  if(secondLocreg) then
+      ldiis2%is=ldiis%is
+      ldiis2%isx=ldiis%isx
+      ldiis2%mis=ldiis%mis
+      ldiis2%DIISHistMax=ldiis%DIISHistMax
+      ldiis2%DIISHistMin=ldiis%DIISHistMin
+      ldiis2%trmin=ldiis%trmin
+      ldiis2%trold=ldiis%trold
+      ldiis2%alphaSD=ldiis%alphaSD
+      ldiis2%alphaDIIS=ldiis%alphaDIIS
+      ldiis2%switchSD=ldiis%switchSD
+      allocate(ldiis2%phiHist(1), stat=istat)
+      call memocc(istat, ldiis2%phiHist, 'ldiis2%phiHist', subname)
+      allocate(ldiis2%hphiHist(1), stat=istat)
+      call memocc(istat, ldiis2%hphiHist, 'ldiis2%hphiHist', subname)
+  end if
 
 
 
@@ -1046,11 +1048,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
 
-      locrad_tmp=factor2*locrad
-      call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
-           locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
-           lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
-           lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
+      if(secondLocreg) then
+          locrad_tmp=factor2*locrad
+          call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
+               locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
+               lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
+               lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
+      end if
   end if
 
 
@@ -2272,6 +2276,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       if(secondLocreg) then
           call destroy_new_locregs(lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
                lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
+          call deallocateDIIS(ldiis2)
       end if
   end if
 
