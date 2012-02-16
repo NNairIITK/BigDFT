@@ -1123,8 +1123,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
             !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
             !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
-            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                 6.d0, confdatarr, lphilarge)
+            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+            !!     6.d0, confdatarr, lphilarge)
 
             !!!write(*,*) 'ATTENTION DEBUG!'
             !!!lphilarge=1.d0
@@ -1204,9 +1204,20 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                confdatarr(iorb)%ioffset(3)=lzdlarge2%llr(ilr)%nsi3-nl3-1
             end do
             !!!!call random_number(lphilarge2)
+
+            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+            call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
+                 lzdlarge2%llr(1)%locrad/factor2, confdatarr, lphilarge2)
+            !!call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
+            !!     6.d0, confdatarr, lphilarge2)
             call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
                  comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
                  newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
+            call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
+                 lzdlarge2%llr(1)%locrad/factor2, confdatarr, lphilarge2)
+            !!call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
+            !!     6.d0, confdatarr, lphilarge2)
 
             !!     !!write(*,*) "ATTENTION HERE!!!"
             !!call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, lzd%nlr, locregCenter, lorbs%inwhichlocreg, .5d0*hx, &
@@ -1377,8 +1388,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
             end do
             !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
             !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
-            call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                 6.d0, confdatarr, lphilarge)
+            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+            !!     6.d0, confdatarr, lphilarge)
 
             call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                  lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -1907,8 +1918,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
-           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                6.d0, confdatarr, lphilarge)
+           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+           !!     6.d0, confdatarr, lphilarge)
 
            !! EXPERIMENTAL: normalize lphilarge
            ist=1
@@ -1961,9 +1972,21 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                confdatarr(iorb)%ioffset(2)=lzdlarge2%llr(ilr)%nsi2-nl2-1
                confdatarr(iorb)%ioffset(3)=lzdlarge2%llr(ilr)%nsi3-nl3-1
             end do
+           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+            call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
+                 lzdlarge2%llr(1)%locrad/factor2, confdatarr, lphilarge2)
+           !!call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
+           !!     6.d0, confdatarr, lphilarge2)
            call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
                 comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
                 newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
+           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
+            call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
+                 lzdlarge2%llr(1)%locrad/factor2, confdatarr, lphilarge2)
+           !!call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
+           !!     6.d0, confdatarr, lphilarge2)
                  !!write(*,*) "ATTENTION HERE!!!"
                  !!locregCenter=locregCenterTemp
            do ilr=1,lzd%nlr
@@ -2112,8 +2135,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            end do
            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
-           call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                6.d0, confdatarr, lphilarge)
+           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
+           !!     6.d0, confdatarr, lphilarge)
 
            call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
