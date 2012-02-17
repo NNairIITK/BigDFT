@@ -1038,7 +1038,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           !iiorb=lorbs%isorb+iorb
           ilr=lorbs%inwhichlocreg(iorb)
           locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
-          if(iproc==0) write(*,'(a,i6,3f11.4)') 'ilr, locregCenter(:,ilr)', ilr, locregCenter(:,ilr)
+          !!if(iproc==0) write(*,'(a,i6,3f11.4)') 'ilr, locregCenter(:,ilr)', ilr, locregCenter(:,ilr)
       end do
       locregCenterTemp=locregCenter
 

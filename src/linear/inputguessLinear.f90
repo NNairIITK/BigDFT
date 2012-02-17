@@ -218,9 +218,8 @@ END SUBROUTINE initInputguessConfinement
 
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
-     Glr, input, lzd, lorbs, rxyz, denspot, rhopotold,&
-     nlpspd, proj, GPU,  &
-     lphi)
+     input, lzd, lorbs, rxyz, denspot, rhopotold,&
+     nlpspd, proj, GPU, lphi)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -233,7 +232,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(inout) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(locreg_descriptors), intent(in) :: Glr
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables):: input
@@ -241,7 +239,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(orbitals_data),intent(in):: lorbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
+  real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
   real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
 
   ! Local variables
@@ -280,7 +278,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Initialize evrything
   tag=1
-  call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, Glr, input, input%lin, lig, rxyz, denspot%dpcom%nscatterarr, tag)
+  call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, lzd%glr, input, input%lin, lig, rxyz, denspot%dpcom%nscatterarr, tag)
 
   ! not ideal place here for this...
   if(lorbs%norb/=lig%orbsig%norb) then
@@ -545,7 +543,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   if(trim(input%lin%mixingmethod)=='dens') then
-      call dcopy(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
 
@@ -556,19 +554,19 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   call deallocate_local_zone_descriptors(lig%lzdGauss, subname)
 
-  call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,hxh,hyh,hzh,Glr,denspot,ehart,eexcu,vexcu)
+  call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,hxh,hyh,hzh,lzd%glr,denspot,ehart,eexcu,vexcu)
 
 !!$  
 !!$  if(orbs%nspinor==4) then
 !!$     !this wrapper can be inserted inside the poisson solver 
-!!$     call PSolverNC(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+!!$     call PSolverNC(at%geocode,'D',iproc,nproc,lzd%glr%d%n1i,lzd%glr%d%n2i,lzd%glr%d%n3i,&
 !!$          nscatterarr(iproc,1),& !this is n3d
 !!$          input%ixc,hxh,hyh,hzh,&
 !!$          rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
 !!$  else
 !!$     !Allocate XC potential
 !!$     if (nscatterarr(iproc,2) >0) then
-!!$        allocate(potxc(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)*input%nspin+ndebug),stat=istat)
+!!$        allocate(potxc(lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2)*input%nspin+ndebug),stat=istat)
 !!$        call memocc(istat,potxc,'potxc',subname)
 !!$     else
 !!$        allocate(potxc(1+ndebug),stat=istat)
@@ -576,13 +574,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 !!$     end if
 !!$
 !!$     call XC_potential(at%geocode,'D',iproc,nproc,&
-!!$          Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,input%ixc,hxh,hyh,hzh,&
+!!$          lzd%glr%d%n1i,lzd%glr%d%n2i,lzd%glr%d%n3i,input%ixc,hxh,hyh,hzh,&
 !!$          rhopot,eexcu,vexcu,input%nspin,rhocore,potxc,xcstr)
 !!$
 !!$
 !!$     if( iand(potshortcut,4)==0) then
 !!$        call H_potential(at%geocode,'D',iproc,nproc,&
-!!$             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!$             lzd%glr%d%n1i,lzd%glr%d%n2i,lzd%glr%d%n3i,hxh,hyh,hzh,&
 !!$             rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
 !!$     endif
 !!$
@@ -590,11 +588,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 !!$     !sum the two potentials in rhopot array
 !!$     !fill the other part, for spin, polarised
 !!$     if (input%nspin == 2) then
-!!$        call dcopy(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),rhopot(1),1,&
-!!$             rhopot(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)+1),1)
+!!$        call dcopy(lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),rhopot(1),1,&
+!!$             rhopot(lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2)+1),1)
 !!$     end if
 !!$     !spin up and down together with the XC part
-!!$     call axpy(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)*input%nspin,1.0_dp,potxc(1),1,&
+!!$     call axpy(lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2)*input%nspin,1.0_dp,potxc(1),1,&
 !!$          rhopot(1),1)
 !!$
 !!$
@@ -605,7 +603,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 !!$  end if
 
   if(trim(input%lin%mixingmethod)=='pot') then
-      call dcopy(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
 
@@ -627,7 +625,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Post the messages for the communication of the potential.
-  !ndimpot = lzd%Glr%d%n1i*lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  !ndimpot = lzd%lzd%glr%d%n1i*lzd%lzd%glr%d%n2i*nscatterarr(iproc,2)
   call allocateCommunicationsBuffersPotential(lig%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lig%comgp)
 
@@ -703,9 +701,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !!!end do
 
 !!$  call full_local_potential(iproc,nproc,&
-!!$       lig%lzdig%glr%d%n1i*lig%lzdig%glr%d%n2i*nscatterarr(iproc,2),&
-!!$       lig%lzdig%glr%d%n1i*lig%lzdig%glr%d%n2i*lig%lzdig%glr%d%n3i,input%nspin,&
-!!$       lig%lzdig%glr%d%n1i*lig%lzdig%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
+!!$       lig%lzdig%lzd%glr%d%n1i*lig%lzdig%lzd%glr%d%n2i*nscatterarr(iproc,2),&
+!!$       lig%lzdig%lzd%glr%d%n1i*lig%lzdig%lzd%glr%d%n2i*lig%lzdig%lzd%glr%d%n3i,input%nspin,&
+!!$       lig%lzdig%lzd%glr%d%n1i*lig%lzdig%lzd%glr%d%n2i*nscatterarr(iproc,1)*input%nspin,0,&
 !!$       lig%orbsig,lig%lzdig,2,ngatherarr,rhopot,lpot,lig%comgp)
 
 
@@ -887,11 +885,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
-  !!call buildLinearCombinationsLocalized3(iproc, nproc, lig%orbsig, lorbs, lin%comms, at, Glr, input, lin%norbsPerType, &
+  !!call buildLinearCombinationsLocalized3(iproc, nproc, lig%orbsig, lorbs, lin%comms, at, lzd%glr, input, lin%norbsPerType, &
   !!     lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lorbs%inWhichLocreg, lin, lig%lzdig, nlocregPerMPI, tag, ham3, &
   !!     lig%comon, lig%op, lig%mad)
   call buildLinearCombinationsLocalized3(iproc, nproc, lig%orbsig, lig%orbsGauss, lorbs, &
-       at, Glr, input, input%lin%norbsPerType, &
+       at, lzd%glr, input, input%lin%norbsPerType, &
        lig%orbsig%inWhichLocreg, lchi, lphi, locregCenter, lorbs%inWhichLocreg, &
        lzd, lig%lzdig, nlocregPerMPI, tag, ham3, &
        lig%comon, lig%op, lig%mad)
