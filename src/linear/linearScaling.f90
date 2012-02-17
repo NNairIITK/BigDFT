@@ -349,7 +349,10 @@ type(orthon_data):: orthpar
           lin%newgradient=.true.
           nit_highaccuracy=nit_highaccuracy+1
           nit=lin%nItBasis_highaccuracy
-          if(nit_highaccuracy==lin%nit_highaccuracy+1) exit outerLoop
+          if(nit_highaccuracy==lin%nit_highaccuracy+1) then
+            call deallocateDIIS(ldiis)
+            exit outerLoop
+          end if
 
       else
           !!lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
@@ -609,7 +612,7 @@ type(orthon_data):: orthpar
 
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
   deallocate(rhopotOld, stat=istat)
-  call memocc(istat, iall, 'rhopotOld', subname)
+  call memocc(istat, iall, 'rhopotold', subname)
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)

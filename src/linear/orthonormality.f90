@@ -328,7 +328,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, orbs, onWhichAto
   integer::  istat, i1, i2, jjorb, nsub, ierr
   character(len=*),parameter:: subname='initCommsOrtho'
   real(8):: t1, t2, time
-  integer, dimension(:,:), allocatable :: overlaps_nseg
+!  integer, dimension(:,:), allocatable :: overlaps_nseg
 
   call nullify_overlapParameters(op)
 
@@ -345,8 +345,8 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, orbs, onWhichAto
   call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
   allocate(op%indexInSendBuf(orbs%norbp,orbs%norb), stat=istat)
   call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
-  allocate(overlaps_nseg(orbs%norb,orbs%norbp), stat=istat)
-  call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
+!  allocate(overlaps_nseg(orbs%norb,orbs%norbp), stat=istat)
+!  call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
 
 
   ! Count how many overlaping regions each orbital / process has.
