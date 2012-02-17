@@ -894,7 +894,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call buildLinearCombinationsLocalized3(iproc, nproc, lig%orbsig, lig%orbsGauss, lorbs, &
        at, Glr, input, input%lin%norbsPerType, &
        lig%orbsig%inWhichLocreg, lchi, lphi, locregCenter, lorbs%inWhichLocreg, lin, &
-       lig%lzdig, nlocregPerMPI, tag, ham3, &
+       lzd, lig%lzdig, nlocregPerMPI, tag, ham3, &
        lig%comon, lig%op, lig%mad)
   !call cpu_time(t2)
   !!time=t2-t1
@@ -3288,7 +3288,7 @@ end subroutine buildLinearCombinationsVariable
 
 
 subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input, norbsPerType, &
-           onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
+           onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lin, lzd, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
 !
 use module_base
 use module_types
@@ -3302,6 +3302,7 @@ type(atoms_data),intent(in):: at
 type(locreg_descriptors),intent(in):: Glr
 type(input_variables),intent(in):: input
 type(linearParameters),intent(in):: lin
+type(local_zone_descriptors),intent(in):: lzd
 type(local_zone_descriptors),intent(inout):: lzdig
 integer,dimension(at%ntypes):: norbsPerType
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
@@ -3390,13 +3391,13 @@ type(matrixDescriptors):: mad
       call allocateArrays()
 
       !!call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
-      !!     lin%locrad, rxyz, lin%lzd, input%hx, input%hy, input%hz, matmin%mlr)
+      !!     lin%locrad, rxyz, lzd, input%hx, input%hy, input%hz, matmin%mlr)
       call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
-           input%lin%locrad, locregCenter, lin%lzd, input%hx, input%hy, input%hz, matmin%mlr)
+           input%lin%locrad, locregCenter, lzd, input%hx, input%hy, input%hz, matmin%mlr)
       call extractMatrix3(iproc, ip%nproc, lorbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
            ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
 
-      call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lorbs, orbsig, &
+      call determineOverlapRegionMatrix(iproc, ip%nproc, lzd, matmin%mlr, lorbs, orbsig, &
            onWhichAtom, onWhichAtomPhi, comom)
       !tag=1
       call initCommsMatrixOrtho(iproc, ip%nproc, lorbs%norb, ip%norb_par, ip%isorb_par, &
@@ -3482,7 +3483,7 @@ type(matrixDescriptors):: mad
           call orthonormalizeVectors(iproc, ip%nproc, newComm, input%lin%nItOrtho, methTransformOverlap, &
                input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
                lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
-               lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
+               lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
       end if
 
 
@@ -3510,7 +3511,7 @@ type(matrixDescriptors):: mad
           call orthonormalizeVectors(iproc, ip%nproc, newComm, input%lin%nItOrtho, methTransformOverlap, &
                input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
                lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
-               lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
+               lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
           ilr=onWhichAtom(ip%isorb+1)
 
     
@@ -3546,7 +3547,7 @@ type(matrixDescriptors):: mad
           call orthoconstraintVectors(iproc, ip%nproc, methTransformOverlap, input%lin%correctionOrthoconstraint, &
                input%lin%blocksize_pdgemm, &
                lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
-               matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
+               matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lzd%nlr, newComm, &
                matmin%mlr, mad, lcoeff, lgrad, comom, trace)
           !!do jorb=1,matmin%norbmax
           !!    write(660+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
@@ -3781,8 +3782,8 @@ type(matrixDescriptors):: mad
 
   ! Now every process has all coefficients, so we can build the linear combinations.
   ! Do this in a localized way -- TEST
-  !call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lorbs, input, coeff, lchi, lphi)
-  !call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lorbs, input, coeff, lchi, lphi)
+  !call buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, lphi)
+  !call buildLinearCombinationsVariable(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, lphi)
 
   ! Now every process has all coefficients, so we can build the linear combinations.
   ! If the number of atomic orbitals is the same as the number of trace minimizing orbitals, we can use the
@@ -3802,11 +3803,11 @@ type(matrixDescriptors):: mad
       same=.false.
   end if
   if(same) then
-      call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lorbs, input, coeff, lchi, input%lin%locregShape, tag, &
+      call buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, input%lin%locregShape, tag, &
            comonig, opig, madig, lphi)
   else
       !! THIS WAS THE ORIGINAL, BUT NOT WORKING.
-      call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lorbs, input, coeff, lchi, tag, lphi)
+      call buildLinearCombinationsVariable(iproc, nproc, lzdig, lzd, orbsig, lorbs, input, coeff, lchi, tag, lphi)
   end if
 
   ! Deallocate the remaining local array.
