@@ -231,7 +231,7 @@ call assignToLocreg2(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, at%nat, at%
   lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
   allocate(confdatarr(lin%orbs%norbp))
   call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,lin,lin%lzd,onwhichatom)
+       input%hx,input%hy,input%hz,lin%confpotorder,lin%potentialprefac,lin%lzd,onwhichatom)
 
 
 

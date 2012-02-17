@@ -2468,7 +2468,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine readAtomicOrbitals_withOnWhichAtom
 
     subroutine inputguessConfinement(iproc, nproc, at, &
-         Glr, input, lin, orbs, rxyz,denspot, rhopotold,&
+         Glr, input, lin, lzd, orbs, lorbs, rxyz,denspot, rhopotold,&
          nlpspd, proj, GPU,  &
          tag, lphi, ehart, eexcu, vexcu)
       use module_base
@@ -2483,7 +2483,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(DFT_local_fields), intent(inout) :: denspot
       type(input_variables):: input
       type(linearParameters),intent(inout):: lin
-      type(orbitals_data),intent(in):: orbs
+      type(local_zone_descriptors),intent(in):: lzd
+      type(orbitals_data),intent(in):: orbs, lorbs
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
       real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
@@ -5986,6 +5987,23 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
          integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
        end subroutine rminusmu_operator
+
+       subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
+                  confpotorder,potentialprefac,Lzd,confinementCenter)
+         use module_base
+         use module_types
+         implicit none
+         real(gp), intent(in) :: hx,hy,hz
+         type(atoms_data), intent(in) :: at
+         type(orbitals_data), intent(in) :: orbs
+         !!type(linearParameters), intent(in) :: lin
+         integer,intent(in):: confpotorder
+         real(gp),dimension(at%ntypes),intent(in):: potentialprefac
+         type(local_zone_descriptors), intent(in) :: Lzd
+         real(gp), dimension(3,at%nat), intent(in) :: rxyz
+         integer, dimension(orbs%norb), intent(in) :: confinementCenter
+         type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
+       end subroutine define_confinement_data
 
    end interface
 
