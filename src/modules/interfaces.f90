@@ -1770,7 +1770,7 @@ module module_interfaces
       subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
            denspot,GPU,lphi,trH,&
            infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
-           confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond)
+           confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge)
         use module_base
         use module_types
 
@@ -1798,7 +1798,7 @@ module module_interfaces
         !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
         real(8),dimension(:),pointer,intent(inout):: lphi
         real(8),intent(out):: trH
-        real(8),intent(in):: convCrit, hx, hy, hz
+        real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
         real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
         type(nonlocal_psp_descriptors),intent(in):: nlpspd
         real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -1985,7 +1985,7 @@ module module_interfaces
          ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
          methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
          useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
-         hx,hy,hz,SIC)
+         hx,hy,hz,SIC,factor_enlarge)
       use module_base
       use module_types
       implicit none
@@ -2010,7 +2010,7 @@ module module_interfaces
       logical,intent(in):: updatePhi, newgradient, useDerivativeBasisFunctions
       integer,intent(out):: infoBasisFunctions, infoCoeff
       real(8),intent(out):: ebs
-      real(8),intent(in):: convCrit, hx, hy, hz
+      real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
       real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
       !real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
       real(8),dimension(:),pointer,intent(inout):: lphi

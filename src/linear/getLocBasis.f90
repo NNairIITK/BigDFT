@@ -5,7 +5,7 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
     methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
     useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC)
+    hx,hy,hz,SIC,factor_enlarge)
 !
 ! Purpose:
 ! ========
@@ -88,7 +88,7 @@ logical,intent(in):: updatePhi, newgradient, useDerivativeBasisFunctions
 !real(dp),dimension(:),pointer,intent(in):: pkernelseq
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
-real(8),intent(in):: convCrit, hx, hy, hz
+real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
 real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
 !real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
 real(8),dimension(:),pointer,intent(inout):: lphi
@@ -152,7 +152,7 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
            denspot,GPU,lphi,trace,&
           infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,newgradient,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
-          hx,hy,hz,SIC,nItPrecond)
+          hx,hy,hz,SIC,nItPrecond,factor_enlarge)
   end if
 
 
@@ -349,7 +349,7 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
           !!write(*,*) 'HERE2 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
 
   ! Keep the value of lphi for the next iteration
-  call dcopy(lorbs%npsidim_orbs, lphi(1), 1, lphiRestart(1), 1)
+  if(updatePhi .or. itSCC==0) call dcopy(lorbs%npsidim_orbs, lphi(1), 1, lphiRestart(1), 1)
 
   if(updatePhi .and. newgradient) then
 
@@ -786,7 +786,7 @@ end subroutine getLinearPsi
 subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
     denspot,GPU,lphi,trH,&
     infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
-    confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond)
+    confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge)
 !
 ! Purpose:
 ! ========
@@ -862,7 +862,7 @@ type(GPU_pointers), intent(inout) :: GPU
 !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
 real(8),dimension(:),pointer,intent(inout):: lphi
 real(8),intent(out):: trH
-real(8),intent(in):: convCrit, hx, hy, hz
+real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
 real(8),dimension(lorbs%norb,lorbs%norb),intent(out):: ovrlp
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -887,7 +887,7 @@ integer,dimension(:),allocatable:: norbsPerAtom, inwhichlocreg_reference
 real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr, lagmat, Umat
 real(8),dimension(:,:),allocatable:: kernel, kernelold, locregCenter
-logical:: withConfinement, resetDIIS, immediateSwitchToSD
+logical:: withConfinement, resetDIIS, immediateSwitchToSD, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(5):: time
 !real(8),dimension(:),pointer:: lpot
@@ -935,12 +935,20 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
+  if(nItInnerLoop==-1 .and. factor_enlarge==1.d0) then
+      variable_locregs=.false.
+  else
+      variable_locregs=.true.
+  end if
+
   ! Initialize the arrays and variable needed for DIIS.
   if(newgradient .and. ldiis%isx>0) then
-      if(iproc==0) write(*,'(1x,a)') 'ERROR: if newgradient is true, only steepest descent is &
-                                      &allowed since the locreg shapes may change!'
-      call mpi_barrier(mpi_comm_world, ierr)
-      stop
+      if(variable_locregs) then
+          if(iproc==0) write(*,'(1x,a)') 'ERROR: if newgradient is true, only steepest descent is &
+                                          &allowed since the locreg shapes may change!'
+          call mpi_barrier(mpi_comm_world, ierr)
+          stop
+      end if
   end if
   icountSDSatur=0
   icountSwitch=0
@@ -1016,7 +1024,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   ! ratio of large locreg and standard locreg
-  factor=1.5d0
+  !factor=1.5d0
+  factor=factor_enlarge
   factor2=200.0d0
 
   ! always use the same inwhichlocreg
@@ -1330,24 +1339,26 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  end do
              end if
 
-            call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
-                 lphi, lhphi, lhphiold, lphiold)
-             !!do iorb=1,lorbs%norb
-             !!    write(*,'(a,2i8,3es12.4,4x,3es12.4)') 'iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)', &
-             !!        iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)
-             !!end do
+            if(variable_locregs) then
+                call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
+                     lphi, lhphi, lhphiold, lphiold)
+                 !!do iorb=1,lorbs%norb
+                 !!    write(*,'(a,2i8,3es12.4,4x,3es12.4)') 'iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)', &
+                 !!        iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)
+                 !!end do
 
-            call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
-                 locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                 lzd, lorbs, op, comon, mad, comgp, &
-                 lphi, lhphi, lhphiold, lphiold)
-            !!     write(*,'(a,2i9)') 'sub 1: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
-            !!do iorb=1,lorbs%norb
-            !!    ilr=lorbs%inwhichlocreg(iorb)
-            !!    write(*,'(a,2i6,3x,3es16.4)') '1: iorb, ilr, center', iorb, ilr, lzd%llr(ilr)%locregCenter
-            !!end do
-            !!call mpi_barrier(mpi_comm_world, ierr)
-            !!stop
+                call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
+                     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                     lzd, lorbs, op, comon, mad, comgp, &
+                     lphi, lhphi, lhphiold, lphiold)
+                !!     write(*,'(a,2i9)') 'sub 1: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
+                !!do iorb=1,lorbs%norb
+                !!    ilr=lorbs%inwhichlocreg(iorb)
+                !!    write(*,'(a,2i6,3x,3es16.4)') '1: iorb, ilr, center', iorb, ilr, lzd%llr(ilr)%locregCenter
+                !!end do
+                !!call mpi_barrier(mpi_comm_world, ierr)
+                !!stop
+            end if
 
 
             !call deallocateCommunicationsBuffersPotential(comgp, subname)
@@ -1424,15 +1435,17 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
             !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
             !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
             !!     6.d0, confdatarr, lphilarge)
-
-            call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-            locrad_tmp=factor*locrad
-            call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
-                 locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                 lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                 lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-            locregCenterTemp=locregCenter
+ 
+            if(variable_locregs) then
+                call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+                locrad_tmp=factor*locrad
+                call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
+                     locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                     lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+                locregCenterTemp=locregCenter
+            end if
 
 !!!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 ! do here another MLWF on the level of lzdlarge
@@ -1958,15 +1971,17 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            !!     6.d0, confdatarr, lphilarge)
 
            !! EXPERIMENTAL: normalize lphilarge
-           ist=1
-           do iorb=1,orbslarge%norbp
-               iiorb=orbslarge%isorb+iorb
-               ilrlarge=orbslarge%inwhichlocreg(iiorb)
-               ncnt=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-               tt=dnrm2(ncnt, lphilarge(ist), 1)
-               call dscal(ncnt, 1/tt, lphilarge(ist), 1)
-               ist=ist+ncnt
-           end do
+           if(variable_locregs) then
+               ist=1
+               do iorb=1,orbslarge%norbp
+                   iiorb=orbslarge%isorb+iorb
+                   ilrlarge=orbslarge%inwhichlocreg(iiorb)
+                   ncnt=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
+                   tt=dnrm2(ncnt, lphilarge(ist), 1)
+                   call dscal(ncnt, 1/tt, lphilarge(ist), 1)
+                   ist=ist+ncnt
+               end do
+           end if
 
 
            if(secondLocreg) then
@@ -2116,12 +2131,14 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           end if
 
 
+        if(variable_locregs) then
             call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
             call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
                  locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                  lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
+        end if
           !!       write(*,'(a,2i9)') 'sub 2: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
           !!if(iproc==0) then
           !!    do iorb=1,lorbs%norb
@@ -2199,14 +2216,16 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
            !!     6.d0, confdatarr, lphilarge)
 
-           call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-           locrad_tmp=factor*locrad
-           call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
-                locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-           locregCenterTemp=locregCenter
+           if(variable_locregs) then
+               call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                    lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+               locrad_tmp=factor*locrad
+               call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
+                    locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                    lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                    lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+               locregCenterTemp=locregCenter
+           end if
 
 !!!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 ! do here another MLWF on the level of lzdlarge
@@ -6411,8 +6430,8 @@ real(8),dimension(:,:,:),allocatable:: tempmat3
 character(len=*),parameter:: subname='MLWFnew'
 type(p2pComms):: comon_local
 
-! Quick return if possible
-!if(nit==0) return
+! Quick return if possible. In this way the localization regions will remain unchanged.
+if(nit==-1) return
 
 allocate(gmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, gmat, 'gmat', subname)

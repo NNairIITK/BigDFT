@@ -777,8 +777,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,10000/),comment=comments)
   
   ! Convergence criterion
-  comments= 'iterations in the inner loop, convergence criterion'
-  call input_var(in%lin%nItInnerLoop,'0',ranges=(/0,1000000/))
+  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion'
+  call input_var(in%lin%nItInnerLoop,'0',ranges=(/-1,1000000/))
+  call input_var(in%lin%factor_enlarge,'0',ranges=(/1.0_gp,1000.0_gp/))
   call input_var(in%lin%convCrit,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD

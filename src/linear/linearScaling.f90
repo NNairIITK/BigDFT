@@ -217,7 +217,7 @@ integer,dimension(:),pointer:: onwhichatom
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
               lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, lin%lphiRestart, &
               lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
-              input%hx, input%hy, input%hz, input%SIC)
+              input%hx, input%hy, input%hz, input%SIC, input%lin%factor_enlarge)
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -228,7 +228,7 @@ integer,dimension(:),pointer:: onwhichatom
               coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
               lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
               lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-              input%hx,input%hy,input%hz,input%SIC)
+              input%hx,input%hy,input%hz,input%SIC, input%lin%factor_enlarge)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -366,8 +366,10 @@ integer,dimension(:),pointer:: onwhichatom
               call deallocateDIIS(ldiis)
               exit outerLoop
           end if
-          ! only use steepest descent
-          ldiis%isx=0
+          ! only use steepest descent if the localization regions may change
+          if(lin%nItInnerLoop/=-1 .or. input%lin%factor_enlarge/=1.d0) then
+              ldiis%isx=0
+          end if
 
       else
           !!lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
@@ -426,7 +428,7 @@ integer,dimension(:),pointer:: onwhichatom
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                      input%hx,input%hy,input%hz,input%SIC)
+                      input%hx,input%hy,input%hz,input%SIC, input%lin%factor_enlarge)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -437,7 +439,7 @@ integer,dimension(:),pointer:: onwhichatom
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                      input%hx,input%hy,input%hz,input%SIC)
+                      input%hx,input%hy,input%hz,input%SIC, input%lin%factor_enlarge)
               end if
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -448,7 +450,7 @@ integer,dimension(:),pointer:: onwhichatom
                   coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                   lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                   lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                  input%hx,input%hy,input%hz,input%SIC)
+                  input%hx,input%hy,input%hz,input%SIC, input%lin%factor_enlarge)
           end if
 
 
