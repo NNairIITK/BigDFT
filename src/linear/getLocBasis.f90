@@ -1016,7 +1016,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
   ! ratio of large locreg and standard locreg
-  factor=2.0d0
+  factor=1.2d0
   factor2=200.0d0
 
   ! always use the same inwhichlocreg

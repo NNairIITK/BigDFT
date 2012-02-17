@@ -374,13 +374,13 @@ iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
 deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
-if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing input guess... '
-call timing(iproc,'init_inguess  ','ON')
-t1=mpi_wtime()
-call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lin%lig, rxyz, nscatterarr, tag)
-t2=mpi_wtime()
-call timing(iproc,'init_inguess  ','OF')
-if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
+!!if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing input guess... '
+!!call timing(iproc,'init_inguess  ','ON')
+!!t1=mpi_wtime()
+!!call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lin%lig, rxyz, nscatterarr, tag)
+!!t2=mpi_wtime()
+!!call timing(iproc,'init_inguess  ','OF')
+!!if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 
 ! Estimate the memory requirements.
@@ -442,17 +442,17 @@ do iorb=1,lin%orbs%norb
     end do
 end do
 
-! not ideal place here for this...
-if(lin%orbs%norb/=lin%lig%orbsig%norb) then
-    write(*,*) 'ERROR: lin%orbs%norb/=lin%lig%orbsig%norb not implemented!'
-    stop
-end if
-allocate(lin%lig%lzdig%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
-call memocc(istat, lin%lig%lzdig%cutoffweight, 'lin%lig%lzdig%cutoffweight', subname)
-allocate(lin%lig%lzdGauss%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
-call memocc(istat, lin%lig%lzdGauss%cutoffweight, 'lin%lig%lzdGauss%cutoffweight', subname)
-call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdig%cutoffweight, 1)
-call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdGauss%cutoffweight, 1)
+!!! not ideal place here for this...
+!!if(lin%orbs%norb/=lin%lig%orbsig%norb) then
+!!    write(*,*) 'ERROR: lin%orbs%norb/=lin%lig%orbsig%norb not implemented!'
+!!    stop
+!!end if
+!!allocate(lin%lig%lzdig%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
+!!call memocc(istat, lin%lig%lzdig%cutoffweight, 'lin%lig%lzdig%cutoffweight', subname)
+!!allocate(lin%lig%lzdGauss%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
+!!call memocc(istat, lin%lig%lzdGauss%cutoffweight, 'lin%lig%lzdGauss%cutoffweight', subname)
+!!call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdig%cutoffweight, 1)
+!!call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdGauss%cutoffweight, 1)
 
 
 

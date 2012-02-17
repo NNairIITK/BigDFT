@@ -273,6 +273,15 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           '------------------------------------------------------- Input Wavefunctions Creation'
   end if
 
+  ! Initialize evrything
+  call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lin%lig, rxyz, denspot%dpcom%nscatterarr, tag)
+
+  ! not ideal place here for this...
+  if(lin%orbs%norb/=lin%lig%orbsig%norb) then
+      write(*,*) 'ERROR: lin%orbs%norb/=lin%lig%orbsig%norb not implemented!'
+      stop
+  end if
+
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
   call memocc(istat,norbsc_arr,'norbsc_arr',subname)
