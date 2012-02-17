@@ -1,5 +1,5 @@
 subroutine bigdft_utils_flush(unit)
-  integer, intent(in) :: unit
-
-  flush(unit=unit)
-end subroutine bigdft_utils_flush
+   implicit none
+   integer, intent(in) :: unit
+   flush(unit=unit)
+END SUBROUTINE bigdft_utils_flush

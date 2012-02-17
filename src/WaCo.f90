@@ -1,3 +1,13 @@
+!> @file
+!! Wannier constructor
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 program WaCo
 
    use module_base
@@ -43,7 +53,7 @@ program WaCo
    real(kind=8), allocatable :: at_pos(:,:)
    real(kind=8), allocatable :: umn(:,:), rho(:,:), rhoprime(:,:)
    integer :: i, j, k, np,i_all
-   character :: seedname*16
+   character(len=16) :: seedname
    logical :: calc_only_A
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_poj, n_nnkpts, n_excb, n_at, n_bands, s
@@ -1142,6 +1152,7 @@ subroutine scalar_kmeans_diffIG(nIG,crit,nel,vect,string,nbuf)
 end subroutine scalar_kmeans_diffIG
 
 subroutine init_random_seed(shuffler)
+  implicit none
   integer, intent(in) :: shuffler
   integer :: i, n, clock
   integer, dimension(:), allocatable :: seed

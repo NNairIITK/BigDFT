@@ -1,7 +1,7 @@
 !!****p* BigDFT/sandbox
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2011 CEA
+!!    Copyright (C) 2011-2012 CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,7 +12,7 @@
 program sandbox
 !!  use BigDFT_API
 !!  use Poisson_Solver
-!!  implicit none
+  implicit none
 !!  character(len=*), parameter :: subname='sandbox'
 !!  logical :: dokernel=.false.
 !!  logical :: endloop

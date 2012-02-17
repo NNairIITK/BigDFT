@@ -1964,8 +1964,8 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
             write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
             write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
 
-            call plot_wf(orbname,1,1.0_wp,at,lr,hx,hy,hz,rxyz,psi(ind:))
-            call plot_wf(denname,2,1.0_wp,at,lr,hx,hy,hz,rxyz,psi(ind:))
+            call plot_wf(orbname,1,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
+            call plot_wf(denname,2,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
 
          endif
       end do

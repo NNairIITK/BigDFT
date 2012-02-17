@@ -361,6 +361,9 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
         firstperityx( ityx)=iat
         !positions for the nlcc arrays
         call nlcc_start_position(ityp,at,ngv,ngc,islcc)
+         !eliminate the nlcc parameters from the IG, since XC is always LDA
+         ngv=0
+         ngc=0
 
 
         if( present(gaenes)) then

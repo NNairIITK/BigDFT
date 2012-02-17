@@ -196,7 +196,8 @@ module module_types
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
-     real(gp) :: projrad   !<coarse radius of the projectors in units of the maxrad
+     real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
+     real(gp) :: symTol    !< Tolerance for symmetry detection.
      character(len=3) :: linear
 
      !orthogonalisation data
@@ -780,10 +781,10 @@ end type workarrays_quartic_convolutions
 
 !> Contains the information needed for the preconditioner
   type, public :: precond_data
-    integer :: confPotOrder                           !> The order of the algebraic expression for Confinement potential
-    integer :: ncong                                  !> Number of CG iterations for the preconditioning equation
-    logical, dimension(:), pointer :: withConfPot     !> Use confinement potentials
-    real(8), dimension(:), pointer :: potentialPrefac !> Prefactor for the potential: Prefac * f(r) 
+    integer :: confPotOrder                           !< The order of the algebraic expression for Confinement potential
+    integer :: ncong                                  !< Number of CG iterations for the preconditioning equation
+    logical, dimension(:), pointer :: withConfPot     !< Use confinement potentials
+    real(8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potential: Prefac * f(r) 
   end type precond_data
 
 !> Information for the confining potential to be used in TMB scheme

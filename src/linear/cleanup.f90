@@ -1,20 +1,32 @@
+!> @file
+!! Linear version: deallocations
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 module deallocatePointers
 
+  implicit none
+
   interface checkAndDeallocatePointer
-     module procedure checkAndDeallocatePointer_int_1, checkAndDeallocatePointer_sgl_1, checkAndDeallocatePointer_dbl_1,&
-                      checkAndDeallocatePointer_log_1
-     module procedure checkAndDeallocatePointer_int_2, checkAndDeallocatePointer_sgl_2, checkAndDeallocatePointer_dbl_2,&
-                      checkAndDeallocatePointer_log_2
-     module procedure checkAndDeallocatePointer_int_3, checkAndDeallocatePointer_sgl_3, checkAndDeallocatePointer_dbl_3,&
-                      checkAndDeallocatePointer_log_3
-     module procedure checkAndDeallocatePointer_int_4, checkAndDeallocatePointer_sgl_4, checkAndDeallocatePointer_dbl_4,&
-                      checkAndDeallocatePointer_log_4
-     module procedure checkAndDeallocatePointer_int_5, checkAndDeallocatePointer_sgl_5, checkAndDeallocatePointer_dbl_5,&
-                      checkAndDeallocatePointer_log_5
-     module procedure checkAndDeallocatePointer_int_6, checkAndDeallocatePointer_sgl_6, checkAndDeallocatePointer_dbl_6,&
-                      checkAndDeallocatePointer_log_6
-     module procedure checkAndDeallocatePointer_int_7, checkAndDeallocatePointer_sgl_7, checkAndDeallocatePointer_dbl_7,&
-                      checkAndDeallocatePointer_log_7
+     module procedure checkAndDeallocatePointer_int_1, checkAndDeallocatePointer_sgl_1, &
+                      checkAndDeallocatePointer_dbl_1, checkAndDeallocatePointer_log_1
+     module procedure checkAndDeallocatePointer_int_2, checkAndDeallocatePointer_sgl_2, &
+                      checkAndDeallocatePointer_dbl_2, checkAndDeallocatePointer_log_2
+     module procedure checkAndDeallocatePointer_int_3, checkAndDeallocatePointer_sgl_3, &
+                      checkAndDeallocatePointer_dbl_3, checkAndDeallocatePointer_log_3
+     module procedure checkAndDeallocatePointer_int_4, checkAndDeallocatePointer_sgl_4, &
+                      checkAndDeallocatePointer_dbl_4, checkAndDeallocatePointer_log_4
+     module procedure checkAndDeallocatePointer_int_5, checkAndDeallocatePointer_sgl_5, &
+                      checkAndDeallocatePointer_dbl_5, checkAndDeallocatePointer_log_5
+     module procedure checkAndDeallocatePointer_int_6, checkAndDeallocatePointer_sgl_6, &
+                      checkAndDeallocatePointer_dbl_6, checkAndDeallocatePointer_log_6
+     module procedure checkAndDeallocatePointer_int_7, checkAndDeallocatePointer_sgl_7, &
+                      checkAndDeallocatePointer_dbl_7, checkAndDeallocatePointer_log_7
   end interface
 
   contains
@@ -896,6 +908,7 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
   call checkAndDeallocatePointer(lzd%cutoffweight, 'cutoffweight', subname)
 
 end subroutine deallocate_local_zone_descriptors
+
 
 subroutine deallocate_Lzd_except_Glr(lzd, subname)
   use module_base

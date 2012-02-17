@@ -16,6 +16,7 @@ subroutine initialize_DFT_local_fields(denspot)
   !local variables
   integer :: i
 
+  denspot%rhov_is = EMPTY
   nullify(denspot%rho_C,denspot%V_ext,denspot%Vloc_KS,denspot%rho_psi)
   nullify(denspot%V_XC,denspot%pkernel,denspot%pkernelseq)
   nullify(denspot%f_XC,denspot%rho_full,denspot%pot_full,denspot%rhov)
@@ -126,18 +127,17 @@ subroutine denspot_communications(iproc,nproc,grid,hxh,hyh,hzh,in,atoms,rxyz,rad
 
 end subroutine denspot_communications
 
-subroutine allocateRhoPot(iproc,nproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,radii_cf,denspot)
+subroutine allocateRhoPot(iproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,denspot)
   use module_base
   use module_types
   use module_interfaces, except_this_one => allocateRhoPot
   implicit none
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc
   type(locreg_descriptors), intent(in) :: Glr
   real(gp), intent(in) :: hxh, hyh, hzh
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(DFT_local_fields), intent(inout) :: denspot
 
   character(len = *), parameter :: subname = "allocateRhoPot"
@@ -376,7 +376,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
   character(len=*), parameter :: subname='orbitals_communicators'
   logical :: yesorb,yescomp
   integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
-  integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info,jkpt,nB,nKB,nMB
+  integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info,jkpt
   integer, dimension(:), allocatable :: mykpts
   logical, dimension(:), allocatable :: GPU_for_comp
   integer, dimension(:,:), allocatable :: nvctr_par,norb_par !<for all the components and orbitals (with k-pts)
@@ -699,16 +699,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
     
 !!$  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
 !!$       sum(comms%ncntt(0:nproc-1)))
-
-
-  nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
-  nMB=nB/1024/1024
-  nKB=(nB-nMB*1024*1024)/1024
-  nB=modulo(nB,1024)
-
-  if (iproc == 0) write(*,'(1x,a,3(i5,a))') &
-       'Wavefunctions memory occupation for root MPI process: ',&
-       nMB,' MB ',nKB,' KB ',nB,' B'
 
 END SUBROUTINE orbitals_communicators
 

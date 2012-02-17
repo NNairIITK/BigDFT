@@ -208,7 +208,6 @@ END SUBROUTINE Gaussian_DiagHam
 
 
 !>    Diagonalise the hamiltonian in a basis set of norbe orbitals and select the first
-!!
 !!    norb eigenvectors. Works also with the spin-polarisation case and perform also the 
 !!    treatment of semicore atoms. 
 !!    In the absence of norbe parameters, it simply diagonalizes the hamiltonian in the given
@@ -1291,8 +1290,7 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
 
 END SUBROUTINE solve_eigensystem
 
-!> @routine
-!!writing rules, control if the last eigenvector is degenerate
+!>Writing rules, control if the last eigenvector is degenerate
 !!do this for each spin
 !!for each spin it is supposed that only the last group is not completely passed
 !!and also that the components of each of the group but the last are the same for up and 

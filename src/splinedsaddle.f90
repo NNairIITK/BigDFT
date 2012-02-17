@@ -188,6 +188,7 @@ end program splined_saddle
 
 !> Module minimization_sp for splined saddle
 module minimization_sp
+    implicit none
     type parameterminimization_sp
         !general parameters for all methods
         integer::ifile=6
@@ -263,6 +264,7 @@ end module minimization_sp
 
 !> Module used by the program splined_saddle
 module modulesplinedsaddle
+    implicit none
     type parametersplinedsaddle 
         !integer, parameter::npmax=20
         !integer::napmax=50

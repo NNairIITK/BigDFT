@@ -2982,12 +2982,9 @@ call memocc(istat, iall, 'iStartEnd', subname)
 end subroutine initializeCommunicationPotential
 
 
-
-
-
 subroutine setCommunicationPotential(mpisource, is3, ie3, ioffset, n1i, n2i, mpidest, istdest, tag, comarr)
 use module_base
-
+implicit none
 ! Calling arguments
 integer,intent(in):: mpisource, is3, ie3, ioffset, n1i, n2i, mpidest, istdest, tag
 integer,dimension(8),intent(out):: comarr
