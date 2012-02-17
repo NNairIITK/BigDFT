@@ -96,13 +96,14 @@ do iat=1,at%nat
 end do
 
 
+
 ! Allocate the basic arrays that are needed for reading the input parameters.
 call allocateBasicArrays(at, lin)
 
 !call copy_linearInputParameters_to_linearParameters(at%ntypes, at%nat, input, lin)
 call copy_linearInputParameters_to_linearParameters(at%ntypes, lin%lzd%nlr, input, lin)
 
-call deallocateBasicArraysInput(at, input%lin)
+!!call deallocateBasicArraysInput(at, input%lin)
 
 allocate(norbsPerLocreg(lin%lzd%nlr), stat=istat)
 call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)

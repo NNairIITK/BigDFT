@@ -168,7 +168,7 @@ integer,dimension(:),pointer:: onwhichatom
   call mpi_barrier(mpi_comm_world, ierr)
   t1ig=mpi_wtime()
   call inputguessConfinement(iproc, nproc, at, &
-       comms, Glr, input, lin, orbs, rxyz, denspot ,rhopotold, &
+       Glr, input, lin, orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU, &
        tag, lphi, ehart, eexcu, vexcu)
   call mpi_barrier(mpi_comm_world, ierr)
@@ -176,6 +176,7 @@ integer,dimension(:),pointer:: onwhichatom
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
 
+  call deallocateBasicArraysInput(at, input%lin)
 
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist_lowaccuracy>0) then

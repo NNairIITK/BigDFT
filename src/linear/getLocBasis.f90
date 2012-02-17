@@ -1688,7 +1688,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       if(.not. ldiis%switchSD .and. ldiis%isx==0) then
          !if(iproc==0) write(*,*) 'trH, trHold', trH, trHold
            !if(trH>trHold) then
-           if(trH > trHold + 1.d-5*abs(trHold)) then
+           if(trH > trHold + 1.d-8*abs(trHold)) then
                consecutive_rejections=consecutive_rejections+1
                !!if(consecutive_rejections==300000) then
                !!    if(fnrmMax<convCrit .or. it>=nit) then
@@ -1717,7 +1717,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                !!end if
                if(iproc==0) write(*,'(a,2es20.12)') 'trH, trHold', trH, trHold
                if(consecutive_rejections<=3) then
-                   alpha=alpha*.5d0
+                   alpha=alpha*.6d0
                    if(.not. newgradient) then
                        call dcopy(size(lphi), lphiold, 1, lphi, 1)
                    else
@@ -1787,9 +1787,9 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
               !if(tt>.7d0) then
               if(tt>.9d0 .and. trH<trHold) then
-                  alpha(iorb)=alpha(iorb)*1.05d0
+                  alpha(iorb)=alpha(iorb)*1.1d0
               else
-                  alpha(iorb)=alpha(iorb)*.5d0
+                  alpha(iorb)=alpha(iorb)*.6d0
               end if
           end if
       end do

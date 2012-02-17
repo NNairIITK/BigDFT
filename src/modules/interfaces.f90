@@ -2468,7 +2468,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine readAtomicOrbitals_withOnWhichAtom
 
     subroutine inputguessConfinement(iproc, nproc, at, &
-         comms, Glr, input, lin, orbs, rxyz,denspot, rhopotold,&
+         Glr, input, lin, orbs, rxyz,denspot, rhopotold,&
          nlpspd, proj, GPU,  &
          tag, lphi, ehart, eexcu, vexcu)
       use module_base
@@ -2479,7 +2479,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(atoms_data), intent(inout) :: at
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
       type(locreg_descriptors), intent(in) :: Glr
-      type(communications_arrays), intent(in) :: comms
       type(GPU_pointers), intent(inout) :: GPU
       type(DFT_local_fields), intent(inout) :: denspot
       type(input_variables):: input
@@ -4349,21 +4348,26 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     !  integer,dimension(Ldim),intent(out) :: indexLpsi         !Wavefunction in localization region
     !end subroutine index_of_Lpsi_to_global2
 
-    subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxyz, nscatterarr, tag)
+
+    subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, lin, lig, rxyz, nscatterarr, tag)
       use module_base
       use module_types
       implicit none
-      !Arguments
-      integer, intent(in) :: iproc,nproc
-      type(atoms_data), intent(inout) :: at
-      type(locreg_descriptors), intent(in) :: Glr
-      type(input_variables):: input
-      type(linearParameters),intent(inout):: lin
+      integer,intent(in):: iproc,nproc
+      type(atoms_data),intent(inout) :: at
+      type(local_zone_descriptors),intent(in):: lzd
+      type(orbitals_data),intent(in):: orbs
+      type(locreg_descriptors),intent(in) :: Glr
+      type(input_variables)::input
+      type(linearInputParameters),intent(inout):: lin
       type(linearInputGuess),intent(inout):: lig
-      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+      real(gp),dimension(3,at%nat),intent(in):: rxyz
       integer,intent(inout):: tag
     end subroutine initInputguessConfinement
+
+
+
 
     subroutine orthonormalizeAtomicOrbitalsLocalized(iproc, nproc, lzd, orbs, input, lchi)
       use module_base
@@ -4393,14 +4397,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(orbs%npsidim_comp),intent(inout):: lchi
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
-    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, orbs, comms, at, Glr, input, norbsPerType, &
+    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, orbs, at, Glr, input, norbsPerType, &
       onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, nlocregPerMPI
       type(orbitals_data),intent(in):: orbsig, orbs, orbsGauss
-      type(communications_arrays),intent(in):: comms
       type(atoms_data),intent(in):: at
       type(locreg_descriptors),intent(in):: Glr
       type(input_variables),intent(in):: input
