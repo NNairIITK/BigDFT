@@ -755,7 +755,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           if(input%lin%nItInguess>0) then
              allocate(confdatarr(lig%orbsig%norbp))
              call define_confinement_data(confdatarr,lig%orbsig,rxyz,at,&
-                  input%hx,input%hy,input%hz,lin%confpotorder,lin%potentialprefac,lig%lzdig,onWhichAtomTemp)
+                  input%hx,input%hy,input%hz,input%lin%confpotorder,&
+                  input%lin%potentialprefac_lowaccuracy,lig%lzdig,onWhichAtomTemp)
              ! use orbsGauss%inwhichlocreg
              !!call define_confinement_data(confdatarr,lig%orbsig,rxyz,at,&
              !!     input%hx,input%hy,input%hz,lin,lig%lzdig,lig%orbsGauss%inwhichlocreg)
