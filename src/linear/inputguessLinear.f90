@@ -218,9 +218,9 @@ END SUBROUTINE initInputguessConfinement
 
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
-     Glr, input, lzd, orbs, lorbs, rxyz, denspot, rhopotold,&
+     Glr, input, lzd, lorbs, rxyz, denspot, rhopotold,&
      nlpspd, proj, GPU,  &
-     tag, lphi, ehart, eexcu, vexcu)
+     lphi)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -238,18 +238,16 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables):: input
   type(local_zone_descriptors),intent(in):: lzd
-  type(orbitals_data),intent(in):: orbs, lorbs
+  type(orbitals_data),intent(in):: lorbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
-  integer,intent(inout):: tag
   real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
-  real(8),intent(out):: ehart, eexcu, vexcu
 
   ! Local variables
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,ilrl,ilrg
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,ilrl,ilrg,tag
   real(gp) :: hxh,hyh,hzh,eks,epot_sum,ekin_sum,eexctX,eproj_sum,eSIC_DC,t1,t2,time,tt,ddot,dsum
   integer, dimension(:,:), allocatable :: norbsc_arr
   !real(wp), dimension(:), allocatable :: potxc
@@ -273,6 +271,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(confpot_data), dimension(:), allocatable :: confdatarr
   real(dp),dimension(6) :: xcstr
   type(linearInputGuess):: lig
+  real(8):: ehart, eexcu, vexcu
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -280,6 +279,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   end if
 
   ! Initialize evrything
+  tag=1
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, Glr, input, input%lin, lig, rxyz, denspot%dpcom%nscatterarr, tag)
 
   ! not ideal place here for this...
@@ -412,7 +412,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,lig%orbsGauss%norb,at,rxyz,nvirt,nspin_ig,&
        lig%lzdGauss%nlr, norbsPerAt, mapping, &
-       orbs,lig%orbsGauss,norbsc_arr,locrad,G,psigau,eks)
+       lorbs,lig%orbsGauss,norbsc_arr,locrad,G,psigau,eks)
        !write(*,'(a,i5,4x,100i5)') 'iproc, lig%orbsGauss%inwhichlocreg', iproc, lig%orbsGauss%inwhichlocreg
   ! Since inputguess_gaussian_orbitals overwrites lig%orbsig,we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
@@ -3427,9 +3427,9 @@ type(matrixDescriptors):: mad
           do iorb=1,ip%norb_par(jproc)
               iiAt=onWhichAtomPhi(ip%isorb_par(jproc)+iorb)
               iiiAt=orbsGauss%inwhichlocreg(ip%isorb_par(jproc)+iorb)
-              ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
+              ! Do not fill up to the boundary of the localization region, but only up to one fifth of it.
               !cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
-              cut=0.0625d0*input%lin%locrad(at%iatype(iiiAt))**2
+              cut=0.04d0*input%lin%locrad(at%iatype(iiiAt))**2
               do jorb=1,ip%norbtot
                   ii=ii+1
                   !call random_number(ttreal) ! Always call random_number to make it independent of the number of processes.

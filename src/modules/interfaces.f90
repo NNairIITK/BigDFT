@@ -2468,9 +2468,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine readAtomicOrbitals_withOnWhichAtom
 
     subroutine inputguessConfinement(iproc, nproc, at, &
-         Glr, input, lzd, orbs, lorbs, rxyz,denspot, rhopotold,&
+         Glr, input, lzd, lorbs, rxyz,denspot, rhopotold,&
          nlpspd, proj, GPU,  &
-         tag, lphi, ehart, eexcu, vexcu)
+         lphi)
       use module_base
       use module_types
       implicit none
@@ -2483,13 +2483,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(DFT_local_fields), intent(inout) :: denspot
       type(input_variables):: input
       type(local_zone_descriptors),intent(in):: lzd
-      type(orbitals_data),intent(in):: orbs, lorbs
+      type(orbitals_data),intent(in):: lorbs
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
       real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
-      integer,intent(inout):: tag
       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
-      real(8),intent(out):: ehart, eexcu, vexcu
     end subroutine inputguessConfinement
 
     !subroutine sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, &
