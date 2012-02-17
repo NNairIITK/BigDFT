@@ -27,7 +27,6 @@ subroutine nullify_linearParameters(lin)
   !call nullify_p2pCommsOrthonormality(lin%comon)
   call nullify_p2pComms(lin%comon)
   call nullify_overlapParameters(lin%op)
-  call nullify_linearInputGuess(lin%lig)
   call nullify_matrixDescriptors(lin%mad)
 
 end subroutine nullify_linearParameters

@@ -762,7 +762,6 @@ end type workarrays_quartic_convolutions
     !type(p2pCommsOrthonormality):: comon
     type(p2pComms):: comon
     type(overlapParameters):: op
-    type(linearInputGuess):: lig
     type(matrixDescriptors):: mad
     character(len=1):: locregShape
     type(collectiveComms):: collComms
