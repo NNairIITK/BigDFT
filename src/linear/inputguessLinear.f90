@@ -3287,7 +3287,7 @@ end subroutine buildLinearCombinationsVariable
 
 
 
-subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, orbs, at, Glr, input, norbsPerType, &
+subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input, norbsPerType, &
            onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
 !
 use module_base
@@ -3297,7 +3297,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nlocregPerMPI
-type(orbitals_data),intent(in):: orbsig, orbs, orbsGauss
+type(orbitals_data),intent(in):: orbsig, lorbs, orbsGauss
 type(atoms_data),intent(in):: at
 type(locreg_descriptors),intent(in):: Glr
 type(input_variables),intent(in):: input
@@ -3306,10 +3306,10 @@ type(local_zone_descriptors),intent(inout):: lzdig
 integer,dimension(at%ntypes):: norbsPerType
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
 real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp)):: lchi
-real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)):: lphi
+real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
 !real(8),dimension(3,at%nat):: rxyz
 real(8),dimension(3,lzdig%nlr):: locregCenter
-integer,dimension(orbs%norb):: onWhichAtomPhi
+integer,dimension(lorbs%norb):: onWhichAtomPhi
 !!real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
 integer,intent(inout):: tag
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
@@ -3350,7 +3350,7 @@ type(matrixDescriptors):: mad
   if(iproc==0) write(*,'(1x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
   ! Allocate the local arrays that are hold by all processes.
-  allocate(coeff(orbsig%norb,orbs%norb), stat=istat)
+  allocate(coeff(orbsig%norb,lorbs%norb), stat=istat)
   call memocc(istat, coeff, 'coeff', subname)
 
   call nullify_matrixMinimization(matmin)
@@ -3360,12 +3360,12 @@ type(matrixDescriptors):: mad
   ! This is the only variable in ip that all processes (also those which do not
   ! participate in the minimization of the trace) will know. The other variables
   ! are known only by the active processes and will be determined by initializeInguessParameters.
-  if(lin%norbsPerProcIG>orbs%norb) then
-      norbTarget=orbs%norb
+  if(input%lin%norbsPerProcIG>lorbs%norb) then
+      norbTarget=lorbs%norb
   else
-     norbTarget=lin%norbsperProcIG
+     norbTarget=input%lin%norbsperProcIG
   end if
-  ip%nproc=ceiling(dble(orbs%norb)/dble(norbTarget))
+  ip%nproc=ceiling(dble(lorbs%norb)/dble(norbTarget))
   ip%nproc=min(ip%nproc,nproc)
   if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', ip%nproc, ' processes.'
 
@@ -3384,7 +3384,7 @@ type(matrixDescriptors):: mad
   processIf: if(iproc<ip%nproc) then
 
       ! Initialize the parameters for performing tha calculations in parallel.
-      call initializeInguessParameters(iproc, orbs, orbsig, newComm, ip)
+      call initializeInguessParameters(iproc, lorbs, orbsig, newComm, ip)
     
       ! Allocate the local arrays.
       call allocateArrays()
@@ -3392,14 +3392,14 @@ type(matrixDescriptors):: mad
       !!call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
       !!     lin%locrad, rxyz, lin%lzd, input%hx, input%hy, input%hz, matmin%mlr)
       call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
-           lin%locrad, locregCenter, lin%lzd, input%hx, input%hy, input%hz, matmin%mlr)
-      call extractMatrix3(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
+           input%lin%locrad, locregCenter, lin%lzd, input%hx, input%hy, input%hz, matmin%mlr)
+      call extractMatrix3(iproc, ip%nproc, lorbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
            ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
 
-      call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lin%orbs, orbsig, &
+      call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lorbs, orbsig, &
            onWhichAtom, onWhichAtomPhi, comom)
       !tag=1
-      call initCommsMatrixOrtho(iproc, ip%nproc, lin%orbs%norb, ip%norb_par, ip%isorb_par, &
+      call initCommsMatrixOrtho(iproc, ip%nproc, lorbs%norb, ip%norb_par, ip%isorb_par, &
            onWhichAtomPhi, ip%onWhichMPI, tag, comom)
  
       call nullify_matrixDescriptors(mad)
@@ -3430,7 +3430,7 @@ type(matrixDescriptors):: mad
               iiiAt=orbsGauss%inwhichlocreg(ip%isorb_par(jproc)+iorb)
               ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
               !cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
-              cut=0.0625d0*lin%locrad(at%iatype(iiiAt))**2
+              cut=0.0625d0*input%lin%locrad(at%iatype(iiiAt))**2
               do jorb=1,ip%norbtot
                   ii=ii+1
                   !call random_number(ttreal) ! Always call random_number to make it independent of the number of processes.
@@ -3466,22 +3466,22 @@ type(matrixDescriptors):: mad
       ! Transform to localization regions
       do iorb=1,ip%norb_par(iproc)
           ilr=matmin%inWhichLocregExtracted(iorb)
-          if(ilr/=orbs%inWhichLocreg(iorb+orbs%isorb)) then
+          if(ilr/=lorbs%inWhichLocreg(iorb+lorbs%isorb)) then
               write(*,'(a,2i6,3x,2i8)') &
-                   'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)',&
-                   iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
+                   'THIS IS STRANGE -- iproc, iorb, ilr, lorbs%inWhichLocreg(iorb+lorbs%isorb)',&
+                   iproc, iorb, ilr, lorbs%inWhichLocreg(iorb+lorbs%isorb)
           end if
           call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
       end do
 
 
 
-      if(lin%nItInguess==0) then
+      if(input%lin%nItInguess==0) then
           ! Orthonormalize the coefficients.
           methTransformOverlap=0
-          call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
-               lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
-               lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
+          call orthonormalizeVectors(iproc, ip%nproc, newComm, input%lin%nItOrtho, methTransformOverlap, &
+               input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
+               lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
                lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
       end if
 
@@ -3491,7 +3491,7 @@ type(matrixDescriptors):: mad
 
       !!allocate(lagmatdiag(ip%norb_par(iproc)), stat=istat)
     
-      iterLoop: do it=1,lin%nItInguess
+      iterLoop: do it=1,input%lin%nItInguess
     
           if (iproc==0 .and. mod(it,1)==0) then
               write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
@@ -3500,16 +3500,16 @@ type(matrixDescriptors):: mad
           if(it<=2) then
               methTransformOverlap=0
           else
-              methTransformOverlap=lin%methTransformOverlap
+              methTransformOverlap=input%lin%methTransformOverlap
           end if
           !methTransformOverlap=0
           !methTransformOverlap=lin%methTransformOverlap
     
     
           ! Orthonormalize the coefficients.
-          call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
-               lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
-               lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
+          call orthonormalizeVectors(iproc, ip%nproc, newComm, input%lin%nItOrtho, methTransformOverlap, &
+               input%lin%blocksize_pdsyev, input%lin%blocksize_pdgemm, &
+               lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
                lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
           ilr=onWhichAtom(ip%isorb+1)
 
@@ -3543,9 +3543,9 @@ type(matrixDescriptors):: mad
           !!    lagmatdiag(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lcoeff(1,iorb), 1, lgrad(1,iorb), 1)
           !!end do
 
-          call orthoconstraintVectors(iproc, ip%nproc, methTransformOverlap, lin%correctionOrthoconstraint, &
-               lin%blocksize_pdgemm, &
-               lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
+          call orthoconstraintVectors(iproc, ip%nproc, methTransformOverlap, input%lin%correctionOrthoconstraint, &
+               input%lin%blocksize_pdgemm, &
+               lorbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
                matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
                matmin%mlr, mad, lcoeff, lgrad, comom, trace)
           !!do jorb=1,matmin%norbmax
@@ -3630,7 +3630,7 @@ type(matrixDescriptors):: mad
           end if
       
           ! Quit if the maximal number of iterations is reached.
-          if(it==lin%nItInguess) then
+          if(it==input%lin%nItInguess) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, trace: ', fnrm, trace
@@ -3781,18 +3781,18 @@ type(matrixDescriptors):: mad
 
   ! Now every process has all coefficients, so we can build the linear combinations.
   ! Do this in a localized way -- TEST
-  !call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
-  !call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
+  !call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lorbs, input, coeff, lchi, lphi)
+  !call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lorbs, input, coeff, lchi, lphi)
 
   ! Now every process has all coefficients, so we can build the linear combinations.
   ! If the number of atomic orbitals is the same as the number of trace minimizing orbitals, we can use the
   ! first one (uses less memory for the overlap descriptors), otherwise the second one.
   ! So first check which version we have to use.
   same=.true.
-  if(orbsig%norb==lin%orbs%norb) then
+  if(orbsig%norb==lorbs%norb) then
       do iorb=1,orbsig%norb
           ilr=orbsig%inWhichLocreg(iorb)
-          jlr=lin%orbs%inWhichLocreg(iorb)
+          jlr=lorbs%inWhichLocreg(iorb)
           if(ilr/=jlr) then
               same=.false.
               exit
@@ -3802,11 +3802,11 @@ type(matrixDescriptors):: mad
       same=.false.
   end if
   if(same) then
-      call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lin%locregShape, tag, &
+      call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lorbs, input, coeff, lchi, input%lin%locregShape, tag, &
            comonig, opig, madig, lphi)
   else
       !! THIS WAS THE ORIGINAL, BUT NOT WORKING.
-      call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, tag, lphi)
+      call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lorbs, input, coeff, lchi, tag, lphi)
   end if
 
   ! Deallocate the remaining local array.
@@ -3832,9 +3832,9 @@ type(matrixDescriptors):: mad
       call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
       allocate(fnrmOldArr(ip%norb), stat=istat)
       call memocc(istat, fnrmOldArr, 'fnrmOldArr', subname)
-      allocate(alpha(orbs%norb), stat=istat)
+      allocate(alpha(lorbs%norb), stat=istat)
       call memocc(istat, alpha, 'alpha', subname)
-      allocate(lagMat(orbs%norb,orbs%norb), stat=istat)
+      allocate(lagMat(lorbs%norb,lorbs%norb), stat=istat)
       call memocc(istat, lagMat, 'lagMat', subname)
     end subroutine allocateArrays
 

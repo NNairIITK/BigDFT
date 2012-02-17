@@ -4398,13 +4398,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(orbs%npsidim_comp),intent(inout):: lchi
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
-    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, orbs, at, Glr, input, norbsPerType, &
-      onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
+    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input, norbsPerType, &
+                 onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, nlocregPerMPI
-      type(orbitals_data),intent(in):: orbsig, orbs, orbsGauss
+      type(orbitals_data),intent(in):: orbsig, lorbs, orbsGauss
       type(atoms_data),intent(in):: at
       type(locreg_descriptors),intent(in):: Glr
       type(input_variables),intent(in):: input
@@ -4413,16 +4413,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer,dimension(at%ntypes):: norbsPerType
       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
       real(8),dimension(max(orbsig%npsidim_orbs,orbsig%npsidim_comp)):: lchi
-      real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)):: lphi
+      real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)):: lphi
       !real(8),dimension(3,at%nat):: rxyz
       real(8),dimension(3,lzdig%nlr):: locregCenter
-      integer,dimension(orbs%norb):: onWhichAtomPhi
+      integer,dimension(lorbs%norb):: onWhichAtomPhi
+      !!real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
       integer,intent(inout):: tag
       real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
       type(p2pComms):: comonig
       type(overlapParameters):: opig
       type(matrixDescriptors):: madig
     end subroutine buildLinearCombinationsLocalized3
+
 
     subroutine extractMatrix3(iproc, nproc, norb, norbp, orbstot, onWhichAtomPhi, onWhichMPI, nmat, ham, matmin, hamextract)
       use module_base
