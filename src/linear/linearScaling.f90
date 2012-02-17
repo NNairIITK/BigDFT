@@ -168,7 +168,7 @@ integer,dimension(:),pointer:: onwhichatom
   call mpi_barrier(mpi_comm_world, ierr)
   t1ig=mpi_wtime()
   call inputguessConfinement(iproc, nproc, at, &
-       Glr, input, lin, lin%lzd, orbs, lin%orbs, rxyz, denspot ,rhopotold, &
+       Glr, input, lin%lzd, orbs, lin%orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU, &
        tag, lphi, ehart, eexcu, vexcu)
   call mpi_barrier(mpi_comm_world, ierr)

@@ -2468,7 +2468,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine readAtomicOrbitals_withOnWhichAtom
 
     subroutine inputguessConfinement(iproc, nproc, at, &
-         Glr, input, lin, lzd, orbs, lorbs, rxyz,denspot, rhopotold,&
+         Glr, input, lzd, orbs, lorbs, rxyz,denspot, rhopotold,&
          nlpspd, proj, GPU,  &
          tag, lphi, ehart, eexcu, vexcu)
       use module_base
@@ -2482,14 +2482,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(GPU_pointers), intent(inout) :: GPU
       type(DFT_local_fields), intent(inout) :: denspot
       type(input_variables):: input
-      type(linearParameters),intent(inout):: lin
       type(local_zone_descriptors),intent(in):: lzd
       type(orbitals_data),intent(in):: orbs, lorbs
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
       real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin),intent(inout) ::  rhopotold
       integer,intent(inout):: tag
-      real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(out):: lphi
+      real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
       real(8),intent(out):: ehart, eexcu, vexcu
     end subroutine inputguessConfinement
 
@@ -4399,7 +4398,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
     subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input, norbsPerType, &
-                 onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lin, lzd, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
+                 onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lzd, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
       use module_base
       use module_types
       implicit none
@@ -4408,7 +4407,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(atoms_data),intent(in):: at
       type(locreg_descriptors),intent(in):: Glr
       type(input_variables),intent(in):: input
-      type(linearParameters),intent(in):: lin
       type(local_zone_descriptors),intent(in):: lzd
       type(local_zone_descriptors),intent(inout):: lzdig
       integer,dimension(at%ntypes):: norbsPerType

@@ -218,7 +218,7 @@ END SUBROUTINE initInputguessConfinement
 
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
-     Glr, input, lin, lzd, orbs, lorbs, rxyz, denspot, rhopotold,&
+     Glr, input, lzd, orbs, lorbs, rxyz, denspot, rhopotold,&
      nlpspd, proj, GPU,  &
      tag, lphi, ehart, eexcu, vexcu)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
@@ -237,7 +237,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables):: input
-  type(linearParameters),intent(inout):: lin
   type(local_zone_descriptors),intent(in):: lzd
   type(orbitals_data),intent(in):: orbs, lorbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -893,7 +892,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !!     lig%comon, lig%op, lig%mad)
   call buildLinearCombinationsLocalized3(iproc, nproc, lig%orbsig, lig%orbsGauss, lorbs, &
        at, Glr, input, input%lin%norbsPerType, &
-       lig%orbsig%inWhichLocreg, lchi, lphi, locregCenter, lorbs%inWhichLocreg, lin, &
+       lig%orbsig%inWhichLocreg, lchi, lphi, locregCenter, lorbs%inWhichLocreg, &
        lzd, lig%lzdig, nlocregPerMPI, tag, ham3, &
        lig%comon, lig%op, lig%mad)
   !call cpu_time(t2)
@@ -3288,7 +3287,7 @@ end subroutine buildLinearCombinationsVariable
 
 
 subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input, norbsPerType, &
-           onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lin, lzd, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
+           onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lzd, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
 !
 use module_base
 use module_types
@@ -3301,7 +3300,6 @@ type(orbitals_data),intent(in):: orbsig, lorbs, orbsGauss
 type(atoms_data),intent(in):: at
 type(locreg_descriptors),intent(in):: Glr
 type(input_variables),intent(in):: input
-type(linearParameters),intent(in):: lin
 type(local_zone_descriptors),intent(in):: lzd
 type(local_zone_descriptors),intent(inout):: lzdig
 integer,dimension(at%ntypes):: norbsPerType
