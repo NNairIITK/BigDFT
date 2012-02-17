@@ -48,7 +48,14 @@ void FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(void *atoms, double *r
 void FC_FUNC_(atoms_write, ATOMS_WRITE)(void *atoms, const gchar *filename, int *ln2,
                                         double *rxyz, f90_pointer_double *forces,
                                         const double *energy, const gchar *comment, int *ln);
-
+void FC_FUNC_(fill_logrid, FILL_LOGRID)(const char *geocode, guint *n1, guint *n2, guint *n3,
+                                        guint *nl1, guint *nu1, guint *nl2, guint *nu2,
+                                        guint *nl3, guint *nu3, guint *orig,
+                                        const guint *nat, const guint *ntypes,
+                                        const guint *iatype, const double *rxyz,
+                                        const double *radii, const double *mult,
+                                        const double *hx, const double *hy, const double *hz,
+                                        int *grid);
 
 void FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(void *denspotd,
                                                 void *rhod, void *dpcom);

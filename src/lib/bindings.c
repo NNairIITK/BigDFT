@@ -179,28 +179,6 @@ void bigdft_glr_set_wave_descriptors(BigDFT_Glr *glr, BigDFT_Atoms *atoms, doubl
                                     &crmult, &frmult, glr->data);
 }
 
-void FC_FUNC_(fill_logrid, FILL_LOGRID)(char *geocode, int *n1, int *n2, int *n3,
-                                        int *nl1, int *nu1, int *nl2, int *nu2, int *nl3, int *nu3,
-                                        int *orig, int *nat, int *ntypes, int *iatype,
-                                        double *rxyz, double *radii, double *mult,
-                                        double *hx, double *hy, double *hz, int *grid);
-guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
-                          double mult, double h[3])
-{
-  guint *grid;
-  int orig = 0;
-
-  grid = g_malloc(sizeof(guint) * (n[0] + 1) * (n[1] + 1) * (n[2] + 1));
-
-  FC_FUNC_(fill_logrid, FILL_LOGRID)(&atoms->geocode, (int*)n, (int*)(n + 1), (int*)(n + 2),
-                                     &orig, (int*)n, &orig, (int*)(n + 1), &orig, (int*)(n + 2),
-                                     &orig, (int*)(&atoms->nat), (int*)(&atoms->ntypes), (int*)atoms->iatype,
-                                     atoms->rxyz.data, radii, &mult, h, h + 1, h + 2, (int*)grid);
-
-  return grid;
-}
-
-
 void FC_FUNC_(inputs_new, INPUTS_NEW)(void *in);
 void FC_FUNC_(inputs_free, INPUTS_FREE)(void *in);
 void FC_FUNC_(inputs_set_radical, INPUTS_SET_RADICAL)(void *in,

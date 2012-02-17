@@ -514,7 +514,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
            call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
 
            !if GPU is swithced on and there is no call to GPU preconditioner
-           !do not do the FFT preconditioning
+           !do not do the FFT preconditioning (not valid anymore)
            if (.not. GPUconv .or. .true.) then
               !	compute the input guess x via a Fourier transform in a cubic box.
               !	Arrays psifscf and ww serve as work arrays for the Fourier
@@ -886,23 +886,42 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
   type(workarr_precond), intent(inout) :: w
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  y
   !local variables
+  logical :: sseprecond=.false.
   integer :: idx,nf
 
   if (lr%geocode == 'F') then
      do idx=1,ncplx
-        call calc_grad_reza(lr%d%n1,lr%d%n2,lr%d%n3,&
-             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
-             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keygloc,lr%wfd%keyv,&
-             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
-             lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
-             scal,cprecr,hx,&
-             lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
-             lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
-             x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
-             y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
-             w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
-             w%x_f1,w%x_f2,w%x_f3)
+
+        if (sseprecond) then
+           call uncompress_standard_scal(lr%d,lr%wfd,scal,x(1,idx),&
+                w%xpsig_c,w%xpsig_f)
+!commented out, not working correctly        
+!!$           call Convolkinetic_SSE(lr%d%n1,lr%d%n2,lr%d%n3, &
+!!$                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+!!$                cprecr,hx,&
+!!$                lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+!!$                lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
+!!$                w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f)
+           
+           call compress_standard_scal(lr%d,lr%wfd,scal,w%ypsig_c,w%ypsig_f,&
+                y(1,idx))
+
+        else
+
+           call calc_grad_reza(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keygloc,lr%wfd%keyv,&
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
+                lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+                scal,cprecr,hx,&
+                lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+                lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
+                x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
+                y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
+                w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
+                w%x_f1,w%x_f2,w%x_f3)
+        end if
      end do
   else if (lr%geocode == 'P') then
      if (lr%hybrid_on) then

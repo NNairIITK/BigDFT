@@ -257,3 +257,33 @@ void bigdft_atoms_write(const BigDFT_Atoms *atoms, const gchar *filename)
   FC_FUNC_(atoms_write, ATOMS_WRITE)(atoms->data, filename, &ln2, atoms->rxyz.data,
                                      &forces, &atoms->energy, comment, &ln);
 }
+
+gboolean* bigdft_atoms_get_grid(const BigDFT_Atoms *atoms, double *radii,
+                                double mult, guint n[3])
+{
+  gboolean *grid;
+  guint orig = 0;
+  double h_[3];
+
+  grid = g_malloc(sizeof(gboolean) * (n[0] + 1) * (n[1] + 1) * (n[2] + 1));
+  if (atoms->geocode == 'F')
+    h_[0] = atoms->alat[0] / n[0];
+  else
+    h_[0] = atoms->alat[0] / (n[0] + 1);
+  if (atoms->geocode == 'F' || atoms->geocode == 'S')
+    h_[1] = atoms->alat[1] / n[1];
+  else
+    h_[1] = atoms->alat[1] / (n[1] + 1);
+  if (atoms->geocode == 'F')
+    h_[2] = atoms->alat[2] / n[2];
+  else
+    h_[2] = atoms->alat[2] / (n[2] + 1);
+
+  FC_FUNC_(fill_logrid, FILL_LOGRID)(&atoms->geocode, n, n + 1, n + 2,
+                                     &orig, n, &orig, n + 1, &orig, n + 2,
+                                     &orig, &atoms->nat, &atoms->ntypes, atoms->iatype,
+                                     atoms->rxyz.data, radii, &mult, h_, h_ + 1, h_ + 2,
+                                     (int*)grid);
+
+  return grid;
+}

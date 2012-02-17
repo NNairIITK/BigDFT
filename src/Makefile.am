@@ -371,6 +371,8 @@ low_level = \
 c_level = posfiles.c \
 	$(CUDA_SOURCES)
 
+#	convolutions/convolut_ib_sse.c \ #to be verified, not working yet
+
 libdft_common_a_SOURCES = \
 	utils.c
 
