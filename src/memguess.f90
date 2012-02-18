@@ -1307,7 +1307,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       pery=(at%geocode == 'P')
       perz=(at%geocode /= 'F')
 
-      !buffers realted to periodicity
+      !buffers related to periodicity
       !WARNING: the boundary conditions are not assumed to change between new and old
       call ext_buffers_coarse(perx,nb1)
       call ext_buffers_coarse(pery,nb2)

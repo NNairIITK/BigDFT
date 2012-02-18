@@ -158,7 +158,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
 END SUBROUTINE calc_rhocore_iat
 
 !> Calculate the core charge describe by a sum of spherical harmonics of s-channel with 
-!! principal quantum number increased wit a given exponent.
+!! principal quantum number increased with a given exponent.
 !! the principal quantum numbers admitted are from 1 to 4
 function charge_from_gaussians(expo,rhoc)
   use module_base
@@ -173,7 +173,7 @@ function charge_from_gaussians(expo,rhoc)
 end function charge_from_gaussians
 
 !> Calculate the value of the gaussian described by a sum of spherical harmonics of s-channel with 
-!! principal quantum number increased wit a given exponent.
+!! principal quantum number increased with a given exponent.
 !! the principal quantum numbers admitted are from 1 to 4
 function spherical_gaussian_value(r2,expo,rhoc,ider)
   use module_base

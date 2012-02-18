@@ -101,7 +101,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
         !$ end if
 
         !nonlocal hamiltonian
-        !$ if (verbose > 2 .and. iproc==0)&
+        !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_den)&
         !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
         if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
         call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
@@ -231,7 +231,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      !$ end if
 
      !nonlocal hamiltonian
-     !$ if (verbose > 2 .and. iproc==0)&
+     !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_pot)&
      !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
      if (orbs%npsidim_orbs >0) call to_zero(orbs%npsidim_orbs,hpsi(1))
      call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
