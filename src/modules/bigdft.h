@@ -252,6 +252,7 @@ typedef struct BigDFT_LocalFields_
 {
 #ifdef GLIB_MAJOR_VERSION
   GObject parent;
+  gboolean dispose_has_run;
 #endif
   /* bindings to values... */
   BigDFT_RhoIs rhov_is;
@@ -271,9 +272,6 @@ typedef struct BigDFT_LocalFields_
   void *rhod;
   void *dpcom;
   void *data;
-
-  /* GObject machinery. */
-  gboolean dispose_has_run;
 } BigDFT_LocalFields;
 
 BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,

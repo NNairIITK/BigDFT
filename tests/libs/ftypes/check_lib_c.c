@@ -11,8 +11,10 @@
 
 #define MAX_FORTRAN_OUTPUT 4096
 
+static gboolean exit_loop(gpointer data);
 static int redirect_init(int out_pipe[2]);
 static void redirect_dump(int out_pipe[2], int stdout_fileno_old);
+static void calculate_ionic_pot(BigDFT_LocalFields *denspot, BigDFT_Inputs *in);
 
 int main(guint argc, char **argv)
 {
@@ -28,11 +30,16 @@ int main(guint argc, char **argv)
   BigDFT_Orbs *orbs;
   BigDFT_Proj *proj;
   BigDFT_LocalFields *denspot;
+#ifdef HAVE_GLIB
+  GMainLoop *loop;
+#endif
 
   int out_pipe[2], stdout_fileno_old;
 
 #ifdef HAVE_GLIB
   g_type_init();
+  g_thread_init(NULL);
+  loop = g_main_loop_new(NULL, FALSE);
 #endif
 
   fprintf(stdout, "Test BigDFT_Atoms structure creation.\n");
@@ -170,8 +177,15 @@ int main(guint argc, char **argv)
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
 
+  /* Use a thread to generate the ionic potential... */
   fprintf(stdout, " Calculate ionic potential.\n");
-  bigdft_localfields_create_effective_ionic_pot(denspot, in, 0, 1);
+  calculate_ionic_pot(denspot, in);
+
+  /* Block here in a main loop. */
+#ifdef HAVE_GLIB
+  g_timeout_add_seconds(5, exit_loop, (gpointer)loop);
+  g_main_loop_run(loop);
+#endif
 
   fprintf(stdout, "Test BigDFT_LocalFields free.\n");
   bigdft_localfields_free(denspot);
@@ -256,4 +270,49 @@ static void redirect_dump(int out_pipe[2], int stdout_fileno_old)
   /* Close the pipes. */
   close(out_pipe[0]);
   close(out_pipe[1]);
+}
+
+static gboolean exit_loop(gpointer data)
+{
+  g_main_loop_quit((GMainLoop*)data);
+  return FALSE;
+}
+
+struct ionicpot_
+{
+  BigDFT_LocalFields *denspot;
+  BigDFT_Inputs *in;
+};
+static gpointer calculate_ionic_pot_thread(gpointer data)
+{
+  struct ionicpot_ *container = (struct ionicpot_*)data;
+  
+  fprintf(stdout, " Calculation of ionic potential started.\n");
+  bigdft_localfields_create_effective_ionic_pot(container->denspot, container->in, 0, 1);
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(container->denspot));
+#endif
+  fprintf(stdout, " Calculation of ionic potential finished.\n");
+  g_free(container);
+}
+
+static void calculate_ionic_pot(BigDFT_LocalFields *denspot, BigDFT_Inputs *in)
+{
+#ifdef G_THREADS_ENABLED
+  GThread *ld_thread;
+  GError *error = (GError*)0;
+#endif
+  struct ionicpot_ *ct;
+
+  ct = g_malloc(sizeof(struct ionicpot_));
+  ct->denspot = denspot;
+  ct->in = in;
+#ifdef HAVE_GLIB
+  g_object_ref(G_OBJECT(denspot));
+#endif
+#ifdef G_THREADS_ENABLED
+  ld_thread = g_thread_create(calculate_ionic_pot_thread, ct, FALSE, &error);
+#else
+  calculate_ionic_pot_thread(ct);
+#endif
 }

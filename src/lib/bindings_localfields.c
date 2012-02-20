@@ -44,14 +44,14 @@ static void bigdft_localfields_init(BigDFT_LocalFields *obj)
 }
 static void bigdft_localfields_dispose(GObject *obj)
 {
+#ifdef HAVE_GLIB
   BigDFT_LocalFields *denspot = BIGDFT_LOCALFIELDS(obj);
 
   if (denspot->dispose_has_run)
     return;
   denspot->dispose_has_run = TRUE;
 
-#ifdef HAVE_GLIB
-  g_object_unref(G_OBJECT(denspot->glr->atoms));
+  g_object_unref(G_OBJECT(denspot->glr));
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_localfields_parent_class)->dispose(obj);
 #endif
