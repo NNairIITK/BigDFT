@@ -147,11 +147,11 @@ int main(guint argc, char **argv)
   bigdft_inputs_parse_additional(in, atoms);
 
   fprintf(stdout, "Test BigDFT_Orbs structure creation.\n");
-  orbs = bigdft_orbs_new(atoms, in, glr, 0, 1, &nelec);
+  orbs = bigdft_orbs_new(glr, in, 0, 1, &nelec);
   fprintf(stdout, " System has %d electrons.\n", nelec);
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
-  proj = bigdft_proj_new(atoms, glr, orbs, radii, in->frmult);
+  proj = bigdft_proj_new(glr, orbs, in->frmult);
   fprintf(stdout, " System has %d projectors, and %d elements.\n",
           proj->nproj, proj->nprojel);
 
@@ -159,13 +159,13 @@ int main(guint argc, char **argv)
     {
       fprintf(stdout, "Test memory estimation.\n");
       stdout_fileno_old = redirect_init(out_pipe);
-      peak = bigdft_memory_peak(4, glr, in, orbs, proj);
+      peak = bigdft_memory_get_peak(4, glr, in, orbs, proj);
       redirect_dump(out_pipe, stdout_fileno_old);
       fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
     }
 
   fprintf(stdout, "Test BigDFT_LocalFields creation.\n");
-  denspot = bigdft_localfields_new(atoms, glr, in, radii, 0, 1);
+  denspot = bigdft_localfields_new(glr, in, 0, 1);
   fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);

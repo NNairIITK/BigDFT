@@ -51,7 +51,7 @@ static void bigdft_localfields_dispose(GObject *obj)
   denspot->dispose_has_run = TRUE;
 
 #ifdef HAVE_GLIB
-  g_object_unref(G_OBJECT(denspot->atoms));
+  g_object_unref(G_OBJECT(denspot->glr->atoms));
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_localfields_parent_class)->dispose(obj);
 #endif
@@ -67,10 +67,8 @@ static void bigdft_localfields_finalize(GObject *obj)
 #endif
 }
 
-BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Atoms *atoms,
-                                            const BigDFT_LocReg *glr,
+BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
                                             const BigDFT_Inputs *in,
-                                            const double *radii,
                                             guint iproc, guint nproc)
 {
   BigDFT_LocalFields *localfields;
@@ -79,13 +77,12 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Atoms *atoms,
 
 #ifdef HAVE_GLIB
   localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
-  g_object_ref(G_OBJECT(atoms));
+  g_object_ref(G_OBJECT(glr));
 #else
   localfields = g_malloc(sizeof(BigDFT_LocalFields));
   memset(localfields, 0, sizeof(BigDFT_LocalFields));
   bigdft_localfields_init(localfields);
 #endif
-  localfields->atoms = atoms;
   localfields->glr   = glr;
 
   hh[0] = glr->h[0] * 0.5;
@@ -93,10 +90,10 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Atoms *atoms,
   hh[2] = glr->h[2] * 0.5;
   FC_FUNC_(denspot_communications, DENSPOT_COMMUNICATIONS)
     (&iproc, &nproc, glr->d, hh, hh + 1, hh + 2, in->data,
-     atoms->data, atoms->rxyz.data, radii, localfields->dpcom, localfields->rhod);
+     glr->atoms->data, glr->atoms->rxyz.data, glr->radii, localfields->dpcom, localfields->rhod);
   FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(&iproc, glr->data,
                                           hh, hh + 1, hh + 2, in->data,
-                                          atoms->data, atoms->rxyz.data,
+                                          glr->atoms->data, glr->atoms->rxyz.data,
                                           localfields->data);
   FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)
     (localfields->data, &localfields->rhov_is, localfields->h,
@@ -133,8 +130,8 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
   hh[2] = denspot->glr->h[2] * 0.5;
 
   FC_FUNC(createeffectiveionicpotential, CREATEEFFECTIVEIONICPOTENTIAL)
-    (&iproc, &nproc, in->data, denspot->atoms->data, denspot->atoms->rxyz.data,
-     denspot->atoms->shift, denspot->glr->data, hh, hh + 1, hh + 2,
+    (&iproc, &nproc, in->data, denspot->glr->atoms->data, denspot->glr->atoms->rxyz.data,
+     denspot->glr->atoms->shift, denspot->glr->data, hh, hh + 1, hh + 2,
      denspot->dpcom, denspot->pkernel, denspot->v_ext, in->elecfield,
      &denspot->psoffset);
 }

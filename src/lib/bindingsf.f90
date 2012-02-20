@@ -361,7 +361,7 @@ subroutine orbs_free(orbs)
   call deallocate_orbs(orbs,"orbs_free")
   deallocate(orbs)
 END SUBROUTINE orbs_free
-subroutine orbs_comm(orbs, lr, iproc, nproc)
+subroutine orbs_comm(comms, orbs, lr, iproc, nproc)
   use module_base
   use module_types
   use module_interfaces
@@ -369,13 +369,21 @@ subroutine orbs_comm(orbs, lr, iproc, nproc)
   integer, intent(in) :: iproc,nproc
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(inout) :: orbs
+  type(communications_arrays), pointer :: comms
 
-  type(communications_arrays) :: comms
-
+  allocate(comms)
   call orbitals_communicators(iproc,nproc,lr,orbs,comms)
-  write(*,*) "TODO: remove me!"
-  call deallocate_comms(comms,"orbs_comm")
 end subroutine orbs_comm
+subroutine orbs_comm_free(comms)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  type(communications_arrays), pointer :: comms
+
+  call deallocate_comms(comms,"orbs_comm_free")
+  deallocate(comms)
+end subroutine orbs_comm_free
 subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, npsidim, &
      & nkpts, nkptsp, isorb, iskpts)
   use module_types

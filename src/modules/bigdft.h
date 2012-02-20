@@ -176,7 +176,6 @@ void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
 /*******************************/
 /* BigDFT_Orbs data structure. */
 /*******************************/
-typedef struct f90_pointer_orbs_ f90_pointer_orbs;
 typedef struct BigDFT_orbs_
 {
   /* TODO: bindings to values... */
@@ -193,18 +192,22 @@ typedef struct BigDFT_orbs_
      /* real(gp), dimension(:), pointer :: occup,spinsgn,kwgts */
      /* real(gp), dimension(:,:), pointer :: kpts */
 
+  /* Pointers on building objects. */
+  const BigDFT_Inputs *in;
+  const BigDFT_LocReg *glr;
+
   /* Private. */
-  f90_pointer_orbs *data;
+  void *data;
+  void *comm;
 } BigDFT_Orbs;
 
-BigDFT_Orbs* bigdft_orbs_new (const BigDFT_Atoms *atoms, const BigDFT_Inputs *in,
-                              const BigDFT_LocReg *glr, int iproc, int nproc, guint *nelec);
+BigDFT_Orbs* bigdft_orbs_new (const BigDFT_LocReg *glr, const BigDFT_Inputs *in,
+                              int iproc, int nproc, guint *nelec);
 void         bigdft_orbs_free(BigDFT_Orbs *orbs);
 
 /*******************************/
 /* BigDFT_Proj data structure. */
 /*******************************/
-typedef struct f90_pointer_nlpspd_ f90_pointer_nlpspd;
 typedef struct BigDFT_proj_
 {
   /* TODO: bindings to values... */
@@ -214,11 +217,11 @@ typedef struct BigDFT_proj_
   f90_pointer_double proj;
 
   /* Private. */
-  f90_pointer_nlpspd *nlpspd;
+  void *nlpspd;
 } BigDFT_Proj;
 
-BigDFT_Proj* bigdft_proj_new (const BigDFT_Atoms *atoms, const BigDFT_LocReg *glr,
-                              const BigDFT_Orbs *orbs, double *radii, double frmult);
+BigDFT_Proj* bigdft_proj_new (const BigDFT_LocReg *glr, const BigDFT_Orbs *orbs,
+                              double frmult);
 void         bigdft_proj_free(BigDFT_Proj *proj);
 
 /**********************************/
@@ -261,7 +264,6 @@ typedef struct BigDFT_LocalFields_
   /* double *rho_full, *pot_full, *rho_psi, *rho_c, *vloc_ks, *f_xc; */
 
   /* Pointers on building objects. */
-  const BigDFT_Atoms *atoms;
   const BigDFT_LocReg *glr;
 
   /* Private. */
@@ -274,10 +276,8 @@ typedef struct BigDFT_LocalFields_
   gboolean dispose_has_run;
 } BigDFT_LocalFields;
 
-BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Atoms *atoms,
-                                            const BigDFT_LocReg *glr,
+BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
                                             const BigDFT_Inputs *in,
-                                            const double *radii,
                                             guint iproc, guint nproc);
 void                bigdft_localfields_free(BigDFT_LocalFields *denspotd);
 void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
@@ -287,10 +287,11 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
 /******************/
 /* Miscellaneous. */
 /******************/
-double bigdft_memory_peak(int nproc, BigDFT_LocReg *lr, BigDFT_Inputs *in,
-                          BigDFT_Orbs *orbs, BigDFT_Proj *proj);
+double bigdft_memory_get_peak(int nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
+                              const BigDFT_Orbs *orbs, const BigDFT_Proj *proj);
+
 f90_pointer_double_4D* bigdft_read_wave_to_isf(const gchar *filename, int iorbp,
-                                            double h[3], int n[3], int *nspinor);
+                                               double h[3], int n[3], int *nspinor);
 void bigdft_free_wave_to_isf(f90_pointer_double_4D *psiscf);
 gboolean bigdft_read_wave_descr(const gchar *filename, int *norbu,
                                 int *norbd, int *nkpt, int *nspinor,
