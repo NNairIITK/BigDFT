@@ -68,7 +68,7 @@ static void bigdft_localfields_finalize(GObject *obj)
 }
 
 BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Atoms *atoms,
-                                            const BigDFT_Glr *glr,
+                                            const BigDFT_LocReg *glr,
                                             const BigDFT_Inputs *in,
                                             const double *radii,
                                             guint iproc, guint nproc)

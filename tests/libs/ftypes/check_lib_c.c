@@ -19,7 +19,7 @@ int main(guint argc, char **argv)
   BigDFT_Atoms *atoms;
   guint i, n, nelec;
   double *radii, peak;
-  BigDFT_Glr *glr;
+  BigDFT_LocReg *glr;
   double h[3] = {0.45, 0.45, 0.45};
   gboolean *cgrid, *fgrid;
 #define CRMULT 5.
@@ -108,8 +108,8 @@ int main(guint argc, char **argv)
     fprintf(stdout, " Type %d, radii %f %f %f\n", i,
             radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
   
-  fprintf(stdout, "Test BigDFT_Glr structure creation.\n");
-  glr = bigdft_glr_new_with_wave_descriptors(atoms, radii, h, CRMULT, FRMULT);
+  fprintf(stdout, "Test BigDFT_LocReg structure creation.\n");
+  glr = bigdft_locreg_new_with_wave_descriptors(atoms, radii, h, CRMULT, FRMULT);
   for (i = 0; i  < atoms->nat; i++)
     fprintf(stdout, " Atoms %d, coord. %10.6f %10.6f %10.6f '%2s', type %d\n",
             i, atoms->rxyz.data[3 * i], atoms->rxyz.data[3 * i + 1],
@@ -189,8 +189,8 @@ int main(guint argc, char **argv)
   bigdft_inputs_free(in);
   fprintf(stdout, " Ok\n");
 
-  fprintf(stdout, "Test BigDFT_Glr free.\n");
-  bigdft_glr_free(glr);
+  fprintf(stdout, "Test BigDFT_LocReg free.\n");
+  bigdft_locreg_free(glr);
   fprintf(stdout, " Ok\n");
 
   fprintf(stdout, "Test BigDFT_Atoms free.\n");
