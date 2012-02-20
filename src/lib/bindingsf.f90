@@ -1,8 +1,98 @@
 subroutine memocc_report()
   use m_profiling, only: mreport => memocc_report
-
+  implicit none
   call mreport()
 end subroutine memocc_report
+
+subroutine f90_pointer_1D_init(pt_c, size_c)
+  implicit none
+  double precision, intent(in) :: pt_c
+  integer, intent(in) :: size_c
+
+  double precision, dimension(:), pointer :: pt_f
+  interface
+     subroutine inquire_pointer1(pt_c, pt_f, size_c)
+       double precision, dimension(:), pointer :: pt_f
+       double precision, intent(in) :: pt_c
+       integer, intent(in) :: size_c
+     end subroutine inquire_pointer1
+  end interface
+
+  nullify(pt_f)
+  call inquire_pointer1(pt_c, pt_f, size_c)
+end subroutine f90_pointer_1D_init
+
+subroutine f90_pointer_2D_init(pt_c, size_c)
+  implicit none
+  double precision, intent(in) :: pt_c
+  integer, intent(in) :: size_c
+
+  double precision, dimension(:,:), pointer :: pt_f
+  interface
+     subroutine inquire_pointer2(pt_c, pt_f, size_c)
+       double precision, dimension(:,:), pointer :: pt_f
+       double precision, intent(in) :: pt_c
+       integer, intent(in) :: size_c
+     end subroutine inquire_pointer2
+  end interface
+
+  nullify(pt_f)
+  call inquire_pointer2(pt_c, pt_f, size_c)
+end subroutine f90_pointer_2D_init
+
+subroutine f90_pointer_3D_init(pt_c, size_c)
+  implicit none
+  double precision, intent(in) :: pt_c
+  integer, intent(in) :: size_c
+
+  double precision, dimension(:,:,:), pointer :: pt_f
+  interface
+     subroutine inquire_pointer3(pt_c, pt_f, size_c)
+       double precision, dimension(:,:,:), pointer :: pt_f
+       double precision, intent(in) :: pt_c
+       integer, intent(in) :: size_c
+     end subroutine inquire_pointer3
+  end interface
+
+  nullify(pt_f)
+  call inquire_pointer3(pt_c, pt_f, size_c)
+end subroutine f90_pointer_3D_init
+
+subroutine f90_pointer_4D_init(pt_c, size_c)
+  implicit none
+  double precision, intent(in) :: pt_c
+  integer, intent(in) :: size_c
+
+  double precision, dimension(:,:,:,:), pointer :: pt_f
+  interface
+     subroutine inquire_pointer4(pt_c, pt_f, size_c)
+       double precision, dimension(:,:,:,:), pointer :: pt_f
+       double precision, intent(in) :: pt_c
+       integer, intent(in) :: size_c
+     end subroutine inquire_pointer4
+  end interface
+
+  nullify(pt_f)
+  call inquire_pointer4(pt_c, pt_f, size_c)
+end subroutine f90_pointer_4D_init
+
+subroutine f90_pointer_5D_init(pt_c, size_c)
+  implicit none
+  double precision, intent(in) :: pt_c
+  integer, intent(in) :: size_c
+
+  double precision, dimension(:,:,:,:,:), pointer :: pt_f
+  interface
+     subroutine inquire_pointer5(pt_c, pt_f, size_c)
+       double precision, dimension(:,:,:,:,:), pointer :: pt_f
+       double precision, intent(in) :: pt_c
+       integer, intent(in) :: size_c
+     end subroutine inquire_pointer5
+  end interface
+
+  nullify(pt_f)
+  call inquire_pointer5(pt_c, pt_f, size_c)
+end subroutine f90_pointer_5D_init
 
 subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
   use Poisson_Solver, only: ck => createKernel
@@ -43,18 +133,15 @@ subroutine deallocate_double_2D(array)
   end if
 end subroutine deallocate_double_2D
 
-subroutine glr_new(glr)
+subroutine glr_new(glr, d)
   use module_types
   implicit none
   type(locreg_descriptors), pointer :: glr
+  type(grid_dimensions), pointer :: d
 
   allocate(glr)
-  nullify(glr%wfd%keyglob)
-  nullify(glr%wfd%keygloc)
-  nullify(glr%wfd%keyv)
-
-  nullify(glr%bounds%kb%ibyz_f)
-  nullify(glr%bounds%kb%ibyz_c)
+  call nullify_locreg_descriptors(glr)
+  d => glr%d
 end subroutine glr_new
 subroutine glr_free(glr)
   use module_types
@@ -68,10 +155,10 @@ subroutine glr_get_dimensions(glr, geocode, n, ni)
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: glr
-  character(len = 1), intent(out) :: geocode
+  character, intent(out) :: geocode(1)
   integer, dimension(3), intent(out) :: n, ni
 
-  geocode = glr%geocode
+  write(geocode, "(A1)") glr%geocode
   n(1) = glr%d%n1
   n(2) = glr%d%n2
   n(3) = glr%d%n3
@@ -118,12 +205,20 @@ subroutine inputs_set_radical(in, rad, ln)
   implicit none
   type(input_variables), intent(inout) :: in
   integer, intent(in) :: ln
-  character(len = ln), intent(in) :: rad
+  character, intent(in) :: rad(ln)
 
-  call standard_inputfile_names(in, rad)
+  character(len = 1024) :: rad_
+  integer :: i
+
+  write(rad_, "(A)") " "
+  do i = 1, ln
+     write(rad_(i:i), "(A1)") rad(i)
+  end do
+  call standard_inputfile_names(in, rad_)
 end subroutine inputs_set_radical
 subroutine inputs_parse_params(in, iproc, dump)
   use module_types
+  use module_xc
   implicit none
   type(input_variables), intent(inout) :: in
   integer, intent(in) :: iproc
@@ -136,6 +231,13 @@ subroutine inputs_parse_params(in, iproc, dump)
   call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
   call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
   call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
+
+  ! Initialise XC calculation
+  if (in%ixc < 0) then
+     call xc_init(in%ixc, XC_MIXED, in%nspin)
+  else
+     call xc_init(in%ixc, XC_ABINIT, in%nspin)
+  end if
 end subroutine inputs_parse_params
 subroutine inputs_parse_add(in, atoms, iproc, dump)
   use module_types
@@ -257,6 +359,21 @@ subroutine orbs_free(orbs)
   call deallocate_orbs(orbs,"orbs_free")
   deallocate(orbs)
 END SUBROUTINE orbs_free
+subroutine orbs_comm(orbs, lr, iproc, nproc)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(locreg_descriptors), intent(in) :: lr
+  type(orbitals_data), intent(inout) :: orbs
+
+  type(communications_arrays) :: comms
+
+  call orbitals_communicators(iproc,nproc,lr,orbs,comms)
+  write(*,*) "TODO: remove me!"
+  call deallocate_comms(comms,"orbs_comm")
+end subroutine orbs_comm
 subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, npsidim, &
      & nkpts, nkptsp, isorb, iskpts)
   use module_types
@@ -308,3 +425,117 @@ subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   nproj = nlpspd%nproj
   nprojel = nlpspd%nprojel
 END SUBROUTINE proj_get_dimensions
+
+subroutine localfields_new(denspotd, rhod, dpcom)
+  use module_types
+  implicit none
+  type(DFT_local_fields), pointer :: denspotd
+  type(denspot_distribution), pointer :: dpcom
+  type(rho_descriptors), pointer :: rhod
+
+  allocate(denspotd)
+  rhod => denspotd%rhod
+  dpcom => denspotd%dpcom
+END SUBROUTINE localfields_new
+subroutine localfields_free(denspotd)
+  use module_types
+  use m_profiling
+  implicit none
+  type(DFT_local_fields), pointer :: denspotd
+  
+  character(len = *), parameter :: subname = "localfields_free"
+  integer :: i_stat, i_all
+
+  call deallocate_rho_descriptors(denspotd%rhod, subname)
+  call deallocate_denspot_distribution(denspotd%dpcom, subname)
+  
+  if (associated(denspotd%V_ext)) then
+     i_all=-product(shape(denspotd%V_ext))*kind(denspotd%V_ext)
+     deallocate(denspotd%V_ext,stat=i_stat)
+     call memocc(i_stat,i_all,'denspotd%V_ext',subname)
+  end if
+
+!!$  if (associated(denspotd%pkernelseq)) then
+!!$     i_all=-product(shape(denspotd%pkernelseq))*kind(denspotd%pkernelseq)
+!!$     deallocate(denspotd%pkernelseq,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'kernelseq',subname)
+!!$  end if
+
+  if (associated(denspotd%pkernel)) then
+     i_all=-product(shape(denspotd%pkernel))*kind(denspotd%pkernel)
+     deallocate(denspotd%pkernel,stat=i_stat)
+     call memocc(i_stat,i_all,'kernel',subname)
+  end if
+
+  if (associated(denspotd%rhov)) then
+     i_all=-product(shape(denspotd%rhov))*kind(denspotd%rhov)
+     deallocate(denspotd%rhov,stat=i_stat)
+     call memocc(i_stat,i_all,'denspotd%rhov',subname)
+  end if
+
+  if (associated(denspotd%V_XC)) then
+     i_all=-product(shape(denspotd%V_XC))*kind(denspotd%V_XC)
+     deallocate(denspotd%V_XC,stat=i_stat)
+     call memocc(i_stat,i_all,'denspotd%V_XC',subname)
+  end if
+
+  if(associated(denspotd%rho_C)) then
+     i_all=-product(shape(denspotd%rho_C))*kind(denspotd%rho_C)
+     deallocate(denspotd%rho_C,stat=i_stat)
+     call memocc(i_stat,i_all,'denspotd%rho_C',subname)
+  end if
+
+  deallocate(denspotd)
+END SUBROUTINE localfields_free
+subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, psoffset)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  integer, intent(out) :: rhov_is
+  real(gp), intent(out) :: hgrid(3)
+  real(dp), intent(out) :: psoffset
+
+  rhov_is = denspot%rhov_is
+  hgrid = denspot%hgrids
+  psoffset = denspot%psoffset
+END SUBROUTINE localfields_copy_metadata
+subroutine localfields_get_rhov(denspot, rhov)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:), pointer :: rhov
+
+  rhov => denspot%rhov
+END SUBROUTINE localfields_get_rhov
+subroutine localfields_get_v_ext(denspot, v_ext)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(wp), dimension(:,:,:,:), pointer :: v_ext
+
+  v_ext => denspot%v_ext
+END SUBROUTINE localfields_get_v_ext
+subroutine localfields_get_v_xc(denspot, v_xc)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(wp), dimension(:,:,:,:), pointer :: v_xc
+
+  v_xc => denspot%v_xc
+END SUBROUTINE localfields_get_v_xc
+subroutine localfields_get_pkernel(denspot, pkernel)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:), pointer :: pkernel
+
+  pkernel => denspot%pkernel
+END SUBROUTINE localfields_get_pkernel
+subroutine localfields_get_pkernelseq(denspot, pkernelseq)
+  use module_types
+  implicit none
+  type(DFT_local_fields), intent(in) :: denspot
+  real(dp), dimension(:), pointer :: pkernelseq
+
+  pkernelseq => denspot%pkernelseq
+END SUBROUTINE localfields_get_pkernelseq

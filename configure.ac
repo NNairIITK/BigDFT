@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.20],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.6.0],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -81,6 +81,12 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
+dnl Look for GLib and friends for bindings.
+PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0, [have_glib=yes], [have_glib=no])
+if test x"$have_glib" = x"yes" ; then
+  AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
+fi
+
 dnl Enable or not MPI.
 ac_use_mpi="yes"
 AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enabled by default).]),
@@ -118,6 +124,29 @@ end]], withmpi=yes, withmpi=no)
     MPI_INCLUDE=$ac_mpi_include
     MPI_LDFLAGS=$ac_mpi_ldflags
 
+    dnl Test for MPI_INIT_THREAD. Use link instead of run due to execution prob.
+    AC_MSG_CHECKING([for MPI_INIT_THREAD availability])
+    AC_LINK_IFELSE([[
+program main
+implicit none
+
+integer :: ierr,provided
+
+include "mpif.h"
+
+call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
+write(*, "(I1)", advance = "NO") provided
+end
+]], withmpinithread=yes, withmpinithread=no, withmpinithread=yes)
+    AC_MSG_RESULT([$withmpinithread])
+
+    if test x"$withmpinithread" = x"yes" ; then
+      ac_with_mpinithread="yes"
+      AC_DEFINE([HAVE_MPI_INIT_THREAD], [1], [use MPI_INIT_THREAD])
+    else
+      ac_with_mpinithread="no"
+    fi
+
     dnl Test for MPI2.
     AC_MSG_CHECKING([for MPI 2 capabilities])
     AC_LINK_IFELSE([[
@@ -141,6 +170,7 @@ end
     else
       ac_with_mpi2="no"
     fi
+
 
   else
     AC_MSG_WARN([MPI is not working and has been disabled.])
@@ -705,7 +735,7 @@ AC_LANG_POP(C)
 
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 
@@ -814,6 +844,7 @@ Options:
    | include dir.:           $MPI_INCLUDE
    | linker flags:           $MPI_LDFLAGS
    | linked libraries:       $MPI_LIBS
+   | MPI_INIT_THREAD avail:  $ac_with_mpinithread
    | MPI2 support:           $ac_with_mpi2
   With optimised conv.:      $ac_use_opti_convolut
   With Cuda GPU conv.:       $ac_use_cuda_gpu

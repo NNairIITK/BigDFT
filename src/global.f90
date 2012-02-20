@@ -165,7 +165,7 @@ program MINHOP
   allocate(rcov(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rcov,'rcov',subname)
 
-      call give_rcov(iproc,atoms,atoms%nat,rcov)
+  call give_rcov(iproc,atoms,atoms%nat,rcov)
 
 ! read random offset
   open(unit=11,file='rand.inp')
@@ -238,8 +238,6 @@ program MINHOP
 
      if (iproc == 0) write(*,*) '# read ',npmin,'poslow files'
   endif
-
-
 
   av_ekinetic=0.d0
   av_ediff=0.d0
@@ -372,12 +370,12 @@ program MINHOP
 
 !C check whether CPU time exceeded
      tleft=1.d100
-        if(iproc==0 .and. CPUcheck)then
+     call cpu_time(tcpu2)
+     if(iproc==0 .and. CPUcheck)then
         open(unit=55,file='CPUlimit_global',status='unknown')
         read(55,*,end=555) cpulimit ; cpulimit=cpulimit*3600
         write(*,'(a,i5,i3,2(1x,e9.2))') 'iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
         close(55)
-        call cpu_time(tcpu2)
         tleft=cpulimit-(tcpu2-tcpu1)
      end if
 555    continue
@@ -2022,9 +2020,13 @@ end subroutine fixfrag_posvel
 subroutine give_rcov(iproc,atoms,nat,rcov)
   !    use module_base
   use module_types
+  implicit none
+  !Arguments
+  integer, intent(in) :: iproc,nat
   type(atoms_data), intent(in) :: atoms
   real(kind=8), intent(out) :: rcov(nat)
-  integer, intent(in) :: iproc
+  !Local variables
+  integer :: iat
 
   do iat=1,nat
      if (trim(atoms%atomnames(atoms%iatype(iat)))=='H') then

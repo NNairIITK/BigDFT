@@ -31,7 +31,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
   real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
-  real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
+  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
   real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
@@ -86,17 +86,16 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
 
      ! wavefunction after application of the self-interaction potential
      if (ipotmethod == 2 .or. ipotmethod == 3) then
-     allocate(vsicpsir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,vsicpsir,'vsicpsir',subname)
-  end if
+        allocate(vsicpsir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,vsicpsir,'vsicpsir',subname)
+     end if
 
   !n(c) etest=0.0_gp
 
   ispsi=1
   loop_orbs: do iorb=1,orbs%norbp
      ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
-     if (.not.lzd%doHamAppl(ilr) .or. &
-          ilr_orb /= ilr) then
+     if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
         ispsi=ispsi+&
              (Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor
         cycle loop_orbs
@@ -142,7 +141,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
 
      !apply the potential to the psir wavefunction and calculate potential energy
      call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
-          pot(orbs%ispot(iorb)),psir,epot,confdatarr(iorb))
+          pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb))
      !this ispot has to be better defined inside denspot structure
 
      !ODP treatment (valid only for the nlr=1 case)
@@ -164,7 +163,7 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
         !accumulate the Double-Counted SIC energy
         eSIC_DC=eSIC_DC+alphaSIC*orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eSICi
      end if
-     
+
      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
      !k-point values, if present
      kx=orbs%kpts(1,orbs%iokpt(iorb))
@@ -214,7 +213,6 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
 
 !!$  select case(lr%geocode)
 !!$  case('F')
-
   if (present(confdata) .and. confdata%potorder /=0) then
      if (lr%geocode == 'F') then
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
@@ -1199,6 +1197,11 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   real(wp), dimension(4,7,3,4) :: cproj,dproj !scalar products with the projectors (always assumed to be complex and spinorial)
   real(gp), dimension(3,3,4) :: hij_hgh 
 !!$  real(wp), dimension(:,:), allocatable :: wproj !work array for the application of the projectors
+  real(wp), dimension(:,:), allocatable :: cproj_i
+  integer :: proj_count, i_proj
+ 
+  integer count1,count2,count_rate,count_max
+  real*8 :: tela
 
   !parameter for the descriptors of the projectors
   ityp=at%iatype(iat)
@@ -1229,33 +1232,90 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 
   !calculate the scalar product with all the projectors of the atom
   call to_zero(4*7*3*4,cproj(1,1,1,1))
-  !index for performing the calculation with all the projectors
-  istart_c_i=istart_c
-  !loop over all the channels (from s to f)
+  
+  proj_count = 0
+  !count over all the channels
   do l=1,4
      !loop over all the projectors of the channel
      do i=1,3
         !loop over all the components of the projector
         if (at%psppar(l,i,ityp) /= 0.0_gp) then
            do m=1,2*l-1
-              !loop over all the components of the wavefunction
-              do ispinor=1,orbs%nspinor,ncplx
-                 call wpdot_wrap(ncplx,  &
+              proj_count=proj_count+1
+           end do
+        end if
+     end do
+  end do
+
+  !Use special subroutines for these number of projectors
+  if (proj_count.eq.4 .or. proj_count.eq.5 .or. proj_count.eq.8 .or. proj_count.eq.13 &
+      .or. proj_count.eq.14 .or. proj_count.eq.18 .or. proj_count.eq.19 &
+      .or. proj_count.eq.20 .or. proj_count.eq.22) then
+
+    allocate(cproj_i(proj_count,ncplx))
+
+    !loop over all the components of the wavefunction
+    do ispinor=1,orbs%nspinor,ncplx
+                 call wpdot_wrap1(ncplx,  &
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                       wfd%keyv,wfd%keyglob,&
                       psi(1,ispinor), &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                       plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
                       plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
-                      proj(istart_c_i),&
-                      cproj(ispinor,m,i,l))
-                 !print *,'ispinor,m,l,i,iat',ispinor,m,l,i,iat,cproj(ispinor,m,i,l)
-              end do
-              istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
+                      proj(istart_c),&
+                      cproj_i,proj_count)
+
+      i_proj=1
+      do l=1,4
+       !loop over all the projectors of the channel
+       do i=1,3
+        !loop over all the components of the projector
+        if (at%psppar(l,i,ityp) /= 0.0_gp) then
+           do m=1,2*l-1
+             do icplx=1,ncplx
+              cproj(ispinor+icplx-1,m,i,l) = cproj_i(i_proj,icplx)
+             enddo
+              i_proj=i_proj+1
            end do
         end if
-     end do
-  end do
+       end do
+      end do
+
+    end do
+
+    deallocate(cproj_i)
+
+  else  ! use standart subroutine for projector application
+
+    !index for performing the calculation with all the projectors
+    istart_c_i=istart_c
+    !loop over all the channels (from s to f)
+    do l=1,4
+       !loop over all the projectors of the channel
+       do i=1,3
+          !loop over all the components of the projector
+          if (at%psppar(l,i,ityp) /= 0.0_gp) then
+             do m=1,2*l-1
+              !loop over all the components of the wavefunction
+                do ispinor=1,orbs%nspinor,ncplx
+                   call wpdot_wrap(ncplx,  &
+                        wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+                        wfd%keyv,wfd%keyglob,&
+                        psi(1,ispinor), &
+                        mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                        plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
+                        plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
+                        proj(istart_c_i),&
+                        cproj(ispinor,m,i,l))
+                end do
+                istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
+             end do
+          end if
+       end do
+    end do
+
+  endif
 
   !apply the matrix of the coefficients on the cproj array
   call to_zero(4*7*3*4,dproj(1,1,1,1))

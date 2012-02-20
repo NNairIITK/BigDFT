@@ -921,6 +921,8 @@ subroutine guess_direction ( )
   use defs
   use saddles
 
+  implicit none
+
   !Local variables
   integer :: i, ierror
   real(kind=8) :: ran3

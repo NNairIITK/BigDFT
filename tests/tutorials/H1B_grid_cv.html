@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
   <head>
-    <title>Tutorial: basics of BigDFT</title>
+    <title>Tutorial: Basis-set convergence in BigDFT</title>
     <meta name="copyright" content="&#169; 2004-2011 CEA" />
     <link rel="author" type="text/html" href="http://www.cea.fr" hreflang="fr" lang="fr" />
     <link rel="stylesheet" type="text/css" href="../styles/original.css" />
@@ -22,7 +22,8 @@
     <div class="main"><a name="top" id="top"></a>
 
       <div class="floatingmenu">
-        <a style="float:right;" href="H1B-Basic_surfaces.html">next lesson&nbsp;&gt;</a>
+        <a href="H1A_first_run.html">&lt;&nbsp;prev. lesson</a>
+        <a style="float:right;" href="H1C_basic_surfaces.html">next lesson&nbsp;&gt;</a>
         <h2>Content of this lesson</h2>
         <ul>
           <li>Introduction, running the code</li>
@@ -61,10 +62,9 @@
 
       <h2>Introduction: running the code</h2>
       <p>This lesson is based on this skeleton
-        <a href="CH4/input.dft" target="_blank"><code>input.dft</code></a> file. To run electronic convergence loop,
-        BigDFT requires a file named <code>input.dft</code> with all lines mandatory.</p>
+        <a href="CH4/input.dft" target="_blank"><code>input.dft</code></a> file. To run electronic convergence loop, BigDFT stores its parameters in an optional file named <code>input.dft</code> with all lines mandatory.</p>
       <p>Beside this input file, BigDFT requires the atomic positions
-        for the studied system and the pseudo-potential files. For the
+        for the studied system and optionaly the pseudo-potential files. For the
         following tutorial, a <a href="CH4/posinp.xyz" target="_blank">methane</a> molecule will be used. The position file
         is a simple XYZ file named <a href="CH4/posinp.xyz" target="_blank"><code>posinp.xyz</code></a>:</p>
       <pre>
@@ -80,25 +80,23 @@ H       -0.63169789 +0.63169789 +0.63169789</pre>
         ABINIT website for several LDA and GGA files and the <a class="external"
                                                                 href="http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/Goedecker/abinit/" target="_blank">page
           of M. Krack</a> on the CP2K server for HGH pseudo for several
-        functionals). The following files are required for this tutorial: <a
+        functionals). The following files may be used for this tutorial: <a
                                                                              href="CH4/psppar.C" target="_blank">psppar.C</a> and <a href="CH4/psppar.H" target="_blank">psppar.H</a>.</p>
       <p>Running BigDFT is done using the <code>bigdft</code>
         executable in a standard Unix way, the output being by default the
-        standard output, it must redirected to a file or to a pipe, like with the unix command
+        standard output, it must be redirected to a file or to a pipe, like with the unix command
         <code>tee</code>:</p>
       <pre>
 user@garulfo:~/CH4/$ ls
 bigdft    psppar.C     psppar.H     input.dft    posinp.xyz
 user@garulfo:~/CH4/$ ./bigdft | tee screenOutput
 ...</pre>
-      <p>Warning, to run properly, the input file must be named
-        <code>input.dft</code>, the position file must be named
-        <code>posinp.xyz</code> and the pseudo-potential files must be
+      <p>Warning, to run properly, the pseudo-potential files must be
         <code>psppar.XX</code> where XX is the symbol used in the position
-        file. This naming convention can be customized by the user, as it is explained in <a href="H1C-Basic_post_processing.html">this</a> lesson.</p>
+        file. The other files can have user-defined names, as explained in <a href="H1A_first_run.html">this</a> lesson.</p>
       <p>If the code has been compiled with MPI capabilities (which is
         enabled by default), running BigDFT on several cores is as easy as run
-        it on a serial job. There is no need to change anything in the input
+        it as a serial job. There is no need to change anything in the input
         files. The following example shows how to run it on a Debian system
         with installed OpenMPI on a 4 core machine:</p>
       <pre>
@@ -249,7 +247,7 @@ The overall memory requirement needed for this calculation is thus: 121 MB</pre>
 
       <div class="exercice">
         <p><b>Exercise</b>: run a small utility program provided with
-          BigDFT called <code>memguess</code> to estimate the memory requirement
+          BigDFT called <code>bigdft-tool</code> to estimate the memory requirement
           of a run before submitting it to the queue system of a
           super-computer. It reads the same input file than the
           <code>bigdft</code> executable, and is thus convenient to validate inputs.</p>
@@ -258,8 +256,8 @@ The overall memory requirement needed for this calculation is thus: 121 MB</pre>
           the memory distribution.</p>
         <pre>
 user@garulfo:~/CH4/$ ls
-memguess    psppar.C     psppar.H     input.dft    posinp.xyz
-user@garulfo:~/CH4/$ ./memguess 2
+bigdft-tool    psppar.C     psppar.H     input.dft    posinp.xyz
+user@garulfo:~/CH4/$ ./bigdft-tool 2
 ...</pre>
         <p class="answer">BigDFT distributes the orbitals over the
           available processes (the value W does not decrease anymore after 4
@@ -376,7 +374,7 @@ iter,total energy,gnrm     2  -8.01285441883433336E+00  7.72E-02
       </div>
 
       <div class="exercice">
-        <p><b>Exercise</b>: run <code>memguess</code> when varying the
+        <p><b>Exercise</b>: run <code>bigdft-tool</code> when varying the
           DIIS history length and discuss the memory consumption.</p>
         <p class="answer">Reducing the DIIS history is a good way to
           reduce the memory consumption when one cannot increase the
@@ -394,7 +392,7 @@ iter,total energy,gnrm     2  -8.01285441883433336E+00  7.72E-02
         <code>input.dft</code> file at the fourth line. In the following
         example an electron has been added (-1):</p>
       <pre>
--1 0.000 ncharge efield</pre>
+-1 0.0 0.0 0.0 ncharge efield</pre>
 
       <div class="exercice">
         <p><b>Exercise</b>: remove the last hydrogen atom in the previous

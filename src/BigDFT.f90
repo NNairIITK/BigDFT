@@ -14,7 +14,6 @@ program BigDFT
    use module_base
    use module_types
    use module_interfaces
-   use m_ab6_symmetry
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
 
@@ -37,7 +36,7 @@ program BigDFT
 
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
-   call MPI_INIT(ierr)
+   call bigdft_mpi_init(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
@@ -158,7 +157,7 @@ program BigDFT
 
 !      call deallocate_lr(rst%Lzd%Glr,subname)    
 !      call deallocate_local_zone_descriptors(rst%Lzd, subname)
-!      if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') call deallocateBasicArrays(atoms,inputs%lin)
+      if(inputs%linear /= 'OFF' .and. inputs%linear /= 'LIG') call deallocateBasicArraysInput(atoms,inputs%lin)
 
       call free_restart_objects(rst,subname)
 

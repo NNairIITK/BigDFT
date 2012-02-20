@@ -81,6 +81,12 @@ endif
 BLACS_MODULES = modules/blacs_fake.f90
 #endif
 
+EXTRA_DIST += CUDA/precond.cu \
+	CUDA/density.cu \
+	CUDA/anasyn.cu \
+	CUDA/locpot.cu CUDA/locpot.h \
+	CUDA/kinetic.cu CUDA/kinetic.h \
+	CUDA/compress.cu
 if USE_CUDA_GPU
 sub_dirs_cuda = CUDA
 CUDA_SOURCES = CUDA/binding_s_gpu.c \
@@ -99,12 +105,6 @@ CUDA_SOURCES = CUDA/binding_s_gpu.c \
 	CUDA/check_cuda.h \
 	CUDA/read_conf_exception.h \
 	CUDA/cpp_utils.h
-EXTRA_DIST += CUDA/precond.cu \
-	CUDA/density.cu \
-	CUDA/anasyn.cu \
-	CUDA/locpot.cu CUDA/locpot.h \
-	CUDA/kinetic.cu CUDA/kinetic.h \
-	CUDA/compress.cu
 CUDA_CONV = convolutions/convolut_common_interface_cuda.f90
 CUDA_MODULES =
 else
@@ -210,7 +210,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -I$(srcdir)/modules -Imodules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
-AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
+AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ @GLIB_CFLAGS@
 
 if USE_MPI
 mpi_source =
@@ -251,6 +251,7 @@ modules_source = modules/base.f90 \
 	modules/defs.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
+	modules/private_api.f90 \
 	modules/input.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
@@ -317,7 +318,10 @@ low_level = \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
 	lib/lbfgs.f90 \
-	lib/bindings.c \
+	lib/bindings_api.h \
+	lib/bindings.c lib/bindings.h \
+	lib/bindings_atoms.c \
+	lib/bindings_localfields.c \
 	lib/bindingsf.f90 \
 	$(flush_files) \
 	$(etsf_files) \
@@ -333,16 +337,15 @@ low_level = \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
+	linear/communicatetypes.f90 \
 	linear/filterModule.f90 \
 	linear/getLocBasis.f90 \
 	linear/applyHamiltonian.f90 \
 	linear/precondLinear.f90 \
-	linear/locReg.f90 \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
 	linear/locReg_projectors.f90 \
 	linear/LinearForces.f90 \
-	linear/tmp_HamiltonianApplication.f90 \
 	linear/transposition.f90 \
 	linear/linearScaling.f90 \
 	linear/energyAndForces.f90 \
@@ -355,8 +358,10 @@ low_level = \
 	linear/orbitalOptimization.f90 \
 	linear/mixdiis.f90 \
 	linear/copyTypes.f90 \
+	linear/de-allocate.f90 \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
+	linear/locReg.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \
@@ -365,6 +370,8 @@ low_level = \
 # C objects
 c_level = posfiles.c \
 	$(CUDA_SOURCES)
+
+#	convolutions/convolut_ib_sse.c \ #to be verified, not working yet
 
 libdft_common_a_SOURCES = \
 	utils.c
