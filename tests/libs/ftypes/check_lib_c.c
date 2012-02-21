@@ -11,7 +11,10 @@
 
 #define MAX_FORTRAN_OUTPUT 4096
 
+#ifdef HAVE_GLIB
 static gboolean exit_loop(gpointer data);
+static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data);
+#endif
 static int redirect_init(int out_pipe[2]);
 static void redirect_dump(int out_pipe[2], int stdout_fileno_old);
 static void calculate_ionic_pot(BigDFT_LocalFields *denspot, BigDFT_Inputs *in);
@@ -37,6 +40,7 @@ int main(guint argc, char **argv)
   int out_pipe[2], stdout_fileno_old;
 
 #ifdef HAVE_GLIB
+  /* g_mem_set_vtable (glib_mem_profiler_table); */
   g_type_init();
   g_thread_init(NULL);
   loop = g_main_loop_new(NULL, FALSE);
@@ -183,6 +187,8 @@ int main(guint argc, char **argv)
 
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB
+  g_signal_connect(G_OBJECT(denspot), "v-ext-ready",
+                   G_CALLBACK(onVExtReady), (gpointer)loop);
   g_timeout_add_seconds(5, exit_loop, (gpointer)loop);
   g_main_loop_run(loop);
 #endif
@@ -218,6 +224,10 @@ int main(guint argc, char **argv)
       stdout_fileno_old = redirect_init(out_pipe);
       FC_FUNC_(memocc_report, MEMOCC_REPORT)();
       redirect_dump(out_pipe, stdout_fileno_old);
+
+#ifdef HAVE_GLIB
+      /* g_mem_profile(); */
+#endif
     }
 
   return 0;
@@ -272,11 +282,21 @@ static void redirect_dump(int out_pipe[2], int stdout_fileno_old)
   close(out_pipe[1]);
 }
 
+#ifdef HAVE_GLIB
 static gboolean exit_loop(gpointer data)
 {
   g_main_loop_quit((GMainLoop*)data);
+  fprintf(stdout, "Error, signals timeout.\n");
   return FALSE;
 }
+
+static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data)
+{
+  /* Copy the data of V_Ext to main process memory for later use. */
+  
+  g_main_loop_quit((GMainLoop*)data);
+}
+#endif
 
 struct ionicpot_
 {
@@ -294,6 +314,8 @@ static gpointer calculate_ionic_pot_thread(gpointer data)
 #endif
   fprintf(stdout, " Calculation of ionic potential finished.\n");
   g_free(container);
+
+  return (gpointer)0;
 }
 
 static void calculate_ionic_pot(BigDFT_LocalFields *denspot, BigDFT_Inputs *in)

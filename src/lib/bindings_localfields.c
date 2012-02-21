@@ -20,7 +20,14 @@ static void bigdft_localfields_dispose(GObject *localfields);
 static void bigdft_localfields_finalize(GObject *localfields);
 
 #ifdef HAVE_GLIB
+enum {
+  V_EXT_READY_SIGNAL,
+  LAST_SIGNAL
+};
+
 G_DEFINE_TYPE(BigDFT_LocalFields, bigdft_localfields, G_TYPE_OBJECT)
+
+static guint bigdft_localfields_signals[LAST_SIGNAL] = { 0 };
 
 static void bigdft_localfields_class_init(BigDFT_LocalFieldsClass *klass)
 {
@@ -29,6 +36,12 @@ static void bigdft_localfields_class_init(BigDFT_LocalFieldsClass *klass)
   G_OBJECT_CLASS(klass)->finalize     = bigdft_localfields_finalize;
   /* G_OBJECT_CLASS(klass)->set_property = visu_data_set_property; */
   /* G_OBJECT_CLASS(klass)->get_property = visu_data_get_property; */
+
+  bigdft_localfields_signals[V_EXT_READY_SIGNAL] =
+    g_signal_new("v-ext-ready", G_TYPE_FROM_CLASS(klass),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+		 0, NULL, NULL, g_cclosure_marshal_VOID__VOID,
+                 G_TYPE_NONE, 0, NULL);
 }
 #endif
 
@@ -134,4 +147,9 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
      denspot->glr->atoms->shift, denspot->glr->data, hh, hh + 1, hh + 2,
      denspot->dpcom, denspot->pkernel, denspot->v_ext, in->elecfield,
      &denspot->psoffset);
+
+#ifdef HAVE_GLIB
+  g_signal_emit(G_OBJECT(denspot), bigdft_localfields_signals[V_EXT_READY_SIGNAL],
+		0 /* details */, NULL);
+#endif
 }
