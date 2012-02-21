@@ -1428,9 +1428,11 @@ real(8),intent(in):: hx, hy, hz
 type(matrixLocalizationRegion),dimension(:),pointer,intent(out):: mlr
 
 ! Local variables
-integer:: ilr, jlr, jorb, ii, istat, is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
+integer:: ilr, jlr, jorb, ii, istat
+!integer::  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 real(8):: cut, tt
-logical:: ovrlpx, ovrlpy, ovrlpz
+!logical:: ovrlpx, ovrlpy, ovrlpz
+logical:: isoverlap
 character(len=*),parameter:: subname='determineLocalizationRegions'
 
 
@@ -1487,20 +1489,22 @@ end do
 ! Count for each localization region the number of matrix elements within the cutoff.
 do ilr=1,nlr
   mlr(ilr)%norbinlr=0
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   do jorb=1,norb
      jlr=onWhichAtomAll(jorb)
-     !call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-     js1=floor(rxyz(1,jlr)/hx)
-     je1=ceiling(rxyz(1,jlr)/hx)
-     js2=floor(rxyz(2,jlr)/hy)
-     je2=ceiling(rxyz(2,jlr)/hy)
-     js3=floor(rxyz(3,jlr)/hz)
-     je3=ceiling(rxyz(3,jlr)/hz)
-     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!     call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+!     js1=floor(rxyz(1,jlr)/hx)
+!     je1=ceiling(rxyz(1,jlr)/hx)
+!     js2=floor(rxyz(2,jlr)/hy)
+!     je2=ceiling(rxyz(2,jlr)/hy)
+!     js3=floor(rxyz(3,jlr)/hz)
+!     je3=ceiling(rxyz(3,jlr)/hz)
+!     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+     call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzd%Llr(jlr),isoverlap)     
+!     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+     if(isoverlap) then
         mlr(ilr)%norbinlr=mlr(ilr)%norbinlr+1
      end if
   end do
@@ -1514,24 +1518,26 @@ end do
 ! Now determine the indices of the elements with an overlap.
 do ilr=1,nlr
   ii=0
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+  !call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   do jorb=1,norb
      jlr=onWhichAtomAll(jorb)
      !call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-     js1=floor(rxyz(1,jlr)/hx)
-     je1=ceiling(rxyz(1,jlr)/hx)
-     js2=floor(rxyz(2,jlr)/hy)
-     je2=ceiling(rxyz(2,jlr)/hy)
-     js3=floor(rxyz(3,jlr)/hz)
-     je3=ceiling(rxyz(3,jlr)/hz)
-     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!     js1=floor(rxyz(1,jlr)/hx)
+!     je1=ceiling(rxyz(1,jlr)/hx)
+!     js2=floor(rxyz(2,jlr)/hy)
+!     je2=ceiling(rxyz(2,jlr)/hy)
+!     js3=floor(rxyz(3,jlr)/hz)
+!     je3=ceiling(rxyz(3,jlr)/hz)
+!     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+      call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzd%Llr(jlr),isoverlap)
+!     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+      if(isoverlap) then
         ii=ii+1
         mlr(ilr)%indexInGlobal(ii)=jorb
         !if(iproc==0) write(*,'(a,3i8)') 'ilr, ii, mlr(ilr)%indexInGlobal(ii)', ilr, ii, mlr(ilr)%indexInGlobal(ii)
-     end if
+      end if
   end do
   if(ii/=mlr(ilr)%norbinlr) then
      write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ', iproc, ': ii/=mlr(ilr)%norbinlr', ii, mlr(ilr)%norbinlr
@@ -1722,7 +1728,7 @@ call memocc(istat, comom%noverlap, 'comom%noverlap', subname)
 !do ilr=1,lzd%nlr
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   novrlp=0
   do jorbout=1,orbs%norb
      jlr=onWhichAtomPhi(jorbout)
@@ -1761,7 +1767,7 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   !comom%overlaps(:,ilr)=0
   comom%overlaps(:,iorbout)=0
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   novrlp=0
   do jorbout=1,orbs%norb
      jlr=onWhichAtomPhi(jorbout)
@@ -1810,7 +1816,7 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   comom%olr(:,ilr)%norbinlr=0
   !do jorbout=1,comom%noverlap(ilr)
   do jorbout=1,comom%noverlap(iorbout)
@@ -1868,7 +1874,7 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+  !call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   !do jorbout=1,comom%noverlap(ilr)
   do jorbout=1,comom%noverlap(iorbout)
      !jjorb=comom%overlaps(jorbout,ilr)
@@ -3283,7 +3289,7 @@ type(matrixDescriptors):: mad
       ! Flag which checks convergence.
       converged=.false.
     
-      if(iproc==0) write(*,'(1x,a)') '============================== optmizing coefficients =============================='
+      if(iproc==0) write(*,'(1x,a)') '============================== optimizing coefficients =============================='
     
       ! The optimization loop.
     
