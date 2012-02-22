@@ -5865,6 +5865,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
        end subroutine psitohpsi
 
+       subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
+            gradient,rhocore)
+         use module_base
+         implicit none
+         !Arguments
+         character(len=1), intent(in) :: geocode
+         integer, intent(in) :: n1,n2,n3,n3grad,deltaleft,deltaright,nspden
+         real(dp), intent(in) :: hx,hy,hz
+         real(dp), dimension(n1,n2,n3,nspden), intent(inout) :: rhoinp
+         real(dp), dimension(n1,n2,n3grad,2*nspden-1,0:3), intent(out) :: gradient
+         real(dp), dimension(:,:,:,:), pointer :: rhocore
+       end subroutine calc_gradient
+
    end interface
 
 END MODULE module_interfaces
