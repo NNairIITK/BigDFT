@@ -23,7 +23,7 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   character(len=*), parameter :: subname='local_partial_densityLinear'
   integer :: iorb,i_stat,i_all,ii, ind, indSmall, indLarge, orbtot
   integer :: oidx,sidx,nspinn,npsir,ncomplex, i1, i2, i3, ilr, ispin
-  integer :: nspincomp,i3s,i3e
+  integer :: nspincomp,i3s,i3e,ii1,ii2,ii3
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir
@@ -31,7 +31,8 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   real(8):: dnrm2
   integer, dimension(:,:), allocatable :: Lnscatterarr
   integer :: n3d,n3p,n3pi,i3xcsh,i3tmp
-
+  character(len=8) :: filename
+  character(len=3) :: numb
  !components of wavefunction in real space which must be considered simultaneously
   !and components of the charge density
   if (orbs%nspinor ==4) then
@@ -100,16 +101,15 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
               call partial_density_free((rsflag .and. .not. Lzd%linear),nproc,Lzd%Llr(ilr)%d%n1i,&
                    Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
                    hfac,Lnscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
-
            case('P')
 
-              call partial_density(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
+              call partial_density(rsflag,nproc,Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,&
                    npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
                    hfac,Lnscatterarr,spinval,psir,rho_p)
 
            case('S')
 
-              call partial_density(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
+              call partial_density(rsflag,nproc,Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,&
                    npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
                    hfac,Lnscatterarr,spinval,psir,rho_p)
 
@@ -119,19 +119,22 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
            indSmall=0
            do ispin=1,nspinn
                do i3=1,Lzd%Llr(ilr)%d%n3i !min(Lzd%Llr(ilr)%d%n3i,nscatterarr(iproc,1)) 
-                   if(Lzd%Llr(ilr)%nsi3 + i3 - 1 < 0) cycle   !throwing away the extra buffer of the locreg, related to the change of boundary conditions
-                   if(Lzd%Llr(ilr)%nsi3 + i3  > Lzd%Glr%d%n3i) cycle
+                   ii3 = i3 + Lzd%Llr(ilr)%nsi3 - 1
+                   if(ii3 < 0 .and. Lzd%Glr%geocode /='F') ii3=ii3+Lzd%Glr%d%n3i
+                   if(ii3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') ii3 = modulo(ii3+1,Lzd%Glr%d%n3i+1)
                    do i2=1,Lzd%Llr(ilr)%d%n2i
-                       if(Lzd%Llr(ilr)%nsi2+ i2 - 1 < 0) cycle !same
-                       if(Lzd%Llr(ilr)%nsi2 + i2  > Lzd%Glr%d%n2i) cycle
+                       ii2 = i2 + Lzd%Llr(ilr)%nsi2 - 1
+                       if(ii2 < 0 .and. Lzd%Glr%geocode =='P') ii2=ii2+Lzd%Glr%d%n2i
+                       if(ii2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') ii2 = modulo(ii2+1,Lzd%Glr%d%n2i+1)
                        do i1=1,Lzd%Llr(ilr)%d%n1i
-                           if(Lzd%Llr(ilr)%nsi1+ i1 - 1 < 0) cycle ! same
-                           if(Lzd%Llr(ilr)%nsi1 + i1  > Lzd%Glr%d%n1i) cycle
+                           ii1=i1 + Lzd%Llr(ilr)%nsi1-1
+                           if(ii1<0 .and. Lzd%Glr%geocode /= 'F') ii1=ii1+Lzd%Glr%d%n1i
+                           if(ii1+1 > Lzd%Glr%d%n1i.and.Lzd%Glr%geocode/='F') ii1 = modulo(ii1+1,Lzd%Glr%d%n1i+1)
                            ! indSmall is the index in the currect localization region
                            indSmall=indSmall+1
                            ! indLarge is the index in the whole box. 
-                           indLarge=(Lzd%Llr(ilr)%nsi3+i3-1)*Lzd%Glr%d%n2i*Lzd%Glr%d%n1i +&
-                               (Lzd%Llr(ilr)%nsi2+i2-1)*Lzd%Glr%d%n1i + Lzd%Llr(ilr)%nsi1+i1
+                           indLarge=ii3*Lzd%Glr%d%n2i*Lzd%Glr%d%n1i +&
+                               ii2*Lzd%Glr%d%n1i + ii1 + 1
                            rho(indLarge,ispin)=rho(indLarge,ispin)+rho_p(indSmall)
                        end do
                    end do

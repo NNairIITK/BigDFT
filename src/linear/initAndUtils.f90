@@ -360,7 +360,6 @@ do iorb=1,lin%orbs%norbp
 end do
 allocate(lin%lzd%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
 call memocc(istat, lin%lzd%cutoffweight, 'lin%lzd%cutoffweight', subname)
-
 call allocateSendBufferOrtho(lin%comon, subname)
 call allocateRecvBufferOrtho(lin%comon, subname)
 call extractOrbital3(iproc, nproc, lin%orbs, max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
@@ -3344,6 +3343,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
   else
      nspin_ig=input%nspin
   end if
+
   linear  = .true.
   if (input%linear == 'FUL') then
      Lzd%nlr=atoms%nat
@@ -3362,13 +3362,12 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
   end if
 
   ! If we are using cubic code : by choice or because locregs are too big
+  Lzd%linear = .true.
   if (input%linear == 'LIG' .or. input%linear =='OFF' .or. .not. linear) then
-     linear = .false.
+     Lzd%linear = .false.
      Lzd%nlr = 1
   end if
 
-  Lzd%linear = .true.
-  if (.not. linear)  Lzd%linear = .false. 
 
   if(input%linear /= 'TMO') then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)

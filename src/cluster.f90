@@ -328,6 +328,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      end if
      call copy_old_wavefunctions(nproc,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
           Lzd%Glr%wfd,psi,n1_old,n2_old,n3_old,wfd_old,psi_old)
+     d_old%n1 = n1_old
+     d_old%n2 = n2_old
+     d_old%n3 = n3_old
   else if (in%inputPsiId == 11) then
      !deallocate wavefunction and descriptors for placing the gaussians
 
@@ -363,10 +366,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   n1=Lzd%Glr%d%n1
   n2=Lzd%Glr%d%n2
   n3=Lzd%Glr%d%n3
-
-  d_old%n1 = n1_old
-  d_old%n2 = n2_old
-  d_old%n3 = n3_old
 
   !here calculate the ionic energy and forces accordingly
   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,&

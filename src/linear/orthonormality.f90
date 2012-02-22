@@ -287,7 +287,6 @@ subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad
   character(len=*),parameter:: subname='getOverlapMatrix2'
   real(8):: tt1, tt2, tt3
 
-
   call allocateCommuncationBuffersOrtho(comon_lb, subname)
   call extractOrbital3(iproc,nproc,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,&
        lzd,op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
@@ -2873,7 +2872,6 @@ real(8):: tt1, tt2, tt3
 type(input_variables):: input
 
 
-
   ! Put lphi in the sendbuffer,i.e. lphi will be sent to other processes' receive buffer.
   call extractOrbital3(iproc,nproc,orbs,orbs%npsidim_orbs,orbs%inWhichLocreg,lzd,op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
   call postCommsOverlapNew(iproc,nproc,orbs,op_lb,lzd,lphi,comon_lb,tt1,tt2)
@@ -3161,11 +3159,15 @@ do iiorb=1,orbs%norb
            isoverlap,op%wfd_overlap(iiorb,jorb)%nseg_c, op%wfd_overlap(iiorb,jorb)%nvctr_c, &
            op%wfd_overlap(iiorb,jorb)%keyglob(1,1), op%wfd_overlap(iiorb,jorb)%keyvglob(1))
         !Get fine part
+        if(op%wfd_overlap(iiorb,jorb)%nseg_f > 0)then
         call get_overlap_from_descriptors_periodic(lzd%Llr(ilr)%wfd%nseg_c, lzd%Llr(jlr)%wfd%nseg_f,&
            lzd%Llr(ilr)%wfd%keyglob(1,1), lzd%Llr(jlr)%wfd%keyglob(1,1+lzd%Llr(jlr)%wfd%nseg_c), &                                                                                                      
            isoverlapf,op%wfd_overlap(iiorb,jorb)%nseg_f, op%wfd_overlap(iiorb,jorb)%nvctr_f, &
            op%wfd_overlap(iiorb,jorb)%keyglob(1,1+op%wfd_overlap(iiorb,jorb)%nseg_c), &
            op%wfd_overlap(iiorb,jorb)%keyvglob(1+op%wfd_overlap(iiorb,jorb)%nseg_c))
+        else
+           op%wfd_overlap(iiorb,jorb)%nvctr_f = 0
+        end if
     end do
 end do
 
@@ -3240,6 +3242,7 @@ do jproc=0,nproc-1
            if(iproc==mpisource) then
                !write(*,'(5(a,i0))') 'adding ',ncount,' elements from orbital ',jjorb,' for orbital ',iiorb,' to nsendBuf, iproc=',iproc,', jproc=',jproc
                comon%nsendBuf=comon%nsendBuf+ncount
+print *,'2: comon%nsendbuf',comon%nsendBuf
            end if
            if(iproc==mpidest) then
                !write(*,'(3(a,i0))') 'process ',iproc,' will get orbital ',jjorb,' at position ',istdest
