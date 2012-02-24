@@ -594,7 +594,6 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
     stop
  end if
 
-
  !let us initialize the larger vector to calculate the gradient
  allocate(density(n1+8,n2+8,n3grad+8+ndebug),stat=i_stat)
  call memocc(i_stat,density,'density',subname)
@@ -1100,7 +1099,7 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
           j3=j3+1
           do i2=1,n2
              do i1=1,n1
-                rhoinp(i1,i2,i3,1)=rhoinp(i1,i2,deltaleft+j3,2)
+                rhoinp(i1,i2,i3,1)=rhoinp(i1,i2,deltaleft+j3,2)!+0.5_dp*rhocore(1,1,deltaleft+j3,1)
              end do
           end do
        end do
@@ -1108,25 +1107,22 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
           j3=j3+1
           do i2=1,n2
              do i1=1,n1
-                rhoinp(i1,i2,i3,2)=rhoinp(i1,i2,deltaleft+j3,2)
+                rhoinp(i1,i2,i3,2)=rhoinp(i1,i2,deltaleft+j3,2)!+0.5_dp*rhocore(1,1,deltaleft+j3,1)
              end do
           end do
        end do
-       
     end if
-
-  
  end if
 
  !add the core density 
  if (associated(rhocore)) then
-    call axpy(n1*n2*n3grad,0.5_wp,rhocore(1,1,deltaleft+1,1),1,rhoinp(1,1,1,1),1)
+    call axpy(n1*n2*(n3grad+deltaleft),0.5_wp,rhocore(1,1,1,1),1,rhoinp(1,1,1,1),1)
     if (nspden==2) then
        if (n3grad /= n3) then
-          call axpy(n1*n2*n3grad,0.5_wp,rhocore(1,1,1,1),1,&
-               rhoinp(1,1,n3grad+1,1),1)
+          call axpy(n1*n2*(n3grad+deltaright),0.5_wp,rhocore(1,1,deltaleft+1,1),1,&
+               rhoinp(1,1,n3grad+deltaleft+1,1),1)
        else
-          call axpy(n1*n2*n3grad,0.5_wp,rhocore(1,1,1,1),1,&
+          call axpy(n1*n2*n3,0.5_wp,rhocore(1,1,1,1),1,&
                rhoinp(1,1,1,2),1)
        end if
     end if

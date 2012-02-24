@@ -10,11 +10,11 @@
 
 !> Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-     n1,n2,n3,n1i,n2i,i3s,n3d,rhocore) 
+     n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
   !n(c) use module_base
   use module_types
   implicit none
-  integer, intent(in) :: n1,n2,n3,n1i,n2i,i3s,n3d,iproc,ityp 
+  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
   real(dp), dimension(n1i*n2i*n3d,0:3), intent(inout) :: rhocore
@@ -93,8 +93,16 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
 
      do i3=isz,iez
         z=real(i3,kind=8)*hzh-rz
-        call ind_positions(perz,i3,n3,j3,goz)
+        !call ind_positions(perz,i3,n3,j3,goz)
+        if (perz) then
+           j3=modulo(i3,n3i)
+           if (j3 -n3i >= i3s-1 ) j3=j3-n3i !to wrap with negative values
+           if (j3 + n3i < i3s+n3d-1) j3=j3+n3i
+        end if
+        !in periodic case nbl3=0
         j3=j3+nbl3+1
+
+        !if (atoms%geocode /= 'F' .and. j3 >= modulo(i3s,n3i) .and. i3s < 0) j3=j3-n3i
         if (j3 >= i3s .and. j3 <= i3s+n3d-1) then
            do i2=isy,iey
               y=real(i2,kind=8)*hyh-ry
@@ -457,7 +465,7 @@ call to_zero(6,wbstr(1))
         if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
            call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho_G(1),1)
            if (nspin==2) call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,&
-                rho_G(1),1)
+                rho_G(1+m1*m3*nxt),1)
         else
            call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+n01*n02*(i3start-1)),1)
            if (nspin==2) call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,&
@@ -568,10 +576,11 @@ call to_zero(6,wbstr(1))
      vexcuRC=vexcuRC*real(hx*hy*hz,gp)
      !subtract this value from the vexcu
      vexcuLOC=vexcuLOC-vexcuRC
+!print *,' aaaa', vexcuRC,vexcuLOC,eexcuLOC
   end if
 
   call timing(iproc,'Exchangecorr  ','OF')
-
+!stop
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc > 1) then
@@ -790,16 +799,15 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr)
   else if (abs(order) == 2) then
      call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr,dvxci)
-  
   end if
-wbstr(:)=0._dp
+  wbstr(:)=0._dp
   if (use_gradient) then
      !do not calculate the White-Bird term in the Leeuwen Baerends XC case
      if (ixc/=13) then
         call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,3,gradient,&
              real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci,wbstr)
      end if
-
+!print *,wbstr
      !restore the density array in the good position if it was shifted for the parallel GGA
      !operation not necessarily needed, but related to the fact that the array has three
      !indices which make it difficult to treat
@@ -902,7 +910,8 @@ wbstr(:)=0._dp
   i_all=-product(shape(exci))*kind(exci)
   deallocate(exci,stat=i_stat)
   call memocc(i_stat,i_all,'exci',subname)
-
+!  call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+!stop
 END SUBROUTINE xc_energy_new
 
 
