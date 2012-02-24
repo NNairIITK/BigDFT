@@ -722,11 +722,11 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
              mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
              nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
              psi(1,ispinor),hpsi(1,ispinor),eproj_spinor,proj_G,paw%paw_ij(iat),&
-             proj_G,paw%indlmn(:,:,at%iatype(iat)),paw%lmnmax)
+             paw%indlmn(:,:,at%iatype(iat)),paw%lmnmax)
         
         do i_shell=1,proj_G%nshltot
            l=proj_G%nam(i_shell)
-            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
+           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
         end do
      end if 
      eproj=eproj+&
@@ -734,14 +734,15 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   end do
 END SUBROUTINE apply_atproj_iorb
 
-subroutine applyprojector_paw(ncplx,l,&
+subroutine applyprojector_paw(ncplx,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
-     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,psi,hpsi,eproj,&
-     proj_G,paw_ij,indlmn,lmnmax)
+     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,&
+     psi,hpsi,eproj,proj_G,paw_ij,&
+     indlmn,lmnmax)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: l,ncplx,lmnmax
+  integer, intent(in) :: ncplx,lmnmax
   integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
