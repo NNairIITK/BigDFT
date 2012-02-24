@@ -170,8 +170,41 @@ BigDFT_LocReg* bigdft_locreg_new                 (BigDFT_Atoms *atoms, double *r
                                                   double h[3],double crmult, double frmult);
 BigDFT_LocReg* bigdft_locreg_new_with_wave_descriptors(BigDFT_Atoms *atoms, double *radii,
                                                        double h[3], double crmult, double frmult);
+void           bigdft_locreg_define              (BigDFT_LocReg *glr, BigDFT_Atoms *atoms,
+                                                  double *radii, double h[3],
+                                                  double crmult, double frmult);
 void           bigdft_locreg_free                (BigDFT_LocReg *glr);
 void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
+
+/*********************************/
+/* BigDFT_Lzd data structure. */
+/*********************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_LZD_TYPE    (bigdft_lzd_get_type())
+#define BIGDFT_LZD(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_LZD_TYPE, BigDFT_Lzd))
+typedef struct BigDFT_LzdClass_
+{
+  GObjectClass parent;
+} BigDFT_LzdClass;
+#else
+#define BIGDFT_LZD_TYPE    (999)
+#define BIGDFT_LZD(obj)    ((BigDFT_Lzd*)obj)
+#endif
+typedef struct BigDFT_lzd_
+{
+  BigDFT_LocReg parent;
+#ifdef GLIB_MAJOR_VERSION
+  gboolean dispose_has_run;
+#endif
+
+  /* Private. */
+  void *data;
+} BigDFT_Lzd;
+BigDFT_Lzd* bigdft_lzd_new (BigDFT_Atoms *atoms, double *radii, double h[3],
+                            double crmult, double frmult);
+void        bigdft_lzd_free(BigDFT_Lzd *lzd);
+
 
 /*******************************/
 /* BigDFT_Orbs data structure. */

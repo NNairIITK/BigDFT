@@ -133,24 +133,36 @@ subroutine deallocate_double_2D(array)
   end if
 end subroutine deallocate_double_2D
 
-subroutine glr_new(glr, d)
+subroutine glr_new(glr)
   use module_types
   implicit none
   type(locreg_descriptors), pointer :: glr
-  type(grid_dimensions), pointer :: d
 
   allocate(glr)
+end subroutine glr_new
+subroutine glr_init(glr, d)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout), target :: glr
+  type(grid_dimensions), pointer :: d
+
   call nullify_locreg_descriptors(glr)
   d => glr%d
-end subroutine glr_new
+end subroutine glr_init
 subroutine glr_free(glr)
   use module_types
   implicit none
   type(locreg_descriptors), pointer :: glr
 
-  call deallocate_lr(glr, "glr_free")
   deallocate(glr)
 end subroutine glr_free
+subroutine glr_empty(glr)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout) :: glr
+
+  call deallocate_locreg_descriptors(glr, "glr_empty")
+end subroutine glr_empty
 subroutine glr_get_dimensions(glr, geocode, n, ni)
   use module_types
   implicit none
@@ -183,6 +195,23 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
+subroutine lzd_new(lzd, glr)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), pointer :: lzd
+  type(locreg_descriptors), pointer :: glr
+
+  allocate(lzd)
+  glr => lzd%glr
+end subroutine lzd_new
+subroutine lzd_free(lzd)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), pointer :: lzd
+
+  call deallocate_local_zone_descriptors(lzd, "lzd_free")
+  deallocate(lzd)
+end subroutine lzd_free
 
 subroutine inputs_new(in)
   use module_types

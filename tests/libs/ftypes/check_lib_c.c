@@ -24,7 +24,7 @@ int main(guint argc, char **argv)
   BigDFT_Atoms *atoms;
   guint i, n, nelec;
   double *radii, peak;
-  BigDFT_LocReg *glr;
+  BigDFT_Lzd *lzd;
   double h[3] = {0.45, 0.45, 0.45};
   gboolean *cgrid, *fgrid;
 #define CRMULT 5.
@@ -119,8 +119,9 @@ int main(guint argc, char **argv)
     fprintf(stdout, " Type %d, radii %f %f %f\n", i,
             radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
   
-  fprintf(stdout, "Test BigDFT_LocReg structure creation.\n");
-  glr = bigdft_locreg_new_with_wave_descriptors(atoms, radii, h, CRMULT, FRMULT);
+  fprintf(stdout, "Test BigDFT_Lzd structure creation.\n");
+  lzd = bigdft_lzd_new(atoms, radii, h, CRMULT, FRMULT);
+  bigdft_locreg_set_wave_descriptors(BIGDFT_LOCREG(lzd));
   for (i = 0; i  < atoms->nat; i++)
     fprintf(stdout, " Atoms %d, coord. %10.6f %10.6f %10.6f '%2s', type %d\n",
             i, atoms->rxyz.data[3 * i], atoms->rxyz.data[3 * i + 1],
@@ -128,19 +129,19 @@ int main(guint argc, char **argv)
             atoms->iatype[i]);
   fprintf(stdout, " Box is in   %f %f %f\n", atoms->alat[0], atoms->alat[1], atoms->alat[2]);
   fprintf(stdout, " Shift is     %f %f  %f\n", atoms->shift[0], atoms->shift[1], atoms->shift[2]);
-  fprintf(stdout, " Geocode is  %c\n", glr->geocode);
-  fprintf(stdout, " Grid is     %9d %9d %9d\n", glr->n[0], glr->n[1], glr->n[2]);
-  fprintf(stdout, " Int grid is %9d %9d %9d\n", glr->ni[0], glr->ni[1], glr->ni[2]);
-  fprintf(stdout, " H grids are %9.9g %9.9g %9.9g\n", glr->h[0], glr->h[1], glr->h[2]);
+  fprintf(stdout, " Geocode is  %c\n", BIGDFT_LOCREG(lzd)->geocode);
+  fprintf(stdout, " Grid is     %9d %9d %9d\n", BIGDFT_LOCREG(lzd)->n[0], BIGDFT_LOCREG(lzd)->n[1], BIGDFT_LOCREG(lzd)->n[2]);
+  fprintf(stdout, " Int grid is %9d %9d %9d\n", BIGDFT_LOCREG(lzd)->ni[0], BIGDFT_LOCREG(lzd)->ni[1], BIGDFT_LOCREG(lzd)->ni[2]);
+  fprintf(stdout, " H grids are %9.9g %9.9g %9.9g\n", BIGDFT_LOCREG(lzd)->h[0], BIGDFT_LOCREG(lzd)->h[1], BIGDFT_LOCREG(lzd)->h[2]);
 
   fprintf(stdout, "Test calculation of grid points.\n");
-  cgrid = bigdft_atoms_get_grid(atoms, radii, CRMULT, glr->n);
-  for (i = 0, n = 0; i < (glr->n[0] + 1) * (glr->n[1] + 1) * (glr->n[2] + 1); i++)
+  cgrid = bigdft_atoms_get_grid(atoms, radii, CRMULT, BIGDFT_LOCREG(lzd)->n);
+  for (i = 0, n = 0; i < (BIGDFT_LOCREG(lzd)->n[0] + 1) * (BIGDFT_LOCREG(lzd)->n[1] + 1) * (BIGDFT_LOCREG(lzd)->n[2] + 1); i++)
     if (cgrid[i])
       n += 1;
   fprintf(stdout, " Coarse grid has %7d points.\n", n);
-  fgrid = bigdft_atoms_get_grid(atoms, radii + atoms->ntypes, FRMULT, glr->n);
-  for (i = 0, n = 0; i < (glr->n[0] + 1) * (glr->n[1] + 1) * (glr->n[2] + 1); i++)
+  fgrid = bigdft_atoms_get_grid(atoms, radii + atoms->ntypes, FRMULT, BIGDFT_LOCREG(lzd)->n);
+  for (i = 0, n = 0; i < (BIGDFT_LOCREG(lzd)->n[0] + 1) * (BIGDFT_LOCREG(lzd)->n[1] + 1) * (BIGDFT_LOCREG(lzd)->n[2] + 1); i++)
     if (fgrid[i])
       n += 1;
   fprintf(stdout, " Fine grid has   %7d points.\n", n);
@@ -158,11 +159,11 @@ int main(guint argc, char **argv)
   bigdft_inputs_parse_additional(in, atoms);
 
   fprintf(stdout, "Test BigDFT_Orbs structure creation.\n");
-  orbs = bigdft_orbs_new(glr, in, 0, 1, &nelec);
+  orbs = bigdft_orbs_new(BIGDFT_LOCREG(lzd), in, 0, 1, &nelec);
   fprintf(stdout, " System has %d electrons.\n", nelec);
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
-  proj = bigdft_proj_new(glr, orbs, in->frmult);
+  proj = bigdft_proj_new(BIGDFT_LOCREG(lzd), orbs, in->frmult);
   fprintf(stdout, " System has %d projectors, and %d elements.\n",
           proj->nproj, proj->nprojel);
 
@@ -170,13 +171,13 @@ int main(guint argc, char **argv)
     {
       fprintf(stdout, "Test memory estimation.\n");
       stdout_fileno_old = redirect_init(out_pipe);
-      peak = bigdft_memory_get_peak(4, glr, in, orbs, proj);
+      peak = bigdft_memory_get_peak(4, BIGDFT_LOCREG(lzd), in, orbs, proj);
       redirect_dump(out_pipe, stdout_fileno_old);
       fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
     }
 
   fprintf(stdout, "Test BigDFT_LocalFields creation.\n");
-  denspot = bigdft_localfields_new(glr, in, 0, 1);
+  denspot = bigdft_localfields_new(BIGDFT_LOCREG(lzd), in, 0, 1);
   fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
@@ -209,8 +210,8 @@ int main(guint argc, char **argv)
   bigdft_inputs_free(in);
   fprintf(stdout, " Ok\n");
 
-  fprintf(stdout, "Test BigDFT_LocReg free.\n");
-  bigdft_locreg_free(glr);
+  fprintf(stdout, "Test BigDFT_Lzd free.\n");
+  bigdft_lzd_free(lzd);
   fprintf(stdout, " Ok\n");
 
   fprintf(stdout, "Test BigDFT_Atoms free.\n");
@@ -293,8 +294,7 @@ static gboolean exit_loop(gpointer data)
 static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data)
 {
   /* Copy the data of V_Ext to main process memory for later use. */
-  
-  g_main_loop_quit((GMainLoop*)data);
+  g_idle_add((GSourceFunc)g_main_loop_quit, data);
 }
 #endif
 

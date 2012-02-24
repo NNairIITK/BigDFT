@@ -453,22 +453,22 @@ module module_types
      real(wp), dimension(:), pointer :: hpsi_ASYNC !<pointer to the wavefunction allocated in the case of asyncronous local_hamiltonian
   end type GPU_pointers
 
-!> Contains all the descriptors necessary for splitting the calculation in different locregs 
+  !> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: local_zone_descriptors
-    logical :: linear                         !< if true, use linear part of the code
-    integer :: nlr                            !< Number of localization regions 
-    integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
+     logical :: linear                         !< if true, use linear part of the code
+     integer :: nlr                            !< Number of localization regions 
+     integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
 !    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
-    integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
-    integer :: Lnprojel                       !< Total number of projector elements
-    real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
-    logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
-    type(locreg_descriptors) :: Glr           !< Global region descriptors
+     integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
+     integer :: Lnprojel                       !< Total number of projector elements
+     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
+     logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
+     type(locreg_descriptors) :: Glr           !< Global region descriptors
 !    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
-    type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
+     type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
 !    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
-    real(8),dimension(:,:),pointer:: cutoffweight
-  end type
+     real(8),dimension(:,:),pointer:: cutoffweight
+  end type local_zone_descriptors
 
 !>  Used to restart a new DFT calculation or to save information 
 !!  for post-treatment
@@ -1334,19 +1334,24 @@ END SUBROUTINE deallocate_orbs
   END SUBROUTINE deallocate_bounds
 
 
+  !> todo: remove this function.
   subroutine deallocate_lr(lr,subname)
     use module_base
     character(len=*), intent(in) :: subname
     type(locreg_descriptors) :: lr
     integer :: i_all,i_stat
 
+    write(0,*) "TODO, remove me"
+    
     call deallocate_wfd(lr%wfd,subname)
 
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
-    i_all=-product(shape(lr%projflg)*kind(lr%projflg))
-    deallocate(lr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'lr%projflg',subname)
 
+    if (associated(lr%projflg)) then
+       i_all=-product(shape(lr%projflg)*kind(lr%projflg))
+       deallocate(lr%projflg,stat=i_stat)
+       call memocc(i_stat,i_all,'lr%projflg',subname)
+    end if
   END SUBROUTINE deallocate_lr
 
   subroutine deallocate_denspot_distribution(denspotd, subname)

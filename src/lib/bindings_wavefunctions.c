@@ -161,3 +161,85 @@ gboolean bigdft_read_wave_descr(const char *filename, int *norbu,
 
   return TRUE;
 }
+
+/******************************************/
+/* Devel. version of a wavefunction type. */
+/******************************************/
+static void bigdft_wf_dispose(GObject *atoms);
+static void bigdft_wf_finalize(GObject *atoms);
+
+#ifdef HAVE_GLIB
+G_DEFINE_TYPE(BigDFT_Wf, bigdft_wf, BIGDFT_ORBS_TYPE)
+
+static void bigdft_wf_class_init(BigDFT_WfClass *klass)
+{
+  /* Connect the overloading methods. */
+  G_OBJECT_CLASS(klass)->dispose      = bigdft_wf_dispose;
+  G_OBJECT_CLASS(klass)->finalize     = bigdft_wf_finalize;
+  /* G_OBJECT_CLASS(klass)->set_property = visu_data_set_property; */
+  /* G_OBJECT_CLASS(klass)->get_property = visu_data_get_property; */
+}
+#endif
+
+static void bigdft_wf_init(BigDFT_Wf *wf)
+{
+#ifdef HAVE_GLIB
+  memset(wf + sizeof(GObject), 0, sizeof(BigDFT_Wf) - sizeof(GObject));
+#else
+  memset(wf, 0, sizeof(BigDFT_Wf));
+#endif
+  
+  /* FC_FUNC_(wf_new, WF_NEW)(&wf->data, &wf->parent.data); */
+  /* FC_FUNC_(glr_init, GLR_INIT)(wf->parent.data, &wf->parent.d); */
+}
+static void bigdft_wf_dispose(GObject *obj)
+{
+#ifdef HAVE_GLIB
+  BigDFT_Wf *wf = BIGDFT_WF(obj);
+
+  if (wf->dispose_has_run)
+    return;
+  wf->dispose_has_run = TRUE;
+  
+  /* wf->parent.data = (void*)0; */
+
+  /* Chain up to the parent class */
+  G_OBJECT_CLASS(bigdft_wf_parent_class)->dispose(obj);
+#endif
+}
+static void bigdft_wf_finalize(GObject *obj)
+{
+  BigDFT_Wf *wf = BIGDFT_WF(obj);
+
+  /* FC_FUNC_(wf_free, WF_FREE)(&wf->data); */
+
+#ifdef HAVE_GLIB
+  G_OBJECT_CLASS(bigdft_wf_parent_class)->finalize(obj);
+#endif
+}
+
+BigDFT_Wf* bigdft_wf_new()
+{
+  BigDFT_Wf *wf;
+  int iproc = 1;
+
+#ifdef HAVE_GLIB
+  wf = BIGDFT_WF(g_object_new(BIGDFT_WF_TYPE, NULL));
+#else
+  wf = g_malloc(sizeof(BigDFT_Wf));
+  bigdft_wf_init(wf);
+#endif
+
+  bigdft_locreg_define(BIGDFT_LOCREG(wf), atoms, radii, h, crmult, frmult);
+
+  return wf;
+}
+void bigdft_wf_free(BigDFT_Wf *wf)
+{
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(wf));
+#else
+  bigdft_wf_finalize(wf);
+  g_free(wf);
+#endif
+}
