@@ -1513,6 +1513,8 @@ subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
 
   character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
   integer :: i_stat, nsym, i_all, i_third
+  integer, dimension(:,:,:), allocatable :: irrzon
+  real(dp), dimension(:,:,:), allocatable :: phnons
 
   if (associated(sym%irrzon)) then
      i_all=-product(shape(sym%irrzon))*kind(sym%irrzon)
@@ -1543,10 +1545,22 @@ subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
            call kpoints_get_irreductible_zone(sym%irrzon, sym%phnons, &
                 &   n1i, n2i, n3i, nspin, nspin, sym%symObj, i_stat)
         else
+           allocate(irrzon(n1i*n3i,2,1+ndebug),stat=i_stat)
+           call memocc(i_stat,irrzon,'irrzon',subname)
+           allocate(phnons(2,n1i*n3i,1+ndebug),stat=i_stat)
+           call memocc(i_stat,phnons,'phnons',subname)
            do i_third = 1, n2i, 1
-              call kpoints_get_irreductible_zone(sym%irrzon(1:,1:,i_third), &
-                   & sym%phnons(1:,1:,i_third), n1i, 1, n3i, nspin, nspin, sym%symObj, i_stat)
+              call kpoints_get_irreductible_zone(irrzon, phnons, n1i, 1, n3i, &
+                   & nspin, nspin, sym%symObj, i_stat)
+              sym%irrzon(:,:,i_third:i_third) = irrzon
+              call dcopy(2*n1i*n3i, phnons, 1, sym%phnons(1,1,i_third), 1)
            end do
+           i_all=-product(shape(irrzon))*kind(irrzon)
+           deallocate(irrzon,stat=i_stat)
+           call memocc(i_stat,i_all,'irrzon',subname)
+           i_all=-product(shape(phnons))*kind(phnons)
+           deallocate(phnons,stat=i_stat)
+           call memocc(i_stat,i_all,'phnons',subname)
         end if
      end if
   end if

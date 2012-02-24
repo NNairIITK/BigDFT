@@ -11,15 +11,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
-     (int *lstat, const char* filename, int *ln, int *iorbp,
-      double *hx, double *hy, double *hz,
-      int *n1, int *n2, int *n3, int *nspinor, f90_pointer_double_4D *psiscf);
-void FC_FUNC_(free_wave_to_isf, FREE_WAVE_TO_ISF)(f90_pointer_double_4D *psiscf);
-
-void FC_FUNC_(read_wave_descr, READ_WAVE_DESCR)
-     (int *lstat, const char* filename, int *ln, int *norbu,
-      int *norbd, int *iorb, int *ispin, int *nkpt, int *ikpt, int *nspinor, int *ispinor);
 
  /* Duplicate functions in C due to multiple interface definition in Fortran */
 void FC_FUNC_(inquire_pointer1, INQUIRE_POINTER1)(void *pt, void *add, int *size)
@@ -43,141 +34,6 @@ void FC_FUNC_(inquire_pointer5, INQUIRE_POINTER5)(void *pt, void *add, int *size
   memcpy(pt, add, sizeof(void*) * *size);
 }
 
-
-
-f90_pointer_double_4D* bigdft_read_wave_to_isf(const char *filename, int iorbp,
-                                               double h[3], int n[3], int *nspinor)
-{
-  int ln, lstat;
-  f90_pointer_double_4D *psiscf;
-
-  psiscf = g_malloc(sizeof(f90_pointer_double_4D));
-  F90_4D_POINTER_INIT(psiscf);
-  
-  ln = strlen(filename);
-  FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)
-    (&lstat, filename, &ln, &iorbp, h, h + 1, h + 2, n, n + 1, n + 2, nspinor, psiscf);
-  if (!lstat)
-    {
-      g_free(psiscf);
-      psiscf = (f90_pointer_double_4D*)0;
-    }
-
-  DBG_MEM(psiscf, f90_pointer_double_4D);
-
-  return psiscf;
-}
-void bigdft_free_wave_to_isf(f90_pointer_double_4D *psiscf)
-{
-  FC_FUNC_(free_wave_to_isf, FREE_WAVE_TO_ISF)(psiscf);
-  g_free(psiscf);
-}
-
-gboolean bigdft_read_wave_descr(const char *filename, int *norbu,
-                                int *norbd, int *nkpt, int *nspinor,
-                                int *iorb, int *ispin, int *ikpt, int *ispinor)
-{
-  int ln, lstat, norbu_, norbd_, nkpt_, nspinor_;
-  int iorb_, ispin_, ikpt_, ispinor_;
-  
-  ln = strlen(filename);
-  FC_FUNC_(read_wave_descr, READ_WAVE_DESCR)
-    (&lstat, filename, &ln, &norbu_, &norbd_, &iorb_, &ispin_,
-     &nkpt_, &ikpt_, &nspinor_, &ispinor_);
-  if (!lstat)
-    return FALSE;
-
-  if (norbu)   *norbu   = norbu_;
-  if (norbd)   *norbd   = norbd_;
-  if (nkpt)    *nkpt    = nkpt_;
-  if (nspinor) *nspinor = nspinor_;
-
-  if (iorb)    *iorb    = iorb_;
-  if (ispin)   *ispin   = ispin_;
-  if (ikpt)    *ikpt    = ikpt_;
-  if (ispinor) *ispinor = ispinor_;
-
-  return TRUE;
-}
-
-/* Wavefunction descriptor part. */
-void FC_FUNC_(glr_new, GLR_NEW)(void *glr, void *d);
-void FC_FUNC_(system_size, SYSTEM_SIZE)(int *iproc, void *atoms, double *rxyz,
-                                        double *radii_cf, double *crmult, double *frmult,
-                                        double *hx, double *hy, double *hz,
-                                        void *glr, double *shift);
-void FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(void *glr, char *geocode,
-                                                      int *n, int *ni);
-void FC_FUNC_(glr_free, GLR_FREE)(void *glr);
-void FC_FUNC_(glr_set_wave_descriptors,
-             GLR_SET_WAVE_DESCRIPTORS)(int *iproc, double *hx, double *hy,
-                                       double *hz, void *atoms, double *rxyz, double *radii,
-                                       double *crmult, double *frmult, void *glr);
-
-static BigDFT_Glr* bigdft_glr_init(BigDFT_Atoms *atoms, double *radii, double h[3],
-                            double crmult, double frmult)
-{
-  BigDFT_Glr *glr;
-  int iproc = 1;
-
-  glr = g_malloc(sizeof(BigDFT_Glr));
-  memset(glr, 0, sizeof(BigDFT_Glr));
-  glr->data = (void*)0;
-
-  FC_FUNC_(glr_new, GLR_NEW)(&glr->data, &glr->d);
-  FC_FUNC_(system_size, SYSTEM_SIZE)(&iproc, atoms->data, atoms->rxyz.data, radii,
-                                     &crmult, &frmult, h, h + 1, h + 2, glr->data,
-                                     atoms->shift);
-  glr->h[0] = h[0];
-  glr->h[1] = h[1];
-  glr->h[2] = h[2];
-  FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, &glr->geocode,
-                                                   (int*)glr->n, (int*)glr->ni);
-  FC_FUNC_(atoms_copy_alat, ATOMS_COPY_ALAT)(atoms->data, atoms->alat,
-                                             atoms->alat + 1, atoms->alat + 2);
-
-  return glr;
-}
-static void bigdft_glr_dispose(BigDFT_Glr *glr)
-{
-  g_free(glr->data);
-  g_free(glr);
-}
-
-BigDFT_Glr* bigdft_glr_new(BigDFT_Atoms *atoms, double *radii, double h[3],
-                           double crmult, double frmult)
-{
-  BigDFT_Glr *glr;
-
-  glr = bigdft_glr_init(atoms, radii, h, crmult, frmult);
-  
-  return glr;
-}
-BigDFT_Glr* bigdft_glr_new_with_wave_descriptors(BigDFT_Atoms *atoms, double *radii,
-                                                 double h[3], double crmult, double frmult)
-{
-  BigDFT_Glr *glr;
-
-  glr = bigdft_glr_init(atoms, radii, h, crmult, frmult);
-  bigdft_glr_set_wave_descriptors(glr, atoms, radii, crmult, frmult);
-  
-  return glr;
-}
-void bigdft_glr_free(BigDFT_Glr *glr)
-{
-  FC_FUNC_(glr_free, GLR_FREE)(&glr->data);
-  bigdft_glr_dispose(glr);
-}
-void bigdft_glr_set_wave_descriptors(BigDFT_Glr *glr, BigDFT_Atoms *atoms, double *radii,
-                                     double crmult, double frmult)
-{
-  int iproc = 1;
-
-  FC_FUNC_(glr_set_wave_descriptors,
-          GLR_SET_WAVE_DESCRIPTORS)(&iproc, glr->h, glr->h + 1, glr->h + 2,
-                                    atoms->data, atoms->rxyz.data, radii,
-                                    &crmult, &frmult, glr->data);
-}
 
 void FC_FUNC_(inputs_new, INPUTS_NEW)(void *in);
 void FC_FUNC_(inputs_free, INPUTS_FREE)(void *in);
@@ -277,83 +133,11 @@ void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms)
   /* FC_FUNC_(inputs_get_kpt, INPUTS_GET_KPT)(); */
 }
 
-/* Orbital descriptor part. */
-struct f90_pointer_orbs_
-{
-  void *orbs;
-  /* void *info[F90_POINTER_SIZE]; */
-};
-
-void FC_FUNC_(orbs_new, ORBS_NEW)(f90_pointer_orbs *orbs);
-void FC_FUNC_(orbs_free, ORBS_FREE)(f90_pointer_orbs *orbs);
-void FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(int *iproc, int *nproc,
-                                                              int *verb, void *in, void *atoms,
-                                                              void *orbs, int *nelec);
-void FC_FUNC_(orbs_comm, ORBS_COMM)(void *orbs, void *glr, const int *iproc, const int *nproc);
-void FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(void *orbs, int *norb,
-                                                        int *norbp, int *norbu,
-                                                        int *norbd, int *nspin,
-                                                        int *nspinor, int *npsidim,
-                                                        int *nkpts, int *nkptsp,
-                                                        int *isorb, int *iskpts);
-
-static BigDFT_Orbs* bigdft_orbs_init()
-{
-  BigDFT_Orbs *orbs;
-
-  orbs = g_malloc(sizeof(BigDFT_Orbs));
-  memset(orbs, 0, sizeof(BigDFT_Orbs));
-  orbs->data = g_malloc(sizeof(f90_pointer_orbs));
-  memset(orbs->data, 0, sizeof(f90_pointer_orbs));
-
-  return orbs;
-}
-static void bigdft_orbs_dispose(BigDFT_Orbs *orbs)
-{
-  g_free(orbs->data);
-  g_free(orbs);
-}
-
-BigDFT_Orbs* bigdft_orbs_new(const BigDFT_Atoms *atoms, const BigDFT_Inputs *in,
-                             const BigDFT_Glr *glr, int iproc, int nproc, guint *nelec)
-{
-  BigDFT_Orbs *orbs;
-  int nelec_, verb = 0;
-
-  orbs = bigdft_orbs_init();
-  FC_FUNC_(orbs_new, ORBS_NEW)(orbs->data);
-  FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(&iproc, &nproc, &verb, in->data,
-                                                           atoms->data,
-                                                           orbs->data->orbs, &nelec_);
-  if (nelec)
-    *nelec = nelec_;
-  FC_FUNC_(orbs_comm, ORBS_COMM)(orbs->data->orbs, glr->data, &iproc, &nproc);
-  
-  FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(orbs->data->orbs, &orbs->norb,
-                                                     &orbs->norbp, &orbs->norbu,
-                                                     &orbs->norbd, &orbs->nspin,
-                                                     &orbs->nspinor, &orbs->npsidim,
-                                                     &orbs->nkpts, &orbs->nkptsp,
-                                                     &orbs->isorb, &orbs->iskpts);
-  
-  return orbs;
-}
-void bigdft_orbs_free(BigDFT_Orbs *orbs)
-{
-  FC_FUNC_(orbs_free, ORBS_FREE)(orbs->data);
-  bigdft_orbs_dispose(orbs);
-}
-
 /*******************************/
 /* BigDFT_Proj data structure. */
 /*******************************/
-struct f90_pointer_nlpspd_
-{
-  void *proj;
-};
-
-void FC_FUNC_(proj_new, PROJ_NEW)(f90_pointer_nlpspd *nlpspd);
-void FC_FUNC_(proj_free, PROJ_FREE)(f90_pointer_nlpspd *nlpspd, f90_pointer_double *proj);
+void FC_FUNC_(proj_new, PROJ_NEW)(void *nlpspd);
+void FC_FUNC_(proj_free, PROJ_FREE)(void *nlpspd, f90_pointer_double *proj);
 void FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
     (int *iproc, const void *lr, double *rxyz, void *atoms,
      void *orbs, double *radii, double *cpmult, double *fpmult, const double *h1,
@@ -367,50 +151,49 @@ static BigDFT_Proj* bigdft_proj_init()
 
   proj = g_malloc(sizeof(BigDFT_Proj));
   memset(proj, 0, sizeof(BigDFT_Proj));
-  proj->nlpspd = g_malloc(sizeof(f90_pointer_nlpspd));
-  memset(proj->nlpspd, 0, sizeof(f90_pointer_nlpspd));
   F90_1D_POINTER_INIT(&proj->proj);
 
   return proj;
 }
 static void bigdft_proj_dispose(BigDFT_Proj *proj)
 {
-  g_free(proj->nlpspd);
   g_free(proj);
 }
 
-BigDFT_Proj* bigdft_proj_new(const BigDFT_Atoms *atoms, const BigDFT_Glr *glr,
-                             const BigDFT_Orbs *orbs, double *radii, double frmult)
+BigDFT_Proj* bigdft_proj_new(const BigDFT_LocReg *glr, const BigDFT_Orbs *orbs, double frmult)
 {
   BigDFT_Proj *proj;
   int iproc = 1;
 
   proj = bigdft_proj_init();
-  FC_FUNC_(proj_new, PROJ_NEW)(proj->nlpspd);
+  FC_FUNC_(proj_new, PROJ_NEW)(&proj->nlpspd);
   FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
-    (&iproc, glr->data, atoms->rxyz.data,
-     atoms->data, orbs->data->orbs, radii, &frmult, &frmult,
-     glr->h, glr->h + 1, glr->h + 2, proj->nlpspd->proj, &proj->proj);
-  FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(proj->nlpspd->proj, &proj->nproj,
+    (&iproc, glr->data, glr->atoms->rxyz.data,
+     glr->atoms->data, orbs->data, glr->radii, &frmult, &frmult,
+     glr->h, glr->h + 1, glr->h + 2, proj->nlpspd, &proj->proj);
+  FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(proj->nlpspd, &proj->nproj,
                                                      &proj->nprojel);
 
   return proj;
 }
 void bigdft_proj_free(BigDFT_Proj *proj)
 {
-  FC_FUNC_(proj_free, PROJ_FREE)(proj->nlpspd, &proj->proj);
+  FC_FUNC_(proj_free, PROJ_FREE)(&proj->nlpspd, &proj->proj);
   bigdft_proj_dispose(proj);
 }
 
 /******************/
 /* Miscellaneous. */
 /******************/
-void FC_FUNC(memoryestimator, MEMORYESTIMATOR)(int *nproc, int *idsx, void *lr, int *nat,
-                                               int *norb, int *nspinor, int *nkpt,
-                                               guint *nprojel, int *nspin, int *itrpmax,
-                                               int *iscf, double *peak);
-double bigdft_memory_peak(int nproc, BigDFT_Glr *lr, BigDFT_Inputs *in,
-                          BigDFT_Orbs *orbs, BigDFT_Proj *proj)
+void FC_FUNC(memoryestimator, MEMORYESTIMATOR)(const int *nproc, const int *idsx,
+                                               const void *lr,
+                                               const int *nat, const int *norb,
+                                               const int *nspinor, const int *nkpt,
+                                               const guint *nprojel, const int *nspin,
+                                               const int *itrpmax, const int *iscf,
+                                               double *peak);
+double bigdft_memory_get_peak(int nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
+                              const BigDFT_Orbs *orbs, const BigDFT_Proj *proj)
 {
   double peak;
   int nat = -1;

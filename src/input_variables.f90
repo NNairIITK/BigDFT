@@ -349,7 +349,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
      call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
-  call input_var(in%output_denspot,'0',exclusive=(/0,1,2/),&
+  call input_var(in%output_denspot,'0',exclusive=(/0,1,2,10,11,12,20,21,22/),&
        comment='InputPsiId, output_wf, output_denspot')
 
   !project however the wavefunction on gaussians if asking to write them on disk

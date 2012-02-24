@@ -11,15 +11,20 @@
 
 #define MAX_FORTRAN_OUTPUT 4096
 
+#ifdef HAVE_GLIB
+static gboolean exit_loop(gpointer data);
+static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data);
+#endif
 static int redirect_init(int out_pipe[2]);
 static void redirect_dump(int out_pipe[2], int stdout_fileno_old);
+static void calculate_ionic_pot(BigDFT_LocalFields *denspot, BigDFT_Inputs *in);
 
 int main(guint argc, char **argv)
 {
   BigDFT_Atoms *atoms;
   guint i, n, nelec;
   double *radii, peak;
-  BigDFT_Glr *glr;
+  BigDFT_LocReg *glr;
   double h[3] = {0.45, 0.45, 0.45};
   gboolean *cgrid, *fgrid;
 #define CRMULT 5.
@@ -28,11 +33,17 @@ int main(guint argc, char **argv)
   BigDFT_Orbs *orbs;
   BigDFT_Proj *proj;
   BigDFT_LocalFields *denspot;
+#ifdef HAVE_GLIB
+  GMainLoop *loop;
+#endif
 
   int out_pipe[2], stdout_fileno_old;
 
 #ifdef HAVE_GLIB
+  /* g_mem_set_vtable (glib_mem_profiler_table); */
   g_type_init();
+  g_thread_init(NULL);
+  loop = g_main_loop_new(NULL, FALSE);
 #endif
 
   fprintf(stdout, "Test BigDFT_Atoms structure creation.\n");
@@ -108,8 +119,8 @@ int main(guint argc, char **argv)
     fprintf(stdout, " Type %d, radii %f %f %f\n", i,
             radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
   
-  fprintf(stdout, "Test BigDFT_Glr structure creation.\n");
-  glr = bigdft_glr_new_with_wave_descriptors(atoms, radii, h, CRMULT, FRMULT);
+  fprintf(stdout, "Test BigDFT_LocReg structure creation.\n");
+  glr = bigdft_locreg_new_with_wave_descriptors(atoms, radii, h, CRMULT, FRMULT);
   for (i = 0; i  < atoms->nat; i++)
     fprintf(stdout, " Atoms %d, coord. %10.6f %10.6f %10.6f '%2s', type %d\n",
             i, atoms->rxyz.data[3 * i], atoms->rxyz.data[3 * i + 1],
@@ -147,11 +158,11 @@ int main(guint argc, char **argv)
   bigdft_inputs_parse_additional(in, atoms);
 
   fprintf(stdout, "Test BigDFT_Orbs structure creation.\n");
-  orbs = bigdft_orbs_new(atoms, in, glr, 0, 1, &nelec);
+  orbs = bigdft_orbs_new(glr, in, 0, 1, &nelec);
   fprintf(stdout, " System has %d electrons.\n", nelec);
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
-  proj = bigdft_proj_new(atoms, glr, orbs, radii, in->frmult);
+  proj = bigdft_proj_new(glr, orbs, in->frmult);
   fprintf(stdout, " System has %d projectors, and %d elements.\n",
           proj->nproj, proj->nprojel);
 
@@ -159,19 +170,28 @@ int main(guint argc, char **argv)
     {
       fprintf(stdout, "Test memory estimation.\n");
       stdout_fileno_old = redirect_init(out_pipe);
-      peak = bigdft_memory_peak(4, glr, in, orbs, proj);
+      peak = bigdft_memory_get_peak(4, glr, in, orbs, proj);
       redirect_dump(out_pipe, stdout_fileno_old);
       fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
     }
 
   fprintf(stdout, "Test BigDFT_LocalFields creation.\n");
-  denspot = bigdft_localfields_new(atoms, glr, in, radii, 0, 1);
+  denspot = bigdft_localfields_new(glr, in, 0, 1);
   fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
 
+  /* Use a thread to generate the ionic potential... */
   fprintf(stdout, " Calculate ionic potential.\n");
-  bigdft_localfields_create_effective_ionic_pot(denspot, in, 0, 1);
+  calculate_ionic_pot(denspot, in);
+
+  /* Block here in a main loop. */
+#ifdef HAVE_GLIB
+  g_signal_connect(G_OBJECT(denspot), "v-ext-ready",
+                   G_CALLBACK(onVExtReady), (gpointer)loop);
+  g_timeout_add_seconds(5, exit_loop, (gpointer)loop);
+  g_main_loop_run(loop);
+#endif
 
   fprintf(stdout, "Test BigDFT_LocalFields free.\n");
   bigdft_localfields_free(denspot);
@@ -189,8 +209,8 @@ int main(guint argc, char **argv)
   bigdft_inputs_free(in);
   fprintf(stdout, " Ok\n");
 
-  fprintf(stdout, "Test BigDFT_Glr free.\n");
-  bigdft_glr_free(glr);
+  fprintf(stdout, "Test BigDFT_LocReg free.\n");
+  bigdft_locreg_free(glr);
   fprintf(stdout, " Ok\n");
 
   fprintf(stdout, "Test BigDFT_Atoms free.\n");
@@ -204,6 +224,10 @@ int main(guint argc, char **argv)
       stdout_fileno_old = redirect_init(out_pipe);
       FC_FUNC_(memocc_report, MEMOCC_REPORT)();
       redirect_dump(out_pipe, stdout_fileno_old);
+
+#ifdef HAVE_GLIB
+      /* g_mem_profile(); */
+#endif
     }
 
   return 0;
@@ -256,4 +280,61 @@ static void redirect_dump(int out_pipe[2], int stdout_fileno_old)
   /* Close the pipes. */
   close(out_pipe[0]);
   close(out_pipe[1]);
+}
+
+#ifdef HAVE_GLIB
+static gboolean exit_loop(gpointer data)
+{
+  g_main_loop_quit((GMainLoop*)data);
+  fprintf(stdout, "Error, signals timeout.\n");
+  return FALSE;
+}
+
+static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data)
+{
+  /* Copy the data of V_Ext to main process memory for later use. */
+  
+  g_main_loop_quit((GMainLoop*)data);
+}
+#endif
+
+struct ionicpot_
+{
+  BigDFT_LocalFields *denspot;
+  BigDFT_Inputs *in;
+};
+static gpointer calculate_ionic_pot_thread(gpointer data)
+{
+  struct ionicpot_ *container = (struct ionicpot_*)data;
+  
+  fprintf(stdout, " Calculation of ionic potential started.\n");
+  bigdft_localfields_create_effective_ionic_pot(container->denspot, container->in, 0, 1);
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(container->denspot));
+#endif
+  fprintf(stdout, " Calculation of ionic potential finished.\n");
+  g_free(container);
+
+  return (gpointer)0;
+}
+
+static void calculate_ionic_pot(BigDFT_LocalFields *denspot, BigDFT_Inputs *in)
+{
+#ifdef G_THREADS_ENABLED
+  GThread *ld_thread;
+  GError *error = (GError*)0;
+#endif
+  struct ionicpot_ *ct;
+
+  ct = g_malloc(sizeof(struct ionicpot_));
+  ct->denspot = denspot;
+  ct->in = in;
+#ifdef HAVE_GLIB
+  g_object_ref(G_OBJECT(denspot));
+#endif
+#ifdef G_THREADS_ENABLED
+  ld_thread = g_thread_create(calculate_ionic_pot_thread, ct, FALSE, &error);
+#else
+  calculate_ionic_pot_thread(ct);
+#endif
 }
