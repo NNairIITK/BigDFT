@@ -21,7 +21,7 @@ int main(guint argc, char **argv)
   double *radii, peak;
   BigDFT_Glr *glr;
   double h[3] = {0.45, 0.45, 0.45};
-  guint *cgrid, *fgrid;
+  gboolean *cgrid, *fgrid;
 #define CRMULT 5.
 #define FRMULT 8.
   BigDFT_Inputs *in;
@@ -116,20 +116,21 @@ int main(guint argc, char **argv)
             atoms->rxyz.data[3 * i + 2], atoms->atomnames[atoms->iatype[i] - 1],
             atoms->iatype[i]);
   fprintf(stdout, " Box is in   %f %f %f\n", atoms->alat[0], atoms->alat[1], atoms->alat[2]);
-  fprintf(stdout, " Shift is    %f %f %f\n", atoms->shift[0], atoms->shift[1], atoms->shift[2]);
+  fprintf(stdout, " Shift is     %f %f  %f\n", atoms->shift[0], atoms->shift[1], atoms->shift[2]);
   fprintf(stdout, " Geocode is  %c\n", glr->geocode);
   fprintf(stdout, " Grid is     %9d %9d %9d\n", glr->n[0], glr->n[1], glr->n[2]);
   fprintf(stdout, " Int grid is %9d %9d %9d\n", glr->ni[0], glr->ni[1], glr->ni[2]);
+  fprintf(stdout, " H grids are %9.9g %9.9g %9.9g\n", glr->h[0], glr->h[1], glr->h[2]);
 
   fprintf(stdout, "Test calculation of grid points.\n");
-  cgrid = bigdft_fill_logrid(atoms, glr->n, radii, CRMULT, h);
+  cgrid = bigdft_atoms_get_grid(atoms, radii, CRMULT, glr->n);
   for (i = 0, n = 0; i < (glr->n[0] + 1) * (glr->n[1] + 1) * (glr->n[2] + 1); i++)
-    if (cgrid[i] != 0)
+    if (cgrid[i])
       n += 1;
   fprintf(stdout, " Coarse grid has %7d points.\n", n);
-  fgrid = bigdft_fill_logrid(atoms, glr->n, radii + atoms->ntypes, FRMULT, h);
+  fgrid = bigdft_atoms_get_grid(atoms, radii + atoms->ntypes, FRMULT, glr->n);
   for (i = 0, n = 0; i < (glr->n[0] + 1) * (glr->n[1] + 1) * (glr->n[2] + 1); i++)
-    if (fgrid[i] != 0)
+    if (fgrid[i])
       n += 1;
   fprintf(stdout, " Fine grid has   %7d points.\n", n);
 
@@ -142,7 +143,7 @@ int main(guint argc, char **argv)
   fprintf(stdout, " Input variables are %f %f %f  -  %f %f  -  %d\n",
           in->h[0], in->h[1], in->h[2], in->crmult, in->frmult, in->ixc);
 
-  bigdft_atoms_set_symmetries(atoms, !in->disableSym, in->elecfield);
+  bigdft_atoms_set_symmetries(atoms, !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, atoms);
 
   fprintf(stdout, "Test BigDFT_Orbs structure creation.\n");

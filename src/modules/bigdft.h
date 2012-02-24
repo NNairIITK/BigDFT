@@ -32,6 +32,7 @@ typedef struct BigDFT_Atoms_
 {
 #ifdef GLIB_MAJOR_VERSION
   GObject parent;
+  gboolean dispose_has_run;
 #endif
   /* Bindings to values, obtained by copy. Update them with
      bigdft_atoms_sync(). */
@@ -55,9 +56,7 @@ typedef struct BigDFT_Atoms_
 
   /* Private. */
   void *data;
-
-  /* GObject machinery. */
-  gboolean dispose_has_run;
+  void *sym;
 } BigDFT_Atoms;
 
 
@@ -68,10 +67,12 @@ void          bigdft_atoms_set_n_atoms     (BigDFT_Atoms *atoms, guint nat);
 void          bigdft_atoms_set_n_types     (BigDFT_Atoms *atoms, guint ntypes);
 void          bigdft_atoms_set_psp         (BigDFT_Atoms *atoms, int ixc);
 void          bigdft_atoms_set_symmetries  (BigDFT_Atoms *atoms, gboolean active,
-                                            double elecfield[3]);
+                                            double tol, double elecfield[3]);
 void          bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis);
 void          bigdft_atoms_sync            (BigDFT_Atoms *atoms);
 double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms);
+gboolean*     bigdft_atoms_get_grid        (const BigDFT_Atoms *atoms, double *radii,
+                                            double mult, guint n[3]);
 
 /*********************************/
 /* BigDFT_Inputs data structure. */
@@ -135,6 +136,10 @@ typedef struct BigDFT_glr_
   gchar geocode;
   double h[3];
   guint n[3], ni[3];
+
+  /* Values that have been used to built this glr. */
+  /* double *radii; */
+  /* double crmult, frmult; */
   
   /* TODO: bindings to values... */
 
@@ -267,8 +272,6 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
 /******************/
 double bigdft_memory_peak(int nproc, BigDFT_Glr *lr, BigDFT_Inputs *in,
                           BigDFT_Orbs *orbs, BigDFT_Proj *proj);
-guint* bigdft_fill_logrid(BigDFT_Atoms *atoms, guint n[3], double *radii,
-                          double mult, double h[3]);
 f90_pointer_double_4D* bigdft_read_wave_to_isf(const gchar *filename, int iorbp,
                                             double h[3], int n[3], int *nspinor);
 void bigdft_free_wave_to_isf(f90_pointer_double_4D *psiscf);

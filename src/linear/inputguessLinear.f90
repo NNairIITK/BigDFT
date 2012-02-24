@@ -115,7 +115,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
   call copy_locreg_descriptors(Glr, lig%lzdGauss%Glr, subname)
 
   ! Determine the localization regions.
-  call initLocregs(iproc, nproc, at%nat, rxyz, lig%lzdig, lig%orbsig, input, Glr, lin%locrad, lin%locregShape)
+  call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lig%lzdig, &
+       lig%orbsig, Glr, lin%locrad, lin%locregShape)
   !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
   call copy_locreg_descriptors(Glr, lig%lzdig%Glr, subname)
 
@@ -123,14 +124,15 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxy
   locrad=max(12.d0,maxval(lin%locrad(:)))
   call nullify_orbitals_data(lig%orbsGauss)
   call copy_orbitals_data(lig%orbsig, lig%orbsGauss, subname)
-  call initLocregs(iproc, nproc, at%nat, rxyz, lig%lzdGauss, lig%orbsGauss, input, Glr, locrad, lin%locregShape)
+  call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lig%lzdGauss, &
+       lig%orbsGauss, Glr, locrad, lin%locregShape)
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
   !!call initCommsOrtho(iproc, nproc, lig%lzdGauss, lig%orbsGauss, lig%orbsGauss%inWhichLocreg, &
   !!     input, lig%op, lig%comon, tag)
-  call initCommsOrtho(iproc, nproc, lig%lzdig, lig%orbsig, lig%orbsig%inWhichLocreg, &
-       input, lin%locregShape, lig%op, lig%comon, tag)
+  call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lig%lzdig, lig%orbsig, &
+       lig%orbsig%inWhichLocreg, lin%locregShape, lig%op, lig%comon, tag)
 
   ! Initialize the parameters needed for communicationg the potential.
   call copy_locreg_descriptors(Glr, lig%lzdig%Glr, subname)
@@ -644,6 +646,14 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   input%hx,input%hy,input%hz,rxyz,&
                   proj,lin%lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
              deallocate(confdatarr)
+!DEBUG
+!             if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+!             if (iproc==0) then
+!                 write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!                 ekin_sum,epot_sum,eproj_sum
+!                 write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+!             endif
+!END DEBUG
           end if
       else
           if(iproc==0) write(*,'(3x,a)', advance='no') 'no Hamiltonian application required... '
@@ -1163,7 +1173,8 @@ call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
 call nullify_p2pComms(comon)
-call initCommsOrtho(iproc, nproc, lzdig, orbsig, onWhichAtom, input, locregShape, op, comon, tagout)
+call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lzdig, orbsig, &
+     onWhichAtom, locregShape, op, comon, tagout)
 
 
 call allocateCommuncationBuffersOrtho(comon, subname)
@@ -1314,29 +1325,30 @@ do iat=1,lzdig%nlr
             ilrold=ilr
             jjprocold=jjproc
         end do
-        
+
         ! Wait for the communication to complete
         if (nproc > 1) then
-           isend=0
-           waitForSend: do
-              call mpi_waitany(nsend-isend, sendrequests(1), ind, mpi_status_ignore, ierr)
-              isend=isend+1
-              do i=ind,nsend-isend
-                 sendrequests(i)=sendrequests(i+1)
-              end do
-              if(isend==nsend) exit waitForSend
-           end do waitForSend
+          isend=0
+          waitForSend: do
+             if(isend==nsend) exit waitForSend
+             call mpi_waitany(nsend-isend, sendrequests(1), ind, mpi_status_ignore, ierr)
+             isend=isend+1
+             do i=ind,nsend-isend
+                sendrequests(i)=sendrequests(i+1)
+             end do
+          end do waitForSend
 
-           irecv=0
-           waitForRecv: do
-              call mpi_waitany(nrecv-irecv, recvrequests(1), ind, mpi_status_ignore, ierr)
-              irecv=irecv+1
-              do i=ind,nrecv-irecv
-                 recvrequests(i)=recvrequests(i+1)
-              end do
-              if(irecv==nrecv) exit waitForrecv
-           end do waitForRecv
+          irecv=0
+          waitForRecv: do
+             if(irecv==nrecv) exit waitForrecv
+             call mpi_waitany(nrecv-irecv, recvrequests(1), ind, mpi_status_ignore, ierr)
+             irecv=irecv+1
+             do i=ind,nrecv-irecv
+                recvrequests(i)=recvrequests(i+1)
+             end do
+          end do waitForRecv
         end if
+
      ! Uncompress the matrices
      do i=imatold,imat
         !call uncompressMatrix(orbs%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
@@ -1417,9 +1429,11 @@ real(8),intent(in):: hx, hy, hz
 type(matrixLocalizationRegion),dimension(:),pointer,intent(out):: mlr
 
 ! Local variables
-integer:: ilr, jlr, jorb, ii, istat, is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
+integer:: ilr, jlr, jorb, ii, istat
+!integer::  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 real(8):: cut, tt
-logical:: ovrlpx, ovrlpy, ovrlpz
+!logical:: ovrlpx, ovrlpy, ovrlpz
+logical:: isoverlap
 character(len=*),parameter:: subname='determineLocalizationRegions'
 
 
@@ -1476,20 +1490,22 @@ end do
 ! Count for each localization region the number of matrix elements within the cutoff.
 do ilr=1,nlr
   mlr(ilr)%norbinlr=0
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   do jorb=1,norb
      jlr=onWhichAtomAll(jorb)
-     !call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-     js1=floor(rxyz(1,jlr)/hx)
-     je1=ceiling(rxyz(1,jlr)/hx)
-     js2=floor(rxyz(2,jlr)/hy)
-     je2=ceiling(rxyz(2,jlr)/hy)
-     js3=floor(rxyz(3,jlr)/hz)
-     je3=ceiling(rxyz(3,jlr)/hz)
-     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!     call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+!     js1=floor(rxyz(1,jlr)/hx)
+!     je1=ceiling(rxyz(1,jlr)/hx)
+!     js2=floor(rxyz(2,jlr)/hy)
+!     je2=ceiling(rxyz(2,jlr)/hy)
+!     js3=floor(rxyz(3,jlr)/hz)
+!     je3=ceiling(rxyz(3,jlr)/hz)
+!     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+     call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzd%Llr(jlr),isoverlap)     
+!     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+     if(isoverlap) then
         mlr(ilr)%norbinlr=mlr(ilr)%norbinlr+1
      end if
   end do
@@ -1503,24 +1519,26 @@ end do
 ! Now determine the indices of the elements with an overlap.
 do ilr=1,nlr
   ii=0
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+  !call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   do jorb=1,norb
      jlr=onWhichAtomAll(jorb)
      !call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-     js1=floor(rxyz(1,jlr)/hx)
-     je1=ceiling(rxyz(1,jlr)/hx)
-     js2=floor(rxyz(2,jlr)/hy)
-     je2=ceiling(rxyz(2,jlr)/hy)
-     js3=floor(rxyz(3,jlr)/hz)
-     je3=ceiling(rxyz(3,jlr)/hz)
-     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!     js1=floor(rxyz(1,jlr)/hx)
+!     je1=ceiling(rxyz(1,jlr)/hx)
+!     js2=floor(rxyz(2,jlr)/hy)
+!     je2=ceiling(rxyz(2,jlr)/hy)
+!     js3=floor(rxyz(3,jlr)/hz)
+!     je3=ceiling(rxyz(3,jlr)/hz)
+!     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+      call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzd%Llr(jlr),isoverlap)
+!     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+      if(isoverlap) then
         ii=ii+1
         mlr(ilr)%indexInGlobal(ii)=jorb
         !if(iproc==0) write(*,'(a,3i8)') 'ilr, ii, mlr(ilr)%indexInGlobal(ii)', ilr, ii, mlr(ilr)%indexInGlobal(ii)
-     end if
+      end if
   end do
   if(ii/=mlr(ilr)%norbinlr) then
      write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ', iproc, ': ii/=mlr(ilr)%norbinlr', ii, mlr(ilr)%norbinlr
@@ -1711,7 +1729,7 @@ call memocc(istat, comom%noverlap, 'comom%noverlap', subname)
 !do ilr=1,lzd%nlr
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   novrlp=0
   do jorbout=1,orbs%norb
      jlr=onWhichAtomPhi(jorbout)
@@ -1750,7 +1768,7 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   !comom%overlaps(:,ilr)=0
   comom%overlaps(:,iorbout)=0
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   novrlp=0
   do jorbout=1,orbs%norb
      jlr=onWhichAtomPhi(jorbout)
@@ -1799,7 +1817,7 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   comom%olr(:,ilr)%norbinlr=0
   !do jorbout=1,comom%noverlap(ilr)
   do jorbout=1,comom%noverlap(iorbout)
@@ -1857,7 +1875,7 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+  !call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   !do jorbout=1,comom%noverlap(ilr)
   do jorbout=1,comom%noverlap(iorbout)
      !jjorb=comom%overlaps(jorbout,ilr)
@@ -3063,7 +3081,7 @@ call postCommsOverlap(iproc, nproc, comon)
 call gatherOrbitals2(iproc, nproc, comon)
 !call mpi_barrier(mpi_comm_world, ist)
 !stop
-call expandOrbital2Variable(iproc, nproc, orbs, input, lzdig, op, comon, lchiovrlp)
+call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzdig, op, comon, lchiovrlp)
 
 call deallocateCommuncationBuffersOrtho(comon, subname)
 
@@ -3272,7 +3290,7 @@ type(matrixDescriptors):: mad
       ! Flag which checks convergence.
       converged=.false.
     
-      if(iproc==0) write(*,'(1x,a)') '============================== optmizing coefficients =============================='
+      if(iproc==0) write(*,'(1x,a)') '============================== optimizing coefficients =============================='
     
       ! The optimization loop.
     
@@ -3458,7 +3476,7 @@ type(matrixDescriptors):: mad
           ! Improve the coefficients (by steepet descent).
           do iorb=1,ip%norb_par(iproc)
               ilr=onWhichAtom(ip%isorb+iorb)
-              call daxpy(matmin%mlr(ilr)%norbinlr, -alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
+              call daxpy(matmin%mlr(ilr)%norbinlr,-alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
           end do
           !!if (ldiis%isx > 0) then
           !!    ldiis%mis=mod(ldiis%is,ldiis%isx)+1

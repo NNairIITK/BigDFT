@@ -199,7 +199,7 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
 END SUBROUTINE allocate_atoms_ntypes
 
 !> Calculate symmetries and update
-subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
+subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   use module_base
   use module_types
   use defs_basis
@@ -208,6 +208,7 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   logical, intent(in) :: disableSym
+  real(gp), intent(in) :: tol
   real(gp), intent(in) :: elecfield(3)
   !local variables
   character(len=*), parameter :: subname='atoms_set_symmetries'
@@ -220,6 +221,8 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
      if (atoms%sym%symObj < 0) then
         call symmetry_new(atoms%sym%symObj)
      end if
+     ! Adjust tolerance
+     if (tol > 0._gp) call symmetry_set_tolerance(atoms%sym%symObj, tol, ierr)
      ! New values
      rprimd(:,:) = 0
      rprimd(1,1) = atoms%alat1
@@ -237,11 +240,6 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, elecfield)
      deallocate(xRed,stat=i_stat)
      call memocc(i_stat,i_all,'xRed',subname)
      if (atoms%geocode == 'S') then
-        if (.not. disableSym) then
-           !!for the moment symmetries are not allowed in surfaces BC
-           write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
-           stop
-        end if
         call symmetry_set_periodicity(atoms%sym%symObj, &
              & (/ .true., .false., .true. /), ierr)
      else if (atoms%geocode == 'F') then
@@ -1161,10 +1159,11 @@ END SUBROUTINE charge_and_spol
 
 ! Init routine for bindings
 !> Allocate a new atoms_data type, for bindings.
-subroutine atoms_new(atoms)
+subroutine atoms_new(atoms, sym)
   use module_types
   implicit none
   type(atoms_data), pointer :: atoms
+  type(symmetry_data), pointer :: sym
   
   allocate(atoms)
   atoms%geocode = "F"
@@ -1175,6 +1174,7 @@ subroutine atoms_new(atoms)
   atoms%sym%symObj = -1
   nullify(atoms%sym%irrzon)
   nullify(atoms%sym%phnons)
+  sym => atoms%sym
 END SUBROUTINE atoms_new
 subroutine atoms_new_from_file(lstat, atoms, rxyz, filename, ln)
    use module_base
@@ -1501,7 +1501,7 @@ subroutine atoms_write(atoms, filename, filelen, rxyz, forces, energy, comment, 
   end if
 END SUBROUTINE atoms_write
 
-subroutine symmetry_set_irreductible_zone(sym, n1i, n2i, n3i, nspin)
+subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
   use module_base
   use module_types
   use m_ab6_kpoints
@@ -1509,9 +1509,10 @@ subroutine symmetry_set_irreductible_zone(sym, n1i, n2i, n3i, nspin)
   implicit none
   type(symmetry_data), intent(inout) :: sym
   integer, intent(in) :: n1i, n2i, n3i, nspin
+  character(len = 1), intent(in) :: geocode
 
   character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
-  integer :: i_stat, nsym, i_all
+  integer :: i_stat, nsym, i_all, i_third
 
   if (associated(sym%irrzon)) then
      i_all=-product(shape(sym%irrzon))*kind(sym%irrzon)
@@ -1532,17 +1533,26 @@ subroutine symmetry_set_irreductible_zone(sym, n1i, n2i, n3i, nspin)
      if (nsym > 1) then
         ! Current third dimension is set to 1 always
         ! since nspin == nsppol always in BigDFT
-        allocate(sym%irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
+        i_third = 1
+        if (geocode == "S") i_third = n2i
+        allocate(sym%irrzon(n1i*(n2i - i_third + 1)*n3i,2,i_third+ndebug),stat=i_stat)
         call memocc(i_stat,sym%irrzon,'irrzon',subname)
-        allocate(sym%phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
+        allocate(sym%phnons(2,n1i*(n2i - i_third + 1)*n3i,i_third+ndebug),stat=i_stat)
         call memocc(i_stat,sym%phnons,'phnons',subname)
-        call kpoints_get_irreductible_zone(sym%irrzon, sym%phnons, &
-             &   n1i, n2i, n3i, nspin, nspin, sym%symObj, i_stat)
+        if (geocode /= "S") then
+           call kpoints_get_irreductible_zone(sym%irrzon, sym%phnons, &
+                &   n1i, n2i, n3i, nspin, nspin, sym%symObj, i_stat)
+        else
+           do i_third = 1, n2i, 1
+              call kpoints_get_irreductible_zone(sym%irrzon(1:,1:,i_third), &
+                   & sym%phnons(1:,1:,i_third), n1i, 1, n3i, nspin, nspin, sym%symObj, i_stat)
+           end do
+        end if
      end if
   end if
 
   if (.not. associated(sym%irrzon)) then
-     ! Allocate anyway to small size other size the bounds check does not pass.
+     ! Allocate anyway to small size otherwise the bounds check does not pass.
      allocate(sym%irrzon(1,2,1+ndebug),stat=i_stat)
      call memocc(i_stat,sym%irrzon,'irrzon',subname)
      allocate(sym%phnons(2,1,1+ndebug),stat=i_stat)

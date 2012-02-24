@@ -40,13 +40,13 @@ static void bigdft_atoms_init(BigDFT_Atoms *atoms)
 }
 static void bigdft_atoms_dispose(GObject *obj)
 {
+#ifdef HAVE_GLIB
   BigDFT_Atoms *atoms = BIGDFT_ATOMS(obj);
 
   if (atoms->dispose_has_run)
     return;
   atoms->dispose_has_run = TRUE;
 
-#ifdef HAVE_GLIB
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_atoms_parent_class)->dispose(obj);
 #endif
@@ -105,7 +105,7 @@ BigDFT_Atoms* bigdft_atoms_new()
   memset(atoms, 0, sizeof(BigDFT_Atoms));
   bigdft_atoms_init(atoms);
 #endif
-  FC_FUNC_(atoms_new, ATOMS_NEW)(&atoms->data);
+  FC_FUNC_(atoms_new, ATOMS_NEW)(&atoms->data, &atoms->sym);
 
   return atoms;
 }
@@ -212,13 +212,14 @@ void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc)
     (atoms->data, (int*)(&atoms->natsc), (int*)(&atoms->donlcc));
 }
 
-void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active, double elecfield[3])
+void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active,
+                                 double tol, double elecfield[3])
 {
   int disable;
 
   disable = (!active);
   FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(atoms->data, atoms->rxyz.data,
-                                                       &disable, elecfield);
+                                                       &disable, &tol, elecfield);
 }
 
 void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
@@ -255,4 +256,34 @@ void bigdft_atoms_write(const BigDFT_Atoms *atoms, const gchar *filename)
   ln2 = strlen(filename);
   FC_FUNC_(atoms_write, ATOMS_WRITE)(atoms->data, filename, &ln2, atoms->rxyz.data,
                                      &forces, &atoms->energy, comment, &ln);
+}
+
+gboolean* bigdft_atoms_get_grid(const BigDFT_Atoms *atoms, double *radii,
+                                double mult, guint n[3])
+{
+  gboolean *grid;
+  guint orig = 0;
+  double h_[3];
+
+  grid = g_malloc(sizeof(gboolean) * (n[0] + 1) * (n[1] + 1) * (n[2] + 1));
+  if (atoms->geocode == 'F')
+    h_[0] = atoms->alat[0] / n[0];
+  else
+    h_[0] = atoms->alat[0] / (n[0] + 1);
+  if (atoms->geocode == 'F' || atoms->geocode == 'S')
+    h_[1] = atoms->alat[1] / n[1];
+  else
+    h_[1] = atoms->alat[1] / (n[1] + 1);
+  if (atoms->geocode == 'F')
+    h_[2] = atoms->alat[2] / n[2];
+  else
+    h_[2] = atoms->alat[2] / (n[2] + 1);
+
+  FC_FUNC_(fill_logrid, FILL_LOGRID)(&atoms->geocode, n, n + 1, n + 2,
+                                     &orig, n, &orig, n + 1, &orig, n + 2,
+                                     &orig, &atoms->nat, &atoms->ntypes, atoms->iatype,
+                                     atoms->rxyz.data, radii, &mult, h_, h_ + 1, h_ + 2,
+                                     (int*)grid);
+
+  return grid;
 }

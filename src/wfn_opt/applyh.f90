@@ -1258,10 +1258,10 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
     do ispinor=1,orbs%nspinor,ncplx
                  call wpdot_wrap1(ncplx,  &
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                      wfd%keyv,wfd%keyglob,&
+                      wfd%keyvglob,wfd%keyglob,&
                       psi(1,ispinor), &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                      plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
+                      plr%wfd%keyvglob,&!nlpspd%keyv_p(jseg_c),&
                       plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c),&
                       cproj_i,proj_count)
@@ -1301,10 +1301,10 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                 do ispinor=1,orbs%nspinor,ncplx
                    call wpdot_wrap(ncplx,  &
                         wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                        wfd%keyv,wfd%keyglob,&
+                        wfd%keyvglob,wfd%keyglob,&
                         psi(1,ispinor), &
                         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                        plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
+                        plr%wfd%keyvglob,&!nlpspd%keyv_p(jseg_c),&
                         plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                         proj(istart_c_i),&
                         cproj(ispinor,m,i,l))
@@ -1352,11 +1352,11 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 
                  call waxpy_wrap(ncplx,dproj(ispinor,m,i,l),&
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                      plr%wfd%keyv,&!nlpspd%keyv_p(jseg_c),&
+                      plr%wfd%keyvglob,&!nlpspd%keyv_p(jseg_c),&
                       plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                       proj(istart_c),&
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                      wfd%keyv,wfd%keyglob,&
+                      wfd%keyvglob,wfd%keyglob,&
                       hpsi(1,ispinor))
               end do
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx

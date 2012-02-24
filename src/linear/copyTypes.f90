@@ -129,19 +129,31 @@ do i2=iis2,iie2
     end do
 end do
 
-if(associated(wfdout%keyv)) then
-    iall=-product(shape(wfdout%keyv))*kind(wfdout%keyv)
-    deallocate(wfdout%keyv, stat=istat)
-    call memocc(istat, iall, 'wfdout%keyv', subname)
+if(associated(wfdout%keyvloc)) then
+    iall=-product(shape(wfdout%keyvloc))*kind(wfdout%keyvloc)
+    deallocate(wfdout%keyvloc, stat=istat)
+    call memocc(istat, iall, 'wfdout%keyvloc', subname)
 end if
-iis1=lbound(wfdin%keyv,1)
-iie1=ubound(wfdin%keyv,1)
-allocate(wfdout%keyv(iis1:iie1), stat=istat)
-call memocc(istat, wfdout%keyv, 'wfdout%keyv', subname)
+iis1=lbound(wfdin%keyvloc,1)
+iie1=ubound(wfdin%keyvloc,1)
+allocate(wfdout%keyvloc(iis1:iie1), stat=istat)
+call memocc(istat, wfdout%keyvloc, 'wfdout%keyvloc', subname)
 do i1=iis1,iie1
-    wfdout%keyv(i1) = wfdin%keyv(i1)
+    wfdout%keyvloc(i1) = wfdin%keyvloc(i1)
 end do
 
+if(associated(wfdout%keyvglob)) then
+    iall=-product(shape(wfdout%keyvglob))*kind(wfdout%keyvglob)
+    deallocate(wfdout%keyvglob, stat=istat)
+    call memocc(istat, iall, 'wfdout%keyvglob', subname)
+end if
+iis1=lbound(wfdin%keyvglob,1)
+iie1=ubound(wfdin%keyvglob,1)
+allocate(wfdout%keyvglob(iis1:iie1), stat=istat)
+call memocc(istat, wfdout%keyvglob, 'wfdout%keyvglob', subname)
+do i1=iis1,iie1
+    wfdout%keyvglob(i1) = wfdin%keyvglob(i1)
+end do
 
 end subroutine copy_wavefunctions_descriptors
 
@@ -657,8 +669,11 @@ subroutine copy_nonlocal_psp_descriptors(nlpspin, nlpspout, subname)
  
      if (nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f > 0) then
         call vcopy(nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f,&
-             nlpspin%plr(iat)%wfd%keyv(1),1,&
-             nlpspout%plr(iat)%wfd%keyv(1),1)
+             nlpspin%plr(iat)%wfd%keyvloc(1),1,&
+             nlpspout%plr(iat)%wfd%keyvloc(1),1)
+        call vcopy(nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f,&
+             nlpspin%plr(iat)%wfd%keyvglob(1),1,&
+             nlpspout%plr(iat)%wfd%keyvglob(1),1)
         call vcopy(2*(nlpspout%plr(iat)%wfd%nseg_c+&
              nlpspout%plr(iat)%wfd%nseg_f),&
              nlpspin%plr(iat)%wfd%keygloc(1,1),1,&
