@@ -647,12 +647,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   proj,lin%lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
              deallocate(confdatarr)
 !DEBUG
-             if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
-             if (iproc==0) then
-                 write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-                 ekin_sum,epot_sum,eproj_sum
-                 write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-             endif
+!             if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+!             if (iproc==0) then
+!                 write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!                 ekin_sum,epot_sum,eproj_sum
+!                 write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+!             endif
 !END DEBUG
           end if
       else
@@ -1325,29 +1325,30 @@ do iat=1,lzdig%nlr
             ilrold=ilr
             jjprocold=jjproc
         end do
-        
+
         ! Wait for the communication to complete
         if (nproc > 1) then
-           isend=0
-           waitForSend: do
-              call mpi_waitany(nsend-isend, sendrequests(1), ind, mpi_status_ignore, ierr)
-              isend=isend+1
-              do i=ind,nsend-isend
-                 sendrequests(i)=sendrequests(i+1)
-              end do
-              if(isend==nsend) exit waitForSend
-           end do waitForSend
+          isend=0
+          waitForSend: do
+             if(isend==nsend) exit waitForSend
+             call mpi_waitany(nsend-isend, sendrequests(1), ind, mpi_status_ignore, ierr)
+             isend=isend+1
+             do i=ind,nsend-isend
+                sendrequests(i)=sendrequests(i+1)
+             end do
+          end do waitForSend
 
-           irecv=0
-           waitForRecv: do
-              call mpi_waitany(nrecv-irecv, recvrequests(1), ind, mpi_status_ignore, ierr)
-              irecv=irecv+1
-              do i=ind,nrecv-irecv
-                 recvrequests(i)=recvrequests(i+1)
-              end do
-              if(irecv==nrecv) exit waitForrecv
-           end do waitForRecv
+          irecv=0
+          waitForRecv: do
+             if(irecv==nrecv) exit waitForrecv
+             call mpi_waitany(nrecv-irecv, recvrequests(1), ind, mpi_status_ignore, ierr)
+             irecv=irecv+1
+             do i=ind,nrecv-irecv
+                recvrequests(i)=recvrequests(i+1)
+             end do
+          end do waitForRecv
         end if
+
      ! Uncompress the matrices
      do i=imatold,imat
         !call uncompressMatrix(orbs%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
@@ -3475,7 +3476,7 @@ type(matrixDescriptors):: mad
           ! Improve the coefficients (by steepet descent).
           do iorb=1,ip%norb_par(iproc)
               ilr=onWhichAtom(ip%isorb+iorb)
-              call daxpy(matmin%mlr(ilr)%norbinlr, -alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
+              call daxpy(matmin%mlr(ilr)%norbinlr,-alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
           end do
           !!if (ldiis%isx > 0) then
           !!    ldiis%mis=mod(ldiis%is,ldiis%isx)+1
