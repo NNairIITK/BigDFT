@@ -148,7 +148,7 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid_c,logrid_f
    !local variables
    character(len=*), parameter :: subname='wfd_from_grids'
-   integer :: i_stat, i_all, i,j
+   integer :: i_stat, i_all
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
    !assign the dimensions to improve (a little) readability
@@ -1508,8 +1508,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    type(local_zone_descriptors), intent(in) :: Lzd
    type(communications_arrays), intent(in) :: comms
    type(DFT_local_fields), intent(inout) :: denspot
-   type(GPU_pointers), intent(inout) :: GPU
-   type(input_variables):: input
+   type(GPU_pointers), intent(in) :: GPU
+   type(input_variables), intent(in) :: input
    type(symmetry_data), intent(in) :: symObj
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
@@ -1519,25 +1519,22 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
    logical :: switchGPUconv,switchOCLconv
-   integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx,nrhodim,irhotot_add,irho_add,ispin
+   integer :: i_stat,i_all,nspin_ig,iorb,idum=0,ncplx,irhotot_add,irho_add,ispin
    real(kind=4) :: tt,builtin_rand
    real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,eSIC_DC,etol,accurex
    type(orbitals_data) :: orbse
    type(communications_arrays) :: commse
    integer, dimension(:,:), allocatable :: norbsc_arr
-   real(wp), dimension(:), allocatable :: potxc,passmat
+   real(wp), dimension(:), allocatable :: passmat
    !real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
 !   real(wp), dimension(:), pointer :: pot,pot1
-   real(dp), dimension(:,:), pointer :: rho_p
    real(wp), dimension(:,:,:), pointer :: psigau
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(local_zone_descriptors) :: Lzde
+   type(GPU_pointers) :: GPUe
 !yk
-  real(dp),dimension(6) :: xcstr
-  integer :: i!,iorb,jorb,icplx
-  real(gp), dimension(:), allocatable :: ovrlp
-  real(gp), dimension(:,:), allocatable :: smat,tmp
+!  integer :: i!,iorb,jorb,icplx
 
    allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -1605,14 +1602,15 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      call memocc(i_stat,psi,'psi',subname)
 
      !allocate arrays for the GPU if a card is present
+     GPUe = GPU
      switchGPUconv=.false.
      switchOCLconv=.false.
      if (GPUconv .and. potshortcut ==0 ) then
         call prepare_gpu_for_locham(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,nspin_ig,&
-             hx,hy,hz,Lzde%Glr%wfd,orbse,GPU)
+             hx,hy,hz,Lzde%Glr%wfd,orbse,GPUe)
      else if (OCLconv .and. potshortcut ==0) then
         call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%geocode,&
-             nspin_ig,Lzde%Glr%wfd,orbse,GPU)
+             nspin_ig,Lzde%Glr%wfd,orbse,GPUe)
         if (iproc == 0) write(*,*)&
              'GPU data allocated'
      else if (GPUconv .and. potshortcut >0 ) then
@@ -1652,7 +1650,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !spin adaptation for the IG in the spinorial case
    orbse%nspin=nspin
    call sumrho(iproc,nproc,orbse,Lzde,hxh,hyh,hzh,denspot%dpcom%nscatterarr,&
-        GPU,symObj,denspot%rhod,psi,denspot%rho_psi)
+        GPUe,symObj,denspot%rhod,psi,denspot%rho_psi)
    call communicate_density(iproc,nproc,orbse%nspin,hxh,hyh,hzh,Lzde,&
         denspot%rhod,denspot%dpcom%nscatterarr,denspot%rho_psi,denspot%rhov)
    orbse%nspin=nspin_ig
@@ -1859,7 +1857,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
    call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
         proj,Lzde,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
-        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&
+        ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPUe,&
         pkernel=denspot%pkernelseq)
     !restore the good value
     call local_potential_dimensions(Lzde,orbs,denspot%dpcom%ngatherarr(0,1))
@@ -1923,9 +1921,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    
      !free GPU if it is the case
      if (GPUconv) then
-        call free_gpu(GPU,orbse%norbp)
+        call free_gpu(GPUe,orbse%norbp)
      else if (OCLconv) then
-        call free_gpu_OCL(GPU,orbse,nspin_ig)
+        call free_gpu_OCL(GPUe,orbse,nspin_ig)
      end if
 
      if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
@@ -2042,8 +2040,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
-     & denspot, nlpspd, proj, orbs, comms, psi, hpsi, psit, inputpsi, &
-     & gbd, gaucoeffs, wfd_old, psi_old, d_old, hx_old, hy_old, hz_old, rxyz_old, norbv)
+     & denspot, nlpspd, proj, orbs, comms, psi, hpsi, psit, inputpsi, norbv, &
+     & gbd, gaucoeffs, wfd_old, psi_old, d_old, hx_old, hy_old, hz_old, rxyz_old)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
@@ -2051,8 +2049,8 @@ subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
 
   integer, intent(in) :: iproc, nproc
   type(input_variables), intent(in) :: in
-  type(local_zone_descriptors), intent(inout) :: Lzd
-  type(GPU_pointers), intent(inout) :: GPU
+  type(local_zone_descriptors), intent(in) :: Lzd
+  type(GPU_pointers), intent(in) :: GPU
   real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
@@ -2071,7 +2069,7 @@ subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
 
   character(len = *), parameter :: subname = "input_wf"
   logical :: onefile
-  integer :: input_wf_format, i_stat, i_all, nspin
+  integer :: input_wf_format, i_stat, nspin
   type(gaussian_basis) :: Gvirt
 
   norbv=abs(in%norbv)

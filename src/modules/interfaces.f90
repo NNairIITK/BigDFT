@@ -498,10 +498,10 @@ module module_interfaces
          type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(inout) :: orbs
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-         type(local_zone_descriptors), intent(inout) :: Lzd
+         type(local_zone_descriptors), intent(in) :: Lzd
          type(communications_arrays), intent(in) :: comms
          type(DFT_local_fields), intent(inout) :: denspot
-         type(GPU_pointers), intent(inout) :: GPU
+         type(GPU_pointers), intent(in) :: GPU
          type(input_variables):: input
          type(symmetry_data), intent(in) :: symObj
          real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -512,15 +512,15 @@ module module_interfaces
        end subroutine input_wf_diag
 
        subroutine input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
-            & denspot, nlpspd, proj, orbs, comms, psi, hpsi, psit, inputpsi, &
-            & gbd, gaucoeffs, wfd_old, psi_old, d_old, hx_old, hy_old, hz_old, rxyz_old, norbv)
+            & denspot, nlpspd, proj, orbs, comms, psi, hpsi, psit, inputpsi, norbv, &
+            & gbd, gaucoeffs, wfd_old, psi_old, d_old, hx_old, hy_old, hz_old, rxyz_old)
          use module_defs
          use module_types
          implicit none
          integer, intent(in) :: iproc, nproc
          type(input_variables), intent(in) :: in
-         type(local_zone_descriptors), intent(inout) :: Lzd
-         type(GPU_pointers), intent(inout) :: GPU
+         type(local_zone_descriptors), intent(in) :: Lzd
+         type(GPU_pointers), intent(in) :: GPU
          real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
          type(atoms_data), intent(in) :: atoms
          real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
