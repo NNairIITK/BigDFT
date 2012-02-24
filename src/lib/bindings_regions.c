@@ -12,8 +12,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
 static void bigdft_locreg_dispose(GObject *atoms);
 static void bigdft_locreg_finalize(GObject *atoms);
+static void bigdft_locreg_define(BigDFT_LocReg *glr, BigDFT_Atoms *atoms, double *radii,
+                                 double h[3], double crmult, double frmult);
 
 #ifdef HAVE_GLIB
 G_DEFINE_TYPE(BigDFT_LocReg, bigdft_locreg, G_TYPE_OBJECT)
@@ -94,8 +97,8 @@ BigDFT_LocReg* bigdft_locreg_new_with_wave_descriptors(BigDFT_Atoms *atoms, doub
   
   return glr;
 }
-void bigdft_locreg_define(BigDFT_LocReg *glr, BigDFT_Atoms *atoms, double *radii,
-                          double h[3], double crmult, double frmult)
+static void bigdft_locreg_define(BigDFT_LocReg *glr, BigDFT_Atoms *atoms, double *radii,
+                                 double h[3], double crmult, double frmult)
 {
   int iproc = 1;
 
@@ -230,4 +233,11 @@ void bigdft_lzd_free(BigDFT_Lzd *lzd)
   bigdft_lzd_finalize(lzd);
   g_free(lzd);
 #endif
+}
+void bigdft_lzd_setup_linear(BigDFT_Lzd *lzd, BigDFT_Orbs *orbs,
+                             const BigDFT_Inputs *in, const BigDFT_Atoms *atoms,
+                             guint iproc, guint nproc)
+{  
+  FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
+    (&iproc, &nproc, in->data, lzd->data, atoms->data, orbs->data, atoms->rxyz.data);
 }

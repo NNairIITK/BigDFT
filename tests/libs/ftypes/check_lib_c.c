@@ -30,7 +30,7 @@ int main(guint argc, char **argv)
 #define CRMULT 5.
 #define FRMULT 8.
   BigDFT_Inputs *in;
-  BigDFT_Orbs *orbs;
+  BigDFT_Wf *wf;
   BigDFT_Proj *proj;
   BigDFT_LocalFields *denspot;
 #ifdef HAVE_GLIB
@@ -158,12 +158,12 @@ int main(guint argc, char **argv)
   bigdft_atoms_set_symmetries(atoms, !in->disableSym, -1., in->elecfield);
   bigdft_inputs_parse_additional(in, atoms);
 
-  fprintf(stdout, "Test BigDFT_Orbs structure creation.\n");
-  orbs = bigdft_orbs_new(BIGDFT_LOCREG(lzd), in, 0, 1, &nelec);
+  fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
+  wf = bigdft_wf_new(lzd, in, 0, 1, &nelec);
   fprintf(stdout, " System has %d electrons.\n", nelec);
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
-  proj = bigdft_proj_new(BIGDFT_LOCREG(lzd), orbs, in->frmult);
+  proj = bigdft_proj_new(BIGDFT_LOCREG(lzd), BIGDFT_ORBS(wf), in->frmult);
   fprintf(stdout, " System has %d projectors, and %d elements.\n",
           proj->nproj, proj->nprojel);
 
@@ -171,7 +171,7 @@ int main(guint argc, char **argv)
     {
       fprintf(stdout, "Test memory estimation.\n");
       stdout_fileno_old = redirect_init(out_pipe);
-      peak = bigdft_memory_get_peak(4, BIGDFT_LOCREG(lzd), in, orbs, proj);
+      peak = bigdft_memory_get_peak(4, BIGDFT_LOCREG(lzd), in, BIGDFT_ORBS(wf), proj);
       redirect_dump(out_pipe, stdout_fileno_old);
       fprintf(stdout, " Memory peak will reach %f octets.\n", peak);
     }
@@ -181,6 +181,8 @@ int main(guint argc, char **argv)
   fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
+  fprintf(stdout, " Add linear zone description.\n");
+  bigdft_lzd_setup_linear(lzd, BIGDFT_ORBS(wf), in, atoms,0, 1);
 
   /* Use a thread to generate the ionic potential... */
   fprintf(stdout, " Calculate ionic potential.\n");
@@ -202,8 +204,8 @@ int main(guint argc, char **argv)
   bigdft_proj_free(proj);
   fprintf(stdout, " Ok\n");
 
-  fprintf(stdout, "Test BigDFT_Orbs free.\n");
-  bigdft_orbs_free(orbs);
+  fprintf(stdout, "Test BigDFT_Wf free.\n");
+  bigdft_wf_free(wf);
   fprintf(stdout, " Ok\n");
 
   fprintf(stdout, "Test BigDFT_Inputs free.\n");

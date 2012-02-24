@@ -87,6 +87,9 @@ void FC_FUNC_(glr_set_wave_descriptors,
                                        double *hz, void *atoms, double *rxyz, double *radii,
                                        double *crmult, double *frmult, void *glr);
 void FC_FUNC_(lzd_new, LZD_NEW)(void *lzd, void *glr);
+void FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
+     (const guint *iproc, const guint *nproc, const void *in, void *lzd,
+      const void *atoms, void *orbs, double *rxyz);
 
 
 void FC_FUNC_(orbs_new, ORBS_NEW)(void *orbs);

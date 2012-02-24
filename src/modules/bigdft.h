@@ -13,6 +13,9 @@
 
 #include <bigdft_cst.h>
 
+typedef struct BigDFT_lzd_ BigDFT_Lzd;
+typedef struct BigDFT_orbs_ BigDFT_Orbs;
+
 /********************************/
 /* BigDFT_Atoms data structure. */
 /********************************/
@@ -170,9 +173,6 @@ BigDFT_LocReg* bigdft_locreg_new                 (BigDFT_Atoms *atoms, double *r
                                                   double h[3],double crmult, double frmult);
 BigDFT_LocReg* bigdft_locreg_new_with_wave_descriptors(BigDFT_Atoms *atoms, double *radii,
                                                        double h[3], double crmult, double frmult);
-void           bigdft_locreg_define              (BigDFT_LocReg *glr, BigDFT_Atoms *atoms,
-                                                  double *radii, double h[3],
-                                                  double crmult, double frmult);
 void           bigdft_locreg_free                (BigDFT_LocReg *glr);
 void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
 
@@ -191,7 +191,7 @@ typedef struct BigDFT_LzdClass_
 #define BIGDFT_LZD_TYPE    (999)
 #define BIGDFT_LZD(obj)    ((BigDFT_Lzd*)obj)
 #endif
-typedef struct BigDFT_lzd_
+struct BigDFT_lzd_
 {
   BigDFT_LocReg parent;
 #ifdef GLIB_MAJOR_VERSION
@@ -200,9 +200,12 @@ typedef struct BigDFT_lzd_
 
   /* Private. */
   void *data;
-} BigDFT_Lzd;
+};
 BigDFT_Lzd* bigdft_lzd_new (BigDFT_Atoms *atoms, double *radii, double h[3],
                             double crmult, double frmult);
+void        bigdft_lzd_setup_linear(BigDFT_Lzd *lzd, BigDFT_Orbs *orbs,
+                                    const BigDFT_Inputs *in, const BigDFT_Atoms *atoms,
+                                    guint iproc, guint nproc);
 void        bigdft_lzd_free(BigDFT_Lzd *lzd);
 
 
@@ -221,7 +224,7 @@ typedef struct BigDFT_OrbsClass_
 #define BIGDFT_ORBS_TYPE    (999)
 #define BIGDFT_ORBS(obj)    ((BigDFT_Orbs*)obj)
 #endif
-typedef struct BigDFT_orbs_
+struct BigDFT_orbs_
 {
 #ifdef GLIB_MAJOR_VERSION
   GObject parent;
@@ -249,11 +252,40 @@ typedef struct BigDFT_orbs_
   /* Private. */
   void *data;
   void *comm;
-} BigDFT_Orbs;
+};
 
 BigDFT_Orbs* bigdft_orbs_new (const BigDFT_LocReg *glr, const BigDFT_Inputs *in,
-                              int iproc, int nproc, guint *nelec);
+                              guint iproc, guint nproc, guint *nelec);
 void         bigdft_orbs_free(BigDFT_Orbs *orbs);
+
+/*****************************/
+/* BigDFT_Wf data structure. */
+/*****************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_WF_TYPE    (bigdft_wf_get_type())
+#define BIGDFT_WF(obj)                                          \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_WF_TYPE, BigDFT_Wf))
+typedef struct BigDFT_WfClass_
+{
+  GObjectClass parent;
+} BigDFT_WfClass;
+#else
+#define BIGDFT_WF_TYPE    (999)
+#define BIGDFT_WF(obj)    ((BigDFT_Wf*)obj)
+#endif
+typedef struct BigDFT_wf_
+{
+  BigDFT_Orbs parent;
+#ifdef GLIB_MAJOR_VERSION
+  gboolean dispose_has_run;
+#endif
+
+  /* Private. */
+  f90_pointer_double psi, hpsi, psit;
+} BigDFT_Wf;
+BigDFT_Wf* bigdft_wf_new (BigDFT_Lzd *lzd, BigDFT_Inputs *in,
+                          guint iproc, guint nproc, guint *nelec);
+void       bigdft_wf_free(BigDFT_Wf *wf);
 
 /*******************************/
 /* BigDFT_Proj data structure. */
