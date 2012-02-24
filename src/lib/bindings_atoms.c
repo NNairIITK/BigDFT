@@ -35,7 +35,6 @@ static void bigdft_atoms_init(BigDFT_Atoms *atoms)
 #else
   memset(atoms, 0, sizeof(BigDFT_Atoms));
 #endif
-  atoms->data = (void*)0;
   F90_2D_POINTER_INIT(&atoms->rxyz);
 }
 static void bigdft_atoms_dispose(GObject *obj)
@@ -57,7 +56,6 @@ static void bigdft_atoms_finalize(GObject *obj)
   guint i;
 
   FC_FUNC_(atoms_free, ATOMS_FREE)(&atoms->data);
-  g_free(atoms->data);
   FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(&atoms->rxyz);
   if (atoms->atomnames)
     {

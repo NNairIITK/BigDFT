@@ -18,7 +18,7 @@ Test BigDFT_Atoms structure creation from file.
 Test BigDFT_Atoms pseudo-potential evaluation.
  Type 0, radii 1.806025 0.435634 0.435634
  Type 1, radii 1.463418 0.200000 0.200000
-Test BigDFT_Glr structure creation.
+Test BigDFT_LocReg structure creation.
  Atoms 0, coord.   1.620000   9.000000   1.620000 'Si', type 1
  Atoms 1, coord.   3.240000  10.620000   3.240000 ' H', type 2
  Atoms 2, coord.   0.000000   7.380000   3.240000 ' H', type 2
@@ -54,7 +54,7 @@ Test BigDFT_Orbs free.
  Ok
 Test BigDFT_Inputs free.
  Ok
-Test BigDFT_Glr free.
+Test BigDFT_LocReg free.
  Ok
 Test BigDFT_Atoms free.
  Ok

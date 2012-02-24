@@ -201,10 +201,10 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     allocate(rhocore(d%n1i,d%n2i,n3d,1+ndebug),stat=i_stat)
+     allocate(rhocore(d%n1i,d%n2i,n3d,4+ndebug),stat=i_stat)
      call memocc(i_stat,rhocore,'rhocore',subname)
      !initalise it 
-     call to_zero(d%n1i*d%n2i*n3d,rhocore(1,1,1,1))
+     call to_zero(d%n1i*d%n2i*n3d*4,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%nat
         ityp=at%iatype(iat)
@@ -224,7 +224,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
            cutoff=10.d0*rloc
 
            call calc_rhocore_iat(iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-                d%n1,d%n2,d%n3,d%n1i,d%n2i,i3s,n3d,rhocore)
+                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,rhocore)
 
            if (iproc == 0) write(*,'(1x,a)')'done.'
         end if
@@ -232,6 +232,19 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
      !calculate total core charge in the grid
      !In general this should be really bad
+
+!!$     do j3=1,n3d
+!!$        tt=0.0_wp
+!!$        do i2=1,d%n2i
+!!$           do i1=1,d%n1i
+!!$              !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+!!$              tt=tt+rhocore(i1,i2,j3,1)
+!!$           enddo
+!!$        enddo
+!!$        write(17+iproc,*)j3+i3s-1,tt
+!!$     enddo
+!!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$stop
      tt=0.0_wp
      do j3=1,n3p
         do i2=1,d%n2i
@@ -245,7 +258,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
      call mpiallred(tt,1,MPI_SUM,MPI_COMM_WORLD,ierr)
      tt=tt*hxh*hyh*hzh
      if (iproc == 0) write(*,'(1x,a,f15.7)') &
-       'Total core charge on the grid (generally bad, overestimated approx.): ',tt
+       'Total core charge on the grid (To be compared with analytic one): ',tt
 
   else
      !No NLCC needed, nullify the pointer 

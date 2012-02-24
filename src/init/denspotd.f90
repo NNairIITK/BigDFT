@@ -172,10 +172,17 @@ subroutine allocateRhoPot(iproc,Glr,hxh,hyh,hzh,in,atoms,rxyz,denspot)
   end if
   !check if non-linear core correction should be applied, and allocate the 
   !pointer if it is the case
+  !print *,'i3xcsh',denspot%dpcom%i3s,denspot%dpcom%i3xcsh,denspot%dpcom%n3d
   call calculate_rhocore(iproc,atoms,Glr%d,rxyz,hxh,hyh,hzh, &
        denspot%dpcom%i3s,denspot%dpcom%i3xcsh,&
        denspot%dpcom%n3d,denspot%dpcom%n3p,denspot%rho_C)
   
+!!$  !calculate the XC energy of rhocore
+!!$  call XC_potential(atoms%geocode,'D',iproc,nproc,&
+!!$       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
+!!$       denspot%rhov,eexcu,vexcu,orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
+
+
 END SUBROUTINE allocateRhoPot
 
 !> Create the descriptors for the density and the potential

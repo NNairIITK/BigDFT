@@ -220,7 +220,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer :: ncong,ncongt,icycle,potden
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
   integer :: i,npoints
-  integer :: n1_old,n2_old,n3_old,n1,n2,n3
+  integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,nproctiming
   real :: tcpu0,tcpu1
@@ -327,10 +327,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call correct_grid(atoms%alat3,hz_old,Lzd%Glr%d%n3)
      end if
      call copy_old_wavefunctions(nproc,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
-          Lzd%Glr%wfd,psi,n1_old,n2_old,n3_old,wfd_old,psi_old)
-     d_old%n1 = n1_old
-     d_old%n2 = n2_old
-     d_old%n3 = n3_old
+          Lzd%Glr%wfd,psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
+ 
   else if (in%inputPsiId == 11) then
      !deallocate wavefunction and descriptors for placing the gaussians
 

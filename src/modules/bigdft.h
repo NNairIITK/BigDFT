@@ -128,40 +128,73 @@ BigDFT_Inputs* bigdft_inputs_new             (const gchar *radical);
 void           bigdft_inputs_free            (BigDFT_Inputs *in);
 void           bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms);
 
-/******************************/
-/* BigDFT_Glr data structure. */
-/******************************/
-typedef struct BigDFT_glr_
+/*********************************/
+/* BigDFT_LocReg data structure. */
+/*********************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_LOCREG_TYPE    (bigdft_locreg_get_type())
+#define BIGDFT_LOCREG(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_LOCREG_TYPE, BigDFT_LocReg))
+typedef struct BigDFT_LocRegClass_
 {
+  GObjectClass parent;
+} BigDFT_LocRegClass;
+#else
+#define BIGDFT_LOCREG_TYPE    (999)
+#define BIGDFT_LOCREG(obj)    ((BigDFT_LocReg*)obj)
+#endif
+typedef struct BigDFT_locReg_
+{
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+
   gchar geocode;
   double h[3];
   guint n[3], ni[3];
 
-  /* Values that have been used to built this glr. */
-  /* double *radii; */
-  /* double crmult, frmult; */
+  /* Values that have been used to built this localisation region. */
+  const BigDFT_Atoms *atoms;
+  double *radii;
+  double crmult, frmult;
   
   /* TODO: bindings to values... */
 
   /* Private. */
   void *d;
   void *data;
-} BigDFT_Glr;
+} BigDFT_LocReg;
 
-BigDFT_Glr* bigdft_glr_new                 (BigDFT_Atoms *atoms, double *radii, double h[3],
-                                            double crmult, double frmult);
-BigDFT_Glr* bigdft_glr_new_with_wave_descriptors(BigDFT_Atoms *atoms, double *radii,
-                                                 double h[3], double crmult, double frmult);
-void        bigdft_glr_free                (BigDFT_Glr *glr);
-void        bigdft_glr_set_wave_descriptors(BigDFT_Glr *glr, BigDFT_Atoms *atoms,
-                                            double *radii, double crmult, double frmult);
+BigDFT_LocReg* bigdft_locreg_new                 (BigDFT_Atoms *atoms, double *radii,
+                                                  double h[3],double crmult, double frmult);
+BigDFT_LocReg* bigdft_locreg_new_with_wave_descriptors(BigDFT_Atoms *atoms, double *radii,
+                                                       double h[3], double crmult, double frmult);
+void           bigdft_locreg_free                (BigDFT_LocReg *glr);
+void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
 
 /*******************************/
 /* BigDFT_Orbs data structure. */
 /*******************************/
-typedef struct f90_pointer_orbs_ f90_pointer_orbs;
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_ORBS_TYPE    (bigdft_orbs_get_type())
+#define BIGDFT_ORBS(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_ORBS_TYPE, BigDFT_Orbs))
+typedef struct BigDFT_OrbsClass_
+{
+  GObjectClass parent;
+} BigDFT_OrbsClass;
+#else
+#define BIGDFT_ORBS_TYPE    (999)
+#define BIGDFT_ORBS(obj)    ((BigDFT_Orbs*)obj)
+#endif
 typedef struct BigDFT_orbs_
 {
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+
   /* TODO: bindings to values... */
   int norb, norbp, norbu, norbd;
   int nspin, nspinor, npsidim;
@@ -176,18 +209,22 @@ typedef struct BigDFT_orbs_
      /* real(gp), dimension(:), pointer :: occup,spinsgn,kwgts */
      /* real(gp), dimension(:,:), pointer :: kpts */
 
+  /* Pointers on building objects. */
+  const BigDFT_Inputs *in;
+  const BigDFT_LocReg *glr;
+
   /* Private. */
-  f90_pointer_orbs *data;
+  void *data;
+  void *comm;
 } BigDFT_Orbs;
 
-BigDFT_Orbs* bigdft_orbs_new (const BigDFT_Atoms *atoms, const BigDFT_Inputs *in,
-                              const BigDFT_Glr *glr, int iproc, int nproc, guint *nelec);
+BigDFT_Orbs* bigdft_orbs_new (const BigDFT_LocReg *glr, const BigDFT_Inputs *in,
+                              int iproc, int nproc, guint *nelec);
 void         bigdft_orbs_free(BigDFT_Orbs *orbs);
 
 /*******************************/
 /* BigDFT_Proj data structure. */
 /*******************************/
-typedef struct f90_pointer_nlpspd_ f90_pointer_nlpspd;
 typedef struct BigDFT_proj_
 {
   /* TODO: bindings to values... */
@@ -197,11 +234,11 @@ typedef struct BigDFT_proj_
   f90_pointer_double proj;
 
   /* Private. */
-  f90_pointer_nlpspd *nlpspd;
+  void *nlpspd;
 } BigDFT_Proj;
 
-BigDFT_Proj* bigdft_proj_new (const BigDFT_Atoms *atoms, const BigDFT_Glr *glr,
-                              const BigDFT_Orbs *orbs, double *radii, double frmult);
+BigDFT_Proj* bigdft_proj_new (const BigDFT_LocReg *glr, const BigDFT_Orbs *orbs,
+                              double frmult);
 void         bigdft_proj_free(BigDFT_Proj *proj);
 
 /**********************************/
@@ -232,6 +269,7 @@ typedef struct BigDFT_LocalFields_
 {
 #ifdef GLIB_MAJOR_VERSION
   GObject parent;
+  gboolean dispose_has_run;
 #endif
   /* bindings to values... */
   BigDFT_RhoIs rhov_is;
@@ -244,23 +282,17 @@ typedef struct BigDFT_LocalFields_
   /* double *rho_full, *pot_full, *rho_psi, *rho_c, *vloc_ks, *f_xc; */
 
   /* Pointers on building objects. */
-  const BigDFT_Atoms *atoms;
-  const BigDFT_Glr *glr;
+  const BigDFT_LocReg *glr;
 
   /* Private. */
   double *pkernel, *pkernelseq;
   void *rhod;
   void *dpcom;
   void *data;
-
-  /* GObject machinery. */
-  gboolean dispose_has_run;
 } BigDFT_LocalFields;
 
-BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Atoms *atoms,
-                                            const BigDFT_Glr *glr,
+BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
                                             const BigDFT_Inputs *in,
-                                            const double *radii,
                                             guint iproc, guint nproc);
 void                bigdft_localfields_free(BigDFT_LocalFields *denspotd);
 void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
@@ -270,10 +302,11 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
 /******************/
 /* Miscellaneous. */
 /******************/
-double bigdft_memory_peak(int nproc, BigDFT_Glr *lr, BigDFT_Inputs *in,
-                          BigDFT_Orbs *orbs, BigDFT_Proj *proj);
+double bigdft_memory_get_peak(int nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
+                              const BigDFT_Orbs *orbs, const BigDFT_Proj *proj);
+
 f90_pointer_double_4D* bigdft_read_wave_to_isf(const gchar *filename, int iorbp,
-                                            double h[3], int n[3], int *nspinor);
+                                               double h[3], int n[3], int *nspinor);
 void bigdft_free_wave_to_isf(f90_pointer_double_4D *psiscf);
 gboolean bigdft_read_wave_descr(const gchar *filename, int *norbu,
                                 int *norbd, int *nkpt, int *nspinor,

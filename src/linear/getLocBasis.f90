@@ -642,7 +642,7 @@ type(matrixDescriptors):: madlarge
       deallocate(orbslarge%inWhichLocreg, stat=istat)
       call memocc(istat, iall, 'orbslarge%inWhichLocreg', subname)
 
-      !! THIS MUS BE MODIFIED
+      !! THIS MUST BE MODIFIED
       allocate(norbsPerAtom(at%nat), stat=istat)
       norbsPerAtom=0
       do iorb=1,lorbs%norb
@@ -926,6 +926,7 @@ type(matrixDescriptors):: madlarge
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
       lzd%doHamAppl=.true.
 
+
       call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
            hx,hy,hz,rxyz,&
            proj,lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lphi,lhphi,&
@@ -1024,7 +1025,6 @@ type(matrixDescriptors):: madlarge
                oplarge, comonlarge, madlarge, ovrlp, &
                orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, lphilarge, lhphilarge, lagmat)
       end if
-
       !!!    allocate(phi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
       !!!    allocate(hphi(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat) !this is too large
       !!!    allocate(phiWork(lorbs%norb*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)), stat=istat)
@@ -1166,7 +1166,6 @@ type(matrixDescriptors):: madlarge
       end if
 
 
-
       ! Flatten at the edges -  EXPERIMENTAL
       !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
 
@@ -1282,10 +1281,9 @@ type(matrixDescriptors):: madlarge
       fnrmMax=sqrt(fnrmMax)
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
       call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lhphi, 1, lhphiold, 1)
-      call dcopy(max(orbslarge%npsidim_orbs,orbslarge%npsidim_comp), lhphilarge, 1, lhphilargeold, 1)
+      if (newgradient) call dcopy(max(orbslarge%npsidim_orbs,orbslarge%npsidim_comp), lhphilarge, 1, lhphilargeold, 1)
       trHold=trH
   
-
       ! Precondition the gradient.
       if(iproc==0) then
           !write(*,'(a)', advance='no') 'Preconditioning... '
@@ -5814,7 +5812,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       do iorb=1,orbs%norb
           locdiff = locdiff + gHmat(iorb,iorb) + gMmat(iorb,iorb) + gNmat(iorb,iorb)
       end do
-      if(iproc==0) write(*,'(a,i8,3es16.7,es12.4)') 'it, rspread, locdiff, omega, lstep', it, rspread, locdiff, omega, lstep
+      if(iproc==0 .and. verbose >2) write(*,'(a,i8,3es16.7,es12.4)') 'it, rspread, locdiff, omega, lstep', it, rspread, locdiff, omega, lstep
 
 
 
