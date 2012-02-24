@@ -322,6 +322,7 @@ low_level = \
 	lib/bindings.c lib/bindings.h \
 	lib/bindings_atoms.c \
 	lib/bindings_regions.c \
+	lib/bindings_wavefunctions.c \
 	lib/bindings_localfields.c \
 	lib/bindingsf.f90 \
 	$(flush_files) \

@@ -176,8 +176,25 @@ void           bigdft_locreg_set_wave_descriptors(BigDFT_LocReg *glr);
 /*******************************/
 /* BigDFT_Orbs data structure. */
 /*******************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_ORBS_TYPE    (bigdft_orbs_get_type())
+#define BIGDFT_ORBS(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_ORBS_TYPE, BigDFT_Orbs))
+typedef struct BigDFT_OrbsClass_
+{
+  GObjectClass parent;
+} BigDFT_OrbsClass;
+#else
+#define BIGDFT_ORBS_TYPE    (999)
+#define BIGDFT_ORBS(obj)    ((BigDFT_Orbs*)obj)
+#endif
 typedef struct BigDFT_orbs_
 {
+#ifdef GLIB_MAJOR_VERSION
+  GObject parent;
+  gboolean dispose_has_run;
+#endif
+
   /* TODO: bindings to values... */
   int norb, norbp, norbu, norbd;
   int nspin, nspinor, npsidim;
