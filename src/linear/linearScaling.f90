@@ -167,11 +167,6 @@ type(orthon_data):: orthpar
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
 
-  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%norb, ldiis)
-       ldiis%DIISHistMin=lin%DIISHistMin
-       ldiis%DIISHistMax=lin%DIISHistMax
-       ldiis%alphaSD=lin%alphaSD
-       ldiis%alphaDIIS=lin%alphaDIIS
 
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist_lowaccuracy>0) then
@@ -316,6 +311,14 @@ type(orthon_data):: orthpar
 
   outerLoop: do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
 
+
+      call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%norb, ldiis)
+      !!call initializeDIIS(lin%DIISHistMax, lin%lzdlarge, lin%orbslarge, lin%orbslarge%norb, ldiis)
+      ldiis%DIISHistMin=lin%DIISHistMin
+      ldiis%DIISHistMax=lin%DIISHistMax
+      ldiis%alphaSD=lin%alphaSD
+      ldiis%alphaDIIS=lin%alphaDIIS
+
       updatePhi=.true.
       selfConsistent=lin%convCritMix
 
@@ -346,7 +349,10 @@ type(orthon_data):: orthpar
           lin%newgradient=.true.
           nit_highaccuracy=nit_highaccuracy+1
           nit=lin%nItBasis_highaccuracy
-          if(nit_highaccuracy==lin%nit_highaccuracy+1) exit outerLoop
+          if(nit_highaccuracy==lin%nit_highaccuracy+1) then
+            call deallocateDIIS(ldiis)
+            exit outerLoop
+          end if
 
       else
           !!lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
@@ -591,6 +597,9 @@ type(orthon_data):: orthpar
       !!if(abs(pnrm_out)<lin%convCritMixOut) exit
       energyoldout=energy
 
+      ! Deallocate DIIS structures.
+      call deallocateDIIS(ldiis)
+
   end do outerLoop
 
 
@@ -603,7 +612,7 @@ type(orthon_data):: orthpar
 
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
   deallocate(rhopotOld, stat=istat)
-  call memocc(istat, iall, 'rhopotOld', subname)
+  call memocc(istat, iall, 'rhopotold', subname)
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
@@ -714,7 +723,6 @@ type(orthon_data):: orthpar
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, lphi, coeff)
-  call deallocateDIIS(ldiis)
   deallocate(confdatarr)
   call deallocateBasicArrays(at,lin)
 

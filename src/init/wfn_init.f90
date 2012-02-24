@@ -634,7 +634,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
 END SUBROUTINE DiagHam
 
-subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
+subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      psi,hpsi,psit,orthpar,passmat,& !mandatory
      orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
   use module_base
@@ -642,7 +642,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   use module_interfaces, except_this_one => LDiagHam
   implicit none
   integer, intent(in) :: iproc,nproc,natsc,nspin
-  type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs
+  type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs after LIG
+  type(local_zone_descriptors) :: Lzde                                 !> Informtation about the locregs for LIG
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
   type(orthon_data),intent(in):: orthpar 
@@ -704,8 +705,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
      nspinor=orbs%nspinor
   end if
 
-  if (nproc > 1 .or. Lzd%linear) then
-     Gdim = (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbsu%norb_par(iproc,0)*orbsu%nspinor
+  if (nproc > 1 .or. Lzde%linear) then
+     Gdim = (Lzde%Glr%wfd%nvctr_c+7*Lzde%Glr%wfd%nvctr_f)*orbsu%norb_par(iproc,0)*orbsu%nspinor
      allocate(psiw(max(npsidim,Gdim)+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   else
@@ -713,10 +714,10 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   end if
 
   !transpose all the wavefunctions for having a piece of all the orbitals
-  call transpose_v2(iproc,nproc,orbsu,Lzd,commu,psi,work=psiw)
-  call transpose_v2(iproc,nproc,orbsu,Lzd,commu,hpsi,work=psiw)
+  call transpose_v2(iproc,nproc,orbsu,Lzde,commu,psi,work=psiw)
+  call transpose_v2(iproc,nproc,orbsu,Lzde,commu,hpsi,work=psiw)
 
-  if(nproc > 1.or. Lzd%linear) then
+  if(nproc > 1.or. Lzde%linear) then
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw',subname)
@@ -923,7 +924,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   end if
     
       if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
-      nvctr=Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
+      nvctr=Lzde%Glr%wfd%nvctr_c+7*Lzde%Glr%wfd%nvctr_f
 
       ispsi=1
       ispsie=1
@@ -1019,6 +1020,9 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   if (nproc == 1 .and. minimal) then
      nullify(psit)
   end if
+
+  ! reput the good wavefunction dimensions:  
+  if(.not. Lzd%linear) call wavefunction_dimension(Lzd,orbs)     
 
 END SUBROUTINE LDiagHam
 

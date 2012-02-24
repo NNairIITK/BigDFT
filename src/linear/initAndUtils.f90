@@ -59,6 +59,7 @@ call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 ! Number of localization regions.
 lin%nlr=at%nat
 lin%lzd%nlr=at%nat
+!!lin%lzdlarge%nlr=at%nat
 
 ! Allocate the basic arrays that are needed for reading the input parameters.
 call allocateBasicArrays(at, lin)
@@ -93,6 +94,10 @@ call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspi
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, &
      lin%gorbs%norbp, lin%gorbs%isorb_par, lin%gorbs%isorb, lin%gorbs%onWhichMPI)
+!!call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+!!     input%nkpt, input%kpt, input%wkpt, lin%orbslarge)
+!!call repartitionOrbitals(iproc, nproc, lin%orbslarge%norb, lin%orbslarge%norb_par,&
+!!     lin%orbslarge%norbp, lin%orbslarge%isorb_par, lin%orbslarge%isorb, lin%orbslarge%onWhichMPI)
 
 
 
@@ -153,10 +158,15 @@ iall=-product(shape(lin%lb%orbs%inWhichLocreg))*kind(lin%lb%orbs%inWhichLocreg)
 deallocate(lin%lb%orbs%inWhichLocreg, stat=istat)
 call memocc(istat, iall, 'lin%lb%orbs%inWhichLocreg', subname)
 
+!!iall=-product(shape(lin%orbslarge%inWhichLocreg))*kind(lin%orbslarge%inWhichLocreg)
+!!deallocate(lin%orbslarge%inWhichLocreg, stat=istat)
+!!call memocc(istat, iall, 'lin%orbslarge%inWhichLocreg', subname)
+
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%lb%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
+!!call assignToLocreg2(iproc, at%nat, lin%lzdlarge%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbslarge)
 
 
 
@@ -164,11 +174,17 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
 call timing(iproc,'init_locregs  ','ON')
 t1=mpi_wtime()
-call initLocregs(iproc, nproc, at%nat, rxyz, lin%lzd, lin%orbs, input, Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
+call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lin%lzd, lin%orbs, &
+     Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
+!!lin%locrad=3.d0*lin%locrad
+!!call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lin%lzdlarge, lin%orbslarge, Glr, lin%locrad, lin%locregShape)
+!!lin%locrad=lin%locrad/3.d0
 
 ! Copy Glr to lin%lzd
 call nullify_locreg_descriptors(lin%lzd%Glr)
 call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
+!!call nullify_locreg_descriptors(lin%lzdlarge%Glr)
+!!call copy_locreg_descriptors(Glr, lin%lzdlarge%Glr, subname)
 
 
 ! Initialize collective communications
@@ -197,6 +213,15 @@ do iorb=1,lin%lb%orbs%norbp
 end do
 lin%lb%orbs%npsidim_orbs=max(npsidim,1)
 
+
+!!npsidim = 0
+!!do iorb=1,lin%orbslarge%norbp
+!! ilr=lin%orbslarge%inwhichlocreg(iorb+lin%orbslarge%isorb)
+!! npsidim = npsidim + lin%lzdlarge%llr(ilr)%wfd%nvctr_c+7*lin%lzdlarge%llr(ilr)%wfd%nvctr_f
+!!end do
+!!lin%orbslarge%npsidim_orbs=max(npsidim,1)
+
+
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
 call memocc(istat, lin%orbs%eval, 'lin%orbs%eval', subname)
@@ -204,6 +229,9 @@ lin%orbs%eval=-.5d0
 allocate(lin%lb%orbs%eval(lin%lb%orbs%norb), stat=istat)
 call memocc(istat, lin%lb%orbs%eval, 'lin%lb%orbs%eval', subname)
 lin%lb%orbs%eval=-.5d0
+!!allocate(lin%orbslarge%eval(lin%orbslarge%norb), stat=istat)
+!!call memocc(istat, lin%orbslarge%eval, 'lin%orbslarge%eval', subname)
+!!lin%orbslarge%eval=-.5d0
 
 ! Initialize the coefficients.
 call initCoefficients(iproc, orbs, lin, coeff)
@@ -259,10 +287,12 @@ if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications orthonormalization... '
 call timing(iproc,'init_commOrtho','ON')
 t1=mpi_wtime()
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
-     input, lin%locregShape, lin%op, lin%comon, tag)
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
-     input, lin%locregShape, lin%lb%op, lin%lb%comon, tag)
+call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
+     lin%locregShape, lin%op, lin%comon, tag)
+call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
+     lin%locregShape, lin%lb%op, lin%lb%comon, tag)
+!!call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lin%lzdlarge, lin%orbslarge, lin%orbslarge%inWhichLocreg,&
+!!     lin%locregShape, lin%oplarge, lin%comonlarge, tag)
 t2=mpi_wtime()
 call timing(iproc,'init_commOrtho','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
@@ -308,6 +338,9 @@ call initCompressedMatmul3(lin%orbs%norb, lin%mad)
 call initMatrixCompression(iproc, nproc, lin%lzd%nlr, lin%lb%orbs, &
      lin%lb%op%noverlaps, lin%lb%op%overlaps, lin%lb%mad)
 call initCompressedMatmul3(lin%lb%orbs%norb, lin%lb%mad)
+!!call initMatrixCompression(iproc, nproc, lin%lzdlarge%nlr, lin%orbslarge, &
+!!     lin%oplarge%noverlaps, lin%oplarge%overlaps, lin%madlarge)
+!!call initCompressedMatmul3(lin%orbslarge%norb, lin%madlarge)
 t2=mpi_wtime()
 call timing(iproc,'init_matrCompr','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
@@ -1297,28 +1330,40 @@ type(p2pComms),intent(out):: comsr
 ! Local variables
 integer:: istat,jproc,is,ie,ioverlap,i3s,i3e,ilr,iorb,is3ovrlp,n3ovrlp
 integer:: i1s, i1e, i2s, i2e, ii, jlr, iiorb, istri, jorb, jjorb, istrj
+integer:: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
 character(len=*),parameter:: subname='initializeCommsSumrho'
 
+! Buffer sizes 
+call ext_buffers(lzd%Glr%geocode /= 'F',nbl1,nbr1)
+call ext_buffers(lzd%Glr%geocode == 'P',nbl2,nbr2)
+call ext_buffers(lzd%Glr%geocode /= 'F',nbl3,nbr3)
 
 ! First count the number of overlapping orbitals for each slice.
 allocate(comsr%noverlaps(0:nproc-1),stat=istat)
 call memocc(istat,comsr%noverlaps,'comsr%noverlaps',subname)
 do jproc=0,nproc-1
-    is=nscatterarr(jproc,3)-14
+    is=nscatterarr(jproc,3) 
     ie=is+nscatterarr(jproc,1)-1
-    !if(iproc==0) write(*,'(a,3i8)') 'jproc,is,ie',jproc,is,ie
     ioverlap=0
     do iorb=1,orbs%norb
         ilr=orbs%inWhichLocreg(iorb)
-        i3s=2*lzd%Llr(ilr)%ns3-14
+        i3s=lzd%Llr(ilr)%nsi3 
         i3e=i3s+lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
-            ioverlap=ioverlap+1
+            ioverlap=ioverlap+1        
+        end if
+        !For periodicity
+        if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+          i3s = Lzd%Glr%nsi3
+          i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+          if(i3s<=ie .and. i3e>=is) then
+              ioverlap=ioverlap+1
+          end if
         end if
     end do
     comsr%noverlaps(jproc)=ioverlap
-    !if(iproc==0) write(*,'(a,2i8)') 'jproc,comsr%noverlaps(jproc)',jproc,comsr%noverlaps(jproc)
 end do
+
 ! Do the initialization concerning the calculation of the charge density.
 allocate(comsr%istarr(0:nproc-1),stat=istat)
 call memocc(istat,comsr%istarr,'comsr%istarr',subname)
@@ -1330,39 +1375,62 @@ call memocc(istat,comsr%overlaps,'comsr%overlaps',subname)
 
 allocate(comsr%comarr(9,maxval(comsr%noverlaps),0:nproc-1),stat=istat)
 call memocc(istat,comsr%comarr,'coms%commsSumrho',subname)
-
+allocate(comsr%startingindex(comsr%noverlaps(iproc),2), stat=istat)
+call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
 
 comsr%istarr=1
 comsr%istrarr=1
 comsr%nrecvBuf=0
 do jproc=0,nproc-1
-    is=nscatterarr(jproc,3)-14
+    is=nscatterarr(jproc,3)
     ie=is+nscatterarr(jproc,1)-1
     ioverlap=0
     do iorb=1,orbs%norb
         ilr=orbs%inWhichLocreg(iorb)
-        i3s=2*lzd%Llr(ilr)%ns3-14
+        i3s=lzd%Llr(ilr)%nsi3
         i3e=i3s+lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
             ioverlap=ioverlap+1
             tag=tag+1
             is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
             n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
-            is3ovrlp=is3ovrlp-2*lzd%Llr(ilr)%ns3+15
-            !call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), tag, lin, comsr%comarr(1,ioverlap,jproc))
-            !!call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
-            !!     tag, lin%nlr, lzd%Llr,&
-            !!     orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+            is3ovrlp=is3ovrlp-lzd%Llr(ilr)%nsi3+1
+            if(jproc == iproc) then
+               comsr%startingindex(ioverlap,1) = max(is,i3s) 
+               comsr%startingindex(ioverlap,2) = min(ie,i3e)
+            end if
             call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
                  tag, lzd%nlr, lzd%Llr,&
                  orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
             if(iproc==jproc) then
-                !comsr%sizePhibuffr = comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
                 comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
                 comsr%overlaps(ioverlap)=iorb
-                                                        !lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
             end if
             comsr%istrarr(jproc) = comsr%istrarr(jproc) + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+        end if
+        !For periodicity
+        if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+          i3s = Lzd%Glr%nsi3
+          i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+          if(i3s<=ie .and. i3e>=is) then
+              ioverlap=ioverlap+1
+              tag=tag+1
+              is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+              n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+              is3ovrlp=is3ovrlp + lzd%Glr%d%n3i-lzd%Llr(ilr)%nsi3+1 !should I put -nbl3 here
+              if(jproc == iproc) then
+                 comsr%startingindex(ioverlap,1) = max(is,i3s) 
+                 comsr%startingindex(ioverlap,2) = min(ie,i3e)
+              end if
+              call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, comsr%istrarr(jproc), &
+                   tag, lzd%nlr, lzd%Llr,&
+                   orbs%inWhichLocreg, orbs, comsr%comarr(1,ioverlap,jproc))
+              if(iproc==jproc) then
+                  comsr%nrecvBuf = comsr%nrecvBuf + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+                  comsr%overlaps(ioverlap)=iorb
+              end if
+              comsr%istrarr(jproc) = comsr%istrarr(jproc) + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*n3ovrlp
+          end if 
         end if
     end do
 end do
@@ -1376,13 +1444,31 @@ call memocc(istat, comsr%communComplete, 'comsr%communComplete', subname)
 allocate(comsr%computComplete(maxval(comsr%noverlaps(:)),0:nproc-1), stat=istat)
 call memocc(istat, comsr%computComplete, 'comsr%computComplete', subname)
 
+!!is=nscatterarr(iproc,3) 
+!!ie=is+nscatterarr(iproc,1)-1
+!!do ioverlap = 1, comsr%noverlaps(iproc)
+!!   iorb = comsr%overlaps(ioverlap) 
+!!   ilr = orbs%inWhichLocreg(iorb)
+!!   i3s=lzd%Llr(ilr)%nsi3  
+!!   i3e=i3s+lzd%Llr(ilr)%d%n3i-1
+!!   if(i3s<=ie .and. i3e>=is) then
+!!   end if
+!!   if(i3e > Lzd%Glr%nsi3 + Lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+!!      i3s = Lzd%Glr%nsi3
+!!      i3e = mod(i3e,Lzd%Glr%d%n3i+1) + Lzd%Glr%nsi3
+!!      if(i3s<=ie .and. i3e>=is) then
+!!         comsr%startingindex(ioverlap,1) = max(is,i3s) 
+!!         comsr%startingindex(ioverlap,2) = min(ie,i3e)
+!!      end if
+!!   end if
+!!end do
+
 
 ! Calculate the dimension of the wave function for each process.
 ! Do it for both the compressed ('npsidim') and for the uncompressed real space
 ! ('npsidimr') case.
 comsr%nsendBuf=0
 do iorb=1,orbs%norbp
-    !ilr=orbs%inWhichLocregp(iorb)
     ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
     comsr%nsendBuf=comsr%nsendBuf+lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i*orbs%nspinor
 end do
@@ -1397,36 +1483,35 @@ end do
 
 
 ! Determine the size of the auxiliary array
-allocate(comsr%startingindex(comsr%noverlaps(iproc),comsr%noverlaps(iproc)), stat=istat)
-call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
-
-! Bounds of the slice in global coordinates.
-comsr%nauxarray=0
-is=nscatterarr(iproc,3)-14
-ie=is+nscatterarr(iproc,1)-1
-
-do iorb=1,comsr%noverlaps(iproc)
-    iiorb=comsr%overlaps(iorb) !global index of orbital iorb
-    ilr=comsr%comarr(4,iorb,iproc) !localization region of orbital iorb
-    istri=comsr%comarr(6,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
-    !do jorb=1,comsr%noverlaps(iproc)
-    do jorb=iorb,comsr%noverlaps(iproc)
-        jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
-        jlr=comsr%comarr(4,jorb,iproc) !localization region of orbital jorb
-        istrj=comsr%comarr(6,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
-        ! Bounds of the overlap of orbital iorb and jorb in global coordinates.
-        i1s=max(2*lzd%llr(ilr)%ns1-14,2*lzd%llr(jlr)%ns1-14)
-        i1e=min(2*lzd%llr(ilr)%ns1-14+lzd%llr(ilr)%d%n1i-1,2*lzd%llr(jlr)%ns1-14+lzd%llr(jlr)%d%n1i-1)
-        i2s=max(2*lzd%llr(ilr)%ns2-14,2*lzd%llr(jlr)%ns2-14)
-        i2e=min(2*lzd%llr(ilr)%ns2-14+lzd%llr(ilr)%d%n2i-1,2*lzd%llr(jlr)%ns2-14+lzd%llr(jlr)%d%n2i-1)
-        i3s=max(2*lzd%llr(ilr)%ns3-14,2*lzd%llr(jlr)%ns3-14,is)
-        i3e=min(2*lzd%llr(ilr)%ns3-14+lzd%llr(ilr)%d%n3i-1,2*lzd%llr(jlr)%ns3-14+lzd%llr(jlr)%d%n3i-1,ie)
-
-        comsr%startingindex(jorb,iorb)=comsr%nauxarray+1
-        ii=(i1e-i1s+1)*(i2e-i2s+1)*(i3e-i3s+1)
-        comsr%nauxarray = comsr%nauxarray + ii
-    end do
-end do
+!!allocate(comsr%startingindex(comsr%noverlaps(iproc),comsr%noverlaps(iproc)), stat=istat)
+!!call memocc(istat, comsr%startingindex, 'comsr%startingindex', subname)
+!!
+!!! Bounds of the slice in global coordinates.
+!!comsr%nauxarray=0
+!!is=nscatterarr(iproc,3) ! should I put -nbl3
+!!ie=is+nscatterarr(iproc,1)-1
+!!do iorb=1,comsr%noverlaps(iproc)
+!!    iiorb=comsr%overlaps(iorb) !global index of orbital iorb
+!!    ilr=comsr%comarr(4,iorb,iproc) !localization region of orbital iorb
+!!    istri=comsr%comarr(6,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
+!!    !do jorb=1,comsr%noverlaps(iproc)
+!!    do jorb=iorb,comsr%noverlaps(iproc)
+!!        jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
+!!        jlr=comsr%comarr(4,jorb,iproc) !localization region of orbital jorb
+!!        istrj=comsr%comarr(6,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
+!!        ! Bounds of the overlap of orbital iorb and jorb in global coordinates.
+!!        i1s=max(lzd%llr(ilr)%nsi1,lzd%llr(jlr)%nsi1)
+!!        i1e=min(lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%llr(jlr)%nsi1+lzd%llr(jlr)%d%n1i-1)
+!!        i2s=max(lzd%llr(ilr)%nsi2,lzd%llr(jlr)%nsi2)
+!!        i2e=min(lzd%llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%llr(jlr)%nsi2+lzd%llr(jlr)%d%n2i-1)
+!!        i3s=max(lzd%llr(ilr)%nsi3,lzd%llr(jlr)%nsi3,is)
+!!        i3e=min(lzd%llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%llr(jlr)%nsi3+lzd%llr(jlr)%d%n3i-1,ie)
+!!
+!!        comsr%startingindex(jorb,iorb)=comsr%nauxarray+1
+!!        ii=(i1e-i1s+1)*(i2e-i2s+1)*(i3e-i3s+1)
+!!        comsr%nauxarray = comsr%nauxarray + ii
+!!    end do
+!!end do
 
 end subroutine initializeCommsSumrho
 
@@ -1647,7 +1732,7 @@ end subroutine deallocateBasicArraysInput
 !> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
 !! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
 !subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
-subroutine initLocregs(iproc, nproc, nat, rxyz, lzd, orbs, input, Glr, locrad, locregShape, lborbs)
+subroutine initLocregs(iproc, nproc, nat, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => initLocregs
@@ -1656,9 +1741,9 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nat
 real(8),dimension(3,nat),intent(in):: rxyz
+real(8),intent(in):: hx, hy, hz
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(inout):: orbs
-type(input_variables),intent(in):: input
 type(locreg_descriptors),intent(in):: Glr
 real(8),dimension(lzd%nlr),intent(in):: locrad
 character(len=1),intent(in):: locregShape
@@ -1668,7 +1753,7 @@ type(orbitals_data),optional,intent(inout):: lborbs
 
 ! Local variables
 integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
-character(len=*),parameter:: subname='initLocregs2'
+character(len=*),parameter:: subname='initLocregs'
 logical,dimension(:),allocatable:: calculateBounds
 
 ! Allocate the array of localisation regions
@@ -1707,11 +1792,11 @@ end do
  end do
 
  if(locregShape=='c') then
-     call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr, calculateBounds)
+     call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, hx, hy, hz, Glr, lzd%Llr, calculateBounds)
  else if(locregShape=='s') then
      !!call determine_locregSphere(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, &
      !!     Glr, lzd%Llr, calculateBounds)
-     call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, &
+     call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
           Glr, lzd%Llr, calculateBounds)
  end if
 
@@ -3097,7 +3182,7 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
   
     jjj=0
     do iseg=1,glr%wfd%nseg_c
-       jj=glr%wfd%keyv(iseg)
+       jj=glr%wfd%keyvloc(iseg)
        j0=glr%wfd%keygloc(1,iseg)
        j1=glr%wfd%keygloc(2,iseg)
        ii=j0-1
@@ -3118,7 +3203,7 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
     ishift=glr%wfd%nseg_c  
     ! fine part
     do iseg=1,glr%wfd%nseg_f
-       jj=glr%wfd%keyv(ishift+iseg)
+       jj=glr%wfd%keyvloc(ishift+iseg)
        j0=glr%wfd%keygloc(1,ishift+iseg)
        j1=glr%wfd%keygloc(2,ishift+iseg)
        ii=j0-1
@@ -3260,7 +3345,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
      nspin_ig=input%nspin
   end if
   linear  = .true.
-  if (input%linear == 'LIG' .or. input%linear == 'FUL') then
+  if (input%linear == 'FUL') then
      Lzd%nlr=atoms%nat
      allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
@@ -3277,11 +3362,11 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
   end if
 
   ! If we are using cubic code : by choice or because locregs are too big
-  if (input%linear =='OFF' .or. .not. linear) then
+  if (input%linear == 'LIG' .or. input%linear =='OFF' .or. .not. linear) then
      linear = .false.
      Lzd%nlr = 1
   end if
-!print *,'======>Using linear code:',linear,input%linear
+
   Lzd%linear = .true.
   if (.not. linear)  Lzd%linear = .false. 
 
@@ -3294,13 +3379,8 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
      if(.not. Lzd%linear) then
         Lzd%lintyp = 0
         !copy Glr to Llr(1)
-
         call nullify_locreg_descriptors(Lzd%Llr(1))
         call copy_locreg_descriptors(Lzd%Glr,Lzd%Llr(1),subname)
-        !copy dimensions of wavefunction and projectors
-!        Lzd%Lpsidimtot=orbs%npsidim
-
-        !call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
      else 
         Lzd%lintyp = 1
         ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
@@ -3326,33 +3406,17 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
 
         ! determine the wavefunction dimension
         call wavefunction_dimension(Lzd,orbs)
-
-        !determine the Local nlpspd
-!        call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf,'c', Lzd)
      end if
   else
      Lzd%lintyp = 2
   end if
-
-  !########################################################################
-  ! Determine the dimension of the potential array and orbs%ispot
-  !########################################################################
-
-!!$  if(associated(orbs%ispot)) then
-!!$     !nullify(orbs%ispot)
-!!$     i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
-!!$     deallocate(orbs%ispot,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'orbs%ispot',subname)
-!!$  end if
-!!$  allocate(orbs%ispot(orbs%norbp),stat=i_stat)
-!!$  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
   
 !DEBUG
 !!if(iproc==0)then
 !!print *,'###################################################'
 !!print *,'##        General information:                   ##'
 !!print *,'###################################################'
-!!print *,'Lzd%nlr,linear, Lpsidimtot, ndimpotisf, Lnprojel:',Lzd%nlr,Lzd%linear,Lzd%Lpsidimtot, Lzd%ndimpotisf, Lzd%Lnprojel
+!!print *,'Lzd%nlr,linear, ndimpotisf :',Lzd%nlr,Lzd%linear,Lzd%ndimpotisf
 !!print *,'###################################################'
 !!print *,'##        Global box information:                ##'
 !!print *,'###################################################'
@@ -3378,31 +3442,155 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
 !!   print *,'Local wfd statistics:',Lzd%Llr(i_stat)%wfd%nseg_c,Lzd%Llr(i_stat)%wfd%nseg_f,Lzd%Llr(i_stat)%wfd%nvctr_c,&
 !!            Lzd%Llr(i_stat)%wfd%nvctr_f
 !!end do
-!!print *,'###################################################'
-!!print *,'##        Global PsP information:                 ##'
-!!print *,'###################################################'
-!!write(*,*)'nproj,nprojel',Lzd%Gnlpspd%nproj,Lzd%Gnlpspd%nprojel 
-!!write(*,'(a24,3i4)')'shape(nvectr),shape(nseg_p),shape(keyv_p):',shape(Lzd%Gnlpspd%nvctr_p),&
-!!     shape(Lzd%Gnlpspd%nseg_p),shape(Lzd%Gnlpspd%keyv_p)
-!!print *,'shape(keyg_p):',shape(Lzd%Gnlpspd%keyg_p)
-!!if(Lzd%linear)then
-!!   print *,'###################################################'
-!!   print *,'##        Local PsP information:                 ##'
-!!   print *,'###################################################'
-!!   do i_stat =1, Lzd%nlr
-!!      write(*,*)'=====> Region:',i_stat
-!!      write(*,*)'nproj,nprojel',Lzd%Lnlpspd(i_stat)%nproj,Lzd%Lnlpspd(i_stat)%nprojel
-!!      write(*,'(a24,3i4)')'shape(nvectr),shape(nseg_p),shape(keyv_p):',shape(Lzd%Lnlpspd(i_stat)%nvctr_p),&
-!!           shape(Lzd%Lnlpspd(i_stat)%nseg_p),shape(Lzd%Lnlpspd(i_stat)%keyv_p)
-!!      print *,'shape(keyg_p):',shape(Lzd%Lnlpspd(i_stat)%keyg_p)
-!!   end do
-!!end if
 !!end if
 !!call mpi_finalize(i_stat)
 !!stop
 !END DEBUG
 
 end subroutine check_linear_and_create_Lzd
+
+subroutine create_LzdLIG(iproc,nproc,input,Glr,atoms,orbs,rxyz,Lzd)
+  use module_base
+  use module_types
+  use module_xc
+  implicit none
+
+  integer, intent(in) :: iproc,nproc
+  type(input_variables), intent(in) :: input
+  type(locreg_descriptors), intent(in) :: Glr
+  type(atoms_data), intent(in) :: atoms
+  type(orbitals_data),intent(inout) :: orbs
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  type(local_zone_descriptors), intent(out) :: Lzd
+!  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  !Local variables
+  character(len=*), parameter :: subname='check_linear_and_create_Lzd'
+  logical :: linear,newvalue
+  integer :: iat,ityp,nspin_ig,i_all,i_stat,ii,iilr,ilr,iorb,iorb2,nilr,ispin
+  integer,dimension(:,:),allocatable:: ilrtable
+  real(gp), dimension(:), allocatable :: locrad
+  logical,dimension(:),allocatable:: calculateBounds
+
+  !default variables
+  Lzd%nlr = 1
+
+  if (input%nspin == 4) then
+     nspin_ig=1
+  else
+     nspin_ig=input%nspin
+  end if
+
+  linear  = .true.
+  if (input%linear == 'LIG' .or. input%linear == 'FUL') then
+     Lzd%nlr=atoms%nat
+     allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
+     call memocc(i_stat,locrad,'locrad',subname)
+     ! locrad read from last line of  psppar
+     do iat=1,atoms%nat
+        ityp = atoms%iatype(iat)
+        locrad(iat) = atoms%rloc(ityp,1)
+     end do  
+     call timing(iproc,'check_IG      ','ON')
+     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,&
+          Glr,linear) 
+     call timing(iproc,'check_IG      ','OF')
+     if(input%nspin >= 4) linear = .false. 
+  end if
+
+  ! If we are using cubic code : by choice or because locregs are too big
+  if (input%linear =='OFF' .or. .not. linear) then
+     linear = .false.
+     Lzd%nlr = 1
+  end if
+
+  Lzd%linear = .true.
+  if (.not. linear)  Lzd%linear = .false.
+
+!  print *,'before Glr => Lzd%Glr'
+  call nullify_locreg_descriptors(Lzd%Glr)
+  call copy_locreg_descriptors(Glr,Lzd%Glr,subname)
+
+  if(input%linear /= 'TMO') then
+     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
+     allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
+     call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
+     Lzd%doHamAppl = .true. 
+     !for now, always true because we want to calculate the hamiltonians for all locregs
+
+     if(.not. Lzd%linear) then
+        Lzd%lintyp = 0
+        !copy Glr Lzd%Llr(1)
+        call nullify_locreg_descriptors(Lzd%Llr(1))
+!        print *,'before Glr => Lzd%Llr(1)'
+        call copy_locreg_descriptors(Glr,Lzd%Llr(1),subname)
+     else 
+        Lzd%lintyp = 1
+        ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
+        call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
+
+        ! determine the localization regions
+        ! calculateBounds indicate whether the arrays with the bounds (for convolutions...) shall also
+        ! be allocated and calculated. In principle this is only necessary if the current process has orbitals
+        ! in this localization region.
+        allocate(calculateBounds(lzd%nlr),stat=i_stat)
+        call memocc(i_stat,calculateBounds,'calculateBounds',subname)
+        calculateBounds=.true.
+!        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Glr,Lzd%Llr,calculateBounds)
+        call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,&
+             input%hx,input%hy,input%hz,Glr,Lzd%Llr,&
+             orbs,calculateBounds)  
+        i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
+        deallocate(calculateBounds,stat=i_stat)
+        call memocc(i_stat,i_all,'calculateBounds',subname)
+        i_all = -product(shape(locrad))*kind(locrad)
+        deallocate(locrad,stat=i_stat)
+        call memocc(i_stat,i_all,'locrad',subname)
+
+        ! determine the wavefunction dimension
+        call wavefunction_dimension(Lzd,orbs)
+     end if
+  else
+     Lzd%lintyp = 2
+  end if
+
+!DEBUG
+!!if(iproc==0)then
+!!print *,'###################################################'
+!!print *,'##        General information:                   ##'
+!!print *,'###################################################'
+!!print *,'Lzd%nlr,linear, Lpsidimtot, ndimpotisf, Lnprojel:',Lzd%nlr,Lzd%linear,Lzd%ndimpotisf
+!!print *,'###################################################'
+!!print *,'##        Global box information:                ##'
+!!print *,'###################################################'
+!!write(*,'(a24,3i4)')'Global region n1,n2,n3:',Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3
+!!write(*,*)'Global fine grid: nfl',Lzd%Glr%d%nfl1,Lzd%Glr%d%nfl2,Lzd%Glr%d%nfl3
+!!write(*,*)'Global fine grid: nfu',Lzd%Glr%d%nfu1,Lzd%Glr%d%nfu2,Lzd%Glr%d%nfu3
+!!write(*,*)'Global inter. grid: ni',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i
+!!write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (1x,y,z):',Lzd%Glr%d%n1*input%hx,Lzd%Glr%d%n2*input%hy,Lzd%Glr%d%n3*input%hz
+!!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*input%hx*Lzd%Glr%d%n2*input%hy*Lzd%Glr%d%n3*input%hz
+!!print *,'Global wfd statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
+!!print *,'###################################################'
+!!print *,'##        Local boxes information:               ##'
+!!print *,'###################################################'
+!!do i_stat =1, Lzd%nlr
+!!   write(*,*)'=====> Region:',i_stat
+!!   write(*,'(a24,3i4)')'Local region n1,n2,n3:',Lzd%Llr(i_stat)%d%n1,Lzd%Llr(i_stat)%d%n2,Lzd%Llr(i_stat)%d%n3
+!!   write(*,*)'Local fine grid: nfl',Lzd%Llr(i_stat)%d%nfl1,Lzd%Llr(i_stat)%d%nfl2,Lzd%Llr(i_stat)%d%nfl3
+!!   write(*,*)'Local fine grid: nfu',Lzd%Llr(i_stat)%d%nfu1,Lzd%Llr(i_stat)%d%nfu2,Lzd%Llr(i_stat)%d%nfu3
+!!   write(*,*)'Local inter. grid: ni',Lzd%Llr(i_stat)%d%n1i,Lzd%Llr(i_stat)%d%n2i,Lzd%Llr(i_stat)%d%n3i
+!!   write(*,'(a27,f6.2,f6.2,f6.2)')'Local dimension (1x,y,z):',Lzd%Llr(i_stat)%d%n1*input%hx,Lzd%Llr(i_stat)%d%n2*input%hy,&
+!!            Lzd%Llr(i_stat)%d%n3*input%hz
+!!   write(*,'(a17,f12.2)')'Local volume: ',Lzd%Llr(i_stat)%d%n1*input%hx*Lzd%Llr(i_stat)%d%n2*input%hy*Lzd%Llr(i_stat)%d%n3*input%hz
+!!   print *,'Local wfd statistics:',Lzd%Llr(i_stat)%wfd%nseg_c,Lzd%Llr(i_stat)%wfd%nseg_f,Lzd%Llr(i_stat)%wfd%nvctr_c,&
+!!            Lzd%Llr(i_stat)%wfd%nvctr_f
+!!end do
+!!end if
+!call mpi_finalize(i_stat)
+!stop
+!END DEBUG
+
+end subroutine create_LzdLIG
+
 
 subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
   use module_base
@@ -3510,144 +3698,145 @@ subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
 end subroutine local_potential_dimensions
 
 
-subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
-  use module_base
-  use module_types
-  use deallocatePointers
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  type(input_variables), intent(in) :: input
-  type(local_zone_descriptors), intent(inout) :: Lzd
-  type(atoms_data), intent(in) :: atoms
-  type(orbitals_data),intent(inout) :: orbs
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-!  real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
-  !Local variables
-  character(len=*), parameter :: subname='reinitialize_Lzd_after_LIG'
-  integer :: iat,ityp,nspin_ig,i_all,i_stat,i1,iis1,iie1,ilr
-  real(gp), dimension(:), allocatable :: locrad
-  logical,dimension(:),allocatable:: calculateBounds
-
-  if(input%linear == 'OFF') then
-     return   !quick return
-  else if(input%linear == 'LIG') then
-     ! Reiniatilise Lzd on OFF mode
-     ! First deallocate all the unwanted structures
-     Lzd%lintyp = 0
-     Lzd%linear = .false.
-     Lzd%nlr = 1
-!     Lzd%Lpsidimtot=orbs%npsidim
-!     Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
-     call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg',subname)
-     call checkAndDeallocatePointer(Lzd%doHamAppl, 'lzd%doHamAppl', subname)
-     if(associated(lzd%llr)) then
-        iis1=lbound(lzd%llr,1)
-        iie1=ubound(lzd%llr,1)
-        do i1=iis1,iie1
-            !if(associated(lzd%llr(i1)%projflg)) then
-            !    nullify(lzd%llr(i1)%projflg)
-            !end if
-            call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
-            !write(*,*) 'i1',i1
-            call deallocate_locreg_descriptors(lzd%llr(i1), subname)
-        end do
-     end if
-!!$     if(associated(lzd%lnlpspd)) then
-!!$        iis1=lbound(lzd%lnlpspd,1)
-!!$        iie1=ubound(lzd%lnlpspd,1)
-!!$        do i1=iis1,iie1
-!!$            call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-!!$        end do
-!!$     end if
-     call nullify_locreg_descriptors(Lzd%Llr(1))
-     
-     !Copy the Glr to the Llr(1)
-     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
-     !nullify all pointers
-     do ilr=1,Lzd%nlr
-        nullify(Lzd%Llr(ilr)%projflg)
-        nullify(Lzd%Llr(ilr)%wfd%keygloc)
-        nullify(Lzd%Llr(ilr)%wfd%keyglob)
-        nullify(Lzd%Llr(ilr)%wfd%keyv)
-        nullify(Lzd%Llr(ilr)%bounds%ibyyzz_r) 
-        nullify(Lzd%Llr(ilr)%bounds%kb%ibyz_c)
-        nullify(Lzd%Llr(ilr)%bounds%kb%ibxz_c)
-        nullify(Lzd%Llr(ilr)%bounds%kb%ibxy_c)
-        nullify(Lzd%Llr(ilr)%bounds%kb%ibyz_f)
-        nullify(Lzd%Llr(ilr)%bounds%kb%ibxz_f)
-        nullify(Lzd%Llr(ilr)%bounds%kb%ibxy_f)
-        nullify(Lzd%Llr(ilr)%bounds%sb%ibzzx_c)
-        nullify(Lzd%Llr(ilr)%bounds%sb%ibyyzz_c)
-        nullify(Lzd%Llr(ilr)%bounds%sb%ibxy_ff)
-        nullify(Lzd%Llr(ilr)%bounds%sb%ibzzx_f)
-        nullify(Lzd%Llr(ilr)%bounds%sb%ibyyzz_f)
-        nullify(Lzd%Llr(ilr)%bounds%gb%ibzxx_c)
-        nullify(Lzd%Llr(ilr)%bounds%gb%ibxxyy_c)
-        nullify(Lzd%Llr(ilr)%bounds%gb%ibyz_ff)
-        nullify(Lzd%Llr(ilr)%bounds%gb%ibzxx_f)
-        nullify(Lzd%Llr(ilr)%bounds%gb%ibxxyy_f)
-     end do
-      
-     allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
-     call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
-     Lzd%doHamAppl = .true.
-     call copy_locreg_descriptors(Lzd%Glr, Lzd%Llr(1), subname)
-  
-     !Reinitiliaze inwhichlocreg
-     allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
-     orbs%inwhichlocreg = 1
-
-  else if(input%linear == 'FUL') then
-    if (input%nspin == 4) then
-       nspin_ig=1
-    else
-       nspin_ig=input%nspin
-    end if
-
-    allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
-    call memocc(i_stat,locrad,'locrad',subname)
-    ! locrad read from last line of  psppar
-    do iat=1,atoms%nat
-       ityp = atoms%iatype(iat)
-       locrad(iat) = atoms%rloc(ityp,1)
-    end do
-
-    !Must only redistribute the locregs and orbitals
-    ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
-     call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
-
-    ! Deallocate the localization regions
-    if(associated(lzd%llr)) then
-         iis1=lbound(lzd%llr,1)
-         iie1=ubound(lzd%llr,1)
-         do i1=iis1,iie1
-             call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
-             call deallocate_locreg_descriptors(lzd%llr(i1), subname)
-         end do
-      end if
-
-    ! Make the localization regions
-    allocate(calculateBounds(lzd%nlr),stat=i_stat)
-    call memocc(i_stat,calculateBounds,'calculateBounds',subname)
-    calculateBounds=.true.
-!    call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,calculateBounds)
-    call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,&
-          orbs,calculateBounds) 
-
-     i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
-     deallocate(calculateBounds,stat=i_stat)
-     call memocc(i_stat,i_all,'calculateBounds',subname)
-     i_all = -product(shape(locrad))*kind(locrad) 
-     deallocate(locrad,stat=i_stat)
-     call memocc(i_stat,i_all,'locrad',subname)
-
-     ! determine the wavefunction dimension
-     call wavefunction_dimension(Lzd,orbs)
-
-     !determine the Local nlpspd
-!     call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf, Lzd)
-  end if
-end subroutine reinitialize_Lzd_after_LIG
+!!subroutine reinitialize_Lzd_after_LIG(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
+!!  use module_base
+!!  use module_types
+!!  use deallocatePointers
+!!  implicit none
+!!  integer, intent(in) :: iproc,nproc
+!!  type(input_variables), intent(in) :: input
+!!  type(local_zone_descriptors), intent(inout) :: Lzd
+!!  type(atoms_data), intent(in) :: atoms
+!!  type(orbitals_data),intent(inout) :: orbs
+!!  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+!!!  real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
+!!  !Local variables
+!!  character(len=*), parameter :: subname='reinitialize_Lzd_after_LIG'
+!!  integer :: iat,ityp,nspin_ig,i_all,i_stat,i1,iis1,iie1,ilr
+!!  real(gp), dimension(:), allocatable :: locrad
+!!  logical,dimension(:),allocatable:: calculateBounds
+!!
+!!  if(input%linear == 'OFF') then
+!!     return   !quick return
+!!  else if(input%linear == 'LIG') then
+!!     ! Reiniatilise Lzd on OFF mode
+!!     ! First deallocate all the unwanted structures
+!!     Lzd%lintyp = 0
+!!     Lzd%linear = .false.
+!!     Lzd%nlr = 1
+!!!     Lzd%Lpsidimtot=orbs%npsidim
+!!!     Lzd%Lnprojel = Lzd%Gnlpspd%nprojel
+!!     call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg',subname)
+!!     call checkAndDeallocatePointer(Lzd%doHamAppl, 'lzd%doHamAppl', subname)
+!!     if(associated(lzd%llr)) then
+!!        iis1=lbound(lzd%llr,1)
+!!        iie1=ubound(lzd%llr,1)
+!!        do i1=iis1,iie1
+!!            !if(associated(lzd%llr(i1)%projflg)) then
+!!            !    nullify(lzd%llr(i1)%projflg)
+!!            !end if
+!!            call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
+!!            !write(*,*) 'i1',i1
+!!            call deallocate_locreg_descriptors(lzd%llr(i1), subname)
+!!        end do
+!!     end if
+!!!!$     if(associated(lzd%lnlpspd)) then
+!!!!$        iis1=lbound(lzd%lnlpspd,1)
+!!!!$        iie1=ubound(lzd%lnlpspd,1)
+!!!!$        do i1=iis1,iie1
+!!!!$            call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
+!!!!$        end do
+!!!!$     end if
+!!     call nullify_locreg_descriptors(Lzd%Llr(1))
+!!     
+!!     !Copy the Glr to the Llr(1)
+!!     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
+!!     !nullify all pointers
+!!     do ilr=1,Lzd%nlr
+!!        nullify(Lzd%Llr(ilr)%projflg)
+!!        nullify(Lzd%Llr(ilr)%wfd%keygloc)
+!!        nullify(Lzd%Llr(ilr)%wfd%keyglob)
+!!        nullify(Lzd%Llr(ilr)%wfd%keyvloc)
+!!        nullify(Lzd%Llr(ilr)%wfd%keyvglob)
+!!        nullify(Lzd%Llr(ilr)%bounds%ibyyzz_r) 
+!!        nullify(Lzd%Llr(ilr)%bounds%kb%ibyz_c)
+!!        nullify(Lzd%Llr(ilr)%bounds%kb%ibxz_c)
+!!        nullify(Lzd%Llr(ilr)%bounds%kb%ibxy_c)
+!!        nullify(Lzd%Llr(ilr)%bounds%kb%ibyz_f)
+!!        nullify(Lzd%Llr(ilr)%bounds%kb%ibxz_f)
+!!        nullify(Lzd%Llr(ilr)%bounds%kb%ibxy_f)
+!!        nullify(Lzd%Llr(ilr)%bounds%sb%ibzzx_c)
+!!        nullify(Lzd%Llr(ilr)%bounds%sb%ibyyzz_c)
+!!        nullify(Lzd%Llr(ilr)%bounds%sb%ibxy_ff)
+!!        nullify(Lzd%Llr(ilr)%bounds%sb%ibzzx_f)
+!!        nullify(Lzd%Llr(ilr)%bounds%sb%ibyyzz_f)
+!!        nullify(Lzd%Llr(ilr)%bounds%gb%ibzxx_c)
+!!        nullify(Lzd%Llr(ilr)%bounds%gb%ibxxyy_c)
+!!        nullify(Lzd%Llr(ilr)%bounds%gb%ibyz_ff)
+!!        nullify(Lzd%Llr(ilr)%bounds%gb%ibzxx_f)
+!!        nullify(Lzd%Llr(ilr)%bounds%gb%ibxxyy_f)
+!!     end do
+!!      
+!!     allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
+!!     call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
+!!     Lzd%doHamAppl = .true.
+!!     call copy_locreg_descriptors(Lzd%Glr, Lzd%Llr(1), subname)
+!!  
+!!     !Reinitiliaze inwhichlocreg
+!!     allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
+!!     orbs%inwhichlocreg = 1
+!!
+!!  else if(input%linear == 'FUL') then
+!!    if (input%nspin == 4) then
+!!       nspin_ig=1
+!!    else
+!!       nspin_ig=input%nspin
+!!    end if
+!!
+!!    allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
+!!    call memocc(i_stat,locrad,'locrad',subname)
+!!    ! locrad read from last line of  psppar
+!!    do iat=1,atoms%nat
+!!       ityp = atoms%iatype(iat)
+!!       locrad(iat) = atoms%rloc(ityp,1)
+!!    end do
+!!
+!!    !Must only redistribute the locregs and orbitals
+!!    ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
+!!     call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
+!!
+!!    ! Deallocate the localization regions
+!!    if(associated(lzd%llr)) then
+!!         iis1=lbound(lzd%llr,1)
+!!         iie1=ubound(lzd%llr,1)
+!!         do i1=iis1,iie1
+!!             call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
+!!             call deallocate_locreg_descriptors(lzd%llr(i1), subname)
+!!         end do
+!!      end if
+!!
+!!    ! Make the localization regions
+!!    allocate(calculateBounds(lzd%nlr),stat=i_stat)
+!!    call memocc(i_stat,calculateBounds,'calculateBounds',subname)
+!!    calculateBounds=.true.
+!!!    call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,calculateBounds)
+!!    call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,&
+!!          orbs,calculateBounds) 
+!!
+!!     i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
+!!     deallocate(calculateBounds,stat=i_stat)
+!!     call memocc(i_stat,i_all,'calculateBounds',subname)
+!!     i_all = -product(shape(locrad))*kind(locrad) 
+!!     deallocate(locrad,stat=i_stat)
+!!     call memocc(i_stat,i_all,'locrad',subname)
+!!
+!!     ! determine the wavefunction dimension
+!!     call wavefunction_dimension(Lzd,orbs)
+!!
+!!     !determine the Local nlpspd
+!!!     call prepare_lnlpspd(iproc, atoms, input, orbs, rxyz, radii_cf, Lzd)
+!!  end if
+!!end subroutine reinitialize_Lzd_after_LIG
 
 
 

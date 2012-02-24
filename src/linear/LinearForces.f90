@@ -1,68 +1,68 @@
 
 !>   Fill the proj array with the PSP projectors or their derivatives, following idir value
-subroutine Linearfill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,idir
-  real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data), intent(in) :: at
-  type(orbitals_data), intent(in) :: orbs
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(locreg_descriptors),intent(in) :: lr
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
-  !Local variables
-  integer, parameter :: nterm_max=20 !if GTH nterm_max=4
-  integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt,iatom
-
-  if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) write(*,'(1x,a)',advance='no') &
-       'Calculating wavelets expansion of projectors...'
-  !warnings related to the projectors norm
-  nwarnings=0
-  !allocate these vectors up to the maximum size we can get
-  istart_c=1
-
-  !create projectors for any of the k-point hosted by the processor
-  !starting kpoint
-  if (orbs%norbp > 0) then
-     iskpt=orbs%iokpt(1)
-     iekpt=orbs%iokpt(orbs%norbp)
-  else
-     iskpt=1
-     iekpt=1
-  end if
-
-  do ikpt=iskpt,iekpt
-     iproj=0
-     iatom = 0
-     do iat=1,at%nat
-        if (lr%projflg(iat) == 0) cycle
-        iatom = iatom + 1
-        !this routine is defined to uniformise the call for on-the-fly application
-        call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
-             lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iatom),proj,nwarnings)
-
-!!$        call Linearatom_projector(ikpt,iat,iatom,idir,istart_c,iproj,&
-!!$             lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
-     enddo
-     if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
-     ! projector part finished
-  end do
-  if (istart_c-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp generation'
-
-  if (iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
-     if (nwarnings == 0) then
-        write(*,'(1x,a)')'done.'
-     else
-        write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
-        write(*,'(1x,a)')'Some projectors may be too rough.'
-        write(*,'(1x,a,f6.3)')&
-             'Consider the possibility of modifying hgrid and/or the localisation radii.'
-     end if
-  end if
-
-END SUBROUTINE Linearfill_projectors
+!!subroutine Linearfill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!  integer, intent(in) :: iproc,idir
+!!  real(gp), intent(in) :: hx,hy,hz
+!!  type(atoms_data), intent(in) :: at
+!!  type(orbitals_data), intent(in) :: orbs
+!!  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+!!  type(locreg_descriptors),intent(in) :: lr
+!!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!!  real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
+!!  !Local variables
+!!  integer, parameter :: nterm_max=20 !if GTH nterm_max=4
+!!  integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt,iatom
+!!
+!!  if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) write(*,'(1x,a)',advance='no') &
+!!       'Calculating wavelets expansion of projectors...'
+!!  !warnings related to the projectors norm
+!!  nwarnings=0
+!!  !allocate these vectors up to the maximum size we can get
+!!  istart_c=1
+!!
+!!  !create projectors for any of the k-point hosted by the processor
+!!  !starting kpoint
+!!  if (orbs%norbp > 0) then
+!!     iskpt=orbs%iokpt(1)
+!!     iekpt=orbs%iokpt(orbs%norbp)
+!!  else
+!!     iskpt=1
+!!     iekpt=1
+!!  end if
+!!
+!!  do ikpt=iskpt,iekpt
+!!     iproj=0
+!!     iatom = 0
+!!     do iat=1,at%nat
+!!        if (lr%projflg(iat) == 0) cycle
+!!        iatom = iatom + 1
+!!        !this routine is defined to uniformise the call for on-the-fly application
+!!        call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
+!!             lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iatom),proj,nwarnings)
+!!
+!!!!$        call Linearatom_projector(ikpt,iat,iatom,idir,istart_c,iproj,&
+!!!!$             lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+!!     enddo
+!!     if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
+!!     ! projector part finished
+!!  end do
+!!  if (istart_c-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp generation'
+!!
+!!  if (iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
+!!     if (nwarnings == 0) then
+!!        write(*,'(1x,a)')'done.'
+!!     else
+!!        write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
+!!        write(*,'(1x,a)')'Some projectors may be too rough.'
+!!        write(*,'(1x,a,f6.3)')&
+!!             'Consider the possibility of modifying hgrid and/or the localisation radii.'
+!!     end if
+!!  end if
+!!
+!!END SUBROUTINE Linearfill_projectors
 
 !!$subroutine Linearatom_projector(ikpt,iat,iatom,idir,istart_c,iproj,&
 !!$     lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
@@ -343,11 +343,11 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
                                 call wpdot_wrap(ncplx,&
                                      Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,&
                                      Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nseg_f,&
-                                     Lzd%Llr(ilr)%wfd%keyv,Lzd%Llr(ilr)%wfd%keyglob,phi(ispsi),&
+                                     Lzd%Llr(ilr)%wfd%keyvglob,Lzd%Llr(ilr)%wfd%keyglob,phi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                        Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),&
 !!$                                        Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&   !must define jseg_c
-                                     nlpspd%plr(iatom)%wfd%keyv(jseg_c),&
+                                     nlpspd%plr(iatom)%wfd%keyvglob(jseg_c),&
                                      nlpspd%plr(iatom)%wfd%keyglob(1,jseg_c),& !jseg_c=1
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
@@ -496,10 +496,10 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
                                    call wpdot_wrap(ncplx,&
                                         Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,&
                                         Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nseg_f,&
-                                        Lzd%Llr(ilr)%wfd%keyv,Lzd%Llr(ilr)%wfd%keyglob,psi(ispsi),&
+                                        Lzd%Llr(ilr)%wfd%keyvglob,Lzd%Llr(ilr)%wfd%keyglob,psi(ispsi),&
                                         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                        Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&        !must define jseg_c
-                                        nlpspd%plr(iatom)%wfd%keyv(jseg_c),&
+                                        nlpspd%plr(iatom)%wfd%keyvglob(jseg_c),&
                                         nlpspd%plr(iatom)%wfd%keyglob(1,jseg_c),&!jseg_c=1
                                         proj(istart_c),&
                                         scalprod(1,idir,m,i,l,iat,jorb))
@@ -579,11 +579,11 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
                                 call wpdot_wrap(ncplx,&
                                      Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,&
                                      Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
-                                     Lzd%Glr%wfd%keyv,Lzd%Glr%wfd%keyglob,psi(ispsi),&
+                                     Lzd%Glr%wfd%keyvglob,Lzd%Glr%wfd%keyglob,psi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                     Lzd%Gnlpspd%keyv_p(jseg_c),&
 !!$                                     Lzd%Gnlpspd%keyg_p(1,jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
@@ -656,11 +656,11 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
                                 call wpdot_wrap(ncplx,&
                                      Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,&
                                      Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
-                                     Lzd%Glr%wfd%keyv,Lzd%Glr%wfd%keyglob,psi(ispsi),  &
+                                     Lzd%Glr%wfd%keyvglob,Lzd%Glr%wfd%keyglob,psi(ispsi),  &
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                     Lzd%Gnlpspd%keyv_p(jseg_c),&
 !!$                                     Lzd%Gnlpspd%keyg_p(1,jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
