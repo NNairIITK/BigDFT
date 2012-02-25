@@ -5812,7 +5812,8 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       do iorb=1,orbs%norb
           locdiff = locdiff + gHmat(iorb,iorb) + gMmat(iorb,iorb) + gNmat(iorb,iorb)
       end do
-      if(iproc==0 .and. verbose >2) write(*,'(a,i8,3es16.7,es12.4)') 'it, rspread, locdiff, omega, lstep', it, rspread, locdiff, omega, lstep
+      if(iproc==0 .and. verbose >2) write(*,'(a,i8,3es16.7,es12.4)')&
+           'it, rspread, locdiff, omega, lstep', it, rspread, locdiff, omega, lstep
 
 
 
