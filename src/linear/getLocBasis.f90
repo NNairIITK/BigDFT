@@ -3175,8 +3175,8 @@ do jproc=0,nproc-1
         end if
         !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
         nslow=nslow+1
-        call mpi_wait(comgp%comarr(7,kproc,jproc), stat, ierr)   !COMMENTED BY PB
-        call mpi_wait(comgp%comarr(8,kproc,jproc), stat, ierr)   !COMMENTED BY PB
+        call mpi_wait(comgp%comarr(7,kproc,jproc), stat, ierr)  
+        call mpi_wait(comgp%comarr(8,kproc,jproc), stat, ierr) 
         comgp%communComplete(kproc,jproc)=.true.
     end do
 end do
@@ -4386,7 +4386,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       allocate(work(lwork), stat=istat) ! factor of 2 since it is assumed to be complex
       allocate(rwork(lwork), stat=istat)
       call zheev('v', 'l', orbs%norb, gmatc(1,1), orbs%norb, eval(1), work, lwork, rwork, info)
-      if(info/=0) stop 'ERROR in zheev'
+      if(info/=0) stop 'ERROR in zheev 1'
       deallocate(work)
       deallocate(rwork)
       t2=mpi_wtime()
@@ -5020,7 +5020,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       allocate(work(lwork), stat=istat) ! factor of 2 since it is assumed to be complex
       allocate(rwork(lwork), stat=istat)
       call zheev('v', 'l', orbs%norb, gmatc(1,1), orbs%norb, eval(1), work, lwork, rwork, info)
-      if(info/=0) stop 'ERROR in zheev'
+      if(info/=0) stop 'ERROR in zheev 2'
       deallocate(work)
       deallocate(rwork)
       t2=mpi_wtime()
@@ -5812,7 +5812,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       do iorb=1,orbs%norb
           locdiff = locdiff + gHmat(iorb,iorb) + gMmat(iorb,iorb) + gNmat(iorb,iorb)
       end do
-      if(iproc==0 .and. verbose >2) write(*,'(a,i8,3es16.7,es12.4)') 'it, rspread, locdiff, omega, lstep', it, rspread, locdiff, omega, lstep
+      !if(iproc==0 .and. verbose >2) write(*,'(a,i8,3es16.7,es12.4)') 'it, rspread, locdiff, omega, lstep', it, rspread, locdiff, omega, lstep
 
 
 
@@ -5955,7 +5955,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       allocate(work(lwork), stat=istat) ! factor of 2 since it is assumed to be complex
       allocate(rwork(lwork), stat=istat)
       call zheev('v', 'l', orbs%norb, gmatc(1,1), orbs%norb, eval(1), work, lwork, rwork, info)
-      if(info/=0) stop 'ERROR in zheev'
+      if(info/=0) stop 'ERROR in zheev 3'
       deallocate(work)
       deallocate(rwork)
       t2=mpi_wtime()

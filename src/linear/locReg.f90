@@ -224,9 +224,19 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calc
      Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
 
      !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
-     Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
-     Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
-     Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+     if(Llr(ilr)%geocode == 'F') then
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+     else if(Llr(ilr)%geocode == 'S') then
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+     else
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+     end if
 
 !DEBUG
 !!     if (iproc == 0) then
@@ -722,7 +732,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
             end if
 
             if(xperiodic .and. zperiodic) then
-         !     Llr(ilr)%geocode = 'S'
+              Llr(ilr)%geocode = 'S'
             end if    
 
          case('P')
@@ -814,9 +824,19 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
     
          !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
-         Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
-         Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
-         Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+         if(Llr(ilr)%geocode == 'F') then
+            Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
+            Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+            Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+         else if(Llr(ilr)%geocode == 'S') then
+            Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+            Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+            Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+         else
+            Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+            Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
+            Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+         end if
     
     !DEBUG
     !     if (iproc == 0) then

@@ -62,9 +62,18 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
 
      iorb = ii + orbs%isorb
      ilr = orbs%inwhichLocreg(iorb)
-     Lnscatterarr(:,1) = Lzd%Llr(ilr)%d%n3i
-     Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i
-     
+
+     ! Going to need ixc (or better yet, define a correct Lnscatterarr directly in denspot)
+     !call PS_dim4allocation(Lzd%Llr(ilr)%geocode,'D',iproc,nproc,Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,ixc,&
+     !     n3d,n3p,n3pi,i3xcsh,i3s)
+     !Lnscatterarr(iproc,1)=n3d            !number of planes for the density
+     !Lnscatterarr(iproc,2)=n3p            !number of planes for the potential
+     !Lnscatterarr(iproc,3)=i3s+i3xcsh-1   !starting offset for the potential
+     !Lnscatterarr(iproc,4)=i3xcsh         !GGA XC shift between density and potential
+
+     Lnscatterarr(:,1) = Lzd%Llr(ilr)%d%n3i / nproc
+     Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i / nproc
+
      call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
      allocate(rho_p(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn), stat=i_stat) !must redefine the size of rho_p?
      call memocc(i_stat,rho_p,'rho_p',subname)
