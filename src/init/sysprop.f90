@@ -88,7 +88,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
        radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
 
   ! See if linear scaling should be activated and build the correct Lzd 
-  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,in,hgrids(1),hgrids(2),hgrids(3),Lzd,atoms,orbs,rxyz)
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way

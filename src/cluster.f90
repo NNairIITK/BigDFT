@@ -424,7 +424,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      eexctX=0.0_gp   !Exact exchange is not calculated right now 
      ! This is the main routine that does everything related to the linear scaling version.
      call linearScaling(iproc,nproc,Lzd%Glr,&
-          orbs,comms,atoms,in,lin,&
+          orbs,comms,atoms,in,hx,hy,hz,lin,&
           rxyz,fion,fdisp,denspot,&
           nlpspd,proj,GPU,eion,edisp,eexctX,scpot,psi,psit,&
           energy,fxyz)

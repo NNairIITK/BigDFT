@@ -1589,7 +1589,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 ! ###################################################################
    if(potshortcut<=0) then
        call nullify_local_zone_descriptors(Lzde)
-       call create_LzdLIG(iproc,nproc,input,Lzd%Glr,at,orbse,rxyz,Lzde)
+       call create_LzdLIG(iproc,nproc,input,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
    else
        call nullify_local_zone_descriptors(Lzde)
        Lzde = Lzd

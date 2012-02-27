@@ -1911,12 +1911,13 @@ module module_interfaces
 
 
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-          input, rxyz, nscatterarr, tag, coeff, lphi)
+          input,hx, hy, hz, rxyz, nscatterarr, tag, coeff, lphi)
       use module_base
       use module_types
       implicit none
       ! Calling arguments
       integer,intent(in):: iproc, nproc
+      real(gp),intent(in):: hx, hy, hz
       type(locreg_descriptors),intent(in):: Glr
       type(orbitals_data),intent(in):: orbs
       type(atoms_data),intent(inout):: at
@@ -2203,13 +2204,14 @@ module module_interfaces
       type(linearParameters),intent(in out):: lin
     end subroutine orbitalsCommunicatorsWithGroups
     
-    subroutine linearScaling(iproc,nproc,Glr,orbs,comms,at,input,&
+    subroutine linearScaling(iproc,nproc,Glr,orbs,comms,at,input,hx,hy,hz,&
          lin,rxyz,fion,fdisp,denspot,nlpspd,proj,GPU,&
          eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc
+      real(gp), intent(in) :: hx, hy, hz
       type(locreg_descriptors),intent(in) :: Glr
       type(orbitals_data),intent(inout):: orbs
       type(communications_arrays),intent(in) :: comms
@@ -2272,12 +2274,14 @@ module module_interfaces
     
     
 
-    subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
-        ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, phi, coeff, rhopot, fxyz, fnoise, radii_cf)
+    subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, hx, hy, hz,&
+        comms, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, phi,&
+        coeff, rhopot, fxyz, fnoise, radii_cf)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
+      real(gp),intent(in):: hx, hy, hz
       type(locreg_descriptors),intent(in):: Glr
       type(orbitals_data),intent(in):: orbs
       type(atoms_data),intent(in):: atoms
@@ -2562,7 +2566,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine readAtomicOrbitals_withOnWhichAtom
 
     subroutine inputguessConfinement(iproc, nproc, at, &
-         comms, Glr, input, lin, orbs, rxyz,denspot, rhopotold,&
+         comms, Glr, input, hx, hy, hz, lin, orbs, rxyz,denspot, rhopotold,&
          nlpspd, proj, GPU,  &
          tag, lphi, ehart, eexcu, vexcu)
       use module_base
@@ -2570,13 +2574,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       implicit none
       !Arguments
       integer, intent(in) :: iproc,nproc
+      real(gp), intent(in) :: hx, hy, hz
       type(atoms_data), intent(inout) :: at
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
       type(locreg_descriptors), intent(in) :: Glr
       type(communications_arrays), intent(in) :: comms
       type(GPU_pointers), intent(inout) :: GPU
       type(DFT_local_fields), intent(inout) :: denspot
-      type(input_variables):: input
+      type(input_variables),intent(in):: input
       type(linearParameters),intent(inout):: lin
       type(orbitals_data),intent(in):: orbs
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -2928,12 +2933,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 !!$       real(8),dimension(orbs%norb,orbs%norb,2),intent(out):: matrixElements
 !!$     end subroutine getMatrixElements
 
-     subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, orbs, comsr, coeff, nrho, rho, at, nscatterarr)
+     subroutine sumrhoForLocalizedBasis2(iproc,nproc, norb, lzd, input, hx, hy, hz, orbs, comsr, coeff, nrho, rho, at, nscatterarr)
        use module_base
        use module_types
        use libxc_functionals
        implicit none
        integer,intent(in):: iproc, nproc, nrho, norb
+       real(gp),intent(in):: hx, hy, hz
        type(local_zone_descriptors),intent(in):: lzd
        type(input_variables),intent(in):: input
        type(orbitals_data),intent(in):: orbs
@@ -4442,12 +4448,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     !  integer,dimension(Ldim),intent(out) :: indexLpsi         !Wavefunction in localization region
     !end subroutine index_of_Lpsi_to_global2
 
-    subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lig, rxyz, nscatterarr, tag)
+    subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, hx, hy, hz, lin, lig, rxyz, nscatterarr, tag)
       use module_base
       use module_types
       implicit none
       !Arguments
       integer, intent(in) :: iproc,nproc
+      real(gp), intent(in) :: hx, hy, hz
       type(atoms_data), intent(inout) :: at
       type(locreg_descriptors), intent(in) :: Glr
       type(input_variables):: input
@@ -4486,12 +4493,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(orbs%npsidim_comp),intent(inout):: lchi
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
-    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbs, comms, at, Glr, input, norbsPerType, &
+    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbs, comms, at, Glr, input, hx, hy, hz, norbsPerType, &
       onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, nlocregPerMPI
+      real(gp), intent(in) :: hx, hy, hz
       type(orbitals_data),intent(in):: orbsig, orbs
       type(communications_arrays),intent(in):: comms
       type(atoms_data),intent(in):: at
@@ -5220,12 +5228,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       !!end subroutine expandOneOrbital2
 
 
-      subroutine calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
-                 ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rho, psi, fxyz, fnoise)
+      subroutine calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, hx, hy, hz,&
+                 comms, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion,&
+                 fdisp, rho, psi, fxyz, fnoise)
         use module_base
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
+        real(gp),intent(in) :: hx, hy, hz
         type(locreg_descriptors),intent(in):: Glr
         type(orbitals_data),intent(in):: orbs
         type(atoms_data),intent(in):: atoms
@@ -5378,12 +5388,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
        subroutine getHamiltonianMatrix6(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, onWhichMPITemp, &
-                  input, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, memoryForCommunOverlapIG, locregShape, &
-                  tagout, ham)
+                  input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad,&
+                  memoryForCommunOverlapIG, locregShape, tagout, ham)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, nprocTemp, ndim_lhchi, nlocregPerMPI
+         real(gp), intent(in) :: hx, hy, hz
          type(local_zone_descriptors),intent(in):: lzdig
          type(orbitals_data),intent(in):: orbsig, orbs
          integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
@@ -5750,11 +5761,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(orbs%norb,orbs%norb,at%nat),intent(out):: potmat
        end subroutine get_potential_matrices
        
-       subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
+       subroutine check_linear_and_create_Lzd(iproc,nproc,input,hx,hy,hz,Lzd,atoms,orbs,rxyz)
          use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
+         real(gp), intent(in):: hx, hy, hz
          type(input_variables), intent(in) :: input
          type(local_zone_descriptors), intent(inout) :: Lzd
          type(atoms_data), intent(in) :: atoms
@@ -5762,11 +5774,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
        end subroutine check_linear_and_create_Lzd
 
-       subroutine create_LzdLIG(iproc,nproc,input,Glr,atoms,orbs,rxyz,Lzd)
+       subroutine create_LzdLIG(iproc,nproc,input,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
          use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
+         real(gp), intent(in):: hx, hy, hz
          type(input_variables), intent(in) :: input
          type(locreg_descriptors), intent(in) :: Glr
          type(local_zone_descriptors), intent(inout) :: Lzd

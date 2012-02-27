@@ -992,7 +992,7 @@ type(matrixDescriptors):: madlarge
       call deallocateSendBufferOrtho(comon, subname)
 
       t1=mpi_wtime()
-      !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
+      !!call flatten_at_edges(iproc, nproc, lin, at, input, hx, hy, hz, lorbs, lzd, rxyz, lhphi)
       !!if(.not.newgradient .or. it<=10) call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
       !!     methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
 
@@ -1167,7 +1167,7 @@ type(matrixDescriptors):: madlarge
 
 
       ! Flatten at the edges -  EXPERIMENTAL
-      !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
+      !!call flatten_at_edges(iproc, nproc, lin, at, input, hx, hy, hz, lorbs, lzd, rxyz, lhphi)
 
       ! Cycle if the trace increased (steepest descent only)
       !if(iproc==0) write(*,*) 'ldiis%switchSD, ldiis%isx', ldiis%switchSD, ldiis%isx
@@ -6511,82 +6511,83 @@ end subroutine build_new_linear_combinations
 
 
 
-subroutine flatten_at_edges(iproc, nproc, lin, at, input, orbs, lzd, rxyz, psi)
-use module_base
-use module_types
-use module_interfaces
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(linearParameters),intent(in):: lin
-type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input
-type(orbitals_data),intent(in):: orbs
-type(local_zone_descriptors),intent(in):: lzd
-real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
-
-! Local variables
-integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, iiorb
-real(8):: hxh, hyh, hzh, alpha
-type(workarr_sumrho):: work_sr
-real(8),dimension(:,:),allocatable:: psir
-character(len=*),parameter:: subname='flatten_at_edges'
-
-
-
-  oidx = 0
-  do iorb=1,orbs%norbp
-     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-  
-     !initialise the work arrays
-     call initialize_work_arrays_sumrho(lzd%llr(ilr), work_sr)
-
-     ! Wavefunction in real space
-     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,psir,'psir',subname)
-     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
-
-     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
-     !the psir wavefunction is given in the spinorial form
-
-     call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
-     !apply the potential to the psir wavefunction and calculate potential energy
-     hxh=.5d0*input%hx
-     hyh=.5d0*input%hy
-     hzh=.5d0*input%hz
-     !icenter=confinementCenter(iorb)
-     !icenter=lin%orbs%inWhichLocregp(iorb)
-     iiorb=orbs%isorb+iorb
-     icenter=lin%orbs%inWhichLocreg(iiorb)
-     !components of the potential
-     npot=orbs%nspinor
-     if (orbs%nspinor == 2) npot=1
-
-     alpha=-log(1.d-5)/(1.d0-.7d0*lin%locrad(icenter))**2
-     !write(*,*) 'iproc, iorb, alpha', iproc, iorb, alpha
-     call flatten(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
-          rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
-          lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, .7d0*lin%locrad(icenter), alpha, &
-          lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-
-
-
-     call isf_to_daub(lzd%llr(ilr), work_sr, psir, psi(1+oidx))
-
-     i_all=-product(shape(psir))*kind(psir)
-     deallocate(psir,stat=i_stat)
-     call memocc(i_stat,i_all,'psir',subname)
-
-     call deallocate_work_arrays_sumrho(work_sr)
-
-     oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-
-  enddo
-
-
-end subroutine flatten_at_edges
+!!subroutine flatten_at_edges(iproc, nproc, lin, at, input,hx, hy, hz, orbs, lzd, rxyz, psi)
+!!use module_base
+!!use module_types
+!!use module_interfaces
+!!implicit none
+!!
+!!! Calling arguments
+!!integer,intent(in):: iproc, nproc
+!!real(gp),intent(in):: hx, hy, hz
+!!type(linearParameters),intent(in):: lin
+!!type(atoms_data),intent(in):: at
+!!type(input_variables),intent(in):: input
+!!type(orbitals_data),intent(in):: orbs
+!!type(local_zone_descriptors),intent(in):: lzd
+!!real(8),dimension(3,at%nat),intent(in):: rxyz
+!!real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
+!!
+!!! Local variables
+!!integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, iiorb
+!!real(8):: hxh, hyh, hzh, alpha
+!!type(workarr_sumrho):: work_sr
+!!real(8),dimension(:,:),allocatable:: psir
+!!character(len=*),parameter:: subname='flatten_at_edges'
+!!
+!!
+!!
+!!  oidx = 0
+!!  do iorb=1,orbs%norbp
+!!     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!!  
+!!     !initialise the work arrays
+!!     call initialize_work_arrays_sumrho(lzd%llr(ilr), work_sr)
+!!
+!!     ! Wavefunction in real space
+!!     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+!!     call memocc(i_stat,psir,'psir',subname)
+!!     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
+!!
+!!     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
+!!     !the psir wavefunction is given in the spinorial form
+!!
+!!     call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
+!!     !apply the potential to the psir wavefunction and calculate potential energy
+!!     hxh=.5d0*hx
+!!     hyh=.5d0*hy
+!!     hzh=.5d0*hz
+!!     !icenter=confinementCenter(iorb)
+!!     !icenter=lin%orbs%inWhichLocregp(iorb)
+!!     iiorb=orbs%isorb+iorb
+!!     icenter=lin%orbs%inWhichLocreg(iiorb)
+!!     !components of the potential
+!!     npot=orbs%nspinor
+!!     if (orbs%nspinor == 2) npot=1
+!!
+!!     alpha=-log(1.d-5)/(1.d0-.7d0*lin%locrad(icenter))**2
+!!     !write(*,*) 'iproc, iorb, alpha', iproc, iorb, alpha
+!!     call flatten(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
+!!          rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
+!!          lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, .7d0*lin%locrad(icenter), alpha, &
+!!          lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+!!
+!!
+!!
+!!     call isf_to_daub(lzd%llr(ilr), work_sr, psir, psi(1+oidx))
+!!
+!!     i_all=-product(shape(psir))*kind(psir)
+!!     deallocate(psir,stat=i_stat)
+!!     call memocc(i_stat,i_all,'psir',subname)
+!!
+!!     call deallocate_work_arrays_sumrho(work_sr)
+!!
+!!     oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+!!
+!!  enddo
+!!
+!!
+!!end subroutine flatten_at_edges
 
 
 subroutine flatten(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &

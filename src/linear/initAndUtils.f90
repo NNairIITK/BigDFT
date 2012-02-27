@@ -1,7 +1,7 @@
 !> This subroutine initializes all parameters needed for the linear scaling version
 !! and allocate all arrays.
 subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-    input, rxyz, nscatterarr, tag, coeff, lphi)
+    input, hx, hy, hz, rxyz, nscatterarr, tag, coeff, lphi)
 ! Calling arguments:
 ! ==================
 !   Input arguments:
@@ -27,6 +27,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
+real(gp),intent(in):: hx, hy, hz
 type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(inout):: at
@@ -174,10 +175,10 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
 call timing(iproc,'init_locregs  ','ON')
 t1=mpi_wtime()
-call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lin%lzd, lin%orbs, &
+call initLocregs(iproc, nproc, at%nat, rxyz, hx, hy, hz, lin%lzd, lin%orbs, &
      Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
 !!lin%locrad=3.d0*lin%locrad
-!!call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lin%lzdlarge, lin%orbslarge, Glr, lin%locrad, lin%locregShape)
+!!call initLocregs(iproc, nproc, at%nat, rxyz, hx, hy, hz, lin%lzdlarge, lin%orbslarge, Glr, lin%locrad, lin%locregShape)
 !!lin%locrad=lin%locrad/3.d0
 
 ! Copy Glr to lin%lzd
@@ -287,11 +288,11 @@ if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing communications orthonormalization... '
 call timing(iproc,'init_commOrtho','ON')
 t1=mpi_wtime()
-call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
+call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg,&
      lin%locregShape, lin%op, lin%comon, tag)
-call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
+call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, &
      lin%locregShape, lin%lb%op, lin%lb%comon, tag)
-!!call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lin%lzdlarge, lin%orbslarge, lin%orbslarge%inWhichLocreg,&
+!!call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lin%lzdlarge, lin%orbslarge, lin%orbslarge%inWhichLocreg,&
 !!     lin%locregShape, lin%oplarge, lin%comonlarge, tag)
 t2=mpi_wtime()
 call timing(iproc,'init_commOrtho','OF')
@@ -318,7 +319,7 @@ call memocc(istat, iall, 'norbsPerAtom', subname)
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing input guess... '
 call timing(iproc,'init_inguess  ','ON')
 t1=mpi_wtime()
-call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, lin%lig, rxyz, nscatterarr, tag)
+call initInputguessConfinement(iproc, nproc, at, Glr, input,hx, hy, hz, lin, lin%lig, rxyz, nscatterarr, tag)
 t2=mpi_wtime()
 call timing(iproc,'init_inguess  ','OF')
 if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
@@ -403,7 +404,7 @@ call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdGauss%cutoffwei
 !!    iiorb=lin%orbs%isorb+iorb
 !!    ilr=lin%orbs%inWhichLocreg(iiorb)
 !!    call plotGrid(iproc, nproc, lin%lb%orbs%norb, lin%orbs%nspinor, input%nspin, iiorb, lin%lzd%llr(ilr), &
-!!    lin%lzd%glr, at, rxyz, input%hx, input%hy, input%hz)
+!!    lin%lzd%glr, at, rxyz, hx, hy, hz)
 !!end do
 
 
@@ -940,115 +941,113 @@ character(len=*),parameter:: subname='deallocateLinear'
 
 end subroutine deallocateLinear
 
-subroutine randomWithinCutoff(iproc, orbs, Glr, at, lin, input, rxyz, phi)
-!
-! Purpose:
-! ========
-!   Initializes the basis functions phi to random number within a cutoff range around
-!   the atom at which they are centered.
-!   The cutoff radius id given by 
-!     cut=1.d0/lin%potentialPrefac(at%iatype(iiAt))
-!     cut=cut**.25d0
-!
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer:: iproc
-type(orbitals_data), intent(inout) :: orbs
-type(locreg_descriptors), intent(in) :: Glr
-type(atoms_data),intent(in):: at
-type(linearParameters),intent(in):: lin
-type(input_variables), intent(in):: input
-real(8),dimension(3,at%nat):: rxyz
-real(8),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp):: phi
-
-integer:: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat, iall
-real(8),dimension(:),allocatable:: phir
-real(8):: hx, hy, hz, hxh, hyh, hzh, kx, ky, kz, tt, tt2, cut
-real :: ttreal
-type(workarr_sumrho) :: w
-type(workarr_locham):: w_lh
-character(len=*),parameter:: subname='randomWithinCutoff'
-
-
-allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
-call memocc(istat, phir, 'phir', subname)
-phi=0.d0
-
-call initialize_work_arrays_sumrho(Glr,w)
-call initialize_work_arrays_locham(Glr, orbs%nspinor,w_lh)
-
-hx=input%hx
-hy=input%hy
-hz=input%hz
-hxh=.5d0*hx
-hyh=.5d0*hy
-hzh=.5d0*hz
-
-! Initialize phi to zero.
-phi=0.d0
-
-istart=0
-
-!!call the random number as many times as the number of orbitals before
-!!so that to associate unambiguously a random number to a  component-orbital pair
-do ii=1,orbs%isorb*orbs%nspinor*(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i)
-   call random_number(ttreal)
-end do
-
-    orbLoop: do iorb=1,orbs%norbp
-        call daub_to_isf(Glr,w,phi(istart+1),phir(1))
-        !iiAt=lin%onWhichAtom(iorb)
-        !iiAt=lin%orbs%inWhichLocregp(iorb)
-        iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
-        ix0=nint(rxyz(1,iiAt)/hxh)
-        iy0=nint(rxyz(2,iiAt)/hyh)
-        iz0=nint(rxyz(3,iiAt)/hzh)
-        cut=1.d0/lin%potentialPrefac(at%iatype(iiAt))
-        cut=cut**(1.d0/dble(lin%confPotOrder))
-        !cut=cut**.166666d0
-!cut=80000.d0
-
-        jj=0
-        do i3=-14,Glr%d%n3i-15
-            do i2=-14,Glr%d%n2i-15
-                do i1=-14,Glr%d%n1i-15
-                  jj=jj+1
-
-                   tt=hxh**2*(i1-ix0)**2 + hyh**2*(i2-iy0)**2 + hzh**2*(i3-iz0)**2
-                   tt=sqrt(tt)
-                   if(tt<cut) then
-                      call random_number(ttreal)
-                      phir(jj)=real(ttreal,kind=8)
-                   else
-                      !call random_number(ttreal)
-                      phir(jj)=0.d0
-                   end if
-                end do
-            end do
-        end do
-
-        kx=orbs%kpts(1,orbs%iokpt(iorb))
-        ky=orbs%kpts(2,orbs%iokpt(iorb))
-        kz=orbs%kpts(3,orbs%iokpt(iorb))
-        call isf_to_daub(Glr, w, phir(1), phi(istart+1))
-
-        istart=istart+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor
-
-
-    end do orbLoop
-
-! Deallocate everything.
-call deallocate_work_arrays_sumrho(w)
-call deallocate_work_arrays_locham(Glr, w_lh)
-iall=-product(shape(phir))*kind(phir)
-deallocate(phir, stat=istat)
-call memocc(istat, iall, 'phir', subname)
-
-
-end subroutine randomWithinCutoff
+!!subroutine randomWithinCutoff(iproc, orbs, Glr, at, lin, input, hx, hy, hz, rxyz, phi)
+!!!
+!!! Purpose:
+!!! ========
+!!!   Initializes the basis functions phi to random number within a cutoff range around
+!!!   the atom at which they are centered.
+!!!   The cutoff radius id given by 
+!!!     cut=1.d0/lin%potentialPrefac(at%iatype(iiAt))
+!!!     cut=cut**.25d0
+!!!
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!! Calling arguments
+!!integer:: iproc
+!!real(gp),intent(in):: hx, hy, hz
+!!type(orbitals_data), intent(inout) :: orbs
+!!type(locreg_descriptors), intent(in) :: Glr
+!!type(atoms_data),intent(in):: at
+!!type(linearParameters),intent(in):: lin
+!!type(input_variables), intent(in):: input
+!!real(8),dimension(3,at%nat):: rxyz
+!!real(8),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp):: phi
+!!
+!!integer:: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat, iall
+!!real(8),dimension(:),allocatable:: phir
+!!real(8):: hxh, hyh, hzh, kx, ky, kz, tt, tt2, cut
+!!real :: ttreal
+!!type(workarr_sumrho) :: w
+!!type(workarr_locham):: w_lh
+!!character(len=*),parameter:: subname='randomWithinCutoff'
+!!
+!!
+!!allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
+!!call memocc(istat, phir, 'phir', subname)
+!!phi=0.d0
+!!
+!!call initialize_work_arrays_sumrho(Glr,w)
+!!call initialize_work_arrays_locham(Glr, orbs%nspinor,w_lh)
+!!
+!!hxh=.5d0*hx
+!!hyh=.5d0*hy
+!!hzh=.5d0*hz
+!!
+!!! Initialize phi to zero.
+!!phi=0.d0
+!!
+!!istart=0
+!!
+!!!!call the random number as many times as the number of orbitals before
+!!!!so that to associate unambiguously a random number to a  component-orbital pair
+!!do ii=1,orbs%isorb*orbs%nspinor*(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i)
+!!   call random_number(ttreal)
+!!end do
+!!
+!!    orbLoop: do iorb=1,orbs%norbp
+!!        call daub_to_isf(Glr,w,phi(istart+1),phir(1))
+!!        !iiAt=lin%onWhichAtom(iorb)
+!!        !iiAt=lin%orbs%inWhichLocregp(iorb)
+!!        iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
+!!        ix0=nint(rxyz(1,iiAt)/hxh)
+!!        iy0=nint(rxyz(2,iiAt)/hyh)
+!!        iz0=nint(rxyz(3,iiAt)/hzh)
+!!        cut=1.d0/lin%potentialPrefac(at%iatype(iiAt))
+!!        cut=cut**(1.d0/dble(lin%confPotOrder))
+!!        !cut=cut**.166666d0
+!!!cut=80000.d0
+!!
+!!        jj=0
+!!        do i3=-14,Glr%d%n3i-15
+!!            do i2=-14,Glr%d%n2i-15
+!!                do i1=-14,Glr%d%n1i-15
+!!                  jj=jj+1
+!!
+!!                   tt=hxh**2*(i1-ix0)**2 + hyh**2*(i2-iy0)**2 + hzh**2*(i3-iz0)**2
+!!                   tt=sqrt(tt)
+!!                   if(tt<cut) then
+!!                      call random_number(ttreal)
+!!                      phir(jj)=real(ttreal,kind=8)
+!!                   else
+!!                      !call random_number(ttreal)
+!!                      phir(jj)=0.d0
+!!                   end if
+!!                end do
+!!            end do
+!!        end do
+!!
+!!        kx=orbs%kpts(1,orbs%iokpt(iorb))
+!!        ky=orbs%kpts(2,orbs%iokpt(iorb))
+!!        kz=orbs%kpts(3,orbs%iokpt(iorb))
+!!        call isf_to_daub(Glr, w, phir(1), phi(istart+1))
+!!
+!!        istart=istart+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor
+!!
+!!
+!!    end do orbLoop
+!!
+!!! Deallocate everything.
+!!call deallocate_work_arrays_sumrho(w)
+!!call deallocate_work_arrays_locham(Glr, w_lh)
+!!iall=-product(shape(phir))*kind(phir)
+!!deallocate(phir, stat=istat)
+!!call memocc(istat, iall, 'phir', subname)
+!!
+!!
+!!end subroutine randomWithinCutoff
 
 
 
@@ -1157,155 +1156,155 @@ end subroutine plotOrbitals
 
 
 
-subroutine cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
-! Cut off everything outside the localization region by setting it to zero.
-! Then do a orthonormalization.
-use module_base
-use module_types
-use module_interfaces
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(locreg_descriptors),intent(in) :: Glr
-type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input
-type(linearParameters),intent(in):: lin
-real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(lin%gorbs%npsidim_orbs),intent(inout):: phi
-
-! Local variables
-integer:: iorb, ist, i1, i2, i3, jj, iiAt, istat, iall, ierr
-real(8):: tt, cut, hxh, hyh, hzh, ttIn, ttOut, ttIntot, ttOuttot
-type(workarr_sumrho) :: w
-real(8),dimension(:),allocatable:: phir
-real(8),dimension(:),pointer:: phiWork
-character(len=*),parameter:: subname='cutoffOutsideLocreg'
-
-!write(*,*) 'in cutoffOutsideLocreg'
-
-call initialize_work_arrays_sumrho(Glr, w)
-hxh=input%hx*.5d0
-hyh=input%hy*.5d0
-hzh=input%hz*.5d0
-
-
-allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
-call memocc(istat, phir, 'phir', subname)
-
-ist=1
-ttIntot=0.d0
-ttOuttot=0.d0
-do iorb=1,lin%orbs%norbp
-    ! Transform the orbitals to real space.
-    phir=0.d0
-    call daub_to_isf(Glr, w, phi(ist), phir(1))
-    
-    !iiAt=lin%onWhichAtom(iorb)
-    !iiAt=lin%orbs%inWhichLocregp(iorb)
-    iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
-    cut=lin%locrad(iiAt)
-    
-    jj=0
-    ttIn=0.d0
-    ttOut=0.d0
-    do i3=-14,Glr%d%n3i-15
-        do i2=-14,Glr%d%n2i-15
-            do i1=-14,Glr%d%n1i-15
-               jj=jj+1
-               tt = (hxh*i1-rxyz(1,iiAt))**2 + (hyh*i2-rxyz(2,iiAt))**2 + (hzh*i3-rxyz(3,iiAt))**2
-               tt=sqrt(tt)
-               if(tt>cut) then
-                  !write(*,'(a,4i7,3es20.12)') 'iorb, i1, i2, i3, tt, cut, phir(jj)', iorb, i1, i2, i3, tt, cut, phir(jj)
-                  ttOut=ttOut+phir(jj)**2
-                  phir(jj)=0.d0
-               else
-                  ttIn=ttIn+phir(jj)**2
-               end if
-            end do
-        end do
-    end do
-    
-    call isf_to_daub(Glr, w, phir(1), phi(ist))
-
-    !write(*,'(a,i7,2es20.12)') 'before: iorb, ttIn, ttOut', iorb, ttIn, ttOut
-    ist=ist+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-
-    ttIntot = ttIntot + ttIn
-    ttOuttot = ttOuttot + ttOut
-
-end do
-
-call mpiallred(ttIntot,1,mpi_sum,mpi_comm_world,ierr)
-call mpiallred(ttOuttot,1,mpi_sum,mpi_comm_world,ierr)
-if(iproc==0) write(*,'(1x,a)') 'cutting of outside localization region:'
-if(iproc==0) write(*,'(3x,a,2es17.8)') 'before cut; average weights in / out:',ttIntot/dble(lin%orbs%norb),&
-             ttOuttot/dble(lin%orbs%norb)
-
-
-call mpi_barrier(mpi_comm_world,ierr)
-allocate(phiWork(max(lin%gorbs%npsidim_orbs,lin%gorbs%npsidim_comp)),stat=istat)
-call memocc(istat,phiWork,'phiWork',subname)
-call transpose_v(iproc,nproc,lin%orbs,Glr%wfd,lin%comms,phi,work=phiWork)
-call orthogonalize(iproc,nproc,lin%orbs,lin%comms,Glr%wfd,phi,input)
-call untranspose_v(iproc,nproc,lin%orbs,Glr%wfd,lin%comms,phi,work=phiWork)
-iall=-product(shape(phiWork))*kind(phiWork)
-deallocate(phiWork,stat=istat)
-call memocc(istat,iall,'phiWork',subname)
-
-! Check
-ist=1
-ttIntot=0.d0
-ttOuttot=0.d0
-do iorb=1,lin%orbs%norbp
-    ! Transform the orbitals to real space.
-    phir=0.d0
-    call daub_to_isf(Glr,w,phi(ist),phir(1))
-    
-    !iiAt=lin%onWhichAtom(iorb)
-    !iiAt=lin%orbs%inWhichLocregp(iorb)
-    iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
-    cut=lin%locrad(iiAt)
-    !write(*,'(a,2i8,es10.3)') 'iorb,iiAt,cut',iorb,iiAt,cut
-    
-    jj=0
-    ttIn=0.d0
-    ttOut=0.d0
-    do i3=-14,Glr%d%n3i-15
-        do i2=-14,Glr%d%n2i-15
-            do i1=-14,Glr%d%n1i-15
-               jj=jj+1
-               tt = (hxh*i1-rxyz(1,iiAt))**2 + (hyh*i2-rxyz(2,iiAt))**2 + (hzh*i3-rxyz(3,iiAt))**2
-               tt=sqrt(tt)
-               if(tt>cut) then
-                  ttOut = ttOut + phir(jj)**2
-               else
-                  ttIn = ttIn + phir(jj)**2
-               end if
-            end do
-        end do
-    end do
-    
-    !write(*,'(a,i7,2es20.12)') 'after: iorb,ttIn,ttOut',iorb,ttIn,ttOut
-    ist=ist+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-
-    ttIntot = ttIntot + ttIn
-    ttOuttot = ttOuttot + ttOut
-
-end do
-
-call mpiallred(ttIntot,1,mpi_sum,mpi_comm_world,ierr)
-call mpiallred(ttOuttot,1,mpi_sum,mpi_comm_world,ierr)
-if(iproc==0) write(*,'(3x,a,2es17.8)') 'after cut; average weights in / out:',ttIntot/dble(lin%orbs%norb),&
-            ttOuttot/dble(lin%orbs%norb)
-
-iall=-product(shape(phir))*kind(phir)
-deallocate(phir,stat=istat)
-call memocc(istat,iall,'phir',subname)
-
-call deallocate_work_arrays_sumrho(w)
-
-end subroutine cutoffOutsideLocreg
+!!subroutine cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+!!! Cut off everything outside the localization region by setting it to zero.
+!!! Then do a orthonormalization.
+!!use module_base
+!!use module_types
+!!use module_interfaces
+!!implicit none
+!!
+!!! Calling arguments
+!!integer,intent(in):: iproc, nproc
+!!type(locreg_descriptors),intent(in) :: Glr
+!!type(atoms_data),intent(in):: at
+!!type(input_variables),intent(in):: input
+!!type(linearParameters),intent(in):: lin
+!!real(8),dimension(3,at%nat),intent(in):: rxyz
+!!real(8),dimension(lin%gorbs%npsidim_orbs),intent(inout):: phi
+!!
+!!! Local variables
+!!integer:: iorb, ist, i1, i2, i3, jj, iiAt, istat, iall, ierr
+!!real(8):: tt, cut, hxh, hyh, hzh, ttIn, ttOut, ttIntot, ttOuttot
+!!type(workarr_sumrho) :: w
+!!real(8),dimension(:),allocatable:: phir
+!!real(8),dimension(:),pointer:: phiWork
+!!character(len=*),parameter:: subname='cutoffOutsideLocreg'
+!!
+!!!write(*,*) 'in cutoffOutsideLocreg'
+!!
+!!call initialize_work_arrays_sumrho(Glr, w)
+!!hxh=input%hx*.5d0
+!!hyh=input%hy*.5d0
+!!hzh=input%hz*.5d0
+!!
+!!
+!!allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
+!!call memocc(istat, phir, 'phir', subname)
+!!
+!!ist=1
+!!ttIntot=0.d0
+!!ttOuttot=0.d0
+!!do iorb=1,lin%orbs%norbp
+!!    ! Transform the orbitals to real space.
+!!    phir=0.d0
+!!    call daub_to_isf(Glr, w, phi(ist), phir(1))
+!!    
+!!    !iiAt=lin%onWhichAtom(iorb)
+!!    !iiAt=lin%orbs%inWhichLocregp(iorb)
+!!    iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
+!!    cut=lin%locrad(iiAt)
+!!    
+!!    jj=0
+!!    ttIn=0.d0
+!!    ttOut=0.d0
+!!    do i3=-14,Glr%d%n3i-15
+!!        do i2=-14,Glr%d%n2i-15
+!!            do i1=-14,Glr%d%n1i-15
+!!               jj=jj+1
+!!               tt = (hxh*i1-rxyz(1,iiAt))**2 + (hyh*i2-rxyz(2,iiAt))**2 + (hzh*i3-rxyz(3,iiAt))**2
+!!               tt=sqrt(tt)
+!!               if(tt>cut) then
+!!                  !write(*,'(a,4i7,3es20.12)') 'iorb, i1, i2, i3, tt, cut, phir(jj)', iorb, i1, i2, i3, tt, cut, phir(jj)
+!!                  ttOut=ttOut+phir(jj)**2
+!!                  phir(jj)=0.d0
+!!               else
+!!                  ttIn=ttIn+phir(jj)**2
+!!               end if
+!!            end do
+!!        end do
+!!    end do
+!!    
+!!    call isf_to_daub(Glr, w, phir(1), phi(ist))
+!!
+!!    !write(*,'(a,i7,2es20.12)') 'before: iorb, ttIn, ttOut', iorb, ttIn, ttOut
+!!    ist=ist+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+!!
+!!    ttIntot = ttIntot + ttIn
+!!    ttOuttot = ttOuttot + ttOut
+!!
+!!end do
+!!
+!!call mpiallred(ttIntot,1,mpi_sum,mpi_comm_world,ierr)
+!!call mpiallred(ttOuttot,1,mpi_sum,mpi_comm_world,ierr)
+!!if(iproc==0) write(*,'(1x,a)') 'cutting of outside localization region:'
+!!if(iproc==0) write(*,'(3x,a,2es17.8)') 'before cut; average weights in / out:',ttIntot/dble(lin%orbs%norb),&
+!!             ttOuttot/dble(lin%orbs%norb)
+!!
+!!
+!!call mpi_barrier(mpi_comm_world,ierr)
+!!allocate(phiWork(max(lin%gorbs%npsidim_orbs,lin%gorbs%npsidim_comp)),stat=istat)
+!!call memocc(istat,phiWork,'phiWork',subname)
+!!call transpose_v(iproc,nproc,lin%orbs,Glr%wfd,lin%comms,phi,work=phiWork)
+!!call orthogonalize(iproc,nproc,lin%orbs,lin%comms,Glr%wfd,phi,input)
+!!call untranspose_v(iproc,nproc,lin%orbs,Glr%wfd,lin%comms,phi,work=phiWork)
+!!iall=-product(shape(phiWork))*kind(phiWork)
+!!deallocate(phiWork,stat=istat)
+!!call memocc(istat,iall,'phiWork',subname)
+!!
+!!! Check
+!!ist=1
+!!ttIntot=0.d0
+!!ttOuttot=0.d0
+!!do iorb=1,lin%orbs%norbp
+!!    ! Transform the orbitals to real space.
+!!    phir=0.d0
+!!    call daub_to_isf(Glr,w,phi(ist),phir(1))
+!!    
+!!    !iiAt=lin%onWhichAtom(iorb)
+!!    !iiAt=lin%orbs%inWhichLocregp(iorb)
+!!    iiAt=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
+!!    cut=lin%locrad(iiAt)
+!!    !write(*,'(a,2i8,es10.3)') 'iorb,iiAt,cut',iorb,iiAt,cut
+!!    
+!!    jj=0
+!!    ttIn=0.d0
+!!    ttOut=0.d0
+!!    do i3=-14,Glr%d%n3i-15
+!!        do i2=-14,Glr%d%n2i-15
+!!            do i1=-14,Glr%d%n1i-15
+!!               jj=jj+1
+!!               tt = (hxh*i1-rxyz(1,iiAt))**2 + (hyh*i2-rxyz(2,iiAt))**2 + (hzh*i3-rxyz(3,iiAt))**2
+!!               tt=sqrt(tt)
+!!               if(tt>cut) then
+!!                  ttOut = ttOut + phir(jj)**2
+!!               else
+!!                  ttIn = ttIn + phir(jj)**2
+!!               end if
+!!            end do
+!!        end do
+!!    end do
+!!    
+!!    !write(*,'(a,i7,2es20.12)') 'after: iorb,ttIn,ttOut',iorb,ttIn,ttOut
+!!    ist=ist+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+!!
+!!    ttIntot = ttIntot + ttIn
+!!    ttOuttot = ttOuttot + ttOut
+!!
+!!end do
+!!
+!!call mpiallred(ttIntot,1,mpi_sum,mpi_comm_world,ierr)
+!!call mpiallred(ttOuttot,1,mpi_sum,mpi_comm_world,ierr)
+!!if(iproc==0) write(*,'(3x,a,2es17.8)') 'after cut; average weights in / out:',ttIntot/dble(lin%orbs%norb),&
+!!            ttOuttot/dble(lin%orbs%norb)
+!!
+!!iall=-product(shape(phir))*kind(phir)
+!!deallocate(phir,stat=istat)
+!!call memocc(istat,iall,'phir',subname)
+!!
+!!call deallocate_work_arrays_sumrho(w)
+!!
+!!end subroutine cutoffOutsideLocreg
 
 
 
@@ -1793,7 +1792,7 @@ end do
  if(locregShape=='c') then
      call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, hx, hy, hz, Glr, lzd%Llr, calculateBounds)
  else if(locregShape=='s') then
-     !!call determine_locregSphere(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, &
+     !!call determine_locregSphere(iproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
      !!     Glr, lzd%Llr, calculateBounds)
      call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
           Glr, lzd%Llr, calculateBounds)
@@ -3314,13 +3313,14 @@ subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
 end subroutine repartitionOrbitals2
 
 
-subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
+subroutine check_linear_and_create_Lzd(iproc,nproc,input,hx,hy,hz,Lzd,atoms,orbs,rxyz)
   use module_base
   use module_types
   use module_xc
   implicit none
 
   integer, intent(in) :: iproc,nproc
+  real(gp), intent(in):: hx, hy, hz
   type(input_variables), intent(in) :: input
   type(local_zone_descriptors), intent(inout) :: Lzd
   type(atoms_data), intent(in) :: atoms
@@ -3355,7 +3355,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
         locrad(iat) = atoms%rloc(ityp,1)
      end do  
      call timing(iproc,'check_IG      ','ON')
-     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,&
+     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,&
           Lzd%Glr,linear) 
      call timing(iproc,'check_IG      ','OF')
      if(input%nspin >= 4) linear = .false. 
@@ -3392,9 +3392,9 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
         allocate(calculateBounds(lzd%nlr),stat=i_stat)
         call memocc(i_stat,calculateBounds,'calculateBounds',subname)
         calculateBounds=.true.
-!        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,calculateBounds)
+!        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,calculateBounds)
         call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,&
-             input%hx,input%hy,input%hz,Lzd%Glr,Lzd%Llr,&
+             hx,hy,hz,Lzd%Glr,Lzd%Llr,&
              orbs,calculateBounds)  
         i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
         deallocate(calculateBounds,stat=i_stat)
@@ -3423,8 +3423,8 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
 !!write(*,*)'Global fine grid: nfl',Lzd%Glr%d%nfl1,Lzd%Glr%d%nfl2,Lzd%Glr%d%nfl3
 !!write(*,*)'Global fine grid: nfu',Lzd%Glr%d%nfu1,Lzd%Glr%d%nfu2,Lzd%Glr%d%nfu3
 !!write(*,*)'Global inter. grid: ni',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i
-!!write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (1x,y,z):',Lzd%Glr%d%n1*input%hx,Lzd%Glr%d%n2*input%hy,Lzd%Glr%d%n3*input%hz
-!!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*input%hx*Lzd%Glr%d%n2*input%hy*Lzd%Glr%d%n3*input%hz
+!!write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (1x,y,z):',Lzd%Glr%d%n1*hx,Lzd%Glr%d%n2*hy,Lzd%Glr%d%n3*hz
+!!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*hx*Lzd%Glr%d%n2*hy*Lzd%Glr%d%n3*hz
 !!print *,'Global wfd statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
 !!print *,'###################################################'
 !!print *,'##        Local boxes information:               ##'
@@ -3435,9 +3435,9 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
 !!   write(*,*)'Local fine grid: nfl',Lzd%Llr(i_stat)%d%nfl1,Lzd%Llr(i_stat)%d%nfl2,Lzd%Llr(i_stat)%d%nfl3
 !!   write(*,*)'Local fine grid: nfu',Lzd%Llr(i_stat)%d%nfu1,Lzd%Llr(i_stat)%d%nfu2,Lzd%Llr(i_stat)%d%nfu3
 !!   write(*,*)'Local inter. grid: ni',Lzd%Llr(i_stat)%d%n1i,Lzd%Llr(i_stat)%d%n2i,Lzd%Llr(i_stat)%d%n3i
-!!   write(*,'(a27,f6.2,f6.2,f6.2)')'Local dimension (1x,y,z):',Lzd%Llr(i_stat)%d%n1*input%hx,Lzd%Llr(i_stat)%d%n2*input%hy,&
-!!            Lzd%Llr(i_stat)%d%n3*input%hz
-!!   write(*,'(a17,f12.2)')'Local volume: ',Lzd%Llr(i_stat)%d%n1*input%hx*Lzd%Llr(i_stat)%d%n2*input%hy*Lzd%Llr(i_stat)%d%n3*input%hz
+!!   write(*,'(a27,f6.2,f6.2,f6.2)')'Local dimension (1x,y,z):',Lzd%Llr(i_stat)%d%n1*hx,Lzd%Llr(i_stat)%d%n2*hy,&
+!!            Lzd%Llr(i_stat)%d%n3*hz
+!!   write(*,'(a17,f12.2)')'Local volume: ',Lzd%Llr(i_stat)%d%n1*hx*Lzd%Llr(i_stat)%d%n2*hy*Lzd%Llr(i_stat)%d%n3*hz
 !!   print *,'Local wfd statistics:',Lzd%Llr(i_stat)%wfd%nseg_c,Lzd%Llr(i_stat)%wfd%nseg_f,Lzd%Llr(i_stat)%wfd%nvctr_c,&
 !!            Lzd%Llr(i_stat)%wfd%nvctr_f
 !!end do
@@ -3448,13 +3448,14 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,input,Lzd,atoms,orbs,rxyz)
 
 end subroutine check_linear_and_create_Lzd
 
-subroutine create_LzdLIG(iproc,nproc,input,Glr,atoms,orbs,rxyz,Lzd)
+subroutine create_LzdLIG(iproc,nproc,input,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
   use module_base
   use module_types
   use module_xc
   implicit none
 
   integer, intent(in) :: iproc,nproc
+  real(gp), intent(in) :: hx,hy,hz
   type(input_variables), intent(in) :: input
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
@@ -3490,7 +3491,7 @@ subroutine create_LzdLIG(iproc,nproc,input,Glr,atoms,orbs,rxyz,Lzd)
         locrad(iat) = atoms%rloc(ityp,1)
      end do  
      call timing(iproc,'check_IG      ','ON')
-     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,&
+     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,&
           Glr,linear) 
      call timing(iproc,'check_IG      ','OF')
      if(input%nspin >= 4) linear = .false. 
@@ -3534,9 +3535,9 @@ subroutine create_LzdLIG(iproc,nproc,input,Glr,atoms,orbs,rxyz,Lzd)
         allocate(calculateBounds(lzd%nlr),stat=i_stat)
         call memocc(i_stat,calculateBounds,'calculateBounds',subname)
         calculateBounds=.true.
-!        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,input%hx,input%hy,input%hz,Glr,Lzd%Llr,calculateBounds)
+!        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,Lzd%Llr,calculateBounds)
         call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,&
-             input%hx,input%hy,input%hz,Glr,Lzd%Llr,&
+             hx,hy,hz,Glr,Lzd%Llr,&
              orbs,calculateBounds)  
         i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
         deallocate(calculateBounds,stat=i_stat)
@@ -3565,8 +3566,8 @@ subroutine create_LzdLIG(iproc,nproc,input,Glr,atoms,orbs,rxyz,Lzd)
 !!write(*,*)'Global fine grid: nfl',Lzd%Glr%d%nfl1,Lzd%Glr%d%nfl2,Lzd%Glr%d%nfl3
 !!write(*,*)'Global fine grid: nfu',Lzd%Glr%d%nfu1,Lzd%Glr%d%nfu2,Lzd%Glr%d%nfu3
 !!write(*,*)'Global inter. grid: ni',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i
-!!write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (1x,y,z):',Lzd%Glr%d%n1*input%hx,Lzd%Glr%d%n2*input%hy,Lzd%Glr%d%n3*input%hz
-!!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*input%hx*Lzd%Glr%d%n2*input%hy*Lzd%Glr%d%n3*input%hz
+!!write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (1x,y,z):',Lzd%Glr%d%n1*hx,Lzd%Glr%d%n2*hy,Lzd%Glr%d%n3*hz
+!!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*hx*Lzd%Glr%d%n2*hy*Lzd%Glr%d%n3*hz
 !!print *,'Global wfd statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
 !!print *,'###################################################'
 !!print *,'##        Local boxes information:               ##'
@@ -3577,9 +3578,9 @@ subroutine create_LzdLIG(iproc,nproc,input,Glr,atoms,orbs,rxyz,Lzd)
 !!   write(*,*)'Local fine grid: nfl',Lzd%Llr(i_stat)%d%nfl1,Lzd%Llr(i_stat)%d%nfl2,Lzd%Llr(i_stat)%d%nfl3
 !!   write(*,*)'Local fine grid: nfu',Lzd%Llr(i_stat)%d%nfu1,Lzd%Llr(i_stat)%d%nfu2,Lzd%Llr(i_stat)%d%nfu3
 !!   write(*,*)'Local inter. grid: ni',Lzd%Llr(i_stat)%d%n1i,Lzd%Llr(i_stat)%d%n2i,Lzd%Llr(i_stat)%d%n3i
-!!   write(*,'(a27,f6.2,f6.2,f6.2)')'Local dimension (1x,y,z):',Lzd%Llr(i_stat)%d%n1*input%hx,Lzd%Llr(i_stat)%d%n2*input%hy,&
-!!            Lzd%Llr(i_stat)%d%n3*input%hz
-!!   write(*,'(a17,f12.2)')'Local volume: ',Lzd%Llr(i_stat)%d%n1*input%hx*Lzd%Llr(i_stat)%d%n2*input%hy*Lzd%Llr(i_stat)%d%n3*input%hz
+!!   write(*,'(a27,f6.2,f6.2,f6.2)')'Local dimension (1x,y,z):',Lzd%Llr(i_stat)%d%n1*hx,Lzd%Llr(i_stat)%d%n2*hy,&
+!!            Lzd%Llr(i_stat)%d%n3*hz
+!!   write(*,'(a17,f12.2)')'Local volume: ',Lzd%Llr(i_stat)%d%n1*hx*Lzd%Llr(i_stat)%d%n2*hy*Lzd%Llr(i_stat)%d%n3*hz
 !!   print *,'Local wfd statistics:',Lzd%Llr(i_stat)%wfd%nseg_c,Lzd%Llr(i_stat)%wfd%nseg_f,Lzd%Llr(i_stat)%wfd%nvctr_c,&
 !!            Lzd%Llr(i_stat)%wfd%nvctr_f
 !!end do

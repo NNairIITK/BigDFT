@@ -1,4 +1,4 @@
-subroutine linearScaling(iproc,nproc,Glr,orbs,comms,at,input,&
+subroutine linearScaling(iproc,nproc,Glr,orbs,comms,at,input,hx,hy,hz,&
      lin,rxyz,fion,fdisp,denspot,nlpspd,proj,GPU,&
      eion,edisp,eexctX,scpot,psi,psit,energy,fxyz)
 !
@@ -73,7 +73,7 @@ type(DFT_local_fields), intent(inout) :: denspot
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 type(GPU_pointers),intent(in out):: GPU
-real(gp),intent(in):: eion, edisp, eexctX
+real(gp),intent(in):: eion, edisp, eexctX,hx,hy,hz
 logical,intent(in):: scpot
 !real(8),dimension(orbs),intent(out):: psi
 real(8),dimension(:),pointer,intent(out):: psi, psit
@@ -103,9 +103,6 @@ real(8):: fnoise,pressure
 real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 type(orthon_data):: orthpar
 
-
-
-
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
       write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
@@ -118,12 +115,12 @@ type(orthon_data):: orthpar
   call mpi_barrier(mpi_comm_world, ierr)
   t1init=mpi_wtime()
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-       input, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi)
+       input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi)
 
   lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
   allocate(confdatarr(lin%orbs%norbp))
   call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
-       input%hx,input%hy,input%hz,lin,lin%lzd,lin%orbs%inWhichLocreg)
+       hx,hy,hz,lin,lin%lzd,lin%orbs%inWhichLocreg)
 
 
   orthpar%methTransformOverlap = lin%methTransformOverlap
@@ -159,7 +156,7 @@ type(orthon_data):: orthpar
   call mpi_barrier(mpi_comm_world, ierr)
   t1ig=mpi_wtime()
   call inputguessConfinement(iproc, nproc, at, &
-       comms, Glr, input, lin, orbs, rxyz, denspot ,rhopotold, &
+       comms, Glr, input, hx, hy, hz, lin, orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU, &
        tag, lphi, ehart, eexcu, vexcu)
   call mpi_barrier(mpi_comm_world, ierr)
@@ -207,7 +204,7 @@ type(orthon_data):: orthpar
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
               lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, lin%lphiRestart, &
               lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
-              input%hx, input%hy, input%hz, input%SIC)
+              hx, hy, hz, input%SIC)
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -218,7 +215,7 @@ type(orthon_data):: orthpar
               coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
               lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
               lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-              input%hx,input%hy,input%hz,input%SIC)
+              hx,hy,hz,input%SIC)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -409,7 +406,7 @@ type(orthon_data):: orthpar
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                      input%hx,input%hy,input%hz,input%SIC)
+                      hx,hy,hz,input%SIC)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -420,7 +417,7 @@ type(orthon_data):: orthpar
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                      input%hx,input%hy,input%hz,input%SIC)
+                      hx,hy,hz,input%SIC)
               end if
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -431,7 +428,7 @@ type(orthon_data):: orthpar
                   coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                   lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                   lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                  input%hx,input%hy,input%hz,input%SIC)
+                  hx,hy,hz,input%SIC)
           end if
 
 
@@ -441,18 +438,18 @@ type(orthon_data):: orthpar
           if(lin%mixedmode) then
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
-                       lin%lzd, input, lin%orbs, lin%comsr, &
+                       lin%lzd, input, hx, hy, hz, lin%orbs, lin%comsr, &
                        coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                else
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                       lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
+                       lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
                        coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                end if
           else
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
-                   lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
+                   lin%lzd, input, hx, hy ,hz, lin%lb%orbs, lin%lb%comsr, &
                    coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                    denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
@@ -506,7 +503,7 @@ type(orthon_data):: orthpar
           ! Calculate the new potential.
           if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
           call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,&
-               0.5_gp*input%hx,0.5_gp*input%hy,0.5_gp*input%hz,Glr,denspot,ehart,eexcu,vexcu)
+               0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr,denspot,ehart,eexcu,vexcu)
 !!$          call updatePotential(iproc, nproc, denspot%dpcom%n3d, denspot%dpcom%n3p, Glr, orbs, at, input, lin, &
 !!$              denspot%rhov, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
 !!$              coeff, ehart, eexcu, vexcu)
@@ -649,7 +646,7 @@ type(orthon_data):: orthpar
   ! to point communication, the program will continue immediately. The messages will be gathered
   ! in the subroutine sumrhoForLocalizedBasis2.
   call postCommunicationSumrho2(iproc, nproc, lin%lb%comsr, lin%lb%comsr%sendBuf, lin%lb%comsr%recvBuf)
-  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, lin%lb%orbs, lin%lb%comsr, &
+  call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
        coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
@@ -678,9 +675,9 @@ type(orthon_data):: orthpar
 
 
   ! Calculate the forces we get with psi.
-  !!call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
-  !!    proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, lphi, coeff, rhopot, &
-  !!    fxyz, fnoise,radii_cf)
+  !!call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, hx, hy, hz, &
+  !! comms, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp,&
+  !! lphi, coeff, rhopot, fxyz, fnoise,radii_cf)
 
   !!!!associate the density
   !!!rho => rhopot
@@ -713,8 +710,9 @@ type(orthon_data):: orthpar
   !!end if
 
 
-!!$  call calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
-!!$       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rhopot, psi, fxyz, fnoise)
+!!$  call calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, hx, hy, hz,&
+!!$   comms, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp,&
+!!$   rhopot, psi, fxyz, fnoise)
   !!call mpi_barrier(mpi_comm_world, ierr)
   t2force=mpi_wtime()
   timeforce=t2force-t1force

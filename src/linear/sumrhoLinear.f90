@@ -7,6 +7,7 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   use module_types
   use module_interfaces, exceptThisOne => local_partial_densityLinear
   use module_xc
+  use Poisson_Solver
   implicit none
   logical, intent(in) :: rsflag
   integer, intent(in) :: iproc,nproc
@@ -30,7 +31,7 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   real(dp), dimension(:),allocatable :: rho_p
   real(8):: dnrm2
   integer, dimension(:,:), allocatable :: Lnscatterarr
-  integer :: n3d,n3p,n3pi,i3xcsh,i3tmp
+  integer :: n3d,n3p,n3pi,i3xcsh,i3tmp,jproc 
   character(len=8) :: filename
   character(len=3) :: numb
  !components of wavefunction in real space which must be considered simultaneously
@@ -63,16 +64,9 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
      iorb = ii + orbs%isorb
      ilr = orbs%inwhichLocreg(iorb)
 
-     ! Going to need ixc (or better yet, define a correct Lnscatterarr directly in denspot)
-     !call PS_dim4allocation(Lzd%Llr(ilr)%geocode,'D',iproc,nproc,Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,ixc,&
-     !     n3d,n3p,n3pi,i3xcsh,i3s)
-     !Lnscatterarr(iproc,1)=n3d            !number of planes for the density
-     !Lnscatterarr(iproc,2)=n3p            !number of planes for the potential
-     !Lnscatterarr(iproc,3)=i3s+i3xcsh-1   !starting offset for the potential
-     !Lnscatterarr(iproc,4)=i3xcsh         !GGA XC shift between density and potential
+     Lnscatterarr(:,1) = Lzd%Llr(ilr)%d%n3i 
+     Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i 
 
-     Lnscatterarr(:,1) = Lzd%Llr(ilr)%d%n3i / nproc
-     Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i / nproc
 
      call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
      allocate(rho_p(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn), stat=i_stat) !must redefine the size of rho_p?
@@ -114,13 +108,13 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
 
               call partial_density(rsflag,nproc,Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,&
                    npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
-                   hfac,Lnscatterarr,spinval,psir,rho_p)
+                   hfac,nscatterarr,spinval,psir,rho_p)
 
            case('S')
 
               call partial_density(rsflag,nproc,Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,&
                    npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
-                   hfac,Lnscatterarr,spinval,psir,rho_p)
+                   hfac,nscatterarr,spinval,psir,rho_p)
 
            end select
 
@@ -284,7 +278,7 @@ END SUBROUTINE partial_density_linear
 
 
 
-subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, orbs, comsr, coeff, nrho, rho, at, nscatterarr)
+subroutine sumrhoForLocalizedBasis2(iproc, nproc, norb, lzd, input, hx, hy, hz, orbs, comsr, coeff, nrho, rho, at, nscatterarr)
 !
 use module_base
 use module_types
@@ -294,6 +288,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nrho, norb
+real(gp),intent(in):: hx, hy, hz
 type(local_zone_descriptors),intent(in):: lzd
 type(input_variables),intent(in):: input
 type(orbitals_data),intent(in):: orbs
@@ -345,9 +340,9 @@ if(iproc==0) write(*,'(a)') 'done.'
 
 
 ! Define some constant factors.
-hxh=.5d0*input%hx
-hyh=.5d0*input%hy
-hzh=.5d0*input%hz
+hxh=.5d0*hx
+hyh=.5d0*hy
+hzh=.5d0*hz
 if(input%nspin==1) then
     factor=2.d0/(hxh*hyh*hzh)
 else
