@@ -588,7 +588,7 @@ program BigDFT2Wannier
          Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
    end if
    ! For bin files, the eigenvalues are distributed, so reduce them
-   if(filetype == 'bin' .or. filetype == 'BIN') then
+   if((filetype == 'bin' .or. filetype == 'BIN') .and.  nproc > 0 .and. orbsv%norb>0) then
      call mpiallred(orbsv%eval(1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
    end if
    ! Write the eigenvalues into a file to output the hamiltonian matrix elements in Wannier functions
@@ -974,6 +974,7 @@ program BigDFT2Wannier
       call deallocate_comms(commsp,subname) 
       call deallocate_orbs(orbsb,subname)
       call deallocate_comms(commsb,subname) 
+      call deallocate_atoms_scf(atoms,subname)
       call deallocate_atoms(atoms,subname)
 
       call free_input_variables(input)
@@ -1708,20 +1709,25 @@ subroutine read_inter_list(iproc,n_virt, virt_list)
    integer, dimension(n_virt), intent(out) :: virt_list
 
    ! Local variables
-   integer :: i,j
+   integer :: i,j,ierr
 
-
-   OPEN(11, FILE='input.inter', STATUS='OLD')
+   open(11, file='input.inter', status='old')
 
    !   write(*,*) '!==================================!'
    !   write(*,*) '!  Reading virtual orbitals list : !'
    !   write(*,*) '!==================================!'
 
    do i=1,6
-      read(11,*) ! Skip first lines
+      read(11,*,iostat=ierr) ! Skip first lines                                                                                                                                                               
    end do
-   read(11,*) (virt_list(j), j=1,n_virt)
-   CLOSE(11)
+   read(11,*,iostat=ierr) (virt_list(j), j=1,n_virt)
+
+   if(ierr < 0) then  !reached the end of file and no virt_list, so generate the trivial one
+      do j= 1, n_virt
+         virt_list(j) = j
+      end do
+   end if
+   close(11)
 
    if (iproc==0) then
       write(*,*) '!==================================!'
