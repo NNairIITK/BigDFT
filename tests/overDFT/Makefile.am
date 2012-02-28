@@ -9,7 +9,8 @@ TESTDIRS = \
 	   SPLSAD \
 	   XabsCheb \
 	   XabsLanc \
-	   Xabsb2B
+	   Xabsb2B \
+           BigDFT2Wannier
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
@@ -63,6 +64,7 @@ global.mon.out : test.minhop.out
 InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp InputGenPot.xyz b2B_xanes.xyz
+
 
 # Define the precision for specific directories.
 %.report: %.ref

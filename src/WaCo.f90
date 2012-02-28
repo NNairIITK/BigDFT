@@ -1047,7 +1047,7 @@ print *,'total number of electrons: ',2*sum(wannocc)
   call memocc(i_stat,i_all,'rxyz',subname)
   call deallocate_lr(Glr,subname)
   call deallocate_orbs(orbs,subname)
-  call deallocate_atoms_scf(atoms,subname)
+  !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms(atoms,subname)
   call free_input_variables(input)
 
@@ -1088,7 +1088,7 @@ subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilA
    logical :: exists
 
    ! Open the file
-   call input_set_file(iproc,trim(filename),exists,'Waco Parameters')
+   call input_set_file(iproc,.false.,trim(filename),exists,'Waco Parameters')
 
    ! Read the number of bands and the number of Wannier functions
    call input_var(nband,'1')
@@ -1117,7 +1117,7 @@ subroutine Waco_input_variables(iproc,filename,nband,nwann,bondAna,Stereo,hamilA
    &     line (optional)')
    
    !Make defaults
-   call input_free(iproc)
+   call input_free()
 
 end subroutine Waco_input_variables
 

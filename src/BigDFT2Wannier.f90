@@ -974,7 +974,7 @@ program BigDFT2Wannier
       call deallocate_comms(commsp,subname) 
       call deallocate_orbs(orbsb,subname)
       call deallocate_comms(commsb,subname) 
-      call deallocate_atoms_scf(atoms,subname)
+      !call deallocate_atoms_scf(atoms,subname)
       call deallocate_atoms(atoms,subname)
 
       call free_input_variables(input)
