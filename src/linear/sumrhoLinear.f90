@@ -509,7 +509,6 @@ do iorb=1,comsr%noverlaps(iproc)
               i3e=min(comsr%startingindex(iorb,2),comsr%startingindex(jorb,2))
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(ilr),x,y,z,ishift1, ishift2, ishift3)
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(jlr),x,y,z,jshift1, jshift2, jshift3)
-
               factorTimesDensKern = factor*densKern(iiorb,jjorb)
               ! Now loop over all points in the box in which the orbitals overlap.
               do i3=i3s,i3e !bounds in z direction
@@ -518,12 +517,17 @@ do iorb=1,comsr%noverlaps(iproc)
                   indi3=i3d*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i !z-part of the index of orbital iorb in the 1-dim receive buffer
                   indj3=j3d*lzd%llr(jlr)%d%n2i*lzd%llr(jlr)%d%n1i !z-part of the index of orbital jorb in the 1-dim receive buffer
                   indl3=(i3-is)*lzd%Glr%d%n2i*lzd%Glr%d%n1i !z-part of the index for which the charge density is beeing calculated
+                  if(i3 < 0 .and. Lzd%Glr%geocode /='F') indl3=(i3-is+lzd%Glr%d%n3i)*lzd%Glr%d%n2i*lzd%Glr%d%n1i
+                  if(i3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') indl3 = (modulo(i3+1,Lzd%Glr%d%n3i+1)-is)&
+                                                                               *lzd%Glr%d%n2i*lzd%Glr%d%n1i         
                   do i2=i2s,i2e !bounds in y direction
                       i2d=i2 + ishift2 !y coordinate of orbital iorb with respect to the overlap box
                       j2d=i2 + jshift2 !y coordinate of orbital jorb with respect to the overlap box
                       indi2=i2d*lzd%llr(ilr)%d%n1i !y-part of the index of orbital iorb in the 1-dim receive buffer
                       indj2=j2d*lzd%llr(jlr)%d%n1i !y-part of the index of orbital jorb in the 1-dim receive buffer
                       indl2=i2*lzd%Glr%d%n1i !y-part of the index for which the charge density is beeing calculated
+                      if(i2 < 0 .and. Lzd%Glr%geocode =='P') indl2=(i2+lzd%Glr%d%n3i)*lzd%Glr%d%n1i
+                      if(i2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') indl2=modulo(i2+1,Lzd%Glr%d%n2i+1)*lzd%Glr%d%n1i
                       m=mod(i1e-i1s+1,4)
                       if(m/=0) then
                           ! The following five variables hold some intermediate results to speed up the code.
@@ -538,6 +542,8 @@ do iorb=1,comsr%noverlaps(iproc)
                               indri = indri0 + i1d !index of orbital iorb in the 1-dim receive buffer
                               indrj = indrj0 + j1d !index of orbital jorb in the 1-dim receive buffer
                               indLarge = indLarge0 + i1 !index for which the charge density is beeing calculated
+                              if(i1 < 0 .and. Lzd%Glr%geocode /='F') indLarge = indLarge0 + i1 + lzd%Glr%d%n1i
+                              if(i1+1 > Lzd%Glr%d%n1i .and. Lzd%Glr%geocode /='F') indLarge=indLarge0+modulo(i1+1,Lzd%Glr%d%n1i+1)
                               tt = factorTimesDensKern*comsr%recvBuf(indri)*comsr%recvBuf(indrj)
                               rho(indLarge) = rho(indLarge) + tt !update the charge density at point indLarge
                               totalCharge = totalCharge + tt !add the contribution to the total charge
@@ -560,9 +566,17 @@ do iorb=1,comsr%noverlaps(iproc)
                               tt1 = factorTimesDensKern*comsr%recvBuf(indri+1)*comsr%recvBuf(indrj+1)
                               tt2 = factorTimesDensKern*comsr%recvBuf(indri+2)*comsr%recvBuf(indrj+2)
                               tt3 = factorTimesDensKern*comsr%recvBuf(indri+3)*comsr%recvBuf(indrj+3)
+                              if(i1 < 0 .and. Lzd%Glr%geocode /='F') indLarge = indLarge0 + i1 + lzd%Glr%d%n1i
+                              if(i1+1 > Lzd%Glr%d%n1i .and. Lzd%Glr%geocode /='F') indLarge=indLarge0+modulo(i1+1,Lzd%Glr%d%n1i+1)
                               rho(indLarge  ) = rho(indLarge  ) + tt0
+                              if(i1+1 >= 0 .and. Lzd%Glr%geocode /='F') indLarge = indLarge0 + i1 
+                              if(i1+2 > Lzd%Glr%d%n1i .and. Lzd%Glr%geocode /='F') indLarge=indLarge0+modulo(i1+2,Lzd%Glr%d%n1i+1)
                               rho(indLarge+1) = rho(indLarge+1) + tt1
+                              if(i1+2 >= 0 .and. Lzd%Glr%geocode /='F') indLarge = indLarge0 + i1 
+                              if(i1+3 > Lzd%Glr%d%n1i .and. Lzd%Glr%geocode /='F') indLarge=indLarge0+modulo(i1+3,Lzd%Glr%d%n1i+1)
                               rho(indLarge+2) = rho(indLarge+2) + tt2
+                              if(i1+3 >= 0 .and. Lzd%Glr%geocode /='F') indLarge = indLarge0 + i1 
+                              if(i1+4 > Lzd%Glr%d%n1i .and. Lzd%Glr%geocode /='F') indLarge=indLarge0+modulo(i1+4,Lzd%Glr%d%n1i+1)
                               rho(indLarge+3) = rho(indLarge+3) + tt3
                               totalCharge = totalCharge + tt0 + tt1 + tt2 + tt3
                           end do

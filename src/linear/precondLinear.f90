@@ -321,7 +321,7 @@ integer:: confPotOrder, it
         call apply_hp_slab_sd(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
              lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
-             cprecr,hx,hy,hz,x,y,w%psifscf,w%ww,w%modul1,w%modul3,&
+             cprecr,x,y,w%psifscf,w%ww,w%modul1,w%modul3,&
              w%af,w%bf,w%cf,w%ef)
      else
         call apply_hp_slab_k(lr%d%n1,lr%d%n2,lr%d%n3,&
