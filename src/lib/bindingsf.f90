@@ -578,3 +578,18 @@ subroutine localfields_get_pkernelseq(denspot, pkernelseq)
 
   pkernelseq => denspot%pkernelseq
 END SUBROUTINE localfields_get_pkernelseq
+
+subroutine gpu_new(GPU)
+  use module_types
+  implicit none
+  type(GPU_pointers), pointer :: GPU
+
+  allocate(GPU)
+END SUBROUTINE gpu_new
+subroutine gpu_free(GPU)
+  use module_types
+  implicit none
+  type(GPU_pointers), pointer :: GPU
+
+  deallocate(GPU)
+END SUBROUTINE gpu_free

@@ -44,7 +44,11 @@ void FC_FUNC_(atoms_copy_alat, ATOMS_COPY_ALAT)(void *atoms, double *alat1,
 void FC_FUNC_(atoms_copy_psp_data, ATOMS_COPY_PSP_DATA)(void *atoms, int *natsc, int *donlcc);
 void FC_FUNC_(atoms_copy_name, ATOMS_COPY_NAME)(void *atoms, int *ityp, gchar *name, int *ln);
 void FC_FUNC_(init_atomic_values, INIT_ATOMIC_VALUES)(int *verb, void *atoms, int *ixc);
-void FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(void *atoms, double *radii_cf);
+void FC_FUNC_(atoms_read_variables, ATOMS_READ_VARIABLES)(void *atoms, const guint *nspin,
+                                                          const gchar *occup, const guint *ln);
+void FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(void *atoms, double *radii_cf,
+                                                          double *crmult, double *frmult,
+                                                          double *projrad);
 void FC_FUNC_(atoms_write, ATOMS_WRITE)(void *atoms, const gchar *filename, int *ln2,
                                         double *rxyz, f90_pointer_double *forces,
                                         const double *energy, const gchar *comment, int *ln);
@@ -115,4 +119,18 @@ void FC_FUNC_(free_wave_to_isf, FREE_WAVE_TO_ISF)(f90_pointer_double_4D *psiscf)
 void FC_FUNC_(read_wave_descr, READ_WAVE_DESCR)
      (int *lstat, const char* filename, int *ln, int *norbu,
       int *norbd, int *iorb, int *ispin, int *nkpt, int *ikpt, int *nspinor, int *ispinor);
+
+void FC_FUNC_(input_wf, INPUT_WF)(const guint *iproc, const guint *nproc,
+                                  const void *in, const void *GPU,
+                                  const void *atoms, const double *rxyz,
+                                  const void *lzd, const double *hx,
+                                  const double *hy, const double *hz,
+                                  void *denspot, const void *nlpspd,
+                                  const f90_pointer_double *proj,
+                                  void *orbs, void *comms, f90_pointer_double *psi,
+                                  f90_pointer_double *hpsi, f90_pointer_double *psit,
+                                  int *inputpsi, guint *norbv,
+                                  void *gbd, void *gaucoeffs, void *wfd_old, void *psi_old,
+                                  void *d_old, const double *hx_old, const double *hy_old,
+                                  const double *hz_old, double *rxyz_old);
 #endif

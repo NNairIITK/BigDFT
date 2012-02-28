@@ -15,6 +15,8 @@
 
 typedef struct BigDFT_lzd_ BigDFT_Lzd;
 typedef struct BigDFT_orbs_ BigDFT_Orbs;
+typedef struct BigDFT_proj_ BigDFT_Proj;
+typedef struct BigDFT_LocalFields_ BigDFT_LocalFields;
 
 /********************************/
 /* BigDFT_Atoms data structure. */
@@ -68,12 +70,14 @@ BigDFT_Atoms* bigdft_atoms_new_from_file   (const gchar *filename);
 void          bigdft_atoms_free            (BigDFT_Atoms *atoms);
 void          bigdft_atoms_set_n_atoms     (BigDFT_Atoms *atoms, guint nat);
 void          bigdft_atoms_set_n_types     (BigDFT_Atoms *atoms, guint ntypes);
-void          bigdft_atoms_set_psp         (BigDFT_Atoms *atoms, int ixc);
+void          bigdft_atoms_set_psp         (BigDFT_Atoms *atoms, int ixc,
+                                            guint nspin, const gchar *occup);
 void          bigdft_atoms_set_symmetries  (BigDFT_Atoms *atoms, gboolean active,
                                             double tol, double elecfield[3]);
 void          bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis);
 void          bigdft_atoms_sync            (BigDFT_Atoms *atoms);
-double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms);
+double*       bigdft_atoms_get_radii       (const BigDFT_Atoms *atoms, double crmult,
+                                            double frmult, double projrad);
 gboolean*     bigdft_atoms_get_grid        (const BigDFT_Atoms *atoms, double *radii,
                                             double mult, guint n[3]);
 
@@ -280,17 +284,22 @@ typedef struct BigDFT_wf_
   gboolean dispose_has_run;
 #endif
 
+  /* Pointers on building objects. */
+  BigDFT_Lzd *lzd;
+
   /* Private. */
   f90_pointer_double psi, hpsi, psit;
 } BigDFT_Wf;
 BigDFT_Wf* bigdft_wf_new (BigDFT_Lzd *lzd, BigDFT_Inputs *in,
                           guint iproc, guint nproc, guint *nelec);
 void       bigdft_wf_free(BigDFT_Wf *wf);
+void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                    BigDFT_Proj *proj, guint iproc, guint nproc);
 
 /*******************************/
 /* BigDFT_Proj data structure. */
 /*******************************/
-typedef struct BigDFT_proj_
+struct BigDFT_proj_
 {
   /* TODO: bindings to values... */
   guint nproj, nprojel;
@@ -300,7 +309,7 @@ typedef struct BigDFT_proj_
 
   /* Private. */
   void *nlpspd;
-} BigDFT_Proj;
+};
 
 BigDFT_Proj* bigdft_proj_new (const BigDFT_LocReg *glr, const BigDFT_Orbs *orbs,
                               double frmult);
@@ -330,7 +339,7 @@ typedef struct BigDFT_LocalFieldsClass_
 #define BIGDFT_LOCALFIELDS_TYPE    (999)
 #define BIGDFT_LOCALFIELDS(obj)    ((BigDFT_LocalFields*)obj)
 #endif
-typedef struct BigDFT_LocalFields_
+struct BigDFT_LocalFields_
 {
 #ifdef GLIB_MAJOR_VERSION
   GObject parent;
@@ -354,7 +363,7 @@ typedef struct BigDFT_LocalFields_
   void *rhod;
   void *dpcom;
   void *data;
-} BigDFT_LocalFields;
+};
 
 BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
                                             const BigDFT_Inputs *in,

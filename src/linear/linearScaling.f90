@@ -724,7 +724,7 @@ type(orthon_data):: orthpar
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, lphi, coeff)
   deallocate(confdatarr)
-  call deallocateBasicArrays(at,lin)
+  call deallocateBasicArrays(lin)
 
   iall=-product(shape(coeff_proj))*kind(coeff_proj)
   deallocate(coeff_proj, stat=istat)

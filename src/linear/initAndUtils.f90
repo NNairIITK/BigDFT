@@ -62,14 +62,14 @@ lin%lzd%nlr=at%nat
 !!lin%lzdlarge%nlr=at%nat
 
 ! Allocate the basic arrays that are needed for reading the input parameters.
-call allocateBasicArrays(at, lin)
+call allocateBasicArrays(lin, at%ntypes)
 
 ! Read in all parameters related to the linear scaling version.
 !call readLinearParameters(iproc, nproc, input%file_lin, lin, at, atomNames)
 call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
 call copy_linearInputParameters_to_linearParameters(at%ntypes, at%nat, input, lin)
 
-call deallocateBasicArraysInput(at, input%lin)
+call deallocateBasicArraysInput(input%lin)
 
 ! Count the number of basis functions.
 norb=0
@@ -1550,46 +1550,42 @@ end subroutine initializeCommsSumrho
 
 
 
-subroutine allocateBasicArrays(at, lin)
+subroutine allocateBasicArrays(lin, ntypes)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  type(atoms_data),intent(inout):: at
   type(linearParameters),intent(inout):: lin
+  integer, intent(in) :: ntypes
   
   ! Local variables
   integer:: istat
   character(len=*),parameter:: subname='allocateBasicArrays'
   
-  allocate(lin%norbsPerType(at%ntypes), stat=istat)
+  allocate(lin%norbsPerType(ntypes), stat=istat)
   call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
   
-  allocate(lin%potentialPrefac(at%ntypes), stat=istat)
+  allocate(lin%potentialPrefac(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 
-  allocate(lin%potentialPrefac_lowaccuracy(at%ntypes), stat=istat)
+  allocate(lin%potentialPrefac_lowaccuracy(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
 
-  allocate(lin%potentialPrefac_highaccuracy(at%ntypes), stat=istat)
+  allocate(lin%potentialPrefac_highaccuracy(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
 
   allocate(lin%locrad(lin%nlr),stat=istat)
   call memocc(istat,lin%locrad,'lin%locrad',subname)
 
-  !allocate(at%rloc(at%ntypes,3), stat=istat)
-  !call memocc(istat, at%rloc, 'at%rloc', subname)
-
 end subroutine allocateBasicArrays
 
-subroutine deallocateBasicArrays(at, lin)
+subroutine deallocateBasicArrays(lin)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  type(atoms_data),intent(inout):: at
   type(linearParameters),intent(inout):: lin
   
   ! Local variables
@@ -1618,57 +1614,46 @@ subroutine deallocateBasicArrays(at, lin)
     call memocc(i_stat,i_all,'lin%locrad',subname)
     nullify(lin%locrad)
   end if 
-  if(associated(at%rloc)) then
-     !print *,'at%rloc',associated(at%rloc)
-    i_all = -product(shape(at%rloc))*kind(at%rloc)
-    deallocate(at%rloc,stat=i_stat)
-    call memocc(i_stat,i_all,'at%rloc',subname)
-    nullify(at%rloc)
-  end if 
 
 end subroutine deallocateBasicArrays
 
 
-subroutine allocateBasicArraysInputLin(at, lin)
+subroutine allocateBasicArraysInputLin(lin, ntypes, nat)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  type(atoms_data),intent(inout):: at
   type(linearInputParameters),intent(inout):: lin
+  integer, intent(in) :: ntypes, nat
   
   ! Local variables
   integer:: istat
   character(len=*),parameter:: subname='allocateBasicArrays'
   
-  allocate(lin%norbsPerType(at%ntypes), stat=istat)
+  allocate(lin%norbsPerType(ntypes), stat=istat)
   call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
   
-  allocate(lin%potentialPrefac(at%ntypes), stat=istat)
+  allocate(lin%potentialPrefac(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 
-  allocate(lin%potentialPrefac_lowaccuracy(at%ntypes), stat=istat)
+  allocate(lin%potentialPrefac_lowaccuracy(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
 
-  allocate(lin%potentialPrefac_highaccuracy(at%ntypes), stat=istat)
+  allocate(lin%potentialPrefac_highaccuracy(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
 
-  allocate(lin%locrad(at%nat),stat=istat)
+  allocate(lin%locrad(nat),stat=istat)
   call memocc(istat,lin%locrad,'lin%locrad',subname)
-
-  allocate(at%rloc(at%ntypes,3), stat=istat)
-  call memocc(istat, at%rloc, 'at%rloc', subname)
 
 end subroutine allocateBasicArraysInputLin
 
-subroutine deallocateBasicArraysInput(at, lin)
+subroutine deallocateBasicArraysInput(lin)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  type(atoms_data),intent(inout):: at
   type(linearinputParameters),intent(inout):: lin
   
   ! Local variables
@@ -1714,15 +1699,6 @@ subroutine deallocateBasicArraysInput(at, lin)
     call memocc(i_stat,i_all,'lin%locrad',subname)
     nullify(lin%locrad)
   end if 
-    if(associated(at%rloc)) then
-!    print *,'at%rloc',associated(at%rloc)
-    i_all = -product(shape(at%rloc))*kind(at%rloc)
-    !print *,'i_all',i_all
-    deallocate(at%rloc,stat=i_stat)
-    call memocc(i_stat,i_all,'at%rloc',subname)
-    nullify(at%rloc)
-  end if 
-
 
 end subroutine deallocateBasicArraysInput
 

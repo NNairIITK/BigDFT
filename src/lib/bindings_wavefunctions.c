@@ -219,7 +219,9 @@ static void bigdft_wf_dispose(GObject *obj)
     return;
   wf->dispose_has_run = TRUE;
   
-  /* wf->parent.data = (void*)0; */
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(wf->lzd));
+#endif
 
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_wf_parent_class)->dispose(obj);
@@ -254,6 +256,11 @@ BigDFT_Wf* bigdft_wf_new(BigDFT_Lzd *lzd, BigDFT_Inputs *in,
   nelec_ = bigdft_orbs_define(&wf->parent, BIGDFT_LOCREG(lzd), in, iproc, nproc);
   if (nelec)
     *nelec = nelec_;
+  
+#ifdef HAVE_GLIB
+  g_object_ref(G_OBJECT(lzd));
+#endif
+  wf->lzd = lzd;
 
   return wf;
 }
@@ -265,4 +272,25 @@ void bigdft_wf_free(BigDFT_Wf *wf)
   bigdft_wf_finalize(wf);
   g_free(wf);
 #endif
+}
+void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot, BigDFT_Proj *proj,
+                              guint iproc, guint nproc)
+{
+  int inputpsi, norbv;
+  void *GPU;
+
+  FC_FUNC_(gpu_new, GPU_NEW)(&GPU);
+  FC_FUNC_(input_wf, INPUT_WF)(&iproc, &nproc, wf->parent.in->data, GPU,
+                               BIGDFT_LOCREG(wf->lzd)->atoms->data,
+                               BIGDFT_LOCREG(wf->lzd)->atoms->rxyz.data,
+                               wf->lzd->data, BIGDFT_LOCREG(wf->lzd)->h,
+                               BIGDFT_LOCREG(wf->lzd)->h + 1, BIGDFT_LOCREG(wf->lzd)->h + 2,
+                               denspot->data, proj->nlpspd, &proj->proj,
+                               wf->parent.data, wf->parent.comm,
+                               &wf->psi, &wf->hpsi, &wf->psit,
+                               &inputpsi, &norbv,
+                               (void*)0, (void*)0, (void*)0, (void*)0, (void*)0,
+                               (void*)0, (void*)0, (void*)0, (void*)0
+                               );
+  FC_FUNC_(gpu_free, GPU_FREE)(&GPU);
 }

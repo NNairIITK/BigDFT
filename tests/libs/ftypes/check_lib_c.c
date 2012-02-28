@@ -9,7 +9,22 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+/* #undef G_THREADS_ENABLED */
+
 #define MAX_FORTRAN_OUTPUT 4096
+
+typedef struct bigdft_data
+{
+  BigDFT_Inputs      *in;
+  BigDFT_Proj        *proj;
+  BigDFT_LocalFields *denspot;
+  BigDFT_Wf          *wf;
+
+#ifdef HAVE_GLIB
+  GMainLoop *loop;
+#endif
+} BigDFT_Data;
+
 
 #ifdef HAVE_GLIB
 static gboolean exit_loop(gpointer data);
@@ -17,7 +32,8 @@ static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data);
 #endif
 static int redirect_init(int out_pipe[2]);
 static void redirect_dump(int out_pipe[2], int stdout_fileno_old);
-static void calculate_ionic_pot(BigDFT_LocalFields *denspot, BigDFT_Inputs *in);
+static BigDFT_Data* run_bigdft(BigDFT_Inputs *in, BigDFT_Proj *proj,
+                               BigDFT_LocalFields *denspot, BigDFT_Wf *wf, gpointer data);
 
 int main(guint argc, char **argv)
 {
@@ -33,6 +49,7 @@ int main(guint argc, char **argv)
   BigDFT_Wf *wf;
   BigDFT_Proj *proj;
   BigDFT_LocalFields *denspot;
+  BigDFT_Data *data;
 #ifdef HAVE_GLIB
   GMainLoop *loop;
 #endif
@@ -81,8 +98,8 @@ int main(guint argc, char **argv)
   /* bigdft_atoms_set_displacement(atoms, 0.001); */
   bigdft_atoms_write(atoms, "output");
   fprintf(stdout, "Test BigDFT_Atoms pseudo-potential on the fly.\n");
-  bigdft_atoms_set_psp(atoms, 1);
-  radii = bigdft_atoms_get_radii(atoms);
+  bigdft_atoms_set_psp(atoms, 1, 1, (const gchar*)0);
+  radii = bigdft_atoms_get_radii(atoms, 0., 0., 0.);
   for (i = 0; i < atoms->ntypes; i++)
     fprintf(stdout, " Type %d, radii %f %f %f\n", i,
             radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
@@ -112,15 +129,24 @@ int main(guint argc, char **argv)
   fprintf(stdout, " Box [%c], is in %f %f %f\n", atoms->geocode,
           atoms->alat[0], atoms->alat[1], atoms->alat[2]);
 
+  fprintf(stdout, "Test BigDFT_Inputs structure creation.\n");
+  in = bigdft_inputs_new("test");
+  fprintf(stdout, " Read 'test.dft' file: %d\n", (in->files & BIGDFT_INPUTS_DFT));
+  fprintf(stdout, " Input variables are %f %f %f  -  %f %f  -  %d\n",
+          in->h[0], in->h[1], in->h[2], in->crmult, in->frmult, in->ixc);
+
+  bigdft_atoms_set_symmetries(atoms, !in->disableSym, -1., in->elecfield);
+  bigdft_inputs_parse_additional(in, atoms);
+
   fprintf(stdout, "Test BigDFT_Atoms pseudo-potential evaluation.\n");
-  bigdft_atoms_set_psp(atoms, 11);
-  radii = bigdft_atoms_get_radii(atoms);
+  bigdft_atoms_set_psp(atoms, 11, in->nspin, (const gchar*)0);
+  radii = bigdft_atoms_get_radii(atoms, in->crmult, in->frmult, 0.);
   for (i = 0; i < atoms->ntypes; i++)
     fprintf(stdout, " Type %d, radii %f %f %f\n", i,
             radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
   
   fprintf(stdout, "Test BigDFT_Lzd structure creation.\n");
-  lzd = bigdft_lzd_new(atoms, radii, h, CRMULT, FRMULT);
+  lzd = bigdft_lzd_new(atoms, radii, h, in->crmult, in->frmult);
   bigdft_locreg_set_wave_descriptors(BIGDFT_LOCREG(lzd));
   for (i = 0; i  < atoms->nat; i++)
     fprintf(stdout, " Atoms %d, coord. %10.6f %10.6f %10.6f '%2s', type %d\n",
@@ -130,17 +156,20 @@ int main(guint argc, char **argv)
   fprintf(stdout, " Box is in   %f %f %f\n", atoms->alat[0], atoms->alat[1], atoms->alat[2]);
   fprintf(stdout, " Shift is     %f %f  %f\n", atoms->shift[0], atoms->shift[1], atoms->shift[2]);
   fprintf(stdout, " Geocode is  %c\n", BIGDFT_LOCREG(lzd)->geocode);
-  fprintf(stdout, " Grid is     %9d %9d %9d\n", BIGDFT_LOCREG(lzd)->n[0], BIGDFT_LOCREG(lzd)->n[1], BIGDFT_LOCREG(lzd)->n[2]);
-  fprintf(stdout, " Int grid is %9d %9d %9d\n", BIGDFT_LOCREG(lzd)->ni[0], BIGDFT_LOCREG(lzd)->ni[1], BIGDFT_LOCREG(lzd)->ni[2]);
-  fprintf(stdout, " H grids are %9.9g %9.9g %9.9g\n", BIGDFT_LOCREG(lzd)->h[0], BIGDFT_LOCREG(lzd)->h[1], BIGDFT_LOCREG(lzd)->h[2]);
+  fprintf(stdout, " Grid is     %9d %9d %9d\n", BIGDFT_LOCREG(lzd)->n[0],
+          BIGDFT_LOCREG(lzd)->n[1], BIGDFT_LOCREG(lzd)->n[2]);
+  fprintf(stdout, " Int grid is %9d %9d %9d\n", BIGDFT_LOCREG(lzd)->ni[0],
+          BIGDFT_LOCREG(lzd)->ni[1], BIGDFT_LOCREG(lzd)->ni[2]);
+  fprintf(stdout, " H grids are %9.9g %9.9g %9.9g\n", BIGDFT_LOCREG(lzd)->h[0],
+          BIGDFT_LOCREG(lzd)->h[1], BIGDFT_LOCREG(lzd)->h[2]);
 
   fprintf(stdout, "Test calculation of grid points.\n");
-  cgrid = bigdft_atoms_get_grid(atoms, radii, CRMULT, BIGDFT_LOCREG(lzd)->n);
+  cgrid = bigdft_atoms_get_grid(atoms, radii, in->crmult, BIGDFT_LOCREG(lzd)->n);
   for (i = 0, n = 0; i < (BIGDFT_LOCREG(lzd)->n[0] + 1) * (BIGDFT_LOCREG(lzd)->n[1] + 1) * (BIGDFT_LOCREG(lzd)->n[2] + 1); i++)
     if (cgrid[i])
       n += 1;
   fprintf(stdout, " Coarse grid has %7d points.\n", n);
-  fgrid = bigdft_atoms_get_grid(atoms, radii + atoms->ntypes, FRMULT, BIGDFT_LOCREG(lzd)->n);
+  fgrid = bigdft_atoms_get_grid(atoms, radii + atoms->ntypes, in->frmult, BIGDFT_LOCREG(lzd)->n);
   for (i = 0, n = 0; i < (BIGDFT_LOCREG(lzd)->n[0] + 1) * (BIGDFT_LOCREG(lzd)->n[1] + 1) * (BIGDFT_LOCREG(lzd)->n[2] + 1); i++)
     if (fgrid[i])
       n += 1;
@@ -148,15 +177,6 @@ int main(guint argc, char **argv)
 
   g_free(cgrid);
   g_free(fgrid);
-
-  fprintf(stdout, "Test BigDFT_Inputs structure creation.\n");
-  in = bigdft_inputs_new("test");
-  fprintf(stdout, " Read 'test.dft' file: %d\n", (in->files & BIGDFT_INPUTS_DFT));
-  fprintf(stdout, " Input variables are %f %f %f  -  %f %f  -  %d\n",
-          in->h[0], in->h[1], in->h[2], in->crmult, in->frmult, in->ixc);
-
-  bigdft_atoms_set_symmetries(atoms, !in->disableSym, -1., in->elecfield);
-  bigdft_inputs_parse_additional(in, atoms);
 
   fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
   wf = bigdft_wf_new(lzd, in, 0, 1, &nelec);
@@ -186,15 +206,17 @@ int main(guint argc, char **argv)
 
   /* Use a thread to generate the ionic potential... */
   fprintf(stdout, " Calculate ionic potential.\n");
-  calculate_ionic_pot(denspot, in);
 
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB
-  g_signal_connect(G_OBJECT(denspot), "v-ext-ready",
-                   G_CALLBACK(onVExtReady), (gpointer)loop);
-  g_timeout_add_seconds(5, exit_loop, (gpointer)loop);
+  data = run_bigdft(in, proj, denspot, wf, loop);
+  g_timeout_add_seconds(10, exit_loop, (gpointer)loop);
   g_main_loop_run(loop);
+#else
+  data = run_bigdft(in, proj, denspot, wf, (gpointer)0);
 #endif
+
+  g_free(data);
 
   fprintf(stdout, "Test BigDFT_LocalFields free.\n");
   bigdft_localfields_free(denspot);
@@ -292,22 +314,59 @@ static gboolean exit_loop(gpointer data)
   fprintf(stdout, "Error, signals timeout.\n");
   return FALSE;
 }
+#endif
 
+static gpointer calculate_psi_0_thread(gpointer data)
+{
+  BigDFT_Data *container = (BigDFT_Data*)data;
+  
+  fprintf(stdout, " Calculation of input guess started.\n");
+  bigdft_wf_calculate_psi0(container->wf, container->denspot, container->proj, 0, 1);
+#ifdef HAVE_GLIB
+  g_object_unref(G_OBJECT(container->wf));
+  g_object_unref(G_OBJECT(container->denspot));
+  /* g_object_unref(G_OBJECT(container->proj)); */
+  g_idle_add((GSourceFunc)g_main_loop_quit, container->loop);
+#endif
+  fprintf(stdout, " Calculation of input guess finished.\n");
+
+  return (gpointer)0;
+}
+static gboolean calculate_psi_0(gpointer data)
+{
+  BigDFT_Data *ct = (BigDFT_Data*)data;
+#ifdef G_THREADS_ENABLED
+  GThread *ld_thread;
+  GError *error = (GError*)0;
+#endif
+
+#ifdef HAVE_GLIB
+  g_object_ref(G_OBJECT(ct->denspot));
+  g_object_ref(G_OBJECT(ct->wf));
+  /* g_object_ref(G_OBJECT(ct->proj)); */
+#endif
+#ifdef G_THREADS_ENABLED
+  ld_thread = g_thread_create(calculate_psi_0_thread, ct, FALSE, &error);
+#else
+  calculate_psi_0_thread(ct);
+#endif
+
+  return FALSE;
+}
+
+#ifdef HAVE_GLIB
 static void onVExtReady(BigDFT_LocalFields *denspot, gpointer data)
 {
   /* Copy the data of V_Ext to main process memory for later use. */
-  g_idle_add((GSourceFunc)g_main_loop_quit, data);
+
+  /* Chain up with the input guess. */
+  g_idle_add(calculate_psi_0, data);
 }
 #endif
 
-struct ionicpot_
-{
-  BigDFT_LocalFields *denspot;
-  BigDFT_Inputs *in;
-};
 static gpointer calculate_ionic_pot_thread(gpointer data)
 {
-  struct ionicpot_ *container = (struct ionicpot_*)data;
+  BigDFT_Data *container = (BigDFT_Data*)data;
   
   fprintf(stdout, " Calculation of ionic potential started.\n");
   bigdft_localfields_create_effective_ionic_pot(container->denspot, container->in, 0, 1);
@@ -315,28 +374,47 @@ static gpointer calculate_ionic_pot_thread(gpointer data)
   g_object_unref(G_OBJECT(container->denspot));
 #endif
   fprintf(stdout, " Calculation of ionic potential finished.\n");
-  g_free(container);
-
   return (gpointer)0;
 }
-
-static void calculate_ionic_pot(BigDFT_LocalFields *denspot, BigDFT_Inputs *in)
+static gboolean calculate_ionic_pot(gpointer data)
 {
+  BigDFT_Data *ct = (BigDFT_Data*)data;
 #ifdef G_THREADS_ENABLED
   GThread *ld_thread;
   GError *error = (GError*)0;
 #endif
-  struct ionicpot_ *ct;
 
-  ct = g_malloc(sizeof(struct ionicpot_));
-  ct->denspot = denspot;
-  ct->in = in;
 #ifdef HAVE_GLIB
-  g_object_ref(G_OBJECT(denspot));
+  g_object_ref(G_OBJECT(ct->denspot));
 #endif
 #ifdef G_THREADS_ENABLED
   ld_thread = g_thread_create(calculate_ionic_pot_thread, ct, FALSE, &error);
 #else
   calculate_ionic_pot_thread(ct);
 #endif
+
+  return FALSE;
+}
+
+static BigDFT_Data* run_bigdft(BigDFT_Inputs *in, BigDFT_Proj *proj,
+                               BigDFT_LocalFields *denspot, BigDFT_Wf *wf, gpointer data)
+{
+  BigDFT_Data *ct;
+
+  ct = g_malloc(sizeof(BigDFT_Data));
+  ct->denspot = denspot;
+  ct->in      = in;
+  ct->proj    = proj;
+  ct->wf      = wf;
+#ifdef HAVE_GLIB
+  ct->loop    = (GMainLoop*)data;
+  g_signal_connect(G_OBJECT(ct->denspot), "v-ext-ready",
+                   G_CALLBACK(onVExtReady), (gpointer)ct);
+  g_idle_add(calculate_ionic_pot, (gpointer)ct);
+#else
+  calculate_ionic_pot((gpointer)ct);
+  calculate_psi_0((gpointer)ct);
+#endif
+
+  return ct;
 }
