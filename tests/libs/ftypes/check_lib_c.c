@@ -210,7 +210,7 @@ int main(guint argc, char **argv)
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB
   data = run_bigdft(in, proj, denspot, wf, loop);
-  g_timeout_add_seconds(10, exit_loop, (gpointer)loop);
+  g_timeout_add(10000, exit_loop, (gpointer)loop);
   g_main_loop_run(loop);
 #else
   data = run_bigdft(in, proj, denspot, wf, (gpointer)0);

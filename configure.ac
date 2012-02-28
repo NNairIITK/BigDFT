@@ -82,7 +82,7 @@ if test "$ar" = ":" ; then
 fi
 
 dnl Look for GLib and friends for bindings.
-PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0, [have_glib=yes], [have_glib=no])
+PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0, [have_glib=yes], [have_glib=no])
 if test x"$have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
 fi
