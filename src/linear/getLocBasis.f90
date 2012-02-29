@@ -486,7 +486,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rx
 !
 use module_base
 use module_types
-use module_interfaces, except_this_one => getLocalizedBasis
+use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
 !  use Poisson_Solver
 !use allocModule
 implicit none
@@ -553,7 +553,9 @@ type(orbitals_data):: orbslarge
 type(overlapParameters):: oplarge
 type(p2pComms):: comonlarge
 type(matrixDescriptors):: madlarge
-
+integer :: unitwf !DEBUG
+character(len=10):: c1, c2, c3 !DEBUG
+character(len=50):: filename !DEBUG
 
 
   ! Allocate all local arrays.
@@ -1478,7 +1480,13 @@ type(matrixDescriptors):: madlarge
           allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
           ist=1
           write(comment,'(i3.3)') it
+!          unitwf = 10*iproc+1
+!          write(c1,'(i0)') iproc
+!          write(c3,'(i0)') it
           do iorb=1,lorbs%norbp
+!              write(c2,'(i0)') iorb
+!              filename='TMB_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)
+!              open(unitwf,file=trim(filename),status='unknown')
               iiorb=iorb+lorbs%isorb
               ilr=lorbs%inwhichlocreg(iiorb)
               lvphiovrlp=0.d0
@@ -1487,6 +1495,12 @@ type(matrixDescriptors):: madlarge
                    lzd%Glr, lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
               call plotOrbitals(iproc, orbs, lzd%Glr, lvphiovrlp, at%nat, rxyz, lorbs%inwhichlocreg, &
                    .5d0*hx, .5d0*hy, .5d0*hz, it)
+!              call writeonewave(unitwf,.true.,1,lzd%Glr%d%n1,lzd%Glr%d%n2,lzd%Glr%d%n3,hx,hy,hz,at%nat,rxyz,  &
+!                     lzd%Glr%wfd%nseg_c,lzd%Glr%wfd%nvctr_c,lzd%Glr%wfd%keygloc(1,1),lzd%Glr%wfd%keyvloc(1),  &
+!                     lzd%Glr%wfd%nseg_f,lzd%Glr%wfd%nvctr_f,lzd%Glr%wfd%keygloc(1,1+lzd%Glr%wfd%nseg_c),&
+!                     lzd%Glr%wfd%keyvloc(1+lzd%Glr%wfd%nseg_c), &
+!                     lvphiovrlp(1),lvphiovrlp(1+lzd%glr%wfd%nvctr_c),lorbs%eval)
+!              close(unitwf)
               ist=ist+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
           end do
           deallocate(lvphiovrlp)
@@ -5693,7 +5707,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
 
       tt=0.d0
       do iorb=1,orbs%norb
-          tt = tt + (X(iorb,iorb)-X0(iorb,iorb))**2 + (Y(iorb,iorb)-Y0(iorb,iorb))**2 + (Z(iorb,iorb)-Z0(iorb,iorb))**2
+          tt = tt + sqrt((X(iorb,iorb)-X0(iorb,iorb))**2 + (Y(iorb,iorb)-Y0(iorb,iorb))**2 + (Z(iorb,iorb)-Z0(iorb,iorb))**2)
       end do
       if(iproc==0) write(*,'(a,es16.7)') 'difference to locreg center', tt
 

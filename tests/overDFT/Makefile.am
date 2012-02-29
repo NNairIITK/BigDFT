@@ -69,7 +69,7 @@ InputGenPot.xabs.post-out:
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
-          *.memguess.ref | *.out.ref | *.freq.ref | *.splsad.ref | *.minhop.ref | *.xabs.ref ) mode="--mode=bigdft";; \
+          *.memguess.ref | *.out.ref | *.freq.ref | *.splsad.ref | *.minhop.ref | *.xabs.ref | *.b2w.ref ) mode="--mode=bigdft";; \
           *.NEB.ref) mode="--mode=neb";; \
           *) mode="";; \
         esac ; \
