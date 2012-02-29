@@ -259,6 +259,14 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
           pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
   end if
+
+!DEBUG
+!  if (iproc==0) then
+!      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!      ekin_sum,epot_sum,eproj_sum
+!  endif
+!END DEBUG
+
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
   deallocate(lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'lzd%doHamAppl', subname)

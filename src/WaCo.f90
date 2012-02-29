@@ -57,8 +57,8 @@ program WaCo
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check
    integer, allocatable, dimension (:) :: virt_list
    logical :: file_exist,idemp
-   real(gp),allocatable :: cxyz2(:,:) !debug only
-   integer, allocatable :: list(:)    !debug only
+!   real(gp),allocatable :: cxyz2(:,:) !debug only
+!   integer, allocatable :: list(:)    !debug only
    interface
       subroutine read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
         implicit none
@@ -1153,7 +1153,7 @@ subroutine read_inter_list(iproc,n_virt, virt_list)
    integer, dimension(n_virt), intent(out) :: virt_list
 
    ! Local variables
-   integer :: i,j,ierr                                                                                                                                                                                        
+   integer :: i,j,ierr 
 
    open(11, file='input.inter', status='old')
 
@@ -1162,7 +1162,7 @@ subroutine read_inter_list(iproc,n_virt, virt_list)
    !   write(*,*) '!==================================!'
 
    do i=1,6
-      read(11,*,iostat=ierr) ! Skip first lines                                                                                                                                                               
+      read(11,*,iostat=ierr) ! Skip first lines       
    end do
    read(11,*,iostat=ierr) (virt_list(j), j=1,n_virt)
 
