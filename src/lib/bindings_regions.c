@@ -47,8 +47,9 @@ static void bigdft_locreg_dispose(GObject *obj)
   if (glr->dispose_has_run)
     return;
   glr->dispose_has_run = TRUE;
-  
-  g_object_unref(G_OBJECT(glr->atoms));
+
+  if (glr->atoms)
+    g_object_unref(G_OBJECT(glr->atoms));
   if (glr->data)
     FC_FUNC_(glr_empty, GLR_EMPTY)(glr->data);
 

@@ -204,9 +204,6 @@ int main(guint argc, char **argv)
   fprintf(stdout, " Add linear zone description.\n");
   bigdft_lzd_setup_linear(lzd, BIGDFT_ORBS(wf), in, atoms,0, 1);
 
-  /* Use a thread to generate the ionic potential... */
-  fprintf(stdout, " Calculate ionic potential.\n");
-
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB
   data = run_bigdft(in, proj, denspot, wf, loop);
@@ -215,7 +212,6 @@ int main(guint argc, char **argv)
 #else
   data = run_bigdft(in, proj, denspot, wf, (gpointer)0);
 #endif
-
   g_free(data);
 
   fprintf(stdout, "Test BigDFT_LocalFields free.\n");

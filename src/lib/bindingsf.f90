@@ -203,6 +203,7 @@ subroutine lzd_new(lzd, glr)
 
   allocate(lzd)
   glr => lzd%glr
+  call nullify_local_zone_descriptors(lzd)
 end subroutine lzd_new
 subroutine lzd_free(lzd)
   use module_types
