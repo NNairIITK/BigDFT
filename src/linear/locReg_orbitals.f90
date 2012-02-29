@@ -272,7 +272,8 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
 
   integer,intent(in):: nlr,iproc,nspin,natom
   integer,dimension(nlr),intent(in):: Localnorb
-  real(8),dimension(3,natom),intent(in):: rxyz
+  !real(8),dimension(3,natom),intent(in):: rxyz
+  real(8),dimension(3,nlr),intent(in):: rxyz
   type(orbitals_data),intent(inout):: orbse
 
   ! Local variables
@@ -289,7 +290,7 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
   call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
   !allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
   !call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
-  allocate(covered(natom), stat=i_stat)
+  allocate(covered(nlr), stat=i_stat)
   call memocc(i_stat, covered, 'covered', subname)
 
 
@@ -300,7 +301,7 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
   xmax=-1.d100
   ymax=-1.d100
   zmax=-1.d100
-  do iat=1,natom
+  do iat=1,nlr
       if(rxyz(1,iat)<xmin) then
           xmin=rxyz(1,iat)
           iatxmin=iat
@@ -387,7 +388,7 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
           !covered(jat)=.true.
           dmin=1.d100
           minvalue=1.d100
-          do iat=1,natom
+          do iat=1,nlr
               if(covered(iat)) cycle
               tt = (rxyz(1,iat)-rxyz(1,jat))**2 + (rxyz(2,iat)-rxyz(2,jat))**2 + (rxyz(3,iat)-rxyz(3,jat))**2
               !if(tt<dmin) then
@@ -401,7 +402,7 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
           jat=jat+1
           covered(iiat)=.true.
       end if
-      if(jat > natom) then
+      if(jat > nlr) then
         jat = 1
       end if
       jorb=jorb+1

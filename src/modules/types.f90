@@ -261,10 +261,8 @@ module module_types
 !>  Used for lookup table for compressed wavefunctions
   type, public :: wavefunctions_descriptors
      integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
-!     integer, dimension(:,:), pointer :: keyg
      integer, dimension(:,:), pointer :: keyglob
      integer, dimension(:,:), pointer :: keygloc
-     integer, dimension(:), pointer :: keyv
      integer, dimension(:), pointer :: keyvloc,keyvglob
   end type wavefunctions_descriptors
 
@@ -455,22 +453,22 @@ module module_types
      real(wp), dimension(:), pointer :: hpsi_ASYNC !<pointer to the wavefunction allocated in the case of asyncronous local_hamiltonian
   end type GPU_pointers
 
-!> Contains all the descriptors necessary for splitting the calculation in different locregs 
+  !> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: local_zone_descriptors
-    logical :: linear                         !< if true, use linear part of the code
-    integer :: nlr                            !< Number of localization regions 
-    integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
+     logical :: linear                         !< if true, use linear part of the code
+     integer :: nlr                            !< Number of localization regions 
+     integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
 !    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
-    integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
-    integer :: Lnprojel                       !< Total number of projector elements
-    real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
-    logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
-    type(locreg_descriptors) :: Glr           !< Global region descriptors
+     integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
+     integer :: Lnprojel                       !< Total number of projector elements
+     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
+     logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
+     type(locreg_descriptors) :: Glr           !< Global region descriptors
 !    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
-    type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
+     type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
 !    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
-    real(8),dimension(:,:),pointer:: cutoffweight
-  end type
+     real(8),dimension(:,:),pointer:: cutoffweight
+  end type local_zone_descriptors
 
 !>  Used to restart a new DFT calculation or to save information 
 !!  for post-treatment
@@ -610,22 +608,23 @@ module module_types
        logical,dimension(:,:),pointer:: communComplete
   end type p2pCommsRepartition
 
-  type,public:: expansionSegments
-      integer:: nseg
-      integer,dimension(:,:),pointer:: segborders
-  end type expansionSegments
+!  type,public:: expansionSegments
+!      integer:: nseg
+!      integer,dimension(:,:),pointer:: segborders
+!  end type expansionSegments
 
 
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
       integer:: ndim_lphiovrlp, noverlapsmax, noverlapsmaxp, nsubmax
-      integer,dimension(:),pointer:: noverlaps, indexExpand, indexExtract
+      integer,dimension(:),pointer:: noverlaps !, indexExpand, indexExtract
       integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:,:),pointer:: indexInRecvBuf
       integer,dimension(:,:),pointer:: indexInSendBuf
-      type(locreg_descriptors),dimension(:,:),pointer:: olr
-      type(expansionSegments),dimension(:,:),pointer:: expseg
-      type(expansionSegments),dimension(:,:),pointer:: extseg
+!      type(locregs_descriptors),dimension(:,:),pointer:: olr
+      type(wavefunctions_descriptors),dimension(:,:),pointer:: wfd_overlap
+!      type(expansionSegments),dimension(:,:),pointer:: expseg
+!      type(expansionSegments),dimension(:,:),pointer:: extseg
   end type overlapParameters
 
 
@@ -981,7 +980,9 @@ END SUBROUTINE deallocate_orbs
 
     nullify(rst%Lzd%Glr%wfd%keyglob)
     nullify(rst%Lzd%Glr%wfd%keygloc)
-    nullify(rst%Lzd%Glr%wfd%keyv)
+!    nullify(rst%Lzd%Glr%wfd%keyv)
+    nullify(rst%Lzd%Glr%wfd%keyvloc)
+    nullify(rst%Lzd%Glr%wfd%keyvglob)
 
     nullify(rst%gbd%nshell)
     nullify(rst%gbd%ndoc)
@@ -1064,8 +1065,12 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,wfd%keyglob,'keyglob',subname)
     allocate(wfd%keygloc(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keygloc,'keygloc',subname)
-    allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
-    call memocc(i_stat,wfd%keyv,'keyv',subname)
+ !!   allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+ !!   call memocc(i_stat,wfd%keyv,'keyv',subname)
+    allocate(wfd%keyvloc(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    call memocc(i_stat,wfd%keyvloc,'keyvloc',subname)
+    allocate(wfd%keyvglob(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    call memocc(i_stat,wfd%keyvglob,'keyvglob',subname)
 
   END SUBROUTINE allocate_wfd
 
@@ -1098,10 +1103,29 @@ END SUBROUTINE deallocate_orbs
           nullify(wfd%keygloc)
        end if
     end if
-    if (associated(wfd%keyv)) then
-       i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
-       deallocate(wfd%keyv,stat=i_stat)
-       call memocc(i_stat,i_all,'wfd%keyv',subname)
+!    if (associated(wfd%keyv)) then
+!       i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
+!       deallocate(wfd%keyv,stat=i_stat)
+!       call memocc(i_stat,i_all,'wfd%keyv',subname)
+!    end if
+    if (associated(wfd%keyvloc, target= wfd%keyvglob)) then
+       i_all=-product(shape(wfd%keyvloc))*kind(wfd%keyvloc)
+       deallocate(wfd%keyvloc,stat=i_stat)
+       call memocc(i_stat,i_all,'wfd%keyvloc',subname)
+       nullify(wfd%keyvloc)
+    else
+       if (associated(wfd%keyvloc)) then
+          i_all=-product(shape(wfd%keyvloc))*kind(wfd%keyvloc)
+          deallocate(wfd%keyvloc,stat=i_stat)
+          call memocc(i_stat,i_all,'wfd%keyvloc',subname)
+          nullify(wfd%keyvloc)
+       end if
+       if (associated(wfd%keyvglob)) then
+          i_all=-product(shape(wfd%keyvglob))*kind(wfd%keyvglob)
+          deallocate(wfd%keyvglob,stat=i_stat)
+          call memocc(i_stat,i_all,'wfd%keyvglob',subname)
+          nullify(wfd%keyvglob)
+       end if
     end if
   END SUBROUTINE deallocate_wfd
 
@@ -1310,19 +1334,24 @@ END SUBROUTINE deallocate_orbs
   END SUBROUTINE deallocate_bounds
 
 
+  !> todo: remove this function.
   subroutine deallocate_lr(lr,subname)
     use module_base
     character(len=*), intent(in) :: subname
     type(locreg_descriptors) :: lr
     integer :: i_all,i_stat
 
+    write(0,*) "TODO, remove me"
+    
     call deallocate_wfd(lr%wfd,subname)
 
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
-    i_all=-product(shape(lr%projflg)*kind(lr%projflg))
-    deallocate(lr%projflg,stat=i_stat)
-    call memocc(i_stat,i_all,'lr%projflg',subname)
 
+    if (associated(lr%projflg)) then
+       i_all=-product(shape(lr%projflg)*kind(lr%projflg))
+       deallocate(lr%projflg,stat=i_stat)
+       call memocc(i_stat,i_all,'lr%projflg',subname)
+    end if
   END SUBROUTINE deallocate_lr
 
   subroutine deallocate_denspot_distribution(denspotd, subname)
@@ -1407,7 +1436,9 @@ END SUBROUTINE deallocate_orbs
 ! nullify the wfd of Glr
    nullify(Lzd%Glr%wfd%keyglob)
    nullify(Lzd%Glr%wfd%keygloc)
-   nullify(Lzd%Glr%wfd%keyv)
+!   nullify(Lzd%Glr%wfd%keyv)
+   nullify(Lzd%Glr%wfd%keyvloc)
+   nullify(Lzd%Glr%wfd%keyvglob)
 
 ! nullify the Gnlpspd
 !   call deallocate_proj_descr(Lzd%Gnlpspd,subname)

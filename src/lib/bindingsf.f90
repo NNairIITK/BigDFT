@@ -133,24 +133,36 @@ subroutine deallocate_double_2D(array)
   end if
 end subroutine deallocate_double_2D
 
-subroutine glr_new(glr, d)
+subroutine glr_new(glr)
   use module_types
   implicit none
   type(locreg_descriptors), pointer :: glr
-  type(grid_dimensions), pointer :: d
 
   allocate(glr)
+end subroutine glr_new
+subroutine glr_init(glr, d)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout), target :: glr
+  type(grid_dimensions), pointer :: d
+
   call nullify_locreg_descriptors(glr)
   d => glr%d
-end subroutine glr_new
+end subroutine glr_init
 subroutine glr_free(glr)
   use module_types
   implicit none
   type(locreg_descriptors), pointer :: glr
 
-  call deallocate_lr(glr, "glr_free")
   deallocate(glr)
 end subroutine glr_free
+subroutine glr_empty(glr)
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(inout) :: glr
+
+  call deallocate_locreg_descriptors(glr, "glr_empty")
+end subroutine glr_empty
 subroutine glr_get_dimensions(glr, geocode, n, ni)
   use module_types
   implicit none
@@ -183,6 +195,24 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
+subroutine lzd_new(lzd, glr)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), pointer :: lzd
+  type(locreg_descriptors), pointer :: glr
+
+  allocate(lzd)
+  glr => lzd%glr
+  call nullify_local_zone_descriptors(lzd)
+end subroutine lzd_new
+subroutine lzd_free(lzd)
+  use module_types
+  implicit none
+  type(local_zone_descriptors), pointer :: lzd
+
+  call deallocate_local_zone_descriptors(lzd, "lzd_free")
+  deallocate(lzd)
+end subroutine lzd_free
 
 subroutine inputs_new(in)
   use module_types
@@ -352,16 +382,25 @@ subroutine orbs_new(orbs)
   type(orbitals_data), pointer :: orbs
 
   allocate(orbs)
+  call nullify_orbitals_data(orbs)
 END SUBROUTINE orbs_new
 subroutine orbs_free(orbs)
   use module_types
+  use m_profiling
   implicit none
   type(orbitals_data), pointer :: orbs
 
+  integer :: i_all, i_stat
+
   call deallocate_orbs(orbs,"orbs_free")
+  if (associated(orbs%eval)) then
+     i_all=-product(shape(orbs%eval))*kind(orbs%eval)
+     deallocate(orbs%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'orbs%eval',"orbs_free")
+  end if
   deallocate(orbs)
 END SUBROUTINE orbs_free
-subroutine orbs_comm(orbs, lr, iproc, nproc)
+subroutine orbs_comm(comms, orbs, lr, iproc, nproc)
   use module_base
   use module_types
   use module_interfaces
@@ -369,13 +408,21 @@ subroutine orbs_comm(orbs, lr, iproc, nproc)
   integer, intent(in) :: iproc,nproc
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(inout) :: orbs
+  type(communications_arrays), pointer :: comms
 
-  type(communications_arrays) :: comms
-
+  allocate(comms)
   call orbitals_communicators(iproc,nproc,lr,orbs,comms)
-  write(*,*) "TODO: remove me!"
-  call deallocate_comms(comms,"orbs_comm")
 end subroutine orbs_comm
+subroutine orbs_comm_free(comms)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  type(communications_arrays), pointer :: comms
+
+  call deallocate_comms(comms,"orbs_comm_free")
+  deallocate(comms)
+end subroutine orbs_comm_free
 subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, npsidim, &
      & nkpts, nkptsp, isorb, iskpts)
   use module_types
@@ -541,3 +588,18 @@ subroutine localfields_get_pkernelseq(denspot, pkernelseq)
 
   pkernelseq => denspot%pkernelseq
 END SUBROUTINE localfields_get_pkernelseq
+
+subroutine gpu_new(GPU)
+  use module_types
+  implicit none
+  type(GPU_pointers), pointer :: GPU
+
+  allocate(GPU)
+END SUBROUTINE gpu_new
+subroutine gpu_free(GPU)
+  use module_types
+  implicit none
+  type(GPU_pointers), pointer :: GPU
+
+  deallocate(GPU)
+END SUBROUTINE gpu_free

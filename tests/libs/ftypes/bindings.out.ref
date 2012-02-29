@@ -4,8 +4,8 @@ Test BigDFT_Atoms structure syncing.
 Test BigDFT_Atoms structure set n atoms.
 Test BigDFT_Atoms structure direct access.
 Test BigDFT_Atoms pseudo-potential on the fly.
- Type 0, radii 1.215576 0.221786 0.221786
- Type 1, radii 1.463418 0.200000 0.200000
+ Type 0, radii 1.215576 0.221786 0.481554
+ Type 1, radii 1.463418 0.200000 0.000000
 Test BigDFT_Atoms free.
  Ok
 Test BigDFT_Atoms structure creation from file.
@@ -15,46 +15,75 @@ Test BigDFT_Atoms structure creation from file.
  Atom 3, coord. 3.240000 0.000000 0.000000, type 2
  Atom 4, coord. 0.000000 3.240000 0.000000, type 2
  Box [S], is in 17.123000 0.000000 17.123000
-Test BigDFT_Atoms pseudo-potential evaluation.
- Type 0, radii 1.806025 0.435634 0.435634
- Type 1, radii 1.463418 0.200000 0.200000
-Test BigDFT_Glr structure creation.
- Atoms 0, coord.   1.620000   9.000000   1.620000 'Si', type 1
- Atoms 1, coord.   3.240000  10.620000   3.240000 ' H', type 2
- Atoms 2, coord.   0.000000   7.380000   3.240000 ' H', type 2
- Atoms 3, coord.   3.240000   7.380000   0.000000 ' H', type 2
- Atoms 4, coord.   0.000000  10.620000   0.000000 ' H', type 2
- Box is in   17.123000 18.000000 17.123000
- Shift is     0.000000 -7.380000  0.000000
- Geocode is  S
- Grid is            39        40        39
- Int grid is        80       111        80
- H grids are  0.428075      0.45  0.428075
-Test calculation of grid points.
- Coarse grid has   41220 points.
- Fine grid has      2371 points.
 Test BigDFT_Inputs structure creation.
  Read 'test.dft' file: 1
  Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
-Test BigDFT_Orbs structure creation.
+Test BigDFT_Atoms pseudo-potential evaluation.
+ Type 0, radii 1.806025 0.435634 0.770571
+ Type 1, radii 1.463418 0.200000 0.000000
+Test BigDFT_Lzd structure creation.
+ Atoms 0, coord.   1.620000   6.240000   1.620000 'Si', type 1
+ Atoms 1, coord.   3.240000   7.860000   3.240000 ' H', type 2
+ Atoms 2, coord.   0.000000   4.620000   3.240000 ' H', type 2
+ Atoms 3, coord.   3.240000   4.620000   0.000000 ' H', type 2
+ Atoms 4, coord.   0.000000   7.860000   0.000000 ' H', type 2
+ Box is in   17.123000 12.480000 17.123000
+ Shift is     0.000000 -4.620000  0.000000
+ Geocode is  S
+ Grid is            41        26        69
+ Int grid is        84        83       140
+ H grids are 0.407690476      0.48 0.244614286
+Test calculation of grid points.
+ Coarse grid has   24084 points.
+ Fine grid has      3489 points.
+Test BigDFT_Wf structure creation.
  System has 8 electrons.
 Test BigDFT_Proj structure creation.
- System has 5 projectors, and 71560 elements.
+ System has 5 projectors, and 191050 elements.
 Test BigDFT_LocalFields creation.
  Meta data are -123456789.000000 -123456789.000000 -123456789.000000  -  -1980  -  0.000000
- Calculate ionic potential.
+ Add linear zone description.
+ Calculation of ionic potential started.
+ Calculation of ionic potential finished.
+ Calculation of input guess started.
  ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -8.000000848380   0.000E+00
- PSolver, surfaces BC, dimensions:    80  111   80   proc    1 ... done.
+ total ionic charge, leaked charge            -8.000000040007   0.000E+00
+ PSolver, surfaces BC, dimensions:    84   83  140   proc    1 ... done.
+ ------------------------------------------------------- Input Wavefunctions Creation
+ Generating 8 Atomic Input Orbitals
+ Calculating AIO wavefunctions: 
+ Generation of input wavefunction data for atom     Si: 
+   Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
+ Generation of input wavefunction data for atom      H: 
+   Elec. Configuration: s 1.00 , ... done.
+ Writing wavefunctions in wavelet form... done.
+ Deviation from normalization of the imported orbitals    9.36E-03
+ Calculation of charge density... done. Total electronic charge=       7.999999887643
+ PSolver, surfaces BC, dimensions:    84   83  140   proc    1 ... done.
+ Hamiltonian application... done. ekin_sum,eks:       5.1232061070       5.0225194919
+ ekin_sum,epot_sum,eproj_sum  5.12320610698E+00 -5.96341059205E+00  8.77781302890E-01
+    ehart,   eexcu,    vexcu  1.97844305898E+00 -2.67724050403E+00 -3.45075509233E+00
+ Input Wavefunctions Orthogonalization:
+ Overlap Matrix... Direct diagonalization...
+ evale(1)= -2.27063819501416E-01 <-
+ evale(2)= -7.51688633856704E-02 <-
+ evale(3)= -7.48187788316041E-02 <-
+ evale(4)= -7.26148806963623E-02 <- Last InputGuess eval, H-L IG gap:  15.5681 eV
+ evale(5)=  4.99501030970494E-01 <- First virtual eval
+ evale(6)=  5.00357540730727E-01 <-
+ evale(7)=  5.05700645465258E-01 <-
+ evale(8)=  5.88467281126363E-01 <-
+ Building orthogonal Wavefunctions... done.
+ Calculation of input guess finished.
 Test BigDFT_LocalFields free.
  Ok
 Test BigDFT_Proj free.
  Ok
-Test BigDFT_Orbs free.
+Test BigDFT_Wf free.
  Ok
 Test BigDFT_Inputs free.
  Ok
-Test BigDFT_Glr free.
+Test BigDFT_Lzd free.
  Ok
 Test BigDFT_Atoms free.
  Ok

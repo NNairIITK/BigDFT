@@ -393,12 +393,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !obtain initial wavefunctions.
   if (in%inputPsiId /= INPUT_PSI_LINEAR) then
      call input_wf(iproc, nproc, in, GPU, atoms, rxyz, Lzd, hx, hy, hz, &
-     & denspot, nlpspd, proj, orbs, comms, psi, hpsi, psit, inputpsi, &
-     & gbd, gaucoeffs, wfd_old, psi_old, d_old, hx_old, hy_old, hz_old, rxyz_old, norbv)
+     & denspot, nlpspd, proj, orbs, comms, psi, hpsi, psit, inputpsi, norbv, &
+     & gbd, gaucoeffs, wfd_old, psi_old, d_old, hx_old, hy_old, hz_old, rxyz_old)
   else
      inputpsi = in%inputPsiId
-     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
-     call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
+     !call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
      !this does not work with ndebug activated
      lin%as%size_rhopot=size(denspot%rhov)
      lin%as%size_potxc(1)=size(denspot%V_XC,1)
@@ -443,13 +442,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !!call finalDeallocationForLinear()
 
      !!return
-  end if
-
-  if (inputpsi == INPUT_PSI_LCAO) then
-     !Check if we must use linear scaling for total SCF
-     !change the Lzd structure accordingly, also orbs%inwhichlocreg
-     call reinitialize_Lzd_after_LIG(iproc,nproc,in,Lzd,atoms,orbs,rxyz) 
-     call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
   end if
 
   if (in%nvirt > norbv) then
@@ -598,6 +590,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               linflag = 1                                 !temporary, should change the use of flag in full_local_potential2
               if(in%linear == 'OFF') linflag = 0
               if(in%linear == 'TMO') linflag = 2
+           !     orbs,Lzd,linflag,denspot%dpcom%ngatherarr,denspot%rhov,denspot%pot_full)
 
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,hxh,hyh,hzh,itrp,in%iscf,in%alphamix,mix,in%ixc,&
                 nlpspd,proj,rxyz,linflag,in%exctxpar,in%unblock_comms,hx,hy,hz,Lzd,orbs,in%SIC,confdatarr,GPU,psi,&

@@ -28,15 +28,14 @@ static void bigdft_atoms_class_init(BigDFT_AtomsClass *klass)
 }
 #endif
 
-static void bigdft_atoms_init(BigDFT_Atoms *atoms)
+static void bigdft_atoms_init(BigDFT_Atoms *obj)
 {
 #ifdef HAVE_GLIB
-  memset(atoms + sizeof(GObject), 0, sizeof(BigDFT_Atoms) - sizeof(GObject));
+  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Atoms) - sizeof(GObject));
 #else
-  memset(atoms, 0, sizeof(BigDFT_Atoms));
+  memset(obj, 0, sizeof(BigDFT_Atoms));
 #endif
-  atoms->data = (void*)0;
-  F90_2D_POINTER_INIT(&atoms->rxyz);
+  F90_2D_POINTER_INIT(&obj->rxyz);
 }
 static void bigdft_atoms_dispose(GObject *obj)
 {
@@ -57,7 +56,6 @@ static void bigdft_atoms_finalize(GObject *obj)
   guint i;
 
   FC_FUNC_(atoms_free, ATOMS_FREE)(&atoms->data);
-  g_free(atoms->data);
   FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(&atoms->rxyz);
   if (atoms->atomnames)
     {
@@ -102,7 +100,6 @@ BigDFT_Atoms* bigdft_atoms_new()
   atoms = BIGDFT_ATOMS(g_object_new(BIGDFT_ATOMS_TYPE, NULL));
 #else
   atoms = g_malloc(sizeof(BigDFT_Atoms));
-  memset(atoms, 0, sizeof(BigDFT_Atoms));
   bigdft_atoms_init(atoms);
 #endif
   FC_FUNC_(atoms_new, ATOMS_NEW)(&atoms->data, &atoms->sym);
@@ -128,7 +125,6 @@ BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
   atoms = BIGDFT_ATOMS(g_object_new(BIGDFT_ATOMS_TYPE, NULL));
 #else
   atoms = g_malloc(sizeof(BigDFT_Atoms));
-  memset(atoms, 0, sizeof(BigDFT_Atoms));
   bigdft_atoms_init(atoms);
 #endif
   ln = strlen(filename);
@@ -203,13 +199,16 @@ void bigdft_atoms_sync(BigDFT_Atoms *atoms)
     }
 }
 
-void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc)
+void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc, guint nspin, const gchar *occup)
 {
   int verb = 0;
+  guint ln;
 
   FC_FUNC_(init_atomic_values, INIT_ATOMIC_VALUES)(&verb, atoms->data, &ixc);
   FC_FUNC_(atoms_copy_psp_data, ATOMS_COPY_PSP_DATA)
     (atoms->data, (int*)(&atoms->natsc), (int*)(&atoms->donlcc));
+  ln = (occup)?strlen(occup):0;
+  FC_FUNC_(atoms_read_variables, ATOMS_READ_VARIABLES)(atoms->data, &nspin, occup, &ln);
 }
 
 void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active,
@@ -227,12 +226,18 @@ void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
   FC_FUNC_(atoms_set_displacement, ATOMS_SET_DISPLACEMENT)(atoms->data, atoms->rxyz.data, &randdis);
 }
 
-double* bigdft_atoms_get_radii(const BigDFT_Atoms *atoms)
+double* bigdft_atoms_get_radii(const BigDFT_Atoms *atoms, double crmult,
+                               double frmult, double projrad)
 {
   double *radii_cf;
+  double crmult_, frmult_, projrad_;
 
   radii_cf = g_malloc(sizeof(double) * 3 * atoms->ntypes);
-  FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(atoms->data, radii_cf);
+  crmult_  = (crmult <= 0.)?5.:crmult;
+  frmult_  = (frmult <= 0.)?8.:frmult;
+  projrad_ = (projrad <= 0.)?15.:projrad;
+  FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(atoms->data, radii_cf,
+                                                       &crmult_, &frmult_, &projrad_);
   return radii_cf;
 }
 

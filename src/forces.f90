@@ -898,11 +898,11 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                              do m=1,2*l-1
                                 call wpdot_wrap(ncplx,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                                     wfd%keyv,wfd%keygloc,psi(ispsi),&
+                                     wfd%keyvglob,wfd%keyglob,psi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                     nlpspd%keyv_p(jseg_c),&
 !!$                                     nlpspd%keyg_p(1,jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
@@ -971,11 +971,11 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                 iproj=iproj+1
                                 call wpdot_wrap(ncplx,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                                     wfd%keyv,wfd%keygloc,psi(ispsi),  &
+                                     wfd%keyvglob,wfd%keyglob,psi(ispsi),  &
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
 !!$                                     nlpspd%keyv_p(jseg_c),&
 !!$                                     nlpspd%keyg_p(1,jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keyv(jseg_c),&
+                                     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx

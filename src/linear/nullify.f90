@@ -183,29 +183,30 @@ subroutine nullify_overlapParameters(op)
   type(overlapParameters),intent(out):: op
 
   nullify(op%noverlaps)
-  nullify(op%indexExpand)
-  nullify(op%indexExtract)
+!  nullify(op%indexExpand)
+!  nullify(op%indexExtract)
   nullify(op%overlaps)
   nullify(op%indexInRecvBuf)
   nullify(op%indexInSendBuf)
-  nullify(op%olr)
-  nullify(op%expseg)
+  !nullify(op%olr)
+  nullify(op%wfd_overlap)
+!  nullify(op%expseg)
 
 end subroutine nullify_overlapParameters
 
 
-subroutine nullify_expansionSegments(expseg)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_expansionSegments
-  implicit none
-
-  ! Calling argument
-  type(expansionSegments),intent(out):: expseg
-
-  nullify(expseg%segborders)
-
-end subroutine nullify_expansionSegments
+!!subroutine nullify_expansionSegments(expseg)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, exceptThisOne => nullify_expansionSegments
+!!  implicit none
+!!
+!!  ! Calling argument
+!!  type(expansionSegments),intent(out):: expseg
+!!
+!!  nullify(expseg%segborders)
+!!
+!!end subroutine nullify_expansionSegments
 
 
 
@@ -260,17 +261,12 @@ subroutine nullify_local_zone_descriptors(lzd)
 
   ! Calling arguments
   type(local_zone_descriptors),intent(out):: lzd
-  
-  !call nullify_orbitals_data(lzd%orbs)
-  !nullify(lzd%lorbs)
-  !call nullify_communications_arrays(lzd%comms)
+ 
   call nullify_locreg_descriptors(lzd%glr)
-!  call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
   nullify(lzd%llr)
-!  nullify(lzd%lnlpspd)
   nullify(lzd%doHamAppl)
-  !call nullify_matrixMinimization(lzd%matmin)
-  
+  nullify(lzd%cutoffweight) 
+ 
 end subroutine nullify_local_zone_descriptors
 
 
@@ -350,7 +346,8 @@ subroutine nullify_wavefunctions_descriptors(wfd)
   !if(associated(wfd%keyg)) then
      nullify(wfd%keygloc)
      nullify(wfd%keyglob)
-     nullify(wfd%keyv)
+     nullify(wfd%keyvloc)
+     nullify(wfd%keyvglob)
   !end if
 end subroutine nullify_wavefunctions_descriptors
 
