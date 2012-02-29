@@ -153,6 +153,8 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
           infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,newgradient,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
           hx,hy,hz,SIC,nItPrecond,factor_enlarge)
+
+
   end if
 
 
@@ -314,6 +316,19 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
           if(useDerivativeBasisFunctions) then
               call allocateCommunicationsBuffersPotential(lbcomgp, subname)
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
+              !!do istat=1,lbcomgp%nrecvbuf
+              !!    write(900+iproc,'(i10,es22.12)') istat, lbcomgp%recvbuf(istat)
+              !!end do
+              !!do istat=1,lbcomgp%nsendbuf
+              !!    write(950+iproc,'(i10,es22.12)') istat, lbcomgp%sendbuf(istat)
+              !!end do
+              !!write(*,'(a,i6,2i9)') 'iproc, comgp%comarr(2,1,1), comgp%comarr(5,1,1)', iproc, comgp%comarr(2,1,1), comgp%comarr(5,1,1)
+                  !!mpisource=comgp%comarr(1,kproc,jproc)
+                  !!istsource=comgp%comarr(2,kproc,jproc)
+                  !!ncount=comgp%comarr(3,kproc,jproc)
+                  !!mpidest=comgp%comarr(4,kproc,jproc)
+                  !!istdest=comgp%comarr(5,kproc,jproc)
+                  !!tag=comgp%comarr(6,kproc,jproc)
           else
               call allocateCommunicationsBuffersPotential(comgp, subname)
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
@@ -371,6 +386,20 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
           !!write(*,*) 'HERE3 op:',op%extseg(5,11)%segborders(1,1), op%extseg(5,11)%segborders(2,1)
           !!write(*,*) 'HERE3 lbop:',lbop%extseg(5,11)%segborders(1,1), lbop%extseg(5,11)%segborders(2,1)
 
+
+
+      !!!! debug
+      !!if(newgradient) then
+      !!    ist=1
+      !!    do iorb=1,lorbs%norbp
+      !!        iiorb=lorbs%isorb+iorb
+      !!        ilr=lorbs%inwhichlocreg(iiorb)
+      !!        ncnt=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !!        write(*,'(a,i8,es16.8)') 'in main: iiorb, ddot', iiorb, ddot(ncnt, lphiRestart(ist), 1, lphiRestart(ist), 1)
+      !!        ist=ist+ncnt
+      !!    end do
+      !!end if
+
   if(useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
       !!call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
 
@@ -384,6 +413,18 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
            max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart,lphi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if
+
+      !!!! debug
+      !!if(newgradient) then
+      !!    ist=1
+      !!    do iorb=1,llborbs%norbp
+      !!        iiorb=llborbs%isorb+iorb
+      !!        ilr=llborbs%inwhichlocreg(iiorb)
+      !!        ncnt=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !!        write(*,'(a,2i8,es16.8)') 'in main with der: iiorb, ilr, ddot', iiorb, ilr, ddot(ncnt, lphi(ist), 1, lphi(ist), 1)
+      !!        ist=ist+ncnt
+      !!    end do
+      !!end if
 
 
   ! Get the overlap matrix.
@@ -438,6 +479,12 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
   end if
   ! If we use the derivative basis functions the potential has to be gathered anyway.
   if(useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lbcomgp)
+
+  !!if(newgradient) then
+  !!    do istat=1,lbcomgp%nrecvbuf
+  !!        write(800,'(i7,es22.12)') istat, lbcomgp%recvbuf(istat)
+  !!    end do
+  !!end if
 
   if(.not.useDerivativeBasisFunctions) then
 
@@ -501,6 +548,33 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
   deallocate(lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'lzd%doHamAppl', subname)
+
+
+  !!if(newgradient) then
+  !!    do ist=1,size(denspot%pot_full)
+  !!        write(600+iproc,'(i10,es22.12)') ist, denspot%pot_full(ist)
+  !!    end do
+  !!    do ist=1,size(denspot%rhov)
+  !!        write(700+iproc,'(i10,es22.12)') ist, denspot%rhov(ist)
+  !!    end do
+  !!end if
+  !!write(*,'(a,i8,i12)') 'iproc, lbcomgp%ise3(1,iproc)', iproc, lbcomgp%ise3(1,iproc)
+      !!!! debug
+      !!if(newgradient) then
+      !!    ist=1
+      !!    do iorb=1,llborbs%norbp
+      !!        iiorb=llborbs%isorb+iorb
+      !!        ilr=llborbs%inwhichlocreg(iiorb)
+      !!        ncnt=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !!        write(*,'(a,3i8,es16.8)') '<phi|H|phi>: iiorb, ilr, ncnt, ddot', iiorb, ilr, ncnt, ddot(ncnt, lphi(ist), 1, lhphi(ist), 1)
+      !!        write(500+iproc,*) '==============='
+      !!        do istat=ist,ist+ncnt-1
+      !!            write(500+iproc,'(i10,2es20.10)') istat, lphi(istat), lhphi(istat)
+      !!        end do
+      !!        write(500+iproc,*) '==============='
+      !!        ist=ist+ncnt
+      !!    end do
+      !!end if
 
 
 
@@ -642,6 +716,14 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
   end if
   call deallocateCommuncationBuffersOrtho(lbcomon, subname)
 
+
+  !!if(newgradient) then
+  !!    do iorb=1,llborbs%norb
+  !!        do jorb=1,llborbs%norb
+  !!            write(400+iproc,'(2i9,2es16.8)') iorb, jorb, matrixElements(jorb,iorb,1), ovrlp(jorb,iorb)
+  !!        end do
+  !!    end do
+  !!end if
 
 
   !!!! TEST ########################################################
@@ -1340,8 +1422,11 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
              end if
 
             if(variable_locregs) then
+                !!call deallocateCommunicationsBuffersPotential(comgp, subname)
                 call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
                      lphi, lhphi, lhphiold, lphiold)
+                !!call mpi_barrier(mpi_comm_world, ierr)
+                !!stop
                  !!do iorb=1,lorbs%norb
                  !!    write(*,'(a,2i8,3es12.4,4x,3es12.4)') 'iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)', &
                  !!        iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)
@@ -1351,6 +1436,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                      locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                      lzd, lorbs, op, comon, mad, comgp, &
                      lphi, lhphi, lhphiold, lphiold)
+                call allocateCommunicationsBuffersPotential(comgp, subname)
+
                 !!     write(*,'(a,2i9)') 'sub 1: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
                 !!do iorb=1,lorbs%norb
                 !!    ilr=lorbs%inwhichlocreg(iorb)
@@ -1362,7 +1449,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
             !call deallocateCommunicationsBuffersPotential(comgp, subname)
-            call allocateCommunicationsBuffersPotential(comgp, subname)
+            !call allocateCommunicationsBuffersPotential(comgp, subname)
             call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
 
             if(secondLocreg) then
@@ -1466,6 +1553,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
         end if
 
       end if
+
+
 
       t2=mpi_wtime()
       time(1)=time(1)+t2-t1
@@ -1911,6 +2000,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           !!    call plotOrbitals(iproc, lorbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
           !!        .5d0*input%hy, .5d0*input%hz, 1)
           !!end if
+
+
           exit iterLoop
       end if
   
@@ -4114,6 +4205,7 @@ destLoop: do jproc=0,nproc-1
                 ! The orbitals are on the same process, so simply copy them.
                 if(iproc==mpisource) then
                     !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                    !if(iproc==0) write(*,'(a,es22.12)') 'pot(istsource)', pot(istsource)
                     call dcopy(ncount, pot(istsource), 1, comgp%recvBuf(istdest), 1)
                     comgp%comarr(7,kproc,jproc)=mpi_request_null
                     comgp%comarr(8,kproc,jproc)=mpi_request_null
@@ -6798,9 +6890,9 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
           !tt = R2(iorb,iorb)/normarr(iorb)-R(iorb,iorb)**2/normarr(iorb)
           tt = R2(iorb,iorb)/normarr(iorb)-(R(iorb,iorb)/normarr(iorb))**2
           var=var+tt
-          if(iproc==0) write(*,'(a,i8,es15.6)') 'iorb, tt', iorb, tt
+          !if(iproc==0) write(*,'(a,i8,es15.6)') 'iorb, tt', iorb, tt
       end do
-      if(iproc==0) write(*,'(a,i6,es18.8)') 'it, total variance', it, var
+      !if(iproc==0) write(*,'(a,i6,es18.8)') 'it, total variance', it, var
       !if(iproc==0) write(*,'(a,es18.8)') 'NEW SPREAD: ',tt
 
       ! Check the deviation from the center of the original localization region
