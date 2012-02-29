@@ -32,14 +32,14 @@ static void bigdft_orbs_class_init(BigDFT_OrbsClass *klass)
 }
 #endif
 
-static void bigdft_orbs_init(BigDFT_Orbs *orbs)
+static void bigdft_orbs_init(BigDFT_Orbs *obj)
 {
 #ifdef HAVE_GLIB
-  memset(orbs + sizeof(GObject), 0, sizeof(BigDFT_Orbs) - sizeof(GObject));
+  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Orbs) - sizeof(GObject));
 #else
-  memset(orbs, 0, sizeof(BigDFT_Orbs));
+  memset(obj, 0, sizeof(BigDFT_Orbs));
 #endif
-  FC_FUNC_(orbs_new, ORBS_NEW)(&orbs->data);
+  FC_FUNC_(orbs_new, ORBS_NEW)(&obj->data);
 }
 static void bigdft_orbs_dispose(GObject *obj)
 {
@@ -198,17 +198,17 @@ static void bigdft_wf_class_init(BigDFT_WfClass *klass)
 }
 #endif
 
-static void bigdft_wf_init(BigDFT_Wf *wf)
+static void bigdft_wf_init(BigDFT_Wf *obj)
 {
 #ifdef HAVE_GLIB
-  memset(wf + sizeof(BigDFT_Orbs), 0, sizeof(BigDFT_Wf) - sizeof(BigDFT_Orbs));
+  memset((void*)((char*)obj + sizeof(BigDFT_Orbs)), 0, sizeof(BigDFT_Wf) - sizeof(BigDFT_Orbs));
 #else
-  memset(wf, 0, sizeof(BigDFT_Wf));
+  memset(obj, 0, sizeof(BigDFT_Wf));
 #endif
   
-  F90_1D_POINTER_INIT(&wf->psi);
-  F90_1D_POINTER_INIT(&wf->hpsi);
-  F90_1D_POINTER_INIT(&wf->psit);
+  F90_1D_POINTER_INIT(&obj->psi);
+  F90_1D_POINTER_INIT(&obj->hpsi);
+  F90_1D_POINTER_INIT(&obj->psit);
 }
 static void bigdft_wf_dispose(GObject *obj)
 {
@@ -218,10 +218,8 @@ static void bigdft_wf_dispose(GObject *obj)
   if (wf->dispose_has_run)
     return;
   wf->dispose_has_run = TRUE;
-  
-#ifdef HAVE_GLIB
+
   g_object_unref(G_OBJECT(wf->lzd));
-#endif
 
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_wf_parent_class)->dispose(obj);

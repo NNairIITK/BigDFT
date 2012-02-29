@@ -382,13 +382,22 @@ subroutine orbs_new(orbs)
   type(orbitals_data), pointer :: orbs
 
   allocate(orbs)
+  call nullify_orbitals_data(orbs)
 END SUBROUTINE orbs_new
 subroutine orbs_free(orbs)
   use module_types
+  use m_profiling
   implicit none
   type(orbitals_data), pointer :: orbs
 
+  integer :: i_all, i_stat
+
   call deallocate_orbs(orbs,"orbs_free")
+  if (associated(orbs%eval)) then
+     i_all=-product(shape(orbs%eval))*kind(orbs%eval)
+     deallocate(orbs%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'orbs%eval',"orbs_free")
+  end if
   deallocate(orbs)
 END SUBROUTINE orbs_free
 subroutine orbs_comm(comms, orbs, lr, iproc, nproc)

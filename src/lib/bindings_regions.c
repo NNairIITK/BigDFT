@@ -31,12 +31,12 @@ static void bigdft_locreg_class_init(BigDFT_LocRegClass *klass)
 }
 #endif
 
-static void bigdft_locreg_init(BigDFT_LocReg *glr)
+static void bigdft_locreg_init(BigDFT_LocReg *obj)
 {
 #ifdef HAVE_GLIB
-  memset(glr + sizeof(GObject), 0, sizeof(BigDFT_LocReg) - sizeof(GObject));
+  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_LocReg) - sizeof(GObject));
 #else
-  memset(glr, 0, sizeof(BigDFT_LocReg));
+  memset(obj, 0, sizeof(BigDFT_LocReg));
 #endif
 }
 static void bigdft_locreg_dispose(GObject *obj)
@@ -172,16 +172,16 @@ static void bigdft_lzd_class_init(BigDFT_LzdClass *klass)
 }
 #endif
 
-static void bigdft_lzd_init(BigDFT_Lzd *lzd)
+static void bigdft_lzd_init(BigDFT_Lzd *obj)
 {
 #ifdef HAVE_GLIB
-  memset(lzd + sizeof(GObject), 0, sizeof(BigDFT_Lzd) - sizeof(GObject));
+  memset((void*)((char*)obj + sizeof(BigDFT_LocReg)), 0, sizeof(BigDFT_Lzd) - sizeof(BigDFT_LocReg));
 #else
-  memset(lzd, 0, sizeof(BigDFT_Lzd));
+  memset(obj, 0, sizeof(BigDFT_Lzd));
 #endif
   
-  FC_FUNC_(lzd_new, LZD_NEW)(&lzd->data, &lzd->parent.data);
-  FC_FUNC_(glr_init, GLR_INIT)(lzd->parent.data, &lzd->parent.d);
+  FC_FUNC_(lzd_new, LZD_NEW)(&obj->data, &obj->parent.data);
+  FC_FUNC_(glr_init, GLR_INIT)(obj->parent.data, &obj->parent.d);
 }
 static void bigdft_lzd_dispose(GObject *obj)
 {

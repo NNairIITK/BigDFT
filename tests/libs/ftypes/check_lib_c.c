@@ -146,7 +146,7 @@ int main(guint argc, char **argv)
             radii[i], radii[atoms->ntypes + i], radii[atoms->ntypes * 2 + i]);
   
   fprintf(stdout, "Test BigDFT_Lzd structure creation.\n");
-  lzd = bigdft_lzd_new(atoms, radii, h, in->crmult, in->frmult);
+  lzd = bigdft_lzd_new(atoms, radii, in->h, in->crmult, in->frmult);
   bigdft_locreg_set_wave_descriptors(BIGDFT_LOCREG(lzd));
   for (i = 0; i  < atoms->nat; i++)
     fprintf(stdout, " Atoms %d, coord. %10.6f %10.6f %10.6f '%2s', type %d\n",
@@ -181,6 +181,7 @@ int main(guint argc, char **argv)
   fprintf(stdout, "Test BigDFT_Wf structure creation.\n");
   wf = bigdft_wf_new(lzd, in, 0, 1, &nelec);
   fprintf(stdout, " System has %d electrons.\n", nelec);
+  bigdft_lzd_setup_linear(lzd, BIGDFT_ORBS(wf), in, atoms, 0, 1);
 
   fprintf(stdout, "Test BigDFT_Proj structure creation.\n");
   proj = bigdft_proj_new(BIGDFT_LOCREG(lzd), BIGDFT_ORBS(wf), in->frmult);
@@ -202,7 +203,6 @@ int main(guint argc, char **argv)
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
   fprintf(stdout, " Add linear zone description.\n");
-  bigdft_lzd_setup_linear(lzd, BIGDFT_ORBS(wf), in, atoms,0, 1);
 
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB

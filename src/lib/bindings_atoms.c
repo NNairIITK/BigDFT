@@ -28,14 +28,14 @@ static void bigdft_atoms_class_init(BigDFT_AtomsClass *klass)
 }
 #endif
 
-static void bigdft_atoms_init(BigDFT_Atoms *atoms)
+static void bigdft_atoms_init(BigDFT_Atoms *obj)
 {
 #ifdef HAVE_GLIB
-  memset(atoms + sizeof(GObject), 0, sizeof(BigDFT_Atoms) - sizeof(GObject));
+  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Atoms) - sizeof(GObject));
 #else
-  memset(atoms, 0, sizeof(BigDFT_Atoms));
+  memset(obj, 0, sizeof(BigDFT_Atoms));
 #endif
-  F90_2D_POINTER_INIT(&atoms->rxyz);
+  F90_2D_POINTER_INIT(&obj->rxyz);
 }
 static void bigdft_atoms_dispose(GObject *obj)
 {
@@ -100,7 +100,6 @@ BigDFT_Atoms* bigdft_atoms_new()
   atoms = BIGDFT_ATOMS(g_object_new(BIGDFT_ATOMS_TYPE, NULL));
 #else
   atoms = g_malloc(sizeof(BigDFT_Atoms));
-  memset(atoms, 0, sizeof(BigDFT_Atoms));
   bigdft_atoms_init(atoms);
 #endif
   FC_FUNC_(atoms_new, ATOMS_NEW)(&atoms->data, &atoms->sym);
@@ -126,7 +125,6 @@ BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
   atoms = BIGDFT_ATOMS(g_object_new(BIGDFT_ATOMS_TYPE, NULL));
 #else
   atoms = g_malloc(sizeof(BigDFT_Atoms));
-  memset(atoms, 0, sizeof(BigDFT_Atoms));
   bigdft_atoms_init(atoms);
 #endif
   ln = strlen(filename);
