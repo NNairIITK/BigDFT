@@ -202,6 +202,7 @@ integer,dimension(:),pointer:: onwhichatom
       !communicate_lphi=.true.
       communicate_lphi=.true.
       with_auxarray=.false.
+      lin%newgradient=.false.
       if(lin%mixedmode) then
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
           lin%useDerivativeBasisFunctions=.false.
