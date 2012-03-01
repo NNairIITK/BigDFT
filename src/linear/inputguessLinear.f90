@@ -1,4 +1,4 @@
-subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, lin, lig, rxyz, nscatterarr, tag)
+subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, hx, hy, hz, lin, lig, rxyz, nscatterarr, tag)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -9,6 +9,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, li
 
   ! Calling arguments
   integer,intent(in):: iproc,nproc
+  real(gp), intent(in) :: hx, hy, hz
   type(atoms_data),intent(inout) :: at
   type(local_zone_descriptors),intent(in):: lzd
   type(orbitals_data),intent(in):: orbs
@@ -152,7 +153,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, li
   ! Determine the localization regions.
   !!call initLocregs(iproc, nproc, at%nat, rxyz, input%hx, input%hy, input%hz, lig%lzdig, &
   !!     lig%orbsig, Glr, lin%locrad, 's')
-  call initLocregs(iproc, nproc, lig%lzdig%nlr, locregCenter, input%hx, input%hy, input%hz, lig%lzdig, &
+  call initLocregs(iproc, nproc, lig%lzdig%nlr, locregCenter, hx, hy, hz, lig%lzdig, &
        lig%orbsig, Glr, lin%locrad, lin%locregShape)
   !call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
   call copy_locreg_descriptors(Glr, lig%lzdig%Glr, subname)
@@ -181,7 +182,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, li
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
   !!call initCommsOrtho(iproc, nproc, lig%lzdGauss, lig%orbsGauss, lig%orbsGauss%inWhichLocreg, &
   !!     input, lig%op, lig%comon, tag)
-  call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lig%lzdig, lig%orbsig, &
+  call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lig%lzdig, lig%orbsig, &
        lig%orbsig%inWhichLocreg, lin%locregShape, lig%op, lig%comon, tag)
 
   ! Initialize the parameters needed for communicationg the potential.
@@ -224,7 +225,7 @@ END SUBROUTINE initInputguessConfinement
 
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
-     input, lzd, lorbs, rxyz, denspot, rhopotold,&
+     input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
      nlpspd, proj, GPU, lphi)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
@@ -236,11 +237,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
+  real(gp), intent(in) :: hx, hy, hz
   type(atoms_data), intent(inout) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_local_fields), intent(inout) :: denspot
-  type(input_variables):: input
+  type(input_variables),intent(inout):: input
   type(local_zone_descriptors),intent(in):: lzd
   type(orbitals_data),intent(in):: lorbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -284,7 +286,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Initialize evrything
   tag=1
-  call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, lzd%glr, input, input%lin, lig, rxyz, denspot%dpcom%nscatterarr, tag)
+  call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, lzd%glr, input, hx, hy, hz, input%lin, &
+       lig, rxyz, denspot%dpcom%nscatterarr, tag)
 
   ! not ideal place here for this...
   if(lorbs%norb/=lig%orbsig%norb) then
@@ -450,9 +453,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   lchi2=0.d0
 
   ! Grid spacing on fine grid.
-  hxh=.5_gp*input%hx
-  hyh=.5_gp*input%hy
-  hzh=.5_gp*input%hz
+  hxh=.5_gp*hx
+  hyh=.5_gp*hy
+  hzh=.5_gp*hz
 
   ! Assign the size of the orbitals to the new variable lpsidimtot.
   !lig%lzdig%lpsidimtot=lig%orbsig%npsidim
@@ -460,7 +463,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Transform the atomic orbitals to the wavelet basis.
   lchi2=0.d0
-  call gaussians_to_wavelets_new(iproc, nproc, lig%lzdGauss, lig%orbsGauss, input%hx, input%hy, input%hz, G, &
+  call gaussians_to_wavelets_new(iproc, nproc, lig%lzdGauss, lig%orbsGauss, hx, hy, hz, G, &
        psigau(1,1,min(lig%orbsGauss%isorb+1, lig%orbsGauss%norb)), lchi2)
 
   iall=-product(shape(psigau))*kind(psigau)
@@ -758,21 +761,29 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           if(input%lin%nItInguess>0) then
              allocate(confdatarr(lig%orbsig%norbp))
              call define_confinement_data(confdatarr,lig%orbsig,rxyz,at,&
-                  input%hx,input%hy,input%hz,input%lin%confpotorder,&
+                  hx,hy,hz,input%lin%confpotorder,&
                   input%lin%potentialprefac_lowaccuracy,lig%lzdig,onWhichAtomTemp)
              ! use orbsGauss%inwhichlocreg
              !!call define_confinement_data(confdatarr,lig%orbsig,rxyz,at,&
              !!     input%hx,input%hy,input%hz,lin,lig%lzdig,lig%orbsGauss%inwhichlocreg)
              call to_zero(lig%orbsig%npsidim_orbs,lhchi(1,ii))
              call LocalHamiltonianApplication(iproc,nproc,at,lig%orbsig,&
-                  input%hx,input%hy,input%hz,&
+                  hx,hy,hz,&
                   lig%lzdig,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lchi,lhchi(1,ii),&
                   ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,&
                   pkernel=denspot%pkernelseq)
              call NonLocalHamiltonianApplication(iproc,at,lig%orbsig,&
-                  input%hx,input%hy,input%hz,rxyz,&
+                  hx,hy,hz,rxyz,&
                   proj,lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
              deallocate(confdatarr)
+!DEBUG
+!!             if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+!!             if (iproc==0) then
+!!                 write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!!                 ekin_sum,epot_sum,eproj_sum
+!!                 write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+!!             endif
+!END DEBUG
           end if
       else
           if(iproc==0) write(*,'(3x,a)', advance='no') 'no Hamiltonian application required... '
@@ -880,7 +891,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   if(input%lin%nItInguess>0) then
       call getHamiltonianMatrix6(iproc, nproc, nprocTemp, lig%lzdig, lig%orbsig, lorbs, &
-           onWhichMPITemp, input, lig%orbsig%inWhichLocreg, ndim_lhchi, &
+           onWhichMPITemp, input, hx, hy, hz, lig%orbsig%inWhichLocreg, ndim_lhchi, &
            nlocregPerMPI, lchi, lhchi, skip, lig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, tag, ham3)
   end if
 
@@ -891,11 +902,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
-  !!call buildLinearCombinationsLocalized3(iproc, nproc, lig%orbsig, lorbs, lin%comms, at, lzd%glr, input, lin%norbsPerType, &
+  !!call buildLinearCombinationsLocalized3(iproc, nproc, lig%orbsig, lorbs, lin%comms, at, lzd%glr, input, hx, hy, hz, lin%norbsPerType, &
   !!     lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lorbs%inWhichLocreg, lin, lig%lzdig, nlocregPerMPI, tag, ham3, &
   !!     lig%comon, lig%op, lig%mad)
   call buildLinearCombinationsLocalized3(iproc, nproc, lig%orbsig, lig%orbsGauss, lorbs, &
-       at, lzd%glr, input, input%lin%norbsPerType, &
+       at, lzd%glr, input, hx, hy, hz, input%lin%norbsPerType, &
        lig%orbsig%inWhichLocreg, lchi, lphi, locregCenter, lorbs%inWhichLocreg, &
        lzd, lig%lzdig, nlocregPerMPI, tag, ham3, &
        lig%comon, lig%op, lig%mad)
@@ -1256,7 +1267,7 @@ end subroutine initializeInguessParameters
 
 
 subroutine getHamiltonianMatrix6(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, onWhichMPITemp, &
-input, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, memoryForCommunOverlapIG, locregShape, &
+input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, memoryForCommunOverlapIG, locregShape, &
 tagout, ham)
 use module_base
 use module_types
@@ -1265,6 +1276,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nprocTemp, ndim_lhchi, nlocregPerMPI
+real(gp),intent(in) :: hx, hy, hz
 type(local_zone_descriptors),intent(in):: lzdig
 type(orbitals_data),intent(in):: orbsig, orbs
 integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
@@ -1321,7 +1333,7 @@ call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
 call nullify_p2pComms(comon)
-call initCommsOrtho(iproc, nproc, input%nspin, input%hx, input%hy, input%hz, lzdig, orbsig, &
+call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzdig, orbsig, &
      onWhichAtom, locregShape, op, comon, tagout)
 
 
@@ -1484,29 +1496,30 @@ do iat=1,lzdig%nlr
             ilrold=ilr
             jjprocold=jjproc
         end do
-        
+
         ! Wait for the communication to complete
         if (nproc > 1) then
-           isend=0
-           waitForSend: do
-              call mpi_waitany(nsend-isend, sendrequests(1), ind, mpi_status_ignore, ierr)
-              isend=isend+1
-              do i=ind,nsend-isend
-                 sendrequests(i)=sendrequests(i+1)
-              end do
-              if(isend==nsend) exit waitForSend
-           end do waitForSend
+          isend=0
+          waitForSend: do
+             if(isend==nsend) exit waitForSend
+             call mpi_waitany(nsend-isend, sendrequests(1), ind, mpi_status_ignore, ierr)
+             isend=isend+1
+             do i=ind,nsend-isend
+                sendrequests(i)=sendrequests(i+1)
+             end do
+          end do waitForSend
 
-           irecv=0
-           waitForRecv: do
-              call mpi_waitany(nrecv-irecv, recvrequests(1), ind, mpi_status_ignore, ierr)
-              irecv=irecv+1
-              do i=ind,nrecv-irecv
-                 recvrequests(i)=recvrequests(i+1)
-              end do
-              if(irecv==nrecv) exit waitForrecv
-           end do waitForRecv
+          irecv=0
+          waitForRecv: do
+             if(irecv==nrecv) exit waitForrecv
+             call mpi_waitany(nrecv-irecv, recvrequests(1), ind, mpi_status_ignore, ierr)
+             irecv=irecv+1
+             do i=ind,nrecv-irecv
+                recvrequests(i)=recvrequests(i+1)
+             end do
+          end do waitForRecv
         end if
+
      ! Uncompress the matrices
      do i=imatold,imat
         !call uncompressMatrix(orbs%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
@@ -1590,9 +1603,11 @@ real(8),intent(in):: hx, hy, hz
 type(matrixLocalizationRegion),dimension(:),pointer,intent(out):: mlr
 
 ! Local variables
-integer:: ilr, jlr, jorb, ii, istat, is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
+integer:: ilr, jlr, jorb, ii, istat
+!integer::  is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 real(8):: cut, tt
-logical:: ovrlpx, ovrlpy, ovrlpz
+!logical:: ovrlpx, ovrlpy, ovrlpz
+logical:: isoverlap
 character(len=*),parameter:: subname='determineLocalizationRegions'
 
 
@@ -1649,20 +1664,22 @@ end do
 ! Count for each localization region the number of matrix elements within the cutoff.
 do ilr=1,nlr
   mlr(ilr)%norbinlr=0
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   do jorb=1,norb
      jlr=onWhichAtomAll(jorb)
-     !call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-     js1=floor(rxyz(1,jlr)/hx)
-     je1=ceiling(rxyz(1,jlr)/hx)
-     js2=floor(rxyz(2,jlr)/hy)
-     je2=ceiling(rxyz(2,jlr)/hy)
-     js3=floor(rxyz(3,jlr)/hz)
-     je3=ceiling(rxyz(3,jlr)/hz)
-     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!     call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+!     js1=floor(rxyz(1,jlr)/hx)
+!     je1=ceiling(rxyz(1,jlr)/hx)
+!     js2=floor(rxyz(2,jlr)/hy)
+!     je2=ceiling(rxyz(2,jlr)/hy)
+!     js3=floor(rxyz(3,jlr)/hz)
+!     je3=ceiling(rxyz(3,jlr)/hz)
+!     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+     call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzd%Llr(jlr),isoverlap)     
+!     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+     if(isoverlap) then
         mlr(ilr)%norbinlr=mlr(ilr)%norbinlr+1
      end if
   end do
@@ -1676,24 +1693,26 @@ end do
 ! Now determine the indices of the elements with an overlap.
 do ilr=1,nlr
   ii=0
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+  !call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   do jorb=1,norb
      jlr=onWhichAtomAll(jorb)
      !call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-     js1=floor(rxyz(1,jlr)/hx)
-     je1=ceiling(rxyz(1,jlr)/hx)
-     js2=floor(rxyz(2,jlr)/hy)
-     je2=ceiling(rxyz(2,jlr)/hy)
-     js3=floor(rxyz(3,jlr)/hz)
-     je3=ceiling(rxyz(3,jlr)/hz)
-     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!     js1=floor(rxyz(1,jlr)/hx)
+!     je1=ceiling(rxyz(1,jlr)/hx)
+!     js2=floor(rxyz(2,jlr)/hy)
+!     je2=ceiling(rxyz(2,jlr)/hy)
+!     js3=floor(rxyz(3,jlr)/hz)
+!     je3=ceiling(rxyz(3,jlr)/hz)
+!     ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!     ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!     ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+      call check_overlap_cubic_periodic(lzd%Glr,lzd%Llr(ilr),lzd%Llr(jlr),isoverlap)
+!     if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+      if(isoverlap) then
         ii=ii+1
         mlr(ilr)%indexInGlobal(ii)=jorb
         !if(iproc==0) write(*,'(a,3i8)') 'ilr, ii, mlr(ilr)%indexInGlobal(ii)', ilr, ii, mlr(ilr)%indexInGlobal(ii)
-     end if
+      end if
   end do
   if(ii/=mlr(ilr)%norbinlr) then
      write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ', iproc, ': ii/=mlr(ilr)%norbinlr', ii, mlr(ilr)%norbinlr
@@ -1884,7 +1903,7 @@ call memocc(istat, comom%noverlap, 'comom%noverlap', subname)
 !do ilr=1,lzd%nlr
 do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   novrlp=0
   do jorbout=1,orbs%norb
      jlr=onWhichAtomPhi(jorbout)
@@ -1923,7 +1942,7 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   !comom%overlaps(:,ilr)=0
   comom%overlaps(:,iorbout)=0
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   novrlp=0
   do jorbout=1,orbs%norb
      jlr=onWhichAtomPhi(jorbout)
@@ -1972,7 +1991,7 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!!  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   comom%olr(:,ilr)%norbinlr=0
   !do jorbout=1,comom%noverlap(ilr)
   do jorbout=1,comom%noverlap(iorbout)
@@ -2030,7 +2049,7 @@ do iorbout=1,orbs%norb
   ilr=orbs%inwhichlocreg(iorbout)
   if(ilr==ilrold) cycle
   ilrold=ilr
-  call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+  !call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
   !do jorbout=1,comom%noverlap(ilr)
   do jorbout=1,comom%noverlap(iorbout)
      !jjorb=comom%overlaps(jorbout,ilr)
@@ -3236,7 +3255,7 @@ call postCommsOverlap(iproc, nproc, comon)
 call gatherOrbitals2(iproc, nproc, comon)
 !call mpi_barrier(mpi_comm_world, ist)
 !stop
-call expandOrbital2Variable(iproc, nproc, orbs, input, lzdig, op, comon, lchiovrlp)
+call expandOrbital2(iproc, nproc, orbs, input, orbs%inWhichLocreg, lzdig, op, comon, lchiovrlp)
 
 call deallocateCommuncationBuffersOrtho(comon, subname)
 
@@ -3290,7 +3309,7 @@ end subroutine buildLinearCombinationsVariable
 
 
 
-subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input, norbsPerType, &
+subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbsGauss, lorbs, at, Glr, input, hx, hy, hz, norbsPerType, &
            onWhichAtom, lchi, lphi, locregCenter, onWhichAtomPhi, lzd, lzdig, nlocregPerMPI, tag, ham3, comonig, opig, madig)
 !
 use module_base
@@ -3300,6 +3319,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nlocregPerMPI
+real(gp), intent(in) :: hx, hy, hz
 type(orbitals_data),intent(in):: orbsig, lorbs, orbsGauss
 type(atoms_data),intent(in):: at
 type(locreg_descriptors),intent(in):: Glr
@@ -3395,7 +3415,7 @@ type(matrixDescriptors):: mad
       !!call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
       !!     lin%locrad, rxyz, lzd, input%hx, input%hy, input%hz, matmin%mlr)
       call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
-           input%lin%locrad, locregCenter, lzd, input%hx, input%hy, input%hz, matmin%mlr)
+           input%lin%locrad, locregCenter, lzd, hx, hy, hz, matmin%mlr)
       call extractMatrix3(iproc, ip%nproc, lorbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
            ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
 
@@ -3462,7 +3482,7 @@ type(matrixDescriptors):: mad
       ! Flag which checks convergence.
       converged=.false.
     
-      if(iproc==0) write(*,'(1x,a)') '============================== optmizing coefficients =============================='
+      if(iproc==0) write(*,'(1x,a)') '============================== optimizing coefficients =============================='
     
       ! The optimization loop.
     
@@ -3649,7 +3669,7 @@ type(matrixDescriptors):: mad
           ! Improve the coefficients (by steepet descent).
           do iorb=1,ip%norb_par(iproc)
               ilr=onWhichAtom(ip%isorb+iorb)
-              call daxpy(matmin%mlr(ilr)%norbinlr, -alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
+              call daxpy(matmin%mlr(ilr)%norbinlr,-alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
           end do
           !!if (ldiis%isx > 0) then
           !!    ldiis%mis=mod(ldiis%is,ldiis%isx)+1

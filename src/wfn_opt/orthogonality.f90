@@ -666,7 +666,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
         if (ispin==2) norbv=orbsv%norbd
 
 
-        if (msg) then
+        if (msg .and. .false.) then
            write(*,'(1x,a)')'scalar products are'
            write(*,'(1x,a)')'iocc  ivirt       value'!               zero if<1d-12'
 

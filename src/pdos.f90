@@ -492,7 +492,7 @@ subroutine global_analysis(orbs,wf,occopt)
          write(DOS, "(A)", advance = "NO") "   "
          do i = 1, 6
             e = orbs%eval(index+(ikpt-1)*orbs%norb)
-           e = e*Ha_eV
+            e = e*Ha_eV
             minE = min(e, minE)
             maxE = max(e, maxE)
             write(DOS, "(A,F12.8,A)", advance = "NO") "df(", e, ",E)"
@@ -518,7 +518,7 @@ subroutine global_analysis(orbs,wf,occopt)
             write(DOS, "(A)", advance = "NO") "   "
             do i = 1, 6
                e = orbs%eval(index+(ikpt-1)*orbs%norb)
-              e = e**Ha_eV
+               e = e*Ha_eV
                minE = min(e, minE)
                maxE = max(e, maxE)
                write(DOS, "(A,F12.8,A)", advance = "NO") "df(", e, ",E)"

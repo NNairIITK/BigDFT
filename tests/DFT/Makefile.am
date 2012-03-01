@@ -15,7 +15,6 @@ TESTDIRS = C \
 	  TDDFT \
 	  ElectField 
 
-
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
   TESTDIRS += GPU

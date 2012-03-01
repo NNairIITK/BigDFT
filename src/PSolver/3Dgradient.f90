@@ -561,7 +561,7 @@ END SUBROUTINE wb_correction
 !!           The drivexc routine uses only the first part of this array (component 0)
 !!           The rest of the array is defined for later use in the wb postprocessing routine.
 subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
-     gradient)
+     gradient,rhocore)
  use module_base
  implicit none
  !Arguments
@@ -570,13 +570,14 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
  real(dp), intent(in) :: hx,hy,hz
  real(dp), dimension(n1,n2,n3,nspden), intent(inout) :: rhoinp
  real(dp), dimension(n1,n2,n3grad,2*nspden-1,0:3), intent(out) :: gradient
+ real(dp), dimension(:,:,:,:), pointer :: rhocore
  !Local variables
  character(len=*), parameter :: subname='calc_gradient'
  integer :: i1,i2,i3,j3,i_all,i_stat,ispden
  !filters of finite difference derivative for order 4
  real(dp), parameter :: a1=0.8d0, a2=-0.2d0
  real(dp), parameter :: a3=0.038095238095238095238d0, a4=-0.0035714285714285714286d0
- real(dp) :: derx,dery,derz
+ real(dp) :: derx,dery,derz,drcx,drcy,drcz
  real(dp), dimension(:,:,:), allocatable :: density
  !Body
 
@@ -592,7 +593,6 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
          'deltaleft=',deltaleft,'deltaright=',deltaright,'geocode=',geocode
     stop
  end if
-
 
  !let us initialize the larger vector to calculate the gradient
  allocate(density(n1+8,n2+8,n3grad+8+ndebug),stat=i_stat)
@@ -764,37 +764,74 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
        stop
     end select
 
-
-    !calculating the gradient by using the auxiliary array
-    !$omp parallel do default(shared) private(i3,i2,i1,derx,dery,derz)
-    do i3=5,n3grad+4 
-       do i2=5,n2+4
-          do i1=5,n1+4
-             !gradient in the x direction
-             derx=a1*(density(i1+1,i2,i3)-density(i1-1,i2,i3))&
-                  +a2*(density(i1+2,i2,i3)-density(i1-2,i2,i3))&
-                  +a3*(density(i1+3,i2,i3)-density(i1-3,i2,i3))&
-                  +a4*(density(i1+4,i2,i3)-density(i1-4,i2,i3))
-             !gradient in the y direction
-             dery=a1*(density(i1,i2+1,i3)-density(i1,i2-1,i3))&
-                  +a2*(density(i1,i2+2,i3)-density(i1,i2-2,i3))&
-                  +a3*(density(i1,i2+3,i3)-density(i1,i2-3,i3))&
-                  +a4*(density(i1,i2+4,i3)-density(i1,i2-4,i3))
-             !gradient in the z direction
-             derz=a1*(density(i1,i2,i3+1)-density(i1,i2,i3-1))&
-                  +a2*(density(i1,i2,i3+2)-density(i1,i2,i3-2))&
-                  +a3*(density(i1,i2,i3+3)-density(i1,i2,i3-3))&
-                  +a4*(density(i1,i2,i3+4)-density(i1,i2,i3-4))
-             !square modulus
-             gradient(i1-4,i2-4,i3-4,ispden,0)=(derx/hx)**2+(dery/hy)**2+(derz/hz)**2
-             !different components
-             gradient(i1-4,i2-4,i3-4,ispden,1)=derx/hx
-             gradient(i1-4,i2-4,i3-4,ispden,2)=dery/hy
-             gradient(i1-4,i2-4,i3-4,ispden,3)=derz/hz
+    if (associated(rhocore)) then
+       !calculating the gradient by using the auxiliary array
+       !$omp parallel do default(shared) private(i3,i2,i1,derx,dery,derz,drcx,drcy,drcz)
+       do i3=5,n3grad+4 
+          do i2=5,n2+4
+             do i1=5,n1+4
+                !gradient in the x direction
+                derx=a1*(density(i1+1,i2,i3)-density(i1-1,i2,i3))&
+                     +a2*(density(i1+2,i2,i3)-density(i1-2,i2,i3))&
+                     +a3*(density(i1+3,i2,i3)-density(i1-3,i2,i3))&
+                     +a4*(density(i1+4,i2,i3)-density(i1-4,i2,i3))
+                !gradient in the y direction
+                dery=a1*(density(i1,i2+1,i3)-density(i1,i2-1,i3))&
+                     +a2*(density(i1,i2+2,i3)-density(i1,i2-2,i3))&
+                     +a3*(density(i1,i2+3,i3)-density(i1,i2-3,i3))&
+                     +a4*(density(i1,i2+4,i3)-density(i1,i2-4,i3))
+                !gradient in the z direction
+                derz=a1*(density(i1,i2,i3+1)-density(i1,i2,i3-1))&
+                     +a2*(density(i1,i2,i3+2)-density(i1,i2,i3-2))&
+                     +a3*(density(i1,i2,i3+3)-density(i1,i2,i3-3))&
+                     +a4*(density(i1,i2,i3+4)-density(i1,i2,i3-4))
+                !rhocore gradients
+                drcx=rhocore(i1-4,i2-4,i3-4+deltaleft,2)
+                drcy=rhocore(i1-4,i2-4,i3-4+deltaleft,3)
+                drcz=rhocore(i1-4,i2-4,i3-4+deltaleft,4)
+                !square modulus
+                gradient(i1-4,i2-4,i3-4,ispden,0)=(derx/hx)**2+(dery/hy)**2+(derz/hz)**2+&
+                     2.0_dp*((derx/hx)*drcx+(dery/hy)*drcy+(derz/hz)*drcz)+&
+                     drcx**2+drcy**2+drcz**2
+                !different components
+                gradient(i1-4,i2-4,i3-4,ispden,1)=derx/hx+drcx
+                gradient(i1-4,i2-4,i3-4,ispden,2)=dery/hy+drcy
+                gradient(i1-4,i2-4,i3-4,ispden,3)=derz/hz+drcz
+             end do
           end do
        end do
-    end do
-    !$end parallel do
+       !$end parallel do
+    else
+       !$omp parallel do default(shared) private(i3,i2,i1,derx,dery,derz)
+       do i3=5,n3grad+4 
+          do i2=5,n2+4
+             do i1=5,n1+4
+                !gradient in the x direction
+                derx=a1*(density(i1+1,i2,i3)-density(i1-1,i2,i3))&
+                     +a2*(density(i1+2,i2,i3)-density(i1-2,i2,i3))&
+                     +a3*(density(i1+3,i2,i3)-density(i1-3,i2,i3))&
+                     +a4*(density(i1+4,i2,i3)-density(i1-4,i2,i3))
+                !gradient in the y direction
+                dery=a1*(density(i1,i2+1,i3)-density(i1,i2-1,i3))&
+                     +a2*(density(i1,i2+2,i3)-density(i1,i2-2,i3))&
+                     +a3*(density(i1,i2+3,i3)-density(i1,i2-3,i3))&
+                     +a4*(density(i1,i2+4,i3)-density(i1,i2-4,i3))
+                !gradient in the z direction
+                derz=a1*(density(i1,i2,i3+1)-density(i1,i2,i3-1))&
+                     +a2*(density(i1,i2,i3+2)-density(i1,i2,i3-2))&
+                     +a3*(density(i1,i2,i3+3)-density(i1,i2,i3-3))&
+                     +a4*(density(i1,i2,i3+4)-density(i1,i2,i3-4))
+                !square modulus
+                gradient(i1-4,i2-4,i3-4,ispden,0)=(derx/hx)**2+(dery/hy)**2+(derz/hz)**2
+                !different components
+                gradient(i1-4,i2-4,i3-4,ispden,1)=derx/hx
+                gradient(i1-4,i2-4,i3-4,ispden,2)=dery/hy
+                gradient(i1-4,i2-4,i3-4,ispden,3)=derz/hz
+             end do
+          end do
+       end do
+       !$end parallel do
+    end if
  end do
  
  !Once again for total density 
@@ -983,34 +1020,76 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
        end do
     end select
     
-    !calculating the gradient by using the auxiliary array
-    do i3=5,n3grad+4 
-       do i2=5,n2+4
-          do i1=5,n1+4
-             !gradient in the x direction
-             derx=a1*(density(i1+1,i2,i3)-density(i1-1,i2,i3))&
-                  +a2*(density(i1+2,i2,i3)-density(i1-2,i2,i3))&
-                  +a3*(density(i1+3,i2,i3)-density(i1-3,i2,i3))&
-                  +a4*(density(i1+4,i2,i3)-density(i1-4,i2,i3))
-             !gradient in the y direction
-             dery=a1*(density(i1,i2+1,i3)-density(i1,i2-1,i3))&
-                  +a2*(density(i1,i2+2,i3)-density(i1,i2-2,i3))&
-                  +a3*(density(i1,i2+3,i3)-density(i1,i2-3,i3))&
-                  +a4*(density(i1,i2+4,i3)-density(i1,i2-4,i3))
-             !gradient in the z direction
-             derz=a1*(density(i1,i2,i3+1)-density(i1,i2,i3-1))&
-                  +a2*(density(i1,i2,i3+2)-density(i1,i2,i3-2))&
-                  +a3*(density(i1,i2,i3+3)-density(i1,i2,i3-3))&
-                  +a4*(density(i1,i2,i3+4)-density(i1,i2,i3-4))
-             !square modulus
-             gradient(i1-4,i2-4,i3-4,3,0)=(derx/hx)**2+(dery/hy)**2+(derz/hz)**2
-             !different components
-             gradient(i1-4,i2-4,i3-4,3,1)=derx/hx
-             gradient(i1-4,i2-4,i3-4,3,2)=dery/hy
-             gradient(i1-4,i2-4,i3-4,3,3)=derz/hz
+    if (associated(rhocore)) then
+       !calculating the gradient by using the auxiliary array
+       !$omp parallel do default(shared) private(i3,i2,i1,derx,dery,derz,drcx,drcy,drcz)
+       do i3=5,n3grad+4 
+          do i2=5,n2+4
+             do i1=5,n1+4
+                !gradient in the x direction
+                derx=a1*(density(i1+1,i2,i3)-density(i1-1,i2,i3))&
+                     +a2*(density(i1+2,i2,i3)-density(i1-2,i2,i3))&
+                     +a3*(density(i1+3,i2,i3)-density(i1-3,i2,i3))&
+                     +a4*(density(i1+4,i2,i3)-density(i1-4,i2,i3))
+                !gradient in the y direction
+                dery=a1*(density(i1,i2+1,i3)-density(i1,i2-1,i3))&
+                     +a2*(density(i1,i2+2,i3)-density(i1,i2-2,i3))&
+                     +a3*(density(i1,i2+3,i3)-density(i1,i2-3,i3))&
+                     +a4*(density(i1,i2+4,i3)-density(i1,i2-4,i3))
+                !gradient in the z direction
+                derz=a1*(density(i1,i2,i3+1)-density(i1,i2,i3-1))&
+                     +a2*(density(i1,i2,i3+2)-density(i1,i2,i3-2))&
+                     +a3*(density(i1,i2,i3+3)-density(i1,i2,i3-3))&
+                     +a4*(density(i1,i2,i3+4)-density(i1,i2,i3-4))
+                !rhocore gradients
+                drcx=rhocore(i1-4,i2-4,i3-4+deltaleft,2)
+                drcy=rhocore(i1-4,i2-4,i3-4+deltaleft,3)
+                drcz=rhocore(i1-4,i2-4,i3-4+deltaleft,4)
+
+                !square modulus
+                gradient(i1-4,i2-4,i3-4,3,0)=(derx/hx)**2+(dery/hy)**2+(derz/hz)**2+&
+                     4.0_dp*((derx/hx)*drcx+(dery/hy)*drcy+(derz/hz)*drcz)+&
+                     4.0_dp*(drcx**2+drcy**2+drcz**2)
+                !different components
+                gradient(i1-4,i2-4,i3-4,3,1)=derx/hx+2.0_dp*drcx
+                gradient(i1-4,i2-4,i3-4,3,2)=dery/hy+2.0_dp*drcy
+                gradient(i1-4,i2-4,i3-4,3,3)=derz/hz+2.0_dp*drcz
+             end do
           end do
        end do
-    end do
+       !$end parallel do
+    else
+       !calculating the gradient by using the auxiliary array
+       !$omp parallel do default(shared) private(i3,i2,i1,derx,dery,derz)
+       do i3=5,n3grad+4 
+          do i2=5,n2+4
+             do i1=5,n1+4
+                !gradient in the x direction
+                derx=a1*(density(i1+1,i2,i3)-density(i1-1,i2,i3))&
+                     +a2*(density(i1+2,i2,i3)-density(i1-2,i2,i3))&
+                     +a3*(density(i1+3,i2,i3)-density(i1-3,i2,i3))&
+                     +a4*(density(i1+4,i2,i3)-density(i1-4,i2,i3))
+                !gradient in the y direction
+                dery=a1*(density(i1,i2+1,i3)-density(i1,i2-1,i3))&
+                     +a2*(density(i1,i2+2,i3)-density(i1,i2-2,i3))&
+                     +a3*(density(i1,i2+3,i3)-density(i1,i2-3,i3))&
+                     +a4*(density(i1,i2+4,i3)-density(i1,i2-4,i3))
+                !gradient in the z direction
+                derz=a1*(density(i1,i2,i3+1)-density(i1,i2,i3-1))&
+                     +a2*(density(i1,i2,i3+2)-density(i1,i2,i3-2))&
+                     +a3*(density(i1,i2,i3+3)-density(i1,i2,i3-3))&
+                     +a4*(density(i1,i2,i3+4)-density(i1,i2,i3-4))
+                !square modulus
+                gradient(i1-4,i2-4,i3-4,3,0)=(derx/hx)**2+(dery/hy)**2+(derz/hz)**2
+                !different components
+                gradient(i1-4,i2-4,i3-4,3,1)=derx/hx
+                gradient(i1-4,i2-4,i3-4,3,2)=dery/hy
+                gradient(i1-4,i2-4,i3-4,3,3)=derz/hz
+             end do
+          end do
+       end do
+       !$end parallel do
+    end if
 
     !if n3 /= n3grad (which can appear only in parallel) translate the density to be contiguous
     !such as it can be passed to the ABINIT XC routines (drivexc)
@@ -1020,7 +1099,7 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
           j3=j3+1
           do i2=1,n2
              do i1=1,n1
-                rhoinp(i1,i2,i3,1)=rhoinp(i1,i2,deltaleft+j3,2)
+                rhoinp(i1,i2,i3,1)=rhoinp(i1,i2,deltaleft+j3,2)!+0.5_dp*rhocore(1,1,deltaleft+j3,1)
              end do
           end do
        end do
@@ -1028,15 +1107,27 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
           j3=j3+1
           do i2=1,n2
              do i1=1,n1
-                rhoinp(i1,i2,i3,2)=rhoinp(i1,i2,deltaleft+j3,2)
+                rhoinp(i1,i2,i3,2)=rhoinp(i1,i2,deltaleft+j3,2)!+0.5_dp*rhocore(1,1,deltaleft+j3,1)
              end do
           end do
        end do
-       
     end if
-
-  
  end if
+
+ !add the core density 
+ if (associated(rhocore)) then
+    call axpy(n1*n2*(n3grad+deltaleft),0.5_wp,rhocore(1,1,1,1),1,rhoinp(1,1,1,1),1)
+    if (nspden==2) then
+       if (n3grad /= n3) then
+          call axpy(n1*n2*(n3grad+deltaright),0.5_wp,rhocore(1,1,deltaleft+1,1),1,&
+               rhoinp(1,1,n3grad+deltaleft+1,1),1)
+       else
+          call axpy(n1*n2*n3,0.5_wp,rhocore(1,1,1,1),1,&
+               rhoinp(1,1,1,2),1)
+       end if
+    end if
+ end if
+
 
   i_all=-product(shape(density))*kind(density)
   deallocate(density,stat=i_stat)

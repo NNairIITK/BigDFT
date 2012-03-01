@@ -196,7 +196,8 @@ module module_types
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
-     real(gp) :: projrad   !<coarse radius of the projectors in units of the maxrad
+     real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
+     real(gp) :: symTol    !< Tolerance for symmetry detection.
      character(len=3) :: linear
 
      !orthogonalisation data
@@ -260,11 +261,9 @@ module module_types
 !>  Used for lookup table for compressed wavefunctions
   type, public :: wavefunctions_descriptors
      integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
-!     integer, dimension(:,:), pointer :: keyg
      integer, dimension(:,:), pointer :: keyglob
      integer, dimension(:,:), pointer :: keygloc
-     integer, dimension(:), pointer :: keyv
-!     integer, dimension(:), pointer :: keyvloc,keyvglob
+     integer, dimension(:), pointer :: keyvloc,keyvglob
   end type wavefunctions_descriptors
 
 !>  Grid dimensions in old different wavelet basis
@@ -458,6 +457,7 @@ module module_types
   type,public:: local_zone_descriptors
     logical :: linear                         !< if true, use linear part of the code
     integer :: nlr                            !< Number of localization regions 
+    integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
 !    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
     integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
     integer :: Lnprojel                       !< Total number of projector elements
@@ -608,22 +608,23 @@ module module_types
        logical,dimension(:,:),pointer:: communComplete
   end type p2pCommsRepartition
 
-  type,public:: expansionSegments
-      integer:: nseg
-      integer,dimension(:,:),pointer:: segborders
-  end type expansionSegments
+!  type,public:: expansionSegments
+!      integer:: nseg
+!      integer,dimension(:,:),pointer:: segborders
+!  end type expansionSegments
 
 
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
       integer:: ndim_lphiovrlp, noverlapsmax, noverlapsmaxp, nsubmax
-      integer,dimension(:),pointer:: noverlaps, indexExpand, indexExtract
+      integer,dimension(:),pointer:: noverlaps !, indexExpand, indexExtract
       integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:,:),pointer:: indexInRecvBuf
       integer,dimension(:,:),pointer:: indexInSendBuf
-      type(locreg_descriptors),dimension(:,:),pointer:: olr
-      type(expansionSegments),dimension(:,:),pointer:: expseg
-      type(expansionSegments),dimension(:,:),pointer:: extseg
+!      type(locregs_descriptors),dimension(:,:),pointer:: olr
+      type(wavefunctions_descriptors),dimension(:,:),pointer:: wfd_overlap
+!      type(expansionSegments),dimension(:,:),pointer:: expseg
+!      type(expansionSegments),dimension(:,:),pointer:: extseg
   end type overlapParameters
 
 
@@ -779,10 +780,10 @@ end type workarrays_quartic_convolutions
 
 !> Contains the information needed for the preconditioner
   type, public :: precond_data
-    integer :: confPotOrder                           !> The order of the algebraic expression for Confinement potential
-    integer :: ncong                                  !> Number of CG iterations for the preconditioning equation
-    logical, dimension(:), pointer :: withConfPot     !> Use confinement potentials
-    real(8), dimension(:), pointer :: potentialPrefac !> Prefactor for the potential: Prefac * f(r) 
+    integer :: confPotOrder                           !< The order of the algebraic expression for Confinement potential
+    integer :: ncong                                  !< Number of CG iterations for the preconditioning equation
+    logical, dimension(:), pointer :: withConfPot     !< Use confinement potentials
+    real(8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potential: Prefac * f(r) 
   end type precond_data
 
 !> Information for the confining potential to be used in TMB scheme
@@ -978,7 +979,9 @@ END SUBROUTINE deallocate_orbs
 
     nullify(rst%Lzd%Glr%wfd%keyglob)
     nullify(rst%Lzd%Glr%wfd%keygloc)
-    nullify(rst%Lzd%Glr%wfd%keyv)
+!    nullify(rst%Lzd%Glr%wfd%keyv)
+    nullify(rst%Lzd%Glr%wfd%keyvloc)
+    nullify(rst%Lzd%Glr%wfd%keyvglob)
 
     nullify(rst%gbd%nshell)
     nullify(rst%gbd%ndoc)
@@ -1061,8 +1064,12 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,wfd%keyglob,'keyglob',subname)
     allocate(wfd%keygloc(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keygloc,'keygloc',subname)
-    allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
-    call memocc(i_stat,wfd%keyv,'keyv',subname)
+ !!   allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+ !!   call memocc(i_stat,wfd%keyv,'keyv',subname)
+    allocate(wfd%keyvloc(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    call memocc(i_stat,wfd%keyvloc,'keyvloc',subname)
+    allocate(wfd%keyvglob(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
+    call memocc(i_stat,wfd%keyvglob,'keyvglob',subname)
 
   END SUBROUTINE allocate_wfd
 
@@ -1095,10 +1102,29 @@ END SUBROUTINE deallocate_orbs
           nullify(wfd%keygloc)
        end if
     end if
-    if (associated(wfd%keyv)) then
-       i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
-       deallocate(wfd%keyv,stat=i_stat)
-       call memocc(i_stat,i_all,'wfd%keyv',subname)
+!    if (associated(wfd%keyv)) then
+!       i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
+!       deallocate(wfd%keyv,stat=i_stat)
+!       call memocc(i_stat,i_all,'wfd%keyv',subname)
+!    end if
+    if (associated(wfd%keyvloc, target= wfd%keyvglob)) then
+       i_all=-product(shape(wfd%keyvloc))*kind(wfd%keyvloc)
+       deallocate(wfd%keyvloc,stat=i_stat)
+       call memocc(i_stat,i_all,'wfd%keyvloc',subname)
+       nullify(wfd%keyvloc)
+    else
+       if (associated(wfd%keyvloc)) then
+          i_all=-product(shape(wfd%keyvloc))*kind(wfd%keyvloc)
+          deallocate(wfd%keyvloc,stat=i_stat)
+          call memocc(i_stat,i_all,'wfd%keyvloc',subname)
+          nullify(wfd%keyvloc)
+       end if
+       if (associated(wfd%keyvglob)) then
+          i_all=-product(shape(wfd%keyvglob))*kind(wfd%keyvglob)
+          deallocate(wfd%keyvglob,stat=i_stat)
+          call memocc(i_stat,i_all,'wfd%keyvglob',subname)
+          nullify(wfd%keyvglob)
+       end if
     end if
   END SUBROUTINE deallocate_wfd
 
@@ -1404,7 +1430,9 @@ END SUBROUTINE deallocate_orbs
 ! nullify the wfd of Glr
    nullify(Lzd%Glr%wfd%keyglob)
    nullify(Lzd%Glr%wfd%keygloc)
-   nullify(Lzd%Glr%wfd%keyv)
+!   nullify(Lzd%Glr%wfd%keyv)
+   nullify(Lzd%Glr%wfd%keyvloc)
+   nullify(Lzd%Glr%wfd%keyvglob)
 
 ! nullify the Gnlpspd
 !   call deallocate_proj_descr(Lzd%Gnlpspd,subname)

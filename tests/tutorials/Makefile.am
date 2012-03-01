@@ -16,8 +16,8 @@ EXTRA_DIST = $(TESTDIRS) \
      H1B_grid_cv.html \
      H1C_basic_surfaces.html \
      H1D_wfn_plot.html \
-     H2A-GPU.html \
-     H2B-scalability.html \
+     H2A_MPI_OMP.html \
+     H2B_GPU.html \
      H2C-BART.html \
      H2D-splined_saddle.html \
      H2E-minima_hopping.html \

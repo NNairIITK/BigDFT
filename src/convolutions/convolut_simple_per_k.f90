@@ -506,9 +506,11 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
 
   !ener=0._wp
 !$omp parallel default (private) shared(x,y,kstrten,fil,cx,cy,cz,n1,n2,n3)
+  kstrt1=0.0_wp
+  kstrt2=0.0_wp
+  kstrt3=0.0_wp
 
-!!$omp do reduction(+:ener)
-!$omp do reduction(+:kstrten)
+!$omp do 
   do i3=0,n3
      ! (1/2) |d/dx+ik_x)|^2
      do i2=0,n2
@@ -527,7 +529,7 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
 
            !ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
-           kstrten(1)=kstrten(1)+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           kstrt1=kstrt1+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
 
@@ -546,14 +548,14 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
 
-           kstrten(2)=kstrten(2)+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           kstrt2=kstrt2+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
   enddo
 !$omp enddo
 
-!$omp do reduction(+:kstrten)
+!$omp do 
   ! + (1/2) d^2/dz^2
   do i2=0,n2
      do i1=0,n1
@@ -568,11 +570,17 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
 
-           kstrten(3)=kstrten(3)+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           kstrt3=kstrt3+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
   enddo
 !$omp enddo
+
+!$omp critical
+  kstrten(1)=kstrten(1)+kstrt1
+  kstrten(2)=kstrten(2)+kstrt2
+  kstrten(3)=kstrten(3)+kstrt3
+!$omp end critical
 
 !$omp end parallel  
 END SUBROUTINE convolut_kinetic_per_T_k

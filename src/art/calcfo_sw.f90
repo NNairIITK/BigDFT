@@ -87,7 +87,9 @@ END MODULE  SWpotential
 !> This subroutine initializes the SW parameters 
 subroutine init_potential_SW()
    use SWpotential
-   use defs,only : natoms
+   use defs, only : natoms
+
+   implicit none
 
    !the 10th bond is the reference
    if (.not. allocated(SW_parameters)) allocate(SW_parameters(natoms,8))

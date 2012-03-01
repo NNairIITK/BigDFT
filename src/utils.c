@@ -87,7 +87,11 @@ void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
     }
 
   /* Try to create it. */
+#ifdef _WIN32
+  if (mkdir(path) != 0)
+#else
   if (mkdir(path, 0755) != 0)
+#endif
     {
       free(path);
       *status = 2;

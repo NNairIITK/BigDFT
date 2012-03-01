@@ -153,12 +153,12 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
     ! Shake atoms, if required.
   call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
-
   ! Update atoms with symmetry information
-  call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%elecfield)
+  call atoms_set_symmetries(atoms, rxyz, inputs%disableSym, inputs%symTol, inputs%elecfield)
 
   ! Parse input files depending on atoms.
-  call inputs_parse_add(inputs, atoms, iproc, .true.)
+  call inputs_parse_add(inputs, atoms%sym, atoms%geocode, &
+       & (/ atoms%alat1, atoms%alat2, atoms%alat3/), iproc, .true.)
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
@@ -172,14 +172,14 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
 
-  ! Stop code for unproper input variables combination.
-  if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym .and. atoms%geocode == 'S') then
-     if (iproc==0) then
-        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
-        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
-     end if
-     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
-  end if
+!!$  ! Stop code for unproper input variables combination.
+!!$  if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym .and. atoms%geocode == 'S') then
+!!$     if (iproc==0) then
+!!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+!!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
+!!$     end if
+!!$     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+!!$  end if
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
      if (iproc==0) write(*,'(1x,a)') 'Gaussian projection is not implemented with k-point support'
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
@@ -349,7 +349,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
      call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
-  call input_var(in%output_denspot,'0',exclusive=(/0,1,2/),&
+  call input_var(in%output_denspot,'0',exclusive=(/0,1,2,10,11,12,20,21,22/),&
        comment='InputPsiId, output_wf, output_denspot')
 
   !project however the wavefunction on gaussians if asking to write them on disk
@@ -750,7 +750,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   !local variables
   logical :: exists
   character(len=*), parameter :: subname='lin_input_variables'
-  character(len=132) :: comments
+  character(len=256) :: comments
   logical,dimension(atoms%ntypes) :: parametersSpecified
   logical :: found
   character(len=20):: atomname
@@ -1040,7 +1040,7 @@ contains
 
 END SUBROUTINE tddft_input_variables
 
-subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
+subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
   use module_base
   use module_types
   use defs_basis
@@ -1051,13 +1051,15 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
   integer, intent(in) :: iproc
   logical, intent(in) :: dump
   type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(in) :: atoms
+  type(symmetry_data), intent(in) :: sym
+  character(len = 1), intent(in) :: geocode
+  real(gp), intent(in) :: alat(3)
   !local variables
   logical :: exists
   character(len=*), parameter :: subname='kpt_input_variables_new'
   character(len = 6) :: type
   integer :: i_stat,ierror,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount,ierror1
-  real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
+  real(gp) :: kptrlen, shiftk(3,8), norm, alat_(3)
   integer, allocatable :: iseg(:)
 
   ! Set default values.
@@ -1089,8 +1091,8 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
 
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
-          comment='Equivalent legth of K-space resolution (Bohr)')
-     call kpoints_get_auto_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
+          comment='Equivalent length of K-space resolution (Bohr)')
+     call kpoints_get_auto_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1101,9 +1103,12 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
      call memocc(0,in%wkpt,'in%wkpt',subname)
   else if (case_insensitive_equiv(trim(type),'mpgrid')) then
      !take the points of Monckorst-pack grid
-     call input_var(ngkpt(1),'1')
-     call input_var(ngkpt(2),'1')
-     call input_var(ngkpt(3),'1',comment='No. of Monkhorst-Pack grid points')
+     call input_var(ngkpt(1),'1',ranges=(/1,10000/))
+     call input_var(ngkpt(2),'1',ranges=(/1,10000/))
+     call input_var(ngkpt(3),'1',ranges=(/1,10000/), &
+          & comment='No. of Monkhorst-Pack grid points')
+     if (geocode == 'S') ngkpt(2) = 1
+     if (geocode == 'F') ngkpt = 1
      !shift
      call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
      !read the shifts
@@ -1113,7 +1118,7 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
         call input_var(shiftk(2,i),'0.')
         call input_var(shiftk(3,i),'0.',comment=' ')
      end do
-     call kpoints_get_mp_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
+     call kpoints_get_mp_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
         if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
@@ -1132,7 +1137,11 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
      norm=0.0_gp
      do i=1,in%nkpt
         call input_var( in%kpt(1,i),'0.')
-        call input_var( in%kpt(2,i),'0.')
+        if (geocode == 'S') then
+           call input_var( in%kpt(2,i),'0.',ranges=(/0._gp,0._gp/))
+        else
+           call input_var( in%kpt(2,i),'0.')
+        end if
         call input_var( in%kpt(3,i),'0.')
         call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
         norm=norm+in%wkpt(i)
@@ -1225,24 +1234,24 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,atoms)
   
   call input_free((iproc == 0) .and. dump)
   !control whether we are giving k-points to Free BC
-  if (atoms%geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
+  if (geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
      if (iproc==0) write(*,*)&
           ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
      stop
   end if
 
   ! Convert reduced coordinates into BZ coordinates.
-  alat = (/ atoms%alat1, atoms%alat2, atoms%alat3 /)
-  if (atoms%geocode /= 'P') alat(2) = 1.0_gp
-  if (atoms%geocode == 'F') then
-     alat(1)=1.0_gp
-     alat(3)=1.0_gp
+  alat_ = alat
+  if (geocode /= 'P') alat_(2) = 1.0_gp
+  if (geocode == 'F') then
+     alat_(1)=1.0_gp
+     alat_(3)=1.0_gp
   end if
   do i = 1, in%nkpt, 1
-     in%kpt(:, i) = in%kpt(:, i) / alat * two_pi
+     in%kpt(:, i) = in%kpt(:, i) / alat_ * two_pi
   end do
   do i = 1, in%nkptv, 1
-     in%kptv(:, i) = in%kptv(:, i) / alat * two_pi
+     in%kptv(:, i) = in%kptv(:, i) / alat_ * two_pi
   end do
  
 end subroutine kpt_input_variables_new
@@ -1321,6 +1330,8 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         read(1,*,iostat=ierror) shiftk(:, i)
         call check()
      end do
+     if (atoms%geocode == 'S') ngkpt(2) = 1
+     if (atoms%geocode == 'F') ngkpt = 1
      call kpoints_get_mp_k_grid(atoms%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
@@ -1487,6 +1498,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
   call input_var("linear", 'OFF', "Linear Input Guess approach",inputs%linear)
+  call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
   
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
@@ -1566,6 +1578,7 @@ end subroutine free_kpt_variables
 subroutine free_input_variables(in)
   use module_base
   use module_types
+  use module_xc
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
@@ -1576,6 +1589,9 @@ subroutine free_input_variables(in)
      call memocc(i_stat,i_all,'in%qmass',subname)
   end if
   call free_kpt_variables(in)
+
+  ! Free the libXC stuff if necessary, related to the choice of in%ixc.
+  call xc_end()
 
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
@@ -2482,12 +2498,12 @@ subroutine print_dft_parameters(in,atoms)
 
 END SUBROUTINE print_dft_parameters
 
-subroutine write_input_parameters(in,atoms)
+subroutine write_input_parameters(in) !,atoms)
   use module_base
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  type(atoms_data), intent(in) :: atoms
+!  type(atoms_data), intent(in) :: atoms
   !local variables
   character(len = 11) :: potden
   !start yaml output
@@ -2755,8 +2771,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
   integer, intent(in):: iacceleration,iproc
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node,jproc,namelen
-  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
 
   if (iacceleration == 1) then
      call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
@@ -2804,9 +2819,11 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         !end do
         GPU%ndevices=min(GPU%ndevices,nproc_node)
         if (iproc == 0) then
-           write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node:',GPU%ndevices
+           write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
+                min(GPU%ndevices,nproc_node),GPU%ndevices
         end if
         !the number of devices is the min between the number of processes per node
+        GPU%ndevices=min(GPU%ndevices,nproc_node)
         OCLconv=.true.
      end if
   else
