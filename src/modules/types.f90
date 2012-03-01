@@ -123,7 +123,7 @@ module module_types
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
-    real(8):: lowaccuray_converged, convCritMix
+    real(8):: lowaccuray_converged, convCritMix, factor_enlarge
     real(8),dimension(:),pointer:: locrad
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
@@ -763,7 +763,6 @@ end type workarrays_quartic_convolutions
     !type(p2pCommsOrthonormality):: comon
     type(p2pComms):: comon
     type(overlapParameters):: op
-    type(linearInputGuess):: lig
     type(matrixDescriptors):: mad
     character(len=1):: locregShape
     type(collectiveComms):: collComms

@@ -93,15 +93,16 @@ logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray
 real(8),dimension(:),pointer:: lphi
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
-integer:: iorb, ndimtot
+integer:: iorb, ndimtot, iiat
 type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
 real(8),dimension(:,:),allocatable:: coeff_proj
 type(localizedDIISParameters):: ldiis
-type(confpot_data), dimension(:),allocatable :: confdatarr
+type(confpot_data), dimension(:),pointer :: confdatarr
 real(8):: fnoise,pressure
 real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 type(orthon_data):: orthpar
+integer,dimension(:),pointer:: onwhichatom
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
@@ -115,12 +116,14 @@ type(orthon_data):: orthpar
   call mpi_barrier(mpi_comm_world, ierr)
   t1init=mpi_wtime()
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-       input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi)
+       input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi, confdatarr, onwhichatom)
 
-  lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
-  allocate(confdatarr(lin%orbs%norbp))
-  call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
-       hx,hy,hz,lin,lin%lzd,lin%orbs%inWhichLocreg)
+  !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
+  !!allocate(confdatarr(lin%orbs%norbp))
+  !!!use a temporary array onwhichatom instead of inwhichlocreg
+  !!
+  !!call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
+  !!     hx,hy,hz,lin,lin%lzd,lin%orbs%inWhichLocreg)
 
 
   orthpar%methTransformOverlap = lin%methTransformOverlap
@@ -140,8 +143,12 @@ type(orthon_data):: orthpar
   end if
   allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
   call memocc(istat, psi, 'psi', subname)
-  allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
-  call memocc(istat, psit, 'psit', subname)
+  if(nproc>1) then
+      allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)), stat=istat)
+      call memocc(istat, psit, 'psit', subname)
+  else
+      psit => psi
+  end if
   allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold, 'rhopotold', subname)
   allocate(rhopotold_out(max(glr%d%n1i*glr%d%n2i*denspot%dpcom%n3p,1)*input%nspin), stat=istat)
@@ -151,19 +158,22 @@ type(orthon_data):: orthpar
   allocate(coeff_proj(lin%orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, coeff_proj, 'coeff_proj', subname)
 
+  !write(*,'(a,100i6)') 'lin%orbs%inwhichlocreg', lin%orbs%inwhichlocreg
+
 
   potshortcut=0 ! What is this?
   call mpi_barrier(mpi_comm_world, ierr)
   t1ig=mpi_wtime()
   call inputguessConfinement(iproc, nproc, at, &
-       comms, Glr, input, hx, hy, hz, lin, orbs, rxyz, denspot ,rhopotold, &
+       input, hx, hy, hz, lin%lzd, lin%orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU, &
-       tag, lphi, ehart, eexcu, vexcu)
+       lphi)
   call mpi_barrier(mpi_comm_world, ierr)
   t2ig=mpi_wtime()
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
 
+  call deallocateBasicArraysInput(at, input%lin)
 
   ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist_lowaccuracy>0) then
@@ -204,7 +214,7 @@ type(orthon_data):: orthpar
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
               lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, lin%lphiRestart, &
               lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
-              hx, hy, hz, input%SIC)
+              hx, hy, hz, input%SIC, input%lin%factor_enlarge)
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -215,7 +225,7 @@ type(orthon_data):: orthpar
               coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
               lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
               lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-              hx,hy,hz,input%SIC)
+              hx,hy,hz,input%SIC, input%lin%factor_enlarge)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -341,21 +351,30 @@ type(orthon_data):: orthpar
           !!lin%potentialPrefac = lin%potentialPrefac_highaccuracy
           do iorb=1,lin%orbs%norbp
               ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
-              confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(ilr))
+              iiat=onwhichatom(lin%orbs%isorb+iorb)
+              !confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(ilr))
+              confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(iiat))
           end do
           lin%newgradient=.true.
           nit_highaccuracy=nit_highaccuracy+1
           nit=lin%nItBasis_highaccuracy
           if(nit_highaccuracy==lin%nit_highaccuracy+1) then
-            call deallocateDIIS(ldiis)
-            exit outerLoop
+              ! Deallocate DIIS structures.
+              call deallocateDIIS(ldiis)
+              exit outerLoop
+          end if
+          ! only use steepest descent if the localization regions may change
+          if(lin%nItInnerLoop/=-1 .or. input%lin%factor_enlarge/=1.d0) then
+              ldiis%isx=0
           end if
 
       else
           !!lin%potentialPrefac = lin%potentialPrefac_lowaccuracy
           do iorb=1,lin%orbs%norbp
               ilr=lin%orbs%inwhichlocreg(lin%orbs%isorb+iorb)
-              confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(ilr))
+              iiat=onwhichatom(lin%orbs%isorb+iorb)
+              !confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(ilr))
+              confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
           end do
           lin%newgradient=.false.
           nit=lin%nItBasis_lowaccuracy
@@ -406,7 +425,7 @@ type(orthon_data):: orthpar
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC)
+                      hx,hy,hz,input%SIC, input%lin%factor_enlarge)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -417,7 +436,7 @@ type(orthon_data):: orthpar
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC)
+                      hx,hy,hz,input%SIC, input%lin%factor_enlarge)
               end if
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -428,7 +447,7 @@ type(orthon_data):: orthpar
                   coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                   lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                   lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                  hx,hy,hz,input%SIC)
+                  hx,hy,hz,input%SIC, input%lin%factor_enlarge)
           end if
 
 
@@ -613,6 +632,9 @@ type(orthon_data):: orthpar
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
+  iall=-product(shape(onwhichatom))*kind(onwhichatom)
+  deallocate(onwhichatom, stat=istat)
+  call memocc(istat, iall, 'onwhichatom', subname)
 
   if(lin%mixHist_highaccuracy>0) then
       call deallocateMixrhopotDIIS(mixdiis)

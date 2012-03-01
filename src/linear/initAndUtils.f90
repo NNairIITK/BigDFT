@@ -1,7 +1,7 @@
 !> This subroutine initializes all parameters needed for the linear scaling version
 !! and allocate all arrays.
 subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-    input, hx, hy, hz, rxyz, nscatterarr, tag, coeff, lphi)
+    input, hx, hy, hz, rxyz, nscatterarr, tag, coeff, lphi, confdatarr, onwhichatom)
 ! Calling arguments:
 ! ==================
 !   Input arguments:
@@ -39,13 +39,16 @@ integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3
 integer,intent(inout):: tag
 real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
+type(confpot_data), dimension(:),pointer,intent(out) :: confdatarr
+integer,dimension(:),pointer:: onwhichatom
 
 ! Local variables
 integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb, ii, ist, ncnt
-integer,dimension(:),allocatable:: norbsPerAtom
+integer,dimension(:),allocatable:: norbsPerLocreg, norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
 real(8):: t1, t2, tt, tt1, tt2, tt3, tt4, tt5
+real(8),dimension(:,:),allocatable:: locregCenter
 integer :: npsidim
 
 ! Nullify all pointers
@@ -54,43 +57,73 @@ call nullify_linearParameters(lin)
 ! Allocate all local arrays.
 allocate(atomNames(at%ntypes), stat=istat)
 call memocc(istat, atomNames, 'atomNames', subname)
-allocate(norbsPerAtom(at%nat), stat=istat)
-call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
+!!allocate(norbsPerLocreg(at%nat), stat=istat)
+!!call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
 
-! Number of localization regions.
-lin%nlr=at%nat
-lin%lzd%nlr=at%nat
-!!lin%lzdlarge%nlr=at%nat
 
-! Allocate the basic arrays that are needed for reading the input parameters.
-call allocateBasicArrays(at, lin)
 
 ! Read in all parameters related to the linear scaling version.
 !call readLinearParameters(iproc, nproc, input%file_lin, lin, at, atomNames)
 call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
-call copy_linearInputParameters_to_linearParameters(at%ntypes, at%nat, input, lin)
 
-call deallocateBasicArraysInput(at, input%lin)
+allocate(norbsPerAtom(at%nat), stat=istat)
+call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 
 ! Count the number of basis functions.
 norb=0
 do iat=1,at%nat
     ityp=at%iatype(iat)
-    norbsPerAtom(iat)=lin%norbsPerType(ityp)
-    norb=norb+norbsPerAtom(iat)
+    norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
+    !norb=norb+norbsPerLocreg(iat)
+    norb=norb+input%lin%norbsPerType(ityp)
 end do
+
+! Number of localization regions.
+!!lin%nlr=at%nat
+!!lin%lzd%nlr=at%nat
+lin%nlr=norb
+lin%lzd%nlr=norb
+!!lin%lzdlarge%nlr=at%nat
+
+allocate(locregCenter(3,lin%lzd%nlr), stat=istat)
+call memocc(istat, locregCenter, 'locregCenter', subname)
+ilr=0
+do iat=1,at%nat
+    ityp=at%iatype(iat)
+    do iorb=1,input%lin%norbsPerType(ityp)
+        ilr=ilr+1
+        locregCenter(:,ilr)=rxyz(:,iat)
+    end do
+end do
+
+
+
+! Allocate the basic arrays that are needed for reading the input parameters.
+call allocateBasicArrays(at, lin)
+
+!call copy_linearInputParameters_to_linearParameters(at%ntypes, at%nat, input, lin)
+call copy_linearInputParameters_to_linearParameters(at%ntypes, lin%lzd%nlr, input, lin)
+
+!!call deallocateBasicArraysInput(at, input%lin)
+
+allocate(norbsPerLocreg(lin%lzd%nlr), stat=istat)
+call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
+norbsPerLocreg=1 !should be norbsPerLocreg
+
 
 ! Distribute the basis functions among the processors.
 norbu=norb
 norbd=0
 !call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
 !     input%nkpt, input%kpt, input%wkpt, lin%orbs)
+call nullify_orbitals_data(lin%orbs)
 call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
 call repartitionOrbitals(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par,&
      lin%orbs%norbp, lin%orbs%isorb_par, lin%orbs%isorb, lin%orbs%onWhichMPI)
 !call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
 !     input%nkpt, input%kpt, input%wkpt, lin%gorbs)
+call nullify_orbitals_data(lin%gorbs)
 call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, &
@@ -115,12 +148,14 @@ else
     norbd=0
 end if
 !call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
+call nullify_orbitals_data(lin%lb%orbs)
 call orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,input%nspin,&
      orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
 call repartitionOrbitals(iproc, nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par,&
      lin%lb%orbs%norbp, lin%lb%orbs%isorb_par, lin%lb%orbs%isorb, lin%lb%orbs%onWhichMPI)
 !call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
 !     lin%lb%gorbs)
+call nullify_orbitals_data(lin%lb%gorbs)
 call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin,&
      orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
      lin%lb%gorbs)
@@ -163,11 +198,15 @@ call memocc(istat, iall, 'lin%lb%orbs%inWhichLocreg', subname)
 !!deallocate(lin%orbslarge%inWhichLocreg, stat=istat)
 !!call memocc(istat, iall, 'lin%orbslarge%inWhichLocreg', subname)
 
-call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbs)
-if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
-call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, rxyz, lin%lb%orbs)
-if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
-!!call assignToLocreg2(iproc, at%nat, lin%lzdlarge%nlr, input%nspin, norbsPerAtom, rxyz, lin%orbslarge)
+!!call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerLocreg, rxyz, lin%orbs)
+call assignToLocreg2(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, at%nat, lin%lzd%nlr, &
+     input%nspin, norbsPerLocreg, locregCenter, lin%orbs%inwhichlocreg)
+if(lin%useDerivativeBasisFunctions) norbsPerLocreg=4*norbsPerLocreg
+!call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerLocreg, rxyz, lin%lb%orbs)
+call assignToLocreg2(iproc, nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par, at%nat, lin%lzd%nlr, &
+     input%nspin, norbsPerLocreg, locregCenter, lin%lb%orbs%inwhichlocreg)
+if(lin%useDerivativeBasisFunctions) norbsPerLocreg=norbsPerLocreg/4
+!!call assignToLocreg2(iproc, at%nat, lin%lzdlarge%nlr, input%nspin, norbsPerLocreg, rxyz, lin%orbslarge)
 
 
 
@@ -175,11 +214,29 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing localization regions... '
 call timing(iproc,'init_locregs  ','ON')
 t1=mpi_wtime()
-call initLocregs(iproc, nproc, at%nat, rxyz, hx, hy, hz, lin%lzd, lin%orbs, &
+!!call initLocregs(iproc, nproc, at%nat, rxyz, hx, hy, hz, lin%lzd, lin%orbs, &
+!!     Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
+call initLocregs(iproc, nproc, lin%lzd%nlr, locregCenter, hx, hy, hz, lin%lzd, lin%orbs, &
      Glr, lin%locrad, lin%locregShape, lin%lb%orbs)
 !!lin%locrad=3.d0*lin%locrad
 !!call initLocregs(iproc, nproc, at%nat, rxyz, hx, hy, hz, lin%lzdlarge, lin%orbslarge, Glr, lin%locrad, lin%locregShape)
 !!lin%locrad=lin%locrad/3.d0
+
+
+! for onwhichatom
+!allocate(onwhichatom(lin%orbs%norb), stat=istat)
+!call memocc(istat, onwhichatom, 'onwhichatom', subname)
+call assignToLocreg2(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, at%nat, at%nat, &
+     input%nspin, norbsPerAtom, rxyz, onwhichatom)
+
+  lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
+  allocate(confdatarr(lin%orbs%norbp))
+  call define_confinement_data(confdatarr,lin%orbs,rxyz,at,&
+       input%hx,input%hy,input%hz,lin%confpotorder,lin%potentialprefac,lin%lzd,onwhichatom)
+
+
+
+
 
 ! Copy Glr to lin%lzd
 call nullify_locreg_descriptors(lin%lzd%Glr)
@@ -300,7 +357,7 @@ if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 ! Initialize the parameters for the repartitioning of the orbitals.
 if(lin%useDerivativeBasisFunctions) &
-     call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
+     call initializeRepartitionOrbitals(iproc, nproc, tag, lin%orbs, lin%lb%orbs, lin%lzd, lin%lb%comrp)
 
 ! Restart array for the basis functions (only needed if we use the derivative basis functions).
 allocate(lin%lphiRestart(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
@@ -312,21 +369,24 @@ iall=-product(shape(atomNames))*kind(atomNames)
 deallocate(atomNames, stat=istat)
 call memocc(istat, iall, 'atomNames', subname)
 
+iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
+deallocate(norbsPerLocreg, stat=istat)
+call memocc(istat, iall, 'norbsPerLocreg', subname)
 iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
 deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
-if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing input guess... '
-call timing(iproc,'init_inguess  ','ON')
-t1=mpi_wtime()
-call initInputguessConfinement(iproc, nproc, at, Glr, input,hx, hy, hz, lin, lin%lig, rxyz, nscatterarr, tag)
-t2=mpi_wtime()
-call timing(iproc,'init_inguess  ','OF')
-if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
+!!if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing input guess... '
+!!call timing(iproc,'init_inguess  ','ON')
+!!t1=mpi_wtime()
+!!call initInputguessConfinement(iproc, nproc, at, Glr, input,hx, hy, hz, lin, lin%lig, rxyz, nscatterarr, tag)
+!!t2=mpi_wtime()
+!!call timing(iproc,'init_inguess  ','OF')
+!!if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 
-! Estimate the memory requirements.
-call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
+!!! Estimate the memory requirements.
+!!call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 
 
 if(iproc==0) write(*,'(1x,a)',advance='no') 'Initializing matrix compression... '
@@ -383,17 +443,17 @@ do iorb=1,lin%orbs%norb
     end do
 end do
 
-! not ideal place here for this...
-if(lin%orbs%norb/=lin%lig%orbsig%norb) then
-    write(*,*) 'ERROR: lin%orbs%norb/=lin%lig%orbsig%norb not implemented!'
-    stop
-end if
-allocate(lin%lig%lzdig%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
-call memocc(istat, lin%lig%lzdig%cutoffweight, 'lin%lig%lzdig%cutoffweight', subname)
-allocate(lin%lig%lzdGauss%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
-call memocc(istat, lin%lig%lzdGauss%cutoffweight, 'lin%lig%lzdGauss%cutoffweight', subname)
-call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdig%cutoffweight, 1)
-call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdGauss%cutoffweight, 1)
+!!! not ideal place here for this...
+!!if(lin%orbs%norb/=lin%lig%orbsig%norb) then
+!!    write(*,*) 'ERROR: lin%orbs%norb/=lin%lig%orbsig%norb not implemented!'
+!!    stop
+!!end if
+!!allocate(lin%lig%lzdig%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
+!!call memocc(istat, lin%lig%lzdig%cutoffweight, 'lin%lig%lzdig%cutoffweight', subname)
+!!allocate(lin%lig%lzdGauss%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
+!!call memocc(istat, lin%lig%lzdGauss%cutoffweight, 'lin%lig%lzdGauss%cutoffweight', subname)
+!!call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdig%cutoffweight, 1)
+!!call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdGauss%cutoffweight, 1)
 
 
 
@@ -406,6 +466,11 @@ call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdGauss%cutoffwei
 !!    call plotGrid(iproc, nproc, lin%lb%orbs%norb, lin%orbs%nspinor, input%nspin, iiorb, lin%lzd%llr(ilr), &
 !!    lin%lzd%glr, at, rxyz, hx, hy, hz)
 !!end do
+
+
+iall=-product(shape(locregCenter))*kind(locregCenter)
+deallocate(locregCenter, stat=istat)
+call memocc(istat, iall, 'locregCenter', subname)
 
 
 end subroutine allocateAndInitializeLinear
@@ -1633,6 +1698,7 @@ subroutine allocateBasicArraysInputLin(at, lin)
   implicit none
   
   ! Calling arguments
+  integer:: nlr
   type(atoms_data),intent(inout):: at
   type(linearInputParameters),intent(inout):: lin
   
@@ -1652,8 +1718,8 @@ subroutine allocateBasicArraysInputLin(at, lin)
   allocate(lin%potentialPrefac_highaccuracy(at%ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
 
-  allocate(lin%locrad(at%nat),stat=istat)
-  call memocc(istat,lin%locrad,'lin%locrad',subname)
+  !!allocate(lin%locrad(nlr),stat=istat)
+  !!call memocc(istat,lin%locrad,'lin%locrad',subname)
 
   allocate(at%rloc(at%ntypes,3), stat=istat)
   call memocc(istat, at%rloc, 'at%rloc', subname)
@@ -1730,15 +1796,15 @@ end subroutine deallocateBasicArraysInput
 !> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
 !! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
 !subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
-subroutine initLocregs(iproc, nproc, nat, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
+subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => initLocregs
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nat
-real(8),dimension(3,nat),intent(in):: rxyz
+integer,intent(in):: iproc, nproc, nlr
+real(8),dimension(3,nlr),intent(in):: rxyz
 real(8),intent(in):: hx, hy, hz
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(inout):: orbs
@@ -1928,180 +1994,180 @@ end subroutine initCoefficients
 
 
 
-subroutine estimateMemory(iproc, nproc, nat, lin, nscatterarr)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc, nat
-type(linearParameters),intent(in):: lin
-integer,dimension(0:nproc-1,4),intent(in):: nscatterarr
-
-! Local variables
-integer,parameter:: nsection=5, narray=12
-integer,dimension(narray):: mem
-logical,dimension(nsection,narray):: loc
-integer:: mempeak, peaksection, isection, iarray, megabytes, memtot, iorb, ilr, ii, iimax
-character(len=100),dimension(nsection):: section
-
-if(iproc==0) then
-    write(*,'(1x,a)') '################################# Memory estimator ##################################'
-    write(*,'(1x,a)') 'WARNING: The memory requirements are underestimated by about 20-30%!'
-    write(*,'(1x,a)') 'Memory requirements of the largest arrays:'
-
-    ! For all large arrays determine the memory the occupy and in which code segment they are allcoated.
-    ! There are .. segments:
-    section(1)='Optimization of the basis functions'
-    section(2)='Calculation of the charge density'
-    section(3)='Calculate the derivative basis functions'
-    section(4)='Calculation the Hamiltonian matrix'
-    section(5)='Input guess'
-
-    ! the trace minimizing orbitals:
-    mem(1)=8*max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)
-    loc(1,1)=.true.
-    loc(2,1)=.true.
-    loc(3,1)=.true.
-    loc(4,1)=.true.
-    loc(5,1)=.true.
-    write(*,'(3x,a,i0,a)') 'trace minimizing orbitals phi: ',megabytes(mem(1)),'MB'
-
-    ! DIIS history of the trace minimizing orbitals
-    mem(2)=8*max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)*lin%DIISHistMax
-    loc(1,2)=.true.
-    loc(2,2)=.false.
-    loc(3,2)=.false.
-    loc(4,2)=.false.
-    loc(5,2)=.false.
-    write(*,'(3x,a,i0,a)') 'DIIS history of the trace minimizing orbitals phi: ',megabytes(mem(2)),'MB'
-
-
-    ! The Hamiltonian applied to the orbital, i.e. hphi
-    mem(3)=8**max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)*lin%DIISHistMax
-    loc(1,3)=.false.
-    loc(2,3)=.false.
-    loc(3,3)=.false.
-    loc(4,3)=.true.
-    loc(5,3)=.false.
-    write(*,'(3x,a,i0,a)') 'The Hamiltonian applied to the orbital, i.e. hphi: ',megabytes(mem(3)),'MB'
-
-    ! charge density / potential (including rhopotold for the mixing or the partial density for the
-    ! input guess, therefore times 2)
-    mem(4)=8*2*lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-    loc(1,4)=.true.
-    loc(2,4)=.true.
-    loc(3,4)=.true.
-    loc(4,4)=.true.
-    loc(5,4)=.true.
-    write(*,'(3x,a,i0,a)') 'charge density / potential: ',megabytes(mem(4)),'MB'
-
-    ! send / receive buffers for the charge density
-    mem(5)=8*(lin%comsr%nrecvBuf+lin%comsr%nsendBuf)
-    loc(1,5)=.false.
-    loc(2,5)=.true.
-    loc(3,5)=.false.
-    loc(4,5)=.true.
-    loc(5,5)=.false.
-    write(*,'(3x,a,i0,a)') 'communication buffers sumrho: ',megabytes(mem(5)),'MB'
-
-    ! send / receive buffers for the potential (used for the Hamiltonian application)
-    mem(6)=8*lin%comgp%nrecvBuf
-    loc(1,6)=.true.
-    loc(2,6)=.true.
-    loc(3,6)=.false.
-    loc(4,6)=.true.
-    loc(5,6)=.false.
-    write(*,'(3x,a,i0,a)') 'communication buffers for gathering the potential: ',megabytes(mem(6)),'MB'
-
-    ! send / receive buffers for the orthonormalization
-    mem(7)=8*(lin%comon%nrecvBuf+lin%comon%nsendBuf+lin%op%ndim_lphiovrlp)
-    loc(1,7)=.true.
-    loc(2,7)=.false.
-    loc(3,7)=.false.
-    loc(4,7)=.false.
-    loc(5,7)=.false.
-    write(*,'(3x,a,i0,a)') 'communication buffers / workk arrays for orthonormalization: ',megabytes(mem(7)),'MB'
-
-    ! auxiliary arrays for the orthonormalization (integer arrays)
-    mem(8)=4*(lin%comon%nrecvBuf+lin%comon%nsendBuf)
-    loc(1,8)=.true.
-    loc(2,8)=.false.
-    loc(3,8)=.false.
-    loc(4,8)=.false.
-    loc(5,8)=.false.
-    write(*,'(3x,a,i0,a)') 'auxilliary arrays for orthonormalization: ',megabytes(mem(8)),'MB'
-
-    ! full potential need for one localization region during Hamiltonian application and
-    ! one orbital in real space (same size)
-    iimax=0
-    do iorb=1,lin%orbs%norbp
-        !ilr=lin%orbs%inWhichLocregp(iorb)
-        ilr=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
-        ii=lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
-        if(ii>iimax) iimax=ii
-    end do
-    mem(9)=8*2*iimax
-    loc(1,9)=.true.
-    loc(2,9)=.false.
-    loc(3,9)=.false.
-    loc(4,9)=.true.
-    loc(5,9)=.false.
-    write(*,'(3x,a,i0,a)') 'potential / orbital in real space (Hamiltonian application): ',megabytes(mem(9)),'MB'
-
-    ! Input guess: atomic orbitals (larger cutoff), atomic orbitals (smaller cutoff), hphi for all atoms
-    mem(10)=8*( lin%lig%orbsGauss%npsidim_comp + lin%lig%orbsig%npsidim_comp + lin%lig%orbsig%npsidim_comp*nat)
-    loc(1,10)=.false.
-    loc(2,10)=.false.
-    loc(3,10)=.false.
-    loc(4,10)=.false.
-    loc(5,10)=.true.
-    write(*,'(3x,a,i0,a)') 'input guess, all orbitals: ',megabytes(mem(10)),'MB'
-
-    ! Input guess: Buffers for the orthonormalization communication (8 for double precicion arrays
-    ! and 4 for single precision arrays -> factor 12)
-    mem(11)=12*( lin%lig%comon%nrecvBuf + lin%lig%comon%nsendBuf) + 8*lin%lig%op%ndim_lphiovrlp
-    loc(1,11)=.false.
-    loc(2,11)=.false.
-    loc(3,11)=.false.
-    loc(4,11)=.false.
-    loc(5,11)=.true.
-    write(*,'(3x,a,i0,a)') 'input guess, communication buffers and auxilliary arrays for orthonormalization : ', &
-         megabytes(mem(11)),'MB'
-
-    ! Input guess: Buffers for the communicatin the potential
-    mem(12)=8*lin%lig%comgp%nrecvBuf
-    loc(1,12)=.false.
-    loc(2,12)=.false.
-    loc(3,12)=.false.
-    loc(4,12)=.false.
-    loc(5,12)=.true.
-    write(*,'(3x,a,i0,a)') 'input guess, communication buffers for gathering the potential: ',megabytes(mem(12)),'MB'
-
-
-    ! Calculate the memory peak
-    mempeak=0
-    do isection=1,nsection
-        memtot=0
-        do iarray=1,narray
-            if(loc(isection,iarray)) then
-                memtot=memtot+mem(iarray)
-            end if
-        end do
-        if(memtot>mempeak) then
-            mempeak=memtot
-            peaksection=isection
-        end if
-    end do
-    write(*,'(1x,a,i0,a)') '>>> estimated memory peak: ',megabytes(mempeak),'MB'
-    write(*,'(1x,a,a)') '>>> peak section: ',trim(section(peaksection))
-
-    write(*,'(1x,a)') '#####################################################################################'
-
-end if
-
-
-end subroutine estimateMemory
+!!!!subroutine estimateMemory(iproc, nproc, nat, lin, nscatterarr)
+!!!!use module_base
+!!!!use module_types
+!!!!implicit none
+!!!!
+!!!!! Calling arguments
+!!!!integer,intent(in):: iproc, nproc, nat
+!!!!type(linearParameters),intent(in):: lin
+!!!!integer,dimension(0:nproc-1,4),intent(in):: nscatterarr
+!!!!
+!!!!! Local variables
+!!!!integer,parameter:: nsection=5, narray=12
+!!!!integer,dimension(narray):: mem
+!!!!logical,dimension(nsection,narray):: loc
+!!!!integer:: mempeak, peaksection, isection, iarray, megabytes, memtot, iorb, ilr, ii, iimax
+!!!!character(len=100),dimension(nsection):: section
+!!!!
+!!!!if(iproc==0) then
+!!!!    write(*,'(1x,a)') '################################# Memory estimator ##################################'
+!!!!    write(*,'(1x,a)') 'WARNING: The memory requirements are underestimated by about 20-30%!'
+!!!!    write(*,'(1x,a)') 'Memory requirements of the largest arrays:'
+!!!!
+!!!!    ! For all large arrays determine the memory the occupy and in which code segment they are allcoated.
+!!!!    ! There are .. segments:
+!!!!    section(1)='Optimization of the basis functions'
+!!!!    section(2)='Calculation of the charge density'
+!!!!    section(3)='Calculate the derivative basis functions'
+!!!!    section(4)='Calculation the Hamiltonian matrix'
+!!!!    section(5)='Input guess'
+!!!!
+!!!!    ! the trace minimizing orbitals:
+!!!!    mem(1)=8*max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)
+!!!!    loc(1,1)=.true.
+!!!!    loc(2,1)=.true.
+!!!!    loc(3,1)=.true.
+!!!!    loc(4,1)=.true.
+!!!!    loc(5,1)=.true.
+!!!!    write(*,'(3x,a,i0,a)') 'trace minimizing orbitals phi: ',megabytes(mem(1)),'MB'
+!!!!
+!!!!    ! DIIS history of the trace minimizing orbitals
+!!!!    mem(2)=8*max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)*lin%DIISHistMax
+!!!!    loc(1,2)=.true.
+!!!!    loc(2,2)=.false.
+!!!!    loc(3,2)=.false.
+!!!!    loc(4,2)=.false.
+!!!!    loc(5,2)=.false.
+!!!!    write(*,'(3x,a,i0,a)') 'DIIS history of the trace minimizing orbitals phi: ',megabytes(mem(2)),'MB'
+!!!!
+!!!!
+!!!!    ! The Hamiltonian applied to the orbital, i.e. hphi
+!!!!    mem(3)=8**max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)*lin%DIISHistMax
+!!!!    loc(1,3)=.false.
+!!!!    loc(2,3)=.false.
+!!!!    loc(3,3)=.false.
+!!!!    loc(4,3)=.true.
+!!!!    loc(5,3)=.false.
+!!!!    write(*,'(3x,a,i0,a)') 'The Hamiltonian applied to the orbital, i.e. hphi: ',megabytes(mem(3)),'MB'
+!!!!
+!!!!    ! charge density / potential (including rhopotold for the mixing or the partial density for the
+!!!!    ! input guess, therefore times 2)
+!!!!    mem(4)=8*2*lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+!!!!    loc(1,4)=.true.
+!!!!    loc(2,4)=.true.
+!!!!    loc(3,4)=.true.
+!!!!    loc(4,4)=.true.
+!!!!    loc(5,4)=.true.
+!!!!    write(*,'(3x,a,i0,a)') 'charge density / potential: ',megabytes(mem(4)),'MB'
+!!!!
+!!!!    ! send / receive buffers for the charge density
+!!!!    mem(5)=8*(lin%comsr%nrecvBuf+lin%comsr%nsendBuf)
+!!!!    loc(1,5)=.false.
+!!!!    loc(2,5)=.true.
+!!!!    loc(3,5)=.false.
+!!!!    loc(4,5)=.true.
+!!!!    loc(5,5)=.false.
+!!!!    write(*,'(3x,a,i0,a)') 'communication buffers sumrho: ',megabytes(mem(5)),'MB'
+!!!!
+!!!!    ! send / receive buffers for the potential (used for the Hamiltonian application)
+!!!!    mem(6)=8*lin%comgp%nrecvBuf
+!!!!    loc(1,6)=.true.
+!!!!    loc(2,6)=.true.
+!!!!    loc(3,6)=.false.
+!!!!    loc(4,6)=.true.
+!!!!    loc(5,6)=.false.
+!!!!    write(*,'(3x,a,i0,a)') 'communication buffers for gathering the potential: ',megabytes(mem(6)),'MB'
+!!!!
+!!!!    ! send / receive buffers for the orthonormalization
+!!!!    mem(7)=8*(lin%comon%nrecvBuf+lin%comon%nsendBuf+lin%op%ndim_lphiovrlp)
+!!!!    loc(1,7)=.true.
+!!!!    loc(2,7)=.false.
+!!!!    loc(3,7)=.false.
+!!!!    loc(4,7)=.false.
+!!!!    loc(5,7)=.false.
+!!!!    write(*,'(3x,a,i0,a)') 'communication buffers / workk arrays for orthonormalization: ',megabytes(mem(7)),'MB'
+!!!!
+!!!!    ! auxiliary arrays for the orthonormalization (integer arrays)
+!!!!    mem(8)=4*(lin%comon%nrecvBuf+lin%comon%nsendBuf)
+!!!!    loc(1,8)=.true.
+!!!!    loc(2,8)=.false.
+!!!!    loc(3,8)=.false.
+!!!!    loc(4,8)=.false.
+!!!!    loc(5,8)=.false.
+!!!!    write(*,'(3x,a,i0,a)') 'auxilliary arrays for orthonormalization: ',megabytes(mem(8)),'MB'
+!!!!
+!!!!    ! full potential need for one localization region during Hamiltonian application and
+!!!!    ! one orbital in real space (same size)
+!!!!    iimax=0
+!!!!    do iorb=1,lin%orbs%norbp
+!!!!        !ilr=lin%orbs%inWhichLocregp(iorb)
+!!!!        ilr=lin%orbs%inWhichLocreg(lin%orbs%isorb+iorb)
+!!!!        ii=lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
+!!!!        if(ii>iimax) iimax=ii
+!!!!    end do
+!!!!    mem(9)=8*2*iimax
+!!!!    loc(1,9)=.true.
+!!!!    loc(2,9)=.false.
+!!!!    loc(3,9)=.false.
+!!!!    loc(4,9)=.true.
+!!!!    loc(5,9)=.false.
+!!!!    write(*,'(3x,a,i0,a)') 'potential / orbital in real space (Hamiltonian application): ',megabytes(mem(9)),'MB'
+!!!!
+!!!!    ! Input guess: atomic orbitals (larger cutoff), atomic orbitals (smaller cutoff), hphi for all atoms
+!!!!    mem(10)=8*( lin%lig%orbsGauss%npsidim_comp + lin%lig%orbsig%npsidim_comp + lin%lig%orbsig%npsidim_comp*nat)
+!!!!    loc(1,10)=.false.
+!!!!    loc(2,10)=.false.
+!!!!    loc(3,10)=.false.
+!!!!    loc(4,10)=.false.
+!!!!    loc(5,10)=.true.
+!!!!    write(*,'(3x,a,i0,a)') 'input guess, all orbitals: ',megabytes(mem(10)),'MB'
+!!!!
+!!!!    ! Input guess: Buffers for the orthonormalization communication (8 for double precicion arrays
+!!!!    ! and 4 for single precision arrays -> factor 12)
+!!!!    mem(11)=12*( lin%lig%comon%nrecvBuf + lin%lig%comon%nsendBuf) + 8*lin%lig%op%ndim_lphiovrlp
+!!!!    loc(1,11)=.false.
+!!!!    loc(2,11)=.false.
+!!!!    loc(3,11)=.false.
+!!!!    loc(4,11)=.false.
+!!!!    loc(5,11)=.true.
+!!!!    write(*,'(3x,a,i0,a)') 'input guess, communication buffers and auxilliary arrays for orthonormalization : ', &
+!!!!         megabytes(mem(11)),'MB'
+!!!!
+!!!!    ! Input guess: Buffers for the communicatin the potential
+!!!!    mem(12)=8*lin%lig%comgp%nrecvBuf
+!!!!    loc(1,12)=.false.
+!!!!    loc(2,12)=.false.
+!!!!    loc(3,12)=.false.
+!!!!    loc(4,12)=.false.
+!!!!    loc(5,12)=.true.
+!!!!    write(*,'(3x,a,i0,a)') 'input guess, communication buffers for gathering the potential: ',megabytes(mem(12)),'MB'
+!!!!
+!!!!
+!!!!    ! Calculate the memory peak
+!!!!    mempeak=0
+!!!!    do isection=1,nsection
+!!!!        memtot=0
+!!!!        do iarray=1,narray
+!!!!            if(loc(isection,iarray)) then
+!!!!                memtot=memtot+mem(iarray)
+!!!!            end if
+!!!!        end do
+!!!!        if(memtot>mempeak) then
+!!!!            mempeak=memtot
+!!!!            peaksection=isection
+!!!!        end if
+!!!!    end do
+!!!!    write(*,'(1x,a,i0,a)') '>>> estimated memory peak: ',megabytes(mempeak),'MB'
+!!!!    write(*,'(1x,a,a)') '>>> peak section: ',trim(section(peaksection))
+!!!!
+!!!!    write(*,'(1x,a)') '#####################################################################################'
+!!!!
+!!!!end if
+!!!!
+!!!!
+!!!!end subroutine estimateMemory
 
 
 function megabytes(bytes)
@@ -2220,8 +2286,8 @@ subroutine initMatrixCompression(iproc, nproc, nlr, orbs, noverlaps, overlaps, m
               jjorb=overlaps(jorb,iiorb)+ijorb
               !jjorb=overlaps(jorb,ilr)+ijorb
               ! Entry (iiorb,jjorb) is not zero.
-              if(iproc==0) write(300,'(a,8i12)') 'nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb',&
-                            nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb
+              !!if(iproc==0) write(300,'(a,8i12)') 'nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb',&
+              !!              nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb
               if(jjorb==jjorbold+1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
                   mad%keyv(nseg)=mad%keyv(nseg)+1
@@ -2856,7 +2922,7 @@ subroutine initCompressedMatmul3(norb, mad)
   mat1=0.d0
   mat2=0.d0
   do iseg=1,mad%nseg
-      if(iproc==0) write(200,'(a,3i12)') 'iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)', iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)
+      !if(iproc==0) write(200,'(a,3i12)') 'iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)', iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)
       do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
           ! the localization region is "symmetric"
           mat1(i)=1.d0
@@ -4058,18 +4124,18 @@ end subroutine initCollectiveComms
 
 
 
-subroutine copy_linearInputParameters_to_linearParameters(ntypes, nat, input, lin)
+subroutine copy_linearInputParameters_to_linearParameters(ntypes, nlr, input, lin)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: ntypes, nat
+  integer,intent(in):: ntypes, nlr
   type(input_variables),intent(in):: input
   type(linearParameters),intent(out):: lin
 
   ! Local variables
-  integer:: itype, iat
+  integer:: itype, ilr
 
   lin%nit_lowaccuracy = input%lin%nit_lowaccuracy
   lin%nit_highaccuracy = input%lin%nit_highaccuracy
@@ -4121,8 +4187,8 @@ subroutine copy_linearInputParameters_to_linearParameters(ntypes, nat, input, li
   lin%potentialPrefac=-1.d0
 
   ! Assign the localization radius to each atom.
-  do iat=1,nat
-      lin%locrad(iat) = input%lin%locrad(iat)
+  do ilr=1,nlr
+      lin%locrad(ilr) = input%lin%locrad(ilr)
   end do
   
 end subroutine copy_linearInputParameters_to_linearParameters

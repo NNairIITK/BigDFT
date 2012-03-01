@@ -1,0 +1,1543 @@
+                             TTTT         F       DDDDD    
+                            T    T               D         
+                           T     T        F     D          
+                           T    T         F     D        D 
+                           TTTTT          F     D         D
+                           T    T         F     D         D
+                           T     T        F     D         D
+                           T      T       F     D         D
+                           T     T     FFFF     D         D
+                           T TTTT         F      D        D
+                           T             F        D      D 
+                       TTTTTTTTT    FFFFF          DDDDDD  
+                         gggggg          iiiii    BBBBBBBBB
+                        g      g        i             B    
+                       g        g      i         BBBB B    
+                       g         g     iiii     B     B    
+                       g         g     i       B      B    
+                       g         g     i        B     B    
+                       g         g     i         B    B    
+                       g         g     i          BBBBB    
+                        g        g     i         B    B    
+                                 g     i        B     B    
+                                g               B    B     
+                           ggggg       i         BBBB                (Ver 1.6-dev.21)
+ ------------------------------------------------------------------------------------
+ |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
+ ------------------------------------------------------------------------------------
+                                   The Journal of Chemical Physics 129, 014109 (2008)
+ 
+ |... (file:withunitarynew.perf)..................................Performance Options
+ |debug F                    Debug option
+ |fftcache 8192              Cache size for the FFT
+ |accel NO                   Acceleration (NO, CUDAGPU, OCLGPU)
+ |blas F                     CUBLAS acceleration
+ |projrad  1.50E+01          Radius of the projector as a function of the maxrad
+ |exctxpar OP2P              Exact exchange parallelisation scheme
+ |ig_diag T                  Input guess: (T:Direct, F:Iterative) diag. of Ham.
+ |ig_norbp 5                 Input guess: Orbitals per process for iterative diag.
+ |ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
+ |ig_tol  1.00E-04           Input guess: Tolerance criterion
+ |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+ |rho_commun DBL             Density communication scheme
+ |unblock_comms OFF          Overlap Communications of fields (OFF,DEN,POT)
+ |linear OFF                 Linear Input Guess approach
+ |verbosity 2                verbosity of the output 0=low, 2=high
+ |psp_onfly F                Calculate pseudopotential projectors on the fly
+ |... (file:withunitarynew.dft)............................DFT Calculation Parameters
+ |0.50 0.50 0.50  hx,hy,hz: grid spacing in the three directions                     
+ |5.0  5.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+ |1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                  
+ |0 0.0 0.0 0.0  charge of the system, Electric field (Ex,Ey,Ez)                     
+ |1  0           nspin=1 non-spin polarization, mpol=total magnetic moment           
+ |1.E-05         gnrm_cv: convergence criterion gradient                             
+ |100 1          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs     
+ |5  10          ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history 
+ |0              dispersion correction potential (values 1,2,3), 0=none              
+ |100  0         InputPsiId, output_wf, output_denspot                               
+ |0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations          
+ |0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs           
+ |T              disable the symmetry detection                                      
+ |... (file:withunitarynew.mix.. not present)......................Mixing Parameters 
+ |0              Mixing parameters                                                   
+ |1              Maximum number of diagonalisation iterations                        
+ |1.e-4          Stop criterion on the residue of potential or density               
+ |0 0.0 1        No. of additional bands, elec. temperature, smearing method         
+ |0.0 2.0        Multiplying factors for the mixing and the electronic DIIS          
+ |... (file:withunitarynew.geopt.. not present)..................Geometry Parameters 
+ |BFGS           Geometry optimisation method                                        
+ |1              Maximum number of force evaluations                                 
+ |1.0 0.0        fract_fluct,forcemax                                                
+ |0.0            random displacement amplitude                                       
+ |4.0            Stepsize for the geometry optimisation                              
+ |... (file:withunitarynew.tddft.. not present)....................TD-DFT Parameters 
+ |NONE           TDDFT Method                                                        
+ |... (file:withunitarynew.sic.. not present).........................SIC Parameters 
+ |NONE           SIC method: NONE, PZ, NK                                            
+ |0.0            SIC downscaling parameter                                           
+ |0.0            Reference occupation fref (NK case only)                            
+ |... (file:withunitarynew.kpt.. not present).....Brillouin Zone Sampling Parameters 
+ |manual         K-point sampling method                                             
+ |1              Number of K-points                                                  
+ |0. 0. 0. 1.    K-pt coords, K-pt weigth                                            
+ |----------------------------------------------------------------------------------
+ |  Data Writing directory:    data-withunitarynew/
+ --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
+   Atomic system                  Fixed positions           Additional data
+ Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
+ N. types =     2         |                          | Sp. group = free BC     
+ N. atoms =     8         |                          | Virt. orb.= none        
+ Types    = 'C', 'H'      |                          | Plot dens.= none        
+                          |                          | Spin pol. = no          
+ --- (file: input.geopt) ------------------------------------- Geopt Input Parameters
+       Generic param.              Geo. optim.                MD param.
+       Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
+        algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
+ random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
+ 
+ Number of MPI processes 8
+ MPI process does not use OpenMP
+ No material acceleration (iproc=0)
+ 
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 100
+ --- (file: input.dft) --------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+   Max. hgrid=  0.500 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-05 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 5.00 | Max. N. Iter.=  100x 1 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       5 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=      10
+   Input wf. policy=  100 (Error         ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
+ Exchange-corr. ref.                                                   (XC: Teter 93)
+                                                    XC functional provided by ABINIT.
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      C          4       3            1.58437  0.23268  0.91366         X              
+      H          1       3            1.46342  0.20000  0.00000         X              
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        C   0.34883  -8.51377   1.22843
+     l=0      rl        h1j       h2j       h3j 
+            0.30455   9.52284
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.18024   0.72508
+ Total Number of Electrons       14
+ Processes from 0 to 6 treat 1 orbitals 
+ Processes from 7 to 7 treat 0 orbitals 
+ Total Number of Orbitals         7
+ occup(1:7)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      C  8.79800E+00  1.00107E+01  8.90948E+00       17.596    20.021    17.819
+     2      C  1.12020E+01  8.48935E+00  9.09049E+00       22.404    16.979    18.181
+     3      H  7.11371E+00  8.79189E+00  8.94033E+00       14.227    17.584    17.881
+     4      H  8.61600E+00  1.13499E+01  1.04896E+01       17.232    22.700    20.979
+     5      H  8.72209E+00  1.11202E+01  7.15254E+00       17.444    22.240    14.305
+     6      H  1.13839E+01  7.15007E+00  7.51039E+00       22.768    14.300    15.021
+     7      H  1.12780E+01  7.37993E+00  1.08475E+01       22.556    14.760    21.695
+     8      H  1.28863E+01  9.70815E+00  9.05953E+00       25.773    19.416    18.119
+    Shift of=  2.25019E+00  7.15348E+00  7.14546E+00 H grids=  0.5000  0.5000  0.5000
+   Box Sizes=  2.00000E+01  1.85000E+01  1.80000E+01           40        37        36
+       Extremes for the high resolution grid points:        13<27     13<24     13<23
+ wavelet localization is ON
+ ------------------------------------------------------------ Poisson Kernel Creation
+ Calculating Poisson solver kernel, free BC...done.
+ Memory occ. per proc. (Bytes):  Density=1354752  Kernel=1341536
+                                 Full Grid Arrays=9603720
+ Load Balancing for Poisson Solver related operations:
+ LB_density        : processors   0  -  6 work at 100%
+                     processor         7   works at    50%
+  LB_kernel        : processors   0  -  6 work at 100%
+                     processor         7   works at    79%
+ Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=       1154 points=     28922
+   Fine resolution grid: Number of segments=        104 points=       308
+ Wavefunctions memory occupation for root MPI process:     0 MB   242 KB   816 B
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       C               2                    1
+    2       H               6                    0
+                                            ------  On-the-fly projectors application
+ Total number of projectors =                    2
+ Total number of components =                 3574
+ Percent of zero components =                    0
+ ------------------------------------------------------------------ Memory Estimation
+ Number of atoms=    8 Number of orbitals=     7 Sim. Box Dimensions=    40   37   36
+ Estimation performed for 8 processors.
+ Memory occupation for principal arrays:
+               Poisson Solver Kernel (K):     1 MB   287 KB
+              Poisson Solver Density (D):     1 MB   299 KB
+     Single Wavefunction for one orbital:     0 MB   243 KB
+    All Wavefunctions for each processor:     0 MB   729 KB
+       Wavefunctions + DIIS per proc (W):     5 MB   465 KB
+     Nonlocal Pseudopotential Arrays (P):     0 MB    28 KB
+    Arrays of full uncompressed grid (U):     9 MB   163 KB
+ Estimation of Memory requirements for principal code sections:
+  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
+       ~19*K         |   W+~3*U+~ 3*D+K+P   |   ~12*D+K+W+P  |   W+~3*U+~ 3*D+K+P 
+        24MB         |        34MB          |       22MB     |            34MB
+ The overall memory requirement needed for this calculation is thus: 34 MB
+ By reducing the DIIS history and/or increasing the number of processors the amount of
+  memory can be reduced but for this system it will never be less than 34 MB
+ WARNING: do not call check_communications in the linear scaling version!
+ ion-ion interaction energy  2.65633855517418E+01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -13.999971198860   0.000E+00
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ ************************************************************************************
+ ****************************** LINEAR SCALING VERSION ******************************
+ |... (file:withunitarynew.lin).....................................Linear Parameters
+ |2  1           iterations with low accuracy, high accuracy                         
+ |3  3           iterations to optimize the basis functions for low accuracy and high
+ |100  1.5d0  4.d-5iterations in the inner loop, enlargement factor for locreg, conve
+ |0  5  1.d0  1. DIISHistMin, DIISHistMax, step size for DIIS, step size for SD      
+ |5              number of iterations in the preconditioner                          
+ |s              cubic ('c') or spheric ('s') localization region                    
+ |-8   -         block size for pdsyev/pdsygv, pdgemm (negative -> sequential)       
+ |1  1           max number of process uses for pdsyev/pdsygv, pdgemm                
+ |0  1           0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for th
+ |1              in orthoconstraint: correction for non-orthogonality (0) or no corre
+ |dens           mixing method: dens or pot                                          
+ |0  1           low accuracy: mixing history (0-> SD, >0-> DIIS), number of iteratio
+ |0  1           high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterati
+ |0.5d0 0.5d0  1.d-13 low accuracy: mixing parameter (when optimized / not optimized)
+ |0.5d0 0.5d0    high accuracy: mixing parameter (when optimized / not optimized)    
+ |1.d-11         convergence criterion for the low accuracy part                     
+ |F  4           use the derivative basis functions, Order of confinement potential (
+ |50  100        number of iterations for the input guess, memory available for overl
+ |F              plot basis functions: true or false                                 
+ |T              transform to global orbitals in the end (T/F)                       
+ |1              number of orbitals per process for trace minimization during input g
+ |F              mixed mode (without and with derivatives)                           
+ |C  4  1.0d-1  0.d-4  5Atom name, number of basis functions per atom, prefactor for 
+ |H  1  1.0d-1  0.d-4  5Atom name, number of basis functions per atom, prefactor for 
+ Wavefunctions memory occupation for root MPI process:     0 MB   485 KB   608 B
+ Wavefunctions memory occupation for root MPI process:     0 MB   485 KB   608 B
+ Wavefunctions memory occupation for root MPI process:     0 MB   485 KB   608 B
+ Wavefunctions memory occupation for root MPI process:     0 MB   485 KB   608 B
+ ------------------------------------------------------------------------------------
+ >>>> Partition of the basis functions among the processes.
+    | Processes from 0 to 5 treat 2 orbitals, |
+    | processes from 6 to 7 treat 1 orbitals. |
+ -----------------------------------------------
+ >>>> Partition of the basis functions including the derivatives among the processes.
+    | Processes from 0 to 5 treat 2 orbitals, |
+    | processes from 6 to 7 treat 1 orbitals. |
+ ------------------------------------------------------------------------------------
+ Initializing localization regions... done in 1.477E-02s.
+ Initializing communications sumrho... done in 2.408E-05s.
+ Initializing communications potential... done in 3.219E-05s.
+ Initializing communications orthonormalization... done in 1.410E-02s.
+ Initializing matrix compression... done in 2.420E-04s.
+ ------------------------------------------------------- Input Wavefunctions Creation
+ Generating 14 Atomic Input Orbitals
+ Processes from 0 to 5 treat 2 inguess orbitals 
+ Processes from 6 to 7 treat 1 inguess orbitals 
+ Calculating AIO wavefunctions: 
+ Generation of input wavefunction data for atom      C: 
+   Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
+ Generation of input wavefunction data for atom      H: 
+   Elec. Configuration: s 1.00 , ... done.
+ Writing wavefunctions in wavelet form... done.
+ Deviation from normalization of the imported orbitals    3.84E-05
+ Calculating charge density... Calculation of charge density... done. Total electronic charge=      13.999998135210
+done.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application for all locregs. This may take some time.
+ Gathering the potential... done.
+   locreg 1...  Hamiltonian application...done.
+   locreg 2...  Hamiltonian application...done.
+   locreg 3...  Hamiltonian application...done.
+   locreg 4...  Hamiltonian application...done.
+   locreg 5...  Hamiltonian application...done.
+   locreg 6...  Hamiltonian application...done.
+   locreg 7...  Hamiltonian application...done.
+   locreg 8...  Hamiltonian application...done.
+   locreg 9...  Hamiltonian application...done.
+   locreg 10...  Hamiltonian application...done.
+   locreg 11...  Hamiltonian application...done.
+   locreg 12...  Hamiltonian application...done.
+   locreg 13...  Hamiltonian application...done.
+   locreg 14...  Hamiltonian application...done.
+The minimization is performed using 8 processes.
+ the specified memory allows to overlap 468114 iterations with communication
+ Calculating Hamiltonian matrix for all atoms. This may take some time.
+   Calculating matrix for locreg 1... done.
+   Calculating matrix for locreg 2... done.
+   Calculating matrix for locreg 3... done.
+   Calculating matrix for locreg 4... done.
+   Calculating matrix for locreg 5... done.
+   Calculating matrix for locreg 6... done.
+   Calculating matrix for locreg 7... done.
+   Calculating matrix for locreg 8... done.
+   Calculating matrix for locreg 9... done.
+   Calculating matrix for locreg 10... done.
+   Calculating matrix for locreg 11... done.
+   Calculating matrix for locreg 12... done.
+   Calculating matrix for locreg 13... done.
+   Calculating matrix for locreg 14... done.
+ communicating matrices... jj          14
+ done.
+ ------------------------------- Minimizing trace in the basis of the atomic orbitals
+The minimization is performed using 8 processes.
+ ============================== optmizing coefficients ==============================
+ ----------------------------------------------------------------------------- iter=1
+max deviation from unity, position:  1.498109E+00  4  6
+ fnrm, trace, mean alpha   4.18E+00   1.7600323718603E+01  5.00E-01
+ ----------------------------------------------------------------------------- iter=2
+max deviation from unity, position:  1.430217E-01  6  6
+ fnrm, trace, mean alpha   1.32E+00   1.6350007086142E+01  5.50E-01
+ ----------------------------------------------------------------------------- iter=3
+max deviation from unity, position:  3.825500E-02  13  13
+ fnrm, trace, mean alpha   4.90E-01   1.6197585103961E+01  6.05E-01
+ ----------------------------------------------------------------------------- iter=4
+max deviation from unity, position:  1.446764E-02  13  13
+ fnrm, trace, mean alpha   1.72E-01   1.6175505174714E+01  6.66E-01
+ ----------------------------------------------------------------------------- iter=5
+max deviation from unity, position:  7.163797E-03  1  1
+ fnrm, trace, mean alpha   5.79E-02   1.6173105802304E+01  7.32E-01
+ ----------------------------------------------------------------------------- iter=6
+max deviation from unity, position:  3.762853E-03  1  1
+ fnrm, trace, mean alpha   2.08E-02   1.6173017509963E+01  8.05E-01
+ ----------------------------------------------------------------------------- iter=7
+max deviation from unity, position:  1.881009E-03  1  14
+ fnrm, trace, mean alpha   8.63E-03   1.6173078752635E+01  8.86E-01
+ ----------------------------------------------------------------------------- iter=8
+max deviation from unity, position:  1.883791E-03  1  14
+ fnrm, trace, mean alpha   4.88E-03   1.6173113902327E+01  9.74E-01
+ ----------------------------------------------------------------------------- iter=9
+max deviation from unity, position:  1.885424E-03  1  14
+ fnrm, trace, mean alpha   3.97E-03   1.6173127616375E+01  1.07E+00
+ ---------------------------------------------------------------------------- iter=10
+max deviation from unity, position:  1.886725E-03  1  14
+ fnrm, trace, mean alpha   3.59E-03   1.6173131830299E+01  1.18E+00
+ ---------------------------------------------------------------------------- iter=11
+max deviation from unity, position:  1.887715E-03  1  14
+ fnrm, trace, mean alpha   3.29E-03   1.6173132795327E+01  1.30E+00
+ ---------------------------------------------------------------------------- iter=12
+max deviation from unity, position:  1.888511E-03  1  14
+ fnrm, trace, mean alpha   3.04E-03   1.6173133107413E+01  1.43E+00
+ ---------------------------------------------------------------------------- iter=13
+max deviation from unity, position:  1.889193E-03  1  14
+ fnrm, trace, mean alpha   2.82E-03   1.6173133235854E+01  1.57E+00
+ ---------------------------------------------------------------------------- iter=14
+max deviation from unity, position:  1.889790E-03  14  1
+ fnrm, trace, mean alpha   2.62E-03   1.6173133468335E+01  1.73E+00
+ ---------------------------------------------------------------------------- iter=15
+max deviation from unity, position:  1.890308E-03  1  14
+ fnrm, trace, mean alpha   2.46E-03   1.6173133477764E+01  1.90E+00
+ ---------------------------------------------------------------------------- iter=16
+max deviation from unity, position:  1.890763E-03  1  14
+ fnrm, trace, mean alpha   2.32E-03   1.6173133902633E+01  2.09E+00
+ ---------------------------------------------------------------------------- iter=17
+max deviation from unity, position:  1.891143E-03  1  14
+ fnrm, trace, mean alpha   2.20E-03   1.6173133305570E+01  2.30E+00
+ ---------------------------------------------------------------------------- iter=18
+max deviation from unity, position:  1.891499E-03  1  14
+ fnrm, trace, mean alpha   2.11E-03   1.6173135451417E+01  2.43E+00
+ ---------------------------------------------------------------------------- iter=19
+max deviation from unity, position:  1.891695E-03  1  14
+ fnrm, trace, mean alpha   2.16E-03   1.6173129541172E+01  1.76E+00
+ ---------------------------------------------------------------------------- iter=20
+max deviation from unity, position:  1.892134E-03  1  14
+ fnrm, trace, mean alpha   2.98E-03   1.6173141135669E+01  9.97E-01
+ ---------------------------------------------------------------------------- iter=21
+max deviation from unity, position:  1.886513E-03  1  14
+ fnrm, trace, mean alpha   3.58E-03   1.6173131655910E+01  6.61E-01
+ ---------------------------------------------------------------------------- iter=22
+max deviation from unity, position:  1.883604E-03  1  14
+ fnrm, trace, mean alpha   4.74E-03   1.6173131976180E+01  5.09E-01
+ ---------------------------------------------------------------------------- iter=23
+max deviation from unity, position:  1.878281E-03  1  14
+ fnrm, trace, mean alpha   6.36E-03   1.6173130677168E+01  4.51E-01
+ ---------------------------------------------------------------------------- iter=24
+max deviation from unity, position:  1.871803E-03  1  14
+ fnrm, trace, mean alpha   8.38E-03   1.6173129245500E+01  4.42E-01
+ ---------------------------------------------------------------------------- iter=25
+max deviation from unity, position:  1.864274E-03  1  14
+ fnrm, trace, mean alpha   1.07E-02   1.6173127950342E+01  4.59E-01
+ ---------------------------------------------------------------------------- iter=26
+max deviation from unity, position:  1.855984E-03  1  14
+ fnrm, trace, mean alpha   1.34E-02   1.6173126964122E+01  4.47E-01
+ ---------------------------------------------------------------------------- iter=27
+max deviation from unity, position:  1.847174E-03  1  14
+ fnrm, trace, mean alpha   1.62E-02   1.6173126428069E+01  4.16E-01
+ ---------------------------------------------------------------------------- iter=28
+max deviation from unity, position:  1.838030E-03  1  14
+ fnrm, trace, mean alpha   1.91E-02   1.6173126423501E+01  4.19E-01
+ ---------------------------------------------------------------------------- iter=29
+max deviation from unity, position:  1.828685E-03  1  14
+ fnrm, trace, mean alpha   2.21E-02   1.6173126998549E+01  4.42E-01
+ ---------------------------------------------------------------------------- iter=30
+max deviation from unity, position:  1.819231E-03  1  14
+ fnrm, trace, mean alpha   2.52E-02   1.6173128170424E+01  4.76E-01
+ ---------------------------------------------------------------------------- iter=31
+max deviation from unity, position:  1.809731E-03  1  14
+ fnrm, trace, mean alpha   2.83E-02   1.6173129940331E+01  5.19E-01
+ ---------------------------------------------------------------------------- iter=32
+max deviation from unity, position:  1.800221E-03  14  1
+ fnrm, trace, mean alpha   3.14E-02   1.6173132299958E+01  5.69E-01
+ ---------------------------------------------------------------------------- iter=33
+max deviation from unity, position:  1.790750E-03  1  14
+ fnrm, trace, mean alpha   3.44E-02   1.6173135234960E+01  6.25E-01
+ ---------------------------------------------------------------------------- iter=34
+max deviation from unity, position:  1.781333E-03  1  14
+ fnrm, trace, mean alpha   3.75E-02   1.6173138724881E+01  6.86E-01
+ ---------------------------------------------------------------------------- iter=35
+max deviation from unity, position:  1.771976E-03  1  14
+ fnrm, trace, mean alpha   4.06E-02   1.6173142755542E+01  7.55E-01
+ ---------------------------------------------------------------------------- iter=36
+max deviation from unity, position:  1.762682E-03  1  14
+ fnrm, trace, mean alpha   4.36E-02   1.6173147315260E+01  8.30E-01
+ ---------------------------------------------------------------------------- iter=37
+max deviation from unity, position:  1.753454E-03  1  14
+ fnrm, trace, mean alpha   4.66E-02   1.6173152387610E+01  9.13E-01
+ ---------------------------------------------------------------------------- iter=38
+max deviation from unity, position:  1.744293E-03  1  14
+ fnrm, trace, mean alpha   4.96E-02   1.6173157966391E+01  1.00E+00
+ ---------------------------------------------------------------------------- iter=39
+max deviation from unity, position:  1.735204E-03  1  14
+ fnrm, trace, mean alpha   5.25E-02   1.6173164015224E+01  1.11E+00
+ ---------------------------------------------------------------------------- iter=40
+max deviation from unity, position:  1.726187E-03  1  14
+ fnrm, trace, mean alpha   5.55E-02   1.6173170594443E+01  1.22E+00
+ ---------------------------------------------------------------------------- iter=41
+max deviation from unity, position:  1.717248E-03  1  14
+ fnrm, trace, mean alpha   5.84E-02   1.6173177395156E+01  9.73E-01
+ ---------------------------------------------------------------------------- iter=42
+max deviation from unity, position:  1.708387E-03  1  14
+ fnrm, trace, mean alpha   6.13E-02   1.6173185678161E+01  4.87E-01
+ ---------------------------------------------------------------------------- iter=43
+max deviation from unity, position:  1.699626E-03  1  14
+ fnrm, trace, mean alpha   6.43E-02   1.6173191548567E+01  2.44E-01
+ ---------------------------------------------------------------------------- iter=44
+max deviation from unity, position:  1.690726E-03  1  14
+ fnrm, trace, mean alpha   6.72E-02   1.6173201677153E+01  1.23E-01
+ ---------------------------------------------------------------------------- iter=45
+max deviation from unity, position:  1.682030E-03  1  14
+ fnrm, trace, mean alpha   7.01E-02   1.6173209899514E+01  6.25E-02
+ ---------------------------------------------------------------------------- iter=46
+max deviation from unity, position:  1.673348E-03  1  14
+ fnrm, trace, mean alpha   7.30E-02   1.6173218862815E+01  3.23E-02
+ ---------------------------------------------------------------------------- iter=47
+max deviation from unity, position:  1.664742E-03  1  14
+ fnrm, trace, mean alpha   7.59E-02   1.6173228225670E+01  1.73E-02
+ ---------------------------------------------------------------------------- iter=48
+max deviation from unity, position:  1.656222E-03  1  14
+ fnrm, trace, mean alpha   7.88E-02   1.6173237942656E+01  9.93E-03
+ ---------------------------------------------------------------------------- iter=49
+max deviation from unity, position:  1.647805E-03  1  14
+ fnrm, trace, mean alpha   8.17E-02   1.6173247985921E+01  6.37E-03
+ ---------------------------------------------------------------------------- iter=50
+max deviation from unity, position:  1.639507E-03  1  14
+ fnrm, trace, mean alpha   8.46E-02   1.6173258326826E+01  4.73E-03
+ WARNING: not converged within 50 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, trace:   8.4574522E-02  1.6173258E+01
+ ====================================================================================
+ ------------------------------------------------------------- Input guess generated.
+ Posting sends / receives for communicating the potential... done.
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-7.21506E-01
+   eval(2)=-5.81182E-01
+   eval(3)=-4.19503E-01
+   eval(4)=-4.18648E-01
+   eval(5)=-4.03284E-01
+   eval(6)=-3.10659E-01
+   eval(7)=-3.09330E-01  <-- last occupied orbital
+   eval(8)= 2.77396E-01  <-- first virtual orbital
+   eval(9)= 3.57584E-01
+   eval(10)= 3.58879E-01
+   eval(11)= 4.63126E-01
+   eval(12)= 4.64340E-01
+   eval(13)= 5.69816E-01
+   eval(14)= 5.80487E-01
+ -------------------------------------------------
+ Posting sends / receives for communicating the potential... done.
+ ======================== Creation of the basis functions... ========================
+ Gathering the potential... done.
+ Gathering the potential... done.
+ ----------------------------------------------------------------------------- iter=1
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ iter, fnrm, fnrmMax, trace     1  3.9950129E+00  5.6957338E+00    15.8275615081
+ DIIS informations: history length=5, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=2
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ iter, fnrm, fnrmMax, trace     2  2.7124517E+00  3.9913228E+00     7.7328819442
+ DIIS informations: history length=5, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=3
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ iter, fnrm, fnrmMax, trace     3  9.2143927E-01  1.5731176E+00     4.6730738921
+ WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   9.2143927E-01  1.5731176E+00   4.6730739
+ ============================= Basis functions created. =============================
+ timings:
+   -total time: 2.459E-01
+     - orthonormalization: 2.417E-02= 9.8%
+     - Hamiltonian application: 1.037E-01=42.2%
+     - orthoconstraint: 1.105E-02= 4.5%
+     - preconditioning: 9.978E-02=40.6%
+     - unitary optimization: 0.000E+00= 0.0%
+     - other: 7.243E-03= 2.9%
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-6.38056E-01
+   eval(2)=-4.91058E-01
+   eval(3)=-2.94791E-01
+   eval(4)=-2.88566E-01
+   eval(5)=-2.77509E-01
+   eval(6)=-2.25717E-01
+   eval(7)=-2.24001E-01  <-- last occupied orbital
+   eval(8)= 3.66657E-01  <-- first virtual orbital
+   eval(9)= 4.16892E-01
+   eval(10)= 4.22432E-01
+   eval(11)= 5.00609E-01
+   eval(12)= 5.18029E-01
+   eval(13)= 5.43350E-01
+   eval(14)= 5.48880E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999859767E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 1 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   1   3.71E-06   -1.57876348992496851E+01   -1.5788E+01
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-4.01988E-01
+   eval(2)=-3.09538E-01
+   eval(3)=-1.15895E-01
+   eval(4)=-1.14820E-01
+   eval(5)=-7.17821E-02
+   eval(6)=-7.08095E-02
+   eval(7)=-2.19760E-02  <-- last occupied orbital
+   eval(8)= 5.95709E-01  <-- first virtual orbital
+   eval(9)= 6.02568E-01
+   eval(10)= 6.88103E-01
+   eval(11)= 6.99275E-01
+   eval(12)= 7.03181E-01
+   eval(13)= 7.08334E-01
+   eval(14)= 7.25158E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999862629E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 2 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   2   1.69E-06   -1.31458972434699355E+01    2.6417E+00
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-4.07405E-01
+   eval(2)=-3.03819E-01
+   eval(3)=-1.09453E-01
+   eval(4)=-1.08063E-01
+   eval(5)=-6.07273E-02
+   eval(6)=-5.94455E-02
+   eval(7)=-3.46922E-02  <-- last occupied orbital
+   eval(8)= 5.95792E-01  <-- first virtual orbital
+   eval(9)= 6.02463E-01
+   eval(10)= 6.65201E-01
+   eval(11)= 6.99095E-01
+   eval(12)= 7.07541E-01
+   eval(13)= 7.14326E-01
+   eval(14)= 7.22623E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999862404E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 3 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   3   6.27E-07   -1.33653286828791060E+01   -2.1943E-01
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-3.86924E-01
+   eval(2)=-2.84693E-01
+   eval(3)=-9.11481E-02
+   eval(4)=-8.97351E-02
+   eval(5)=-4.30278E-02
+   eval(6)=-4.15954E-02
+   eval(7)=-1.22242E-02  <-- last occupied orbital
+   eval(8)= 6.14980E-01  <-- first virtual orbital
+   eval(9)= 6.21703E-01
+   eval(10)= 6.89915E-01
+   eval(11)= 7.19309E-01
+   eval(12)= 7.26445E-01
+   eval(13)= 7.33664E-01
+   eval(14)= 7.42847E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999862442E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 4 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   4   3.38E-07   -1.31880397899674726E+01    1.7729E-01
+ ############################################################################################
+   itout, Delta DENSOUT, energy, energyDiff   1   2.43E-06   -1.31880397899674726E+01   -1.3188E+01
+ ======================== Creation of the basis functions... ========================
+ Gathering the potential... done.
+ Gathering the potential... done.
+ ----------------------------------------------------------------------------- iter=1
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ iter, fnrm, fnrmMax, trace     1  9.0378302E-01  1.5481369E+00     7.7864491971
+ DIIS informations: history length=5, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=2
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ iter, fnrm, fnrmMax, trace     2  3.5641138E-01  6.2178629E-01     7.3205946830
+ DIIS informations: history length=5, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=3
+ Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
+ iter, fnrm, fnrmMax, trace     3  1.5249682E-01  2.5149360E-01     7.2256592130
+ WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   1.5249682E-01  2.5149360E-01   7.2256592
+ ============================= Basis functions created. =============================
+ timings:
+   -total time: 2.414E-01
+     - orthonormalization: 2.249E-02= 9.3%
+     - Hamiltonian application: 1.015E-01=42.0%
+     - orthoconstraint: 1.076E-02= 4.5%
+     - preconditioning: 9.946E-02=41.2%
+     - unitary optimization: 1.192E-07= 0.0%
+     - other: 7.206E-03= 3.0%
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-3.80467E-01
+   eval(2)=-2.79846E-01
+   eval(3)=-9.39264E-02
+   eval(4)=-9.30710E-02
+   eval(5)=-3.99191E-02
+   eval(6)=-3.85850E-02
+   eval(7)=-1.95914E-02  <-- last occupied orbital
+   eval(8)= 6.03360E-01  <-- first virtual orbital
+   eval(9)= 6.06154E-01
+   eval(10)= 6.65161E-01
+   eval(11)= 7.00021E-01
+   eval(12)= 7.03471E-01
+   eval(13)= 7.06044E-01
+   eval(14)= 7.09364E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999813724E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 1 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   1   8.16E-07   -1.32391458824431290E+01   -5.1106E-02
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-3.75244E-01
+   eval(2)=-2.74465E-01
+   eval(3)=-8.99047E-02
+   eval(4)=-8.90867E-02
+   eval(5)=-3.64563E-02
+   eval(6)=-3.59610E-02
+   eval(7)=-1.28021E-02  <-- last occupied orbital
+   eval(8)= 6.09948E-01  <-- first virtual orbital
+   eval(9)= 6.12495E-01
+   eval(10)= 6.76002E-01
+   eval(11)= 7.08571E-01
+   eval(12)= 7.09771E-01
+   eval(13)= 7.13287E-01
+   eval(14)= 7.17225E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999814583E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 2 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   2   3.58E-07   -1.31299527380134755E+01    1.0919E-01
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-3.79933E-01
+   eval(2)=-2.77068E-01
+   eval(3)=-9.27478E-02
+   eval(4)=-9.17886E-02
+   eval(5)=-3.87595E-02
+   eval(6)=-3.82078E-02
+   eval(7)=-1.81346E-02  <-- last occupied orbital
+   eval(8)= 6.07268E-01  <-- first virtual orbital
+   eval(9)= 6.09801E-01
+   eval(10)= 6.70113E-01
+   eval(11)= 7.07101E-01
+   eval(12)= 7.07955E-01
+   eval(13)= 7.10856E-01
+   eval(14)= 7.14443E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999814325E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 3 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   3   1.87E-07   -1.31727219410188390E+01   -4.2769E-02
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-3.80326E-01
+   eval(2)=-2.77076E-01
+   eval(3)=-9.28993E-02
+   eval(4)=-9.18983E-02
+   eval(5)=-3.89175E-02
+   eval(6)=-3.83134E-02
+   eval(7)=-1.84561E-02  <-- last occupied orbital
+   eval(8)= 6.07528E-01  <-- first virtual orbital
+   eval(9)= 6.10039E-01
+   eval(10)= 6.70227E-01
+   eval(11)= 7.07621E-01
+   eval(12)= 7.08248E-01
+   eval(13)= 7.11390E-01
+   eval(14)= 7.14934E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999814385E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 4 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   4   9.08E-08   -1.31687786420945621E+01    3.9433E-03
+ ############################################################################################
+   itout, Delta DENSOUT, energy, energyDiff   2   7.14E-07   -1.31687786420945621E+01    1.9261E-02
+ ======================== Creation of the basis functions... ========================
+ creating new locregs...
+ ----------------------------------------------------------------------------- iter=1
+ Orthonormalization...it, rspread, locdiff, omega, lstep       1   3.4695206E+00   0.0000000E+00   3.4695206E+00  0.0000E+00
+it, rspread, locdiff, omega, lstep       2   3.4625487E+00   0.0000000E+00   3.4625487E+00 -2.1502E-03
+it, rspread, locdiff, omega, lstep       3   3.4555929E+00   0.0000000E+00   3.4555929E+00 -2.1577E-03
+it, rspread, locdiff, omega, lstep       4   3.4486529E+00   0.0000000E+00   3.4486529E+00 -2.1651E-03
+it, rspread, locdiff, omega, lstep       5   3.4417289E+00   0.0000000E+00   3.4417289E+00 -2.1725E-03
+it, rspread, locdiff, omega, lstep       6   3.4348207E+00   0.0000000E+00   3.4348207E+00 -2.1797E-03
+it, rspread, locdiff, omega, lstep       7   3.4279285E+00   0.0000000E+00   3.4279285E+00 -2.1869E-03
+it, rspread, locdiff, omega, lstep       8   3.4210522E+00   0.0000000E+00   3.4210522E+00 -2.1940E-03
+it, rspread, locdiff, omega, lstep       9   3.4141919E+00   0.0000000E+00   3.4141919E+00 -2.2009E-03
+it, rspread, locdiff, omega, lstep      10   3.4073477E+00   0.0000000E+00   3.4073477E+00 -2.2078E-03
+it, rspread, locdiff, omega, lstep      11   3.4005197E+00   0.0000000E+00   3.4005197E+00 -2.2146E-03
+it, rspread, locdiff, omega, lstep      12   3.3937078E+00   0.0000000E+00   3.3937078E+00 -2.2214E-03
+it, rspread, locdiff, omega, lstep      13   3.3869124E+00   0.0000000E+00   3.3869124E+00 -2.2280E-03
+it, rspread, locdiff, omega, lstep      14   3.3801334E+00   0.0000000E+00   3.3801334E+00 -2.2346E-03
+it, rspread, locdiff, omega, lstep      15   3.3733709E+00   0.0000000E+00   3.3733709E+00 -2.2411E-03
+it, rspread, locdiff, omega, lstep      16   3.3666252E+00   0.0000000E+00   3.3666252E+00 -2.2476E-03
+it, rspread, locdiff, omega, lstep      17   3.3598962E+00   0.0000000E+00   3.3598962E+00 -2.2540E-03
+it, rspread, locdiff, omega, lstep      18   3.3531842E+00   0.0000000E+00   3.3531842E+00 -2.2604E-03
+it, rspread, locdiff, omega, lstep      19   3.3464892E+00   0.0000000E+00   3.3464892E+00 -2.2667E-03
+it, rspread, locdiff, omega, lstep      20   3.3398114E+00   0.0000000E+00   3.3398114E+00 -2.2730E-03
+it, rspread, locdiff, omega, lstep      21   3.3331509E+00   0.0000000E+00   3.3331509E+00 -2.2792E-03
+it, rspread, locdiff, omega, lstep      22   3.3265078E+00   0.0000000E+00   3.3265078E+00 -2.2854E-03
+it, rspread, locdiff, omega, lstep      23   3.3198822E+00   0.0000000E+00   3.3198822E+00 -2.2916E-03
+it, rspread, locdiff, omega, lstep      24   3.3132742E+00   0.0000000E+00   3.3132742E+00 -2.2978E-03
+it, rspread, locdiff, omega, lstep      25   3.3066839E+00   0.0000000E+00   3.3066839E+00 -2.3040E-03
+it, rspread, locdiff, omega, lstep      26   3.3001115E+00   0.0000000E+00   3.3001115E+00 -2.3101E-03
+it, rspread, locdiff, omega, lstep      27   3.2935570E+00   0.0000000E+00   3.2935570E+00 -2.3163E-03
+it, rspread, locdiff, omega, lstep      28   3.2870205E+00   0.0000000E+00   3.2870205E+00 -2.3224E-03
+it, rspread, locdiff, omega, lstep      29   3.2805021E+00   0.0000000E+00   3.2805021E+00 -2.3286E-03
+it, rspread, locdiff, omega, lstep      30   3.2740019E+00   0.0000000E+00   3.2740019E+00 -2.3348E-03
+it, rspread, locdiff, omega, lstep      31   3.2675199E+00   0.0000000E+00   3.2675199E+00 -2.3410E-03
+it, rspread, locdiff, omega, lstep      32   3.2610563E+00   0.0000000E+00   3.2610563E+00 -2.3472E-03
+it, rspread, locdiff, omega, lstep      33   3.2546111E+00   0.0000000E+00   3.2546111E+00 -2.3534E-03
+it, rspread, locdiff, omega, lstep      34   3.2481844E+00   0.0000000E+00   3.2481844E+00 -2.3597E-03
+it, rspread, locdiff, omega, lstep      35   3.2417763E+00   0.0000000E+00   3.2417763E+00 -2.3659E-03
+it, rspread, locdiff, omega, lstep      36   3.2353867E+00   0.0000000E+00   3.2353867E+00 -2.3723E-03
+it, rspread, locdiff, omega, lstep      37   3.2290158E+00   0.0000000E+00   3.2290158E+00 -2.3786E-03
+it, rspread, locdiff, omega, lstep      38   3.2226637E+00   0.0000000E+00   3.2226637E+00 -2.3850E-03
+it, rspread, locdiff, omega, lstep      39   3.2163303E+00   0.0000000E+00   3.2163303E+00 -2.3915E-03
+it, rspread, locdiff, omega, lstep      40   3.2100158E+00   0.0000000E+00   3.2100158E+00 -2.3980E-03
+it, rspread, locdiff, omega, lstep      41   3.2037201E+00   0.0000000E+00   3.2037201E+00 -2.4045E-03
+it, rspread, locdiff, omega, lstep      42   3.1974433E+00   0.0000000E+00   3.1974433E+00 -2.4111E-03
+it, rspread, locdiff, omega, lstep      43   3.1911855E+00   0.0000000E+00   3.1911855E+00 -2.4178E-03
+it, rspread, locdiff, omega, lstep      44   3.1849467E+00   0.0000000E+00   3.1849467E+00 -2.4245E-03
+it, rspread, locdiff, omega, lstep      45   3.1787270E+00   0.0000000E+00   3.1787270E+00 -2.4313E-03
+it, rspread, locdiff, omega, lstep      46   3.1725263E+00   0.0000000E+00   3.1725263E+00 -2.4381E-03
+it, rspread, locdiff, omega, lstep      47   3.1663448E+00   0.0000000E+00   3.1663448E+00 -2.4450E-03
+it, rspread, locdiff, omega, lstep      48   3.1601823E+00   0.0000000E+00   3.1601823E+00 -2.4520E-03
+it, rspread, locdiff, omega, lstep      49   3.1540391E+00   0.0000000E+00   3.1540391E+00 -2.4590E-03
+it, rspread, locdiff, omega, lstep      50   3.1479151E+00   0.0000000E+00   3.1479151E+00 -2.4662E-03
+it, rspread, locdiff, omega, lstep      51   3.1418103E+00   0.0000000E+00   3.1418103E+00 -2.4733E-03
+it, rspread, locdiff, omega, lstep      52   3.1357248E+00   0.0000000E+00   3.1357248E+00 -2.4806E-03
+it, rspread, locdiff, omega, lstep      53   3.1296585E+00   0.0000000E+00   3.1296585E+00 -2.4879E-03
+it, rspread, locdiff, omega, lstep      54   3.1236116E+00   0.0000000E+00   3.1236116E+00 -2.4954E-03
+it, rspread, locdiff, omega, lstep      55   3.1175840E+00   0.0000000E+00   3.1175840E+00 -2.5028E-03
+it, rspread, locdiff, omega, lstep      56   3.1115758E+00   0.0000000E+00   3.1115758E+00 -2.5104E-03
+it, rspread, locdiff, omega, lstep      57   3.1055869E+00   0.0000000E+00   3.1055869E+00 -2.5181E-03
+it, rspread, locdiff, omega, lstep      58   3.0996175E+00   0.0000000E+00   3.0996175E+00 -2.5258E-03
+it, rspread, locdiff, omega, lstep      59   3.0936675E+00   0.0000000E+00   3.0936675E+00 -2.5336E-03
+it, rspread, locdiff, omega, lstep      60   3.0877369E+00   0.0000000E+00   3.0877369E+00 -2.5416E-03
+it, rspread, locdiff, omega, lstep      61   3.0818257E+00   0.0000000E+00   3.0818257E+00 -2.5496E-03
+it, rspread, locdiff, omega, lstep      62   3.0759340E+00   0.0000000E+00   3.0759340E+00 -2.5576E-03
+it, rspread, locdiff, omega, lstep      63   3.0700619E+00   0.0000000E+00   3.0700619E+00 -2.5658E-03
+it, rspread, locdiff, omega, lstep      64   3.0642092E+00   0.0000000E+00   3.0642092E+00 -2.5741E-03
+it, rspread, locdiff, omega, lstep      65   3.0583760E+00   0.0000000E+00   3.0583760E+00 -2.5825E-03
+it, rspread, locdiff, omega, lstep      66   3.0525623E+00   0.0000000E+00   3.0525623E+00 -2.5909E-03
+it, rspread, locdiff, omega, lstep      67   3.0467681E+00   0.0000000E+00   3.0467681E+00 -2.5995E-03
+it, rspread, locdiff, omega, lstep      68   3.0409935E+00   0.0000000E+00   3.0409935E+00 -2.6081E-03
+it, rspread, locdiff, omega, lstep      69   3.0352384E+00   0.0000000E+00   3.0352384E+00 -2.6169E-03
+it, rspread, locdiff, omega, lstep      70   3.0295029E+00   0.0000000E+00   3.0295029E+00 -2.6257E-03
+it, rspread, locdiff, omega, lstep      71   3.0237869E+00   0.0000000E+00   3.0237869E+00 -2.6346E-03
+it, rspread, locdiff, omega, lstep      72   3.0180905E+00   0.0000000E+00   3.0180905E+00 -2.6437E-03
+it, rspread, locdiff, omega, lstep      73   3.0124137E+00   0.0000000E+00   3.0124137E+00 -2.6528E-03
+it, rspread, locdiff, omega, lstep      74   3.0067564E+00   0.0000000E+00   3.0067564E+00 -2.6621E-03
+it, rspread, locdiff, omega, lstep      75   3.0011187E+00   0.0000000E+00   3.0011187E+00 -2.6714E-03
+it, rspread, locdiff, omega, lstep      76   2.9955005E+00   0.0000000E+00   2.9955005E+00 -2.6809E-03
+it, rspread, locdiff, omega, lstep      77   2.9899019E+00   0.0000000E+00   2.9899019E+00 -2.6904E-03
+it, rspread, locdiff, omega, lstep      78   2.9843229E+00   0.0000000E+00   2.9843229E+00 -2.7001E-03
+it, rspread, locdiff, omega, lstep      79   2.9787634E+00   0.0000000E+00   2.9787634E+00 -2.7099E-03
+it, rspread, locdiff, omega, lstep      80   2.9732235E+00   0.0000000E+00   2.9732235E+00 -2.7197E-03
+it, rspread, locdiff, omega, lstep      81   2.9677031E+00   0.0000000E+00   2.9677031E+00 -2.7297E-03
+it, rspread, locdiff, omega, lstep      82   2.9622023E+00   0.0000000E+00   2.9622023E+00 -2.7398E-03
+it, rspread, locdiff, omega, lstep      83   2.9567210E+00   0.0000000E+00   2.9567210E+00 -2.7500E-03
+it, rspread, locdiff, omega, lstep      84   2.9512592E+00   0.0000000E+00   2.9512592E+00 -2.7604E-03
+it, rspread, locdiff, omega, lstep      85   2.9458170E+00   0.0000000E+00   2.9458170E+00 -2.7708E-03
+it, rspread, locdiff, omega, lstep      86   2.9403942E+00   0.0000000E+00   2.9403942E+00 -2.7813E-03
+it, rspread, locdiff, omega, lstep      87   2.9349909E+00   0.0000000E+00   2.9349909E+00 -2.7920E-03
+it, rspread, locdiff, omega, lstep      88   2.9296071E+00   0.0000000E+00   2.9296071E+00 -2.8028E-03
+it, rspread, locdiff, omega, lstep      89   2.9242428E+00   0.0000000E+00   2.9242428E+00 -2.8137E-03
+it, rspread, locdiff, omega, lstep      90   2.9188979E+00   0.0000000E+00   2.9188979E+00 -2.8247E-03
+it, rspread, locdiff, omega, lstep      91   2.9135725E+00   0.0000000E+00   2.9135725E+00 -2.8358E-03
+it, rspread, locdiff, omega, lstep      92   2.9082664E+00   0.0000000E+00   2.9082664E+00 -2.8471E-03
+it, rspread, locdiff, omega, lstep      93   2.9029797E+00   0.0000000E+00   2.9029797E+00 -2.8585E-03
+it, rspread, locdiff, omega, lstep      94   2.8977125E+00   0.0000000E+00   2.8977125E+00 -2.8699E-03
+it, rspread, locdiff, omega, lstep      95   2.8924645E+00   0.0000000E+00   2.8924645E+00 -2.8816E-03
+it, rspread, locdiff, omega, lstep      96   2.8872359E+00   0.0000000E+00   2.8872359E+00 -2.8933E-03
+it, rspread, locdiff, omega, lstep      97   2.8820266E+00   0.0000000E+00   2.8820266E+00 -2.9052E-03
+it, rspread, locdiff, omega, lstep      98   2.8768366E+00   0.0000000E+00   2.8768366E+00 -2.9172E-03
+it, rspread, locdiff, omega, lstep      99   2.8716658E+00   0.0000000E+00   2.8716658E+00 -2.9293E-03
+it, rspread, locdiff, omega, lstep     100   2.8665142E+00   0.0000000E+00   2.8665142E+00 -2.9415E-03
+ creating new locregs...
+ Posting sends / receives for communicating the potential... done.
+ creating new locregs...
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... Orthoconstraint... Preconditioning.
+ iter, fnrm, fnrmMax, trace     1  3.1852921E-01  3.5841949E-01    -0.9409979769
+ steepest descent informations: mean alpha=1.000E+00, consecutive successes=1, DIIS=y
+it, rspread, locdiff, omega, lstep       1   5.6518588E+01   0.0000000E+00   5.6518588E+01  0.0000E+00
+it, rspread, locdiff, omega, lstep       2   5.6433339E+01   0.0000000E+00   5.6433339E+01 -2.4141E-04
+it, rspread, locdiff, omega, lstep       3   5.6347933E+01   0.0000000E+00   5.6347933E+01 -2.4144E-04
+it, rspread, locdiff, omega, lstep       4   5.6262370E+01   0.0000000E+00   5.6262370E+01 -2.4147E-04
+it, rspread, locdiff, omega, lstep       5   5.6176654E+01   0.0000000E+00   5.6176654E+01 -2.4149E-04
+it, rspread, locdiff, omega, lstep       6   5.6090785E+01   0.0000000E+00   5.6090785E+01 -2.4151E-04
+it, rspread, locdiff, omega, lstep       7   5.6004766E+01   0.0000000E+00   5.6004766E+01 -2.4153E-04
+it, rspread, locdiff, omega, lstep       8   5.5918598E+01   0.0000000E+00   5.5918598E+01 -2.4154E-04
+it, rspread, locdiff, omega, lstep       9   5.5832284E+01   0.0000000E+00   5.5832284E+01 -2.4155E-04
+it, rspread, locdiff, omega, lstep      10   5.5745826E+01   0.0000000E+00   5.5745826E+01 -2.4156E-04
+it, rspread, locdiff, omega, lstep      11   5.5659224E+01   0.0000000E+00   5.5659224E+01 -2.4156E-04
+it, rspread, locdiff, omega, lstep      12   5.5572483E+01   0.0000000E+00   5.5572483E+01 -2.4156E-04
+it, rspread, locdiff, omega, lstep      13   5.5485602E+01   0.0000000E+00   5.5485602E+01 -2.4156E-04
+it, rspread, locdiff, omega, lstep      14   5.5398585E+01   0.0000000E+00   5.5398585E+01 -2.4156E-04
+it, rspread, locdiff, omega, lstep      15   5.5311434E+01   0.0000000E+00   5.5311434E+01 -2.4156E-04
+it, rspread, locdiff, omega, lstep      16   5.5224150E+01   0.0000000E+00   5.5224150E+01 -2.4155E-04
+it, rspread, locdiff, omega, lstep      17   5.5136735E+01   0.0000000E+00   5.5136735E+01 -2.4154E-04
+it, rspread, locdiff, omega, lstep      18   5.5049192E+01   0.0000000E+00   5.5049192E+01 -2.4153E-04
+it, rspread, locdiff, omega, lstep      19   5.4961522E+01   0.0000000E+00   5.4961522E+01 -2.4152E-04
+it, rspread, locdiff, omega, lstep      20   5.4873728E+01   0.0000000E+00   5.4873728E+01 -2.4151E-04
+it, rspread, locdiff, omega, lstep      21   5.4785811E+01   0.0000000E+00   5.4785811E+01 -2.4150E-04
+it, rspread, locdiff, omega, lstep      22   5.4697774E+01   0.0000000E+00   5.4697774E+01 -2.4148E-04
+it, rspread, locdiff, omega, lstep      23   5.4609618E+01   0.0000000E+00   5.4609618E+01 -2.4147E-04
+it, rspread, locdiff, omega, lstep      24   5.4521347E+01   0.0000000E+00   5.4521347E+01 -2.4145E-04
+it, rspread, locdiff, omega, lstep      25   5.4432961E+01   0.0000000E+00   5.4432961E+01 -2.4143E-04
+it, rspread, locdiff, omega, lstep      26   5.4344462E+01   0.0000000E+00   5.4344462E+01 -2.4142E-04
+it, rspread, locdiff, omega, lstep      27   5.4255854E+01   0.0000000E+00   5.4255854E+01 -2.4140E-04
+it, rspread, locdiff, omega, lstep      28   5.4167137E+01   0.0000000E+00   5.4167137E+01 -2.4138E-04
+it, rspread, locdiff, omega, lstep      29   5.4078314E+01   0.0000000E+00   5.4078314E+01 -2.4136E-04
+it, rspread, locdiff, omega, lstep      30   5.3989387E+01   0.0000000E+00   5.3989387E+01 -2.4134E-04
+it, rspread, locdiff, omega, lstep      31   5.3900358E+01   0.0000000E+00   5.3900358E+01 -2.4133E-04
+it, rspread, locdiff, omega, lstep      32   5.3811229E+01   0.0000000E+00   5.3811229E+01 -2.4131E-04
+it, rspread, locdiff, omega, lstep      33   5.3722002E+01   0.0000000E+00   5.3722002E+01 -2.4129E-04
+it, rspread, locdiff, omega, lstep      34   5.3632678E+01   0.0000000E+00   5.3632678E+01 -2.4127E-04
+it, rspread, locdiff, omega, lstep      35   5.3543260E+01   0.0000000E+00   5.3543260E+01 -2.4126E-04
+it, rspread, locdiff, omega, lstep      36   5.3453750E+01   0.0000000E+00   5.3453750E+01 -2.4124E-04
+it, rspread, locdiff, omega, lstep      37   5.3364150E+01   0.0000000E+00   5.3364150E+01 -2.4123E-04
+it, rspread, locdiff, omega, lstep      38   5.3274462E+01   0.0000000E+00   5.3274462E+01 -2.4121E-04
+it, rspread, locdiff, omega, lstep      39   5.3184687E+01   0.0000000E+00   5.3184687E+01 -2.4120E-04
+it, rspread, locdiff, omega, lstep      40   5.3094828E+01   0.0000000E+00   5.3094828E+01 -2.4119E-04
+it, rspread, locdiff, omega, lstep      41   5.3004886E+01   0.0000000E+00   5.3004886E+01 -2.4118E-04
+it, rspread, locdiff, omega, lstep      42   5.2914864E+01   0.0000000E+00   5.2914864E+01 -2.4117E-04
+it, rspread, locdiff, omega, lstep      43   5.2824762E+01   0.0000000E+00   5.2824762E+01 -2.4116E-04
+it, rspread, locdiff, omega, lstep      44   5.2734585E+01   0.0000000E+00   5.2734585E+01 -2.4116E-04
+it, rspread, locdiff, omega, lstep      45   5.2644332E+01   0.0000000E+00   5.2644332E+01 -2.4115E-04
+it, rspread, locdiff, omega, lstep      46   5.2554006E+01   0.0000000E+00   5.2554006E+01 -2.4115E-04
+it, rspread, locdiff, omega, lstep      47   5.2463609E+01   0.0000000E+00   5.2463609E+01 -2.4115E-04
+it, rspread, locdiff, omega, lstep      48   5.2373143E+01   0.0000000E+00   5.2373143E+01 -2.4116E-04
+it, rspread, locdiff, omega, lstep      49   5.2282609E+01   0.0000000E+00   5.2282609E+01 -2.4116E-04
+it, rspread, locdiff, omega, lstep      50   5.2192009E+01   0.0000000E+00   5.2192009E+01 -2.4117E-04
+it, rspread, locdiff, omega, lstep      51   5.2101346E+01   0.0000000E+00   5.2101346E+01 -2.4118E-04
+it, rspread, locdiff, omega, lstep      52   5.2010621E+01   0.0000000E+00   5.2010621E+01 -2.4119E-04
+it, rspread, locdiff, omega, lstep      53   5.1919835E+01   0.0000000E+00   5.1919835E+01 -2.4120E-04
+it, rspread, locdiff, omega, lstep      54   5.1828991E+01   0.0000000E+00   5.1828991E+01 -2.4122E-04
+it, rspread, locdiff, omega, lstep      55   5.1738090E+01   0.0000000E+00   5.1738090E+01 -2.4124E-04
+it, rspread, locdiff, omega, lstep      56   5.1647134E+01   0.0000000E+00   5.1647134E+01 -2.4126E-04
+it, rspread, locdiff, omega, lstep      57   5.1556125E+01   0.0000000E+00   5.1556125E+01 -2.4129E-04
+it, rspread, locdiff, omega, lstep      58   5.1465065E+01   0.0000000E+00   5.1465065E+01 -2.4132E-04
+it, rspread, locdiff, omega, lstep      59   5.1373954E+01   0.0000000E+00   5.1373954E+01 -2.4135E-04
+it, rspread, locdiff, omega, lstep      60   5.1282796E+01   0.0000000E+00   5.1282796E+01 -2.4138E-04
+it, rspread, locdiff, omega, lstep      61   5.1191592E+01   0.0000000E+00   5.1191592E+01 -2.4142E-04
+it, rspread, locdiff, omega, lstep      62   5.1100343E+01   0.0000000E+00   5.1100343E+01 -2.4146E-04
+it, rspread, locdiff, omega, lstep      63   5.1009051E+01   0.0000000E+00   5.1009051E+01 -2.4151E-04
+it, rspread, locdiff, omega, lstep      64   5.0917718E+01   0.0000000E+00   5.0917718E+01 -2.4156E-04
+it, rspread, locdiff, omega, lstep      65   5.0826345E+01   0.0000000E+00   5.0826345E+01 -2.4161E-04
+it, rspread, locdiff, omega, lstep      66   5.0734935E+01   0.0000000E+00   5.0734935E+01 -2.4166E-04
+it, rspread, locdiff, omega, lstep      67   5.0643488E+01   0.0000000E+00   5.0643488E+01 -2.4172E-04
+it, rspread, locdiff, omega, lstep      68   5.0552008E+01   0.0000000E+00   5.0552008E+01 -2.4179E-04
+it, rspread, locdiff, omega, lstep      69   5.0460494E+01   0.0000000E+00   5.0460494E+01 -2.4185E-04
+it, rspread, locdiff, omega, lstep      70   5.0368949E+01   0.0000000E+00   5.0368949E+01 -2.4192E-04
+it, rspread, locdiff, omega, lstep      71   5.0277374E+01   0.0000000E+00   5.0277374E+01 -2.4200E-04
+it, rspread, locdiff, omega, lstep      72   5.0185772E+01   0.0000000E+00   5.0185772E+01 -2.4207E-04
+it, rspread, locdiff, omega, lstep      73   5.0094143E+01   0.0000000E+00   5.0094143E+01 -2.4215E-04
+it, rspread, locdiff, omega, lstep      74   5.0002490E+01   0.0000000E+00   5.0002490E+01 -2.4224E-04
+it, rspread, locdiff, omega, lstep      75   4.9910813E+01   0.0000000E+00   4.9910813E+01 -2.4233E-04
+it, rspread, locdiff, omega, lstep      76   4.9819115E+01   0.0000000E+00   4.9819115E+01 -2.4242E-04
+it, rspread, locdiff, omega, lstep      77   4.9727398E+01   0.0000000E+00   4.9727398E+01 -2.4252E-04
+it, rspread, locdiff, omega, lstep      78   4.9635662E+01   0.0000000E+00   4.9635662E+01 -2.4263E-04
+it, rspread, locdiff, omega, lstep      79   4.9543910E+01   0.0000000E+00   4.9543910E+01 -2.4273E-04
+it, rspread, locdiff, omega, lstep      80   4.9452142E+01   0.0000000E+00   4.9452142E+01 -2.4284E-04
+it, rspread, locdiff, omega, lstep      81   4.9360362E+01   0.0000000E+00   4.9360362E+01 -2.4296E-04
+it, rspread, locdiff, omega, lstep      82   4.9268569E+01   0.0000000E+00   4.9268569E+01 -2.4308E-04
+it, rspread, locdiff, omega, lstep      83   4.9176766E+01   0.0000000E+00   4.9176766E+01 -2.4320E-04
+it, rspread, locdiff, omega, lstep      84   4.9084955E+01   0.0000000E+00   4.9084955E+01 -2.4333E-04
+it, rspread, locdiff, omega, lstep      85   4.8993136E+01   0.0000000E+00   4.8993136E+01 -2.4346E-04
+it, rspread, locdiff, omega, lstep      86   4.8901313E+01   0.0000000E+00   4.8901313E+01 -2.4360E-04
+it, rspread, locdiff, omega, lstep      87   4.8809485E+01   0.0000000E+00   4.8809485E+01 -2.4374E-04
+it, rspread, locdiff, omega, lstep      88   4.8717655E+01   0.0000000E+00   4.8717655E+01 -2.4389E-04
+it, rspread, locdiff, omega, lstep      89   4.8625824E+01   0.0000000E+00   4.8625824E+01 -2.4404E-04
+it, rspread, locdiff, omega, lstep      90   4.8533994E+01   0.0000000E+00   4.8533994E+01 -2.4420E-04
+it, rspread, locdiff, omega, lstep      91   4.8442167E+01   0.0000000E+00   4.8442167E+01 -2.4436E-04
+it, rspread, locdiff, omega, lstep      92   4.8350344E+01   0.0000000E+00   4.8350344E+01 -2.4452E-04
+it, rspread, locdiff, omega, lstep      93   4.8258526E+01   0.0000000E+00   4.8258526E+01 -2.4469E-04
+it, rspread, locdiff, omega, lstep      94   4.8166716E+01   0.0000000E+00   4.8166716E+01 -2.4486E-04
+it, rspread, locdiff, omega, lstep      95   4.8074915E+01   0.0000000E+00   4.8074915E+01 -2.4504E-04
+it, rspread, locdiff, omega, lstep      96   4.7983124E+01   0.0000000E+00   4.7983124E+01 -2.4523E-04
+it, rspread, locdiff, omega, lstep      97   4.7891344E+01   0.0000000E+00   4.7891344E+01 -2.4542E-04
+it, rspread, locdiff, omega, lstep      98   4.7799579E+01   0.0000000E+00   4.7799579E+01 -2.4561E-04
+it, rspread, locdiff, omega, lstep      99   4.7707829E+01   0.0000000E+00   4.7707829E+01 -2.4581E-04
+it, rspread, locdiff, omega, lstep     100   4.7616095E+01   0.0000000E+00   4.7616095E+01 -2.4601E-04
+ creating new locregs...
+ creating new locregs...
+ ----------------------------------------------------------------------------- iter=2
+ Orthonormalization...it, rspread, locdiff, omega, lstep       1   4.1448955E+00   0.0000000E+00   4.1448955E+00  0.0000E+00
+it, rspread, locdiff, omega, lstep       2   4.1280622E+00   0.0000000E+00   4.1280622E+00 -9.8933E-04
+it, rspread, locdiff, omega, lstep       3   4.1113678E+00   0.0000000E+00   4.1113678E+00 -1.0065E-03
+it, rspread, locdiff, omega, lstep       4   4.0948090E+00   0.0000000E+00   4.0948090E+00 -1.0241E-03
+it, rspread, locdiff, omega, lstep       5   4.0783827E+00   0.0000000E+00   4.0783827E+00 -1.0421E-03
+it, rspread, locdiff, omega, lstep       6   4.0620859E+00   0.0000000E+00   4.0620859E+00 -1.0604E-03
+it, rspread, locdiff, omega, lstep       7   4.0459159E+00   0.0000000E+00   4.0459159E+00 -1.0791E-03
+it, rspread, locdiff, omega, lstep       8   4.0298701E+00   0.0000000E+00   4.0298701E+00 -1.0981E-03
+it, rspread, locdiff, omega, lstep       9   4.0139459E+00   0.0000000E+00   4.0139459E+00 -1.1176E-03
+it, rspread, locdiff, omega, lstep      10   3.9981411E+00   0.0000000E+00   3.9981411E+00 -1.1374E-03
+it, rspread, locdiff, omega, lstep      11   3.9824537E+00   0.0000000E+00   3.9824537E+00 -1.1575E-03
+it, rspread, locdiff, omega, lstep      12   3.9668820E+00   0.0000000E+00   3.9668820E+00 -1.1780E-03
+it, rspread, locdiff, omega, lstep      13   3.9514242E+00   0.0000000E+00   3.9514242E+00 -1.1988E-03
+it, rspread, locdiff, omega, lstep      14   3.9360791E+00   0.0000000E+00   3.9360791E+00 -1.2200E-03
+it, rspread, locdiff, omega, lstep      15   3.9208455E+00   0.0000000E+00   3.9208455E+00 -1.2415E-03
+it, rspread, locdiff, omega, lstep      16   3.9057228E+00   0.0000000E+00   3.9057228E+00 -1.2633E-03
+it, rspread, locdiff, omega, lstep      17   3.8907103E+00   0.0000000E+00   3.8907103E+00 -1.2854E-03
+it, rspread, locdiff, omega, lstep      18   3.8758078E+00   0.0000000E+00   3.8758078E+00 -1.3077E-03
+it, rspread, locdiff, omega, lstep      19   3.8610152E+00   0.0000000E+00   3.8610152E+00 -1.3303E-03
+it, rspread, locdiff, omega, lstep      20   3.8463330E+00   0.0000000E+00   3.8463330E+00 -1.3531E-03
+it, rspread, locdiff, omega, lstep      21   3.8317617E+00   0.0000000E+00   3.8317617E+00 -1.3761E-03
+it, rspread, locdiff, omega, lstep      22   3.8173022E+00   0.0000000E+00   3.8173022E+00 -1.3992E-03
+it, rspread, locdiff, omega, lstep      23   3.8029556E+00   0.0000000E+00   3.8029556E+00 -1.4225E-03
+it, rspread, locdiff, omega, lstep      24   3.7887234E+00   0.0000000E+00   3.7887234E+00 -1.4459E-03
+it, rspread, locdiff, omega, lstep      25   3.7746071E+00   0.0000000E+00   3.7746071E+00 -1.4693E-03
+it, rspread, locdiff, omega, lstep      26   3.7606086E+00   0.0000000E+00   3.7606086E+00 -1.4927E-03
+it, rspread, locdiff, omega, lstep      27   3.7467299E+00   0.0000000E+00   3.7467299E+00 -1.5161E-03
+it, rspread, locdiff, omega, lstep      28   3.7329734E+00   0.0000000E+00   3.7329734E+00 -1.5394E-03
+it, rspread, locdiff, omega, lstep      29   3.7193412E+00   0.0000000E+00   3.7193412E+00 -1.5627E-03
+it, rspread, locdiff, omega, lstep      30   3.7058358E+00   0.0000000E+00   3.7058358E+00 -1.5858E-03
+it, rspread, locdiff, omega, lstep      31   3.6924597E+00   0.0000000E+00   3.6924597E+00 -1.6088E-03
+it, rspread, locdiff, omega, lstep      32   3.6792153E+00   0.0000000E+00   3.6792153E+00 -1.6316E-03
+it, rspread, locdiff, omega, lstep      33   3.6661052E+00   0.0000000E+00   3.6661052E+00 -1.6542E-03
+it, rspread, locdiff, omega, lstep      34   3.6531318E+00   0.0000000E+00   3.6531318E+00 -1.6766E-03
+it, rspread, locdiff, omega, lstep      35   3.6402974E+00   0.0000000E+00   3.6402974E+00 -1.6987E-03
+it, rspread, locdiff, omega, lstep      36   3.6276041E+00   0.0000000E+00   3.6276041E+00 -1.7206E-03
+it, rspread, locdiff, omega, lstep      37   3.6150540E+00   0.0000000E+00   3.6150540E+00 -1.7422E-03
+it, rspread, locdiff, omega, lstep      38   3.6026490E+00   0.0000000E+00   3.6026490E+00 -1.7635E-03
+it, rspread, locdiff, omega, lstep      39   3.5903908E+00   0.0000000E+00   3.5903908E+00 -1.7845E-03
+it, rspread, locdiff, omega, lstep      40   3.5782806E+00   0.0000000E+00   3.5782806E+00 -1.8053E-03
+it, rspread, locdiff, omega, lstep      41   3.5663198E+00   0.0000000E+00   3.5663198E+00 -1.8258E-03
+it, rspread, locdiff, omega, lstep      42   3.5545092E+00   0.0000000E+00   3.5545092E+00 -1.8460E-03
+it, rspread, locdiff, omega, lstep      43   3.5428494E+00   0.0000000E+00   3.5428494E+00 -1.8660E-03
+it, rspread, locdiff, omega, lstep      44   3.5313409E+00   0.0000000E+00   3.5313409E+00 -1.8858E-03
+it, rspread, locdiff, omega, lstep      45   3.5199837E+00   0.0000000E+00   3.5199837E+00 -1.9054E-03
+it, rspread, locdiff, omega, lstep      46   3.5087777E+00   0.0000000E+00   3.5087777E+00 -1.9248E-03
+it, rspread, locdiff, omega, lstep      47   3.4977225E+00   0.0000000E+00   3.4977225E+00 -1.9441E-03
+it, rspread, locdiff, omega, lstep      48   3.4868174E+00   0.0000000E+00   3.4868174E+00 -1.9632E-03
+it, rspread, locdiff, omega, lstep      49   3.4760615E+00   0.0000000E+00   3.4760615E+00 -1.9823E-03
+it, rspread, locdiff, omega, lstep      50   3.4654538E+00   0.0000000E+00   3.4654538E+00 -2.0013E-03
+it, rspread, locdiff, omega, lstep      51   3.4549930E+00   0.0000000E+00   3.4549930E+00 -2.0204E-03
+it, rspread, locdiff, omega, lstep      52   3.4446776E+00   0.0000000E+00   3.4446776E+00 -2.0394E-03
+it, rspread, locdiff, omega, lstep      53   3.4345062E+00   0.0000000E+00   3.4345062E+00 -2.0584E-03
+it, rspread, locdiff, omega, lstep      54   3.4244769E+00   0.0000000E+00   3.4244769E+00 -2.0776E-03
+it, rspread, locdiff, omega, lstep      55   3.4145882E+00   0.0000000E+00   3.4145882E+00 -2.0968E-03
+it, rspread, locdiff, omega, lstep      56   3.4048381E+00   0.0000000E+00   3.4048381E+00 -2.1161E-03
+it, rspread, locdiff, omega, lstep      57   3.3952247E+00   0.0000000E+00   3.3952247E+00 -2.1355E-03
+it, rspread, locdiff, omega, lstep      58   3.3857460E+00   0.0000000E+00   3.3857460E+00 -2.1551E-03
+it, rspread, locdiff, omega, lstep      59   3.3764001E+00   0.0000000E+00   3.3764001E+00 -2.1748E-03
+it, rspread, locdiff, omega, lstep      60   3.3671850E+00   0.0000000E+00   3.3671850E+00 -2.1947E-03
+it, rspread, locdiff, omega, lstep      61   3.3580986E+00   0.0000000E+00   3.3580986E+00 -2.2148E-03
+it, rspread, locdiff, omega, lstep      62   3.3491389E+00   0.0000000E+00   3.3491389E+00 -2.2351E-03
+it, rspread, locdiff, omega, lstep      63   3.3403039E+00   0.0000000E+00   3.3403039E+00 -2.2557E-03
+it, rspread, locdiff, omega, lstep      64   3.3315915E+00   0.0000000E+00   3.3315915E+00 -2.2764E-03
+it, rspread, locdiff, omega, lstep      65   3.3229998E+00   0.0000000E+00   3.3229998E+00 -2.2974E-03
+it, rspread, locdiff, omega, lstep      66   3.3145267E+00   0.0000000E+00   3.3145267E+00 -2.3186E-03
+it, rspread, locdiff, omega, lstep      67   3.3061702E+00   0.0000000E+00   3.3061702E+00 -2.3400E-03
+it, rspread, locdiff, omega, lstep      68   3.2979284E+00   0.0000000E+00   3.2979284E+00 -2.3617E-03
+it, rspread, locdiff, omega, lstep      69   3.2897994E+00   0.0000000E+00   3.2897994E+00 -2.3837E-03
+it, rspread, locdiff, omega, lstep      70   3.2817812E+00   0.0000000E+00   3.2817812E+00 -2.4060E-03
+it, rspread, locdiff, omega, lstep      71   3.2738719E+00   0.0000000E+00   3.2738719E+00 -2.4285E-03
+it, rspread, locdiff, omega, lstep      72   3.2660696E+00   0.0000000E+00   3.2660696E+00 -2.4513E-03
+it, rspread, locdiff, omega, lstep      73   3.2583726E+00   0.0000000E+00   3.2583726E+00 -2.4744E-03
+it, rspread, locdiff, omega, lstep      74   3.2507789E+00   0.0000000E+00   3.2507789E+00 -2.4977E-03
+it, rspread, locdiff, omega, lstep      75   3.2432868E+00   0.0000000E+00   3.2432868E+00 -2.5214E-03
+it, rspread, locdiff, omega, lstep      76   3.2358945E+00   0.0000000E+00   3.2358945E+00 -2.5454E-03
+it, rspread, locdiff, omega, lstep      77   3.2286003E+00   0.0000000E+00   3.2286003E+00 -2.5696E-03
+it, rspread, locdiff, omega, lstep      78   3.2214024E+00   0.0000000E+00   3.2214024E+00 -2.5942E-03
+it, rspread, locdiff, omega, lstep      79   3.2142992E+00   0.0000000E+00   3.2142992E+00 -2.6191E-03
+it, rspread, locdiff, omega, lstep      80   3.2072889E+00   0.0000000E+00   3.2072889E+00 -2.6443E-03
+it, rspread, locdiff, omega, lstep      81   3.2003699E+00   0.0000000E+00   3.2003699E+00 -2.6697E-03
+it, rspread, locdiff, omega, lstep      82   3.1935406E+00   0.0000000E+00   3.1935406E+00 -2.6956E-03
+it, rspread, locdiff, omega, lstep      83   3.1867994E+00   0.0000000E+00   3.1867994E+00 -2.7217E-03
+it, rspread, locdiff, omega, lstep      84   3.1801446E+00   0.0000000E+00   3.1801446E+00 -2.7481E-03
+it, rspread, locdiff, omega, lstep      85   3.1735748E+00   0.0000000E+00   3.1735748E+00 -2.7749E-03
+it, rspread, locdiff, omega, lstep      86   3.1670883E+00   0.0000000E+00   3.1670883E+00 -2.8019E-03
+it, rspread, locdiff, omega, lstep      87   3.1606838E+00   0.0000000E+00   3.1606838E+00 -2.8293E-03
+it, rspread, locdiff, omega, lstep      88   3.1543595E+00   0.0000000E+00   3.1543595E+00 -2.8570E-03
+it, rspread, locdiff, omega, lstep      89   3.1481142E+00   0.0000000E+00   3.1481142E+00 -2.8851E-03
+it, rspread, locdiff, omega, lstep      90   3.1419464E+00   0.0000000E+00   3.1419464E+00 -2.9134E-03
+it, rspread, locdiff, omega, lstep      91   3.1358545E+00   0.0000000E+00   3.1358545E+00 -2.9421E-03
+it, rspread, locdiff, omega, lstep      92   3.1298372E+00   0.0000000E+00   3.1298372E+00 -2.9711E-03
+it, rspread, locdiff, omega, lstep      93   3.1238932E+00   0.0000000E+00   3.1238932E+00 -3.0004E-03
+it, rspread, locdiff, omega, lstep      94   3.1180209E+00   0.0000000E+00   3.1180209E+00 -3.0300E-03
+it, rspread, locdiff, omega, lstep      95   3.1122191E+00   0.0000000E+00   3.1122191E+00 -3.0600E-03
+it, rspread, locdiff, omega, lstep      96   3.1064865E+00   0.0000000E+00   3.1064865E+00 -3.0903E-03
+it, rspread, locdiff, omega, lstep      97   3.1008216E+00   0.0000000E+00   3.1008216E+00 -3.1209E-03
+it, rspread, locdiff, omega, lstep      98   3.0952233E+00   0.0000000E+00   3.0952233E+00 -3.1517E-03
+it, rspread, locdiff, omega, lstep      99   3.0896902E+00   0.0000000E+00   3.0896902E+00 -3.1830E-03
+it, rspread, locdiff, omega, lstep     100   3.0842210E+00   0.0000000E+00   3.0842210E+00 -3.2145E-03
+ creating new locregs...
+ Posting sends / receives for communicating the potential... done.
+ creating new locregs...
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... Orthoconstraint... Preconditioning.
+ iter, fnrm, fnrmMax, trace     2  1.3821409E-01  1.6060507E-01    -1.6801035471
+ steepest descent informations: mean alpha=1.014E+00, consecutive successes=2, DIIS=y
+it, rspread, locdiff, omega, lstep       1   6.2978891E+00   0.0000000E+00   6.2978891E+00  0.0000E+00
+it, rspread, locdiff, omega, lstep       2   6.2782972E+00   0.0000000E+00   6.2782972E+00 -1.0008E-03
+it, rspread, locdiff, omega, lstep       3   6.2588647E+00   0.0000000E+00   6.2588647E+00 -1.0223E-03
+it, rspread, locdiff, omega, lstep       4   6.2395920E+00   0.0000000E+00   6.2395920E+00 -1.0435E-03
+it, rspread, locdiff, omega, lstep       5   6.2204794E+00   0.0000000E+00   6.2204794E+00 -1.0644E-03
+it, rspread, locdiff, omega, lstep       6   6.2015282E+00   0.0000000E+00   6.2015282E+00 -1.0850E-03
+it, rspread, locdiff, omega, lstep       7   6.1827396E+00   0.0000000E+00   6.1827396E+00 -1.1052E-03
+it, rspread, locdiff, omega, lstep       8   6.1641150E+00   0.0000000E+00   6.1641150E+00 -1.1250E-03
+it, rspread, locdiff, omega, lstep       9   6.1456561E+00   0.0000000E+00   6.1456561E+00 -1.1444E-03
+it, rspread, locdiff, omega, lstep      10   6.1273644E+00   0.0000000E+00   6.1273644E+00 -1.1634E-03
+it, rspread, locdiff, omega, lstep      11   6.1092411E+00   0.0000000E+00   6.1092411E+00 -1.1821E-03
+it, rspread, locdiff, omega, lstep      12   6.0912875E+00   0.0000000E+00   6.0912875E+00 -1.2003E-03
+it, rspread, locdiff, omega, lstep      13   6.0735046E+00   0.0000000E+00   6.0735046E+00 -1.2182E-03
+it, rspread, locdiff, omega, lstep      14   6.0558933E+00   0.0000000E+00   6.0558933E+00 -1.2357E-03
+it, rspread, locdiff, omega, lstep      15   6.0384541E+00   0.0000000E+00   6.0384541E+00 -1.2530E-03
+it, rspread, locdiff, omega, lstep      16   6.0211873E+00   0.0000000E+00   6.0211873E+00 -1.2699E-03
+it, rspread, locdiff, omega, lstep      17   6.0040933E+00   0.0000000E+00   6.0040933E+00 -1.2867E-03
+it, rspread, locdiff, omega, lstep      18   5.9871719E+00   0.0000000E+00   5.9871719E+00 -1.3032E-03
+it, rspread, locdiff, omega, lstep      19   5.9704230E+00   0.0000000E+00   5.9704230E+00 -1.3195E-03
+it, rspread, locdiff, omega, lstep      20   5.9538465E+00   0.0000000E+00   5.9538465E+00 -1.3357E-03
+it, rspread, locdiff, omega, lstep      21   5.9374418E+00   0.0000000E+00   5.9374418E+00 -1.3517E-03
+it, rspread, locdiff, omega, lstep      22   5.9212087E+00   0.0000000E+00   5.9212087E+00 -1.3677E-03
+it, rspread, locdiff, omega, lstep      23   5.9051465E+00   0.0000000E+00   5.9051465E+00 -1.3836E-03
+it, rspread, locdiff, omega, lstep      24   5.8892548E+00   0.0000000E+00   5.8892548E+00 -1.3994E-03
+it, rspread, locdiff, omega, lstep      25   5.8735328E+00   0.0000000E+00   5.8735328E+00 -1.4153E-03
+it, rspread, locdiff, omega, lstep      26   5.8579800E+00   0.0000000E+00   5.8579800E+00 -1.4311E-03
+it, rspread, locdiff, omega, lstep      27   5.8425956E+00   0.0000000E+00   5.8425956E+00 -1.4470E-03
+it, rspread, locdiff, omega, lstep      28   5.8273790E+00   0.0000000E+00   5.8273790E+00 -1.4629E-03
+it, rspread, locdiff, omega, lstep      29   5.8123295E+00   0.0000000E+00   5.8123295E+00 -1.4789E-03
+it, rspread, locdiff, omega, lstep      30   5.7974464E+00   0.0000000E+00   5.7974464E+00 -1.4949E-03
+it, rspread, locdiff, omega, lstep      31   5.7827288E+00   0.0000000E+00   5.7827288E+00 -1.5111E-03
+it, rspread, locdiff, omega, lstep      32   5.7681761E+00   0.0000000E+00   5.7681761E+00 -1.5274E-03
+it, rspread, locdiff, omega, lstep      33   5.7537874E+00   0.0000000E+00   5.7537874E+00 -1.5438E-03
+it, rspread, locdiff, omega, lstep      34   5.7395621E+00   0.0000000E+00   5.7395621E+00 -1.5604E-03
+it, rspread, locdiff, omega, lstep      35   5.7254993E+00   0.0000000E+00   5.7254993E+00 -1.5771E-03
+it, rspread, locdiff, omega, lstep      36   5.7115983E+00   0.0000000E+00   5.7115983E+00 -1.5940E-03
+it, rspread, locdiff, omega, lstep      37   5.6978582E+00   0.0000000E+00   5.6978582E+00 -1.6111E-03
+it, rspread, locdiff, omega, lstep      38   5.6842783E+00   0.0000000E+00   5.6842783E+00 -1.6284E-03
+it, rspread, locdiff, omega, lstep      39   5.6708577E+00   0.0000000E+00   5.6708577E+00 -1.6459E-03
+it, rspread, locdiff, omega, lstep      40   5.6575956E+00   0.0000000E+00   5.6575956E+00 -1.6637E-03
+it, rspread, locdiff, omega, lstep      41   5.6444912E+00   0.0000000E+00   5.6444912E+00 -1.6817E-03
+it, rspread, locdiff, omega, lstep      42   5.6315437E+00   0.0000000E+00   5.6315437E+00 -1.7000E-03
+it, rspread, locdiff, omega, lstep      43   5.6187521E+00   0.0000000E+00   5.6187521E+00 -1.7186E-03
+it, rspread, locdiff, omega, lstep      44   5.6061156E+00   0.0000000E+00   5.6061156E+00 -1.7374E-03
+it, rspread, locdiff, omega, lstep      45   5.5936335E+00   0.0000000E+00   5.5936335E+00 -1.7566E-03
+it, rspread, locdiff, omega, lstep      46   5.5813047E+00   0.0000000E+00   5.5813047E+00 -1.7761E-03
+it, rspread, locdiff, omega, lstep      47   5.5691284E+00   0.0000000E+00   5.5691284E+00 -1.7959E-03
+it, rspread, locdiff, omega, lstep      48   5.5571038E+00   0.0000000E+00   5.5571038E+00 -1.8161E-03
+it, rspread, locdiff, omega, lstep      49   5.5452299E+00   0.0000000E+00   5.5452299E+00 -1.8366E-03
+it, rspread, locdiff, omega, lstep      50   5.5335059E+00   0.0000000E+00   5.5335059E+00 -1.8575E-03
+it, rspread, locdiff, omega, lstep      51   5.5219307E+00   0.0000000E+00   5.5219307E+00 -1.8787E-03
+it, rspread, locdiff, omega, lstep      52   5.5105036E+00   0.0000000E+00   5.5105036E+00 -1.9004E-03
+it, rspread, locdiff, omega, lstep      53   5.4992237E+00   0.0000000E+00   5.4992237E+00 -1.9225E-03
+it, rspread, locdiff, omega, lstep      54   5.4880898E+00   0.0000000E+00   5.4880898E+00 -1.9450E-03
+it, rspread, locdiff, omega, lstep      55   5.4771013E+00   0.0000000E+00   5.4771013E+00 -1.9680E-03
+it, rspread, locdiff, omega, lstep      56   5.4662570E+00   0.0000000E+00   5.4662570E+00 -1.9914E-03
+it, rspread, locdiff, omega, lstep      57   5.4555561E+00   0.0000000E+00   5.4555561E+00 -2.0153E-03
+it, rspread, locdiff, omega, lstep      58   5.4449976E+00   0.0000000E+00   5.4449976E+00 -2.0397E-03
+it, rspread, locdiff, omega, lstep      59   5.4345806E+00   0.0000000E+00   5.4345806E+00 -2.0646E-03
+it, rspread, locdiff, omega, lstep      60   5.4243040E+00   0.0000000E+00   5.4243040E+00 -2.0900E-03
+it, rspread, locdiff, omega, lstep      61   5.4141670E+00   0.0000000E+00   5.4141670E+00 -2.1160E-03
+it, rspread, locdiff, omega, lstep      62   5.4041686E+00   0.0000000E+00   5.4041686E+00 -2.1425E-03
+it, rspread, locdiff, omega, lstep      63   5.3943077E+00   0.0000000E+00   5.3943077E+00 -2.1696E-03
+it, rspread, locdiff, omega, lstep      64   5.3845834E+00   0.0000000E+00   5.3845834E+00 -2.1973E-03
+it, rspread, locdiff, omega, lstep      65   5.3749947E+00   0.0000000E+00   5.3749947E+00 -2.2255E-03
+it, rspread, locdiff, omega, lstep      66   5.3655405E+00   0.0000000E+00   5.3655405E+00 -2.2544E-03
+it, rspread, locdiff, omega, lstep      67   5.3562200E+00   0.0000000E+00   5.3562200E+00 -2.2840E-03
+it, rspread, locdiff, omega, lstep      68   5.3470319E+00   0.0000000E+00   5.3470319E+00 -2.3142E-03
+it, rspread, locdiff, omega, lstep      69   5.3379754E+00   0.0000000E+00   5.3379754E+00 -2.3451E-03
+it, rspread, locdiff, omega, lstep      70   5.3290493E+00   0.0000000E+00   5.3290493E+00 -2.3767E-03
+it, rspread, locdiff, omega, lstep      71   5.3202527E+00   0.0000000E+00   5.3202527E+00 -2.4090E-03
+it, rspread, locdiff, omega, lstep      72   5.3115844E+00   0.0000000E+00   5.3115844E+00 -2.4421E-03
+it, rspread, locdiff, omega, lstep      73   5.3030434E+00   0.0000000E+00   5.3030434E+00 -2.4759E-03
+it, rspread, locdiff, omega, lstep      74   5.2946285E+00   0.0000000E+00   5.2946285E+00 -2.5105E-03
+it, rspread, locdiff, omega, lstep      75   5.2863388E+00   0.0000000E+00   5.2863388E+00 -2.5459E-03
+it, rspread, locdiff, omega, lstep      76   5.2781731E+00   0.0000000E+00   5.2781731E+00 -2.5822E-03
+it, rspread, locdiff, omega, lstep      77   5.2701302E+00   0.0000000E+00   5.2701302E+00 -2.6193E-03
+it, rspread, locdiff, omega, lstep      78   5.2622091E+00   0.0000000E+00   5.2622091E+00 -2.6573E-03
+it, rspread, locdiff, omega, lstep      79   5.2544085E+00   0.0000000E+00   5.2544085E+00 -2.6962E-03
+it, rspread, locdiff, omega, lstep      80   5.2467274E+00   0.0000000E+00   5.2467274E+00 -2.7360E-03
+it, rspread, locdiff, omega, lstep      81   5.2391644E+00   0.0000000E+00   5.2391644E+00 -2.7768E-03
+it, rspread, locdiff, omega, lstep      82   5.2317185E+00   0.0000000E+00   5.2317185E+00 -2.8185E-03
+it, rspread, locdiff, omega, lstep      83   5.2243884E+00   0.0000000E+00   5.2243884E+00 -2.8612E-03
+it, rspread, locdiff, omega, lstep      84   5.2171729E+00   0.0000000E+00   5.2171729E+00 -2.9050E-03
+it, rspread, locdiff, omega, lstep      85   5.2100707E+00   0.0000000E+00   5.2100707E+00 -2.9498E-03
+it, rspread, locdiff, omega, lstep      86   5.2030805E+00   0.0000000E+00   5.2030805E+00 -2.9957E-03
+it, rspread, locdiff, omega, lstep      87   5.1962011E+00   0.0000000E+00   5.1962011E+00 -3.0426E-03
+it, rspread, locdiff, omega, lstep      88   5.1894311E+00   0.0000000E+00   5.1894311E+00 -3.0907E-03
+it, rspread, locdiff, omega, lstep      89   5.1827693E+00   0.0000000E+00   5.1827693E+00 -3.1399E-03
+it, rspread, locdiff, omega, lstep      90   5.1762142E+00   0.0000000E+00   5.1762142E+00 -3.1902E-03
+it, rspread, locdiff, omega, lstep      91   5.1697644E+00   0.0000000E+00   5.1697644E+00 -3.2418E-03
+it, rspread, locdiff, omega, lstep      92   5.1634187E+00   0.0000000E+00   5.1634187E+00 -3.2945E-03
+it, rspread, locdiff, omega, lstep      93   5.1571755E+00   0.0000000E+00   5.1571755E+00 -3.3485E-03
+it, rspread, locdiff, omega, lstep      94   5.1510335E+00   0.0000000E+00   5.1510335E+00 -3.4036E-03
+it, rspread, locdiff, omega, lstep      95   5.1449911E+00   0.0000000E+00   5.1449911E+00 -3.4600E-03
+it, rspread, locdiff, omega, lstep      96   5.1390469E+00   0.0000000E+00   5.1390469E+00 -3.5177E-03
+it, rspread, locdiff, omega, lstep      97   5.1331994E+00   0.0000000E+00   5.1331994E+00 -3.5766E-03
+it, rspread, locdiff, omega, lstep      98   5.1274470E+00   0.0000000E+00   5.1274470E+00 -3.6367E-03
+it, rspread, locdiff, omega, lstep      99   5.1217882E+00   0.0000000E+00   5.1217882E+00 -3.6982E-03
+it, rspread, locdiff, omega, lstep     100   5.1162214E+00   0.0000000E+00   5.1162214E+00 -3.7608E-03
+ creating new locregs...
+ creating new locregs...
+ ----------------------------------------------------------------------------- iter=3
+ Orthonormalization...it, rspread, locdiff, omega, lstep       1   3.9776807E+00   0.0000000E+00   3.9776807E+00  0.0000E+00
+it, rspread, locdiff, omega, lstep       2   3.9599112E+00   0.0000000E+00   3.9599112E+00 -1.2524E-03
+it, rspread, locdiff, omega, lstep       3   3.9423131E+00   0.0000000E+00   3.9423131E+00 -1.2729E-03
+it, rspread, locdiff, omega, lstep       4   3.9248872E+00   0.0000000E+00   3.9248872E+00 -1.2933E-03
+it, rspread, locdiff, omega, lstep       5   3.9076345E+00   0.0000000E+00   3.9076345E+00 -1.3136E-03
+it, rspread, locdiff, omega, lstep       6   3.8905559E+00   0.0000000E+00   3.8905559E+00 -1.3338E-03
+it, rspread, locdiff, omega, lstep       7   3.8736526E+00   0.0000000E+00   3.8736526E+00 -1.3539E-03
+it, rspread, locdiff, omega, lstep       8   3.8569256E+00   0.0000000E+00   3.8569256E+00 -1.3739E-03
+it, rspread, locdiff, omega, lstep       9   3.8403758E+00   0.0000000E+00   3.8403758E+00 -1.3938E-03
+it, rspread, locdiff, omega, lstep      10   3.8240043E+00   0.0000000E+00   3.8240043E+00 -1.4136E-03
+it, rspread, locdiff, omega, lstep      11   3.8078120E+00   0.0000000E+00   3.8078120E+00 -1.4332E-03
+it, rspread, locdiff, omega, lstep      12   3.7917998E+00   0.0000000E+00   3.7917998E+00 -1.4527E-03
+it, rspread, locdiff, omega, lstep      13   3.7759686E+00   0.0000000E+00   3.7759686E+00 -1.4721E-03
+it, rspread, locdiff, omega, lstep      14   3.7603190E+00   0.0000000E+00   3.7603190E+00 -1.4913E-03
+it, rspread, locdiff, omega, lstep      15   3.7448517E+00   0.0000000E+00   3.7448517E+00 -1.5104E-03
+it, rspread, locdiff, omega, lstep      16   3.7295672E+00   0.0000000E+00   3.7295672E+00 -1.5294E-03
+it, rspread, locdiff, omega, lstep      17   3.7144659E+00   0.0000000E+00   3.7144659E+00 -1.5483E-03
+it, rspread, locdiff, omega, lstep      18   3.6995481E+00   0.0000000E+00   3.6995481E+00 -1.5671E-03
+it, rspread, locdiff, omega, lstep      19   3.6848139E+00   0.0000000E+00   3.6848139E+00 -1.5858E-03
+it, rspread, locdiff, omega, lstep      20   3.6702634E+00   0.0000000E+00   3.6702634E+00 -1.6044E-03
+it, rspread, locdiff, omega, lstep      21   3.6558963E+00   0.0000000E+00   3.6558963E+00 -1.6230E-03
+it, rspread, locdiff, omega, lstep      22   3.6417125E+00   0.0000000E+00   3.6417125E+00 -1.6415E-03
+it, rspread, locdiff, omega, lstep      23   3.6277115E+00   0.0000000E+00   3.6277115E+00 -1.6601E-03
+it, rspread, locdiff, omega, lstep      24   3.6138928E+00   0.0000000E+00   3.6138928E+00 -1.6786E-03
+it, rspread, locdiff, omega, lstep      25   3.6002557E+00   0.0000000E+00   3.6002557E+00 -1.6971E-03
+it, rspread, locdiff, omega, lstep      26   3.5867996E+00   0.0000000E+00   3.5867996E+00 -1.7157E-03
+it, rspread, locdiff, omega, lstep      27   3.5735235E+00   0.0000000E+00   3.5735235E+00 -1.7344E-03
+it, rspread, locdiff, omega, lstep      28   3.5604264E+00   0.0000000E+00   3.5604264E+00 -1.7531E-03
+it, rspread, locdiff, omega, lstep      29   3.5475074E+00   0.0000000E+00   3.5475074E+00 -1.7720E-03
+it, rspread, locdiff, omega, lstep      30   3.5347652E+00   0.0000000E+00   3.5347652E+00 -1.7909E-03
+it, rspread, locdiff, omega, lstep      31   3.5221987E+00   0.0000000E+00   3.5221987E+00 -1.8101E-03
+it, rspread, locdiff, omega, lstep      32   3.5098066E+00   0.0000000E+00   3.5098066E+00 -1.8293E-03
+it, rspread, locdiff, omega, lstep      33   3.4975875E+00   0.0000000E+00   3.4975875E+00 -1.8488E-03
+it, rspread, locdiff, omega, lstep      34   3.4855402E+00   0.0000000E+00   3.4855402E+00 -1.8685E-03
+it, rspread, locdiff, omega, lstep      35   3.4736631E+00   0.0000000E+00   3.4736631E+00 -1.8884E-03
+it, rspread, locdiff, omega, lstep      36   3.4619548E+00   0.0000000E+00   3.4619548E+00 -1.9086E-03
+it, rspread, locdiff, omega, lstep      37   3.4504139E+00   0.0000000E+00   3.4504139E+00 -1.9290E-03
+it, rspread, locdiff, omega, lstep      38   3.4390389E+00   0.0000000E+00   3.4390389E+00 -1.9497E-03
+it, rspread, locdiff, omega, lstep      39   3.4278281E+00   0.0000000E+00   3.4278281E+00 -1.9708E-03
+it, rspread, locdiff, omega, lstep      40   3.4167802E+00   0.0000000E+00   3.4167802E+00 -1.9921E-03
+it, rspread, locdiff, omega, lstep      41   3.4058935E+00   0.0000000E+00   3.4058935E+00 -2.0138E-03
+it, rspread, locdiff, omega, lstep      42   3.3951666E+00   0.0000000E+00   3.3951666E+00 -2.0359E-03
+it, rspread, locdiff, omega, lstep      43   3.3845979E+00   0.0000000E+00   3.3845979E+00 -2.0584E-03
+it, rspread, locdiff, omega, lstep      44   3.3741858E+00   0.0000000E+00   3.3741858E+00 -2.0812E-03
+it, rspread, locdiff, omega, lstep      45   3.3639288E+00   0.0000000E+00   3.3639288E+00 -2.1045E-03
+it, rspread, locdiff, omega, lstep      46   3.3538254E+00   0.0000000E+00   3.3538254E+00 -2.1282E-03
+it, rspread, locdiff, omega, lstep      47   3.3438740E+00   0.0000000E+00   3.3438740E+00 -2.1524E-03
+it, rspread, locdiff, omega, lstep      48   3.3340732E+00   0.0000000E+00   3.3340732E+00 -2.1771E-03
+it, rspread, locdiff, omega, lstep      49   3.3244213E+00   0.0000000E+00   3.3244213E+00 -2.2022E-03
+it, rspread, locdiff, omega, lstep      50   3.3149170E+00   0.0000000E+00   3.3149170E+00 -2.2279E-03
+it, rspread, locdiff, omega, lstep      51   3.3055588E+00   0.0000000E+00   3.3055588E+00 -2.2541E-03
+it, rspread, locdiff, omega, lstep      52   3.2963450E+00   0.0000000E+00   3.2963450E+00 -2.2809E-03
+it, rspread, locdiff, omega, lstep      53   3.2872744E+00   0.0000000E+00   3.2872744E+00 -2.3082E-03
+it, rspread, locdiff, omega, lstep      54   3.2783453E+00   0.0000000E+00   3.2783453E+00 -2.3362E-03
+it, rspread, locdiff, omega, lstep      55   3.2695565E+00   0.0000000E+00   3.2695565E+00 -2.3647E-03
+it, rspread, locdiff, omega, lstep      56   3.2609063E+00   0.0000000E+00   3.2609063E+00 -2.3939E-03
+it, rspread, locdiff, omega, lstep      57   3.2523935E+00   0.0000000E+00   3.2523935E+00 -2.4238E-03
+it, rspread, locdiff, omega, lstep      58   3.2440165E+00   0.0000000E+00   3.2440165E+00 -2.4544E-03
+it, rspread, locdiff, omega, lstep      59   3.2357741E+00   0.0000000E+00   3.2357741E+00 -2.4856E-03
+it, rspread, locdiff, omega, lstep      60   3.2276647E+00   0.0000000E+00   3.2276647E+00 -2.5176E-03
+it, rspread, locdiff, omega, lstep      61   3.2196869E+00   0.0000000E+00   3.2196869E+00 -2.5504E-03
+it, rspread, locdiff, omega, lstep      62   3.2118395E+00   0.0000000E+00   3.2118395E+00 -2.5839E-03
+it, rspread, locdiff, omega, lstep      63   3.2041210E+00   0.0000000E+00   3.2041210E+00 -2.6182E-03
+it, rspread, locdiff, omega, lstep      64   3.1965300E+00   0.0000000E+00   3.1965300E+00 -2.6534E-03
+it, rspread, locdiff, omega, lstep      65   3.1890652E+00   0.0000000E+00   3.1890652E+00 -2.6894E-03
+it, rspread, locdiff, omega, lstep      66   3.1817251E+00   0.0000000E+00   3.1817251E+00 -2.7263E-03
+it, rspread, locdiff, omega, lstep      67   3.1745085E+00   0.0000000E+00   3.1745085E+00 -2.7641E-03
+it, rspread, locdiff, omega, lstep      68   3.1674140E+00   0.0000000E+00   3.1674140E+00 -2.8029E-03
+it, rspread, locdiff, omega, lstep      69   3.1604402E+00   0.0000000E+00   3.1604402E+00 -2.8426E-03
+it, rspread, locdiff, omega, lstep      70   3.1535857E+00   0.0000000E+00   3.1535857E+00 -2.8833E-03
+it, rspread, locdiff, omega, lstep      71   3.1468492E+00   0.0000000E+00   3.1468492E+00 -2.9250E-03
+it, rspread, locdiff, omega, lstep      72   3.1402293E+00   0.0000000E+00   3.1402293E+00 -2.9678E-03
+it, rspread, locdiff, omega, lstep      73   3.1337247E+00   0.0000000E+00   3.1337247E+00 -3.0117E-03
+it, rspread, locdiff, omega, lstep      74   3.1273340E+00   0.0000000E+00   3.1273340E+00 -3.0566E-03
+it, rspread, locdiff, omega, lstep      75   3.1210557E+00   0.0000000E+00   3.1210557E+00 -3.1028E-03
+it, rspread, locdiff, omega, lstep      76   3.1148885E+00   0.0000000E+00   3.1148885E+00 -3.1501E-03
+it, rspread, locdiff, omega, lstep      77   3.1088311E+00   0.0000000E+00   3.1088311E+00 -3.1986E-03
+it, rspread, locdiff, omega, lstep      78   3.1028820E+00   0.0000000E+00   3.1028820E+00 -3.2483E-03
+it, rspread, locdiff, omega, lstep      79   3.0970397E+00   0.0000000E+00   3.0970397E+00 -3.2993E-03
+it, rspread, locdiff, omega, lstep      80   3.0913030E+00   0.0000000E+00   3.0913030E+00 -3.3516E-03
+it, rspread, locdiff, omega, lstep      81   3.0856703E+00   0.0000000E+00   3.0856703E+00 -3.4052E-03
+it, rspread, locdiff, omega, lstep      82   3.0801403E+00   0.0000000E+00   3.0801403E+00 -3.4602E-03
+it, rspread, locdiff, omega, lstep      83   3.0747114E+00   0.0000000E+00   3.0747114E+00 -3.5166E-03
+it, rspread, locdiff, omega, lstep      84   3.0693821E+00   0.0000000E+00   3.0693821E+00 -3.5744E-03
+it, rspread, locdiff, omega, lstep      85   3.0641511E+00   0.0000000E+00   3.0641511E+00 -3.6336E-03
+it, rspread, locdiff, omega, lstep      86   3.0590168E+00   0.0000000E+00   3.0590168E+00 -3.6942E-03
+it, rspread, locdiff, omega, lstep      87   3.0539777E+00   0.0000000E+00   3.0539777E+00 -3.7563E-03
+it, rspread, locdiff, omega, lstep      88   3.0490322E+00   0.0000000E+00   3.0490322E+00 -3.8199E-03
+it, rspread, locdiff, omega, lstep      89   3.0441789E+00   0.0000000E+00   3.0441789E+00 -3.8850E-03
+it, rspread, locdiff, omega, lstep      90   3.0394161E+00   0.0000000E+00   3.0394161E+00 -3.9516E-03
+it, rspread, locdiff, omega, lstep      91   3.0347424E+00   0.0000000E+00   3.0347424E+00 -4.0197E-03
+it, rspread, locdiff, omega, lstep      92   3.0301561E+00   0.0000000E+00   3.0301561E+00 -4.0893E-03
+it, rspread, locdiff, omega, lstep      93   3.0256557E+00   0.0000000E+00   3.0256557E+00 -4.1604E-03
+it, rspread, locdiff, omega, lstep      94   3.0212395E+00   0.0000000E+00   3.0212395E+00 -4.2329E-03
+it, rspread, locdiff, omega, lstep      95   3.0169061E+00   0.0000000E+00   3.0169061E+00 -4.3067E-03
+it, rspread, locdiff, omega, lstep      96   3.0126537E+00   0.0000000E+00   3.0126537E+00 -4.3819E-03
+it, rspread, locdiff, omega, lstep      97   3.0084810E+00   0.0000000E+00   3.0084810E+00 -4.4583E-03
+it, rspread, locdiff, omega, lstep      98   3.0043864E+00   0.0000000E+00   3.0043864E+00 -4.5358E-03
+it, rspread, locdiff, omega, lstep      99   3.0003685E+00   0.0000000E+00   3.0003685E+00 -4.6141E-03
+it, rspread, locdiff, omega, lstep     100   2.9964258E+00   0.0000000E+00   2.9964258E+00 -4.6932E-03
+ creating new locregs...
+ Posting sends / receives for communicating the potential... done.
+ creating new locregs...
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... Orthoconstraint... Preconditioning.
+ iter, fnrm, fnrmMax, trace     3  7.5582906E-02  8.7830117E-02    -1.7593624551
+ WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   7.5582906E-02  8.7830117E-02  -1.7593625
+ ============================= Basis functions created. =============================
+ the new centers of the localization regions:
+         1      9.251411003779E+00      1.048711660248E+01      8.971300953566E+00
+         2      8.442816764110E+00      1.019493297252E+01      8.632240501075E+00
+         3      8.479544793930E+00      9.831843275354E+00      9.481328976660E+00
+         4      9.049876239489E+00      9.516282005049E+00      8.551769328385E+00
+         5      1.150710750624E+01      8.676705942360E+00      8.516560237504E+00
+         6      1.126475917148E+01      7.924039683170E+00      9.218668080451E+00
+         7      1.125086913395E+01      8.914014441938E+00      9.645930818002E+00
+         8      1.074764006362E+01      8.460111929231E+00      8.984508049691E+00
+         9      7.020806506187E+00      8.714927814434E+00      8.945156569539E+00
+        10      8.615091491522E+00      1.142814581669E+01      1.059804865841E+01
+        11      8.724336563104E+00      1.118955310321E+01      7.045449647535E+00
+        12      1.139255138727E+01      7.075471883753E+00      7.414925802569E+00
+        13      1.127951326247E+01      7.318497252215E+00      1.096741516072E+01
+        14      1.299165719791E+01      9.788195847253E+00      9.057992638190E+00
+ timings:
+   -total time: 3.920E+00
+     - orthonormalization: 2.039E+00=52.0%
+     - Hamiltonian application: 1.179E-01= 3.0%
+     - orthoconstraint: 6.693E-02= 1.7%
+     - preconditioning: 2.973E-01= 7.6%
+     - unitary optimization: 0.000E+00= 0.0%
+     - other: 1.399E+00=35.7%
+ Posting sends / receives for communicating the potential... done.
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-5.42101E-01
+   eval(2)=-3.91306E-01
+   eval(3)=-2.29575E-01
+   eval(4)=-2.27162E-01
+   eval(5)=-1.41880E-01
+   eval(6)=-1.14185E-01
+   eval(7)=-1.13287E-01  <-- last occupied orbital
+   eval(8)= 6.05471E-01  <-- first virtual orbital
+   eval(9)= 6.12359E-01
+   eval(10)= 6.55379E-01
+   eval(11)= 6.80054E-01
+   eval(12)= 7.09454E-01
+   eval(13)= 7.13732E-01
+   eval(14)= 7.15884E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999856907E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 1 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   1   2.86E-06   -1.35012051022718431E+01   -3.3243E-01
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-6.33230E-01
+   eval(2)=-4.80387E-01
+   eval(3)=-3.14943E-01
+   eval(4)=-3.12996E-01
+   eval(5)=-2.45563E-01
+   eval(6)=-1.97125E-01
+   eval(7)=-1.96216E-01  <-- last occupied orbital
+   eval(8)= 5.06508E-01  <-- first virtual orbital
+   eval(9)= 5.12819E-01
+   eval(10)= 5.25201E-01
+   eval(11)= 5.79557E-01
+   eval(12)= 6.00688E-01
+   eval(13)= 6.05280E-01
+   eval(14)= 6.16671E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999853527E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 2 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   2   1.44E-06   -1.44231406208668069E+01   -9.2194E-01
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-6.50254E-01
+   eval(2)=-5.03998E-01
+   eval(3)=-3.36175E-01
+   eval(4)=-3.34329E-01
+   eval(5)=-2.65384E-01
+   eval(6)=-2.21019E-01
+   eval(7)=-2.20123E-01  <-- last occupied orbital
+   eval(8)= 4.80752E-01  <-- first virtual orbital
+   eval(9)= 4.87250E-01
+   eval(10)= 5.03088E-01
+   eval(11)= 5.51123E-01
+   eval(12)= 5.74072E-01
+   eval(13)= 5.78843E-01
+   eval(14)= 5.88530E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999853622E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 3 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   3   7.16E-07   -1.45693050407126670E+01   -1.4616E-01
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Gathering the potential... done.
+ Gathering the potential... done.
+ Hamiltonian application... done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=-6.58977E-01
+   eval(2)=-5.15638E-01
+   eval(3)=-3.46754E-01
+   eval(4)=-3.44959E-01
+   eval(5)=-2.75533E-01
+   eval(6)=-2.32859E-01
+   eval(7)=-2.31979E-01  <-- last occupied orbital
+   eval(8)= 4.67833E-01  <-- first virtual orbital
+   eval(9)= 4.74361E-01
+   eval(10)= 4.91303E-01
+   eval(11)= 5.37153E-01
+   eval(12)= 5.60648E-01
+   eval(13)= 5.65473E-01
+   eval(14)= 5.74723E-01
+ -------------------------------------------------
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999853614E+01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ############################################################################################
+ at iteration 4 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   4   3.59E-07   -1.46465451075950064E+01   -7.7240E-02
+ ############################################################################################
+   itout, Delta DENSOUT, energy, energyDiff   3   2.63E-06   -1.46465451075950064E+01   -1.4778E+00
+ Posting sends / receives for the calculation of the charge density... done.
+ Calculating charge density...
+   calculating the density kernel... done.
+   waiting for communication to complete... done.
+   Calculation finished. TOTAL CHARGE =   1.399999853614E+01
+ ------------------------------------- Building linear combinations... done.
+ ================================================
+ total time for linear scaling version: 7.634E+00s
+   of which:
+             - initialization: 4.001E-02s ( 0.5%)
+             - input guess: 1.018E+00s (13.3%)
+             - self consistency cycle: 6.505E+00s (85.2%)
+             - forces: 0.000E+00s ( 0.0%)
+ ================================================
+ ---------------------------------------------------------- Gaussian Basis Projection
+ Generation of input wavefunction data for atom      C:
+   Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
+ Generation of input wavefunction data for atom      H:
+   Elec. Configuration: s 1.00 , ... done.
+ ----------------------------------------------------------------- Forces Calculation
+ PSolver, free  BC, dimensions:   111  105  103   proc    8 ... done.
+ ------------------------------------------------------------- Electric Dipole Moment
+  |P| =   1.155471E-01 (AU)       (Px,Py,Pz)=   -8.0933E-02  -5.4356E-02  -6.2019E-02
+  |P| =   2.936913E-01 (Debye)    (Px,Py,Pz)=   -2.0571E-01  -1.3816E-01  -1.5764E-01
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ Calculate nonlocal forces... done.
+ average noise along x direction:   1.23772241E-02
+ average noise along y direction:   1.02450495E-02
+ average noise along z direction:   9.06765860E-03
+ total average noise            :   1.84493671E-02
+ clean forces norm (Ha/Bohr): maxval=  3.734975405737E-02  fnrm2=  6.055461380212E-03
+ raw forces:                  maxval=  4.042826986317E-02  fnrm2=  6.439127325388E-03
+ CPU time/ELAPSED time for root process     0         8.18         7.91
+ Final values of the Forces for each atom
+     1      C  3.37369E-02 -1.52942E-02  4.78694E-03
+     2      C -2.06911E-02  2.46308E-02  3.52243E-03
+     3      H -1.45118E-02 -2.25102E-02  2.86009E-03
+     4      H  4.30474E-03  7.74766E-03  1.94629E-02
+     5      H  1.07654E-02  5.68014E-03 -2.10109E-02
+     6      H -6.97548E-03 -1.14285E-02 -2.19554E-02
+     7      H -1.54998E-02 -8.39760E-03  1.90299E-02
+     8      H  8.87115E-03  1.95718E-02 -6.69589E-03
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 19363 allocations and 19363 deallocations, remaining memory(B): 0
+ memory occupation peak: 71 MB
+ for the array  psirz in the routine apply_position_operators

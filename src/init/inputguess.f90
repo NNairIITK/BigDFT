@@ -243,7 +243,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   deallocate(orbse%inWhichLocreg,stat=istat)
   call memocc(istat,iall,'orbse%inWhichLocreg',subname)
   ! Assign the orbitals to the localization regions.
-  call assignToLocreg2(iproc,at%nat,nlr,nspin,norbsPerAt,rxyz,orbse)
+  call assignToLocreg2(iproc,nproc,orbse%norb,orbse%norb_par,at%nat,nlr,nspin,norbsPerAt,rxyz,orbse%inwhichlocreg)
 
   do ikpt = 1, orbse%nkpts
      ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe

@@ -27,7 +27,6 @@ subroutine nullify_linearParameters(lin)
   !call nullify_p2pCommsOrthonormality(lin%comon)
   call nullify_p2pComms(lin%comon)
   call nullify_overlapParameters(lin%op)
-  call nullify_linearInputGuess(lin%lig)
   call nullify_matrixDescriptors(lin%mad)
 
 end subroutine nullify_linearParameters
@@ -262,10 +261,12 @@ subroutine nullify_local_zone_descriptors(lzd)
   ! Calling arguments
   type(local_zone_descriptors),intent(out):: lzd
  
+  nullify(lzd%rxyz)
   call nullify_locreg_descriptors(lzd%glr)
   nullify(lzd%llr)
   nullify(lzd%doHamAppl)
   nullify(lzd%cutoffweight) 
+  nullify(lzd%cutoffweight)
  
 end subroutine nullify_local_zone_descriptors
 

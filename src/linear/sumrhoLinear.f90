@@ -87,6 +87,7 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
      spinval=orbs%spinsgn(iorb)
 
 
+
      if (hfac /= 0.d0) then
 
         !sum for complex function case, npsir=1 in that case
