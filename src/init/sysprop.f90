@@ -9,11 +9,10 @@
 
 !>Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
-     inputpsi,input_wf_format,orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
+     orbs,Lzd,denspot,nlpspd,comms,hgrids,shift,proj,radii_cf)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
-  use Poisson_Solver
   use module_xc
   use vdwcorrection
   implicit none
@@ -21,8 +20,6 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   type(input_variables), intent(in) :: in 
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-  integer, intent(out) :: inputpsi !<strategy for wavefunction input guess
-  integer, intent(out) :: input_wf_format !< format of input wavefunctions
   type(orbitals_data), intent(out) :: orbs
   type(local_zone_descriptors), intent(out) :: Lzd
   type(DFT_local_fields), intent(out) :: denspot
@@ -33,58 +30,24 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
   !local variables
-  logical :: onefile
-  integer :: nelec,ndegree_ip
+  integer :: nelec,nB,nKB,nMB
   real(gp) :: peakmem
 
-  ! Initialise XC calculation
-  if (in%ixc < 0) then
-     call xc_init(in%ixc, XC_MIXED, in%nspin)
-  else
-     call xc_init(in%ixc, XC_ABINIT, in%nspin)
-  end if
-
-  !character string for quieting the Poisson solver
-
+  ! Dump XC functionals.
   if (iproc == 0) call xc_dump()
-
-  call initialize_DFT_local_fields(denspot)
 
   if (iproc==0) then
      write( *,'(1x,a)')&
           &   '------------------------------------------------------------------ System Properties'
   end if
-
-  call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
-
-  inputpsi=in%inputPsiId
-
-  input_wf_format=WF_FORMAT_NONE !default value
-
-  !for the inputPsiId==2 case, check 
-  !if the wavefunctions are all present
-  !otherwise switch to normal input guess
-  if (in%inputPsiId == INPUT_PSI_DISK_WVL) then
-     ! Test ETSF file.
-     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
-     if (onefile) then
-        input_wf_format= WF_FORMAT_ETSF
-     else
-        call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
-     end if
-     if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-        inputpsi=INPUT_PSI_LCAO
-     end if
-  end if
+  call read_atomic_variables(trim(in%file_igpop),iproc,in,atoms,radii_cf)
 
   call nullify_locreg_descriptors(Lzd%Glr)
 
   !initial values
   hgrids(1)=in%hx
   hgrids(2)=in%hy
-  hgrids(3)=in%hz
-  
+  hgrids(3)=in%hz  
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
@@ -95,42 +58,37 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
   if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
-  !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-  ndegree_ip=16 !default value 
-  call createKernel(iproc,nproc,atoms%geocode,&
-       Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-       ndegree_ip,denspot%pkernel,(verbose > 1))
-
-  !create the sequential kernel if the exctX parallelisation scheme requires it
-  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
-       .and. nproc > 1) then
-     call createKernel(0,1,atoms%geocode,&
-          Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-          ndegree_ip,denspot%pkernelseq,.false.)
-  else 
-     denspot%pkernelseq => denspot%pkernel
-  end if
+  call initialize_DFT_local_fields(denspot)
+  ! Create the Poisson solver kernels.
+  call system_createKernels(iproc, nproc, (verbose > 1), atoms%geocode, &
+       & Lzd%Glr%d, hgrids, in, denspot)
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call createWavefunctionsDescriptors(iproc,hgrids(1),hgrids(2),hgrids(3),atoms,&
        rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr)
 
+  ! Create orbs data structure.
+  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
+  if (iproc == 0) then
+     nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
+     nMB=nB/1024/1024
+     nKB=(nB-nMB*1024*1024)/1024
+     nB=modulo(nB,1024)
+     write(*,'(1x,a,3(i5,a))') &
+       'Wavefunctions memory occupation for root MPI process: ',&
+       nMB,' MB ',nKB,' KB ',nB,' B'
+  end if
+  ! Done orbs
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
+
   ! See if linear scaling should be activated and build the correct Lzd 
-  ! There is a copy of this inside the LCAO input guess because the norbs changes
-  ! and so the inwhichlocreg also ==> different distribution for the locregs
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LCAO_GAUSS) then
-     call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
-  else
-     Lzd%nlr = 1
-     Lzd%linear = .false.
-  end if
+  call check_linear_and_create_Lzd(iproc,nproc,in,hgrids(1),hgrids(2),hgrids(3),Lzd,atoms,orbs,rxyz)
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
@@ -141,28 +99,59 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
   end if
 
   !calculate the descriptors for rho and the potentials.
-  call denspot_communications(iproc,nproc,Lzd%Glr%d,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+  call denspot_communications(iproc,nproc,Lzd%Glr%d,&
+       0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
        in,atoms,rxyz,radii_cf,denspot%dpcom,denspot%rhod)
-  !allocate the arrays.
-  call allocateRhoPot(iproc,nproc,Lzd%Glr,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
-       in,atoms,rxyz,radii_cf,denspot)
 
-  call local_potential_dimensions(Lzd,orbs,denspot%dpcom%ngatherarr(0,1))
+  !allocate the arrays.
+  call allocateRhoPot(iproc,Lzd%Glr,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       in,atoms,rxyz,denspot)
+
+  !calculate the irreductible zone for this region, if necessary.
+  call symmetry_set_irreductible_zone(atoms%sym,atoms%geocode, &
+       & Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   !check the communication distribution
-  if(inputpsi/=INPUT_PSI_LINEAR) then
+  if(in%inputpsiId/=INPUT_PSI_LINEAR) then
       call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
       if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
 
-  !calculate the irreductible zone for this region, if necessary.
-  call symmetry_set_irreductible_zone(atoms%sym,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
-
   !---end of system definition routine
 end subroutine system_initialization
 
+subroutine system_createKernels(iproc, nproc, verb, geocode, d, hgrids, in, denspot)
+  use module_types
+  use module_xc
+  use Poisson_Solver
+  implicit none
+  integer, intent(in) :: iproc, nproc
+  logical, intent(in) :: verb
+  character, intent(in) :: geocode
+  type(grid_dimensions), intent(in) :: d
+  real(gp), intent(in) :: hgrids(3)
+  type(input_variables), intent(in) :: in
+  type(DFT_local_fields), intent(inout) :: denspot
+
+  integer, parameter :: ndegree_ip = 16
+
+  !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
+  call createKernel(iproc,nproc,geocode,&
+       d%n1i,d%n2i,d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+       ndegree_ip,denspot%pkernel,verb)
+
+  !create the sequential kernel if the exctX parallelisation scheme requires it
+  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
+       .and. nproc > 1) then
+     call createKernel(0,1,geocode,&
+          d%n1i,d%n2i,d%n3i,0.5d0*hgrids(1),0.5d0*hgrids(2),0.5d0*hgrids(3),&
+          ndegree_ip,denspot%pkernelseq,.false.)
+  else 
+     denspot%pkernelseq => denspot%pkernel
+  end if
+END SUBROUTINE system_createKernels
 
 !>  Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
@@ -217,17 +206,18 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     allocate(rhocore(d%n1i,d%n2i,n3d,1+ndebug),stat=i_stat)
+     allocate(rhocore(d%n1i,d%n2i,n3d,4+ndebug),stat=i_stat)
      call memocc(i_stat,rhocore,'rhocore',subname)
      !initalise it 
-     call to_zero(d%n1i*d%n2i*n3d,rhocore(1,1,1,1))
+     call to_zero(d%n1i*d%n2i*n3d*4,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%nat
         ityp=at%iatype(iat)
 !!$        filename = 'nlcc.'//at%atomnames(ityp)
 !!$        inquire(file=filename,exist=exists)
 !!$        if (exists) then
-        if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or. at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
+        if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
+             at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
            if (iproc == 0) write(*,'(1x,a)',advance='no')&
                 'NLCC: calculate core density for atom: '//&
                 trim(at%atomnames(ityp))//';'
@@ -239,7 +229,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
            cutoff=10.d0*rloc
 
            call calc_rhocore_iat(iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-                d%n1,d%n2,d%n3,d%n1i,d%n2i,i3s,n3d,rhocore)
+                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,rhocore)
 
            if (iproc == 0) write(*,'(1x,a)')'done.'
         end if
@@ -247,19 +237,33 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
      !calculate total core charge in the grid
      !In general this should be really bad
+
+!!$     do j3=1,n3d
+!!$        tt=0.0_wp
+!!$        do i2=1,d%n2i
+!!$           do i1=1,d%n1i
+!!$              !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+!!$              tt=tt+rhocore(i1,i2,j3,1)
+!!$           enddo
+!!$        enddo
+!!$        write(17+iproc,*)j3+i3s-1,tt
+!!$     enddo
+!!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$stop
      tt=0.0_wp
      do j3=1,n3p
         do i2=1,d%n2i
            do i1=1,d%n1i
               !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
-              tt=tt+rhocore(i1,i2,j3+i3xcsh-1,1)
+              tt=tt+rhocore(i1,i2,j3+i3xcsh,1)
            enddo
         enddo
      enddo
+
      call mpiallred(tt,1,MPI_SUM,MPI_COMM_WORLD,ierr)
      tt=tt*hxh*hyh*hzh
      if (iproc == 0) write(*,'(1x,a,f15.7)') &
-       'Total core charge on the grid (generally bad, overestimated approx.): ',tt
+       'Total core charge on the grid (To be compared with analytic one): ',tt
 
   else
      !No NLCC needed, nullify the pointer 
@@ -323,7 +327,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
      end if
      filename ='nlcc.'//atoms%atomnames(ityp)
      call nlcc_dim_from_file(filename, atoms%nlcc_ngv(ityp), &
-          & atoms%nlcc_ngc(ityp), nlcc_dim, exists)
+          atoms%nlcc_ngc(ityp), nlcc_dim, exists)
      atoms%donlcc = (atoms%donlcc .or. exists)
   end do
   
@@ -347,7 +351,6 @@ subroutine init_atomic_values(verb, atoms, ixc)
      nullify(atoms%paw_nofgaussians,atoms%paw_Greal,atoms%paw_Gimag)
      nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
   end if
-
   !process the nlcc parameters if present 
   !(allocation is performed also with zero size)
   allocate(atoms%nlccpar(0:4,max(nlcc_dim,1)+ndebug),stat=i_stat)
@@ -475,18 +478,25 @@ subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
      !associate the number of gaussians
      open(unit=79,file=filename,status='unknown')
      read(79,*)ngv
-     if (ngv==0) ngv=UNINITIALIZED(1)
-     dim=dim+(ngv*(ngv+1)/2)
-     do ig=1,(ngv*(ngv+1))/2
-        read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
-     end do
+     if (ngv==0) then 
+        ngv=UNINITIALIZED(1)
+     else
+        dim=dim+(ngv*(ngv+1)/2)
+        do ig=1,(ngv*(ngv+1))/2
+           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
+        end do
+     end if
      read(79,*)ngc
-     if (ngc==0) ngc=UNINITIALIZED(1)
-     dim=dim+(ngc*(ngc+1))/2
-     !better to read values in a fake array
-     do ig=1,(ngc*(ngc+1))/2
-        read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
-     end do
+     if (ngc==0) then
+        ngc=UNINITIALIZED(1)
+     else
+        dim=dim+(ngc*(ngc+1))/2
+
+        !better to read values in a fake array
+        do ig=1,(ngc*(ngc+1))/2
+           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
+        end do
+     end if
      !no need to go further for the moment
      close(unit=79)
   else
@@ -548,14 +558,10 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   logical :: exists
   integer :: iat,iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty
-  integer :: nt,ntu,ntd,ityp,ierror,ispinsum,i_stat
+  integer :: nt,ntu,ntd,ityp,ierror,ispinsum
   integer :: ispol,ichg,ichgsum,norbe,norbat,nspin
-  real(gp) :: rcov
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
-  type(linearParameters) :: lin
-  character(len=20),dimension(atoms%ntypes):: atomNames
-
 
 !!if(in%inputPsiId==100) then
 !!     norbitals=0
@@ -575,13 +581,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
 !!         end do
 !!     end if
 !!end if
-
-
-
-     !define the localization radius for the Linear input guess
-     if(in%linear == 'LIG') then
-        atoms%rloc(ityp,:) = rcov * 10.0
-     end if
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
@@ -1022,7 +1021,6 @@ subroutine read_atomic_variables(fileocc,iproc,in,atoms,radii_cf)
   !     call readLinearParameters(iproc, nproc, lin, atoms, atomNames)
   !  end if
 
-
 END SUBROUTINE read_atomic_variables
 
 !>find the correct position of the nlcc parameters
@@ -1371,7 +1369,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   ! allocate inwhichlocreg
   allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
-  ! default for inwhichlocreg (any orbital is sit on the same function)
+  ! default for inwhichlocreg (all orbitals are situated in the same locreg)
   orbs%inwhichlocreg = 1
 
   !initialize the starting point of the potential for each orbital (to be removed?)

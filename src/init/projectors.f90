@@ -421,7 +421,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
                 at%psppar(l,0,ityp),rxyz(1),lr,&
                 hx,hy,hz,kx,ky,kz,ncplx,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                plr%wfd%keyv,plr%wfd%keyglob,&
+                plr%wfd%keyvglob,plr%wfd%keyglob,&
                 proj(istart_c),nwarnings)
            iproj=iproj+2*l-1
            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
@@ -660,6 +660,7 @@ subroutine crtproj(geocode,nterm,lr, &
   real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
 !$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+  integer :: ncount0,ncount_rate,ncount_max,ncount1
 
   ! rename region boundaries
   ns1 = lr%ns1
@@ -703,16 +704,15 @@ subroutine crtproj(geocode,nterm,lr, &
   end do
   !the filling of the projector should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
+
+  !call system_clock(ncount0,ncount_rate,ncount_max)
   if (ncplx == 1) then
 
-     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
-     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(nterm,mvctr_f,mseg_f)
-     !$  ithread=omp_get_thread_num()
-     !$  nthread=omp_get_num_threads()
-
-     !$  if(ithread .eq. 0) then
      mvctr=0
+     !$omp parallel do default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
+     !$omp schedule(static,50)&
+     !$omp reduction(+:mvctr)
      ! coarse part
      do iseg=1,mseg_c
         jj=keyv_p(iseg)
@@ -724,25 +724,31 @@ subroutine crtproj(geocode,nterm,lr, &
         i2=ii/(n1+1)
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
+        mvctr=mvctr+j1-j0+1
         do i=i0,i1
            ind_c=i-i0+jj
-           mvctr=mvctr+1
            proj(ind_c)=&
                 wprojx(1,i,1,1)*wprojy(1,i2,1,1)*wprojz(1,i3,1,1)
         enddo
      enddo
+     !$omp end parallel do
 
      if (mvctr /=  mvctr_c) then
         !$  write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
-     !$  end if
 
-     !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     mvctr=0
+     !$omp parallel do default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
+     !$omp shared(mvctr_f,mseg_f)&
+     !$omp schedule(static,50)&
+     !$omp reduction(+:mvctr)
+
      ! First term: fine projector components
      ! fine part
-     mvctr=0
+
      do iseg=mseg_c+1,mseg_c+mseg_f
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -753,9 +759,9 @@ subroutine crtproj(geocode,nterm,lr, &
         i2=ii/(n1+1)
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
+        mvctr=mvctr+j1-j0+1
         do i=i0,i1
            ind_f=mvctr_c+7*(i-i0+jj-1)
-           mvctr=mvctr+1
            proj(ind_f+1)=wprojx(1,i,2,1)*wprojy(1,i2,1,1)*wprojz(1,i3,1,1)
            proj(ind_f+2)=wprojx(1,i,1,1)*wprojy(1,i2,2,1)*wprojz(1,i3,1,1)
            proj(ind_f+3)=wprojx(1,i,2,1)*wprojy(1,i2,2,1)*wprojz(1,i3,1,1)
@@ -765,19 +771,23 @@ subroutine crtproj(geocode,nterm,lr, &
            proj(ind_f+7)=wprojx(1,i,2,1)*wprojy(1,i2,2,1)*wprojz(1,i3,2,1)
         enddo
      enddo
+     !$omp end parallel do
 
      if (mvctr /= mvctr_f) then
         !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_f ',mvctr,mvctr_f
         stop 
      end if
-     !$  end if
 
      if (nterm >= 2) then
 
-        !$  if(ithread .eq. 0) then
+     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
+     !$omp shared(mvctr_f,mseg_f,nterm)
+
         ! Other terms: coarse projector components
         ! coarse part
+        !$omp do schedule(static,50)
         do iseg=1,mseg_c
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -796,11 +806,10 @@ subroutine crtproj(geocode,nterm,lr, &
               end do
            end do
         end do
+        !$omp enddo
 
-        !$  end if
-
-        !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
         ! Other terms: fine projector components
+        !$omp do schedule(static,50)
         do iseg=mseg_c+1,mseg_c+mseg_f
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -845,24 +854,22 @@ subroutine crtproj(geocode,nterm,lr, &
               end do
            end do
         end do
-
-        !$  end if
-     end if
+        !$omp enddo
      !$omp end parallel
+     end if
 
   else if (ncplx == 2) then
 
-     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+     mvctr=0
+     !$omp parallel do default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(nterm,mvctr_f,mseg_f)
-     !$  ithread=omp_get_thread_num()
-     !$  nthread=omp_get_num_threads()
+     !$omp shared(nterm,mvctr_f,mseg_f)&
+     !$omp schedule(static,50)&
+     !$omp reduction(+:mvctr)
 
      !part with real and imaginary part
      !modify the openMP statements such as to benefit from parallelisation
 
-     !$  if(ithread .eq. 0) then 
-     mvctr=0
      ! coarse part
      do iseg=1,mseg_c
         jj=keyv_p(iseg)
@@ -874,24 +881,31 @@ subroutine crtproj(geocode,nterm,lr, &
         i2=ii/(n1+1)
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
+        mvctr=mvctr+j1-j0+1
         do i=i0,i1
            ind_c=i-i0+jj
-           mvctr=mvctr+1
            proj(ind_c)=&
                 re_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
         enddo
      enddo
+     !$omp end parallel do
+
      if (mvctr /=  mvctr_c) then
         !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
-     !$  end if
+    
 
-     !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     mvctr=0
+     !$omp parallel do default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
+     !$omp shared(nterm,mvctr_f,mseg_f)&
+     !$omp schedule(static,50)&
+     !$omp reduction(+:mvctr)
+
      ! First term: fine projector components
      ! fine part
-     mvctr=0
      do iseg=mseg_c+1,mseg_c+mseg_f
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -914,18 +928,23 @@ subroutine crtproj(geocode,nterm,lr, &
            proj(ind_f+7)=re_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,2,1),wprojz(1,i3,2,1))
         enddo
      enddo
+     !$omp end parallel do
+
      if (mvctr /= mvctr_f) then
         !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_f ',mvctr,mvctr_f
         stop 
      end if
-     !$  end if
 
      if (nterm >= 2) then
 
-        !$  if(ithread .eq. 0) then
+     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
+     !$omp shared(nterm,mvctr_f,mseg_f)
+
         ! Other terms: coarse projector components
         ! coarse part
+        !$omp do schedule(static,50)
         do iseg=1,mseg_c
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -944,11 +963,11 @@ subroutine crtproj(geocode,nterm,lr, &
               end do
            end do
         end do
+        !$omp enddo
 
-        !$  end if
 
-        !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
         ! Other terms: fine projector components
+        !$omp do schedule(static,50)
         do iseg=mseg_c+1,mseg_c+mseg_f
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -979,14 +998,19 @@ subroutine crtproj(geocode,nterm,lr, &
               end do
            end do
         end do
-
-        !$  end if
+        !$omp enddo
+        !$omp end parallel
      end if
 
-     !now the imaginary part
-     !$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
-     ! coarse part
      mvctr=0
+     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
+     !$omp shared(nterm,mvctr_f,mseg_f)&
+     !$omp reduction(+:mvctr)
+
+     !now the imaginary part
+     ! coarse part
+     !$omp do schedule(static,50)
      do iseg=1,mseg_c
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -997,26 +1021,32 @@ subroutine crtproj(geocode,nterm,lr, &
         i2=ii/(n1+1)
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
+         mvctr=mvctr+j1-j0+1
         do i=i0,i1
            ind_c=mvctr_c+7*mvctr_f+i-i0+jj
-           !write(17,*)ind_c,(mvctr_c+7*mvctr_f)*ncplx
-           mvctr=mvctr+1
            proj(ind_c)=&
                 im_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
         enddo
      enddo
+     !$omp enddo
+     !$omp end parallel
      if (mvctr /=  mvctr_c) then
         !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
-     !$  end if
 
 
-     !$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
+
+     mvctr=0
+     !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
+     !$omp shared(nterm,mvctr_f,mseg_f)&
+     !$omp reduction(+:mvctr)
+
      ! First term: fine projector components
      ! fine part
-     mvctr=0
+     !$omp do schedule(static,50)
      do iseg=mseg_c+1,mseg_c+mseg_f
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -1027,9 +1057,9 @@ subroutine crtproj(geocode,nterm,lr, &
         i2=ii/(n1+1)
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
+        mvctr=mvctr+j1-j0+1
         do i=i0,i1
            ind_f=mvctr_c+7*mvctr_f+mvctr_c+7*(i-i0+jj-1)
-           mvctr=mvctr+1
            proj(ind_f+1)=im_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
            proj(ind_f+2)=im_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))
            proj(ind_f+3)=im_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))
@@ -1039,18 +1069,24 @@ subroutine crtproj(geocode,nterm,lr, &
            proj(ind_f+7)=im_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,2,1),wprojz(1,i3,2,1))
         enddo
      enddo
+     !$omp enddo
+     !$omp end parallel
+
      if (mvctr /= mvctr_f) then
         !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr /= mvctr_f ',mvctr,mvctr_f
         stop 
      end if
-     !$  end if
 
      if (nterm >= 2) then
 
-        !$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
+        !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+        !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
+        !$omp shared(nterm,mvctr_f,mseg_f)
+
         ! Other terms: coarse projector components
         ! coarse part
+        !$omp do schedule(static,50)
         do iseg=1,mseg_c
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -1069,10 +1105,10 @@ subroutine crtproj(geocode,nterm,lr, &
               end do
            end do
         end do
-        !$  end if
+        !$omp enddo
 
-        !$  if((ithread == 1 .and. nthread <=3) .or. nthread == 1 .or. ithread == 3) then
         ! Other terms: fine projector components
+        !$omp do schedule(static,50)
         do iseg=mseg_c+1,mseg_c+mseg_f
            jj=keyv_p(iseg)
            j0=keyg_p(1,iseg)
@@ -1103,12 +1139,10 @@ subroutine crtproj(geocode,nterm,lr, &
               end do
            end do
         end do
-        !$  end if
-
+        !$omp enddo
+     !$omp end parallel
      end if
 
-     !$omp end parallel
-     
   end if
 
   i_all=-product(shape(wprojx))*kind(wprojx)

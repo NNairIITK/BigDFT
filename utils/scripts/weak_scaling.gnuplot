@@ -30,5 +30,5 @@ plot [:] [:100] 'weak.dat' u (100*($4/$10)):xtic(1) ls 1 t 'Comms',\
 	'' u (100*($7/$10)) ls 3 t 'Other',\
 	'' u 0:($10/$9) w lp lt 2 linecolor 1 lw 3.5 pt 7 ps 0.9 t 'Speedup' axis x1y2 
 #,\
-#	'' u 0:(100*($10/$9/$1)*ncores($11,$12)) w lp lt 1 linecolor 3 lw 3.5 pt 7 ps 0.9 t 'Efficiency (%)'
+#	'' u 0:(100*($10/$9/$2)*ncores($11,$12)) w lp lt 1 linecolor 3 lw 3.5 pt 7 ps 0.9 t 'Efficiency (%)'
 #    EOF

@@ -545,6 +545,14 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
           pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
   end if
+
+!DEBUG
+!  if (iproc==0) then
+!      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!      ekin_sum,epot_sum,eproj_sum
+!  endif
+!END DEBUG
+
   iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
   deallocate(lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'lzd%doHamAppl', subname)
@@ -917,7 +925,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rx
 !
 use module_base
 use module_types
-use module_interfaces, except_this_one => getLocalizedBasis
+use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
 !  use Poisson_Solver
 !use allocModule
 implicit none
@@ -987,11 +995,13 @@ type(p2pComms):: comonlarge, comonlarge2
 type(p2pComms):: comgplarge, comgplarge2
 type(matrixDescriptors):: madlarge, madlarge2
 type(localizedDIISParameters):: ldiis2
+integer :: unitwf !DEBUG
+character(len=10):: c1, c2, c3 !DEBUG
+character(len=50):: filename !DEBUG
 logical,parameter:: secondLocreg=.false.
 
 ! automatic array, for debugging
 real(8),dimension(3,lzd%nlr):: locregCenterTemp
-
 
 
   ! Allocate all local arrays.
@@ -1695,7 +1705,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       call deallocateSendBufferOrtho(comon, subname)
 
       t1=mpi_wtime()
-      !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
+      !!call flatten_at_edges(iproc, nproc, lin, at, input, hx, hy, hz, lorbs, lzd, rxyz, lhphi)
       !!if(.not.newgradient .or. it<=10) call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
       !!     methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
 
@@ -1781,9 +1791,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       end if
 
 
-
       ! Flatten at the edges -  EXPERIMENTAL
-      !!call flatten_at_edges(iproc, nproc, lin, at, input, lorbs, lzd, rxyz, lhphi)
+      !!call flatten_at_edges(iproc, nproc, lin, at, input, hx, hy, hz, lorbs, lzd, rxyz, lhphi)
 
       ! Cycle if the trace increased (steepest descent only)
       !if(iproc==0) write(*,*) 'ldiis%switchSD, ldiis%isx', ldiis%switchSD, ldiis%isx
@@ -1906,7 +1915,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       if(newgradient) call dcopy(max(orbslarge%npsidim_orbs,orbslarge%npsidim_comp), lhphilarge, 1, lhphilargeold, 1)
       trHold=trH
   
-
       ! Precondition the gradient.
       if(iproc==0) then
           !write(*,'(a)', advance='no') 'Preconditioning... '
@@ -2330,6 +2338,16 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                     locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
                     lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
                     lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
+!          write(c3,'(i0)') it
+!              write(c2,'(i0)') iorb
+!              filename='TMB_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)
+!              open(unitwf,file=trim(filename),status='unknown')
+!              call writeonewave(unitwf,.true.,1,lzd%Glr%d%n1,lzd%Glr%d%n2,lzd%Glr%d%n3,hx,hy,hz,at%nat,rxyz,  &
+!                     lzd%Glr%wfd%nseg_c,lzd%Glr%wfd%nvctr_c,lzd%Glr%wfd%keygloc(1,1),lzd%Glr%wfd%keyvloc(1),  &
+!                     lzd%Glr%wfd%nseg_f,lzd%Glr%wfd%nvctr_f,lzd%Glr%wfd%keygloc(1,1+lzd%Glr%wfd%nseg_c),&
+!                     lzd%Glr%wfd%keyvloc(1+lzd%Glr%wfd%nseg_c), &
+!                     lvphiovrlp(1),lvphiovrlp(1+lzd%glr%wfd%nvctr_c),lorbs%eval)
+!              close(unitwf)
            end if
       end if
 
@@ -4101,12 +4119,9 @@ call memocc(istat, iall, 'iStartEnd', subname)
 end subroutine initializeCommunicationPotential
 
 
-
-
-
 subroutine setCommunicationPotential(mpisource, is3, ie3, ioffset, n1i, n2i, mpidest, istdest, tag, comarr)
 use module_base
-
+implicit none
 ! Calling arguments
 integer,intent(in):: mpisource, is3, ie3, ioffset, n1i, n2i, mpidest, istdest, tag
 integer,dimension(8),intent(out):: comarr
@@ -4300,8 +4315,8 @@ do jproc=0,nproc-1
         end if
         !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
         nslow=nslow+1
-        call mpi_wait(comgp%comarr(7,kproc,jproc), stat, ierr)   !COMMENTED BY PB
-        call mpi_wait(comgp%comarr(8,kproc,jproc), stat, ierr)   !COMMENTED BY PB
+        call mpi_wait(comgp%comarr(7,kproc,jproc), stat, ierr)  
+        call mpi_wait(comgp%comarr(8,kproc,jproc), stat, ierr) 
         comgp%communComplete(kproc,jproc)=.true.
     end do
 end do
@@ -4661,10 +4676,10 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
            lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
            lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
            lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
-           lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyv,  & 
+           lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  & 
            lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
            lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
            scal, psi(ist_c), psi(ist_f), &
            work_conv)
 
@@ -4703,10 +4718,10 @@ character(len=*),parameter:: subname='apply_orbitaldependent_potential'
            lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
            lzd%llr(Ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
            lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
-           lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyv,  & 
+           lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  & 
            lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
            lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-           lzd%llr(ilr)%wfd%keyv(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
+           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  & 
            scal, work_conv%y_c, work_conv%y_f, vpsi(ist_c), vpsi(ist_f))
 
       call deallocate_workarrays_quartic_convolutions(lzd%llr(ilr), subname, work_conv)
@@ -5511,7 +5526,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       allocate(work(lwork), stat=istat) ! factor of 2 since it is assumed to be complex
       allocate(rwork(lwork), stat=istat)
       call zheev('v', 'l', orbs%norb, gmatc(1,1), orbs%norb, eval(1), work, lwork, rwork, info)
-      if(info/=0) stop 'ERROR in zheev'
+      if(info/=0) stop 'ERROR in zheev 1'
       deallocate(work)
       deallocate(rwork)
       t2=mpi_wtime()
@@ -7047,7 +7062,8 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       !!do iorb=1,orbs%norb
       !!    locdiff = locdiff + gHmat(iorb,iorb) + gMmat(iorb,iorb) + gNmat(iorb,iorb)
       !!end do
-      if(iproc==0) write(*,'(a,i8,3es16.7,es12.4)') 'it, rspread, locdiff, omega, lstep', it, rspread, locdiff, omega, lstep
+      if(iproc==0 .and. verbose >2) write(*,'(a,i8,3es16.7,es12.4)')&
+           'it, rspread, locdiff, omega, lstep', it, rspread, locdiff, omega, lstep
 
 
 
@@ -7190,7 +7206,7 @@ call memocc(istat, potmatsmall, 'potmatsmall', subname)
       allocate(work(lwork), stat=istat) ! factor of 2 since it is assumed to be complex
       allocate(rwork(lwork), stat=istat)
       call zheev('v', 'l', orbs%norb, gmatc(1,1), orbs%norb, eval(1), work, lwork, rwork, info)
-      if(info/=0) stop 'ERROR in zheev'
+      if(info/=0) stop 'ERROR in zheev 3'
       deallocate(work)
       deallocate(rwork)
       t2=mpi_wtime()
@@ -7826,7 +7842,7 @@ real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: lphi
 
 ! Local variables
 integer:: ist, jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, i, ldim, ind, indout, gdim, iorbref, m, ii
-integer:: istart, iend, iseg
+integer:: istart, iend, iseg, start, ifine, igrid, irecv, kseg, kold, kstart, kend 
 real(8):: tt
 
    call timing(iproc,'build_lincomb ','ON')
@@ -7850,15 +7866,48 @@ real(8):: tt
               jjorb=op%overlaps(jorb,iiorb)
               !jjorb=op%overlaps(jorb,ilr)
               jst=op%indexInRecvBuf(iorbref,jjorb)
-              ldim=op%olr(jorb,iorbref)%wfd%nvctr_c+7*op%olr(jorb,iorbref)%wfd%nvctr_f
+              ldim=op%wfd_overlap(jorb,iorbref)%nvctr_c+7*op%wfd_overlap(jorb,iorbref)%nvctr_f
               tt=omat(jjorb,iiorb)
               !!tt=tt*lzd%cutoffweight(jjorb,iiorb)
-              do iseg=1,op%expseg(jorb,iorbref)%nseg
-                  istart=op%expseg(jorb,iorbref)%segborders(1,iseg)
-                  iend=op%expseg(jorb,iorbref)%segborders(2,iseg)
+              !Coarse part
+              kold=1
+              do iseg=1,op%wfd_overlap(jorb,iorbref)%nseg_c
+                  istart=op%wfd_overlap(jorb,iorbref)%keyglob(1,iseg)
+                  iend=op%wfd_overlap(jorb,iorbref)%keyglob(2,iseg)
                   ncount=iend-istart+1
-                  call daxpy(ncount, tt, recvBuf(jst), 1, lphi(indout+istart-1), 1)
-                  jst=jst+ncount
+                  inner_loop: do kseg=kold,lzd%llr(ilr)%wfd%nseg_c
+                     kstart = lzd%llr(ilr)%wfd%keyglob(1,kseg)
+                     kend   = lzd%llr(ilr)%wfd%keyglob(2,kseg)
+                     if(kstart <= iend .and. kend >= istart) then 
+                        kold = kseg + 1
+                        start = lzd%llr(ilr)%wfd%keyvglob(kseg) + max(0,istart-kstart)
+                        call daxpy(ncount, tt, recvBuf(jst), 1, lphi(indout+start-1), 1)
+                        jst=jst+ncount
+                        exit inner_loop
+                     end if
+                  end do inner_loop
+              end do
+              ! Fine part
+              kold = 1
+              jst=op%indexInRecvBuf(iorbref,jjorb)              
+              do iseg=1,op%wfd_overlap(jorb,iorbref)%nseg_f
+                 istart=op%wfd_overlap(jorb,iorbref)%keyglob(1,iseg+op%wfd_overlap(jorb,iorbref)%nseg_c)
+                 iend=op%wfd_overlap(jorb,iorbref)%keyglob(2,iseg+op%wfd_overlap(jorb,iorbref)%nseg_c)
+                 start = op%wfd_overlap(jorb,iorbref)%keyvglob(iseg+op%wfd_overlap(jorb,iorbref)%nseg_c)
+                 ncount=7*(iend-istart+1)
+                 inner_loop2: do kseg=kold,lzd%llr(ilr)%wfd%nseg_f
+                    kstart = lzd%llr(ilr)%wfd%keyglob(1,kseg+lzd%llr(ilr)%wfd%nseg_c)
+                    kend   = lzd%llr(ilr)%wfd%keyglob(2,kseg+lzd%llr(ilr)%wfd%nseg_c)
+                    if(kstart <= iend .and. kend >= istart) then 
+                       kold = kseg + 1
+                       start = lzd%llr(ilr)%wfd%nvctr_c+(lzd%llr(ilr)%wfd%keyvglob(kseg+lzd%llr(ilr)%wfd%nseg_c) +&
+                              max(0,istart-kstart)-1)*7
+                       call daxpy(ncount, tt, recvBuf(jst+op%wfd_overlap(jorb,iorbref)%nvctr_c), 1,&
+                               lphi(indout+start), 1)
+                       jst=jst+ncount
+                       exit inner_loop2
+                    end if
+                  end do inner_loop2
               end do
           end do
           indout=indout+gdim
@@ -7874,82 +7923,83 @@ end subroutine build_new_linear_combinations
 
 
 
-subroutine flatten_at_edges(iproc, nproc, lin, at, input, orbs, lzd, rxyz, psi)
-use module_base
-use module_types
-use module_interfaces
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(linearParameters),intent(in):: lin
-type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input
-type(orbitals_data),intent(in):: orbs
-type(local_zone_descriptors),intent(in):: lzd
-real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
-
-! Local variables
-integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, iiorb
-real(8):: hxh, hyh, hzh, alpha
-type(workarr_sumrho):: work_sr
-real(8),dimension(:,:),allocatable:: psir
-character(len=*),parameter:: subname='flatten_at_edges'
-
-
-
-  oidx = 0
-  do iorb=1,orbs%norbp
-     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-  
-     !initialise the work arrays
-     call initialize_work_arrays_sumrho(lzd%llr(ilr), work_sr)
-
-     ! Wavefunction in real space
-     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,psir,'psir',subname)
-     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
-
-     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
-     !the psir wavefunction is given in the spinorial form
-
-     call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
-     !apply the potential to the psir wavefunction and calculate potential energy
-     hxh=.5d0*input%hx
-     hyh=.5d0*input%hy
-     hzh=.5d0*input%hz
-     !icenter=confinementCenter(iorb)
-     !icenter=lin%orbs%inWhichLocregp(iorb)
-     iiorb=orbs%isorb+iorb
-     icenter=lin%orbs%inWhichLocreg(iiorb)
-     !components of the potential
-     npot=orbs%nspinor
-     if (orbs%nspinor == 2) npot=1
-
-     alpha=-log(1.d-5)/(1.d0-.7d0*lin%locrad(icenter))**2
-     !write(*,*) 'iproc, iorb, alpha', iproc, iorb, alpha
-     call flatten(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
-          rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
-          lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, .7d0*lin%locrad(icenter), alpha, &
-          lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-
-
-
-     call isf_to_daub(lzd%llr(ilr), work_sr, psir, psi(1+oidx))
-
-     i_all=-product(shape(psir))*kind(psir)
-     deallocate(psir,stat=i_stat)
-     call memocc(i_stat,i_all,'psir',subname)
-
-     call deallocate_work_arrays_sumrho(work_sr)
-
-     oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-
-  enddo
-
-
-end subroutine flatten_at_edges
+!!subroutine flatten_at_edges(iproc, nproc, lin, at, input,hx, hy, hz, orbs, lzd, rxyz, psi)
+!!use module_base
+!!use module_types
+!!use module_interfaces
+!!implicit none
+!!
+!!! Calling arguments
+!!integer,intent(in):: iproc, nproc
+!!real(gp),intent(in):: hx, hy, hz
+!!type(linearParameters),intent(in):: lin
+!!type(atoms_data),intent(in):: at
+!!type(input_variables),intent(in):: input
+!!type(orbitals_data),intent(in):: orbs
+!!type(local_zone_descriptors),intent(in):: lzd
+!!real(8),dimension(3,at%nat),intent(in):: rxyz
+!!real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: psi
+!!
+!!! Local variables
+!!integer:: oidx, iorb, ilr, npot, icenter, i_stat, i_all, iiorb
+!!real(8):: hxh, hyh, hzh, alpha
+!!type(workarr_sumrho):: work_sr
+!!real(8),dimension(:,:),allocatable:: psir
+!!character(len=*),parameter:: subname='flatten_at_edges'
+!!
+!!
+!!
+!!  oidx = 0
+!!  do iorb=1,orbs%norbp
+!!     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!!  
+!!     !initialise the work arrays
+!!     call initialize_work_arrays_sumrho(lzd%llr(ilr), work_sr)
+!!
+!!     ! Wavefunction in real space
+!!     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+!!     call memocc(i_stat,psir,'psir',subname)
+!!     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
+!!
+!!     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
+!!     !the psir wavefunction is given in the spinorial form
+!!
+!!     call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
+!!     !apply the potential to the psir wavefunction and calculate potential energy
+!!     hxh=.5d0*hx
+!!     hyh=.5d0*hy
+!!     hzh=.5d0*hz
+!!     !icenter=confinementCenter(iorb)
+!!     !icenter=lin%orbs%inWhichLocregp(iorb)
+!!     iiorb=orbs%isorb+iorb
+!!     icenter=lin%orbs%inWhichLocreg(iiorb)
+!!     !components of the potential
+!!     npot=orbs%nspinor
+!!     if (orbs%nspinor == 2) npot=1
+!!
+!!     alpha=-log(1.d-5)/(1.d0-.7d0*lin%locrad(icenter))**2
+!!     !write(*,*) 'iproc, iorb, alpha', iproc, iorb, alpha
+!!     call flatten(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
+!!          rxyz(1,icenter), hxh, hyh, hzh, lin%potentialprefac(at%iatype(icenter)), lin%confpotorder, &
+!!          lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, .7d0*lin%locrad(icenter), alpha, &
+!!          lzd%llr(ilr)%bounds%ibyyzz_r) !optional
+!!
+!!
+!!
+!!     call isf_to_daub(lzd%llr(ilr), work_sr, psir, psi(1+oidx))
+!!
+!!     i_all=-product(shape(psir))*kind(psir)
+!!     deallocate(psir,stat=i_stat)
+!!     call memocc(i_stat,i_all,'psir',subname)
+!!
+!!     call deallocate_work_arrays_sumrho(work_sr)
+!!
+!!     oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+!!
+!!  enddo
+!!
+!!
+!!end subroutine flatten_at_edges
 
 
 subroutine flatten(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
@@ -8340,6 +8390,19 @@ real(8),dimension(:,:,:),allocatable:: ypsitemp_c
 real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
 character(len=*),parameter:: subname='apply_position_operators'
 integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
+interface
+subroutine position_operator(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
+     hxh, hyh, hzh, dir, &
+     ibyyzz_r) !optional
+use module_base
+implicit none
+integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor
+real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+real(8),intent(in):: hxh, hyh, hzh
+character(len=1),intent(in):: dir
+integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+end subroutine
+end interface
 
   ishift=(/0,0,0/)
 

@@ -101,7 +101,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
         !$ end if
 
         !nonlocal hamiltonian
-        !$ if (verbose > 2 .and. iproc==0)&
+        !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_den)&
         !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
         if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
         call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
@@ -231,7 +231,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,hxh,hyh,hzh,itrp,iscf,alphami
      !$ end if
 
      !nonlocal hamiltonian
-     !$ if (verbose > 2 .and. iproc==0)&
+     !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_pot)&
      !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
      if (orbs%npsidim_orbs >0) call to_zero(orbs%npsidim_orbs,hpsi(1))
      call NonLocalHamiltonianApplication(iproc,atoms,orbs,hx,hy,hz,rxyz,&
@@ -290,10 +290,10 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
   if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
 
-  write(*,*) 'lzd%ndimpotisf', lzd%ndimpotisf
-  do i=1,lzd%ndimpotisf
-      write(210,*) pot(i)
-  end do
+  !write(*,*) 'lzd%ndimpotisf', lzd%ndimpotisf
+  !do i=1,lzd%ndimpotisf
+  !    write(210,*) pot(i)
+  !end do
 
  if (.not. present(pkernel)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
@@ -458,15 +458,15 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
    !  do i=1,(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
    !       call random_number(psi(i))
    !  end do
-   if(OCLconv .and. ASYNCconv) then
+   if(OCLconv .or. GPUconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
       allocate(GPU%hpsi_ASYNC(max(1,(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp)),stat=i_stat)
       call memocc(i_stat,GPU%hpsi_ASYNC,'GPU%hpsi_ASYNC',subname)
 !      call to_zero((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%hpsi_ASYNC(1))!hpsi(1))
-   else if (OCLconv) then
-      GPU%hpsi_ASYNC => hpsi
+   !else if (OCLconv) then
+   !   GPU%hpsi_ASYNC => hpsi
    end if
    if (GPUconv) then
-      call local_hamiltonian_GPU(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
+      call local_hamiltonian_GPU(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekin_sum,epot_sum,GPU)
    else if (OCLconv) then
       call local_hamiltonian_OCL(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekin_sum,epot_sum,GPU)
    else
@@ -669,8 +669,8 @@ subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,ep
    integer :: i_all,i_stat,ierr,iorb,ispsi,ilr
    real(gp), dimension(4) :: wrkallred
 
-   if(OCLconv .and. ASYNCconv) then
-      call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
+   if(OCLconv .or. GPUconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
+      if (OCLconv) call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
       ispsi=1
       do iorb=1,orbs%norbp
          ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
@@ -767,7 +767,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
       else
          npot=dpcom%ndimgrid*orbs%nspin
       end if
-      write(*,*) 'dpcom%ndimgrid, orbs%norbp, npot, odp', dpcom%ndimgrid, orbs%norbp, npot, odp
+      !write(*,*) 'dpcom%ndimgrid, orbs%norbp, npot, odp', dpcom%ndimgrid, orbs%norbp, npot, odp
 
       !build the potential on the whole simulation box
       !in the linear scaling case this should be done for a given localisation region

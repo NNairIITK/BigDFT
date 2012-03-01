@@ -1671,7 +1671,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
             !pseudo-random frequency (from 0 to 10*2pi)
             rfreq=real(jorb,wp)/real(orbs%norb*orbs%nkpts,wp)*62.8318530717958648_wp
             do iseg=1,Lzd%Glr%wfd%nseg_c
-               call segments_to_grid(Lzd%Glr%wfd%keyv(iseg),Lzd%Glr%wfd%keygloc(1,iseg),Lzd%Glr%d,i0,i1,i2,i3,jj)
+               call segments_to_grid(Lzd%Glr%wfd%keyvloc(iseg),Lzd%Glr%wfd%keygloc(1,iseg),Lzd%Glr%d,i0,i1,i2,i3,jj)
                do i=i0,i1
                   ind_c=i-i0+jj+((iorb-1)*orbs%nspinor+ispinor-1)*(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)
                   psivirt(ind_c)=psivirt(ind_c)+0.5_wp*&
@@ -1679,7 +1679,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
                end do
             end do
             do iseg=Lzd%Glr%wfd%nseg_c+1,Lzd%Glr%wfd%nseg_c+Lzd%Glr%wfd%nseg_f
-               call segments_to_grid(Lzd%Glr%wfd%keyv(iseg),Lzd%Glr%wfd%keygloc(1,iseg),Lzd%Glr%d,i0,i1,i2,i3,jj)
+               call segments_to_grid(Lzd%Glr%wfd%keyvloc(iseg),Lzd%Glr%wfd%keygloc(1,iseg),Lzd%Glr%d,i0,i1,i2,i3,jj)
                do i=i0,i1
                   ind_f=Lzd%Glr%wfd%nvctr_c+7*(i-i0+jj-1)+&
                      &   ((iorb-1)*orbs%nspinor+ispinor-1)*(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)
@@ -1964,8 +1964,8 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
             write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
             write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
 
-            call plot_wf(orbname,1,1.0_wp,at,lr,hx,hy,hz,rxyz,psi(ind:))
-            call plot_wf(denname,2,1.0_wp,at,lr,hx,hy,hz,rxyz,psi(ind:))
+            call plot_wf(orbname,1,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
+            call plot_wf(denname,2,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
 
          endif
       end do

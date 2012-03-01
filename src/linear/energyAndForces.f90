@@ -1,5 +1,6 @@
-subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
-    ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, phi, coeff, rhopot, fxyz, fnoise, radii_cf)
+subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, hx, hy, hz,&
+    comms, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, phi,&
+    coeff, rhopot, fxyz, fnoise, radii_cf)
 ! Purpose:
 ! ========
 !   Calculates the forces we get with psi. It is copied from cluster, with an additional
@@ -46,6 +47,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
+real(gp),intent(in):: hx, hy, hz
 type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(in):: atoms
@@ -79,9 +81,9 @@ logical:: refill_proj
 integer :: iels, ilr, ii, iorb, jorb
 real(wp) :: sum_psi
 
-  hxh=0.5d0*in%hx
-  hyh=0.5d0*in%hy
-  hzh=0.5d0*in%hz
+  hxh=0.5d0*hx
+  hyh=0.5d0*hy
+  hzh=0.5d0*hz
 
   if (iproc==0) then
      write( *,'(1x,a)')&
@@ -155,11 +157,11 @@ real(wp) :: sum_psi
   refill_proj=.false.  !! IS THIS CORRECT??
   !gxyz = 0.0_wp
   !fxyz = 0.0_wp
-  !call nonlocal_forces(iproc,Glr,in%hx,in%hy,in%hz,atoms,rxyz,&
+  !call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
   !     orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
 
   ! ATTENTION: passing phi (after proj, before gxyz) is just to pass something of the right size
-  call Linearnonlocal_forces(iproc, nproc, lin%lzd, nlpspd, in%hx, in%hy, in%hz, atoms, rxyz, orbs, &
+  call Linearnonlocal_forces(iproc, nproc, lin%lzd, nlpspd, hx, hy, hz, atoms, rxyz, orbs, &
        proj, phi, gxyz, .false., lin%orbs, coeff, phi)
 
 !#####################################################################
@@ -186,7 +188,7 @@ real(wp) :: sum_psi
 !!       allocate(lin%Lzd%Llr(i_all)%projflg(atoms%nat),stat=i_stat)
 !!       call memocc(i_stat,lin%Lzd%Llr(i_all)%projflg,'Lzd%Llr(ilr)%projflg',subname)
 !!       call nlpspd_to_locreg(in,iproc,lin%Lzd%Glr,lin%Lzd%Llr(i_all),rxyz,atoms,orbs,&
-!!        &      radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,lin%Lzd%Gnlpspd,lin%Lzd%Lnlpspd(i_all),lin%Lzd%Llr(i_all)%projflg)
+!!        &      radii_cf,in%frmult,in%frmult,hx,hy,hz,lin%Lzd%Gnlpspd,lin%Lzd%Lnlpspd(i_all),lin%Lzd%Llr(i_all)%projflg)
 !!    end do
 !!
 !!!    sum_psi = 0.0 
@@ -208,7 +210,7 @@ real(wp) :: sum_psi
 !!    proj = 0.0_wp
 !!    gxyz = 0.0_wp
 !!    fxyz = 0.0_wp
-!!    call Linearnonlocal_forces(iproc,nproc,lin%lzd,in%hx,in%hy,in%hz,atoms,rxyz,orbs,proj,psi,gxyz,.false.,lin%orbs,coeff,phi)
+!!    call Linearnonlocal_forces(iproc,nproc,lin%lzd,hx,hy,hz,atoms,rxyz,orbs,proj,psi,gxyz,.false.,lin%orbs,coeff,phi)
 !!!    call mpiallred(gxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
 !!    call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
 !!
@@ -385,9 +387,9 @@ real(wp) :: sum_psi
 !!      ky=lin%orbs%kpts(2,lin%orbs%iokpt(iorb))
 !!      kz=lin%orbs%kpts(3,lin%orbs%iokpt(iorb))
 !!      call initialize_work_arrays_locham(Glr,orbs%nspinor,w_lh)
-!!      call isf_to_daub(in%hx, in%hy, in%hz, kx, ky, kz, orbs%nspinor, Glr, w_lh, hphirx(1), hphix(istart), tt)
-!!      call isf_to_daub(in%hx, in%hy, in%hz, kx, ky, kz, orbs%nspinor, Glr, w_lh, hphiry(1), hphiy(istart), tt)
-!!      call isf_to_daub(in%hx, in%hy, in%hz, kx, ky, kz, orbs%nspinor, Glr, w_lh, hphirz(1), hphiz(istart), tt)
+!!      call isf_to_daub(hx, hy, hz, kx, ky, kz, orbs%nspinor, Glr, w_lh, hphirx(1), hphix(istart), tt)
+!!      call isf_to_daub(hx, hy, hz, kx, ky, kz, orbs%nspinor, Glr, w_lh, hphiry(1), hphiy(istart), tt)
+!!      call isf_to_daub(hx, hy, hz, kx, ky, kz, orbs%nspinor, Glr, w_lh, hphirz(1), hphiz(istart), tt)
 !!      call deallocate_work_arrays_locham(Glr,w_lh)
 !!
 !!      istart=istart+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor
@@ -1612,8 +1614,8 @@ end if
 
 end subroutine updatePotential
 
-subroutine calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
-    ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rho, psi, fxyz, fnoise)
+subroutine calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, hx, hy, hz, &
+    comms, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rho, psi, fxyz, fnoise)
 use module_base
 use module_types
 use Poisson_Solver
@@ -1622,6 +1624,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
+real(gp), intent(in):: hx, hy, hz
 type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(in):: atoms
@@ -1650,9 +1653,9 @@ real(kind=8), dimension(:,:,:,:), allocatable :: pot
 character(len=*),parameter:: subname='calculateForcesSub'
 logical:: refill_proj
 
-  hxh=0.5d0*in%hx
-  hyh=0.5d0*in%hy
-  hzh=0.5d0*in%hz
+  hxh=0.5d0*hx
+  hyh=0.5d0*hy
+  hzh=0.5d0*hz
 
   if (iproc==0) then
      write( *,'(1x,a)')&
@@ -1724,7 +1727,7 @@ logical:: refill_proj
   !refill_proj=(in%calc_tail .or. DoDavidson) .and. DoLastRunThings
   refill_proj=.false.  !! IS THIS CORRECT??
 
-  call nonlocal_forces(iproc,Glr,in%hx,in%hy,in%hz,atoms,rxyz,&
+  call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
        orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
 
   if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'

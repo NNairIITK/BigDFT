@@ -8,7 +8,8 @@ EXTRA_DIST = \
 	read.dft \
 	posinp.xyz \
 	write.out.ref \
-	read.out.ref
+	read.out.ref \
+        check_lib.out.ref
 
 PPFILES = psppar.O
 
