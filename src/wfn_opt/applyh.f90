@@ -472,6 +472,10 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
   real(gp) :: epot_p
 
+
+  !write(*,*) 'present(confdata)', present(confdata)
+  !write(*,*) 'confdata%prefac, confdata%potorder', confdata%prefac, confdata%potorder
+  write(*,*) 'n1ip*n2ip*n3ip', n1ip*n2ip*n3ip
   epot=0.0_wp
 
   !loop on wavefunction
@@ -642,6 +646,10 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
               do i1=i1st,i1et
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
+                 !!if(i1>n1ip) stop 'i1>n1ip'
+                 !!if(i2>n2ip) stop 'i2>n2ip'
+                 !!if(i3>n3ip) stop 'i3>n3ip'
+                 write(200,*) pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1), cp(i1,i2,i3)
                  pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
 !print *,'cp',i1,i2,i3,cp(i1,i2,i3)
                  tt11=pot1*psir1

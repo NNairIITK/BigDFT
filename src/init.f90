@@ -1636,6 +1636,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    call full_local_potential(iproc,nproc,orbse,Lzd,0,denspot%dpcom,denspot%rhov,denspot%pot_full)
    orbse%nspin=nspin_ig
 
+   write(*,*) 'size(denspot%pot_full)', size(denspot%pot_full)
    call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
         proj,Lzd,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
         ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&

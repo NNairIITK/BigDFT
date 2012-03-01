@@ -33,6 +33,11 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, li
   ! Nullify the local zone descriptors.
   call nullify_local_zone_descriptors(lig%lzdig)
   call nullify_local_zone_descriptors(lig%lzdGauss)
+  call nullify_orbitals_data(lig%orbsig)
+  call nullify_orbitals_data(lig%orbsGauss)
+  call nullify_matrixDescriptors(lig%mad)
+  call nullify_overlapParameters(lig%op)
+  call nullify_p2pComms(lig%comon)
 
   ! Allocate some arrays we need for the input guess.
   !!allocate(locrad(at%nat+ndebug),stat=istat)
@@ -181,6 +186,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, Glr, input, li
 
   ! Initialize the parameters needed for communicationg the potential.
   call copy_locreg_descriptors(Glr, lig%lzdig%Glr, subname)
+  call nullify_p2pComms(lig%comgp)
   call initializeCommunicationPotential(iproc, nproc, nscatterarr, lig%orbsig, lig%lzdig, lig%comgp, &
        lig%orbsig%inWhichLocreg, tag)
 
@@ -3556,7 +3562,7 @@ type(matrixDescriptors):: mad
               iilr=matmin%inWhichLocregOnMPI(iorb)
               fnrmArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgrad(1,iorb), 1)
 
-              if(it>1) fnrmOvrlpArr(iorb)=ddot(matmin%mlr(ilr), lgrad(1,iorb), 1, lgradold(1,iorb), 1)
+              if(it>1) fnrmOvrlpArr(iorb)=ddot(matmin%mlr(ilr)%norbinlr, lgrad(1,iorb), 1, lgradold(1,iorb), 1)
           end do
           call dcopy(ip%norb_par(iproc)*matmin%norbmax, lgrad(1,1), 1, lgradold(1,1), 1)
     

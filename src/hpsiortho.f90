@@ -285,8 +285,15 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
 
+  integer:: i
+
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
   if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
+
+  write(*,*) 'lzd%ndimpotisf', lzd%ndimpotisf
+  do i=1,lzd%ndimpotisf
+      write(210,*) pot(i)
+  end do
 
  if (.not. present(pkernel)) then
     call LocalHamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,&
@@ -760,6 +767,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpcom,potential,pot,c
       else
          npot=dpcom%ndimgrid*orbs%nspin
       end if
+      write(*,*) 'dpcom%ndimgrid, orbs%norbp, npot, odp', dpcom%ndimgrid, orbs%norbp, npot, odp
 
       !build the potential on the whole simulation box
       !in the linear scaling case this should be done for a given localisation region
