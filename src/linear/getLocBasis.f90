@@ -920,311 +920,111 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           write(*,'(1x,a)',advance='no') 'Orthonormalization...'
       end if
       t1=mpi_wtime()
-      if(.not.ldiis%switchSD) then
-          !if(iproc==0) write(*,*) 'WARNING: COMMENTED'
-          if(.not.newgradient) then
-             call orthonormalizeLocalized(iproc, nproc, &
-             orthpar%methTransformOverlap, orthpar%nItOrtho, &
-             orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, lorbs, op, comon, lzd, &
-             mad, lphi, ovrlp)
 
-         else
+      do_ortho_if: if(.not.ldiis%switchSD) then
 
-            call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
-            !!lphilarge=0.d0
-            !!istl=1
-            !!istg=1
-            !!do iorb=1,orbslarge%norbp
-            !!    ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
-            !!    ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
-            !!    ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-            !!    gdim=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-            !!    nspin=1
-            !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lorbs%norb, lorbs%nspinor, nspin, lzdlarge%llr(ilrlarge), &
-            !!         lzd%llr(ilr), lphi(istl), lphilarge(istg))
-            !!    istl=istl+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-            !!    istg=istg+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-            !!end do
-            call orthonormalizeLocalized(iproc, nproc, &
-                 orthpar%methTransformOverlap, orthpar%nItOrtho, &
-                 orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbslarge, oplarge, comonlarge, lzdlarge, &
-                 madlarge, lphilarge, ovrlp)
+          newgradient_if: if(.not.newgradient) then
 
-            !!!! Plot basis functions
-            !!call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, lzd%nlr, locregCenter, lorbs%inwhichlocreg, .5d0*hx, &
-            !!    .5d0*hy, .5d0*hz, it)
-            !!! plot the orbitals -- EXPERIMENTAL ##################################################
-            !!allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
-            !!ist=1
-            !!write(comment,'(i3.3)') it
-            !!do iorb=1,orbslarge%norbp
-            !!    iiorb=iorb+orbslarge%isorb
-            !!    ilr=orbslarge%inwhichlocreg(iiorb)
-            !!    write(orbname,'(i3.3)') iiorb
-            !!    write(*,'(a,i0)') 'plotting orbital ',iiorb
-            !!    lvphiovrlp=0.d0
-            !!    call Lpsi_to_global2(iproc, nproc, lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, &
-            !!         lzdlarge%glr%wfd%nvctr_c+7*lzdlarge%glr%wfd%nvctr_f, orbslarge%norb, orbslarge%nspinor, nspin, &
-            !!         lzdlarge%Glr, lzdlarge%Llr(ilr), lphilarge(ist), lvphiovrlp(1))
-            !!    call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lzdlarge%glr, hx, hx, hx, rxyz, lvphiovrlp(1))
-            !!    ist=ist+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-            !!end do
-            !!deallocate(lvphiovrlp)
-            !!! ####################################################################################
+              call orthonormalizeLocalized(iproc, nproc, &
+              orthpar%methTransformOverlap, orthpar%nItOrtho, &
+              orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, lorbs, op, comon, lzd, &
+              mad, lphi, ovrlp)
 
-            if(secondLocreg) then
-                ! Go to even larger region
-                call small_to_large_locreg(iproc, nproc, lzdlarge, lzdlarge2, orbslarge, orbslarge2, lphilarge, lphilarge2)
-                !!lphilarge2=0.d0
-                !!istl=1
-                !!istg=1
-                !!do iorb=1,orbslarge%norbp
-                !!    ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
-                !!    ilrlarge2 = orbslarge2%inWhichLocreg(orbslarge2%isorb+iorb)
-                !!    ldim=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                !!    gdim=lzdlarge2%llr(ilrlarge2)%wfd%nvctr_c+7*lzdlarge2%llr(ilrlarge2)%wfd%nvctr_f
-                !!    nspin=1
-                !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lorbs%norb, lorbs%nspinor, nspin, lzdlarge2%llr(ilrlarge2), &
-                !!         lzdlarge%llr(ilrlarge), lphilarge(istl), lphilarge2(istg))
-                !!    istl=istl+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                !!    istg=istg+lzdlarge2%llr(ilrlarge2)%wfd%nvctr_c+7*lzdlarge2%llr(ilrlarge2)%wfd%nvctr_f
-                !!end do
-                !!if(istl/=orbslarge%npsidim_orbs+1) stop 'istl/=orbslarge%npsidim_orbs+1'
-                !!if(istg/=orbslarge2%npsidim_orbs+1) stop 'istg/=orbslarge2%npsidim_orbs+1'
-            end if
+          else newgradient_if
 
-            if(.not.secondLocreg) then
-                ! Update confdatarr...
-                call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
-                call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-                     comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-                     newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
-            end if
+              call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
+              call orthonormalizeLocalized(iproc, nproc, &
+                   orthpar%methTransformOverlap, orthpar%nItOrtho, &
+                   orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbslarge, oplarge, comonlarge, lzdlarge, &
+                   madlarge, lphilarge, ovrlp)
+              if(secondLocreg) then
+                  ! Go to even larger region
+                  call small_to_large_locreg(iproc, nproc, lzdlarge, lzdlarge2, orbslarge, orbslarge2, lphilarge, lphilarge2)
+              end if
+
+              if(.not.secondLocreg) then
+                  ! Update confdatarr...
+                  call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
+                  call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
+                       comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
+                       newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+              end if
+
+              if(secondLocreg) then
+                  ! Update confdatarr...
+                  call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
+                  call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
+                       comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
+                       newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
+              end if
+
+              call check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
+
+              !write(*,*) 'WARNING: CHECK HERE THE INDICES OF UMAT!!'
+              if(nItInnerLoop>0) then                          
+                   kernelold=kernel
+                   do iorb=1,lorbs%norb
+                       do jorb=1,lorbs%norb
+                           tt=0.d0
+                           do korb=1,lorbs%norb
+                               do lorb=1,lorbs%norb
+                                   tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
+                                   !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
+                               end do
+                           end do
+                           kernel(jorb,iorb)=tt
+                       end do
+                   end do
+               end if
+
+              if(variable_locregs) then
+                  call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
+                       lphi, lhphi, lhphiold, lphiold)
+                  call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
+                       locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                       lzd, lorbs, op, comon, mad, comgp, &
+                       lphi, lhphi, lhphiold, lphiold)
+                  call allocateCommunicationsBuffersPotential(comgp, subname)
+              end if
 
 
-            if(secondLocreg) then
-                ! Update confdatarr...
-                call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
 
-                !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
-                call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                     lzdlarge%llr(1)%locrad/factor2, confdatarr, lphilarge)
-                !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                !!     6.d0, confdatarr, lphilarge)
-                call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-                     comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-                     newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
-                call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                     lzdlarge%llr(1)%locrad/factor2, confdatarr, lphilarge)
-                !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-                !!     6.d0, confdatarr, lphilarge)
-            end if
+              if(secondLocreg) then
+                  ! Transform back to small locreg
+                  call large_to_small_locreg(iproc, nproc, lzd, lzdlarge2, lorbs, orbslarge2, lphilarge2, lphi)
+              else
+                  ! Transform back to small locreg
+                  call large_to_small_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphilarge, lphi)
+              end if
 
-            !!     !!write(*,*) "ATTENTION HERE!!!"
-            !!call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, lzd%nlr, locregCenter, lorbs%inwhichlocreg, .5d0*hx, &
-            !!    .5d0*hy, .5d0*hz, 100+it)
-            !!! plot the orbitals -- EXPERIMENTAL ##################################################
-            !!allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
-            !!ist=1
-            !!write(comment,'(i3.3)') 100+it
-            !!do iorb=1,orbslarge%norbp
-            !!    iiorb=iorb+orbslarge%isorb
-            !!    ilr=orbslarge%inwhichlocreg(iiorb)
-            !!    write(orbname,'(i3.3)') iiorb
-            !!    write(*,'(a,i0)') 'plotting orbital ',iiorb
-            !!    lvphiovrlp=0.d0
-            !!    call Lpsi_to_global2(iproc, nproc, lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, &
-            !!         lzdlarge%glr%wfd%nvctr_c+7*lzdlarge%glr%wfd%nvctr_f, orbslarge%norb, orbslarge%nspinor, nspin, &
-            !!         lzdlarge%Glr, lzdlarge%Llr(ilr), lphilarge(ist), lvphiovrlp(1))
-            !!    call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lzdlarge%glr, hx, hx, hx, rxyz, lvphiovrlp(1))
-            !!    ist=ist+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-            !!end do
-            !!deallocate(lvphiovrlp)
-            !!! ####################################################################################
-
-                 !!locregCenter=locregCenterTemp
-            do ilr=1,lzd%nlr
-                tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
-                    +(locregCenter(2,ilr)-locregCenterTemp(2,ilr))**2 &
-                    +(locregCenter(3,ilr)-locregCenterTemp(3,ilr))**2 
-                tt=sqrt(tt)
-                !!if(iproc==0) write(*,'(a,i5,3es13.4)') 'ilr, new centers:', &
-                !!     ilr, locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
-                !!if(iproc==0) write(*,'(a,i5,es16.4)') '2: ilr, tt', ilr, tt
-                if( floor(locregCenter(1,ilr)/hx) < 0 .or. ceiling(locregCenter(1,ilr)/hx) > lzd%glr%d%n1 ) then
-                    if(iproc==0) then
-                        write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
-                            ' is outside of box in x direction! Box limits=',0,lzd%glr%d%n1,&
-                            ', center=',floor(locregCenter(1,ilr)/hx),ceiling(locregCenter(1,ilr)/hx)
-                    end if
-                    call mpi_barrier(mpi_comm_world, ierr)
-                    stop
-                end if
-                if( floor(locregCenter(2,ilr)/hx) < 0 .or. ceiling(locregCenter(2,ilr)/hy) > lzd%glr%d%n2 ) then
-                    if(iproc==0) then
-                        write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
-                            'is outside of box in y direction! Box limits=',0,lzd%glr%d%n2,&
-                            ', center=',floor(locregCenter(2,ilr)/hy),ceiling(locregCenter(2,ilr)/hy)
-                    end if
-                    call mpi_barrier(mpi_comm_world, ierr)
-                    stop
-                end if
-                if( floor(locregCenter(3,ilr)/hz) < 0 .or. ceiling(locregCenter(3,ilr)/hz) > lzd%glr%d%n3 ) then
-                    if(iproc==0) then
-                        write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
-                            'is outside of box in x direction! Box limits=',0,lzd%glr%d%n3,&
-                            ', center=',floor(locregCenter(3,ilr)/hz),ceiling(locregCenter(3,ilr)/hz)
-                    end if
-                    call mpi_barrier(mpi_comm_world, ierr)
-                    stop
-                end if
-            end do
-            do ilr=1,lzd%nlr
-                tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
-                    +(locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
-                    +(locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 
-                tt=sqrt(tt)
-                !!if(iproc==0) write(*,'(a,i5,es16.4)') '1: ilr, tt', ilr, tt
-            end do
-
-            !write(*,*) 'WARNING: CHECK HERE THE INDICES OF UMAT!!'
-            if(nItInnerLoop>0) then                          
-                 kernelold=kernel
-                 do iorb=1,lorbs%norb
-                     do jorb=1,lorbs%norb
-                         tt=0.d0
-                         do korb=1,lorbs%norb
-                             do lorb=1,lorbs%norb
-                                 tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
-                                 !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
-                             end do
-                         end do
-                         kernel(jorb,iorb)=tt
-                     end do
-                 end do
-             end if
-
-            if(variable_locregs) then
-                !!call deallocateCommunicationsBuffersPotential(comgp, subname)
-                call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
-                     lphi, lhphi, lhphiold, lphiold)
-                !!call mpi_barrier(mpi_comm_world, ierr)
-                !!stop
-                 !!do iorb=1,lorbs%norb
-                 !!    write(*,'(a,2i8,3es12.4,4x,3es12.4)') 'iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)', &
-                 !!        iproc, iorb, locregCenterTemp(:,iorb), locregCenter(:,iorb)
-                 !!end do
-
-                call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
-                     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                     lzd, lorbs, op, comon, mad, comgp, &
-                     lphi, lhphi, lhphiold, lphiold)
-                call allocateCommunicationsBuffersPotential(comgp, subname)
-
-                !!     write(*,'(a,2i9)') 'sub 1: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
-                !!do iorb=1,lorbs%norb
-                !!    ilr=lorbs%inwhichlocreg(iorb)
-                !!    write(*,'(a,2i6,3x,3es16.4)') '1: iorb, ilr, center', iorb, ilr, lzd%llr(ilr)%locregCenter
-                !!end do
-                !!call mpi_barrier(mpi_comm_world, ierr)
-                !!stop
-            end if
-
-
-            !call deallocateCommunicationsBuffersPotential(comgp, subname)
-            !call allocateCommunicationsBuffersPotential(comgp, subname)
-            call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
-
-            if(secondLocreg) then
-                ! Transform back to small locreg
-                call large_to_small_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphilarge, lphi)
-                !!ind1=1
-                !!ind2=1
-                !!lphi=0.d0
-                !!do iorb=1,lorbs%norbp
-                !!    !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
-                !!    ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
-                !!    ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
-                !!    ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-                !!    gdim=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                !!    !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
-                !!    !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
-                !!    !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-                !!    !!write(*,'(a,3i5,2(4x,3es16.4))') '1: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:ilrlarge)', &
-                !!    !!    iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)
-                !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), &
-                !!         lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
-                !!    !!do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
-                !!    !!    write(510+iproc,*) istat, lphi(istat)
-                !!    !!end do
-                !!    ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                !!    ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-                !!end do
-            else
-                ! Transform back to small locreg
-                call large_to_small_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphilarge, lphi)
-                !!ind1=1
-                !!ind2=1
-                !!lphi=0.d0
-                !!do iorb=1,lorbs%norbp
-                !!    !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
-                !!    ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
-                !!    ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
-                !!    ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-                !!    gdim=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                !!    !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
-                !!    !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
-                !!    !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-                !!    !write(*,'(a,3i5,2(4x,3es16.4))') '1: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:ilrlarge)', &
-                !!    !    iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)
-                !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), &
-                !!         lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
-                !!    !!do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
-                !!    !!    write(510+iproc,*) istat, lphi(istat)
-                !!    !!end do
-                !!    ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                !!    ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-                !!end do
-            end if
-
-            ! Update confdatarr...
-            call update_confdatarr(lzdlarge, orbslarge, locregCenter, confdatarr)
-            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-            !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
-            !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-            !!     6.d0, confdatarr, lphilarge)
+              ! Update confdatarr...
+              call update_confdatarr(lzdlarge, orbslarge, locregCenter, confdatarr)
  
-            if(variable_locregs) then
-                call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-                locrad_tmp=factor*locrad
-                call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
-                     locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                     lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-                locregCenterTemp=locregCenter
-            end if
+              if(variable_locregs) then
+                  call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                       lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+                  locrad_tmp=factor*locrad
+                  call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
+                       locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                       lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                       lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+                  locregCenterTemp=locregCenter
+              end if
 
-!!!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-! do here another MLWF on the level of lzdlarge
-!!!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+              if(secondLocreg) then
+                  call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                       lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+                  locrad_tmp=factor2*locrad
+                  call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
+                       locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
+                       lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                       lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+              end if
 
+          end if newgradient_if
 
-            if(secondLocreg) then
-                call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-                locrad_tmp=factor2*locrad
-                call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
-                     locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
-                     lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                     lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-            end if
-
-
-        end if
-
-      end if
+      end if do_ortho_if
 
 
 
@@ -1232,40 +1032,16 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       time(1)=time(1)+t2-t1
 
 
-      t1=mpi_wtime()
-      !if(.not.ldiis%switchSD .and. .not.newgradient) then
-      if(.not.ldiis%switchSD .and. newgradient) then
-          !!!confdatarr%prefac=2.0d-2
-          !!!call unitary_optimization(iproc, nproc, lzd, lorbs, at, op, &
-          !!!                          comon, mad, rxyz, nItInnerLoop, kernel, &
-          !!!                          newgradient, confdatarr, hx, lphi)
-          !!!confdatarr%prefac=0.d0
-      end if
-      t2=mpi_wtime()
-      time(5)=time(5)+t2-t1
-
-      !!! Post the sends again to calculate the overlap matrix (will be needed for the orthoconstraint).
-      !!call allocateSendBufferOrtho(comon, subname)
-      !!call allocateRecvBufferOrtho(comon, subname)
-      !!! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-      !!call extractOrbital3(iproc, nproc, lorbs, lorbs%npsidim, lorbs%inWhichLocreg, &
-      !!     lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
-      !!! Post the send messages.
-      !!call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
-
   
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       !if(iproc==0) then
       !    write(*,'(1x,a)', advance='no') 'Hamiltonian application... '
       !end if
       t1=mpi_wtime()
-      !withConfinement=.false.
       withConfinement=.true.
       allocate(lzd%doHamAppl(lorbs%norb), stat=istat)
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
       lzd%doHamAppl=.true.
-
-
 
       if(newgradient) then
           ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
@@ -1274,12 +1050,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
           ! Build the required potential
           call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
-
           call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
       end if
-
-
-
 
       call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
            hx,hy,hz,rxyz,&
@@ -1290,14 +1062,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
       deallocate(lzd%doHamAppl,stat=istat)
       call memocc(istat,iall,'lzd%doHamAppl',subname)
-      ind2=1
-      do iorb=1,lorbs%norbp
-          ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
-          !do istat=ind2,ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
-              !if(newgradient) write(530+iproc,*) istat, lhphi(istat)
-          !end do
-          ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-      end do
 
    
       if(newgradient) then
@@ -1305,32 +1069,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           iall=-product(shape(denspot%pot_full))*kind(denspot%pot_full)
           deallocate(denspot%pot_full, stat=istat)
           call memocc(istat, iall, 'denspot%pot_full', subname)
-
-          !call allocateCommunicationsBuffersPotential(comgp, subname)
       end if
-
-
-      !!!if(newgradient) then
-      !!!    ! NEW: modify gradient
-      !!!    call allocateSendBufferOrtho(comon, subname)
-      !!!    call allocateRecvBufferOrtho(comon, subname)
-      !!!    ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-      !!!    call extractOrbital3(iproc, nproc, lorbs, max(lorbs%npsidim_orbs,lorbs%npsidim_comp), &
-      !!!         lorbs%inWhichLocreg, lzd, op, &
-      !!!         lhphi, comon%nsendBuf, comon%sendBuf)
-      !!!    call postCommsOverlapNew(iproc, nproc, lorbs, op, lzd, lhphi, comon, tt1, tt2)
-      !!!    call collectnew(iproc, nproc, comon, mad, op, lorbs, lzd, comon%nsendbuf, &
-      !!!         comon%sendbuf, comon%nrecvbuf, comon%recvbuf, tt3, tt4, tt5)
-      !!!    call build_new_linear_combinations(iproc, nproc, lzd, lorbs, op, comon%nrecvbuf, &
-      !!!         comon%recvbuf, kernel, .true., lhphi)
-      !!!    call deallocateRecvBufferOrtho(comon, subname)
-      !!!    call deallocateSendBufferOrtho(comon, subname)
-      !!!    ind2=1
-      !!!    do iorb=1,lorbs%norbp
-      !!!        ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
-      !!!        ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-      !!!    end do
-      !!!end if
 
 
       t2=mpi_wtime()
@@ -1346,9 +1085,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
 
       time(2)=time(2)+t2-t1
-      !if(iproc==0) then
-      !    write(*,'(a)', advance='no') 'done. '
-      !end if
 
 
   
@@ -1356,7 +1092,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       if(iproc==0) then
           write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
-      !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
 
       ! Gather the messages and calculate the overlap matrix.
       call collectnew(iproc, nproc, comon, mad, op, lorbs, lzd, comon%nsendbuf, &
@@ -1367,62 +1102,27 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       call deallocateSendBufferOrtho(comon, subname)
 
       t1=mpi_wtime()
-      !!call flatten_at_edges(iproc, nproc, lin, at, input, hx, hy, hz, lorbs, lzd, rxyz, lhphi)
-      !!if(.not.newgradient .or. it<=10) call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
-      !!     methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
-
-      !!if(iproc==0) write(*,*) 'WARNING: COMMENTED!'
       if(.not.newgradient) then
           call orthoconstraintNonorthogonal(iproc, nproc, lzd, lorbs, op, comon, mad, ovrlp, &
                methTransformOverlap, blocksize_pdgemm, lphi, lhphi, lagmat)
       else
+
           call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
           call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lhphi, lhphilarge)
-          !!lphilarge=0.d0
-          !!lhphilarge=0.d0
-          !!istl=1
-          !!istg=1
-          !!do iorb=1,orbslarge%norbp
-          !!    ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
-          !!    ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
-          !!    ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-          !!    gdim=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-          !!    !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
-          !!    !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
-          !!    !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-          !!    !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilr), lphi(ind1), lphilarge(ind2))
-          !!    nspin=1
-          !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lorbs%norb, lorbs%nspinor, nspin, lzdlarge%llr(ilrlarge), &
-          !!         lzd%llr(ilr), lphi(istl), lphilarge(istg))
-          !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lorbs%norb, lorbs%nspinor, nspin, lzdlarge%llr(ilrlarge), &
-          !!         lzd%llr(ilr), lhphi(istl), lhphilarge(istg))
-          !!    istl=istl+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-          !!    istg=istg+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-          !!end do
 
-
-          if(newgradient) then
-              ! NEW: modify gradient
-              call allocateSendBufferOrtho(comonlarge, subname)
-              call allocateRecvBufferOrtho(comonlarge, subname)
-              ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-              call extractOrbital3(iproc, nproc, orbslarge, max(orbslarge%npsidim_orbs,orbslarge%npsidim_comp), &
-                   orbslarge%inWhichLocreg, lzdlarge, oplarge, &
-                   lhphilarge, comonlarge%nsendBuf, comonlarge%sendBuf)
-              call postCommsOverlapNew(iproc, nproc, orbslarge, oplarge, lzdlarge, lhphilarge, comonlarge, tt1, tt2)
-              call collectnew(iproc, nproc, comonlarge, madlarge, oplarge, orbslarge, lzdlarge, comonlarge%nsendbuf, &
-                   comonlarge%sendbuf, comonlarge%nrecvbuf, comonlarge%recvbuf, tt3, tt4, tt5)
-              call build_new_linear_combinations(iproc, nproc, lzdlarge, orbslarge, oplarge, comonlarge%nrecvbuf, &
-                   comonlarge%recvbuf, kernel, .true., lhphilarge)
-              call deallocateRecvBufferOrtho(comonlarge, subname)
-              call deallocateSendBufferOrtho(comonlarge, subname)
-              ind2=1
-              do iorb=1,orbslarge%norbp
-                  ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
-                  ind2=ind2+lzd%llr(ilrlarge)%wfd%nvctr_c+7*lzd%llr(ilrlarge)%wfd%nvctr_f
-              end do
-          end if
-
+          call allocateSendBufferOrtho(comonlarge, subname)
+          call allocateRecvBufferOrtho(comonlarge, subname)
+          ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+          call extractOrbital3(iproc, nproc, orbslarge, max(orbslarge%npsidim_orbs,orbslarge%npsidim_comp), &
+               orbslarge%inWhichLocreg, lzdlarge, oplarge, &
+               lhphilarge, comonlarge%nsendBuf, comonlarge%sendBuf)
+          call postCommsOverlapNew(iproc, nproc, orbslarge, oplarge, lzdlarge, lhphilarge, comonlarge, tt1, tt2)
+          call collectnew(iproc, nproc, comonlarge, madlarge, oplarge, orbslarge, lzdlarge, comonlarge%nsendbuf, &
+               comonlarge%sendbuf, comonlarge%nrecvbuf, comonlarge%recvbuf, tt3, tt4, tt5)
+          call build_new_linear_combinations(iproc, nproc, lzdlarge, orbslarge, oplarge, comonlarge%nrecvbuf, &
+               comonlarge%recvbuf, kernel, .true., lhphilarge)
+          call deallocateRecvBufferOrtho(comonlarge, subname)
+          call deallocateSendBufferOrtho(comonlarge, subname)
 
           call orthoconstraintNonorthogonal(iproc, nproc, lzdlarge, orbslarge, &
                oplarge, comonlarge, madlarge, ovrlp, &
@@ -1587,15 +1287,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       gnrm=1.d3 ; gnrm_zero=1.d3
       t1=mpi_wtime()
 
-      !! THIS WAS THE ORIGINAL
-      !!ind2=1
-      !!do iorb=1,lorbs%norbp
-      !!    iiorb=lorbs%isorb+iorb
-      !!    ilr = lorbs%inWhichLocreg(iiorb)
-      !!    call choosePreconditioner2(iproc, nproc, lorbs, lzd%Llr(ilr), hx, hy, hz, &
-      !!        nItPrecond, lhphi(ind2), at%nat, rxyz, at, confdatarr(iorb)%potorder, confdatarr(iorb)%prefac, it, iorb, eval_zero)
-      !!    ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
-      !!end do
       ind2=1
       do iorb=1,lorbs%norbp
           if(.not.newgradient) then
@@ -1610,8 +1301,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
              call choosePreconditioner2(iproc, nproc, orbslarge, lzdlarge%llr(ilr), hx, hy, hz, &
                  nItPrecond, lhphilarge(ind2), lzdlarge%nlr, rxyz, at, confdatarr(iorb)%potorder, &
                  confdatarr(iorb)%prefac, it, iorb, eval_zero)
-             !!write(*,'(a,i7,es16.6)') 'iiorb, ddot1', iiorb, ddot(lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, lphilarge(ind2), 1, lphilarge(ind2), 1)
-             !!write(*,'(a,i7,es16.6)') 'iiorb, ddot2', iiorb, ddot(lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, lhphilarge(ind2), 1, lhphilarge(ind2), 1)
              ind2=ind2+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
          end if
       end do
@@ -1736,22 +1425,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            if(secondLocreg) then
                 ! Go to even larger region
                 call small_to_large_locreg(iproc, nproc, lzdlarge, lzdlarge2, orbslarge, orbslarge, lphilarge, lphilarge2)
-                !!lphilarge=0.d0
-                !!istl=1
-                !!istg=1
-                !!do iorb=1,orbslarge%norbp
-                !!    ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
-                !!    ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
-                !!    ldim=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                !!    gdim=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                !!    nspin=1
-                !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lorbs%norb, lorbs%nspinor, nspin, lzdlarge%llr(ilrlarge), &
-                !!         lzdlarge%llr(ilrlarge), lphilarge(istl), lphilarge(istg))
-                !!    istl=istl+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                !!    istg=istg+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                !!end do
-                !!if(istl/=orbslarge%npsidim_orbs+1) stop 'istl/=orbslarge%npsidim_orbs+1'
-                !!if(istg/=orbslarge%npsidim_orbs+1) stop 'istg/=orbslarge%npsidim_orbs+1'
             end if
 
            if(.not.secondLocreg) then
@@ -1783,42 +1456,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                      !!write(*,*) "ATTENTION HERE!!!"
                      !!locregCenter=locregCenterTemp
            end if
-           do ilr=1,lzd%nlr
-               tt = (locregCenter(1,ilr)-locregCenterTemp(1,ilr))**2 &
-                   +(locregCenter(2,ilr)-locregCenterTemp(2,ilr))**2 &
-                   +(locregCenter(3,ilr)-locregCenterTemp(3,ilr))**2 
-               tt=sqrt(tt)
-               !!if(iproc==0) write(*,'(a,i5,3es13.4)') 'ilr, new centers:', &
-               !!     ilr, locregCenter(1,ilr), locregCenter(2,ilr), locregCenter(3,ilr)
-               !!if(iproc==0) write(*,'(a,i5,es16.4)') '2: ilr, tt', ilr, tt
-               if( floor(locregCenter(1,ilr)/hx) < 0 .or. ceiling(locregCenter(1,ilr)/hx) > lzd%glr%d%n1 ) then
-                   if(iproc==0) then
-                       write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
-                           ' is outside of box in x direction! Box limits=',0,lzd%glr%d%n1,&
-                           ', center=',floor(locregCenter(1,ilr)/hx),ceiling(locregCenter(1,ilr)/hx)
-                   end if
-                   call mpi_barrier(mpi_comm_world, ierr)
-                   stop
-               end if
-               if( floor(locregCenter(2,ilr)/hx) < 0 .or. ceiling(locregCenter(2,ilr)/hy) > lzd%glr%d%n2 ) then
-                   if(iproc==0) then
-                       write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
-                           'is outside of box in y direction! Box limits=',0,lzd%glr%d%n2,&
-                           ', center=',floor(locregCenter(2,ilr)/hy),ceiling(locregCenter(2,ilr)/hy)
-                   end if
-                   call mpi_barrier(mpi_comm_world, ierr)
-                   stop
-               end if
-               if( floor(locregCenter(3,ilr)/hz) < 0 .or. ceiling(locregCenter(3,ilr)/hz) > lzd%glr%d%n3 ) then
-                   if(iproc==0) then
-                       write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
-                           'is outside of box in x direction! Box limits=',0,lzd%glr%d%n3,&
-                           ', center=',floor(locregCenter(3,ilr)/hz),ceiling(locregCenter(3,ilr)/hz)
-                   end if
-                   call mpi_barrier(mpi_comm_world, ierr)
-                   stop
-               end if
-           end do
+
+           call check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
            !write(*,*) 'WARNING CHECK INDICES OF UMAT!!'
            if(nItInnerLoop>0) then
                kernelold=kernel
@@ -1861,62 +1500,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                  lzd, lorbs, op, comon, mad, comgp, &
                  lphi, lhphi, lhphiold, lphiold)
         end if
-          !!       write(*,'(a,2i9)') 'sub 2: lorbs%npsidim_orbs, size(lphi)', lorbs%npsidim_orbs, size(lphi)
-          !!if(iproc==0) then
-          !!    do iorb=1,lorbs%norb
-          !!        ilr=lorbs%inwhichlocreg(iorb)
-          !!        write(*,'(a,2i8)') 'lorbs%inwhichlocreg(iorb), orbslarge%inwhichlocreg(iorb)', &
-          !!            lorbs%inwhichlocreg(iorb), orbslarge%inwhichlocreg(iorb)
-          !!        write(*,'(a,2i6,3x,3es16.4)') '2: iorb, ilr, center', iorb, ilr, lzd%llr(ilr)%locregCenter
-          !!    end do
-          !!end if
 
           if(secondLocreg) then
               ! Transform back to localization region
               ! Transform back to small locreg
               call large_to_small_locreg(iproc, nproc, lzd, lzdlarge2, lorbs, orbslarge2, lphilarge2, lphi)
-              !!ind1=1
-              !!ind2=1
-              !!lphi=0.d0
-              !!do iorb=1,lorbs%norbp
-              !!    !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
-              !!    ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
-              !!    ilrlarge2 = orbslarge2%inWhichLocreg(orbslarge2%isorb+iorb)
-              !!    !write(*,'(a,4i8)') 'iproc, iorb, ilr, ilrlarge2', iproc, iorb, ilr, ilrlarge2
-              !!    ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-              !!    gdim=lzdlarge2%llr(ilrlarge2)%wfd%nvctr_c+7*lzdlarge2%llr(ilrlarge2)%wfd%nvctr_f
-              !!    !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge2)', &
-              !!    !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge2)
-              !!    !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge2%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge2(ind2:ind2+ldim-1))
-              !!     !!write(*,'(a,3i5,2(4x,3es16.4))') '2: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge2)', &
-              !!     !!    iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge2)
-              !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge2%llr(ilrlarge2), &
-              !!         lphilarge2(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
-              !!    ind1=ind1+lzdlarge2%llr(ilrlarge2)%wfd%nvctr_c+7*lzdlarge2%llr(ilrlarge2)%wfd%nvctr_f
-              !!    ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-              !!end do
           else
               call large_to_small_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphilarge, lphi)
-              !!ind1=1
-              !!ind2=1
-              !!lphi=0.d0
-              !!do iorb=1,lorbs%norbp
-              !!    !ilr = lin%lig%orbsig%inWhichLocregp(iorb)
-              !!    ilr = lorbs%inWhichLocreg(lorbs%isorb+iorb)
-              !!    ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
-              !!    !write(*,'(a,4i8)') 'iproc, iorb, ilr, ilrlarge', iproc, iorb, ilr, ilrlarge
-              !!    ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-              !!    gdim=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-              !!    !write(*,'(a,7i12)') 'iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)', &
-              !!    !      iproc, ind1, ind1+gdim-1, ind2, ind2+ldim-1, size(phi), size(lphilarge)
-              !!    !call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdlarge%llr(ilr), lzd%glr, phi(ind1:ind1+gdim-1), lphilarge(ind2:ind2+ldim-1))
-              !!     !!write(*,'(a,3i5,2(4x,3es16.4))') '2: iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)', &
-              !!     !!    iproc, iorb, ilr, lzd%llr(ilr)%locregCenter, locregCenter(:,ilrlarge)
-              !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lzd%llr(ilr), lzdlarge%llr(ilrlarge), &
-              !!         lphilarge(ind1:ind1+gdim-1), lphi(ind2:ind2+ldim-1))
-              !!    ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-              !!    ind2=ind2+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-              !!end do
           end if
 
            ! Update confdatarr...
@@ -9635,3 +9225,74 @@ subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   end do
 
 end subroutine large_to_small_locreg
+
+
+
+            !!!! Plot basis functions
+            !!call plotOrbitals(iproc, lorbs, lzd%Glr, lphilarge, lzd%nlr, locregCenter, lorbs%inwhichlocreg, .5d0*hx, &
+            !!    .5d0*hy, .5d0*hz, it)
+            !!! plot the orbitals -- EXPERIMENTAL ##################################################
+            !!allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
+            !!ist=1
+            !!write(comment,'(i3.3)') it
+            !!do iorb=1,orbslarge%norbp
+            !!    iiorb=iorb+orbslarge%isorb
+            !!    ilr=orbslarge%inwhichlocreg(iiorb)
+            !!    write(orbname,'(i3.3)') iiorb
+            !!    write(*,'(a,i0)') 'plotting orbital ',iiorb
+            !!    lvphiovrlp=0.d0
+            !!    call Lpsi_to_global2(iproc, nproc, lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f, &
+            !!         lzdlarge%glr%wfd%nvctr_c+7*lzdlarge%glr%wfd%nvctr_f, orbslarge%norb, orbslarge%nspinor, nspin, &
+            !!         lzdlarge%Glr, lzdlarge%Llr(ilr), lphilarge(ist), lvphiovrlp(1))
+            !!    call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lzdlarge%glr, hx, hx, hx, rxyz, lvphiovrlp(1))
+            !!    ist=ist+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+            !!end do
+            !!deallocate(lvphiovrlp)
+            !!! ####################################################################################
+
+
+subroutine check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc
+  type(local_zone_descriptors),intent(in):: lzd
+  real(8),dimension(3,lzd%nlr),intent(in):: locregCenter
+  real(8),intent(in):: hx, hy, hz
+  
+  ! Local variables
+  integer:: ilr, ierr
+  
+  do ilr=1,lzd%nlr
+      if( floor(locregCenter(1,ilr)/hx) < 0 .or. ceiling(locregCenter(1,ilr)/hx) > lzd%glr%d%n1 ) then
+          if(iproc==0) then
+              write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
+                  ' is outside of box in x direction! Box limits=',0,lzd%glr%d%n1,&
+                  ', center=',floor(locregCenter(1,ilr)/hx),ceiling(locregCenter(1,ilr)/hx)
+          end if
+          call mpi_barrier(mpi_comm_world, ierr)
+          stop
+      end if
+      if( floor(locregCenter(2,ilr)/hy) < 0 .or. ceiling(locregCenter(2,ilr)/hy) > lzd%glr%d%n2 ) then
+          if(iproc==0) then
+              write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
+                  'is outside of box in y direction! Box limits=',0,lzd%glr%d%n2,&
+                  ', center=',floor(locregCenter(2,ilr)/hy),ceiling(locregCenter(2,ilr)/hy)
+          end if
+          call mpi_barrier(mpi_comm_world, ierr)
+          stop
+      end if
+      if( floor(locregCenter(3,ilr)/hz) < 0 .or. ceiling(locregCenter(3,ilr)/hz) > lzd%glr%d%n3 ) then
+          if(iproc==0) then
+              write(*,'(1x,a,i0,a,i0,1x,i0,a,i0,1x,i0)') 'ERROR: new center for locreg ',ilr,&
+                  'is outside of box in x direction! Box limits=',0,lzd%glr%d%n3,&
+                  ', center=',floor(locregCenter(3,ilr)/hz),ceiling(locregCenter(3,ilr)/hz)
+          end if
+          call mpi_barrier(mpi_comm_world, ierr)
+          stop
+      end if
+  end do
+
+end subroutine check_locregCenters           
