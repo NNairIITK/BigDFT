@@ -923,14 +923,14 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
       do_ortho_if: if(.not.ldiis%switchSD) then
 
-          newgradient_if: if(.not.newgradient) then
+          newgradient_if_1: if(.not.newgradient) then
 
               call orthonormalizeLocalized(iproc, nproc, &
               orthpar%methTransformOverlap, orthpar%nItOrtho, &
               orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, lorbs, op, comon, lzd, &
               mad, lphi, ovrlp)
 
-          else newgradient_if
+          else newgradient_if_1
 
               call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
               call orthonormalizeLocalized(iproc, nproc, &
@@ -1022,7 +1022,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                        lphilarge, lhphilarge, lhphilargeold, lphilargeold)
               end if
 
-          end if newgradient_if
+          end if newgradient_if_1
 
       end if do_ortho_if
 
@@ -1129,17 +1129,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, lphilarge, lhphilarge, lagmat)
       end if
 
-
-
-      ! Calculate modified trace
-      !!tt=0.d0
-      !!do iorb=1,orbs%norb
-      !!    do jorb=1,lorbs%norb
-      !!        do korb=1,lorbs%norb
-      !!            tt = tt + coeff(jorb,iorb)*coeff(korb,iorb)*W(korb,jorb)
-      !!        end do
-      !!    end do
-      !!end do
+      ! Calculate trace (or band structure energy, resp.)
       if(newgradient) then
           trH=0.d0
           do jorb=1,lorbs%norb
@@ -1155,70 +1145,32 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       end if
 
 
-      ! Flatten at the edges -  EXPERIMENTAL
-      !!call flatten_at_edges(iproc, nproc, lin, at, input, hx, hy, hz, lorbs, lzd, rxyz, lhphi)
-
       ! Cycle if the trace increased (steepest descent only)
-      !if(iproc==0) write(*,*) 'ldiis%switchSD, ldiis%isx', ldiis%switchSD, ldiis%isx
       if(.not. ldiis%switchSD .and. ldiis%isx==0) then
-         !if(iproc==0) write(*,*) 'trH, trHold', trH, trHold
-           !if(trH>trHold) then
            if(trH > trHold + 1.d-8*abs(trHold)) then
                consecutive_rejections=consecutive_rejections+1
-               !!if(consecutive_rejections==300000) then
-               !!    if(fnrmMax<convCrit .or. it>=nit) then
-               !!        if(it>=nit) then
-               !!            if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
-               !!                ' iterations! Exiting loop due to consective failures of SD.'
-               !!            if(iproc==0) write(*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', &
-               !!                         fnrm, fnrmMax, trHold
-               !!            infoBasisFunctions=-1
-               !!        else
-               !!            if(iproc==0) then
-               !!                write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
-               !!                write (*,'(1x,a,2es15.7,f12.7)') 'CHECK THIS Final values for fnrm, fnrmMax, trace: ', &
-               !!                fnrm, fnrmMax, trHold
-               !!            end if
-               !!            infoBasisFunctions=it
-               !!        end if
-               !!        if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. &
-               !!                     &============================='
-               !!        !!if(lin%plotBasisFunctions) then
-               !!        !!    call plotOrbitals(iproc, lorbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-               !!        !!        .5d0*input%hy, .5d0*input%hz, 1)
-               !!        !!end if
-               !!        exit iterLoop
-               !!    end if
-               !!end if
-               if(iproc==0) write(*,'(a,2es20.12)') 'trH, trHold', trH, trHold
+               if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
                if(consecutive_rejections<=3) then
+                   ! If the trace increased three times consecutively, do not decrease the step size any more and go on.
                    alpha=alpha*.6d0
                    if(.not. newgradient) then
+                       if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
                        call dcopy(size(lphi), lphiold, 1, lphi, 1)
                    else
-                       ! this makes no sense
-                       !call dcopy(size(lphilarge), lphilargeold, 1, lphilarge, 1)
+                       ! It is not possible to use the old orbitals since the locregs might have changed.
+                       if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
                    end if
-                   !if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and cycle'
-                   !cycle iterLoop
-                   !if(iproc==0) write(*,'(x,a)') 'trace increased; reject orbitals and exit'
-                   !exit iterLoop
                else
                    consecutive_rejections=0
                end if
            else
-                   consecutive_rejections=0
+               consecutive_rejections=0
            end if
       end if
-      !consecutive_rejections=0
 
 
       t2=mpi_wtime()
       time(3)=time(3)+t2-t1
-      !if(iproc==0) then
-      !    write(*,'(a)', advance='no') 'done. '
-      !end if
-      !!if(iproc==0) write(*,*) 'trH',trH
 
 
   
@@ -1226,7 +1178,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       ! of the previous iteration (fnrmOvrlpArr).
       istart=1
       do iorb=1,lorbs%norbp
-          !ilr=lorbs%inWhichLocregp(iorb)
           if(.not.newgradient) then
               iiorb=lorbs%isorb+iorb
               ilr=lorbs%inWhichLocreg(iiorb)
@@ -1234,12 +1185,12 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
               fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
           else
+              ! Here the angle between the current and the old gradient cannot be determined since
+              ! the locregs might have changed, so we assign to fnrmOvrlpArr a fake value of 1.d0
               iiorb=orbslarge%isorb+iorb
               ilr=orbslarge%inWhichLocreg(iiorb)
               ncount=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-              !if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilargeold(istart), 1)
-              ! The following line is nonsense, but it is not possible otherwise (since the shape of the locregs may change)
-              if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilarge(istart), 1)
+              if(it>1) fnrmOvrlpArr(iorb,1)=1.d0
               fnrmArr(iorb,1)=ddot(ncount, lhphilarge(istart), 1, lhphilarge(istart), 1)
           end if
           istart=istart+ncount
@@ -1254,13 +1205,14 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       ! step size for the steepest descent minimization (depending on the angle 
       ! between the current gradient and the one from the previous iteration).
       ! This is of course only necessary if we are using steepest descent and not DIIS.
+      ! if newgradient is true, the angle criterion cannot be used and the choice whether to
+      ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
       do iorb=1,lorbs%norbp
           fnrm=fnrm+fnrmArr(iorb,1)
           if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
           if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
           ! Adapt step size for the steepest descent minimization.
               tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
-              !if(tt>.7d0) then
               if(tt>.9d0 .and. trH<trHold) then
                   alpha(iorb)=alpha(iorb)*1.1d0
               else
@@ -1305,37 +1257,11 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
          end if
       end do
 
-
-
-
-      !!!end if
-      !call preconditionall(iproc, nproc, lorbs, lzd%glr, input%hx, input%hy, input%hz, lin%nItPrecond, lhphi, tt, tt2)
       t2=mpi_wtime()
       time(4)=time(4)+t2-t1
       !if(iproc==0) then
       !    write(*,'(a)') 'done. '
       !end if
-
-
-      !!!! plot the orbitals -- EXPERIMENTAL ##################################################
-      !!!allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
-      !!!ist=1
-      !!!write(comment,'(i3.3)') it
-      !!!do iorb=1,lorbs%norbp
-      !!!    iiorb=iorb+lorbs%isorb
-      !!!    ilr=lorbs%inwhichlocreg(iiorb)
-      !!!    write(orbname,'(i3.3)') iiorb
-      !!!    write(*,'(a,i0)') 'plotting orbital ',iiorb
-      !!!    lvphiovrlp=0.d0
-      !!!    call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
-      !!!         lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, input%nspin, &
-      !!!         lzd%Glr, lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
-      !!!    call plot_wf(orbname//'_'//comment, 2, at, 1.d0, lzd%glr, input%hx, input%hy, input%hz, rxyz, lvphiovrlp(1))
-      !!!    ist=ist+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-      !!!end do
-      !!!deallocate(lvphiovrlp)
-      !!!! ####################################################################################
-
 
       ! Determine the mean step size for steepest descent iterations.
       tt=sum(alpha)
@@ -1374,11 +1300,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
                   icountDIISFailureCons, ', total failures=', icountDIISFailureTot
           else
-              !if(allowDIIS) then
-              !    message='y'
-              !else
-              !    message='n'
-              !end if
               write(*,'(1x,a,es9.3,a,i0,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
               ', consecutive successes=', icountSDSatur, ', DIIS=y'
           end if
@@ -1393,189 +1314,107 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       end if
 
       
-      if(newgradient) then
-           !!confdatarr%prefac=1.0d-4
-           !!call unitary_optimization(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-           !!                          comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-           !!                          newgradient, confdatarr, hx, lphilarge)
-           !!confdatarr%prefac=0.0d0
-
-           ! Update confdatarr...
-           call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
-
-           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
-           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-           !!     6.d0, confdatarr, lphilarge)
-
-           !! EXPERIMENTAL: normalize lphilarge
-           if(variable_locregs) then
-               ist=1
-               do iorb=1,orbslarge%norbp
-                   iiorb=orbslarge%isorb+iorb
-                   ilrlarge=orbslarge%inwhichlocreg(iiorb)
-                   ncnt=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-                   tt=dnrm2(ncnt, lphilarge(ist), 1)
-                   call dscal(ncnt, 1/tt, lphilarge(ist), 1)
-                   ist=ist+ncnt
-               end do
-           end if
-
-
-           if(secondLocreg) then
-                ! Go to even larger region
-                call small_to_large_locreg(iproc, nproc, lzdlarge, lzdlarge2, orbslarge, orbslarge, lphilarge, lphilarge2)
-            end if
-
-           if(.not.secondLocreg) then
-                ! Update confdatarr...
-                call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
-               call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
-                    comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-                    newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
-            end if
-
-            if(secondLocreg) then
-                ! Update confdatarr...
-                call update_confdatarr(lzdlarge2, orbslarge2, locregCenterTemp, confdatarr)
-               !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-               !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
-                call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
-                     lzdlarge2%llr(1)%locrad/factor2, confdatarr, lphilarge2)
-               !!call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
-               !!     6.d0, confdatarr, lphilarge2)
-               call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
-                    comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
-                    newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
-               !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-               !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
-                call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
-                     lzdlarge2%llr(1)%locrad/factor2, confdatarr, lphilarge2)
-               !!call check_cutoff(iproc, nproc, orbslarge2, lzdlarge2, hx, hy, hz, &
-               !!     6.d0, confdatarr, lphilarge2)
-                     !!write(*,*) "ATTENTION HERE!!!"
-                     !!locregCenter=locregCenterTemp
-           end if
-
-           call check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
-           !write(*,*) 'WARNING CHECK INDICES OF UMAT!!'
-           if(nItInnerLoop>0) then
-               kernelold=kernel
-               do iorb=1,lorbs%norb
-                   do jorb=1,lorbs%norb
-                       tt=0.d0
-                       do korb=1,lorbs%norb
-                           do lorb=1,lorbs%norb
-                               !tt=tt+kernelold(korb,lorb)*Umat(jorb,korb)*Umat(iorb,lorb)
-                               !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
-                               tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
-                               !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
-                           end do
-                       end do
-                       kernel(jorb,iorb)=tt
-                   end do
-               end do
-               !!kernelold=kernel
-               !!do iorb=1,lorbs%norb
-               !!    do jorb=1,lorbs%norb
-               !!        tt=0.d0
-               !!        !!tt2=0.d0
-               !!        do korb=1,lorbs%norb
-               !!            do lorb=1,lorbs%norb
-               !!                !tt=tt+kernelold(korb,lorb)*Umat(jorb,korb)*Umat(iorb,lorb)
-               !!                tt=tt+kernelold(korb,jorb)*Umat(korb,lorb)*Umat(iorb,lorb)
-               !!            end do
-               !!        end do
-               !!        kernel(jorb,iorb)=tt
-               !!    end do
-               !!end do
+      newgradient_if_2: if(newgradient) then
+          call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
+          ! Normalize lphilarge
+          if(variable_locregs) then
+              ist=1
+              do iorb=1,orbslarge%norbp
+                  iiorb=orbslarge%isorb+iorb
+                  ilrlarge=orbslarge%inwhichlocreg(iiorb)
+                  ncnt=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
+                  tt=dnrm2(ncnt, lphilarge(ist), 1)
+                  call dscal(ncnt, 1/tt, lphilarge(ist), 1)
+                  ist=ist+ncnt
+              end do
           end if
 
 
-        if(variable_locregs) then
-            call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
-                 lphi, lhphi, lhphiold, lphiold)
-            call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
-                 locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                 lzd, lorbs, op, comon, mad, comgp, &
-                 lphi, lhphi, lhphiold, lphiold)
-        end if
+          if(secondLocreg) then
+               ! Go to even larger region
+               call small_to_large_locreg(iproc, nproc, lzdlarge, lzdlarge2, orbslarge, orbslarge, lphilarge, lphilarge2)
+           end if
+
+          if(.not.secondLocreg) then
+               ! Update confdatarr...
+               call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
+              call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
+                   comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
+                   newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+           end if
+
+           if(secondLocreg) then
+               ! Update confdatarr...
+               call update_confdatarr(lzdlarge2, orbslarge2, locregCenterTemp, confdatarr)
+               call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
+                    comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
+                    newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
+          end if
+
+          call check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
+          !write(*,*) 'WARNING CHECK INDICES OF UMAT!!'
+          if(nItInnerLoop>0) then
+              kernelold=kernel
+              do iorb=1,lorbs%norb
+                  do jorb=1,lorbs%norb
+                      tt=0.d0
+                      do korb=1,lorbs%norb
+                          do lorb=1,lorbs%norb
+                              !tt=tt+kernelold(korb,lorb)*Umat(jorb,korb)*Umat(iorb,lorb)
+                              !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
+                              tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
+                              !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
+                          end do
+                      end do
+                      kernel(jorb,iorb)=tt
+                  end do
+              end do
+          end if
+
+
+          if(variable_locregs) then
+              call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
+                   lphi, lhphi, lhphiold, lphiold)
+              call create_new_locregs(iproc, nproc, lzdlarge%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
+                   locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                   lzd, lorbs, op, comon, mad, comgp, &
+                   lphi, lhphi, lhphiold, lphiold)
+          end if
 
           if(secondLocreg) then
-              ! Transform back to localization region
               ! Transform back to small locreg
               call large_to_small_locreg(iproc, nproc, lzd, lzdlarge2, lorbs, orbslarge2, lphilarge2, lphi)
           else
               call large_to_small_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphilarge, lphi)
           end if
 
-           ! Update confdatarr...
-           call update_confdatarr(lzdlarge, orbslarge, locregCenter, confdatarr)
-           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-           !!     lzdlarge%llr(ilrlarge)%locrad/factor, confdatarr, lphilarge)
-           !!call check_cutoff(iproc, nproc, orbslarge, lzdlarge, hx, hy, hz, &
-           !!     6.d0, confdatarr, lphilarge)
+          call update_confdatarr(lzdlarge, orbslarge, locregCenter, confdatarr)
 
-           if(variable_locregs) then
-               call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                    lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-               locrad_tmp=factor*locrad
-               call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
-                    locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
-                    lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
-                    lphilarge, lhphilarge, lhphilargeold, lphilargeold)
-               locregCenterTemp=locregCenter
-           end if
+          if(variable_locregs) then
+              call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                   lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+              locrad_tmp=factor*locrad
+              call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
+                   locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+                   lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+                   lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+              locregCenterTemp=locregCenter
+          end if
 
-!!!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-! do here another MLWF on the level of lzdlarge
-!!!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+          if(secondLocreg) then
+              call destroy_new_locregs(lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
+                   lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
+              locrad_tmp=factor2*locrad
+              call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
+                   locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
+                   lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
+                   lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
+          end if
 
-           if(secondLocreg) then
-               call destroy_new_locregs(lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
-                    lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
-               locrad_tmp=factor2*locrad
-               call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
-                    locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis2, &
-                    lzdlarge2, orbslarge2, oplarge2, comonlarge2, madlarge2, comgplarge2, &
-                    lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old)
-!          write(c3,'(i0)') it
-!              write(c2,'(i0)') iorb
-!              filename='TMB_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)
-!              open(unitwf,file=trim(filename),status='unknown')
-!              call writeonewave(unitwf,.true.,1,lzd%Glr%d%n1,lzd%Glr%d%n2,lzd%Glr%d%n3,hx,hy,hz,at%nat,rxyz,  &
-!                     lzd%Glr%wfd%nseg_c,lzd%Glr%wfd%nvctr_c,lzd%Glr%wfd%keygloc(1,1),lzd%Glr%wfd%keyvloc(1),  &
-!                     lzd%Glr%wfd%nseg_f,lzd%Glr%wfd%nvctr_f,lzd%Glr%wfd%keygloc(1,1+lzd%Glr%wfd%nseg_c),&
-!                     lzd%Glr%wfd%keyvloc(1+lzd%Glr%wfd%nseg_c), &
-!                     lvphiovrlp(1),lvphiovrlp(1+lzd%glr%wfd%nvctr_c),lorbs%eval)
-!              close(unitwf)
-           end if
-      end if
+      end if newgradient_if_2
 
 
 
-
-
-      !!! plot the orbitals -- EXPERIMENTAL ##################################################
-      !! Modify this (rxyz is not correct...)
-      !!if(newgradient) then
-      !!    allocate(lvphiovrlp(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
-      !!    ist=1
-      !!    write(comment,'(i3.3)') it
-      !!    do iorb=1,lorbs%norbp
-      !!        iiorb=iorb+lorbs%isorb
-      !!        ilr=lorbs%inwhichlocreg(iiorb)
-      !!        lvphiovrlp=0.d0
-      !!        call Lpsi_to_global2(iproc, nproc, lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, &
-      !!             lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f, lorbs%norb, lorbs%nspinor, 1, &
-      !!             lzd%Glr, lzd%Llr(ilr), lphi(ist), lvphiovrlp(1))
-      !!        call plotOrbitals(iproc, orbs, lzd%Glr, lvphiovrlp, at%nat, rxyz, lorbs%inwhichlocreg, &
-      !!             .5d0*hx, .5d0*hy, .5d0*hz, it)
-      !!        ist=ist+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-      !!    end do
-      !!    deallocate(lvphiovrlp)
-      !!end if
-      !!! ####################################################################################
 
 
 
