@@ -9010,7 +9010,7 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   type(local_zone_descriptors),intent(in):: lzdsmall, lzdlarge
   type(orbitals_data),intent(in):: orbssmall, orbslarge
   real(8),dimension(orbssmall%npsidim_orbs),intent(in):: phismall
-  real(8),dimension(orbssmall%npsidim_orbs),intent(out):: philarge
+  real(8),dimension(orbslarge%npsidim_orbs),intent(out):: philarge
   
   ! Local variables
   integer:: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
@@ -9029,6 +9029,8 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
       ists=ists+lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
       istl=istl+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
   end do
+  if(ists/=orbssmall%npsidim_orbs+1) stop 'ists/=orbssmall%npsidim_orbs+1'
+  if(istl/=orbslarge%npsidim_orbs+1) stop 'istl/=orbslarge%npsidim_orbs+1'
 
 end subroutine small_to_large_locreg
 
@@ -9046,22 +9048,25 @@ subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   real(8),dimension(orbssmall%npsidim_orbs),intent(out):: phismall
   
   ! Local variables
-  integer:: ind1, ind2, ilr, ilrlarge, ldim, gdim, iorb
+  integer:: istl, ists, ilr, ilrlarge, ldim, gdim, iorb
   
   ! Transform back to small locreg
   phismall=0.d0
-  ind1=1
-  ind2=1
+  ists=1
+  istl=1
   do iorb=1,orbssmall%norbp
       ilr = orbssmall%inWhichLocreg(orbssmall%isorb+iorb)
       ilrlarge = orbslarge%inWhichLocreg(orbslarge%isorb+iorb)
       ldim=lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
       gdim=lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
       call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdsmall%llr(ilr), lzdlarge%llr(ilrlarge), &
-           philarge(ind1:ind1+gdim-1), phismall(ind2:ind2+ldim-1))
-      ind1=ind1+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
-      ind2=ind2+lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
+           philarge(istl:istl+gdim-1), phismall(ists:ists+ldim-1))
+      ists=ists+lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
+      istl=istl+lzdlarge%llr(ilrlarge)%wfd%nvctr_c+7*lzdlarge%llr(ilrlarge)%wfd%nvctr_f
   end do
+
+  if(ists/=orbssmall%npsidim_orbs+1) stop 'ists/=orbssmall%npsidim_orbs+1'
+  if(istl/=orbslarge%npsidim_orbs+1) stop 'istl/=orbslarge%npsidim_orbs+1'
 
 end subroutine large_to_small_locreg
 
