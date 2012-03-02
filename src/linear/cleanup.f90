@@ -1385,6 +1385,7 @@ subroutine deallocate_p2pCommsRepartition(comrp, subname)
 
   call checkAndDeallocatePointer(comrp%comarr, 'comrp%comarr', subname)
   call checkAndDeallocatePointer(comrp%communComplete, 'comrp%communComplete', subname)
+  call checkAndDeallocatePointer(comrp%requests, 'comrp%requests', subname)
 
 end subroutine deallocate_p2pCommsRepartition
 

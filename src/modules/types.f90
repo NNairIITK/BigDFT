@@ -605,7 +605,9 @@ module module_types
 !! to match their partition.
   type,public:: p2pCommsRepartition
       integer,dimension(:,:,:),pointer:: comarr
-       logical,dimension(:,:),pointer:: communComplete
+      logical,dimension(:,:),pointer:: communComplete
+      integer,dimension(:,:),pointer:: requests
+      integer:: nsend, nrecv
   end type p2pCommsRepartition
 
 !  type,public:: expansionSegments

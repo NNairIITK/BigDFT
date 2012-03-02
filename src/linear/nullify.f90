@@ -148,6 +148,7 @@ subroutine nullify_p2pCommsRepartition(comrp)
 
   nullify(comrp%comarr)
   nullify(comrp%communComplete)
+  nullify(comrp%requests)
 
 end subroutine nullify_p2pCommsRepartition
 
