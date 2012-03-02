@@ -1475,20 +1475,39 @@ module module_interfaces
       END SUBROUTINE calculate_rhocore
 
       subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-            &   rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho)
-         use module_base
-         implicit none
-         character(len=1), intent(in) :: geocode
-         character(len=1), intent(in) :: datacode
-         integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
-         real(gp), intent(in) :: hx,hy,hz
-         real(gp), intent(out) :: exc,vxc
-         real(dp), dimension(*), intent(inout) :: rho
-         real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
-         real(wp), dimension(*), intent(out) :: potxc
-         real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
-         real(dp),dimension(6),intent(out) :: xcstr
+           rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho)
+        use module_base
+        use module_xc
+        implicit none
+        character(len=1), intent(in) :: geocode
+        character(len=1), intent(in) :: datacode
+        integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
+        real(gp), intent(in) :: hx,hy,hz
+        real(gp), intent(out) :: exc,vxc
+        real(dp), dimension(*), intent(inout) :: rho
+        real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
+        real(wp), dimension(*), intent(out) :: potxc
+        real(dp), dimension(6), intent(out) :: xcstr
+        real(dp), dimension(:,:,:,:), target, intent(out), optional :: dvxcdrho
       END SUBROUTINE XC_potential
+
+      subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
+           nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
+        use module_base
+        use module_xc
+        use interfaces_56_xc
+        implicit none
+        character(len=1), intent(in) :: geocode
+        logical, intent(in) :: sumpion
+        integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nproc,nspden
+        integer, intent(in) :: nwbl,nwbr
+        real(gp), intent(in) :: hx,hy,hz
+        real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rhopot
+        real(wp), dimension(*), intent(in) :: pot_ion
+        real(dp), dimension(md1,md3,md2/nproc), intent(out) :: zf
+        real(wp), dimension(md1,md3,md2/nproc,nspden), intent(out) :: zfionxc
+        real(dp), intent(out) :: exc,vxc
+      END SUBROUTINE xc_energy
 
       subroutine direct_minimization(iproc,nproc,in,at,& 
            orbs,orbsv,nvirt,Lzd,comms,commsv,&
