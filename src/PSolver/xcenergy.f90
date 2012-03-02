@@ -268,7 +268,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho)
   use module_base
   use Poisson_Solver
-  use module_interfaces
+  use module_interfaces, except_this_one => XC_potential
   use module_xc
   implicit none
   character(len=1), intent(in) :: geocode
@@ -279,8 +279,8 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(dp), dimension(*), intent(inout) :: rho
   real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
-  real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
   real(dp), dimension(6), intent(out) :: xcstr
+  real(dp), dimension(:,:,:,:), target, intent(out), optional :: dvxcdrho
   !local variables
   character(len=*), parameter :: subname='XC_potential'
   logical :: wrtmsg
@@ -975,6 +975,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   use module_base
   use module_xc
   use interfaces_56_xc
+  use module_interfaces, except_this_one => xc_energy
 
   implicit none
 
@@ -1001,6 +1002,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc
   logical :: use_gradient
   real(dp),dimension(6) :: wbstr
+  real(dp),dimension(:,:,:,:),pointer:: rhocore_fake
   !check for the dimensions
   if (nwb/=nxcl+nxc+nxcr-2 .or. nxt/=nwbr+nwb+nwbl) then
      print *,'the XC dimensions are not correct'
@@ -1047,8 +1049,11 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
         !!the calculation of the gradient will depend on the geometry code
         !if (geocode=='F') then
+           nullify(rhocore_fake)
+           !!call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rhopot,nspden,&
+           !!     real(hx,dp),real(hy,dp),real(hz,dp),gradient)
            call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rhopot,nspden,&
-                real(hx,dp),real(hy,dp),real(hz,dp),gradient)
+                real(hx,dp),real(hy,dp),real(hz,dp),gradient,rhocore_fake)
         !else
         !print *,'geocode=',geocode,&
         !     ':the calculation of the gradient is still to be performed in this case'
