@@ -2142,7 +2142,8 @@ module module_interfaces
       type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
       !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
       real(8),dimension(:),pointer,intent(inout)::lphiRestart
-      type(p2pCommsRepartition),intent(inout):: comrp
+      !type(p2pCommsRepartition),intent(inout):: comrp
+      type(p2pComms),intent(inout):: comrp
       type(SIC_data),intent(in):: SIC
     end subroutine getLinearPsi
 
@@ -3376,7 +3377,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,intent(inout):: tag
        type(orbitals_data),intent(in):: lorbs, llborbs
        type(local_zone_descriptors),intent(in):: lzd
-       type(p2pCommsRepartition),intent(out):: comrp
+       !type(p2pCommsRepartition),intent(out):: comrp
+       type(p2pComms),intent(out):: comrp
      end subroutine initializeRepartitionOrbitals
 
      subroutine postCommsRepartition(iproc, nproc, orbs, comrp, nsendBuf, sendBuf, nrecvBuf, recvBuf)
@@ -3385,7 +3387,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        implicit none
        integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
        type(orbitals_data),intent(in):: orbs
-       type(p2pCommsRepartition),intent(inout):: comrp
+       !type(p2pCommsRepartition),intent(inout):: comrp
+       type(p2pComms),intent(inout):: comrp
        real(8),dimension(nsendBuf),intent(in):: sendBuf
        real(8),dimension(nrecvBuf),intent(out):: recvBuf
      end subroutine postCommsRepartition
@@ -3397,7 +3400,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        implicit none
        integer,intent(in):: iproc, nproc
        type(orbitals_data),intent(in):: orbs
-       type(p2pCommsRepartition),intent(inout):: comrp
+       !type(p2pCommsRepartition),intent(inout):: comrp
+       type(p2pComms),intent(inout):: comrp
      end subroutine gatherDerivativeOrbitals
 
 
@@ -3649,7 +3653,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      real(8),intent(in):: hgrid
      type(local_zone_descriptors),intent(in):: lzd
      type(orbitals_data),intent(in):: lorbs, lborbs
-     type(p2pCommsRepartition),intent(inout):: comrp
+     !type(p2pCommsRepartition),intent(inout):: comrp
+     type(p2pComms),intent(inout):: comrp
      real(8),dimension(nphi),intent(in):: phi
      real(8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(out):: phid
      end subroutine getDerivativeBasisFunctions
@@ -4121,12 +4126,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(largeBasis),intent(out):: lb
     end subroutine nullify_largeBasis
 
-    subroutine nullify_p2pCommsRepartition(comrp)
-      use module_base
-      use module_types
-      implicit none
-      type(p2pCommsRepartition),intent(out):: comrp
-    end subroutine nullify_p2pCommsRepartition
+    !!subroutine nullify_p2pCommsRepartition(comrp)
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  type(p2pCommsRepartition),intent(out):: comrp
+    !!end subroutine nullify_p2pCommsRepartition
 
     !!subroutine nullify_p2pCommsOrthonormality(comon)
     !!  use module_base
@@ -4272,13 +4277,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       character(len=*),intent(in):: subname
     end subroutine deallocate_largeBasis
     
-    subroutine deallocate_p2pCommsRepartition(comrp, subname)
-      use module_base
-      use module_types
-      implicit none
-      type(p2pCommsRepartition),intent(inout):: comrp
-      character(len=*),intent(in):: subname
-    end subroutine deallocate_p2pCommsRepartition
+    !!subroutine deallocate_p2pCommsRepartition(comrp, subname)
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  type(p2pCommsRepartition),intent(inout):: comrp
+    !!  character(len=*),intent(in):: subname
+    !!end subroutine deallocate_p2pCommsRepartition
     
     !!subroutine deallocate_p2pCommsOrthonormality(comon, subname)
     !!  use module_base

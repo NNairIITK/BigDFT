@@ -9,7 +9,8 @@ integer,intent(in):: iproc, nproc, nphi
 real(8),intent(in):: hgrid
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: lorbs, lborbs
-type(p2pCommsRepartition),intent(inout):: comrp
+!type(p2pCommsRepartition),intent(inout):: comrp
+type(p2pComms),intent(inout):: comrp
 real(8),dimension(nphi),intent(in):: phi
 real(8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(out):: phid
 
@@ -291,7 +292,8 @@ integer,intent(in):: iproc, nproc
 integer,intent(inout):: tag
 type(orbitals_data),intent(in):: lorbs, llborbs
 type(local_zone_descriptors),intent(in):: lzd
-type(p2pCommsRepartition),intent(out):: comrp
+!type(p2pCommsRepartition),intent(out):: comrp
+type(p2pComms),intent(out):: comrp
 
 ! Local variables
 integer:: jproc, jorb, kproc, korb, istat, mpidest, mpisource, istdest, istsource, ncount, jlr, klr, norbdest, jjorb, iall
@@ -299,6 +301,9 @@ integer:: isend, irecv
 integer,dimension(:,:,:),allocatable:: move
 character(len=*),parameter:: subname='initializeRepartitionOrbitals'
 
+
+! Nullify at the beginning
+call nullify_p2pComms(comrp)
 
 ! To which position has the orbital to be moved:
 !  - move(1,i,j)=k -> orbital i on process j has to be sent to process k
@@ -386,7 +391,8 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
 type(orbitals_data),intent(in):: orbs
-type(p2pCommsRepartition),intent(inout):: comrp
+!type(p2pCommsRepartition),intent(inout):: comrp
+type(p2pComms),intent(inout):: comrp
 real(8),dimension(nsendBuf),intent(in):: sendBuf
 real(8),dimension(nrecvBuf),intent(out):: recvBuf
 
@@ -537,7 +543,8 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
-type(p2pCommsRepartition),intent(inout):: comrp
+!type(p2pCommsRepartition),intent(inout):: comrp
+type(p2pComms),intent(inout):: comrp
 
 ! Local variables
 integer:: jorb, mpisource, mpidest, nfast, nslow, nsameproc, ierr, jproc, nsend, nrecv, ncomplete, ind, i

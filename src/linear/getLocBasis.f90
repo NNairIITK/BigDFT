@@ -101,7 +101,8 @@ type(orthon_data),intent(in):: orthpar
 type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
 !real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
 real(8),dimension(:),pointer,intent(inout)::lphiRestart
-type(p2pCommsRepartition),intent(inout):: comrp
+!type(p2pCommsRepartition),intent(inout):: comrp
+type(p2pComms),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
 
 ! Local variables 
@@ -343,8 +344,10 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
       !!call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
 
 
-      call deallocate_p2pCommsRepartition(comrp, subname)
-      call nullify_p2pCommsRepartition(comrp)
+      !call deallocate_p2pCommsRepartition(comrp, subname)
+      call deallocate_p2pComms(comrp, subname)
+      !call nullify_p2pCommsRepartition(comrp)
+      call nullify_p2pComms(comrp)
       call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
 
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'

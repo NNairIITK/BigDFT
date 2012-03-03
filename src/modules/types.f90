@@ -601,14 +601,14 @@ module module_types
 !!!   end type p2pCommsOrthonormality
 
 
-!> Contains the parameters for the communications of the derivative orbitals
-!! to match their partition.
-  type,public:: p2pCommsRepartition
-      integer,dimension(:,:,:),pointer:: comarr
-      logical,dimension(:,:),pointer:: communComplete
-      integer,dimension(:,:),pointer:: requests
-      integer:: nsend, nrecv
-  end type p2pCommsRepartition
+!!!!> Contains the parameters for the communications of the derivative orbitals
+!!!!! to match their partition.
+!!!  type,public:: p2pCommsRepartition
+!!!      integer,dimension(:,:,:),pointer:: comarr
+!!!      logical,dimension(:,:),pointer:: communComplete
+!!!      integer,dimension(:,:),pointer:: requests
+!!!      integer:: nsend, nrecv
+!!!  end type p2pCommsRepartition
 
 !  type,public:: expansionSegments
 !      integer:: nseg
@@ -677,7 +677,8 @@ type,public:: largeBasis
     type(communications_arrays):: comms, gcomms
     type(orbitals_data):: orbs, gorbs
     !type(local_zone_descriptors):: lzd
-    type(p2pCommsRepartition):: comrp
+    !type(p2pCommsRepartition):: comrp
+    type(p2pComms):: comrp
     !type(p2pCommsOrthonormality):: comon
     type(p2pComms):: comon
     type(overlapParameters):: op
