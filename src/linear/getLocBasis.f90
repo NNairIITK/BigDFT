@@ -156,168 +156,9 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
   end if
 
 
-  if(updatePhi .or. itSCC==0) then
-      if(newgradient) then
-
-          ! Cancel the communication of the potential
-          if(useDerivativeBasisFunctions) then
-              call cancelCommunicationPotential(iproc, nproc, lbcomgp)
-              call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
-          else
-              call cancelCommunicationPotential(iproc, nproc, comgp)
-              call deallocateCommunicationsBuffersPotential(comgp, subname)
-          end if
-
-          ! Reallocate lphiRestart, since its size might have changed
-          iall=-product(shape(lphiRestart))*kind(lphiRestart)
-          deallocate(lphiRestart, stat=istat)
-          call memocc(istat, iall, 'lphiRestart', subname)
-          allocate(lphiRestart(lorbs%npsidim_orbs), stat=istat)
-          call memocc(istat, lphiRestart, 'lphiRestart', subname)
-
-          ! Create new types for large basis...
-          call deallocate_orbitals_data(llborbs, subname)
-          call deallocate_overlapParameters(lbop, subname)
-          call deallocate_p2pComms(lbcomon, subname)
-          call deallocate_matrixDescriptors(lbmad, subname)
-          call deallocate_p2pComms(lbcomgp, subname)
-
-
-          call nullify_orbitals_data(llborbs)
-          call nullify_overlapParameters(lbop)
-          call nullify_p2pComms(lbcomon)
-          call nullify_matrixDescriptors(lbmad)
-          call nullify_p2pComms(lbcomgp)
-          tag=1
-          if(.not.useDerivativeBasisFunctions) then
-              norbu=lorbs%norb
-          else
-              norbu=4*lorbs%norb
-          end if
-          norb=norbu
-          norbd=0
-          nspin=1
-          call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
-               lorbs%nkpts, lorbs%kpts, lorbs%kwgts, llborbs)
-          call repartitionOrbitals(iproc, nproc, llborbs%norb, llborbs%norb_par,&
-               llborbs%norbp, llborbs%isorb_par, llborbs%isorb, llborbs%onWhichMPI)
-
-          allocate(orbsperlocreg(lzd%nlr), stat=istat)
-          call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
-          !!orbsperlocreg=0
-          !!do iorb=1,lorbs%norbp
-          !!    iiorb=lorbs%isorb+iorb
-          !!    ilr=iiorb
-          !!    orbsperlocreg(ilr)=orbsperlocreg(ilr)+1
-          !!end do
-          !!call mpiallred(orbsperlocreg(1), lzdlarge%nlr, mpi_sum, mpi_comm_world, ierr)
-          do iorb=1,lzd%nlr
-              if(useDerivativeBasisFunctions) then
-                  orbsperlocreg(iorb)=4
-              else
-                  orbsperlocreg(iorb)=1
-              end if
-          end do
-
-          iall=-product(shape(llborbs%inWhichLocreg))*kind(llborbs%inWhichLocreg)
-          deallocate(llborbs%inWhichLocreg, stat=istat)
-          call memocc(istat, iall, 'llborbs%inWhichLocreg', subname)
-
-          allocate(locregCenter(3,lzd%nlr), stat=istat)
-          call memocc(istat, locregCenter, 'locregCenter', subname)
-          !!locregCenter=0.d0
-          !!do iorb=1,lorbs%norbp
-          !!    iiorb=lorbs%isorb+iorb
-          !!    ilr=lorbs%inwhichlocreg(iiorb)
-          !!    !locregCenter(:,iiorb)=confdatarr(iorb)%rxyzConf
-          !!    locregCenter(:,ilr)=confdatarr(iorb)%rxyzConf
-          !!end do
-          !!call mpiallred(locregCenter(1,1), 3*lorbs%norb, mpi_sum, mpi_comm_world, ierr)
-          do ilr=1,lzd%nlr
-              locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
-          end do
-
-          call assignToLocreg2(iproc, nproc, llborbs%norb, llborbs%norb_par, 0, lzd%nlr, &
-               nspin, orbsperlocreg, locregCenter, llborbs%inwhichlocreg)
-
-          ! Assign inwhichlocreg manually
-          if(useDerivativeBasisFunctions) then
-              norb=4
-          else
-              norb=1
-          end if
-          ii=0
-          do iorb=1,lorbs%norb
-              do i=1,norb
-                  ii=ii+1
-                  llborbs%inwhichlocreg(ii)=lorbs%inwhichlocreg(iorb)
-              end do
-          end do
-
-          ! Recreate lzd, since it has to contain the bounds also for the derivatives
-          ! First copy to some temporary structure
-          allocate(locrad(lzd%nlr), stat=istat)
-          call memocc(istat, locrad, 'locrad', subname)
-          call nullify_locreg_descriptors(glr_tmp)
-          call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
-          nlr=lzd%nlr
-          locrad=lzd%llr(:)%locrad
-          call deallocate_local_zone_descriptors(lzd, subname)
-          call nullify_local_zone_descriptors(lzd)
-          call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, lorbs, glr_tmp, locrad, 's', llborbs)
-          call nullify_locreg_descriptors(lzd%glr)
-          call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
-          call deallocate_locreg_descriptors(glr_tmp, subname)
-          iall=-product(shape(locrad))*kind(locrad)
-          deallocate(locrad, stat=istat)
-          call memocc(istat, iall, 'locrad', subname)
-
-          iall=-product(shape(locregCenter))*kind(locregCenter)
-          deallocate(locregCenter, stat=istat)
-          call memocc(istat, iall, 'locregCenter', subname)
-          iall=-product(shape(orbsperlocreg))*kind(orbsperlocreg)
-          deallocate(orbsperlocreg, stat=istat)
-          call memocc(istat, iall, 'orbsperlocreg', subname)
-
-          npsidim = 0
-          do iorb=1,llborbs%norbp
-           ilr=llborbs%inwhichlocreg(iorb+llborbs%isorb)
-           npsidim = npsidim + lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-          end do
-          allocate(llborbs%eval(llborbs%norb), stat=istat)
-          call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
-          llborbs%eval=-.5d0
-          llborbs%npsidim_orbs=max(npsidim,1)
-          call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, llborbs, llborbs%inWhichLocreg,&
-               's', lbop, lbcomon, tag)
-          call initMatrixCompression(iproc, nproc, lzd%nlr, llborbs, &
-               lbop%noverlaps, lbop%overlaps, lbmad)
-          call initCompressedMatmul3(llborbs%norb, lbmad)
-
-          call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, llborbs, &
-               lzd, lbcomgp, llborbs%inWhichLocreg, tag)
-
-          ! Communicate the potential
-          if(useDerivativeBasisFunctions) then
-              call allocateCommunicationsBuffersPotential(lbcomgp, subname)
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
-          else
-              call allocateCommunicationsBuffersPotential(comgp, subname)
-              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
-          end if
-
-
-          tag=1
-          call deallocateCommunicationbufferSumrho(comsr, subname)
-          call deallocate_p2pComms(comsr, subname)
-          call nullify_p2pComms(comsr)
-          call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, llborbs, tag, comsr)
-          call allocateCommunicationbufferSumrho(iproc, .false., comsr, subname)
-
-
-
-      end if
-
+  if(newgradient .and. (updatePhi .or. itSCC==0)) then
+      call update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx, hy, hz, &
+           lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
@@ -6092,3 +5933,180 @@ subroutine check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
   end do
 
 end subroutine check_locregCenters           
+
+
+
+
+
+subroutine update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx, hy, hz, &
+           lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+use module_base
+use module_types
+use module_interfaces, except_this_one => update_locreg
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+logical,intent(in):: useDerivativeBasisFunctions
+type(DFT_local_fields), intent(in) :: denspot
+real(8),intent(in):: hx, hy, hz
+type(orbitals_data),intent(inout):: lorbs
+type(local_zone_descriptors),intent(inout):: lzd
+real(8),dimension(:),pointer,intent(inout):: lphiRestart
+type(orbitals_data),intent(inout):: llborbs
+type(overlapParameters),intent(inout):: lbop
+type(p2pComms),intent(inout):: lbcomon
+type(p2pComms),intent(inout):: comgp, lbcomgp
+type(p2pComms),intent(inout):: comsr
+type(matrixDescriptors),intent(inout):: lbmad
+
+! Local variables
+integer:: norb, norbu, norbd, nspin, iorb, istat, iall, ilr, npsidim, nlr, i, tag, ii
+real(8),dimension(:,:),allocatable:: locregCenter
+real(8),dimension(:),allocatable:: locrad
+integer,dimension(:),allocatable:: orbsPerLocreg
+type(locreg_descriptors):: glr_tmp
+character(len=*),parameter:: subname='update_locreg'
+
+
+          ! Cancel the communication of the potential
+          if(useDerivativeBasisFunctions) then
+              call cancelCommunicationPotential(iproc, nproc, lbcomgp)
+              call deallocateCommunicationsBuffersPotential(lbcomgp, subname)
+          else
+              call cancelCommunicationPotential(iproc, nproc, comgp)
+              call deallocateCommunicationsBuffersPotential(comgp, subname)
+          end if
+
+          ! Reallocate lphiRestart, since its size might have changed
+          iall=-product(shape(lphiRestart))*kind(lphiRestart)
+          deallocate(lphiRestart, stat=istat)
+          call memocc(istat, iall, 'lphiRestart', subname)
+          allocate(lphiRestart(lorbs%npsidim_orbs), stat=istat)
+          call memocc(istat, lphiRestart, 'lphiRestart', subname)
+
+          ! Create new types for large basis...
+          call deallocate_orbitals_data(llborbs, subname)
+          call deallocate_overlapParameters(lbop, subname)
+          call deallocate_p2pComms(lbcomon, subname)
+          call deallocate_matrixDescriptors(lbmad, subname)
+          call deallocate_p2pComms(lbcomgp, subname)
+
+
+          call nullify_orbitals_data(llborbs)
+          call nullify_overlapParameters(lbop)
+          call nullify_p2pComms(lbcomon)
+          call nullify_matrixDescriptors(lbmad)
+          call nullify_p2pComms(lbcomgp)
+          tag=1
+          if(.not.useDerivativeBasisFunctions) then
+              norbu=lorbs%norb
+          else
+              norbu=4*lorbs%norb
+          end if
+          norb=norbu
+          norbd=0
+          nspin=1
+          call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, nspin, lorbs%nspinor,&
+               lorbs%nkpts, lorbs%kpts, lorbs%kwgts, llborbs)
+          call repartitionOrbitals(iproc, nproc, llborbs%norb, llborbs%norb_par,&
+               llborbs%norbp, llborbs%isorb_par, llborbs%isorb, llborbs%onWhichMPI)
+
+          allocate(orbsperlocreg(lzd%nlr), stat=istat)
+          call memocc(istat, orbsperlocreg, 'orbsperlocreg', subname)
+          do iorb=1,lzd%nlr
+              if(useDerivativeBasisFunctions) then
+                  orbsperlocreg(iorb)=4
+              else
+                  orbsperlocreg(iorb)=1
+              end if
+          end do
+
+          iall=-product(shape(llborbs%inWhichLocreg))*kind(llborbs%inWhichLocreg)
+          deallocate(llborbs%inWhichLocreg, stat=istat)
+          call memocc(istat, iall, 'llborbs%inWhichLocreg', subname)
+
+          allocate(locregCenter(3,lzd%nlr), stat=istat)
+          call memocc(istat, locregCenter, 'locregCenter', subname)
+          do ilr=1,lzd%nlr
+              locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
+          end do
+
+          call assignToLocreg2(iproc, nproc, llborbs%norb, llborbs%norb_par, 0, lzd%nlr, &
+               nspin, orbsperlocreg, locregCenter, llborbs%inwhichlocreg)
+
+          ! Assign inwhichlocreg manually
+          if(useDerivativeBasisFunctions) then
+              norb=4
+          else
+              norb=1
+          end if
+          ii=0
+          do iorb=1,lorbs%norb
+              do i=1,norb
+                  ii=ii+1
+                  llborbs%inwhichlocreg(ii)=lorbs%inwhichlocreg(iorb)
+              end do
+          end do
+
+          ! Recreate lzd, since it has to contain the bounds also for the derivatives
+          ! First copy to some temporary structure
+          allocate(locrad(lzd%nlr), stat=istat)
+          call memocc(istat, locrad, 'locrad', subname)
+          call nullify_locreg_descriptors(glr_tmp)
+          call copy_locreg_descriptors(lzd%glr, glr_tmp, subname)
+          nlr=lzd%nlr
+          locrad=lzd%llr(:)%locrad
+          call deallocate_local_zone_descriptors(lzd, subname)
+          call nullify_local_zone_descriptors(lzd)
+          call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, lorbs, glr_tmp, locrad, 's', llborbs)
+          call nullify_locreg_descriptors(lzd%glr)
+          call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
+          call deallocate_locreg_descriptors(glr_tmp, subname)
+          iall=-product(shape(locrad))*kind(locrad)
+          deallocate(locrad, stat=istat)
+          call memocc(istat, iall, 'locrad', subname)
+
+          iall=-product(shape(locregCenter))*kind(locregCenter)
+          deallocate(locregCenter, stat=istat)
+          call memocc(istat, iall, 'locregCenter', subname)
+          iall=-product(shape(orbsperlocreg))*kind(orbsperlocreg)
+          deallocate(orbsperlocreg, stat=istat)
+          call memocc(istat, iall, 'orbsperlocreg', subname)
+
+          npsidim = 0
+          do iorb=1,llborbs%norbp
+           ilr=llborbs%inwhichlocreg(iorb+llborbs%isorb)
+           npsidim = npsidim + lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+          end do
+          allocate(llborbs%eval(llborbs%norb), stat=istat)
+          call memocc(istat, llborbs%eval, 'llborbs%eval', subname)
+          llborbs%eval=-.5d0
+          llborbs%npsidim_orbs=max(npsidim,1)
+          call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, llborbs, llborbs%inWhichLocreg,&
+               's', lbop, lbcomon, tag)
+          call initMatrixCompression(iproc, nproc, lzd%nlr, llborbs, &
+               lbop%noverlaps, lbop%overlaps, lbmad)
+          call initCompressedMatmul3(llborbs%norb, lbmad)
+
+          call initializeCommunicationPotential(iproc, nproc, denspot%dpcom%nscatterarr, llborbs, &
+               lzd, lbcomgp, llborbs%inWhichLocreg, tag)
+
+          ! Communicate the potential
+          if(useDerivativeBasisFunctions) then
+              call allocateCommunicationsBuffersPotential(lbcomgp, subname)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lbcomgp)
+          else
+              call allocateCommunicationsBuffersPotential(comgp, subname)
+              call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, comgp)
+          end if
+
+
+          tag=1
+          call deallocateCommunicationbufferSumrho(comsr, subname)
+          call deallocate_p2pComms(comsr, subname)
+          call nullify_p2pComms(comsr)
+          call initializeCommsSumrho(iproc, nproc, denspot%dpcom%nscatterarr, lzd, llborbs, tag, comsr)
+          call allocateCommunicationbufferSumrho(iproc, .false., comsr, subname)
+
+end subroutine update_locreg
