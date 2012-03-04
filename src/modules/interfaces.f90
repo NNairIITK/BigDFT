@@ -6184,6 +6184,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(matrixDescriptors),intent(inout):: lbmad
        end subroutine update_locreg
 
+
+       subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(local_zone_descriptors),intent(in):: lzd
+         type(orbitals_data),intent(in):: llborbs
+         real(8),dimension(llborbs%npsidim_orbs),intent(in):: lphi
+         type(p2pComms),intent(inout):: comsr
+       end subroutine communicate_basis_for_density
+
    end interface
 
 END MODULE module_interfaces

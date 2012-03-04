@@ -69,28 +69,20 @@ integer,intent(in):: blocksize_pdsyev, nproc_pdsyev
 type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(in) :: orbs
 type(orbitals_data),intent(inout):: lorbs, llborbs
-!type(p2pCommsSumrho),intent(inout):: comsr
 type(p2pComms),intent(inout):: comsr
 type(matrixDescriptors),intent(inout):: mad, lbmad
 type(overlapParameters),intent(inout):: op, lbop
 type(p2pComms),intent(inout):: comon, lbcomon
-!type(p2pCommsGatherPot):: comgp, lbcomgp
 type(p2pComms):: comgp, lbcomgp
 type(atoms_data),intent(in):: at
 real(8),dimension(3,at%nat),intent(in):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
-!integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-!integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
-!real(dp),dimension(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*n3p,1)*nspin),intent(inout) :: rhopot
 type(GPU_pointers),intent(inout):: GPU
-!real(dp), dimension(size_pkernel),intent(in):: pkernel
 logical,intent(in):: updatePhi, newgradient, useDerivativeBasisFunctions
-!real(dp),dimension(:),pointer,intent(in):: pkernelseq
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
 real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
 real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
-!real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
 real(8),dimension(:),pointer,intent(inout):: lphi
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -99,9 +91,7 @@ real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
 type(localizedDIISParameters),intent(inout):: ldiis
 type(orthon_data),intent(in):: orthpar
 type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
-!real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout)::lphiRestart
 real(8),dimension(:),pointer,intent(inout)::lphiRestart
-!type(p2pCommsRepartition),intent(inout):: comrp
 type(p2pComms),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
 
@@ -136,14 +126,12 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
   ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then
+
       ! If we use the derivative basis functions, the trace minimizing orbitals of the last iteration are
       ! stored in lin%lphiRestart.
-      ! WARNING: Will probably not work if we use the random input guess
       if(useDerivativeBasisFunctions) then
-          !call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart(1),1,lphi(1),1)
           call dcopy(lorbs%npsidim_orbs,lphiRestart(1),1,lphi(1),1)
       end if
-
 
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
@@ -152,11 +140,11 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
           hx,hy,hz,SIC,nItPrecond,factor_enlarge)
 
-
   end if
 
 
-  if(newgradient .and. (updatePhi .or. itSCC==0)) then
+  !if(newgradient .and. (updatePhi .or. itSCC==0)) then
+  if(newgradient .and. updatePhi) then
       call update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx, hy, hz, &
            lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
   end if
@@ -182,24 +170,16 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
 
   if(useDerivativeBasisFunctions .and. (updatePhi .or. itSCC==0)) then
-      !!call dcopy(max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphi(1),1,lin%lphiRestart(1),1)
-
-
-      !call deallocate_p2pCommsRepartition(comrp, subname)
       call deallocate_p2pComms(comrp, subname)
-      !call nullify_p2pCommsRepartition(comrp)
       call nullify_p2pComms(comrp)
       call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
-
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
       call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
            max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart,lphi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if
 
-
-
-  ! Get the overlap matrix.
+  ! Calculate the overlap matrix.
   if(.not.useDerivativeBasisFunctions) then
       call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, lphi, mad, ovrlp)
   else
@@ -208,31 +188,30 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
 
   if(communicate_lphi) then
-      ! Allocate the communication buffers for the calculation of the charge density.
-      !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
-      ! Transform all orbitals to real space.
-      ist=1
-      istr=1
-      do iorb=1,llborbs%norbp
-          !ilr=llborbs%inWhichLocregp(iorb)
-          iiorb=llborbs%isorb+iorb
-          ilr=llborbs%inWhichLocreg(iiorb)
-          call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
-          !!write(*,'(a,5i12)') 'iorb, ist, istr, size(lphi), size(comsr%sendBuf)', iorb, ist, istr, size(lphi), size(comsr%sendBuf)
-          call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
-          call deallocate_work_arrays_sumrho(w)
-          ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
-          istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-      end do
-      if(istr/=comsr%nsendBuf+1) then
-          write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
-          stop
-      end if
-      
-      ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
-      ! to point communication, the program will continue immediately. The messages will be gathered
-      ! in the subroutine sumrhoForLocalizedBasis2.
-      call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
+      call communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
+      !!!!! Allocate the communication buffers for the calculation of the charge density.
+      !!!!!call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+      !!!!! Transform all orbitals to real space.
+      !!!!ist=1
+      !!!!istr=1
+      !!!!do iorb=1,llborbs%norbp
+      !!!!    iiorb=llborbs%isorb+iorb
+      !!!!    ilr=llborbs%inWhichLocreg(iiorb)
+      !!!!    call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+      !!!!    call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
+      !!!!    call deallocate_work_arrays_sumrho(w)
+      !!!!    ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+      !!!!    istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+      !!!!end do
+      !!!!if(istr/=comsr%nsendBuf+1) then
+      !!!!    write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
+      !!!!    stop
+      !!!!end if
+      !!!!
+      !!!!! Post the MPI messages for the communication of sumrho. Since we use non blocking point
+      !!!!! to point communication, the program will continue immediately. The messages will be gathered
+      !!!!! in the subroutine sumrhoForLocalizedBasis2.
+      !!!!call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
   end if
   
 
@@ -249,27 +228,11 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
 
   if(.not.useDerivativeBasisFunctions) then
-
-
      call local_potential_dimensions(lzd,lorbs,denspot%dpcom%ngatherarr(0,1))
-
      call full_local_potential(iproc,nproc,lorbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,comgp)
-     !call full_local_potential(iproc,nproc,&
-     !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
-     !     lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
-     !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
-     !     lorbs,lzd,2,ngatherarr,rhopot,lpot,comgp)
   else
-
      call local_potential_dimensions(lzd,llborbs,denspot%dpcom%ngatherarr(0,1))
-      
      call full_local_potential(iproc,nproc,llborbs,Lzd,2,denspot%dpcom,denspot%rhov,denspot%pot_full,lbcomgp)
-     !call full_local_potential(iproc,nproc,&
-     !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),&
-     !     lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin,&
-     !     lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,1)*nspin,0,&
-     !     llborbs,lzd,2,ngatherarr,rhopot,lpot,lbcomgp)
-     
   end if
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
@@ -332,40 +295,12 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
   call deallocateCommuncationBuffersOrtho(lbcomon, subname)
 
 
-  !!!! TEST ########################################################
-  !!call transpose_linear(iproc, 0, nproc-1, llborbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
-  !!call transpose_linear(iproc, 0, nproc-1, llborbs, lin%lb%collComms, lhphi, mpi_comm_world, phiWork)
-  !!if(iproc==0) then
-  !!    do ierr=1,orbs%npsidim
-  !!        write(53,*) ierr, lin%lb%collComms%indexarray(ierr)
-  !!    end do
-  !!end if
-  !!call calculate_overlap_matrix(iproc, llborbs, lin%lb%collComms, lphi, lhphi, matrixElements(1,1,2))
-  !!call untranspose_linear(iproc, 0, nproc-1,  llborbs, lin%lb%collComms, lhphi, mpi_comm_world, phiWork)
-  !!call untranspose_linear(iproc, 0, nproc-1,  llborbs, lin%lb%collComms, lphi, mpi_comm_world, phiWork)
-  !!!! END TEST ####################################################
-  !!do iorb=1,llborbs%norb
-  !!    do jorb=1,llborbs%norb
-  !!        write(400+iproc,*) iorb, jorb, matrixElements(jorb,iorb,1)
-  !!        write(410+iproc,*) iorb, jorb, matrixElements(jorb,iorb,2)
-  !!    end do
-  !!end do
-
-  !!tt=0.d0
-  !!do iall=1,llborbs%norb
-  !!     tt=tt+matrixElements(iall,iall,1)
-  !!end do
-  !!if(iproc==0) write(*,*) 'trace of H without confinement:',tt
-
-
   allocate(overlapmatrix(llborbs%norb,llborbs%norb), stat=istat)
   call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
   overlapmatrix=ovrlp
   
 
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
-  !!call mpi_barrier(mpi_comm_world, ierr) !To measure the time correctly.
-  !!t1=mpi_wtime()
   ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
   ! are still needed later.
   call dcopy(llborbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
@@ -379,7 +314,6 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
   end if
   if(iproc==0) write(*,'(a)') 'done.'
   call dcopy(llborbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
-  !if(.not.updatePhi) call dcopy(llborbs%norb*(orbs%norb+lin%norbvirt), matrixElements(1,1,2), 1, lin%coeffall(1,1), 1)
   infoCoeff=0
 
   ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
@@ -397,9 +331,6 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
       end do
       write(*,'(1x,a)') '-------------------------------------------------'
   end if
-  !!t2=mpi_wtime()
-  !!time=t2-t1
-  !!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for diagonalizing the Hamiltonian:',time
 
 
   ! Calculate the band structure energy with matrixElements.
@@ -6110,3 +6041,46 @@ character(len=*),parameter:: subname='update_locreg'
           call allocateCommunicationbufferSumrho(iproc, .false., comsr, subname)
 
 end subroutine update_locreg
+
+
+subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
+use module_base
+use module_types
+use module_interfaces, except_this_one => communicate_basis_for_density
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(local_zone_descriptors),intent(in):: lzd
+type(orbitals_data),intent(in):: llborbs
+real(8),dimension(llborbs%npsidim_orbs),intent(in):: lphi
+type(p2pComms),intent(inout):: comsr
+
+! Local variables
+integer:: ist, istr, iorb, iiorb, ilr
+type(workarr_sumrho):: w
+
+      ! Allocate the communication buffers for the calculation of the charge density.
+      !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+      ! Transform all orbitals to real space.
+      ist=1
+      istr=1
+      do iorb=1,llborbs%norbp
+          iiorb=llborbs%isorb+iorb
+          ilr=llborbs%inWhichLocreg(iiorb)
+          call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+          call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
+          call deallocate_work_arrays_sumrho(w)
+          ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+          istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+      end do
+      if(istr/=comsr%nsendBuf+1) then
+          write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
+          stop
+      end if
+      
+      ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
+      ! to point communication, the program will continue immediately. The messages will be gathered
+      ! in the subroutine sumrhoForLocalizedBasis2.
+      call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
+end subroutine communicate_basis_for_density
