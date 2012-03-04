@@ -649,27 +649,7 @@ integer,dimension(:),pointer:: onwhichatom
   ! Allocate the communication buffers for the calculation of the charge density.
   with_auxarray=.false.
   call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
-      call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, lphi, lin%lb%comsr)
-  !!!! Transform all orbitals to real space.
-  !!!ist=1
-  !!!istr=1
-  !!!do iorb=1,lin%lb%orbs%norbp
-  !!!    ilr=lin%lb%orbs%inWhichLocreg(lin%lb%orbs%isorb+iorb)
-  !!!    call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
-  !!!    call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%lb%comsr%sendBuf(istr))
-  !!!    call deallocate_work_arrays_sumrho(w)
-  !!!    ist = ist + lin%lzd%Llr(ilr)%wfd%nvctr_c + 7*lin%lzd%Llr(ilr)%wfd%nvctr_f
-  !!!    istr = istr + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
-  !!!end do
-  !!!if(istr/=lin%lb%comsr%nsendBuf+1) then
-  !!!    write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=lin%comsr%nsendBuf+1'
-  !!!    stop
-  !!!end if
-
-  !!!! Post the MPI messages for the communication of sumrho. Since we use non blocking point
-  !!!! to point communication, the program will continue immediately. The messages will be gathered
-  !!!! in the subroutine sumrhoForLocalizedBasis2.
-  !!!call postCommunicationSumrho2(iproc, nproc, lin%lb%comsr, lin%lb%comsr%sendBuf, lin%lb%comsr%recvBuf)
+  call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, lphi, lin%lb%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
        coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 

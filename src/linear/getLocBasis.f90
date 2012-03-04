@@ -103,13 +103,8 @@ real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time,eSIC_DC
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
-type(workarr_sumrho):: w
 integer:: ist, ierr, iiorb, info, lorb, lwork, norbtot, k, l, ncnt, inc, jjorb, ii
-!real(8),dimension(:),pointer:: lpot
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-integer,dimension(:),allocatable:: orbsperlocreg
-type(locreg_descriptors):: glr_tmp
-integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkorb, jst, iseg, istart, iend, ncount, indovrlp 
 
 
 
@@ -189,29 +184,6 @@ integer:: ilrold, iiprocold, iiproc, jjlr, jjproc, i, gdim, ldim, ind, klr, kkor
 
   if(communicate_lphi) then
       call communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
-      !!!!! Allocate the communication buffers for the calculation of the charge density.
-      !!!!!call allocateCommunicationbufferSumrho(iproc, comsr, subname)
-      !!!!! Transform all orbitals to real space.
-      !!!!ist=1
-      !!!!istr=1
-      !!!!do iorb=1,llborbs%norbp
-      !!!!    iiorb=llborbs%isorb+iorb
-      !!!!    ilr=llborbs%inWhichLocreg(iiorb)
-      !!!!    call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
-      !!!!    call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
-      !!!!    call deallocate_work_arrays_sumrho(w)
-      !!!!    ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
-      !!!!    istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-      !!!!end do
-      !!!!if(istr/=comsr%nsendBuf+1) then
-      !!!!    write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
-      !!!!    stop
-      !!!!end if
-      !!!!
-      !!!!! Post the MPI messages for the communication of sumrho. Since we use non blocking point
-      !!!!! to point communication, the program will continue immediately. The messages will be gathered
-      !!!!! in the subroutine sumrhoForLocalizedBasis2.
-      !!!!call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
   end if
   
 
@@ -503,8 +475,6 @@ real(8),dimension(:,:),allocatable:: kernel, kernelold, locregCenter
 logical:: withConfinement, resetDIIS, immediateSwitchToSD, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(5):: time
-!real(8),dimension(:),pointer:: lpot
-!real(8),external :: mpi_wtime1
 character(len=3):: orbname, comment
 real(8),dimension(:),allocatable:: lvphiovrlp, locrad, locrad_tmp
 real(8),dimension(:),pointer:: phiWork
@@ -518,9 +488,6 @@ type(p2pComms):: comonlarge, comonlarge2
 type(p2pComms):: comgplarge, comgplarge2
 type(matrixDescriptors):: madlarge, madlarge2
 type(localizedDIISParameters):: ldiis2
-integer :: unitwf !DEBUG
-character(len=10):: c1, c2, c3 !DEBUG
-character(len=50):: filename !DEBUG
 logical,parameter:: secondLocreg=.false.
 
 ! automatic array, for debugging
@@ -530,22 +497,12 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   ! Allocate all local arrays.
   call allocateLocalArrays()
 
+  ! Calculate the kernel
   allocate(kernel(lorbs%norb,lorbs%norb), stat=istat)
   call memocc(istat, kernel, 'kernel', subname)
-
   call dgemm('n', 't', lorbs%norb, lorbs%norb, orbs%norb, 1.d0, coeff(1,1), lorbs%norb, &
        coeff(1,1), lorbs%norb, 0.d0, kernel(1,1), lorbs%norb)
 
-  !!if(iproc==0) write(*,*) 'WARNING: MODIFYING KERNEL'
-  !!do iorb=1,lorbs%norb
-  !!    do jorb=1,lorbs%norb
-  !!        if(jorb==iorb) then
-  !!            kernel(jorb,iorb)=1.d0
-  !!        else
-  !!            kernel(jorb,iorb)=0.d0
-  !!        end if
-  !!    end do
-  !!end do
 
   
   if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
@@ -652,7 +609,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       do iorb=1,lorbs%norb
           ilr=lorbs%inwhichlocreg(iorb)
           locregCenter(:,ilr)=lzd%llr(ilr)%locregCenter
-          !!if(iproc==0) write(*,'(a,i6,3f11.4)') 'ilr, locregCenter(:,ilr)', ilr, locregCenter(:,ilr)
       end do
       locregCenterTemp=locregCenter
 
@@ -728,19 +684,20 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
 
               !write(*,*) 'WARNING: CHECK HERE THE INDICES OF UMAT!!'
               if(nItInnerLoop>0) then                          
-                   kernelold=kernel
-                   do iorb=1,lorbs%norb
-                       do jorb=1,lorbs%norb
-                           tt=0.d0
-                           do korb=1,lorbs%norb
-                               do lorb=1,lorbs%norb
-                                   tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
-                                   !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
-                               end do
-                           end do
-                           kernel(jorb,iorb)=tt
-                       end do
-                   end do
+                   call update_kernel(lorbs%norb, Umat, kernel)
+                   !!kernelold=kernel
+                   !!do iorb=1,lorbs%norb
+                   !!    do jorb=1,lorbs%norb
+                   !!        tt=0.d0
+                   !!        do korb=1,lorbs%norb
+                   !!            do lorb=1,lorbs%norb
+                   !!                tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
+                   !!                !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
+                   !!            end do
+                   !!        end do
+                   !!        kernel(jorb,iorb)=tt
+                   !!    end do
+                   !!end do
                end if
 
               if(variable_locregs) then
@@ -1120,21 +1077,22 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           call check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
           !write(*,*) 'WARNING CHECK INDICES OF UMAT!!'
           if(nItInnerLoop>0) then
-              kernelold=kernel
-              do iorb=1,lorbs%norb
-                  do jorb=1,lorbs%norb
-                      tt=0.d0
-                      do korb=1,lorbs%norb
-                          do lorb=1,lorbs%norb
-                              !tt=tt+kernelold(korb,lorb)*Umat(jorb,korb)*Umat(iorb,lorb)
-                              !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
-                              tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
-                              !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
-                          end do
-                      end do
-                      kernel(jorb,iorb)=tt
-                  end do
-              end do
+              call update_kernel(lorbs%norb, Umat, kernel)
+              !!kernelold=kernel
+              !!do iorb=1,lorbs%norb
+              !!    do jorb=1,lorbs%norb
+              !!        tt=0.d0
+              !!        do korb=1,lorbs%norb
+              !!            do lorb=1,lorbs%norb
+              !!                !tt=tt+kernelold(korb,lorb)*Umat(jorb,korb)*Umat(iorb,lorb)
+              !!                !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
+              !!                tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
+              !!                !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
+              !!            end do
+              !!        end do
+              !!        kernel(jorb,iorb)=tt
+              !!    end do
+              !!end do
           end if
 
 
@@ -6084,3 +6042,44 @@ type(workarr_sumrho):: w
       ! in the subroutine sumrhoForLocalizedBasis2.
       call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
 end subroutine communicate_basis_for_density
+
+
+
+subroutine update_kernel(norb, Umat, kernel)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: norb
+  real(8),dimension(norb,norb),intent(in):: Umat
+  real(8),dimension(norb,norb),intent(inout):: kernel
+  
+  ! Local variables
+  integer:: iorb, jorb, korb, lorb, istat, iall
+  real(8):: tt
+  real(8),dimension(:,:),allocatable:: kernelold
+  character(len=*),parameter:: subname='update_kernel'
+  
+  allocate(kernelold(norb,norb), stat=istat)
+  call memocc(istat, kernelold, 'kernelold', subname)
+  
+  call dcopy(norb**2, kernel(1,1), 1, kernelold(1,1), 1)
+  do iorb=1,norb
+      do jorb=1,norb
+          tt=0.d0
+          do korb=1,norb
+              do lorb=1,norb
+                  tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
+                  !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
+              end do
+          end do
+          kernel(jorb,iorb)=tt
+      end do
+  end do
+  
+  iall=-product(shape(kernelold))*kind(kernelold)
+  deallocate(kernelold, stat=istat)
+  call memocc(istat, iall, 'kernelold', subname)
+
+end subroutine update_kernel
