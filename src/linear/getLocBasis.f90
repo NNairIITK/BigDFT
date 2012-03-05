@@ -666,13 +666,14 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                    madlarge, lphilarge, ovrlp)
 
               if(secondLocreg) then
-                  ! Go to even larger region
+                  ! Go to even larger region and optimize the locreg centers and potentially the shape of the basis functions.
                   call small_to_large_locreg(iproc, nproc, lzdlarge, lzdlarge2, orbslarge, orbslarge2, lphilarge, lphilarge2)
                   call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
                   call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
                        comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
                        newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
               else
+                  ! Optimize the locreg centers and potentially the shape of the basis functions.
                   call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
                   call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                        comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
@@ -682,23 +683,10 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               ! Check whether the new locreg centers are ok.
               call check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)
 
-              !write(*,*) 'WARNING: CHECK HERE THE INDICES OF UMAT!!'
+              ! Update the kernel if required.
               if(nItInnerLoop>0) then                          
-                   call update_kernel(lorbs%norb, Umat, kernel)
-                   !!kernelold=kernel
-                   !!do iorb=1,lorbs%norb
-                   !!    do jorb=1,lorbs%norb
-                   !!        tt=0.d0
-                   !!        do korb=1,lorbs%norb
-                   !!            do lorb=1,lorbs%norb
-                   !!                tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
-                   !!                !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
-                   !!            end do
-                   !!        end do
-                   !!        kernel(jorb,iorb)=tt
-                   !!    end do
-                   !!end do
-               end if
+                  call update_kernel(lorbs%norb, Umat, kernel)
+              end if
 
               if(variable_locregs) then
                   call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
@@ -724,6 +712,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
               ! Update confdatarr...
               call update_confdatarr(lzdlarge, orbslarge, locregCenter, confdatarr)
  
+              ! Update the localization resgion if required.
               if(variable_locregs) then
                   call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                        lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -735,6 +724,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                   locregCenterTemp=locregCenter
               end if
 
+              ! Update the localization regions of the second locregs if required.
               if(secondLocreg) then
                   call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
                        lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -1078,21 +1068,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
           !write(*,*) 'WARNING CHECK INDICES OF UMAT!!'
           if(nItInnerLoop>0) then
               call update_kernel(lorbs%norb, Umat, kernel)
-              !!kernelold=kernel
-              !!do iorb=1,lorbs%norb
-              !!    do jorb=1,lorbs%norb
-              !!        tt=0.d0
-              !!        do korb=1,lorbs%norb
-              !!            do lorb=1,lorbs%norb
-              !!                !tt=tt+kernelold(korb,lorb)*Umat(jorb,korb)*Umat(iorb,lorb)
-              !!                !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
-              !!                tt=tt+kernelold(korb,lorb)*Umat(korb,iorb)*Umat(lorb,jorb)
-              !!                !tt=tt+kernelold(korb,lorb)*Umat(iorb,korb)*Umat(jorb,lorb)
-              !!            end do
-              !!        end do
-              !!        kernel(jorb,iorb)=tt
-              !!    end do
-              !!end do
           end if
 
 
