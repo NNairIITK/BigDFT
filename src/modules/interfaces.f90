@@ -1889,7 +1889,7 @@ module module_interfaces
            denspot,GPU,lphi,trH,&
            infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
            confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
-           locrad)
+           locrad,wfnmd)
         use module_base
         use module_types
 
@@ -1928,6 +1928,7 @@ module module_interfaces
         type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
         type(SIC_data) :: SIC !<parameters for the SIC methods
         real(8),dimension(lzd%nlr),intent(in):: locrad
+        type(wfn_metadata),intent(inout):: wfnmd
       end subroutine getLocalizedBasis
 
 

@@ -135,7 +135,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
            denspot,GPU,lphi,trace,&
           infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,newgradient,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
-          hx,hy,hz,SIC,nItPrecond,factor_enlarge,locrad)
+          hx,hy,hz,SIC,nItPrecond,factor_enlarge,locrad,wfnmd)
 
   end if
 
@@ -380,7 +380,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rx
     denspot,GPU,lphi,trH,&
     infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
     confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
-    locrad)
+    locrad,wfnmd)
 !
 ! Purpose:
 ! ========
@@ -461,6 +461,7 @@ type(orthon_data),intent(in):: orthpar
 type(confpot_data), dimension(lorbs%norbp),intent(inout) :: confdatarr
 type(SIC_data) :: SIC !<parameters for the SIC methods
 real(8),dimension(lzd%nlr),intent(in):: locrad
+type(wfn_metadata),intent(inout):: wfnmd
 
 ! Local variables
 real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
@@ -627,6 +628,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            lzd, lorbs, op, comon, mad, comgp, &
            lphi, lhphi, lhphiold, lphiold)
+      wfnmd%nphi=lorbs%npsidim_orbs
       call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
       call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
