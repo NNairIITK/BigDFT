@@ -632,6 +632,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       end do
   end do
 
+  !!write(*,*) 'ATTENTION DBUG!!!!'
+  !!denspot%rhov=0.d0
 
   ! Post the messages for the communication of the potential.
   !ndimpot = lzd%lzd%glr%d%n1i*lzd%lzd%glr%d%n2i*nscatterarr(iproc,2)
@@ -744,6 +746,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+          !if(lig%orbsig%isorb+jorb==28) write(*,'(a,i8,3l7)') 'ilr, ovrlpx, ovrlpy, ovrlpz', ilr, ovrlpx, ovrlpy, ovrlpz
           if(ovrlpx .and. ovrlpy .and. ovrlpz) then
               doNotCalculate(jlr)=.false.
               lig%lzdig%doHamAppl(jlr)=.true.
@@ -772,6 +775,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                   lig%lzdig,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,lchi,lhchi(1,ii),&
                   ekin_sum,epot_sum,eexctX,eSIC_DC,input%SIC,GPU,&
                   pkernel=denspot%pkernelseq)
+             !!write(333,*) 'debug: following line is commented!'
              call NonLocalHamiltonianApplication(iproc,at,lig%orbsig,&
                   hx,hy,hz,rxyz,&
                   proj,lig%lzdig,nlpspd,lchi,lhchi(1,ii),eproj_sum)
@@ -784,11 +788,28 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 !!                 write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
 !!             endif
 !END DEBUG
+      !!!! DEBUG #####################################
+      !!istat=1
+      !!do iorb=1,lig%orbsig%norbp
+      !!    iiorb=lig%orbsig%isorb+iorb
+      !!    iall=lig%orbsig%inwhichlocreg(iiorb)
+      !!    ierr=lig%lzdig%llr(iall)%wfd%nvctr_c+7*lig%lzdig%llr(iall)%wfd%nvctr_f
+      !!    if(iiorb==28) then
+      !!        write(*,'(a,3i9,l5,2es20.10)') 'grep',ilr, ii, iall, lig%lzdig%doHamAppl(iall), ddot(ierr, lchi(istat), 1, lhchi(istat,ii), 1), ddot(ierr, lchi(istat), 1, lchi(istat), 1)
+      !!    end if
+      !!    istat=istat+ierr
+      !!end do
+      !!!! ###########################################
+
+
           end if
       else
           if(iproc==0) write(*,'(3x,a)', advance='no') 'no Hamiltonian application required... '
       end if
       if(iproc==0) write(*,'(a)') 'done.'
+
+
+
       !!do istat=1,size(lchi)
       !!    write(1500*(iproc+1)+ii,'(2es25.14,i6,l4)') lchi(istat), lhchi(istat,ii), onWhichAtomTemp(1), lig%lzdig%doHamAppl(1)
       !!end do
@@ -3550,6 +3571,13 @@ type(matrixDescriptors):: mad
               !!end if
               call dgemv('n',matmin%mlr(ilr)%norbinlr,matmin%mlr(ilr)%norbinlr,1.d0,&
                    hamextract(1,1,iilr),matmin%norbmax,lcoeff(1,iorb),1,0.d0,lgrad(1,iorb),1)
+              !!if(it==1) then
+              !!  do istat=1,matmin%norbmax
+              !!    do iall=1,matmin%norbmax
+              !!      write(1000+ip%isorb+iorb,'(2i8,es20.10)') istat, iall, hamextract(iall,istat,iilr)
+              !!    end do
+              !!  end do
+              !!end if
           end do
           ilr=onWhichAtom(ip%isorb+1)
 
@@ -3670,6 +3698,9 @@ type(matrixDescriptors):: mad
           do iorb=1,ip%norb_par(iproc)
               ilr=onWhichAtom(ip%isorb+iorb)
               call daxpy(matmin%mlr(ilr)%norbinlr,-alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
+              !!do istat=1,matmin%mlr(ilr)%norbinlr
+              !!    write(100+ip%isorb+iorb,'(i9,2es20.10)') istat, lgrad(istat,iorb), lcoeff(istat,iorb)
+              !!end do
           end do
           !!if (ldiis%isx > 0) then
           !!    ldiis%mis=mod(ldiis%is,ldiis%isx)+1
