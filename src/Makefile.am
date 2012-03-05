@@ -257,6 +257,7 @@ modules_source = modules/base.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
 	modules/vdwcorrection.f90 \
+	modules/yaml_output.f90 \
 	$(CUDA_MODULES) \
 	$(LIBXC_MODULES) \
 	$(PS_MODULES) \
@@ -283,7 +284,8 @@ high_level = cluster.f90 \
 	lanczos.f90 \
 	scfloop_API.f90 \
 	esatto.f90 \
-	tddft.f90
+	tddft.f90 \
+	output.f90
 
 #objects which can be compiled only with module_base
 low_level = \

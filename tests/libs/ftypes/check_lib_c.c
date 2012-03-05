@@ -99,7 +99,7 @@ int main(guint argc, char **argv)
     chdir(argv[1]);
 
   fprintf(stdout, "Test BigDFT_Atoms structure creation from file.\n");
-  atoms = bigdft_atoms_new_from_file("posinp.ascii");
+  atoms = bigdft_atoms_new_from_file("posinp");
   if (!atoms)
     {
       fprintf(stdout, "Problem with your file.\n");

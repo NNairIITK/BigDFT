@@ -4383,14 +4383,14 @@ subroutine position_operators(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,ps
 
 
   !$omp parallel default(none)&
-  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
-  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
-  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
+  !$omp shared(psir,psirx,psiry,psirz,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,ibyyzz_r,nspinor)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata,order)&
+  !$omp private(ispinor,i1,i2,i3,i1st,i1et)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
-  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ttx,tty,ttz,potx,poty,potz)
 
 !!$  !$omp parallel default(private)&
-!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,ibyyzz_r,nspinor)&
 !!$  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)
   !case without bounds
 
@@ -4718,14 +4718,14 @@ subroutine get_cutoff_weight(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psi
 
 
   !$omp parallel default(none)&
-  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
-  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
-  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
+  !$omp shared(psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,ibyyzz_r,nspinor)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata,weight_in,weight_out)&
+  !$omp private(ispinor,i1,i2,i3,i1st,i1et)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
-  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ttx,tty,ttz,cutoff2)
 
 !!$  !$omp parallel default(private)&
-!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,ibyyzz_r,nspinor)&
 !!$  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)
   !case without bounds
 
@@ -5090,14 +5090,14 @@ subroutine r_operator(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,psir,order
 
 
   !$omp parallel default(none)&
-  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
-  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
-  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
+  !$omp shared(psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,ibyyzz_r,nspinor)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata,order)&
+  !$omp private(ispinor,i1,i2,i3,i1st,i1et)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
-  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ttx,tty,ttz,potx,poty,potz)
 
 !!$  !$omp parallel default(private)&
-!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,ibyyzz_r,nspinor)&
 !!$  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)
   !case without bounds
 
@@ -5462,14 +5462,14 @@ END SUBROUTINE r_operator
 !!!!
 !!!!
 !!!!  !$omp parallel default(none)&
-!!!!  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+!!!!  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,ibyyzz_r,nspinor)&
 !!!!  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
-!!!!  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
+!!!!  !$omp private(ispinor,i1,i2,i3,i1st,i1et)&
 !!!!  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
 !!!!  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
 !!!!
 !!!!!!$  !$omp parallel default(private)&
-!!!!!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+!!!!!!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,ibyyzz_r,nspinor)&
 !!!!!!$  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)
 !!!!  !case without bounds
 !!!!

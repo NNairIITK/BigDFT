@@ -177,6 +177,7 @@ subroutine sumrho(iproc,nproc,orbs,Lzd,hxh,hyh,hzh,nscatterarr,&
 subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatterarr,rho_p,rho)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -349,15 +350,22 @@ subroutine communicate_density(iproc,nproc,nspin,hxh,hyh,hzh,Lzd,rhodsc,nscatter
      write(*,'(1x,a,f21.12)')&
           &   'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
      !yaml output
-      write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
-     if(nspin == 4 .and. tt > 0._dp)&
-          &   write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
-          &   (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
+     call yaml_map('Electronic charge',yaml_toa(real(charge,gp)*hxh*hyh*hzh,fmt='(f21.12)'))
+     !write(70,'(1x,a,f21.12,a)')'Electronic charge: ',real(charge,gp)*hxh*hyh*hzh,','
      if (rhodsc%icomm==2) then
-       write(*,'(1x,a,f21.12)') &
-         'Electronic charge changed by rho compression=                  ',&
-          abs(rhotot_dbl-real(charge,gp)*hxh*hyh*hzh)
+        write(*,'(1x,a,f21.12)') &
+             'Electronic charge changed by rho compression=                  ',&
+             abs(rhotot_dbl-real(charge,gp)*hxh*hyh*hzh)
+        call yaml_map('Electronic charge changed by rho compression',&
+             yaml_toa(abs(rhotot_dbl-real(charge,gp)*hxh*hyh*hzh),fmt='(f21.12)'))
      endif
+     if(nspin == 4 .and. tt > 0._dp) then
+        write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
+             (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
+        call yaml_map('Magnetic density orientation',&
+             yaml_toa((/(tmred(ispin,1)/tmred(1,1),ispin=2,nspin)/),fmt='(f10.4)'))
+     end if
+     call yaml_flow_newline()
   end if
 
   i_all=-product(shape(tmred))*kind(tmred)

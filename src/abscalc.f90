@@ -1683,7 +1683,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
           &   '------------------------------------------------------- Input Wavefunctions Creation'
      !yaml_output
      !      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
-     yaml_indent=yaml_indent+2 !list element
+!     yaml_indent=yaml_indent+2 !list element
   end if
   !spin for inputguess orbitals
   if (nspin == 4) then
