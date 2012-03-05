@@ -221,8 +221,8 @@
  |T              transform to global orbitals in the end (T/F)                       
  |1              number of orbitals per process for trace minimization during input g
  |T              mixed mode (without and with derivatives)                           
- |C 4 4.0d-2 2.0d-4 4.5  Atom name, number of basis functions per atom, prefactor for
- |H 1 4.0d-2 2.0d-4 4.5  Atom name, number of basis functions per atom, prefactor for
+ |C 4 4.0d-2 2.0d-4 4.0 5.0  Atom name, number of basis functions per atom, prefactor
+ |H 1 4.0d-2 2.0d-4 4.0 5.0  Atom name, number of basis functions per atom, prefactor
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 5 treat 5 orbitals, |
@@ -231,11 +231,11 @@
  >>>> Partition of the basis functions including the derivatives among the processes.
     | Processes from 0 to 7 treat 19 orbitals. |
  ------------------------------------------------------------------------------------
- Initializing localization regions... done in 3.383E-02s.
- Initializing communications sumrho... done in 1.130E-04s.
- Initializing communications potential... done in 3.481E-05s.
- Initializing communications orthonormalization... done in 9.074E-02s.
- Initializing matrix compression... done in 1.752E-03s.
+ Initializing localization regions... done in 2.998E-02s.
+ Initializing communications sumrho... done in 1.090E-04s.
+ Initializing communications potential... done in 3.195E-05s.
+ Initializing communications orthonormalization... done in 7.924E-02s.
+ Initializing matrix compression... done in 1.712E-03s.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 38 Atomic Input Orbitals
  Processes from 0 to 5 treat 5 inguess orbitals 
@@ -273,12 +273,12 @@ done.
    locreg 17...  Hamiltonian application...done.
    locreg 18...  Hamiltonian application...done.
    locreg 19...  Hamiltonian application...done.
-   locreg 20...  Hamiltonian application...done.
-   locreg 21...  Hamiltonian application...done.
-   locreg 22...  Hamiltonian application...done.
-   locreg 23...  Hamiltonian application...done.
-   locreg 24...  Hamiltonian application...done.
-   locreg 25...  Hamiltonian application...done.
+   locreg 20...    no Hamiltonian application required... done.
+   locreg 21...    no Hamiltonian application required... done.
+   locreg 22...    no Hamiltonian application required... done.
+   locreg 23...    no Hamiltonian application required... done.
+   locreg 24...    no Hamiltonian application required... done.
+   locreg 25...    no Hamiltonian application required... done.
    locreg 26...    no Hamiltonian application required... done.
    locreg 27...    no Hamiltonian application required... done.
    locreg 28...    no Hamiltonian application required... done.
@@ -293,7 +293,7 @@ done.
    locreg 37...    no Hamiltonian application required... done.
    locreg 38...    no Hamiltonian application required... done.
 The minimization is performed using 8 processes.
- the specified memory allows to overlap 70849 iterations with communication
+ the specified memory allows to overlap 71624 iterations with communication
  Calculating Hamiltonian matrix for all atoms. This may take some time.
    Calculating matrix for locreg 1... done.
    Calculating matrix for locreg 2... done.
@@ -340,66 +340,66 @@ The minimization is performed using 8 processes.
  ============================== optimizing coefficients ==============================
  ----------------------------------------------------------------------------- iter=1
 max deviation from unity, position:  2.530159E+00  14  17
- fnrm, trace, mean alpha   2.76E+00   1.6276585805737E+01  5.00E-01
+ fnrm, trace, mean alpha   2.17E+00   1.4889213441000E+01  5.00E-01
  ----------------------------------------------------------------------------- iter=2
-max deviation from unity, position:  1.973107E-01  22  22
- fnrm, trace, mean alpha   9.34E-01   1.5161770250156E+01  5.50E-01
+max deviation from unity, position:  1.740144E-01  16  32
+ fnrm, trace, mean alpha   8.06E-01   1.4270592733560E+01  5.50E-01
  ----------------------------------------------------------------------------- iter=3
-max deviation from unity, position:  3.955155E-02  4  4
- fnrm, trace, mean alpha   3.92E-01   1.5046117409440E+01  6.05E-01
+max deviation from unity, position:  5.399328E-02  11  29
+ fnrm, trace, mean alpha   4.19E-01   1.4160990268847E+01  6.05E-01
  ----------------------------------------------------------------------------- iter=4
-max deviation from unity, position:  1.535359E-02  1  1
- fnrm, trace, mean alpha   1.53E-01   1.5032916932087E+01  6.66E-01
+max deviation from unity, position:  2.287700E-02  7  24
+ fnrm, trace, mean alpha   4.11E-01   1.4030221163829E+01  4.84E-01
  ----------------------------------------------------------------------------- iter=5
-max deviation from unity, position:  8.496342E-03  1  1
- fnrm, trace, mean alpha   5.79E-02   1.5034975504454E+01  7.32E-01
+max deviation from unity, position:  2.783635E-02  29  10
+ fnrm, trace, mean alpha   5.02E-01   1.3861255647675E+01  2.63E-01
  ----------------------------------------------------------------------------- iter=6
-max deviation from unity, position:  4.654940E-03  1  1
- fnrm, trace, mean alpha   2.19E-02   1.5037287924538E+01  8.05E-01
+max deviation from unity, position:  3.709673E-02  29  13
+ fnrm, trace, mean alpha   5.75E-01   1.3719510492996E+01  1.36E-01
  ----------------------------------------------------------------------------- iter=7
-max deviation from unity, position:  2.326485E-03  1  1
- fnrm, trace, mean alpha   1.05E-02   1.5038350098982E+01  8.86E-01
+max deviation from unity, position:  2.351638E-02  1  22
+ fnrm, trace, mean alpha   6.29E-01   1.3617254979045E+01  1.12E-01
  ----------------------------------------------------------------------------- iter=8
-max deviation from unity, position:  1.040655E-03  38  38
- fnrm, trace, mean alpha   5.90E-03   1.5038726545138E+01  8.76E-01
+max deviation from unity, position:  2.454024E-02  1  22
+ fnrm, trace, mean alpha   6.87E-01   1.3503804516022E+01  1.07E-01
  ----------------------------------------------------------------------------- iter=9
-max deviation from unity, position:  5.445863E-04  17  38
- fnrm, trace, mean alpha   5.46E-03   1.5038819885367E+01  8.54E-01
+max deviation from unity, position:  2.691358E-02  33  15
+ fnrm, trace, mean alpha   7.51E-01   1.3370996784554E+01  1.12E-01
  ---------------------------------------------------------------------------- iter=10
-max deviation from unity, position:  5.744853E-04  17  38
- fnrm, trace, mean alpha   5.30E-03   1.5038846468616E+01  8.64E-01
+max deviation from unity, position:  3.199198E-02  15  33
+ fnrm, trace, mean alpha   8.19E-01   1.3210667214602E+01  1.19E-01
  ---------------------------------------------------------------------------- iter=11
-max deviation from unity, position:  5.652495E-04  17  38
- fnrm, trace, mean alpha   6.23E-03   1.5038856883619E+01  8.76E-01
+max deviation from unity, position:  3.699758E-02  33  15
+ fnrm, trace, mean alpha   8.89E-01   1.3017786607590E+01  1.30E-01
  ---------------------------------------------------------------------------- iter=12
-max deviation from unity, position:  5.613707E-04  17  38
- fnrm, trace, mean alpha   7.79E-03   1.5038858998989E+01  9.27E-01
+max deviation from unity, position:  4.183442E-02  33  15
+ fnrm, trace, mean alpha   9.58E-01   1.2786923245496E+01  1.42E-01
  ---------------------------------------------------------------------------- iter=13
-max deviation from unity, position:  5.811191E-04  35  32
- fnrm, trace, mean alpha   9.74E-03   1.5038862153701E+01  1.00E+00
+max deviation from unity, position:  4.647326E-02  15  33
+ fnrm, trace, mean alpha   1.02E+00   1.2515327353184E+01  1.56E-01
  ---------------------------------------------------------------------------- iter=14
-max deviation from unity, position:  6.612928E-04  32  35
- fnrm, trace, mean alpha   1.20E-02   1.5038862076603E+01  1.09E+00
+max deviation from unity, position:  5.048745E-02  15  33
+ fnrm, trace, mean alpha   1.08E+00   1.2203247796977E+01  1.71E-01
  ---------------------------------------------------------------------------- iter=15
-max deviation from unity, position:  7.415479E-04  35  32
- fnrm, trace, mean alpha   1.44E-02   1.5038865338656E+01  1.20E+00
+max deviation from unity, position:  5.346782E-02  33  15
+ fnrm, trace, mean alpha   1.13E+00   1.1852634554900E+01  1.88E-01
  ---------------------------------------------------------------------------- iter=16
-max deviation from unity, position:  8.191094E-04  35  32
- fnrm, trace, mean alpha   1.69E-02   1.5038862922098E+01  1.31E+00
+max deviation from unity, position:  5.476247E-02  33  15
+ fnrm, trace, mean alpha   1.17E+00   1.1464868534455E+01  2.07E-01
  ---------------------------------------------------------------------------- iter=17
-max deviation from unity, position:  9.098373E-04  35  32
- fnrm, trace, mean alpha   1.96E-02   1.5038871201266E+01  1.44E+00
+max deviation from unity, position:  5.756481E-02  33  33
+ fnrm, trace, mean alpha   1.20E+00   1.1036588944517E+01  2.27E-01
  ---------------------------------------------------------------------------- iter=18
-max deviation from unity, position:  9.903788E-04  35  32
- fnrm, trace, mean alpha   2.22E-02   1.5038856055469E+01  1.52E+00
+max deviation from unity, position:  6.265968E-02  19  35
+ fnrm, trace, mean alpha   1.24E+00   1.0555204822321E+01  2.36E-01
  ---------------------------------------------------------------------------- iter=19
-max deviation from unity, position:  1.120516E-03  32  35
- fnrm, trace, mean alpha   2.50E-02   1.5038901422036E+01  9.44E-01
+max deviation from unity, position:  7.353689E-02  35  19
+ fnrm, trace, mean alpha   1.27E+00   1.0029338136346E+01  2.40E-01
  ---------------------------------------------------------------------------- iter=20
-max deviation from unity, position:  1.090333E-03  11  10
- fnrm, trace, mean alpha   2.77E-02   1.5038839671655E+01  4.81E-01
+max deviation from unity, position:  8.843269E-02  35  35
+ fnrm, trace, mean alpha   1.30E+00   9.4596595608551E+00  2.47E-01
  WARNING: not converged within 20 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, trace:   2.7692246E-02  1.5038840E+01
+ Final values for fnrm, trace:   1.3034729E+00  9.4596596E+00
  ====================================================================================
  ------------------------------------------------------------- Input guess generated.
  Posting sends / receives for communicating the potential... done.
@@ -412,23 +412,23 @@ max deviation from unity, position:  1.090333E-03  11  10
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(11)=-4.17284E-01
-   eval(12)=-4.10897E-01
-   eval(13)=-3.89783E-01
-   eval(14)=-3.65630E-01
-   eval(15)=-3.53031E-01
-   eval(16)=-3.43057E-01
-   eval(17)=-3.26398E-01
-   eval(18)=-3.02784E-01
-   eval(19)=-2.69561E-01  <-- last occupied orbital
-   eval(20)= 2.25983E-01  <-- first virtual orbital
-   eval(21)= 2.65638E-01
-   eval(22)= 2.90693E-01
-   eval(23)= 3.14320E-01
-   eval(24)= 3.18044E-01
-   eval(25)= 3.37770E-01
-   eval(26)= 3.41882E-01
-   eval(27)= 3.81355E-01
+   eval(11)=-4.19161E-01
+   eval(12)=-4.12915E-01
+   eval(13)=-3.90068E-01
+   eval(14)=-3.65462E-01
+   eval(15)=-3.41257E-01
+   eval(16)=-3.34919E-01
+   eval(17)=-3.18039E-01
+   eval(18)=-2.85936E-01
+   eval(19)=-2.58640E-01  <-- last occupied orbital
+   eval(20)= 2.57117E-01  <-- first virtual orbital
+   eval(21)= 3.15752E-01
+   eval(22)= 3.46516E-01
+   eval(23)= 3.52127E-01
+   eval(24)= 3.56519E-01
+   eval(25)= 3.92538E-01
+   eval(26)= 4.24493E-01
+   eval(27)= 4.27001E-01
  -------------------------------------------------
  Posting sends / receives for communicating the potential... done.
  ======================== Creation of the basis functions... ========================
@@ -436,22 +436,22 @@ max deviation from unity, position:  1.090333E-03  11  10
  Gathering the potential... done.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace     1  1.4835627E+00  2.1158675E+00    14.4188403281
+ iter, fnrm, fnrmMax, trace     1  1.4519740E+00  1.9263277E+00    14.4496866512
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Hamiltonian application... Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace     2  7.0340783E-01  1.1103954E+00     5.1679972045
+ iter, fnrm, fnrmMax, trace     2  4.7692629E-01  7.0560731E-01     5.0838723913
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   7.0340783E-01  1.1103954E+00   5.1679972
+ Final values for fnrm, fnrmMax, trace:   4.7692629E-01  7.0560731E-01   5.0838724
  ============================= Basis functions created. =============================
  timings:
-   -total time: 4.337E-01
-     - orthonormalization: 4.004E-02= 9.2%
-     - Hamiltonian application: 1.484E-01=34.2%
-     - orthoconstraint: 4.071E-02= 9.4%
-     - preconditioning: 1.822E-01=42.0%
-     - unitary optimization: 1.192E-07= 0.0%
-     - other: 2.233E-02= 5.1%
+   -total time: 3.163E-01
+     - orthonormalization: 2.926E-02= 9.3%
+     - Hamiltonian application: 1.182E-01=37.4%
+     - orthoconstraint: 2.646E-02= 8.4%
+     - preconditioning: 1.286E-01=40.6%
+     - unitary optimization: 0.000E+00= 0.0%
+     - other: 1.385E-02= 4.4%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -459,28 +459,28 @@ max deviation from unity, position:  1.090333E-03  11  10
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(11)=-3.44338E-01
-   eval(12)=-3.35462E-01
-   eval(13)=-3.31910E-01
-   eval(14)=-3.02405E-01
-   eval(15)=-2.89315E-01
-   eval(16)=-2.85638E-01
-   eval(17)=-2.71367E-01
-   eval(18)=-2.57227E-01
-   eval(19)=-2.39441E-01  <-- last occupied orbital
-   eval(20)= 2.05754E-01  <-- first virtual orbital
-   eval(21)= 2.65169E-01
-   eval(22)= 2.95587E-01
-   eval(23)= 3.05058E-01
-   eval(24)= 3.14710E-01
-   eval(25)= 3.36258E-01
-   eval(26)= 3.41903E-01
-   eval(27)= 3.66188E-01
+   eval(11)=-3.77721E-01
+   eval(12)=-3.69380E-01
+   eval(13)=-3.66421E-01
+   eval(14)=-3.27114E-01
+   eval(15)=-3.17655E-01
+   eval(16)=-3.06990E-01
+   eval(17)=-2.80529E-01
+   eval(18)=-2.79291E-01
+   eval(19)=-2.55571E-01  <-- last occupied orbital
+   eval(20)= 2.02615E-01  <-- first virtual orbital
+   eval(21)= 2.51641E-01
+   eval(22)= 2.87111E-01
+   eval(23)= 2.90402E-01
+   eval(24)= 2.97959E-01
+   eval(25)= 3.11952E-01
+   eval(26)= 3.36945E-01
+   eval(27)= 3.44939E-01
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
    waiting for communication to complete... done.
-   Calculation finished. TOTAL CHARGE =   3.799999685618E+01
+   Calculation finished. TOTAL CHARGE =   3.799999714342E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   143   97   93   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -488,7 +488,7 @@ max deviation from unity, position:  1.090333E-03  11  10
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.10E-06   -4.65355106672056991E+01   -4.6536E+01
+   it, Delta DENS, energy, energyDiff   1   5.13E-06   -4.73167759057591866E+01   -4.7317E+01
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -497,28 +497,28 @@ max deviation from unity, position:  1.090333E-03  11  10
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(11)=-1.86142E-01
-   eval(12)=-1.52691E-01
-   eval(13)=-1.50185E-01
-   eval(14)=-1.38386E-01
-   eval(15)=-1.28213E-01
-   eval(16)=-1.15347E-01
-   eval(17)=-1.13124E-01
-   eval(18)=-8.83127E-02
-   eval(19)=-6.68716E-02  <-- last occupied orbital
-   eval(20)= 4.48054E-01  <-- first virtual orbital
-   eval(21)= 4.56356E-01
-   eval(22)= 4.78820E-01
-   eval(23)= 5.00807E-01
-   eval(24)= 5.16860E-01
-   eval(25)= 5.32778E-01
-   eval(26)= 5.58948E-01
-   eval(27)= 5.68484E-01
+   eval(11)=-2.16577E-01
+   eval(12)=-1.85753E-01
+   eval(13)=-1.78781E-01
+   eval(14)=-1.69054E-01
+   eval(15)=-1.49773E-01
+   eval(16)=-1.41346E-01
+   eval(17)=-1.30205E-01
+   eval(18)=-1.00941E-01
+   eval(19)=-9.15758E-02  <-- last occupied orbital
+   eval(20)= 4.18187E-01  <-- first virtual orbital
+   eval(21)= 4.36907E-01
+   eval(22)= 4.43093E-01
+   eval(23)= 4.82597E-01
+   eval(24)= 4.87805E-01
+   eval(25)= 5.19369E-01
+   eval(26)= 5.48235E-01
+   eval(27)= 5.53846E-01
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
    waiting for communication to complete... done.
-   Calculation finished. TOTAL CHARGE =   3.799999703796E+01
+   Calculation finished. TOTAL CHARGE =   3.799999730299E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   143   97   93   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -526,7 +526,7 @@ max deviation from unity, position:  1.090333E-03  11  10
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.83E-06   -3.95398049277664825E+01    6.9957E+00
+   it, Delta DENS, energy, energyDiff   2   1.56E-06   -4.03868124140638258E+01    6.9300E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -535,28 +535,28 @@ max deviation from unity, position:  1.090333E-03  11  10
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(11)=-1.85263E-01
-   eval(12)=-1.54046E-01
-   eval(13)=-1.50085E-01
-   eval(14)=-1.47583E-01
-   eval(15)=-1.24423E-01
-   eval(16)=-1.18734E-01
-   eval(17)=-1.09925E-01
-   eval(18)=-9.25877E-02
-   eval(19)=-7.92812E-02  <-- last occupied orbital
-   eval(20)= 4.40614E-01  <-- first virtual orbital
-   eval(21)= 4.54763E-01
-   eval(22)= 4.78149E-01
-   eval(23)= 4.99377E-01
-   eval(24)= 5.15089E-01
-   eval(25)= 5.22992E-01
-   eval(26)= 5.50242E-01
-   eval(27)= 5.62828E-01
+   eval(11)=-2.14329E-01
+   eval(12)=-1.86172E-01
+   eval(13)=-1.75022E-01
+   eval(14)=-1.73231E-01
+   eval(15)=-1.45074E-01
+   eval(16)=-1.40749E-01
+   eval(17)=-1.26321E-01
+   eval(18)=-1.03421E-01
+   eval(19)=-9.74530E-02  <-- last occupied orbital
+   eval(20)= 4.19309E-01  <-- first virtual orbital
+   eval(21)= 4.34142E-01
+   eval(22)= 4.45170E-01
+   eval(23)= 4.85077E-01
+   eval(24)= 4.88844E-01
+   eval(25)= 5.14089E-01
+   eval(26)= 5.47914E-01
+   eval(27)= 5.49888E-01
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
    waiting for communication to complete... done.
-   Calculation finished. TOTAL CHARGE =   3.799999702060E+01
+   Calculation finished. TOTAL CHARGE =   3.799999729283E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   143   97   93   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -564,26 +564,28 @@ max deviation from unity, position:  1.090333E-03  11  10
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   7.51E-07   -4.00145301642102424E+01   -4.7473E-01
+   it, Delta DENS, energy, energyDiff   3   6.57E-07   -4.07042750347482638E+01   -3.1746E-01
  ############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   1   2.94E-06   -4.00145301642102424E+01   -4.0015E+01
+   itout, Delta DENSOUT, energy, energyDiff   1   2.79E-06   -4.07042750347482638E+01   -4.0704E+01
  ======================== Creation of the basis functions... ========================
+ creating new locregs...
+ creating new locregs...
  creating new locregs...
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Posting sends / receives for communicating the potential... done.
  Gathering the potential... done.
  Gathering the potential... done.
  Hamiltonian application... Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace     1  3.6677390E-01  4.2450581E-01    -4.4441095840
+ iter, fnrm, fnrmMax, trace     1  2.8973878E-01  3.7223865E-01    -4.7564934347
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Posting sends / receives for communicating the potential... done.
  Gathering the potential... done.
  Gathering the potential... done.
  Hamiltonian application... Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace     2  1.0706943E-01  1.4555075E-01    -5.5452314800
+ iter, fnrm, fnrmMax, trace     2  8.5831324E-02  1.0999081E-01    -5.5976903535
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.0706943E-01  1.4555075E-01  -5.5452315
+ Final values for fnrm, fnrmMax, trace:   8.5831324E-02  1.0999081E-01  -5.5976904
  ============================= Basis functions created. =============================
  the new centers of the localization regions:
          1      7.528710293714E+00      8.938301618448E+00      7.420795815613E+00
@@ -625,17 +627,15 @@ max deviation from unity, position:  1.090333E-03  11  10
         37      1.941069541040E+01      5.796362126083E+00      9.187408758943E+00
         38      2.111682113448E+01      8.052220331170E+00      7.378999380878E+00
  timings:
-   -total time: 5.560E-01
-     - orthonormalization: 4.562E-02= 8.2%
-     - Hamiltonian application: 1.871E-01=33.7%
-     - orthoconstraint: 6.068E-02=10.9%
-     - preconditioning: 1.816E-01=32.7%
-     - unitary optimization: 1.192E-07= 0.0%
-     - other: 8.101E-02=14.6%
+   -total time: 4.746E-01
+     - orthonormalization: 2.942E-02= 6.2%
+     - Hamiltonian application: 1.512E-01=31.9%
+     - orthoconstraint: 3.907E-02= 8.2%
+     - preconditioning: 1.280E-01=27.0%
+     - unitary optimization: 0.000E+00= 0.0%
+     - other: 1.268E-01=26.7%
  Posting sends / receives for communicating the potential... done.
- calculating derivative basis functions... statistics: - 24 point to point communications, of which 0 could be overlapped with computation.
-             - 128 copies on the same processor.
-done.
+ calculating derivative basis functions...done.
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -645,28 +645,28 @@ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(11)=-2.32325E-01
-   eval(12)=-2.09525E-01
-   eval(13)=-2.02970E-01
-   eval(14)=-1.80161E-01
-   eval(15)=-1.66602E-01
-   eval(16)=-1.50226E-01
-   eval(17)=-1.49678E-01
-   eval(18)=-1.42829E-01
-   eval(19)=-1.29491E-01  <-- last occupied orbital
-   eval(20)= 3.95093E-01  <-- first virtual orbital
-   eval(21)= 4.12510E-01
-   eval(22)= 4.31552E-01
-   eval(23)= 4.56658E-01
-   eval(24)= 4.57325E-01
-   eval(25)= 4.79683E-01
-   eval(26)= 4.90909E-01
-   eval(27)= 4.96087E-01
+   eval(11)=-2.69937E-01
+   eval(12)=-2.28979E-01
+   eval(13)=-2.15447E-01
+   eval(14)=-2.11626E-01
+   eval(15)=-1.85529E-01
+   eval(16)=-1.77199E-01
+   eval(17)=-1.62314E-01
+   eval(18)=-1.55844E-01
+   eval(19)=-1.35219E-01  <-- last occupied orbital
+   eval(20)= 3.91844E-01  <-- first virtual orbital
+   eval(21)= 3.95645E-01
+   eval(22)= 4.10341E-01
+   eval(23)= 4.38969E-01
+   eval(24)= 4.47967E-01
+   eval(25)= 4.76004E-01
+   eval(26)= 4.82330E-01
+   eval(27)= 4.93169E-01
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
    waiting for communication to complete... done.
-   Calculation finished. TOTAL CHARGE =   3.799999397935E+01
+   Calculation finished. TOTAL CHARGE =   3.799998507137E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   143   97   93   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -675,7 +675,7 @@ done.
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.93E-06   -4.04641445061502907E+01   -4.4961E-01
+   it, Delta DENS, energy, energyDiff   1   1.88E-06   -4.07838067671999340E+01   -7.9532E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -685,28 +685,28 @@ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(11)=-2.66073E-01
-   eval(12)=-2.52332E-01
-   eval(13)=-2.40739E-01
-   eval(14)=-2.13847E-01
-   eval(15)=-2.05261E-01
-   eval(16)=-1.92999E-01
-   eval(17)=-1.83304E-01
-   eval(18)=-1.78993E-01
-   eval(19)=-1.75702E-01  <-- last occupied orbital
-   eval(20)= 3.50302E-01  <-- first virtual orbital
-   eval(21)= 3.77973E-01
-   eval(22)= 3.97477E-01
-   eval(23)= 4.19478E-01
-   eval(24)= 4.22523E-01
-   eval(25)= 4.27905E-01
-   eval(26)= 4.43726E-01
-   eval(27)= 4.53442E-01
+   eval(11)=-3.00419E-01
+   eval(12)=-2.63285E-01
+   eval(13)=-2.54379E-01
+   eval(14)=-2.40896E-01
+   eval(15)=-2.18213E-01
+   eval(16)=-2.05014E-01
+   eval(17)=-1.93231E-01
+   eval(18)=-1.89278E-01
+   eval(19)=-1.78242E-01  <-- last occupied orbital
+   eval(20)= 3.58274E-01  <-- first virtual orbital
+   eval(21)= 3.64027E-01
+   eval(22)= 3.81846E-01
+   eval(23)= 4.08803E-01
+   eval(24)= 4.15748E-01
+   eval(25)= 4.30828E-01
+   eval(26)= 4.48512E-01
+   eval(27)= 4.50539E-01
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
    waiting for communication to complete... done.
-   Calculation finished. TOTAL CHARGE =   3.799999400138E+01
+   Calculation finished. TOTAL CHARGE =   3.799998504073E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   143   97   93   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -715,7 +715,7 @@ done.
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   9.42E-07   -4.17291928396822698E+01   -1.2650E+00
+   it, Delta DENS, energy, energyDiff   2   8.74E-07   -4.19286564579599883E+01   -1.1448E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Gathering the potential... done.
@@ -725,28 +725,28 @@ done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(11)=-2.72332E-01
-   eval(12)=-2.57766E-01
-   eval(13)=-2.46873E-01
-   eval(14)=-2.20603E-01
-   eval(15)=-2.11612E-01
-   eval(16)=-1.98252E-01
-   eval(17)=-1.90231E-01
-   eval(18)=-1.83783E-01
-   eval(19)=-1.82250E-01  <-- last occupied orbital
-   eval(20)= 3.45693E-01  <-- first virtual orbital
-   eval(21)= 3.72064E-01
-   eval(22)= 3.91189E-01
-   eval(23)= 4.13015E-01
-   eval(24)= 4.16151E-01
-   eval(25)= 4.22867E-01
-   eval(26)= 4.37998E-01
-   eval(27)= 4.47274E-01
+   eval(11)=-3.04943E-01
+   eval(12)=-2.67487E-01
+   eval(13)=-2.57991E-01
+   eval(14)=-2.45612E-01
+   eval(15)=-2.22902E-01
+   eval(16)=-2.10039E-01
+   eval(17)=-1.97262E-01
+   eval(18)=-1.94201E-01
+   eval(19)=-1.81825E-01  <-- last occupied orbital
+   eval(20)= 3.54727E-01  <-- first virtual orbital
+   eval(21)= 3.59545E-01
+   eval(22)= 3.77269E-01
+   eval(23)= 4.04098E-01
+   eval(24)= 4.10692E-01
+   eval(25)= 4.26492E-01
+   eval(26)= 4.44094E-01
+   eval(27)= 4.45856E-01
  -------------------------------------------------
  Calculating charge density...
    calculating the density kernel... done.
    waiting for communication to complete... done.
-   Calculation finished. TOTAL CHARGE =   3.799999398809E+01
+   Calculation finished. TOTAL CHARGE =   3.799998505664E+01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   143   97   93   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -755,21 +755,21 @@ done.
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.57E-07   -4.17958433286624995E+01   -6.6650E-02
+   it, Delta DENS, energy, energyDiff   3   4.25E-07   -4.19806855424889420E+01   -5.2029E-02
  ############################################################################################
-   itout, Delta DENSOUT, energy, energyDiff   2   1.62E-06   -4.17958433286624995E+01   -1.7813E+00
+   itout, Delta DENSOUT, energy, energyDiff   2   1.55E-06   -4.19806855424889420E+01   -1.2764E+00
  Posting sends / receives for the calculation of the charge density... done.
  Calculating charge density...
    calculating the density kernel... done.
    waiting for communication to complete... done.
-   Calculation finished. TOTAL CHARGE =   3.799999398809E+01
+   Calculation finished. TOTAL CHARGE =   3.799998505664E+01
  ------------------------------------- Building linear combinations... done.
  ================================================
- total time for linear scaling version: 2.274E+01s
+ total time for linear scaling version: 1.830E+01s
    of which:
-             - initialization: 1.553E-01s ( 0.7%)
-             - input guess: 3.528E+00s (15.5%)
-             - self consistency cycle: 1.511E+01s (66.5%)
+             - initialization: 1.320E-01s ( 0.7%)
+             - input guess: 2.575E+00s (14.1%)
+             - self consistency cycle: 1.238E+01s (67.7%)
              - forces: 0.000E+00s ( 0.0%)
  ================================================
  ---------------------------------------------------------- Gaussian Basis Projection
@@ -780,39 +780,39 @@ done.
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:   143   97   93   proc    8 ... done.
  ------------------------------------------------------------- Electric Dipole Moment
-  |P| =   4.663862E-02 (AU)       (Px,Py,Pz)=   -3.4145E-02  -5.0271E-03  -3.1369E-02
-  |P| =   1.185435E-01 (Debye)    (Px,Py,Pz)=   -8.6788E-02  -1.2778E-02  -7.9732E-02
+  |P| =   1.552098E-01 (AU)       (Px,Py,Pz)=   -1.1812E-01  -9.2707E-02   3.9292E-02
+  |P| =   3.945039E-01 (Debye)    (Px,Py,Pz)=   -3.0022E-01  -2.3564E-01   9.9870E-02
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   6.07622386E-02
- average noise along y direction:  -1.79780994E-02
- average noise along z direction:   4.90690136E-03
- total average noise            :   6.35557974E-02
- clean forces norm (Ha/Bohr): maxval=  4.460234829191E-02  fnrm2=  2.017469652825E-02
- raw forces:                  maxval=  5.780879609451E-02  fnrm2=  2.430782086957E-02
- CPU time/ELAPSED time for root process     0        23.75        23.71
+ average noise along x direction:   2.28201921E-01
+ average noise along y direction:  -2.34803966E-02
+ average noise along z direction:  -1.10688971E-02
+ total average noise            :   2.29673608E-01
+ clean forces norm (Ha/Bohr): maxval=  1.274619883398E-01  fnrm2=  1.111794634224E-01
+ raw forces:                  maxval=  1.790729496486E-01  fnrm2=  1.640935726887E-01
+ CPU time/ELAPSED time for root process     0        19.32        19.28
  Final values of the Forces for each atom
-     1      C -8.15311E-03  2.46557E-03  2.44101E-03
-     2      C  2.56981E-02 -1.91819E-02  1.23007E-03
-     3      C  3.00399E-02  2.62428E-02  3.80242E-03
-     4      C  3.20916E-02 -2.92094E-02 -6.19498E-04
-     5      C  4.40879E-02  5.81219E-03  3.44147E-03
-     6      C  2.46629E-02 -1.56090E-02  2.30268E-03
-     7      H -1.53659E-02 -1.75184E-02  2.54059E-02
-     8      H -1.53153E-02 -1.22704E-02 -2.53619E-02
-     9      H  1.11874E-02  2.11193E-02 -5.92634E-04
-    10      H -5.02771E-03  1.42660E-02  1.69072E-02
-    11      H -5.76571E-03  1.32672E-02 -1.97712E-02
-    12      H -1.26925E-02 -6.99653E-03 -2.55798E-02
-    13      H -1.29619E-02 -8.90962E-03  2.54833E-02
-    14      H -7.33107E-03  1.09321E-02  1.73576E-02
-    15      H -6.85016E-03  1.66096E-02 -2.22738E-02
-    16      H -1.27002E-02 -1.26724E-02 -2.53784E-02
-    17      H -8.25399E-03 -8.84130E-03  2.35231E-02
-    18      H -8.21797E-03  2.00186E-02  2.42659E-02
-    19      H -9.43521E-03  1.59450E-02 -2.97009E-02
-    20      H -3.96971E-02 -1.54695E-02  3.11755E-03
+     1      C  1.24612E-02 -2.28198E-02  4.61508E-03
+     2      C  9.85007E-02 -5.02070E-02 -1.83954E-03
+     3      C  5.38574E-02  4.25957E-02 -1.38531E-02
+     4      C  1.25886E-01 -1.99746E-02  6.17985E-04
+     5      C  7.29805E-02  4.06181E-02 -1.57426E-03
+     6      C  8.75131E-02 -9.23323E-02 -6.10789E-04
+     7      H -5.18115E-02 -2.88435E-02  5.08154E-02
+     8      H -5.09526E-02 -2.92942E-02 -4.81366E-02
+     9      H -2.24644E-03  4.76601E-02  5.85821E-04
+    10      H -1.93674E-02  3.66297E-02  5.64944E-02
+    11      H -2.04173E-02  3.01803E-02 -5.54475E-02
+    12      H -4.00368E-02 -5.34429E-03 -2.65311E-02
+    13      H -3.86109E-02 -1.11643E-03  2.81074E-02
+    14      H -2.18994E-02  3.21339E-02  5.89216E-02
+    15      H -1.93203E-02  3.30271E-02 -5.77841E-02
+    16      H -3.52854E-02 -1.06651E-02 -2.95971E-02
+    17      H -3.42863E-02 -8.32734E-03  3.06069E-02
+    18      H -1.72186E-02  2.40173E-02  3.73919E-02
+    19      H -2.41070E-02  1.66367E-02 -3.96049E-02
+    20      H -7.56387E-02 -3.45745E-02  6.82238E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 87020 allocations and 87020 deallocations, remaining memory(B): 0
- memory occupation peak: 142 MB
+ 89213 allocations and 89213 deallocations, remaining memory(B): 0
+ memory occupation peak: 120 MB
  for the array  work in the routine overlapPowerMinusOneHalf
