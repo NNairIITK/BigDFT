@@ -376,7 +376,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
        denspot%V_ext,denspot%pkernel)
 
   !calculate effective ionic potential, including counter ions if any.
-  call createEffectiveIonicPotential(iproc,nproc,in,atoms,rxyz,shift,Lzd%Glr,&
+  call createEffectiveIonicPotential(iproc,nproc, (iproc == 0), in,atoms,rxyz,shift,Lzd%Glr,&
        hxh,hyh,hzh,&
        denspot%dpcom,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
 

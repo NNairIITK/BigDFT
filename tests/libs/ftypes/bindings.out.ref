@@ -46,11 +46,7 @@ Test BigDFT_LocalFields creation.
  Calculation of ionic potential started.
  Calculation of ionic potential finished.
  Calculation of input guess started.
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -8.000000040007   0.000E+00
- PSolver, surfaces BC, dimensions:    84   83  140   proc    1 ... done.
  ------------------------------------------------------- Input Wavefunctions Creation
-   262.59261678393739     
  Generating 8 Atomic Input Orbitals
  Calculating AIO wavefunctions: 
  Generation of input wavefunction data for atom     Si: 
@@ -72,7 +68,7 @@ Test BigDFT_LocalFields creation.
  evale(4)= -2.76718255360796E-01 <- Last InputGuess eval, H-L IG gap:  14.5579 eV
  evale(5)=  2.58274958796652E-01 <- First virtual eval
  evale(6)=  2.59158927194188E-01 <-
- evale(7)=  2.64763436928128E-01 <-
+ evale(7)=  2.64763436928129E-01 <-
  evale(8)=  2.83685190892612E-01 <-
  Building orthogonal Wavefunctions... done.
  Calculation of input guess finished.

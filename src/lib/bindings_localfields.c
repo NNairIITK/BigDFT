@@ -137,13 +137,14 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
                                                    guint iproc, guint nproc)
 {
   double hh[3];
+  int verb = 0;
   
   hh[0] = denspot->glr->h[0] * 0.5;
   hh[1] = denspot->glr->h[1] * 0.5;
   hh[2] = denspot->glr->h[2] * 0.5;
 
   FC_FUNC(createeffectiveionicpotential, CREATEEFFECTIVEIONICPOTENTIAL)
-    (&iproc, &nproc, in->data, denspot->glr->atoms->data, denspot->glr->atoms->rxyz.data,
+    (&iproc, &nproc, &verb, in->data, denspot->glr->atoms->data, denspot->glr->atoms->rxyz.data,
      denspot->glr->atoms->shift, denspot->glr->data, hh, hh + 1, hh + 2,
      denspot->dpcom, denspot->pkernel, denspot->v_ext, in->elecfield,
      &denspot->psoffset);
