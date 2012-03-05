@@ -20,5 +20,5 @@ F                      plot basis functions: true or false
 T                      transform to global orbitals in the end (T/F)
 1                      number of orbitals per process for trace minimization during input guess.
 F                      mixed mode (without and with derivatives)
-C 4 5.0d-2 3.0d-4 6.0      number of basis functions per atom, prefactor for confinement potential, localization radius
-H 1 5.0d-2 3.0d-4 6.0      number of basis functions per atom, prefactor for confinement potential, localization radius
+C 4 5.0d-2 3.0d-4 6.0 6.0     number of basis functions per atom, prefactor for confinement potential, localization radius
+H 1 5.0d-2 3.0d-4 6.0 6.0     number of basis functions per atom, prefactor for confinement potential, localization radius

@@ -66,6 +66,7 @@ call memocc(istat, atomNames, 'atomNames', subname)
 !call readLinearParameters(iproc, nproc, input%file_lin, lin, at, atomNames)
 call lin_input_variables_new(iproc,trim(input%file_lin),input,at)
 
+
 allocate(norbsPerAtom(at%nat), stat=istat)
 call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 
@@ -221,6 +222,14 @@ call initLocregs(iproc, nproc, lin%lzd%nlr, locregCenter, hx, hy, hz, lin%lzd, l
 !!lin%locrad=3.d0*lin%locrad
 !!call initLocregs(iproc, nproc, at%nat, rxyz, hx, hy, hz, lin%lzdlarge, lin%orbslarge, Glr, lin%locrad, lin%locregShape)
 !!lin%locrad=lin%locrad/3.d0
+
+
+allocate(lin%locrad_lowaccuracy(lin%lzd%nlr), stat=istat)
+call memocc(istat, lin%locrad_lowaccuracy, 'lin%locrad_lowaccuracy', subname)
+allocate(lin%locrad_highaccuracy(lin%lzd%nlr), stat=istat)
+call memocc(istat, lin%locrad_highaccuracy, 'lin%locrad_highaccuracy', subname)
+call dcopy(lin%lzd%nlr, input%lin%locrad_lowaccuracy(1), 1 , lin%locrad_lowaccuracy(1), 1)
+call dcopy(lin%lzd%nlr, input%lin%locrad_highaccuracy(1), 1 , lin%locrad_highaccuracy(1), 1)
 
 
 ! for onwhichatom
@@ -1778,6 +1787,21 @@ subroutine deallocateBasicArraysInput(at, lin)
     call memocc(i_stat,i_all,'lin%locrad',subname)
     nullify(lin%locrad)
   end if 
+
+  if(associated(lin%locrad_lowaccuracy)) then
+    i_all = -product(shape(lin%locrad_lowaccuracy))*kind(lin%locrad_lowaccuracy)
+    deallocate(lin%locrad_lowaccuracy,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%locrad_lowaccuracy',subname)
+    nullify(lin%locrad_lowaccuracy)
+  end if 
+
+  if(associated(lin%locrad_highaccuracy)) then
+    i_all = -product(shape(lin%locrad_highaccuracy))*kind(lin%locrad_highaccuracy)
+    deallocate(lin%locrad_highaccuracy,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%locrad_highaccuracy',subname)
+    nullify(lin%locrad_highaccuracy)
+  end if 
+
     if(associated(at%rloc)) then
 !    print *,'at%rloc',associated(at%rloc)
     i_all = -product(shape(at%rloc))*kind(at%rloc)

@@ -1888,7 +1888,8 @@ module module_interfaces
       subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
            denspot,GPU,lphi,trH,&
            infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
-           confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge)
+           confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
+           locrad)
         use module_base
         use module_types
 
@@ -1926,6 +1927,7 @@ module module_interfaces
         type(orthon_data),intent(in):: orthpar
         type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
         type(SIC_data) :: SIC !<parameters for the SIC methods
+        real(8),dimension(lzd%nlr),intent(in):: locrad
       end subroutine getLocalizedBasis
 
 
@@ -2104,7 +2106,7 @@ module module_interfaces
          ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
          methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
          useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
-         hx,hy,hz,SIC,factor_enlarge)
+         hx,hy,hz,SIC,factor_enlarge,locrad)
       use module_base
       use module_types
       implicit none
@@ -2145,6 +2147,7 @@ module module_interfaces
       !type(p2pCommsRepartition),intent(inout):: comrp
       type(p2pComms),intent(inout):: comrp
       type(SIC_data),intent(in):: SIC
+      real(8),dimension(lzd%nlr),intent(in):: locrad
     end subroutine getLinearPsi
 
 

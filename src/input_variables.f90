@@ -755,12 +755,14 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   logical :: found
   character(len=20):: atomname
   integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
-  real(gp):: ppl, pph, lt
-  real(gp),dimension(atoms%ntypes) :: locradType
+  real(gp):: ppl, pph, lrl, lrh
+  real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
 
   ! Begin by nullifying all the pointers
   nullify(in%lin%potentialPrefac)
   nullify(in%lin%locrad)
+  nullify(in%lin%locrad_lowaccuracy)
+  nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%norbsPerType)
   nullify(atoms%rloc)
 
@@ -896,7 +898,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
       call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
       call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
       call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-      call input_var(lt,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+      call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
       if(ios/=0) then
           ! The parameters were not specified for all atom types.
           if(iproc==0) then
@@ -918,7 +921,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
               in%lin%norbsPerType(jtype)=npt
               in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
               in%lin%potentialPrefac_highaccuracy(jtype)=pph
-              locradType(jtype)=lt
+              locradType(jtype)=lrl
+              locradType_lowaccur(jtype)=lrl
+              locradType_highaccur(jtype)=lrh
               atoms%rloc(jtype,:)=locradType(jtype)
           end if
       end do
@@ -937,6 +942,10 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   end do
   allocate(in%lin%locrad(nlr),stat=istat)
   call memocc(istat,in%lin%locrad,'in%lin%locrad',subname)
+  allocate(in%lin%locrad_lowaccuracy(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad_lowaccuracy,'in%lin%locrad_lowaccuracy',subname)
+  allocate(in%lin%locrad_highaccuracy(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad_highaccuracy,'in%lin%locrad_highaccuracy',subname)
 
   
   ! Assign the localization radius to each atom.
@@ -946,6 +955,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
       do iorb=1,in%lin%norbsPerType(itype)
           iiorb=iiorb+1
           in%lin%locrad(iiorb)=locradType(itype)
+          in%lin%locrad_lowaccuracy(iiorb)=locradType_lowaccur(itype)
+          in%lin%locrad_highaccuracy(iiorb)=locradType_highaccur(itype)
       end do
   end do
   

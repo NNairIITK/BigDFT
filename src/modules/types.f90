@@ -124,7 +124,7 @@ module module_types
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
     real(8):: lowaccuray_converged, convCritMix, factor_enlarge
-    real(8),dimension(:),pointer:: locrad
+    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, mixedmode
@@ -748,7 +748,8 @@ end type workarrays_quartic_convolutions
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy, convCritMix
     real(8):: lowaccuray_converged
-    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold
+    real(8),dimension(:),pointer:: potentialPrefac, locrad, locrad_lowaccuracy, locrad_highaccuracy
+    real(8),dimension(:),pointer:: lphiRestart, lphiold
     real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms

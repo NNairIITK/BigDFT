@@ -5,7 +5,7 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
     methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
     useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,factor_enlarge)
+    hx,hy,hz,SIC,factor_enlarge,locrad)
 !
 ! Purpose:
 ! ========
@@ -94,10 +94,11 @@ type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
 real(8),dimension(:),pointer,intent(inout)::lphiRestart
 type(p2pComms),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
+real(8),dimension(lzd%nlr),intent(in):: locrad
 
 ! Local variables 
 integer:: istat, iall, ilr, istr, iorb, jorb, korb, tag, norbu, norbd, nspin, npsidim, norb, nlr
-real(8),dimension(:),allocatable:: eval, lhphi, locrad
+real(8),dimension(:),allocatable:: eval, lhphi
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, overlapmatrix, locregCenter
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time,eSIC_DC
@@ -133,7 +134,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
            denspot,GPU,lphi,trace,&
           infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,newgradient,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
-          hx,hy,hz,SIC,nItPrecond,factor_enlarge)
+          hx,hy,hz,SIC,nItPrecond,factor_enlarge,locrad)
 
   end if
 
@@ -377,7 +378,8 @@ end subroutine getLinearPsi
 subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
     denspot,GPU,lphi,trH,&
     infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
-    confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge)
+    confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
+    locrad)
 !
 ! Purpose:
 ! ========
@@ -457,6 +459,7 @@ logical,intent(in):: newgradient
 type(orthon_data),intent(in):: orthpar
 type(confpot_data), dimension(lorbs%norbp),intent(inout) :: confdatarr
 type(SIC_data) :: SIC !<parameters for the SIC methods
+real(8),dimension(lzd%nlr),intent(in):: locrad
 
 ! Local variables
 real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum,eval_zero,t1tot,eSIC_DC
@@ -476,7 +479,7 @@ logical:: withConfinement, resetDIIS, immediateSwitchToSD, variable_locregs
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(5):: time
 character(len=3):: orbname, comment
-real(8),dimension(:),allocatable:: lvphiovrlp, locrad, locrad_tmp
+real(8),dimension(:),allocatable:: lvphiovrlp, locrad_tmp
 real(8),dimension(:),pointer:: phiWork
 real(8),dimension(:),pointer:: lphilarge, lhphilarge, lhphilargeold, lphilargeold, lhphi, lhphiold, lphiold
 real(8),dimension(:),pointer:: lphilarge2, lhphilarge2, lhphilarge2old, lphilarge2old
@@ -575,8 +578,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   call memocc(istat, kernelold, 'kernelold', subname)
   allocate(locregCenter(3,lzd%nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
-  allocate(locrad(lzd%nlr), stat=istat)
-  call memocc(istat, locrad, 'locrad', subname)
   allocate(locrad_tmp(lzd%nlr), stat=istat)
   call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
   allocate(inwhichlocreg_reference(lorbs%norb), stat=istat)
@@ -590,7 +591,8 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   trHold=1.d100
  
   do ilr=1,lzd%nlr
-      locrad(ilr)=lzd%llr(ilr)%locrad
+      !locrad(ilr)=lzd%llr(ilr)%locrad
+      !locrad(ilr)=13.d0
   end do
 
 
@@ -612,11 +614,39 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
       end do
       locregCenterTemp=locregCenter
 
+      ! Go from the small locregs to the new larger locregs. Use lzdlarge etc as temporary variables.
+      call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
+           locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+           lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+           lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+      call small_to_large_locreg(iproc, nproc, lzd, lzdlarge, lorbs, orbslarge, lphi, lphilarge)
+      call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
+           lphi, lhphi, lhphiold, lphiold)
+      call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
+           locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+           lzd, lorbs, op, comon, mad, comgp, &
+           lphi, lhphi, lhphiold, lphiold)
+      call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
+      call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
+           lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+
+      if(.not.variable_locregs) call allocateCommunicationsBuffersPotential(comgp, subname)
+
+
       locrad_tmp=factor*locrad
       call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, lorbs, lzd%glr, locregCenter, &
            locrad_tmp, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
            lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
+
+      !!! Create the new large locregs
+      !!call destroy_new_locregs(lzd, lorbs, op, comon, mad, comgp, &
+      !!     lphi, lhphi, lhphiold, lphiold)
+      !!call create_new_locregs(iproc, nproc, lzd%nlr, hx, hy, hz, orbslarge, lzdlarge%glr, locregCenter, &
+      !!     locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
+      !!     lzd, lorbs, op, comon, mad, comgp, &
+      !!     lphi, lhphi, lhphiold, lphiold)
+
 
       if(secondLocreg) then
           locrad_tmp=factor2*locrad
@@ -1177,9 +1207,6 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
 
-  iall=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad, stat=istat)
-  call memocc(istat, iall, 'locrad', subname)
   iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
   deallocate(locrad_tmp, stat=istat)
   call memocc(istat, iall, 'locrad_tmp', subname)

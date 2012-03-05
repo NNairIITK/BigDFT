@@ -88,7 +88,7 @@ integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit
 real(8),dimension(:,:),pointer:: coeff
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix
 character(len=*),parameter:: subname='linearScaling'
-real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out
+real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
 logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder
 real(8),dimension(:),pointer:: lphi
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
@@ -103,6 +103,7 @@ real(8):: fnoise,pressure
 real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 type(orthon_data):: orthpar
 integer,dimension(:),pointer:: onwhichatom
+
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
@@ -184,6 +185,9 @@ integer,dimension(:),pointer:: onwhichatom
   !end of the initialization part, will later be moved to cluster
   call timing(iproc,'INIT','PR')
 
+  allocate(locrad(lin%lzd%nlr), stat=istat)
+  call memocc(istat, locrad, 'locrad', subname)
+
   if(lin%nItInguess>0) then
       ! Post communications for gathering the potential.
      !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
@@ -203,6 +207,17 @@ integer,dimension(:),pointer:: onwhichatom
       communicate_lphi=.true.
       with_auxarray=.false.
       lin%newgradient=.false.
+
+      if(lin%newgradient) then
+          do ilr=1,lin%lzd%nlr
+              locrad(ilr)=lin%locrad_lowaccuracy(ilr)
+          end do
+      else
+          do ilr=1,lin%lzd%nlr
+              locrad(ilr)=lin%locrad_highaccuracy(ilr)
+          end do
+      end if
+
       if(lin%mixedmode) then
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
           lin%useDerivativeBasisFunctions=.false.
@@ -215,7 +230,7 @@ integer,dimension(:),pointer:: onwhichatom
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
               lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, lin%lphiRestart, &
               lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
-              hx, hy, hz, input%SIC, input%lin%factor_enlarge)
+              hx, hy, hz, input%SIC, input%lin%factor_enlarge, locrad)
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -226,7 +241,7 @@ integer,dimension(:),pointer:: onwhichatom
               coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
               lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
               lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-              hx,hy,hz,input%SIC, input%lin%factor_enlarge)
+              hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -415,6 +430,15 @@ integer,dimension(:),pointer:: onwhichatom
           end if
 
           ! Update the basis functions (if updatePhi is true), diagonalize the Hamiltonian in this basis, and diagonalize it.
+          if(lin%newgradient) then
+              do ilr=1,lin%lzd%nlr
+                  locrad(ilr)=lin%locrad_lowaccuracy(ilr)
+              end do
+          else
+              do ilr=1,lin%lzd%nlr
+                  locrad(ilr)=lin%locrad_highaccuracy(ilr)
+              end do
+          end if
           if(lin%mixedmode) then
               if(.not.withder) then
                   lin%useDerivativeBasisFunctions=.false.
@@ -426,7 +450,7 @@ integer,dimension(:),pointer:: onwhichatom
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, input%lin%factor_enlarge)
+                      hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -437,7 +461,7 @@ integer,dimension(:),pointer:: onwhichatom
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, input%lin%factor_enlarge)
+                      hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad)
               end if
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -448,7 +472,7 @@ integer,dimension(:),pointer:: onwhichatom
                   coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                   lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                   lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                  hx,hy,hz,input%SIC, input%lin%factor_enlarge)
+                  hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad)
           end if
 
 
@@ -727,6 +751,10 @@ integer,dimension(:),pointer:: onwhichatom
   call deallocateLinear(iproc, lin, lphi, coeff)
   deallocate(confdatarr)
   call deallocateBasicArrays(at,lin)
+
+  iall=-product(shape(locrad))*kind(locrad)
+  deallocate(locrad, stat=istat)
+  call memocc(istat, iall, 'locrad', subname)
 
   iall=-product(shape(coeff_proj))*kind(coeff_proj)
   deallocate(coeff_proj, stat=istat)
