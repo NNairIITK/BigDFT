@@ -50,6 +50,7 @@ Test BigDFT_LocalFields creation.
  total ionic charge, leaked charge            -8.000000040007   0.000E+00
  PSolver, surfaces BC, dimensions:    84   83  140   proc    1 ... done.
  ------------------------------------------------------- Input Wavefunctions Creation
+   262.59261678393739     
  Generating 8 Atomic Input Orbitals
  Calculating AIO wavefunctions: 
  Generation of input wavefunction data for atom     Si: 
@@ -61,18 +62,18 @@ Test BigDFT_LocalFields creation.
  Calculation of charge density... done. Total electronic charge=       7.999999887643
  PSolver, surfaces BC, dimensions:    84   83  140   proc    1 ... done.
  Hamiltonian application... done. ekin_sum,eks:       5.1232061070       5.0225194919
- ekin_sum,epot_sum,eproj_sum  5.12320610698E+00 -5.96341059205E+00  8.77781302890E-01
-    ehart,   eexcu,    vexcu  1.97844305898E+00 -2.67724050403E+00 -3.45075509233E+00
+ ekin_sum,epot_sum,eproj_sum  5.12320610698E+00 -7.87803615753E+00  8.77781302890E-01
+    ehart,   eexcu,    vexcu  3.95688611796E+00 -2.67724050403E+00 -3.45075509233E+00
  Input Wavefunctions Orthogonalization:
  Overlap Matrix... Direct diagonalization...
- evale(1)= -2.27063819501416E-01 <-
- evale(2)= -7.51688633856704E-02 <-
- evale(3)= -7.48187788316041E-02 <-
- evale(4)= -7.26148806963623E-02 <- Last InputGuess eval, H-L IG gap:  15.5681 eV
- evale(5)=  4.99501030970494E-01 <- First virtual eval
- evale(6)=  5.00357540730727E-01 <-
- evale(7)=  5.05700645465258E-01 <-
- evale(8)=  5.88467281126363E-01 <-
+ evale(1)= -4.92188580074955E-01 <-
+ evale(2)= -2.78834397004219E-01 <-
+ evale(3)= -2.78541386611952E-01 <-
+ evale(4)= -2.76718255360796E-01 <- Last InputGuess eval, H-L IG gap:  14.5579 eV
+ evale(5)=  2.58274958796652E-01 <- First virtual eval
+ evale(6)=  2.59158927194188E-01 <-
+ evale(7)=  2.64763436928128E-01 <-
+ evale(8)=  2.83685190892612E-01 <-
  Building orthogonal Wavefunctions... done.
  Calculation of input guess finished.
 Test BigDFT_LocalFields free.

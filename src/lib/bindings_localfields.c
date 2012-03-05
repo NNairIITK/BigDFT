@@ -116,7 +116,7 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_LocReg *glr,
   GET_ATTR_DBL_4D(localfields, LOCALFIELDS, v_xc,  V_XC);
   
   FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
-    (&iproc, &nproc, &verb, &glr->geocode, glr->d, hh,
+    (&iproc, &nproc, &verb, &glr->geocode, glr->d, glr->h,
      in->data, localfields->data);
   GET_ATTR_DBL   (localfields, LOCALFIELDS, pkernel,    PKERNEL);
   GET_ATTR_DBL   (localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
