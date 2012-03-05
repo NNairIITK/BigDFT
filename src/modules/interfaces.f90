@@ -2106,7 +2106,7 @@ module module_interfaces
          ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
          methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
          useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
-         hx,hy,hz,SIC,factor_enlarge,locrad)
+         hx,hy,hz,SIC,factor_enlarge,locrad,wfnmd)
       use module_base
       use module_types
       implicit none
@@ -2148,6 +2148,7 @@ module module_interfaces
       type(p2pComms),intent(inout):: comrp
       type(SIC_data),intent(in):: SIC
       real(8),dimension(lzd%nlr),intent(in):: locrad
+      type(wfn_metadata),intent(inout):: wfnmd
     end subroutine getLinearPsi
 
 
@@ -6198,6 +6199,21 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(llborbs%npsidim_orbs),intent(in):: lphi
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
+
+       subroutine create_wfn_metadata(nphi, nlbphi, wfnmd)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: nphi, nlbphi
+         type(wfn_metadata),intent(out):: wfnmd
+       end subroutine create_wfn_metadata
+
+       subroutine destroy_wfn_metadata(wfnmd)
+         use module_base
+         use module_types
+         implicit none
+         type(wfn_metadata),intent(inout):: wfnmd
+       end subroutine destroy_wfn_metadata
 
    end interface
 

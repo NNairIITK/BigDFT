@@ -5,7 +5,7 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
     methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
     useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
-    hx,hy,hz,SIC,factor_enlarge,locrad)
+    hx,hy,hz,SIC,factor_enlarge,locrad,wfnmd)
 !
 ! Purpose:
 ! ========
@@ -95,6 +95,7 @@ real(8),dimension(:),pointer,intent(inout)::lphiRestart
 type(p2pComms),intent(inout):: comrp
 type(SIC_data),intent(in):: SIC
 real(8),dimension(lzd%nlr),intent(in):: locrad
+type(wfn_metadata),intent(inout):: wfnmd
 
 ! Local variables 
 integer:: istat, iall, ilr, istr, iorb, jorb, korb, tag, norbu, norbd, nspin, npsidim, norb, nlr

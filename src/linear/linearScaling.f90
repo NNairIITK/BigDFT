@@ -103,6 +103,7 @@ real(8):: fnoise,pressure
 real(gp), dimension(6) :: ewaldstr,strten,hstrten,xcstr
 type(orthon_data):: orthpar
 integer,dimension(:),pointer:: onwhichatom
+type(wfn_metadata):: wfnmd
 
 
   if(iproc==0) then
@@ -118,6 +119,10 @@ integer,dimension(:),pointer:: onwhichatom
   t1init=mpi_wtime()
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
        input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi, confdatarr, onwhichatom)
+
+
+  call create_wfn_metadata(lin%orbs%npsidim_orbs, lin%lb%orbs%npsidim_orbs, wfnmd)
+
 
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
   !!allocate(confdatarr(lin%orbs%norbp))
@@ -230,7 +235,7 @@ integer,dimension(:),pointer:: onwhichatom
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
               lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, lin%lphiRestart, &
               lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
-              hx, hy, hz, input%SIC, input%lin%factor_enlarge, locrad)
+              hx, hy, hz, input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       else
           call allocateCommunicationbufferSumrho(iproc,with_auxarray,lin%lb%comsr,subname)
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -241,7 +246,7 @@ integer,dimension(:),pointer:: onwhichatom
               coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
               lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
               lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-              hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad)
+              hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
       !!    lin%op, lin%lb%op, lin%comon, lin%lb%comon, comms, at, lin, rxyz, rxyz, &
@@ -450,7 +455,7 @@ integer,dimension(:),pointer:: onwhichatom
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad)
+                      hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               else
                   lin%useDerivativeBasisFunctions=.true.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -461,7 +466,7 @@ integer,dimension(:),pointer:: onwhichatom
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                      hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad)
+                      hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               end if
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
@@ -472,7 +477,7 @@ integer,dimension(:),pointer:: onwhichatom
                   coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                   lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                   lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
-                  hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad)
+                  hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
           end if
 
 
@@ -749,6 +754,9 @@ integer,dimension(:),pointer:: onwhichatom
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, lphi, coeff)
+
+  call destroy_wfn_metadata(wfnmd)
+
   deallocate(confdatarr)
   call deallocateBasicArrays(at,lin)
 
@@ -1012,3 +1020,43 @@ character(len=*),parameter:: subname='transformToGlobal'
   call memocc(istat, iall, 'phiWork', subname)
 
 end subroutine transformToGlobal
+
+
+subroutine create_wfn_metadata(nphi, nlbphi, wfnmd)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: nphi, nlbphi
+  type(wfn_metadata),intent(out):: wfnmd
+
+  ! Local variables
+  integer:: istat
+  character(len=*),parameter:: subname='create_wfn_metadata'
+
+  wfnmd%nphi=nphi
+  wfnmd%nlbphi=nlbphi
+  allocate(wfnmd%phi(wfnmd%nlbphi), stat=istat)
+  call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
+
+end subroutine create_wfn_metadata
+
+
+subroutine destroy_wfn_metadata(wfnmd)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(wfn_metadata),intent(inout):: wfnmd
+
+  ! Local variables
+  integer:: istat, iall
+  character(len=*),parameter:: subname='destroy_wfn_metadata'
+
+  iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
+  deallocate(wfnmd%phi, stat=istat)
+  call memocc(istat, iall, 'wfnmd%phi', subname)
+
+end subroutine destroy_wfn_metadata
