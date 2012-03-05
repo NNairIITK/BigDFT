@@ -1547,7 +1547,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    if (iproc == 0) then
       !yaml_output
 !      write(70,'(a)')repeat(' ',yaml_indent)//'- Input Hamiltonian: { '
-      yaml_indent=yaml_indent+2 !list element
+!      yaml_indent=yaml_indent+2 !list element
    end if
    !spin for inputguess orbitals
    if (nspin == 4) then

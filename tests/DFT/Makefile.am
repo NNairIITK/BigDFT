@@ -79,7 +79,7 @@ SIC.post-in:
           SiH4.out*)            prec="5.e-9" ;; \
 	  TDDFT.out*)           prec="2.e-9" ;; \
 	  SIC*.out*)            prec="1.e-9" ;; \
-	  Mn2.out*)             prec="1.5e-10" ;; \
+	  Mn2.out*)             prec="2.e-10" ;; \
           ElecField.out*)       prec="1.e-9" ;; \
 	  Linear.out*)           prec="1.e-9" ;; \
 	  Linear_withder.out*)   prec="5.e-10" ;; \

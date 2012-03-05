@@ -98,6 +98,8 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
            j3=modulo(i3,n3i)
            if (j3 -n3i >= i3s-1 ) j3=j3-n3i !to wrap with negative values
            if (j3 + n3i < i3s+n3d-1) j3=j3+n3i
+        else
+           j3=i3
         end if
         !in periodic case nbl3=0
         j3=j3+nbl3+1
@@ -268,7 +270,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho)
   use module_base
   use Poisson_Solver
-  use module_interfaces
+  use module_interfaces, fake_name => XC_potential
   use module_xc
   implicit none
   character(len=1), intent(in) :: geocode
@@ -975,6 +977,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   use module_base
   use module_xc
   use interfaces_56_xc
+  use module_interfaces
 
   implicit none
 
@@ -1001,12 +1004,15 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc
   logical :: use_gradient
   real(dp),dimension(6) :: wbstr
+  real(dp), dimension(:,:,:,:), pointer :: rhocore_fake
   !check for the dimensions
   if (nwb/=nxcl+nxc+nxcr-2 .or. nxt/=nwbr+nwb+nwbl) then
      print *,'the XC dimensions are not correct'
      print *,'nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr',nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr
      stop
   end if
+  
+  nullify(rhocore_fake)
 
   !these are always the same
   order=1
@@ -1048,7 +1054,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         !!the calculation of the gradient will depend on the geometry code
         !if (geocode=='F') then
            call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rhopot,nspden,&
-                real(hx,dp),real(hy,dp),real(hz,dp),gradient)
+                real(hx,dp),real(hy,dp),real(hz,dp),gradient,rhocore_fake)
         !else
         !print *,'geocode=',geocode,&
         !     ':the calculation of the gradient is still to be performed in this case'
