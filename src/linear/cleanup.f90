@@ -847,6 +847,8 @@ subroutine deallocate_linearParameters(lin, subname)
   call checkAndDeallocatePointer(lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
   call checkAndDeallocatePointer(lin%locrad, 'lin%locrad', subname)
   call checkAndDeallocatePointer(lin%lphiRestart, 'lin%lphiRestart', subname)
+  call checkAndDeallocatePointer(lin%locrad_lowaccuracy, 'lin%locrad_lowaccuracy', subname)
+  call checkAndDeallocatePointer(lin%locrad_highaccuracy, 'lin%locrad_highaccuracy', subname)
   !call checkAndDeallocatePointer(lin%lphiold, 'lin%lphiold', subname)
   !call checkAndDeallocatePointer(lin%hamold, 'lin%hamold', subname)
   !call checkAndDeallocatePointer(lin%lphiold, 'lphiold', subname)
@@ -1358,7 +1360,8 @@ subroutine deallocate_largeBasis(lb, subname)
   call deallocate_orbitals_data(lb%orbs, subname)
   call deallocate_orbitals_data(lb%gorbs, subname)
   !call deallocate_local_zone_descriptors(lb%lzd, subname)
-  call dealloctae_p2pCommsRepartition(lb%comrp, subname)
+  !call deallocate_p2pCommsRepartition(lb%comrp, subname)
+  call deallocate_p2pComms(lb%comrp, subname)
   !call deallocate_p2pCommsOrthonormality(lb%comon, subname)
   call deallocate_p2pComms(lb%comon, subname)
   call deallocate_overlapParameters(lb%op, subname)
@@ -1373,20 +1376,21 @@ subroutine deallocate_largeBasis(lb, subname)
 end subroutine deallocate_largeBasis
 
 
-subroutine dealloctae_p2pCommsRepartition(comrp, subname)
-  use module_base
-  use module_types
-  use deallocatePointers
-  implicit none
-
-  ! Calling arguments
-  type(p2pCommsRepartition),intent(inout):: comrp
-  character(len=*),intent(in):: subname
-
-  call checkAndDeallocatePointer(comrp%comarr, 'comrp%comarr', subname)
-  call checkAndDeallocatePointer(comrp%communComplete, 'comrp%communComplete', subname)
-
-end subroutine dealloctae_p2pCommsRepartition
+!!subroutine deallocate_p2pCommsRepartition(comrp, subname)
+!!  use module_base
+!!  use module_types
+!!  use deallocatePointers
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  type(p2pCommsRepartition),intent(inout):: comrp
+!!  character(len=*),intent(in):: subname
+!!
+!!  call checkAndDeallocatePointer(comrp%comarr, 'comrp%comarr', subname)
+!!  call checkAndDeallocatePointer(comrp%communComplete, 'comrp%communComplete', subname)
+!!  call checkAndDeallocatePointer(comrp%requests, 'comrp%requests', subname)
+!!
+!!end subroutine deallocate_p2pCommsRepartition
 
 
 

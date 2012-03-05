@@ -72,7 +72,7 @@ module yaml_output
     end subroutine yaml_indent_map
 
     subroutine yaml_close_indent_map()
-      yaml_indent=yaml_indent-yaml_level
+      yaml_indent=max(yaml_indent-yaml_level,0)
     end subroutine yaml_close_indent_map
       
     !> Open a hash table written in flow format
@@ -209,7 +209,7 @@ module yaml_output
       implicit none
       character(len=*), optional, intent(in) :: advance
       if (flowrite==0 .and. iflowlevel==0) then
-         yaml_indent=yaml_indent-yaml_level
+         yaml_indent=max(yaml_indent-yaml_level,0)
       else
          if(present(advance)) then
             if (advance=='no') then

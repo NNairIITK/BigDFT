@@ -599,13 +599,15 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   logical,dimension(atoms%ntypes) :: parametersSpecified
   logical :: found
   character(len=20):: atomname
-  integer :: itype, jtype, ios, ierr, iat, npt
-  real(gp):: ppl, pph, lt
-  real(gp),dimension(atoms%ntypes) :: locradType
+  integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
+  real(gp):: ppl, pph, lrl, lrh
+  real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
 
   ! Begin by nullifying all the pointers
   nullify(in%lin%potentialPrefac)
   nullify(in%lin%locrad)
+  nullify(in%lin%locrad_lowaccuracy)
+  nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%norbsPerType)
   nullify(atoms%rloc)
 
@@ -614,22 +616,23 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   
   ! Read the number of iterations and convergence criterion for the basis functions BF
   comments = 'iterations with low accuracy, high accuracy'
-  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/1,10000/))
-  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/1,10000/),comment=comments)
+  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,10000/))
+  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,10000/),comment=comments)
 
   comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
-  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/1,10000/))
-  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/1,10000/),comment=comments)
+  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,10000/))
+  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,10000/),comment=comments)
   
   ! Convergence criterion
-  comments= 'iterations in the inner loop, convergence criterion'
-  call input_var(in%lin%nItInnerLoop,'0',ranges=(/0,1000/))
+  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion'
+  call input_var(in%lin%nItInnerLoop,'0',ranges=(/-1,1000000/))
+  call input_var(in%lin%factor_enlarge,'0',ranges=(/1.0_gp,1000.0_gp/))
   call input_var(in%lin%convCrit,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
   comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'
   call input_var(in%lin%DIISHistMin,'0',ranges=(/0,100/))
-  call input_var(in%lin%DIISHistMax,'5',ranges=(/1,100/))
+  call input_var(in%lin%DIISHistMax,'5',ranges=(/0,100/))
   call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%alphaSD,'1.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
@@ -740,7 +743,8 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
       call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
       call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
       call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-      call input_var(lt,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+      call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
       if(ios/=0) then
           ! The parameters were not specified for all atom types.
           if(iproc==0) then
@@ -762,7 +766,9 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
               in%lin%norbsPerType(jtype)=npt
               in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
               in%lin%potentialPrefac_highaccuracy(jtype)=pph
-              locradType(jtype)=lt
+              locradType(jtype)=lrl
+              locradType_lowaccur(jtype)=lrl
+              locradType_highaccur(jtype)=lrh
               atoms%rloc(jtype,:)=locradType(jtype)
           end if
       end do
@@ -773,11 +779,30 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
           stop
       end if
   end do
-  
-  ! Assign the localization radius to each atom.
+
+  nlr=0
   do iat=1,atoms%nat
       itype=atoms%iatype(iat)
-      in%lin%locrad(iat)=locradType(itype)
+      nlr=nlr+in%lin%norbsPerType(itype)
+  end do
+  allocate(in%lin%locrad(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad,'in%lin%locrad',subname)
+  allocate(in%lin%locrad_lowaccuracy(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad_lowaccuracy,'in%lin%locrad_lowaccuracy',subname)
+  allocate(in%lin%locrad_highaccuracy(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad_highaccuracy,'in%lin%locrad_highaccuracy',subname)
+
+  
+  ! Assign the localization radius to each atom.
+  iiorb=0
+  do iat=1,atoms%nat
+      itype=atoms%iatype(iat)
+      do iorb=1,in%lin%norbsPerType(itype)
+          iiorb=iiorb+1
+          in%lin%locrad(iiorb)=locradType(itype)
+          in%lin%locrad_lowaccuracy(iiorb)=locradType_lowaccur(itype)
+          in%lin%locrad_highaccuracy(iiorb)=locradType_highaccur(itype)
+      end do
   end do
   
 

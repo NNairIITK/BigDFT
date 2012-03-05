@@ -123,8 +123,8 @@ module module_types
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
-    real(8):: lowaccuray_converged, convCritMix
-    real(8),dimension(:),pointer:: locrad
+    real(8):: lowaccuray_converged, convCritMix, factor_enlarge
+    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal, mixedmode
@@ -601,12 +601,14 @@ module module_types
 !!!   end type p2pCommsOrthonormality
 
 
-!> Contains the parameters for the communications of the derivative orbitals
-!! to match their partition.
-  type,public:: p2pCommsRepartition
-      integer,dimension(:,:,:),pointer:: comarr
-       logical,dimension(:,:),pointer:: communComplete
-  end type p2pCommsRepartition
+!!!!> Contains the parameters for the communications of the derivative orbitals
+!!!!! to match their partition.
+!!!  type,public:: p2pCommsRepartition
+!!!      integer,dimension(:,:,:),pointer:: comarr
+!!!      logical,dimension(:,:),pointer:: communComplete
+!!!      integer,dimension(:,:),pointer:: requests
+!!!      integer:: nsend, nrecv
+!!!  end type p2pCommsRepartition
 
 !  type,public:: expansionSegments
 !      integer:: nseg
@@ -675,7 +677,8 @@ type,public:: largeBasis
     type(communications_arrays):: comms, gcomms
     type(orbitals_data):: orbs, gorbs
     !type(local_zone_descriptors):: lzd
-    type(p2pCommsRepartition):: comrp
+    !type(p2pCommsRepartition):: comrp
+    type(p2pComms):: comrp
     !type(p2pCommsOrthonormality):: comon
     type(p2pComms):: comon
     type(overlapParameters):: op
@@ -745,7 +748,8 @@ end type workarrays_quartic_convolutions
     real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy, convCritMix
     real(8):: lowaccuray_converged
-    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold
+    real(8),dimension(:),pointer:: potentialPrefac, locrad, locrad_lowaccuracy, locrad_highaccuracy
+    real(8),dimension(:),pointer:: lphiRestart, lphiold
     real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
@@ -763,7 +767,6 @@ end type workarrays_quartic_convolutions
     !type(p2pCommsOrthonormality):: comon
     type(p2pComms):: comon
     type(overlapParameters):: op
-    type(linearInputGuess):: lig
     type(matrixDescriptors):: mad
     character(len=1):: locregShape
     type(collectiveComms):: collComms

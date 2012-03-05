@@ -1589,7 +1589,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 ! ###################################################################
    if(potshortcut<=0) then
        call nullify_local_zone_descriptors(Lzde)
-       call create_LzdLIG(iproc,nproc,input,Lzd%Glr,at,orbse,rxyz,Lzde)
+       call create_LzdLIG(iproc,nproc,input,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
    else
        call nullify_local_zone_descriptors(Lzde)
        Lzde = Lzd
@@ -1857,6 +1857,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    call full_local_potential(iproc,nproc,orbse,Lzde,Lzde%lintyp,denspot%dpcom,denspot%rhov,denspot%pot_full)
    orbse%nspin=nspin_ig
 
+   !write(*,*) 'size(denspot%pot_full)', size(denspot%pot_full)
    call FullHamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
         proj,Lzde,nlpspd,confdatarr,denspot%dpcom%ngatherarr,denspot%pot_full,psi,hpsi,&
         ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,&

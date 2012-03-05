@@ -224,9 +224,19 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calc
      Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
 
      !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
-     Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
-     Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
-     Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+     if(Llr(ilr)%geocode == 'F') then
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+     else if(Llr(ilr)%geocode == 'S') then
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+     else
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+     end if
 
 !DEBUG
 !!     if (iproc == 0) then
@@ -722,7 +732,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
             end if
 
             if(xperiodic .and. zperiodic) then
-         !     Llr(ilr)%geocode = 'S'
+              Llr(ilr)%geocode = 'S'
             end if    
 
          case('P')
@@ -814,9 +824,19 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
     
          !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
-         Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
-         Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
-         Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+         if(Llr(ilr)%geocode == 'F') then
+            Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
+            Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+            Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+         else if(Llr(ilr)%geocode == 'S') then
+            Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+            Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+            Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+         else
+            Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+            Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
+            Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+         end if
     
     !DEBUG
     !     if (iproc == 0) then
@@ -864,6 +884,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
         ! Check whether the bounds shall be calculated. Do this only if the currect process handles
         ! orbitals in the current localization region.
         if(.not.calculateBounds(ilr)) then
+            !write(*,'(a,i0,a,i0)') 'process ',iproc,' deletes bounds for locreg ',ilr
             call deallocate_convolutions_bounds(llr(ilr)%bounds, subname)
         end if
     end if
@@ -3492,12 +3513,18 @@ n2_k=0
 n3_k=0
 nseg_k=0
 
+
+! Quick return if possible
+if(nseg_i==0 .or. nseg_j==0) return
+
 ! Initialize some counters
-iseg=1
-jseg=1
+iseg=min(1,nseg_i)
+jseg=min(1,nseg_j)
 kxemax=0
 kyemax=0
 kzemax=0
+
+
 
 
 segment_loop: do
@@ -3739,11 +3766,14 @@ integer:: iend, jend, kend, iendg, jendg, kendg, transform_index
 character(len=1):: increase
 
 ! Initialize some counters
-iseg=1
-jseg=1
+iseg=min(1,nseg_i)
+jseg=min(1,nseg_j)
 kseg=0
 knvctr=0
 nvctr_k=0
+
+! Quick return if possible
+if(nseg_i==0 .or. nseg_j==0) return
 
 segment_loop: do
 

@@ -88,7 +88,7 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
        radii_cf,in%frmult,in%frmult,hgrids(1),hgrids(2),hgrids(3),nlpspd,proj)
 
   ! See if linear scaling should be activated and build the correct Lzd 
-  call check_linear_and_create_Lzd(iproc,nproc,in,Lzd,atoms,orbs,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,in,hgrids(1),hgrids(2),hgrids(3),Lzd,atoms,orbs,rxyz)
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation, to be rebuilt in a more modular way
@@ -112,7 +112,12 @@ subroutine system_initialization(iproc,nproc,in,atoms,rxyz,&
        & Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   !check the communication distribution
-  call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+  if(in%inputpsiId/=INPUT_PSI_LINEAR) then
+      call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+  else
+      ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
+      if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
+  end if
 
   !---end of system definition routine
 end subroutine system_initialization
@@ -544,7 +549,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
   logical, intent(in) :: verb
-  type(atoms_data), intent(in) :: atoms
+  type(atoms_data), intent(inout) :: atoms
   integer, intent(out) :: nelec
   type(orbitals_data), intent(inout) :: orbs
   !local variables
@@ -1526,6 +1531,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
 
 
 
+
   !allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
   !call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
   !orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
@@ -1543,6 +1549,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
 
   ! Modify these values
   call repartitionOrbitals2(iproc, nproc, orbs%norb, orbs%norb_par, orbs%norbp, orbs%isorb)
+
 
   allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
@@ -1619,6 +1626,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
   end do
   call MPI_Initialized(mpiflag,ierr)
   if(mpiflag /= 0) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+
   
 
 END SUBROUTINE orbitals_descriptors_forLinear

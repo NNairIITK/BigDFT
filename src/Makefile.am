@@ -341,9 +341,10 @@ low_level = \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
-	linear/communicatetypes.f90 \
 	linear/filterModule.f90 \
+	linear/communicatetypes.f90 \
 	linear/getLocBasis.f90 \
+	linear/convolutions.f90 \
 	linear/applyHamiltonian.f90 \
 	linear/precondLinear.f90 \
 	linear/psitolocReg.f90 \
@@ -353,7 +354,6 @@ low_level = \
 	linear/transposition.f90 \
 	linear/linearScaling.f90 \
 	linear/energyAndForces.f90 \
-	linear/convolutions.f90 \
 	linear/initAndUtils.f90 \
 	linear/sumrhoLinear.f90 \
 	linear/inputguessLinear.f90 \
@@ -366,6 +366,8 @@ low_level = \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
 	linear/locReg.f90 \
+	linear/unitaryTrans.f90 \
+	linear/communicatePotential.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \
