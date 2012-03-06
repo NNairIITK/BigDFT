@@ -774,7 +774,7 @@ end type workarrays_quartic_convolutions
 
   type,public:: wfn_metadata
     integer:: nphi, nlbphi
-    real(8),dimension(:),pointer:: phi
+    real(8),dimension(:),pointer:: phi, phiRestart
   end type wfn_metadata
 
 

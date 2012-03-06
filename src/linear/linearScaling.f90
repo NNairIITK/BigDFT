@@ -236,7 +236,7 @@ type(wfn_metadata):: wfnmd
               infoBasisFunctions, infoCoeff, 0, ebs, coeff, wfnmd%phi, nlpspd, proj, &
               communicate_lphi, coeff_proj, ldiis, nit, lin%nItInnerLoop, &
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
-              lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, lin%lphiRestart, &
+              lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, wfnmd%phiRestart, &
               lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
               hx, hy, hz, input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       else
@@ -248,7 +248,7 @@ type(wfn_metadata):: wfnmd
               infoBasisFunctions,infoCoeff,0, ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
               coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
               lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
-              lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+              lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
               hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -464,7 +464,7 @@ type(wfn_metadata):: wfnmd
                       infoBasisFunctions,infoCoeff,itScc,ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
-                      lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                      lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               else
                   lin%useDerivativeBasisFunctions=.true.
@@ -475,7 +475,7 @@ type(wfn_metadata):: wfnmd
                       infoBasisFunctions,infoCoeff,itScc,ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
-                      lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                      lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               end if
           else
@@ -486,7 +486,7 @@ type(wfn_metadata):: wfnmd
                   infoBasisFunctions,infoCoeff,itScc,ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
                   coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                   lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
-                  lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                  lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
           end if
 
@@ -1053,8 +1053,12 @@ subroutine create_wfn_metadata(nphi, nlbphi, wfnmd)
 
   wfnmd%nphi=nphi
   wfnmd%nlbphi=nlbphi
+
   allocate(wfnmd%phi(wfnmd%nlbphi), stat=istat)
   call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
+
+  allocate(wfnmd%phiRestart(wfnmd%nphi), stat=istat)
+  call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart', subname)
 
 end subroutine create_wfn_metadata
 
@@ -1074,5 +1078,9 @@ subroutine destroy_wfn_metadata(wfnmd)
   iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
   deallocate(wfnmd%phi, stat=istat)
   call memocc(istat, iall, 'wfnmd%phi', subname)
+
+  iall=-product(shape(wfnmd%phiRestart))*kind(wfnmd%phiRestart)
+  deallocate(wfnmd%phiRestart, stat=istat)
+  call memocc(istat, iall, 'wfnmd%phiRestart', subname)
 
 end subroutine destroy_wfn_metadata
