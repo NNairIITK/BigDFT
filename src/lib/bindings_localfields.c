@@ -48,7 +48,7 @@ static void bigdft_localfields_class_init(BigDFT_LocalFieldsClass *klass)
 static void bigdft_localfields_init(BigDFT_LocalFields *obj)
 {
 #ifdef HAVE_GLIB
-  memset(obj + sizeof(GObject), 0, sizeof(BigDFT_LocalFields) - sizeof(GObject));
+  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_LocalFields) - sizeof(GObject));
 #else
   memset(obj, 0, sizeof(BigDFT_LocalFields));
 #endif

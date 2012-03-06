@@ -750,7 +750,7 @@ integer,dimension(:),pointer:: onwhichatom
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, lphi, coeff)
   deallocate(confdatarr)
-  call deallocateBasicArrays(at,lin)
+  call deallocateBasicArrays(lin)
 
   iall=-product(shape(locrad))*kind(locrad)
   deallocate(locrad, stat=istat)

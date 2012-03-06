@@ -69,6 +69,7 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), atoms, inputs%ixc)
+  call read_atomic_variables(atoms, trim(inputs%file_igpop),inputs%nspin)
 END SUBROUTINE read_input_variables
 
 
@@ -609,7 +610,6 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   nullify(in%lin%locrad_lowaccuracy)
   nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%norbsPerType)
-  nullify(atoms%rloc)
 
   !Linear input parameters
   call input_set_file(iproc,.true.,trim(filename),exists,'Linear Parameters')  
@@ -733,7 +733,7 @@ subroutine lin_input_variables_new(iproc,filename,in,atoms)
   
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
-  call allocateBasicArraysInputLin(atoms, in%lin)
+  call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)
   
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, localization radius'
