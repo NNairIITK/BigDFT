@@ -9,7 +9,7 @@ subroutine nullify_linearParameters(lin)
 
   nullify(lin%potentialPrefac)
   nullify(lin%locrad)
-  nullify(lin%lphiRestart)
+  !nullify(lin%lphiRestart)
   !nullify(lin%lphiold)
   !nullify(lin%lhphiold)
   !nullify(lin%hamold)
@@ -267,8 +267,8 @@ subroutine nullify_local_zone_descriptors(lzd)
   call nullify_locreg_descriptors(lzd%glr)
   nullify(lzd%llr)
   nullify(lzd%doHamAppl)
-  nullify(lzd%cutoffweight) 
-  nullify(lzd%cutoffweight)
+  !!nullify(lzd%cutoffweight) 
+  !!nullify(lzd%cutoffweight)
  
 end subroutine nullify_local_zone_descriptors
 

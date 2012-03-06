@@ -1,7 +1,7 @@
 !> This subroutine initializes all parameters needed for the linear scaling version
 !! and allocate all arrays.
 subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-    input, hx, hy, hz, rxyz, nscatterarr, tag, coeff, lphi, confdatarr, onwhichatom)
+    input, hx, hy, hz, rxyz, nscatterarr, tag, confdatarr, onwhichatom)
 ! Calling arguments:
 ! ==================
 !   Input arguments:
@@ -37,8 +37,6 @@ type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,intent(inout):: tag
-real(8),dimension(:,:),pointer,intent(out):: coeff
-real(8),dimension(:),pointer,intent(out):: lphi
 type(confpot_data), dimension(:),pointer,intent(out) :: confdatarr
 integer,dimension(:),pointer:: onwhichatom
 
@@ -258,8 +256,8 @@ call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
 call initCollectiveComms(iproc, nproc, lin%lzd, input, lin%orbs, lin%collcomms)
 call initCollectiveComms(iproc, nproc, lin%lzd, input, lin%lb%orbs, lin%lb%collcomms)
 
-allocate(lphi(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)), stat=istat)
-call memocc(istat, lphi, 'lphi', subname)
+!!allocate(lphi(max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp)), stat=istat)
+!!call memocc(istat, lphi, 'lphi', subname)
 
 
 t2=mpi_wtime()
@@ -300,8 +298,8 @@ lin%lb%orbs%eval=-.5d0
 !!call memocc(istat, lin%orbslarge%eval, 'lin%orbslarge%eval', subname)
 !!lin%orbslarge%eval=-.5d0
 
-! Initialize the coefficients.
-call initCoefficients(iproc, orbs, lin, coeff)
+!!! Initialize the coefficients.
+!!call initCoefficients(iproc, orbs, lin, coeff)
 
 ! Initialize the parameters for the point to point communication for the
 ! calculation of the charge density.
@@ -368,9 +366,9 @@ if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 if(lin%useDerivativeBasisFunctions) &
      call initializeRepartitionOrbitals(iproc, nproc, tag, lin%orbs, lin%lb%orbs, lin%lzd, lin%lb%comrp)
 
-! Restart array for the basis functions (only needed if we use the derivative basis functions).
-allocate(lin%lphiRestart(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
-call memocc(istat, lin%lphiRestart, 'lin%lphiRestart', subname)
+!!!! Restart array for the basis functions (only needed if we use the derivative basis functions).
+!!!allocate(lin%lphiRestart(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)), stat=istat)
+!!!call memocc(istat, lin%lphiRestart, 'lin%lphiRestart', subname)
 
 
 ! Deallocate all local arrays.
@@ -417,40 +415,40 @@ if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 
 
-! Determine lin%cutoffweight
-ist=1
-lphi=1.d0
-do iorb=1,lin%orbs%norbp
-    iiorb=lin%orbs%isorb+iorb
-    ilr=lin%orbs%inwhichlocreg(iiorb)
-    ncnt = lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f
-    tt=sqrt(dble(ncnt))
-    call dscal(ncnt, 1/tt, lphi(ist), 1)
-    ist = ist + ncnt
-end do
-allocate(lin%lzd%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
-call memocc(istat, lin%lzd%cutoffweight, 'lin%lzd%cutoffweight', subname)
-call allocateSendBufferOrtho(lin%comon, subname)
-call allocateRecvBufferOrtho(lin%comon, subname)
-call extractOrbital3(iproc, nproc, lin%orbs, max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
-     lin%orbs%inWhichLocreg, lin%lzd, &
-     lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
-call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, tt1, tt2)
-call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, lin%lzd, lin%comon%nsendbuf, &
-     lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, tt3, tt4, tt5)
-call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, lin%comon, lphi, lphi, lin%mad, lin%lzd%cutoffweight)
-call deallocateRecvBufferOrtho(lin%comon, subname)
-call deallocateSendBufferOrtho(lin%comon, subname)
+!!! Determine lin%cutoffweight
+!!ist=1
+!!lphi=1.d0
+!!do iorb=1,lin%orbs%norbp
+!!    iiorb=lin%orbs%isorb+iorb
+!!    ilr=lin%orbs%inwhichlocreg(iiorb)
+!!    ncnt = lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f
+!!    tt=sqrt(dble(ncnt))
+!!    call dscal(ncnt, 1/tt, lphi(ist), 1)
+!!    ist = ist + ncnt
+!!end do
+!!allocate(lin%lzd%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
+!!call memocc(istat, lin%lzd%cutoffweight, 'lin%lzd%cutoffweight', subname)
+!!call allocateSendBufferOrtho(lin%comon, subname)
+!!call allocateRecvBufferOrtho(lin%comon, subname)
+!!call extractOrbital3(iproc, nproc, lin%orbs, max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
+!!     lin%orbs%inWhichLocreg, lin%lzd, &
+!!     lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+!!call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, tt1, tt2)
+!!call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, lin%lzd, lin%comon%nsendbuf, &
+!!     lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, tt3, tt4, tt5)
+!!call getMatrixElements2(iproc, nproc, lin%lzd, lin%orbs, lin%op, lin%comon, lphi, lphi, lin%mad, lin%lzd%cutoffweight)
+!!call deallocateRecvBufferOrtho(lin%comon, subname)
+!!call deallocateSendBufferOrtho(lin%comon, subname)
 
 
 
-do iorb=1,lin%orbs%norb
-    do iiorb=1,lin%orbs%norb
-        lin%lzd%cutoffweight(iiorb,iorb) = lin%lzd%cutoffweight(iiorb,iorb)**2
-        lin%lzd%cutoffweight(iiorb,iorb) = 1.d0
-        !write(90+iproc,*) iorb, iiorb, lin%lzd%cutoffweight(iiorb,iorb)
-    end do
-end do
+!!do iorb=1,lin%orbs%norb
+!!    do iiorb=1,lin%orbs%norb
+!!        lin%lzd%cutoffweight(iiorb,iorb) = lin%lzd%cutoffweight(iiorb,iorb)**2
+!!        lin%lzd%cutoffweight(iiorb,iorb) = 1.d0
+!!        !write(90+iproc,*) iorb, iiorb, lin%lzd%cutoffweight(iiorb,iorb)
+!!    end do
+!!end do
 
 !!! not ideal place here for this...
 !!if(lin%orbs%norb/=lin%lig%orbsig%norb) then

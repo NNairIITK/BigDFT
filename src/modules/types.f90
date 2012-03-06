@@ -467,7 +467,7 @@ module module_types
 !    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
 !    type(nonlocal_psp_descriptors),dimension(:), pointer :: Lnlpspd      !< Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
-    real(8),dimension(:,:),pointer:: cutoffweight
+    !!!real(8),dimension(:,:),pointer:: cutoffweight
   end type
 
 !>  Used to restart a new DFT calculation or to save information 
@@ -749,7 +749,7 @@ end type workarrays_quartic_convolutions
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy, convCritMix
     real(8):: lowaccuray_converged
     real(8),dimension(:),pointer:: potentialPrefac, locrad, locrad_lowaccuracy, locrad_highaccuracy
-    real(8),dimension(:),pointer:: lphiRestart, lphiold
+    real(8),dimension(:),pointer:: lphiold
     real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
@@ -775,6 +775,7 @@ end type workarrays_quartic_convolutions
   type,public:: wfn_metadata
     integer:: nphi, nlbphi
     real(8),dimension(:),pointer:: phi, phiRestart
+    real(8),dimension(:,:),pointer:: coeff
   end type wfn_metadata
 
 

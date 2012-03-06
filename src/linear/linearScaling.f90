@@ -85,12 +85,10 @@ real(8),dimension(3,at%nat),intent(out):: fxyz
 ! Local variables
 integer:: infoBasisFunctions,infoCoeff,istat,iall,itSCC,nitSCC,i,ierr,potshortcut,ist,istr,ilr,tag,itout
 integer :: jproc,iat,j, nit_highaccuracy, mixHist, nitSCCWhenOptimizing, nit
-real(8),dimension(:,:),pointer:: coeff
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu, alphaMix
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld, rhopotold_out, locrad
 logical:: updatePhi, reduceConvergenceTolerance, communicate_lphi, with_auxarray, lowaccur_converged, withder
-real(8),dimension(:),pointer:: lphi
 real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2, pnrm_out
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyDiff, energyoldout, selfConsistent
 integer:: iorb, ndimtot, iiat
@@ -118,11 +116,12 @@ type(wfn_metadata):: wfnmd
   call mpi_barrier(mpi_comm_world, ierr)
   t1init=mpi_wtime()
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-       input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi, confdatarr, onwhichatom)
+       input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, confdatarr, onwhichatom)
 
 
   call create_wfn_metadata(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
-       max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), wfnmd)
+       max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
+       lin%lb%orbs%norb, orbs%norb, wfnmd)
 
 
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
@@ -180,7 +179,7 @@ type(wfn_metadata):: wfnmd
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
   !lphi=wfnmd%phi
-  call dcopy(lin%orbs%npsidim_orbs, wfnmd%phi(1), 1, lphi(1), 1)
+  !call dcopy(lin%orbs%npsidim_orbs, wfnmd%phi(1), 1, lphi(1), 1)
 
   call deallocateBasicArraysInput(at, input%lin)
 
@@ -233,7 +232,7 @@ type(wfn_metadata):: wfnmd
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, &
               lin%comgp, lin%comgp, at, rxyz, &
               denspot, GPU, updatePhi, &
-              infoBasisFunctions, infoCoeff, 0, ebs, coeff, wfnmd%phi, nlpspd, proj, &
+              infoBasisFunctions, infoCoeff, 0, ebs, wfnmd%coeff, wfnmd%phi, nlpspd, proj, &
               communicate_lphi, coeff_proj, ldiis, nit, lin%nItInnerLoop, &
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
               lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, wfnmd%phiRestart, &
@@ -245,7 +244,7 @@ type(wfn_metadata):: wfnmd
               lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
               lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
               denspot,GPU,updatePhi,&
-              infoBasisFunctions,infoCoeff,0, ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
+              infoBasisFunctions,infoCoeff,0, ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
               coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
               lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
               lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
@@ -461,7 +460,7 @@ type(wfn_metadata):: wfnmd
                       lin%mad,lin%mad,lin%op,lin%op,lin%comon,&
                       lin%comon,lin%comgp,lin%comgp,at,rxyz,&
                       denspot,GPU,updatePhi,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
@@ -472,7 +471,7 @@ type(wfn_metadata):: wfnmd
                       lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
                       lin%comon,lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                       denspot,GPU,updatePhi,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
@@ -483,7 +482,7 @@ type(wfn_metadata):: wfnmd
                   lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
                   lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                   denspot,GPU,updatePhi,&
-                  infoBasisFunctions,infoCoeff,itScc,ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
+                  infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
                   coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                   lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                   lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
@@ -498,18 +497,18 @@ type(wfn_metadata):: wfnmd
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
                        lin%lzd, input, hx, hy, hz, lin%orbs, lin%comsr, &
-                       coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                       wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                else
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
                        lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
-                       coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
+                       wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d,&
                        denspot%rhov, at, denspot%dpcom%nscatterarr)
                end if
           else
               call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb,&
                    lin%lzd, input, hx, hy ,hz, lin%lb%orbs, lin%lb%comsr, &
-                   coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
+                   wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                    denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
           !!call mpi_barrier(mpi_comm_world, ierr)
@@ -690,7 +689,7 @@ type(wfn_metadata):: wfnmd
   call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
   call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, wfnmd%phi, lin%lb%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
-       coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
+       wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
   call deallocateCommunicationbufferSumrho(lin%lb%comsr, subname)
 
@@ -698,7 +697,7 @@ type(wfn_metadata):: wfnmd
   t1force=mpi_wtime()
   ! Build global orbitals psi (the physical ones).
   if(lin%transformToGlobal) then
-      call transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, wfnmd%phi, psi, psit)
+      call transformToGlobal(iproc, nproc, lin, orbs, comms, input, wfnmd%coeff, wfnmd%phi, psi, psit)
   end if
 
 
@@ -764,7 +763,8 @@ type(wfn_metadata):: wfnmd
 
 
   ! Deallocate all arrays related to the linear scaling version.
-  call deallocateLinear(iproc, lin, lphi, coeff)
+  !!call deallocateLinear(iproc, lin, lphi, coeff)
+  call deallocate_linearParameters(lin, subname)
 
   call destroy_wfn_metadata(wfnmd)
 
@@ -1038,13 +1038,13 @@ character(len=*),parameter:: subname='transformToGlobal'
 end subroutine transformToGlobal
 
 
-subroutine create_wfn_metadata(nphi, nlbphi, wfnmd)
+subroutine create_wfn_metadata(nphi, nlbphi, llbnorb, norb, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: nphi, nlbphi
+  integer,intent(in):: nphi, nlbphi, llbnorb, norb
   type(wfn_metadata),intent(out):: wfnmd
 
   ! Local variables
@@ -1059,6 +1059,9 @@ subroutine create_wfn_metadata(nphi, nlbphi, wfnmd)
 
   allocate(wfnmd%phiRestart(wfnmd%nphi), stat=istat)
   call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart', subname)
+
+  allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
+  call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
 
 end subroutine create_wfn_metadata
 
@@ -1082,5 +1085,9 @@ subroutine destroy_wfn_metadata(wfnmd)
   iall=-product(shape(wfnmd%phiRestart))*kind(wfnmd%phiRestart)
   deallocate(wfnmd%phiRestart, stat=istat)
   call memocc(istat, iall, 'wfnmd%phiRestart', subname)
+
+  iall=-product(shape(wfnmd%coeff))*kind(wfnmd%coeff)
+  deallocate(wfnmd%coeff, stat=istat)
+  call memocc(istat, iall, 'wfnmd%coeff', subname)
 
 end subroutine destroy_wfn_metadata

@@ -1934,7 +1934,7 @@ module module_interfaces
 
 
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, &
-          input, hx, hy, hz, rxyz, nscatterarr, tag, coeff, lphi, confdatarr, onwhichatom)
+          input, hx, hy, hz, rxyz, nscatterarr, tag, confdatarr, onwhichatom)
       use module_base
       use module_types
       implicit none
@@ -1950,8 +1950,6 @@ module module_interfaces
       real(8),dimension(3,at%nat),intent(in):: rxyz
       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       integer,intent(inout):: tag
-      real(8),dimension(:,:),pointer,intent(out):: coeff
-      real(8),dimension(:),pointer,intent(out):: lphi
       type(confpot_data), dimension(:),pointer,intent(out) :: confdatarr
       integer,dimension(:),pointer:: onwhichatom
     end subroutine allocateAndInitializeLinear
@@ -6202,11 +6200,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
 
-       subroutine create_wfn_metadata(nphi, nlbphi, wfnmd)
+       subroutine create_wfn_metadata(nphi, nlbphi, llbnorb, norb, wfnmd)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: nphi, nlbphi
+         integer,intent(in):: nphi, nlbphi, llbnorb, norb
          type(wfn_metadata),intent(out):: wfnmd
        end subroutine create_wfn_metadata
 
