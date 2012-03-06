@@ -126,6 +126,12 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
       ! If we use the derivative basis functions, the trace minimizing orbitals of the last iteration are
       ! stored in lin%lphiRestart.
+      !!call mpi_barrier(mpi_comm_world, ierr)
+      !!if(newgradient) then
+      !!     deallocate(lphi)
+      !!     call mpi_barrier(mpi_comm_world, ierr)
+      !!     stop
+      !!end if
       if(useDerivativeBasisFunctions) then
           call dcopy(lorbs%npsidim_orbs,lphiRestart(1),1,lphi(1),1)
       end if
@@ -144,6 +150,11 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   if(newgradient .and. updatePhi) then
       call update_locreg(iproc, nproc, useDerivativeBasisFunctions, denspot, hx, hy, hz, &
            lorbs, lzd, lphiRestart, llborbs, lbop, lbcomon, comgp, lbcomgp, comsr, lbmad)
+      iall=-product(shape(lphiRestart))*kind(lphiRestart)
+      deallocate(lphiRestart, stat=istat)
+      call memocc(istat, iall, 'lphiRestart', subname)
+      allocate(lphiRestart(lorbs%npsidim_orbs), stat=istat)
+      call memocc(istat, lphiRestart, 'lphiRestart',  subname)
   end if
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.

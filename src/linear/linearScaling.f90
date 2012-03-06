@@ -121,7 +121,8 @@ type(wfn_metadata):: wfnmd
        input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, coeff, lphi, confdatarr, onwhichatom)
 
 
-  call create_wfn_metadata(lin%orbs%npsidim_orbs, lin%lb%orbs%npsidim_orbs, wfnmd)
+  call create_wfn_metadata(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
+       max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), wfnmd)
 
 
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
@@ -178,7 +179,6 @@ type(wfn_metadata):: wfnmd
   t2ig=mpi_wtime()
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
-  write(*,'(a,4i12)') 'lin%orbs%npsidim_orbs, size(lin%lphiRestart), size(lphi), size(wfnmd%phi)', lin%orbs%npsidim_orbs, size(lin%lphiRestart), size(lphi), size(wfnmd%phi)
   !lphi=wfnmd%phi
   call dcopy(lin%orbs%npsidim_orbs, wfnmd%phi(1), 1, lphi(1), 1)
 
@@ -233,7 +233,7 @@ type(wfn_metadata):: wfnmd
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, &
               lin%comgp, lin%comgp, at, rxyz, &
               denspot, GPU, updatePhi, &
-              infoBasisFunctions, infoCoeff, 0, ebs, coeff, lphi, nlpspd, proj, &
+              infoBasisFunctions, infoCoeff, 0, ebs, coeff, wfnmd%phi, nlpspd, proj, &
               communicate_lphi, coeff_proj, ldiis, nit, lin%nItInnerLoop, &
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
               lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, lin%lphiRestart, &
@@ -245,7 +245,7 @@ type(wfn_metadata):: wfnmd
               lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
               lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
               denspot,GPU,updatePhi,&
-              infoBasisFunctions,infoCoeff,0, ebs,coeff,lphi,nlpspd,proj,communicate_lphi,&
+              infoBasisFunctions,infoCoeff,0, ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
               coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
               lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
               lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
@@ -404,6 +404,8 @@ type(wfn_metadata):: wfnmd
           nit=lin%nItBasis_lowaccuracy
       end if
 
+
+
       ! Allocate the communication arrays for the calculation of the charge density.
       with_auxarray=.false.
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
@@ -447,6 +449,11 @@ type(wfn_metadata):: wfnmd
                   locrad(ilr)=lin%locrad_highaccuracy(ilr)
               end do
           end if
+!!if(lin%newgradient) then
+!!     deallocate(lphi)
+!!     call mpi_barrier(mpi_comm_world, ierr)
+!!     stop
+!!end if
           if(lin%mixedmode) then
               if(.not.withder) then
                   lin%useDerivativeBasisFunctions=.false.
@@ -454,7 +461,7 @@ type(wfn_metadata):: wfnmd
                       lin%mad,lin%mad,lin%op,lin%op,lin%comon,&
                       lin%comon,lin%comgp,lin%comgp,at,rxyz,&
                       denspot,GPU,updatePhi,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
@@ -465,7 +472,7 @@ type(wfn_metadata):: wfnmd
                       lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
                       lin%comon,lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                       denspot,GPU,updatePhi,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
                       coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                       lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
@@ -476,7 +483,7 @@ type(wfn_metadata):: wfnmd
                   lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
                   lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                   denspot,GPU,updatePhi,&
-                  infoBasisFunctions,infoCoeff,itScc,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,&
+                  infoBasisFunctions,infoCoeff,itScc,ebs,coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
                   coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                   lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
                   lin%useDerivativeBasisFunctions,lin%lphiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
@@ -681,7 +688,7 @@ type(wfn_metadata):: wfnmd
   ! Allocate the communication buffers for the calculation of the charge density.
   with_auxarray=.false.
   call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
-  call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, lphi, lin%lb%comsr)
+  call communicate_basis_for_density(iproc, nproc, lin%lzd, lin%lb%orbs, wfnmd%phi, lin%lb%comsr)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, lin%lzd, input, hx, hy, hz, lin%lb%orbs, lin%lb%comsr, &
        coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, denspot%rhov, at,denspot%dpcom%nscatterarr)
 
@@ -691,7 +698,7 @@ type(wfn_metadata):: wfnmd
   t1force=mpi_wtime()
   ! Build global orbitals psi (the physical ones).
   if(lin%transformToGlobal) then
-      call transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
+      call transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, wfnmd%phi, psi, psit)
   end if
 
 
