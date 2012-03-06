@@ -408,9 +408,9 @@ type(wfn_metadata):: wfnmd
 
       ! Optimize the basis functions and them mix the density / potential to reach self consistency.
       if(lowaccur_converged) then
-          nitSCC=lin%nitSCCWhenOptimizing_lowaccuracy+lin%nitSCCWhenFixed_lowaccuracy
-          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_lowaccuracy
-          mixHist=lin%mixHist_lowaccuracy
+          nitSCC=lin%nitSCCWhenOptimizing_highaccuracy+lin%nitSCCWhenFixed_highaccuracy
+          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_highaccuracy
+          mixHist=lin%mixHist_highaccuracy
           if(lin%mixHist_lowaccuracy==0 .and. lin%mixHist_highaccuracy>0) then
              !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
               call initializeMixrhopotDIIS(lin%mixHist_highaccuracy, denspot%dpcom%ndimpot, mixdiis)
@@ -418,9 +418,9 @@ type(wfn_metadata):: wfnmd
               call deallocateMixrhopotDIIS(mixdiis)
           end if
       else
-          nitSCC=lin%nitSCCWhenOptimizing_highaccuracy+lin%nitSCCWhenFixed_highaccuracy
-          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_highaccuracy
-          mixHist=lin%mixHist_highaccuracy
+          nitSCC=lin%nitSCCWhenOptimizing_lowaccuracy+lin%nitSCCWhenFixed_lowaccuracy
+          nitSCCWhenOptimizing=lin%nitSCCWhenOptimizing_lowaccuracy
+          mixHist=lin%mixHist_lowaccuracy
       end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
@@ -692,6 +692,7 @@ type(wfn_metadata):: wfnmd
   end if
 
 
+
   ! Put the timings here since there is a crash in the forces.
   call mpi_barrier(mpi_comm_world, ierr)
   t2tot=mpi_wtime()
@@ -929,7 +930,8 @@ type(input_variables),intent(in):: input
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
 !real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(inout):: lphi
 real(8),dimension(*),intent(inout):: lphi
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
+!real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
+real(8),dimension(:),pointer,intent(out):: psi, psit
 
 ! Local variables
 integer:: ind1, ind2, istat, iall, iorb, ilr, ldim, gdim, nvctrp
@@ -994,7 +996,11 @@ character(len=*),parameter:: subname='transformToGlobal'
   !end do
 
 
-  call dcopy(orbs%npsidim_comp, psi, 1, psit, 1)
+  if(nproc>1) then
+      call dcopy(orbs%npsidim_comp, psi, 1, psit, 1)
+  else
+      psit => psi
+  end if
 
   call untranspose_v(iproc, nproc, lin%lb%orbs, lin%lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
 !  do iall=0,nproc-1

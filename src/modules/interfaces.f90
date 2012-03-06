@@ -5159,7 +5159,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(input_variables),intent(in):: input
        real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
        real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(inout):: lphi
-       real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
+       !real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
+       real(8),dimension(:),pointer,intent(out):: psi, psit
      end subroutine transformToGlobal
 
 

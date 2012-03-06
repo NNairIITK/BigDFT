@@ -266,6 +266,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !type(rho_descriptors) :: rhodsc
   type(linearParameters) :: lin
   type(confpot_data), dimension(:), allocatable :: confdatarr
+  !debug
+  integer:: iorb, ist, iall
 
   ! ----------------------------------
 
@@ -459,7 +461,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !start the optimization
   ! Skip the following part in the linear scaling case.
-  if(inputpsi /= INPUT_PSI_LINEAR) then
+  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR) then
 
      ! allocate arrays necessary for DIIS convergence acceleration
      call allocate_diis_objects(in%idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
@@ -904,10 +906,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   else
      ! put the infocode to 0, which means success
      infocode=0
-  end if !end of linear if
+  end if skip_if_linear !end of linear if
+
 
   !deallocate psit and hpsi since it is not anymore done
-  if (nproc > 1 .or. inputpsi == INPUT_PSI_LINEAR) then
+  !if (nproc > 1 .or. inputpsi == INPUT_PSI_LINEAR) then
+  if (nproc > 1) then
      i_all=-product(shape(psit))*kind(psit)
      deallocate(psit,stat=i_stat)
      call memocc(i_stat,i_all,'psit',subname)
@@ -974,6 +978,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat,i_all,'thetaphi',subname)
 
   end if
+
 
   !  write all the wavefunctions into files
   if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
@@ -1094,6 +1099,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call timing(iproc,'Forces        ','ON')
      !refill projectors for tails, davidson
      refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
+
 
      call calculate_forces(iproc,nproc,Lzd%Glr,atoms,orbs,nlpspd,rxyz,&
           hx,hy,hz,proj,denspot%dpcom%i3s+denspot%dpcom%i3xcsh,denspot%dpcom%n3p,&
