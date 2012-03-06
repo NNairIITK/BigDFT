@@ -173,11 +173,14 @@ type(wfn_metadata):: wfnmd
   call inputguessConfinement(iproc, nproc, at, &
        input, hx, hy, hz, lin%lzd, lin%orbs, rxyz, denspot ,rhopotold, &
        nlpspd, proj, GPU, &
-       lphi)
+       wfnmd%phi)
   call mpi_barrier(mpi_comm_world, ierr)
   t2ig=mpi_wtime()
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
+  write(*,'(a,4i12)') 'lin%orbs%npsidim_orbs, size(lin%lphiRestart), size(lphi), size(wfnmd%phi)', lin%orbs%npsidim_orbs, size(lin%lphiRestart), size(lphi), size(wfnmd%phi)
+  !lphi=wfnmd%phi
+  call dcopy(lin%orbs%npsidim_orbs, wfnmd%phi(1), 1, lphi(1), 1)
 
   call deallocateBasicArraysInput(at, input%lin)
 

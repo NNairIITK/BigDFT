@@ -159,6 +159,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
       allocate(lphi(llborbs%npsidim_orbs), stat=istat)
       call memocc(istat, lphi, 'lphi', subname)
+      wfnmd%nphi=llborbs%npsidim_orbs
 
       if(.not.useDerivativeBasisFunctions) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
   end if
@@ -728,6 +729,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                        locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                        lzd, lorbs, op, comon, mad, comgp, &
                        lphi, lhphi, lhphiold, lphiold)
+                  wfnmd%nphi=lorbs%npsidim_orbs
                   call allocateCommunicationsBuffersPotential(comgp, subname)
               end if
 
@@ -1111,6 +1113,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                    locrad, denspot%dpcom%nscatterarr, .false., inwhichlocreg_reference, ldiis, &
                    lzd, lorbs, op, comon, mad, comgp, &
                    lphi, lhphi, lhphiold, lphiold)
+              wfnmd%nphi=lorbs%npsidim_orbs
           end if
 
           if(secondLocreg) then
