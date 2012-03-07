@@ -69,6 +69,10 @@ module module_types
        "Cold (mono)",   &
        "Meth.-Pax. " /)
 
+  !> Target function for the optimization of the basis functions (linear scaling version)
+  integer,parameter:: TARGET_FUNCTION_IS_TRACE=0
+  integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
+
   !> Type used for the orthogonalisation parameter
   type, public :: orthon_data
      !> directDiag decides which input guess is chosen:
@@ -775,6 +779,7 @@ end type workarrays_quartic_convolutions
   type,public:: basis_specifications
     logical:: update_phi, use_derivative_basis, communicate_phi_for_lsumrho
     real(8):: conv_crit
+    integer:: target_function
   end type basis_specifications
 
 

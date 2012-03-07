@@ -214,6 +214,7 @@ type(wfn_metadata):: wfnmd
       wfnmd%bs%communicate_phi_for_lsumrho=.true.
       with_auxarray=.false.
       lin%newgradient=.false.
+      wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
 
       if(lin%newgradient) then
           do ilr=1,lin%lzd%nlr
@@ -338,6 +339,7 @@ type(wfn_metadata):: wfnmd
   energyoldout=0.d0
   reduceConvergenceTolerance=.false.
   lin%newgradient=.false.
+  wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
 
   outerLoop: do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
@@ -381,6 +383,7 @@ type(wfn_metadata):: wfnmd
               confdatarr(iorb)%prefac=lin%potentialPrefac_highaccuracy(at%iatype(iiat))
           end do
           lin%newgradient=.true.
+          wfnmd%bs%target_function=TARGET_FUNCTION_IS_ENERGY
           nit_highaccuracy=nit_highaccuracy+1
           nit=lin%nItBasis_highaccuracy
           if(nit_highaccuracy==lin%nit_highaccuracy+1) then
@@ -402,6 +405,7 @@ type(wfn_metadata):: wfnmd
               confdatarr(iorb)%prefac=lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
           end do
           lin%newgradient=.false.
+          wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
           nit=lin%nItBasis_lowaccuracy
       end if
 
@@ -1143,5 +1147,6 @@ subroutine init_basis_specifications(input, bs)
   bs%communicate_phi_for_lsumrho=.false.
   bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   bs%conv_crit=input%lin%convCrit
+  bs%target_function=TARGET_FUNCTION_IS_TRACE
 
 end subroutine init_basis_specifications
