@@ -94,7 +94,7 @@ real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce, energyold, energyD
 integer:: iorb, ndimtot, iiat
 type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
-real(8),dimension(:,:),allocatable:: coeff_proj
+!real(8),dimension(:,:),allocatable:: coeff_proj
 type(localizedDIISParameters):: ldiis
 type(confpot_data), dimension(:),pointer :: confdatarr
 real(8):: fnoise,pressure
@@ -119,9 +119,9 @@ type(wfn_metadata):: wfnmd
        input, hx, hy, hz, rxyz, denspot%dpcom%nscatterarr, tag, confdatarr, onwhichatom)
 
 
-  call create_wfn_metadata(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
+  call create_wfn_metadata('l', max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp), &
        max(lin%lb%orbs%npsidim_orbs,lin%lb%orbs%npsidim_comp), &
-       lin%lb%orbs%norb, orbs%norb, wfnmd)
+       lin%orbs%norb, lin%lb%orbs%norb, orbs%norb, input, wfnmd)
 
 
   !!lin%potentialPrefac=lin%potentialPrefac_lowaccuracy
@@ -161,8 +161,8 @@ type(wfn_metadata):: wfnmd
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
   !rhopotold_out=1.d100
 
-  allocate(coeff_proj(lin%orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, coeff_proj, 'coeff_proj', subname)
+  !!allocate(coeff_proj(lin%orbs%norb,orbs%norb), stat=istat)
+  !!call memocc(istat, coeff_proj, 'coeff_proj', subname)
 
   !write(*,'(a,100i6)') 'lin%orbs%inwhichlocreg', lin%orbs%inwhichlocreg
 
@@ -200,7 +200,7 @@ type(wfn_metadata):: wfnmd
      !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*denspot%dpcom%nscatterarr(iproc,2)
       call allocateCommunicationsBuffersPotential(lin%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
-      if(lin%useDerivativeBasisFunctions) then
+      if(wfnmd%bs%use_derivative_basis) then
           call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
           call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
       end if
@@ -227,15 +227,15 @@ type(wfn_metadata):: wfnmd
 
       if(lin%mixedmode) then
           call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
-          lin%useDerivativeBasisFunctions=.false.
+          wfnmd%bs%use_derivative_basis=.false.
           call getLinearPsi(iproc, nproc, lin%lzd, orbs, lin%orbs, lin%orbs, lin%comsr, &
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, &
               lin%comgp, lin%comgp, at, rxyz, &
-              denspot, GPU, updatePhi, &
+              denspot, GPU, wfnmd%bs%update_phi, &
               infoBasisFunctions, infoCoeff, 0, ebs, wfnmd%coeff, wfnmd%phi, nlpspd, proj, &
-              communicate_lphi, coeff_proj, ldiis, nit, lin%nItInnerLoop, &
+              communicate_lphi, wfnmd%coeff_proj, ldiis, nit, lin%nItInnerLoop, &
               lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
-              lin%convCrit, lin%nItPrecond, lin%useDerivativeBasisFunctions, wfnmd%phiRestart, &
+              lin%convCrit, lin%nItPrecond, wfnmd%bs%use_derivative_basis, wfnmd%phiRestart, &
               lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
               hx, hy, hz, input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       else
@@ -243,11 +243,11 @@ type(wfn_metadata):: wfnmd
           call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
               lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
               lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
-              denspot,GPU,updatePhi,&
+              denspot,GPU,wfnmd%bs%update_phi,&
               infoBasisFunctions,infoCoeff,0, ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
-              coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
+              wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
               lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
-              lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+              wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
               hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       end if
       !!call getLinearPsi(iproc, nproc, input%nspin, lin%lzd, orbs, lin%orbs, lin%lb%orbs, lin%lb%comsr, &
@@ -319,7 +319,7 @@ type(wfn_metadata):: wfnmd
   call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
   ! If we also use the derivative of the basis functions, also send the potential in this case. This is
   ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
-  if(lin%useDerivativeBasisFunctions) then
+  if(wfnmd%bs%use_derivative_basis) then
       call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
   end if
@@ -331,6 +331,7 @@ type(wfn_metadata):: wfnmd
   nitSCC=lin%nitSCCWhenOptimizing+lin%nitSCCWhenFixed
   ! Flag that indicates that the basis functions shall be improved in the following.
   updatePhi=.true.
+  wfnmd%bs%update_phi=.true.
   pnrm=1.d100
   pnrm_out=1.d100
   energyold=0.d0
@@ -350,6 +351,7 @@ type(wfn_metadata):: wfnmd
       ldiis%alphaDIIS=lin%alphaDIIS
 
       updatePhi=.true.
+      wfnmd%bs%update_phi=.true.
       selfConsistent=lin%convCritMix
 
       ! Check whether the derivatives shall be used or not.
@@ -432,6 +434,7 @@ type(wfn_metadata):: wfnmd
       ! iteration the basis functions are fixed.
       do itSCC=1,nitSCC
           if(itSCC>nitSCCWhenOptimizing) updatePhi=.false.
+          if(itSCC>nitSCCWhenOptimizing) wfnmd%bs%update_phi=.false.
           if(itSCC==1) then
               communicate_lphi=.true.
           else
@@ -455,37 +458,37 @@ type(wfn_metadata):: wfnmd
 !!end if
           if(lin%mixedmode) then
               if(.not.withder) then
-                  lin%useDerivativeBasisFunctions=.false.
+                  wfnmd%bs%use_derivative_basis=.false.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%orbs,lin%comsr,&
                       lin%mad,lin%mad,lin%op,lin%op,lin%comon,&
                       lin%comon,lin%comgp,lin%comgp,at,rxyz,&
-                      denspot,GPU,updatePhi,&
+                      denspot,GPU,wfnmd%bs%update_phi,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
-                      coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
+                      wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
-                      lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                      wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               else
-                  lin%useDerivativeBasisFunctions=.true.
+                  wfnmd%bs%use_derivative_basis=.true.
                   call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
                       lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
                       lin%comon,lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
-                      denspot,GPU,updatePhi,&
+                      denspot,GPU,wfnmd%bs%update_phi,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
-                      coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
+                      wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
-                      lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                      wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               end if
           else
               call getLinearPsi(iproc,nproc,lin%lzd,orbs,lin%orbs,lin%lb%orbs,lin%lb%comsr,&
                   lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
                   lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
-                  denspot,GPU,updatePhi,&
+                  denspot,GPU,wfnmd%bs%update_phi,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,communicate_lphi,&
-                  coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
+                  wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
                   lin%methTransformOverlap,lin%blocksize_pdgemm,lin%convCrit,lin%nItPrecond,&
-                  lin%useDerivativeBasisFunctions,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
+                  wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
           end if
 
@@ -518,7 +521,8 @@ type(wfn_metadata):: wfnmd
 
           ! Mix the density.
           if(trim(lin%mixingMethod)=='dens') then
-              if(updatePhi) then
+              !if(updatePhi) then
+              if(wfnmd%bs%update_phi) then
                   if(lowaccur_converged) then
                       alphaMix=lin%alphaMixWhenOptimizing_highaccuracy
                   else
@@ -574,7 +578,8 @@ type(wfn_metadata):: wfnmd
 
           ! Mix the potential
           if(trim(lin%mixingMethod)=='pot') then
-              if(updatePhi) then
+              !if(updatePhi) then
+              if(wfnmd%bs%update_phi) then
                   if(lowaccur_converged) then
                       alphaMix=lin%alphaMixWhenOptimizing_highaccuracy
                   else
@@ -620,7 +625,7 @@ type(wfn_metadata):: wfnmd
           !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
           call allocateCommunicationsBuffersPotential(lin%comgp, subname)
           call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
-          if(lin%useDerivativeBasisFunctions) then
+          if(wfnmd%bs%use_derivative_basis) then
               call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
               call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%lb%comgp)
           end if
@@ -660,7 +665,7 @@ type(wfn_metadata):: wfnmd
 
   call cancelCommunicationPotential(iproc, nproc, lin%comgp)
   call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
-  if(lin%useDerivativeBasisFunctions) then
+  if(wfnmd%bs%use_derivative_basis) then
       call cancelCommunicationPotential(iproc, nproc, lin%lb%comgp)
       call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
   end if
@@ -775,9 +780,9 @@ type(wfn_metadata):: wfnmd
   deallocate(locrad, stat=istat)
   call memocc(istat, iall, 'locrad', subname)
 
-  iall=-product(shape(coeff_proj))*kind(coeff_proj)
-  deallocate(coeff_proj, stat=istat)
-  call memocc(istat, iall, 'coeff_proj', subname)
+  !!iall=-product(shape(coeff_proj))*kind(coeff_proj)
+  !!deallocate(coeff_proj, stat=istat)
+  !!call memocc(istat, iall, 'coeff_proj', subname)
 
   ! End of linear scaling part, except of the forces.
   call timing(iproc,'WFN_OPT','PR')
@@ -1038,30 +1043,52 @@ character(len=*),parameter:: subname='transformToGlobal'
 end subroutine transformToGlobal
 
 
-subroutine create_wfn_metadata(nphi, nlbphi, llbnorb, norb, wfnmd)
+subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: nphi, nlbphi, llbnorb, norb
+  character(len=1),intent(in):: mode
+  integer,intent(in):: nphi, nlbphi, lnorb, llbnorb, norb
+  type(input_variables),intent(in):: input
   type(wfn_metadata),intent(out):: wfnmd
 
   ! Local variables
   integer:: istat
   character(len=*),parameter:: subname='create_wfn_metadata'
 
-  wfnmd%nphi=nphi
-  wfnmd%nlbphi=nlbphi
+  ! Determine which variables we need, depending on the mode we are in.
+  if(mode=='l') then
+      ! linear scaling mode
 
-  allocate(wfnmd%phi(wfnmd%nlbphi), stat=istat)
-  call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
+      wfnmd%nphi=nphi
+      wfnmd%nlbphi=nlbphi
 
-  allocate(wfnmd%phiRestart(wfnmd%nphi), stat=istat)
-  call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart', subname)
+      allocate(wfnmd%phi(wfnmd%nlbphi), stat=istat)
+      call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
 
-  allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
-  call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
+      allocate(wfnmd%phiRestart(wfnmd%nphi), stat=istat)
+      call memocc(istat, wfnmd%phiRestart, 'wfnmd%phiRestart', subname)
+
+      allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
+      call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
+
+      allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
+      call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
+
+      call init_basis_specifications(input, wfnmd%bs)
+
+  else if(mode=='c') then
+      ! cubic scaling mode
+
+      nullify(wfnmd%phi)
+      nullify(wfnmd%phiRestart)
+      nullify(wfnmd%coeff)
+      nullify(wfnmd%coeff_proj)
+  else
+      stop 'wrong mode'
+  end if
 
 end subroutine create_wfn_metadata
 
@@ -1069,6 +1096,7 @@ end subroutine create_wfn_metadata
 subroutine destroy_wfn_metadata(wfnmd)
   use module_base
   use module_types
+  use deallocatePointers
   implicit none
   
   ! Calling arguments
@@ -1077,6 +1105,11 @@ subroutine destroy_wfn_metadata(wfnmd)
   ! Local variables
   integer:: istat, iall
   character(len=*),parameter:: subname='destroy_wfn_metadata'
+
+  !!call checkAndDeallocatePointer(wfnmd%phi)
+  !!call checkAndDeallocatePointer(wfnmd%phiRestart)
+  !!call checkAndDeallocatePointer(wfnmd%coeff)
+  !!call checkAndDeallocatePointer(wfnmd%coeff_proj)
 
   iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
   deallocate(wfnmd%phi, stat=istat)
@@ -1090,4 +1123,23 @@ subroutine destroy_wfn_metadata(wfnmd)
   deallocate(wfnmd%coeff, stat=istat)
   call memocc(istat, iall, 'wfnmd%coeff', subname)
 
+  iall=-product(shape(wfnmd%coeff_proj))*kind(wfnmd%coeff_proj)
+  deallocate(wfnmd%coeff_proj, stat=istat)
+  call memocc(istat, iall, 'wfnmd%coeff_proj', subname)
+
 end subroutine destroy_wfn_metadata
+
+
+subroutine init_basis_specifications(input, bs)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(input_variables),intent(in):: input
+  type(basis_specifications),intent(out):: bs
+  
+  bs%update_phi=.false.
+  bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
+
+end subroutine init_basis_specifications

@@ -6200,17 +6200,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
 
-       subroutine create_wfn_metadata(nphi, nlbphi, llbnorb, norb, wfnmd)
+       subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, wfnmd)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: nphi, nlbphi, llbnorb, norb
+         character(len=1),intent(in):: mode
+         integer,intent(in):: nphi, nlbphi, lnorb, llbnorb, norb
+         type(input_variables),intent(in):: input
          type(wfn_metadata),intent(out):: wfnmd
        end subroutine create_wfn_metadata
 
        subroutine destroy_wfn_metadata(wfnmd)
          use module_base
          use module_types
+         !use deallocatePointers
          implicit none
          type(wfn_metadata),intent(inout):: wfnmd
        end subroutine destroy_wfn_metadata

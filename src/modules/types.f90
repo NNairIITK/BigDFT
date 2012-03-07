@@ -772,10 +772,16 @@ end type workarrays_quartic_convolutions
     type(collectiveComms):: collComms
   end type linearParameters
 
+  type,public:: basis_specifications
+    logical:: update_phi, use_derivative_basis
+  end type basis_specifications
+
+
   type,public:: wfn_metadata
     integer:: nphi, nlbphi
     real(8),dimension(:),pointer:: phi, phiRestart
-    real(8),dimension(:,:),pointer:: coeff
+    real(8),dimension(:,:),pointer:: coeff, coeff_proj
+    type(basis_specifications):: bs
   end type wfn_metadata
 
 
