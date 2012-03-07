@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
     GPU,updatePhi,&
-    infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,communicate_lphi,coeff_proj,&
+    infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,communicate_lphi,&
     ldiis,nit,nItInnerLoop,orthpar,confdatarr,&
     methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
     useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
@@ -87,7 +87,7 @@ real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 logical,intent(in):: communicate_lphi
-real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
+!real(8),dimension(lorbs%norb,orbs%norb),intent(inout):: coeff_proj
 type(localizedDIISParameters),intent(inout):: ldiis
 type(orthon_data),intent(in):: orthpar
 type(confpot_data),dimension(lorbs%norbp),intent(in) :: confdatarr
@@ -139,7 +139,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
           denspot,GPU,wfnmd%phi,trace,&
-          infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,&
+          infoBasisFunctions,ovrlp,nlpspd,proj,wfnmd%coeff_proj,ldiis,nit,nItInnerLoop,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
           hx,hy,hz,SIC,nItPrecond,factor_enlarge,locrad,wfnmd)
 
@@ -379,8 +379,8 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
               !tt = tt + wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
               tt = tt + matrixElements(korb,iorb,2)*overlapmatrix(korb,jorb)
           end do
-          coeff_proj(jjorb,iorb)=tt
-          !if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  coeff_proj(jjorb,iorb), wfnmd%coeff(jorb,iorb)
+          wfnmd%coeff_proj(jjorb,iorb)=tt
+          !if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  wfnmd%coeff_proj(jjorb,iorb), wfnmd%coeff(jorb,iorb)
           jjorb=jjorb+1
       end do
   end do
