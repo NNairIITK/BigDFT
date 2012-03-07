@@ -2,7 +2,7 @@ subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
     GPU,updatePhi,&
     infoBasisFunctions,infoCoeff,itSCC,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,coeff_proj,&
-    ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
+    ldiis,nit,nItInnerLoop,orthpar,confdatarr,&
     methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
     useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
     hx,hy,hz,SIC,factor_enlarge,locrad,wfnmd)
@@ -78,7 +78,7 @@ type(atoms_data),intent(in):: at
 real(8),dimension(3,at%nat),intent(in):: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers),intent(inout):: GPU
-logical,intent(in):: updatePhi, newgradient, useDerivativeBasisFunctions
+logical,intent(in):: updatePhi, useDerivativeBasisFunctions
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
 real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
@@ -139,7 +139,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
            denspot,GPU,lphi,trace,&
-          infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,newgradient,&
+          infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
           hx,hy,hz,SIC,nItPrecond,factor_enlarge,locrad,wfnmd)
 
@@ -393,7 +393,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
     denspot,GPU,lphi,trH,&
-    infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
+    infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,orthpar,&
     confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
     locrad,wfnmd)
 !
@@ -471,7 +471,6 @@ type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
 type(localizedDIISParameters),intent(inout):: ldiis
-logical,intent(in):: newgradient
 type(orthon_data),intent(in):: orthpar
 type(confpot_data), dimension(lorbs%norbp),intent(inout) :: confdatarr
 type(SIC_data) :: SIC !<parameters for the SIC methods
@@ -537,7 +536,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
   !if(newgradient .and. ldiis%isx>0) then
   if(wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. ldiis%isx>0) then
       if(variable_locregs) then
-          if(iproc==0) write(*,'(1x,a)') 'ERROR: if newgradient is true, only steepest descent is &
+          if(iproc==0) write(*,'(1x,a)') 'ERROR: if the target function is the energy, only steepest descent is &
                                           &allowed since the locreg shapes may change!'
           call mpi_barrier(mpi_comm_world, ierr)
           stop
@@ -723,13 +722,13 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                   call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
                   call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
                        comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
-                       newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
+                       confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
               else
                   ! Optimize the locreg centers and potentially the shape of the basis functions.
                   call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
                   call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                        comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-                       newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+                       confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
               end if
 
               ! Check whether the new locreg centers are ok.
@@ -1116,7 +1115,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                call update_confdatarr(lzdlarge, orbslarge, locregCenterTemp, confdatarr)
               call MLWFnew(iproc, nproc, lzdlarge, orbslarge, at, oplarge, &
                    comonlarge, madlarge, rxyz, nItInnerLoop, kernel, &
-                   newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
+                   confdatarr, hx, locregCenterTemp, 3.d0, lphilarge, Umat, locregCenter)
            end if
 
            if(secondLocreg) then
@@ -1124,7 +1123,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                call update_confdatarr(lzdlarge2, orbslarge2, locregCenterTemp, confdatarr)
                call MLWFnew(iproc, nproc, lzdlarge2, orbslarge2, at, oplarge2, &
                     comonlarge2, madlarge2, rxyz, nItInnerLoop, kernel, &
-                    newgradient, confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
+                    confdatarr, hx, locregCenterTemp, 3.d0, lphilarge2, Umat, locregCenter)
           end if
 
           call check_locregCenters(iproc, lzd, locregCenter, hx, hy, hz)

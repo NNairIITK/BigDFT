@@ -235,7 +235,7 @@ type(wfn_metadata):: wfnmd
               denspot, GPU, wfnmd%bs%update_phi, &
               infoBasisFunctions, infoCoeff, 0, ebs, wfnmd%coeff, wfnmd%phi, nlpspd, proj, &
               wfnmd%bs%communicate_phi_for_lsumrho, wfnmd%coeff_proj, ldiis, nit, lin%nItInnerLoop, &
-              lin%newgradient, orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
+              orthpar, confdatarr, lin%methTransformOverlap, lin%blocksize_pdgemm, &
               wfnmd%bs%conv_crit, lin%nItPrecond, wfnmd%bs%use_derivative_basis, wfnmd%phiRestart, &
               lin%lb%comrp, lin%blocksize_pdsyev, lin%nproc_pdsyev, &
               hx, hy, hz, input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
@@ -246,7 +246,7 @@ type(wfn_metadata):: wfnmd
               lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
               denspot,GPU,wfnmd%bs%update_phi,&
               infoBasisFunctions,infoCoeff,0, ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
-              wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,& 
+              wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,& 
               lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
               wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
               hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
@@ -468,7 +468,7 @@ type(wfn_metadata):: wfnmd
                       lin%comon,lin%comgp,lin%comgp,at,rxyz,&
                       denspot,GPU,wfnmd%bs%update_phi,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
-                      wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
+                      wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
                       wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
@@ -479,7 +479,7 @@ type(wfn_metadata):: wfnmd
                       lin%comon,lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                       denspot,GPU,wfnmd%bs%update_phi,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
-                      wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
+                      wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,&
                       lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
                       wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
@@ -490,7 +490,7 @@ type(wfn_metadata):: wfnmd
                   lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                   denspot,GPU,wfnmd%bs%update_phi,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
-                  wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,lin%newgradient,orthpar,confdatarr,&
+                  wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,&
                   lin%methTransformOverlap,lin%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
                   wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,lin%blocksize_pdsyev,lin%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)

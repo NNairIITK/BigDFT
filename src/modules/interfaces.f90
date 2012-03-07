@@ -1887,7 +1887,7 @@ module module_interfaces
 
       subroutine getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
            denspot,GPU,lphi,trH,&
-           infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
+           infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,orthpar,&
            confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
            locrad,wfnmd)
         use module_base
@@ -1923,7 +1923,6 @@ module module_interfaces
         real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
         real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
         type(localizedDIISParameters),intent(inout):: ldiis
-        logical,intent(in):: newgradient
         type(orthon_data),intent(in):: orthpar
         type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
         type(SIC_data) :: SIC !<parameters for the SIC methods
@@ -2102,7 +2101,7 @@ module module_interfaces
          mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
          GPU,updatePhi,&
          infoBasisFunctions,infoCoeff,itSCC,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,coeff_proj,&
-         ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
+         ldiis,nit,nItInnerLoop,orthpar,confdatarr,&
          methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
          useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
          hx,hy,hz,SIC,factor_enlarge,locrad,wfnmd)
@@ -2127,7 +2126,7 @@ module module_interfaces
       real(8),dimension(3,at%nat),intent(in):: rxyz
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers),intent(inout):: GPU
-      logical,intent(in):: updatePhi, newgradient, useDerivativeBasisFunctions
+      logical,intent(in):: updatePhi, useDerivativeBasisFunctions
       integer,intent(out):: infoBasisFunctions, infoCoeff
       real(8),intent(out):: ebs
       real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
@@ -6003,7 +6002,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
        subroutine MLWFnew(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, &
-                    newgradient, confdatarr, hx, locregCenters, maxDispl, lphi, Umat, centers)
+                    confdatarr, hx, locregCenters, maxDispl, lphi, Umat, centers)
          use module_base
          use module_types
          implicit none
@@ -6016,7 +6015,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(matrixDescriptors),intent(in):: mad
          real(8),dimension(3,at%nat),intent(in):: rxyz
          real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
-         logical,intent(in):: newgradient
+         !logical,intent(in):: newgradient
          real(8),intent(in):: hx, maxDispl
          type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
          real(8),dimension(3,lzd%nlr),intent(in):: locregCenters
