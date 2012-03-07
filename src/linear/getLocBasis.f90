@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
     GPU,updatePhi,&
-    infoBasisFunctions,infoCoeff,itSCC,ebs,coeff,nlpspd,proj,communicate_lphi,coeff_proj,&
+    infoBasisFunctions,infoCoeff,itSCC,ebs,nlpspd,proj,communicate_lphi,coeff_proj,&
     ldiis,nit,nItInnerLoop,orthpar,confdatarr,&
     methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
     useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
@@ -82,7 +82,7 @@ logical,intent(in):: updatePhi, useDerivativeBasisFunctions
 integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
 real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
-real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
+!real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
 !real(8),dimension(:),pointer,intent(inout):: lphi
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
@@ -307,7 +307,16 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
            matrixElements(1,1,2), llborbs%norb, ovrlp, llborbs%norb, eval, info)
   end if
   if(iproc==0) write(*,'(a)') 'done.'
-  call dcopy(llborbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
+
+  ! ATTENTION: if we are in the mixed mode and are at the moment not using the derivatives, then the current
+  ! llborbs%norb is only one fourth of the actual first dimension of wfnmd%coeff. Here this is ignore and just
+  ! the first llborbs%norb*orbs%norb will be used, since in this way the array is conformable with the other 
+  ! subroutines that will use it.
+  ! So it will work, but be careful. Maybe this can be improved later
+  call dcopy(llborbs%norb*orbs%norb, matrixElements(1,1,2), 1, wfnmd%coeff(1,1), 1)
+  !do iorb=1,orbs%norb
+  !    call dcopy(llborbs%norb, matrixElements(1,iorb,2), 1, wfnmd%coeff(1,iorb), 1)
+  !end do
   infoCoeff=0
 
   ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
@@ -327,17 +336,32 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   end if
 
 
-  ! Calculate the band structure energy with matrixElements.
+  ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
+  ! above (wrong size of wfnmd%coeff)
   ebs=0.d0
   do iorb=1,orbs%norb
       do jorb=1,llborbs%norb
           do korb=1,llborbs%norb
-              ebs = ebs + coeff(jorb,iorb)*coeff(korb,iorb)*matrixElements(korb,jorb,1)
+              !ebs = ebs + wfnmd%coeff(jorb,iorb)*wfnmd%coeff(korb,iorb)*matrixElements(korb,jorb,1)
+              ebs = ebs + matrixElements(jorb,iorb,2)*matrixElements(korb,iorb,2)*matrixElements(korb,jorb,1)
           end do
       end do
   end do
   ! If closed shell multiply by two.
   if(orbs%nspin==1) ebs=2.d0*ebs
+  !!if(iproc==0) then
+  !!    write(*,*) 'ebs',ebs
+  !!    do iorb=1,orbs%norb
+  !!        do jorb=1,llborbs%norb
+  !!            write(200,*) iorb, jorb, wfnmd%coeff(jorb,iorb)
+  !!        end do
+  !!    end do
+  !!    do iorb=1,llborbs%norb
+  !!        do jorb=1,llborbs%norb
+  !!            write(210,*) iorb, jorb, matrixElements(jorb,iorb,1)
+  !!        end do
+  !!    end do
+  !!end if
 
 
 
@@ -352,10 +376,11 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       do jorb=1,llborbs%norb,inc
           tt=0.d0
           do korb=1,llborbs%norb
-              tt = tt + coeff(korb,iorb)*overlapmatrix(korb,jorb)
+              !tt = tt + wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
+              tt = tt + matrixElements(korb,iorb,2)*overlapmatrix(korb,jorb)
           end do
           coeff_proj(jjorb,iorb)=tt
-          !if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  coeff_proj(jjorb,iorb), coeff(jorb,iorb)
+          !if(iproc==0) write(99,'(2i7,2es16.8)') iorb, jjorb,  coeff_proj(jjorb,iorb), wfnmd%coeff(jorb,iorb)
           jjorb=jjorb+1
       end do
   end do
