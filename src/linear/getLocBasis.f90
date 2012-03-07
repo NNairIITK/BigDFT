@@ -172,7 +172,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
       allocate(lphi(llborbs%npsidim_orbs), stat=istat)
       call memocc(istat, lphi, 'lphi', subname)
-      wfnmd%nphi=llborbs%npsidim_orbs
+      wfnmd%nphi=lorbs%npsidim_orbs
+      wfnmd%nlbphi=llborbs%npsidim_orbs
+      wfnmd%basis_is=BASIS_IS_ENHANCED
 
       if(.not.useDerivativeBasisFunctions) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
   end if
@@ -189,6 +191,9 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
            max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart,lphi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if
+
+  ! This is also ok if no derivatives are used, since then the size with and without derivatives is the same.
+  wfnmd%basis_is=BASIS_IS_ENHANCED
 
   ! Calculate the overlap matrix.
   if(.not.useDerivativeBasisFunctions) then
@@ -646,6 +651,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
            lzd, lorbs, op, comon, mad, comgp, &
            lphi, lhphi, lhphiold, lphiold)
       wfnmd%nphi=lorbs%npsidim_orbs
+      wfnmd%basis_is=BASIS_IS_STANDARD
       call dcopy(orbslarge%npsidim_orbs, lphilarge(1), 1, lphi(1), 1)
       call destroy_new_locregs(lzdlarge, orbslarge, oplarge, comonlarge, madlarge, comgplarge, &
            lphilarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -747,6 +753,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                        lzd, lorbs, op, comon, mad, comgp, &
                        lphi, lhphi, lhphiold, lphiold)
                   wfnmd%nphi=lorbs%npsidim_orbs
+                  wfnmd%basis_is=BASIS_IS_STANDARD 
                   call allocateCommunicationsBuffersPotential(comgp, subname)
               end if
 
@@ -1141,6 +1148,7 @@ real(8),dimension(3,lzd%nlr):: locregCenterTemp
                    lzd, lorbs, op, comon, mad, comgp, &
                    lphi, lhphi, lhphiold, lphiold)
               wfnmd%nphi=lorbs%npsidim_orbs
+              wfnmd%basis_is=BASIS_IS_STANDARD
           end if
 
           if(secondLocreg) then

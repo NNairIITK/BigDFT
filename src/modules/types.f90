@@ -72,6 +72,8 @@ module module_types
   !> Target function for the optimization of the basis functions (linear scaling version)
   integer,parameter:: TARGET_FUNCTION_IS_TRACE=0
   integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
+  integer,parameter:: BASIS_IS_STANDARD=10
+  integer,parameter:: BASIS_IS_ENHANCED=11
 
   !> Type used for the orthogonalisation parameter
   type, public :: orthon_data
@@ -788,7 +790,7 @@ end type workarrays_quartic_convolutions
 
 
   type,public:: wfn_metadata
-    integer:: nphi, nlbphi
+    integer:: nphi, nlbphi, basis_is
     real(8),dimension(:),pointer:: phi, phiRestart
     real(8),dimension(:,:),pointer:: coeff, coeff_proj
     type(basis_specifications):: bs

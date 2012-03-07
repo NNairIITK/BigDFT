@@ -344,15 +344,19 @@ type(wfn_metadata):: wfnmd
 
   outerLoop: do itout=1,lin%nit_lowaccuracy+lin%nit_highaccuracy
 
+      ! First to some initialization and determine the value of some control parameters.
 
+      ! Initialize DIIS...
       call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%norb, ldiis)
-      !!call initializeDIIS(lin%DIISHistMax, lin%lzdlarge, lin%orbslarge, lin%orbslarge%norb, ldiis)
       ldiis%DIISHistMin=lin%DIISHistMin
       ldiis%DIISHistMax=lin%DIISHistMax
       ldiis%alphaSD=lin%alphaSD
       ldiis%alphaDIIS=lin%alphaDIIS
 
+      ! The basis functions shall be optimized
       wfnmd%bs%update_phi=.true.
+
+      ! Convergence criterion for the self consistency looo
       selfConsistent=lin%convCritMix
 
       ! Check whether the derivatives shall be used or not.
@@ -371,10 +375,11 @@ type(wfn_metadata):: wfnmd
           nit_highaccuracy=0
       end if 
 
-      ! Choose the correct confining potential and gradient method, depending on whether we are in the low accuracy
-      ! or high accuracy part.
+      ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(lowaccur_converged, input, at, lin%orbs, lin%lzd%nlr, onwhichatom, confdatarr, wfnmd, &
            locrad, nitSCC, nitSCCWhenOptimizing, mixHist, alphaMix)
+
+      ! Somce special treatement if we are in the high accuracy part
       if(lowaccur_converged) then
           nit_highaccuracy=nit_highaccuracy+1
           if(nit_highaccuracy==input%lin%nit_highaccuracy+1) then
@@ -394,13 +399,12 @@ type(wfn_metadata):: wfnmd
           end if
       end if
 
-
-
       ! Allocate the communication arrays for the calculation of the charge density.
       with_auxarray=.false.
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%comsr, subname)
       call allocateCommunicationbufferSumrho(iproc, with_auxarray, lin%lb%comsr, subname)
 
+      ! Now all initializations are done...
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first nitSCCWhenOptimizing iteration, the basis functions are optimized, whereas in the remaining
@@ -413,7 +417,7 @@ type(wfn_metadata):: wfnmd
               wfnmd%bs%communicate_phi_for_lsumrho=.false.
           end if
 
-          ! Update the basis functions (if updatePhi is true), diagonalize the Hamiltonian in this basis, and diagonalize it.
+          ! Update the basis functions (if wfnmd%bs%update_phi is true), calculate the Hamiltonian in this basis, and diagonalize it.
           if(lin%mixedmode) then
               if(.not.withder) then
                   wfnmd%bs%use_derivative_basis=.false.
@@ -451,9 +455,7 @@ type(wfn_metadata):: wfnmd
           end if
 
 
-          ! Potential from electronic charge density
-          !!call mpi_barrier(mpi_comm_world, ierr)
-          !!call cpu_time(t1)
+          ! Calculate the charge density.
           if(lin%mixedmode) then
               if(.not.withder) then
                   call sumrhoForLocalizedBasis2(iproc, nproc, orbs%norb, &
@@ -472,10 +474,6 @@ type(wfn_metadata):: wfnmd
                    wfnmd%coeff, Glr%d%n1i*Glr%d%n2i*denspot%dpcom%n3d, &
                    denspot%rhov, at, denspot%dpcom%nscatterarr)
           end if
-          !!call mpi_barrier(mpi_comm_world, ierr)
-          !!call cpu_time(t2)
-          !!time=t2-t1
-          !!if(iproc==0) write(*,'(1x,a,es10.3)') 'time for sumrho:', time
 
           ! Mix the density.
           if(trim(lin%mixingMethod)=='dens') then
@@ -510,9 +508,6 @@ type(wfn_metadata):: wfnmd
           if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
           call updatePotential(iproc,nproc,at%geocode,input%ixc,input%nspin,&
                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr,denspot,ehart,eexcu,vexcu)
-!!$          call updatePotential(iproc, nproc, denspot%dpcom%n3d, denspot%dpcom%n3p, Glr, orbs, at, input, lin, &
-!!$              denspot%rhov, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-!!$              coeff, ehart, eexcu, vexcu)
 
           ! Calculate the total energy.
           energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
@@ -552,7 +547,6 @@ type(wfn_metadata):: wfnmd
           end if
 
           ! Post communications for gathering the potential
-          !ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
           call allocateCommunicationsBuffersPotential(lin%comgp, subname)
           call postCommunicationsPotential(iproc, nproc, denspot%dpcom%ndimpot, denspot%rhov, lin%comgp)
           if(wfnmd%bs%use_derivative_basis) then
@@ -996,6 +990,7 @@ subroutine create_wfn_metadata(mode, nphi, nlbphi, lnorb, llbnorb, norb, input, 
 
       wfnmd%nphi=nphi
       wfnmd%nlbphi=nlbphi
+      wfnmd%basis_is=BASIS_IS_ENHANCED ! since always it is allocated with wfnmd%nlbphi
 
       allocate(wfnmd%phi(wfnmd%nlbphi), stat=istat)
       call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
