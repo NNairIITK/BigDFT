@@ -234,7 +234,7 @@ type(wfn_metadata):: wfnmd
               lin%mad, lin%mad, lin%op, lin%op, lin%comon, lin%comon, &
               lin%comgp, lin%comgp, at, rxyz, &
               denspot, GPU, wfnmd%bs%update_phi, &
-              infoBasisFunctions, infoCoeff, 0, ebs, wfnmd%coeff, wfnmd%phi, nlpspd, proj, &
+              infoBasisFunctions, infoCoeff, 0, ebs, wfnmd%coeff, nlpspd, proj, &
               wfnmd%bs%communicate_phi_for_lsumrho, wfnmd%coeff_proj, ldiis, wfnmd%bs%nit_basis_optimization, lin%nItInnerLoop, &
               orthpar, confdatarr, wfnmd%bs%meth_transform_overlap, wfnmd%bpo%blocksize_pdgemm, &
               wfnmd%bs%conv_crit, wfnmd%bs%nit_precond, wfnmd%bs%use_derivative_basis, wfnmd%phiRestart, &
@@ -246,7 +246,7 @@ type(wfn_metadata):: wfnmd
               lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
               lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
               denspot,GPU,wfnmd%bs%update_phi,&
-              infoBasisFunctions,infoCoeff,0, ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
+              infoBasisFunctions,infoCoeff,0, ebs,wfnmd%coeff,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
               wfnmd%coeff_proj,ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,& 
               wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
               wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
@@ -425,7 +425,7 @@ type(wfn_metadata):: wfnmd
                       lin%mad,lin%mad,lin%op,lin%op,lin%comon,&
                       lin%comon,lin%comgp,lin%comgp,at,rxyz,&
                       denspot,GPU,wfnmd%bs%update_phi,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                       wfnmd%coeff_proj,ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
                       wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
                       wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
@@ -436,7 +436,7 @@ type(wfn_metadata):: wfnmd
                       lin%mad,lin%lb%mad,lin%op,lin%lb%op,&
                       lin%comon,lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                       denspot,GPU,wfnmd%bs%update_phi,&
-                      infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
+                      infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                       wfnmd%coeff_proj,ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
                       wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
                       wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
@@ -447,7 +447,7 @@ type(wfn_metadata):: wfnmd
                   lin%mad,lin%lb%mad,lin%op,lin%lb%op,lin%comon,&
                   lin%lb%comon,lin%comgp,lin%lb%comgp,at,rxyz,&
                   denspot,GPU,wfnmd%bs%update_phi,&
-                  infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
+                  infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                   wfnmd%coeff_proj,ldiis,wfnmd%bs%nit_basis_optimization,lin%nItInnerLoop,orthpar,confdatarr,&
                   wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
                   wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&

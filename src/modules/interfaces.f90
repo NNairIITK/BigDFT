@@ -2100,7 +2100,7 @@ module module_interfaces
     subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
          mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
          GPU,updatePhi,&
-         infoBasisFunctions,infoCoeff,itSCC,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,coeff_proj,&
+         infoBasisFunctions,infoCoeff,itSCC,ebs,coeff,nlpspd,proj,communicate_lphi,coeff_proj,&
          ldiis,nit,nItInnerLoop,orthpar,confdatarr,&
          methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
          useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
@@ -2132,7 +2132,7 @@ module module_interfaces
       real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
       real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
       !real(8),dimension(max(llborbs%npsidim_orbs,llborbs%npsidim_comp)),intent(inout):: lphi
-      real(8),dimension(:),pointer,intent(inout):: lphi
+      !real(8),dimension(:),pointer,intent(inout):: lphi
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       logical,intent(in):: communicate_lphi

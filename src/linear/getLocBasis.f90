@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc,nproc,lzd,orbs,lorbs,llborbs,comsr,&
     mad,lbmad,op,lbop,comon,lbcomon,comgp,lbcomgp,at,rxyz,denspot,&
     GPU,updatePhi,&
-    infoBasisFunctions,infoCoeff,itSCC,ebs,coeff,lphi,nlpspd,proj,communicate_lphi,coeff_proj,&
+    infoBasisFunctions,infoCoeff,itSCC,ebs,coeff,nlpspd,proj,communicate_lphi,coeff_proj,&
     ldiis,nit,nItInnerLoop,orthpar,confdatarr,&
     methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
     useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
@@ -83,7 +83,7 @@ integer,intent(out):: infoBasisFunctions, infoCoeff
 real(8),intent(out):: ebs
 real(8),intent(in):: convCrit, hx, hy, hz, factor_enlarge
 real(8),dimension(llborbs%norb,orbs%norb),intent(in out):: coeff
-real(8),dimension(:),pointer,intent(inout):: lphi
+!real(8),dimension(:),pointer,intent(inout):: lphi
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 logical,intent(in):: communicate_lphi
@@ -133,12 +133,12 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       !!     stop
       !!end if
       if(useDerivativeBasisFunctions) then
-          call dcopy(lorbs%npsidim_orbs,lphiRestart(1),1,lphi(1),1)
+          call dcopy(lorbs%npsidim_orbs,lphiRestart(1),1,wfnmd%phi(1),1)
       end if
 
       ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc,nproc,at,lzd,lorbs,orbs,comon,op,comgp,mad,rxyz,&
-           denspot,GPU,lphi,trace,&
+          denspot,GPU,wfnmd%phi,trace,&
           infoBasisFunctions,ovrlp,nlpspd,proj,coeff_proj,ldiis,nit,nItInnerLoop,&
           orthpar,confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,&
           hx,hy,hz,SIC,nItPrecond,factor_enlarge,locrad,wfnmd)
@@ -160,23 +160,23 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
   ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   ! Keep the value of lphi for the next iteration
-  if(updatePhi .or. itSCC==0) call dcopy(lorbs%npsidim_orbs, lphi(1), 1, lphiRestart(1), 1)
+  if(updatePhi .or. itSCC==0) call dcopy(lorbs%npsidim_orbs, wfnmd%phi(1), 1, lphiRestart(1), 1)
 
   !if(updatePhi .and. newgradient) then
   if(updatePhi .and. wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
 
       ! Reallocate lphi, since it is now allocated without the derivatives
-      iall=-product(shape(lphi))*kind(lphi)
-      deallocate(lphi, stat=istat)
-      call memocc(istat, iall, 'lphi', subname)
+      iall=-product(shape(wfnmd%phi))*kind(wfnmd%phi)
+      deallocate(wfnmd%phi, stat=istat)
+      call memocc(istat, iall, 'wfnmd%phi', subname)
 
-      allocate(lphi(llborbs%npsidim_orbs), stat=istat)
-      call memocc(istat, lphi, 'lphi', subname)
+      allocate(wfnmd%phi(llborbs%npsidim_orbs), stat=istat)
+      call memocc(istat, wfnmd%phi, 'wfnmd%phi', subname)
       wfnmd%nphi=lorbs%npsidim_orbs
       wfnmd%nlbphi=llborbs%npsidim_orbs
       wfnmd%basis_is=BASIS_IS_ENHANCED
 
-      if(.not.useDerivativeBasisFunctions) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
+      if(.not.useDerivativeBasisFunctions) call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, wfnmd%phi(1), 1)
   end if
       
   !!call dcopy(lorbs%npsidim_orbs, lphiRestart(1), 1, lphi(1), 1)
@@ -188,7 +188,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
       call initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculating derivative basis functions...'
       call getDerivativeBasisFunctions(iproc,nproc,hx,lzd,lorbs,llborbs,comrp,&
-           max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart,lphi)
+           max(lorbs%npsidim_orbs,lorbs%npsidim_comp),lphiRestart,wfnmd%phi)
       if(iproc==0) write(*,'(a)') 'done.'
   end if
 
@@ -197,14 +197,14 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 
   ! Calculate the overlap matrix.
   if(.not.useDerivativeBasisFunctions) then
-      call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, lphi, mad, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lzd, lorbs, comon, op, wfnmd%phi, mad, ovrlp)
   else
-      call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, lphi, lbmad, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lzd, llborbs, lbcomon, lbop, wfnmd%phi, lbmad, ovrlp)
   end if
 
 
   if(communicate_lphi) then
-      call communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
+      call communicate_basis_for_density(iproc, nproc, lzd, llborbs, wfnmd%phi, comsr)
   end if
   
 
@@ -243,7 +243,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
      call default_confinement_data(confdatarrtmp,lorbs%norbp)
      call FullHamiltonianApplication(iproc,nproc,at,lorbs,&
           hx,hy,hz,rxyz,&
-          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,lphi,lhphi,&
+          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,wfnmd%phi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
           pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
@@ -254,7 +254,7 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
      call default_confinement_data(confdatarrtmp,llborbs%norbp)
      call FullHamiltonianApplication(iproc,nproc,at,llborbs,&
           hx,hy,hz,rxyz,&
-          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,lphi,lhphi,&
+          proj,lzd,nlpspd,confdatarrtmp,denspot%dpcom%ngatherarr,denspot%pot_full,wfnmd%phi,lhphi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,&
           pkernel=denspot%pkernelseq)
      deallocate(confdatarrtmp)
@@ -281,10 +281,10 @@ type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   ! Calculate the matrix elements <phi|H|phi>.
   call allocateCommuncationBuffersOrtho(lbcomon, subname)
   if(.not. useDerivativeBasisFunctions) then
-      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, lphi, lhphi, mad, matrixElements)
+      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, wfnmd%phi, lhphi, mad, matrixElements)
       !call getMatrixElements2(iproc, nproc, lzd, lorbs, op, comon, lphi, lhphi, mad, matrixElements)
   else
-      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, lphi, lhphi, lbmad, matrixElements)
+      call getMatrixElements2(iproc, nproc, lzd, llborbs, lbop, lbcomon, wfnmd%phi, lhphi, lbmad, matrixElements)
   end if
   call deallocateCommuncationBuffersOrtho(lbcomon, subname)
 
