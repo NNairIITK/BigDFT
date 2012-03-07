@@ -538,7 +538,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,hx,hy,hz,rxyz,&
          !do something only if at least one of the orbitals lives in the ilr
          dosome=.false.
          do iorb=isorb,ieorb
-            dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
+            !dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
+            dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr .and. lzd%doHamAppl(ilr))
             if (dosome) exit
          end do
          if (.not. dosome) cycle loop_lr

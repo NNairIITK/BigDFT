@@ -772,6 +772,12 @@ end type workarrays_quartic_convolutions
     type(collectiveComms):: collComms
   end type linearParameters
 
+  type,public:: wfn_metadata
+    integer:: nphi, nlbphi
+    real(8),dimension(:),pointer:: phi
+  end type wfn_metadata
+
+
 !> Contains the arguments needed for the diis procedure
   type, public :: diis_objects
      logical :: switchSD

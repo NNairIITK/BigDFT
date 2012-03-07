@@ -1889,7 +1889,7 @@ module module_interfaces
            denspot,GPU,lphi,trH,&
            infoBasisFunctions,ovrlp,nlpspd,proj,coeff,ldiis,nit,nItInnerLoop,newgradient,orthpar,&
            confdatarr,methTransformOverlap,blocksize_pdgemm,convCrit,hx,hy,hz,SIC,nItPrecond,factor_enlarge, &
-           locrad)
+           locrad,wfnmd)
         use module_base
         use module_types
 
@@ -1928,6 +1928,7 @@ module module_interfaces
         type(confpot_data), dimension(lorbs%norbp),intent(in) :: confdatarr
         type(SIC_data) :: SIC !<parameters for the SIC methods
         real(8),dimension(lzd%nlr),intent(in):: locrad
+        type(wfn_metadata),intent(inout):: wfnmd
       end subroutine getLocalizedBasis
 
 
@@ -2106,7 +2107,7 @@ module module_interfaces
          ldiis,nit,nItInnerLoop,newgradient,orthpar,confdatarr,&
          methTransformOverlap,blocksize_pdgemm,convCrit,nItPrecond,&
          useDerivativeBasisFunctions,lphiRestart,comrp,blocksize_pdsyev,nproc_pdsyev,&
-         hx,hy,hz,SIC,factor_enlarge,locrad)
+         hx,hy,hz,SIC,factor_enlarge,locrad,wfnmd)
       use module_base
       use module_types
       implicit none
@@ -2148,6 +2149,7 @@ module module_interfaces
       type(p2pComms),intent(inout):: comrp
       type(SIC_data),intent(in):: SIC
       real(8),dimension(lzd%nlr),intent(in):: locrad
+      type(wfn_metadata),intent(inout):: wfnmd
     end subroutine getLinearPsi
 
 
@@ -5157,7 +5159,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(input_variables),intent(in):: input
        real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
        real(8),dimension(max(lin%orbs%npsidim_orbs,lin%orbs%npsidim_comp)),intent(inout):: lphi
-       real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
+       !real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psi, psit
+       real(8),dimension(:),pointer,intent(out):: psi, psit
      end subroutine transformToGlobal
 
 
@@ -6198,6 +6201,21 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(llborbs%npsidim_orbs),intent(in):: lphi
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
+
+       subroutine create_wfn_metadata(nphi, nlbphi, wfnmd)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: nphi, nlbphi
+         type(wfn_metadata),intent(out):: wfnmd
+       end subroutine create_wfn_metadata
+
+       subroutine destroy_wfn_metadata(wfnmd)
+         use module_base
+         use module_types
+         implicit none
+         type(wfn_metadata),intent(inout):: wfnmd
+       end subroutine destroy_wfn_metadata
 
    end interface
 
