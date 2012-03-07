@@ -223,6 +223,7 @@ module module_types
   type, public :: energy_terms
      real(gp) :: eh,exc,vxc,eion,edisp,ekin,epot,eproj,eexctX
      real(gp) :: ebs,eKS,trH
+     !real(gp), dimension(:,:), pointer :: fion,f
   end type energy_terms
 
 !>  Bounds for coarse and fine grids for kinetic operations
