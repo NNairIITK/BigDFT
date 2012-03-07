@@ -132,7 +132,7 @@ type(wfn_metadata):: wfnmd
   !!     hx,hy,hz,lin,lin%lzd,lin%orbs%inWhichLocreg)
 
 
-  orthpar%methTransformOverlap = lin%methTransformOverlap
+  orthpar%methTransformOverlap = wfnmd%bs%meth_transform_overlap
   orthpar%nItOrtho = lin%nItOrtho
   orthpar%blocksize_pdsyev = wfnmd%bpo%blocksize_pdsyev
   orthpar%blocksize_pdgemm = wfnmd%bpo%blocksize_pdgemm
@@ -235,8 +235,8 @@ type(wfn_metadata):: wfnmd
               denspot, GPU, wfnmd%bs%update_phi, &
               infoBasisFunctions, infoCoeff, 0, ebs, wfnmd%coeff, wfnmd%phi, nlpspd, proj, &
               wfnmd%bs%communicate_phi_for_lsumrho, wfnmd%coeff_proj, ldiis, nit, lin%nItInnerLoop, &
-              orthpar, confdatarr, lin%methTransformOverlap, wfnmd%bpo%blocksize_pdgemm, &
-              wfnmd%bs%conv_crit, lin%nItPrecond, wfnmd%bs%use_derivative_basis, wfnmd%phiRestart, &
+              orthpar, confdatarr, wfnmd%bs%meth_transform_overlap, wfnmd%bpo%blocksize_pdgemm, &
+              wfnmd%bs%conv_crit, wfnmd%bs%nit_precond, wfnmd%bs%use_derivative_basis, wfnmd%phiRestart, &
               lin%lb%comrp, wfnmd%bpo%blocksize_pdsyev, wfnmd%bpo%nproc_pdsyev, &
               hx, hy, hz, input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       else
@@ -247,7 +247,7 @@ type(wfn_metadata):: wfnmd
               denspot,GPU,wfnmd%bs%update_phi,&
               infoBasisFunctions,infoCoeff,0, ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
               wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,& 
-              lin%methTransformOverlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
+              wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
               wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
               hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
       end if
@@ -469,7 +469,7 @@ type(wfn_metadata):: wfnmd
                       denspot,GPU,wfnmd%bs%update_phi,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                       wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,&
-                      lin%methTransformOverlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
+                      wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
                       wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               else
@@ -480,7 +480,7 @@ type(wfn_metadata):: wfnmd
                       denspot,GPU,wfnmd%bs%update_phi,&
                       infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                       wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,&
-                      lin%methTransformOverlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
+                      wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
                       wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                       hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
               end if
@@ -491,7 +491,7 @@ type(wfn_metadata):: wfnmd
                   denspot,GPU,wfnmd%bs%update_phi,&
                   infoBasisFunctions,infoCoeff,itScc,ebs,wfnmd%coeff,wfnmd%phi,nlpspd,proj,wfnmd%bs%communicate_phi_for_lsumrho,&
                   wfnmd%coeff_proj,ldiis,nit,lin%nItInnerLoop,orthpar,confdatarr,&
-                  lin%methTransformOverlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,lin%nItPrecond,&
+                  wfnmd%bs%meth_transform_overlap,wfnmd%bpo%blocksize_pdgemm,wfnmd%bs%conv_crit,wfnmd%bs%nit_precond,&
                   wfnmd%bs%use_derivative_basis,wfnmd%phiRestart,lin%lb%comrp,wfnmd%bpo%blocksize_pdsyev,wfnmd%bpo%nproc_pdsyev,&
                   hx,hy,hz,input%SIC, input%lin%factor_enlarge, locrad, wfnmd)
           end if
@@ -1149,6 +1149,8 @@ subroutine init_basis_specifications(input, bs)
   bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   bs%conv_crit=input%lin%convCrit
   bs%target_function=TARGET_FUNCTION_IS_TRACE
+  bs%meth_transform_overlap=input%lin%methTransformOverlap
+  bs%nit_precond=input%lin%nitPrecond
 
 end subroutine init_basis_specifications
 
